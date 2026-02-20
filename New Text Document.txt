@@ -1,0 +1,27 @@
+import torch
+import os
+
+def monitor_thaw(file_path=r'data/encodings\hijack_init_0.61.pt'):
+    if not os.path.exists(file_path):
+        print("Waiting for trainer to emit first recovery snapshot...")
+        return
+
+    data = torch.load(file_path, map_location='cpu')
+    weights = data['state_dict']
+    
+    # Track the specific layer that was fossilized
+    layer_key = 'hyper_ring.project_to_polytope.weight'
+    if layer_key in weights:
+        var = torch.var(weights[layer_key]).item()
+        pas_h = data.get('pas_h', 0.0)
+        
+        print(f"\n--- 🌡️ RECOVERY TELEMETRY ---")
+        print(f"Current PAS_h: {pas_h:.4f}")
+        print(f"Polytope Variance: {var:.6f} (Target: > 0.0100)")
+        
+        if var > 0.006: # Higher than our starting 0.0049
+            print("✅ STATUS: THAWING. The model is absorbing the 0.61 signal.")
+        else:
+            print("⏳ STATUS: STAGNANT. Weights are still locked in the 0.30 geometry.")
+
+monitor_thaw()

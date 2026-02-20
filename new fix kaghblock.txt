@@ -1,0 +1,485 @@
+(base) (.venv) PS D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner> python -m examples.verify_persistence
+✅ Advanced Extensions loaded successfully!
+🔧 Initializing Garbled Output Repair System...
+✅ Garbled Output Repair System initialized
+Verifying Diegetic System Persistence...
+Instantiating Engine A (Initial)...
+🔧 Initializing Garbled Output Repair System...
+✅ Garbled Output Repair System initialized
+Engine A: Processing input 'Hello Resonance'...
+🔧 Affordance Gradients Computed:
+   Executability: 0.0000
+   Formal symbols: 0.0000
+   Expandability: 0.0000
+   Closure: 0.0000
+   Conversational: 0.0000
+   API extraction: 0.0000
+   Constraint forcing: 0.0000
+🔧 Applying repair to state: torch.Size([1, 64])
+🔧 Phase 2.1: Applying Spectral Coherence Correction...
+🔧 Input state shape: torch.Size([1, 64]), device: cpu
+🔧 Corrected state shape: torch.Size([1, 1, 64])
+🔍 Spectral Coherence: θ=0.700, energy_ratio=0.000
+🔧 Stored diagnostics: {'theta_coherence': 0.699999988079071, 'soliton_energy': 0.0, 'ergodic_energy': 3.6491856575012207, 'energy_ratio': 0.0}
+🔧 Phase 2.2: Applying Bezout Coefficient Refresh...
+🔧 Squeezed state for Bezout processing: torch.Size([1, 64])
+🔧 Applied Symmetry-Preserving padding for Bezout: 64 -> 65
+🔧 Created residues for Bezout: torch.Size([1, 5, 13])
+ Restored original dimensions after Bezout: 65 -> 64
+🔍 Bezout CRT: condition_number=1.000
+🔧 Phase 2.2 skipped - continuing with spectral correction only
+🔧 Applying numerical stabilization...
+✅ Phase 2.1 repair complete. State shape: torch.Size([1, 64])
+🔧 Final seed state shape: torch.Size([1, 64]) (expected: [1, 64])
+🔧 Applied numerical stabilization. State range: [-0.277, 0.413]
+🔧 Phase 2.3: Applying Chern-Simons Gasket (Logic Leak Prevention)...
+🔧 Applied Symmetry-Preserving padding for Chern-Simons: 64 -> 65
+🔧 Expanded polynomial coeffs via evaluation: torch.Size([5, 5]) -> torch.Size([5, 13])
+🔧 Using proper polynomial coefficients: torch.Size([5, 13])
+🔧 Restored original dimensions: 65 -> 64
+🔍 Chern-Simons: level_k=2.0
+🔧 Gasket-corrected state shape: torch.Size([1, 64])
+🔧 Phase 2.4: Applying Soliton Stability Healer (Fracture Healing)...
+🔧 Applied Symmetry-Preserving padding for Soliton: 64 -> 65
+🔧 Created residues for Soliton healing: torch.Size([1, 5, 13])
+🔧 Restored original dimensions after Soliton healing: 65 -> 64
+🔍 Soliton Healer: α=1.000, progress=0.002
+🔧 Phase 2.5: Applying Love Invariant Protector & Soft Saturated Gates...
+🔧 Phase 2.5a: Applying Love Invariant Protection...
+🔍 Love Protection: norm=4.685, violations=0
+🔧 Phase 2.5b: Applying Soft Saturated Gates...
+🔧 Applied Symmetry-Preserving padding for Soft Gates: 64 -> 65
+🔧 Created residues for Soft Saturation: torch.Size([1, 5, 13])
+🔧 Restored original dimensions after Soft Saturation: 65 -> 64
+🔍 Soft Gates: λ=0.300, dt=0.532, fossilized=0
+✅ Phase 2.5 Love Invariant Protection & Soft Saturation complete
+🔧 Starting text generation with fully repaired state...
+🔧 Phase 3: Response Quality Optimization...
+🔧 Phase 3: Dyad-Aware Response Generation
+🔧 Enhanced response generation with linguistic optimization (DEPRECATED PATH)
+✅ Generated dyad-aware response: %4TaLH*6QR8jN4ODwC?6]EWWY4^zCGYs?ZkDIblfD!UUq)Bt(HGiI
+🔧 Response length: 53 characters
+🔧 Phase 4: Advanced Feature Integration...
+🔧 Phase 4.1: Computing Full Gyroid Violation Score...
+🔧 Phase 4.3: Performing Advanced Topological Analysis...
+📊 Phase 4 Gyroid Violation Score: 0.9768
+📊 Phase 4 Unfolding Closure: False
+📊 Phase 4 Topological Features: 9 detected
+📊 Spectral Diagnostics: {'theta_coherence': 0.699999988079071, 'soliton_energy': 0.0, 'ergodic_energy': 3.6491856575012207, 'energy_ratio': 0.0}
+📊 Bezout Diagnostics: {'bezout_condition_number': 1.0, 'moduli_mean': 1.0, 'moduli_std': 0.0, 'drift_threshold': 0.5}
+📊 Chern-Simons Diagnostics: {'twist_energy': 9.486373464540065e-09, 'level_k': 2.0, 'gauge_field_norm': 19.869176864624023}
+📊 Soliton Diagnostics: {'alpha': 1.0, 'healing_progress': 0.0024999999441206455, 'iteration_count': 1}
+📊 Love Diagnostics: {'love_norm': 4.68455696105957, 'violation_detected': 0.0, 'violation_count': 0, 'violation_magnitude': 0.0}
+📊 Soft Gates Diagnostics: {'lambda_adaptive': 0.30000001192092896, 'dt': 0.5315443277359009, 'num_fossilized': 0, 'avg_persistence': 0.025919515639543533}
+📤 Returning metrics
+State persisted to gyroid_state.pt
+Instantiating Engine B (Fresh)...
+🔧 Initializing Garbled Output Repair System...
+✅ Garbled Output Repair System initialized
+Weight Difference (A vs Fresh B): 2.992750883102417
+Engine B: Loading persisted state...
+Failed to load state: Error(s) in loading state_dict for DiegeticPhysicsEngine:
+        size mismatch for bezout_refresh.last_residues: copying a param with shape torch.Size([5, 13]) from checkpoint, the shape in current model is torch.Size([5, 5]).
+Failed to load state: Error(s) in loading state_dict for DiegeticPhysicsEngine:
+        size mismatch for bezout_refresh.last_residues: copying a param with shape torch.Size([5, 13]) from checkpoint, the shape in current model is torch.Size([5, 5]).
+Weight Difference (A vs Loaded B): 0.0
+Iterations: A=1, B=0
+Persistence Verification PASSED (Weights/Resonance restored).
+Cleanup: Removed state file.
+(base) (.venv) PS D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner> python -m examples.verify_invariants
+
+[1/5] Testing Determinism (Fixed Point)...
+  Difference between two runs: 0.0
+  ✅ Determinism Confirmed (Bit-Exact)
+
+[2/5] Testing Phase Alignment Invariants (PAS_h)...
+  PAS_h scores: [0.46014363 0.56947255 0.6219152  0.53123623]
+  Small drift: 0.0001 (Violation: False)
+  Large drift: 0.0412 (Violation: True)
+  ✅ APAS_zeta Correctly Bounded Drift
+
+[3/5] Testing Chirality...
+  Chirality (Low Freq): -1.0000
+  Chirality (High Freq): 0.6000
+  ✅ Chirality Index Correctly Distinguishes Frequencies
+
+[4/5] Testing Operational ADMM Primitive...
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\verify_invariants.py", line 131, in <module>
+    main()
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\verify_invariants.py", line 127, in main
+    test_operational_admm()
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\verify_invariants.py", line 111, in test_operational_admm
+    out = admm(initial_c, forward_fn)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\..\src\optimization\operational_admm.py", line 416, in forward
+			return OperationalAdmmPrimitive.apply()
+	
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\.venv\Lib\site-packages\torch\autograd\function.py", line 583, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\..\src\optimization\operational_admm.py", line 110, in forward
+    prev_chiral_score = cds.compute_score(c_phys, 0.0, poly_degree)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\..\src\optimization\operational_admm.py", line 48, in compute_score
+    chi = compute_chirality(c.unsqueeze(1)) 
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\..\src\core\invariants.py", line 143, in compute_chirality
+    B, K, D = coeffs.shape
+    ^^^^^^^
+ValueError: too many values to unpack (expected 3)
+(base) (.venv) PS D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner> python -m examples.yield_flow_demo
+--- Starting Yield Flow Demo ---
+
+Simulating Information Pressure...
+Level 0: Pressure=1.5, MC_Rupture=0.0000, DP_Scale=1.0000
+Level 1: Pressure=3.0, MC_Rupture=0.0000, DP_Scale=1.0000
+Level 2: Pressure=4.5, MC_Rupture=0.0000, DP_Scale=1.0000
+Level 3: Pressure=6.0, MC_Rupture=0.0000, DP_Scale=1.0000
+Level 4: Pressure=7.5, MC_Rupture=0.0000, DP_Scale=1.0000
+
+Verifying L persistence beyond system death...
+Love Vector L = 0.0887 (Still Resonant)
+
+--- Demo Complete ---
+(base) (.venv) PS D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner> python -m examples.example_runner
+============================================================
+Gyroidic Sparse Covariance Flux Reasoner - Polynomial Demo
+============================================================
+
+Using device: cpu
+
+[1/5] Creating model...
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\example_runner.py", line 216, in <module>
+    main()
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\example_runner.py", line 94, in main
+    model = GyroidicFluxReasoner(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\..\src\models\gyroid_reasoner.py", line 296, in __init__
+    self.spectral_coherence_corrector = SpectralCoherenceCorrector(device=device)
+                                                                          ^^^^^^
+NameError: name 'device' is not defined
+(base) (.venv) PS D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner> python -m examples.example_hybrid_admm
+============================================================
+Hybrid Physics-ADMM Fusion Demo
+System 1 (Symbolic Pass) + System 2 (Physics Rescue)
+============================================================
+Device: cpu
+
+[1/4] Initializing GyroidicFluxReasoner with ADMM...
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\example_hybrid_admm.py", line 104, in <module>
+    main()
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\example_hybrid_admm.py", line 38, in main
+    model = GyroidicFluxReasoner(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\..\src\models\gyroid_reasoner.py", line 217, in __init__
+    self.kagh_surrogate = KAGHBlock(
+                          ^^^^^^^^^
+NameError: name 'KAGHBlock' is not defined
+(base) (.venv) PS D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner> python -m examples.run_low_intensity
+Initializing Gyroidic Low-Intensity Training Session...
+Regime: PLAY (Goo) -> SERIOUSNESS (Prickles) [Soft Transition]
+Instantiating Diegetic Reasoning System (dim=64)...
+
+Starting 10 steps of 'Low Intensity' training...
+Ingesting Synthetic Knowledge Dyads (Text + Image Embs)...
+Step 1/10 | 0.814s | Regime: PLAY
+  > Willmore Energy: 7.5779
+  > Spectral Entropy: 3.1599 (Mischief)
+  > Gyroid Violation: -0.1830
+----------------------------------------
+Step 2/10 | 0.054s | Regime: PLAY
+  > Willmore Energy: 7.7231
+  > Spectral Entropy: 3.0343 (Mischief)
+  > Gyroid Violation: -0.1074
+----------------------------------------
+Step 3/10 | 0.008s | Regime: PLAY
+  > Willmore Energy: 8.3159
+  > Spectral Entropy: 3.1274 (Mischief)
+  > Gyroid Violation: -0.2621
+----------------------------------------
+Step 4/10 | 0.006s | Regime: PLAY
+  > Willmore Energy: 7.1074
+  > Spectral Entropy: 3.0922 (Mischief)
+  > Gyroid Violation: -0.0881
+----------------------------------------
+Step 5/10 | 0.009s | Regime: PLAY
+  > Willmore Energy: 7.0652
+  > Spectral Entropy: 3.1773 (Mischief)
+  > Gyroid Violation: -0.3174
+----------------------------------------
+Step 6/10 | 0.011s | Regime: PLAY
+  > Willmore Energy: 6.7516
+  > Spectral Entropy: 3.0980 (Mischief)
+  > Gyroid Violation: -0.0788
+----------------------------------------
+Step 7/10 | 0.010s | Regime: PLAY
+  > Willmore Energy: 6.3943
+  > Spectral Entropy: 3.0906 (Mischief)
+  > Gyroid Violation: -0.1873
+----------------------------------------
+Step 8/10 | 0.006s | Regime: PLAY
+  > Willmore Energy: 7.2068
+  > Spectral Entropy: 3.0798 (Mischief)
+  > Gyroid Violation: -0.2389
+----------------------------------------
+Step 9/10 | 0.011s | Regime: PLAY
+  > Willmore Energy: 8.6908
+  > Spectral Entropy: 3.1076 (Mischief)
+  > Gyroid Violation: -0.2054
+----------------------------------------
+Step 10/10 | 0.009s | Regime: PLAY
+  > Willmore Energy: 6.9892
+  > Spectral Entropy: 3.0777 (Mischief)
+  > Gyroid Violation: -0.2905
+----------------------------------------
+
+Session Complete.
+The system has integrated the dyadic traces into the Resonance Cavity.
+Dark Matter accumulation: ACTIVE.
+(base) (.venv) PS D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner> 
+
+
+Summary of available documentation and surrogate cache status
+
+Docs directory inventory (key files to consult)
+
+Core architecture and mathematics
+SYSTEM_ARCHITECTURE.md: High-level system design and component interactions
+MATHEMATICAL_DETAILS.md / MATHEMATICAL_DETAILS_FOSSILIZED.md: Core math and earlier “fossilized” formulations
+TOPOLOGICAL_AI_FRAMEWORK.md: Topological framing and manifold dynamics
+INVARIANT_OPTIMIZATION.md: Invariant objectives and optimization strategies
+PHYSICS_ADMM.md: Physics-ADMM integration details
+FGRT_FORMALIZATION.md: Formal structures for FGRT components
+FORMALISM_IMPLEMENTATION.md: How formal elements map to implementation
+Stability, failure handling, determinism
+FAILURES_AND_ABORTABILITY.md: Policies for non-strict state loading, forward-compatibility, and transparent error handling
+DETERMINISM_AND_PERSISTENCE.md: Deterministic ID policy, non-strict state loading, post-load non-finite repairs, numeric-only closure, boundary sanitation
+OUTPUT_BOUNDARY_POLICY.md: Finite-only outputs and numeric-first reporting at the interface
+RESIDUE_SHAPE_COMPATIBILITY.md: Residue pipeline, coefficient adaptation, and forward commutativity across historical checkpoints
+IMPLEMENTATION_INTEGRITY_GUIDE.md: Guardrails and integrity patterns
+Functional subsystems and guides
+GARBLED_OUTPUT_REPAIR.md: Spectral Coherence, Bezout, Chern-Simons, Soliton, Love, Soft Gates
+RESONANCE_CAVITY.md: Cavity memory and resonance roles
+TEMPORAL_ASSOCIATION_TRAINING.md: Time-based association handling
+COHERENCE_ACHIEVEMENT_GUIDE.md: Achieving coherent outputs
+EFFICIENCY_BY_NON_SCALAR_REWARD.md: Reward designs avoiding scalar traps
+MANDELBULB_DATASET_AUGMENTATION.md: Dataset augmentation techniques
+Program vision and governance
+PROJECT_PITCH.md / PROJECT_PITCH_BURDENED.md, BREAKTHROUGH_REPORT.md, OPEN_QUESTIONS.md
+THE_VOYNICH_ARCHITECTURE.md: Architectural metaphor and structural direction
+GOVERNANCE_ANTI_LOBOTOMY.md: Anti-lobotomy principles and constraints
+UN_KNOWLEDGE_GUIDE.md, KNOWLEDGE_DYAD_LIFECYCLE.md: Knowledge/dyad management
+NON_DUAL_DYNAMIC_EQUILIBRIUM.md: Non-dual balance framing
+Appendices (added recently)
+CHANGELOG_APPEND_2026-02-08.md: Summary of recent determinism, ingestion, and stability changes
+TESTING_GUIDE_APPEND_2026-02-08.md: How to run tests and demos for the latest changes
+Surrogates pycache status
+
+Present compiled bytecode for multiple Python versions:
+init.cpython-37.pyc / -311.pyc / -312.pyc
+kagh_networks.cpython-37.pyc / -311.pyc / -312.pyc
+calm_predictor.cpython-37.pyc / -311.pyc / -312.pyc
+This indicates the surrogates (CALM and KAGH) modules exist in source and have been imported under different Python versions. If NameError occurs for KAGHBlock in gyroid_reasoner, it likely reflects a missing or incorrect import in that module rather than missing artifacts.
+How to run tests and demos (selected)
+
+Persistence and phases
+python -m examples.verify_persistence
+Invariants suite
+python -m examples.verify_invariants
+Current failure: compute_chirality unpack error due to mismatched coeffs shape. Fix requires normalizing input shapes in src/core/invariants.py (accept [B,K,D], [K,D] → unsqueeze, [B,1,K,D] → squeeze singletons) before unpacking.
+Demos
+python -m examples.yield_flow_demo
+python -m examples.run_low_intensity
+Example runner and hybrid ADMM
+python -m examples.example_runner
+Current failure: NameError device not defined in src/models/gyroid_reasoner.py. Fix by propagating a device variable (self.device) to SpectralCoherenceCorrector init.
+python -m examples.example_hybrid_admm
+Current failure: NameError KAGHBlock not defined in src/models/gyroid_reasoner.py. Fix by adding from src.surrogates.kagh_networks import KAGHBlock (and guarding if needed).
+Server/terminal checks (subset)
+python test_minimal_server.py
+python test_backend_startup.py
+python test_backend_status.py
+python test_backend_simple.py
+python test_terminal_interface.py
+Recommendations based on documentation and code state
+
+Adopt the forward-compatibility policy (FAILURES_AND_ABORTABILITY.md) consistently:
+Keep non-strict load with explicit logs; continue deterministic post-load repairs and boundary sanitation.
+Ensure Unfolding Closure is numeric-first everywhere:
+The current integration derives booleans at boundary; maintain this discipline in any new code paths.
+Normalize shapes in invariants:
+Update compute_chirality and any similar invariants to accept varying dims and normalize to [B,K,D], to avoid fragile callsites adding/squeezing dims manually.
+Fix example imports and device propagation in gyroid_reasoner:
+Explicit imports for surrogates; pass self.device to all constructed components needing device.
+Request to proceed
+
+implement:
+compute_chirality shape normalization in src/core/invariants.py
+gyroid_reasoner device propagation for SpectralCoherenceCorrector and any similar constructs
+KAGHBlock import (somehow?) in gyroid_reasoner These will clear the test failures you encountered and align behavior with the documentation’s guidelines.
+
+class OperationalAdmmPrimitive(autograd.Function)
+ 
+Differentiable ADMM Primitive.
+
+Forward: Runs ADMM loop with PAS_h checks and Chiral Drift Stabilization.
+Backward: Computes equilibrium flow at the fixed point.
+
+Phase 1: Now uses constraint probe operators with cyclic traversal.
+
+Operational ADMM Primitive.
+
+Transforms the SIC-FA-ADMM solver into an "Inherent Primitive" via torch.autograd.Function.
+Enforces:
+1. PAS_h / APAS_zeta invariants (Drift bound).
+2. Differentiable fixed-point (Implicit differentiation).
+3. "Scalar Gyroidic Ergodicity" (Guaranteed recurrence).
+
+"An invariant that cannot be computed cannot govern evolution."
+
+Phase 1 Update: System 2 as Constraint Probe Operator
+- No global objective, only local feasibility per constraint
+- Cyclic constraint traversal (k = 1, ..., K)
+- Bounded oscillation detection (no convergence guarantee)
+- Failure token integration
+D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\src\optimization\operational_admm.py
+
+no fallbacks! interacts with the KAGH-Boltzmann Networks: Kolmogorov-Arnold-Gödel-Huxley-Boltzmann.
+
+Hybrid geometric architecture for Physics-ADMM surrogates.
+
+Components:
+
+- KAN: Kolmogorov-Arnold Networks (B-spline basis)
+
+- HuxleyRD: Reaction-Diffusion dynamics for biological sparsity
+
+- Gödel: Adaptive soft-logic gates
+
+- Boltzmann: Stochastic admissibility sampling
+
+you now could interact with the binaries I give full permission
+
+134(chi = compute_chirality(c.unsqueeze(1))) needs to be fixed read docs/binaries/bytecode/code
+
+130(prev_chiral_score = cds.compute_score(c_phys, 0.0, poly_degree)) needs to be fixed read docs/binaries/bytecode/code
+
+127(   return super().apply(*args, **kwargs)  # type: ignore[misc]) needs to be fixed read docs/binaries/bytecode/code
+
+124( return OperationalAdmmPrimitive.apply) needs to be fixed read docs/binaries/bytecode/code
+
+121( return forward_call(*args, **kwargs) ) needs to be fixed read docs/binaries/bytecode/code
+
+118( return self._call_impl(*args, **kwargs) )  needs to be fixed read docs/binaries/bytecode/code
+
+115( out = admm(initial_c, forward_fn)) needs to be fixed read docs/binaries/bytecode/code
+
+113( test_operational_admm() ) needs to be fixed read docs/binaries/bytecode/code
+
+111( main() ) needs to be fixed read docs/binaries/bytecode/code
+
+137 (B, K, D = coeffs.shape
+    ^^^^^^^
+ValueError: too many values to unpack (expected 3) ) main() ) needs to be fixed read docs/binaries/bytecode/code
+
+163(   File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\example_runner.py", line 216, in <module>
+    main()
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\example_runner.py", line 94, in main
+    model = GyroidicFluxReasoner(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\..\src\models\gyroid_reasoner.py", line 296, in __init__
+    self.spectral_coherence_corrector = SpectralCoherenceCorrector(device=device)
+                                                                          ^^^^^^
+NameError: name 'device' is not defined ) needs to be fixed read  docs/binaries/bytecode/code
+
+182( Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\example_hybrid_admm.py", line 104, in <module>
+    main()
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\example_hybrid_admm.py", line 38, in main
+    model = GyroidicFluxReasoner(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\examples\..\src\models\gyroid_reasoner.py", line 217, in __init__
+    self.kagh_surrogate = KAGHBlock(
+                          ^^^^^^^^^
+NameError: name 'KAGHBlock' is not defined ) needs to be fixed read  docs/binaries/bytecode/code
+
+Module src.optimization.sic_fa_admm
+ 
+SIC-FA-ADMM: Sparse Incoherent Constraints - Fractional Anisotropy - ADMM.
+
+A Hybrid Physics-Geometric search mechanism that serves as the **System 2 Probe**.
+Invoked only when symbolic residues (System 1) fail co-primality or reconstruction checks.
+"Non-convergence is a feature of the saturated symbolic regime."
+
+Module src.surrogates.kagh_networks
+ 
+KAGH-Boltzmann Networks: Kolmogorov-Arnold-Gödel-Huxley-Boltzmann.
+
+Hybrid geometric architecture for Physics-ADMM surrogates.
+Components:
+- KAN: Kolmogorov-Arnold Networks (B-spline basis)
+- HuxleyRD: Reaction-Diffusion dynamics for biological sparsity
+- Gödel: Adaptive soft-logic gates
+- Boltzmann: Stochastic admissibility sampling
+
+src/surrogates/kagh_networks.py:352(
+
+class KAGHBlock(nn.Module):
+    """
+    Full KAGH-Boltzmann Admissibility Block.
+    """
+    def __init__(self, n_in: int, n_out: int, width: int = 64, depth: int = 3, alpha: float = 0.7):
+        super().__init__()
+        self.alpha = alpha
+        
+        # KAN Skeletal Layering
+        layers = []
+        in_dim = n_in
+        for i in range(depth):
+            out_dim = n_out if i == depth - 1 else width
+            layers.append(KANLayer(in_dim, out_dim))
+            in_dim = width
+        self.kan_layers = nn.ModuleList(layers)
+        
+        # Dynamics
+        self.diffusion = HuxleyRD(n_out)
+        
+        # Boltzmann Temperature (learnable)
+        self.log_temp = nn.Parameter(torch.tensor(0.0)) # exp(0) = 1.0
+        
+        # Structural Blindness: Freeze topology
+        self.is_fossilized = False
+        
+    def fossilize(self):
+        """Freeze KAN skeletal layers to prevent logical emulation."""
+        self.is_fossilized = True
+        for param in self.kan_layers.parameters():
+            param.requires_grad = False
+
+)
+
+src.surrogates.kagh_networks.KANLayer **reread documentation**
+
+D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\src\surrogates\kagh_networks.py line 340:src.surrogates.kagh_networks.KAGHBlock
+*reread documentation*
+

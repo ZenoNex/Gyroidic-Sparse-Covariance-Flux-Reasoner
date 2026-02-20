@@ -1,0 +1,4 @@
+Replace other nondeterministic hashes elsewhere:
+src/data/conversational_api_ingestor.py currently uses builtin hash(str(sample)) for conversation/message IDs in some loaders. Consider switching to hashlib.blake2s/sha256 over a canonical JSON serialization of the sample for determinism.
+ResonanceCavity salt persistence:
+src/models/resonance_cavity.py uses a salted linear hash for residues. Verify that the salt buffer is persisted in the module state and therefore saved/loaded consistently. If it’s initialized randomly per run and not saved, persist it in the state dict to keep stable indices across sessions.
