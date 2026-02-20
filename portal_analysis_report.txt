@@ -1,0 +1,41 @@
+Analyzing portals in D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner...
+
+--- HTML Portal Analysis ---
+
+File: conversational_web_gui.html
+  - Calls: ${backend_url}/training
+  - Calls: ${backend_url}/interact
+  - Calls: ${backend_url}/interact
+  - Calls: /training
+  - Calls: /interact
+  - Calls: /interact
+
+File: diegetic_terminal.html
+  - Calls: ${state.backend_url}/interact
+  - Calls: ${state.backend_url}/interact
+  - Calls: ${state.backend_url}/interact
+  - Calls: ${state.backend_url}/interact
+
+File: manifold_graph.html
+  - Calls: ${apiBase}/graph
+
+File: wikipedia_trainer.html
+  [WARNING] No API calls found. Likely a mock-up.
+
+--- Backend Analysis ---
+
+File: conversational_backend_server.py
+  Training Logic Detected: True
+  Routes: ['/', '/api/test_token', '/api/check_datasets', '/api/start_ingestion', '/api/ingestion_status', '/api/start_training', '/api/training_status', '/api/stop_training', '/api/chat', '/api/save_model', '/api/system_status']
+
+--- Connectivity Check ---
+[MISMATCH] conversational_web_gui.html calls '${backend_url}/training' but no backend route explicitly matches.
+[MISMATCH] conversational_web_gui.html calls '${backend_url}/interact' but no backend route explicitly matches.
+[MISMATCH] conversational_web_gui.html calls '${backend_url}/interact' but no backend route explicitly matches.
+[MISMATCH] conversational_web_gui.html calls '/interact' but no backend route explicitly matches.
+[MISMATCH] conversational_web_gui.html calls '/interact' but no backend route explicitly matches.
+[MISMATCH] diegetic_terminal.html calls '${state.backend_url}/interact' but no backend route explicitly matches.
+[MISMATCH] diegetic_terminal.html calls '${state.backend_url}/interact' but no backend route explicitly matches.
+[MISMATCH] diegetic_terminal.html calls '${state.backend_url}/interact' but no backend route explicitly matches.
+[MISMATCH] diegetic_terminal.html calls '${state.backend_url}/interact' but no backend route explicitly matches.
+[MISMATCH] manifold_graph.html calls '${apiBase}/graph' but no backend route explicitly matches.
