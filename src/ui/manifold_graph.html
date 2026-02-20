@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gyroidic Manifold Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Fira+Code:wght@400&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #030303;
+            --terminal-green: #00ff41;
+            --terminal-blue: #00f2ff;
+            --terminal-magenta: #ff00f2;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --font-main: 'Outfit', sans-serif;
+            --font-mono: 'Fira Code', monospace;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: #e0e0e0;
+            font-family: var(--font-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background-image: radial-gradient(circle at 50% 50%, rgba(10, 10, 10, 1) 0%, rgba(0, 0, 0, 1) 100%);
+        }
+
+        header {
+            padding: 1.5rem 2rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--terminal-blue);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+        }
+
+        button {
+            background: var(--glass-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: rgba(0, 242, 255, 0.1);
+            border-color: var(--terminal-blue);
+        }
+
+        #graph-container {
+            flex: 1;
+            overflow: auto;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            scrollbar-width: thin;
+            scrollbar-color: var(--terminal-blue) transparent;
+        }
+
+        .mermaid {
+            background: transparent !important;
+        }
+
+        /* Customize Mermaid Colors */
+        .node rect,
+        .node circle,
+        .node polygon {
+            fill: rgba(0, 242, 255, 0.05) !important;
+            stroke: var(--terminal-blue) !important;
+            stroke-width: 1px !important;
+        }
+
+        .node .label {
+            color: #fff !important;
+            font-family: var(--font-mono) !important;
+        }
+
+        .edgePath path {
+            stroke: rgba(255, 255, 255, 0.2) !important;
+            stroke-width: 1.5px !important;
+        }
+
+        .edgeLabel {
+            background-color: var(--bg-color) !important;
+            color: var(--terminal-magenta) !important;
+            font-size: 0.7rem !important;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: var(--font-mono);
+            color: var(--terminal-blue);
+            letter-spacing: 5px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="crt-overlay"></div>
+
+    <header>
+        <div class="title">Topological Manifold // Resonance Graph</div>
+        <div class="controls">
+            <button onclick="fetchAndRender()">REFRESH MANIFOLD</button>
+            <button onclick="window.location.href='diegetic_terminal.html'">BACK TO TERMINAL</button>
+        </div>
+    </header>
+
+    <div id="graph-container">
+        <div id="loading" class="loading">SCANNING FIELD...</div>
+        <div id="mermaid-target" class="mermaid"></div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'dark',
+            securityLevel: 'loose',
+            flowchart: {
+                useMaxWidth: false,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+
+        async function fetchAndRender() {
+            const loading = document.getElementById('loading');
+            const target = document.getElementById('mermaid-target');
+            loading.style.display = 'block';
+            target.innerHTML = '';
+
+            // Calculate API URL: same host if served by server, else localhost:8000
+            const host = (window.location.hostname === '' || window.location.hostname === 'null') ? 'localhost' : window.location.hostname;
+            const port = window.location.port === '' ? '8000' : window.location.port;
+            const protocol = window.location.protocol === 'file:' ? 'http:' : window.location.protocol;
+            const apiBase = `${protocol}//${host}:${port}`;
+
+            console.log(`Connecting to Manifold at: ${apiBase}/graph`);
+
+            try {
+                const response = await fetch(`${apiBase}/graph`);
+                const data = await response.json();
+
+                if (!data.nodes || data.nodes.length === 0) {
+                    loading.innerText = "NO RESONANCE DETECTED. INGEST MORE DATA.";
+                    return;
+                }
+
+                let mermaidText = 'graph LR\n';
+
+                // Add Nodes
+                data.nodes.forEach(node => {
+                    // Extract a clean label
+                    const label = node.label.replace(/[\[\]\(\)\{\}\"\'\;]/g, '').substring(0, 20);
+                    const id = node.id.replace(/[^a-zA-Z0-9]/g, '_');
+
+                    // Style nodes by chiral score
+                    const color = node.chiral > 0.5 ? 'fill:#ff00f233,stroke:#ff00f2' : 'fill:#00f2ff22,stroke:#00f2ff';
+                    mermaidText += `    ${id}["${label}<br/><small>χ: ${node.chiral.toFixed(2)}</small>"]\n`;
+                    mermaidText += `    style ${id} ${color}\n`;
+                });
+
+                // Add Edges
+                data.links.forEach(link => {
+                    const src = link.source.replace(/[^a-zA-Z0-9]/g, '_');
+                    const tgt = link.target.replace(/[^a-zA-Z0-9]/g, '_');
+                    const weight = link.weight.toFixed(2);
+
+                    if (link.type === 'RESONANCE') {
+                        mermaidText += `    ${src} ==>|RES: ${weight}| ${tgt}\n`;
+                    } else {
+                        mermaidText += `    ${src} -->|sim: ${weight}| ${tgt}\n`;
+                    }
+                });
+
+                loading.style.display = 'none';
+
+                // Render Mermaid
+                const { render } = mermaid;
+                const { svg } = await render('mermaid-svg', mermaidText);
+                target.innerHTML = svg;
+
+            } catch (error) {
+                console.error(error);
+                loading.innerText = "BACKEND OFFLINE. MANIFOLD UNREACHABLE.";
+            }
+        }
+
+        // Initial render
+        window.onload = fetchAndRender;
+    </script>
+</body>
+
+</html>
