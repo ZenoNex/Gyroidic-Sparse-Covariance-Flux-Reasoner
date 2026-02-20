@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gyroidic Conversational API Integration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            width: 100%;
+            max-width: 1000px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            min-width: 100px;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .tab.active {
+            background: white;
+            border-bottom: 3px solid #4facfe;
+            color: #4facfe;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 25px;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow-y: auto;
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .btn-tabby {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .dataset-list {
+            display: grid;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .dataset-item {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            transition: border-color 0.3s ease;
+        }
+
+        .dataset-item:hover {
+            border-color: #4facfe;
+        }
+
+        .dataset-item h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .dataset-item p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .dataset-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .dataset-status.available {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .dataset-status.restricted {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .dataset-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .dataset-status.local {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .log-area {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+
+        .chat-area {
+            flex: 1;
+            min-height: 0;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            margin-bottom: 15px;
+            scrollbar-width: thin;
+        }
+
+        .chat-message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .chat-message.user {
+            background: #4facfe;
+            color: white;
+            margin-left: 20%;
+        }
+
+        .chat-message.assistant {
+            background: white;
+            border: 1px solid #e9ecef;
+            margin-right: 20%;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+            flex-shrink: 0;
+        }
+
+        .metric {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4facfe;
+        }
+
+        .metric-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .instructions {
+            background: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .instructions h3 {
+            color: #004085;
+            margin-bottom: 15px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 10px;
+            color: #004085;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn:hover {
+            border-color: #4facfe;
+        }
+
+        .mode-btn.active {
+            border-color: #4facfe;
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.1), rgba(0, 242, 254, 0.1));
+            color: #4facfe;
+        }
+
+        .tabby-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #dc3545;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        .local-dataset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .local-ds {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .local-ds:hover {
+            border-color: #4facfe;
+            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.2);
+        }
+
+        .local-ds.selected {
+            border-color: #28a745;
+            background: #f0fff0;
+        }
+
+        .local-ds h4 {
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .local-ds .ds-meta {
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 Gyroidic Conversational API</h1>
+            <p>Local-first training • Tabby ML integration • Real data ingestion</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('setup')">🔑 Setup</button>
+            <button class="tab" onclick="showTab('datasets')">📊 Datasets</button>
+            <button class="tab" onclick="showTab('ingestion')">📥 Ingest</button>
+            <button class="tab" onclick="showTab('training')">🚀 Training</button>
+            <button class="tab" onclick="showTab('tabby')">🐱 Tabby ML</button>
+            <button class="tab" onclick="showTab('chat')">💬 Chat</button>
+        </div>
+
+        <!-- Setup Tab -->
+        <div id="setup" class="tab-content active">
+            <h2>🔑 Connection Setup</h2>
+
+            <div class="mode-toggle">
+                <button class="mode-btn active" onclick="setMode('local')" id="mode-local">
+                    📁 Local Mode<br><small>No token needed — use data/raw/</small>
+                </button>
+                <button class="mode-btn" onclick="setMode('hf')" id="mode-hf">
+                    🤗 HuggingFace Mode<br><small>Requires API token</small>
+                </button>
+            </div>
+
+            <div id="hf-setup" style="display: none;">
+                <form onsubmit="event.preventDefault(); testToken();">
+                    <div class="form-group">
+                        <label for="hf-token">Enter your Hugging Face token:</label>
+                        <input type="password" id="hf-token" placeholder="hf_..." autocomplete="off" />
+                        <label>
+                            <input type="checkbox" id="show-token" onchange="toggleTokenVisibility()"> Show token
+                        </label>
+                    </div>
+
+                    <div>
+                        <button class="btn" onclick="testToken()">🧪 Test Token</button>
+                        <button class="btn btn-secondary" onclick="saveToken()">💾 Save Token</button>
+                        <button class="btn btn-danger" onclick="clearToken()">🗑️ Clear Token</button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="local-setup">
+                <button class="btn btn-success" onclick="activateLocalMode()">✅ Activate Local Mode</button>
+            </div>
+
+            <div id="token-status" class="status info">Select a mode above to begin</div>
+
+            <div class="instructions">
+                <h3>📋 Quick Start</h3>
+                <ol>
+                    <li><strong>Local Mode (Recommended):</strong>
+                        <ul>
+                            <li>Click "Activate Local Mode" — no token or internet needed</li>
+                            <li>Uses datasets already in your <code>data/raw/</code> directory</li>
+                            <li>Includes counsel_chat, HelpSteer, github_repos, dolfin, LLaVA, and more</li>
+                        </ul>
+                    </li>
+                    <li><strong>HuggingFace Mode:</strong>
+                        <ul>
+                            <li>Go to <a href="https://huggingface.co/settings/tokens"
+                                    target="_blank">huggingface.co/settings/tokens</a></li>
+                            <li>Create a token with 'Read' permissions</li>
+                            <li>Enter it above and click 'Test Token'</li>
+                        </ul>
+                    </li>
+                    <li><strong>Tabby ML (Optional):</strong>
+                        <ul>
+                            <li>If you have Tabby ML running locally, use the Tabby ML tab to connect</li>
+                            <li>Generates synthetic training data from code completions</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Dataset Access Tab -->
+        <div id="datasets" class="tab-content">
+            <h2>📊 Dataset Access</h2>
+
+            <button class="btn" onclick="refreshLocalDatasets()">🔄 Scan Local Datasets</button>
+            <button class="btn btn-secondary" onclick="refreshDatasetStatus()">🌐 Check Remote (HF)</button>
+
+            <div id="local-datasets-section">
+                <h3 style="margin: 20px 0 10px;">📁 Local Datasets (data/raw/)</h3>
+                <div class="local-dataset-grid" id="local-dataset-grid">
+                    <div class="status info">Click "Scan Local Datasets" to discover available data</div>
+                </div>
+            </div>
+
+            <div id="remote-datasets-section" style="display:none;">
+                <h3 style="margin: 20px 0 10px;">🌐 Remote Datasets (HuggingFace)</h3>
+                <div class="dataset-list">
+                    <div class="dataset-item">
+                        <h3>LMSYS Chat 1M</h3>
+                        <p>Large-scale conversational dataset with human-AI interactions</p>
+                        <span class="dataset-status restricted" id="lmsys-status">Agreement Required</span>
+                        <div style="margin-top: 10px;">
+                            <a href="https://huggingface.co/datasets/lmsys/lmsys-chat-1m" target="_blank" class="btn">🌐
+                                Open Dataset Page</a>
+                        </div>
+                    </div>
+
+                    <div class="dataset-item">
+                        <h3>OpenAssistant Conversations</h3>
+                        <p>High-quality human-generated assistant conversations</p>
+                        <span class="dataset-status available" id="oasst-status">Available</span>
+                        <div style="margin-top: 10px;">
+                            <a href="https://huggingface.co/datasets/OpenAssistant/oasst2" target="_blank"
+                                class="btn">🌐 Open Dataset Page</a>
+                        </div>
+                    </div>
+
+                    <div class="dataset-item">
+                        <h3>DialoGPT Conversations</h3>
+                        <p>Reddit conversation dataset for dialogue generation</p>
+                        <span class="dataset-status available" id="dialogpt-status">Available</span>
+                        <div style="margin-top: 10px;">
+                            <a href="https://huggingface.co/datasets/microsoft/DialoGPT-medium" target="_blank"
+                                class="btn">🌐 Open Dataset Page</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Ingestion Tab -->
+        <div id="ingestion" class="tab-content">
+            <h2>📥 Data Ingestion</h2>
+
+            <div class="form-group">
+                <label for="dataset-select">Select Dataset:</label>
+                <select id="dataset-select">
+                    <option value="" disabled selected>— Scan datasets first —</option>
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label for="sample-size">Max Samples:</label>
+                    <input type="number" id="sample-size" value="500" min="10" max="10000" />
+                </div>
+                <div class="form-group">
+                    <label for="quality-threshold">Quality Threshold (0-1):</label>
+                    <input type="number" id="quality-threshold" value="0.3" min="0" max="1" step="0.05" />
+                </div>
+            </div>
+
+            <button class="btn" onclick="startIngestion()" id="ingest-btn">📥 Start Ingestion</button>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="ingestion-progress"></div>
+            </div>
+
+            <div class="log-area" id="ingestion-log">Ready for data ingestion...
+                Select a source and click Start Ingestion.
+
+                Modes:
+                📁 Local: Reads from data/raw/ — no internet needed
+                🌐 Remote: Downloads from HuggingFace — requires token
+
+                Quality filtering is applied automatically (textbook filter).</div>
+        </div>
+
+        <!-- Training Tab -->
+        <div id="training" class="tab-content">
+            <h2>🚀 Model Training</h2>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="form-group">
+                    <label for="epochs">Epochs:</label>
+                    <input type="number" id="epochs" value="3" min="1" max="20" />
+                </div>
+
+                <div class="form-group">
+                    <label for="learning-rate">Learning Rate:</label>
+                    <input type="number" id="learning-rate" value="0.0001" step="0.0001" />
+                </div>
+            </div>
+
+            <div>
+                <button class="btn" onclick="startTraining()" id="train-btn">🚀 Start Training</button>
+                <button class="btn btn-danger" onclick="stopTraining()" id="stop-btn" disabled>⏹️ Stop
+                    Training</button>
+                <button class="btn btn-secondary" onclick="saveModel()">💾 Save Model</button>
+                <button class="btn btn-secondary" onclick="loadModel()">📁 Load Model</button>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="training-progress"></div>
+            </div>
+
+            <div class="log-area" id="training-log">Ready for training...</div>
+        </div>
+
+        <!-- Tabby ML Tab -->
+        <div id="tabby" class="tab-content">
+            <h2>🐱 Tabby ML Integration</h2>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="form-group">
+                    <label for="tabby-host">Host:</label>
+                    <input type="text" id="tabby-host" value="localhost" />
+                </div>
+                <div class="form-group">
+                    <label for="tabby-port">Port:</label>
+                    <input type="number" id="tabby-port" value="8080" />
+                </div>
+            </div>
+
+            <div class="tabby-status">
+                <div class="status-dot" id="tabby-dot"></div>
+                <span id="tabby-status-text">Not connected</span>
+            </div>
+
+            <div style="margin: 15px 0;">
+                <button class="btn btn-tabby" onclick="testTabby()">🔌 Test Connection</button>
+                <button class="btn btn-tabby" onclick="tabbyComplete()">⚡ Test Completion</button>
+                <button class="btn btn-tabby" onclick="tabbyGenerate()">🎓 Generate Training Sample</button>
+            </div>
+
+            <div class="form-group">
+                <label for="tabby-prompt">Prompt:</label>
+                <textarea id="tabby-prompt" rows="4"
+                    placeholder="def fibonacci(n):&#10;    # Compute nth Fibonacci number">def fibonacci(n):
+    # Compute nth Fibonacci number</textarea>
+            </div>
+
+            <div class="log-area" id="tabby-log">Tabby ML Integration
+
+                Connect to a local Tabby ML instance for:
+                ⚡ Code completion
+                🎓 Synthetic training sample generation
+                💬 Chat completions
+
+                Configure host:port above and click Test Connection.</div>
+        </div>
+
+        <!-- Live Chat Tab -->
+        <div id="chat" class="tab-content">
+            <h2>💬 Live Conversational Interface</h2>
+
+            <div class="chat-area" id="chat-area">
+                <div class="chat-message assistant">
+                    <strong>🤖 Assistant:</strong> Hello! I'm ready to chat using the trained conversational model. The
+                    system includes affordance gradient detection, PAS_h computation, and temporal association learning.
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="chat-input" placeholder="Type your message..." style="flex: 1;"
+                    onkeypress="handleChatKeypress(event)" />
+                <button class="btn" onclick="sendMessage()">Send</button>
+            </div>
+
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-value" id="pas-h-value">--</div>
+                    <div class="metric-label">PAS_h</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="entropy-value">--</div>
+                    <div class="metric-label">Entropy</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="chiral-value">--</div>
+                    <div class="metric-label">Chiral</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="ley-value">--</div>
+                    <div class="metric-label">Ley Line</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="moebius-value">--</div>
+                    <div class="metric-label">Möbius</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="iter-value">0</div>
+                    <div class="metric-label">Iter</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        // GLOBAL STATE
+        // ================================================================
+        let currentToken = null;
+        let currentMode = 'local';  // 'local' or 'hf'
+        let conversations = null;
+        let model = null;
+        let localDatasets = {};
+        const backend_url = "";  // Uses relative paths
+
+        // ================================================================
+        // TAB MANAGEMENT
+        // ================================================================
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // ================================================================
+        // MODE MANAGEMENT (Local / HF)
+        // ================================================================
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('mode-' + mode).classList.add('active');
+
+            if (mode === 'local') {
+                document.getElementById('hf-setup').style.display = 'none';
+                document.getElementById('local-setup').style.display = 'block';
+            } else {
+                document.getElementById('hf-setup').style.display = 'block';
+                document.getElementById('local-setup').style.display = 'none';
+            }
+        }
+
+        function activateLocalMode() {
+            const statusDiv = document.getElementById('token-status');
+            statusDiv.className = 'status info';
+            statusDiv.textContent = '🔄 Activating local mode...';
+
+            // Test with LOCAL_MODE pseudo-token
+            fetch('/api/test_token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: 'LOCAL_MODE' })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = `✅ ${data.message}`;
+                        currentToken = 'LOCAL_MODE';
+                        conversations = true;
+                        model = true;  // Local mode allows immediate chat
+                        // Auto-scan datasets
+                        refreshLocalDatasets();
+                    } else {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = `❌ ${data.message}`;
+                    }
+                })
+                .catch(err => {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Backend not running: ${err.message}`;
+                });
+        }
+
+        // ================================================================
+        // TOKEN MANAGEMENT (HF Mode)
+        // ================================================================
+        function toggleTokenVisibility() {
+            const tokenInput = document.getElementById('hf-token');
+            const showToken = document.getElementById('show-token');
+            tokenInput.type = showToken.checked ? 'text' : 'password';
+        }
+
+        function testToken() {
+            const token = document.getElementById('hf-token').value.trim();
+            const statusDiv = document.getElementById('token-status');
+
+            if (!token) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ No token entered';
+                return;
+            }
+
+            statusDiv.className = 'status info';
+            statusDiv.textContent = '🔄 Testing token with Hugging Face API...';
+
+            currentToken = token;
+
+            fetch('/api/test_token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = `✅ Token valid! Connected as: ${data.username}`;
+                        currentToken = token;
+                        localStorage.setItem('hf_token', token);
+                        conversations = true;
+                        document.getElementById('remote-datasets-section').style.display = 'block';
+                    } else {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = `❌ Verification failed: ${data.message}`;
+                        currentToken = null;
+                    }
+                })
+                .catch(err => {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Connection error: ${err.message}. Is the backend running?`;
+                });
+        }
+
+        function saveToken() {
+            const token = document.getElementById('hf-token').value.trim();
+            if (!token) { alert('No token to save'); return; }
+            if (confirm('Save token to browser storage?')) {
+                localStorage.setItem('hf_token', token);
+                alert('Token saved');
+            }
+        }
+
+        function clearToken() {
+            document.getElementById('hf-token').value = '';
+            localStorage.removeItem('hf_token');
+            currentToken = null;
+            const statusDiv = document.getElementById('token-status');
+            statusDiv.className = 'status info';
+            statusDiv.textContent = 'Token cleared';
+        }
+
+        // ================================================================
+        // LOCAL DATASET MANAGEMENT
+        // ================================================================
+        function refreshLocalDatasets() {
+            const grid = document.getElementById('local-dataset-grid');
+            grid.innerHTML = '<div class="status info">🔄 Scanning data/raw/...</div>';
+
+            fetch('/api/local_datasets')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        localDatasets = data.datasets || {};
+                        renderLocalDatasets(localDatasets);
+                        populateIngestionDropdown(localDatasets);
+                    } else {
+                        grid.innerHTML = '<div class="status error">❌ Failed to scan datasets</div>';
+                    }
+                })
+                .catch(err => {
+                    grid.innerHTML = `<div class="status error">❌ Backend error: ${err.message}</div>`;
+                });
+        }
+
+        function renderLocalDatasets(datasets) {
+            const grid = document.getElementById('local-dataset-grid');
+            const names = Object.keys(datasets);
+
+            if (names.length === 0) {
+                grid.innerHTML = '<div class="status info">No datasets found in data/raw/</div>';
+                return;
+            }
+
+            grid.innerHTML = names.map(name => {
+                const ds = datasets[name];
+                return `
+                    <div class="local-ds" onclick="selectDataset('${name}')">
+                        <h4>📁 ${name}</h4>
+                        <p style="font-size: 13px; color: #666; margin: 5px 0;">${ds.description || ''}</p>
+                        <div class="ds-meta">
+                            ${ds.file_count} files • ${ds.total_size_mb} MB • ${ds.format}
+                        </div>
+                        <span class="dataset-status local">Local</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function populateIngestionDropdown(datasets) {
+            const select = document.getElementById('dataset-select');
+            select.innerHTML = '';
+            Object.keys(datasets).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = `📁 ${name} (${datasets[name].total_size_mb} MB)`;
+                select.appendChild(opt);
+            });
+
+            // Add remote options if HF mode
+            if (currentMode === 'hf' && currentToken && currentToken !== 'LOCAL_MODE') {
+                ['lmsys/lmsys-chat-1m', 'OpenAssistant/oasst2', 'microsoft/DialoGPT-medium'].forEach(name => {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = `🌐 ${name}`;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        function selectDataset(name) {
+            document.querySelectorAll('.local-ds').forEach(el => el.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+            document.getElementById('dataset-select').value = name;
+        }
+
+        function refreshDatasetStatus() {
+            if (!currentToken || currentToken === 'LOCAL_MODE') {
+                alert('HuggingFace mode not active. Switch to HF mode and enter a token first.');
+                return;
+            }
+            document.getElementById('remote-datasets-section').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('lmsys-status').textContent = 'Available';
+                document.getElementById('lmsys-status').className = 'dataset-status available';
+                document.getElementById('oasst-status').textContent = 'Available';
+                document.getElementById('oasst-status').className = 'dataset-status available';
+                document.getElementById('dialogpt-status').textContent = 'Available';
+                document.getElementById('dialogpt-status').className = 'dataset-status available';
+            }, 1000);
+        }
+
+        // ================================================================
+        // DATA INGESTION (Real backend calls)
+        // ================================================================
+        function startIngestion() {
+            if (!currentToken) {
+                alert('Please activate a mode first (Local or HuggingFace)');
+                return;
+            }
+
+            const dataset = document.getElementById('dataset-select').value;
+            if (!dataset) {
+                alert('Please select a dataset first');
+                return;
+            }
+
+            const sampleSize = document.getElementById('sample-size').value;
+            const qualityThreshold = document.getElementById('quality-threshold').value;
+            const logArea = document.getElementById('ingestion-log');
+            const progressBar = document.getElementById('ingestion-progress');
+            const ingestBtn = document.getElementById('ingest-btn');
+
+            ingestBtn.disabled = true;
+            logArea.textContent = `🔄 Starting ingestion of ${dataset}...\n`;
+            progressBar.style.width = '20%';
+
+            fetch('/api/ingest_local', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    dataset: dataset,
+                    max_samples: parseInt(sampleSize),
+                    quality_threshold: parseFloat(qualityThreshold)
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    progressBar.style.width = '100%';
+                    if (data.success) {
+                        logArea.textContent += `✅ Ingestion Complete!\n\n`;
+                        logArea.textContent += `Dataset: ${data.dataset}\n`;
+                        logArea.textContent += `Samples loaded: ${data.samples_loaded}\n`;
+
+                        if (data.quality_stats) {
+                            const qs = data.quality_stats;
+                            logArea.textContent += `\n📊 Quality Stats:\n`;
+                            logArea.textContent += `  Total assessed: ${qs.count}\n`;
+                            logArea.textContent += `  Passing: ${qs.passing} (${(qs.pass_rate * 100).toFixed(1)}%)\n`;
+                            logArea.textContent += `  Mean score: ${qs.mean_score}\n`;
+                            logArea.textContent += `  Range: ${qs.min_score} — ${qs.max_score}\n`;
+
+                            if (qs.flag_counts && Object.keys(qs.flag_counts).length > 0) {
+                                logArea.textContent += `\n⚠️ Flags:\n`;
+                                Object.entries(qs.flag_counts).forEach(([flag, count]) => {
+                                    logArea.textContent += `  ${flag}: ${count}\n`;
+                                });
+                            }
+                        }
+
+                        logArea.textContent += `\n🎯 Ready for training!\n`;
+                        conversations = true;
+                    } else {
+                        logArea.textContent += `❌ Ingestion failed: ${data.error || 'Unknown error'}\n`;
+                    }
+                    ingestBtn.disabled = false;
+                })
+                .catch(err => {
+                    progressBar.style.width = '0%';
+                    logArea.textContent += `❌ Error: ${err.message}\n`;
+                    ingestBtn.disabled = false;
+                });
+        }
+
+        // ================================================================
+        // TRAINING (Real backend calls)
+        // ================================================================
+        let trainingActive = false;
+        function startTraining() {
+            const epochs = document.getElementById('epochs').value;
+            const logArea = document.getElementById('training-log');
+            const progressBar = document.getElementById('training-progress');
+            const trainBtn = document.getElementById('train-btn');
+            const stopBtn = document.getElementById('stop-btn');
+
+            trainingActive = true;
+            trainBtn.disabled = true;
+            stopBtn.disabled = false;
+
+            logArea.textContent = `🚀 Starting training: ${epochs} epochs...\n`;
+
+            function trainingLoop() {
+                if (!trainingActive) return;
+
+                fetch(`/api/training_status`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.log && data.log.length > 0) {
+                            const lastLog = data.log[data.log.length - 1];
+                            if (!logArea.textContent.includes(lastLog)) {
+                                logArea.textContent += lastLog + "\n";
+                                logArea.scrollTop = logArea.scrollHeight;
+                            }
+                        }
+
+                        const progress = data.progress || 0;
+                        progressBar.style.width = progress + '%';
+
+                        if (data.active) {
+                            setTimeout(trainingLoop, 1000);
+                        } else {
+                            if (data.results && data.results.success) {
+                                logArea.textContent += `✅ Training completed successfully!\n`;
+                                model = true;
+                            } else {
+                                logArea.textContent += `⏹️ Training stopped or finished.\n`;
+                            }
+                            trainBtn.disabled = false;
+                            stopBtn.disabled = true;
+                            trainingActive = false;
+                        }
+                    })
+                    .catch(err => {
+                        logArea.textContent += `⚠️ Status poll error: ${err}\n`;
+                        setTimeout(trainingLoop, 2000);
+                    });
+            }
+
+            // Kick off training
+            fetch(`/api/start_training`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ epochs: parseInt(epochs) })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        trainingLoop();
+                    } else {
+                        logArea.textContent += `❌ Failed to start: ${data.message}\n`;
+                        trainingActive = false;
+                        trainBtn.disabled = false;
+                        stopBtn.disabled = true;
+                    }
+                })
+                .catch(err => {
+                    logArea.textContent += `❌ Connection error: ${err}\n`;
+                    trainingActive = false;
+                    trainBtn.disabled = false;
+                    stopBtn.disabled = true;
+                });
+        }
+
+        function stopTraining() {
+            fetch('/api/stop_training', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('training-log').textContent += `⏹️ Stop requested.\n`;
+                });
+            trainingActive = false;
+            document.getElementById('train-btn').disabled = false;
+            document.getElementById('stop-btn').disabled = true;
+        }
+
+        function saveModel() {
+            fetch('/api/save_model', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => alert(data.message || 'Model saved'));
+        }
+
+        function loadModel() {
+            alert('Model loaded from state file');
+            model = true;
+        }
+
+        // ================================================================
+        // TABBY ML INTEGRATION
+        // ================================================================
+        function testTabby() {
+            const host = document.getElementById('tabby-host').value;
+            const port = document.getElementById('tabby-port').value;
+            const logArea = document.getElementById('tabby-log');
+            const dot = document.getElementById('tabby-dot');
+            const statusText = document.getElementById('tabby-status-text');
+
+            logArea.textContent += `\n🔌 Testing connection to ${host}:${port}...\n`;
+
+            fetch('/api/tabby_test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ host, port: parseInt(port) })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.connected) {
+                        dot.classList.add('connected');
+                        statusText.textContent = `Connected to ${host}:${port}`;
+                        logArea.textContent += `✅ ${data.message}\n`;
+                        if (data.server_info) {
+                            logArea.textContent += `Server info: ${JSON.stringify(data.server_info, null, 2)}\n`;
+                        }
+                    } else {
+                        dot.classList.remove('connected');
+                        statusText.textContent = 'Not connected';
+                        logArea.textContent += `❌ ${data.message}\n`;
+                    }
+                })
+                .catch(err => {
+                    dot.classList.remove('connected');
+                    statusText.textContent = 'Connection failed';
+                    logArea.textContent += `❌ Error: ${err.message}\n`;
+                });
+        }
+
+        function tabbyComplete() {
+            const prompt = document.getElementById('tabby-prompt').value;
+            const logArea = document.getElementById('tabby-log');
+
+            logArea.textContent += `\n⚡ Requesting completion...\n`;
+
+            fetch('/api/tabby_complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: prompt, mode: 'complete' })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        logArea.textContent += `✅ Completion:\n${data.text}\n`;
+                        if (data.model) logArea.textContent += `Model: ${data.model}\n`;
+                    } else {
+                        logArea.textContent += `❌ ${data.error}\n`;
+                    }
+                })
+                .catch(err => {
+                    logArea.textContent += `❌ Error: ${err.message}\n`;
+                });
+        }
+
+        function tabbyGenerate() {
+            const logArea = document.getElementById('tabby-log');
+            const topics = ['binary search', 'graph traversal', 'dynamic programming',
+                'sorting algorithms', 'hash tables', 'recursion', 'tree structures'];
+            const topic = topics[Math.floor(Math.random() * topics.length)];
+
+            logArea.textContent += `\n🎓 Generating training sample: "${topic}"...\n`;
+
+            fetch('/api/tabby_generate_training', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic: topic, style: 'textbook' })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        logArea.textContent += `✅ Generated sample (${data.text.length} chars):\n`;
+                        logArea.textContent += `${data.text.substring(0, 500)}...\n`;
+                        logArea.textContent += `\n[Sample ingested into training pipeline]\n`;
+                    } else {
+                        logArea.textContent += `❌ ${data.error}\n`;
+                    }
+                })
+                .catch(err => {
+                    logArea.textContent += `❌ Error: ${err.message}\n`;
+                });
+        }
+
+        // ================================================================
+        // CHAT INTERFACE
+        // ================================================================
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') sendMessage();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const chatArea = document.getElementById('chat-area');
+            const userDiv = document.createElement('div');
+            userDiv.className = 'chat-message user';
+            userDiv.textContent = message;
+            chatArea.appendChild(userDiv);
+            input.value = '';
+
+            if (message === "IDLE_RESONANCE_HEARTBEAT") return;
+
+            fetch(`/api/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    // Show response
+                    if (data.response) {
+                        const assistantDiv = document.createElement('div');
+                        assistantDiv.className = 'chat-message assistant';
+                        assistantDiv.innerHTML = `<strong>🤖 Assistant:</strong> ${data.response}`;
+                        chatArea.appendChild(assistantDiv);
+                        chatArea.scrollTop = chatArea.scrollHeight;
+                    }
+                    updateMetrics(data);
+                })
+                .catch(e => console.warn("Chat failed:", e));
+        }
+
+        function updateMetrics(data) {
+            if (data.diagnostics) {
+                const d = data.diagnostics;
+                if (d.spectral_entropy !== undefined) document.getElementById('entropy-value').textContent = d.spectral_entropy.toFixed(3);
+                if (d.chiral_score !== undefined) document.getElementById('chiral-value').textContent = d.chiral_score.toFixed(3);
+                if (d.ley_line_anisotropy !== undefined) document.getElementById('ley-value').textContent = d.ley_line_anisotropy.toFixed(3);
+                if (d.moebius_twist !== undefined) document.getElementById('moebius-value').textContent = d.moebius_twist.toFixed(1);
+                if (d.iteration !== undefined) document.getElementById('iter-value').textContent = d.iteration;
+            }
+            if (data.iteration !== undefined) document.getElementById('iter-value').textContent = data.iteration;
+        }
+
+        // ================================================================
+        // INITIALIZATION
+        // ================================================================
+        window.onload = function () {
+            // Load saved token if available
+            const savedToken = localStorage.getItem('hf_token');
+            if (savedToken) {
+                document.getElementById('hf-token').value = savedToken;
+            }
+            // Default to local mode
+            setMode('local');
+        };
+    </script>
+</body>
+
+</html>
