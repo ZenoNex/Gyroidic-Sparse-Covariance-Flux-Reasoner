@@ -330,11 +330,14 @@ class OperationalAdmmPrimitive(autograd.Function):
             diff = torch.norm(c_phys - c_sym)
 
             # Topological Degree of Freedom Check
-            current_chi = compute_chirality(c_phys.unsqueeze(1))
-            original_chi = compute_chirality(c_sym.unsqueeze(1))
+            # Use .mean() to get a scalar chirality per batch element,
+            # then compare signs with .any() so the condition works for any batch size.
+            current_chi = compute_chirality(c_phys.unsqueeze(1))   # [B] or scalar
+            original_chi = compute_chirality(c_sym.unsqueeze(1))   # [B] or scalar
 
-            # If chirality flips, it's a rupture. If not, magnitude (0.61) is legal.
-            if torch.sign(current_chi) != torch.sign(original_chi):
+            # If chirality flips in ANY sample it's a rupture token.
+            chirality_flipped = (torch.sign(current_chi) != torch.sign(original_chi)).any()
+            if chirality_flipped:
                 status = torch.tensor(2, device=initial_c.device) # FAILURE
             else:
                 status = torch.tensor(0, device=initial_c.device) # LEGAL
@@ -388,7 +391,7 @@ class OperationalAdmm(nn.Module):
         use_constraint_probes: bool = True,
         num_constraints: int = 1
     ):
-        super().__init__(); self.device = device if device is not None else ("cuda" if torch.cuda.is_available() else "cpu")
+        super().__init__()
         self.rho = rho
         self.lambda_sparse = lambda_sparse
         self.max_iters = max_iters
