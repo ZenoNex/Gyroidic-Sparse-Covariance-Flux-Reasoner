@@ -83,7 +83,7 @@ from src.core.chern_simons_gasket import ChernSimonsGasket, SolitonStabilityHeal
 from src.core.love_vector import LoveVector
 from src.core.knowledge_dyad_fossilizer import DyadFossilizer, KnowledgeDyad
 from src.core.dyadic_transfer import DyadicTransferMap
-from src.core.love_invariant_protector import SoftSaturatedGates
+from src.core.love_invariant_protector import LoveInvariantProtector, SoftSaturatedGates
 
 # LEGACY SYSTEM INTEGRATION
 # CALM: Context-Adaptive Latent Momentum (Trajectory Veto)
