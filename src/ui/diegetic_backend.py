@@ -35,11 +35,12 @@ sys.path.insert(0, os.getcwd())
 try:
     from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka
     from src.core.quantum_inspired_reasoning import QuantumInspiredReasoningState
+    from src.core.context_aware_quantizer import ContextAwareQuantizer
     EXTENSIONS_AVAILABLE = True
-    print("✅ Advanced Extensions loaded successfully!")
+    print("OK: Advanced Extensions loaded successfully!")
 except ImportError as e:
     EXTENSIONS_AVAILABLE = False
-    print(f"⚠️ Advanced Extensions not found. Running in Standard Mode. ({e})")
+    print(f"WARNING: Advanced Extensions not found. Running in Standard Mode. ({e})")
 
 
 def compute_autocorrelation(x: torch.Tensor) -> torch.Tensor:
@@ -298,8 +299,34 @@ class DiegeticPhysicsEngine(nn.Module):
         self.register_buffer('calm_history', torch.zeros(1, calm_history_len, dim))
         
         # KAGH: Speculative Drafting (Response Ghost Prediction)
-        # Uses KAGH to draft a topological ghost of the response before generation
+        # Uses KAGH to draft a "ghost" of the response state before generation
         self.kagh_drafter = KAGHBlock(n_in=dim, n_out=dim, width=dim, depth=2)
+
+        # =============================================
+        # PHASE 17: CONTEXT-AWARE QUANTIZER (CAQ)
+        # Implements per-axis Matrioshka quantization:
+        #   x_{t+1} = Q_Z(F(Q_Z(x_t)))
+        # =============================================
+        if EXTENSIONS_AVAILABLE:
+            self.caq = ContextAwareQuantizer(
+                dim=dim,
+                max_depth=5,
+                base_step=0.1,
+                pas_anisotropy=2.0,
+            )
+        else:
+            self.caq = None
+
+        # trust_scalars: per-field trust scores evolved by TemporalAssociationTrainer.
+        # Shape [k] — one scalar per polynomial coprime field.
+        self.register_buffer('trust_scalars', torch.ones(k))
+
+        # Temporal Association Trainer state (lazy-init on first interaction)
+        self._temporal_trainer = None
+        self._temporal_dataset = None
+        self._temporal_thread = None
+        self._last_temporal_diag: dict = {}
+        self._last_matrioshka_diag: dict = {}
         
         # Harmonic Wave Decomposition: Separate signal (non-ergodic) from noise (ergodic)
         self.harmonic_decomp = HarmonicWaveDecomposition(dim=dim)
@@ -589,12 +616,12 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Trigger Ingestion if expandability is critical
         if affordance_gradients.get('runtime_expandability', 0.0) > 0.8:
-            print("🚀 Agentic Ingestion Triggered by Affordance Gradient")
+            print("[TRIGGER] Agentic Ingestion Triggered by Affordance Gradient")
             dyad_override_response = self._handle_dyad_ingestion(f"AGENTIC_INGEST: {text_input}", fingerprint, seed_state)
             
         # Trigger Association if knowledge seeking is critical
         elif affordance_gradients.get('knowledge_seeking', 0.0) > 0.8:
-            print("🚀 Agentic Association Triggered by Affordance Gradient")
+            print("[TRIGGER] Agentic Association Triggered by Affordance Gradient")
             dyad_override_response = self._handle_association_learning(text_input, seed_state)
             
         # =============================================
@@ -1141,7 +1168,49 @@ class DiegeticPhysicsEngine(nn.Module):
             
         except Exception as love_gates_error:
             print(f"⚠️ Love Vector / Soft Gates failed: {love_gates_error}")
-        
+
+        # =============================================
+        # PHASE 2.6: MATRIOSHKA QUANTIZED EVOLUTION LOOP
+        # Realises: x_{t+1} = Q_{Z_t}(F(Q_{Z_t}(x_t)))
+        # (ai project report_2-2-2026.txt §3 "Matrioshka Quantized Windows")
+        # Uses CALM constraint output as PAS scores for anisotropy.
+        # =============================================
+        if self.caq is not None:
+            try:
+                # Derive per-axis PAS scores from CALM constraints if available
+                _pas_scores = None
+                if 'constraints_tensor' in locals() and constraints_tensor is not None:
+                    # constraints_tensor: [1, 5] — map to dim via linear interpolation
+                    _ct = constraints_tensor.detach().view(-1)  # [5]
+                    # Expand to [dim] by repeating across field groups
+                    repeats = self.dim // _ct.shape[0] + 1
+                    _pas_scores = _ct.repeat(repeats)[:self.dim].sigmoid()  # [dim] ∈ [0,1]
+
+                _matrioshka_steps = 3  # Q→F→Q iterations
+                _boundary_hit = False
+                for _loop in range(_matrioshka_steps):
+                    # Inner quantization: Q_Z(x)
+                    q_inner, _b_inner = self.caq(seed_state, pas_scores=_pas_scores)
+                    # Evolve through physics surrogate: F(Q_Z(x))
+                    with torch.no_grad():
+                        q_evolved = self.kagh_drafter(q_inner)
+                    # Outer quantization: Q_Z(F(Q_Z(x)))
+                    seed_state, _b_outer = self.caq(q_evolved, pas_scores=_pas_scores)
+                    # Detect critical shell ceiling — stop forcing if hit
+                    if _b_outer is not None and _b_outer.is_critical():
+                        print(f"🔔 Matrioshka shell ceiling hit at step {_loop} — halting loop")
+                        _boundary_hit = True
+                        break
+
+                self._last_matrioshka_diag = self.caq.get_diagnostics()
+                self._last_matrioshka_diag['loop_steps'] = _loop + 1
+                self._last_matrioshka_diag['boundary_halt'] = _boundary_hit
+                print(f"✅ Phase 2.6 Matrioshka loop complete: "
+                      f"level={self._last_matrioshka_diag['level']}, "
+                      f"step_mean={self._last_matrioshka_diag['step_mean']:.4f}")
+            except Exception as _caq_err:
+                print(f"⚠️  Matrioshka evolution loop failed: {_caq_err}")
+
         print("🔧 Starting text generation with fully repaired state...")
         
         # =============================================
@@ -1167,7 +1236,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Agentic Dyad Override (Phase 4)
         if dyad_override_response:
             response_text = dyad_override_response
-            print(f"🌊 Dyad Override applied: {response_text[:50]}...")
+            print(f"[WAVE] Dyad Override applied: {response_text[:50]}...")
 
         # Metrics will be constructed after Phase 4 computations to ensure dependencies are defined
         
@@ -1300,8 +1369,125 @@ class DiegeticPhysicsEngine(nn.Module):
                 return x
         metrics = _sanitize(metrics)
 
+        # Add Matrioshka diagnostics if available
+        if self._last_matrioshka_diag:
+            metrics['matrioshka_diagnostics'] = self._last_matrioshka_diag
+
+        # Add temporal association trainer diagnostics if available
+        if self._last_temporal_diag:
+            metrics['temporal_association_diagnostics'] = self._last_temporal_diag
+
+        # Trigger one background temporal association train_step
+        self._maybe_trigger_temporal_training(seed_state)
+
         print("📤 Returning metrics")
         return metrics
+
+    # =========================================================================
+    # PHASE 17: TEMPORAL ASSOCIATION TRAINER — background bridge
+    # =========================================================================
+
+    def _maybe_trigger_temporal_training(self, seed_state: torch.Tensor) -> None:
+        """
+        Fire one TemporalAssociationTrainer.train_step in a background daemon
+        thread so that it never blocks the HTTP response path.
+
+        The trainer is lazily initialised on the first call.  A new thread is
+        only spawned if the previous one has already finished (single-shot
+        per interaction, no queue build-up).
+        """
+        import threading
+
+        def _run() -> None:
+            try:
+                from src.training.temporal_association_trainer import (
+                    TemporalAssociationDataset,
+                    TemporalAssociationTrainer,
+                )
+                # Lazy init
+                if self._temporal_dataset is None:
+                    self._temporal_dataset = TemporalAssociationDataset(
+                        device=self.device
+                    )
+                if self._temporal_trainer is None:
+                    self._temporal_trainer = TemporalAssociationTrainer(
+                        model=self,
+                        dataset=self._temporal_dataset,
+                        learning_rate=1e-4,
+                        trust_update_rate=0.01,
+                        fossilization_threshold=0.8,
+                        device=self.device,
+                    )
+                # One training step per interaction
+                batch = self._temporal_dataset.get_temporal_sequence(batch_size=1)
+                result = self._temporal_trainer.train_step(batch)
+                self._last_temporal_diag = result
+                print(
+                    f"[TAT] temporal step: "
+                    f"acc={result.get('association_accuracy', 0):.4f} "
+                    f"coh={result.get('temporal_coherence', 0):.4f} "
+                    f"trust_mean={result.get('trust_mean', 0):.4f}"
+                )
+            except Exception as _tat_err:
+                # Trainer failure is never allowed to crash the main pipeline
+                self._last_temporal_diag = {"error": str(_tat_err)}
+                print(f"[TAT] background train_step failed: {_tat_err}")
+
+        # Guard: only one background thread at a time
+        if self._temporal_thread is None or not self._temporal_thread.is_alive():
+            self._temporal_thread = threading.Thread(target=_run, daemon=True)
+            self._temporal_thread.start()
+
+    def forward_text_emb(
+        self,
+        text_emb: torch.Tensor,
+        return_analysis: bool = False,
+    ) -> dict:
+        """
+        Adapter required by TemporalAssociationTrainer.
+
+        The trainer calls ``model(text_emb=..., return_analysis=True)`` and
+        expects a dict with keys the trainer checks (spectral_diagnostics,
+        trust_scalars, etc.).  We route through the existing forward() pass
+        and package the outputs into the expected dict shape.
+
+        Args:
+            text_emb: [batch, dim] pre-embedded text tensor.
+            return_analysis: If True, include diagnostic dicts.
+
+        Returns:
+            dict with keys: 'output', 'trust_scalars', plus optional diag keys.
+        """
+        with torch.no_grad():
+            manifold_out = self.forward(text_emb, dt=0.05)
+
+        result: dict = {
+            "output": manifold_out,
+            "trust_scalars": self.trust_scalars,
+        }
+        if return_analysis:
+            result["spectral_diagnostics"] = getattr(
+                self, "_last_spectral_diagnostics", {}
+            )
+            result["chern_simons_diagnostics"] = getattr(
+                self, "_last_chern_simons_diagnostics", {}
+            )
+            result["soliton_healing_diagnostics"] = getattr(
+                self, "_last_soliton_diagnostics", {}
+            )
+            result["love_diagnostics"] = getattr(
+                self, "_last_love_diagnostics", {}
+            )
+            result["soft_gates_diagnostics"] = getattr(
+                self, "_last_soft_gates_diagnostics", {}
+            )
+        return result
+
+    # Make TemporalAssociationTrainer's `self.model(text_emb=..., ...)` syntax work
+    def __call_with_text_emb(self, *args, text_emb=None, return_analysis=False, **kwargs):
+        if text_emb is not None:
+            return self.forward_text_emb(text_emb, return_analysis=return_analysis)
+        return super().__call__(*args, **kwargs)
 
     def _train_mimicry(self, input_state: torch.Tensor, text_target: str):
         """Train Larynx to decrypt the input state back to text."""
@@ -2089,7 +2275,7 @@ class DiegeticPhysicsEngine(nn.Module):
         if is_dyad_ingest:
             return self._handle_dyad_ingestion(input_text, fingerprint, seed_state)
         elif is_association:
-            return self._handle_association_learning(input_text, seed_state)
+            return self._handle_association_learning(text_input, seed_state)
         else:
             # Apply Dyadic Transfer (Phase 5) 
             # We use Task 0 (Code) and Task 1 (Conversational) leakage
@@ -2157,7 +2343,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Call fossilizer
         fossil_path = self.fossilizer.fossilize(dyad, seed_state)
         
-        print(f"🌊 Deposition confirmed: {fossil_path}")
+        print(f"[WAVE] Deposition confirmed: {fossil_path}")
         return f"Knowledge Dyad fossilized at {os.path.basename(fossil_path)}. Association Implication preserved in manifold."
     
     def _handle_association_learning(self, input_text: str, seed_state: torch.Tensor) -> str:
