@@ -244,7 +244,24 @@ class TemporalAssociationTrainer:
             'temporal_coherence': [],
             'repair_diagnostics': []
         }
-    
+
+    def _call_model(
+        self,
+        text_emb: 'torch.Tensor',
+        return_analysis: bool = True,
+    ) -> dict:
+        """
+        Dispatch helper so the trainer works both with:
+          - DiegeticPhysicsEngine  (has forward_text_emb adapter)
+          - Original GyroidicFluxReasoner  (responds to __call__(text_emb=...))
+        """
+        if hasattr(self.model, 'forward_text_emb'):
+            return self.model.forward_text_emb(
+                text_emb, return_analysis=return_analysis
+            )
+        # Legacy fallback — original model interface
+        return self.model(text_emb=text_emb, return_analysis=return_analysis)
+
     def compute_association_loss(
         self, 
         model_output: Dict[str, torch.Tensor], 
@@ -357,10 +374,10 @@ class TemporalAssociationTrainer:
             # Get current step input
             current_input = sequences[:, t, :]  # [batch, 768]
             
-            # Run model
-            model_output = self.model(
+            # Run model via adapter
+            model_output = self._call_model(
                 text_emb=current_input,
-                return_analysis=True
+                return_analysis=True,
             )
             
             sequence_outputs.append(model_output)
