@@ -11,6 +11,8 @@ Enhanced: January 2026 with GDPO integration
 import torch
 import torch.nn as nn
 import math
+import hashlib
+import struct
 from typing import List, Dict, Optional, Tuple
 
 
@@ -66,15 +68,37 @@ class HeritableTrustVault(nn.Module):
         self.register_buffer('trust_table', torch.zeros(table_size, k_dim))
         self.register_buffer('trust_scores', torch.zeros(table_size))
         self.register_buffer('longevity', torch.zeros(table_size, dtype=torch.long))
+        # Persistent salt: stored as buffer so it survives save/load cycles.
+        # This guarantees the same residue hashes to the same slot across runs.
+        import os
+        _salt_bytes = os.urandom(16)
+        self.register_buffer(
+            '_hash_salt',
+            torch.frombuffer(bytes(_salt_bytes), dtype=torch.uint8).clone()
+        )
 
     def _hash(self, residues: torch.Tensor) -> torch.Tensor:
         """
         Hash symbolic residues [batch, K] to [batch] table indices.
+
+        Uses hashlib.sha256 with a persistent per-instance salt so that:
+        - The same residue pattern always maps to the same table slot (deterministic).
+        - Cross-run determinism is guaranteed because the salt is stored as a buffer
+          and restored via state_dict (unlike Python's built-in hash which is
+          randomised per process by PYTHONHASHSEED).
         """
-        k = residues.shape[1]
-        salt = torch.linspace(1, k, k, device=residues.device)
-        hashed = (residues * salt).sum(dim=-1).abs().long() % self.table_size
-        return hashed
+        # Detach and move to CPU for byte-level hashing (no gradient flow here)
+        r_cpu = residues.detach().cpu()
+        salt_bytes = bytes(self._hash_salt.cpu().numpy().tobytes())
+        indices = []
+        for row in r_cpu:
+            # Quantise to int16 to stabilise floating-point jitter before hashing
+            row_ints = (row.float().clamp(-3e4, 3e4) * 100).short().numpy().tobytes()
+            digest = hashlib.sha256(salt_bytes + row_ints).digest()
+            # Take first 8 bytes as a uint64 and reduce modulo table_size
+            slot = struct.unpack_from('<Q', digest)[0] % self.table_size
+            indices.append(slot)
+        return torch.tensor(indices, dtype=torch.long, device=residues.device)
 
     def update(self, residues: torch.Tensor, survivorship: torch.Tensor):
         """
