@@ -170,5 +170,25 @@ These questions from the original plan have been resolved:
 | Hyper-Ring Integral | ✅ Discrete, adaptive resolution |
 | Evidence Modules | ✅ Tripartite heterogeneous |
 | Soliton Threshold | ✅ Relational κ |
-| Meta-Invariant Enforcement | ✅ Collapse path poisoning |
+| Meta-Invariant Enforcement | ✅ Collapse path poisoning (`CollapsePathPoisoner`) |
+
+---
+
+## 9.6 Collapse Path Poisoner — Implementation Detail
+
+**Status**: ✅ **IMPLEMENTED**  
+**Source**: [`src/core/collapse_poisoner.py`](../src/core/collapse_poisoner.py) — aliased as `AdversarialStressTester`
+
+The "collapse path poisoning" referenced in the Meta-Invariant entry is **defensive**, not offensive. It does not corrupt training data; it *injects synthetic topological ruptures* to verify that:
+
+1. `SpeculativeHomologyEngine` correctly detects Betti number changes when a hole is injected.
+2. `DyadicTransferMap` remains robust to the perturbation.
+
+**Two mechanisms**:
+
+- **Synthetic Rupture**: `generate_synthetic_rupture(manifold)` uses Gram-Schmidt orthogonalization to construct a perturbation vector perpendicular to **every** basis vector of the current manifold, guaranteeing it cannot be absorbed without a topology change.
+- **Cycle Debt**: `compute_cycle_debt(state)` uses cosine similarity to a rolling history buffer of 100 states. If the current state matches a previous state at cosine similarity > 0.9, it is counted as a homotopy repeat. `debt = repeats / history_size`, triggering a warning when `debt > 0.5`.
+
+**Usage**: Called during periodic topological health checks in the training loop.
+
 
