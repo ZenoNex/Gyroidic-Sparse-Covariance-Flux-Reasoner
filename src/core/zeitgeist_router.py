@@ -106,8 +106,10 @@ class ZeitgeistState:
         result = 0
         for r_i, p_i in zip(residues, moduli):
             M_i = M // p_i
-            # Modular inverse via pow(M_i, -1, p_i) — Python 3.8+
-            y_i = pow(int(M_i), -1, int(p_i))
+            # Modular inverse via Fermat's little theorem: M_i^{p_i-1} ≡ 1 (mod p_i)
+            # Since all p_i are prime and gcd(M_i, p_i) = 1 (distinct primes),
+            # y_i = M_i^{p_i-2} mod p_i  is the unique inverse.
+            y_i = pow(int(M_i), int(p_i) - 2, int(p_i))
             result += int(r_i) * int(M_i) * y_i
         return result % M
 
