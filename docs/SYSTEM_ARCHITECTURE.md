@@ -461,3 +461,33 @@ $$(x_{t+1}, P_{t+1}) = \begin{cases} (Q^{(l)}(F(Q^{(l)}(x_t))),\, P^{(l)}) & x_t
 The last case is NaN — a **topological impossibility**, not a numerical error.
 
 **Source**: [AI Project Report (2-2-2026)](ai%20project%20report_2-2-2026.txt).
+
+---
+
+## 9.6 Quantum-Inspired Reasoning Layer (`src/core/quantum_inspired_reasoning.py`)
+
+**Class**: `QuantumInspiredReasoningState`  
+**Phase**: 17 Extension (loaded conditionally)
+
+A System 2 extension that models multi-hypothesis reasoning as a quantum superposition, deferring collapse to a definite interpretation until measurement. Unlike scalar reasoning, it maintains simultaneous weighted alternatives without forcing premature disambiguation.
+
+### State Representation
+
+The reasoning state is a complex-valued amplitude vector `|ψ⟩ ∈ ℂ^d` normalized to unit `‖ψ‖`. Evolution is governed by a Hermitian Hamiltonian `H` (constructed as `(A + Aᴴ)/2`) so that time evolution is unitary.
+
+### Core Operations
+
+| Method | Formula | Purpose |
+|--------|---------|---------|
+| `superposition_reasoning(hypotheses)` | `|S⟩ = (1/√n) Σ |h_i⟩`, then evolve by `U = I − iHΔt` | Superpose N hypothesis vectors, evolve, return probability distribution via Born rule `P(x) = |ψ(x)|²` |
+| `entangle_concepts(a, b)` | `a ⊗ b` (outer product or compressed trace) | Create joint concept tensor for co-occurrence reasoning |
+| `quantum_measurement(state)` | Sample `collapsed_idx ~ P(x)`, return `(⟨O⟩, |collapsed⟩)` | Collapse superposition to definite interpretation by probabilistic measurement |
+| `decoherence_model(state, ε)` | `(1−ε)ρ + ε(I/d)` | Mix state with max-entropy noise to model environmental decoherence |
+| `quantum_interference(a, b, φ)` | `|a⟩ + e^{iφ}|b⟩` | Constructive/destructive interference between two concept states |
+
+### Connection to CRT Architecture
+
+The superposition maps naturally to the CRT polytope structure: each hypothesis corresponds to a distinct zeitgeist index `α ∈ [0, M)`, and `superposition_reasoning()` maintains all CRT branches simultaneously before the `ZeitgeistRouter` commits to a switching decision. High Born-rule probability for a branch = strong evidence for that zeitgeist.
+
+When `QuantumInspiredReasoningState` is available, `_run_advanced_physics()` in the engine routes high-PAS_h states through superposition reasoning before quantum measurement selects the final branch — replacing the deterministic mode dispatch with a probabilistic collapse.
+
