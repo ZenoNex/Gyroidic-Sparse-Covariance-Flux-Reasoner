@@ -45,7 +45,7 @@ This document synthesizes the complete architecture, explaining how the three di
 The system's interaction is governed by the recursive law:
 
 $$
-\dot{\mathcal{X}} = \Pi_{\mathrm{DP}}\left(\mathrm{ADMM}_{\lambda_j}\left[\mathrm{CRT}_{k}\left(\left\{ \Pi_{\mathrm{MC}}\left(\nabla f_j(\mathbf{c}_j) \oplus \mathbf{L}\right) \bmod m_k \right\}_{j}\right)\right]\right)
+\dot{\mathcal{X}} = \Pi_{\mathrm{DP}}\left(\mathrm{ADMM}_{\lambda_j}\left[\mathrm{CRT}_{k}\left(\left\lbrace \Pi_{\mathrm{MC}}\left(\nabla f_j(\mathbf{c}_j) \oplus \mathbf{L}\right) \bmod m_k \right\rbrace_{j}\right)\right]\right)
 $$
 
 This law dictates how symbolic proposals from System 1 are hardened through the physical constraints of System 2 and the invariants of Dark Matter.
