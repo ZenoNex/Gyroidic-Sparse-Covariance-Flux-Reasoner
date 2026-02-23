@@ -36,6 +36,7 @@ try:
     from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka
     from src.core.quantum_inspired_reasoning import QuantumInspiredReasoningState
     from src.core.context_aware_quantizer import ContextAwareQuantizer
+    from src.core.zeitgeist_router import ZeitgeistRouter, ZeitgeistState
     EXTENSIONS_AVAILABLE = True
     print("OK: Advanced Extensions loaded successfully!")
 except ImportError as e:
@@ -327,7 +328,35 @@ class DiegeticPhysicsEngine(nn.Module):
         self._temporal_thread = None
         self._last_temporal_diag: dict = {}
         self._last_matrioshka_diag: dict = {}
-        
+
+        # =============================================
+        # PHASE 18: ZEITGEIST ROUTER (CRT Polytope Switching)
+        # Implements: S_t = (x_t, alpha_t, l_t, u_t)
+        # where alpha_t ∈ Z = ∏ Z_{p_i} is the CRT index.
+        # Enables multi-zeitgeist reasoning without forced scalar
+        # reconciliation across culturally non-commensurable meaning systems.
+        # References: ai project report §VI, SYSTEM_ARCHITECTURE §9.4
+        # =============================================
+        if EXTENSIONS_AVAILABLE:
+            # Reuse the same CRT moduli as MetaPolytopeMatrioshka
+            _mpm_moduli = tuple(
+                MetaPolytopeMatrioshka(max_depth=5, base_dim=dim).crt_moduli
+            )
+            self.zeitgeist_router = ZeitgeistRouter(
+                dim=dim,
+                moduli=_mpm_moduli,
+                grazing_eps=0.05,
+                critical_boundary_threshold=0.5,
+                use_noncommutativity_check=True,
+            )
+            # Persistent CRT index state — survives across process_input calls
+            self._zeitgeist_state: ZeitgeistState = ZeitgeistState.initial(
+                moduli=_mpm_moduli
+            )
+        else:
+            self.zeitgeist_router = None
+            self._zeitgeist_state = None
+
         # Harmonic Wave Decomposition: Separate signal (non-ergodic) from noise (ergodic)
         self.harmonic_decomp = HarmonicWaveDecomposition(dim=dim)
         
@@ -757,9 +786,33 @@ class DiegeticPhysicsEngine(nn.Module):
         # Seed state emphasizes the non-ergodic (coherent) component
         # After coprime gating, the state is already structuralized
         seed_state = non_ergodic_component + 0.2 * ergodic_component + input_tensor * 0.3
-        
+
         # =============================================
-        # PHASE 1.5: CONSTRAINT PRESSURE INJECTION (CODE DETECTION)
+        # PHASE 2.7: ZEITGEIST ROUTER — CRT POLYTOPE SWITCHING
+        # Implements the non-commutative CRT index transition:
+        #   S_t = (x_t, alpha_t, l_t, u_t)  →  S_{t+1} = (x_{t+1}, alpha_{t+1}, l_{t+1}, u_{t+1})
+        # Three modes: interior (scalar OK), grazing (tension), switching (non-commut.)
+        # The exterior case emits 'undefined' — topological refusal, not numeric error.
+        # References: ai project report §VI; BIOMIMETIC_SYNTHESIS_REPORT §4.4
+        # =============================================
+        _zg_mode = 'interior'
+        _zg_diag: dict = {}
+        if self.zeitgeist_router is not None and self._zeitgeist_state is not None:
+            try:
+                # Extract last BoundaryState from the Matrioshka diagnostics (if present)
+                _last_boundary = self._last_matrioshka_diag.get('boundary_state', None)
+                _zg_mode, self._zeitgeist_state, _zg_diag = self.zeitgeist_router(
+                    seed_state,
+                    self._zeitgeist_state,
+                    boundary=_last_boundary,
+                )
+                print(f"⚡ Zeitgeist mode: {_zg_mode} | alpha: {self._zeitgeist_state.alpha} "
+                      f"| crt_idx: {self._zeitgeist_state.crt_index} "
+                      f"| step: {self._zeitgeist_state.step}")
+            except Exception as _zg_e:
+                print(f"⚠️  ZeitgeistRouter error (non-fatal): {_zg_e}")
+
+
         # =============================================
         
         # =============================================
@@ -1302,6 +1355,14 @@ class DiegeticPhysicsEngine(nn.Module):
             "conversational_results": conversational_results,
             "calm_diagnostics": calm_diagnostics,
             "constraint_forcing_applied": constraint_forcing_needed,
+            # Phase 18: CRT Zeitgeist index diagnostics
+            "zeitgeist": {
+                "mode": _zg_mode,
+                "alpha": list(self._zeitgeist_state.alpha) if self._zeitgeist_state is not None else [],
+                "crt_index": self._zeitgeist_state.crt_index if self._zeitgeist_state is not None else 0,
+                "step": self._zeitgeist_state.step if self._zeitgeist_state is not None else 0,
+                "diagnostics": _zg_diag,
+            },
             "payload": {
                 "type": "topological_shape_stalk",
                 "stalk": topological_analysis,
@@ -1364,9 +1425,7 @@ class DiegeticPhysicsEngine(nn.Module):
                         return 0.0
                     return x
                 if isinstance(x, dict):
-                    d = {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}}
-                    d.update({k: _sanitize(v) for k, v in x.items()})
-                    return d
+                    return {k: _sanitize(v) for k, v in x.items()}
                 if isinstance(x, list):
                     return [_sanitize(v) for v in x]
                 if isinstance(x, tuple):
