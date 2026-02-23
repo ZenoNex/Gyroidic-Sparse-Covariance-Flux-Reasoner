@@ -129,6 +129,80 @@ Manages persistent encoding files — each interaction's topological trace is sa
 
 ---
 
+---
+
+## 6. DAQUF Fossilization Operator (`src/core/daqf_operator.py`)
+
+**Class**: `DAQUFOperator` — Diegetic Amortized Quantized Unknowledge Fossilization
+
+The DAQUF operator manages "structural scars" — the system's accumulated history of contradictions that are never erased but are amortized over narrative time. It is invoked by the engine as an extension when `DAQFOperator` is in `EXTENSIONS_AVAILABLE`.
+
+### The Five-Stage Pipeline (`apply_daquf`)
+
+| Stage | Formula | Purpose |
+|-------|---------|---------|
+| **1. Unknowledge Load** | `χ(f_i) = Σ(Φ(f_i)=⊥) + mischief + valence` | Accumulates contradiction pressure per fossil slot |
+| **2. Fossil Selection** | `f* = argmax χ(f_i)` | Identifies the current "Unknowledge Soliton" |
+| **3. Diegetic Amortization** | `C̃ = C_τ / (N · τ)` | Spreads historical cost over narrative time |
+| **4. Lattice Quantization** | `Q_f = round(f · Q_proj / ε_q)` | Projects fossil to integer lattice; Δ_q = error |
+| **5. Speculative Persistence** | Non-collapse: flux ≠ 0 OR stable mischief soliton | Determines fossil survivorship |
+
+### Love Invariant
+
+The buffer `L` (a non-transferable persistent vector) is **never modified** after initialization. `check_invariants(original_L)` raises:
+
+```
+RuntimeError("LOVE INVARIANT VIOLATION: L has been modified.")
+```
+
+if `‖L_current − L_original‖₁ > 1e-8`. This is the only hard runtime assertion in the entire system.
+
+### Metrics Emitted
+
+```python
+{
+  'f_star_mask':     # Which fossil has max contradiction load
+  'amortized_cost':  # C̃ = diegetic amortization scalar
+  'Delta_q':         # Quantization error (structural memory)
+  'persistence':     # [0,1] per fossil survivorship 
+  'love':            # L — the immutable invariant tensor
+  'tau':             # Narrative time elapsed
+}
+```
+
+---
+
+## 7. Audience Projection (`src/core/audience_mapping.py`)
+
+**Class**: `AudienceProjection`  
+**Operator**: Φ: M → A (manifold → audience space)
+
+A Lipschitz homeomorphic projection from the internal manifold M to an external audience space A, required by the Garden Statistical Attractors design. The engine uses this to translate internal state representations into audience-legible structures without destroying topological features.
+
+### Architecture
+
+```
+manifold_state [B, input_dim]
+    → spectral_norm(Linear) → LeakyReLU(0.1)
+    → spectral_norm(Linear) → LeakyReLU(0.1)
+    → spectral_norm(Linear)
+    → smooth_projection [B, audience_dim]
+    + identity (skip, roughness-preserving)
+    = audience_state [B, audience_dim]
+```
+
+Spectral normalization on all layers enforces Lipschitz constant ≤ 1 per layer. The residual skip (`y = f(x) + x`) approximates homeomorphism: when `Lip(f) < 1`, the map is provably invertible via Banach Fixed Point Theorem.
+
+### Approximate Inverse
+
+`inverse(audience_state, iterations=5)` recovers the original manifold state via fixed-point iteration `x ← a − f(x)`. Valid only when `input_dim == audience_dim` and `Lip(f) < 1`.
+
+### Key Guarantee
+
+*Roughness preservation*: topological singularities (high-frequency features, discontinuities) in the manifold are transmitted into audience space rather than smoothed away. This prevents the system from presenting an artificially clean self-model.
+
+---
+
 ## 5. Related Documentation
 
 | Doc | Connection |
