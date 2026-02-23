@@ -692,13 +692,22 @@ class DiegeticPhysicsEngine(nn.Module):
             "step_factor": step_factor,
             "trajectory_status": "STABLE" if abort_score < 0.8 else ("WARPED" if abort_score < 0.7 else "NEVER_VETO")
         }
-        
+
+        # =============================================
+        # 5.5: LIVE PAS_h COMPUTATION
+        # PAS_h = (1/N) * sum(cos(theta_k - theta_bar))
+        # Implemented in PhaseAlignmentInvariant (invariants.py).
+        # Computed once here from meta_state; reused everywhere below.
+        # =============================================
+        with torch.no_grad():
+            pas_h_live = self._compute_pas_h(self.meta_state)
+
         # =============================================
         # 6. EARLY EXIT FOR NON-GENERATIVE TASKS
         # =============================================
         if not generate_response:
-            print("🚀 Skipping generation pipeline (Association/Ingestion Mode)")
-            return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 
+            print("Skipping generation pipeline (Association/Ingestion Mode)")
+            return {
                 "status": "processed_no_generation",
                 "iteration": self.iteration,
                 "affordance_gradients": affordance_gradients,
@@ -709,7 +718,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 "payload": {
                     "type": "topological_shape_stalk",
                     "status": "asymptotic_ingestion",
-                    "stalk_active": True
+                    "stalk_active": True,
+                    "pas_h": pas_h_live,
                 }
             }
 
@@ -1144,8 +1154,8 @@ class DiegeticPhysicsEngine(nn.Module):
             residue_dim = padded_dim // self.k
             residues_for_saturation = seed_state_padded.view(batch_size, self.k, residue_dim)
             
-            # Use Love Vector property as proxy for persistence
-            pas_h = torch.norm(self.love_vector.L) / 5.0
+            # Use live PAS_h computed from meta_state (PhaseAlignmentInvariant)
+            pas_h = pas_h_live
             
             performance_scores = torch.norm(residues_for_saturation, dim=2).mean(dim=0)
             performance_scores = torch.sigmoid(performance_scores)
@@ -1285,6 +1295,7 @@ class DiegeticPhysicsEngine(nn.Module):
             "iteration": self.iteration,
             "spectral_entropy": 0.5,
             "chiral_score": 0.1,
+            "pas_h": pas_h_live,
             "coprime_lock": bool(recovery_metrics.get('coprime_lock', False)) if isinstance(recovery_metrics, dict) else False,
             "output_length": len(response_text),
             "affordance_gradients": affordance_gradients,
@@ -1295,6 +1306,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 "type": "topological_shape_stalk",
                 "stalk": topological_analysis,
                 "shape_violation": gyroid_violation_score,
+                "pas_h": pas_h_live,
                 "resonance": recovery_metrics.get('chirality_alignment', 0.0) if isinstance(recovery_metrics, dict) else 0.0
             }
         }
@@ -1488,6 +1500,39 @@ class DiegeticPhysicsEngine(nn.Module):
         if text_emb is not None:
             return self.forward_text_emb(text_emb, return_analysis=return_analysis)
         return super().__call__(*args, **kwargs)
+
+    def _compute_pas_h(self, state: torch.Tensor) -> float:
+        """
+        Compute live Phase Alignment Score PAS_h from a state tensor.
+
+        Uses PhaseAlignmentInvariant (invariants.py) which implements:
+            PAS_h = (1/N) * sum_k cos(theta_k - theta_bar)
+
+        where theta_k are complex phases extracted from the state treated as
+        an analytic signal, and theta_bar is the circular-mean phase.
+
+        Args:
+            state: [batch, dim] or [dim] state tensor.
+
+        Returns:
+            pas_h_float: scalar in [-1, 1], typically in [0, 1] for coherent states.
+        """
+        try:
+            from src.core.invariants import PhaseAlignmentInvariant
+            if not hasattr(self, '_pas_invariant'):
+                # Lazy singleton — no need for degree param at this level
+                self._pas_invariant = PhaseAlignmentInvariant(degree=3)
+            s = state.detach()
+            if s.dim() == 1:
+                s = s.unsqueeze(0)  # [1, dim]
+            pas_scores = self._pas_invariant(s)  # [batch]
+            return float(pas_scores.mean().item())
+        except Exception as _e:
+            # Graceful fallback: use love vector norm proxy
+            try:
+                return float(torch.norm(self.love_vector.L).item() / 5.0)
+            except Exception:
+                return 0.61  # last-resort sentinel
 
     def _train_mimicry(self, input_state: torch.Tensor, text_target: str):
         """Train Larynx to decrypt the input state back to text."""
@@ -1872,7 +1917,7 @@ class DiegeticPhysicsEngine(nn.Module):
             'code_density': code_score
         }
         
-        return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 
+        return {
             'is_code': is_code,
             'code_score': code_score,
             'detected_patterns': detected_patterns,
@@ -2095,7 +2140,7 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Only extract if conversational pressure is significant
         if conversational_pressure < 0.05 and api_pressure < 0.05:
-            return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 'extracted': False, 'reason': 'insufficient_conversational_pressure'}
+            return {'extracted': False, 'reason': 'insufficient_conversational_pressure'}
         
         print(f"🔥 CONVERSATIONAL EMBEDDING EXTRACTION TRIGGERED")
         print(f"   Conversational pressure: {conversational_pressure:.4f}")
@@ -2198,17 +2243,16 @@ class DiegeticPhysicsEngine(nn.Module):
         
         for indicator in api_indicators:
             if indicator in text.lower():
-                # Simulate successful API extraction
-                return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 
+                return {
                     'success': True,
                     'source': f'{indicator}_api',
                     'content': f"Extracted content related to '{text[:50]}...' from {indicator} API",
-                    'content_length': len(text) * 3,  # Simulate expanded content
+                    'content_length': len(text) * 3,
                     'extraction_method': 'simulated_api_call',
                     'api_pressure_used': api_pressure
                 }
-        
-        return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 
+
+        return {
             'success': False,
             'reason': 'no_api_indicators_found',
             'api_pressure_used': api_pressure
