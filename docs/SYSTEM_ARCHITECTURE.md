@@ -43,7 +43,10 @@ This document synthesizes the complete architecture, explaining how the three di
 ## 7. Interaction Flow: The Equation-Object
 
 The system's interaction is governed by the recursive law:
-$\dot{\mathcal{X}} = \Pi_{\mathrm{DP}} (\operatorname*{ADMM}_{{\lambda_j}} [\operatorname*{CRT}_{k} (\{ \Pi_{\mathrm{MC}} (\nabla f_j(\mathbf{c}_j) \oplus \mathbf{L}) \bmod m_k \}_j) ])$
+
+$$
+\dot{\mathcal{X}} = \Pi_{\mathrm{DP}}\!\left(\operatorname*{ADMM}_{\lambda_j}\!\left[\operatorname*{CRT}_{k}\!\left(\left\{ \Pi_{\mathrm{MC}}\!\left(\nabla f_j(\mathbf{c}_j) \oplus \mathbf{L}\right) \bmod m_k \right\}_{\!j}\right)\right]\right)
+$$
 
 This law dictates how symbolic proposals from System 1 are hardened through the physical constraints of System 2 and the invariants of Dark Matter.
 
