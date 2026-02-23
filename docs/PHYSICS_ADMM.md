@@ -237,3 +237,102 @@ history [B, 8, dim] → TransformerEncoder(2 layers, 4 heads) → last_latent [B
 
 `update_buffer(buffer, new_state)`: FIFO roll — shifts history left by 1, inserts `new_state` at position `[-1]`.
 
+---
+
+## 7. Polynomial ADMR Solver (`src/core/admr_solver.py`)
+
+**Class**: `PolynomialADMRSolver`  
+**Full name**: Alternating Direction of Multiplicative Remainders
+
+The ADMR solver is the continuous-polynomial analogue of ADMM. Where classical ADMM uses prime moduli, ADMR uses co-prime polynomial functionals from `PolynomialCoprimeConfig` as its "modular" basis.
+
+### 7.1 Multiplicative Update
+
+The primal update is multiplicative, not additive:
+
+$$S^{(n+1)} = \text{Proj}_{\text{Poly}} \left[ S^{(n)} \cdot \sum_k w_{ik} S_k \right]$$
+
+This propagates relational pressure through graph-structured neighbors (the ADMM "neighbor states") rather than euclidean gradient descent. The `Proj_{Poly}` step evaluates the interaction through the co-prime polynomial basis (`config.evaluate(interaction)`), which acts as a "soft modulus" preserving symbolic structure.
+
+**Forward call signature**:
+
+```python
+PolynomialADMRSolver.forward(
+    states,           # [batch, state_dim]  S_i
+    neighbor_states,  # [batch, N, state_dim]  S_k
+    adjacency_weight, # [batch, N]  R_ik from Relational Graph
+    valence=None      # [batch] optional valence drive
+) -> torch.Tensor     # [batch, state_dim]
+```
+
+### 7.2 Stochastic Differential Update
+
+For continuous-time regime:
+
+$$dx(t) = \left[ \sum_i A_i x_i(t) - \rho \sum_k (x - r(x_k)) \right] dt + \sigma\, dW$$
+
+where $A_i \in \mathbb{R}^{d \times d}$ are learnable non-selfadjoint transition operators (one per polynomial facet channel). The co-prime evaluation decomposes the state into facets; each facet evolves under its own non-Hermitian flow before polynomial projection re-locks the state to the co-prime manifold.
+
+### 7.3 Scaffold Adaptation
+
+`update_scaffold(negentropy_flux, dt)` advances asymptotic time `τ += dt` and calls `config.mutate()`, breathing the polynomial grid in response to negentropy flux. This is the ADMR equivalent of ADMM's ρ adaptation.
+
+### 7.4 Coherence Metrics
+
+`get_coherence_metrics(states)` returns orthogonality pressure measures:
+
+| Key | Formula | Meaning |
+|-----|---------|---------|
+| `polynomial_coherence` | `1/(1 + H_global)` | How well states align with co-prime scaffold |
+| `local_functional_entropy` | mean local entropy across functionals | Per-functional differentiation |
+| `global_functional_entropy` | scalar global entropy | Risk of functional collapse |
+
+### 7.5 Connection to Standard ADMM
+
+| ADMM Step | ADMR Equivalent |
+|-----------|----------------|
+| Primal (argmin) | Multiplicative update `S · Σw_ik S_k` |
+| Projection | Polynomial basis evaluation `config.evaluate()` |
+| Dual (pressure) | Relational adjacency `R_ik` |
+| Step size | Valence drive `v` |
+
+---
+
+## 8. Number-Theoretic Stabilizer (`src/core/number_theoretic_stabilizer.py`)
+
+**Class**: `NumberTheoreticStabilizer`
+
+Applies number-theoretic stability constraints at every CRT reconstruction step to prevent numerical fragility. Used as a pre- or post-processing step for the SIC-FA-ADMM state between iterations.
+
+### 8.1 Stabilization Pipeline (`comprehensive_stabilization`)
+
+Four-stage composite stabilization:
+
+1. **Modular Stabilization**: Apply `fmod(|val|, p)` for each prime in the prime base across state dimensions, preserving sign. Prevents overflow by mapping values into bounded prime-periodic windows.
+
+2. **Quadratic Residue Optimization**: Maps values to their closest quadratic residue mod `p` for the first 5 primes. Quadratic residues have special distribution properties that reinforce structural stability.
+
+3. **Galois Field Operations**: Maps to GF(2⁸) (or any 2^n field), applies finite-field addition and multiplication, maps back. Enforces finite-precision arithmetic consistency.
+
+4. **Golden Ratio Normalization**: Rescales state norm to `φ = (1+√5)/2` — the irrational most resistant to rational approximation drift.
+
+### 8.2 Diophantine Constraint Solving
+
+`solve_diophantine_constraint(coefficients, target)` uses the Extended Euclidean Algorithm to find integer solutions to:
+
+$$a_1 x_1 + a_2 x_2 + \cdots + a_n x_n = \text{target}$$
+
+Returns `None` if no solution exists (GCD condition fails). Used for ensuring CRT reconstruction integer consistency when floating-point roundoff would otherwise produce non-integer residues.
+
+### 8.3 Continued Fraction Approximation
+
+`apply_continued_fraction_approximation(value, max_terms)` returns the best rational approximant `(p, q)` for irrational model constants. Keeps denominators small while approximating common irrationals (φ, e, √2) used in the soliton template and manifold clock.
+
+### 8.4 Diagnostics
+
+| Key | Meaning |
+|-----|---------|
+| `stabilization_error` | ‖state_out − state_in‖ |
+| `final_norm` | Final state ‖·‖ (target ≈ φ) |
+| `numerical_stability_score` | `1/(1 + stabilization_error)` |
+
