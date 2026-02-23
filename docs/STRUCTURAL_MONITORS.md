@@ -104,6 +104,62 @@ Returns scalar hunger tensor. Zero hunger = system is at or below its historical
 
 ## 6. Integration Map
 
+---
+
+## 6. EnergyBasedSolitonHealer (`src/core/energy_based_soliton_healer.py`)
+
+**Class**: `EnergyBasedSolitonHealer`
+
+Heals structurally damaged solitons by gradient descent on a learnable energy surface, invoked during the **Spectral Coherence Repair Cascade** (Step 4 of 4).
+
+### 6.1 Energy Surface
+
+$$E(W, \text{state}, \text{target}) = \|\underbrace{A(\text{state} - \text{target})}_{\text{quadratic}}\|^2 + \underbrace{b \cdot \text{state}}_{\text{linear bias}}$$
+
+where $A \in \mathbb{R}^{d \times d}$ (`energy_weights`) and $b \in \mathbb{R}^d$ (`energy_bias`) are learnable. Lower energy = more stable/compatible configuration. When no explicit target is provided, the **soliton template** is used.
+
+### 6.2 Soliton Template
+
+The stable reference point is constructed analytically:
+
+$$\text{template}_i = \cos\!\left(\frac{2\pi i}{\phi}\right) + \sum_{p \in \text{primes}} 0.1 \cdot \sin\!\left(\frac{2\pi i}{p}\right)$$
+
+normalized to unit energy. $\phi = (1+\sqrt{5})/2$ (golden ratio) provides harmonic stability; prime-based modulation (dynamically generated — no hardcoded lists) adds number-theoretic grounding.
+
+### 6.3 Healing Protocol
+
+`heal_soliton(state, iteration_count)` applies gradient descent on `−∇E`:
+
+| Energy level | Healing rate |
+|---|---|
+| `E > energy_margin` | `healing_rate` (strong correction) |
+| `E < energy_margin` | `0.1 × healing_rate` (gentle stabilization) |
+
+Terminates when `‖−∇E‖ < stability_threshold` or max steps `iteration_count × 10` reached. Numerical safety: state clamped to `[−10, 10]` after each step.
+
+### 6.4 Contrastive Energy Shaping
+
+`update_energy_function(positive_states, negative_states)` uses a hinge loss:
+
+$$\mathcal{L} = \max\!\left(0,\; \text{margin} + E(\text{positive}) - E(\text{negative})\right)$$
+
+Shapes the energy surface so that soliton states have lower energy than anti-soliton configurations.
+
+### 6.5 Diagnostics
+
+`get_stability_metrics()` returns rolling statistics over last 10 healings:
+
+| Key | Meaning |
+|-----|---------|
+| `stability_score` | Fraction of healings reaching `E < margin` |
+| `healing_efficiency` | `1 − (avg_steps / max_steps)` |
+| `avg_energy_level` | Mean final energy |
+| `healing_consistency` | `1 − std(final_energy)` |
+
+---
+
+## 7. Integration Map
+
 ```mermaid
 graph TB
     AST["AdversarialStressTester<br/>(synthetic rupture)"] -->|tests| SHE["Speculative Homology Engine"]
@@ -112,4 +168,7 @@ graph TB
     MC["MohrCoulomb<br/>(local yield)"] -->|shear planes| SCCCG["SpeculativeCoprimeGate"]
     DP["DruckerPrager<br/>(global yield)"] -->|envelope| SCCCG
     VF["ValenceFunctional<br/>(hunger)"] -->|drives| TRAIN["StructuralAdaptor"]
+    EBSH["EnergyBasedSolitonHealer<br/>(energy gradient repair)"] -->|heals| SOL
+    EBSH -->|step 4 of cascade| SCC["SpectralCoherenceCorrector"]
 ```
+
