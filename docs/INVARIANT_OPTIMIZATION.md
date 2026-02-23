@@ -265,3 +265,71 @@ We do not aim for a system that is provable or convergent. We aim for a system t
 This framework ensures **Endogenous Scalar Gyroidic Ergodicity**: the system explores its state space fully (ergodic) but remains bounded by computable conservation laws and **Residue Homology Drift** triggers.
 
 The transition to **Evolutionary Saturation** ensures that invariants are not merely "minimized" via gradients, but **established as stable survivors** in a discrete topological landscape.
+
+---
+
+## 14. Situational Batching (`src/core/situational_batching.py`)
+
+**Class**: `SituationalBatchSampler`
+
+Instead of independent-identically-distributed (i.i.d.) sampling — which assumes timelessness — the Situational Batch Sampler assembles batches by following the "scars" of historical interaction between sample indices. This encodes the **Refusal as Affirmation** and **Co-arising** principles into the data loader itself.
+
+### 14.1 Relational State Matrices
+
+Two persistent matrices evolve during training:
+
+| Matrix | Symbol | Updates On | Meaning |
+|--------|--------|-----------|---------|
+| Resonance | `R_ij` | Structural pressure × √(p_i · p_j) | Co-emergent coupling |
+| Mischief | `M_ij` | Mischief scores per pair | Chaotic affinity |
+
+Both decay at rate `decay = 0.99` per step, so only recent interactions have strong coupling.
+
+### 14.2 Batch Assembly
+
+For each seed index `i`, a batch of size `batch_size` is assembled in three phases:
+
+1. **Coupled selection** (main body): Sample from `softmax(5 · (R[i] + M[i]))` — high resonance + mischief neighbors are preferentially included.
+2. **Play sampling** (fraction `play_ratio`): Pure random sampling from unconsumed indices. Prevents entropy collapse into the richest club.
+3. **Paradoxical Boundary Amplification**: If `(p_i + p_j)/2 > boundary_threshold`, the resonance term is multiplied by 1.5. Refusal (high pressure boundary) amplifies coupling rather than severing it.
+
+### 14.3 Connection to Non-Teleological Principle
+
+The sampler enforces **Law 4: Evolution Owns Time** at the data level. No batch is optimized for accuracy improvement; batches are structured by the topology of past interaction. Over time, high-pressure index pairs become structurally entangled in `R`, creating "temporal association clusters" that expose the ADMR solver to co-arising constraint patterns.
+
+**Update call**: `update_love_invariant(indices, pressure, mischief_scores)` — updates `R`, `M`, `O` tensors after each batch.
+
+---
+
+## 15. Legibility Audit (`src/core/legibility_audit.py`)
+
+**Classes**: `LegibilityTripwire`, `NarrativeCoherenceEstimator`
+
+> **High narrative coherence is a danger signal, not a goal.**
+
+This module implements Sparse Operational Pointer #2: *Hidden Scalar Reward = Narrative Legibility*. A configuration that is easily explainable may be selected *because* it is explainable — a rich-club attractor bias that violates the non-teleological constraint.
+
+### 15.1 NarrativeCoherenceEstimator
+
+Measures how closely a configuration embedding matches canonical "explainable" patterns:
+
+| Pattern Type | Examples |
+|-------------|---------|
+| Sparse | 1-hot-like vectors |
+| Block-sparse | Clustered activations |
+| Monotonic gradient | Ordered relationships |
+| Random | Baseline (coherence ≈ 0) |
+
+These templates are **not trained** — they capture common ML biases and are registered as fixed buffers. Output: `max_sim ∈ [0, 1]` — how well the configuration matches *any* narrative template.
+
+### 15.2 LegibilityTripwire
+
+Tracks the **correlation** between selection and coherence over a rolling window of 100 steps. Issues a `UserWarning` when:
+
+$$\underbrace{\text{coherence}_{\text{selected}} - \text{coherence}_{\text{rejected}}}_{\text{coherence gap}} > 0.7 \quad \text{OR} \quad |\rho_{\text{select,coherence}}| > 0.5$$
+
+This warning does **not** veto the selection — it is a diagnostic signal for the evolutionary loop to increase mutation pressure on "legible" fossils.
+
+### 15.3 Relationship to Tripwire 3 (No Scalarization)
+
+The LegibilityTripwire directly operationalizes Tripwire 3: it detects when a hidden scalar reward (narrative coherence) is influencing the non-scalarized selection process. If coherence gap is consistently high, it implies a scalarization leak — the system is treating legibility as a de facto objective.
