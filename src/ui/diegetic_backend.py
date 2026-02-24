@@ -420,7 +420,11 @@ class DiegeticPhysicsEngine(nn.Module):
         self.transfer_map = DyadicTransferMap(num_tasks=8, embedding_dim=self.dim)
         
         # 11. Knowledge Dyad Fossilizer
-        self.fossilizer = DyadFossilizer(storage_dir="data/encodings")
+        from src.core.knowledge_dyad_fossilizer import ResidueFusion
+        self.fossilizer = DyadFossilizer(
+            storage_dir="data/encodings",
+            fusion_layer=ResidueFusion(feature_dim=self.dim, fingerprint_dim=137)
+        )
         
         # 11. Spectral Structural Trainer (Deeper Dynamics)
         self.trainer = SpectralStructuralTrainer(
