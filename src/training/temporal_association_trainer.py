@@ -429,6 +429,50 @@ class TemporalAssociationTrainer:
             'repair_diagnostics': repair_diagnostics
         }
     
+    def train_on_interaction(self, input_tensor: torch.Tensor, response_tensor: torch.Tensor) -> Dict[str, float]:
+        """Train directly on a live interaction from the diegetic backend."""
+        # Expand dims to batch=1 if needed
+        if input_tensor.dim() == 1:
+            input_tensor = input_tensor.unsqueeze(0)
+        if response_tensor.dim() == 1:
+            response_tensor = response_tensor.unsqueeze(0)
+            
+        # Run model via adapter to get internal state
+        model_output = self._call_model(
+            text_emb=input_tensor,
+            return_analysis=True,
+        )
+        
+        # Create target associations from response tensor
+        # Compute correlation between internal residue structure and the final response
+        association_loss = self.compute_association_loss(model_output, response_tensor)
+        
+        # Temporal coherence: compare input to output
+        seq_outs = [
+            {'reconstruction': input_tensor},
+            {'reconstruction': response_tensor}
+        ]
+        temporal_coherence = self.compute_temporal_coherence(seq_outs)
+        
+        survivorship_pressure = association_loss - 0.1 * temporal_coherence
+        
+        self.optimizer.zero_grad()
+        survivorship_pressure.backward()
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+        self.optimizer.step()
+        
+        association_accuracy = 1.0 - association_loss.item()
+        self.update_trust_scalars(model_output, association_accuracy)
+        
+        return {
+            'survivorship_pressure': survivorship_pressure.item(),
+            'association_accuracy': association_accuracy,
+            'temporal_coherence': temporal_coherence.item(),
+            'trust_mean': self.model.trust_scalars.mean().item(),
+            'num_fossilized': (self.model.trust_scalars > self.fossilization_threshold).sum().item(),
+            'live_update': True
+        }
+    
     def train_epoch(self, num_batches: int = 100) -> Dict[str, float]:
         """Train for one epoch."""
         
