@@ -90,6 +90,7 @@ class ContextAwareQuantizer(nn.Module):
     def _compute_step_sizes(
         self,
         pas_scores: Optional[torch.Tensor],
+        trust_scores: Optional[torch.Tensor],
         device: torch.device,
     ) -> torch.Tensor:
         """
@@ -98,13 +99,13 @@ class ContextAwareQuantizer(nn.Module):
         Returns:
             step: [1, dim] positive step sizes for element-wise quantisation.
         """
-        ℓ = min(self._level, self.max_depth)
+        lvl = min(self._level, self.max_depth)
 
         # Base step shrinks geometrically with depth
-        depth_scale = self.base_step / (2.0 ** ℓ)
+        depth_scale = self.base_step / (2.0 ** lvl)
 
         # Learnable log-warp for this depth level
-        delta = torch.exp(self.delta_log[ℓ]) * depth_scale  # [dim]
+        delta = torch.exp(self.delta_log[lvl]) * depth_scale  # [dim]
 
         # PAS anisotropy: finer resolution on coherent axes
         if pas_scores is not None:
@@ -117,6 +118,18 @@ class ContextAwareQuantizer(nn.Module):
             # Shrink step proportional to coherence
             aniso = 1.0 + self.pas_anisotropy * pas
             delta = delta / aniso
+
+        # Trust anisotropy: highly trusted (fossilized) axes get much finer granularity
+        if trust_scores is not None:
+            trust = trust_scores.to(device).view(-1)[: self.dim]
+            if trust.shape[0] < self.dim:
+                pad = torch.zeros(self.dim - trust.shape[0], device=device)
+                trust = torch.cat([trust, pad])
+            
+            # Trust acts as a multiplier on precision: 0 trust -> 1x precision, 1 trust -> 4x precision
+            # This implements the $\Delta_{min}$ for fossilized axes and $\Delta_{max}$ for volatile ones.
+            trust_multiplier = 1.0 + 3.0 * trust
+            delta = delta / trust_multiplier
 
         return delta.unsqueeze(0)  # [1, dim]
 
@@ -137,14 +150,17 @@ class ContextAwareQuantizer(nn.Module):
         self,
         x: torch.Tensor,
         pas_scores: Optional[torch.Tensor] = None,
+        trust_scores: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Optional[BoundaryState]]:
         """
         Apply context-aware quantization.
 
         Args:
-            x:          [batch, dim] state vector.
-            pas_scores: Optional [dim] per-axis Phase Alignment Scores in [0,1].
-                        If None, uniform (no anisotropy) is assumed.
+            x:            [batch, dim] state vector.
+            pas_scores:   Optional [dim] per-axis Phase Alignment Scores in [0,1].
+                          If None, uniform (no anisotropy) is assumed.
+            trust_scores: Optional [dim] per-axis temporal trust scores in [0,1].
+                          Hardened/fossilized axes (high trust) get finer granularity.
 
         Returns:
             q_out:          [batch, dim] quantised state.
@@ -154,7 +170,7 @@ class ContextAwareQuantizer(nn.Module):
         prev_level = self._level
 
         # 1. Compute per-axis step sizes
-        step = self._compute_step_sizes(pas_scores, device)  # [1, dim]
+        step = self._compute_step_sizes(pas_scores, trust_scores, device)  # [1, dim]
 
         # 2. Quantise with per-axis steps
         q = self._quantize(x, step)  # [batch, dim]
