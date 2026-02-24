@@ -1599,8 +1599,8 @@ class DiegeticPhysicsEngine(nn.Module):
         Returns:
             dict with keys: 'output', 'trust_scalars', plus optional diag keys.
         """
-        with torch.no_grad():
-            manifold_out = self.forward(text_emb, dt=0.05)
+        # Calculate manifold propagation and maintain graph for survivorship_pressure 
+        manifold_out = self.forward(text_emb, dt=0.05)
 
         result: dict = {
             "output": manifold_out,
