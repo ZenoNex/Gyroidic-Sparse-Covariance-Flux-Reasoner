@@ -1605,6 +1605,7 @@ class DiegeticPhysicsEngine(nn.Module):
         result: dict = {
             "output": manifold_out,
             "trust_scalars": self.trust_scalars,
+            "residue_distributions": getattr(self, "_last_est_residues", torch.zeros(1, 5, device=self.device)).unsqueeze(-1),
         }
         if return_analysis:
             result["spectral_diagnostics"] = getattr(
