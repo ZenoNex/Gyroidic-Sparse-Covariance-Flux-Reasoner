@@ -456,11 +456,18 @@ class TemporalAssociationTrainer:
         
         survivorship_pressure = association_loss - 0.1 * temporal_coherence
         
-        self.optimizer.zero_grad()
-        survivorship_pressure.backward()
-        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-        self.optimizer.step()
+        print(f"[TAT-DEBUG] association_loss.requires_grad = {association_loss.requires_grad}")
+        print(f"[TAT-DEBUG] temporal_coherence.requires_grad = {temporal_coherence.requires_grad}")
+        print(f"[TAT-DEBUG] survivorship_pressure.requires_grad = {survivorship_pressure.requires_grad}")
         
+        self.optimizer.zero_grad()
+        if survivorship_pressure.requires_grad:
+            survivorship_pressure.backward()
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+            self.optimizer.step()
+        else:
+            print("[TAT-DEBUG] Skipping backward pass because survivorship_pressure has no grad_fn!")
+            
         association_accuracy = 1.0 - association_loss.item()
         self.update_trust_scalars(model_output, association_accuracy)
         
