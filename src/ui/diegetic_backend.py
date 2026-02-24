@@ -452,9 +452,11 @@ class DiegeticPhysicsEngine(nn.Module):
         # We pass input_tensor as attention_states to trigger M update
         cavity_out = self.cavity(input_tensor.unsqueeze(1))
         memory_state = cavity_out['memory_state'].mean(dim=1) # [1, dim]
+        self._last_memory_state = memory_state
         
         # 4. FRACTAL META-RECURSION
         est_residues = torch.tanh(self.associator.residue_map(memory_state)) # [1, k]
+        self._last_est_residues = est_residues
         
         meta_out = self.fractal_meta(
             current_state=memory_state,
@@ -638,6 +640,9 @@ class DiegeticPhysicsEngine(nn.Module):
         manifold_state = self.forward(input_tensor, dt=dt)
         seed_state = manifold_state.detach() # Explicit seed for response
         
+        memory_state = getattr(self, '_last_memory_state', self.meta_state)
+        est_residues = getattr(self, '_last_est_residues', torch.zeros_like(self.meta_state))
+        
         # =============================================
         # DYAD AGENTIC TRIGGERS (AFFORDANCE-BASED)
         # =============================================
@@ -753,29 +758,81 @@ class DiegeticPhysicsEngine(nn.Module):
             }
 
         # =============================================
-        # 6. Speculative Coprime Recovery (Legacy Restoration)
+        # 6. Speculative Coprime Recovery + Spectral Speculative Exit
         # =============================================
         # If CALM detects collapse (abort_score > 0.5), attempt structure recovery
         # using Wasserstein optimal transport toward a coprime-coherent manifold.
-        self.meta_state, recovery_metrics = self.coprime_gate(
-            state=self.meta_state,
-            abort_score=abort_score_tensor,
-            residues=est_residues,
-            chirality_target=input_tensor
-        )
-        # If recovery succeeded in locking coprime parity, we override the CALM abort
-        if recovery_metrics['coprime_lock'] and recovery_metrics['recovery_attempted']:
-             abort_score = 0.0
-             calm_diagnostics["trajectory_status"] = "RECOVERED"
-             # Signal that we have "un-collapsed" the trajectory
+        
+        spectral_early_exit = False
+        if abort_score > 0.5:
+            with torch.no_grad():
+                # FFT to measure spectral entropy
+                spectrum = torch.fft.rfft(self.meta_state).abs()
+                spectrum_norm = spectrum / (spectrum.sum(dim=-1, keepdim=True) + 1e-8)
+                spectral_entropy = -(spectrum_norm * torch.log(spectrum_norm + 1e-8)).sum(dim=-1).mean()
+                
+                # LOW_ENTROPY_THRESHOLD approx 1.0 (highly structured)
+                LOW_ENTROPY_THRESHOLD = 1.0 
+                if spectral_entropy < LOW_ENTROPY_THRESHOLD:
+                    print(f"🌊 Spectral Speculative Exit triggered (entropy {spectral_entropy:.2f} < {LOW_ENTROPY_THRESHOLD}). Bypassing SCCCG.")
+                    spectral_early_exit = True
+                    abort_score = 0.0
+                    calm_diagnostics["trajectory_status"] = "SPECTRAL_EARLY_EXIT"
+                    recovery_metrics = {'coprime_lock': False, 'recovery_attempted': False}
+                    
+        if not spectral_early_exit:
+            self.meta_state, recovery_metrics = self.coprime_gate(
+                state=self.meta_state,
+                abort_score=abort_score_tensor,
+                residues=est_residues,
+                chirality_target=input_tensor
+            )
+            # If recovery succeeded in locking coprime parity, we override the CALM abort
+            if recovery_metrics['coprime_lock'] and recovery_metrics['recovery_attempted']:
+                 abort_score = 0.0
+                 calm_diagnostics["trajectory_status"] = "RECOVERED"
+                 # Signal that we have "un-collapsed" the trajectory
         
         # =============================================
-        # 7. KAGH: Speculative Response Drafting (Topological Ghost)
+        # 7. KAGH / MATRIOSHKA EVOLUTION LOOP
         # =============================================
-        # Use KAGH to draft a "ghost" of the response state before character generation
-        # This provides a long-horizon speculative target
+        # Use KAGH to draft a "ghost" of the response state.
+        # Wrapped in Matrioshka shell iterations to find a quantized fixed-point.
         kagh_input = memory_state + 0.3 * self.meta_state + input_tensor * 0.4
-        response_ghost = self.kagh_drafter(kagh_input) # [1, dim]
+        
+        if self.caq is not None and not spectral_early_exit:
+            current_state = kagh_input
+            
+            # Expand trust scalars from k to dim (approx)
+            trust_exp = self.trust_scalars.repeat_interleave(self.dim // len(self.trust_scalars) + 1)[:self.dim]
+            pas_vec = torch.ones(self.dim, device=self.device) * pas_h_live
+            
+            max_matrioshka_steps = 3
+            fixed_point = False
+            
+            for step in range(max_matrioshka_steps):
+                q_in, _ = self.caq(current_state, pas_scores=pas_vec, trust_scores=trust_exp)
+                ghost_next = self.kagh_drafter(q_in)
+                q_out, boundary = self.caq(ghost_next, pas_scores=pas_vec, trust_scores=trust_exp)
+                
+                # Check if fixed point reached at this quantization level
+                if torch.norm(q_out - q_in) < 1e-3:
+                    print(f"🪆 Matrioshka fixed point reached at shell {self.caq._level} after {step+1} steps.")
+                    response_ghost = q_out
+                    fixed_point = True
+                    break
+                    
+                if boundary is not None:
+                    print(f"🪆 Shell crossed (to level {boundary.level})! Falling back to coarser granularity.")
+                    self._last_matrioshka_diag = boundary.__dict__
+                    self._last_boundary_obj = boundary
+                    
+                current_state = ghost_next
+            
+            if not fixed_point:
+                response_ghost = current_state
+        else:
+            response_ghost = self.kagh_drafter(kagh_input) # [1, dim]
         
         # =============================================
         # 7. Harmonic Wave Decomposition: Separate Signal from Noise
@@ -800,7 +857,7 @@ class DiegeticPhysicsEngine(nn.Module):
         if self.zeitgeist_router is not None and self._zeitgeist_state is not None:
             try:
                 # Extract last BoundaryState from the Matrioshka diagnostics (if present)
-                _last_boundary = self._last_matrioshka_diag.get('boundary_state', None)
+                _last_boundary = getattr(self, '_last_boundary_obj', None)
                 _zg_mode, self._zeitgeist_state, _zg_diag = self.zeitgeist_router(
                     seed_state,
                     self._zeitgeist_state,
@@ -1448,8 +1505,8 @@ class DiegeticPhysicsEngine(nn.Module):
         if self._last_temporal_diag:
             metrics['temporal_association_diagnostics'] = self._last_temporal_diag
 
-        # Trigger one background temporal association train_step
-        self._maybe_trigger_temporal_training(seed_state)
+        # Trigger one background temporal association train_step on live interaction
+        self._maybe_trigger_temporal_training(input_tensor, response_text)
 
         print("📤 Returning metrics")
         return metrics
@@ -1458,9 +1515,9 @@ class DiegeticPhysicsEngine(nn.Module):
     # PHASE 17: TEMPORAL ASSOCIATION TRAINER — background bridge
     # =========================================================================
 
-    def _maybe_trigger_temporal_training(self, seed_state: torch.Tensor) -> None:
+    def _maybe_trigger_temporal_training(self, input_tensor: torch.Tensor, response_text: str) -> None:
         """
-        Fire one TemporalAssociationTrainer.train_step in a background daemon
+        Fire one TemporalAssociationTrainer.train_on_interaction in a background daemon
         thread so that it never blocks the HTTP response path.
 
         The trainer is lazily initialised on the first call.  A new thread is
@@ -1468,6 +1525,16 @@ class DiegeticPhysicsEngine(nn.Module):
         per interaction, no queue build-up).
         """
         import threading
+
+        # Need to capture tensor forms for background thread
+        # Use existing _text_to_tensor to convert response_text
+        try:
+            inp = input_tensor.detach().clone()
+            # Generate response tensor safely
+            resp = self._text_to_tensor(response_text).detach().clone()
+        except:
+            # Fallback if tensor creation fails
+            return
 
         def _run() -> None:
             try:
@@ -1489,12 +1556,11 @@ class DiegeticPhysicsEngine(nn.Module):
                         fossilization_threshold=0.8,
                         device=self.device,
                     )
-                # One training step per interaction
-                batch = self._temporal_dataset.get_temporal_sequence(batch_size=1)
-                result = self._temporal_trainer.train_step(batch)
+                # Live interaction update
+                result = self._temporal_trainer.train_on_interaction(inp, resp)
                 self._last_temporal_diag = result
                 print(
-                    f"[TAT] temporal step: "
+                    f"[TAT] live temporal step: "
                     f"acc={result.get('association_accuracy', 0):.4f} "
                     f"coh={result.get('temporal_coherence', 0):.4f} "
                     f"trust_mean={result.get('trust_mean', 0):.4f}"
