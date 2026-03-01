@@ -27,10 +27,14 @@ class StructuralEnergyMonitor(nn.Module):
         self,
         margin: float = 0.1,
         beta_init: float = 1.0,
+        tau_decay: float = 10.0,
+        lambda_min_epsilon: float = 1e-6,
         device: str = None
     ):
         super().__init__()
         self.margin = margin
+        self.tau_decay = tau_decay
+        self.lambda_min_epsilon = lambda_min_epsilon
         self.device = device
         
         # Internal state
@@ -38,6 +42,15 @@ class StructuralEnergyMonitor(nn.Module):
         self.register_buffer('E_offending', torch.tensor(0.0, device=device))
         self.register_buffer('beta', torch.tensor(beta_init, device=device))
         self.register_buffer('free_energy', torch.tensor(0.0, device=device))
+
+    def compute_v_m(self, V: torch.Tensor, h_mischief: float, lambda_min: torch.Tensor, trace: torch.Tensor) -> torch.Tensor:
+        """
+        Compute formally the Mischief Violation Score (V_m).
+        V_m = V + H_mischief / tau_decay - lambda_min / tr(C_loc)
+        """
+        flatness_penalty = lambda_min / (trace + self.lambda_min_epsilon)
+        v_m = V + (h_mischief / self.tau_decay) - flatness_penalty
+        return v_m
 
     def update(self, current_pressure: torch.Tensor, alternative_pressures: Optional[torch.Tensor] = None):
         """
