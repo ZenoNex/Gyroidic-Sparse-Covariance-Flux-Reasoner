@@ -845,6 +845,8 @@ class GyroidicFluxReasoner(nn.Module):
             'crt_pressure': StructuralPressure(crt_pressure, 'symbolic'),
             'homology_pressure': StructuralPressure(homology_pressure, 'topological'),
             'gyroid_pressure': StructuralPressure(gyroid_pressure, 'geometric'),
+            'lambda_min': gyroid_results.get('lambda_min', torch.tensor(0.0, device=h.device)),
+            'trace_c': gyroid_results.get('trace_c', torch.tensor(1.0, device=h.device)),
             'h_drift': h_drift,
             'violations': violations,
             'num_cycles': len(cycles),
