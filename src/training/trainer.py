@@ -303,7 +303,18 @@ class StructuralAdaptor:
             
             # 2. Finalize Energy Monitor with V_m (Mischief Violation)
             m_metrics = self.mischief_probe.get_metrics()
-            v_m = p_tensor + m_metrics['H_mischief'] # GMVE approximation
+            
+            l_min = outputs.get('lambda_min', torch.tensor([0.0], device=self.device))
+            tr_c = outputs.get('trace_c', torch.tensor([1.0], device=self.device))
+            
+            # V_m = V + H_mischief/tau - lambda_min/tr(C)
+            v_m = self.energy_monitor.compute_v_m(
+                V=p_tensor,
+                h_mischief=m_metrics['H_mischief'],
+                lambda_min=l_min.mean() if l_min.dim() > 0 else l_min,
+                trace=tr_c.mean() if tr_c.dim() > 0 else tr_c
+            )
+            v_m = v_m.view(-1)
             
             offending_p = v_m + self.energy_monitor.margin
             self.energy_monitor.update(v_m, alternative_pressures=offending_p.unsqueeze(0))
@@ -327,6 +338,12 @@ class StructuralAdaptor:
             if self.sampler is not None and 'indices' in batch:
                 m_scores = torch.tensor([m_metrics['H_mischief']], device=self.device).repeat(len(batch['indices']))
                 self.sampler.update_love_invariant(batch['indices'], v_m.repeat(len(batch['indices'])), m_scores)
+                
+                # Safeguard the "Dream State": Escalate play_ratio based on Mischief Score
+                # Linearly scale play_ratio between 0.2 and 0.8 depending on H_mischief (0 to 1)
+                base_play_ratio = 0.2
+                mischief_boost = m_metrics['H_mischief'] * 0.6
+                self.sampler.play_ratio = min(0.8, base_play_ratio + mischief_boost)
 
             # --- DAQUF OPERATOR ---
             if self.daquf is not None:
