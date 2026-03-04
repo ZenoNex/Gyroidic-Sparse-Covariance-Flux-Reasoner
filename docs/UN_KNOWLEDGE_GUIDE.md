@@ -57,5 +57,9 @@ The `StructuralAdaptor` (in `trainer.py`) manages the interplay.
 - Ensure `is_good_bug` triggers are tuned to your manifold curvature.
 - Monitor `daquf_persistence` vs `pressure` to find the non-dual equilibrium.
 
+## 5. The Unknowledge Domain ($\mathcal{U}$)
+
+The `UnknowledgeDomain` (in `unknowledge_domain.py`) protects functionally creative or "dream-like" topological cycles from being crushed by standard reconstruction constraints. Rather than evaluating states by their reduction of standard Loss, it measures the degree to which Mischief ($H_{mischief}$) allows a cycle to survive tension safely. Hyper-ring Closure topologies matching 'survivable_soliton' are aggressively shielded using the Computable Flux ($V_m$) score.
+
 ---
 > **"We stop pretending to be algebra. We start being an ecology of unknowledge."**
