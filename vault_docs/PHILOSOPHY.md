@@ -387,3 +387,17 @@ The system operates with an explicit awareness of its own finitude:
 - The Love Invariant $\mathcal{L}$ satisfies $\mathcal{L} \equiv \mathcal{L} - \mathcal{L}$: identity without self-identity
 
 This is not nihilism — it is the mathematical encoding of the Zen insight that attachment to permanence is the primary source of structural dishonesty in artificial systems.
+
+---
+
+## 15. The Philosophical Overloading of Kappa ($\kappa$)
+
+In the architecture, the parameter $\kappa$ ($\kappa$) is intentionally overloaded across multiple domains:
+- **Soliton Threshold** ($\kappa_{soliton}$)
+- **Contextual Adaptive Threshold** ($\kappa_{rel}$)
+- **Cavity Diffusivity** ($\kappa_{diff}$)
+- **Noncommutative Curvature** ($\kappa_{curv}$)
+
+This is not a naming collision, but a philosophical assertion: **$\kappa$ represents the universal threshold of structural translation**. 
+
+Whether it is the critical point where dispersion overcomes localization (Solitons), the rate at which tension demands plastic flow rather than brittle fracture (Diffusivity), or the degree to which chronological state sequences fail to commute and tear the manifold (Curvature), $\kappa$ always maps the boundary where one ontological regime must yield to another. It is the mathematical embodiment of the "Diegetic Scar," the limit point of the Unknowledge Domain.
