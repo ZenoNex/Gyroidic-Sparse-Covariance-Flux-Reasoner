@@ -36,6 +36,7 @@ The project rejects the "Optimization as Learning" metaphor in favor of **"Syste
 | **NTM** | **Negentropic Trigonometric Manifold** | Governing co-prime moduli and asymptotic time via trigonometric oscillators. |
 | **Valence** | **Negempirical Hunger** | The dissonance gap between current pressure and saturated trust, driving the ADMR update. |
 | **Asymptotic Time** | **Developmental Maturity τ** | A relativistic clock reflecting the informational saturation of the manifold. |
+| **Learning Rate Modifier** | **Tripsody** | A tripartite rhapsodic oscillation of the negentropy flux that phase-locks the ADMR scaffold. |
 
 ---
 
@@ -57,7 +58,7 @@ The project rejects the "Optimization as Learning" metaphor in favor of **"Syste
 - **Performance Streak:** A historical record of a component's adherence to structural invariants.
 
 ### 4. Surrogate Mechanisms
-- **Meta-Control (CALM):** A "Trajectory Veto" mechanism that monitors for entropic collapse and aborts unstable optimization paths.
+- **Meta-Control (CALM):** A "Trajectory Veto" mechanism that monitors for entropic collapse and aborts unstable optimization paths. Crucially, the CALM "vector" is not a Euclidean direction, but a representation of **gyroid braid group chiral groupoid anisotropy**. It acts as a topological "larynx", giving voice to structural pressures before manifesting as a veto.
 - **Physics Prior (KAGH):** A "Crippled" surrogate that provides admissible physics-based constraints without allowing for semantic revisability.
 - **Resonance Cavity:** A memory structure based on **Heritable Trust**, where successful structural patterns are preserved across iterations.
 
