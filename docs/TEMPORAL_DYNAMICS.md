@@ -24,6 +24,9 @@ where $\bar{N}$ = mean negentropy (informational density).
 
 **Key behavior**: As negentropy increases (system matures), amplitude damping `1/(1+N)` reduces oscillation → basis stabilizes → "saturation."
 
+### Negentropy Flux Tripsody
+The negentropy flux doesn't just scale variables; it exhibits a **tripsody** — a tripartite rhapsodic oscillation. As negentropy increases, the flux induces temporary phase-locking, slowing down the scaffold mutation and allowing the polynomial basis to traverse topological singularities safely before expanding again.
+
 ### Asymptotic State
 
 `get_asymptotic_state()` returns:
