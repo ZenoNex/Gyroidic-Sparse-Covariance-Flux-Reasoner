@@ -15,6 +15,7 @@ import time
 
 from src.models.gyroid_reasoner import GyroidicFluxReasoner
 from src.models.resonance_cavity import ResonanceCavity
+from src.topology.unknowledge_domain import UnknowledgeDomain
 
 # Fix import paths
 import sys
@@ -236,6 +237,8 @@ class TemporalAssociationTrainer:
             lr=learning_rate
         )
         
+        self.unknowledge_domain = UnknowledgeDomain(tau_m=0.5)
+        
         # Training history
         self.training_history = {
             'trust_evolution': [],
@@ -396,6 +399,26 @@ class TemporalAssociationTrainer:
         # Total survivorship pressure (not teleological loss)
         survivorship_pressure = avg_association_loss - 0.1 * temporal_coherence
         
+        # --- THE UNKNOWLEDGE DOMAIN SHIELDING ---
+        final_output = sequence_outputs[-1]
+        v_tensor = final_output.get('gyroid_pressure').value if 'gyroid_pressure' in final_output else torch.tensor(0.0, device=self.device)
+        h_mischief = final_output.get('h_drift', 0.0)
+        l_min = final_output.get('lambda_min', torch.tensor([0.0], device=self.device)).mean().item()
+        tr_c = final_output.get('trace_c', torch.tensor([1.0], device=self.device)).mean().item()
+        
+        # Approximate V_m directly
+        tau_decay = 10.0
+        v_m = v_tensor + (h_mischief / tau_decay) - (l_min / (tr_c + 1e-6))
+        
+        hyper_ring_status = final_output.get('hyper_ring_status', 'unknown')
+        
+        survivorship_pressure = self.unknowledge_domain.apply_shielding(
+            survivorship_pressure.unsqueeze(0),
+            torch.tensor([float(v_m)], device=self.device),
+            float(h_mischief),
+            hyper_ring_status
+        ).squeeze(0)
+        
         # Backward pass
         self.optimizer.zero_grad()
         survivorship_pressure.backward()
@@ -456,17 +479,30 @@ class TemporalAssociationTrainer:
         
         survivorship_pressure = association_loss - 0.1 * temporal_coherence
         
-        print(f"[TAT-DEBUG] association_loss.requires_grad = {association_loss.requires_grad}")
-        print(f"[TAT-DEBUG] temporal_coherence.requires_grad = {temporal_coherence.requires_grad}")
-        print(f"[TAT-DEBUG] survivorship_pressure.requires_grad = {survivorship_pressure.requires_grad}")
+        # --- THE UNKNOWLEDGE DOMAIN SHIELDING ---
+        final_output = model_output
+        v_tensor = final_output.get('gyroid_pressure').value if 'gyroid_pressure' in final_output else torch.tensor(0.0, device=self.device)
+        h_mischief = final_output.get('h_drift', 0.0)
+        l_min = final_output.get('lambda_min', torch.tensor([0.0], device=self.device)).mean().item()
+        tr_c = final_output.get('trace_c', torch.tensor([1.0], device=self.device)).mean().item()
+        
+        # Approximate V_m directly
+        tau_decay = 10.0
+        v_m = v_tensor + (h_mischief / tau_decay) - (l_min / (tr_c + 1e-6))
+        
+        hyper_ring_status = final_output.get('hyper_ring_status', 'unknown')
+        
+        survivorship_pressure = self.unknowledge_domain.apply_shielding(
+            survivorship_pressure.unsqueeze(0),
+            torch.tensor([float(v_m)], device=self.device),
+            float(h_mischief),
+            hyper_ring_status
+        ).squeeze(0)
         
         self.optimizer.zero_grad()
-        if survivorship_pressure.requires_grad:
-            survivorship_pressure.backward()
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-            self.optimizer.step()
-        else:
-            print("[TAT-DEBUG] Skipping backward pass because survivorship_pressure has no grad_fn!")
+        survivorship_pressure.backward()
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+        self.optimizer.step()
             
         association_accuracy = 1.0 - association_loss.item()
         self.update_trust_scalars(model_output, association_accuracy)
