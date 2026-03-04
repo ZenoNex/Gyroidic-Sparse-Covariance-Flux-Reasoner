@@ -790,6 +790,12 @@ $$h(\gamma) = \lim_{n \to \infty} \frac{\log |P(\gamma_n)|}{n}$$
 
 This invariant has three critical properties:
 
+1. **Quasi-isometric stability**: If $\gamma_1, \gamma_2$ are quasi-isometric traversals (e.g., two different ADMM update orderings), then $h(\gamma_1) = h(\gamma_2)$. This is why the ergodic/non-ergodic duality (§7) works — the asymptotic shadow (ergodic limit) matches the path-dependent traversal.
+
+2. **Rigidity of groupoid action**: For any groupoid element $g \in G$ (a jury-rig operation):
+   $$h(g \cdot \gamma) = h(\gamma) \quad \forall g \in G$$
+   Jury-rigs must preserve asymptotic invariants.
+
 3. **Dark matter bound**: If the topological dark matter (hidden constraints in Burkov polytopes) grows too fast, $h(\gamma) \to \infty$ and the chiral groupoid action collapses. The **co-prime residue functionals** (§1) prevent this by ensuring each Matryoshka layer has topological independence.
 
 ---
