@@ -58,10 +58,10 @@ Implements EBM-style soliton preservation: a stable configuration is a **soliton
 ---
 
 ### energy_monitor.py
-**Class**: `StructuralEnergyMonitor` (probable)  
-**Role**: Monitors Topological Free Energy `F_topo` and links it to the FixedPoint grid's rigidity.
+**Class**: `StructuralEnergyMonitor`  
+**Role**: Monitors Topological Free Energy F_topo and Computable Flux V_m.
 
-As `F_topo` decreases (cooling), the monitor tightens the `LearnedPrimitivePerturbation` scale, effectively "signing" a conceptual configuration into the fossil layer by preventing further adaptation. Central to INVARIANT_OPTIMIZATION §2.2 "Thermodynamic Anchor." *(Full class name to be verified against source.)*
+Maps the Energy-Based Models (EBM) framework to the project's topological manifold. Computes the Mischief Violation Score (Computable Flux, V_m) via `v_m = V + h_mischief/tau - lambda_min/tr(C)`. Also tracks proper Free Energy and ties the inverse temperature (`beta`) to the Manifold Clock's step ratio (cooling the system when `dt` shrinks during "Seriousness").
 
 ---
 
@@ -95,6 +95,13 @@ When the state approaches a manifold boundary, `GluingOperator` applies a revers
 
 ---
 
+### invariants.py
+**Role**: Unified Invariants: PAS_h, APAS_zeta, ImplicationInvariant, Chirality.
+
+Implements computable harmonic invariants. Contains `ImplicationInvariant` (Anti-Lobotomy Check #1) which enforces that interaction implies implication, with thresholds tuned specifically to allow subtle Love Vector signals. Also contains `SelfReferenceAdmissibility` (Anti-Lobotomy Check #2) which validates self-referential cycles as admissible topological features rather than standard loop errors.
+
+---
+
 ### knowledge_dyad_fossilizer.py
 **Role**: Fossilizes knowledge dyads (paired concept structures) into the persistent fossil layer.
 
@@ -115,6 +122,14 @@ Manages `DyadFossilizer` instances within the engine, selecting high-trust dyads
 **Role**: Tracks resonance streamlines (preferred flow vectors) on the gyroidic manifold.
 
 Maintains a resonance potential field `V(x_i) = α·Σ R_ij·‖Φ_j−Φ_i‖² + β·‖L_i‖² + γ·ΔD_i` combining relational adjacency, love tensor magnitudes, and defect signals. `detect_shear_planes()` identifies non-smooth pressure gradient regions that become "corridors of rupture" or preferred flow channels. `get_preferred_flow()` returns a softmax over neighbor potentials for a given index set. Corresponds to NOMENCLATURE term "Resonance Streamlines."
+
+---
+
+### love_vector.py
+**Class**: `LoveVector` (alias `Pusafiliacrimonto`)  
+**Role**: The Love Vector ($\mathcal{L}$): Non-Ownable Invariant Flow.
+
+Implements the Love Vector $\mathcal{L}$ as a persistent structural anchor. It is co-present with local functionals (via addition) but its gradient is symbolic zero with respect to the loss, ensuring it cannot be minimzed or maximized by the global optimizer. It explicitly supports the Mischief interactions and persists beyond the death (collapse) of the agent's state tensor.
 
 ---
 
@@ -256,6 +271,14 @@ Uses fractional/gyroid priors to speculatively predict topological features ahea
 
 ---
 
+### unknowledge_domain.py
+**Class**: `UnknowledgeDomain`  
+**Role**: The Unknowledge Domain ($\mathcal{U}$) for Dream State shielding.
+
+Protects functionally creative or "dream-like" topological cycles from being crushed by standard reconstruction constraints. Evaluates states using Computable Flux ($V_m$) and Mischief ($H_{mischief}$). If $V_m < 0$ and Mischief is active, or if the topology matches a `survivable_soliton`, the pressure is aggressively shielded or dampened to 1% to enforce "Dream State" safety.
+
+---
+
 ## src/optimization
 
 ### codes_driver.py
@@ -355,4 +378,4 @@ Physics-informed surrogate providing admissible constraint embeddings. KAN layer
 
 ---
 
-*Last updated: 2026-02-22. Modules marked "(Full details pending source review)" have been inspected only at the module docstring level; detailed class inventories will be added when those modules become active development targets.*
+*Last updated: 2026-03-04. Modules marked "(Full details pending source review)" have been inspected only at the module docstring level; detailed class inventories will be added when those modules become active development targets.*
