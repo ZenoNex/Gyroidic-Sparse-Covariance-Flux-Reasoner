@@ -3,6 +3,9 @@ Polynomial ADMR: Alternating Direction of Multiplicative Remainders.
 
 Implements the number-theoretic analogue of ADMM using continuous 
 polynomial functionals instead of discrete prime moduli.
+
+**Note on Negentropy Flux**: The negentropy flux in ADMR experiences a
+"tripsody", providing tripartite rhapsodic oscillation to phase-lock the solver.
 """
 
 import torch
