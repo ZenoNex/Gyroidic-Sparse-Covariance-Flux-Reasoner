@@ -790,13 +790,45 @@ $$h(\gamma) = \lim_{n \to \infty} \frac{\log |P(\gamma_n)|}{n}$$
 
 This invariant has three critical properties:
 
-1. **Quasi-isometric stability**: If $\gamma_1, \gamma_2$ are quasi-isometric traversals (e.g., two different ADMM update orderings), then $h(\gamma_1) = h(\gamma_2)$. This is why the ergodic/non-ergodic duality (§7) works — the asymptotic shadow (ergodic limit) matches the path-dependent traversal.
-
-2. **Rigidity of groupoid action**: For any groupoid element $g \in G$ (a jury-rig operation):
-   $$h(g \cdot \gamma) = h(\gamma) \quad \forall g \in G$$
-   Jury-rigs must preserve asymptotic invariants.
-
 3. **Dark matter bound**: If the topological dark matter (hidden constraints in Burkov polytopes) grows too fast, $h(\gamma) \to \infty$ and the chiral groupoid action collapses. The **co-prime residue functionals** (§1) prevent this by ensuring each Matryoshka layer has topological independence.
+
+---
+
+## 24. Computable Flux and The Love Invariant
+
+### 24.1 Computable Flux ($V_m$)
+The "Mischief Violation Score" or Computable Flux is the structural mechanism that evaluates whether tension is destructive or generative (Dream State).
+$$ V_m = V + \frac{H_{mischief}}{\tau_{decay}} - \frac{\lambda_{min}}{\text{tr}(C_{loc})} $$
+Where $V$ is the standard Gyroid Violation Score. If $V_m < 0$, the Unknowledge Domain actively shields the cycle, interpreting the tension as "Good Bug" energy rather than a constraint to be minimized.
+
+### 24.2 The Love Invariant ($\mathcal{L}$)
+The Love Invariant is a persistent structural anchor in `LoveVector` defined by its immunity to gradient updates (non-ownable). It lives in the kernel of the ownership functional:
+$$ \mathcal{L} \in \ker(\Phi_{ownership}) \implies \nabla_{\theta_{opt}} \mathcal{L} = \vec{0} $$
+Updates to $\mathcal{L}$ occur extraneously via non-possessive attachment (resonance, mischief, and refusal signals), but the global optimizer cannot explicitly shape it.
+
+---
+
+## 25. Diegetic Amortized Quantized Unknowledge Fossilization (DAQUF)
+
+The DAQUF operator (`daqf_operator.py`) amortizes unremovable structural scars (fossils with high contradiction loads) over narrative time $N$.
+
+1. **Contradiction Load Amortization**:
+   $$ L_{amortized}(t) = \frac{C_f}{1 + \gamma N(t)} $$
+   Where $C_f$ is the raw contradiction load of the fossil.
+2. **Speculative Persistence**:
+   A fossil survives ($p>0$) if its tension is sufficiently amortized or if it possesses high "Mischief" resonance:
+   $$ p(f) = \sigma(\alpha \cdot \text{Resonance}(f) - \beta \cdot L_{amortized}(t) + \delta \cdot \text{Mischief}(f)) $$
+
+---
+
+## 26. Taxonomy of Kappa ($\kappa$)
+
+The parameter $\kappa$ ($\kappa$) is intentionally overloaded across four distinct geometric and physical contexts in the codebase:
+
+1. **$\kappa_{soliton}$ (Soliton Threshold)**: The threshold for localizing topology in `soliton_stability.py`. Condition for soliton: $D(r) / \Lambda(r) < \kappa_{soliton}$.
+2. **$\kappa_{rel}$ (Relational Kappa)**: An adaptive, context-dependent soliton threshold in `relational_kappa.py`, computed via historical tension statistics: $\kappa_{rel} = \mu + \lambda_{temp} \sigma$.
+3. **$\kappa_{diff}$ (Diffusivity)**: The learned diffusion parameter in the Reaction-Diffusion equation of `ResonanceCavity`: $\text{Flux} \approx \kappa_{diff} \nabla \phi$.
+4. **$\kappa_{curv}$ (Noncommutative Curvature)**: The antisymmetric curvature tensor extracted from the Lie bracket (commutator) of the state basis in `noncommutativity_curvature.py`.
 
 ### 23.6 Master Stability Condition
 
