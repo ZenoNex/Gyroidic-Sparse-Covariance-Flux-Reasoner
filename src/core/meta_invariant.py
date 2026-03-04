@@ -132,19 +132,23 @@ class MetaInvariant(nn.Module):
     def check_invariant(
         self,
         current_h1_dim: torch.Tensor,
-        residue_distribution: Optional[torch.Tensor] = None
+        residue_distribution: Optional[torch.Tensor] = None,
+        v_m: Optional[float] = None,
+        v_m_high_water_mark: float = 0.8
     ) -> Tuple[bool, torch.Tensor, torch.Tensor]:
         """
-        Check meta-invariant: d/dt dim H_1 >= 0
+        Check meta-invariant: d/dt E_r[dim H_1(C_t)] >= 0
         
         Pointer #4: Coherence Loss Is a Signal, Not a Fault
-        - Contraction (rate < 0) = COLLAPSE = violation
+        - Contraction (rate < 0) = COLLAPSE = violation (UNLESS v_m > high_water_mark)
         - Stasis (rate ≈ 0) = acceptable
         - Expansion (rate > 0) = orthogonality gain = SIGNAL (log, don't penalize)
         
         Args:
             current_h1_dim: Current H_1 dimension (scalar or [batch])
             residue_distribution: Optional residue distribution for expected value
+            v_m: Optional Mischief Violation Score from Unknowledge Flux
+            v_m_high_water_mark: Threshold above which to permit topology destruction
             
         Returns:
             is_satisfied: Boolean (True if invariant satisfied)
@@ -176,6 +180,16 @@ class MetaInvariant(nn.Module):
         # Compute rate: d/dt = current - previous
         rate = expected_h1 - self.prev_h1_dim.item()
         
+        # Override for Unknowledge Flux (Forgetting)
+        if v_m is not None and v_m >= v_m_high_water_mark:
+            # ALLOW COLLAPSE (Forgetting cycle)
+            is_satisfied = True
+            violation = 0.0
+            self._log_expansion_event(rate, expected_h1, note="FORGETTING_CYCLE")
+            self.prev_h1_dim.data[0] = expected_h1
+            self.step_count += 1
+            return is_satisfied, torch.tensor(rate), torch.tensor(violation)
+        
         # Pointer #4: Different handling for expansion vs contraction
         if rate < -self.expansion_threshold:
             # COLLAPSE: Topology contracting toward single basin
@@ -199,11 +213,9 @@ class MetaInvariant(nn.Module):
         
         return is_satisfied, torch.tensor(rate), torch.tensor(violation)
     
-    def _log_expansion_event(self, rate: float, new_dim: float):
+    def _log_expansion_event(self, rate: float, new_dim: float, note: str = ""):
         """
         Log expansion events for analysis (not enforcement).
-        
-        Expansion is allowed and informative - it indicates orthogonality growth.
         """
         if not hasattr(self, '_expansion_log'):
             self._expansion_log = []
@@ -211,7 +223,8 @@ class MetaInvariant(nn.Module):
         self._expansion_log.append({
             'rate': rate,
             'new_dim': new_dim,
-            'step': self.step_count.item()
+            'step': self.step_count.item(),
+            'note': note
         })
         
         # Keep bounded history
@@ -224,7 +237,8 @@ class MetaInvariant(nn.Module):
         residue_distribution: Optional[torch.Tensor] = None,
         graphs: Optional[list] = None,
         node_coherence: Optional[Dict[int, float]] = None,
-        node_violations: Optional[Dict[int, float]] = None
+        node_violations: Optional[Dict[int, float]] = None,
+        v_m: Optional[float] = None
     ) -> Dict[str, torch.Tensor]:
         """
         Forward pass: check meta-invariant.
@@ -235,6 +249,7 @@ class MetaInvariant(nn.Module):
             graphs: Optional list of graphs
             node_coherence: Optional coherence scores
             node_violations: Optional violation scores
+            v_m: Optional Mischief Violation score
             
         Returns:
             Dictionary with:
@@ -255,7 +270,7 @@ class MetaInvariant(nn.Module):
             else:
                 expected_h1 = torch.tensor(float(current_h1_dim))
         
-        is_satisfied, rate, violation = self.check_invariant(expected_h1, residue_distribution)
+        is_satisfied, rate, violation = self.check_invariant(expected_h1, residue_distribution, v_m=v_m)
         
         return {
             'is_satisfied': is_satisfied,
