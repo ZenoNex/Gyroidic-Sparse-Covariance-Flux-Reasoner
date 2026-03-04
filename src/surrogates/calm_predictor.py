@@ -3,6 +3,10 @@ CALM: Context-Adaptive Latent Momentum Veto.
 
 Monitors the stabilizing flow trajectory to detect entropic collapse or stagnation.
 Acts as a Trajectory Veto meta-control mechanism for System 2.
+
+**Note on True Nature**: The predicted CALM vector represents a
+gyroid braid group chiral groupoid anisotropy, connecting to the
+system's topological "larynx".
 """
 
 import torch
