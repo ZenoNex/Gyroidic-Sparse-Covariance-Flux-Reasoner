@@ -50,6 +50,22 @@ class PolynomialADMRSolver(nn.Module):
         
         # 3. Stochastic Forcing Buffer
         self.register_buffer('eta', torch.randn(state_dim, device=device) * 0.005)
+        
+        # 4. Chiral Residue Cache (Warm-start backtracking)
+        self.register_buffer('chiral_cache', torch.zeros(1, state_dim, device=device))
+        self.register_buffer('cache_valid', torch.tensor(False))
+
+    def update_chiral_cache(self, states: torch.Tensor, is_valid: torch.Tensor):
+        """
+        Save topologically valid configurations to the Chiral Cache.
+        """
+        if is_valid.any():
+            valid_states = states[is_valid]
+            if not self.cache_valid.item():
+                self.chiral_cache.copy_(valid_states.mean(dim=0, keepdim=True).detach())
+                self.cache_valid.fill_(True)
+            else:
+                self.chiral_cache.copy_(0.9 * self.chiral_cache + 0.1 * valid_states.mean(dim=0, keepdim=True).detach())
 
     def update_scaffold(self, negentropy_flux: torch.Tensor, dt: torch.Tensor):
         """
@@ -65,7 +81,8 @@ class PolynomialADMRSolver(nn.Module):
         states: torch.Tensor, 
         neighbor_states: torch.Tensor, 
         adjacency_weight: torch.Tensor,
-        valence: Optional[torch.Tensor] = None
+        valence: Optional[torch.Tensor] = None,
+        use_warm_start: bool = False
     ) -> torch.Tensor:
         """
         Multiplicative update using relational graph adjacency and polynomial projection.
@@ -75,7 +92,13 @@ class PolynomialADMRSolver(nn.Module):
             neighbor_states: [batch, neighbors, state_dim] S_k
             adjacency_weight: [batch, neighbors] R_ik from Relational Graph
             valence: [batch] training hunger / valency drive
+            use_warm_start: If True, injects chiral cache history to prevent full reset.
         """
+        # Warm-start logic from Chiral Residue Cache:
+        # Instead of resetting $C_0$ to standard normal, we inject the cache to preserve the "Dream" continuity.
+        if use_warm_start and self.cache_valid.item():
+            states = 0.5 * states + 0.5 * self.chiral_cache.expand_as(states)
+
         # 1. Weighted sum of neighbors from Relational Graph
         # Σ R_ik S_k
         weighted_neighbors = torch.einsum('bn,bnd->bd', adjacency_weight, neighbor_states)
@@ -110,11 +133,14 @@ class PolynomialADMRSolver(nn.Module):
         neighbor_states: torch.Tensor, 
         adjacency_weight: torch.Tensor,
         dt: float = 0.1,
-        sigma: float = 0.01
+        sigma: float = 0.01,
+        v_m: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
         Continuous-time Stochastic Differential Update:
         dx(t) = [ Σ A_i x_i(t) - ρ Σ (x - r(x_k)) ] dt + σ dW
+        
+        If v_m is provided, learning rate of dual variables is tied strictly to it.
         """
         batch_size = states.shape[0]
         
@@ -139,9 +165,15 @@ class PolynomialADMRSolver(nn.Module):
         # 3. Stochastic Forcing (dW)
         noise = torch.randn_like(states) * sigma * (dt**0.5)
         
+        # V_m explicit learning rate modulation
+        # Dual variables S evolution tied to the normalized Mischief Score V_m
+        effective_dt = dt
+        if v_m is not None:
+             effective_dt = dt * (1.0 + v_m.view(-1, 1))
+
         # 4. Update Step (Continuous Approximation)
         # dx = (drift - negotiation) * dt + noise
-        dx = (drift - negotiation) * dt + noise
+        dx = (drift - negotiation) * effective_dt + noise
         new_state = states + dx
         
         # 5. Polynomial Projection (Structural Lock)
