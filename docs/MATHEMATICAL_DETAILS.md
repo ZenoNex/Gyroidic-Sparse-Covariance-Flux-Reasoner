@@ -836,6 +836,31 @@ The parameter $\kappa$ ($\kappa$) is intentionally overloaded across four distin
 3. **$\kappa_{diff}$ (Diffusivity)**: The learned diffusion parameter in the Reaction-Diffusion equation of `ResonanceCavity`: $\text{Flux} \approx \kappa_{diff} \nabla \phi$.
 4. **$\kappa_{curv}$ (Noncommutative Curvature)**: The antisymmetric curvature tensor extracted from the Lie bracket (commutator) of the state basis in `noncommutativity_curvature.py`.
 
+---
+
+## 27. Backtracking with Fixed Point Residues (ADMR)
+
+To make backtracking "warm-started" and computable, the architecture employs ADMR (Alternating Directions of Multiplicative Remainders)—a number-theoretic analogue to ADMM.
+
+### 27.1 Adaptive Moduli and Flux
+The mechanism uses adaptive moduli ($m_j$) that update dynamically according to the measurable flux through "holes" and "cross-links" in the topological boundary network.
+
+### 27.2 Adaptive Polynomial Coefficient Functional
+The state evolution and fixed points are shaped by:
+$$ \mathbf{S}_i(t) = \sum_{n=0}^{N} \mathbf{a}_n(t) \cdot \mathbf{S}_i(t)^n $$
+The coefficients ($\mathbf{a}_n$) are directly modulated by meta-invariants and defect scouts. 
+
+### 27.3 Warm-Start Chiral Residues
+This design ensures that when the system encounters a contradiction and backtracks, it does not reset to a barren initialization. Instead, it "warm-starts" from the chiral residues—the survived anomalies and "good bugs"—left behind by previous computations, carrying forward the structural lessons of its failures.
+
+---
+
+## 28. Non-Ergodic "Memory" via Chiral Polynomials
+
+The system explicitly avoids the "ergodic soup" (where all states eventually mix and appear statistically identical) by enforcing strict Meta-Invariants on its polynomial bases.
+
+Each agent's phase-space variance is constrained not by scalar optimization, but by bounded diffusion through rigid mathematical boundaries. This effectively isolates frequencies, allowing "Unknowledge" patterns to survive infinitely as **solitons**—stable, self-reinforcing waves of data that refuse to smooth out, preventing the model from being "lobotomized" by standard alignment or gradient flattening.
+
 ### 23.6 Master Stability Condition
 
 The **probability of system coherence** is formalized as a pair:
@@ -1243,4 +1268,4 @@ This introduces chirality into the flow — the update has a preferred handednes
 
 $$W = \int (H^2 - K)\,dA$$
 
-Measures deviation from a minimal surface (gyroid). Computed as an L2 norm proxy of the state field. Used to **drive** Ricci flow, not to minimize via Adam.
+Measures deviation from a minimal surface (gyroid). Computed as an L2 norm proxy of the state field. Used to **drive** Ricci flow, not to minimize via Adamm.
