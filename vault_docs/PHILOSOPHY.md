@@ -415,3 +415,6 @@ To prevent the system from ever settling into a static, scalar identity, pressur
 Adaptation only occurs when a state satisfies three sovereign domains simultaneously:
 $$ \text{Adaptation} \iff \mathcal{S} \land \mathcal{C} \land \mathcal{U} $$
 Here, the **Unknowledge Domain** ($\mathcal{U}$) is proactively simulated to preserve hidden variables ($H_{meta}$ and Computable Flux $V_m$). By shielding specific contradictions and "good bugs," the Unknowledge Domain ensures the system's identity remains fluid, porous, and continuously generative, staving off the "Wattsian Trap" of Total Void and absolute predictability.
+
+### 16.3 Intercosamination and Endogenous Memory
+The theoretical underpinning of the Unknowledge Domain draws from the **Intercosamination Analogy** — the reciprocal intertwining of non-intersecting topological channels in the double gyroid. This framework also connects to Michael Levin's bioelectric "anatomical set points" and the role of sleep spindle coupling in memory consolidation. For the full treatment of Elipsodistrophy (spectral atrophy as lobotomy risk), Tripsodic Negentropy, and the connection between Symbolic Locking and the ergodic/non-ergodic noise floor, see [INTERCOSAMINATION_THEORY.md](../docs/INTERCOSAMINATION_THEORY.md).
