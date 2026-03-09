@@ -10,6 +10,7 @@ polynomial functionals instead of discrete prime moduli.
 
 import torch
 import torch.nn as nn
+import math
 from typing import Dict, List, Optional, Tuple, Union
 from .polynomial_coprime import PolynomialCoprimeConfig
 
@@ -173,6 +174,14 @@ class PolynomialADMRSolver(nn.Module):
         effective_dt = dt
         if v_m is not None:
              effective_dt = dt * (1.0 + v_m.view(-1, 1))
+
+        # Tripsodic Negentropy Oscillation:
+        # As negentropy (information density) increases, the system phase-locks
+        # via a tripartite rhapsodic oscillation rather than freezing.
+        # This creates expansion at singularities instead of stasis.
+        negentropy_flux = torch.norm(drift, dim=-1, keepdim=True)
+        tripsody_scale = torch.cos(negentropy_flux * math.pi)
+        effective_dt = effective_dt * (1.0 / (1.0 + negentropy_flux)) * (1.0 + 0.5 * tripsody_scale)
 
         # 4. Update Step (Continuous Approximation)
         # dx = (drift - negotiation) * dt + noise
