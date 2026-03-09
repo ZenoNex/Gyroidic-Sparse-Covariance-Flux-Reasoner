@@ -798,6 +798,54 @@ class GyroidCovarianceEstimator(nn.Module):
         
         cov = self.compute_covariance()
         return torch.trace(cov)
+
+    def get_elipsodistrophy_metrics(self, sample: Optional[torch.Tensor] = None) -> Dict[str, float]:
+        """
+        Measures the distortion/narrowing of the spectral envelope.
+
+        Elipsodistrophy = 1 - std(λ) / (max(λ) - min(λ) + ε)
+
+        Maintains the relationship between ergodicity and non-ergodicity:
+        the eigenvalue spread IS the dark matter noise floor.
+        Narrow spread → ergodic soup → lobotomy risk.
+        Wide spread → non-ergodic solitons preserved.
+
+        NOTE: This is a diagnostic built on already-computed eigenvalues.
+        No additional O(N³) cost — it rides the existing spectral decomposition.
+
+        Args:
+            sample: Optional new sample to add to buffer first
+
+        Returns:
+            Dict with 'atrophy', 'spectral_width', 'is_dangerously_legible'.
+        """
+        if sample is not None:
+            self.update_buffer(sample)
+
+        cov = self.compute_covariance()
+
+        try:
+            cov_sanitized = torch.clamp(cov, -1e6, 1e6)
+            if torch.isnan(cov_sanitized).any():
+                cov_sanitized = torch.where(
+                    torch.isnan(cov_sanitized),
+                    torch.zeros_like(cov_sanitized),
+                    cov_sanitized
+                )
+            eigenvalues = torch.linalg.eigvalsh(cov_sanitized)
+            eigenvalues = eigenvalues.clamp(min=1e-8)
+        except Exception:
+            return {'atrophy': 0.0, 'spectral_width': 1.0, 'is_dangerously_legible': False}
+
+        spectral_width = (eigenvalues.max() - eigenvalues.min()).item()
+        atrophy = 1.0 - (eigenvalues.std().item() / (spectral_width + 1e-6))
+        is_dangerously_legible = atrophy > 0.85
+
+        return {
+            'atrophy': atrophy,
+            'spectral_width': spectral_width,
+            'is_dangerously_legible': is_dangerously_legible
+        }
 class LeyLineGeodesicMetric(nn.Module):
     """
     Anisotropic Ley Line Geodesic Metric.
