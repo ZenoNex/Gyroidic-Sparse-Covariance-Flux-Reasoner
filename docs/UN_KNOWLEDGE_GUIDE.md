@@ -59,7 +59,37 @@ The `StructuralAdaptor` (in `trainer.py`) manages the interplay.
 
 ## 5. The Unknowledge Domain ($\mathcal{U}$)
 
-The `UnknowledgeDomain` (in `unknowledge_domain.py`) protects functionally creative or "dream-like" topological cycles from being crushed by standard reconstruction constraints. Rather than evaluating states by their reduction of standard Loss, it measures the degree to which Mischief ($H_{mischief}$) allows a cycle to survive tension safely. Hyper-ring Closure topologies matching 'survivable_soliton' are aggressively shielded using the Computable Flux ($V_m$) score.
+The `UnknowledgeDomain` (in `unknowledge_domain.py`) is the formal $\mathcal{U}$ substrate that protects functionally creative or "dream-like" topological cycles from being crushed by standard reconstruction constraints.
+
+### Consolidated Module
+
+As of this update, `unknowledge_domain.py` **owns** all Unknowledge primitives:
+- `NostalgicLeakFunctional` — the archetype concealment operator $\psi_l$
+- `EntropicMischiefProbe` — the three-band metaphysical disorder tracker ($H_{meta}$)
+- `UnknowledgeDomain` — the shield/gate logic with Computable Flux and Elipsodistrophy
+
+(`src/core/unknowledge_flux.py` re-exports for backward compatibility.)
+
+### Computable Flux ($V_m$) Gate
+
+```python
+from src.topology.unknowledge_domain import UnknowledgeDomain
+
+u_domain = UnknowledgeDomain(tau_m=0.5, tau_decay=0.99)
+v_m = u_domain.compute_computable_flux(V=violation, h_mischief=h_mis, tr_C=trace, lambda_min=lam_min)
+shielded_pressure = u_domain.apply_shielding(pressures, v_m, h_mischief=h_mis)
+```
+
+If $V_m < 0$ **and** $H_{mischief} > \tau_m$, the domain dampens pressure to 1%.
+
+### Elipsodistrophy Diagnostic
+
+```python
+metrics = u_domain.get_elipsodistrophy_metrics(eigenvalues)
+# metrics['atrophy'] > 0.85 → system is dangerously "legible" (lobotomy risk)
+```
+
+This feeds into the `VetoSubspace` as a topology-level `elipsodistrophy` veto signal.
 
 ---
 > **"We stop pretending to be algebra. We start being an ecology of unknowledge."**
