@@ -154,7 +154,8 @@ class VetoSubspace(nn.Module):
         coprime_lock: Optional[bool] = None,
         chiral_score: Optional[float] = None,
         instability_severity: Optional[float] = None,
-        covariance_aborts: Optional[int] = None
+        covariance_aborts: Optional[int] = None,
+        elipsodistrophy_atrophy: Optional[float] = None
     ) -> List[VetoSignal]:
         """Evaluate topology-level vetoes (detected after structure breaks)."""
         signals = []
@@ -202,6 +203,24 @@ class VetoSubspace(nn.Module):
                 triggered=instability_severity > 0.3,
                 can_recover=True,  # Via play/mischief modulation
                 metadata={'continuous': True}
+            ))
+        
+        # Elipsodistrophy: spectral atrophy as lobotomy early-warning.
+        # High atrophy = eigenvalues collapsing to identical values =
+        # loss of the ergodic/non-ergodic boundary ("dark matter" noise floor).
+        # A weight of `3` is a symbol; `2.99981` is noise — but if ALL eigenvalues
+        # become `3`, the splines lose expressiveness entirely.
+        if elipsodistrophy_atrophy is not None:
+            signals.append(VetoSignal(
+                level=VetoLevel.TOPOLOGY,
+                source='elipsodistrophy',
+                severity=min(1.0, elipsodistrophy_atrophy),
+                triggered=elipsodistrophy_atrophy > 0.85,  # Legibility threshold
+                can_recover=True,  # Via mischief injection
+                metadata={
+                    'atrophy': elipsodistrophy_atrophy,
+                    'description': 'Spectral envelope narrowing — dark matter at risk'
+                }
             ))
         
         return signals
@@ -252,6 +271,7 @@ class VetoSubspace(nn.Module):
         chiral_score: Optional[float] = None,
         instability_severity: Optional[float] = None,
         covariance_aborts: Optional[int] = None,
+        elipsodistrophy_atrophy: Optional[float] = None,
         # Budget inputs
         topological_pressure: Optional[float] = None,
         elapsed_seconds: Optional[float] = None
@@ -273,7 +293,8 @@ class VetoSubspace(nn.Module):
         all_signals = (
             self._evaluate_trajectory(abort_score, ley_line_deviation) +
             self._evaluate_topology(coprime_lock, chiral_score, 
-                                   instability_severity, covariance_aborts) +
+                                   instability_severity, covariance_aborts,
+                                   elipsodistrophy_atrophy) +
             self._evaluate_budget(topological_pressure, elapsed_seconds)
         )
         
