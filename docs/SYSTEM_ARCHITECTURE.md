@@ -494,3 +494,49 @@ The superposition maps naturally to the CRT polytope structure: each hypothesis 
 
 When `QuantumInspiredReasoningState` is available, `_run_advanced_physics()` in the engine routes high-PAS_h states through superposition reasoning before quantum measurement selects the final branch — replacing the deterministic mode dispatch with a probabilistic collapse.
 
+---
+
+## Five-Part Decision Architecture
+
+The system's decision pipeline extends the original three-tier model (System 1 / System 2 / $\mathcal{U}$) into a five-part flow:
+
+```mermaid
+graph TD
+    S1["System 1: Heuristic<br/>(CRT residues, spectral entropy)"] -->|"high entropy"| S2["System 2: Physics-ADMM<br/>(constraint probes, SIC-FA-ADMM)"]
+    S1 -->|"low entropy → trust"| OUT["Output"]
+    S2 -->|"low honesty score"| S4["Gate 4: SearchGate<br/>(self-consistency + external search)"]
+    S2 -->|"high honesty"| OUT
+    S4 -->|"search found answer"| OUT
+    S4 -->|"search empty"| S5["Gate 5: ConfabulationDetector<br/>(tri-state: KNOWN/SEARCH/CONFAB)"]
+    S5 --> OUT
+    U["U Domain<br/>(Unknowledge Shield)"] -.->|"shields creative anomalies"| S2
+    U -.->|"enables creative confab"| S5
+```
+
+### Gate 4: SearchGate (Planned)
+
+**Embryonic implementation**: [`src/ui/wikipedia_integration.py`](../src/ui/wikipedia_integration.py) (367 lines)
+
+**Current capabilities**:
+- Wikipedia content extraction via API (multi-endpoint: extracts, parse, full text)
+- Content cleaning (WikiExtractor integration with fallback)
+- Rate limiting (1 second throttle)
+- Key concept extraction from titles and content
+- Processing statistics tracking
+
+**Required for full Gate 4**:
+1. **Self-consistency pre-check**: Before emitting a search query, verify the system has enough internal confidence to formulate a coherent query (prevents garbage-in queries)
+2. **Structural distinctness check**: Verify the query differs structurally from the current state (prevents echo-chamber searching)
+3. **Pluggable backends**: WikipediaIntegration is the first; future backends can slot in
+
+### Gate 5: ConfabulationDetector (Planned)
+
+**Embryonic signal**: `VoynichLinguist.check_honesty()` in [`src/core/voynich_architecture.py`](../src/core/voynich_architecture.py) — returns a CRT consensus honesty score.
+
+**Tri-state output** (planned):
+- `KNOWN`: High honesty score, confident retrieval
+- `SEARCH_NEEDED`: Low honesty score, search gate should fire
+- `CONFABULATED`: Very low honesty + active $\mathcal{U}$ + high mischief → honest creative generation
+
+See [PHILOSOPHY.md §18](../vault_docs/PHILOSOPHY.md) for the ethics of honest confabulation.
+
