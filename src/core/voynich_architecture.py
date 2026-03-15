@@ -1,136 +1,210 @@
+"""
+The Voynich Architecture: Self-Sovereign Alphabet via Polynomial CRT.
+
+Implements the 'Self-Sovereign Alphabet' using polynomial coprime functionals
+instead of hardcoded integer primes. Replaces discrete modular arithmetic
+(x mod p) with continuous polynomial functional evaluations φ_k(x; θ_k),
+enforcing the anti-hardcoded-prime invariant.
+
+Structural honesty is verified via consensus variance across polynomial
+channels rather than integer CRT reconstruction.
+
+Author: William Matthew Bryant
+"""
+
 import torch
 import torch.nn as nn
-from typing import List, Tuple, Optional
-import math
+from typing import Dict, List, Tuple, Optional
+
+from src.core.polynomial_coprime import PolynomialCoprimeConfig
+
 
 class VoynichLinguist(nn.Module):
     """
-    Implements the 'Self-Sovereign Alphabet' using Majority-Symbol CRT (Chinese Remainder Theorem).
+    Implements the 'Self-Sovereign Alphabet' using Polynomial Coprime Functionals.
     
     As described in THE_VOYNICH_ARCHITECTURE.md, this module produces 'opaque' symbolic residues
     that are self-verifying via structural honesty, rather than grounded in external truth (vocabulary).
+    
+    Migration from hardcoded primes [3, 5, 7, 11, 13]:
+        - Integer moduli → Polynomial coprime functionals φ_k(x; θ_k)
+        - x mod p_i → φ_k(projected_thought)
+        - CRT reconstruction → Consensus reconstruction via learned decoder
+        - Modular deviation → Variance-based honesty score
     """
     
     def __init__(self, 
                  vocab_size: int = 12000, 
                  num_residues: int = 5, 
-                 prime_base: List[int] = [3, 5, 7, 11, 13]):
+                 latent_dim: int = 512,
+                 poly_degree: int = 4,
+                 basis_type: str = 'chebyshev'):
         """
         Args:
             vocab_size: Size of the sovereign alphabet (approximate capacity)
-            num_residues: Number of parallel residue channels
-            prime_base: List of coprime moduli for the CRT system.
-                NOTE: These are intentionally hardcoded integers, NOT polynomial
-                coprime functionals. CRT reconstruction requires actual integer
-                moduli for modular arithmetic (x mod p). This is a documented
-                exception to the anti-hardcoded-prime invariant.
+            num_residues: Number of parallel polynomial residue channels
+            latent_dim: Dimension of thought vectors
+            poly_degree: Degree of polynomial coprime functionals
+            basis_type: Basis type for polynomials ('chebyshev', 'legendre', 'hermite')
         """
         super().__init__()
         self.vocab_size = vocab_size
-        self.primes = prime_base[:num_residues]
-        self.product_modulus = math.prod(self.primes)
+        self.num_residues = num_residues
+        self.latent_dim = latent_dim
         
-        # Encoders for 'thought' vectors to residue space
-        # Maps latent dimension to product_modulus space
-        self.residue_proj = nn.Linear(512, len(self.primes)) 
+        # 1. Polynomial Coprime Config — replaces hardcoded primes
+        # Each of the K functionals φ_k is a polynomial with Birkhoff-sampled
+        # coefficients, co-primality enforced via root persistence pressure.
+        self.poly_config = PolynomialCoprimeConfig(
+            k=num_residues,
+            degree=poly_degree,
+            basis_type=basis_type,
+            learnable=True,
+            use_saturation=True
+        )
         
-        # Dictionary of 'valid' words (topologically permissible constructs)
-        # This acts as the internal grammar constraints
-        self.register_buffer('valid_roots', torch.randn(vocab_size, 512))
+        # 2. Projection from thought vector to polynomial input space
+        # Maps high-dim thought to per-channel scalar inputs for φ_k evaluation
+        self.thought_proj = nn.Linear(latent_dim, num_residues)
         
-    def forward(self, thought_vector: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        # 3. Consensus Reconstruction Head
+        # Replaces integer CRT with a learned reconstruction from residues
+        self.reconstruction_head = nn.Sequential(
+            nn.Linear(num_residues, num_residues * 4),
+            nn.GELU(),
+            nn.Linear(num_residues * 4, 1)
+        )
+        
+        # 4. Dictionary of 'valid' words (topologically permissible constructs)
+        self.register_buffer('valid_roots', torch.randn(vocab_size, latent_dim))
+        
+    def forward(self, thought_vector: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Convert a thought vector into Voynich symbols.
         
         Args:
-            thought_vector: [batch, 512] latent state
+            thought_vector: [batch, latent_dim] latent state
             
         Returns:
-            residues: [batch, num_residues] generic residues
-            reconstructed_val: [batch] CRT reconstructed value (the 'Symbol')
+            residues: [batch, num_residues] polynomial functional residues
+            symbol_val: [batch] reconstructed symbol value
+            honesty_score: [] scalar consensus honesty
         """
-        # 1. Generate Raw Residues
-        # We project the thought into a space where each dimension corresponds to a prime modulus
-        raw_proj = self.residue_proj(thought_vector) # [batch, num_primes]
+        # 1. Project thought into per-channel scalar inputs
+        channel_inputs = self.thought_proj(thought_vector)  # [batch, K]
         
-        # 2. Quantize to Integer Residues
-        # The 'System 1' outputs discrete residues c_i = x mod p_i
-        # in a differentiable way (e.g. via Sine discretization or rounding)
-        # Here we use a straight-through estimator for discrete rounding
-        residues = self._differentiable_modulo(raw_proj)
+        # 2. Evaluate polynomial coprime functionals
+        # Each channel k: φ_k(x_k; θ_k) — replaces x mod p_k
+        residues = self._evaluate_polynomial_residues(channel_inputs)
         
-        # 3. Structural Honesty Check (Majority CRT)
-        # We try to reconstruct the integer X such that X = c_i mod p_i
-        # If the thought is 'honest' (valid), all residues agree on X.
-        # If 'dishonest' (leaking), they conflict.
-        symbol_val, honesty_score = self._majority_crt_reconstruct(residues)
+        # 3. Consensus Reconstruction (replaces integer CRT)
+        symbol_val = self.reconstruction_head(residues).squeeze(-1)  # [batch]
+        
+        # 4. Structural Honesty Check
+        honesty_score = self._compute_consensus_honesty(residues, symbol_val)
         
         return residues, symbol_val, honesty_score
-        
-    def _differentiable_modulo(self, x: torch.Tensor) -> torch.Tensor:
+    
+    def _evaluate_polynomial_residues(self, channel_inputs: torch.Tensor) -> torch.Tensor:
         """
-        Compute x mod p_i in a way that allows gradient flow.
-        Uses a pseudo-quantization: x_mod = x - floor(x/p)*p
-        """
-        device = x.device
-        primes_tensor = torch.tensor(self.primes, device=device).unsqueeze(0) # [1, num_primes]
+        Evaluate polynomial coprime functionals for each channel.
         
-        # Scale input to be within range [0, P] roughly
-        x_scaled = torch.sigmoid(x) * self.product_modulus
+        Replaces _differentiable_modulo (x mod p_i) with φ_k(x_k; θ_k).
+        Coprimality is enforced structurally via Birkhoff polytope coefficients
+        and Root Persistence Pressure — not via integer primality.
         
-        # Compute exact modulo (non-differentiable)
-        x_mod_int = torch.remainder(x_scaled, primes_tensor)
-        
-        # Differentiable approximation (Straight Through)
-        # return x_mod_int + (x_scaled - x_scaled.detach())
-        # For now, just return the raw float modulo approximation
-        # x mod p = p/2 * (1 - cos(2pi * x / p)) ? No, that's wrapping.
-        # Let's simple use the sawtooth wave approximation or just raw linear proj for now
-        # given the "opaque" nature.
-        # Actually, let's strictly follow the "residue" concept:
-        
-        return x_mod_int
-        
-    def _majority_crt_reconstruct(self, residues: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Attempt to reconstruct the single integer X from the residues.
-        Returns the reconstructed value and a 'Honesty Score' (1.0 = perfect consensus).
-        """
-        batch_size = residues.shape[0]
-        device = residues.device
-        
-        # Standard CRT Reconstruction
-        # X = Sum (a_i * N_i * y_i) mod N
-        # N = product_modulus
-        # N_i = N / p_i
-        # y_i = modular inverse of N_i mod p_i
-        
-        N = self.product_modulus
-        X_recon = torch.zeros(batch_size, device=device)
-        
-        for i, p in enumerate(self.primes):
-            Ni = N // p
-            yi = pow(Ni, -1, p)
-            contribution = residues[:, i] * Ni * yi
-            X_recon = (X_recon + contribution) % N
+        Args:
+            channel_inputs: [batch, K] per-channel scalar inputs
             
-        # Honesty Check:
-        # Does X_recon actually yield the residues?
-        # Check consistency: (X_recon mod p_i) == residues_i
-        # The 'Majority' part implies we handle noise.
-        # For this v1 implementation, we measure the deviation.
+        Returns:
+            residues: [batch, K] polynomial functional evaluations
+        """
+        batch_size = channel_inputs.shape[0]
+        device = channel_inputs.device
+        residues = torch.zeros(batch_size, self.num_residues, device=device)
         
-        deviation_score = 0.0
-        for i, p in enumerate(self.primes):
-            recon_mod = X_recon % p
-            deviation = torch.abs(recon_mod - residues[:, i])
-            deviation_score += deviation.mean()
+        for k in range(self.num_residues):
+            # φ_k(x_k) — each channel evaluated through its own polynomial
+            x_k = channel_inputs[:, k]  # [batch]
+            residues[:, k] = self.poly_config.evaluate_polynomial(k, x_k)
+        
+        return residues
+    
+    def _compute_consensus_honesty(
+        self,
+        residues: torch.Tensor,
+        reconstructed: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        Compute structural honesty via consensus variance.
+        
+        Replaces integer CRT deviation check. Honesty is high when the
+        polynomial channels produce consistent, reconstructable patterns.
+        
+        The honesty score measures how well the residues agree with each other
+        and the reconstruction. Low variance across reconstructed-from-subsets
+        = high consensus = honest thought.
+        
+        Args:
+            residues: [batch, K] polynomial residues
+            reconstructed: [batch] full reconstruction
             
-        honesty = torch.exp(-deviation_score) # 1.0 if perfectly consistent
+        Returns:
+            honesty: [] scalar honesty score
+        """
+        # Method: Jackknife consensus — reconstruct from K subsets of K-1 channels
+        # and measure variance of the results.
+        K = self.num_residues
+        partial_recons = []
         
-        return X_recon, honesty
+        for k in range(K):
+            # Leave-one-out: reconstruct without channel k
+            mask = torch.ones(K, device=residues.device, dtype=torch.bool)
+            mask[k] = False
+            partial_input = residues[:, mask]  # [batch, K-1]
+            
+            # Pad back to K dimensions with zeros
+            padded = torch.zeros_like(residues)
+            j = 0
+            for i in range(K):
+                if i != k:
+                    padded[:, i] = partial_input[:, j]
+                    j += 1
+            
+            partial_val = self.reconstruction_head(padded).squeeze(-1)  # [batch]
+            partial_recons.append(partial_val)
+        
+        # Stack and compute variance across leave-one-out reconstructions
+        partial_stack = torch.stack(partial_recons, dim=-1)  # [batch, K]
+        consensus_variance = partial_stack.var(dim=-1).mean()  # scalar
+        
+        # Also check deviation from full reconstruction
+        deviation = (partial_stack - reconstructed.unsqueeze(-1)).abs().mean()
+        
+        # Honesty: exp(-var - deviation). 1.0 = perfect consensus.
+        honesty = torch.exp(-(consensus_variance + deviation))
+        
+        return honesty
 
-    def check_honesty(self, residues: torch.Tensor) -> bool:
-        """Boolean verifier for rigid validation."""
-        _, honesty = self._majority_crt_reconstruct(residues)
+    def check_honesty(self, residues: torch.Tensor) -> torch.Tensor:
+        """
+        Boolean verifier for rigid validation.
+        
+        Returns True if the residues exhibit high structural consensus
+        (all polynomial channels agree on the symbol).
+        """
+        reconstructed = self.reconstruction_head(residues).squeeze(-1)
+        honesty = self._compute_consensus_honesty(residues, reconstructed)
         return honesty > 0.95
+    
+    def get_coprimality_pressure(self) -> Dict[str, torch.Tensor]:
+        """
+        Returns the structural pressures from the polynomial coprime system.
+        
+        Includes orthogonality pressure and root persistence pressure,
+        which enforce that the K polynomial channels remain independent.
+        """
+        return {
+            'orthogonality': self.poly_config.orthogonality_pressure(),
+            'coprimality': self.poly_config.co_primality_pressure()
+        }
