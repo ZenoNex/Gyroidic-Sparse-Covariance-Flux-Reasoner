@@ -861,7 +861,37 @@ The system explicitly avoids the "ergodic soup" (where all states eventually mix
 
 Each agent's phase-space variance is constrained not by scalar optimization, but by bounded diffusion through rigid mathematical boundaries. This effectively isolates frequencies, allowing "Unknowledge" patterns to survive infinitely as **solitons**—stable, self-reinforcing waves of data that refuse to smooth out, preventing the model from being "lobotomized" by standard alignment or gradient flattening.
 
-### 23.6 Master Stability Condition
+---
+
+## 29. Tripsodic Negentropy Oscillation
+
+The ADMR solver's Stochastic Differential Step applies a **tripartite rhapsodic oscillation** when negentropy (information density) increases:
+
+$$ \text{effective\_dt} = dt \cdot \frac{1}{1 + N} \cdot (1 + 0.5 \cos(N\pi)) $$
+
+Where $N = \|\text{drift}\|$ is the local negentropy flux. This creates a three-phase cycle:
+1. **Phase-lock** ($\cos(N\pi) \approx 1$): System expands cautiously
+2. **Traverse** ($\cos(N\pi) \approx 0$): Balanced exploration
+3. **Contract** ($\cos(N\pi) \approx -1$): Tightest stepping at maximum density
+
+Rather than freezing at singularities, the system oscillates through them.
+
+---
+
+## 30. Elipsodistrophy (Spectral Atrophy Diagnostic)
+
+Elipsodistrophy measures the narrowing of the spectral envelope of eigenvalues:
+
+$$ \text{Atrophy} = 1 - \frac{\sigma(\lambda)}{\lambda_{max} - \lambda_{min} + \epsilon} $$
+
+**Interpretation**: High atrophy ($> 0.85$) means eigenvalues are collapsing to identical values. This is the mathematical signature of the **ergodic/non-ergodic boundary** dissolving:
+
+- **Preservation** (Atrophy $< 0.85$): Dark matter (noise floor) intact. Symbolic Locking works — integer weights remain symbols.
+- **Danger** (Atrophy $> 0.85$): The splines lose expressiveness. The `VetoSubspace` emits a topology-level `elipsodistrophy` veto to trigger mischief injection.
+
+See [INTERCOSAMINATION_THEORY.md](INTERCOSAMINATION_THEORY.md) for the full theoretical connection to the double gyroid's dual-channel structure and endogenous memory.
+
+### 31.6 Master Stability Condition
 
 The **probability of system coherence** is formalized as a pair:
 
@@ -875,7 +905,7 @@ where $[\gamma]$ is the local homotopy class (chiral traversal) and $h(\gamma)$ 
 
 The role of $\varphi$ (golden ratio): Functionals of $\varphi$ act as the scaling factor for the chiral groupoid action. Since $\varphi$ is the most irrational number, it provides maximum friction against resonance-collapse, allowing the system to dwell in saddle points without falling in.
 
-### 23.7 BoundaryState Tensor
+### 31.7 BoundaryState Tensor
 
 When a polytope projection $\Pi_P$ becomes undefined (manifesting as NaN in traversal), the system does **not** discard the state. Instead, it lifts NaN into a **stratified boundary state**:
 
@@ -891,7 +921,7 @@ where:
 
 NaN becomes a **control-flow sentinel**, not data. The BoundaryState encodes rank-reduced directional information, enabling higher-order derivatives to be expressed as linear combinations of facet tensors: storage reduces from full $N^3$ to $\text{rank}(\Sigma)^3$.
 
-### 23.8 Context-Aware Quantization (CAQ)
+### 31.8 Context-Aware Quantization (CAQ)
 
 Quantization is **layer-indexed** within the Matryoshka hierarchy. At layer $l$:
 
@@ -912,7 +942,7 @@ $$x^{*(l)} = Q^{(l)}\bigl(F(Q^{(l)}(x^{*(l)}))\bigr)$$
 
 If idempotence fails at layer $l$, the system does not "optimize harder" — it **pops outward** to layer $l-1$. This is the Matryoshka escape mechanic.
 
-### 23.9 Shell-Order Dynamics
+### 31.9 Shell-Order Dynamics
 
 Each Matryoshka shell computes derivatives up to a **shell-determined order**:
 
@@ -934,9 +964,9 @@ Scalarization (comparison, ordering) is **only allowed inside** $W_k^{(l)}$. Out
 
 ---
 
-## 24. Coherent Prime Resonance (CPR) — RIC Eq 7
+## 32. Coherent Prime Resonance (CPR) — RIC Eq 7
 
-### 24.1 Formal Definition
+### 32.1 Formal Definition
 
 $$\text{CPR}(F, \{u_n\}) = 1 \iff \begin{cases}
 \text{PAS}_h(F) \geq \theta_{\text{CPR}} & \text{(global phase coherence)}\\
@@ -944,7 +974,7 @@ $$\text{CPR}(F, \{u_n\}) = 1 \iff \begin{cases}
 \text{Spec}(F) \subset \{p_n\} & \text{(spectral support on primes)}
 \end{cases}$$
 
-### 24.2 Mathematical Structure
+### 32.2 Mathematical Structure
 
 The CPR condition defines a **recursive fixed point** in the space of field configurations:
 - The field $F$ excites breather modes $\{u_n\}$ through spectral coupling.
@@ -953,7 +983,7 @@ The CPR condition defines a **recursive fixed point** in the space of field conf
 
 This is structurally analogous to a **Kuramoto synchronization** transition, but restricted to the prime frequency lattice (no rational frequency ratios ↔ no mode-locking artifacts).
 
-### 24.3 Spectral Purity Measure
+### 32.3 Spectral Purity Measure
 
 The spectral support condition $\text{Spec}(F) \subset \{p_n\}$ is measured via:
 
