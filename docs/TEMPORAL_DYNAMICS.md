@@ -84,4 +84,32 @@ graph LR
     MC -->|dt| NTM["NTMOperator<br/>w(τ) = cos(ωτ+φ)/(1+N)"]
     NTM -->|basis warping| POLY["PolynomialCoprimeConfig"]
     MC -->|dt| ORCH["UniversalOrchestrator<br/>(Play/Seriousness regime)"]
+    DEFLAG["OmipedialDeflagrator<br/>ΔD = Σ(R - R̂)"] -.->|defect signal| POLY
 ```
+
+---
+
+## 4. Omipedial Deflagration Scout
+
+**Source**: [`src/core/deflagration_scout.py`](../src/core/deflagration_scout.py) (66 lines)
+
+Implements "Omipedial Interstitiality" — **defect scouting** that amplifies sparse anomalies and enables signal propagation across topological gaps.
+
+### Defect Detection
+
+$$\Delta D_i = \sum_j (R_{ij} - \hat{R}_{ij})$$
+
+Where $R_{ij}$ is the actual resonance flux and $\hat{R}_{ij}$ is the predicted/expected flux. High $\Delta D_i$ = anomaly = amplified.
+
+### Omipedial Jump
+
+When the ley line potential exceeds the jump threshold ($> 0.8$), the scout enables **topological shortcuts** — signal propagation across holes where resonance potential is high but adjacency is sparse.
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `threshold_jump` | 0.8 | Minimum ley potential for topological shortcut |
+| `amplification` | 2.0 | Anomaly amplification factor |
+
+### Connection to Polynomial Scaffold
+
+> **Implementation Note**: The defect signal $\Delta D_i$ is designed to feed into `PolynomialCoefficientFunctional.update_coefficients` as the resonance contribution $R(S)$, but this wiring is **not yet implemented**. Currently the two modules operate independently. See MATHEMATICAL_DETAILS.md §27.2.
