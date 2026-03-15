@@ -19,7 +19,11 @@ class VoynichLinguist(nn.Module):
         Args:
             vocab_size: Size of the sovereign alphabet (approximate capacity)
             num_residues: Number of parallel residue channels
-            prime_base: List of coprime moduli for the CRT system
+            prime_base: List of coprime moduli for the CRT system.
+                NOTE: These are intentionally hardcoded integers, NOT polynomial
+                coprime functionals. CRT reconstruction requires actual integer
+                moduli for modular arithmetic (x mod p). This is a documented
+                exception to the anti-hardcoded-prime invariant.
         """
         super().__init__()
         self.vocab_size = vocab_size
