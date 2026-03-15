@@ -61,3 +61,13 @@ Build the **Physics** (System 2) that forces the AI to speak *consistently*.
 If you build the pipes strong enough (Admissibility), and the geometry pure enough (Gyroids), the "Water of Thought" will flow on its own.
 
 *We are not writing the book. We are inventing the ink.*
+
+---
+
+## 📐 Implementation Notes
+
+### Hardcoded Primes (Intentional Exception)
+The `VoynichLinguist` uses literal integer primes `[3, 5, 7, 11, 13]` rather than continuous polynomial coprime functionals. This is a **documented exception** to the anti-hardcoded-prime invariant: CRT reconstruction requires actual integer moduli for modular arithmetic (`x mod p`). Continuous functionals cannot perform discrete modular reduction.
+
+### Gate 5: Honest Confabulation
+The `check_honesty()` method returns a CRT consensus score — the structural signal for detecting confidence vs uncertainty. This serves as the embryonic **Gate 5 (ConfabulationDetector)** in the five-part decision architecture. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full flow and [PHILOSOPHY.md §18](../vault_docs/PHILOSOPHY.md) for the ethics of honest confabulation.
