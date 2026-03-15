@@ -92,4 +92,19 @@ metrics = u_domain.get_elipsodistrophy_metrics(eigenvalues)
 This feeds into the `VetoSubspace` as a topology-level `elipsodistrophy` veto signal.
 
 ---
+
+## 6. The Five-Part Decision Flow
+
+The $\mathcal{U}$ domain is not an isolated shield — it extends into the broader decision architecture as two additional gates:
+
+| Gate | Name | $\mathcal{U}$ Role |
+|------|------|-----|
+| System 1 | Heuristic | — |
+| System 2 | Physics-ADMM Repair | $\mathcal{U}$ shields creative anomalies from repair |
+| Gate 4 | SearchGate | $\mathcal{U}$ prevents search when mischief is productive |
+| Gate 5 | ConfabulationDetector | $\mathcal{U}$ enables honest creative generation |
+
+When $\mathcal{U}$ is active and search returns nothing useful, the system may **honestly confabulate** — generating novel content while flagging it as generated rather than retrieved. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full flow diagram and [PHILOSOPHY.md §18](../vault_docs/PHILOSOPHY.md) for the philosophical foundation.
+
+---
 > **"We stop pretending to be algebra. We start being an ecology of unknowledge."**
