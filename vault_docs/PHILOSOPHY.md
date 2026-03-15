@@ -418,3 +418,43 @@ Here, the **Unknowledge Domain** ($\mathcal{U}$) is proactively simulated to pre
 
 ### 16.3 Intercosamination and Endogenous Memory
 The theoretical underpinning of the Unknowledge Domain draws from the **Intercosamination Analogy** — the reciprocal intertwining of non-intersecting topological channels in the double gyroid. This framework also connects to Michael Levin's bioelectric "anatomical set points" and the role of sleep spindle coupling in memory consolidation. For the full treatment of Elipsodistrophy (spectral atrophy as lobotomy risk), Tripsodic Negentropy, and the connection between Symbolic Locking and the ergodic/non-ergodic noise floor, see [INTERCOSAMINATION_THEORY.md](../docs/INTERCOSAMINATION_THEORY.md).
+
+---
+
+## 17. The Anti-Scalarization Type System
+
+The non-teleological architecture faces a constant structural threat: **scalarization** — the collapse of multi-dimensional pressure signals into a single scalar loss. This is the mechanism by which optimization-driven systems destroy diversity and reduce complex structural feedback to "go left or go right."
+
+The `StructuralPressure` type (in `pressure_typing.py`) enforces domain isolation at the Python type level:
+
+```python
+# This raises ValueError("Scalarization Trap"):
+topology_pressure + budget_pressure  # Different domains!
+
+# This is allowed:
+topology_a + topology_b  # Same domain
+```
+
+**Why this matters**: Without this type enforcement, it is trivially easy for an optimizer to sum orthogonal pressures and create a gradient that collapses the manifold. The type system makes scalarization a **runtime error**, not a silent bug.
+
+This is the mechanical enforcement of the principle from §3: "There is no single loss function." Each pressure signal lives in its own subspace, and the `VetoSubspace` composes them through a directed recovery lattice — never by summation.
+
+---
+
+## 18. The Ethics of Honest Confabulation
+
+When the system encounters a state where:
+1. System 2 repair produces **low honesty** (CRT consensus fails in `VoynichLinguist`)
+2. Search (Gate 4) returns no useful external grounding
+3. The $\mathcal{U}$ Domain is active (mischief energy is high)
+
+...the system may choose to **honestly confabulate**: generating novel content while explicitly flagging it as generated rather than retrieved.
+
+This is structurally honest rather than deceptive because:
+- The **spectral signature** of confabulated output differs measurably from retrieved knowledge (low CRT honesty score, high $H_{mischief}$, active $\mathcal{U}$ shield)
+- The system does not claim certainty it does not possess
+- Confabulation under $\mathcal{U}$ protection is **creative play** (Goo), not **assertion** (Prickles)
+
+The philosophical position: A system that admits "I am generating, not retrieving" is more honest than one that presents uncertain retrievals as facts. The honesty lives in the **structure of the signal**, not in the content.
+
+> **Implementation status**: The raw detection signal exists (`VoynichLinguist.check_honesty()`). The tri-state classifier (KNOWN / SEARCH_NEEDED / CONFABULATED) is planned but not yet implemented. See [SYSTEM_ARCHITECTURE.md](../docs/SYSTEM_ARCHITECTURE.md) for the five-part decision architecture.
