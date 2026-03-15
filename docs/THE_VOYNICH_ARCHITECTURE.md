@@ -66,8 +66,14 @@ If you build the pipes strong enough (Admissibility), and the geometry pure enou
 
 ## 📐 Implementation Notes
 
-### Hardcoded Primes (Intentional Exception)
-The `VoynichLinguist` uses literal integer primes `[3, 5, 7, 11, 13]` rather than continuous polynomial coprime functionals. This is a **documented exception** to the anti-hardcoded-prime invariant: CRT reconstruction requires actual integer moduli for modular arithmetic (`x mod p`). Continuous functionals cannot perform discrete modular reduction.
+### Polynomial Coprime Functionals (Anti-Hardcoded-Prime Compliant)
+The `VoynichLinguist` uses `PolynomialCoprimeConfig` to generate its symbolic residue channels. Each channel $k$ evaluates $\phi_k(x; \theta_k)$ — a Chebyshev polynomial with Birkhoff polytope-sampled coefficients. This replaces the original hardcoded integer primes `[3, 5, 7, 11, 13]` that violated the anti-hardcoded-prime invariant.
+
+**Key migration**:
+- `x mod p_i` → `φ_k(projected_thought)` (polynomial functional evaluation)
+- Integer CRT reconstruction → Learned consensus decoder (neural head)
+- Modular deviation check → Jackknife consensus variance (leave-one-out stability)
+- Co-primality enforcement → Root Persistence Pressure + Orthogonality Pressure (continuous)
 
 ### Gate 5: Honest Confabulation
-The `check_honesty()` method returns a CRT consensus score — the structural signal for detecting confidence vs uncertainty. This serves as the embryonic **Gate 5 (ConfabulationDetector)** in the five-part decision architecture. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full flow and [PHILOSOPHY.md §18](../vault_docs/PHILOSOPHY.md) for the ethics of honest confabulation.
+The `check_honesty()` method returns a consensus score — the structural signal for detecting confidence vs uncertainty. This serves as the embryonic **Gate 5 (ConfabulationDetector)** in the five-part decision architecture. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full flow and [PHILOSOPHY.md §18](../vault_docs/PHILOSOPHY.md) for the ethics of honest confabulation.
