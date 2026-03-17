@@ -21,23 +21,56 @@ This documentation maintains **archaeological fossils** of deprecated design rou
 
 ## Table of Contents
 
-11. [System Architecture (High Level Synthesis)](SYSTEM_ARCHITECTURE.md)
-12. [Resonance Cavity (Dark Matter Memory)](RESONANCE_CAVITY.md)
+**External References:**
+- [System Architecture (High Level Synthesis)](SYSTEM_ARCHITECTURE.md)
+- [Resonance Cavity (Dark Matter Memory)](RESONANCE_CAVITY.md)
+- [Invariant Optimization (Fixed Point & Ergodicity)](INVARIANT_OPTIMIZATION.md)
+
+**Sections in this document:**
 1. [Polynomial Co-Prime Functionals](#1-polynomial-co-prime-functionals)
 2. [Birkhoff Polytope Constraints](#2-birkhoff-polytope-constraints)
 3. [Polynomial CRT Reconstruction](#3-polynomial-crt-reconstruction)
-4. [GDPO: Decoupled Normalization](#4-gdpo-decoupled-normalization)
+4. [Signal Sovereignty (Fossilized GDPO)](#4-signal-sovereignty-fossilized-gdpo)
 5. [Gyroidic Covariance Violation Exploration (GCVE)](#5-gyroidic-covariance-violation-exploration-gcve)
 6. [Resonance Cavity Dynamics](#6-resonance-cavity-dynamics)
 7. [Hybrid Physics-ADMM (System 2)](#7-hybrid-physics-admm-system-2)
-8. [Invariant Optimization (Fixed Point & Ergodicity)](INVARIANT_OPTIMIZATION.md)
-9. [Fiberalized Gyroidic Recurrent Topology (FGRT)](#16-fiberalized-gyroidic-recurrent-topology-fgrt)
-10. [Chiral Torsion & Non-Orientable Meta-Manifolds](#17-chiral-torsion--non-orientable-meta-manifolds)
-11. [Symplectic Gluing & Cobordism](#18-symplectic-gluing--cobordism)
-12. [Non-Teleological optimization (Ricci Flow)](#19-non-teleological-optimization-ricci-flow)
-13. [Yield Criteria & Plasticity Models (DP/MC)](#20-yield-criteria--plasticity-models-dpmc)
-14. [The Unified System Equation-Object](#21-the-unified-system-equation-object)
-15. [Unified Loss Landscape](#9-unified-loss-landscape)
+9. [Selection vs Containment Pressures](#9-selection-vs-containment-pressures)
+10. [Related Work & Context (2024–2026)](#10-related-work--context-20242026)
+11. [Harmonic–Differential Equivalence](#11-harmonicdifferential-equivalence-bostick-2025)
+12. [Hybrid LAS-Obligatory Quantization](#12-hybrid-las-obligatory-quantization)
+13. [Adaptive Fractional Anisotropy (Ranging)](#13-adaptive-fractional-anisotropy-ranging)
+14. [EBM–Topological Equivalence](#14-ebmtopological-equivalence-the-energy-of-discord)
+15. [The Calculus of Unknowledge](#15-the-calculus-of-unknowledge-beyond-scalar-truth)
+16. [Fiberalized Gyroidic Recurrent Topology (FGRT)](#16-fiberalized-gyroidic-recurrent-topology-fgrt)
+17. [Meta-Polytope Sub-General Quantization](#17-meta-polytope-sub-general-quantization)
+18. [Homological Transversality & Coprime Parity](#18-homological-transversality--coprime-parity)
+19. [Chiral Torsion & Non-Orientable Meta-Manifolds](#19-chiral-torsion--non-orientable-meta-manifolds)
+20. [Symplectic Gluing & Cobordism](#20-symplectic-gluing--cobordism)
+21. [Non-Teleological Optimization (Ricci Flow)](#21-non-teleological-optimization-ricci-flow)
+22. [Yield Criteria & Plasticity Models (DP/MC)](#22-yield-criteria--plasticity-models-dpmc)
+23. [The Unified System Equation-Object](#23-the-unified-system-equation-object)
+24. [Computable Flux and The Love Invariant](#24-computable-flux-and-the-love-invariant)
+25. [DAQUF](#25-diegetic-amortized-quantized-unknowledge-fossilization-daquf)
+26. [Taxonomy of Kappa](#26-taxonomy-of-kappa-kappa)
+27. [Backtracking with Fixed Point Residues (ADMR)](#27-backtracking-with-fixed-point-residues-admr)
+28. [Non-Ergodic Memory via Chiral Polynomials](#28-non-ergodic-memory-via-chiral-polynomials)
+29. [Tripsodic Negentropy Oscillation](#29-tripsodic-negentropy-oscillation)
+30. [Elipsodistrophy](#30-elipsodistrophy-spectral-atrophy-diagnostic)
+31. [Matryoshka Embedding & Nested Polytope Dynamics](#31-matryoshka-embedding--nested-polytope-dynamics)
+32. [Coherent Prime Resonance (CPR)](#32-coherent-prime-resonance-cpr--ric-eq-7)
+33. [Breather Modes as Memory Packets](#33-breather-modes-as-memory-packets--ric-eq-6)
+34. [Non-Abelian Probability & Chiral Groupoid Actions](#34-non-abelian-probability--chiral-groupoid-actions)
+35. [ADMR Solver & Resonance Potential](#35-admr-solver--resonance-potential)
+36. [Sparse Higher-Order Tensor Dynamics](#36-sparse-higher-order-tensor-dynamics)
+37. [Polychoron 600-Cell Quantization](#37-polychoron-600-cell-quantization)
+38. [Chebyshev Minimax Filtration](#38-chebyshev-minimax-filtration)
+39. [Ricci Flow Optimization & Willmore Energy](#39-ricci-flow-optimization--willmore-energy)
+40. [CODES: Constraint-Oriented Differential Equation System](#40-codes-constraint-oriented-differential-equation-system)
+41. [Symplectic Gluing Diffeomorphism](#41-symplectic-gluing-diffeomorphism)
+42. [600-Cell Polychoron Quantization](#42-600-cell-polychoron-quantization)
+43. [Negentropic Trigonometric Manifold (NTM)](#43-negentropic-trigonometric-manifold-ntm)
+44. [GDPO-Decoupled Polynomial CRT](#44-gdpo-decoupled-polynomial-crt)
+- [Appendix A. Implementation State Documentation (January 2026)](#appendix-a-implementation-state-documentation-january-2026)
 
 ---
 
@@ -600,9 +633,9 @@ $$
 
 ---
 
-## 22. Implementation State Documentation (January 2026)
+## Appendix A. Implementation State Documentation (January 2026)
 
-### 22.1 Current Polynomial Co-Prime Functional Implementation
+### A.1 Current Polynomial Co-Prime Functional Implementation
 
 The system now properly implements polynomial co-prime functionals as specified in Section 1, with the following concrete realization:
 
@@ -628,7 +661,7 @@ odd_energy = (theta[:, odd_mask] ** 2).sum(dim=1)
 # Inject asymmetry if pure parity detected
 ```
 
-### 22.2 Evolutionary Trust Selection Implementation
+### A.2 Evolutionary Trust Selection Implementation
 
 **Mutation-Based Evolution**: No gradient descent on trust scalars
 ```python
@@ -655,7 +688,7 @@ else:
     routed_phi[:, k] = self.saturated_gates[k](phi_values[:, k])
 ```
 
-### 22.3 Energy-Based Learning Integration
+### A.3 Energy-Based Learning Integration
 
 **Contrastive Energy Shaping**: Following EBM tutorial principles
 ```python
@@ -672,7 +705,7 @@ gyroid_violation = psi_k(c)  # Admissibility filter, not truth metric
 L_k = local_strain + gyroid_violation
 ```
 
-### 22.4 Anti-Lobotomy Enforcement Mechanisms
+### A.4 Anti-Lobotomy Enforcement Mechanisms
 
 **Hardcoded Prime Detection**: Automated prevention
 ```python
@@ -696,7 +729,7 @@ coefficients = self.polynomial_config.get_coefficients_tensor()
 # Never: coefficients = torch.randn(K, D)  # FORBIDDEN
 ```
 
-### 22.5 Dynamic Sparsification Implementation
+### A.5 Dynamic Sparsification Implementation
 
 **Gyroid Violation-Based Attention**: Implemented in `GyroidReasoner`
 ```python
@@ -711,7 +744,7 @@ for i in range(seq_len):
 # High violation -> dense attention, Low violation -> sparsified attention
 ```
 
-### 22.6 Current System Capabilities
+### A.6 Current System Capabilities
 
 **Polynomial Basis Support**:
 - Chebyshev polynomials (T_n): Optimal for approximation
@@ -740,9 +773,9 @@ This implementation state represents full compliance with the anti-lobotomy gove
 
 ---
 
-## 23. Matryoshka Embedding & Transversality (RIC Eq 8)
+## 31. Matryoshka Embedding & Nested Polytope Dynamics (RIC Eq 8)
 
-### 23.1 Recursive Nesting
+### 31.1 Recursive Nesting
 
 The topology is organized as a recursive hierarchy of polytopes:
 
@@ -750,7 +783,7 @@ $$\mathcal{M}_{k+1} = \text{Matryoshka}(\mathcal{M}_k) = \text{Conv}\!\left(\{v^
 
 where the vertices $v^{(k)}_i$ of level $k+1$ are the *states* (centroids, Betti signatures) of the level-$k$ polytopes.
 
-### 23.2 Transversality Condition
+### 31.2 Transversality Condition
 
 Adjacent polytope boundaries $\mathcal{B}_i, \mathcal{B}_j$ must intersect generically:
 
@@ -758,13 +791,13 @@ $$\mathcal{T}_{ij} = \mathcal{B}_i \pitchfork \mathcal{B}_j \implies \dim(\mathc
 
 This prevents topological collapse into degenerate (lower-dimensional) structures. When transversality fails, the system emits a structural failure token $\bot$ and triggers Phase 2 repair.
 
-### 23.3 Connection to Meta-Polytope Quantization
+### 31.3 Connection to Meta-Polytope Quantization
 
-The 600-cell polychoron vertices $Q \in \operatorname{Weyl}(P)$ from Section 10 are the *leaf-level* Matryoshka elements. The recursive nesting generalizes vertex mapping from a single polytope to a hierarchy where each level encodes progressively more abstract structural invariants.
+The 600-cell polychoron vertices $Q \in \operatorname{Weyl}(P)$ from §17 are the *leaf-level* Matryoshka elements. The recursive nesting generalizes vertex mapping from a single polytope to a hierarchy where each level encodes progressively more abstract structural invariants.
 
 **Implementation**: `MetaPolytopeMatrioshka` in `src/core/meta_polytope_matrioshka.py`.
 
-### 23.4 Fractal Void Hierarchy
+### 31.4 Fractal Void Hierarchy
 
 The Matryoshka nesting induces a **fractal hierarchy of voids** (constraint gaps) across scales:
 
@@ -782,7 +815,7 @@ $$\chi_{n+1} = \Phi(\chi_n, V_{n+1})$$
 
 where $\Phi$ is the Matryoshka propagation functor.
 
-### 23.5 Pestov-Ionin Growth Invariant
+### 31.5 Pestov-Ionin Growth Invariant
 
 The **Pestov-Ionin theorem** constrains the recursive traversals via an asymptotic growth rate:
 
@@ -900,7 +933,7 @@ $$ \text{Atrophy} = 1 - \frac{\sigma(\lambda)}{\lambda_{max} - \lambda_{min} + \
 
 See [INTERCOSAMINATION_THEORY.md](INTERCOSAMINATION_THEORY.md) for the full theoretical connection to the double gyroid's dual-channel structure and endogenous memory.
 
-### 31.6 Master Stability Condition
+### 31.6 Master Stability Condition (Matryoshka cont.)
 
 The **probability of system coherence** is formalized as a pair:
 
@@ -925,7 +958,7 @@ where:
 - $u$ = dual variable (constraint multipliers)
 - $P$ = polytope membership
 - $\Delta$ = quantization step sizes (per-dimension)
-- $\Gamma$ = chirality tensor (from §3 Torsion)
+- $\Gamma$ = chirality tensor (from §19 Chiral Torsion)
 - $\mathcal{K} = \sum_{i,j} \kappa_{ij}\, e_i \wedge e_j$ = curvature 2-form
 
 NaN becomes a **control-flow sentinel**, not data. The BoundaryState encodes rank-reduced directional information, enabling higher-order derivatives to be expressed as linear combinations of facet tensors: storage reduces from full $N^3$ to $\text{rank}(\Sigma)^3$.
@@ -1075,9 +1108,9 @@ The system is formalized as a **chiral category** $\mathcal{C}^{\text{ch}}$ with
 |---|---|
 | ADMM (§7) | Factorization algebra of constraint updates |
 | CRT residues (§3) | Sheaf of co-prime residues; factorization = CRT reconstruction |
-| Burkov polytopes (§5, §23) | Chiral modules over "dark matter" algebra |
+| Burkov polytopes (§5, §31) | Chiral modules over "dark matter" algebra |
 | Ergodic/Non-ergodic (§1.3) | Dual chiral structures: smeared vs. sharp operations |
-| Meta-polytope space (§23) | The chiral category itself |
+| Meta-polytope space (§31) | The chiral category itself |
 
 The action satisfies three axioms:
 
@@ -1102,7 +1135,7 @@ $$P(\text{coherence}) = \Pi_1(\mathcal{A})$$
 where $\mathcal{A}$ is the asymmetry-manifold with nodes = ADMM, CRT, Burkov polytopes, etc., and edges = chiral jury-rigs. The system works if $\Pi_1(\mathcal{A})$ is non-empty and connected.
 
 **Failure modes**:
-1. **Fractal voids**: If $V$ is fractal, the traversal may never close. Fix: ergodic smearing (§23.5).
+1. **Fractal voids**: If $V$ is fractal, the traversal may never close. Fix: ergodic smearing (§31.5).
 2. **Non-commutative collapse**: If jury-rigs conflict, $\Pi_1(\mathcal{A})$ disconnects. Fix: meta-chiral operator.
 3. **Dark matter overload**: Use co-prime residue pruning (§1).
 
@@ -1252,7 +1285,7 @@ Forward: `x [..., 4]` → reshape to `[N, 4]` → `cdist` to all 120 vertices �
 
 - **Chirality preservation**: The 600-cell has icosahedral symmetry group $H_4$, ensuring quantization respects chiral orientation
 - **Fixed-point accuracy**: Vertices are algebraic (golden ratio), avoiding floating-point drift
-- **Connection**: Used within the meta-polytope framework from [§9](SYSTEM_ARCHITECTURE.md) and [§23](MATHEMATICAL_DETAILS.md) for shell-level quantization
+- **Connection**: Used within the meta-polytope framework from [§9](SYSTEM_ARCHITECTURE.md) and [§31](MATHEMATICAL_DETAILS.md) for shell-level quantization
 
 ---
 
