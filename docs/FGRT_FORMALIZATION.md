@@ -40,7 +40,7 @@ Define the **chiral category** $\mathcal{C}^{ch}$ with objects = constraint stat
 
 $$P_I^{ch}: \bigotimes_{i \in I} \mathcal{C}^{ch}_{x_i} \to \mathcal{C}^{ch}_{M_I}$$
 
-where $M_I$ is the merged constraint manifold over index set $I$. This product is **not commutative**, reflecting the non-Abelian nature of constraint interactions (rounding order matters, per §3 Torsion).
+where $M_I$ is the merged constraint manifold over index set $I$. This product is **not commutative**, reflecting the non-Abelian nature of constraint interactions (rounding order matters, per §19 Chiral Torsion).
 
 ### 6.2 Groupoid Action
 
@@ -49,7 +49,7 @@ A **groupoid** $G \rightrightarrows X$ acts on $\mathcal{C}^{ch}$, where:
 - **Morphisms** $g: x \to y$ = chiral jury-rigs (constraint transports between nodes)
 - **Functorial isomorphisms**: $F_g: \mathcal{C}^{ch}_x \to \mathcal{C}^{ch}_y$ for each morphism $g$
 
-Each morphism carries a **Berry phase** from manifold traversal (cf. §3):
+Each morphism carries a **Berry phase** from manifold traversal (cf. §19):
 
 $$\Delta\phi_g = \oint_{\gamma(g)} \langle \psi | \nabla_\gamma \psi \rangle \, d\gamma$$
 
@@ -68,9 +68,9 @@ System coherence is classified by the **fundamental groupoid** $\Pi_1(\mathcal{A
 **System works** $\iff$ $\Pi_1(\mathcal{A})$ is non-empty and connected.
 
 **Failure modes**:
-1. **Fractal voids**: Traversal never closes → ergodic smearing (cf. [MATHEMATICAL_DETAILS.md §23.5](MATHEMATICAL_DETAILS.md))
+1. **Fractal voids**: Traversal never closes → ergodic smearing (cf. [MATHEMATICAL_DETAILS.md §31.5](MATHEMATICAL_DETAILS.md))
 2. **Non-commutative collapse**: Jury-rigs conflict → meta-chiral operator needed
-3. **Dark matter overload**: Use co-prime residue pruning (§5)
+3. **Dark matter overload**: Use co-prime residue pruning (§1)
 
 **Connection to FGRT Torsion**: The contorsion tensor $K^\lambda_{\mu\nu}$ from §3 is the **local data** of the groupoid action — it encodes how constraint transport differs from parallel transport along the base manifold $\mathcal{G} \cup \mathcal{K}$.
 
@@ -92,9 +92,9 @@ For agents analyzing the codebase, this formalization maps to:
 
 | Topic | Document |
 |-------|----------|
-| Full chiral groupoid formalism | [MATHEMATICAL_DETAILS.md §26](MATHEMATICAL_DETAILS.md) |
-| Berry phase / torsion field | [MATHEMATICAL_DETAILS.md §4](MATHEMATICAL_DETAILS.md) |
+| Full chiral groupoid formalism | [MATHEMATICAL_DETAILS.md §34](MATHEMATICAL_DETAILS.md) |
+| Berry phase / torsion field | [MATHEMATICAL_DETAILS.md §19](MATHEMATICAL_DETAILS.md) |
 | ADMM as facet stabilizer | [SYSTEM_ARCHITECTURE.md §9.1](SYSTEM_ARCHITECTURE.md) |
-| Matryoshka nesting | [MATHEMATICAL_DETAILS.md §23](MATHEMATICAL_DETAILS.md) |
+| Matryoshka nesting | [MATHEMATICAL_DETAILS.md §31](MATHEMATICAL_DETAILS.md) |
 | Anti-lobotomy constraints | [GOVERNANCE_ANTI_LOBOTOMY.md](../vault_docs/GOVERNANCE_ANTI_LOBOTOMY.md) |
 
