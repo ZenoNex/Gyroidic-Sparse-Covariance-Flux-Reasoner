@@ -91,7 +91,7 @@ The encoding respects non-Abelian composition. For text residues $r_T$ and image
 
 $$r_{T \circ I} \neq r_{I \circ T}$$
 
-This is implemented via ordered application of the gyroid modulation and residue projection, preserving the **holonomy** (§26.2 in MATHEMATICAL_DETAILS.md) of the encoding path.
+This is implemented via ordered application of the gyroid modulation and residue projection, preserving the **holonomy** (§34.2 in MATHEMATICAL_DETAILS.md) of the encoding path.
 
 ### 3.3 Gyroid Modulation
 
@@ -108,7 +108,7 @@ where $H$ is the mean curvature and $G$ is the gyroid field value. High-curvatur
 - **CRT Reconstruction** (§3): Residues can be reconstructed to the original space via CRT
 - **Birkhoff Polytope** (§2): Residue routing uses doubly-stochastic constraint projection
 - **Gyroid Covariance** (§5): Gyroid violation scores feed back into the covariance estimator
-- **Non-Abelian Probability** (§26): The codec's non-commutative path ordering is a concrete instance of the braid group belief updates
+- **Non-Abelian Probability** (§34): The codec's non-commutative path ordering is a concrete instance of the braid group belief updates
 
 ---
 
