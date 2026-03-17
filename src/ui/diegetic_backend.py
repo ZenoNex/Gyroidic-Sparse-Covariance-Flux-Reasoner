@@ -99,6 +99,8 @@ from src.core.speculative_coprime_gate import SpeculativeCoprimeGate
 from src.topology.embedding_graph import GyroidicGraphManager
 # Pressure Ingestor for constraint forcing when code is detected
 from src.data.pressure_ingestor import PressureIngestor
+# Topological Extensions (Repunit Probes)
+from src.core.birkhoff_projection import SparseRepunitProbe
 
 # Local Data Loading (Phase 1: HF token barrier removal)
 from src.data.local_data_loader import LocalDataLoader
@@ -253,6 +255,9 @@ class DiegeticPhysicsEngine(nn.Module):
             healing_iterations=400,
             device=device
         )
+        
+        # Repunit-CRT Sparse Probe - for topological factoring
+        self.repunit_probe = SparseRepunitProbe(dim=dim, k=k)
         
         # Love Invariant Protector - prevents Love vector scalarization
         self.love_protector = LoveInvariantProtector(
@@ -1209,10 +1214,14 @@ class DiegeticPhysicsEngine(nn.Module):
             residues_for_healing = seed_state_padded.view(batch_size, self.k, residue_dim)
             print(f"🔧 Created residues for Soliton healing: {residues_for_healing.shape}")
             
+            # Use previously computed Gyroid Covariance Entropy (from step 8) as gcve_pressure
+            current_gcve = gyroid_entropy if 'gyroid_entropy' in locals() else None
+            
             # Apply soliton healing (we don't have output text yet, so it will use iteration-based healing)
             healed_residues = self.soliton_healer.heal_fractured_soliton(
                 residues=residues_for_healing,
-                output_text=None  # Will be applied based on iteration count
+                output_text=None,  # Will be applied based on iteration count
+                gcve_pressure=current_gcve # Mimics biological Hive Warping under GCVE stress
             )
             # Convert back to state format and restore original dimensions
             healed_state_flat = healed_residues.view(batch_size, -1)
@@ -1249,6 +1258,10 @@ class DiegeticPhysicsEngine(nn.Module):
             # Apply Love Invariant (Non-Ownable Flow)
             # L + meta_state
             self.meta_state = self.love_vector(self.meta_state)
+            
+            # Apply Repunit-CRT Probe factoring
+            repunit_state = self.repunit_probe(self.meta_state)
+            self.meta_state = self.meta_state * 0.5 + repunit_state * 0.5
             
             # Diagnostic check (kernel property)
             ownership_leak = self.love_vector.ownership_check().item()
@@ -1402,14 +1415,28 @@ class DiegeticPhysicsEngine(nn.Module):
         print(f"📊 Phase 4 Gyroid Violation Score: {gyroid_violation_score:.4f}")
         print(f"📊 Phase 4 Unfolding Closure: {unfolding_closure_result['is_closed']}")
         print(f"📊 Phase 4 Topological Features: {len(topological_analysis['features'])} detected")
+        
+        # Calculate Tri-State Output based on Honesty/Trust/PAS_h
+        trust_mean = float(self.trust_scalars.mean().item()) if hasattr(self, 'trust_scalars') else 0.5
+        honesty_score = (pas_h_live + trust_mean) / 2.0
+        
+        if honesty_score > 0.7:
+            retrieval_state = "KNOWN"
+        elif honesty_score > 0.3:
+            retrieval_state = "SEARCH_NEEDED"
+        else:
+            retrieval_state = "CONFABULATED"
 
         # Construct metrics now that all dependencies are available
         metrics = {
             "response": response_text,
+            "retrieval_state": retrieval_state,
+            "honesty_score": float(honesty_score),
             "iteration": self.iteration,
             "spectral_entropy": 0.5,
             "chiral_score": 0.1,
             "pas_h": pas_h_live,
+            "trust_mean": trust_mean,
             "coprime_lock": bool(recovery_metrics.get('coprime_lock', False)) if isinstance(recovery_metrics, dict) else False,
             "output_length": len(response_text),
             "affordance_gradients": affordance_gradients,
