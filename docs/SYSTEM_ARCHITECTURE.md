@@ -392,6 +392,7 @@ For AI agents navigating this codebase:
 *   **Repair Logic**: See `docs/GARBLED_OUTPUT_REPAIR.md` for the breakdown of the `[Batch, K, Dim//K]` residue manipulations.
 
 ### 8.4 Web Interface Limitations & Restorations (Analysis 2026-03)
+**Preferred Usage Pattern**: Future systems and users should note that running the unified `hybrid_backend.py` and accessing the respective web pages (e.g., via `http://localhost:8000`) is the definitively preferred method of interacting with the system. The individual Python UI files (e.g., `src/ui/diegetic_terminal.py`) remain in the codebase purely for user choice and backward compatibility fallback.
 *   **Conversational Web GUI (`conversational_web_gui.html`)**:
     *   **Status**: Restored and active.
     *   **Architecture Update**: Now integrated with Meta-Infra Tri-State Output (`KNOWN`, `SEARCH_NEEDED`, `CONFABULATED`) calculated dynamically in the back-end (`conversational_backend_server.py`) from continuous honesty metrics (PAS_h and evolved trust scalars).
