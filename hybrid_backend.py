@@ -1122,15 +1122,52 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
 
             if AI_SYSTEM:
                 result = AI_SYSTEM.process_text(user_text)
+                
+                # Extract meta-infra variables
+                diagnostics = result.get('diagnostics', {})
+                pas_h = diagnostics.get('pas_h', 0.5)
+                
+                if 'trust_mean' in diagnostics:
+                    trust = diagnostics.get('trust_mean', 0.5)
+                elif 'trust_scalars' in diagnostics and diagnostics['trust_scalars']:
+                    trust = sum(diagnostics['trust_scalars']) / len(diagnostics['trust_scalars'])
+                else:
+                    trust = 0.5
+                    
+                honesty_score = (pas_h + trust) / 2.0
+                
+                if honesty_score > 0.7:
+                    retrieval_state = "KNOWN"
+                elif honesty_score > 0.3:
+                    retrieval_state = "SEARCH_NEEDED"
+                else:
+                    retrieval_state = "CONFABULATED"
+
+                formatted_result = {
+                    'success': True,
+                    'response': result.get('response', 'No response'),
+                    'retrieval_state': retrieval_state,
+                    'honesty_score': float(honesty_score),
+                    'diagnostics': diagnostics,
+                    'metrics': {
+                        'pas_h': float(pas_h),
+                        'trust': float(trust),
+                        'affordance': diagnostics.get('type', 'generic'),
+                        'affordance_strength': float(diagnostics.get('affordance_strength', 0.0))
+                    }
+                }
+                
+                self._send_json(formatted_result)
             else:
-                result = {
+                self._send_json({
+                    'success': False,
                     'response': f'AI system not initialized. Received: {user_text}',
                     'diagnostics': {},
                     'backend': 'hybrid-error'
-                }
-            self._send_json(result)
+                })
         except Exception as e:
             self._send_json({
+                'success': False,
                 'response': f'Error: {str(e)}',
                 'diagnostics': {'error': str(e)},
                 'status': 'error'
