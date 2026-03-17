@@ -382,6 +382,7 @@
             <div class="stat-item">TAU: <span id="stat-tau">0.000</span></div>
             <div class="stat-item">HARDENING: <span id="stat-hardening">0.15</span></div>
             <div class="stat-item">ITERATION: <span id="stat-iteration">0</span></div>
+            <div class="stat-item">META STATE: <span id="stat-retrieval" style="color: #666;">UNKNOWN</span></div>
         </div>
     </header>
 
@@ -598,6 +599,16 @@
         function updateMetricsFromDiagnostics(data) {
             // Update Metrics (safely)
             if (data.iteration !== undefined) document.getElementById('stat-iteration').innerText = data.iteration;
+            
+            // Update Tri-State Meta State
+            if (data.retrieval_state) {
+                const rs = document.getElementById('stat-retrieval');
+                rs.innerText = data.retrieval_state;
+                if (data.retrieval_state === 'KNOWN') rs.style.color = 'var(--terminal-green)';
+                else if (data.retrieval_state === 'SEARCH_NEEDED') rs.style.color = 'var(--terminal-warn)';
+                else if (data.retrieval_state === 'CONFABULATED') rs.style.color = 'var(--terminal-magenta)';
+                else rs.style.color = 'var(--terminal-blue)';
+            }
 
             // Extract from topological_analysis if present
             const topo = data.phase4_diagnostics?.topological_analysis;
