@@ -457,7 +457,7 @@ $$(x_t, \alpha_t, l_t) \quad \text{where } x_t \in \text{representation},\; \alp
 
 ### 9.5 NaN → BoundaryState Pipeline
 
-When polytope projection becomes undefined, the system lifts NaN into a **BoundaryState tensor** (see [MATHEMATICAL_DETAILS.md §23.7](MATHEMATICAL_DETAILS.md)):
+When polytope projection becomes undefined, the system lifts NaN into a **BoundaryState tensor** (see [MATHEMATICAL_DETAILS.md §31.7](MATHEMATICAL_DETAILS.md)):
 
 $$(x_{t+1}, P_{t+1}) = \begin{cases} (Q^{(l)}(F(Q^{(l)}(x_t))),\, P^{(l)}) & x_t \in \text{int}(P^{(l)}) \\ (x_t,\, \text{adjacent}(P^{(l)})) & x_t \in \partial P^{(l)} \\ (\varnothing,\, \text{undefined}) & x_t \notin \mathbb{P} \end{cases}$$
 
