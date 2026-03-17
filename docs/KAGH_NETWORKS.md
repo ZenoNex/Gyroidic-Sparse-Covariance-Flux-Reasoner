@@ -190,5 +190,5 @@ Output x [B, n_out]
 
 **Related Documentation**:
 - [PHYSICS_ADMM.md](PHYSICS_ADMM.md) — ADMM constraint framework that KAGH approximates
-- [MATHEMATICAL_DETAILS.md §21](MATHEMATICAL_DETAILS.md) — Energy-based learning context
+- [MATHEMATICAL_DETAILS.md §14](MATHEMATICAL_DETAILS.md) — Energy-based learning context (EBM–Topological Equivalence)
 - [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md) — Meta-invariant enforcement
