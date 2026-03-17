@@ -193,9 +193,16 @@ class VoynichLinguist(nn.Module):
         Returns True if the residues exhibit high structural consensus
         (all polynomial channels agree on the symbol).
         """
-        reconstructed = self.reconstruction_head(residues).squeeze(-1)
-        honesty = self._compute_consensus_honesty(residues, reconstructed)
+        honesty = self.get_continuous_honesty(residues)
         return honesty > 0.95
+
+    def get_continuous_honesty(self, residues: torch.Tensor) -> torch.Tensor:
+        """
+        Continuous structural consensus metric for the Tri-State Gate pipeline.
+        Returns the raw honesty float [0, 1].
+        """
+        reconstructed = self.reconstruction_head(residues).squeeze(-1)
+        return self._compute_consensus_honesty(residues, reconstructed)
     
     def get_coprimality_pressure(self) -> Dict[str, torch.Tensor]:
         """
