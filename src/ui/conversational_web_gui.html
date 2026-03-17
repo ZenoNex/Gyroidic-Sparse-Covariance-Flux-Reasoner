@@ -693,6 +693,10 @@
 
             <div class="metrics">
                 <div class="metric">
+                    <div class="metric-value" id="retrieval-state" style="font-size: 1.2em; color: #6c757d;">--</div>
+                    <div class="metric-label">Meta State</div>
+                </div>
+                <div class="metric">
                     <div class="metric-value" id="pas-h-value">--</div>
                     <div class="metric-label">PAS_h</div>
                 </div>
@@ -1255,6 +1259,20 @@
         }
 
         function updateMetrics(data) {
+            if (data.retrieval_state) {
+                const stateDiv = document.getElementById('retrieval-state');
+                stateDiv.textContent = data.retrieval_state;
+                if (data.retrieval_state === 'KNOWN') stateDiv.style.color = '#28a745';
+                else if (data.retrieval_state === 'SEARCH_NEEDED') stateDiv.style.color = '#ffc107';
+                else if (data.retrieval_state === 'CONFABULATED') stateDiv.style.color = '#dc3545';
+            }
+            
+            if (data.metrics) {
+                const d = data.metrics;
+                if (d.pas_h !== undefined) document.getElementById('pas-h-value').textContent = d.pas_h.toFixed(3);
+                if (d.trust !== undefined) document.getElementById('entropy-value').textContent = d.trust.toFixed(3);
+            }
+            
             if (data.diagnostics) {
                 const d = data.diagnostics;
                 if (d.spectral_entropy !== undefined) document.getElementById('entropy-value').textContent = d.spectral_entropy.toFixed(3);
