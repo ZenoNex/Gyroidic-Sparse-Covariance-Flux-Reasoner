@@ -34,6 +34,8 @@ http://localhost:8000
 - Use the side panels for associations
 - Everything will work correctly!
 
+*Note: Running `hybrid_backend.py` and accessing the UI via the browser is the preferred system architecture. However, individual Python scripts like `src/ui/diegetic_terminal.py` are preserved for user choice.*
+
 ## 🚀 Quick Start Script
 Run this to automatically open the terminal:
 ```bash
