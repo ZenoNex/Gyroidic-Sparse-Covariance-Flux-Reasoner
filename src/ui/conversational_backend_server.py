@@ -363,14 +363,28 @@ def chat():
         else:
             result = state.diegetic_backend.process_user_input(message)
         
+        # Calculate honesty score for Tri-state Meta Infra
+        pas_h = result['response'].get('pas_h', 0.5)
+        trust = result['response'].get('trust_mean', 0.5)
+        honesty_score = (pas_h + trust) / 2.0
+        
+        if honesty_score > 0.7:
+            retrieval_state = "KNOWN" # High honesty, confident
+        elif honesty_score > 0.3:
+            retrieval_state = "SEARCH_NEEDED" # Low honesty, search gate
+        else:
+            retrieval_state = "CONFABULATED" # Very low honesty, active U -> creative
+        
         return jsonify({
             'success': True,
-            'response': result['response']['text'],
+            'response': result['response'].get('text', 'No response'),
+            'retrieval_state': retrieval_state,
+            'honesty_score': float(honesty_score),
             'metrics': {
-                'pas_h': result['response']['pas_h'],
-                'trust': result['response']['trust_mean'],
-                'affordance': result['response']['type'],
-                'affordance_strength': result['response']['affordance_strength']
+                'pas_h': float(pas_h),
+                'trust': float(trust),
+                'affordance': result['response'].get('type', 'generic'),
+                'affordance_strength': float(result['response'].get('affordance_strength', 0.0))
             }
         })
         
