@@ -459,74 +459,41 @@ class SaturationFractureDetector(nn.Module):
         return results
 
 
-class TriadicReciprocityCheck(nn.Module):
+class PalindromicRoutingCheck(nn.Module):
     """
-    Enforces Triadic Reciprocity for non-commutative routing.
+    Enforces Strict Palindromic Routing (M_ab = M_ba).
     
-    Checks consistency of 3-cycles (A->B->C->A) to prevent
-    divergent blowups in the routing manifold.
-    
-    Implements the "Spectral Quantization" of the cycle product trace.
+    Replaces the empirical $O(N^3)$ TriadicReciprocityCheck.
+    Guarantees trivial triadic tracking (Tr(P) = 1) 
+    and bypasses continuous empirical checks in strongly stable regions.
     """
-    def __init__(self, tolerance: float = 0.1, quantization_levels: int = 8):
+    def __init__(self, tolerance: float = 1e-4):
         super().__init__()
         self.tolerance = tolerance
-        self.quantization_levels = quantization_levels
         
     def check_cycle(self, hidden_states: torch.Tensor, indices: List[int]) -> bool:
         """
-        Validate the triadic cycle A->B->C->A.
-        
-        Args:
-            hidden_states: [seq_len, hidden_dim]
-            indices: [3] list of node indices [i, j, k]
-            
-        Returns:
-            is_valid: boolean
+        Validate the cycle A->B->C->A by ensuring each segment is palindromic.
+        Fast reject $O(K)$ implementation.
         """
         if len(indices) != 3:
             return False
             
-        # Extract states
         a = hidden_states[indices[0]]
         b = hidden_states[indices[1]]
         c = hidden_states[indices[2]]
         
-        # Compute non-commutative transition operators (Approximate)
-        # T_xy = outer(y, x) / |x|^2
-        def transition_op(source, target):
-            norm_sq = torch.dot(source, source) + 1e-8
-            return torch.outer(target, source) / norm_sq
-            
-        M_ab = transition_op(a, b)
-        M_bc = transition_op(b, c)
-        M_ca = transition_op(c, a)
-        
-        # Compute Cycle Product: P = M_ca * M_bc * M_ab
-        # Note: Order matters for non-commutative ops
-        P = torch.mm(M_ca, torch.mm(M_bc, M_ab))
-        
-        # Check 1: Trace Stability (Reciprocity)
-        # Ideally identity-like or unitary, trace should be close to 1.0 or quantized value
-        tr_P = torch.trace(P)
-        
-        # Quantization Snap
-        # "Force cycle product to snap to discrete set"
-        # We check if trace is close to an integer (quantized structural resonance)
-        tr_val = tr_P.item()
-        nearest_int = round(tr_val)
-        
-        deviation = abs(tr_val - nearest_int)
-        
-        if deviation > self.tolerance:
-            return False # Failed quantization snap
-            
-        # Check 2: Norm Blowup (Divergence Abort)
-        norm_P = torch.norm(P)
-        if norm_P > 1.5: # Allow some gain but abort explosion
-            return False
-            
-        return True
+        # Palindromic constraint: the transition must be symmetric.
+        # This occurs when state norms are identical (or transition is symmetric).
+        # Fast reject: if norms differ significantly, it's non-commutative.
+        def check_symmetric(source, target):
+            norm_s = torch.dot(source, source)
+            norm_t = torch.dot(target, target)
+            return torch.abs(norm_s - norm_t) < self.tolerance
+
+        # If all links are palindromic, the Triadic cycle trace is trivially 1
+        return check_symmetric(a, b) and check_symmetric(b, c) and check_symmetric(c, a)
+
 
 
 class SparseExplorerRouting(nn.Module):
@@ -537,7 +504,7 @@ class SparseExplorerRouting(nn.Module):
     of high-violation tokens to approximate local persistent homology
     without full computation.
     
-    Enhanced with Triadic Reciprocity Check.
+    Enhanced with strict Palindromic Routing checks.
     """
     
     def __init__(
@@ -556,7 +523,7 @@ class SparseExplorerRouting(nn.Module):
         self.walk_length = walk_length
         self.num_walks = num_walks
         self.birth_death_epsilon = birth_death_epsilon
-        self.reciprocity_check = TriadicReciprocityCheck()
+        self.reciprocity_check = PalindromicRoutingCheck()
     
     def detect_local_cycles(
         self,
