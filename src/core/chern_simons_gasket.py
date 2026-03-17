@@ -346,12 +346,15 @@ class SolitonStabilityHealer(nn.Module):
         
         return heated_residues
     
-    def drucker_prager_healing(self, residues: torch.Tensor) -> torch.Tensor:
+    def drucker_prager_healing(self, residues: torch.Tensor, gcve_pressure: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Apply Drucker-Prager global plastic flow for healing.
         
         Args:
             residues: Input residues [batch, K, D]
+            gcve_pressure: Gyroidic Covariance Violation Energy (V_m). High pressure 
+                           reduces the yield threshold, mimicking biological
+                           Beehive Manifold wax melting under colony stress.
             
         Returns:
             Healed residues with DP global envelope
@@ -372,7 +375,13 @@ class SolitonStabilityHealer(nn.Module):
         dp_stress = self.alpha * I1 + torch.sqrt(J2 + 1e-8)
         
         # Apply healing where stress is high
-        stress_threshold = 2.0
+        stress_threshold = torch.tensor(2.0, device=residues.device)
+        
+        if gcve_pressure is not None:
+            # Biological Manifold Warping (Beehive Topology): 
+            # High GCVE stress lowers the yield threshold, allowing adaptive flow
+            stress_threshold = stress_threshold / (1.0 + gcve_pressure)
+            
         healing_mask = (dp_stress > stress_threshold).float().unsqueeze(-1)  # [batch, K, 1]
         
         # Healing: smooth toward mean (global plastic flow)
@@ -386,7 +395,8 @@ class SolitonStabilityHealer(nn.Module):
     def heal_fractured_soliton(
         self, 
         residues: torch.Tensor, 
-        output_text: Optional[str] = None
+        output_text: Optional[str] = None,
+        gcve_pressure: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
         Main healing method for fractured solitons.
@@ -394,6 +404,7 @@ class SolitonStabilityHealer(nn.Module):
         Args:
             residues: Input residues [batch, K, D]
             output_text: Optional output text for fracture detection
+            gcve_pressure: Optional topological pressure to warp the manifold
             
         Returns:
             Healed residues
@@ -407,8 +418,8 @@ class SolitonStabilityHealer(nn.Module):
             # Apply ranging signal (heating)
             heated_residues = self.apply_ranging_signal(residues)
             
-            # Apply Drucker-Prager healing
-            healed_residues = self.drucker_prager_healing(heated_residues)
+            # Apply Drucker-Prager healing (Beehive Wax Melting)
+            healed_residues = self.drucker_prager_healing(heated_residues, gcve_pressure=gcve_pressure)
             
             # Update healing progress
             self.healing_progress = self.iteration_count / self.healing_iterations
