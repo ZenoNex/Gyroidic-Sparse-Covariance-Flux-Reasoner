@@ -17,11 +17,11 @@ class GluingOperator(nn.Module):
         super().__init__()
         self.dim = dim
         self.gyroid = GyroidManifold()
-        # Rotation matrix for spatial manifold reversal
-        self.reversal_matrix = nn.Parameter(torch.eye(dim))
-        # Initialize as a reflection/reversal
-        with torch.no_grad():
-            self.reversal_matrix[0, 0] = -1.0 
+        # Strict geometric anti-symmetry (Anti-Palindromic Gluing)
+        # Nullifies the Chern-Simons gasket penalty automatically
+        reversal_matrix = torch.eye(dim)
+        reversal_matrix[0, 0] = -1.0 
+        self.register_buffer('reversal_matrix', reversal_matrix)
 
     def chern_simons_constraint(self, connection: torch.Tensor) -> torch.Tensor:
         """
@@ -53,3 +53,4 @@ class GluingOperator(nn.Module):
         
         glued_state = (1 - weight) * state + weight * reversed_state
         return glued_state
+
