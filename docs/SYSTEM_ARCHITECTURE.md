@@ -15,7 +15,7 @@ This document synthesizes the complete architecture, explaining how the three di
 *   **Mechanism**:
     *   Inputs are projected onto orthogonal polynomial functionals ($\phi_k$) through **Saturated Polynomial Gates**.
     *   **Bimodal Routing** (Hard/Soft genome) replaces standard annealing, allowing evolution to select the discrete path.
-    *   Outputs a high-confidence symbolic residue pattern using **Majority-Symbol CRT**.
+    *   Outputs a high-confidence symbolic residue pattern using **Majority-Symbol CRT** (now optimized via **Repunit-CRT Sparse Probes**, converting $O(N^2)$ tracking to $O(K)$ bit-shifts).
 
 ### 2. System 2: The Physical Constraint (The "Horn")
 *   **Role**: Local physical consistency probe (Constraint Probe Operator).
@@ -30,10 +30,10 @@ This document synthesizes the complete architecture, explaining how the three di
     *   **KAGH Surrogates**: Enforce global physics constraints to "heal" symbolic conflicts.
         *   **Hybrid-Quantized KAN**: Uses **True B-Splines** (Cox-de Boor) with **Saturated Quantization** (STE) to bridge the continuous/discrete gap.
         *   **Fixed Structural Grids**: Enforces "Symbolic Non-Revisability" by prohibiting grid adaptation.
-    *   **Topological Guarantees** (Phase 2):
+    *   **Topological Guarantees** (Phase 19 Topological Extensions):
         *   **Hyper-Ring Closure**: Checks `H(r) ∈ Z_1(C)` and non-triviality for soliton stability.
-        *   **Persistence Obstruction Graph**: Filtration-based persistent homology for residue interactions.
-        *   **Soliton Stability**: Dispersion/localization ratio `D(r)/Λ(r) < κ`.
+        *   **Palindromic / Anti-Palindromic Symmetry**: Fast-rejects commutative breaks with strict $M_{ab} = M_{ba}$ routing and hardcoded Anti-Palindromic boundary reflection.
+        *   **Beehive Manifold Warping**: Maps Drucker-Prager yield stress to GCVE $V_m$, allowing the topological constraints to redirect flow like wax melting points, optimizing for survivorship over naive convergence.
     *   **Advanced Constraints** (Phase 3):
         *   **Structural Irreducibility**: Ensures orthogonality across evidence modules.
         *   **Gyroidic Differentiation**: Flow constraints `∇_flow Φ(r) ⟂ ∇G`.
