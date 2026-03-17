@@ -147,4 +147,4 @@ if EXTENSIONS_AVAILABLE:
 - [SYSTEM_ARCHITECTURE §9.3–9.4](SYSTEM_ARCHITECTURE.md) — Matrioshka nested polytopes and quantization formalism
 - [VETO_SUBSPACE_ARCHITECTURE §5](VETO_SUBSPACE_ARCHITECTURE.md) — BoundaryState and is_critical() threshold
 - [ZEITGEIST_ROUTER.md](ZEITGEIST_ROUTER.md) — Phase 18 consumer of the BoundaryState emitted here
-- [MATHEMATICAL_DETAILS §23.7](MATHEMATICAL_DETAILS.md) — Full BoundaryState tensor formalism
+- [MATHEMATICAL_DETAILS §31.7](MATHEMATICAL_DETAILS.md) — Full BoundaryState tensor formalism
