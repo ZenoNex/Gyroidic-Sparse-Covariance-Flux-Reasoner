@@ -2,7 +2,7 @@
 
 **A breakthrough AI system that learns from any dataset and generates coherent responses**
 
-🎉 **STATUS: BREAKTHROUGH ACHIEVED - Response: I8ynQ%JRZko0aS~Ms[J<D0e...!** 🎉
+🎉 **STATUS: BREAKTHROUGH ACHIEVED - COHERENT RESPONSES WORKING!** 🎉
 
 The Gyroidic AI System is a next-generation artificial intelligence that can:
 - Learn from text, images, and documents
@@ -59,12 +59,14 @@ pip install -r requirements.txt
 python test_fixes_verification.py
 ```
 
-### 2. Start the Interactive Chat
+### 2. Start the Interactive Web Interfaces (Preferred)
 ```bash
-# Launch the web interface
-python src/ui/diegetic_terminal.py
+# Launch the unified hybrid backend
+python hybrid_backend.py
 
 # Open your browser to: http://localhost:8000
+# NOTE: Individual python UI scripts (e.g., `python src/ui/diegetic_terminal.py`) 
+# are still available as alternative run methods for user choice.
 ```
 
 ### 3. Train on Your First Dataset
@@ -174,14 +176,15 @@ python dataset_command_interface.py list-datasets
 python dataset_command_interface.py status
 ```
 
-### Web Interface
-**File**: `src/ui/diegetic_terminal.py`
+### Web Interfaces (Preferred Usage)
+**File**: `hybrid_backend.py` (Servers all web interfaces)
 
 ```bash
-# Start the web chat interface
-python src/ui/diegetic_terminal.py
+# Start the unified backend server
+python hybrid_backend.py
 
 # Then open: http://localhost:8000
+# (You may also choose to run individual python scripts like `src/ui/diegetic_terminal.py` directly if preferred)
 ```
 
 **Features**:
@@ -479,6 +482,5 @@ This project is open source and welcomes contributions from researchers and deve
 ---
 
 **Author**: William Matthew Bryant • January 2026
-
 
 *"Implementation integrity is not a technical concern but a moral imperative."*
