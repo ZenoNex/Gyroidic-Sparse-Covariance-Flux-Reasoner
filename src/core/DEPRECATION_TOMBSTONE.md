@@ -41,10 +41,6 @@ The following files were deleted on January 11, 2026, as part of the **Polynomia
 *   **Superseded By**: `PalindromicRouter` fast-paths and strict geometric anti-symmetry (Anti-Palindromic Gluing).
     *   Topological rigor replaces empirical continuous bounds, avoiding $O(N^3)$ triadic tracking overhead and nullifying Chern-Simons gasket penalties gracefully.
 
-### 9. `conversational_web_gui.html`
-*   **Original Purpose**: Initial attempt at a chat interface.
-*   **Superseded By**: `diegetic_terminal.html` (Served directly by `diegetic_backend.py`)
-    *   Fossilized due to Endpoint Mismatch and disconnected architecture preventing full diegetic interaction.
 
 ### 10. `wikipedia_trainer.html`
 *   **Original Purpose**: Visual prototype for ingestion.
