@@ -101,6 +101,8 @@ from src.topology.embedding_graph import GyroidicGraphManager
 from src.data.pressure_ingestor import PressureIngestor
 # Topological Extensions (Repunit Probes)
 from src.core.birkhoff_projection import SparseRepunitProbe
+from src.core.voynich_architecture import VoynichLinguist
+from src.topology.unknowledge_domain import UnknowledgeDomain, EntropicMischiefProbe
 
 # Local Data Loading (Phase 1: HF token barrier removal)
 from src.data.local_data_loader import LocalDataLoader
@@ -248,6 +250,11 @@ class DiegeticPhysicsEngine(nn.Module):
             device=device
         )
         
+        # Tri-State Output Gate 4/5 
+        self.voynich_linguist = VoynichLinguist(latent_dim=dim).to(self.device)
+        self.unknowledge_domain = UnknowledgeDomain(tau_m=0.3)
+        self.mischief_probe = EntropicMischiefProbe(device=self.device)
+
         # Soliton Stability Healer - heals fractured solitons
         self.soliton_healer = SolitonStabilityHealer(
             alpha_0=1.0,
@@ -1418,20 +1425,37 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Calculate Tri-State Output based on Honesty/Trust/PAS_h
         trust_mean = float(self.trust_scalars.mean().item()) if hasattr(self, 'trust_scalars') else 0.5
-        honesty_score = (pas_h_live + trust_mean) / 2.0
+        
+        # True Gate 4/5 Mathematics
+        with torch.no_grad():
+            residues, _, _ = self.voynich_linguist(seed_state)
+            crt_honesty = float(self.voynich_linguist.get_continuous_honesty(residues).item())
+            
+        # Update Mischief Probe
+        self.mischief_probe.update(torch.tensor(0.1, device=self.device), torch.tensor(0.5, device=self.device), pas_h_live, is_good_bug=False)
+        h_mischief = self.mischief_probe.H_mischief.item()
+        
+        honesty_score = (crt_honesty + trust_mean) / 2.0 # Blend Voynich with generic trust
         
         if honesty_score > 0.7:
-            retrieval_state = "KNOWN"
-        elif honesty_score > 0.3:
-            retrieval_state = "SEARCH_NEEDED"
+            retrieval_state = "KNOWN" # System 2 Grounded
         else:
-            retrieval_state = "CONFABULATED"
+            search_useful = False # Gate 4 Stub (No external search API wired yet)
+            mischief_active = h_mischief > self.unknowledge_domain.tau_m
+            
+            if not search_useful and mischief_active:
+                retrieval_state = "CONFABULATED" # Gate 5 Honest Generation
+            else:
+                retrieval_state = "SEARCH_NEEDED"
+
 
         # Construct metrics now that all dependencies are available
         metrics = {
             "response": response_text,
             "retrieval_state": retrieval_state,
             "honesty_score": float(honesty_score),
+            "crt_honesty": crt_honesty,
+            "h_mischief": h_mischief,
             "iteration": self.iteration,
             "spectral_entropy": 0.5,
             "chiral_score": 0.1,
