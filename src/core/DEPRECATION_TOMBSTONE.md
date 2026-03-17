@@ -36,5 +36,20 @@ The following files were deleted on January 11, 2026, as part of the **Polynomia
 *   **Original Purpose**: Temporary artifact for tracking documentation updates.
 *   **Superseded By**: No direct replacement; information integrated into other documentation.
 
+### 8. `TriadicReciprocityCheck` & Continuous Reversal Matrices
+*   **Original Purpose**: Continuously verified $M_{ca} M_{bc} M_{ab} \approx I$ and dynamically learned the Gyroid boundary spatial reversal matrix.
+*   **Superseded By**: `PalindromicRouter` fast-paths and strict geometric anti-symmetry (Anti-Palindromic Gluing).
+    *   Topological rigor replaces empirical continuous bounds, avoiding $O(N^3)$ triadic tracking overhead and nullifying Chern-Simons gasket penalties gracefully.
+
+### 9. `conversational_web_gui.html`
+*   **Original Purpose**: Initial attempt at a chat interface.
+*   **Superseded By**: `diegetic_terminal.html` (Served directly by `diegetic_backend.py`)
+    *   Fossilized due to Endpoint Mismatch and disconnected architecture preventing full diegetic interaction.
+
+### 10. `wikipedia_trainer.html`
+*   **Original Purpose**: Visual prototype for ingestion.
+*   **Superseded By**: Direct High-Throughput Ingestion API in `diegetic_backend.py`.
+    *   Fossilized as it lacked active fetch logic to trigger the backbone ingestion cleanly.
+
 ## Reason for Deletion
-The architecture has fundamentally shifted from discrete modular arithmetic (which is non-differentiable or requires hard approximations) to continuous polynomial functional arithmetic (which is naturally differentiable and topologically richer). Sticking to the old prime-based files would cause confusion and import errors.
+The architecture has fundamentally shifted from discrete modular arithmetic (which is non-differentiable or requires hard approximations) to continuous polynomial functional arithmetic (which is naturally differentiable and topologically richer). Furthermore, with Phase 19 Topological Extensions, we moved from heuristic continuous metrics (like arbitrary triadic checks and unconstrained matrices) to formal topological invariants (Palindromic symmetries, Repunit-CRT probes). Sticking to the old prime-based files and unrestricted bounds would cause confusion and import errors while bleeding performance.
