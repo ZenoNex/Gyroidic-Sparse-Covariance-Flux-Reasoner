@@ -389,19 +389,18 @@ The system operates in two distinct modes to balance depth of reasoning with spe
 ### 8.3 Contextual Hinting
 For AI agents navigating this codebase:
 *   **Tensor Shapes**: See `docs/start.txt` for the canonical dictionary of `[Batch, Dim]` shapes.
-305: *   **Repair Logic**: See `docs/GARBLED_OUTPUT_REPAIR.md` for the breakdown of the `[Batch, K, Dim//K]` residue manipulations.
-306: 
-307: ### 8.4 Web Interface Limitations (Analysis 2026-02)
-308: *   **Conversational Web GUI (`conversational_web_gui.html`)**:
-309:     *   **Status**: Endpoint Mismatch.
-310:     *   **Issue**: The frontend calls `${backend_url}/training` and `/interact`, but the backend (`conversational_backend_server.py`) exposes `/api/start_training` and `/api/chat`.
-311:     *   **Recommendation**: Use `ENGINE.process_input` directly or update the HTML to match API routes.
-312: *   **Wikipedia Trainer (`wikipedia_trainer.html`)**:
-313:     *   **Status**: Visual Prototype.
-314:     *   **Issue**: Contains no active `fetch` logic to trigger backbone ingestion. The backend supports `/wikipedia-extract`, but the frontend is disconnected.
-315: *   **Diegetic Terminal (`diegetic_terminal.html`)**:
-316:     *   **Status**: Functional (Internal).
-317:     *   **Note**: Relies on `state.backend_url` injection and is served directly by `diegetic_backend.py`.
+*   **Repair Logic**: See `docs/GARBLED_OUTPUT_REPAIR.md` for the breakdown of the `[Batch, K, Dim//K]` residue manipulations.
+
+### 8.4 Web Interface Limitations & Restorations (Analysis 2026-03)
+*   **Conversational Web GUI (`conversational_web_gui.html`)**:
+    *   **Status**: Restored and active.
+    *   **Architecture Update**: Now integrated with Meta-Infra Tri-State Output (`KNOWN`, `SEARCH_NEEDED`, `CONFABULATED`) calculated dynamically in the back-end (`conversational_backend_server.py`) from continuous honesty metrics (PAS_h and evolved trust scalars).
+*   **Wikipedia Trainer (`wikipedia_trainer.html`)**:
+    *   **Status**: Visual Prototype / Partial API connection.
+    *   **Issue**: Contains no active `fetch` logic to trigger backbone ingestion. The backend supports `/wikipedia-extract`, but the frontend is disconnected.
+*   **Diegetic Terminal (`diegetic_terminal.html`)**:
+    *   **Status**: Functional (Internal).
+    *   **Note**: Relies on `state.backend_url` injection and is served directly by `diegetic_backend.py`.
 
 ---
 
