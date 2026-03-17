@@ -1134,15 +1134,19 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 else:
                     trust = 0.5
                     
-                honesty_score = (pas_h + trust) / 2.0
+                # Extract exact Tri-State metrics from the diegetic physics engine if available
+                retrieval_state = diagnostics.get('retrieval_state')
+                honesty_score = diagnostics.get('honesty_score')
                 
-                if honesty_score > 0.7:
-                    retrieval_state = "KNOWN"
-                elif honesty_score > 0.3:
-                    retrieval_state = "SEARCH_NEEDED"
-                else:
-                    retrieval_state = "CONFABULATED"
-
+                # Fallback approximation if engine is disabled
+                if retrieval_state is None or honesty_score is None:
+                    honesty_score = (pas_h + trust) / 2.0
+                    if honesty_score > 0.7:
+                        retrieval_state = "KNOWN"
+                    elif honesty_score > 0.3:
+                        retrieval_state = "SEARCH_NEEDED"
+                    else:
+                        retrieval_state = "CONFABULATED"
                 formatted_result = {
                     'success': True,
                     'response': result.get('response', 'No response'),
