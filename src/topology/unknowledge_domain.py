@@ -14,7 +14,7 @@ This module consolidates:
     - EntropicMischiefProbe: H_meta = H_dementia + H_schizo + H_mischief
 
 References:
-    - Gyroidic Unknowledge Flux Reasoner §19 (Mischief Violation Score)
+    - Gyroidic Unknowledge Flux Reasoner §24 (Mischief Violation Score / Computable Flux)
     - PHILOSOPHY.md §15 (Kappa Overloading) §16 (Posthuman Identity)
     - MATHEMATICAL_DETAILS.md §24 (Computable Flux) §26 (Kappa Taxonomy)
 """
