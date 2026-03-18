@@ -314,6 +314,10 @@ class DiegeticPhysicsEngine(nn.Module):
         # KAGH: Speculative Drafting (Response Ghost Prediction)
         # Uses KAGH to draft a "ghost" of the response state before generation
         self.kagh_drafter = KAGHBlock(n_in=dim, n_out=dim, width=dim, depth=2)
+        
+        # Modular Virtualization for Kelly-Safe KAGH gating
+        from src.core.modular_virtualization import ModularVirtualizationLayer
+        self.modular_rns = ModularVirtualizationLayer(dim=dim, base=2)
 
         # =============================================
         # PHASE 17: CONTEXT-AWARE QUANTIZER (CAQ)
@@ -845,10 +849,20 @@ class DiegeticPhysicsEngine(nn.Module):
                     
                 current_state = ghost_next
             
+            
             if not fixed_point:
                 response_ghost = current_state
         else:
-            response_ghost = self.kagh_drafter(kagh_input) # [1, dim]
+            # Plumb CALM/RNS footprint over modular core
+            bounds = self.modular_rns.get_modulus_bounds().to(self.device).expand_as(kagh_input)
+            
+            # Kelly-safe zone mask (Sub-components approved by modular validation)
+            safe_mask = (torch.abs(kagh_input) <= (bounds * 10.0)).float()
+            
+            # Apply KAGH continuous gradient descent strictly to approved subset
+            kagh_draft = self.kagh_drafter(kagh_input)
+            response_ghost = kagh_input * (1.0 - safe_mask) + kagh_draft * safe_mask
+
         
         # =============================================
         # 7. Harmonic Wave Decomposition: Separate Signal from Noise
