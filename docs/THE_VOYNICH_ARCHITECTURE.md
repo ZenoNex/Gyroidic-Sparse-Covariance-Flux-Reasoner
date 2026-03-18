@@ -77,3 +77,7 @@ The `VoynichLinguist` uses `PolynomialCoprimeConfig` to generate its symbolic re
 
 ### Gate 5: Honest Confabulation
 The `check_honesty()` method returns a consensus score — the structural signal for detecting confidence vs uncertainty. This serves as the embryonic **Gate 5 (ConfabulationDetector)** in the five-part decision architecture. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full flow and [PHILOSOPHY.md §18](../vault_docs/PHILOSOPHY.md) for the ethics of honest confabulation.
+
+### False Negatives & The Exemption Token
+Because Voyenese logic is naturally opaque and highly entropic by design, standard geometric efficiency gates (like Repunit Congruence and CALM Singularity prediction) actively misidentify Voynich structures as structural corruption. 
+To prevent these "False Negatives", the Linguist generates a `VoynichExemptionToken` anytime the internal Jackknife consensus `honesty_score` exceeds 0.95. This token acts as a sovereign passport, instantly bypassing generic topological vetos downstream.
