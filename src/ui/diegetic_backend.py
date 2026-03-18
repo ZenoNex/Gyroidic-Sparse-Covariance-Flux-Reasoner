@@ -679,7 +679,13 @@ class DiegeticPhysicsEngine(nn.Module):
             dyad_override_response = self._handle_association_learning(text_input, seed_state)
             
         # =============================================
-        # 5. CALM: Update history buffer and get trajectory assessment
+        # 5.a Voynich False Negative Override
+        # =============================================
+        # Evaluate high-entropy sovereign logic before testing generic symmetry
+        _, _, _, exemption_token = self.voynich_linguist(self.meta_state)
+
+        # =============================================
+        # 5.b CALM: Update history buffer and get trajectory assessment
         # =============================================
         # Update CALM history with current meta-state (tensor-based, not scalar)
         self.calm_history = self.calm.update_buffer(self.calm_history, self.meta_state)
@@ -711,6 +717,11 @@ class DiegeticPhysicsEngine(nn.Module):
         abort_score = _as_float(abort_score_tensor)
         rho_factor = _as_float(rho_factor_tensor)
         step_factor = _as_float(step_factor_tensor)
+        
+        # Apply Voynich Exemption directly to the abort score
+        if exemption_token.is_valid_exemption:
+            abort_score = 0.0
+            calm_diagnostics["trajectory_status"] = "VOYNICH_EXEMPTED"
         gauge_pressure = _as_float(gauge_tensor)
 
         # =============================================
@@ -805,7 +816,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 state=self.meta_state,
                 abort_score=abort_score_tensor,
                 residues=est_residues,
-                chirality_target=input_tensor
+                chirality_target=input_tensor,
+                exemption_token=exemption_token
             )
             # If recovery succeeded in locking coprime parity, we override the CALM abort
             if recovery_metrics['coprime_lock'] and recovery_metrics['recovery_attempted']:
