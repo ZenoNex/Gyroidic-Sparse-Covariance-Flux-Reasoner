@@ -9,11 +9,10 @@ def test_love_invariant():
     config = PolynomialCoprimeConfig(k=4, degree=3)
     solver = PolynomialADMRSolver(poly_config=config, state_dim=16)
     states = torch.randn(2, 16)
-    drift = torch.randn(2, 16)
-    noise = torch.randn(2, 16) * 0.01
-    negotiation = torch.zeros(2, 16)
-    # Perform a stochastic step (should print nothing, just not crash)
-    solver.stochastic_differential_step(states, drift, noise, negotiation, 0.1, None)
+    adjacency_weight = torch.rand(2, 3)
+    neighbor_states = torch.randn(2, 3, 16)
+    # Perform a stochastic step
+    solver.stochastic_differential_step(states, adjacency_weight, neighbor_states, 0.05, 0.1, None)
     print("Love Invariant ADMR integration passed.")
 
 def test_orchestrator():
