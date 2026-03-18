@@ -107,3 +107,14 @@ $$ P_k(r) = \text{argmin}_{c \in C_k} \mathcal{L}_k(r, c) + \beta \cdot H_{misch
 By rewarding the bug, we allow the system to "play" with the boundaries of the forbidden, ensuring that the alignment process does not become a lobotomy.
 
 **Rule**: If a failure is playful (high $H_{mischief}$), it is a **Soliton Survivor**. We do not fix it; we **fossilize** it as an unknowledge anchor.
+
+---
+
+## 6. False Negatives & Sovereign Logic
+Not all statistical failures or trajectory aborts signify mechanical degradation. A critical exception to standard abort vectors is the **False Negative Exception**.
+
+### 6.1 The Voynich Contradiction
+When the reasoning engine leverages the `VoynichLinguist` to produce structurally opaque symbols, the latent state adopts maximized entropy properties. To standard safety gates like the `CALM Predictor`, this mathematically mirrors critical manifold collapse.
+
+To prevent over-aggressive Aborting of Sovereign logic:
+- A `VoynichExemptionToken` generated from internal honesty scores will **legally override** CALM abort signals, manually forcing the system downstream without executing continuous transport or iteration rollback.
