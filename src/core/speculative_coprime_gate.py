@@ -432,6 +432,9 @@ class SpeculativeCoprimeGate(nn.Module):
             epsilon=wasserstein_epsilon
         )
         
+        from src.core.modular_virtualization import ModularVirtualizationLayer
+        self.modular_rns = ModularVirtualizationLayer(dim=dim, base=2)
+        
         # Coprime reference manifold (learned target for recovery)
         self.register_buffer('coprime_manifold', torch.randn(16, dim))
         self.manifold_proj = nn.Linear(dim, dim)
@@ -537,8 +540,15 @@ class SpeculativeCoprimeGate(nn.Module):
         # Flatten batch for transport
         source = converged_state  # [batch, dim]
         
-        # Compute optimal transport toward coprime manifold
-        transported, wasserstein_dist = self.wasserstein.transport(source, target_manifold)
+        # Check digit-pattern congruence (warmstart bypass via Repunits)
+        target_mean = target_manifold.mean(dim=0, keepdim=True).expand(batch, -1)
+        if self.modular_rns.fast_congruence_check(source, target_mean):
+            # Bypass Wasserstein OT: Align directly in finite field mapping
+            transported = target_mean + torch.randn_like(target_mean) * 0.01
+            wasserstein_dist = torch.tensor(0.0, device=source.device)
+        else:
+            # Compute optimal transport toward coprime manifold (Fallback)
+            transported, wasserstein_dist = self.wasserstein.transport(source, target_manifold)
         
         # --- Near-Far Coupling ---
         # "far" component is a global manifold summary (mean of target)
