@@ -2,10 +2,12 @@ import torch
 from src.core.admr_solver import PolynomialADMRSolver
 from src.core.orchestrator import UniversalOrchestrator
 from src.models.diegetic_heads import ResonanceLarynx
+from src.core.polynomial_coprime import PolynomialCoprimeConfig
 
 def test_love_invariant():
     print("Testing Love Invariant in ADMR Solver...")
-    solver = PolynomialADMRSolver(state_dim=16, num_functionals=4, poly_degree=3)
+    config = PolynomialCoprimeConfig(k=4, degree=3)
+    solver = PolynomialADMRSolver(poly_config=config, state_dim=16)
     states = torch.randn(2, 16)
     drift = torch.randn(2, 16)
     noise = torch.randn(2, 16) * 0.01
