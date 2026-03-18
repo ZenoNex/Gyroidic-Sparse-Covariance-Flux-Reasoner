@@ -17,6 +17,7 @@ import torch.nn as nn
 from typing import Dict, List, Tuple, Optional
 
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
+from src.core.false_negative_subsystem import VoynichExemptionToken
 
 
 class VoynichLinguist(nn.Module):
@@ -89,6 +90,7 @@ class VoynichLinguist(nn.Module):
             residues: [batch, num_residues] polynomial functional residues
             symbol_val: [batch] reconstructed symbol value
             honesty_score: [] scalar consensus honesty
+            exemption_token: VoynichExemptionToken validating structural honesty
         """
         # 1. Project thought into per-channel scalar inputs
         channel_inputs = self.thought_proj(thought_vector)  # [batch, K]
@@ -103,7 +105,14 @@ class VoynichLinguist(nn.Module):
         # 4. Structural Honesty Check
         honesty_score = self._compute_consensus_honesty(residues, symbol_val)
         
-        return residues, symbol_val, honesty_score
+        # 5. Generate False Negative Exemption
+        is_honest = float(honesty_score.item()) > 0.95
+        token = VoynichExemptionToken(
+            honesty_score=float(honesty_score.item()),
+            is_valid_exemption=is_honest
+        )
+        
+        return residues, symbol_val, honesty_score, token
     
     def _evaluate_polynomial_residues(self, channel_inputs: torch.Tensor) -> torch.Tensor:
         """
