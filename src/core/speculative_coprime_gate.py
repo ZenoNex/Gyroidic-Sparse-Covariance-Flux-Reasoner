@@ -507,7 +507,8 @@ class SpeculativeCoprimeGate(nn.Module):
         self, 
         converged_state: torch.Tensor,
         residues: Optional[torch.Tensor] = None,
-        chirality_target: Optional[torch.Tensor] = None
+        chirality_target: Optional[torch.Tensor] = None,
+        exemption_token: Optional[VoynichExemptionToken] = None
     ) -> Tuple[torch.Tensor, Dict]:
         """
         Attempt speculative recovery of structure from converged state.
@@ -542,7 +543,7 @@ class SpeculativeCoprimeGate(nn.Module):
         
         # Check digit-pattern congruence (warmstart bypass via Repunits)
         target_mean = target_manifold.mean(dim=0, keepdim=True).expand(batch, -1)
-        if self.modular_rns.fast_congruence_check(source, target_mean):
+        if self.modular_rns.fast_congruence_check(source, target_mean, exemption_token):
             # Bypass Wasserstein OT: Align directly in finite field mapping
             transported = target_mean + torch.randn_like(target_mean) * 0.01
             wasserstein_dist = torch.tensor(0.0, device=source.device)
@@ -597,7 +598,8 @@ class SpeculativeCoprimeGate(nn.Module):
         state: torch.Tensor,
         abort_score: Optional[torch.Tensor] = None,
         residues: Optional[torch.Tensor] = None,
-        chirality_target: Optional[torch.Tensor] = None
+        chirality_target: Optional[torch.Tensor] = None,
+        exemption_token: Optional[VoynichExemptionToken] = None
     ) -> Tuple[torch.Tensor, Dict]:
         """
         Main forward pass with conditional speculative recovery.
@@ -607,6 +609,7 @@ class SpeculativeCoprimeGate(nn.Module):
             abort_score: [batch, 1] CALM abort score (triggers recovery if > 0.5)
             residues: [batch, k] CRT residues
             chirality_target: [batch, dim] target for chirality alignment
+            exemption_token: Suppresses false negative geometry vetoes.
             
         Returns:
             output_state: [batch, dim] possibly recovered state
@@ -619,19 +622,24 @@ class SpeculativeCoprimeGate(nn.Module):
         # Determine if recovery needed
         needs_recovery = False
         
-        if abort_score is not None and abort_score.mean().item() > 0.5:
-            needs_recovery = True
-        elif chiral_score < self.recovery_threshold:
-            needs_recovery = True
-        elif not winding_result['coprime_lock']:
-            needs_recovery = True
+        if exemption_token is not None and exemption_token.is_valid_exemption:
+            # Bypass false negative triggers: Voynich logic is geometrically opaque by design
+            needs_recovery = False
+        else:
+            if abort_score is not None and abort_score.mean().item() > 0.5:
+                needs_recovery = True
+            elif chiral_score < self.recovery_threshold:
+                needs_recovery = True
+            elif not winding_result['coprime_lock']:
+                needs_recovery = True
             
         # Attempt recovery or pass through
         if needs_recovery:
             output_state, recovery_metrics = self.speculative_recovery(
                 converged_state=state,
                 residues=residues,
-                chirality_target=chirality_target
+                chirality_target=chirality_target,
+                exemption_token=exemption_token
             )
             metrics = recovery_metrics
         else:
