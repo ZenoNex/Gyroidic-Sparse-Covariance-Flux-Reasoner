@@ -26,6 +26,8 @@ from src.core.unknowledge_flux import EntropicMischiefProbe, NostalgicLeakFuncti
 from src.core.non_ergodic_entropy import HybridLassoQuantizer
 from src.topology.hyper_ring import RecurrentHyperRingConnectivity
 from src.core.fgrt_primitives import FibonacciResonanceEntropy, CoherentPrimeResonance
+from src.core.polychoron_quantization import Polychoron600Quantizer
+from src.core.deflagration_scout import OmipedialDeflagrator
 
 from src.core.structural_monitors import AntiScalingMonitor, MetaInfraIntraMonitor
 from src.safety.trust_inheritance import TrustInheritanceTracker
@@ -64,7 +66,11 @@ class UniversalOrchestrator(nn.Module):
         
         # 2. Dynamics & Asymptotics
         self.mischief_probe = EntropicMischiefProbe()
-        self.quantizer = HybridLassoQuantizer(dim=dim)
+        self.quantizer = Polychoron600Quantizer()
+        self.deflagrator = OmipedialDeflagrator()
+        
+        # EMA for flux prediction in deflagration scout
+        self.register_buffer('expected_flux', torch.zeros(1))
         
         # 3. Manifold Clock (Inverse Temperature dt)
         self.register_buffer('dt', torch.tensor(1.0))
@@ -238,9 +244,25 @@ class UniversalOrchestrator(nn.Module):
         state_with_love = self.love(state)
         
         # 3. Asymptotic Hardening (Non-Ergodic Fibril Gating)
-        # If in Seriousness, we force peak persistence via hardening
-        h_factor = self.get_hardening_factor() if regime == "SERIOUSNESS" else 1.0
-        state_quant = self.quantizer(state_with_love, hardening_factor=h_factor)
+        # We hook OmipedialDeflagrator here as well
+        actual_flux = torch.norm(pressure_grad)
+        defects = self.deflagrator.scout_defects(self.expected_flux, actual_flux)
+        self.expected_flux.copy_(0.9 * self.expected_flux + 0.1 * actual_flux)
+        
+        jump_signal = self.deflagrator.omipedial_jump(ley_potential=torch.tensor([pas_h]))
+        if jump_signal.item() > 0:
+            # Inject jump logic (anomaly amplification) to jump holes
+            state_with_love = state_with_love + 0.1 * defects * torch.randn_like(state_with_love)
+
+        # Apply 600-Cell Quantization
+        if state_with_love.shape[-1] >= 4:
+            quantized_4d = self.quantizer(state_with_love[..., :4])
+            state_quant = state_with_love.clone()
+            state_quant[..., :4] = quantized_4d
+        else:
+            padded = F.pad(state_with_love, (0, 4 - state_with_love.shape[-1]))
+            quantized_4d = self.quantizer(padded)
+            state_quant = quantized_4d[..., :state_with_love.shape[-1]]
         
         # 4. Topological Bridge (Gluing / Topological Twist)
         # This is used to 'see' chirality by passing through a non-orientable bridge.
