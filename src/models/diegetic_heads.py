@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, List, Optional, Tuple
+from src.core.chern_simons_gasket import ChernSimonsGasket
 
 # Fix import paths
 import sys
@@ -133,6 +134,9 @@ class ResonanceLarynx(nn.Module):
             nn.Sigmoid()
         )
         
+        # Chern-Simons Gasket to repair logic leaks at linguistic boundary
+        self.chern_simons = ChernSimonsGasket(manifold_dim=3)
+        
     def forward(self, state: torch.Tensor, temperature: float = 1.0) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Args:
@@ -143,8 +147,13 @@ class ResonanceLarynx(nn.Module):
            logits: [batch, vocab_size]
            confidence: [batch, 1]
         """
-        logits = self.proj(state) / temperature
-        conf = self.confidence(state)
+        # Apply logic leak protection via Chern-Simons gasket
+        safe_state = state.unsqueeze(1) # [batch, 1, dim]
+        safe_state = self.chern_simons.plug_logic_leak(safe_state, torch.ones(1, state.shape[-1], device=state.device))
+        safe_state = safe_state.squeeze(1)
+        
+        logits = self.proj(safe_state) / temperature
+        conf = self.confidence(safe_state)
         return logits, conf
         
     def hebbian_update(self, state_trace: torch.Tensor, symbol_trace: torch.Tensor, rate: float = 0.01):
