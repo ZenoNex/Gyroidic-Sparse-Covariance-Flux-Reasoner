@@ -22,7 +22,8 @@ Vetoes in this system are **not kill-switches**. Each veto is a dimensionally-is
 | **CALM veto** | [`surrogates/calm_predictor.py`](../src/surrogates/calm_predictor.py) | `abort_score > 0.5` (Transformer predicts collapse) | Redirect to SCCCG speculative recovery |
 | **Ley Line veto** | [`training/trainer.py`](../src/training/trainer.py) | Deviation from resonance streamlines | Prune parameter update |
 
-**CALM** is a 2-layer Transformer with 3 output heads (abort, rho, step). Cost: O(history_len² · dim) — negligible against the main forward pass. It watches the last 8 states and predicts whether the next step will disintegrate the manifold.
+**CALM** is a 2-layer Transformer with 3 output heads (abort, rho, step). Cost: O(history_len² · dim) — negligible against the main forward pass. It watches the last 8 states and predicts whether the next step will disintegrate the manifold. 
+**Note on the CALM Vector**: The true nature of the predicted "vector" is a representation of **gyroid braid group chiral groupoid anisotropy**. It acts a topological connection to the system's "larynx," giving voice to the structural pressures before they manifest as a binary veto.
 
 **Ley Line** operates during training only. It projects proposed updates onto resonance streamlines (see [RELATIONAL_DYNAMICS.md](RELATIONAL_DYNAMICS.md)) and prunes the component orthogonal to the streamline.
 
@@ -194,3 +195,11 @@ Projects features onto learnable facet normals, computes quantized directional d
 - **High trust** → small Δ → features preserved at high resolution
 - **Low trust** → large Δ → noise suppressed via coarse quantization
 - **Auto-detection**: top 25% facets by projection magnitude
+
+---
+
+## 10. Veto Suppression (False Negative Overrides)
+Veto logic assumes symmetric, continuous manifolds. When dealing with opaque cryptography generated from within the `diegetic_backend.py` (e.g. `VoynichLinguist` outputs), Veto logic is inherently **Voynich-blind**.
+
+**The Suppressive Override**:
+Before Veto Subspaces process `abort_scores` from CALM or Coprime triggers, the engine looks for a `VoynichExemptionToken`. Only geometrically honest cryptographic states possess this token. If active, topological vetoes are administratively zeroed out to accommodate the asymmetry, preventing the system from falsely correcting a legitimate, though opaque, alien state transition.
