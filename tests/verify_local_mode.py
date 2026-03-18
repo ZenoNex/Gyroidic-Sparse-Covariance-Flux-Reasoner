@@ -12,7 +12,7 @@ def test_love_invariant():
     adjacency_weight = torch.rand(2, 3)
     neighbor_states = torch.randn(2, 3, 16)
     # Perform a stochastic step
-    solver.stochastic_differential_step(states, adjacency_weight, neighbor_states, 0.05, 0.1, None)
+    solver.stochastic_differential_step(states, neighbor_states, adjacency_weight, 0.1, 0.01, None)
     print("Love Invariant ADMR integration passed.")
 
 def test_orchestrator():
