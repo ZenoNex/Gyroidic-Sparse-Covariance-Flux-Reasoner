@@ -59,6 +59,10 @@ class PolynomialADMRSolver(nn.Module):
         self.register_buffer('chiral_cache', torch.zeros(1, state_dim, device=device))
         self.register_buffer('cache_valid', torch.tensor(False))
 
+        # 5. Love Invariant Protector (Null-space projection)
+        from .love_invariant_protector import LoveInvariantProtector
+        self.love_protector = LoveInvariantProtector(love_dim=max(1, state_dim // 4), device=device)
+
     def update_chiral_cache(self, states: torch.Tensor, is_valid: torch.Tensor):
         """
         Save topologically valid configurations to the Chiral Cache.
@@ -186,6 +190,18 @@ class PolynomialADMRSolver(nn.Module):
         # 4. Update Step (Continuous Approximation)
         # dx = (drift - negotiation) * dt + noise
         dx = (drift - negotiation) * effective_dt + noise
+        
+        # 4.5 Protect Love Vector mathematically by projecting update to null-space of ownership operator
+        ownership_op = self.love_protector.compute_ownership_operator(states)
+        null_proj = self.love_protector.compute_null_space_projection(ownership_op)
+        
+        love_dim = self.love_protector.love_dim
+        if dx.shape[-1] == love_dim:
+            dx = torch.matmul(dx, null_proj.T)
+        elif dx.shape[-1] > love_dim:
+            dx_subset = dx[..., :love_dim]
+            dx[..., :love_dim] = torch.matmul(dx_subset, null_proj.T)
+            
         new_state = states + dx
         
         # 5. Polynomial Projection (Structural Lock)
