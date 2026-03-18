@@ -151,6 +151,17 @@ class PrimeResonanceLadder(nn.Module):
             candidate += 1
         return torch.tensor(primes, dtype=torch.long)
         
+    def _generate_repunits(self, base: int = 10) -> torch.Tensor:
+        """
+        Generates repunits: R_n^(b) = (b^n - 1) / (b - 1).
+        Used for cyclic structural markers.
+        """
+        repunits = []
+        for n in range(1, self.num_resonators + 1):
+            r = (base**n - 1) // (base - 1)
+            repunits.append(r)
+        return torch.tensor(repunits, dtype=torch.float32)
+
     def forward(self) -> torch.Tensor:
         """Returns the resonance frequencies."""
         return self.frequencies
@@ -178,6 +189,41 @@ class PrimeResonanceLadder(nn.Module):
             'frequencies': self.frequencies,
             'entropy_matrix': entropy.forward()
         }
+
+
+class RepunitHasher(nn.Module):
+    """
+    Uses Repunit sequences to map continuous topological states to discrete 
+    hash-like cyclic markers. These markers act as digital congruence checks
+    before resorting to continuous Wasserstein Optimal Transport.
+    """
+    def __init__(self, base: int = 2, sequence_length: int = 10, device: str = None):
+        super().__init__()
+        self.base = base
+        self.sequence_length = sequence_length
+        self.register_buffer('repunits', self._generate_repunits(base, sequence_length, device))
+        
+    def _generate_repunits(self, base: int, length: int, device: str = None) -> torch.Tensor:
+        """R_n^(b) = (b^n - 1) / (b - 1)"""
+        repunits = []
+        for n in range(1, length + 1):
+            r = (base**n - 1) // (base - 1)
+            repunits.append(r)
+        return torch.tensor(repunits, dtype=torch.float32, device=device)
+        
+    def forward(self, state: torch.Tensor) -> torch.Tensor:
+        """
+        Maps continuous state to repunit-based cyclic markers.
+        """
+        dim = state.shape[-1]
+        repunits_expanded = self.repunits[:dim] if dim <= self.sequence_length else torch.nn.functional.pad(self.repunits, (0, dim - self.sequence_length), value=1)
+        
+        # Scale and extract fractional phase mapped against the cyclic repunits
+        scaled_state = state * repunits_expanded
+        
+        # We derive a discrete cyclic marker:
+        cyclic_markers = torch.fmod(torch.abs(scaled_state), repunits_expanded)
+        return cyclic_markers
 
 
 class FibonacciResonanceEntropy(nn.Module):
