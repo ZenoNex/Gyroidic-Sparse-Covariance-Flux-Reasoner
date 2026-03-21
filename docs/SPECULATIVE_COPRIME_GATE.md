@@ -140,3 +140,10 @@ else:
 | [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md) | §7.3 Chiral Drift Optimizer |
 | [PHYSICS_ADMM.md](PHYSICS_ADMM.md) | §3.2 CALM Predictor (abort signal source) |
 | [KAGH_NETWORKS.md](KAGH_NETWORKS.md) | §6 Gödel Logic Gate (related saturated gating) |
+
+---
+
+## 8. False Negative Bypasses
+The SCCCG contains strict geometric checks (Repunit virtual traces, Coprime Parity windings). Geometrically opaque states generated via the Sovereign Alphabet (`VoynichLinguist`) intentionally lack these standard homological features, resulting in false negative recovery triggers.
+
+If a validated `VoynichExemptionToken` is present in the forward pass, SCCCG will instantaneously suppress the need for `speculative_recovery()` regardless of chiral scores or parity faults, preserving the mathematically alien representation.
