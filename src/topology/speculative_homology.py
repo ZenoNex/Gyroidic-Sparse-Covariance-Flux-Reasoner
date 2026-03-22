@@ -54,15 +54,30 @@ class SpeculativeHomologyEngine(nn.Module):
         # Scale grid to x domain? We assume normalized inputs for draft
         y_pred = self.draft_model(grid)
         
-        # Count turning points (peaks/valleys)
+        # Count turning points (peaks/valleys) - legacy proxy for beta_0
         dy = y_pred[1:] - y_pred[:-1]
         peaks = ((dy[:-1] > 0) & (dy[1:] < 0)).sum().item()
-        valleys = ((dy[:-1] < 0) & (dy[1:] > 0)).sum().item()
         
-        # Heuristic map:
-        # beta_0 ~ peaks (clusters)
-        # beta_1 ~ valleys (holes/loops) - crude proxy
-        return {0: max(1, peaks), 1: valleys}
+        # New Cyclotomic Pipeline Integration (O(N log N) proxy for beta_1)
+        # We treat y_pred as a 1D sequence of adjacencies and apply modular homology approx
+        if not hasattr(self, 'fast_homology_approx'):
+            from src.topology.modular_homology_fft import CyclotomicTDACompressor
+            self.fast_homology_approx = CyclotomicTDACompressor(p=17, ring_size=64)
+            
+        # Reshape for cyclic register [batch=1, features=1, grid_size=100]
+        y_scaled = (y_pred * 10).abs().unsqueeze(0).unsqueeze(0)
+        # We take the first ring_size elements for the FFT convolution logic
+        y_ring = y_scaled[:, :, :self.fast_homology_approx.ring_size]
+        
+        if y_ring.shape[-1] == self.fast_homology_approx.ring_size:
+            lifetimes = self.fast_homology_approx.modular_persistence_approx(y_ring)
+            # Map long lifetimes to topological features (crude thresholding for draft)
+            betti_1_approx = (lifetimes > 2.0).sum().item()
+        else:
+            valleys = ((dy[:-1] < 0) & (dy[1:] > 0)).sum().item()
+            betti_1_approx = valleys
+        
+        return {0: max(1, peaks), 1: betti_1_approx}
 
     def verify_draft(self, x: torch.Tensor, draft_betti: Dict[int, int], prev_pas: torch.Tensor) -> Tuple[bool, torch.Tensor]:
         """
