@@ -18,6 +18,7 @@ from typing import Dict, List, Tuple, Optional
 
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.core.false_negative_subsystem import VoynichExemptionToken
+from src.topology.triadic_reciprocity import TriadicReciprocityChecker
 
 
 class VoynichLinguist(nn.Module):
@@ -79,6 +80,30 @@ class VoynichLinguist(nn.Module):
         # 4. Dictionary of 'valid' words (topologically permissible constructs)
         self.register_buffer('valid_roots', torch.randn(vocab_size, latent_dim))
         
+        # 5. Visual Generative Art "Word Salad" checker
+        self.visual_reciprocity_checker = TriadicReciprocityChecker()
+        
+    def check_visual_honesty(
+        self, 
+        flow_a: torch.Tensor, 
+        flow_b: torch.Tensor, 
+        flow_c: torch.Tensor
+    ) -> Tuple[torch.Tensor, VoynichExemptionToken]:
+        """
+        Generates a Visual Voynich Exemption Token for prompt-salad images.
+        Uses reciprocal topological flow logic as proof of structural honesty 
+        rather than semantic truth.
+        """
+        reciprocity_score = self.visual_reciprocity_checker.check_flow_reciprocity(flow_a, flow_b, flow_c)
+        is_honest = bool(reciprocity_score.mean().item() > 0.85)
+
+        token = VoynichExemptionToken(
+            honesty_score=float(reciprocity_score.mean().item()),
+            is_valid_exemption=is_honest,
+            reason="triadic_visual_reciprocity" if is_honest else ""
+        )
+        return reciprocity_score, token
+
     def forward(self, thought_vector: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Convert a thought vector into Voynich symbols.
