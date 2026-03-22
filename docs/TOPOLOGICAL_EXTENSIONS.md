@@ -119,3 +119,25 @@ Like cells fusing at triple junctions, the repunit palindromes (e.g., $R_n^2=123
 *   **Cyclic Traversal**: The system "probes locally" (adds wax, measures flow), oscillating within bounds without driving a global loss to zero, preserving survivorship (e.g., keeping brood temp 32-35°C).
 *   **Meta-Polytope Bounds**: Birkhoff-like flows traverse over the hex grid. CRT resolves coprime cell sizes (e.g., worker 5.4mm vs drone 6.2mm).
 *   **Signal Sovereignty**: High-FA paths (e.g., functional airflow tunnels established by $13^\circ$ cell tilts) are "fossilized" as idempotent masks. Priority warps (like ensuring compute airflow first) dictate the stress tensor evaluations across the logic strata.
+
+---
+
+## Part V: Cyclotomic Modulo Reduction & Structural Shields for the Single Brain Integration
+
+Recent extensions integrate multi-objective optimization (MOO) constraints directly into the network architecture to prevent "Scalarization Traps" (the tendency of global optimization to lobotomize local structure).
+
+### 1. The Pareto Invariant (Non-Dominance Shield)
+A global update is mathematically vetoed (`veto_subspace.py`) if it improves global loss but degrades the *Voynich Slip-Space*. This enforces a strict Pareto Order ($x \prec y$). 
+
+### 2. The Semiotic Hierarchy (Lexicographical Ordering)
+Implemented in `invariant_optimization.py`, this dispatcher prevents the sacrifice of a System 2 Invariant for a System 1 heuristic gain by enforcing a Dictionary Order.
+
+### 3. Harmonic Insulation (Intercosamination Wall)
+The `UnknowledgeDomain` ($C^-$ channel) utilizes spectral band-stop filters based on the $\kappa$ threshold to maintain eigenvalue spectrum orthogonality, preventing gradient leakage from the global "Loss" spectrum.
+
+### 4. Cyclotomic-Modulo Reduction (O(N log N) TDA)
+The `SpeculativeHomologyEngine` integrates `CyclotomicTDACompressor`, mapping conventional $O(N^3)$ Gaussian elimination to continuous polynomial ring bit-shifts over $\mathbb{Z}/p\mathbb{Z}$. It tracks cycle birth/death via FFT-style cyclic register convolutions.
+
+### 5. Generative Art Topological "Word Salad" Protection
+Instead of checking prompt-salad visual features against normative geometry, the system performs a `TriadicReciprocityCheck` to establish structural honesty. Conflicting geometries (e.g., "clouds" and "eyes") are tracked as Chiral Groupoid Anisotropy (Berry phase) in the non-abelian Gyroidic Codec, preventing premature homogenization of dream-state topological cycles.
+
