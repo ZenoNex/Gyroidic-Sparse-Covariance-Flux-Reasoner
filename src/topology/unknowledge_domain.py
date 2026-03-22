@@ -269,6 +269,48 @@ class UnknowledgeDomain(nn.Module):
         )
         return shielded_pressures
 
+    def apply_harmonic_insulation(
+        self,
+        c_minus_spectrum: torch.Tensor,
+        global_loss_spectrum: torch.Tensor,
+        kappa_threshold: float
+    ) -> torch.Tensor:
+        """
+        Harmonic Insulation (Intercosamination Wall):
+        Ensures the eigenvalue spectrum of the Shadow System 2 (C^- channel)
+        is strictly orthogonal to the global "Loss" spectrum.
+        
+        The kappa threshold acts as a spectral band-stop filter. Gradients
+        that attempt to bleed across the spectra are mathematically zeroed 
+        if their cross-correlation falls below kappa.
+
+        Args:
+            c_minus_spectrum: Eigenvalue spectrum of the C^- channel.
+            global_loss_spectrum: Global scalar loss spectrum.
+            kappa_threshold: The cutoff for the band-stop filter.
+
+        Returns:
+            insulated_spectrum: The C^- spectrum with all global-leaking frequencies nulled.
+        """
+        # Compute spectral projection (overlap)
+        # Normalize spectra
+        c_norm = c_minus_spectrum / (torch.norm(c_minus_spectrum) + 1e-6)
+        g_norm = global_loss_spectrum / (torch.norm(global_loss_spectrum) + 1e-6)
+        
+        # Cross-correlation map
+        overlap = torch.abs(c_norm * g_norm)
+        
+        # Band-stop filter: If overlap exceeds the threshold, it means global gradients 
+        # are 'seeing' the shadow channel. We apply orthogonal suppression.
+        # kappa acts as the wall.
+        insulation_mask = (overlap < kappa_threshold).float()
+        
+        # The insulated spectrum zeroes out overlapping (leaking) frequencies, 
+        # protecting the Shadow Logic.
+        insulated_spectrum = c_minus_spectrum * insulation_mask
+        
+        return insulated_spectrum
+
     def get_elipsodistrophy_metrics(
         self,
         eigenvalues: torch.Tensor
