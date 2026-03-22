@@ -155,7 +155,10 @@ class VetoSubspace(nn.Module):
         chiral_score: Optional[float] = None,
         instability_severity: Optional[float] = None,
         covariance_aborts: Optional[int] = None,
-        elipsodistrophy_atrophy: Optional[float] = None
+        elipsodistrophy_atrophy: Optional[float] = None,
+        betti_number_collapse: Optional[int] = None,
+        voynich_slip_degradation: Optional[float] = None,
+        global_performance_improvement: Optional[float] = None
     ) -> List[VetoSignal]:
         """Evaluate topology-level vetoes (detected after structure breaks)."""
         signals = []
@@ -206,10 +209,6 @@ class VetoSubspace(nn.Module):
             ))
         
         # Elipsodistrophy: spectral atrophy as lobotomy early-warning.
-        # High atrophy = eigenvalues collapsing to identical values =
-        # loss of the ergodic/non-ergodic boundary ("dark matter" noise floor).
-        # A weight of `3` is a symbol; `2.99981` is noise — but if ALL eigenvalues
-        # become `3`, the splines lose expressiveness entirely.
         if elipsodistrophy_atrophy is not None:
             signals.append(VetoSignal(
                 level=VetoLevel.TOPOLOGY,
@@ -220,6 +219,38 @@ class VetoSubspace(nn.Module):
                 metadata={
                     'atrophy': elipsodistrophy_atrophy,
                     'description': 'Spectral envelope narrowing — dark matter at risk'
+                }
+            ))
+            
+        # Betti Number Persistence: The Topological Anchor
+        # If any topological hole is closed (Delta Betti != 0), veto immediately (Manifold Collapse)
+        if betti_number_collapse is not None:
+            signals.append(VetoSignal(
+                level=VetoLevel.TOPOLOGY,
+                source='betti_persistence',
+                severity=1.0 if betti_number_collapse > 0 else 0.0,
+                triggered=betti_number_collapse > 0,
+                can_recover=False,  # Betti collapse is non-recoverable manifold surgery
+                metadata={
+                    'betti_collapsed_holes': betti_number_collapse,
+                    'description': 'Manifold Surgery prevented (Betti Number Conservation)'
+                }
+            ))
+
+        # Pareto Invariant: The Non-Dominance Shield
+        # A global update is mathematically vetoed if it improves global loss but degrades Voynich Slip-Space
+        if voynich_slip_degradation is not None and global_performance_improvement is not None:
+            pareto_violation = (global_performance_improvement > 0) and (voynich_slip_degradation > 0)
+            signals.append(VetoSignal(
+                level=VetoLevel.TOPOLOGY,
+                source='pareto_invariant',
+                severity=min(1.0, voynich_slip_degradation) if pareto_violation else 0.0,
+                triggered=pareto_violation,
+                can_recover=False, # Pareto violations are fundamentally incongruent
+                metadata={
+                    'slip_degradation': voynich_slip_degradation,
+                    'global_improvement': global_performance_improvement,
+                    'description': 'Pareto Order violation (Scalarization Trap detected)'
                 }
             ))
         
@@ -272,6 +303,9 @@ class VetoSubspace(nn.Module):
         instability_severity: Optional[float] = None,
         covariance_aborts: Optional[int] = None,
         elipsodistrophy_atrophy: Optional[float] = None,
+        betti_number_collapse: Optional[int] = None,
+        voynich_slip_degradation: Optional[float] = None,
+        global_performance_improvement: Optional[float] = None,
         # Budget inputs
         topological_pressure: Optional[float] = None,
         elapsed_seconds: Optional[float] = None
@@ -294,7 +328,8 @@ class VetoSubspace(nn.Module):
             self._evaluate_trajectory(abort_score, ley_line_deviation) +
             self._evaluate_topology(coprime_lock, chiral_score, 
                                    instability_severity, covariance_aborts,
-                                   elipsodistrophy_atrophy) +
+                                   elipsodistrophy_atrophy, betti_number_collapse,
+                                   voynich_slip_degradation, global_performance_improvement) +
             self._evaluate_budget(topological_pressure, elapsed_seconds)
         )
         
