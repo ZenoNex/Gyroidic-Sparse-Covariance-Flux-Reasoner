@@ -67,6 +67,7 @@ class EncodingResult:
     image_residues: torch.Tensor   # [K, n, n] — G_k(I) per channel
     residue: torch.Tensor          # [n, n] — irreducible entanglement
     commutativity_gap: float       # ||AB - BA|| for the encoding
+    berry_phases: Optional[torch.Tensor] = None # chiral groupoid tracking for visual twist
     diagnostics: Dict = field(default_factory=dict)
 
 
@@ -319,8 +320,10 @@ class GyroidImageProjector(nn.Module):
 
         Returns:
             residues: [K, n, n] — each G_k ∈ GL(n)
+            berry_phases: [K] — accumulated chiral twist
         """
         residues = []
+        berry_phases = []
         for k in range(self.K):
             # 1. Get 2D gyroid slice at channel k
             gyroid_slice = self.gyroid.evaluate_2d_slice(k)  # [res, res]
@@ -329,8 +332,17 @@ class GyroidImageProjector(nn.Module):
             if image is not None:
                 img_2d = self._prepare_image(image)  # [res, res]
                 modulated = gyroid_slice * img_2d
+                
+                # Compute Chiral Groupoid Anisotropy (Berry Phase analog)
+                # Calculates the geometric twist of image gradients across the gyroid slice
+                dy, dx = torch.gradient(img_2d)
+                gy, gx = torch.gradient(gyroid_slice)
+                # Cross product proxy for 2D gradients (curl-like twist)
+                twist = (dx * gy - dy * gx).mean()
+                berry_phases.append(twist)
             else:
                 modulated = gyroid_slice
+                berry_phases.append(torch.tensor(0.0, device=self.config.device))
 
             # 3. Downsample to n×n via adaptive average
             downsampled = self._adaptive_pool(modulated, self.n)  # [n, n]
@@ -344,7 +356,7 @@ class GyroidImageProjector(nn.Module):
             gl_matrix = torch.matrix_exp(matrix)
             residues.append(gl_matrix)
 
-        return torch.stack(residues)  # [K, n, n]
+        return torch.stack(residues), torch.stack(berry_phases)  # [K, n, n], [K]
 
     def _prepare_image(self, image: torch.Tensor) -> torch.Tensor:
         """Resize/reshape image to match gyroid resolution."""
@@ -712,8 +724,8 @@ class GyroidicCodec(nn.Module):
         # 1. Text → residues
         text_residues = self.text_projector(text)      # [K, n, n]
 
-        # 2. Image → residues
-        image_residues = self.image_projector(image)    # [K, n, n]
+        # 2. Image → residues and berry phases
+        image_residues, berry_phases = self.image_projector(image)    # [K, n, n], [K]
 
         # 3. Non-abelian combination
         combined_channels = self.combiner.combine(text_residues, image_residues)  # [K, n, n]
@@ -745,6 +757,7 @@ class GyroidicCodec(nn.Module):
             image_residues=image_residues,
             residue=residue,
             commutativity_gap=comm_gap,
+            berry_phases=berry_phases,
             diagnostics=diagnostics,
         )
 
@@ -767,7 +780,7 @@ class GyroidicCodec(nn.Module):
             Dict with commutativity metrics
         """
         text_residues = self.text_projector(text)
-        image_residues = self.image_projector(image)
+        image_residues, _ = self.image_projector(image)
 
         # Forward: R · G
         forward = self.combiner.combine(text_residues, image_residues)
