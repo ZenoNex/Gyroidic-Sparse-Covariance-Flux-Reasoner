@@ -39,6 +39,7 @@ from dataclasses import dataclass, field
 
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.core.polynomial_crt import PolynomialCRT
+from src.codec.conformal_log_polar import ConformalLogPolarProjector
 
 
 # =============================================================================
@@ -56,6 +57,7 @@ class CodecConfig:
     gyroid_periods: int = 2      # Number of gyroid periods in each dimension
     text_embed_dim: int = 64     # Dimension for text character embeddings
     use_saturation: bool = True  # Apply piecewise saturation gates
+    use_conformal_mapping: bool = True # Apply Escher Log-Polar foveal unroll for scale/rotation invariance
     device: str = 'cpu'
 
 
@@ -302,6 +304,12 @@ class GyroidImageProjector(nn.Module):
             poly_config=poly_config,
             device=config.device
         )
+        
+        # Conformal mapping (Log-Polar foveal unrolling) for Scale/Rotation invariance
+        self.conformal_wrap = ConformalLogPolarProjector(
+            resolution_r=config.gyroid_resolution, 
+            resolution_theta=config.gyroid_resolution
+        ) if config.use_conformal_mapping else None
 
         # Per-channel projection from gyroid features to GL(n)
         self.channel_projectors = nn.ModuleList([
@@ -363,6 +371,11 @@ class GyroidImageProjector(nn.Module):
         # Handle channel dimension
         if image.dim() == 3:
             image = image.mean(dim=0)  # Average over channels → [H, W]
+
+        # Apply Conformal Escher Mapping if enabled
+        if self.conformal_wrap is not None:
+            # Transforms Scale -> Shift_X, Rotation -> Shift_Y
+            image = self.conformal_wrap(image)
 
         # Resize to gyroid resolution
         res = self.config.gyroid_resolution
