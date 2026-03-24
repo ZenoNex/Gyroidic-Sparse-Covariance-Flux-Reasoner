@@ -363,3 +363,70 @@ class UnknowledgeDomain(nn.Module):
         if eigenvalues is not None:
             diag.update(self.get_elipsodistrophy_metrics(eigenvalues))
         return diag
+
+# ---------------------------------------------------------------------------
+# Paradox Hardening Gate (Elliptic Stabilization)
+# ---------------------------------------------------------------------------
+
+class ParadoxHardeningGate(nn.Module):
+    """
+    Handles linguistic/semantic paradoxes (e.g., "This statement is false")
+    by mapping infinite semantic recursion into a finite topological Torus.
+    
+    Standard LLMs get trapped in paradoxes or hallucinate. This gate recognizes
+    an Unclosed Loop (a non-commutative topological cycle that refuses to close)
+    and stabilizes it using a doubly-periodic (Elliptic) function proxy.
+    
+    Instead of an error or infinite loop, the paradox becomes a 'Structural Battery',
+    charging the Mischief Entropy band.
+    """
+    
+    def __init__(self, stabilization_threshold: float = 1e-4):
+        super().__init__()
+        self.stabilization_threshold = stabilization_threshold
+        
+    def evaluate_paradox(
+        self, 
+        forward_transit: torch.Tensor, 
+        reverse_transit: torch.Tensor,
+        current_mischief: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, bool]:
+        """
+        Detects if a trajectory is trapped in a paradoxical oscillation and
+        extracts its 'battery' charge.
+        
+        Args:
+            forward_transit: State transition A -> B
+            reverse_transit: State transition B -> A
+            current_mischief: Current H_mischief scalar
+
+        Returns:
+            stabilized_state: The fixed-point state mapped to the Torus
+            new_mischief: Boosted mischief entropy tracking the paradox
+            is_paradox: Boolean flag if paradoxical oscillation was detected
+        """
+        # A paradox is a severe non-commutativity that strictly negates itself
+        # meaning (A -> B -> A) does not return to the identity state, but rather
+        # creates a permanent periodic offset.
+        loop_closure = torch.norm(forward_transit + reverse_transit)
+        oscillation_amplitude = torch.norm(forward_transit - reverse_transit)
+        
+        is_paradox = bool(loop_closure < self.stabilization_threshold and oscillation_amplitude > 1.0)
+        
+        if is_paradox:
+            # Elliptic Stabilization: Instead of letting the state diverge, map it 
+            # to a doubly-periodic torus. We do this by projecting the state onto 
+            # a unit circle representation, treating the oscillation as a phase shift.
+            phase = torch.atan2(forward_transit, reverse_transit)
+            stabilized_state = torch.stack((torch.cos(phase), torch.sin(phase)), dim=-1).mean(dim=-1)
+            
+            # The paradox acts as a structural battery, increasing the mischief band
+            # because the system has found an 'honest' impossible geometry.
+            battery_charge = oscillation_amplitude * 0.1
+            new_mischief = current_mischief + battery_charge
+        else:
+            stabilized_state = forward_transit
+            new_mischief = current_mischief
+            
+        return stabilized_state, new_mischief, is_paradox
+
