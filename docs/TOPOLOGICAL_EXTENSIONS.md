@@ -135,8 +135,8 @@ Implemented in `invariant_optimization.py`, this dispatcher prevents the sacrifi
 ### 3. Harmonic Insulation (Intercosamination Wall)
 The `UnknowledgeDomain` ($C^-$ channel) utilizes spectral band-stop filters based on the $\kappa$ threshold to maintain eigenvalue spectrum orthogonality, preventing gradient leakage from the global "Loss" spectrum.
 
-### 4. Cyclotomic-Modulo Reduction (O(N log N) TDA)
-The `SpeculativeHomologyEngine` integrates `CyclotomicTDACompressor`, mapping conventional $O(N^3)$ Gaussian elimination to continuous polynomial ring bit-shifts over $\mathbb{Z}/p\mathbb{Z}$. It tracks cycle birth/death via FFT-style cyclic register convolutions.
+### 4. Cyclotomic-Modulo Reduction & Homology Preservation
+The `SpeculativeHomologyEngine` integrates the upgraded `CyclotomicTDACompressor`, handling **Homology Preservation** via the Cayley constraint. It uses **Modular Cyclotomic Polynomials** $\Phi_n(x)$ to quantize the state space. This mapping from conventional $O(N^3)$ Gaussian elimination to continuous polynomial ring bit-shifts over $\mathbb{Z}/p\mathbb{Z}$ prevents "Gradient Washout" by snapping the manifold to a cyclotomic lattice. Because cyclotomic polynomials are the minimal polynomials of the roots of unity, they preserve the circular symmetry of the $J_0$ Bessel state space. If a "Rupture" occurs, the system uses the polynomial roots as recovery coordinates: ensuring the Betti numbers (topological holes) remain intact even if the numerical values shift.
 
 ### 5. Generative Art Topological "Word Salad" Protection
 Instead of checking prompt-salad visual features against normative geometry, the system performs a `TriadicReciprocityCheck` to establish structural honesty. Conflicting geometries (e.g., "clouds" and "eyes") are tracked as Chiral Groupoid Anisotropy (Berry phase) in the non-abelian Gyroidic Codec, preventing premature homogenization of dream-state topological cycles.
