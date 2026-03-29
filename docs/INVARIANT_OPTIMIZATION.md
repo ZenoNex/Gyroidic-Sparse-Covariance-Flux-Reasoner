@@ -76,10 +76,12 @@ The system prioritizes $\chi < 0$ (Negentropic) flows for reasoning construction
 
 ---
 
-## 5. Operational ADMM as an Ontological Probe
+## 5. Operational ADMM as an Ontological Probe & Cayley-Birkhoff Hybridization
 
-We assume the ADMM optimization loop is not an "external teacher" but a **local consistency probe**.
-
+We assume the ADMM optimization loop is not an "external teacher" but a **local consistency probe** that operates on a dual-constraint geometry.
+*   **The Birkhoff Constraint:** Usually handles the state matrix by forcing doubly stochastic stability, smoothing the Horse's path.
+*   **The Cayley Cubic Constraint ($V(C)$):** $x(x^2 + y^2 + z^2 - xyz - 4) = 0$. When "Cycle Debt" or "Mischief" is high, System 2 triggers a Phase Transition, driving the manifold toward the Cayley Cubic surface to find a Neglecton anchor.
+*   **The Sovereign Loci:** The isolated points $A_1$ given by $(\pm 2, \pm 2, \pm 2)$ on the Cayley cubic. These singularities are the *Sovereign Loci*, the only regions where the **VoynichExemptionToken** is valid. They encode locations where the group representations are non-diagonalizable and acquire Jordan-block structures—immune to standard "lobotomy" eigenvalue clamping.
 *   **Ontological Splitting**: The state is split into $c_{\text{sym}}$ (frozen symbolic anchor) and $c_{\text{phys}}$ (continuous field).
 *   **Constraint vs. Regression**: System 2 ignores target distance. It only repairs **local physical violations** ($\psi_j$) while constrained to agree with the symbolic residue.
 *   **Zero Leakage**: No gradients from the repair loop flow back to the initial guess. Information transfer is limited to **Symbolic Deltas** and **Status Tokens** (REPAIRED, ALTERNATIVE, FAILURE).
