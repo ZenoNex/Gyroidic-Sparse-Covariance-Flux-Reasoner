@@ -1,7 +1,7 @@
 # Fiberalized Gyroidic Recurrent Topology (FGRT)
 
 ## 1. Introduction
-FGRT represents a shift from Euclidean vector-space modeling to **Topological Manifold sections**. By embedding recurrent neural states into a **Klein-Gyroid Slip-Space**, we enable the system to learn from its own **Chiral Symmetry Breaking**.
+FGRT represents a shift from Euclidean vector-space modeling to **Topological Manifold sections**. By embedding recurrent neural states into a **Klein-Gyroid Slip-Space**, we enable the system to learn from its own **Chiral Symmetry Breaking**. Furthermore, we transition the memory tracking from Standard CFT to **Logarithmic Conformal Field Theory (LCFT)**. Under LCFT, the system employs **Logarithmic Correlation Functions** to encode "Scars as Memory," ensuring that past anomalies—topological violations and internal friction—are physically fossilized as non-decaying traces within the Neglecton, rather than fading away smoothly.
 
 ## 2. The Base Manifold ($\mathcal{G} \cup \mathcal{K}$)
 The manifold is a hybrid of:
