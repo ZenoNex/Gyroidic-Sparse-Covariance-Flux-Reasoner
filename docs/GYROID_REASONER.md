@@ -224,6 +224,6 @@ When `return_analysis=True`: adds `residue_distributions`, `introspection`, `gyr
 | [PHYSICS_ADMM.md](PHYSICS_ADMM.md) | System 2 probe formalism, KAGH, CALM, CODES |
 | [KAGH_NETWORKS.md](KAGH_NETWORKS.md) | KAGH-Boltzmann surrogate architecture |
 | [MATHEMATICAL_DETAILS.md](MATHEMATICAL_DETAILS.md) | CRT, Matrioshka, tensor dynamics, ADMR |
-| [FGRT_FORMALIZATION.md](FGRT_FORMALIZATION.md) | FGRT manifold, chirality, chiral groupoid |
+| [FGRT_FORMALIZATION.md](FGRT_FORMALIZATION.md) | FGRT Annular (Ring) Pool manifold, chirality, chiral groupoid |
 | [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md) | Four Non-Negotiable Laws, meta-invariants |
 | [GARBLED_OUTPUT_REPAIR.md](GARBLED_OUTPUT_REPAIR.md) | Phase 1 repair pipeline details |
