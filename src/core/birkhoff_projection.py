@@ -135,3 +135,6 @@ def sinkhorn_knopp(
 def project_to_birkhoff(T: torch.Tensor, max_iterations: int = 50) -> torch.Tensor:
     """Alternative name for sinkhorn_knopp."""
     return sinkhorn_knopp(T, max_iterations=max_iterations)
+
+# Post-import to avoid circular dependency, exposing the hybrid probe to System 2 Constraint Operator
+from .cayley_cubic_probe import CayleyCubicProbe
