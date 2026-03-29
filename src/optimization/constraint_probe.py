@@ -24,6 +24,8 @@ try:
 except ImportError:
     HAS_GYROID_FLOW = False
 
+from src.core.cayley_cubic_probe import CayleyCubicProbe
+
 
 class ConstraintProbeOperator(nn.Module):
     """
@@ -61,6 +63,9 @@ class ConstraintProbeOperator(nn.Module):
         
         # Gyroid violation function (default: zero if not provided)
         self.gyroid_violation_fn = gyroid_violation_fn or (lambda x: torch.tensor(0.0, device=self.device))
+        
+        # Cayley-Birkhoff Hybridization System 2 Probe
+        self.cayley_probe = CayleyCubicProbe(high_mischief_threshold=0.5).to(self.device)
     
     def _ensure_psd(self, cov: torch.Tensor) -> torch.Tensor:
         """
@@ -235,6 +240,12 @@ class ConstraintProbeOperator(nn.Module):
             # Update constraint state (local step)
             with torch.no_grad():
                 c = c - probe_step_size * grad
+                
+                # Apply Cayley-Birkhoff Hybridization 
+                # (mischief = mean gyroid violation)
+                cycle_debt = gyroid_violation.mean().item()
+                c = self.cayley_probe(c, cycle_debt=cycle_debt)
+                
                 c.requires_grad_(True)
         
         # Final loss computation
