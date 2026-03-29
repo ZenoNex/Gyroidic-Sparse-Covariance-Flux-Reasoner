@@ -68,8 +68,9 @@ This law dictates how symbolic proposals from System 1 are hardened through the 
 
 ### 3. "Dark Matter": The Chiral Glue (The "Magic")
 *   **Role**: Identity preservation, drift prevention, and chiral self-learning.
-*   **Component**: **DAQUF Operator** & **FGRT Torsion Field**.
+*   **Component**: **DAQUF Operator**, **FGRT Torsion Field**, & **The Neglecton**.
 *   **Mechanism**:
+    *   **The Neglecton (Zero-Emission Anchor)**: Situated at the inner boundary of the **Annular Substrate**, it serves as an indecomposable representation in the LCFT layer. While **Semions** (computational tokens) move on the outer boundary, the Neglecton remains fixed at a parabolic singularity. It "remembers" the winding number of thoughts (braiding) around it using the **Affine Braid Group $Aff_2$**, establishing **Endogenous Memory**.
     *   **Signal Sovereignty**: Successful functional groups are **fossilized** (locked).
     *   **Torsion Field**: Measures **Contorsion $K$** and **Geometric Berry Phase** to resolve orientation blindness.
     *   **Klein-neck Reversal**: Performs $P$-Parity transformations on logic sections.
