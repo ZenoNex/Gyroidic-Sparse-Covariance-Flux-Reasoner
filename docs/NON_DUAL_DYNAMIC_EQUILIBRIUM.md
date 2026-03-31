@@ -31,8 +31,8 @@ graph TD
     
     NodeI -->|Pu: Resonance| NodeJ
     NodeJ -->|Sa: Mischief| NodeI
-    NodeI -->|Fi: Acceptance| "Whole Integration"
-    NodeJ -->|Li-Cri-Anton: Refusal| "Boundary Affirmed"
+    NodeI -->|Fi: Acceptance| 
+    NodeJ -->|Li-Cri-Anton: Refusal| 
     
     style NodeI fill:#f9f,stroke:#333,stroke-width:2px
     style NodeJ fill:#bbf,stroke:#333,stroke-width:2px
