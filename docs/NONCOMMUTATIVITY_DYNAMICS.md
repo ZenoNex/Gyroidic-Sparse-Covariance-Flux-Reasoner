@@ -108,6 +108,16 @@ The diagnostic value is emitted in `diagnostics['nc_curvature']` (the payload fi
 
 ### Why Only in Switching/Grazing Modes?
 
+```mermaid
+graph TD
+    A[ZeitgeistRouter Forward Pass] --> B{Facet Grazing / Switching?}
+    B -- NO: Interior --> C[Skip Curvature Computation]
+    B -- YES: Boundary Zone --> D[Compute NonCommutativityCurvature]
+    D --> E[Extract k_rel and Veto Pressure]
+    E --> F[Inject into Diagnostics]
+    F --> G[Modulate Mode/Time]
+```
+
 Curvature computation requires a matrix multiply of shape `[dim, dim]` — non-trivial cost. In `interior` mode, non-commutativity is irrelevant (the system is safely inside a polytope, not at an operator boundary), so the computation is skipped.
 
 ---
