@@ -27,7 +27,7 @@ graph LR
 
 ## 2. SaturatedQuantizer
 
-**Role**: Inter-domain bridge between continuous (physics) and discrete (symbolic) regimes.
+**Role**: Inter-domain bridge between continuous (physics) and discrete (symbolic) regimes, specifically tasked with the **Continuous-to-Discrete Matrioshka Bridging**. It ensures that the continuous polynomial projections computed directly by the `PolynomialADMRSolver` snap rigidly into the hierarchical CRT geometric boundaries of the Matrioshka nested polytopes before arriving at the `ZeitgeistRouter`.
 
 | Direction | Operation |
 |-----------|-----------|
