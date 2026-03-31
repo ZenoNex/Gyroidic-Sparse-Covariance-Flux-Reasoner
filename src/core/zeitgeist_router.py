@@ -318,6 +318,7 @@ class ZeitgeistRouter(nn.Module):
         self,
         x: torch.Tensor,
         state: ZeitgeistState,
+        boundary=None
     ) -> Tuple[Tuple[int, ...], int]:
         """
         Compute new residues (α_1', ..., α_m') and new level ℓ' after a switch.
@@ -331,18 +332,37 @@ class ZeitgeistRouter(nn.Module):
 
         Returns:
             new_alpha : Tuple[int, ...] of length M
-            new_level : int (preserved; level changes come from Matrioshka loop)
+            new_level : int (preserved or updated from BoundaryState Matrioshka level)
         """
         # gate output: [batch, M] → take mean over batch → [M]
         gate_out = torch.sigmoid(self.switch_gate(x))   # [batch, M]
         delta_soft = gate_out.mean(dim=0)                # [M]
+        
+        # Incorporate BoundaryState stress tensor to bias the CRT transition
+        if boundary is not None and hasattr(boundary, 'stress_tensor') and boundary.stress_tensor is not None:
+            # Flatten stress tensor and project down to M dimensions
+            stress_flat = boundary.stress_tensor.flatten()
+            if stress_flat.size(0) >= self.M:
+                stress_bias = torch.abs(stress_flat[:self.M])
+            else:
+                stress_bias = torch.zeros(self.M, device=delta_soft.device)
+                stress_bias[:stress_flat.size(0)] = torch.abs(stress_flat)
+                
+            # Gate output gets a spike from extreme stress directing it away
+            delta_soft = delta_soft + 0.5 * stress_bias / (torch.max(stress_bias) + 1e-8)
 
         new_alpha = tuple(
             int((state.alpha[i] + round(float(delta_soft[i]) * self.moduli[i]))
                 % self.moduli[i])
             for i in range(self.M)
         )
-        return new_alpha, state.level
+        
+        # Use boundary level if available and valid (>=0), otherwise preserve state
+        new_level = state.level
+        if boundary is not None and hasattr(boundary, 'level') and boundary.level >= 0:
+            new_level = boundary.level
+            
+        return new_alpha, new_level
 
     # ------------------------------------------------------------------ #
     # Forward                                                              #
@@ -408,7 +428,7 @@ class ZeitgeistRouter(nn.Module):
             )
         else:
             # Grazing or crossing — execute non-commutative CRT switch
-            new_alpha, new_level = self._compute_switch(x, state)
+            new_alpha, new_level = self._compute_switch(x, state, boundary=boundary)
             # If the alpha residues actually changed, this is a full switch
             if new_alpha != state.alpha:
                 mode = 'switching'
