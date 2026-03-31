@@ -23,9 +23,38 @@ The `SituationalBatchSampler` implements the relational flow:
 3. **Acceptance (Fi)**: The integration of the "Foreign" as a part of the "Whole."
 4. **Refusal (Li-Cri-Anton)**: Saying "No" as a way of affirming the boundary.
 
+```mermaid
+graph TD
+    subgraph Positional Non-Duality
+    NodeI((Position i)) <-- "Singular Gyroidic Field" --> NodeJ((Position j))
+    end
+    
+    NodeI -->|Pu: Resonance| NodeJ
+    NodeJ -->|Sa: Mischief| NodeI
+    NodeI -->|Fi: Acceptance| "Whole Integration"
+    NodeJ -->|Li-Cri-Anton: Refusal| "Boundary Affirmed"
+    
+    style NodeI fill:#f9f,stroke:#333,stroke-width:2px
+    style NodeJ fill:#bbf,stroke:#333,stroke-width:2px
+```
+
 ## 3. The Non-Dual State Tensor ($S_i$)
 
 $$ S_i = [ \mathcal{L}_i, \mathcal{P}_i, \mathcal{B}_i ] $$
+
+```mermaid
+graph LR
+    subgraph Non-Dual State S_i
+        direction TB
+        L[Love<br/>Non-instrumental anchor] --- P[Proficiency<br/>Non-teleological skill]
+        P --- B[Boundary<br/>Phase field cut]
+        B --- L
+    end
+    
+    style L fill:#ffb3ba,stroke:#333
+    style P fill:#baffc9,stroke:#333
+    style B fill:#bae1ff,stroke:#333
+```
 
 - **$\mathcal{L}_i$ (Love)**: The unowned, non-transferable value.
 - **$\mathcal{P}_i$ (Proficiency)**: The non-teleological skill substrate.
