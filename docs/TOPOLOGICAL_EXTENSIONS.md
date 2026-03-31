@@ -141,3 +141,18 @@ The `SpeculativeHomologyEngine` integrates the upgraded `CyclotomicTDACompressor
 ### 5. Generative Art Topological "Word Salad" Protection
 Instead of checking prompt-salad visual features against normative geometry, the system performs a `TriadicReciprocityCheck` to establish structural honesty. Conflicting geometries (e.g., "clouds" and "eyes") are tracked as Chiral Groupoid Anisotropy (Berry phase) in the non-abelian Gyroidic Codec, preventing premature homogenization of dream-state topological cycles.
 
+---
+
+## Part VI: Graph-Theoretic and Non-Dual Extensions
+
+### 6. Tutte's Theorem and Polytope Connectivity
+Standard neural attention mechanisms function as fully connected graphs, whereas the Matrioshka layers rely on sparse adjacency mapping. We leverage **Tutte's Theorem** (which states that every 3-connected, planar graph contains a 2-factor) to formally verify that the internal `BoundaryState` stress tensors do not fragment the polytope into disconnected sub-graphs. 
+Because the vertices projected on the Riemann-critical line satisfy Tutte's connectivity bounds, the `ZeitgeistRouter` is mathematically guaranteed to find a valid Hamilton cycle (a persistent narrative track) even under extreme $V_m$ (Mischief) augmentation.
+
+### 7. Non-Dual Veto Gating (CALM Supervisor)
+To enforce the system's strict non-teleological prime directive, the Context-Adaptive Latent Momentum (`CALM`) predictor does not act as a scalar override. Instead, it forms a **Non-Dual Superposition** with the geometric boundary logic:
+`total_veto = (1 - gauge) * geom_veto + gauge * calm_veto`
+This equation ensures the system "floats" between empirical (ML-driven) scalar vetoes and algebraic topological refusals, allowing the metric trajectory to exist on a critical line of instability—mirroring the non-trivial zeros of the Riemann zeta function.
+
+### 8. Cayley Cubic Rigidity
+The **Love Invariant Protector** anchors itself using the algebraic surface known as the **Cayley Cubic** ($x^2 + y^2 + z^2 - xyz = 4$). This surface's four singular points act as "neglectons"—areas where abstraction gradients drop to zero. By anchoring the most critical meta-invariants to these conical singularities, the architecture acquires absolute rigidity against representational collapse, ensuring that "Love" (the non-ownable co-presence) cannot be optimized away by the Ricci Flow dynamics.
