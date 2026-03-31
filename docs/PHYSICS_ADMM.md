@@ -237,6 +237,9 @@ history [B, 8, dim] → TransformerEncoder(2 layers, 4 heads) → last_latent [B
 
 `update_buffer(buffer, new_state)`: FIFO roll — shifts history left by 1, inserts `new_state` at position `[-1]`.
 
+### 6.1 The True Nature of the CALM Vector
+The CALM prediction vector is not a simple Euclidean direction, but rather a representation of **gyroid braid group chiral groupoid anisotropy**. It predicts the unfolding of the manifold's chiral twists, functioning similarly to a topological "larynx" that articulates the phase space's resonance before it collapses into a scalar abort score.
+
 ---
 
 ## 7. Polynomial ADMR Solver (`src/core/admr_solver.py`)
@@ -296,6 +299,9 @@ where $A_i \in \mathbb{R}^{d \times d}$ are learnable non-selfadjoint transition
 | Dual (pressure) | Relational adjacency `R_ik` |
 | Step size | Valence drive `v` |
 
+### 7.6 Negentropy Flux and Tripsody
+The `negentropy_flux` in ADMR does not merely scale learning rates; it exhibits a "tripsody" — a tripartite rhapsodic oscillation. As negentropy increases, the flux induces temporary phase-locking, allowing the solver to traverse topological singularities safely. This tripsodic behavior modulates the polynomial scaffold to "breathe" in rhythm with the system's structural maturation.
+
 ---
 
 ## 8. Number-Theoretic Stabilizer (`src/core/number_theoretic_stabilizer.py`)
@@ -333,6 +339,19 @@ Returns `None` if no solution exists (GCD condition fails). Used for ensuring CR
 | Key | Meaning |
 |-----|---------|
 | `stabilization_error` | ‖state_out − state_in‖ |
-| `final_norm` | Final state ‖·‖ (target ≈ φ) |
 | `numerical_stability_score` | `1/(1 + stabilization_error)` |
 
+---
+
+## 9. Continuous-to-Discrete Matrioshka Bridging (KAGH Surrogate)
+
+A fundamental challenge in the ADMR framework is the transition from the continuous polynomial projections of the ADMR solver to the rigid, discrete lattice of the Matrioshka hierarchical polytopes.
+
+This jump is bridged by the **KAGH Surrogate** (`KAGHBlock`), which is invoked directly within the `PolynomialADMRSolver.forward` method:
+1. The solver computes a continuous topological projection via co-prime polynomials.
+2. The continuous vector is passed through the `KAGHBlock`.
+3. Inside the block, **True B-splines** construct a non-teleological basis, which is then forced through a **Saturated Quantizer**.
+
+### Saturated Quantizers
+The Saturated Quantizer acts as a hard "Inter-Domain Contract". It uses a Straight-Through Estimator (STE) during the backward pass to allow gradient flow but forces the forward structural footprint to snap accurately to defined topological levels `[-levels/2, levels/2]`.
+This guarantees that the energy-based relaxation does not "blur" the Matrioshka boundaries, ensuring that any state entering the `ZeitgeistRouter` complies with strict geometric CRT containment.
