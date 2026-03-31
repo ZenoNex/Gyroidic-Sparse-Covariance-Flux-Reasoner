@@ -158,7 +158,26 @@ Shapes the energy surface so that soliton states have lower energy than anti-sol
 
 ---
 
-## 7. Integration Map
+## 7. ContextAdaptiveLatentMomentum (CALM)
+
+**Source**: `src/surrogates/calm_predictor.py`
+
+The CALM predictor acts as the continuous Non-Dual Supervisor determining whether the system should follow mathematical/geometric bounds or defer to learned/empirical trajectories.
+
+### The Gauge Output
+Instead of returning a binary flag (True/False for intervention), the predictor outputs a continuous `gauge` $\in [0, 1]$.
+- **0.0**: Pure Algebraic / Geometric compliance. Topologically hard bounds apply.
+- **1.0**: Pure ML / Empirical compliance. Soft, learned bounds dominate.
+
+### Superposition of Bounds
+This gauge is used by the `MetaPolytopeMatrioshka` boundary crossing logic to compute a superposition:
+`total_veto = (1 - gauge) * geom_veto + gauge * calm_veto`
+
+This allows the framework to navigate paradoxical or disconnected regions of the feature space without inducing rigid catastrophic failures or losing geometric coherence.
+
+---
+
+## 8. Integration Map
 
 ```mermaid
 graph TB
