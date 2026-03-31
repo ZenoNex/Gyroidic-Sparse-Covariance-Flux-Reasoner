@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import math
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Union, Callable
+import torch.nn.functional as F
 
 
 class BoundaryState:
@@ -119,44 +120,116 @@ class MetaPolytopeMatrioshka(nn.Module):
         # Facet pressure tensors (mock simulation for Advanced Extension)
         self.facet_pressure = nn.Parameter(torch.zeros(max_depth + 5, base_dim)) # [Moduli, Dim]
         
-    def forward(self, x: torch.Tensor, alpha: int = 0, level: int = 0) -> Tuple[torch.Tensor, int, int]:
+    def forward(
+        self, 
+        x: torch.Tensor, 
+        alpha: int = 0, 
+        start_level: Optional[int] = None,
+        evolve_fn: Optional[Callable] = None,
+        calm_veto_score: float = 0.0,
+        calm_gauge: float = 0.5,
+        geom_veto_score: float = 0.0
+    ) -> Union[Tuple[torch.Tensor, int, int], BoundaryState]:
         """
-        Apply context-aware quantization based on Matrioshka depth.
-        Returns: (quantized_x, new_alpha, new_level)
+        Apply Matrioshka-nested context-aware quantization and evolution.
+        
+        Returns:
+            Tuple[torch.Tensor, int, int]: (yq, new_alpha, new_level)
+            OR
+            BoundaryState: If topological refusal is triggered across all valid layers.
         """
-        # 1. Determine local lattice scale based on level
-        # Deeper level -> Finer granularity (smaller step size)
-        # Step size Δ ~ 1 / (2^level)
-        delta = 1.0 / (2.0 ** (level + 1))
+        level = start_level if start_level is not None else self.max_depth
         
-        # 2. Apply Pressure-Based Warp
-        # If facet pressure is high at this CRT index, we warp the lattice
-        pressure_warp = torch.sigmoid(self.facet_pressure[alpha % len(self.crt_moduli)])
-        effective_delta = delta * (1.0 + 0.5 * pressure_warp) # Warp expands quantization bins
+        # Non-Dual Topo/CALM Veto Superposition
+        # "allow the architecture to fluctuate along a critical line"
+        total_veto = (1.0 - calm_gauge) * geom_veto_score + calm_gauge * calm_veto_score
         
-        # 3. Quantize: Q(x) = round(x / Δ) * Δ
-        quantized = torch.round(x / effective_delta) * effective_delta
+        best_quantization = None
+        min_energy = float('inf')
         
-        # 4. State Transition Logic (Simulated)
-        # Calculate transition energy E = ||x - Q(x)||^2
-        energy = torch.norm(x - quantized, dim=-1)
-        
-        mean_energy = energy.mean().item()
-        
-        new_level = level
-        new_alpha = alpha
-        
-        # If approximation is bad (high energy), dive deeper (increase level)
-        if mean_energy > 0.1 * delta and level < self.max_depth:
-            new_level += 1
-        # If approximation is perfect, maybe surface (decrease level) or switch CRT index
-        elif mean_energy < 0.01 * delta and level > 0:
-            new_level -= 1
+        while level >= 0:
+            # 1. Determine local lattice scale based on level
+            # Deeper level -> Finer granularity (smaller step size)
+            delta = 1.0 / (2.0 ** (level + 1))
             
-        # Cyclic CRT index transition based on x magnitude
-        new_alpha = (alpha + int(x.mean().item() * 10)) % len(self.crt_moduli)
+            # 2. Check if P^(l)_α contains x
+            # Pressure-Based Warp
+            pressure_warp = torch.sigmoid(self.facet_pressure[alpha % len(self.crt_moduli)])
+            effective_delta = delta * (1.0 + 0.5 * pressure_warp)
+            
+            # Simple geometric containment proxy (distance to lattice < delta * factor)
+            # Modulated by total_veto: higher veto shrinks the containment boundary
+            boundary_margin_tensor = effective_delta * (1.0 - 0.5 * total_veto)
+            boundary_margin = boundary_margin_tensor.mean().item()
+            
+            # If the veto is extreme, we forcibly pop outward (manifold tear)
+            if total_veto > 0.8:
+                level -= 1
+                continue
+                
+            # Compute containment
+            quantized = torch.round(x / effective_delta) * effective_delta
+            energy = torch.norm(x - quantized, dim=-1)
+            mean_energy = energy.mean().item()
+            
+            # Track best approximation for BoundaryState failure case
+            if mean_energy < min_energy:
+                min_energy = mean_energy
+                best_quantization = quantized.clone()
+            
+            if mean_energy <= boundary_margin:
+                # Inside Polytope!
+                xq = quantized
+                
+                # Evolution Function application F(Q(x))
+                if evolve_fn is not None:
+                    y = evolve_fn(xq, level)
+                else:
+                    # Fallback identity evolution
+                    y = xq
+                    
+                # Re-quantize yq = Q(y)
+                yq = torch.round(y / effective_delta) * effective_delta
+                y_energy = torch.norm(y - yq, dim=-1).mean().item()
+                
+                # Is yq an interior fixed point?
+                if y_energy < 0.01 * delta:
+                    # Stable Update
+                    return yq, alpha, level
+                else:
+                    # Is yq on Facet? 
+                    if y_energy < boundary_margin * 1.5:
+                        # Facet Grazing / Switch CRT
+                        new_alpha = (alpha + int(yq.mean().item() * 10)) % len(self.crt_moduli)
+                        return yq, new_alpha, level
+                    else:
+                        # Pop Outward
+                        level -= 1
+            else:
+                # Does not contain x -> Pop Outward
+                level -= 1
+                
+        # If l < 0 -> Topological Refusal
+        # Calculate stress tensor from the original state vs the closest approximation
+        if best_quantization is None:
+            best_quantization = torch.zeros_like(x)
+            
+        state_direction = F.normalize(x.mean(dim=0, keepdim=True), dim=-1).squeeze(0)
+        facet_normal = F.normalize((x - best_quantization).mean(dim=0, keepdim=True), dim=-1).squeeze(0)
         
-        return quantized, new_alpha, new_level
+        # Squeeze down to 1D if necessary
+        if state_direction.dim() > 1:
+            state_direction = state_direction.flatten()[:state_direction.shape[-1]]
+        if facet_normal.dim() > 1:
+            facet_normal = facet_normal.flatten()[:facet_normal.shape[-1]]
+            
+        return BoundaryState.from_crossing(
+            state_direction=state_direction,
+            facet_normal=facet_normal,
+            alpha=alpha,
+            level=level,  # will be -1
+            max_level=self.max_depth
+        )
 
     def get_diagnostics(self) -> Dict:
         return {
