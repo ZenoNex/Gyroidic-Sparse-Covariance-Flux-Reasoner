@@ -23,6 +23,22 @@ In the double gyroid (DG), two non-intersecting surfaces partition space into th
 | $W$ (Wall) | The $\kappa$ threshold boundary |
 | Morita Equivalence | CRT coprime reconstruction |
 
+```mermaid
+graph TD
+    subgraph Double Gyroid Morita Equivalence
+        C_plus[C+ Channel<br/>Ergodic Noise Floor] <-->|Reciprocal Adjustment| C_minus[C- Channel<br/>Non-Ergodic Soliton Signal]
+        
+        W_wall{W Wall<br/>Kappa Threshold Boundary}
+        
+        C_plus -.- W_wall
+        C_minus -.- W_wall
+    end
+    
+    style C_plus fill:#f9d0c4,stroke:#333
+    style C_minus fill:#c4d0f9,stroke:#333
+    style W_wall fill:#ccc,stroke:#333,stroke-dasharray: 5 5
+```
+
 The **Harmonic Wave Decomposition** (`HarmonicWaveDecomposition`) performs exactly this channel separation, and the co-prime polynomial functionals ensure the two channels share topological K-theoretic invariants without mixing.
 
 ---
