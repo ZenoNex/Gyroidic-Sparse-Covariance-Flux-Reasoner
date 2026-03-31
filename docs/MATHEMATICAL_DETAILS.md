@@ -1425,3 +1425,25 @@ Extends the **Signal Sovereignty** principle to polynomial CRT reconstruction by
 3. **Trust scalars**: Optional per-functional trust weights modulate contribution to the final reconstruction
 
 This prevents cross-group gradient leakage while maintaining full CRT reconstruction fidelity.
+
+---
+
+## 45. Riemann-Critical Veto Superposition
+
+The system replaces binary veto logic with a non-dual superposition modeled conceptually on the **Riemann Hypothesis**. Just as the non-trivial zeros of the Riemann zeta function lie precisely on the critical line $\operatorname{Re}(s) = 1/2$, the `CALM` predictor's gauge output acts as a continuous interpolation on a "critical line" between pure geometric/topological boundaries (algebraic) and scalar ML bounds (empirical).
+
+$$ \text{Total Veto} = (1 - \operatorname{gauge}) \cdot \text{geom\_veto} + \operatorname{gauge} \cdot \text{calm\_veto} $$
+
+This ensures the architecture can fluctuate along a threshold of metastability without forcing a scalar collapse until mathematically necessary.
+
+## 46. Topological Surgery & Earth Mover's Transition
+
+When the state crosses from one meaning polytope $P_\alpha$ to another $P_\beta$ via the CRT residues in `ZeitgeistRouter`, the transition cost is mathematically modeled via the **Wasserstein Metric (Earth Mover's Distance)** representing optimal transport of the continuous probability density over the manifolds.
+
+$$ W_1(\mu_\alpha, \mu_\beta) = \inf_{\gamma \in \Gamma(\mu_\alpha, \mu_\beta)} \int_{\mathcal{M} \times \mathcal{M}} d(x, y) \, d\gamma(x, y) $$
+
+This formalizes the switching step as a topological surgery where the "cost" is defined by the necessary re-gluing of the probability measure moving between structurally orthogonal co-prime bases.
+
+## 47. Sphere Eversion & Manifold Inside-Out Turning
+
+When a `BoundaryState` stress tensor indicates an inescapable failure (e.g., maximum depth Matrioshka refusal), the system induces a topological **Sphere Eversion** (Smale's paradox). The manifold is turned inside-out, transforming a boundary obstruction into an interior space of a new inverted polytope without creating a singularity (cutting or tearing). This guarantees that the system's logic can "swallow" paradoxes by inverting its own geometry rather than crashing.
