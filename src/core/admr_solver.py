@@ -62,6 +62,15 @@ class PolynomialADMRSolver(nn.Module):
         # 5. Love Invariant Protector (Null-space projection)
         from .love_invariant_protector import LoveInvariantProtector
         self.love_protector = LoveInvariantProtector(love_dim=max(1, state_dim // 4), device=device)
+        
+        # 6. KAGH-Boltzmann Surrogate for Continuous-to-Discrete jumps
+        # The surrogate maps continuous Polynomial projections to discrete Matrioshka states
+        # via B-splines and Saturated Quantizers.
+        try:
+            from src.surrogates.kagh_networks import KAGHBlock
+            self.kagh_surrogate = KAGHBlock(n_in=state_dim, n_out=state_dim, width=max(16, state_dim // 2), depth=2).to(device)
+        except ImportError:
+            self.kagh_surrogate = None
 
     def update_chiral_cache(self, states: torch.Tensor, is_valid: torch.Tensor):
         """
@@ -132,6 +141,13 @@ class PolynomialADMRSolver(nn.Module):
                 projected = projected[..., :self.state_dim]
             else:
                 projected = torch.nn.functional.pad(projected, (0, self.state_dim - projected.shape[-1]))
+                
+        # 4. Continuous-to-Discrete Jump (Matrioshka bridging)
+        # Apply the KAGH Surrogate to find the optimal quantized geometric topology
+        if hasattr(self, 'kagh_surrogate') and self.kagh_surrogate is not None:
+            # We treat the continuous interaction as raw input coefficients,
+            # using the surrogate to handle Saturated Quantizers and Gödel gates.
+            projected = self.kagh_surrogate(projected)
                 
         return projected
 
