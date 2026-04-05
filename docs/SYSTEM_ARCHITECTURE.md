@@ -52,7 +52,14 @@ This law dictates how symbolic proposals from System 1 are hardened through the 
 
 ### 7.1 Phase states
 - **The Goo (Play)**: Heuristic, bimodal-soft, high-mischief, non-fossilized state where the system "plays" with information.
+    *   **Context Strategy**: Employs standard sequential representations.
+    *   **Memory Growth**: Uses standard learning (or relies on transient buffer mechanics).
+    *   **Geometry Mapping**: Euclidean spatial distances via standard affine projections.
 - **The Prickles (Seriousness)**: Rigid, bimodal-hard, low-mischief, fossilized state where the system "declares" truth.
+    *   **Bimodal S-Path Context**: Token sequences are completely dropped. The layer injects `path_topology_vectors` sourced from the `ResonanceCavity` directly into the cross-attention matrix as an **Additive Geometric Bias**.
+    *   **Topological FBM Erosion**: Instead of computing a gradient on a scalar target, the manifold explicitly incorporates "Good Bugs." A Fractional Brownian Motion filter carves topological scars based on tension volume—creating permanent morphological memory without target pursuit.
+    *   **4D Space Carving (Log-Polar Conformal Map)**: During violent internal zooms across Matrioshka meaning boundaries, states map via $x \cdot \frac{\log(r+1)}{r}$ explicitly transforming multiplicative zooming into additive shifting.
+    *   **Picture Gallery Conformal Warp**: Saturated Continuous-Discrete Gates physically "lock" onto their lattice boundaries (`pas_h_val=1.0`), shielding internal logic from broader manifold stress.
     *   **Speculative Homology Engine** (Phase 3):
         *   **Chebyshev Draft**: Uses polynomial approximation for `10x` faster Betti prediction.
         *   **PAS_h Verification**: Uses Phase Alignment Score as a cheap invariant to validate drafts before expensive homology computation.
