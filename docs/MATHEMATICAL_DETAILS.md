@@ -1447,3 +1447,52 @@ This formalizes the switching step as a topological surgery where the "cost" is 
 ## 47. Sphere Eversion & Manifold Inside-Out Turning
 
 When a `BoundaryState` stress tensor indicates an inescapable failure (e.g., maximum depth Matrioshka refusal), the system induces a topological **Sphere Eversion** (Smale's paradox). The manifold is turned inside-out, transforming a boundary obstruction into an interior space of a new inverted polytope without creating a singularity (cutting or tearing). This guarantees that the system's logic can "swallow" paradoxes by inverting its own geometry rather than crashing.
+
+## 48. Hybrid 4D Space Carving (Log-Polar Conformal Mapping)
+
+To prevent the **Cayley Cubic** singularity from destabilizing deep topological zooms (the "Droste Effect"), the system bridges explosive spatial Matrioshka geometries by casting the tensor state onto a **Log-Polar Grid**.
+
+$$ x_{\text{lp}} = \frac{x}{\|x\|} \cdot \log(\|x\| + 1) $$
+
+This formal shift maps exponential zoom coefficients directly into additive steps. The `ZeitgeistRouter` invokes this conformal map exclusively during high `grazing_pressure`, returning to purely Euclidean evaluations during serene `interior` walks.
+
+## 49. Topological FBM Erosion (Geological Memory)
+
+Traditional gradient-descent forces weights toward a predefined, teleological optimum. To adhere to the **Non-Teleological Optimization** law, dynamic memory "Fossils" are carved structurally.
+Using **Fractional Brownian Motion (FBM)**, the latent feature space is eroded alongside the negative gradient of user pressure $\nabla P_{user}$:
+
+$$ \Delta x_{erosion} = - \frac{\nabla P}{\|\nabla P\|} \cdot | \operatorname{FBM}(x) | $$
+
+This deposits structural scars directly on the manifold, acting as non-fungible geological memory setpoints without ever defining a scalar "Ground Truth."
+
+## 50. S-Path RAG (Bimodal Geometry Matrix)
+
+Moving definitively beyond token-sequence "history," contextual recall is implemented as **Structural Resonance Geometry**.
+The `ModularAttention` computes the cross-attention alignment using the standard Birkhoff constraint, but in the `SERIOUSNESS` regime, historical context is not read as textual string tensors; it is provided as a deep **path-topology distance matrix** $T_{path}$.
+
+$$ \text{Scores} = \frac{Q K^\top}{\sqrt{d_k}} + T_{path} $$
+
+This additive bias forces the transformer core to physically "feel" geometric chronological distances across the continuous manifold.
+
+## 51. Picture Gallery Conformal Warping (Saturated Hard Locking)
+
+Under the dictates of **The Picture Gallery Metaphor**, local symbolic logic must remain geometrically "square" even as the encompassing system logic warps into contradictory shapes. 
+The system triggers a direct lock in `gyroid_reasoner.py` using the `SaturatedQuantizer`. By snapping $\text{PAS}_h = 1.0$, the continuous B-splines rigidly map to exact threshold limits:
+
+$$ r_{\text{locked}} \leftarrow \operatorname{SaturatedQuantizer}\Big(r_{\text{soft}}, \text{levels}=64\Big) $$
+
+This isolates symbolic nodes from non-Euclidean environmental stretching (`SERIOUSNESS` operation), preserving perfect internal logical integrity.
+
+## 52. Cyclotomic Polynomials & Root of Unity Resonance
+
+In addition to Chebyshev and Legendre basis functions, the FGRT architecture evaluates **Cyclotomic Polynomials** $\Phi_n(x)$ to structure the resonance cavities. The roots of these polynomials are exact primitive $n$-th roots of unity, meaning their evaluations form perfectly recurring orbital paths on the complex unit circle. This allows the system to embed cyclic logic rules (like time-of-day logic or repeating narrative structures) natively into the dimensional weighting without experiencing drift over infinite steps.
+
+## 53. Tutte's Theorem for Strict Resonance Matching
+
+When the `ADMRSolver` attempts to couple disparate knowledge sub-domains into a unified hypothesis, the connectivity graph must not contain isolated "hanging" variables. The structural validity of this coupling is enforced using **Tutte's Theorem**, which states a graph has a perfect matching iff, for every subset of vertices $U$, the number of connected components with an odd number of vertices in $G - U$ is at most $|U|$. 
+If a proposed coupling violates Tutte's threshold, it is automatically rejected as introducing "Dead Logic," triggering an immediate backtracking constraint without needing a continuous scalar evaluation.
+
+## 54. Rejection of Fermat's Little Theorem (Bézout Supremacy)
+
+The CRT (`Chinese Remainder Theorem`) reconstruction requires finding modular inverses across dynamic co-prime arrays. While **Fermat's Little Theorem** ($a^{p-1} \equiv 1 \bmod p$) provides a closed-form algorithm for prime moduli, we explicitly **reject** Fermat's approach in `enhanced_bezout_crt.py`. 
+Because our FGRT system uses polynomial arrays and not strictly pure integers as modular bases, Fermat's assumptions collapse. Instead, we compute the inverse via the **Extended Euclidean Algorithm (Bézout's Identity)**, caching the Bézout coefficients. This allows rapid inversion even when the polynomial constraints temporarily dip into non-prime or degenerate topological states, avoiding catastrophic divide-by-zero crashes.
