@@ -28,6 +28,7 @@ from src.topology.hyper_ring import RecurrentHyperRingConnectivity
 from src.core.fgrt_primitives import FibonacciResonanceEntropy, CoherentPrimeResonance
 from src.core.polychoron_quantization import Polychoron600Quantizer
 from src.core.deflagration_scout import OmipedialDeflagrator
+from src.core.erosion_filter import TopologicalErosionFBM
 
 from src.core.structural_monitors import AntiScalingMonitor, MetaInfraIntraMonitor
 from src.safety.trust_inheritance import TrustInheritanceTracker
@@ -68,6 +69,9 @@ class UniversalOrchestrator(nn.Module):
         self.mischief_probe = EntropicMischiefProbe()
         self.quantizer = Polychoron600Quantizer()
         self.deflagrator = OmipedialDeflagrator()
+        
+        # Phase 6: Topographical memory via FBM erosion
+        self.erosion_filter = TopologicalErosionFBM(octaves=4, persistence=0.6)
         
         # EMA for flux prediction in deflagration scout
         self.register_buffer('expected_flux', torch.zeros(1))
@@ -226,6 +230,10 @@ class UniversalOrchestrator(nn.Module):
         
         self.mischief_probe.update(pressure_grad, coherence, pas_h, is_good_bug)
         
+        # Phase 6: Apply Topological Erosion (instead of gradient descent) if it's a "Good Bug"
+        if is_good_bug and pressure_grad is not None:
+             state = self.erosion_filter(state, pressure_grad, intensity=0.15)
+             
         # Track PAS drift
         if not hasattr(self, 'prev_pas'):
             self.prev_pas = pas_h
