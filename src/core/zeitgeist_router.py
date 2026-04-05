@@ -291,6 +291,18 @@ class ZeitgeistRouter(nn.Module):
     # ------------------------------------------------------------------ #
     # Facet geometry utilities                                             #
     # ------------------------------------------------------------------ #
+    def _apply_log_polar_projection(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Phase 6 Hybrid 4D Space Carving:
+        Transforms multiplicative zooming (Matrioshka depth scaling) into 
+        additive shifting via log-spherical projection.
+        x_lp = (x / ||x||) * log(||x|| + 1.0)
+        """
+        r = x.norm(dim=-1, keepdim=True).clamp(min=1e-8)
+        theta = x / r
+        # Logarithmic radial compression protects the switch_gate from singularities
+        return theta * torch.log(r + 1.0)
+
     def _facet_projections(self, x_norm: torch.Tensor) -> torch.Tensor:
         """
         Compute ⟨n_i, x̂⟩ for i = 1..M.
@@ -334,8 +346,12 @@ class ZeitgeistRouter(nn.Module):
             new_alpha : Tuple[int, ...] of length M
             new_level : int (preserved or updated from BoundaryState Matrioshka level)
         """
+        # Phase 6: Apply Log-Polar projection to stabilize explosive zooming 
+        # during facet switching (acts as the 4D Space Carving conformal map)
+        x_mapped = self._apply_log_polar_projection(x)
+        
         # gate output: [batch, M] → take mean over batch → [M]
-        gate_out = torch.sigmoid(self.switch_gate(x))   # [batch, M]
+        gate_out = torch.sigmoid(self.switch_gate(x_mapped))   # [batch, M]
         delta_soft = gate_out.mean(dim=0)                # [M]
         
         # Incorporate BoundaryState stress tensor to bias the CRT transition
