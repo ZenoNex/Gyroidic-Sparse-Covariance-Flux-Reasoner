@@ -95,7 +95,8 @@ class ModularAttention(nn.Module):
         x: torch.Tensor,
         mask: Optional[torch.Tensor] = None,
         trust_scalars: Optional[torch.Tensor] = None,
-        return_field_outputs: bool = False
+        return_field_outputs: bool = False,
+        **kwargs
     ) -> torch.Tensor:
         """
         Compute modular multi-field attention.
@@ -104,6 +105,7 @@ class ModularAttention(nn.Module):
             x: [batch, seq_len, hidden_dim] input
             mask: Optional [batch, seq_len, seq_len] attention mask
             trust_scalars: Optional [K] trust weights for fields
+            path_topology_vectors: Optional [batch, seq_len, seq_len] geometric path distances for S-Path RAG
             return_field_outputs: If True, return per-field outputs
             
         Returns:
@@ -136,6 +138,13 @@ class ModularAttention(nn.Module):
             scores = torch.matmul(Q_k, K_k.transpose(-2, -1)) / self.scale
             # [batch, num_heads, seq_len, seq_len]
             
+            # Phase 6: S-Path RAG Injection (Non-Tokenizing Geometry)
+            # Add structural path topology directly to the alignment scores.
+            # This allows the model to "feel" geometric distances instead of processing sequential history.
+            if kwargs.get('path_topology_vectors') is not None:
+                topology_bias = kwargs['path_topology_vectors'].unsqueeze(1) # Broadcast over heads
+                scores = scores + topology_bias
+                
             if mask is not None:
                 scores = scores.masked_fill(mask.unsqueeze(1) == 0, -1e9)
             
@@ -214,10 +223,11 @@ class ModularTransformerLayer(nn.Module):
         self, 
         x: torch.Tensor, 
         mask: Optional[torch.Tensor] = None,
-        trust_scalars: Optional[torch.Tensor] = None
+        trust_scalars: Optional[torch.Tensor] = None,
+        **kwargs
     ) -> torch.Tensor:
-        # Attention with residual
-        attn_out = self.attention(x, mask, trust_scalars=trust_scalars)
+        # Attention with residual (passes S-Path topology vectors if present via kwargs)
+        attn_out = self.attention(x, mask, trust_scalars=trust_scalars, **kwargs)
         x = self.norm1(x + attn_out)
         
         # Feed-forward with residual
