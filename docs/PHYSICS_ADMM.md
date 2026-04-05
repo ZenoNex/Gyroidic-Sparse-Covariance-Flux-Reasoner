@@ -355,3 +355,11 @@ This jump is bridged by the **KAGH Surrogate** (`KAGHBlock`), which is invoked d
 ### Saturated Quantizers
 The Saturated Quantizer acts as a hard "Inter-Domain Contract". It uses a Straight-Through Estimator (STE) during the backward pass to allow gradient flow but forces the forward structural footprint to snap accurately to defined topological levels `[-levels/2, levels/2]`.
 This guarantees that the energy-based relaxation does not "blur" the Matrioshka boundaries, ensuring that any state entering the `ZeitgeistRouter` complies with strict geometric CRT containment.
+
+### 9.1 The Picture Gallery Method (Conformal Locking)
+During periods where the Orchestrator identifies `SERIOUSNESS` mode, the system invokes aggressive "Conformal Locking". Here, the Soft Saturated Gates harden abruptly to `pas_h_val=1.0`. The internal symbols remain squarely mapped onto Euclidean intervals while the broader continuous manifold (the ADMR coefficients and continuous probes) stretches and fractures under tension.
+
+## 10. Geological Repair & Erosion Fossils
+
+In direct obedience to Law 2 (Non-Teleological Repair), the system replaces canonical gradient-descent with **Topological FBM Erosion** when a constraint mismatch is explicitly permitted as a "Good Bug" ($\text{is\_good\_bug} = \text{True}$). 
+Because the global loss objective is non-existent, "learning" effectively happens by weathering the surface: FBM (Fractional Brownian Motion) carves gullies along the pressure gradients. Re-visiting states physically lowers their energy requirement mechanically, preventing "catastrophic forgetting" via true morphogenetic memory.
