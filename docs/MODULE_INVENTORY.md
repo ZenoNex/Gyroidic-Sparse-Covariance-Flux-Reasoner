@@ -73,6 +73,14 @@ Augments standard CRT with Bézout coefficient precomputation for fast runtime m
 
 ---
 
+### erosion_filter.py
+**Class**: `TopologicalErosionFBM`
+**Role**: Phase 6 Topological Scarring and Memory Weathering.
+
+Applies Fractional Brownian Motion (FBM) to erode the state manifold based directly on the normalized tension gradient of the topological constraint probes. Injects "Mischief" ($\text{is\_good\_bug} = \text{True}$) topologically rather than gradient-chasing a scalar optimum. Used heavily inside `UniversalOrchestrator` to deposit Non-Teleological Memory.
+
+---
+
 ### fractal_meta_functional.py
 **Role**: Implements fractal meta-recursion inside the diegetic backend's `forward()` pass.
 
@@ -288,10 +296,24 @@ Top-level scheduler for the constraint probe operators $\mathcal{P}_k$, orchestr
 
 ---
 
+### constraint_probe.py
+**Role**: Single constraint operator in the SIC-FA-ADMM pipeline.
+
+Probes the local mathematical feasibility of a constraint geometry against the global symbolic residue output. Generates the fundamental gradients for both the Gyroid Violation and the non-teleological memory erosion traces.
+
+---
+
 ### fractional_operators.py
 **Role**: Fractional-order differential operators for anomalous diffusion dynamics.
 
 Implements generalized fractional calculus operators (Riemann-Liouville or Grünwald-Letnikov approximations) with dynamically adjusted `alpha` parameter based on spectral coherence — hardening the operator (increasing alpha → 1) when coherence is low, allowing more fluid dynamics when coherence is high. Implemented in conversation 51ed57b4.
+
+---
+
+### operational_admm.py
+**Role**: High-level structural framework for ADMM solving across manifolds.
+
+Manages the dual-variable updates and cyclic routing for topological constraint solving. It coordinates the constraint traversal, holding off global scalarization to prevent thermodynamic collapse. Connected mathematically to Phase 6 constraint probe operators.
 
 ---
 
@@ -306,6 +328,24 @@ Applies discrete Ricci flow — the process of uniformizing sectional curvature 
 **Role**: Spectrally-corrected Inexact Constrained Feasibility-Aware ADMM.
 
 Main ADMM solver with spectral transform for the CALM predictor, enabling speculative early exit when the predicted hidden state exhibits low spectral entropy. Partial coverage in `PHYSICS_ADMM.md`. Extended in conversations 51ed57b4 and 57c73ebe.
+
+---
+
+## src/augmentation
+
+### mandelbulb_gyroidic_augmenter.py
+**Class**: `MandelbulbGyroidicAugmenter`
+**Role**: Generates non-Euclidean fractional augmentations.
+
+Embeds dense continuous-space feature vectors into 3D Mandelbulb coordinates, performing topologically-aware fractional iterations before squashing back down. Provides organic, chaotic noise that perfectly reflects boundary conditions of the gyroid, rather than adding generic uniform noise to data.
+
+---
+
+### mandelbulb_pipeline.py
+**Class**: `MandelbulbAugmentedDataset`
+**Role**: PyTorch Dataset wrapper for `MandelbulbGyroidicAugmenter`.
+
+Provides standard PyTorch `Dataset` and `DataLoader` APIs for augmenting the training data online vs cached pre-computation.
 
 ---
 
