@@ -189,7 +189,7 @@ Governs **Low-Frequency Forgetting**. It allows historical anchors that no longe
 Governs **Mid-Frequency Fragmentation**. It prevents categories from hardening into dogmas by allowing multi-modal clusters to "shimmer" and fragment into playful archetypes. It is the seat of creative metaphor.
 
 ### 8.3 The Mischief Band ($H_m$)
-Governs **High-Frequency Play**. It rewards "Good Bugs"—topological violations that reveals the hidden architecture of the forbidden. Mischief is the guardrail against lobotomy; a system that can joke ($PAS_h$ oscillation) is a system that can reason.
+Governs **High-Frequency Play**. It rewards "Good Bugs"—topological violations that reveals the hidden architecture of the forbidden. Mischief is the guardrail against lobotomy; a system that can joke ($PAS_h$ oscillation) is a system that can reason. Structurally, these High-Frequency Mischief anomalies map directly to **Topological FBM Erosion**, physically carving the violations into permanent topological memory "Fossils" instead of decaying them via gradient minimization.
 
 **The Unfolding Closure** ensures these bands remain non-trivial:
 $$ \mathcal{H}(r) = \oint_{\mathcal{C}} \nabla_{top} \Phi(r) + \int \psi_l(r) dr \neq 0 $$
