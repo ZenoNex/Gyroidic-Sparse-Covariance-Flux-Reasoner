@@ -505,9 +505,21 @@ class GyroidicFluxReasoner(nn.Module):
                              # Optionally add a "Restart Penalty" to pressure
                              total_topological_pressure += 1.0 # Force containment pressure up
 
+        # Phase 6: S-Path RAG Initialization
+        path_topology = None
+        if hasattr(self.resonance_cavity, 'get_topology_vectors') and getattr(self, '_last_regime', 'PLAY') == 'SERIOUSNESS':
+            # Generate distance embeddings representing chronological and topological proximity 
+            # instead of typical textual queries
+            path_topology = self.resonance_cavity.get_topology_vectors(h.shape[1], device=h.device)
+            
         # 3a. Transformer processing (Modular multi-field)
         for layer in self.layers:
-            h = layer(h, mask=attention_mask, trust_scalars=self.trust_scalars)  # [batch, seq_len, hidden_dim]
+            h = layer(
+                h, 
+                mask=attention_mask, 
+                trust_scalars=self.trust_scalars,
+                path_topology_vectors=path_topology
+            )  # [batch, seq_len, hidden_dim]
         
         # Uses saturated polynomial gates and trust-based selection
         raw_residues = self.embedder.compute_expected_residues(residue_distributions) # [batch, K, D]
@@ -614,6 +626,16 @@ class GyroidicFluxReasoner(nn.Module):
             coherence=coherence_val
         )
         h = h_orchestrated # Apply logical primitives
+        
+        # Track regime for the next cyclic forward pass or downstream integrations 
+        self._last_regime = regime
+        
+        # Phase 6: Picture Gallery Conformal Warping
+        # Explicit enforcement: We lock the Logic Lattice tighter in Seriousness mode
+        # This transforms the KAGH Soft Saturated Gates into hard conformal meshes
+        if regime == "SERIOUSNESS":
+             residue_distributions = self.soft_gates.apply_soft_saturation(residue_distributions, pas_h_val=1.0)
+
         
         # Check for symbolic failure/conflict OR budget violation
         failure_mask = (reconstruction_pressure_pre > 0.5) 
