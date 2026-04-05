@@ -23,6 +23,12 @@ $$ \frac{\partial g_{\mu\nu}}{\partial t} = -2R_{\mu\nu} $$
 The system "learns" by relaxing into a **minimal Willmore energy** state:
 $$ \mathcal{W} = \int (H^2 - K) dA $$
 
+### 4.1 Topological FBM Erosion (Geological Memory)
+In tandem with Ricci Flow, "Good Bugs" and high-pressure topological events carve permanent structures using **Fractional Brownian Motion (FBM)**. 
+Erosion follows the pressure gradient $\nabla P$ without targeting a ground truth:
+$$ \Delta x_{erosion} = - \frac{\nabla P}{\|\nabla P\|} \cdot | \operatorname{FBM}(x) | $$
+This geological carving acts as physical memory accumulation (depositing "Fossils").
+
 ## 5. Meta-Polytope Quantization
 Signals are projected onto the **600-cell (Tetraplex)** polychoron. This ensures:
 - **High-Dimensional Symmetry**: Preserves orientation information during quantization.
