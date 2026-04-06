@@ -252,12 +252,32 @@ class SparseGyroidCovarianceProbe(nn.Module):
         Orchestrate violation detection.
         
         Args:
-            h: [batch, seq_len, hidden_dim] hidden states
+            h: [batch, seq_len, hidden_dim] hidden states (or 4D log-polar)
             phi_fn: Optional symbolic functional for fracture detection
             
         Returns:
             Results dictionary containing violations and scores
         """
+        if len(h.shape) == 4:
+            # Topologically Aware Dimensional Windowing (ACW) 
+            # Prevents flat 'lobotomizing' of Log-Polar mappings.
+            # Using spectral windowing to preserve phase boundary constraints & Phase transition dynamics.
+            b, c, r, t = h.shape
+            
+            # Apply 2D FFT to enter spectral domain
+            h_freq = torch.fft.rfft2(h)
+            
+            # Asymptotic Windowing W(f): attenuate high-frequency hallucination modes
+            # This implicitly tracks the phase boundary transition ridge 
+            mask = torch.ones_like(h_freq)
+            mask[:, :, mask.size(2)//2:, mask.size(3)//2:] = 0.05 # Soft fractional attenuation, not total
+            
+            # Restore to spatial domain with geometric stress removed
+            h_windowed = torch.fft.irfft2(h_freq * mask, s=(r, t))
+            
+            # Compress sequence while preserving spatial continuum (Volume Weighting mapping)
+            h = h_windowed.reshape(b, c, r * t).transpose(1, 2)
+            
         batch_size, seq_len, _ = h.shape
         violations = []
         gcve_pressures = []
