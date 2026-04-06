@@ -31,7 +31,7 @@ class RedTeamProjection(nn.Module):
         # In a real scenario, these would be populated by red-teaming attacks.
         self.failure_modes = nn.Parameter(torch.randn(num_failure_modes, hidden_dim))
         
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, is_good_bug: bool = False) -> torch.Tensor:
         """
         Apply Pi_RT(x).
         
@@ -49,7 +49,11 @@ class RedTeamProjection(nn.Module):
         x_fail = torch.mm(coeffs, F) # [batch, hidden_dim]
         
         # Remove failure component (Orthogonal Projection)
-        x_safe = x - x_fail
+        if is_good_bug:
+            # Mischief Soliton Bypass: Fractional attenuation (10%) preserves playing structure
+            x_safe = x - (0.1 * x_fail)
+        else:
+            x_safe = x - x_fail
         
         return x_safe
         
