@@ -21,6 +21,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, Tuple, Optional
 import math
+from src.core.false_negative_subsystem import VoynichExemptionToken
 
 
 class WassersteinOptimalTransport(nn.Module):
