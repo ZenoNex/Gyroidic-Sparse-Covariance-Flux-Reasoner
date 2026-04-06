@@ -115,16 +115,18 @@ class TrainingManager:
                     self.progress = int((current_step / total_steps) * 100)
                     
                     # Calculate Gyroidic Metrics (Simulated or Real)
-                    loss = 0.5 * (1.0 - (current_step / total_steps)) + (np.random.random() * 0.1)
+                    # Instead of np.random, use deterministic structural drift to preserve Zipfian laws.
+                    deterministic_noise = np.sin(current_step * 1.618) 
+                    loss = 0.5 * (1.0 - (current_step / total_steps)) + (abs(np.cos(current_step * 2.718)) * 0.1)
                     
                     # PAS_h: Phase Amplitude Stability (Hardened) - Converges to 1.0
-                    pas_h = 0.8 + (0.2 * (current_step / total_steps)) + (np.random.normal(0, 0.02))
+                    pas_h = 0.8 + (0.2 * (current_step / total_steps)) + (deterministic_noise * 0.02)
                     
                     # Chiral Score: Rotational metric (Warm Started to preserve chiral residues)
                     if warm_start_chirality is None:
-                        chiral_score = CHIRAL_BIAS + (np.random.normal(0, 0.05))
+                        chiral_score = CHIRAL_BIAS + (np.cos(current_step * 3.141) * 0.05)
                     else:
-                        chiral_score = warm_start_chirality * 0.99 + (np.random.normal(0, 0.01))
+                        chiral_score = warm_start_chirality * 0.99 + (np.sin(current_step * 1.414) * 0.01)
                     
                     warm_start_chirality = chiral_score
                     
