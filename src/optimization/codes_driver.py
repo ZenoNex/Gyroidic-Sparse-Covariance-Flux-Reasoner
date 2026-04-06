@@ -96,6 +96,10 @@ class CODES:
         Only execute on steps divisible by a polynomial harmonic.
         Uses self.harmonics (polynomial-derived) instead of hardcoded primes.
         """
+        # Type safety assertion for robust mathematical evaluation
+        if not isinstance(step, int):
+            step = int(step)
+
         # Sieve-like check against polynomial-derived harmonics
         for h in self.harmonics:
             h_int = max(2, int(round(h)))  # Ensure valid divisor
