@@ -68,6 +68,11 @@ class HomologyPressure(nn.Module):
         # Get pressures for cycle nodes
         cycle_pressures = pressures[cycle]
         
+        if cycle_pressures.dim() > 1:
+            # Track phase boundary via Transition Ridge (Maximum curvature peak)
+            # instead of simple flat aggregation or lobotomizing mean.
+            cycle_pressures = cycle_pressures.view(len(cycle), -1).max(dim=-1)[0]
+        
         # σ(ε - τ) = sigmoid-smoothed indicator
         indicators = torch.sigmoid(10.0 * (cycle_pressures - tau))
         
@@ -98,6 +103,11 @@ class HomologyPressure(nn.Module):
             return torch.tensor(0.0, device=pressures.device)
         
         cycle_pressures = pressures[cycle]
+        
+        # Transition ridge isolation for multi-dimensional spatial data
+        if cycle_pressures.dim() > 1:
+            cycle_pressures = cycle_pressures.view(len(cycle), -1).max(dim=-1)[0]
+            
         persistence = cycle_pressures.max() - cycle_pressures.min()
         
         return persistence
