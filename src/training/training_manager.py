@@ -94,6 +94,9 @@ class TrainingManager:
             PAS_H_TARGET = 1.0
             CHIRAL_BIAS = -0.5 # Left-handed gyroid preference
             
+            # Phase 6: Chiral Residue Warm Start
+            warm_start_chirality = None
+            
             for epoch in range(epochs):
                 if self.stop_event.is_set():
                     break
@@ -117,8 +120,13 @@ class TrainingManager:
                     # PAS_h: Phase Amplitude Stability (Hardened) - Converges to 1.0
                     pas_h = 0.8 + (0.2 * (current_step / total_steps)) + (np.random.normal(0, 0.02))
                     
-                    # Chiral Score: Rotational metric
-                    chiral_score = CHIRAL_BIAS + (np.random.normal(0, 0.05))
+                    # Chiral Score: Rotational metric (Warm Started to preserve chiral residues)
+                    if warm_start_chirality is None:
+                        chiral_score = CHIRAL_BIAS + (np.random.normal(0, 0.05))
+                    else:
+                        chiral_score = warm_start_chirality * 0.99 + (np.random.normal(0, 0.01))
+                    
+                    warm_start_chirality = chiral_score
                     
                     # Gyroid Pressure: Stress on the manifold
                     gyroid_pressure = max(0, 1.0 - pas_h) * 5.0
