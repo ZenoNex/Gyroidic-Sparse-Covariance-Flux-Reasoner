@@ -734,10 +734,24 @@ class DiegeticPhysicsEngine(nn.Module):
         rho_factor = _as_float(rho_factor_tensor)
         step_factor = _as_float(step_factor_tensor)
         
+        calm_diagnostics = {
+            "abort_score": abort_score,
+            "rho_factor": rho_factor,
+            "step_factor": step_factor,
+            "gauge_pressure": _as_float(gauge_tensor),
+            "trajectory_status": "STABLE"
+        }
+        
         # Apply Voynich Exemption directly to the abort score
         if exemption_token.is_valid_exemption:
             abort_score = 0.0
+            calm_diagnostics["abort_score"] = 0.0
             calm_diagnostics["trajectory_status"] = "VOYNICH_EXEMPTED"
+        elif abort_score > 0.8:
+            calm_diagnostics["trajectory_status"] = "CRITICAL_COLLAPSE_IMMINENT"
+        elif abort_score > 0.7:
+            calm_diagnostics["trajectory_status"] = "WARPED"
+
         gauge_pressure = _as_float(gauge_tensor)
 
         # =============================================
@@ -752,27 +766,6 @@ class DiegeticPhysicsEngine(nn.Module):
                 correction = force_magnitude * forcing_tensor
                 self.meta_state = self.meta_state + correction
                 print(f"🌊 CALM Agentic Forcing applied: P={gauge_pressure:.2f}, ||F||={torch.norm(correction).item():.4f}")
-        
-        calm_diagnostics = {
-            "abort_score": abort_score,
-            "rho_factor": rho_factor,
-            "step_factor": step_factor,
-            "gauge_pressure": gauge_pressure,
-            "trajectory_status": "STABLE"
-        }
-        
-        if abort_score > 0.8:
-            calm_diagnostics["trajectory_status"] = "CRITICAL_COLLAPSE_IMMINENT"
-            # Veto logic... (existing)
-        rho_factor = _as_float(rho_factor_tensor)
-        step_factor = _as_float(step_factor_tensor)
-        
-        calm_diagnostics = {
-            "abort_score": abort_score,
-            "rho_factor": rho_factor,
-            "step_factor": step_factor,
-            "trajectory_status": "STABLE" if abort_score < 0.8 else ("WARPED" if abort_score < 0.7 else "NEVER_VETO")
-        }
 
         # =============================================
         # 5.5: LIVE PAS_h COMPUTATION
