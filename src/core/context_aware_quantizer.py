@@ -181,9 +181,14 @@ class ContextAwareQuantizer(nn.Module):
         #    per-axis step, so we pass q (already quantised) and ignore its
         #    quantisation result — we only want the shell transition logic.
         with torch.no_grad():
-            _, self._alpha, self._level = self.matrioshka(
-                q, alpha=self._alpha, level=self._level
+            result = self.matrioshka(
+                q, alpha=self._alpha, start_level=self._level
             )
+            if isinstance(result, tuple):
+                _, self._alpha, self._level = result
+            else:
+                self._alpha = result.alpha
+                self._level = result.level
 
         # 4. Detect shell crossing → emit BoundaryState
         boundary: Optional[BoundaryState] = None
