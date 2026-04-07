@@ -544,7 +544,7 @@ class SpeculativeCoprimeGate(nn.Module):
         
         # Check digit-pattern congruence (warmstart bypass via Repunits)
         target_mean = target_manifold.mean(dim=0, keepdim=True).expand(batch, -1)
-        if self.modular_rns.fast_congruence_check(source, target_mean, exemption_token):
+        if self.modular_rns.fast_congruence_check(source, target_mean):
             # Bypass Wasserstein OT: Align directly in finite field mapping
             transported = target_mean + torch.randn_like(target_mean) * 0.01
             wasserstein_dist = torch.tensor(0.0, device=source.device)
