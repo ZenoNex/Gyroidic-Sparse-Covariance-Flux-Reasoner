@@ -443,6 +443,9 @@ class HybridAI:
                 print(f"[FAIL] Temporal model processing failed: {e}")
                 response_text = f"I encountered an issue processing your message: {text}"
         else:
+            # Fallback to topological hash explicitly
+            self.hidden_state_scarred = text_embedding.clone()[:256]
+            self.hidden_state = text_embedding.clone()[:256]
             response_text = self._generate_simple_response(text)
         
         # Apply spectral correction if available
@@ -503,7 +506,6 @@ class HybridAI:
             filename = f"fossil_{timestamp}.pt"
             filepath = os.path.join(self.graph_dir, filename)
             
-            # Create a simple fossil dictionary compatible with GyroidicGraphManager
             fossil_data = {
                 'text_input': text,
                 'meta_state': state.detach().cpu(), # The "embedding"
@@ -512,6 +514,24 @@ class HybridAI:
                 'spectral_entropy': metrics.get('spectral_entropy', 0.0),
                 'timestamp': timestamp
             }
+            
+            # Reintegrate betti numbers updates
+            try:
+                from src.topology.persistence_obstruction import ResidueFiltration, PersistentHomologyComputer
+                if self.graph_manager and self.graph_manager.nodes:
+                    points = torch.stack([n.state for n in self.graph_manager.nodes])
+                    # Ensure dim=256
+                    if points.dim() == 2:
+                        rf = ResidueFiltration(torch.zeros(1), torch.zeros(1))
+                        complex = rf.build_simplicial_complex(points, max_dimension=1)
+                        phc = PersistentHomologyComputer(max_dimension=1)
+                        betti = phc.compute_betti_numbers(complex)
+                        fossil_data['betti_0'] = betti.get(0, 0)
+                        fossil_data['betti_1'] = betti.get(1, 0)
+                        metrics['betti_0'] = betti.get(0, 0)
+                        metrics['betti_1'] = betti.get(1, 0)
+            except Exception as e:
+                pass
             
             torch.save(fossil_data, filepath)
             
@@ -644,7 +664,10 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 'spectral_corrector': SPECTRAL_CORRECTOR_AVAILABLE
             }})
         elif parsed_path.path == '/api/training_status':
-            self._send_json({'active': False, 'progress': 0, 'log': [], 'results': None})
+            if AI_SYSTEM and AI_SYSTEM.training_manager:
+                self._send_json(AI_SYSTEM.training_manager.get_status())
+            else:
+                self._send_json({'active': False, 'progress': 0, 'log': [], 'results': None})
         elif parsed_path.path == '/api/local_datasets':
             self._handle_local_datasets()
         else:
