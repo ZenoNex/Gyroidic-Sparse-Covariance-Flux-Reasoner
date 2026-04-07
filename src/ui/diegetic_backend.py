@@ -1463,7 +1463,7 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # True Gate 4/5 Mathematics
         with torch.no_grad():
-            residues, _, _ = self.voynich_linguist(seed_state)
+            residues, _, _, _ = self.voynich_linguist(seed_state)
             crt_honesty = float(self.voynich_linguist.get_continuous_honesty(residues).item())
             
         # Update Mischief Probe
