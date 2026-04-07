@@ -42,7 +42,8 @@ def verify_training():
         status = manager.get_status()
         print(f"Status check {i}: Active={status['active']}, Progress={status['progress']}%")
         if status['log']:
-            print(f"Latest log: {status['log'][-1]}")
+            safe_log = status['log'][-1].encode('cp1252', errors='replace').decode('cp1252')
+            print(f"Latest log: {safe_log}")
             # Print full new logs if needed
         
         if not status['active'] and status['results']:
