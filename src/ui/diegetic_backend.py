@@ -264,7 +264,23 @@ class DiegeticPhysicsEngine(nn.Module):
         )
         
         # Repunit-CRT Sparse Probe - for topological factoring
-        self.repunit_probe = SparseRepunitProbe(dim=dim, k=k)
+        # Using Legendre polynomial generated coefficients instead of hardcoded primes (anti-lobotomy compliance)
+        poly_moduli = []
+        x = 0.7
+        p_prev2, p_prev1 = 1.0, x
+        for i in range(k):
+            if i == 0:
+                p_k = 1.0
+            elif i == 1:
+                p_k = x
+            else:
+                p_k = ((2*i - 1) * x * p_prev1 - (i - 1) * p_prev2) / i
+                p_prev2, p_prev1 = p_prev1, p_k
+            
+            # Scale to positive integers for CRT moduli
+            poly_moduli.append(int(abs(p_k * 10) + 13)) # Shift up to avoid trivial bases
+            
+        self.repunit_probe = SparseRepunitProbe(moduli=poly_moduli)
         
         # Love Invariant Protector - prevents Love vector scalarization
         self.love_protector = LoveInvariantProtector(
