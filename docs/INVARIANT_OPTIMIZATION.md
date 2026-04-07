@@ -229,6 +229,9 @@ Outside of the evolutionary loop (System 1 + Resonance Cavity), no parameters (K
 ### Tripwire 6: Hard Failure Budget (Mutation Override)
 If a specific residue pattern triggers an **ABORT** or **STAGNATE** outcome more than $N_{lim}$ times, the system triggers a **Hard Mutation Override**. It stops attempting repair and forces a topological shift in the functional configuration.
 
+### Tripwire 7: Explicit Projection vs Continuous Approximation
+Approximating harmonic bounding (e.g., via trigonometric comb filters like $R(x) = \text{avg}(\cos(2\pi x/p))$) is mathematically valid but risks partial "dissonant" floating-point leak states during optimization scaling. To rigorously enforce invariance, the CODES `chordlock` natively utilizes tensor-parallel **exact projection**, locking states to the *nearest* arithmetic $p$-multiple anchor via $\min(\| x - round(x/p)p \|)$. This forces exact, irrefutable geometric quantization directly over continuous space, completely banning intermediate drift.
+
 ---
 
 ## 12. The Hard Interaction Contract
