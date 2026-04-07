@@ -368,6 +368,14 @@ src/
 
 This implementation state represents a mature, mathematically rigorous system that follows all anti-lobotomy principles while maintaining the three-system architecture's integrity.
 
+### Phase 2 Reintegration Overrides (April 2026)
+
+To resolve graph export bugs and ensure invariant enforcement, three key overrides were recently applied:
+
+1. **Explicit Chordlock Projection** (`codes_driver.py`): The `CHORDLOCK` logic, previously a trigonometric comb filter, has been refactored into a rigorous projection operator. Inputs now deterministically "snap" to the nearest explicit polynomial representation (`round(x/p)*p`), solidifying integer preservation.
+2. **Real-time Betti Calculation** (`hybrid_backend.py`): Fossils generated directly from the web backend now perform real-time `betti_0` and `betti_1` evaluation. The system constructs a Vietoris-Rips filtered simplicial complex over its graph embeddings and calculates persistent topological features natively, resolving the UI topological blindness.
+3. **Inference Safe-Mode Shield**: If the `NonLobotomyTemporalModel` fails to invoke, the server directly overrides `hidden_state` to clone the topological hash projection. This ensures smooth generation bypasses floating point calculations during system fault scenarios.
+
 ---
 
 ## 8. Operational Modes (User Guide)
