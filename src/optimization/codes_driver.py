@@ -120,28 +120,23 @@ class CODES:
         if not anchors:
             return latent
 
-        # Comb Filter Logic:
-        # R(x) = Average( cos(2*pi * x / p) ) normalized to [0,1]
-        # This amplifies values x that are near integer multiples of p ("Resonant")
-        # and suppresses intermediate values ("Dissonant").
+        # Project latent tensor onto the nearest prime anchor
+        # For each element, distance to nearest multiple of p is |x - round(x/p)*p|
+        # Find the p that minimizes this distance
         
-        comb_accum = torch.zeros_like(latent)
+        # [num_anchors, *latent.shape]
+        anchors_tensor = torch.tensor(anchors, dtype=latent.dtype, device=latent.device).view(-1, *([1]*latent.dim()))
         
-        for p in anchors:
-            # Use small epsilon to avoid div by zero, though p should be >= 1
-            p_safe = max(1.0, float(p))
-            comb_accum += torch.cos(2 * math.pi * latent / p_safe)
-            
-        # Normalize: cos ranges [-1, 1], average is [-1, 1].
-        # We want a gating factor in [0, 1].
-        avg_response = comb_accum / len(anchors)
+        # Calculate nearest multiples for each anchor
+        multiples = torch.round(latent / anchors_tensor) * anchors_tensor
         
-        # Map [-1, 1] -> [0, 1] with sharpening
-        # (val + 1) / 2 smooths it. Let's add non-linearity for "Locking"
-        gating_factor = (avg_response + 1.0) / 2.0
-        gating_factor = torch.pow(gating_factor, 2.0) # Sharpen resonance
+        # Calculate distances
+        distances = torch.abs(latent - multiples)
         
-        # Apply Lock
-        locked_latent = latent * gating_factor
+        # Find index of minimum distance across anchors
+        min_indices = torch.argmin(distances, dim=0)
+        
+        # Gather the corresponding nearest multiples (the actual projection)
+        locked_latent = torch.gather(multiples, 0, min_indices.unsqueeze(0)).squeeze(0)
         
         return locked_latent
