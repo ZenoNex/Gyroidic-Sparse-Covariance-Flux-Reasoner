@@ -596,7 +596,14 @@ class SparseExplorerRouting(nn.Module):
                     
                     # Local extraction
                     local_indices = torch.arange(window_start, window_end, device=hidden_states.device)
-                    local_sims = torch.mv(states_norm[window_start:window_end], states_norm[current_node])
+                    euclidean_sims = torch.mv(states_norm[window_start:window_end], states_norm[current_node])
+                    
+                    # Phase 8: RP^4 Projective Topology (Inverted Hypersphere Constraint)
+                    # In an S^4/Z_2 projection, antipodal points (x ~ -x) are identified.
+                    # We square the similarity so that extreme diametric oppositions 
+                    # are treated as close neighbors, structurally linking "paradoxes"
+                    # without gradient death or zero-crossing lobotomy.
+                    local_sims = euclidean_sims.pow(2)
                     
                     # Mask self and invalid
                     local_sims[current_node - window_start] = -1e9 
