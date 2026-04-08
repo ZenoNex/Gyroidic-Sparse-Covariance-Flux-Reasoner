@@ -915,3 +915,41 @@ class MoebiusFiberBundle(nn.Module):
         # Project to fiber space
         fiber_state = self.fiber_projection(twisted_x)
         return fiber_state
+
+class ChernSimonsGasket(nn.Module):
+    """
+    Category Error Transversal Map (Multi-Modal / Cross-Embedding).
+    
+    Instead of minimizing the transition between non-linear (e.g., audio) and 
+    rigid (e.g., text) modalities, this measures the Non-Commutativity Curvature (kappa).
+    
+    The 'tailings' or friction of the category error are not treated as loss to be minimized.
+    They are fossilized as generative meaning. Meaning as Curvature.
+    """
+    def __init__(self):
+        super().__init__()
+         
+    def forward(self, state_a: torch.Tensor, state_b: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """
+        Lock-in check for cross-modal recombinations using topological mismatch.
+        
+        Args:
+            state_a: Tensor from Modality A
+            state_b: Tensor from Modality B mapped to A's space
+        """
+        # Calculate Non-Commutativity Curvature (κ)
+        # Represents the "tailings" left over from forcing state_b into state_a's mold.
+        kappa = torch.norm(state_a - state_b, p=2, dim=-1)
+        
+        # Topology Truncation (BigGAN inspiration): 
+        # Expose the categorical defect as a definitive feature scar.
+        # High kappa means high category error, which translates to high generative transversality.
+        mean_k = torch.mean(kappa)
+        std_k = torch.std(kappa) + 1e-8
+        
+        scar_mask = kappa > (mean_k + std_k)
+        
+        return {
+            'non_commutativity_curvature': kappa,
+            'feature_scars': scar_mask
+        }
