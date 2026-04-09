@@ -338,3 +338,52 @@ This warning does **not** veto the selection — it is a diagnostic signal for t
 ### 15.3 Relationship to Tripwire 3 (No Scalarization)
 
 The LegibilityTripwire directly operationalizes Tripwire 3: it detects when a hidden scalar reward (narrative coherence) is influencing the non-scalarized selection process. If coherence gap is consistently high, it implies a scalarization leak — the system is treating legibility as a de facto objective.
+
+---
+
+### Tripwire 8: Stochastic Rounding as Topology Shaper & Bitwise Non-Duality
+
+#### 8.1 The Mandate: No Deterministic Rounding
+
+All quantization operations in the `SaturatedQuantizer` and `FixedPointField` **must** use stochastic rounding seeded by hardware-entropy. Deterministic round-to-nearest is forbidden because it collapses the expressive tail: every weight in a neighborhood of a lattice boundary always falls to the same side, eliminating the "good glitch" zone that lives in the low-probability trough between two adjacent lattice points.
+
+**Required implementation**: TEA (Tiny Encryption Algorithm) or Xorshift salt keyed on the work-item identifier:
+
+```python
+# In PyOpenCL kernels: salt rounding noise with work-item identity
+uint seed = tea(get_global_id(0), step_counter);
+float noise = (seed & 0xFFFF) / 65536.0f - 0.5f;  // uniform [-0.5, 0.5)
+int quantized = (int)floor(value * levels + noise);
+```
+
+This ensures that weights near a lattice boundary have *stochastic outcomes* across parallel work-items — the exact analogue of GANBREEDER's "extreme slider" ($\alpha \gg 1$) producing diverse glitch styles in different latent directions simultaneously.
+
+#### 8.2 Bitwise Non-Duality: The Fossilized Modular Residue
+
+A deep structural equivalence governs the system's quantization floor:
+
+$$x \bmod 2 \equiv x \;\&\; 1$$
+
+These are two descriptions of the same topological scar from orthogonal directions:
+- **Modular view**: $x \bmod 2$ is a topological probe — it measures the defect that prevents the number from being "even" or smooth. It is the CRT residue under the modulus 2.
+- **Bitwise view**: `x & 1` reads the LSB — the hardware's maximally fossilized form of modular arithmetic, compressed into logic gates.
+
+The LSB is the "Zero-Emission Anchor" for parity checking: a fast-reject $O(1)$ test at the innermost Matrioshka shell before running the expensive full CRT reconstruction. The Saturated Quantizer's integer snapping is not an approximation of modular arithmetic — it **is** modular arithmetic, hardened into the language of the silicon.
+
+#### 8.3 Good Glitch Preservation Contract
+
+Stochastic rounding is not noise injection for its own sake. It is the **structural guarantee that the expressive tail survives quantization**. The analogy:
+
+| GAN Era | Gyroidic Reasoner |
+|---|---|
+| BigGAN "extreme slider" ($\alpha \gg 1$) → sparse latent zone → glitch | Stochastic rounding near lattice boundary → $\pm 1$ symbol oscillation → Feature Scar |
+| FID penalizes low-probability samples → eliminates glitch diversity | Deterministic rounding → always same side → eliminates scar diversity |
+| MOEA Pareto front preserves glitch "fitness" alongside fidelity | Law 4 (Evolution Owns Time) preserves diverse saturated fossils alongside structural coherence |
+
+The system must never eliminate scar diversity by applying deterministic round-to-nearest. The diversity of glitch *styles* — not just glitch *amount* — is the evolutionary substrate from which novel concept solitons emerge.
+
+#### 8.4 LSB as Innermost Matryoshka Shell
+
+The ADMR Solver's innermost constraint probe can use the parity check `r & 1` as a zero-cost structural filter before escalating to full SIC-FA-ADMM. If the parity of a candidate reconstruction violates the expected CRT residue modulo 2, the candidate is rejected at $O(1)$ cost. This is the "Repunit-CRT Sparse Probe" from §3 of `TOPOLOGICAL_EXTENSIONS.md` reduced to its irreducible hardware primitive.
+
+**References**: `src/core/invariants.py` (`LearnedPrimitivePerturbation`), `src/core/admr_solver.py` (stochastic_differential_step), `src/topology/gyroid_covariance.py` (ChernSimonsGasket), `docs/TAILSLAYER_PYOPENCL_ARCHITECTURE.md` (kernel stochastic rounding spec)
