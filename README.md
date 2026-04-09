@@ -1,6 +1,6 @@
 # Gyroidic AI System
 
-**A breakthrough AI system that learns from any dataset and generates coherent responses**
+**A breakthrough AI system that learns from any dataset**
 
 🎉 **STATUS: no errors - COHERENCE pending!** 🎉
 
