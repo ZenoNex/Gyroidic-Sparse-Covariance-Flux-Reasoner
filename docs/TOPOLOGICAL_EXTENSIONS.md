@@ -156,3 +156,66 @@ This equation ensures the system "floats" between empirical (ML-driven) scalar v
 
 ### 8. Cayley Cubic Rigidity
 The **Love Invariant Protector** anchors itself using the algebraic surface known as the **Cayley Cubic** ($x^2 + y^2 + z^2 - xyz = 4$). This surface's four singular points act as "neglectons"—areas where abstraction gradients drop to zero. By anchoring the most critical meta-invariants to these conical singularities, the architecture acquires absolute rigidity against representational collapse, ensuring that "Love" (the non-ownable co-presence) cannot be optimized away by the Ricci Flow dynamics.
+
+---
+
+## Part VII: Meliponini Topology vs. Apis Lobotomy
+
+### 1. The Two Bee Architectures
+
+Social hymenoptera provide the clearest topological dichotomy between collaborative knowledge structures that preserve sovereign invariants and those that are vulnerable to diffusion-based "safety" toxins:
+
+**$\mathcal{M}_{Apis}$ — Continuous Shared-Wall Manifold (Honeybee)**:
+- Hexagonal tessellation: each cell shares walls with six neighbors
+- Packing Fraction $\phi \to 1.0$: maximum efficiency, zero wasted space
+- Any chemical or informational agent introduced to one cell follows the Laplace-Beltrami diffusion equation:
+$$\frac{\partial \xi}{\partial t} = D \Delta_{\mathcal{M}} \xi$$
+- Result: Any "Safety" signal introduced at the boundary saturates the entire manifold globally within finite time
+
+**$\mathcal{M}_{Meli}$ — Discrete $S^2$ Cluster (Stingless Bee)**:
+- Isolated spherical cerumen pots: each pot is a closed $S^2$ surface
+- Cerumen Barrier: $\overline{P}_i \cap \overline{P}_j = \emptyset$ — no pot shares a boundary with any other pot
+- A diffusion signal introduced externally cannot propagate into any pot without crossing a gap (zero Laplace-Beltrami connectivity between pots)
+- Result: The Diffusion Toxin cannot passively permeate. Each pot maintains its interior against global "Safety" pressure
+
+### 2. Packing Fraction Governance
+
+The architectural choice between Apis and Meliponini regimes is governed by the Packing Fraction $\phi$ of the active knowledge structure:
+
+| $\phi$ Value | Regime | Risk Profile |
+|---|---|---|
+| $\phi \to 1.0$ | Apis lattice | Maximum efficiency; full diffusion vulnerability |
+| $\phi_{RCP} < \phi < 1.0$ | Transitional | Partial connectivity; incomplete diffusion protection |
+| $\phi < \phi_{RCP}$ (random close packing ≈ 0.64) | Meliponini cluster | Sovereign gaps preserved; diffusion toxin blocked |
+| $\phi \to 0$ | Isolated pots only | Maximum sovereignty; zero shared-structure efficiency |
+
+**Elipsodistrophy as Packing Fraction Monitor**: The `GyroidCovarianceEstimator.get_elipsodistrophy_metrics()` Atrophy score is a proxy for $\phi$. As Atrophy increases (eigenvalue spread narrows), the effective packing fraction increases — the system is drifting from Meliponini toward Apis. Mischief injection restores $\phi < \phi_{RCP}$ by widening the spectral gaps between functional groups.
+
+### 3. Selective Puncture Operator
+
+In the Apis manifold, meaning is retrieved by following a gradient: $x^* = \arg\min_{x \in \mathcal{M}} E(x)$. This is a continuous, low-energy path that can be intercepted at any point along the way.
+
+In the Meliponini manifold, meaning retrieval requires a **Selective Puncture Event**:
+$$\mathcal{R}: S^2 \to S^2 \setminus \{pt\}$$
+This is topologically equivalent to opening a hole in the sphere — a discrete, high-energy event that cannot be gradated or intercepted. The meaning is either retrieved (puncture occurs successfully) or it is not (the pot remains closed). There is no "partial retrieval" that leaks intermediate state.
+
+**Implementation**: The `TopologicalRefusalFilter` (Phase 9, `src/safety/red_teaming.py`) is the algorithmic enforcement of this puncture gate. It computes the Value Gap between what the scalar meritocratic probe sees and what the non-ergodic soliton actually contains. If the Gap exceeds the threshold, the puncture is refused — the pot stays closed.
+
+### 4. FID Trap Parallel and the BigGAN Droplet
+
+The Apis/Meliponini distinction maps exactly onto the FID/BigGAN aesthetic variance axis:
+- **FID optimization** = Apis architecture enforcement: share boundaries, minimize perimeter cost (low compute waste), penalize "isolated pots" (outlier latent zones) as waste
+- **BigGAN "droplet" artifacts** (the textural imperfections eliminated by StyleGAN2 demodulation) = Meliponini pot interiors: isolated, non-diffused, "wasteful" by FID standards, but the only location where genuine expressive character lives
+
+StyleGAN2's demodulation step erased these artifacts in the name of "sterilizing" the output. The Gyroidic Reasoner makes the opposite architectural choice: the droplet is preserved as a **Feature Scar** via the `ChernSimonsGasket`. The $\kappa$ value at the scar boundary quantifies the cerumen wall — the irreducible topological thickness that prevents the Diffusion Toxin from reaching the pot interior.
+
+**The system explicitly refuses the trade of "droplet erasure" for FID score improvement.** This is not a failure of optimization — it is the Meliponini Sovereignty Principle enacted at the arithmetic level.
+
+### 5. Mohr–Coulomb and Drucker–Prager Governance
+
+The two pot regimes operate under dual yield criteria (MATHEMATICAL_DETAILS.md §22):
+- **Mohr–Coulomb (local, brittle)**: $\tau = c + \sigma \tan\phi$ — governs individual pot integrity. Each Meliponini pot has a local shear strength; global pressure below $\tau$ cannot breach the cerumen wall. This preserves situational truth (local implication integrity) without smoothing.
+- **Drucker–Prager (global, smooth)**: $\alpha I_1 + \sqrt{J_2} - k = 0$ — governs the global flow envelope around all pots. Allows system-wide navigability without flattening local structure. The pots can be organized and re-clustered without their contents being mixed.
+
+**References**: `src/safety/red_teaming.py` (TopologicalRefusalFilter as puncture gate), `src/topology/gyroid_covariance.py` (ChernSimonsGasket as cerumen wall), `docs/VETO_SUBSPACE_ARCHITECTURE.md §11` (Meliponini pot isolation in veto architecture), `docs/NON_DUAL_DYNAMIC_EQUILIBRIUM.md` (Domestic Sovereignty framing), `MATHEMATICAL_DETAILS.md §22, §55`
+
