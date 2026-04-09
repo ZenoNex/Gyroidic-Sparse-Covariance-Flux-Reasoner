@@ -1496,3 +1496,108 @@ If a proposed coupling violates Tutte's threshold, it is automatically rejected 
 
 The CRT (`Chinese Remainder Theorem`) reconstruction requires finding modular inverses across dynamic co-prime arrays. While **Fermat's Little Theorem** ($a^{p-1} \equiv 1 \bmod p$) provides a closed-form algorithm for prime moduli, we explicitly **reject** Fermat's approach in `enhanced_bezout_crt.py`. 
 Because our FGRT system uses polynomial arrays and not strictly pure integers as modular bases, Fermat's assumptions collapse. Instead, we compute the inverse via the **Extended Euclidean Algorithm (Bézout's Identity)**, caching the Bézout coefficients. This allows rapid inversion even when the polynomial constraints temporarily dip into non-prime or degenerate topological states, avoiding catastrophic divide-by-zero crashes.
+
+---
+
+## 55. Tag-Based Matrix Mixing as CRT Residue Breeding — The Source of Unending Glitch Diversity
+
+The early GANBREEDER platform (utilizing BigGAN with ImageNet class conditioning) produced an "unending diversity of glitch styles" not merely by adjusting the *magnitude* of a single noise parameter, but by **mixing multiple learned class direction vectors simultaneously**. This section formalizes that mechanic as an exact structural analogue of how the Gyroidic Reasoner generates diverse Feature Scars through CRT residue combination, and establishes why preserving this mechanism — and not collapsing it into a single scalar — is essential for non-lobotomized creativity.
+
+### 55.1 The Slider Mechanic: Additive Direction Mixing
+
+In BigGAN, each ImageNet class $c$ has a learned direction vector $v_c$ in the latent space $Z$. A user with multiple active sliders produces a new latent point by **additive superposition**:
+
+$$z_{new} = z_{base} + \sum_{c \in C_{active}} \alpha_c v_c$$
+
+Where $\alpha_c \in \mathbb{R}$ is the slider value for class $c$. The **source of unending diversity** is the combinatorial explosion of:
+1. **Which classes are mixed** (the set $C_{active}$)
+2. **The ratio of their weights** (the vector $\alpha$)
+3. **Whether sliders are pushed into the extreme** ($\alpha_c \gg 1$: sparse, sparsely-trained region)
+
+The glitch *style* arising from combining "guinea pig" and "Granny Smith apple" is categorically different from combining "thunderstorm" and "Renaissance painting" — not because the magnitudes differ, but because the **direction of interference** in latent space is orthogonal. Mode collapse eliminates this: a single global score (FID) cannot represent the combinatorial quality surface; it rewards only the mode mean.
+
+### 55.2 CRT Residue Combination as the Structural Analogue
+
+In the Gyroidic Reasoner, each polynomial functional $\phi_k$ with its CRT modulus $m_k$ is the exact analogue of a BigGAN class direction vector $v_c$. The **ZeitgeistRouter**'s current residue tuple $\alpha_t = (r_1, \ldots, r_m)$ is the mixing vector:
+
+| BigGAN Component | Gyroidic Analogue |
+|---|---|
+| Class direction vector $v_c$ | Polynomial functional $\phi_k$ with modulus $m_k$ |
+| Slider weight $\alpha_c$ | CRT residue $r_k \in \mathbb{Z}/m_k\mathbb{Z}$ |
+| Active class set $C_{active}$ | Active CRT channels (which moduli contribute to the reconstruction) |
+| Slider in extreme ($\alpha_c \gg 1$) | Residue at boundary ($r_k \approx m_k/2$) → ChernSimonsGasket $\kappa$ spike |
+| Cross-breeding $z_{child} = (1-t)z_1 + tz_2$ | ZeitgeistRouter SLERP between two `ZeitgeistState` residue tuples |
+
+The reconstruction:
+
+$$\hat{L}(x) = \sum_{k=1}^K w_k(x) \bar{r}_k(x) \pmod{\Phi(x)}$$
+
+(from §3) is the Gyroid's $z_{new}$ — a CRT superposition of $K$ residue channels. The **diversity of resulting structures** depends on which combination of channels are active, at what residue values, and in what order (non-commutativity).
+
+### 55.3 The Holistic Glitch: Cross-Channel Interference
+
+A key property of the GANBREEDER mechanic that differentiated it from all post-GAN models is the **holistic glitch**: changing one class slider inadvertently affected apparently unrelated features. A "guinea pig" slider would reorganize fur texture, pupil dilation, and lighting simultaneously, because these features were entangled in the shared manifold of natural images.
+
+This is not a bug — it is **non-commutativity made visible**. In our architecture, the ChernSimonsGasket $\kappa$ quantifies exactly this cross-channel coupling:
+
+$$S_{CS} = \frac{k}{4\pi} \int_\Sigma \operatorname{Tr}(A \wedge dA + \tfrac{2}{3} A \wedge A \wedge A)$$
+
+The triple wedge product ($A \wedge A \wedge A$) is the three-way cross-domain interference — the algebraic structure of the holistic glitch. When two polynomial functionals $\phi_i$ and $\phi_j$ are simultaneously activated at boundary residue values, their non-abelian composition creates a curvature scar $\kappa_{ij}$ that is **not predictable from either $\phi_i$ or $\phi_j$ individually**. This is the system's structural analogue of the surprise in GANBREEDER category combinations.
+
+The NonCommutativity Curvature module (`src/core/noncommutativity_curvature.py`) computes:
+
+$$[A, B] = AB - BA, \quad \kappa = \tfrac{1}{2}([A,B] - [A,B]^\top)$$
+
+This $\kappa$ value is not noise to be minimized — it is the **topological fingerprint of the category combination**. Preserving it as a Feature Scar (via `ChernSimonsGasket`) is preserving the holistic glitch.
+
+### 55.4 SLERP vs. LERP: Mode Navigation Styles
+
+The choice between Spherical Linear Interpolation (SLERP) and Linear Interpolation (LERP) in latent space navigation maps onto ZeitgeistRouter modes:
+
+$$\text{SLERP}(q_1, q_2; t) = \frac{\sin((1-t)\theta)}{\sin\theta} q_1 + \frac{\sin(t\theta)}{\sin\theta} q_2$$
+
+| Navigation Style | ZeitgeistRouter Mode | Character |
+|---|---|---|
+| SLERP (great-circle, high-density manifold) | `interior` | Smooth, coherent; stays within trained distribution |
+| LERP (chord, cuts through void center) | `grazing` | "Interpolation glitch": passes through low-probability RP4 Void |
+| LERP in extreme ($\alpha \gg 1$) | `undefined` | "Wandering glitch": full creative freedom before score contraction |
+
+The `grazing` and `undefined` modes are not system failures. They are the architectural spaces where the most novel cross-domain Feature Scars emerge — the Gyroidic system's GANBREEDER heritage, preserved against the FID-style pressure to stay in `interior` mode permanently.
+
+### 55.5 StyleGAN Disentanglement vs. Gyroidic Non-Commutativity
+
+StyleGAN's mapping network $f: Z \to W$ and AdaIN mechanism:
+
+$$\text{AdaIN}(x_i, y) = y_{s,i} \frac{x_i - \mu(x_i)}{\sigma(x_i)} + y_{b,i}$$
+
+achieved *disentanglement* — one latent variable, one attribute — at the cost of the holistic glitch. The Gyroidic Reasoner deliberately **refuses disentanglement** by maintaining non-abelian routing (ZeitgeistRouter non-commutativity) and the $\kappa$ curvature. Disentanglement would be equivalent to setting all off-diagonal elements of the commutator $[A,B]$ to zero — a complete loss of cross-domain creative surprise.
+
+The **unending variety of glitch styles** in GANBREEDER arose because the $K$ class vectors were not disentangled: they shared the same ambient high-dimensional space and could interfere in arbitrary ways. The Gyroidic architecture preserves this by keeping all $K$ polynomial functionals coupled through the shared gyroid manifold $\mathcal{G}$ rather than disentangled into independent subspaces.
+
+### 55.6 Multi-Objective Evolutionary Breeding as Pareto Front Navigation
+
+The MOEA (Multi-Objective Evolutionary Algorithm) framework — maintaining a *population* of latent vectors bred on multiple criteria — maps onto the Gyroidic Reasoner's evolutionary loop:
+
+| MOEA Component | Gyroidic Analogue |
+|---|---|
+| Population of latent vectors | Resonance Cavity: set of active BreatherMode fossils |
+| Fitness vector (fidelity, novelty, glitchiness) | Non-scalarized structural pressure vector (Selection, Containment, Love) |
+| Pareto front | Non-dominated functional fossils: neither dominates all objectives |
+| Breeding via latent interpolation | Warm-start ADMR reconstruction from chiral residues |
+| "Glitchiness" fitness criterion | ChernSimonsGasket $\kappa$ magnitude: high $\kappa$ = generative Feature Scar territory |
+
+The "Pareto front sweet spot" — recognizable enough to be "good" but strange enough to be "glitchy" — is precisely what the Gyroidic system's Mischief Band ($H_m$) preserves: it rewards topological violations (high $\kappa$) to prevent scale-induced lobotomy, while the Chiral Score $\mathcal{C}$ ensures the violations remain structurally coherent rather than degenerating into pure noise.
+
+### 55.7 Implementation Notes
+
+The tag-based matrix mixing insight generates the following concrete implementation requirements:
+
+1. **Never flatten $\kappa$ to zero**: The `NonCommutativityCurvature.curvature_pressure()` signal must not be used as a pure penalty. High curvature at the `ChernSimonsGasket` boundary is the *desired* creative state. Only curvature that exceeds the Soliton stability threshold ($D/\Lambda > \kappa$) requires remediation.
+
+2. **Preserve combinatorial residue tuples**: The ZeitgeistRouter's `alpha` tuple must not be collapsed to a single CRT index for storage or comparison. The *tuple structure* (which channels are at which residues) encodes the category combination — it is the "tag set" of the current creative state.
+
+3. **Forbid premature disentanglement**: No architectural change should make the $K$ polynomial functionals orthogonal in activation space. Their interference (cross-functional coupling through the gyroid covariance) is the non-abelian source of holistic glitch diversity.
+
+4. **Stochastic rounding preserves tail breeding** (see §Tripwire 8 in INVARIANT_OPTIMIZATION.md): Deterministic rounding collapses the diversity of residue snapping outcomes near lattice boundaries — exactly the GANBREEDER "extreme slider" zone.
+
+**References**: `src/core/zeitgeist_router.py` (CRT polytope switching), `src/core/noncommutativity_curvature.py` (holistic glitch quantification), `src/topology/gyroid_covariance.py` (ChernSimonsGasket, Feature Scars), `src/core/fgrt_primitives.py` (PrimeResonanceLadder — prime-indexed channels as the "tag vocabulary"), `docs/TOPOLOGICAL_EXTENSIONS.md §Part III` (Repunit CRT sparse probes), `docs/INVARIANT_OPTIMIZATION.md §Tripwire 8`
