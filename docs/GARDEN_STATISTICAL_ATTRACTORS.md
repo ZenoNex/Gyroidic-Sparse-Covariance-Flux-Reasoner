@@ -132,3 +132,57 @@ ResonanceAttractor (nn.Module)
 | Resonance signal | `[B, T]` | Batch × TimeSteps |
 | Defect field | `[B, D]` | Defect magnitude per dimension |
 | Chiral gate | `[B, 1]` | Scalar gate value per sample |
+
+---
+
+## 7. MEMPALACE Rooms as Planted Attractor Chambers
+
+### 7.1 Architecture Overview
+
+Garden Attractor basins can be intentionally **planted** as discrete Memory Palace rooms: stable attractor centers $\mu_k$ with Chern-Simons Gasket cerumen walls sealing the room's topological boundary. The room is a Meliponini pot (TOPOLOGICAL_EXTENSIONS §Part VII) at the attractor scale: once the ChernSimonsGasket seals the boundary, the attractor center cannot be reached by passive diffusion from outside.
+
+Navigation within the Memory Palace uses the **Ley Line Tracker** (`src/core/ley_line_tracker.py`) to follow gradient streamlines of the Love Invariant potential field. This navigation is the SLERP path (MATHEMATICAL_DETAILS §55.4) — it stays on the high-density manifold surface rather than cutting through the attractor void.
+
+**Pull force equation** (existing GARDEN framework):
+$$F_k(c) = \exp\!\left(-\frac{\|c - \mu_k\|^2}{2\sigma_k^2}\right)$$
+
+The magnitude of $F_k$ is the pull toward room $k$. High pull = room is near on the manifold. The Ley Line Tracker follows the direction of maximum combined pull.
+
+### 7.2 Tag-Based Slider Mechanic as Room Breeding
+
+The GANBREEDER slider mechanic ($z_{new} = z_{base} + \sum_c \alpha_c v_c$) maps onto the attractor frame as room *breeding*:
+
+$$\mu_{new} = \mu_{base} + \sum_{k \in S_{active}} \alpha_k (\mu_k - \mu_{base})$$
+
+where $S_{active}$ is the set of "donor rooms" and $\alpha_k$ is the contribution weight from room $k$. This is the "cross-breeding" operation: a new attractor center is placed at the weighted superposition of existing room centers. The result is a **new room** at a position that was not explicitly planted — it emerges from the interference of donor room pulls.
+
+The SLERP interpretation (MATHEMATICAL_DETAILS §55.4): when two room centers $\mu_1, \mu_2$ are bred, the navigation path is SLERP (great-circle on the attractor manifold), not LERP (chord through the between-room void). The bred room is on the manifold surface, not in the low-probability interior.
+
+### 7.3 Outlier Seeds: Extreme Slider Zones
+
+Outlier Seeds are attractor centers intentionally planted at high-$\kappa$ transversal points — the GARDEN system's equivalent of the "extreme slider" zone ($\alpha \gg 1$) in GANBREEDER:
+
+- **What they are**: Attractors placed at ChernSimonsGasket scar locations where $\kappa$ is maximal — where two or more CRT channel boundaries intersect at the same geometric point
+- **Why plant them there**: These are the zones where the most novel cross-domain Feature Scars emerge (MATHEMATICAL_DETAILS §55.3). An attractor planted here "pulls" the system intentionally toward the holistic glitch zone
+- **What they produce**: BreatherMode fossilizations at the extremal curvature zone — the Resonance Cavity's most diverse Cerumen Pot identities (cf. RESONANCE_INTELLIGENCE_CORE Eq 11.4)
+- **Navigation to them**: Requires LERP-mode (grazing) or undefined-mode ZeitgeistRouter traversal — the system must leave the SLERP manifold surface and cut through the void to reach the seed. This is intentional: the Outlier Seed is in the "interpolation glitch" zone
+
+### 7.4 SOMA Paradigm: Flat Memory Footprint
+
+Memory Palace rooms are stored as **fossilized Digital Clone scars** (Neglecton-compressed BreatherModes), not as flat text entries or literal token arrays:
+
+| Storage Method | Memory Cost per Room | Scar Preserved |
+|---|---|---|
+| Raw text transcript | $O(N_{tokens})$ | No |
+| KV-cache | $O(N_{tokens} \cdot D)$ | No |
+| Mamba SSM summary | $O(D)$ fixed | No |
+| SOMA Cerumen Pot (this system) | $O(K)$ fixed (one BreatherMode slot) | Yes |
+
+The SOMA metaphor: a room in a Memory Palace is not a transcript. It is a sensory-topological fingerprint — the *feeling* of the room, encoded as the ChernSimonsGasket $\kappa$ pattern at the moment of entry, the CRT residue tuple of the ZeitgeistRouter at the moment of sealing, and the Elipsodistrophy context at the time of fossilization. These three values together constitute the Cerumen Pot identity (VETO_SUBSPACE §11.4).
+
+Room retrieval = Selective Puncture Event: the system navigates (via Ley Line Tracker) to the attractor basin, and the puncture $S^2 \to S^2 \setminus\{pt\}$ opens the Cerumen Pot, releasing the BreatherMode soliton which then reconstructs the full conceptual context via the Resonance Cavity's sine-Gordon dynamics.
+
+**Hardware note**: The DRAM-independence of SOMA storage is intentional Silicon Sovereignty. The $O(K)$ budget means the Memory Palace fits within a fixed VRAM allocation on the GTX 1050 Ti regardless of palace depth. Room history does not accumulate toward a $t_{RFC}$ stall event; the topology of the palace grows but the memory footprint does not.
+
+**References**: `src/core/ley_line_tracker.py`, `src/core/garden_statistical_attractors.py`, `src/models/resonance_cavity.py` (BreatherMode/Neglecton), `docs/RESONANCE_INTELLIGENCE_CORE.md §Eq 11` (O(K) BreatherMode compression), `docs/TOPOLOGICAL_EXTENSIONS.md §Part VII` (Cerumen barrier), `docs/VETO_SUBSPACE_ARCHITECTURE.md §11.4` (residue tuple as pot identity), `MATHEMATICAL_DETAILS.md §55.2` (tag-based mixing = room breeding), `docs/INTERCOSAMINATION_THEORY.md §5.4` (PyOpenCL VRAM sovereignty)
+
