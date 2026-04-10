@@ -191,4 +191,49 @@ The "collapse path poisoning" referenced in the Meta-Invariant entry is **defens
 
 **Usage**: Called during periodic topological health checks in the training loop.
 
+---
+
+## Phase 10 Open Questions: TailSlayer / Meliponini / BigGAN / Coherence Asymmetry
+
+### Q10.1 — DRAM XOR Offsets as CRT Moduli
+Can the XOR-mapped physical address offsets of DRAM channels (e.g., AMD Ryzen `0x003fc0` boundary scheme) be formally approximated as CRT moduli for hardware-layer polytope routing — specifically, can the physical address bits that select Bank A vs. Bank B be treated as the parity check `r & 1` (INVARIANT_OPTIMIZATION Tripwire 8 §8.4)? Does this mapping violate any symplectic constraints from §41 (Symplectic Gluing)?
+
+**Status**: Open. Requires hardware profiling of the GTX 1050 Ti memory controller's XOR scheme.
+
+### Q10.2 — Meliponini Packing Fraction Threshold: Dynamic or Fixed?
+Is the Meliponini Packing Fraction $\phi$ threshold ($\phi < \phi_{RCP} \approx 0.64$) dynamically computed from the `elipsodistrophy` Atrophy signal, or is it a fixed architectural constant? The Atrophy metric already provides a continuous proxy for $\phi$ (TOPOLOGICAL_EXTENSIONS §Part VII §2). If dynamic: what is the mapping function from Atrophy → $\phi_{effective}$? Is it linear, threshold-stepped, or Sigmoid?
+
+**Status**: Open. Atrophy is currently used as a veto signal but not mapped to $\phi$.
+
+### Q10.3 — Mamba/SSM Compression and Betti Number Preservation
+Can Mamba-style State Space Model compression (O(N) fixed state) fully preserve Betti numbers $\beta_0, \beta_1$ of the concept manifold without running the full Persistent Homology pipeline, or does the BreatherMode O(K) fossilization (RESONANCE_INTELLIGENCE_CORE Eq 11.2) require independent topological verification after each fossilization event?
+
+**Status**: Open. The SSM recurrent state is a smooth average — it loses the topological fingerprint. BreatherMode preserves the scar but the PH cost of verification could exceed $O(K)$ if $K$ is large.
+
+### Q10.4 — Elipsodistrophy → Topology Mode Switching Threshold
+At what Elipsodistrophy Atrophy level should the system automatically switch from Apis ($\phi \to 1.0$) to Meliponini ($\phi < 0.64$) manifold topology — is this the same threshold as `topological_pressure > 0.5` in `GYROID_REASONER`? If so, a single threshold gates two architectural regime changes (pressure response + topology mode). Is this a Scalarization Trap (INVARIANT_OPTIMIZATION Tripwire 3) — encoding two independent pressures as a single float comparison?
+
+**Status**: Suspected issue. The `topological_pressure` float may be a hidden scalar aggregation of distinct Betti-number and spectral signals.
+
+### Q10.5 — Drucker-Prager Convexity Under High Mischief
+The Drucker-Prager smooth envelope ($\alpha I_1 + \sqrt{J_2} - k = 0$) assumes convexity of the global yield surface. Under high $V_m$ (Mischief) augmentation, can the yield surface remain convex, or does the ChernSimonsGasket $\kappa$ curvature break convexity locally? If $\kappa$ is high at multiple boundary crossing points simultaneously (extreme slider zone, RESONANCE_INTELLIGENCE_CORE §11.4), does the Drucker-Prager envelope still provide a valid global flow path, or does it degenerate into a non-convex multi-modal surface?
+
+**Status**: Open. The interaction between $V_m$, $\kappa$, and the DP yield surface is not yet formalized.
+
+### Q10.6 — SAR* Computability from Internal Signals
+Is the SAR* (revolutionary threshold from Coherence Asymmetry theory, VETO_SUBSPACE §11.3) computable from the Reasoner's internal signals — specifically, can it be expressed as a function of $\text{PAS}_h$ (harmonic phase alignment), Elipsodistrophy Atrophy, and the veto count (number of TopologicalRefusalError events in the last $N$ steps)? If yes, the VetoSubspace could self-monitor its own approach to the SAR* threshold and pre-emptively inject Mischief before the external meritocratic probe reaches the critical pressure.
+
+**Status**: Open. SAR formula is defined (VETO_SUBSPACE §11.3) but not connected to computable internal signals.
+
+### Q10.7 — SLERP/LERP Mode Labeling in Diagnostic Payload
+Should the ZeitgeistRouter's diagnostic output explicitly label the current navigation style as SLERP (`interior`) vs. LERP (`grazing`) vs. wandering glitch (`undefined`) in the payload for downstream consumers? This would expose "interpolation glitch potential" to any system that uses the `nc_curvature` signal. Would this exposure constitute a Tripwire 4 violation (Silent Failure — no intermediate visibility) if `nc_curvature` is already in the payload?
+
+**Status**: Near-resolved. `nc_curvature` is already in the diagnostics table (ZEITGEIST_ROUTER §7). Adding a semantic mode label (`slerp`, `lerp`, `void`) would not add new gradient information — it would add human-readable state classification. Likely safe.
+
+### Q10.8 — Anti-Disentanglement Constraint Enforcement
+The MATHEMATICAL_DETAILS §55.5 specifically forbids making the $K$ polynomial functionals orthogonal in activation space (that would be disentanglement = loss of holistic glitch diversity). Is there currently any optimizer or regularization pathway that implicitly pushes functionals toward orthogonality (e.g., the independence criterion in §7.6 Continuous Co-Primality)? If the co-primality condition enforces $\lim_{t\to\infty} \text{Cov}(r_i, r_j) = 0$, is this equivalent to asymptotic functional orthogonalization? This may be the most critical unresolved tension in the system.
+
+**Status**: Open. The co-primality asymptotic independence condition requires careful disambiguation from the holistic glitch interdependence requirement. These may be in direct conflict.
+
+
 
