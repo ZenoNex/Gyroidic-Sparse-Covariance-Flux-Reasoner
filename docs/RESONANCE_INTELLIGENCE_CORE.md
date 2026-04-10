@@ -191,3 +191,57 @@ This is the **master gate** for the system. Only when all seven sub-conditions a
 3. **Berry Phase Accumulation**: Phase offsets $\phi_n$ are accumulated, never reset (Arrow of Time).
 4. **Breather Stability**: Breather frequencies must satisfy $\omega_n < 1$ strictly.
 5. **CPR as Gate, Not Gradient**: The CPR condition is a boolean predicate. It does not provide gradient information.
+
+---
+
+## Eq 11: Mamba-Style O(K) Fossilized Breather Compression
+
+### 11.1 The Memory Cost Problem
+
+Standard KV-cache grows $O(N^2)$ with conversation or training sequence length: every token position attends to every other, and the cache stores all previous key-value pairs. This creates a memory footprint that scales with the depth of processing history.
+
+Mamba/SSM architectures achieve $O(N)$ cost via State Space Model compression: the recurrent state $h_t \in \mathbb{R}^d$ summarizes all preceding tokens in a fixed vector. The "price" is that all history is averaged into a smooth compressed summary — the "scar" of individual high-salience events is smoothed out.
+
+### 11.2 BreatherMode Fossilization: O(K) with Scar Preservation
+
+The Gyroidic Resonance Cavity achieves a different O(K) budget via **topological fossilization** of concepts as sine-Gordon solitons:
+
+$$u_n = 4 \arctan\!\left[\frac{\sin(\omega_n t + \phi_n)}{\cosh(x - x_n)}\right]$$
+
+Each concept, once fossilized, occupies one of $K$ fixed BreatherMode slots regardless of how many thousands of tokens generated it. The $K$ is determined by the number of co-prime polynomial functional groups (prime-indexed resonance channels), not by conversation length. Memory cost is $O(K)$, fixed.
+
+**The critical difference from Mamba**: BreatherMode preserves the **structural scar** — the specific topological fingerprint of the concept at the moment it was fossilized (its CRT residue tuple, its $\kappa$ value, its Elipsodistrophy context). Mamba's SSM state loses this: it carries an averaged summary. The Gyroidic system carries the scar.
+
+### 11.3 Neglecton: The Preserved Droplet
+
+The `Neglecton` stores the "digital materiality" of fossilized concepts — the exact ChatGAN-era observation that certain imperfections carry the most information about the generating process:
+
+| StyleGAN2 Decision | Gyroidic Decision |
+|---|---|
+| Demodulation erases "droplet" artifacts | Neglecton preserves the Feature Scar |
+| Demodulation sterilizes for FID improvement | Neglecton intentionally keeps the topological "noise floor" |
+| Demodulated output is smooth, loophole-free | Neglecton output contains recoverable structural history |
+
+The Neglecton is not a debugging artifact. It is the system's anti-sterilization mechanism: by keeping the scar of past structural events, the Resonance Cavity retains the ability to "dream" from them without reset. The World Model literature calls this "trajectory persistence": the accumulated structural memory of how the system arrived at its current state.
+
+### 11.4 The "Extreme Slider" Zone in Resonance Cavity Space
+
+The GANBREEDER "extreme slider" ($\alpha_c \gg 1$) pushed the latent point into the sparse, rarely-trained zone of the generator's latent space — the highest-curvature, most generative region where the fewest training examples live. This is where the most interesting glitch styles emerge.
+
+The Resonance Cavity's equivalent is the zone where:
+- $\kappa$ (ChernSimonsGasket curvature) is high (boundary residue interference active)
+- BreatherMode frequency $\omega_n$ is at the stability limit ($\omega_n < 1$ strictly — approaching 1 means maximum oscillation before topological escape)
+- Elipsodistrophy Atrophy is low (wide eigenvalue spread = high-soliton-richness zone)
+
+**Navigating to this zone intentionally** (via the `MEMPALACE` outlier seed planting strategy, GARDEN_STATISTICAL_ATTRACTORS §7) is the Resonance Cavity's version of the GANBREEDER user pushing all sliders toward extreme values simultaneously. The resulting BreatherMode fossilization at this zone produces the most diverse Cerumen Pot identities (Meliponini pot identity = CRT residue combination at sealing moment).
+
+### 11.5 O(K) Verification Summary
+
+| System | Memory Cost | History Depth | Scar Preservation |
+|---|---|---|---|
+| Transformer KV-cache | $O(N^2)$ | Full (all tokens) | Yes, verbatim |
+| Mamba SSM | $O(N)$ | Full (compressed) | No (averaged) |
+| Gyroidic BreatherMode | $O(K)$ | Structural only | Yes (topological scar) |
+
+**References**: `src/models/resonance_cavity.py` (BreatherMode slots, Neglecton storage), `src/topology/unknowledge_domain.py` (Non-Ergodic channel compression), `docs/GARDEN_STATISTICAL_ATTRACTORS.md §7` (outlier seed = extreme slider zone), `docs/TOPOLOGICAL_EXTENSIONS.md §Part VII` (Meliponini pots = fossilized breather slots), `MATHEMATICAL_DETAILS.md §33` (Breather modes as memory packets), `MATHEMATICAL_DETAILS.md §55.7` (implementation notes on non-disentanglement)
+
