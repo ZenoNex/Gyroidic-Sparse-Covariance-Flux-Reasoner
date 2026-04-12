@@ -263,6 +263,13 @@ class ZeitgeistRouter(nn.Module):
         except Exception:
             self._valence = None
 
+        # ── Archetypal Synthesis Engine (Phase 2 & TADC Lore) ─────────── #
+        try:
+            from src.core.archetype_engines import ArchetypalSynthesisEngine
+            self._archetype = ArchetypalSynthesisEngine(state_dim=dim)
+        except Exception:
+            self._archetype = None
+
     # ------------------------------------------------------------------ #
     # Initialization helpers                                               #
     # ------------------------------------------------------------------ #
@@ -367,8 +374,21 @@ class ZeitgeistRouter(nn.Module):
             # Gate output gets a spike from extreme stress directing it away
             delta_soft = delta_soft + 0.5 * stress_bias / (torch.max(stress_bias) + 1e-8)
 
+        # Braid Group Automaton Integration (Phase 2.6):
+        # We process the delta_soft array through a Braid Group generator
+        # \sigma_1, \sigma_2, \sigma_3 twisting adjacent dimensional moduli
+        # This formalizes the "slender seams" mapping
+        delta_braided = delta_soft.clone()
+        if self.M >= 3:
+            # \sigma_1: local twist between dim 0 and 1
+            if delta_soft[0] > 0.5:
+                delta_braided[0], delta_braided[1] = delta_soft[1], delta_soft[0]
+            # \sigma_2: local twist between dim 1 and 2
+            if delta_soft[1] > 0.6:
+                delta_braided[1], delta_braided[2] = delta_soft[2], delta_soft[1]
+                
         new_alpha = tuple(
-            int((state.alpha[i] + round(float(delta_soft[i]) * self.moduli[i]))
+            int((state.alpha[i] + round(float(delta_braided[i]) * self.moduli[i]))
                 % self.moduli[i])
             for i in range(self.M)
         )
@@ -388,6 +408,7 @@ class ZeitgeistRouter(nn.Module):
         x: torch.Tensor,
         state: ZeitgeistState,
         boundary=None,                 # Optional[BoundaryState]
+        tadc_kwargs: Optional[Dict] = None  # Optional dict of TADC context values
     ) -> Tuple[str, ZeitgeistState, Dict]:
         """
         Route state x through the three-mode dispatch.
@@ -396,12 +417,46 @@ class ZeitgeistRouter(nn.Module):
             x       : [batch, dim] or [dim] state tensor.
             state   : Current ZeitgeistState (persistent across calls).
             boundary: Optional BoundaryState from the Matrioshka loop.
+            tadc_kwargs: Psychological TADC args mapping (env_luminosity, volitional_scalar, etc)
 
         Returns:
             mode        : 'interior' | 'grazing' | 'switching' | 'undefined'
             new_state   : Updated ZeitgeistState (immutable — new object).
             diagnostics : Dict of scalar metrics for the metrics payload.
         """
+        # ── 0. Archetypal Synthesis Engine (Data Transformation) ────── #
+        if self._archetype is not None and tadc_kwargs is not None:
+             # Route through the Grand Governor
+             arch_results = self._archetype.run_archetypes(
+                 current_state=x,
+                 stranded_states=torch.empty((0, x.shape[-1]), device=x.device),
+                 current_mischief=tadc_kwargs.get('mischief', 0.5),
+                 phase_alignment=tadc_kwargs.get('pas_h', 0.5),
+                 love_strengths=tadc_kwargs.get('love', torch.tensor([1.0], device=x.device)),
+                 void_frictions=tadc_kwargs.get('friction', torch.tensor([0.0], device=x.device)),
+                 global_dt=1.0,
+                 env_luminosity=tadc_kwargs.get('luminosity', 1.0),
+                 volitional_scalar=tadc_kwargs.get('volition', 0.0),
+                 system_entropy=tadc_kwargs.get('entropy', 0.1),
+                 memory_trauma=tadc_kwargs.get('trauma', 0.1),
+                 dissonance=tadc_kwargs.get('dissonance', 0.1),
+                 lucidity_idx=tadc_kwargs.get('lucidity', 1.0),
+                 raw_unquantized_state=x
+             )
+             
+             x = arch_results["active_state"]
+             if arch_results["system_collapsed"]:
+                 # Direct fast-track to void
+                 mode = 'undefined'
+                 new_state = state.switched(state.alpha, state.level, mode, boundary)
+                 diag = self._build_diagnostics(
+                    torch.zeros((1, self.M), device=x.device),
+                    torch.zeros((1, self.M), dtype=torch.bool, device=x.device),
+                    mode, state, new_state,
+                 )
+                 diag["abstraction_event"] = True
+                 return mode, new_state, diag
+
         # ── Batch normalise ─────────────────────────────────────────── #
         if x.dim() == 1:
             x = x.unsqueeze(0)          # [1, dim]
