@@ -1,5 +1,6 @@
 import torch
 import unittest
+import numpy as np
 from src.core.quantum_tda import QuantumBettiApproximator
 from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
 from src.core.archetype_engines import ArchetypalSynthesisEngine
@@ -101,7 +102,7 @@ class TestUnicornSynthesis(unittest.TestCase):
         rounded = engine.apply_stochastic_rounding(poly_residues, scale=1.0)
         
         # Should remain integer layout
-        self.assertEqual(rounded.dtype, torch.int64) # PyOpenCL binding returns int64
+        self.assertEqual(rounded.dtype, np.int64) # PyOpenCL binding returns numpy.int64
         
         # Repunit parity shift validation
         targets = torch.zeros_like(poly_residues)
