@@ -1541,11 +1541,78 @@ class DiegeticPhysicsEngine(nn.Module):
             else:
                 retrieval_state = "SEARCH_NEEDED"
 
+        # =============================================
+        # DIEGETIC VISUALIZER — Manifold Fracture Render
+        # =============================================
+        # Called only on tri-state events (CONFABULATED or SEARCH_NEEDED).
+        # On KNOWN the overhead is zero — skip entirely.
+        # Roughness contract: we pass raw live tensors; the visualizer
+        # never smooths edges (see diegetic_visualizer.py doc-header).
+        visualization_b64 = None
+        if retrieval_state in ('CONFABULATED', 'SEARCH_NEEDED'):
+            try:
+                from src.ui.diegetic_visualizer import render_manifold_fracture
+
+                # Re-run FractalMetaFunctional with live seed_state to get
+                # the four structural components without storing extra state.
+                _fractal_components = None
+                try:
+                    _residues_for_fmf = torch.zeros(1, self.k, device=self.device)
+                    _fmf_out = self.fractal_meta(
+                        current_state=seed_state[:1],
+                        meta_state_prev=self.meta_state,
+                        residues=_residues_for_fmf,
+                        dark_matter=None,
+                    )
+                    _fractal_components = _fmf_out.get('components', {})
+                except Exception as _fmf_e:
+                    print(f"[VISUALIZER] FractalMeta forward failed: {_fmf_e}")
+
+                # Introspection probe directions (if the engine exposes them)
+                _intro_dirs = None
+                if hasattr(self, 'introspection') and self.introspection is not None:
+                    try:
+                        _probe_input = seed_state[:1].expand(1, -1)
+                        _intro_out = self.introspection(_probe_input)
+                        # AggregateGeometricSelfModel returns {type: direction [B, probe_dims]}
+                        _intro_dirs = {k: v.squeeze(0) for k, v in _intro_out.items()}
+                    except Exception as _intro_e:
+                        print(f"[VISUALIZER] Introspection probe failed: {_intro_e}")
+
+                # ChernSimons energy — pull from last cached diagnostics if available
+                _cs_energy = None
+                if hasattr(self, '_last_chern_simons_diagnostics') and self._last_chern_simons_diagnostics:
+                    _csd = self._last_chern_simons_diagnostics
+                    _cs_scalar = _csd.get('twist_energy', _csd.get('energy', None))
+                    if _cs_scalar is not None:
+                        import torch as _t
+                        _cs_energy = _t.tensor([float(_cs_scalar)])
+
+                visualization_b64 = render_manifold_fracture(
+                    retrieval_state=retrieval_state,
+                    meta_state=self.meta_state,
+                    fractal_components=_fractal_components,
+                    introspection_directions=_intro_dirs,
+                    chern_simons_energy=_cs_energy,
+                    pas_h=float(pas_h_live),
+                    h_mischief=float(h_mischief),
+                    honesty_score=float(honesty_score),
+                    iteration=self.iteration,
+                )
+                if visualization_b64:
+                    print(f"[VISUALIZER] Manifold fracture rendered — {len(visualization_b64)} bytes (b64)")
+                else:
+                    print("[VISUALIZER] render_manifold_fracture returned None")
+            except Exception as _viz_e:
+                print(f"[VISUALIZER] Rendering error (non-fatal): {_viz_e}")
+                import traceback as _tb; _tb.print_exc()
 
         # Construct metrics now that all dependencies are available
+
         metrics = {
             "response": response_text,
             "retrieval_state": retrieval_state,
+            "visualization_b64": visualization_b64,  # Manifold fracture render (base64 PNG or None)
             "honesty_score": float(honesty_score),
             "crt_honesty": crt_honesty,
             "h_mischief": h_mischief,
