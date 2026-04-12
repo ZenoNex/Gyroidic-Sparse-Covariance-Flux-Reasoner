@@ -64,6 +64,19 @@ graph TB
 
 ## 2. DiegeticPhysicsEngine
 
+### Initialization — all sub-modules
+
+| Category | Components |
+|---|---|
+| **Core** | `ResonanceCavity`, `ResonanceLarynx` (char→tensor), `GyroidCovarianceEstimator` |
+| **KAGH** | `KAGHBlock`, `HarmonicWaveDecomposition` |
+| **ADMM** | `OperationalADMM`, `CALM Predictor` |
+| **Topology** | `SpeculativeCoprimeGate` (SCCCG), `SpeculativeHomologyEngine`, `GyroidicGraphManager` |
+| **Extensions** | `MetaPolytopeMatrioshka`, `QuantumInspiredReasoningState` (optional), `ZeitgeistRouter` |
+| **Fractal** | `FractalMetaFunctional` — {crt, admr, ring, osc} sub-tensors |
+| **Data** | `PressureIngestor`, `TextbookFilter`, `TabbyClient`, `LocalDataLoader` |
+| **Projection (Phase 6.3)** | `fingerprint_proj` (96→dim), `audio_dyad_proj` (64→dim), `residue_feedback_proj` (32→dim) |
+
 ### Initialization — projection layers (new in Phase 6.3)
 
 | Layer | Shape | Purpose |
@@ -92,14 +105,42 @@ def process_input(
 | 0. Affordance Gradients | Soft detection of executability, formalism, API extraction pressure |
 | 0.5. Conversational Extraction | Map conversational embedding pressure |
 | **Non-Commutative Dyad Routing** | Build media bias tensor from image + audio; apply before or after text depending on `commutativity` |
-| 1. Text → Tensor | Polynomial rotating hash (anti-lobotomy) |
-| 2. Mimicry | Active listening pass |
+| 1. Text → Tensor | `ResonanceLarynx` polynomial rotating hash (anti-lobotomy) |
+| 2. Mimicry | Active listening pass `_train_mimicry` |
 | 2.5. Manifold Clock | Cosine similarity → play/seriousness dt scaling |
-| 3. forward() | Evolutionary pass through cavity + FractalMetaFunctional |
+| 3. forward() | Evolutionary pass through `ResonanceCavity` + `FractalMetaFunctional` |
 | 3.5. text_first post-bias | If `commutativity == 'text_first'`, apply media bias to meta_state **after** forward() |
-| 4–9. KAGH, CALM, Response Gen | System 1/2/U gates, tri-state routing, text generation |
-| **Visualizer (Gate 5)** | On CONFABULATED or SEARCH_NEEDED → render_manifold_fracture() |
+| 4. KAGH + HarmonicWave | `KAGHBlock` + `HarmonicWaveDecomposition` — spectral repair |
+| 5. CALM | `CALM Predictor` — trajectory veto if ADMM budget exhausted |
+| 6. SCCCG Recovery | `SpeculativeCoprimeGate` — coprime-gated structure recovery |
+| 7. Response Generation | `_generate_dyad_aware_response` — enhanced text via association system |
+| 8. Gyroid Violation | `_compute_full_gyroid_violation_score` — spectral + covariance + topological |
+| 9. Unfolding Closure | `_perform_unfolding_closure_check` — hyper-ring, cycle, triadic reciprocity |
+| 10. Graph Update | `GyroidicGraphManager` — Betti numbers, persistence, graph connectivity |
+| **Visualizer (Gate 5)** | On CONFABULATED or SEARCH_NEEDED → `render_manifold_fracture()` |
 | **Self-Feedback** | Structural residues → meta_state (κ·I); Chebyshev self-fingerprint → meta_state |
+
+### Supporting Methods
+
+| Group | Methods |
+|---|---|
+| **Response** | `_generate_enhanced_response`, `_generate_fallback_response`, `_apply_linguistic_correction` |
+| **Conversational** | `_detect_conversational_patterns`, `_extract_conversational_embeddings`, `_attempt_api_content_extraction` |
+| **Association** | `_handle_dyad_ingestion`, `_handle_association_learning`, `_enhanced_association_learning` |
+| **Topology** | `_compute_betti_numbers`, `_detect_topological_cycles`, `_estimate_manifold_curvature` |
+| **System 2** | `_run_advanced_physics` (quantum/polytope if budget allows) |
+| **Persistence** | `save_state`, `load_state`, `_repair_tensors` |
+
+---
+
+## 3. EncodingManager
+
+Manages persistent encoding files — each interaction's topological trace is saved as a distinct artifact to prevent "erasing of implication."
+
+| Method | Purpose |
+|---|---|
+| `get_latest_iteration()` | Scan encoding dir for last saved iteration |
+| `save_encoding(iteration, text, tensors, metrics)` | Timestamped artifact with structural metrics |
 
 ---
 
@@ -184,23 +225,35 @@ The header bar contains a `DYAD ORDER:` dropdown with three options:
 
 ## 5. RequestHandler — HTTP API
 
-### POST Endpoints
-
-| Path | Accepts | Purpose |
-|---|---|---|
-| `/interact` | `{text, fingerprint?, audio_dyad?, commutativity?}` | Main interaction pipeline. Passes all three dyad fields into `process_input`. |
-| `/ingest` | `{description, fingerprint?, commutativity?}` | Fossilize a Knowledge Dyad. |
-| `/associate` | `{text1, text2}` | Dyad association learning. |
-| `/upload_audio` | multipart audio file | Decode + compute Chebyshev harmonics server-side (stub). |
-
 ### GET Endpoints
 
 | Path | Response |
 |---|---|
 | `/` | Serve `diegetic_terminal.html` |
 | `/api/status` | Engine state, iteration count, component status |
-| `/api/graph` | Graph topology JSON |
-| `/api/system2` | CALM/ADMM diagnostics |
+| `/api/graph` | Graph topology JSON (nodes, edges, Betti numbers, metrics) |
+| `/api/training_status` | Training progress, log, results |
+| `/api/system2` | CALM/ADMM diagnostics, SCCCG state |
+
+### POST Endpoints — Core Interaction
+
+| Path | Accepts | Purpose |
+|---|---|---|
+| `/interact` | `{text, fingerprint?, audio_dyad?, commutativity?}` | Main interaction pipeline. Passes all three dyad fields into `process_input`. |
+| `/ingest` | `{description, fingerprint?, commutativity?}` | Fossilize a Knowledge Dyad. |
+| `/associate` | `{text1, text2}` | Dyad association learning. |
+| `/api/process` | `{text}` | Alternative interaction endpoint (legacy path). |
+
+### POST Endpoints — Training & Data
+
+| Path | Purpose |
+|---|---|
+| `/api/train` | Launch async `SpectralStructuralTrainer` |
+| `/api/ingest_local` | Ingest local data via `LocalDataLoader` |
+| `/api/tabby_test` | Test TabbyML connection |
+| `/api/tabby_complete` | Code completion via TabbyML |
+| `/api/tabby_chat` | Chat via TabbyML |
+| `/api/tabby_generate_sample` | Generate synthetic textbook-quality training samples |
 
 ---
 
@@ -310,15 +363,51 @@ RuntimeError("LOVE INVARIANT VIOLATION: L has been modified.")
 
 if `‖L_current − L_original‖₁ > 1e-8`. This is the only hard runtime assertion in the entire system.
 
+### Metrics Emitted
+
+```python
+{
+  'f_star_mask':     # Which fossil slot has max contradiction load
+  'amortized_cost':  # C̃ = diegetic amortization scalar
+  'Delta_q':         # Quantization error (structural memory of the rounding)
+  'persistence':     # [0,1] per-fossil survivorship probability
+  'love':            # L — the immutable invariant tensor
+  'tau':             # Narrative time elapsed
+}
+```
+
 ---
 
 ## 9. Audience Projection (`src/core/audience_mapping.py`)
 
+**Class**: `AudienceProjection`  
 **Operator**: Φ: M → A (manifold → audience space)
 
-A Lipschitz homeomorphic projection from M to A. The `DiegeticVisualizer` is the **primary realization** of this operator — it maps the manifold's live state into a human-legible image without destroying topological features.
+A Lipschitz homeomorphic projection from the internal manifold M to an external audience space A, required by the Garden Statistical Attractors design. The engine uses this to translate internal state representations into audience-legible structures without destroying topological features.
 
-The `AudienceProjection` class provides the continuous algebraic version used in the cavity; the visualizer provides the *diegetic visual* version used in the terminal.
+### Architecture
+
+```
+manifold_state [B, input_dim]
+    → spectral_norm(Linear) → LeakyReLU(0.1)
+    → spectral_norm(Linear) → LeakyReLU(0.1)
+    → spectral_norm(Linear)
+    → smooth_projection [B, audience_dim]
+    + identity (skip, roughness-preserving)
+    = audience_state [B, audience_dim]
+```
+
+Spectral normalization on all layers enforces Lipschitz constant ≤ 1 per layer. The residual skip (`y = f(x) + x`) approximates homeomorphism: when `Lip(f) < 1`, the map is provably invertible via Banach Fixed Point Theorem.
+
+### Approximate Inverse
+
+`inverse(audience_state, iterations=5)` recovers the original manifold state via fixed-point iteration `x ← a − f(x)`. Valid only when `input_dim == audience_dim` and `Lip(f) < 1`.
+
+### Key Guarantee
+
+*Roughness preservation*: topological singularities (high-frequency features, discontinuities) in the manifold are transmitted into audience space rather than smoothed away. This prevents the system from presenting an artificially clean self-model.
+
+> **Relationship to DiegeticVisualizer**: `AudienceProjection` is the continuous algebraic version of Φ used inside the cavity. `DiegeticVisualizer` is the *diegetic visual* realization — it maps the manifold's live state into a human-legible PNG without destroying topological features (roughness preserved via `interpolation='none'` and step-plots).
 
 ---
 
