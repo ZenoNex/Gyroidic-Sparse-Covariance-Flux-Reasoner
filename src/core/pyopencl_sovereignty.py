@@ -56,7 +56,7 @@ class SiliconSovereigntyEngine:
     def _build_kernels(self):
         """Build the OpenCL kernels for the topological constraints."""
         
-        kernel_src = """
+        kernel_src = r"""
         // Simple Xorshift RNG for device-side stochastic precision
         inline uint xorshift32(uint state) {
             state ^= state << 13;
