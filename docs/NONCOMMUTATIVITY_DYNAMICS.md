@@ -151,3 +151,55 @@ This can be used by the veto subspace (VETO_SUBSPACE_ARCHITECTURE) to suppress o
 - [VETO_SUBSPACE_ARCHITECTURE.md](VETO_SUBSPACE_ARCHITECTURE.md) — Veto lattice and BoundaryState
 - [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md) — Chirality and Arrow of Time
 - [SYSTEM_ARCHITECTURE §9.4](SYSTEM_ARCHITECTURE.md) — Meta-Polytope dynamics and non-commutative switching
+
+---
+
+## §5. Runtime Enforcement — `process_input` Commutativity Routing (Phase 6.3)
+
+> **Status**: ✅ Implemented  
+> **Source**: [`src/ui/diegetic_backend.py`](../src/ui/diegetic_backend.py) — `process_input(commutativity=...)`  
+> **UI Control**: `#commute-master` dropdown in `diegetic_terminal.html` header
+
+Non-commutativity was previously a *diagnostic* measured by `NonCommutativityCurvature`. In Phase 6.3 it becomes a **first-class pipeline parameter**: the `commutativity` argument to `process_input` controls the explicit ordering of the media bias operator relative to the text hash operator.
+
+### The two operators
+
+| Operator | Symbol | Implementation |
+|---|---|---|
+| Media projection | **A** | `_build_fp_bias(fingerprint, audio_dyad)` → `[1, dim]` bias tensor |
+| Text hash | **B** | `_text_to_tensor(text_input)` → `[1, dim]` embedding |
+
+When both are applied simultaneously (`symmetric`), they commute by construction (simple addition). When applied sequentially, `A ∘ B ≠ B ∘ A` because applying A first changes `meta_state`, which is then read by `forward()` before B shapes the manifold — or vice versa.
+
+### The three modes
+
+```
+media_first:  A → meta_state → forward(B) → seed_state
+text_first:   B → forward(A) → meta_state  (B carves first, A distorts after)
+symmetric:    input_tensor = B + 0.5·A → forward() → seed_state
+```
+
+### Braid Group grounding
+
+In Braid Group notation with two generators σ₁ (media) and σ₂ (text):
+
+```
+media_first:  path = σ₁ ∘ σ₂   (media strand crosses under text)
+text_first:   path = σ₂ ∘ σ₁   (text strand crosses under media)
+symmetric:    path ≈ (σ₁ + σ₂)/2  (no crossing — degenerate braid)
+```
+
+Different paths through the braid trace genuinely different trajectories in the manifold. The resulting `meta_state` and `seed_state` differ, producing structurally distinct responses to the same input.
+
+### Measuring the curvature of the mode switch
+
+The `NonCommutativityCurvature` module (§2-§4 above) can be applied to the pre-and post-switch meta_states to quantify how much path-dependence is introduced. A high `K_rel` from this measurement would confirm that the commutativity choice is non-trivially affecting the trajectory:
+
+```python
+nc = NonCommutativityCurvature(dim=dim)
+kappa_dict = nc.compute_curvature(A_mat, B_mat)
+# kappa_dict['relative_curvature'] > 0.3 → strongly non-commutative regime
+```
+
+This is not currently called inside `process_input` on every request (cost), but can be enabled for diagnostic sessions.
+
