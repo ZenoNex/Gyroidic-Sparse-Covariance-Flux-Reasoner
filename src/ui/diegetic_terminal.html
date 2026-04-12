@@ -784,12 +784,61 @@
             } else {
                 appendMessage('system', "MANIFOLD STATE UPDATED (NO RESPONSE GENERATED).");
             }
+
+            // ── Diegetic Visualizer: Manifold Fracture Render ──────────────
+            // If the backend triggered CONFABULATED or SEARCH_NEEDED, it sends
+            // a base64 PNG of the live manifold geometry.  Render it inline in
+            // the chat feed below the text response — structural honesty, not
+            // decoration.
+            if (data.visualization_b64) {
+                const rs = data.retrieval_state || 'FRACTURE';
+                const borderCol = rs === 'CONFABULATED'
+                    ? 'var(--terminal-warn)'
+                    : rs === 'SEARCH_NEEDED'
+                        ? 'var(--terminal-magenta)'
+                        : 'var(--terminal-blue)';
+
+                const vizWrapper = document.createElement('div');
+                vizWrapper.style.cssText = [
+                    'margin: 0.75rem 0 0.75rem 0',
+                    'padding: 0',
+                    `border: 1px solid ${borderCol}`,
+                    'border-radius: 8px',
+                    'overflow: hidden',
+                    'background: #0a0a0a',
+                    'max-width: 100%',
+                ].join(';');
+
+                const vizLabel = document.createElement('div');
+                vizLabel.style.cssText = [
+                    `background: ${borderCol}22`,
+                    `color: ${borderCol}`,
+                    'font-family: var(--font-mono)',
+                    'font-size: 0.6rem',
+                    'letter-spacing: 1px',
+                    'padding: 4px 10px',
+                    'border-bottom: 1px solid ' + borderCol + '44',
+                ].join(';');
+                vizLabel.textContent = `⬡ MANIFOLD FRACTURE — ${rs}`;
+
+                const vizImg = document.createElement('img');
+                vizImg.src = `data:image/png;base64,${data.visualization_b64}`;
+                vizImg.alt = `Manifold fracture render — ${rs}`;
+                vizImg.style.cssText = 'width:100%;display:block;image-rendering:pixelated;';
+
+                vizWrapper.appendChild(vizLabel);
+                vizWrapper.appendChild(vizImg);
+                chatFeed.appendChild(vizWrapper);
+                chatFeed.scrollTop = chatFeed.scrollHeight;
+            }
+
             updateMetricsFromDiagnostics(data);
 
             // Clear fingerprint
             state.active_fingerprint = null;
-            document.querySelector('.drop-hint').innerText = "DRAP DYAD (IMAGE)";
+            document.querySelector('.drop-hint').innerText = "DRAG DYAD (IMAGE)";
         }
+
 
         function updateMetricsFromDiagnostics(data) {
             // Update Metrics (safely)
