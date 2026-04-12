@@ -29,7 +29,8 @@ class PolynomialADMRSolver(nn.Module):
         poly_config: PolynomialCoprimeConfig,
         state_dim: int,
         eta_scaffold: float = 0.01,
-        device: str = None
+        device: str = None,
+        use_opencl: bool = False
     ):
         """
         Args:
@@ -37,12 +38,23 @@ class PolynomialADMRSolver(nn.Module):
             state_dim: Dimension of the state being optimized.
             eta_scaffold: Rate of scaffold adaptation.
             device: Computing device.
+            use_opencl: If true, utilize PyOpenCL dual-queue hardware sovereignty.
         """
         super().__init__()
         self.config = poly_config
         self.state_dim = state_dim
         self.eta_scaffold = eta_scaffold
         self.device = device
+        
+        if use_opencl:
+            try:
+                from .pyopencl_sovereignty import create_engine
+                self.silicon_engine = create_engine()
+            except Exception as e:
+                print(f"Warning: Failed to initialize SiliconSovereigntyEngine: {e}")
+                self.silicon_engine = None
+        else:
+            self.silicon_engine = None
         
         # 1. Manifold State (Asymptotic Time)
         self.register_buffer('tau', torch.tensor(0.0, device=device))
@@ -225,6 +237,18 @@ class PolynomialADMRSolver(nn.Module):
         locked_state = self.config.evaluate(new_state)
         if locked_state.dim() > new_state.dim():
             locked_state = locked_state.mean(dim=-1)
+            
+        # 6. PyOpenCL Silicon Sovereignty Execution
+        if getattr(self, 'silicon_engine', None) is not None:
+            raw_numpy = locked_state.detach().cpu().numpy()
+            
+            # Apply LSB Stochastic Rounding (Feature Scars protection)
+            rounded_numpy = self.silicon_engine.apply_stochastic_rounding(raw_numpy)
+            
+            # Apply Lipschitz Projection Obstruction (Spectral Smoothing)
+            scaled_numpy = self.silicon_engine.apply_lipschitz_obstruction(rounded_numpy)
+            
+            locked_state = torch.from_numpy(scaled_numpy).float().to(states.device)
             
         return locked_state
 
