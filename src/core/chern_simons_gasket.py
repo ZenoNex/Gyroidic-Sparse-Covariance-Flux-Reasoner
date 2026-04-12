@@ -279,6 +279,14 @@ class SolitonStabilityHealer(nn.Module):
         # Current alpha (adaptive)
         self.register_buffer('alpha', torch.tensor(alpha_0, device=device))
         
+        # Hardware Sovereignty
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            self.sovereignty_engine = SiliconSovereigntyEngine()
+        except Exception as e:
+            print(f"⚠️ Soliton Healer running without PyOpenCL Hardware boundaries: {e}")
+            self.sovereignty_engine = None
+        
         # Healing progress tracking
         self.register_buffer('healing_progress', torch.tensor(0.0, device=device))
         self.register_buffer('iteration_count', torch.tensor(0, device=device))
