@@ -101,8 +101,9 @@ from src.topology.embedding_graph import GyroidicGraphManager
 from src.data.pressure_ingestor import PressureIngestor
 # Topological Extensions (Repunit Probes)
 from src.core.birkhoff_projection import SparseRepunitProbe
-from src.core.voynich_architecture import VoynichLinguist
 from src.topology.unknowledge_domain import UnknowledgeDomain, EntropicMischiefProbe
+from src.core.five_gate_pipeline import FiveGatePipeline, KnowledgeState
+from src.core.archetype_engines import ArchetypalSynthesisEngine
 
 # Local Data Loading (Phase 1: HF token barrier removal)
 from src.data.local_data_loader import LocalDataLoader
@@ -251,7 +252,8 @@ class DiegeticPhysicsEngine(nn.Module):
         )
         
         # Tri-State Output Gate 4/5 
-        self.voynich_linguist = VoynichLinguist(latent_dim=dim).to(self.device)
+        self.five_gate_pipeline = FiveGatePipeline(state_dim=dim)
+        self.archetypal_governor = ArchetypalSynthesisEngine(state_dim=dim)
         self.unknowledge_domain = UnknowledgeDomain(tau_m=0.3)
         self.mischief_probe = EntropicMischiefProbe(device=self.device)
 
@@ -695,10 +697,13 @@ class DiegeticPhysicsEngine(nn.Module):
             dyad_override_response = self._handle_association_learning(text_input, seed_state)
             
         # =============================================
-        # 5.a Voynich False Negative Override
+        # 5.a Voynich Exemption Stand-in
         # =============================================
-        # Evaluate high-entropy sovereign logic before testing generic symmetry
-        _, _, _, exemption_token = self.voynich_linguist(self.meta_state)
+        # Create a dummy exemption token since the Voynich linguist was formally 
+        # dissolved into the Braid Group structures.
+        class _MockExemption:
+            is_valid_exemption = False
+        exemption_token = _MockExemption()
 
         # =============================================
         # 5.b CALM: Update history buffer and get trajectory assessment
@@ -1393,18 +1398,71 @@ class DiegeticPhysicsEngine(nn.Module):
         print("🔧 Starting text generation with fully repaired state...")
         
         # =============================================
+        # PHASE 5: THE WORLD DOWN THERE (Archetypal Governor)
+        # =============================================
+        print("🔧 Phase 5: Routing through Braid Group & Archetypal Synthesis Governor...")
+        
+        # We process the final seed_state using the Braid Governor
+        archetype_out = self.archetypal_governor.run_archetypes(
+            quantized_state=seed_state,
+            unquantized_state=self.meta_state,
+            current_mischief=self.mischief_probe.compute_h_mischief(seed_state),
+            phase_alignment=pas_h_live,
+            love_strengths=torch.cat([torch.tensor([0.1]), self.love_vector.L.flatten()]),
+            void_frictions=torch.tensor([abort_score]), # use CALM abort as tension
+            global_dt=dt,
+            env_luminosity=1.0,
+            volitional_scalar=affordance_gradients.get('executability_pressure', 0.5),
+            system_entropy=gyroid_entropy.item() if 'gyroid_entropy' in locals() else 0.5,
+            memory_trauma=float(self.calm_history.mean().item()),
+            dissonance=abort_score,
+            lucidity_idx=pas_h_live,
+            raw_unquantized_state=self.meta_state
+        )
+        
+        if archetype_out.get("system_collapsed", False):
+            # THE RA EGO DEATH EVENT HAS TRIGGERED
+            void_str = f"[IRREDUCIBLE EGO DEATH (Ra = {archetype_out.get('Ra_score', 9.99):.2f})] Topology rejected standard response generation... Structural integrity fractured. "
+            print(void_str)
+            return {
+                "status": "processed",
+                "iteration": self.iteration,
+                "response": void_str,
+                "affordance_gradients": affordance_gradients,
+                "payload": {"type": "ego_death"}
+            }
+            
+        # If survived Ego Death, pass into 5-Gate Tri-State
+        gate_out = self.five_gate_pipeline.process_pipeline(
+            query_state=seed_state[0],
+            internal_certainty=1.0 - abort_score,
+            current_pas_h=pas_h_live,
+            target_mischief=self.mischief_probe.compute_h_mischief(seed_state),
+            diegetic_retrieval_fn=None # Could plug the Wikipedia system here
+        )
+        
+        # =============================================
         # PHASE 3: RESPONSE QUALITY OPTIMIZATION
         # =============================================
-        print("🔧 Phase 3: Response Quality Optimization...")
+        print(f"🔧 Phase 3: Response Quality Optimization (Gate State: {gate_out['knowledge_state']})...")
         
-        # Enhanced dyad-aware response generation
-        response_text = self._generate_dyad_aware_response(
-            seed_state=seed_state,
-            input_text=text_input,
-            fingerprint=fingerprint,
-            max_length=max_output_length,
-            min_length=min_output_length
-        )
+        if gate_out["knowledge_state"] == KnowledgeState.CONFABULATED:
+            # We are writing structured glitch lore
+            override_response = f"[CONFABULATED_GLITCH] Search failed, but Mischief ({self.mischief_probe.compute_h_mischief(seed_state):.2f}) is high. Initiating honest, localized dreaming sequence...\n"
+            # Instead of standard generation, we use polynomial trace generation:
+            confab_gen = "The " + " ".join([chr((int(val) % 26) + 97) for val in seed_state[0][:10].abs() * 100]) + "..."
+            response_text = override_response + confab_gen
+        else:
+            # Enhanced dyad-aware response generation
+            response_text = self._generate_dyad_aware_response(
+                seed_state=seed_state,
+                input_text=text_input,
+                fingerprint=fingerprint,
+                max_length=max_output_length,
+                min_length=min_output_length
+            )
+            if gate_out["knowledge_state"] == KnowledgeState.SEARCH_NEEDED:
+                response_text = "[SEARCH_GATE_TRIGGERED] Internal manifold lacks topology. " + response_text
         print(f"✅ Generated dyad-aware response: {response_text}")
         print(f"🔧 Response length: {len(response_text)} characters")
         
