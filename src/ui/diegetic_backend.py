@@ -470,10 +470,25 @@ class DiegeticPhysicsEngine(nn.Module):
         self.optimizer = torch.optim.Adam(self.larynx.parameters(), lr=0.01)
         self.criterion = nn.CrossEntropyLoss()
         
-        # 12. Fingerprint Projection (137 dims -> 64 dims)
-        # (32 R + 32 G + 32 B + 32 L + 1 Texture + 8 Edge Features)
-        self.fingerprint_proj = nn.Linear(137, self.dim)
+        # 12. Image Fingerprint Projection — Chebyshev format
+        # New format: {L:[K], Cr:[K], Cb:[K]} with K ∈ [5,32].
+        # Fixed projection input dim = K_IMAGE_MAX * 3 = 96.
+        # Old 137-dim histogram dict is detected at runtime and reshaped.
+        self.K_IMAGE_MAX = 32
+        self.fingerprint_proj = nn.Linear(self.K_IMAGE_MAX * 3, self.dim)
         nn.init.orthogonal_(self.fingerprint_proj.weight)
+
+        # 13. Audio Dyad Projection — Chebyshev harmonics from Panel C
+        # K_AUDIO_MAX caps the harmonics vector that arrives from JS.
+        self.K_AUDIO_MAX = 64
+        self.audio_dyad_proj = nn.Linear(self.K_AUDIO_MAX, self.dim)
+        nn.init.orthogonal_(self.audio_dyad_proj.weight)
+
+        # 14. Meta-state residue feedback projection (structural + self-fingerprint)
+        # Lazy: we register a fixed-max-size proj; actual input is padded/truncated.
+        self._residue_proj_dim = 32
+        self.residue_feedback_proj = nn.Linear(self._residue_proj_dim, self.dim)
+        nn.init.orthogonal_(self.residue_feedback_proj.weight)
         
         self.iteration = 0
         self.encoding_manager = EncodingManager()
@@ -560,11 +575,22 @@ class DiegeticPhysicsEngine(nn.Module):
                 'components': {'error': str(e)}
             }
         
-    def process_input(self, text_input: str, fingerprint: Optional[Dict] = None, generate_response: bool = True) -> dict:
+    def process_input(
+        self,
+        text_input: str,
+        fingerprint: Optional[Dict] = None,
+        audio_dyad: Optional[Dict] = None,
+        commutativity: str = 'symmetric',
+        generate_response: bool = True,
+    ) -> dict:
         """
         Process user text, update cavity, and generate emergent response via Fractal Recursion.
         Now uses CALM, KAGH, and HarmonicWaveDecomposition for proper legacy integration.
-        Optional multi-channel fingerprint can bias the manifold ingestion.
+        Multi-modal fingerprint (image) and audio_dyad bias the manifold ingestion with
+        non-commutative ordering governed by the commutativity parameter:
+          'media_first' : media tensor evolves meta_state BEFORE text tensor.
+          'text_first'  : text tensor evolves first; media applied after forward().
+          'symmetric'   : simultaneous summation (default).
         Enhanced with constraint pressure injection when code is detected.
         """
         self.iteration += 1
@@ -640,21 +666,65 @@ class DiegeticPhysicsEngine(nn.Module):
             }
         }
         
-        # Integrate fingerprint if provided (Topological Enrichment)
-        if fingerprint:
-            # Flatten fingerprint features: [r, g, b, l, texture, edges]
-            feat = torch.cat([
-                torch.tensor(fingerprint['r']),
-                torch.tensor(fingerprint['g']),
-                torch.tensor(fingerprint['b']),
-                torch.tensor(fingerprint['l']),
-                torch.tensor([fingerprint['texture']]),
-                torch.tensor(fingerprint.get('edges', [0.0] * 8))  # 8 edge features
-            ], dim=0).unsqueeze(0).float() # [1, 137]
-            
+        # ── Non-Commutative Dyad Routing (§Braid Group) ─────────────────────────────────
+        # Converts fingerprint dict or audio_dyad dict into a projection vector,
+        # then applies it before or after the text tensor based on commutativity.
+        def _build_fp_bias(fp_dict, audio_dict) -> Optional[torch.Tensor]:
+            """Returns [1, dim] media bias tensor, or None if no media present."""
+            parts = []
+            if fp_dict:
+                if 'L' in fp_dict:  # New Chebyshev format {L, Cr, Cb}
+                    K = len(fp_dict['L'])
+                    L_coeff  = fp_dict.get('L',  [0.0] * K)
+                    Cr_coeff = fp_dict.get('Cr', [0.0] * K)
+                    Cb_coeff = fp_dict.get('Cb', [0.0] * K)
+                    flat = L_coeff + Cr_coeff + Cb_coeff
+                elif 'r' in fp_dict:  # Legacy 137-dim histogram (backward compat)
+                    flat = (
+                        fp_dict.get('r', []) + fp_dict.get('g', []) +
+                        fp_dict.get('b', []) + fp_dict.get('l', []) +
+                        [fp_dict.get('texture', 0.0)] +
+                        fp_dict.get('edges', [0.0] * 8)
+                    )
+                else:
+                    flat = []
+                if flat:
+                    t = torch.tensor(flat, dtype=torch.float32, device=self.device)
+                    target = self.K_IMAGE_MAX * 3  # 96
+                    if t.numel() < target:
+                        t = F.pad(t, (0, target - t.numel()))
+                    else:
+                        t = t[:target]
+                    parts.append(self.fingerprint_proj(t.unsqueeze(0)))  # [1, dim]
+            if audio_dict:
+                harmonics = audio_dict.get('chebyshev_harmonics', [])
+                if harmonics:
+                    t = torch.tensor(harmonics, dtype=torch.float32, device=self.device)
+                    if t.numel() < self.K_AUDIO_MAX:
+                        t = F.pad(t, (0, self.K_AUDIO_MAX - t.numel()))
+                    else:
+                        t = t[:self.K_AUDIO_MAX]
+                    parts.append(self.audio_dyad_proj(t.unsqueeze(0)))  # [1, dim]
+            if not parts:
+                return None
             with torch.no_grad():
-                fp_bias = self.fingerprint_proj(feat)
-                input_tensor = input_tensor + 0.5 * fp_bias
+                bias = torch.stack(parts).mean(dim=0)  # [1, dim]
+            return bias
+
+        media_bias = _build_fp_bias(fingerprint, audio_dyad)
+
+        if commutativity == 'media_first' and media_bias is not None:
+            # Media evolves meta_state BEFORE text is embedded.
+            # Temporarily perturb meta_state, run forward, then restore.
+            with torch.no_grad():
+                self.meta_state = F.layer_norm(
+                    self.meta_state + 0.5 * media_bias,
+                    self.meta_state.shape[1:]
+                )
+        elif commutativity == 'symmetric' and media_bias is not None:
+            # Existing behaviour: add bias to input_tensor simultaneously.
+            input_tensor = input_tensor + 0.5 * media_bias
+        # 'text_first': media_bias applied after forward() below.
         
         # 2. MIMICRY (Active Listening)
         self._train_mimicry(input_tensor, text_input)
@@ -677,9 +747,19 @@ class DiegeticPhysicsEngine(nn.Module):
         # Now uses forward() to support SpectralStructuralTrainer
         manifold_state = self.forward(input_tensor, dt=dt)
         seed_state = manifold_state.detach() # Explicit seed for response
-        
+
+        # text_first commutativity: apply media bias AFTER forward() —
+        # text already shaped the manifold; media now distorts the resulting state.
+        if commutativity == 'text_first' and media_bias is not None:
+            with torch.no_grad():
+                self.meta_state = F.layer_norm(
+                    self.meta_state + 0.5 * media_bias,
+                    self.meta_state.shape[1:]
+                )
+
         memory_state = getattr(self, '_last_memory_state', self.meta_state)
         est_residues = getattr(self, '_last_est_residues', torch.zeros_like(self.meta_state))
+
         
         # =============================================
         # DYAD AGENTIC TRIGGERS (AFFORDANCE-BASED)
@@ -1549,6 +1629,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Roughness contract: we pass raw live tensors; the visualizer
         # never smooths edges (see diegetic_visualizer.py doc-header).
         visualization_b64 = None
+        viz_result = None
         if retrieval_state in ('CONFABULATED', 'SEARCH_NEEDED'):
             try:
                 from src.ui.diegetic_visualizer import render_manifold_fracture
@@ -1568,18 +1649,17 @@ class DiegeticPhysicsEngine(nn.Module):
                 except Exception as _fmf_e:
                     print(f"[VISUALIZER] FractalMeta forward failed: {_fmf_e}")
 
-                # Introspection probe directions (if the engine exposes them)
+                # Introspection probe directions
                 _intro_dirs = None
                 if hasattr(self, 'introspection') and self.introspection is not None:
                     try:
                         _probe_input = seed_state[:1].expand(1, -1)
                         _intro_out = self.introspection(_probe_input)
-                        # AggregateGeometricSelfModel returns {type: direction [B, probe_dims]}
                         _intro_dirs = {k: v.squeeze(0) for k, v in _intro_out.items()}
                     except Exception as _intro_e:
                         print(f"[VISUALIZER] Introspection probe failed: {_intro_e}")
 
-                # ChernSimons energy — pull from last cached diagnostics if available
+                # ChernSimons energy from last cached diagnostics
                 _cs_energy = None
                 if hasattr(self, '_last_chern_simons_diagnostics') and self._last_chern_simons_diagnostics:
                     _csd = self._last_chern_simons_diagnostics
@@ -1588,7 +1668,7 @@ class DiegeticPhysicsEngine(nn.Module):
                         import torch as _t
                         _cs_energy = _t.tensor([float(_cs_scalar)])
 
-                visualization_b64 = render_manifold_fracture(
+                viz_result = render_manifold_fracture(
                     retrieval_state=retrieval_state,
                     meta_state=self.meta_state,
                     fractal_components=_fractal_components,
@@ -1599,13 +1679,67 @@ class DiegeticPhysicsEngine(nn.Module):
                     honesty_score=float(honesty_score),
                     iteration=self.iteration,
                 )
-                if visualization_b64:
-                    print(f"[VISUALIZER] Manifold fracture rendered — {len(visualization_b64)} bytes (b64)")
+                if viz_result and viz_result.get('b64'):
+                    print(f"[VISUALIZER] Manifold fracture rendered — {len(viz_result['b64'])} bytes (b64) "
+                          f"sr={len(viz_result.get('structural_residues', []))} "
+                          f"csf={len(viz_result.get('cheby_self_fingerprint', []))}")
                 else:
-                    print("[VISUALIZER] render_manifold_fracture returned None")
+                    print("[VISUALIZER] render_manifold_fracture returned empty result")
             except Exception as _viz_e:
                 print(f"[VISUALIZER] Rendering error (non-fatal): {_viz_e}")
                 import traceback as _tb; _tb.print_exc()
+
+
+        # Feed structural residues back into meta_state — Introspection (κ·I) channel
+        # (RESONANCE_CAVITY.md: dM/dt = Decay + Flux + Introspection + Patterns + Violation)
+        # This gives the system structural awareness of its own fracture WITHOUT seeing
+        # the rendered picture.  The λ values are deliberately small to nudge, not dominate.
+        if viz_result and isinstance(viz_result, dict):
+            visualization_b64 = viz_result.get('b64')
+
+            sr = viz_result.get('structural_residues')
+            if sr is not None and len(sr) > 0:
+                try:
+                    sr_t = torch.tensor(sr, dtype=torch.float32, device=self.device)
+                    # Pad/truncate to residue_proj_dim
+                    rpd = self._residue_proj_dim
+                    if sr_t.numel() < rpd:
+                        sr_t = F.pad(sr_t, (0, rpd - sr_t.numel()))
+                    else:
+                        sr_t = sr_t[:rpd]
+                    with torch.no_grad():
+                        sr_proj = self.residue_feedback_proj(sr_t.unsqueeze(0))
+                        self.meta_state = F.layer_norm(
+                            self.meta_state + 0.05 * sr_proj,
+                            self.meta_state.shape[1:]
+                        )
+                    print(f"[FEEDBACK] Structural residues injected -> meta_state (κ=0.05)")
+                except Exception as _sr_e:
+                    print(f"[FEEDBACK] Residue injection failed: {_sr_e}")
+
+            csf = viz_result.get('cheby_self_fingerprint')
+            if csf is not None and len(csf) > 0:
+                try:
+                    csf_t = torch.tensor(csf, dtype=torch.float32, device=self.device)
+                    rpd = self._residue_proj_dim
+                    if csf_t.numel() < rpd:
+                        csf_t = F.pad(csf_t, (0, rpd - csf_t.numel()))
+                    else:
+                        csf_t = csf_t[:rpd]
+                    with torch.no_grad():
+                        csf_proj = self.residue_feedback_proj(csf_t.unsqueeze(0))
+                        self.meta_state = F.layer_norm(
+                            self.meta_state + 0.02 * csf_proj,
+                            self.meta_state.shape[1:]
+                        )
+                    print(f"[FEEDBACK] Chebyshev self-fingerprint injected -> meta_state (κ=0.02)")
+                except Exception as _csf_e:
+                    print(f"[FEEDBACK] Self-fingerprint injection failed: {_csf_e}")
+        else:
+            # Visualizer returned a bare string (old format) or None
+            visualization_b64 = viz_result if isinstance(viz_result, str) else None
+
+        print("[VISUALIZER] Feedback pass complete")
 
         # Construct metrics now that all dependencies are available
 
@@ -3829,11 +3963,20 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     content_len = int(self.headers.get('Content-Length', 0))
                     post_body = self.rfile.read(content_len)
                     data = json.loads(post_body.decode('utf-8'))
-                    user_text = data.get('text', '')
-                    print(f"📝 User input: '{user_text}'")
+                    user_text     = data.get('text', '')
+                    fingerprint   = data.get('fingerprint', None)   # Chebyshev {L,Cr,Cb} or legacy {r,g,b,l,...}
+                    audio_dyad    = data.get('audio_dyad', None)    # {chebyshev_harmonics, commutativity, ...}
+                    commutativity = data.get('commutativity', 'symmetric')  # master selector value
+                    print(f"📝 User input: '{user_text}' | commutativity={commutativity} | "
+                          f"has_image={fingerprint is not None} | has_audio={audio_dyad is not None}")
                     print("🔧 Starting ENGINE.process_input...")
-                    
-                    response_data = ENGINE.process_input(user_text)
+
+                    response_data = ENGINE.process_input(
+                        user_text,
+                        fingerprint=fingerprint,
+                        audio_dyad=audio_dyad,
+                        commutativity=commutativity,
+                    )
                     self._send_json(response_data)
                 except Exception as e:
                     print(f"❌ Error processing input: {e}")
@@ -3841,6 +3984,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     traceback.print_exc()
                     self._send_error_json(str(e))
                 return
+
 
             elif self.path == '/associate':
                 print("📥 Processing /associate request...")
