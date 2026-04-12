@@ -10,7 +10,7 @@ class TestUnicornSynthesis(unittest.TestCase):
     def setUp(self):
         self.state_dim = 16
         self.batch_size = 4
-        self.dummy_state = torch.randn(self.batch_size, self.state_dim)
+        self.dummy_state = torch.ones(self.batch_size, self.state_dim)
 
     def test_quantum_tda_minimax(self):
         """Phase 3: Verify the Quantum-Inspired Laplacian Polynomial approximation."""
