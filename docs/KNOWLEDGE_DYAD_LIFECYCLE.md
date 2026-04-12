@@ -198,3 +198,44 @@ DAQUF Fossilisation (on /ingest)
 
 > [!IMPORTANT]
 > A Knowledge Dyad is not a "fact" in a database. It is a **Topological Obstruction** that forces the system's thought-trajectories to curve. The non-commutative routing means the *order* in which you present image, audio, and text is itself a structural signal — not metadata.
+
+---
+
+## 9. Internal Fusion — DataAssociationLayer & Residue Fusion
+
+**Source**: [`src/models/diegetic_heads.py`](../src/models/diegetic_heads.py)
+
+> This section describes what happens *inside* the engine after the Chebyshev fingerprint has biased the manifold. These are two distinct layers: the Chebyshev fingerprint (§2–3) is the **external ingestion path** (raw signal → `meta_state` bias). The `DataAssociationLayer` is the **internal fusion path** (tensors already inside the engine → cross-modal residues → dark matter injection).
+
+When an image and a linguistic description are provided through the terminal side panel, they are treated as a single **Knowledge Dyad** $(\mathcal{I}, \mathcal{L})$.
+
+- **Image Stream ($\mathcal{I}$)**: Projected into a sparse latent vector via the `image_emb` hash.
+- **Linguistic Stream ($\mathcal{L}$)**: Projected via the `text_emb` hash.
+
+The dyad enters the `DataAssociationLayer`. Unlike standard multimodal fusion (which often collapses features into a mean), our system performs **Residue Fusion**:
+
+1. **Cross-Modality Torsion**: The system calculates the "shear" between the image features and the text features.
+2. **K-Sparse Residue Generation**: The interaction produces $k$ distinct **Residues** ($R_1 \dots R_k$).  
+   These residues represent the *incompatibility* between the modalities — what is left over when you try to map a picture to a word.
+3. **Resonance Injection**: These residues are injected directly into the `ResonanceCavity` as "Dark Matter" seeds — `D_dark`.
+
+### Relationship to the Chebyshev fingerprint
+
+| Layer | When it runs | What it processes | Where the result goes |
+|---|---|---|---|
+| Chebyshev fingerprint + `_build_fp_bias()` | Before / during `forward()` | Raw image pixels → K spectral coefficients | `meta_state` (bias) |
+| `DataAssociationLayer` residue fusion | Inside `_handle_dyad_ingestion()` | Internal `image_emb` + `text_emb` tensors | `ResonanceCavity` dark matter `D_dark` |
+
+Both layers interact with the manifold, but at different depths and through different channels.
+
+---
+
+## 10. Original §5 Summary of Flow
+
+1. **Terminal**: User provides $(\text{Image} \leftrightarrow \text{Word})$ or $(\text{Audio} \leftrightarrow \text{Word})$.
+2. **Chebyshev Fingerprint**: Client-side Chebyshev projection biases `meta_state` via commutativity routing.
+3. **Association**: `DataAssociationLayer` computes $k$-residues ($R_k$) from internal `image_emb`/`text_emb`.
+4. **Cavity**: $R_k$ warps the dark matter field $D_{dark}$.
+5. **Encoding**: State is fossilised to disk (`data/encodings/encoding_*.pt`).
+6. **Speculation**: Future "stuck" states use these fossilised dyads as gravity wells to bridge through the vacuum of noise.
+
