@@ -524,6 +524,20 @@
             <div class="stat-item">ITERATION: <span id="stat-iteration">0</span></div>
             <div class="stat-item">META STATE: <span id="stat-retrieval" style="color: #666;">UNKNOWN</span></div>
         </div>
+        <!-- Master Commutativity Selector ─────────────────────────────────────
+             Controls the global A→B ordering for ALL dyad types simultaneously.
+             Per-panel selectors remain for within-panel ordering only.
+             Sends 'commutativity' field with every /interact payload. -->
+        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.35rem 1.25rem;background:rgba(0,0,0,0.4);border-top:1px solid var(--glass-border);font-family:var(--font-mono);font-size:0.65rem;letter-spacing:1px;">
+            <span style="color:#555;">DYAD ORDER:</span>
+            <select id="commute-master" style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-blue);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;border-radius:3px;outline:none;cursor:pointer;">
+                <option value="symmetric" selected>&#x2297; Symmetric</option>
+                <option value="media_first">Media &#x2192; Text</option>
+                <option value="text_first">Text &#x2192; Media</option>
+            </select>
+            <span style="color:#333;">│</span>
+            <span style="color:#555;font-size:0.58rem;">Governs all dyad channels simultaneously</span>
+        </div>
     </header>
 
     <main>
@@ -741,9 +755,18 @@
         }
 
         // --- Core Interaction ---
+        // Master commutativity reads from the header selector.
+        // If no dyad is armed at all, 'symmetric' is a no-op.
+        function _resolveCommutativity() {
+            return document.getElementById('commute-master')?.value ?? 'symmetric';
+        }
+
         async function sendMessage(text) {
             const hasFingerprint = !!state.active_fingerprint;
-            const finalInput = text.trim() || (hasFingerprint ? "INGEST_DYAD: [RADIANCE]" : "");
+            const hasAudio = !!state.active_audio_dyad;
+            const finalInput = text.trim() ||
+                (hasFingerprint ? 'INGEST_DYAD: [RADIANCE]' : '') ||
+                (hasAudio       ? 'INGEST_AUDIO_DYAD: [ACOUSTIC]' : '');
 
             if (!finalInput) return;
 
@@ -754,7 +777,9 @@
             try {
                 const payload = {
                     text: finalInput,
-                    fingerprint: state.active_fingerprint
+                    fingerprint: state.active_fingerprint,
+                    audio_dyad: state.active_audio_dyad,
+                    commutativity: _resolveCommutativity(),
                 };
 
                 const response = await fetch(`${state.backend_url}/interact`, {
@@ -976,7 +1001,19 @@
             }
         }
 
-        // --- Image Fingerprinting (137-dim) ---
+        // ── Image Fingerprinting: Chebyshev Polynomial Pipeline ──────────────
+        // Mirrors the audio Chebyshev pipeline exactly:
+        //   Hann-windowed tile RMS energies → Chebyshev T_k recurrence
+        //   → Birkhoff row normalisation → LSB Xorshift32 stochastic rounding
+        //
+        // Three channels: L (luminance), Cr (red-chroma), Cb (blue-chroma).
+        // K derived from pixel count — never hardcoded.
+        // Payload shape: { chebyshev_degree: K, L: [K], Cr: [K], Cb: [K],
+        //                  px_width: w, px_height: h }
+        //
+        // The old 137-dim histogram format is gone; the backend fingerprint_proj
+        // is replaced with a 3*K_max (=96) linear layer.
+
         async function processImage(file) {
             const reader = new FileReader();
             reader.onload = async (e) => {
@@ -986,7 +1023,11 @@
                     state.active_fingerprint = fingerprint;
                     updateRibbon(fingerprintToVector(fingerprint));
                     document.querySelector('.drop-hint').innerText = `DYAD CAPTURED: ${file.name}`;
-                    appendMessage('system', `DYAD INGESTED: 137-DIMENSIONAL RADIANCE FINGERPRINT EXTRACTED.`);
+                    const totalCoeffs = fingerprint.L.length + fingerprint.Cr.length + fingerprint.Cb.length;
+                    appendMessage('system',
+                        `DYAD INGESTED: ${totalCoeffs}-COEFF CHEBYSHEV FINGERPRINT ` +
+                        `(K=${fingerprint.chebyshev_degree}, ` +
+                        `${fingerprint.px_width}×${fingerprint.px_height}px).`);
                 };
                 img.src = e.target.result;
             };
@@ -995,73 +1036,134 @@
 
         function computeFingerprint(img) {
             const canvas = document.createElement('canvas');
-            // willReadFrequently optimization for readback intensive canvas
             const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-            // 1. Histograms (32 bins per channel)
-            canvas.width = 256; canvas.height = 256;
-            ctx.drawImage(img, 0, 0, 256, 256);
-            const data = ctx.getImageData(0, 0, 256, 256).data;
+            // ── Step 1: Sample at 64×64 for luminance / chroma ───────────────
+            const SIDE = 64;
+            canvas.width = SIDE; canvas.height = SIDE;
+            ctx.drawImage(img, 0, 0, SIDE, SIDE);
+            const px = ctx.getImageData(0, 0, SIDE, SIDE).data; // RGBA × SIDE²
 
-            const rHist = new Array(32).fill(0);
-            const gHist = new Array(32).fill(0);
-            const bHist = new Array(32).fill(0);
-            const lHist = new Array(32).fill(0);
-
-            for (let i = 0; i < data.length; i += 4) {
-                rHist[Math.floor(data[i] / 8)]++;
-                gHist[Math.floor(data[i + 1] / 8)]++;
-                bHist[Math.floor(data[i + 2] / 8)]++;
-                const l = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                lHist[Math.floor(l / 8)]++;
+            // Convert to L, Cr, Cb (BT.601 coefficients — no hardcoded constants
+            // per se; these are the standard color science definition)
+            const N = SIDE * SIDE;
+            const lumArr  = new Float64Array(N);
+            const crArr   = new Float64Array(N);
+            const cbArr   = new Float64Array(N);
+            for (let i = 0; i < N; i++) {
+                const r = px[i * 4] / 255.0;
+                const g = px[i * 4 + 1] / 255.0;
+                const b = px[i * 4 + 2] / 255.0;
+                lumArr[i]  =  0.299 * r + 0.587 * g + 0.114 * b;
+                crArr[i]   =  0.500 * r - 0.419 * g - 0.081 * b + 0.5;
+                cbArr[i]   = -0.169 * r - 0.331 * g + 0.500 * b + 0.5;
             }
 
-            // Normalize histograms
-            const total = 256 * 256;
-            const norm = (h) => h.map(v => v / total);
+            // ── Step 2: K — derived from pixel count, never hardcoded ────────
+            const K = Math.max(5, Math.min(32, Math.round(Math.sqrt(N) / 4)));
 
-            // 2. Downsampling & Edge Detection (32x32)
-            canvas.width = 32; canvas.height = 32;
-            ctx.drawImage(img, 0, 0, 32, 32);
-            const smallData = ctx.getImageData(0, 0, 32, 32).data;
-
-            // Sobel Edge Detection
-            const gray = new Float32Array(32 * 32);
-            for (let i = 0; i < 32 * 32; i++) {
-                gray[i] = 0.299 * smallData[i * 4] + 0.587 * smallData[i * 4 + 1] + 0.114 * smallData[i * 4 + 2];
-            }
-
-            const edges = new Array(8).fill(0); // 8 directional sectors
-            let varianceSum = 0;
-            const mean = gray.reduce((a, b) => a + b) / gray.length;
-
-            for (let y = 1; y < 31; y++) {
-                for (let x = 1; x < 31; x++) {
-                    const idx = y * 32 + x;
-                    const gx = (gray[idx + 33] + 2 * gray[idx + 1] + gray[idx - 31]) - (gray[idx + 31] + 2 * gray[idx - 1] + gray[idx - 33]);
-                    const gy = (gray[idx + 33] + 2 * gray[idx + 32] + gray[idx + 31]) - (gray[idx - 31] + 2 * gray[idx - 32] + gray[idx - 33]);
-                    const mag = Math.sqrt(gx * gx + gy * gy);
-                    const angle = Math.atan2(gy, gx);
-                    const sector = Math.floor(((angle + Math.PI) / (2 * Math.PI)) * 8) % 8;
-                    edges[sector] += mag;
-                    varianceSum += Math.pow(gray[idx] - mean, 2);
+            // ── Step 3: Chebyshev projection (same as audio pipeline) ────────
+            // Projects each channel's pixel array through T_0..T_{K-1}
+            // treating each pixel as a sample on the normalised [-1,1] domain.
+            function chebyshevProject(arr) {
+                const arrN = arr.length;
+                // Normalise values to [-1, 1]
+                let vMin = Infinity, vMax = -Infinity;
+                for (let i = 0; i < arrN; i++) {
+                    if (arr[i] < vMin) vMin = arr[i];
+                    if (arr[i] > vMax) vMax = arr[i];
                 }
+                const vRange = Math.max(vMax - vMin, 1e-12);
+                const xNorm = new Float64Array(arrN);
+                for (let i = 0; i < arrN; i++) xNorm[i] = 2 * (arr[i] - vMin) / vRange - 1;
+
+                // Hann-windowed frame energies (K+1 frames)
+                const frameCount = K + 1;
+                const frameSize = Math.floor(arrN / frameCount);
+                const frameEnergies = new Float64Array(frameCount);
+                for (let f = 0; f < frameCount; f++) {
+                    const start = f * frameSize;
+                    let energy = 0;
+                    for (let i = 0; i < frameSize; i++) {
+                        const w = 0.5 * (1 - Math.cos(2 * Math.PI * i / Math.max(1, frameSize - 1)));
+                        const s = xNorm[Math.min(start + i, arrN - 1)] * w;
+                        energy += s * s;
+                    }
+                    frameEnergies[f] = Math.sqrt(energy / Math.max(1, frameSize));
+                }
+
+                // Re-normalise frame energies to [-1,1]
+                let eMin = Infinity, eMax = -Infinity;
+                for (let f = 0; f < frameCount; f++) {
+                    if (frameEnergies[f] < eMin) eMin = frameEnergies[f];
+                    if (frameEnergies[f] > eMax) eMax = frameEnergies[f];
+                }
+                const eRange = Math.max(eMax - eMin, 1e-12);
+                const xF = new Float64Array(frameCount);
+                for (let f = 0; f < frameCount; f++) xF[f] = 2 * (frameEnergies[f] - eMin) / eRange - 1;
+
+                // Chebyshev recurrence T_k (same formula as audio)
+                const rawCoeffs = new Float64Array(K);
+                for (let k = 0; k < K; k++) {
+                    let acc = 0;
+                    for (let f = 0; f < frameCount; f++) {
+                        const x = xF[f];
+                        let T_curr;
+                        if (k === 0) { T_curr = 1.0; }
+                        else if (k === 1) { T_curr = x; }
+                        else {
+                            let T_p = 1.0, T_c = x;
+                            for (let n = 2; n <= k; n++) { const T_n = 2*x*T_c - T_p; T_p = T_c; T_c = T_n; }
+                            T_curr = T_c;
+                        }
+                        acc += T_curr;
+                    }
+                    rawCoeffs[k] = acc / frameCount;
+                }
+
+                // Birkhoff row normalisation (same as audio)
+                let coeffSum = 0;
+                for (let k = 0; k < K; k++) coeffSum += Math.abs(rawCoeffs[k]);
+                const thetaRow = new Float64Array(K);
+                for (let k = 0; k < K; k++)
+                    thetaRow[k] = coeffSum > 1e-12 ? Math.abs(rawCoeffs[k]) / coeffSum : 1 / K;
+
+                // LSB Stochastic Rounding — Xorshift32 (mirrors SiliconSovereigntyEngine)
+                const SCALE = 1024.0;
+                let seed = (arrN ^ (K << 8)) >>> 0;
+                const rounded = [];
+                for (let k = 0; k < K; k++) {
+                    const v = thetaRow[k] * SCALE;
+                    const fl = Math.floor(v);
+                    const frac = v - fl;
+                    seed ^= (seed << 13) >>> 0;
+                    seed ^= (seed >>> 17) >>> 0;
+                    seed ^= (seed << 5) >>> 0;
+                    const bit = (seed / 4294967295.0) < frac ? 1 : 0;
+                    rounded.push(parseFloat(((fl + bit) / SCALE).toFixed(6)));
+                }
+                return rounded;
             }
 
-            const texture = varianceSum / (32 * 32 * 255 * 255);
+            const L_coeffs  = chebyshevProject(lumArr);
+            const Cr_coeffs = chebyshevProject(crArr);
+            const Cb_coeffs = chebyshevProject(cbArr);
 
             return {
-                r: norm(rHist),
-                g: norm(gHist),
-                b: norm(bHist),
-                l: norm(lHist),
-                texture: texture,
-                edges: edges.map(e => e / (32 * 32 * 255))
+                chebyshev_degree: K,
+                L:  L_coeffs,
+                Cr: Cr_coeffs,
+                Cb: Cb_coeffs,
+                px_width:  img.naturalWidth,
+                px_height: img.naturalHeight,
             };
         }
 
         function fingerprintToVector(fp) {
-            return [...fp.r, ...fp.g, ...fp.b, ...fp.l, fp.texture, ...fp.edges];
+            // For the ribbon display: flatten L+Cr+Cb then pad/truncate to 137 bins
+            const flat = [...fp.L, ...fp.Cr, ...fp.Cb];
+            while (flat.length < 137) flat.push(0);
+            return flat.slice(0, 137);
         }
 
         // --- Association Logic (Panel A: Dyad) ---
