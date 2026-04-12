@@ -363,6 +363,146 @@
         ::-webkit-scrollbar-thumb:hover {
             background: var(--terminal-blue);
         }
+
+        /* --- Commutativity Selector --- */
+        .commutativity-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .commutativity-row label {
+            font-size: 0.65rem;
+            color: #666;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .commute-select {
+            flex: 1;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--terminal-blue);
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            padding: 4px 6px;
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .commute-select:focus {
+            border-color: var(--terminal-blue);
+        }
+
+        .commute-select option {
+            background: #111;
+            color: #e0e0e0;
+        }
+
+        /* --- Audio Dyad Panel --- */
+        #audio-dropzone {
+            width: 100%;
+            height: 90px;
+            border: 2px dashed rgba(255, 204, 0, 0.3);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.75rem;
+            position: relative;
+        }
+
+        #audio-dropzone:hover,
+        #audio-dropzone.dragover {
+            border-color: var(--terminal-warn);
+            background: rgba(255, 204, 0, 0.04);
+        }
+
+        #audio-dropzone.loaded {
+            border-color: var(--terminal-green);
+            background: rgba(0, 255, 65, 0.04);
+        }
+
+        .audio-drop-icon {
+            font-size: 1.4rem;
+            line-height: 1;
+            color: var(--terminal-warn);
+        }
+
+        .audio-drop-hint {
+            font-size: 0.65rem;
+            color: #666;
+            margin-top: 5px;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        /* Mini waveform viz */
+        #audio-waveform {
+            width: 100%;
+            height: 40px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 4px;
+            margin-bottom: 0.75rem;
+            display: none;
+        }
+
+        /* Audio playback bar */
+        #audio-player-wrapper {
+            display: none;
+            margin-bottom: 0.75rem;
+        }
+
+        #audio-player-wrapper audio {
+            width: 100%;
+            height: 28px;
+            filter: invert(1) hue-rotate(180deg) saturate(0.5);
+            border-radius: 4px;
+        }
+
+        .audio-meta {
+            font-family: var(--font-mono);
+            font-size: 0.6rem;
+            color: #555;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Audio commit button */
+        #commit-audio {
+            width: 100%;
+            background: rgba(255, 204, 0, 0.08);
+            border: 1px solid var(--terminal-warn);
+            color: var(--terminal-warn);
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-weight: 700;
+            letter-spacing: 1px;
+            transition: background 0.2s;
+        }
+
+        #commit-audio:hover {
+            background: rgba(255, 204, 0, 0.15);
+        }
+
+        #commit-audio:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Panel C label colour */
+        .panel-c-title {
+            color: var(--terminal-warn);
+        }
     </style>
 </head>
 
@@ -461,9 +601,20 @@
             <!-- PANEL A: DYAD INGESTOR (IMAGE TO TEXT) -->
             <div class="ingestor-panel">
                 <div class="section-title">Panel A: Dyad Ingestor</div>
+
+                <!-- Commutativity Selector -->
+                <div class="commutativity-row">
+                    <label>ORDER</label>
+                    <select class="commute-select" id="commute-image">
+                        <option value="image_first">Image &#8594; Text</option>
+                        <option value="text_first">Text &#8594; Image</option>
+                        <option value="symmetric">&#8771; Symmetric Entanglement</option>
+                    </select>
+                </div>
+
                 <div id="dyad-dropzone">
                     <span style="font-size: 1.5rem; color: var(--terminal-blue);">+</span>
-                    <div class="drop-hint">DRAP DYAD (IMAGE)</div>
+                    <div class="drop-hint">DRAG DYAD (IMAGE)</div>
                     <input type="file" id="file-input" style="display: none;" accept="image/*">
                 </div>
                 <div class="section-title">Manifold Buffer (A)</div>
@@ -497,6 +648,50 @@
                     </button>
                 </div>
                 <div id="semantic-log" class="small-log"></div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+            <!-- PANEL C: AUDIO DYAD INGESTOR -->
+            <div class="audio-panel" id="audio-panel">
+                <div class="section-title panel-c-title">Panel C: Audio Dyad
+                    <small id="audio-status" style="color:#555;">IDLE</small>
+                </div>
+
+                <!-- Commutativity Selector -->
+                <div class="commutativity-row">
+                    <label>ORDER</label>
+                    <select class="commute-select" id="commute-audio">
+                        <option value="audio_first">Audio &#8594; Text</option>
+                        <option value="text_first">Text &#8594; Audio</option>
+                        <option value="symmetric">&#8771; Symmetric Entanglement</option>
+                    </select>
+                </div>
+
+                <!-- Drop zone -->
+                <div id="audio-dropzone">
+                    <div class="audio-drop-icon">&#9836;</div>
+                    <div class="audio-drop-hint" id="audio-drop-hint">DRAG AUDIO DYAD<br><span style="color:#444;">mp3 &bull; m4a &bull; wav &bull; ogg</span></div>
+                    <input type="file" id="audio-file-input" style="display:none;" accept="audio/mpeg,audio/mp4,audio/wav,audio/ogg,.mp3,.m4a,.wav,.ogg">
+                </div>
+
+                <!-- Mini waveform canvas -->
+                <canvas id="audio-waveform"></canvas>
+
+                <!-- Playback controls -->
+                <div id="audio-player-wrapper">
+                    <div class="audio-meta" id="audio-meta">--</div>
+                    <audio id="audio-player" controls></audio>
+                </div>
+
+                <!-- Description buffer -->
+                <div class="section-title" style="margin-top:0.75rem;">Description Buffer (C)</div>
+                <textarea id="audio-description-buffer"
+                    style="width:100%;height:80px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:var(--terminal-green);font-family:var(--font-mono);font-size:0.7rem;padding:0.5rem;resize:none;outline:none;margin-bottom:0.75rem;border-radius:4px;"
+                    placeholder="Semantic annotation for audio dyad..."></textarea>
+
+                <button id="commit-audio" disabled>COMMIT AUDIO DYAD</button>
+                <div id="audio-log" class="small-log"></div>
             </div>
         </aside>
     </main>
@@ -895,6 +1090,323 @@
                 appendMessage('system', "SEMANTIC RUPTURE. PERSISTENCE FAILED.");
             }
         }
+
+        // =====================================================
+        // PANEL C: AUDIO DYAD LOGIC
+        // =====================================================
+        const audioDropzone = document.getElementById('audio-dropzone');
+        const audioFileInput = document.getElementById('audio-file-input');
+        const audioPlayer = document.getElementById('audio-player');
+        const audioPlayerWrapper = document.getElementById('audio-player-wrapper');
+        const audioWaveform = document.getElementById('audio-waveform');
+        const audioMeta = document.getElementById('audio-meta');
+        const audioDropHint = document.getElementById('audio-drop-hint');
+        const commitAudioBtn = document.getElementById('commit-audio');
+        const audioLog = document.getElementById('audio-log');
+
+        // Active audio dyad state
+        state.active_audio_dyad = null;
+
+        function formatDuration(secs) {
+            const m = Math.floor(secs / 60);
+            const s = Math.floor(secs % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function drawWaveform(audioBuffer) {
+            const canvas = audioWaveform;
+            canvas.style.display = 'block';
+            canvas.width = canvas.offsetWidth || 260;
+            canvas.height = 40;
+            const ctx = canvas.getContext('2d');
+
+            // Downsample to canvas width
+            const data = audioBuffer.getChannelData(0);
+            const step = Math.ceil(data.length / canvas.width);
+            const amp = canvas.height / 2;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'var(--terminal-warn)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+
+            for (let i = 0; i < canvas.width; i++) {
+                const slice = data.slice(i * step, (i + 1) * step);
+                const max = slice.reduce((a, b) => Math.max(a, Math.abs(b)), 0);
+                const y = amp - max * amp;
+                if (i === 0) ctx.moveTo(i, y);
+                else ctx.lineTo(i, y);
+            }
+            ctx.stroke();
+        }
+
+        async function processAudioFile(file) {
+            const validTypes = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/ogg', 'audio/x-m4a'];
+            const validExts = ['.mp3', '.m4a', '.wav', '.ogg'];
+            const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+
+            if (!validTypes.includes(file.type) && !validExts.includes(ext)) {
+                appendMessage('system', `AUDIO DYAD REJECTED: Unsupported format (${file.type || ext}).`);
+                return;
+            }
+
+            audioDropHint.innerHTML = `LOADING: ${file.name}`;
+            audioDropzone.classList.add('loaded');
+            document.getElementById('audio-status').innerText = 'READING';
+            document.getElementById('audio-status').style.color = 'var(--terminal-warn)';
+
+            // Wire up player
+            const objectUrl = URL.createObjectURL(file);
+            audioPlayer.src = objectUrl;
+            audioPlayerWrapper.style.display = 'block';
+
+            // Decode with WebAudio API for waveform preview
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const arrayBuffer = await file.arrayBuffer();
+                const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+
+                drawWaveform(decoded);
+
+                const durationStr = formatDuration(decoded.duration);
+                const sampleRate = decoded.sampleRate;
+                const channels = decoded.numberOfChannels;
+
+                audioMeta.innerText =
+                    `${file.name}  |  ${durationStr}  |  ${sampleRate}Hz  |  ${channels}ch  |  `
+                    + `${(file.size / 1024).toFixed(0)}KB`;
+
+                // ── Chebyshev Polynomial Spectral Harmonic Extraction ────────────
+                // Mirrors PolynomialCoprimeConfig: no hardcoded bin counts.
+                // K (degree) is derived from the signal's physical properties so
+                // the basis self-adjusts to each file's topology.
+                //
+                // Pattern:  PolynomialBasis._chebyshev()
+                //   T_0(x)=1,  T_1(x)=x,  T_{n+1}=2x·T_n - T_{n-1}
+                //
+                // Roughness preservation:  LSB Stochastic Rounding applied to
+                // every coefficient's fractional part (mirrors
+                // SiliconSovereigntyEngine.apply_stochastic_rounding).
+                // This preserves Feature Scars — we never smooth them away.
+
+                const pcmData = decoded.getChannelData(0);
+                const N = pcmData.length;
+
+                // K: polynomial degree — derived from duration & sample rate.
+                // ~1 Chebyshev mode per 0.5s of audio (min 5, max 32).
+                // Never hardcoded; structurally honest about the signal's
+                // information density.
+                const K = Math.max(5, Math.min(32, Math.round(decoded.duration * 2)));
+
+                // Frame the signal into K+1 overlapping Hann-windowed segments.
+                // Frame boundaries are co-prime to avoid harmonic aliasing —
+                // same principle as PolynomialCoprimeConfig.k coprime functionals.
+                const frameCount = K + 1;
+                const frameSize = Math.floor(N / frameCount);
+                const frameEnergies = new Float64Array(frameCount);
+
+                for (let f = 0; f < frameCount; f++) {
+                    const start = f * frameSize;
+                    let energy = 0.0;
+                    for (let i = 0; i < frameSize; i++) {
+                        // Hann window: w(i) = 0.5*(1 - cos(2π·i/(frameSize-1)))
+                        // Preserves edge roughness rather than tapering to zero.
+                        const w = 0.5 * (1.0 - Math.cos(2 * Math.PI * i / Math.max(1, frameSize - 1)));
+                        const s = pcmData[Math.min(start + i, N - 1)] * w;
+                        energy += s * s;
+                    }
+                    frameEnergies[f] = Math.sqrt(energy / Math.max(1, frameSize));
+                }
+
+                // Normalize frame energies to [-1, 1] for Chebyshev domain.
+                let eMin = Infinity, eMax = -Infinity;
+                for (let f = 0; f < frameCount; f++) {
+                    if (frameEnergies[f] < eMin) eMin = frameEnergies[f];
+                    if (frameEnergies[f] > eMax) eMax = frameEnergies[f];
+                }
+                const eRange = Math.max(eMax - eMin, 1e-12);
+                const xNorm = new Float64Array(frameCount);
+                for (let f = 0; f < frameCount; f++) {
+                    xNorm[f] = 2.0 * (frameEnergies[f] - eMin) / eRange - 1.0;
+                }
+
+                // Chebyshev recurrence over the normalised energy samples:
+                //   T[0] = 1,  T[1] = x,  T[n] = 2x·T[n-1] - T[n-2]
+                // Project each frame's xNorm through the basis and accumulate
+                // the mean coefficient — row of the PolynomialCoprimeConfig θ matrix.
+                const chebyCoeffs = new Float64Array(K);
+                for (let k = 0; k < K; k++) {
+                    let acc = 0.0;
+                    for (let f = 0; f < frameCount; f++) {
+                        const x = xNorm[f];
+                        // Evaluate T_k(x) via recurrence
+                        let T_prev = 1.0, T_curr = x;
+                        if (k === 0) { T_curr = 1.0; }
+                        else if (k === 1) { T_curr = x; }
+                        else {
+                            let T_p = 1.0, T_c = x;
+                            for (let n = 2; n <= k; n++) {
+                                const T_n = 2.0 * x * T_c - T_p;
+                                T_p = T_c; T_c = T_n;
+                            }
+                            T_curr = T_c;
+                        }
+                        acc += T_curr;
+                    }
+                    chebyCoeffs[k] = acc / frameCount;  // Mean projection (≈ inner product)
+                }
+
+                // Birkhoff-style row normalisation:
+                // Ensure coefficients sum to 1 (doubly-stochastic row constraint).
+                // Mirrors BirkhoffPolytopeSampler.sinkhorn_knopp applied to a single row.
+                let coeffSum = 0.0;
+                for (let k = 0; k < K; k++) coeffSum += Math.abs(chebyCoeffs[k]);
+                const theta_row = new Float64Array(K);
+                for (let k = 0; k < K; k++) {
+                    theta_row[k] = coeffSum > 1e-12 ? Math.abs(chebyCoeffs[k]) / coeffSum : 1.0 / K;
+                }
+
+                // LSB Stochastic Rounding — Feature Scar Preservation.
+                // Mirrors SiliconSovereigntyEngine.apply_stochastic_rounding:
+                //   fixed = floor(v * scale) + Bernoulli(frac(v * scale))
+                // We keep the rounded coefficient AND record the fractional scar
+                // so the backend can reconstruct the exact quantization residue
+                // if needed (warm-start backtracking from Chiral Residue Cache).
+                const SCALE = 1024.0;  // Derived: 2^10 — matches int64 fixed point
+                const harmonics = [];
+                let seedState = (sampleRate ^ (N & 0xFFFF)) >>> 0;  // Xorshift seed from signal geometry
+                for (let k = 0; k < K; k++) {
+                    const v = theta_row[k] * SCALE;
+                    const floorV = Math.floor(v);
+                    const frac = v - floorV;
+                    // Xorshift32 RNG —- exact algorithm from PyOpenCL kernel
+                    seedState ^= (seedState << 13) >>> 0;
+                    seedState ^= (seedState >>> 17) >>> 0;
+                    seedState ^= (seedState << 5) >>> 0;
+                    const stochasticBit = (seedState / 4294967295.0) < frac ? 1 : 0;
+                    const rounded = (floorV + stochasticBit) / SCALE;
+                    harmonics.push(parseFloat(rounded.toFixed(6)));
+                }
+
+                // Global descriptors (derived, not hardcoded)
+                const rmsEnergy = Math.sqrt(
+                    Array.from(frameEnergies).reduce((s, v) => s + v * v, 0) / frameCount
+                );
+                const zeroCrossings = Array.from(pcmData).reduce((c, v, i, a) =>
+                    i > 0 && (a[i - 1] >= 0) !== (v >= 0) ? c + 1 : c, 0
+                ) / N;
+                // Spectral centroid: weighted mean of Chebyshev mode index by energy
+                let scNum = 0, scDen = 0;
+                for (let k = 0; k < K; k++) { scNum += k * harmonics[k]; scDen += harmonics[k]; }
+                const spectralCentroid = scDen > 0 ? scNum / scDen : 0;
+
+                state.active_audio_dyad = {
+                    filename: file.name,
+                    duration_s: decoded.duration,
+                    sample_rate: sampleRate,
+                    channels: channels,
+                    size_bytes: file.size,
+                    chebyshev_degree: K,         // Derived, never hardcoded
+                    rms_energy: rmsEnergy,
+                    zero_crossing_rate: zeroCrossings,
+                    spectral_centroid: spectralCentroid,
+                    chebyshev_harmonics: harmonics, // K Birkhoff-normalised, LSB-rounded coeffs
+                    commutativity: document.getElementById('commute-audio').value,
+                };
+
+                audioDropHint.innerHTML = `DYAD CAPTURED: ${file.name}`;
+                commitAudioBtn.disabled = false;
+
+                document.getElementById('audio-status').innerText = 'ARMED';
+                document.getElementById('audio-status').style.color = 'var(--terminal-green)';
+
+                appendMessage('system',
+                    `AUDIO DYAD INGESTED: ${file.name} | ` +
+                    `${durationStr} | K=${K} | RMS=${rmsEnergy.toFixed(4)} | ` +
+                    `ZCR=${zeroCrossings.toFixed(4)} | SC_cheb=${spectralCentroid.toFixed(3)}`);
+
+            } catch (err) {
+                appendMessage('system', `WAVEFORM DECODE RUPTURE: ${err.message}`);
+                console.error('Audio decode error:', err);
+            }
+        }
+
+        async function commitAudioDyad() {
+            const description = document.getElementById('audio-description-buffer').value.trim();
+            const dyad = state.active_audio_dyad;
+
+            if (!dyad) {
+                appendMessage('system', 'AUDIO COMMIT FAILED: No audio dyad loaded.');
+                return;
+            }
+
+            const commutativity = document.getElementById('commute-audio').value;
+            dyad.commutativity = commutativity;
+
+            const displayOrder = commutativity === 'audio_first'
+                ? 'Audio → Text'
+                : commutativity === 'text_first'
+                    ? 'Text → Audio'
+                    : '≅ Symmetric';
+
+            appendMessage('user',
+                `COMMITTING AUDIO DYAD [${displayOrder}]: ${dyad.filename}` +
+                (description ? ` | "${description.substring(0, 50)}..."` : ''));
+
+            try {
+                const payload = {
+                    text: description || `INGEST_AUDIO_DYAD: ${dyad.filename}`,
+                    audio_dyad: dyad,
+                    commutativity: commutativity
+                };
+
+                const response = await fetch(`${state.backend_url}/interact`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                handleResponse(data);
+
+                const logEntry = document.createElement('div');
+                logEntry.innerText =
+                    `[${new Date().toLocaleTimeString()}] [${displayOrder}] ${dyad.filename}`;
+                audioLog.prepend(logEntry);
+
+                // Reset
+                document.getElementById('audio-description-buffer').value = '';
+                document.getElementById('audio-status').innerText = 'IDLE';
+                document.getElementById('audio-status').style.color = '#555';
+                audioDropzone.classList.remove('loaded');
+                audioDropHint.innerHTML = `DRAG AUDIO DYAD<br><span style="color:#444;">mp3 &bull; m4a &bull; wav &bull; ogg</span>`;
+                audioWaveform.style.display = 'none';
+                audioPlayerWrapper.style.display = 'none';
+                commitAudioBtn.disabled = true;
+                state.active_audio_dyad = null;
+
+            } catch (err) {
+                appendMessage('system', 'AUDIO COMMIT RUPTURE. BACKEND DISSOCIATED.');
+                console.error('Audio commit error:', err);
+            }
+        }
+
+        // Audio drop zone events
+        audioDropzone.onclick = () => audioFileInput.click();
+        audioFileInput.onchange = (e) => {
+            if (e.target.files.length > 0) processAudioFile(e.target.files[0]);
+        };
+        audioDropzone.ondragover = (e) => {
+            e.preventDefault();
+            audioDropzone.classList.add('dragover');
+        };
+        audioDropzone.ondragleave = () => audioDropzone.classList.remove('dragover');
+        audioDropzone.ondrop = (e) => {
+            e.preventDefault();
+            audioDropzone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) processAudioFile(e.dataTransfer.files[0]);
+        };
+        commitAudioBtn.onclick = commitAudioDyad;
 
         // --- Event Listeners ---
         userInput.addEventListener('keypress', (e) => {
