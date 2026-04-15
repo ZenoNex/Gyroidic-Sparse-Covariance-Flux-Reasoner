@@ -25,6 +25,7 @@ import socket
 import subprocess
 import logging
 import time
+import urllib.request
 
 # Ensure PYTHONPATH includes project root for all imports
 import sys
@@ -2816,7 +2817,7 @@ class DiegeticPhysicsEngine(nn.Module):
         if is_dyad_ingest:
             return self._handle_dyad_ingestion(input_text, fingerprint, seed_state)
         elif is_association:
-            return self._handle_association_learning(text_input, seed_state)
+            return self._handle_association_learning(input_text, seed_state)
         else:
             # Apply Dyadic Transfer (Phase 5) 
             # We use Task 0 (Code) and Task 1 (Conversational) leakage
