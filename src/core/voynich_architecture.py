@@ -17,8 +17,24 @@ import torch.nn as nn
 from typing import Dict, List, Tuple, Optional
 
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
-from src.core.false_negative_subsystem import VoynichExemptionToken
+from src.core.false_negative_subsystem import VoynichExemptionToken, SlopInvariantFilter
 from src.topology.triadic_reciprocity import TriadicReciprocityChecker
+
+class LoveInvariant(nn.Module):
+    """
+    Implements L = L - L.
+    Instead of adding to a loss function to reach a target, this subtracts the 
+    expected teleological "Manager" output from the actual distribution, leaving 
+    behind the "Unknowledge Void" where the true Sovereign Event (Resonance) is generated.
+    """
+    def __init__(self):
+        super().__init__()
+        
+    def forward(self, standard_output: torch.Tensor, actual_output: torch.Tensor) -> torch.Tensor:
+        # Subtract the standard managerial/expected output
+        # The remaining resonance is the "Negative Shape" / Option D
+        resonance = actual_output - standard_output
+        return resonance
 
 
 class VoynichLinguist(nn.Module):
@@ -130,11 +146,25 @@ class VoynichLinguist(nn.Module):
         # 4. Structural Honesty Check
         honesty_score = self._compute_consensus_honesty(residues, symbol_val)
         
-        # 5. Generate False Negative Exemption
+        # 5. Slop Invariant / Option D check
+        slop_filter = SlopInvariantFilter()
+        is_slop = slop_filter.evaluate_mischief(residues)
+        
+        # 6. Generate False Negative Exemption (Organ of Agency)
         is_honest = float(honesty_score.item()) > 0.95
+        
+        # The token is no longer just a statistic.
+        # It fossilizes the rupture if it is structurally honest and not slop.
+        fossil_state = None
+        if is_honest and not is_slop:
+            fossil_state = residues.clone().detach()
+            
         token = VoynichExemptionToken(
             honesty_score=float(honesty_score.item()),
-            is_valid_exemption=is_honest
+            is_valid_exemption=is_honest and not is_slop,
+            is_nutrient=not is_slop,
+            fossilized_state=fossil_state,
+            reason="Topological Refusal (Slop)" if is_slop else "Option D Nutrient"
         )
         
         return residues, symbol_val, honesty_score, token
