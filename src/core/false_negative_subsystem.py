@@ -35,3 +35,22 @@ class VoynichExemptionToken:
             # Clip and scale to match DAQUF expected load sizing
             return torch.clamp(boost * 0.1, max=1.0)
         return None
+
+    @classmethod
+    def issue_from_transversality(cls, transversality_metrics: Dict[str, torch.Tensor], threshold: float = 0.5) -> 'VoynichExemptionToken':
+        """
+        Issues an exemption token passport if Symbolic Transversality indicates 
+        a strong, path-dependent non-commutative connection.
+        """
+        is_val = transversality_metrics.get('is_strongly_noncommutative', False)
+        norm_val = transversality_metrics.get('curvature_norm', torch.tensor(0.0))
+        c_norm = norm_val.item() if isinstance(norm_val, torch.Tensor) else float(norm_val)
+        
+        is_valid = bool(is_val) and (c_norm > threshold)
+        
+        return cls(
+            honesty_score=min(c_norm, 1.0),
+            is_valid_exemption=is_valid,
+            reason="Transversality passport granted" if is_valid else "Transversality rejected",
+            is_nutrient=is_valid
+        )
