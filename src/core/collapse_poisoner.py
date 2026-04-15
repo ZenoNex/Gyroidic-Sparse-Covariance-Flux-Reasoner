@@ -143,6 +143,30 @@ class CollapsePathPoisoner(nn.Module):
             'debt_warning': cycle_debt > self.debt_threshold
         }
         
+    def compute_kelly_calm_allocation(self, cycle_debt: torch.Tensor, kappa: torch.Tensor, max_mass: float = 1.0) -> float:
+        """
+        Fractional Kelly Bets & CALM Veto Superposition.
+        Prevents global traffic and t_RFC stalls.
+        CALM Veto blends Mohr-Coulomb yield stress (geometric) with cycle debt (empirical).
+        """
+        k_val = kappa.item() if isinstance(kappa, torch.Tensor) else float(kappa)
+        c_val = cycle_debt.item() if isinstance(cycle_debt, torch.Tensor) else float(cycle_debt)
+        
+        # Mohr-Coulomb Yield Stress approximation based on Non-Commutativity (kappa)
+        yield_stress = math.tanh(k_val * 2.0)
+        
+        # Superposition of vetos
+        superposition = (0.6 * c_val) + (0.4 * yield_stress)
+        p = max(0.01, min(0.99, 1.0 - superposition))
+        
+        # Kelly Criterion: f = 2p - 1 (for 1:1 odds)
+        kelly_fraction = max(0.0, 2.0 * p - 1.0)
+        
+        # Half-Kelly for stability
+        fractional_kelly = kelly_fraction * 0.5
+        
+        return float(max_mass * fractional_kelly)
+        
         if trigger_rupture:
             results['run_rupture'] = self.generate_synthetic_rupture(current_manifold)
         
