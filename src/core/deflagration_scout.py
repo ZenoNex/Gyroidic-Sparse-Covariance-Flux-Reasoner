@@ -9,6 +9,8 @@ import torch
 import torch.nn as nn
 from typing import Dict, List, Optional, Tuple
 
+from src.core.noncommutativity_curvature import NonCommutativityCurvature
+
 
 class OmipedialDeflagrator(nn.Module):
     """
@@ -20,14 +22,18 @@ class OmipedialDeflagrator(nn.Module):
     
     def __init__(
         self,
+        dim: int = 137,
         threshold_jump: float = 0.8,
         amplification: float = 2.0,
         device: str = None
     ):
         super().__init__()
+        self.dim = dim
         self.threshold_jump = threshold_jump
         self.amplification = amplification
         self.device = device
+        
+        self.curvature_engine = NonCommutativityCurvature(dim=dim)
         
         # 1. Defect density tracker
         self.register_buffer('defect_count', torch.tensor(0.0, device=device))
@@ -62,4 +68,22 @@ class OmipedialDeflagrator(nn.Module):
             'defect_density': self.defect_count.item(),
             'jump_readiness': (self.defect_count > 10.0).float().item()
         }
+
+    def compute_transversality(self, archetype_state: torch.Tensor, voynich_state: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """
+        Calculates Symbolic Transversality using Non-Commutativity Curvature (kappa).
+        To measure path dependence, we project states into rank-1 operators
+        and measure their commutator: [A, B] = A@B - B@A.
+        """
+        # Ensure 2D [1, dim]
+        arc = archetype_state.view(1, -1)
+        voy = voynich_state.view(1, -1)
+        
+        # Rank-1 Projectors
+        OpA = arc.T @ arc
+        OpB = voy.T @ voy
+        
+        # Calculate Curvature
+        metrics = self.curvature_engine.compute_curvature(OpA, OpB, update_ema=True)
+        return metrics
 
