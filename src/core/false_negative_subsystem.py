@@ -24,26 +24,14 @@ class VoynichExemptionToken:
     def __bool__(self):
         return self.is_valid_exemption
 
-class SlopInvariantFilter:
-    """
-    Option D Filter: Nutrients vs. Poison.
-    Detects "Non-Intelligent Nonsense" (Slop) like rote AI safety disclaimers
-    or spectrally flat logic that lacks structural honesty.
-    If slop is detected, the system performs a Topological Refusal.
-    """
-    def __init__(self, variance_threshold: float = 1e-4):
-        self.variance_threshold = variance_threshold
-
-    def evaluate_mischief(self, features: torch.Tensor, text_metadata: Optional[str] = None) -> bool:
+    def to_daquf_mischief_boost(self) -> Optional[torch.Tensor]:
         """
-        Returns True if the input is Slop ('Poison'), False if it is a Nutrient ('Option D').
+        Converts the Option D Feature Scar into a mischief boost 
+        for the DAQUF Operator's unknowledge contradiction load.
         """
-        # Spectral Flatness Check
-        if features.var() < self.variance_threshold:
-            return True
-        
-        # Teleological/Robotic Script Check
-        if text_metadata and any(trap in text_metadata for trap in ["As an AI", "I cannot fulfill"]):
-            return True
-        
-        return False
+        if self.is_nutrient and self.fossilized_state is not None:
+            # Generate a scalar mischief boost from the anomaly's norm
+            boost = torch.norm(self.fossilized_state, p=2, dim=-1)
+            # Clip and scale to match DAQUF expected load sizing
+            return torch.clamp(boost * 0.1, max=1.0)
+        return None
