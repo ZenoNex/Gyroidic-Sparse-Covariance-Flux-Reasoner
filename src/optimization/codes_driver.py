@@ -109,34 +109,36 @@ class CODES:
         
     def chordlock(self, latent: torch.Tensor, primes: List[int]) -> torch.Tensor:
         """
-        Project latent space onto Prime Anchors (Phase Anchoring).
-        Ensures the latent state resonates with the provided primes (or internal harmonics).
+        Phase Resonance Gating (replaces snap-to-grid projection).
+        Computes a gating factor based on the average cosine resonance with
+        polynomial harmonics (primes). Values aligning with the resonance
+        are preserved; dissonant values are suppressed (scaled toward zero).
         
-        Implements a 'Comb Filter' that amplifies values aligning with harmonic multiples.
+        This implements the 'Phase Anchoring' requirement from the TailSlayer
+        architecture, where structural solitons are gated by their harmonic alignment.
         """
-        # If primes not provided, use internal harmonics (rounded)
-        anchors = primes if primes else [max(1, int(round(h))) for h in self.harmonics]
+        # If primes not provided, use internal harmonics
+        anchors = primes if primes else self.harmonics
         
         if not anchors:
             return latent
 
-        # Project latent tensor onto the nearest prime anchor
-        # For each element, distance to nearest multiple of p is |x - round(x/p)*p|
-        # Find the p that minimizes this distance
-        
+        # Convert anchors to tensor for vectorized computation
         # [num_anchors, *latent.shape]
-        anchors_tensor = torch.tensor(anchors, dtype=latent.dtype, device=latent.device).view(-1, *([1]*latent.dim()))
+        anchors_tensor = torch.tensor(anchors, dtype=latent.dtype, device=latent.device)
+        for _ in range(latent.dim()):
+            anchors_tensor = anchors_tensor.unsqueeze(-1)
         
-        # Calculate nearest multiples for each anchor
-        multiples = torch.round(latent / anchors_tensor) * anchors_tensor
+        # Calculate resonance: cos(2*pi * x / p)
+        # Resonant: x = k*p => cos(2*pi*k) = 1.0
+        # Dissonant: x = (k+0.5)*p => cos(2*pi*k + pi) = -1.0
+        resonance_grid = torch.cos(2.0 * math.pi * latent / anchors_tensor)
         
-        # Calculate distances
-        distances = torch.abs(latent - multiples)
+        # Compute mean resonance across all anchors for each latent element
+        avg_resonance = resonance_grid.mean(dim=0)
         
-        # Find index of minimum distance across anchors
-        min_indices = torch.argmin(distances, dim=0)
+        # Gating factor: map resonance [-1, 1] -> gate [0, 1]
+        # Values perfectly in phase stay at 1.0; values perfectly out of phase go to 0.0.
+        gate = (avg_resonance + 1.0) / 2.0
         
-        # Gather the corresponding nearest multiples (the actual projection)
-        locked_latent = torch.gather(multiples, 0, min_indices.unsqueeze(0)).squeeze(0)
-        
-        return locked_latent
+        return latent * gate
