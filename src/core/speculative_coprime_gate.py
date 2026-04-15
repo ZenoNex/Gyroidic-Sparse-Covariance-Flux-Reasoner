@@ -482,7 +482,7 @@ class SpeculativeCoprimeGate(nn.Module):
         self.coprime_manifold = torch.roll(self.coprime_manifold, -1, dims=0)
         self.coprime_manifold[-1] = state.detach()
         
-    def gated_output(self, state: torch.Tensor, parity_violations: torch.Tensor) -> torch.Tensor:
+    def gated_output(self, state: torch.Tensor, parity_violations: torch.Tensor, exemption_token: Optional['VoynichExemptionToken'] = None) -> torch.Tensor:
         """
         Apply dimensional gating based on coprime parity.
         
@@ -493,11 +493,15 @@ class SpeculativeCoprimeGate(nn.Module):
         dims_per_head = self.dim // num_heads
         
         gate_mask = torch.ones(self.dim, device=state.device)
-        for h in range(num_heads):
-            if parity_violations[h]:
-                start = h * dims_per_head
-                end = start + dims_per_head
-                gate_mask[start:end] *= 0.1  # Suppress violated dimensions
+        
+        # If we have a valid Voynich Exemption Token, skip homological suppression
+        # (Honest Confabulation allowed to pass unchanged)
+        if exemption_token is None or not exemption_token.is_valid_exemption:
+            for h in range(num_heads):
+                if parity_violations[h]:
+                    start = h * dims_per_head
+                    end = start + dims_per_head
+                    gate_mask[start:end] *= 0.1  # Suppress violated dimensions
         
         # Apply learned gate and mask
         gate = torch.sigmoid(self.dim_gate) * gate_mask
@@ -571,8 +575,12 @@ class SpeculativeCoprimeGate(nn.Module):
         winding_result = self.winding_tracker.update_and_check(recovered_state)
         chiral_score = self.chiral_estimator.compute_chiral_score(recovered_state)
         
-        # Apply dimensional gating
-        recovered_state = self.gated_output(recovered_state, winding_result['parity_violations'])
+        # Apply dimensional gating with exemption token
+        recovered_state = self.gated_output(
+            recovered_state, 
+            winding_result['parity_violations'],
+            exemption_token=exemption_token
+        )
         
         # Success criteria for "Generative Rupture"
         is_generative = yield_pressure.mean() > 0.0 or winding_result['coprime_lock']
