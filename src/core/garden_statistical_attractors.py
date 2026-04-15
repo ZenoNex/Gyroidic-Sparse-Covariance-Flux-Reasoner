@@ -1147,5 +1147,29 @@ def test_garden_statistical_attractors():
     print("   • Semantic fossilization detection (NaN → meaning)")
     print("=" * 60)
 
+class CerumenPotIsolation(nn.Module):
+    """
+    Cerumen Pot Isolation mechanism.
+    Encapsulates transversality intersections to prevent 'Diffusion Toxin' spread.
+    Provides an 'Invite Only' filter by checking Resonance Potential (V) from LeyLineTracker.
+    """
+    def __init__(self, threshold: float = 0.5):
+        super().__init__()
+        self.threshold = threshold
+
+    def apply_filter(self, archetype_indices: torch.Tensor, resonance_potential: torch.Tensor) -> torch.Tensor:
+        """
+        Only lets archetype_indices pass if their resonance_potential > threshold.
+        Returns a boolean mask of the same shape as archetype_indices.
+        """
+        if resonance_potential.shape[0] > archetype_indices.max():
+            # If resonance_potential has values for all global indices
+            selected_potentials = resonance_potential[archetype_indices]
+        else:
+            selected_potentials = resonance_potential
+            
+        mask = selected_potentials > self.threshold
+        return mask
+
 if __name__ == "__main__":
     test_garden_statistical_attractors()
