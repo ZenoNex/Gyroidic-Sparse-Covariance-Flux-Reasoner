@@ -580,6 +580,7 @@ class DiegeticPhysicsEngine(nn.Module):
         text_input: str,
         fingerprint: Optional[Dict] = None,
         audio_dyad: Optional[Dict] = None,
+        video_dyad_b64: Optional[str] = None,
         commutativity: str = 'symmetric',
         generate_response: bool = True,
     ) -> dict:
@@ -598,6 +599,27 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # 1. Embed Input (Hash Projection) - MOVED UP
         input_tensor = self._text_to_tensor(text_input) # [1, dim]
+        
+        # --- VIDEO DYAD PATH ---
+        if video_dyad_b64 is not None:
+            print("🎥 Integrating Video Dyad via Base64 Integer Parser...")
+            from src.core.video_dyad_parser import VideoDyadParser
+            if not hasattr(self, 'video_parser'):
+                self.video_parser = VideoDyadParser(device=self.device)
+            # Route through the integer integer parser (bypassing mantissa math!)
+            video_metrics = self.video_parser.parse_video_b64(video_dyad_b64)
+            # Inject Fractal Entropy as a scalar structural bias into the input tensor
+            ent = video_metrics['fractal_entropy']
+            
+            # Commutativity Selection Handling
+            if commutativity == 'media_first':
+                # Video acts on the cavity first before text
+                input_tensor = input_tensor * (1.0 + ent)
+            elif commutativity == 'text_first':
+                # Video modifies the tensor after text initialization
+                pass # handled below
+            else: # symmetric
+                input_tensor = input_tensor + (ent * 0.1)
         
         # =============================================
         # PHASE 0: AFFORDANCE GRADIENT COMPUTATION
@@ -3966,15 +3988,18 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     user_text     = data.get('text', '')
                     fingerprint   = data.get('fingerprint', None)   # Chebyshev {L,Cr,Cb} or legacy {r,g,b,l,...}
                     audio_dyad    = data.get('audio_dyad', None)    # {chebyshev_harmonics, commutativity, ...}
+                    video_dyad_b64 = data.get('video_dyad_b64', None)
                     commutativity = data.get('commutativity', 'symmetric')  # master selector value
                     print(f"📝 User input: '{user_text}' | commutativity={commutativity} | "
-                          f"has_image={fingerprint is not None} | has_audio={audio_dyad is not None}")
+                          f"has_image={fingerprint is not None} | has_audio={audio_dyad is not None} | "
+                          f"has_video={video_dyad_b64 is not None}")
                     print("🔧 Starting ENGINE.process_input...")
 
                     response_data = ENGINE.process_input(
                         user_text,
                         fingerprint=fingerprint,
                         audio_dyad=audio_dyad,
+                        video_dyad_b64=video_dyad_b64,
                         commutativity=commutativity,
                     )
                     self._send_json(response_data)
