@@ -12,6 +12,8 @@ from torch.utils.data import Sampler
 from typing import List, Iterator, Optional, Dict
 import numpy as np
 
+from src.core.garden_statistical_attractors import CerumenPotIsolation
+
 
 class SituationalBatchSampler(Sampler[List[int]]):
     """
@@ -62,6 +64,10 @@ class SituationalBatchSampler(Sampler[List[int]]):
         
         # 3. Offending Potential O_i (Legacy L)
         self.O = torch.zeros(num_samples, device=device)
+        
+        # 4. Cerumen Pot Isolation for Transversality Intersections
+        self.cerumen_pot = CerumenPotIsolation(threshold=0.5)
+        self.resonance_potential = None  # To be set externally from LeyLineTracker
 
     def __iter__(self) -> Iterator[List[int]]:
         """
@@ -84,6 +90,13 @@ class SituationalBatchSampler(Sampler[List[int]]):
                 coupling = (self.R[i] + self.M[i])
                 mask = torch.ones_like(coupling)
                 mask[list(consumed)] = 0.0
+                
+                # Apply Cerumen Pot Isolation 'Invite Only' filter
+                if self.resonance_potential is not None:
+                    # archetype indices are 0 to num_samples-1
+                    all_indices = torch.arange(self.num_samples, device=self.device)
+                    pot_mask = self.cerumen_pot.apply_filter(all_indices, self.resonance_potential)
+                    mask = mask * pot_mask.float()
                 
                 # Softmax over coupling (Wattsian play)
                 effective_probs = torch.softmax(coupling * 5.0, dim=0) * mask
