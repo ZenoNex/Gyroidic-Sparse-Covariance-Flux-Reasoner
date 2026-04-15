@@ -74,7 +74,15 @@ class VideoDyadParser(nn.Module):
         Measures structural entropy at multiple scales (fractal), prioritizing 
         anisotropic differences (forward topological rupture vs backward healing).
         """
-        scales = [2, 4, 8, 16]
+        # Natural log topological rotation effect scales
+        length = signal.size(1) if signal.dim() > 1 else signal.size(0)
+        max_power = max(2, int(torch.log(torch.tensor(length, dtype=torch.float32)).item()))
+        
+        # Dynamically generate scales using natural log to avoid discontinuities
+        scales = sorted(list(set([
+            max(2, int(torch.exp(torch.tensor(i, dtype=torch.float32)).item())) 
+            for i in range(1, max_power + 1)
+        ])))
         entropies = []
         for scale in scales:
             if signal.size(1) < scale:
