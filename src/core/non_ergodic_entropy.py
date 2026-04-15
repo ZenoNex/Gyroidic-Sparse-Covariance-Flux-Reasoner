@@ -26,7 +26,7 @@ class NonErgodicEntropyEstimator(nn.Module):
     preserve soliton entropy separately.
     """
     
-    def __init__(self, num_bands: int = 3, trust_threshold: float = 2.0):
+    def __init__(self, num_bands: int = 3, trust_threshold: float = 5.0):
         """
         Args:
             num_bands: Number of spectral bands
