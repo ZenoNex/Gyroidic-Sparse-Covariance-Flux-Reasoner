@@ -196,7 +196,7 @@ class HybridAI:
             print(f"[FAIL] Graph Manager init failed: {e}")
             self.graph_manager = None
     
-    def process_text(self, text: str) -> dict:
+    def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative') -> dict:
         # --- FGRT HARMONIC SEED (Love Vector Norm 3.127) ---
         t_basis = torch.linspace(0, 2 * 3.14159265, 256, device=self.device)
         # Establish the 3.127 Norm required for Klein-Gyroid stability
@@ -229,8 +229,13 @@ class HybridAI:
         if self.engine:
             try:
                 # Process via Diegetic Engine
-                print(f"[ENGINE] Processing: '{text}'")
-                engine_output = self.engine.process_input(text, generate_response=True)
+                print(f"[ENGINE] Processing: '{text}' (Video Dyad: {'YES' if video_dyad_b64 else 'NO'})")
+                engine_output = self.engine.process_input(
+                    text_input=text, 
+                    video_dyad_b64=video_dyad_b64, 
+                    commutativity=commutativity,
+                    generate_response=True
+                )
                 
                 response_text = engine_output.get('response', '')
                 diagnostics = engine_output # The whole output is essentially diagnostics
@@ -889,10 +894,12 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             data = json.loads(post_data.decode('utf-8'))
             
             user_text = data.get('text', '').strip()
+            video_dyad_b64 = data.get('video_dyad_b64')
+            commutativity = data.get('commutativity', 'non_commutative')
             
             # Process through AI system
             if AI_SYSTEM:
-                result = AI_SYSTEM.process_text(user_text)
+                result = AI_SYSTEM.process_text(user_text, video_dyad_b64, commutativity)
             else:
                 result = {
                     'response': f"AI system not initialized. Received: {user_text}",
@@ -1142,9 +1149,11 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
             user_text = data.get('message', data.get('text', '')).strip()
+            video_dyad_b64 = data.get('video_dyad_b64')
+            commutativity = data.get('commutativity', 'non_commutative')
 
             if AI_SYSTEM:
-                result = AI_SYSTEM.process_text(user_text)
+                result = AI_SYSTEM.process_text(user_text, video_dyad_b64, commutativity)
                 
                 # Extract meta-infra variables
                 diagnostics = result.get('diagnostics', {})
