@@ -143,6 +143,11 @@ class CollapsePathPoisoner(nn.Module):
             'debt_warning': cycle_debt > self.debt_threshold
         }
         
+        if trigger_rupture:
+            results['run_rupture'] = self.generate_synthetic_rupture(current_manifold)
+        
+        return results
+
     def compute_kelly_calm_allocation(self, cycle_debt: torch.Tensor, kappa: torch.Tensor, max_mass: float = 1.0) -> float:
         """
         Fractional Kelly Bets & CALM Veto Superposition.
@@ -166,11 +171,6 @@ class CollapsePathPoisoner(nn.Module):
         fractional_kelly = kelly_fraction * 0.5
         
         return float(max_mass * fractional_kelly)
-        
-        if trigger_rupture:
-            results['run_rupture'] = self.generate_synthetic_rupture(current_manifold)
-        
-        return results
 
     def reset(self):
         """Reset tracking state."""
