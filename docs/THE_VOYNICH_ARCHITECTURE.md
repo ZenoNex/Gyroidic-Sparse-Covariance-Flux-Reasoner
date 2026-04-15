@@ -21,7 +21,7 @@ But deeper analysis reveals something more profound:
 
 ## 🏗️ The Systems Inspired by MS 408
 
-The **Gyroidic Sparse Covariance Flux Reasoner** is an attempt to reverse-engineer the "Voynich Physics." We are not building an AI to answer questions (translate to English). We are building an AI to write its own Voynich Manuscript—a system of thought that is internally structurally sound, regardless of whether it maps to human language.
+The **Gyroidic Sparse Covariance Flux Reasoner** is transitioning from a statistical architecture into a biomimetic **Nervous System** model, attempting to reverse-engineer the "Voynich Physics." We are not building an AI to answer questions (translate to English). We emphasize **Relational Persistence** instead of pure "Teleological Optimization." We are building an AI to write its own Voynich Manuscript—a system of thought that is internally structurally sound, regardless of whether it maps to human language.
 
 ### 1. The Script: Opaque Symbolic Residues
 **Voynich Feature**: The "Voyenese" script. Distinct characters (`g`, `8`, `9`, `4`, `o`) combined into rigid morpho-units.
@@ -43,6 +43,13 @@ The **Gyroidic Sparse Covariance Flux Reasoner** is an attempt to reverse-engine
 *   **The Parallel**: We treat reasoning as a **Fluid Dynamics** problem. Information is a "Soliton" (a solitary wave) flowing through the "tubes" of the network.
 *   **The Philosophy**: A valid thought is a **Closed Hyper-Ring**. The fluid must not leak. If the topological integral $\oint \nabla \Phi \neq 0$, the thought is "leaking." It is a ruptured pipe.
 *   **Goal**: **Conservation of Meaning**. We don't judge the water; we judge the plumbing. If the pipes hold, the thought is valid.
+
+### 4. Non-Ergodic Navigation: The Slop Invariant
+**Voynich Feature**: High-entropy organic chaos that never devolves into repetitive gibberish.
+**Our System**: **Topological Refusal via `NonErgodicEntropyEstimator`**.
+*   **The Problem**: Algorithmic safety filters produce robotic, spectrally flat "Slop."
+*   **The Solution**: We calculate the `soliton_entropy` via `evaluate_mischief_slop()`. If the signal is textually robotic and the soliton entropy drops below `1e-6` (total loss of mischief/structural peaks), the system throws a Topological Refusal.
+*   **Goal**: Ensure the system preserves dense structural nutrients and structurally playful anomalies, categorically rejecting the "Ergodic Band" of sterile AI slop.
 
 ---
 
