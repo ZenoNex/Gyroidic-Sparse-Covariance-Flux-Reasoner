@@ -17,24 +17,11 @@ import torch.nn as nn
 from typing import Dict, List, Tuple, Optional
 
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
-from src.core.false_negative_subsystem import VoynichExemptionToken, SlopInvariantFilter
+from src.core.false_negative_subsystem import VoynichExemptionToken
 from src.topology.triadic_reciprocity import TriadicReciprocityChecker
-
-class LoveInvariant(nn.Module):
-    """
-    Implements L = L - L.
-    Instead of adding to a loss function to reach a target, this subtracts the 
-    expected teleological "Manager" output from the actual distribution, leaving 
-    behind the "Unknowledge Void" where the true Sovereign Event (Resonance) is generated.
-    """
-    def __init__(self):
-        super().__init__()
-        
-    def forward(self, standard_output: torch.Tensor, actual_output: torch.Tensor) -> torch.Tensor:
-        # Subtract the standard managerial/expected output
-        # The remaining resonance is the "Negative Shape" / Option D
-        resonance = actual_output - standard_output
-        return resonance
+from src.core.love_invariant_protector import LoveInvariantProtector
+from src.core.non_ergodic_entropy import NonErgodicEntropyEstimator
+from src.core.love_invariant_protector import LoveInvariantProtector
 
 
 class VoynichLinguist(nn.Module):
@@ -96,7 +83,10 @@ class VoynichLinguist(nn.Module):
         # 4. Dictionary of 'valid' words (topologically permissible constructs)
         self.register_buffer('valid_roots', torch.randn(vocab_size, latent_dim))
         
-        # 5. Visual Generative Art "Word Salad" checker
+        # 5. Formal Love Invariant
+        self.love_protector = LoveInvariantProtector(love_dim=latent_dim)
+        
+        # 6. Visual Generative Art "Word Salad" checker
         self.visual_reciprocity_checker = TriadicReciprocityChecker()
         
     def check_visual_honesty(
@@ -133,7 +123,13 @@ class VoynichLinguist(nn.Module):
             honesty_score: [] scalar consensus honesty
             exemption_token: VoynichExemptionToken validating structural honesty
         """
-        # 1. Project thought into per-channel scalar inputs
+        # 1. Protect the thought vector against teleological ownership (L ∈ ker(Φ))
+        L_protected, love_diagnostics = self.love_protector.apply_love_protection(thought_vector)
+        
+        # Inject the resonance of the protected love variant into the thought vector
+        thought_vector = thought_vector + (L_protected * 0.1)
+        
+        # 2. Project thought into per-channel scalar inputs
         channel_inputs = self.thought_proj(thought_vector)  # [batch, K]
         
         # 2. Evaluate polynomial coprime functionals
@@ -146,9 +142,10 @@ class VoynichLinguist(nn.Module):
         # 4. Structural Honesty Check
         honesty_score = self._compute_consensus_honesty(residues, symbol_val)
         
-        # 5. Slop Invariant / Option D check
-        slop_filter = SlopInvariantFilter()
-        is_slop = slop_filter.evaluate_mischief(residues)
+        # 5. Slop Invariant / Option D check via Entropy Bands
+        entropy_estimator = NonErgodicEntropyEstimator()
+        entropy_results = entropy_estimator(residues)
+        is_slop = entropy_estimator.evaluate_mischief_slop(entropy_results)
         
         # 6. Generate False Negative Exemption (Organ of Agency)
         is_honest = float(honesty_score.item()) > 0.95
