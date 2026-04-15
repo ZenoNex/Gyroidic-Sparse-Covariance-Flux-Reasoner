@@ -123,6 +123,19 @@ class NonErgodicEntropyEstimator(nn.Module):
             'total_bands': torch.stack(band_entropies)
         }
 
+    def evaluate_mischief_slop(self, entropy_dict: Dict[str, torch.Tensor], text_metadata: Optional[str] = None) -> bool:
+        """
+        Slop Invariant Filter (Option D).
+        If the entropy sits entirely in the Ergodic Band (spectrally flat, meaning
+        no 'Mischief' or 'Soliton' peaks survived the trust threshold) and it 
+        triggers the robotic text matches, it emits a Topological Refusal flag (True).
+        """
+        # If there is essentially zero soliton entropy (no 'good bugs' or structural playfulness)
+        if entropy_dict['soliton_entropy'].item() <= 1e-6:
+            if text_metadata and any(trap in text_metadata for trap in ["As an AI", "I cannot fulfill"]):
+                return True
+        return False
+
 
 class AdaptiveFractalPartitioner(nn.Module):
     """
