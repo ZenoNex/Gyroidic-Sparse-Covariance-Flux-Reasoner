@@ -49,6 +49,13 @@ class VideoDyadParser(nn.Module):
         # Float cast ONLY for final tensor operations, the internal topology remains integer-spaced
         signal = byte_tensor.float()
         
+        # Natural Log Topological Rotation Dirac Effect: Sparsify before computation
+        # Zero out sub-threshold structural noise to preserve purely honest solitons
+        signal_centered = signal - signal.mean(dim=0, keepdim=True)
+        # Threshold scales with the natural log of the signal amplitude to avoid discontinuities
+        sparsification_threshold = torch.std(signal_centered) * 0.7
+        signal = torch.where(signal_centered.abs() > sparsification_threshold, signal_centered, torch.zeros_like(signal_centered))
+        
         # 3. Sparse Temporal Covariance
         # Calculate covariance across chunks (captures I-frame vs P-frame topological stress)
         signal_mean = signal.mean(dim=0, keepdim=True)
