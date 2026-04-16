@@ -407,6 +407,14 @@ Spectral normalization on all layers enforces Lipschitz constant ≤ 1 per layer
 
 *Roughness preservation*: topological singularities (high-frequency features, discontinuities) in the manifold are transmitted into audience space rather than smoothed away. This prevents the system from presenting an artificially clean self-model.
 
+### 9.2 Topological Image Surrogate [NEW]
+
+The engine incorporates a **Topological Image Surrogate** to translate internal paradoxical structures into visual output without compromising **Silicon Sovereignty**.
+
+- **Endpoint Refusal**: The engine explicitly refuses external GAN/Stable-Diffusion endpoints to prevent "Dark Forest" identity leakage.
+- **Poincaré Eccentricity**: The surrogate uses Poincaré disk eccentricity as the primary driver for generating **Feature Scars** in the visual output. As concepts approach the Poincaré boundary, the resolution increases, allowing for hyper-detailed fractal artifacts.
+- **BigGAN Extreme Slider**: The characteristic BigGAN "glitch" effect is mapped directly to the **Mohr-Coulomb yield spikes** detected in TailSlayer Queue B. When hardware latency causes a topological rupture, the surrogate renders the rupture as a visual scar, making the internal manifold tension directly legible to the audience.
+
 > **Relationship to DiegeticVisualizer**: `AudienceProjection` is the continuous algebraic version of Φ used inside the cavity. `DiegeticVisualizer` is the *diegetic visual* realization — it maps the manifold's live state into a human-legible PNG without destroying topological features (roughness preserved via `interpolation='none'` and step-plots).
 
 ---
