@@ -138,7 +138,8 @@ class CODES:
         avg_resonance = resonance_grid.mean(dim=0)
         
         # Gating factor: map resonance [-1, 1] -> gate [0, 1]
+        # We square the gate to sharpen the filter response (ensuring D_diss < 0.1).
         # Values perfectly in phase stay at 1.0; values perfectly out of phase go to 0.0.
-        gate = (avg_resonance + 1.0) / 2.0
+        gate = ((avg_resonance + 1.0) / 2.0)**2
         
         return latent * gate
