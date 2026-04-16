@@ -30,7 +30,23 @@ print('=============================================')
 print(f'[INFO] EXECUTING FROM: {__file__}')
 try:
     import torch
-    print(f'[INFO] DEVICE DETECTED: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"}')
+    if torch.cuda.is_available():
+        print(f'[INFO] DEVICE DETECTED: CUDA — {torch.cuda.get_device_name(0)}')
+    else:
+        # CUDA not available in this venv — check PyOpenCL
+        try:
+            import pyopencl as cl
+            _ocl_gpus = []
+            for _p in cl.get_platforms():
+                for _d in _p.get_devices(device_type=cl.device_type.GPU):
+                    _ocl_gpus.append(f'{_p.name.strip()} / {_d.name.strip()}')
+            if _ocl_gpus:
+                print(f'[INFO] DEVICE DETECTED: PyOpenCL GPU(s) — {" | ".join(_ocl_gpus)}')
+                print(f'[INFO] CUDA torch not installed — TailSlayer PyOpenCL path active')
+            else:
+                print('[INFO] DEVICE DETECTED: CPU (no CUDA or OpenCL GPU found)')
+        except ImportError:
+            print('[INFO] DEVICE DETECTED: CPU (PyOpenCL not installed)')
 except: pass
 print('=============================================')
 
@@ -68,7 +84,20 @@ class HybridAI:
     """Hybrid AI system using only working components."""
     
     def __init__(self, use_spectral_correction: bool = True):
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
+        if torch.cuda.is_available():
+            self.device = 'cuda'
+        else:
+            # Prefer PyOpenCL compute path; fall back to CPU
+            try:
+                import pyopencl as cl
+                _gpus = []
+                for _p in cl.get_platforms():
+                    _gpus.extend(_p.get_devices(device_type=cl.device_type.GPU))
+                self.device = 'opencl' if _gpus else 'cpu'
+            except ImportError:
+                self.device = 'cpu'
+        # Torch tensors still use cpu when device is 'opencl' — PyOpenCL ops run via TailSlayer kernels
+        self.torch_device = 'cpu'
         
         # Initialize working components
 
