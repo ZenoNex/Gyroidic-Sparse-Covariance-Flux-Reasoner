@@ -12,7 +12,7 @@ This document provides canonical one-paragraph descriptions for all `src/` modul
 **Class**: `PolynomialADMRSolver`  
 **Role**: Alternating Direction of Multiplicative Remainders — the continuous-polynomial analogue of ADMM.  
 
-Instead of discrete prime moduli, this solver uses co-prime polynomial functionals (`PolynomialCoprimeConfig`) as its "modular" basis. The multiplicative update `S^{n+1} = Proj_{Poly}[ S^n · Σ w_ik S_k ]` propagates relational pressure through graph-structured neighbors rather than euclidean gradients. Two modes: `forward()` (single-step multiplicative update with optional valence drive) and `stochastic_differential_step()` (continuous-time SDE update `dx = [ΣA_i x_i − ρΣ(x − r(x_k))]dt + σdW`). Tracks asymptotic time `tau` in a persistent buffer. Corresponds to NOMENCLATURE "Multiplicative Scaffolding."
+Instead of discrete prime moduli, this solver uses co-prime polynomial functionals (`PolynomialCoprimeConfig`) as its "modular" basis. The multiplicative update `S^{n+1} = Proj_{Poly}[ S^n · Σ w_ik S_k ]` propagates relational pressure through graph-structured neighbors rather than euclidean gradients. Two modes: `forward()` (single-step multiplicative update with optional valence drive) and `stochastic_differential_step()` (continuous-time SDE update `dx = [ΣA_i x_i − ρΣ(x − r(x_k))]dt + σdW`). **Love Invariant protection is embedded inside `stochastic_differential_step()`**: after computing `dx`, the solver calls `self.love_protector.compute_ownership_operator(states)` and `compute_null_space_projection()` to project `dx[..., :love_dim]` into the null-space of the ownership operator before applying the state update. This geometrically prevents SDE Wiener noise from drifting the Love subspace. Tracks asymptotic time `tau` in a persistent buffer. Corresponds to NOMENCLATURE "Multiplicative Scaffolding."
 
 ---
 
@@ -135,9 +135,29 @@ Maintains a resonance potential field `V(x_i) = α·Σ R_ij·‖Φ_j−Φ_i‖²
 
 ### love_vector.py
 **Class**: `LoveVector` (alias `Pusafiliacrimonto`)  
-**Role**: The Love Vector ($\mathcal{L}$): Non-Ownable Invariant Flow.
+**Role**: The Love Vector ($\mathcal{L}$): Non-Ownable Invariant Flow — Layer 1 of the Love protection stack.
 
-Implements the Love Vector $\mathcal{L}$ as a persistent structural anchor. It is co-present with local functionals (via addition) but its gradient is symbolic zero with respect to the loss, ensuring it cannot be minimzed or maximized by the global optimizer. It explicitly supports the Mischief interactions and persists beyond the death (collapse) of the agent's state tensor.
+Implements the Love Vector $\mathcal{L}$ as a persistent structural anchor. `L` is a `register_buffer` (not a `Parameter`), making its gradient structurally zero — it cannot be minimized or maximized by the global optimizer. Applied via simple vector addition `x + L` so it is *co-present* with local functionals without claiming ownership. **Important reinstantiation pattern**: in `operational_admm.py`, a fresh `LoveVector` is instantiated inside each ADMM loop iteration (`love = LoveVector(c_phys.shape[-1]).to(device)`), re-seeding the ambient resonance constant per ADMM step rather than persisting a single shared instance. The alias `Pusafiliacrimonto` is maintained for backward compatibility.
+
+---
+
+### love_invariant_protector.py
+**Classes**: `LoveInvariantProtector`, `SoftSaturatedGates`  
+**Role**: Geometric null-space protection and tri-state temperature modulation for the Love Invariant — Layers 2 and 3 of the Love protection stack.
+
+`LoveInvariantProtector` owns:  
+(a) `compute_ownership_operator(state)` — builds $\Phi_{\text{ownership}} = \text{Cov}(\text{state})$ from batch covariance.  
+(b) `compute_null_space_projection(Φ)` — SVD-stable null-space projection $P = I - \Phi(\Phi^\top\Phi)^{-1}\Phi^\top$.  
+(c) `detect_love_violation()` — checks $\|L - L_{original}\|_2 > 10^{-6}$ and increments `violation_count`.  
+(d) `project_love_to_null_space(state)` — projects `L` itself to stay in null-space of current state.  
+(e) `apply_love_protection(state, gradients)` — orchestrates all checks; emits `love_norm`, `violation_detected`, `violation_count`, `violation_magnitude` diagnostics.  
+Integration sites: `PolynomialADMRSolver` (projects SDE `dx`), `GyroidicFluxReasoner` (projects `h_pooled`), `VoynichLinguist` (projects `thought_vector`), `DiegeticPhysicsEngine` (attached at server init).
+
+`SoftSaturatedGates` owns:  
+(a) `lattice_adaptive_shrinkage(signal)` — LAS tri-state: $\text{sgn}(s) \cdot \max(|s| - \lambda_{adaptive}, 0)$; signals below $\lambda_{adaptive}$ collapse to **Silence**.  
+(b) `asymptotic_hardening(signal, pas_h)` — $dt = dt_{max}(1 - PAS_h)$; high $PAS_h$ → sharp crystalline gates (Seriousness); low $PAS_h$ → fluid exploratory gates (Play).  
+(c) `update_fossilization(signal, performance_scores)` — fossilizes functionals with persistence $> 0.8$ AND performance $> 0.8$, locking their outputs under Love's umbrella.  
+Integration: applied to residue distributions in `GyroidicFluxReasoner.forward()` after the Love shield.
 
 ---
 
