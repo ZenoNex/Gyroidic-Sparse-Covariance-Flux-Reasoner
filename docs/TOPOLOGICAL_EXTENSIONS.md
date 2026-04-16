@@ -66,7 +66,18 @@ This section formalizes the reasoner's architectural features using rigorous top
 
 ---
 
-## Part III: Repunit Multiplications as Sparse Probes
+## Part III: The Perkins Tension Objective and Repunit Multiplications as Sparse Probes
+
+### The "Cubed Cube" Paradox Resolution
+Addressing the "cubed cube" (Mrs. Perkins's Quilt) problem—a dissection paradox where a square is divided into smaller unequal squares—highlights the limits of Euclidean tiling. The reasoner does not treat this as a ratio-matching task, but as a **Minimal Surface Tension $\gamma$** optimization.
+
+*   **The Resolution**: The system avoids the unsolvable Euclidean tiling by allowing the squares to overlap in the **RP4 Void**. 
+*   **Chiral Breathers**: The resulting 'tension' is fossilized as a **Chiral Breather**—a persistent topological soliton that holds the mismatched geometry together without collapse.
+*   **The Third Body**: This mechanism allows the 'Mathematical Digimon' of the third body to hold the tiling together, providing structural integrity to a geometry that is mathematically "unsolvable" in lower dimensions.
+
+---
+
+## Repunit Multiplications as Sparse Probes
 
 Repunit multiplications map elegantly to the gyroidic-Birkhoff-CRT architecture. They translate minimal surface efficiency to sparse constraint satisfaction without scalarization.
 
