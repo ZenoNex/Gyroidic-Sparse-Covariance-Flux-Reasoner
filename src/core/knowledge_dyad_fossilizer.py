@@ -65,6 +65,19 @@ class DyadFossilizer:
         os.makedirs(self.storage_dir, exist_ok=True)
         self.fusion_layer = fusion_layer or ResidueFusion()
         
+    def compute_poincaré_embedding(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Map a Euclidean vector x to the Poincaré disk B^n (System 2 Speculative Recovery).
+        Formula: z = 2 * tanh(dist/2) * unit(x).
+        This unfolding prevents NaN/INF collapse by providing non-Euclidean volume.
+        """
+        norm = torch.norm(x, dim=-1, keepdim=True)
+        eps = 1e-8
+        safe_norm = torch.clamp(norm, min=eps)
+        # User dynamic: z -> 2 tanh(dist/2)
+        scale = 2.0 * torch.tanh(safe_norm / 2.0)
+        return scale * (x / safe_norm)
+
     def fossilize(self, 
                   dyad: KnowledgeDyad, 
                   text_embedding: torch.Tensor) -> str:
@@ -81,17 +94,25 @@ class DyadFossilizer:
              
         residue = self.fusion_layer(img_tensor, text_embedding)
         
-        # 2. Prepare Payload
+        # 2. System 2 Hyperbolic Unfolding (Speculative Recovery)
+        # We only perform this 'expensive' magic during fossilization to save heuristic speed.
+        hyperbolic_residue = self.compute_poincaré_embedding(residue)
+        
+        # 3. Prepare Payload
         payload = {
             'type': 'knowledge_dyad',
             'description': dyad.linguistic_description,
             'image_fingerprint': dyad.image_fingerprint,
             'residue_vector': residue.detach().cpu(),
+            'hyperbolic_residue': hyperbolic_residue.detach().cpu(),
             'timestamp': dyad.timestamp,
-            'metrics': {'relevance': dyad.relevance_score}
+            'metrics': {
+                'relevance': dyad.relevance_score,
+                'hyperbolic_eccentricity': torch.norm(hyperbolic_residue).item()
+            }
         }
         
-        # 3. Save to Disk (Safe, atomic-like write)
+        # 4. Save to Disk (Safe, atomic-like write)
         safe_desc = "".join(c for c in dyad.linguistic_description[:20] if c.isalnum())
         filename = f"encoding_{safe_desc}_{int(datetime.datetime.now().timestamp())}.pt"
         filepath = os.path.join(self.storage_dir, filename)
