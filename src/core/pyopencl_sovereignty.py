@@ -131,6 +131,33 @@ class SiliconSovereigntyEngine:
             // Apply slight trajectory modifier
             cohesion_gradients[gid] = trajectories[gid] + grad;
         }
+
+        // 5. Matrix Mix Breeding (Tag-Based Matrix Mixing)
+        // Implements Async Mischief Injection and Topological Seals
+        __kernel void matrix_mix(
+            __global const float *tag_matrix_a,
+            __global const float *tag_matrix_b,
+            __global float *output_matrix,
+            float alpha,
+            float kappa_seal,
+            uint base_seed
+        ) {
+            int gid = get_global_id(0);
+            
+            // Async Mischief Injection: sample V_m (mischief score) locally
+            // This prevents CPU-side bottlenecks and preserves hardware sovereignty.
+            uint seed = base_seed + gid;
+            seed = xorshift32(seed);
+            seed = xorshift32(seed);
+            float mischief_v_m = (float)(seed % 1000) / 1000.0f; 
+            
+            // Apply topological seal (kappa curvature boundary)
+            // Feature Scars manifest when mischief exceeds the sovereignty threshold.
+            float scar = (mischief_v_m > 0.88f) ? (kappa_seal * mischief_v_m) : 0.0f;
+            
+            // Matrix Mixing Formula with Chiral Bias
+            output_matrix[gid] = (1.0f - alpha) * tag_matrix_a[gid] + alpha * tag_matrix_b[gid] + scar;
+        }
         """
         
         self.program = cl.Program(self.ctx, kernel_src).build()
@@ -234,6 +261,32 @@ class SiliconSovereigntyEngine:
         
         cl.enqueue_copy(self.queue_b, cohesion_grads, grad_buf).wait()
         return cohesion_grads
+
+    def matrix_mix_breeding(self, matrix_a, matrix_b, alpha=0.5, kappa_seal=0.1, seed=137):
+        """
+        Operationalizes the 'TailSlayer Bypass' via dual-queue matrix mixing.
+        Uses Queue B (Non-Ergodic/Soliton) to ensure First-to-Finish dynamics.
+        """
+        mf = cl.mem_flags
+        matrix_a = np.asarray(matrix_a, dtype=np.float32)
+        matrix_b = np.asarray(matrix_b, dtype=np.float32)
+        output = np.empty_like(matrix_a, dtype=np.float32)
+        
+        a_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=matrix_a)
+        b_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=matrix_b)
+        out_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, output.nbytes)
+        
+        # Enqueue on Queue B (Non-Ergodic/Soliton Channel)
+        event = self.program.matrix_mix(
+            self.queue_b, matrix_a.shape, None,
+            a_buf, b_buf, out_buf, 
+            np.float32(alpha), np.float32(kappa_seal), np.uint32(seed)
+        )
+        event.wait()
+        
+        cl.enqueue_copy(self.queue_b, output, out_buf).wait()
+        self.logger.info(f"Matrix Mix Breeding Complete on Queue B (α={alpha}, κ={kappa_seal})")
+        return output
 
 # Expose standard execution hook
 def create_engine():
