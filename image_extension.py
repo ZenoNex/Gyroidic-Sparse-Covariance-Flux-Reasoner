@@ -208,53 +208,82 @@ class ImageProcessor(nn.Module):
         """Allow optimizer to discover trainable parameters."""
         return self.backbone.parameters()
 
-class SimpleImageGenerator:
+import hashlib
+from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+
+class TailSlayerImageGenerator:
     """
-    Simplified Image Generator (Option D compatible).
-    Uses a reverse mapping from embeddings to color/shape distributions.
+    TailSlayer Sovereign Image Generator.
+    Replaces the legacy SimpleImageGenerator with a hardware-sovereign architecture.
+    
+    Features:
+    - Tag-Based Matrix Mixing: Structural analogue to GANBREEDER glitches.
+    - Feature Scars: Preserves high-variance artifacts as structural signatures.
+    - Hardware Sovereignty: Offloads mixing to PyOpenCL kernels via Dual-Queue.
     """
-    def __init__(self, text_model: nn.Module, image_processor: ImageProcessor):
-        self.text_model = text_model
-        self.image_processor = image_processor
-        self.device = image_processor.device
+    def __init__(self, engine: Optional[SiliconSovereigntyEngine] = None):
+        try:
+            self.engine = engine if engine else SiliconSovereigntyEngine()
+            self.sovereign = True
+        except Exception as e:
+            print(f"⚠️ Silicon Sovereignty Engine failed: {e}. Falling back to Emulated Sovereignty.")
+            self.engine = None
+            self.sovereign = False
         
-    def generate_from_text(self, prompt: str) -> Image.Image:
-        """Generates a representative image from a text prompt."""
-        # This is a 'Diegetic' generator: it doesn't use GANs, but 'draws' 
-        # based on the resonance of the text prompt.
-        img = Image.new('RGB', (64, 64), (0, 0, 0))
+    def generate_sovereign_image(self, tag_a: str, tag_b: str, alpha: float = 0.5) -> Image.Image:
+        """
+        Generates an image by mixing two structural tag-matrices.
+        If hardware sovereignty is available, mixing happens directly on the GPU.
+        """
+        # 1. Convert tags to structural matrices (Simulated Sovereignty)
+        # In the full Reasoner, these are derived from the latent manifolds.
+        seed_a = int(hashlib.md5(tag_a.encode()).hexdigest(), 16) % (2**32)
+        seed_b = int(hashlib.md5(tag_b.encode()).hexdigest(), 16) % (2**32)
+        
+        rng_a = np.random.RandomState(seed_a)
+        rng_b = np.random.RandomState(seed_b)
+        
+        # Use 64x64 grid to match legacy resolution while proving sovereignty
+        matrix_a = rng_a.rand(64, 64).astype(np.float32)
+        matrix_b = rng_b.rand(64, 64).astype(np.float32)
+        
+        # 2. Breeding Phase (Tag-Based Matrix Mixing)
+        if self.sovereign and self.engine:
+            # Execute on GPU via matrix_mix kernel (Queue B)
+            mixed_matrix = self.engine.matrix_mix_breeding(
+                matrix_a, matrix_b, alpha=alpha, kappa_seal=0.18, seed=seed_a ^ seed_b
+            )
+        else:
+            # Emulated Sovereignty (CPU-side)
+            mischief = rng_a.rand(64, 64)
+            scars = np.where(mischief > 0.88, 0.18 * mischief, 0.0)
+            mixed_matrix = (1.0 - alpha) * matrix_a + alpha * matrix_b + scars
+        
+        # 3. Render "Harmonious Scars" 
+        img = Image.new('RGB', (64, 64))
         pixels = img.load()
         
-        # Hash the prompt to seed the 'resonance'
-        import hashlib
-        seed = int(hashlib.md5(prompt.encode()).hexdigest(), 16) % (2**32)
-        rng = np.random.RandomState(seed)
-        
-        # Choose primary color based on first few bytes
-        r, g, b = rng.randint(50, 255), rng.randint(50, 255), rng.randint(50, 255)
-        
-        # Simple geometric pattern generation
-        shape_type = rng.choice(['square', 'circle', 'gradient'])
-        
-        if shape_type == 'square':
-            size = rng.randint(20, 40)
-            offset_x = (64 - size) // 2
-            offset_y = (64 - size) // 2
-            for x in range(offset_x, offset_x + size):
-                for y in range(offset_y, offset_y + size):
-                    pixels[x, y] = (r, g, b)
-        elif shape_type == 'circle':
-            radius = rng.randint(15, 25)
-            for x in range(64):
-                for y in range(64):
-                    if (x - 32)**2 + (y - 32)**2 < radius**2:
-                        pixels[x, y] = (r, g, b)
-        else: # gradient
-            for x in range(64):
-                for y in range(64):
-                    pixels[x, y] = (int(r * x/64), int(g * y/64), b)
+        for x in range(64):
+            for y in range(64):
+                val = mixed_matrix[x, y]
+                # The 'scar' manifests as a chiral color shift
+                r = int(np.clip(val * 255, 0, 255))
+                g = int(np.clip((1.0 - val) * 180, 0, 255))
+                b = int(np.clip(val * 140 + 60, 0, 255))
+                pixels[x, y] = (r, g, b)
                     
         return img
+
+    def generate_from_text(self, prompt: str) -> Image.Image:
+        """Legacy compatibility wrapper for the Reasoner pipeline."""
+        tags = prompt.split()
+        tag_a = tags[0] if tags else "void"
+        tag_b = tags[-1] if len(tags) > 1 else "soliton"
+        return self.generate_sovereign_image(tag_a, tag_b)
+
+class SimpleImageGenerator(TailSlayerImageGenerator):
+    """Legacy alias to ensure zero-friction integration with existing tests."""
+    pass
 
 def create_minimal_image_demo():
     """Satisfy legacy demonstration entries."""
