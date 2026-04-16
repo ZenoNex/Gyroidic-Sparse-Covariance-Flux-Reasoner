@@ -514,8 +514,13 @@ class DiegeticPhysicsEngine(nn.Module):
         Evolutionary Forward Pass for Manifold Invariants.
         Used by SpectralStructuralTrainer for Ricci Flow and ADMM repairs.
         """
+        # 1. Input Guard: Ensure incoming tensor is finite
+        if not torch.isfinite(input_tensor).all():
+            input_tensor = torch.nan_to_num(input_tensor, nan=0.0, posinf=1.0, neginf=-1.0)
+
         # 3. Update Resonance Cavity (Explicit Memory Update)
         # We pass input_tensor as attention_states to trigger M update
+        # Analog trick: add epsilon to prevent near-zero division in attention/norms
         cavity_out = self.cavity(input_tensor.unsqueeze(1))
         memory_state = cavity_out['memory_state'].mean(dim=1) # [1, dim]
         self._last_memory_state = memory_state
@@ -524,6 +529,10 @@ class DiegeticPhysicsEngine(nn.Module):
         est_residues = torch.tanh(self.associator.residue_map(memory_state)) # [1, k]
         self._last_est_residues = est_residues
         
+        # Ensure previous meta_state is finite before update
+        if not torch.isfinite(self.meta_state).all():
+            self.meta_state = torch.clamp(torch.nan_to_num(self.meta_state), -5.0, 5.0)
+
         meta_out = self.fractal_meta(
             current_state=memory_state,
             meta_state_prev=self.meta_state,
@@ -532,10 +541,15 @@ class DiegeticPhysicsEngine(nn.Module):
         )
         
         # Update persistent meta-state (detach to prevent graph blowup here)
-        self.meta_state = meta_out['s_fractal'].detach()
+        # Apply soft-clamping as an 'Analog Limiter'
+        new_meta = meta_out['s_fractal'].detach()
+        if not torch.isfinite(new_meta).all():
+            new_meta = torch.nan_to_num(new_meta, nan=0.0)
+            
+        self.meta_state = torch.clamp(new_meta, -10.0, 10.0)
         
         # Return state for character generation / training
-        return meta_out['s_fractal']
+        return self.meta_state
 
     def _initialize_larynx_weights(self):
         """Seed character projections with basic English frequency priors."""
