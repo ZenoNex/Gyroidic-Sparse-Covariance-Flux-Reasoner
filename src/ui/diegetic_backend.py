@@ -821,23 +821,18 @@ class DiegeticPhysicsEngine(nn.Module):
         dyad_override_response = None
         
         # Trigger Ingestion if expandability is critical
-        if affordance_gradients.get('runtime_expandability', 0.0) > 0.8:
+        if affordance_gradients.get('runtime_expandability', 0.0) > 0.4:
             print("[TRIGGER] Agentic Ingestion Triggered by Affordance Gradient")
             dyad_override_response = self._handle_dyad_ingestion(f"AGENTIC_INGEST: {text_input}", fingerprint, seed_state)
             
         # Trigger Association if knowledge seeking is critical
-        elif affordance_gradients.get('knowledge_seeking', 0.0) > 0.8:
+        elif affordance_gradients.get('knowledge_seeking', 0.0) > 0.4:
             print("[TRIGGER] Agentic Association Triggered by Affordance Gradient")
             dyad_override_response = self._handle_association_learning(text_input, seed_state)
             
-        # =============================================
-        # 5.a Voynich Exemption Stand-in
-        # =============================================
-        # Create a dummy exemption token since the Voynich linguist was formally 
-        # dissolved into the Braid Group structures.
-        class _MockExemption:
-            is_valid_exemption = False
-        exemption_token = _MockExemption()
+        # 5.a Real Voynich Exemption (Self-Sovereign Alphabet)
+        with torch.no_grad():
+            _, _, _, exemption_token = self.voynich_linguist(seed_state)
 
         # =============================================
         # 5.b CALM: Update history buffer and get trajectory assessment
