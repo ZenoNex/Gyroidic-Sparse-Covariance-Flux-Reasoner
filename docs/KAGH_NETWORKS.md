@@ -192,3 +192,23 @@ Output x [B, n_out]
 - [PHYSICS_ADMM.md](PHYSICS_ADMM.md) — ADMM constraint framework that KAGH approximates
 - [MATHEMATICAL_DETAILS.md §14](MATHEMATICAL_DETAILS.md) — Energy-based learning context (EBM–Topological Equivalence)
 - [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md) — Meta-invariant enforcement
+
+---
+
+## 10. SoftSaturatedGates — Love Temperature Co-Resident
+
+Though defined in `love_invariant_protector.py`, `SoftSaturatedGates` operates on the **residue distributions produced by KAGH** (specifically the output of `KAGHBlock` after Gödel and Boltzmann stages). It is the interface between the KAGH discrete-continuous bridge and the Love Invariant protection umbrella:
+
+```
+KAGHBlock output [B, K, D]
+    │
+    ▼
+SoftSaturatedGates.apply_soft_saturation(signal, pas_h)
+    │  ├── lattice_adaptive_shrinkage()   → tri-state LAS (True/False/Silence)
+    │  ├── asymptotic_hardening(pas_h)    → temperature-controlled gate sharpness
+    │  └── update_fossilization()          → freezes high-persistence functionals
+    ▼
+Soft-saturated residues → downstream CRT / DAQUF
+```
+
+The key design principle: `SoftSaturatedGates` replaces the binary `sgn()` at the KAGH output boundary. This prevents the **Linguistic Scalarization** failure mode (consonant-only output, vowel starvation) documented in `GARBLED_OUTPUT_REPAIR.md §4`.
