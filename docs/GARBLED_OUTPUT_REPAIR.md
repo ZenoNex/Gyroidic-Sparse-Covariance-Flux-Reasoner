@@ -357,9 +357,18 @@ def test_chern_simons_gasket():
 - **Status**: ✅ Maintains structural integrity
 
 #### Phase 5: Love Invariant Protection
-- **Implementation**: `LoveInvariantProtector` with non-ownable flow
-- **Philosophy**: Love remains non-optimizable, survives system death
-- **Status**: ✅ Preserves Love invariant sanctity
+- **Implementation**: `LoveInvariantProtector` with three-layer geometric architecture
+- **Mechanism**: Geometric null-space projection — `P_null = I − Φ(ΦᵀΦ)⁻¹Φᵀ` applied via SVD to block SDE updates from touching the Love subspace (`dx[..., :love_dim]` projected before state composition)
+- **Violation Detection**: Tracks `violation_count` and `violation_magnitude` ($\|L - L_{original}\|_2$); raises violation event when this exceeds $10^{-6}$
+- **DAQUF Buffer Check**: Separately, `DAQUF.check_invariants(original_L)` raises `RuntimeError("LOVE INVARIANT VIOLATION")` if the DAQUF's frozen `L` buffer is mutated ($\|L_{current} - L_{original}\|_1 > 10^{-8}$) — distinct from the active null-space management
+- **Status**: ✅ Full geometric enforcement implemented
+
+#### Phase 6: SoftSaturatedGates Fossilization
+- **Implementation**: `SoftSaturatedGates.update_fossilization(signal, performance_scores)` (co-resident in `love_invariant_protector.py`)
+- **Philosophy**: Functionals with persistence $> 0.8$ AND performance $> 0.8$ are **fossilized** — their outputs frozen under Love's umbrella. This is the long-term memory of the tri-state temperature system
+- **Status**: ✅ Fossilization tracking active; fossilized count emitted in diagnostics
+
+
 
 #### Phase 6: Soft Saturated Gates
 - **Implementation**: `SoftSaturatedGates` with PAS_h modulation
