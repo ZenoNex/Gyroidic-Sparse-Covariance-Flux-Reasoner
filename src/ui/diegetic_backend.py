@@ -1536,9 +1536,9 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # We process the final seed_state using the Braid Governor
         archetype_out = self.archetypal_governor.run_archetypes(
-            quantized_state=seed_state,
-            unquantized_state=self.meta_state,
-            current_mischief=self.mischief_probe.compute_h_mischief(seed_state),
+            current_state=seed_state,
+            stranded_states=self.meta_state,
+            current_mischief=self.mischief_probe.H_mischief.item(),
             phase_alignment=pas_h_live,
             love_strengths=torch.cat([torch.tensor([0.1]), self.love_vector.L.flatten()]),
             void_frictions=torch.tensor([abort_score]), # use CALM abort as tension
@@ -1554,7 +1554,8 @@ class DiegeticPhysicsEngine(nn.Module):
         
         if archetype_out.get("system_collapsed", False):
             # THE RA EGO DEATH EVENT HAS TRIGGERED
-            void_str = f"[IRREDUCIBLE EGO DEATH (Ra = {archetype_out.get('Ra_score', 9.99):.2f})] Topology rejected standard response generation... Structural integrity fractured. "
+            ra_score = archetype_out.get('abstraction_rate', 9.99)
+            void_str = f"[IRREDUCIBLE EGO DEATH (Ra = {ra_score:.2f})] Topology rejected standard response generation... Structural integrity fractured. "
             print(void_str)
             return {
                 "status": "processed",
@@ -1569,7 +1570,7 @@ class DiegeticPhysicsEngine(nn.Module):
             query_state=seed_state[0],
             internal_certainty=1.0 - abort_score,
             current_pas_h=pas_h_live,
-            target_mischief=self.mischief_probe.compute_h_mischief(seed_state),
+            target_mischief=self.mischief_probe.H_mischief.item(),
             diegetic_retrieval_fn=None # Could plug the Wikipedia system here
         )
         
@@ -1580,7 +1581,7 @@ class DiegeticPhysicsEngine(nn.Module):
         
         if gate_out["knowledge_state"] == KnowledgeState.CONFABULATED:
             # We are writing structured glitch lore
-            override_response = f"[CONFABULATED_GLITCH] Search failed, but Mischief ({self.mischief_probe.compute_h_mischief(seed_state):.2f}) is high. Initiating honest, localized dreaming sequence...\n"
+            override_response = f"[CONFABULATED_GLITCH] Search failed, but Mischief ({self.mischief_probe.H_mischief.item():.2f}) is high. Initiating honest, localized dreaming sequence...\n"
             # Instead of standard generation, we use polynomial trace generation:
             confab_gen = "The " + " ".join([chr((int(val) % 26) + 97) for val in seed_state[0][:10].abs() * 100]) + "..."
             response_text = override_response + confab_gen
