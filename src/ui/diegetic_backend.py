@@ -90,7 +90,7 @@ from src.core.love_invariant_protector import LoveInvariantProtector, SoftSatura
 # LEGACY SYSTEM INTEGRATION
 # CALM: Context-Adaptive Latent Momentum (Trajectory Veto)
 from src.surrogates.calm_predictor import CALM
-# KAGH: Kolmogorov-Arnold-Gödel-Huxley (Speculative Drafting)
+# KAGH: Kolmogorov-Arnold-Godel-Huxley (Speculative Drafting)
 from src.surrogates.kagh_networks import KAGHBlock, HarmonicWaveDecomposition, HuxleyRD
 # Gyroid Covariance for tensor-based momentum instead of scalar averages
 from src.topology.gyroid_covariance import GyroidCovarianceEstimator
@@ -118,7 +118,7 @@ try:
     TABBY_AVAILABLE = True
 except ImportError:
     TABBY_AVAILABLE = False
-    print("⚠️ Tabby ML client not available")
+    print("WARNING: Tabby ML client not available")
 
 # State persistence path
 STATE_PATH = "gyroid_state.pt"
@@ -208,7 +208,7 @@ class DiegeticPhysicsEngine(nn.Module):
             self.device = device
 
             # Now use self.device for everything else
-        print(f"🔧 Engine initialized on: {self.device}")
+        print(f"[ENGINE] Engine initialized on: {self.device}")
         self.dim = dim
         self.k = k
         self.last_input_time = 0
@@ -225,7 +225,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # =============================================
         # GARBLED OUTPUT REPAIR SYSTEM
         # =============================================
-        print("🔧 Initializing Garbled Output Repair System...")
+        print("[CONFIG] Initializing Garbled Output Repair System...")
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         # Spectral Coherence Corrector - fixes consonant clustering
         self.spectral_corrector = SpectralCoherenceCorrector(
@@ -314,7 +314,7 @@ class DiegeticPhysicsEngine(nn.Module):
             device=device
         )
         
-        print("✅ Garbled Output Repair System initialized")
+        print(" Garbled Output Repair System initialized")
         
         # =============================================
         
@@ -373,7 +373,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # =============================================
         # PHASE 18: ZEITGEIST ROUTER (CRT Polytope Switching)
         # Implements: S_t = (x_t, alpha_t, l_t, u_t)
-        # where alpha_t ∈ Z = ∏ Z_{p_i} is the CRT index.
+        # where alpha_t in Z = Prod Z_{p_i} is the CRT index.
         # Enables multi-zeitgeist reasoning without forced scalar
         # reconciliation across culturally non-commensurable meaning systems.
         # References: ai project report §VI, SYSTEM_ARCHITECTURE §9.4
@@ -574,7 +574,7 @@ class DiegeticPhysicsEngine(nn.Module):
                     'components': components
                 }
         except Exception as e:
-            print(f"⚠️  Unfolding closure check fallback due to error: {e}")
+            print(f"[REPAIR] Unfolding closure check fallback due to error: {e}")
             return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 
                 'closure_score': 1.0,
                 'closure_threshold': 0.5,
@@ -609,7 +609,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # for administrative commands. High-priority ingestion must never be 
         # suppressed by speculative "mischief" gates.
         if text_input.startswith("INGEST_DYAD:") or text_input.startswith("ASSOCIATE:"):
-             print(f"⚡ Command Prioritization: Bypassing pipeline for direct response...")
+             print(f"[CMD] Command Prioritization: Bypassing pipeline for direct response...")
              # Use current meta_state as the grounding seed for the command handler
              seed_state = self.meta_state.detach()
              response_text = self._generate_dyad_aware_response(seed_state, text_input, fingerprint)
@@ -631,7 +631,7 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # --- VIDEO DYAD PATH ---
         if video_dyad_b64 is not None:
-            print("🎥 Integrating Video Dyad via Base64 Integer Parser...")
+            print("[DYAD] Integrating Video Dyad via Base64 Integer Parser...")
             from src.core.video_dyad_parser import VideoDyadParser
             if not hasattr(self, 'video_parser'):
                 self.video_parser = VideoDyadParser(device=self.device)
@@ -657,7 +657,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Compute affordance gradients for both code and conversational patterns
         affordance_gradients = self._compute_affordance_gradients(text_input, input_tensor)
         
-        print(f"🔧 Affordance Gradients Computed:")
+        print(f"[CONFIG] Affordance Gradients Computed:")
         print(f"   Executability: {affordance_gradients['executability_pressure']:.4f}")
         print(f"   Formal symbols: {affordance_gradients['formal_symbol_density']:.4f}")
         print(f"   Expandability: {affordance_gradients['runtime_expandability']:.4f}")
@@ -902,7 +902,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 force_magnitude = 0.1 * gauge_pressure
                 correction = force_magnitude * forcing_tensor
                 self.meta_state = self.meta_state + correction
-                print(f"🌊 CALM Agentic Forcing applied: P={gauge_pressure:.2f}, ||F||={torch.norm(correction).item():.4f}")
+                print(f" CALM Agentic Forcing applied: P={gauge_pressure:.2f}, ||F||={torch.norm(correction).item():.4f}")
 
         # =============================================
         # 5.5: LIVE PAS_h COMPUTATION
@@ -951,7 +951,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 # LOW_ENTROPY_THRESHOLD approx 1.0 (highly structured)
                 LOW_ENTROPY_THRESHOLD = 1.0 
                 if spectral_entropy < LOW_ENTROPY_THRESHOLD:
-                    print(f"🌊 Spectral Speculative Exit triggered (entropy {spectral_entropy:.2f} < {LOW_ENTROPY_THRESHOLD}). Bypassing SCCCG.")
+                    print(f" Spectral Speculative Exit triggered (entropy {spectral_entropy:.2f} < {LOW_ENTROPY_THRESHOLD}). Bypassing SCCCG.")
                     spectral_early_exit = True
                     abort_score = 0.0
                     calm_diagnostics["trajectory_status"] = "SPECTRAL_EARLY_EXIT"
@@ -1051,11 +1051,11 @@ class DiegeticPhysicsEngine(nn.Module):
                     self._zeitgeist_state,
                     boundary=_last_boundary,
                 )
-                print(f"⚡ Zeitgeist mode: {_zg_mode} | alpha: {self._zeitgeist_state.alpha} "
+                print(f" Zeitgeist mode: {_zg_mode} | alpha: {self._zeitgeist_state.alpha} "
                       f"| crt_idx: {self._zeitgeist_state.crt_index} "
                       f"| step: {self._zeitgeist_state.step}")
             except Exception as _zg_e:
-                print(f"⚠️  ZeitgeistRouter error (non-fatal): {_zg_e}")
+                print(f"  ZeitgeistRouter error (non-fatal): {_zg_e}")
 
 
         # =============================================
@@ -1066,11 +1066,11 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Inject constraint pressure based on affordance gradients (pure affordance-based approach)
         if constraint_forcing_needed:
-            print("🔥 Applying enhanced constraint pressure injection to seed state...")
+            print(" Applying enhanced constraint pressure injection to seed state...")
             
             # Apply constraint injection with affordance-based metrics
             seed_state = self._inject_constraint_pressure(seed_state, enhanced_constraint_metrics)
-            print(f"🔧 Post-injection seed state shape: {seed_state.shape}")
+            print(f" Post-injection seed state shape: {seed_state.shape}")
         
         # =============================================
         # 8. Dynamic Output Length (Gyroidic Tensor-Based)
@@ -1093,12 +1093,12 @@ class DiegeticPhysicsEngine(nn.Module):
         # =============================================
         # 8.5. GARBLED OUTPUT REPAIR PIPELINE (PHASE 2.1: SPECTRAL COHERENCE CORRECTOR)
         # =============================================
-        print(f"🔧 Applying repair to state: {seed_state.shape}")
+        print(f" Applying repair to state: {seed_state.shape}")
         
         try:
             # PHASE 2.1: Re-enable Spectral Coherence Corrector
-            print("🔧 Phase 2.1: Applying Spectral Coherence Correction...")
-            print(f"🔧 Input state shape: {seed_state.shape}, device: {seed_state.device}")
+            print(" Phase 2.1: Applying Spectral Coherence Correction...")
+            print(f" Input state shape: {seed_state.shape}, device: {seed_state.device}")
             
             # Apply spectral coherence correction to fix consonant clustering
             # Make correction more aggressive for better results
@@ -1114,24 +1114,24 @@ class DiegeticPhysicsEngine(nn.Module):
                 vowel_mask = torch.rand_like(seed_state_corrected) > 0.7  # 30% of dimensions get vowel boost
                 seed_state_corrected = seed_state_corrected + vowel_boost * vowel_mask.float()
             
-            print(f"🔧 Corrected state shape: {seed_state_corrected.shape}")
+            print(f" Corrected state shape: {seed_state_corrected.shape}")
             
             # Get spectral diagnostics
             spectral_diagnostics = self.spectral_corrector.get_diagnostics()
-            print(f"🔍 Spectral Coherence: θ={spectral_diagnostics['theta_coherence']:.3f}, "
+            print(f" Spectral Coherence: θ={spectral_diagnostics['theta_coherence']:.3f}, "
                   f"energy_ratio={spectral_diagnostics['energy_ratio']:.3f}")
             
             # Store diagnostics for metrics
             self._last_spectral_diagnostics = spectral_diagnostics
-            print(f"🔧 Stored diagnostics: {self._last_spectral_diagnostics}")
+            print(f" Stored diagnostics: {self._last_spectral_diagnostics}")
             
             # PHASE 2.2: Re-enable Bezout Coefficient Refresh (PROPER IMPLEMENTATION)
-            print("🔧 Phase 2.2: Applying Bezout Coefficient Refresh...")
+            print(" Phase 2.2: Applying Bezout Coefficient Refresh...")
             
             # Ensure proper state dimensions before Bezout processing
             if seed_state_corrected.dim() == 3 and seed_state_corrected.shape[1] == 1:
                 seed_state_corrected = seed_state_corrected.squeeze(1)  # Remove singleton dimension
-                print(f"🔧 Squeezed state for Bezout processing: {seed_state_corrected.shape}")
+                print(f" Squeezed state for Bezout processing: {seed_state_corrected.shape}")
             
             try:
                 # Create proper residues from corrected state for CRT correction
@@ -1142,7 +1142,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 if state_dim % self.k != 0:
                     pad_size = self.k - (state_dim % self.k)
                     seed_state_padded = torch.nn.functional.pad(seed_state_corrected, (0, pad_size), mode='reflect')
-                    print(f"🔧 Applied Symmetry-Preserving padding for Bezout: {state_dim} -> {seed_state_padded.shape[1]}")
+                    print(f" Applied Symmetry-Preserving padding for Bezout: {state_dim} -> {seed_state_padded.shape[1]}")
                 else:
                     seed_state_padded = seed_state_corrected
                 
@@ -1150,7 +1150,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 padded_dim = seed_state_padded.shape[1]
                 residue_dim = padded_dim // self.k
                 residues_for_crt = seed_state_padded.view(batch_size, self.k, residue_dim)
-                print(f"🔧 Created residues for Bezout: {residues_for_crt.shape}")
+                print(f" Created residues for Bezout: {residues_for_crt.shape}")
                 
                 # Apply CRT correction to fix modulus drift
                 corrected_residues = self.bezout_refresh.apply_crt_correction(residues_for_crt)
@@ -1165,14 +1165,14 @@ class DiegeticPhysicsEngine(nn.Module):
                 
                 # Get Bezout diagnostics
                 bezout_diagnostics = self.bezout_refresh.get_diagnostics()
-                print(f"🔍 Bezout CRT: condition_number={bezout_diagnostics['bezout_condition_number']:.3f}")
+                print(f" Bezout CRT: condition_number={bezout_diagnostics['bezout_condition_number']:.3f}")
                 
                 # Store Bezout diagnostics
                 self._last_bezout_diagnostics = bezout_diagnostics
                 
             except Exception as bezout_error:
-                print(f"⚠️  Bezout Coefficient Refresh failed: {bezout_error}")
-                print("🔧 Using fallback diagnostics...")
+                print(f"  Bezout Coefficient Refresh failed: {bezout_error}")
+                print(" Using fallback diagnostics...")
                 # Store fallback diagnostics
                 self._last_bezout_diagnostics = {
                     'bezout_condition_number': 1.0,
@@ -1182,14 +1182,14 @@ class DiegeticPhysicsEngine(nn.Module):
                     'error': str(bezout_error)
                 }
             
-            print("🔧 Phase 2.2 skipped - continuing with spectral correction only")
+            print(" Phase 2.2 skipped - continuing with spectral correction only")
             
             # Basic numerical stabilization (keep this as safety net)
-            print("🔧 Applying numerical stabilization...")
+            print(" Applying numerical stabilization...")
             
             # Check for NaN/inf values and replace them
             if torch.isnan(seed_state_corrected).any() or torch.isinf(seed_state_corrected).any():
-                print("⚠️  Detected NaN/inf values, applying emergency stabilization")
+                print("  Detected NaN/inf values, applying emergency stabilization")
                 nan_mask = torch.isnan(seed_state_corrected) | torch.isinf(seed_state_corrected)
                 seed_state_corrected = torch.where(nan_mask, torch.randn_like(seed_state_corrected) * 0.01, seed_state_corrected)
             
@@ -1200,11 +1200,11 @@ class DiegeticPhysicsEngine(nn.Module):
             seed_state_corrected = seed_state_corrected / (torch.norm(seed_state_corrected, dim=-1, keepdim=True) + 1e-8)
             
             seed_state_repaired = seed_state_corrected
-            print(f"✅ Phase 2.1 repair complete. State shape: {seed_state_repaired.shape}")
+            print(f" Phase 2.1 repair complete. State shape: {seed_state_repaired.shape}")
             
         except Exception as e:
-            print(f"❌ REPAIR SYSTEM ERROR: {e}")
-            print("🔧 Falling back to basic stabilization...")
+            print(f" REPAIR SYSTEM ERROR: {e}")
+            print(" Falling back to basic stabilization...")
             
             # Store empty diagnostics for fallback
             self._last_spectral_diagnostics = {
@@ -1236,7 +1236,7 @@ class DiegeticPhysicsEngine(nn.Module):
             
             # Fallback to basic stabilization if spectral correction fails
             if torch.isnan(seed_state).any() or torch.isinf(seed_state).any():
-                print("⚠️  Detected NaN/inf values, applying emergency stabilization")
+                print("  Detected NaN/inf values, applying emergency stabilization")
                 nan_mask = torch.isnan(seed_state) | torch.isinf(seed_state)
                 seed_state = torch.where(nan_mask, torch.randn_like(seed_state) * 0.01, seed_state)
             
@@ -1252,7 +1252,7 @@ class DiegeticPhysicsEngine(nn.Module):
             if seed_state.shape[-1] > self.dim:
                 # Truncate if larger
                 seed_state = seed_state[:, :self.dim]
-                print(f"🔧 Truncated state from {seed_state_repaired.shape[-1]} to {self.dim}")
+                print(f" Truncated state from {seed_state_repaired.shape[-1]} to {self.dim}")
             else:
                 # Create new tensor of correct size and copy repaired values
                 new_state = torch.zeros(seed_state.shape[0], self.dim, device=seed_state.device, dtype=seed_state.dtype)
@@ -1269,26 +1269,26 @@ class DiegeticPhysicsEngine(nn.Module):
                     new_state[:, copy_size:] = extended_pattern
                 
                 seed_state = new_state
-                print(f"🔧 Reconstructed state from {seed_state_repaired.shape[-1]} to {self.dim}")
+                print(f" Reconstructed state from {seed_state_repaired.shape[-1]} to {self.dim}")
         
-        print(f"🔧 Final seed state shape: {seed_state.shape} (expected: [1, {self.dim}])")
+        print(f" Final seed state shape: {seed_state.shape} (expected: [1, {self.dim}])")
         
         # Apply basic numerical stabilization
         seed_state = torch.clamp(seed_state, min=-10.0, max=10.0)
         seed_state = seed_state / (torch.norm(seed_state, dim=-1, keepdim=True) + 1e-8)
         
-        print(f"🔧 Applied numerical stabilization. State range: [{seed_state.min():.3f}, {seed_state.max():.3f}]")
+        print(f" Applied numerical stabilization. State range: [{seed_state.min():.3f}, {seed_state.max():.3f}]")
         
         # =============================================
         # PHASE 2.3: CHERN-SIMONS GASKET (LOGIC LEAK PREVENTION)
         # =============================================
-        print("🔧 Phase 2.3: Applying Chern-Simons Gasket (Logic Leak Prevention)...")
+        print(" Phase 2.3: Applying Chern-Simons Gasket (Logic Leak Prevention)...")
         
         try:
             # Ensure proper state dimensions before applying gasket
             if seed_state.dim() == 3 and seed_state.shape[1] == 1:
                 seed_state = seed_state.squeeze(1)  # Remove singleton dimension
-                print(f"🔧 Squeezed state to proper dimensions: {seed_state.shape}")
+                print(f" Squeezed state to proper dimensions: {seed_state.shape}")
             
             # Apply Chern-Simons gasket to plug logic leaks
             # First, we need to create residues from the state for the gasket
@@ -1302,7 +1302,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 # Apply reflective padding to reach nearest multiple of k
                 pad_size = self.k - (state_dim % self.k)
                 seed_state_padded = torch.nn.functional.pad(seed_state, (0, pad_size), mode='reflect')
-                print(f"🔧 Applied Symmetry-Preserving padding for Chern-Simons: {state_dim} -> {seed_state_padded.shape[1]}")
+                print(f" Applied Symmetry-Preserving padding for Chern-Simons: {state_dim} -> {seed_state_padded.shape[1]}")
             else:
                 seed_state_padded = seed_state
             
@@ -1320,17 +1320,17 @@ class DiegeticPhysicsEngine(nn.Module):
                 if base_polynomial_coeffs.shape[1] > residue_dim:
                     # Truncate if larger
                     proper_polynomial_coeffs = base_polynomial_coeffs[:, :residue_dim]
-                    print(f"🔧 Truncated polynomial coeffs: {base_polynomial_coeffs.shape} -> {proper_polynomial_coeffs.shape}")
+                    print(f" Truncated polynomial coeffs: {base_polynomial_coeffs.shape} -> {proper_polynomial_coeffs.shape}")
                 else:
                     # Expand if smaller using proper polynomial evaluation
                     # Instead of padding, evaluate the polynomials at more points
                     x_points = torch.linspace(-1, 1, residue_dim, device=seed_state.device)
                     proper_polynomial_coeffs = self.repair_polynomial_config.evaluate(x_points.unsqueeze(0)).squeeze(0).T  # [K, residue_dim]
-                    print(f"🔧 Expanded polynomial coeffs via evaluation: {base_polynomial_coeffs.shape} -> {proper_polynomial_coeffs.shape}")
+                    print(f" Expanded polynomial coeffs via evaluation: {base_polynomial_coeffs.shape} -> {proper_polynomial_coeffs.shape}")
             else:
                 proper_polynomial_coeffs = base_polynomial_coeffs
             
-            print(f"🔧 Using proper polynomial coefficients: {proper_polynomial_coeffs.shape}")
+            print(f" Using proper polynomial coefficients: {proper_polynomial_coeffs.shape}")
             
             # Apply the Chern-Simons gasket with proper polynomial coefficients
             gasket_residues = self.chern_simons_gasket.plug_logic_leak(
@@ -1343,24 +1343,24 @@ class DiegeticPhysicsEngine(nn.Module):
             # Restore to original state dimensions (remove padding if applied)
             if gasket_residues_flat.shape[1] > state_dim:
                 seed_state_gasket = gasket_residues_flat[:, :state_dim]  # Remove padding
-                print(f"🔧 Restored original dimensions: {gasket_residues_flat.shape[1]} -> {state_dim}")
+                print(f" Restored original dimensions: {gasket_residues_flat.shape[1]} -> {state_dim}")
             else:
                 seed_state_gasket = gasket_residues_flat
             
             # Get Chern-Simons diagnostics
             chern_simons_diagnostics = self.chern_simons_gasket.get_diagnostics()
-            print(f"🔍 Chern-Simons: level_k={chern_simons_diagnostics.get('level_k', 'N/A')}")
+            print(f" Chern-Simons: level_k={chern_simons_diagnostics.get('level_k', 'N/A')}")
             
             # Store diagnostics
             self._last_chern_simons_diagnostics = chern_simons_diagnostics
             
             # Use gasket-corrected state
             seed_state = seed_state_gasket
-            print(f"🔧 Gasket-corrected state shape: {seed_state.shape}")
+            print(f" Gasket-corrected state shape: {seed_state.shape}")
             
         except Exception as gasket_error:
-            print(f"⚠️  Chern-Simons Gasket failed: {gasket_error}")
-            print("🔧 Continuing without gasket correction...")
+            print(f"  Chern-Simons Gasket failed: {gasket_error}")
+            print(" Continuing without gasket correction...")
             # Store fallback diagnostics
             self._last_chern_simons_diagnostics = {
                 'level_k': 1,
@@ -1372,7 +1372,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # =============================================
         # PHASE 2.4: SOLITON STABILITY HEALER (FRACTURE HEALING)
         # =============================================
-        print("🔧 Phase 2.4: Applying Soliton Stability Healer (Fracture Healing)...")
+        print(" Phase 2.4: Applying Soliton Stability Healer (Fracture Healing)...")
         
         try:
             # Convert state back to residues for soliton healing
@@ -1383,7 +1383,7 @@ class DiegeticPhysicsEngine(nn.Module):
             if state_dim % self.k != 0:
                 pad_size = self.k - (state_dim % self.k)
                 seed_state_padded = torch.nn.functional.pad(seed_state, (0, pad_size), mode='reflect')
-                print(f"🔧 Applied Symmetry-Preserving padding for Soliton: {state_dim} -> {seed_state_padded.shape[1]}")
+                print(f" Applied Symmetry-Preserving padding for Soliton: {state_dim} -> {seed_state_padded.shape[1]}")
             else:
                 seed_state_padded = seed_state
             
@@ -1391,7 +1391,7 @@ class DiegeticPhysicsEngine(nn.Module):
             padded_dim = seed_state_padded.shape[1]
             residue_dim = padded_dim // self.k
             residues_for_healing = seed_state_padded.view(batch_size, self.k, residue_dim)
-            print(f"🔧 Created residues for Soliton healing: {residues_for_healing.shape}")
+            print(f" Created residues for Soliton healing: {residues_for_healing.shape}")
             
             # Use previously computed Gyroid Covariance Entropy (from step 8) as gcve_pressure
             current_gcve = gyroid_entropy if 'gyroid_entropy' in locals() else None
@@ -1406,20 +1406,20 @@ class DiegeticPhysicsEngine(nn.Module):
             healed_state_flat = healed_residues.view(batch_size, -1)
             if healed_state_flat.shape[1] > state_dim:
                 seed_state = healed_state_flat[:, :state_dim]  # Remove padding
-                print(f"🔧 Restored original dimensions after Soliton healing: {healed_state_flat.shape[1]} -> {state_dim}")
+                print(f" Restored original dimensions after Soliton healing: {healed_state_flat.shape[1]} -> {state_dim}")
             else:
                 seed_state = healed_state_flat
             
             # Get Soliton diagnostics
             soliton_diagnostics = self.soliton_healer.get_diagnostics()
-            print(f"🔍 Soliton Healer: α={soliton_diagnostics['alpha']:.3f}, progress={soliton_diagnostics['healing_progress']:.3f}")
+            print(f" Soliton Healer: α={soliton_diagnostics['alpha']:.3f}, progress={soliton_diagnostics['healing_progress']:.3f}")
             
             # Store Soliton diagnostics
             self._last_soliton_diagnostics = soliton_diagnostics
             
         except Exception as soliton_error:
-            print(f"⚠️  Soliton Stability Healer failed: {soliton_error}")
-            print("🔧 Continuing without soliton healing...")
+            print(f"  Soliton Stability Healer failed: {soliton_error}")
+            print(" Continuing without soliton healing...")
             # Store fallback diagnostics
             self._last_soliton_diagnostics = {
                 'alpha': 1.0,
@@ -1431,7 +1431,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # =============================================
         # PHASE 2.5: CANONICAL LOVE VECTOR & SOFT SATURATED GATES
         # =============================================
-        print("🔧 Phase 2.5: Applying Love Vector & Soft Saturated Gates...")
+        print(" Phase 2.5: Applying Love Vector & Soft Saturated Gates...")
         
         try:
             # Apply Love Invariant (Non-Ownable Flow)
@@ -1444,7 +1444,7 @@ class DiegeticPhysicsEngine(nn.Module):
             
             # Diagnostic check (kernel property)
             ownership_leak = self.love_vector.ownership_check().item()
-            print(f"🔍 Love Invariant active: ownership_leak={ownership_leak:.3f}")
+            print(f"[LOVE] Love Invariant active: ownership_leak={ownership_leak:.3f}")
             
             # Apply Soft Saturated Gates for tri-state logic
             # ... (rest of soft gates logic) ...
@@ -1483,7 +1483,7 @@ class DiegeticPhysicsEngine(nn.Module):
             self._last_love_diagnostics = {"ownership_leak": ownership_leak, "love_norm": torch.norm(self.love_vector.L).item()}
             
         except Exception as love_gates_error:
-            print(f"⚠️ Love Vector / Soft Gates failed: {love_gates_error}")
+            print(f" Love Vector / Soft Gates failed: {love_gates_error}")
 
         # =============================================
         # PHASE 2.6: MATRIOSHKA QUANTIZED EVOLUTION LOOP
@@ -1512,27 +1512,27 @@ class DiegeticPhysicsEngine(nn.Module):
                         q_evolved = self.kagh_drafter(q_inner)
                     # Outer quantization: Q_Z(F(Q_Z(x)))
                     seed_state, _b_outer = self.caq(q_evolved, pas_scores=_pas_scores)
-                    # Detect critical shell ceiling — stop forcing if hit
+                    # Detect critical shell ceiling -- stop forcing if hit
                     if _b_outer is not None and _b_outer.is_critical():
-                        print(f"🔔 Matrioshka shell ceiling hit at step {_loop} — halting loop")
+                        print(f"[SHELL] Matrioshka shell ceiling hit at step {_loop} -- halting loop")
                         _boundary_hit = True
                         break
 
                 self._last_matrioshka_diag = self.caq.get_diagnostics()
                 self._last_matrioshka_diag['loop_steps'] = _loop + 1
                 self._last_matrioshka_diag['boundary_halt'] = _boundary_hit
-                print(f"✅ Phase 2.6 Matrioshka loop complete: "
+                print(f"[OK] Phase 2.6 Matrioshka loop complete: "
                       f"level={self._last_matrioshka_diag['level']}, "
                       f"step_mean={self._last_matrioshka_diag['step_mean']:.4f}")
             except Exception as _caq_err:
-                print(f"⚠️  Matrioshka evolution loop failed: {_caq_err}")
+                print(f"  Matrioshka evolution loop failed: {_caq_err}")
 
-        print("🔧 Starting text generation with fully repaired state...")
+        print(" Starting text generation with fully repaired state...")
         
         # =============================================
         # PHASE 5: THE WORLD DOWN THERE (Archetypal Governor)
         # =============================================
-        print("🔧 Phase 5: Routing through Braid Group & Archetypal Synthesis Governor...")
+        print(" Phase 5: Routing through Braid Group & Archetypal Synthesis Governor...")
         
         # We process the final seed_state using the Braid Governor
         archetype_out = self.archetypal_governor.run_archetypes(
@@ -1576,7 +1576,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # =============================================
         # PHASE 3: RESPONSE QUALITY OPTIMIZATION
         # =============================================
-        print(f"🔧 Phase 3: Response Quality Optimization (Gate State: {gate_out['knowledge_state']})...")
+        print(f" Phase 3: Response Quality Optimization (Gate State: {gate_out['knowledge_state']})...")
         
         if gate_out["knowledge_state"] == KnowledgeState.CONFABULATED:
             # We are writing structured glitch lore
@@ -1595,8 +1595,8 @@ class DiegeticPhysicsEngine(nn.Module):
             )
             if gate_out["knowledge_state"] == KnowledgeState.SEARCH_NEEDED:
                 response_text = "[SEARCH_GATE_TRIGGERED] Internal manifold lacks topology. " + response_text
-        print(f"✅ Generated dyad-aware response: {response_text}")
-        print(f"🔧 Response length: {len(response_text)} characters")
+        print(f" Generated dyad-aware response: {response_text}")
+        print(f" Response length: {len(response_text)} characters")
         
         # Inject CALM veto message if trajectory is unstable
         if calm_diagnostics["trajectory_status"] == "NEVER_VETO":
@@ -1612,7 +1612,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # =============================================
         # PHASE 4: ADVANCED FEATURE INTEGRATION
         # =============================================
-        print("🔧 Phase 4: Advanced Feature Integration...")
+        print(" Phase 4: Advanced Feature Integration...")
         
         # Phase 4.1: Full Gyroid Violation Score computation
         gyroid_violation_score = self._compute_full_gyroid_violation_score(seed_state, response_text)
@@ -1644,9 +1644,9 @@ class DiegeticPhysicsEngine(nn.Module):
              advanced_physics_diagnostics = self._run_advanced_physics(text_input, affordance_gradients)
              phase4_diagnostics.update(advanced_physics_diagnostics)
 
-        print(f"📊 Phase 4 Gyroid Violation Score: {gyroid_violation_score:.4f}")
-        print(f"📊 Phase 4 Unfolding Closure: {unfolding_closure_result['is_closed']}")
-        print(f"📊 Phase 4 Topological Features: {len(topological_analysis['features'])} detected")
+        print(f" Phase 4 Gyroid Violation Score: {gyroid_violation_score:.4f}")
+        print(f" Phase 4 Unfolding Closure: {unfolding_closure_result['is_closed']}")
+        print(f" Phase 4 Topological Features: {len(topological_analysis['features'])} detected")
         
         # Calculate Tri-State Output based on Honesty/Trust/PAS_h
         trust_mean = float(self.trust_scalars.mean().item()) if hasattr(self, 'trust_scalars') else 0.5
@@ -1732,7 +1732,7 @@ class DiegeticPhysicsEngine(nn.Module):
                     iteration=self.iteration,
                 )
                 if viz_result and viz_result.get('b64'):
-                    print(f"[VISUALIZER] Manifold fracture rendered — {len(viz_result['b64'])} bytes (b64) "
+                    print(f"[VISUALIZER] Manifold fracture rendered -- {len(viz_result['b64'])} bytes (b64) "
                           f"sr={len(viz_result.get('structural_residues', []))} "
                           f"csf={len(viz_result.get('cheby_self_fingerprint', []))}")
                 else:
@@ -1765,7 +1765,7 @@ class DiegeticPhysicsEngine(nn.Module):
                             self.meta_state + 0.05 * sr_proj,
                             self.meta_state.shape[1:]
                         )
-                    print(f"[FEEDBACK] Structural residues injected -> meta_state (κ=0.05)")
+                    print(f"[FEEDBACK] Structural residues injected -> meta_state (k=0.05)")
                 except Exception as _sr_e:
                     print(f"[FEEDBACK] Residue injection failed: {_sr_e}")
 
@@ -1784,7 +1784,7 @@ class DiegeticPhysicsEngine(nn.Module):
                             self.meta_state + 0.02 * csf_proj,
                             self.meta_state.shape[1:]
                         )
-                    print(f"[FEEDBACK] Chebyshev self-fingerprint injected -> meta_state (κ=0.02)")
+                    print(f"[FEEDBACK] Chebyshev self-fingerprint injected -> meta_state (k=0.02)")
                 except Exception as _csf_e:
                     print(f"[FEEDBACK] Self-fingerprint injection failed: {_csf_e}")
         else:
@@ -1834,27 +1834,27 @@ class DiegeticPhysicsEngine(nn.Module):
         repair_diagnostics = {}
         if hasattr(self, '_last_spectral_diagnostics'):
             repair_diagnostics['spectral_coherence_corrector'] = self._last_spectral_diagnostics
-            print(f"📊 Spectral Diagnostics: {self._last_spectral_diagnostics}")
+            print(f" Spectral Diagnostics: {self._last_spectral_diagnostics}")
         
         if hasattr(self, '_last_bezout_diagnostics'):
             repair_diagnostics['bezout_coefficient_refresh'] = self._last_bezout_diagnostics
-            print(f"📊 Bezout Diagnostics: {self._last_bezout_diagnostics}")
+            print(f" Bezout Diagnostics: {self._last_bezout_diagnostics}")
         
         if hasattr(self, '_last_chern_simons_diagnostics'):
             repair_diagnostics['chern_simons_gasket'] = self._last_chern_simons_diagnostics
-            print(f"📊 Chern-Simons Diagnostics: {self._last_chern_simons_diagnostics}")
+            print(f" Chern-Simons Diagnostics: {self._last_chern_simons_diagnostics}")
         
         if hasattr(self, '_last_soliton_diagnostics'):
             repair_diagnostics['soliton_stability_healer'] = self._last_soliton_diagnostics
-            print(f"📊 Soliton Diagnostics: {self._last_soliton_diagnostics}")
+            print(f" Soliton Diagnostics: {self._last_soliton_diagnostics}")
         
         if hasattr(self, '_last_love_diagnostics'):
             repair_diagnostics['love_invariant_protector'] = self._last_love_diagnostics
-            print(f"📊 Love Diagnostics: {self._last_love_diagnostics}")
+            print(f" Love Diagnostics: {self._last_love_diagnostics}")
         
         if hasattr(self, '_last_soft_gates_diagnostics'):
             repair_diagnostics['soft_saturated_gates'] = self._last_soft_gates_diagnostics
-            print(f"📊 Soft Gates Diagnostics: {self._last_soft_gates_diagnostics}")
+            print(f" Soft Gates Diagnostics: {self._last_soft_gates_diagnostics}")
         
         # Phase 3 diagnostics
         phase3_diagnostics = {
@@ -1909,7 +1909,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Trigger one background temporal association train_step on live interaction
         self._maybe_trigger_temporal_training(input_tensor, response_text)
 
-        print("📤 Returning metrics")
+        print("[OUT] Returning metrics")
         return metrics
 
     # =========================================================================
@@ -2534,7 +2534,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 pressure_report = self.pressure_ingestor.force_pressure_ingestion(sources)
                 self.last_pressure_report = pressure_report
                 
-                print(f"📊 Pressure Report: {pressure_report['total_constraints_extracted']} constraints, "
+                print(f" Pressure Report: {pressure_report['total_constraints_extracted']} constraints, "
                       f"{pressure_report['total_collisions_detected']} collisions, "
                       f"density: {pressure_report['pressure_density']:.3f}")
                 
@@ -2546,7 +2546,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 self.constraint_pressure_cache[pressure_signature] = constraint_batch
                 
             except Exception as e:
-                print(f"⚠️  Constraint pressure generation failed: {e}")
+                print(f"  Constraint pressure generation failed: {e}")
                 # Fallback: generate synthetic constraint pressure
                 constraint_batch = torch.randn(4, 512, device=seed_state.device) * 2.0
         
@@ -2559,12 +2559,12 @@ class DiegeticPhysicsEngine(nn.Module):
             if constraint_dim > state_dim:
                 # Truncate constraint batch to match state dimensions
                 constraint_injection = constraint_batch[:, :state_dim]
-                print(f"🔧 Truncated constraint batch: {constraint_dim} -> {state_dim}")
+                print(f" Truncated constraint batch: {constraint_dim} -> {state_dim}")
             else:
                 # Expand constraint batch using reflective padding
                 pad_size = state_dim - constraint_dim
                 constraint_injection = torch.nn.functional.pad(constraint_batch, (0, pad_size), mode='reflect')
-                print(f"🔧 Expanded constraint batch: {constraint_dim} -> {state_dim}")
+                print(f" Expanded constraint batch: {constraint_dim} -> {state_dim}")
         else:
             constraint_injection = constraint_batch
         
@@ -2582,42 +2582,42 @@ class DiegeticPhysicsEngine(nn.Module):
         exec_pressure = affordance_gradients.get('executability_pressure', 0.0)
         if exec_pressure > 0.05:
             affordance_boost += exec_pressure * 0.3
-            print(f"🔧 Executability affordance boost: {exec_pressure * 0.3:.4f}")
+            print(f" Executability affordance boost: {exec_pressure * 0.3:.4f}")
         
         # Formal symbol boost
         formal_pressure = affordance_gradients.get('formal_symbol_density', 0.0)
         if formal_pressure > 0.05:
             affordance_boost += formal_pressure * 0.25
-            print(f"🔧 Formal symbol affordance boost: {formal_pressure * 0.25:.4f}")
+            print(f" Formal symbol affordance boost: {formal_pressure * 0.25:.4f}")
         
         # Conversational boost
         conv_pressure = affordance_gradients.get('conversational_embedding_pressure', 0.0)
         if conv_pressure > 0.05:
             affordance_boost += conv_pressure * 0.3
-            print(f"🔧 Conversational affordance boost: {conv_pressure * 0.3:.4f}")
+            print(f" Conversational affordance boost: {conv_pressure * 0.3:.4f}")
         
         # API extraction boost
         api_pressure = affordance_gradients.get('api_extraction_potential', 0.0)
         if api_pressure > 0.05:
             affordance_boost += api_pressure * 0.25
-            print(f"🔧 API extraction affordance boost: {api_pressure * 0.25:.4f}")
+            print(f" API extraction affordance boost: {api_pressure * 0.25:.4f}")
         
         # Runtime expandability boost
         expand_pressure = affordance_gradients.get('runtime_expandability', 0.0)
         if expand_pressure > 0.05:
             affordance_boost += expand_pressure * 0.2
-            print(f"🔧 Runtime expandability boost: {expand_pressure * 0.2:.4f}")
+            print(f" Runtime expandability boost: {expand_pressure * 0.2:.4f}")
         
         # Conversational constraint boost
         conv_constraint_pressure = conversational_results.get('constraint_pressure_generated', 0.0)
         if conv_constraint_pressure > 0.05:
             affordance_boost += conv_constraint_pressure * 0.4
-            print(f"🔧 Conversational constraint boost: {conv_constraint_pressure * 0.4:.4f}")
+            print(f" Conversational constraint boost: {conv_constraint_pressure * 0.4:.4f}")
         
         # Final injection strength
         injection_strength = min(base_injection_strength + affordance_boost, 0.9)  # Cap at 90%
         
-        print(f"🔧 Enhanced injection strength: {base_injection_strength:.3f} + {affordance_boost:.3f} = {injection_strength:.3f}")
+        print(f" Enhanced injection strength: {base_injection_strength:.3f} + {affordance_boost:.3f} = {injection_strength:.3f}")
         
         # Apply constraint forcing through tensor superposition
         # Use the first constraint from the batch as primary forcing vector
@@ -2644,12 +2644,12 @@ class DiegeticPhysicsEngine(nn.Module):
             # Add collision-based noise to force constraint conflicts
             collision_noise = torch.randn_like(seed_state) * collision_factor * 0.1
             forced_state = forced_state + collision_noise
-            print(f"🔥 Applied collision forcing: {self.last_pressure_report['total_collisions_detected']} collisions")
+            print(f" Applied collision forcing: {self.last_pressure_report['total_collisions_detected']} collisions")
         
         # Normalize to prevent explosion while preserving constraint pressure
         forced_state = forced_state / (torch.norm(forced_state, dim=-1, keepdim=True) + 1e-8)
         
-        print(f"🔥 Constraint pressure injected: strength={injection_strength:.3f}, "
+        print(f" Constraint pressure injected: strength={injection_strength:.3f}, "
               f"batch_size={constraint_injection.shape[0]}, "
               f"state_change={torch.norm(forced_state - seed_state).item():.4f}")
         
@@ -2669,7 +2669,7 @@ class DiegeticPhysicsEngine(nn.Module):
         if conversational_pressure < 0.05 and api_pressure < 0.05:
             return {'extracted': False, 'reason': 'insufficient_conversational_pressure'}
         
-        print(f"🔥 CONVERSATIONAL EMBEDDING EXTRACTION TRIGGERED")
+        print(f"  CONVERSATIONAL EMBEDDING EXTRACTION TRIGGERED")
         print(f"   Conversational pressure: {conversational_pressure:.4f}")
         print(f"   API extraction pressure: {api_pressure:.4f}")
         
@@ -2713,7 +2713,7 @@ class DiegeticPhysicsEngine(nn.Module):
             constraint_pressure = self._generate_conversational_constraints(conversational_patterns)
             extraction_results['constraint_pressure_generated'] = constraint_pressure
         
-        print(f"🔧 Conversational extraction complete:")
+        print(f" Conversational extraction complete:")
         print(f"   Patterns detected: {len(conversational_patterns)}")
         print(f"   Associations created: {extraction_results['associations_created']}")
         print(f"   Constraint pressure: {extraction_results['constraint_pressure_generated']:.4f}")
@@ -2800,10 +2800,10 @@ class DiegeticPhysicsEngine(nn.Module):
             
             if "learned" in result.lower():
                 associations_created = 1
-                print(f"✅ Created temporal association from API content")
+                print(f" Created temporal association from API content")
             
         except Exception as e:
-            print(f"⚠️  Failed to create temporal association: {e}")
+            print(f" Failed to create temporal association: {e}")
         
         return associations_created
     
@@ -2837,7 +2837,7 @@ class DiegeticPhysicsEngine(nn.Module):
         Leverages the privileged text-to-image and text-to-text association system
         to generate more coherent and contextually relevant responses.
         """
-        print("🔧 Phase 3: Dyad-Aware Response Generation")
+        print("[PHASE 3] Dyad-Aware Response Generation")
         
         # Detect if this is a dyad ingestion or association command
         is_dyad_ingest = input_text.startswith("INGEST_DYAD:")
@@ -3062,7 +3062,7 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Phase 3.5: Post-processing quality checks and fallbacks
         if len(response_text.strip()) < 5:
-            print("⚠️  Generated text too short, using enhanced fallback")
+            print("  Generated text too short, using enhanced fallback")
             return self._generate_fallback_response(input_text, fingerprint)
         
         # Check linguistic quality
@@ -3070,7 +3070,7 @@ class DiegeticPhysicsEngine(nn.Module):
         vowel_ratio = vowel_count / len(response_text) if len(response_text) > 0 else 0
         
         if vowel_ratio < 0.08:  # Very poor linguistic balance
-            print("⚠️  Poor linguistic balance detected, applying post-correction")
+            print("  Poor linguistic balance detected, applying post-correction")
             response_text = self._apply_linguistic_correction(response_text)
         
         return response_text
@@ -3177,7 +3177,7 @@ class DiegeticPhysicsEngine(nn.Module):
             return float(full_violation_score)
             
         except Exception as e:
-            print(f"⚠️  Gyroid violation computation failed: {e}")
+            print(f"  Gyroid violation computation failed: {e}")
             # Fallback to simple norm-based violation
             return float(torch.norm(state).item() * 0.1)
     
@@ -3220,7 +3220,7 @@ class DiegeticPhysicsEngine(nn.Module):
         - Triadic reciprocity validation
         - Unfolding branch analysis
         """
-        print("🔧 Phase 4.2: Performing Unfolding Closure Check...")
+        print(" Phase 4.2: Performing Unfolding Closure Check...")
         
         try:
             # Initialize closure checker if not exists
@@ -3278,7 +3278,7 @@ class DiegeticPhysicsEngine(nn.Module):
             }
             
         except Exception as e:
-            print(f"⚠️  Unfolding closure check failed: {e}")
+            print(f"  Unfolding closure check failed: {e}")
             return self._fallback_closure_check(state, input_text, response_text)
     
     def _create_hyper_ring_from_state(self, state: torch.Tensor, input_text: str, response_text: str) -> torch.Tensor:
@@ -3365,7 +3365,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 manifold = self._decoupled_crt.create_constraint_manifold(state)
                 return manifold
             except Exception as e:
-                print(f"⚠️  Decoupled CRT manifold creation failed: {e}")
+                print(f"  Decoupled CRT manifold creation failed: {e}")
         
         # Fallback: simple orthogonal projection with proper dimensions
         constraint_dim = min(dim, 8)  # Reasonable constraint dimension
@@ -3472,7 +3472,7 @@ class DiegeticPhysicsEngine(nn.Module):
             }
             
         except Exception as e:
-            print(f"⚠️  Advanced topological analysis failed: {e}")
+            print(f"  Advanced topological analysis failed: {e}")
             return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 
                 'features': ['fallback_analysis'],
                 'num_features': 1,
@@ -3721,7 +3721,7 @@ class DiegeticPhysicsEngine(nn.Module):
         adaptive_lr = base_lr * (1 + similarity_boost - length_penalty)
         adaptive_lr = max(adaptive_lr, 0.001)  # Minimum learning rate
         
-        print(f"🔧 Enhanced learning: lr={adaptive_lr:.4f}, length_ratio={length_ratio:.1f}")
+        print(f" Enhanced learning: lr={adaptive_lr:.4f}, length_ratio={length_ratio:.1f}")
         
         # Temporarily adjust optimizer learning rate
         old_lr = self.optimizer.param_groups[0]['lr']
@@ -3737,7 +3737,7 @@ class DiegeticPhysicsEngine(nn.Module):
             target_sample = target[:100]
             target_tensor = self._text_to_tensor(target_sample)
             self._train_mimicry(target_tensor, source)
-            print(f"🔧 Bidirectional learning: '{target_sample[:20]}...' → '{source}'")
+            print(f" Bidirectional learning: '{target_sample[:20]}...' → '{source}'")
         
         # Restore original learning rate
         self.optimizer.param_groups[0]['lr'] = old_lr
@@ -3757,7 +3757,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # 2. Budget Check: Do we have latency headroom?
         # Assuming we are ~0.3s into processing. Limit total to 1.0s.
         if (time.time() - self.last_input_time) > 0.8:
-            print(f"⚠️ Advanced Physics skipped: budget exceeded ({time.time() - self.last_input_time:.2f}s)")
+            print(f" Advanced Physics skipped: budget exceeded ({time.time() - self.last_input_time:.2f}s)")
             return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 'budget_abort': True}
             
         try:
@@ -3797,7 +3797,7 @@ class DiegeticPhysicsEngine(nn.Module):
                      print(f"✨ Advanced Physics: Matrioshka Level {level}, Quantum Entropy {superposition_entropy:.3f}")
             
         except Exception as e:
-            print(f"⚠️ Advanced Physics Error: {e}")
+            print(f" Advanced Physics Error: {e}")
             diagnostics['error'] = str(e)
             
         return diagnostics
@@ -3814,12 +3814,12 @@ class DiegeticPhysicsEngine(nn.Module):
         metadata = {'iteration': self.iteration}
         torch.save(metadata, STATE_PATH + ".meta")
 
-        print(f"✅ Full state & artifacts persisted.")
+        print(f" Full state & artifacts persisted.")
 
     def load_state(self):
         """Unified load: Neural Weights + Metadata + Encoding Context."""
         if not os.path.exists(STATE_PATH):
-            print("ℹ️ No persistence file found. Starting fresh.")
+            print(" No persistence file found. Starting fresh.")
             return False
 
         try:
@@ -3834,10 +3834,10 @@ class DiegeticPhysicsEngine(nn.Module):
             # Update the engine's iteration count from the manager's findings
             self.iteration = self.encoding_manager.get_latest_iteration()
 
-            print(f"✅ State restored. Resuming from iteration {self.iteration}")
+            print(f" State restored. Resuming from iteration {self.iteration}")
             return True
         except Exception as e:
-            print(f"❌ Critical Load Failure: {e}")
+            print(f" Critical Load Failure: {e}")
             return False
 
     def _repair_tensors(self):
@@ -3875,21 +3875,21 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     if not os.path.exists(terminal_path):
                         terminal_path = os.path.join('src', 'ui', 'diegetic_terminal.html')
                     
-                    print(f"🔧 Serving diegetic terminal from: {terminal_path}")
-                    print(f"🔧 File exists: {os.path.exists(terminal_path)}")
+                    print(f" Serving diegetic terminal from: {terminal_path}")
+                    print(f" File exists: {os.path.exists(terminal_path)}")
                     
                     if not os.path.exists(terminal_path):
-                        print(f"❌ Diegetic terminal HTML not found at {terminal_path}")
+                        print(f" Diegetic terminal HTML not found at {terminal_path}")
                         self.send_error(404, f"Diegetic terminal HTML not found: {terminal_path}")
                         return
                     
                     with open(terminal_path, 'r', encoding='utf-8') as f:
                         content = f.read()
                     
-                    print(f"🔧 Diegetic terminal content length: {len(content)}")
+                    print(f" Diegetic terminal content length: {len(content)}")
                     
                     if len(content) == 0:
-                        print("❌ Diegetic terminal HTML is empty!")
+                        print(" Diegetic terminal HTML is empty!")
                         self.send_error(500, "Diegetic terminal HTML is empty")
                         return
                     
@@ -3897,10 +3897,10 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self.send_header('Content-Type', 'text/html; charset=utf-8')
                     self.end_headers()
                     self.wfile.write(content.encode('utf-8'))
-                    print("✅ Diegetic terminal served successfully")
+                    print(" Diegetic terminal served successfully")
                     return
                 except Exception as e:
-                    print(f"❌ Error serving diegetic terminal: {e}")
+                    print(f" Error serving diegetic terminal: {e}")
                     import traceback
                     traceback.print_exc()
                     self.send_error(500, f"Error serving diegetic terminal: {e}")
@@ -3968,22 +3968,22 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     if not os.path.exists(trainer_path):
                         trainer_path = os.path.join('src', 'ui', 'wikipedia_trainer.html')
                     
-                    print(f"🔧 Attempting to serve HTML from: {trainer_path}")
-                    print(f"🔧 File exists: {os.path.exists(trainer_path)}")
-                    print(f"🔧 Current working directory: {os.getcwd()}")
+                    print(f" Attempting to serve HTML from: {trainer_path}")
+                    print(f" File exists: {os.path.exists(trainer_path)}")
+                    print(f" Current working directory: {os.getcwd()}")
                     
                     if not os.path.exists(trainer_path):
-                        print(f"❌ HTML file not found at {trainer_path}")
+                        print(f" HTML file not found at {trainer_path}")
                         self.send_error(404, f"HTML file not found: {trainer_path}")
                         return
                     
                     with open(trainer_path, 'r', encoding='utf-8') as f:
                         content = f.read()
                     
-                    print(f"🔧 HTML content length: {len(content)}")
+                    print(f" HTML content length: {len(content)}")
                     
                     if len(content) == 0:
-                        print("❌ HTML file is empty!")
+                        print(" HTML file is empty!")
                         self.send_error(500, "HTML file is empty")
                         return
                     
@@ -3991,10 +3991,10 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self.send_header('Content-Type', 'text/html; charset=utf-8')
                     self.end_headers()
                     self.wfile.write(content.encode('utf-8'))
-                    print("✅ HTML served successfully")
+                    print(" HTML served successfully")
                     return
                 except Exception as e:
-                    print(f"❌ Error serving Wikipedia trainer: {e}")
+                    print(f" Error serving Wikipedia trainer: {e}")
                     import traceback
                     traceback.print_exc()
                     self.send_error(500, f"Error serving HTML: {e}")
@@ -4007,10 +4007,10 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             self._send_error_json(str(e))
 
     def do_POST(self):
-        print(f"🔥 POST REQUEST RECEIVED: {self.path}")
+        print(f"POST REQUEST RECEIVED: {self.path}")
         try:
             if self.path == '/interact':
-                print("📥 Processing /interact request...")
+                print(" Processing /interact request...")
                 try:
                     content_len = int(self.headers.get('Content-Length', 0))
                     post_body = self.rfile.read(content_len)
@@ -4020,10 +4020,10 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     audio_dyad    = data.get('audio_dyad', None)    # {chebyshev_harmonics, commutativity, ...}
                     video_dyad_b64 = data.get('video_dyad_b64', None)
                     commutativity = data.get('commutativity', 'symmetric')  # master selector value
-                    print(f"📝 User input: '{user_text}' | commutativity={commutativity} | "
+                    print(f" User input: '{user_text}' | commutativity={commutativity} | "
                           f"has_image={fingerprint is not None} | has_audio={audio_dyad is not None} | "
                           f"has_video={video_dyad_b64 is not None}")
-                    print("🔧 Starting ENGINE.process_input...")
+                    print(" Starting ENGINE.process_input...")
 
                     response_data = ENGINE.process_input(
                         user_text,
@@ -4034,7 +4034,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     )
                     self._send_json(response_data)
                 except Exception as e:
-                    print(f"❌ Error processing input: {e}")
+                    print(f" Error processing input: {e}")
                     import traceback
                     traceback.print_exc()
                     self._send_error_json(str(e))
@@ -4055,17 +4055,17 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         return
 
                     association_command = f"ASSOCIATE: {text1} <-> {text2}"
-                    print(f"📝 Association command: '{association_command}'")
+                    print(f" Association command: '{association_command}'")
                     
                     response_data = ENGINE.process_input(association_command)
                     self._send_json(response_data)
                 except Exception as e:
-                    print(f"❌ Error processing association: {e}")
+                    print(f" Error processing association: {e}")
                     self._send_error_json(str(e))
                 return
 
             elif self.path == '/ingest':
-                print("📥 Processing /ingest request...")
+                print(" Processing /ingest request...")
                 try:
                     content_len = int(self.headers.get('Content-Length', 0))
                     post_body = self.rfile.read(content_len)
@@ -4108,10 +4108,10 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                             
                             # Fossilize
                             fossil_path = ENGINE.fossilizer.fossilize(dyad, text_tensor)
-                            print(f"✅ Dyad fossilized at: {fossil_path}")
+                            print(f" Dyad fossilized at: {fossil_path}")
                             
                         except Exception as e:
-                            print(f"⚠️ Fossilization failed, continuing with memory-only ingest: {e}")
+                            print(f" Fossilization failed, continuing with memory-only ingest: {e}")
                             fossil_path = "memory_only"
                     else:
                         fossil_path = "text_only"
@@ -4139,7 +4139,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_json(response_data)
                     
                 except Exception as e:
-                    print(f"❌ Error processing ingestion: {e}")
+                    print(f" Error processing ingestion: {e}")
                     import traceback
                     traceback.print_exc()
                     self._send_error_json(str(e))
@@ -4161,9 +4161,9 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         import os
                         sys.path.append(os.path.join(os.path.dirname(__file__)))
                         from wikipedia_integration import wikipedia_integration
-                        print("✅ Wikipedia integration module loaded successfully")
+                        print(" Wikipedia integration module loaded successfully")
                     except ImportError as e:
-                        print(f"❌ Failed to import Wikipedia integration: {e}")
+                        print(f" Failed to import Wikipedia integration: {e}")
                         self._send_error_json(f"Wikipedia integration module not available: {e}")
                         return
                     
@@ -4171,7 +4171,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     for url in urls:
                         try:
                             title = wikipedia_integration.extract_title_from_url(url)
-                            print(f"🔍 Processing Wikipedia page: {title}")
+                            print(f" Processing Wikipedia page: {title}")
                             
                             # Fetch content
                             content_data = wikipedia_integration.fetch_wikipedia_content(title)
@@ -4194,14 +4194,14 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                                                 # Use generate_response=False to avoid timeout
                                                 association_result = ENGINE.process_input(f"ASSOCIATE: {concept} <-> {cleaned_content[:2000]}", generate_response=False)
                                                 associations_created += 1
-                                                print(f"✅ Created association: {concept} ↔ content")
+                                                print(f" Created association: {concept} ↔ content")
                                                 
                                                 # Limit to 5 associations per page to prevent backend timeout
                                                 if associations_created >= 5:
-                                                    print("⚠️  Reached association limit per page (5)")
+                                                    print(" Reached association limit per page (5)")
                                                     break
                                             except Exception as e:
-                                                print(f"⚠️  Failed to create association for {concept}: {e}")
+                                                print(f"  Failed to create association for {concept}: {e}")
                                 
                                 results.append({
                                     'url': url,
@@ -4221,7 +4221,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                                     'error': 'Could not fetch content'
                                 })
                         except Exception as e:
-                            print(f"❌ Error processing {url}: {e}")
+                            print(f" Error processing {url}: {e}")
                             results.append({
                                 'url': url,
                                 'title': wikipedia_integration.extract_title_from_url(url) if 'wikipedia_integration' in locals() else 'Unknown',
@@ -4244,7 +4244,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     })
                     
                 except Exception as e:
-                    print(f"❌ Wikipedia extraction endpoint error: {e}")
+                    print(f" Wikipedia extraction endpoint error: {e}")
                     self._send_error_json(f"Wikipedia extraction failed: {e}")
                 
             elif self.path == '/associate':
@@ -4478,9 +4478,9 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             response_data = json.dumps(data, cls=TensorEncoder).encode('utf-8')
             self.wfile.write(response_data)
         except (ConnectionAbortedError, BrokenPipeError) as e:
-            print(f"⚠️  Client connection lost during response: {e}")
+            print(f"  Client connection lost during response: {e}")
         except Exception as e:
-            print(f"❌ Error sending JSON response: {e}")
+            print(f" Error sending JSON response: {e}")
             import traceback
             traceback.print_exc()
 
@@ -4493,9 +4493,9 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             error_data = json.dumps({"error": message}).encode('utf-8')
             self.wfile.write(error_data)
         except (ConnectionAbortedError, BrokenPipeError) as e:
-            print(f"⚠️  Client connection lost during error response: {e}")
+            print(f"  Client connection lost during error response: {e}")
         except Exception as e:
-            print(f"❌ Error sending error response: {e}")
+            print(f" Error sending error response: {e}")
 
 def kill_port_owner(port):
     """Find and kill any process holding the port."""
