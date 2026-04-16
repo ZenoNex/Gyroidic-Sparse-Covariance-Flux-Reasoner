@@ -170,15 +170,22 @@ class PolynomialADMRSolver(nn.Module):
         adjacency_weight: torch.Tensor,
         dt: float = 0.1,
         sigma: float = 0.01,
-        v_m: Optional[torch.Tensor] = None
+        v_m: Optional[torch.Tensor] = None,
+        elipsodistrophy_metrics: Optional[Dict[str, Any]] = None
     ) -> torch.Tensor:
         """
         Continuous-time Stochastic Differential Update:
-        dx(t) = [ Σ A_i x_i(t) - ρ Σ (x - r(x_k)) ] dt + σ dW
+        dx(t) = [ Σ A_i x_i(t) - ρ Σ (x - r(x_k)) + Γ_tension ] dt + σ(D) dW
         
         If v_m is provided, learning rate of dual variables is tied strictly to it.
+        Diffusion σ is scaled by the dynamic Hyperbolic Shear D.
         """
         batch_size = states.shape[0]
+        
+        # 0. SDE Scaling (Poincaré Eccentricity Driver)
+        # We scale noise by the diffusion coefficient derived from spectral shear.
+        diff_coeff = elipsodistrophy_metrics.get('diffusion_coefficient', 1.0) if elipsodistrophy_metrics else 1.0
+        effective_sigma = sigma * diff_coeff
         
         # 1. Non-selfadjoint Drifts (Σ A_i x_i)
         # We treat the co-prime evaluation as the 'decomposition' into facets
@@ -197,9 +204,17 @@ class PolynomialADMRSolver(nn.Module):
         weighted_neighbors = torch.einsum('bn,bnd->bd', adjacency_weight, neighbor_states)
         # Negotiation term: states - weighted_neighbors
         negotiation = states - weighted_neighbors
+
+        # 3. Perkins Tension Objective (Minimal Surface Tension gamma)
+        # Resolves "cubed cube" paradoxes by minimizing surface tension in the RP^4 Void.
+        # The tension is fossilized as a Chiral Breather—a persistent topological soliton.
+        shear = elipsodistrophy_metrics.get('hyperbolic_shear', 0.0) if elipsodistrophy_metrics else 0.0
+        gamma = 0.02 * shear # Surface tension coefficient
+        breather = torch.cos(self.tau * 7.7) * gamma # Chiral Breather component
+        tension_drift = -gamma * negotiation * (1.0 + breather)
         
-        # 3. Stochastic Forcing (dW)
-        noise = torch.randn_like(states) * sigma * (dt**0.5)
+        # 4. Stochastic Forcing (dW)
+        noise = torch.randn_like(states) * effective_sigma * (dt**0.5)
         
         # V_m explicit learning rate modulation
         # Dual variables S evolution tied to the normalized Mischief Score V_m
@@ -215,9 +230,9 @@ class PolynomialADMRSolver(nn.Module):
         tripsody_scale = torch.cos(negentropy_flux * math.pi)
         effective_dt = effective_dt * (1.0 / (1.0 + negentropy_flux)) * (1.0 + 0.5 * tripsody_scale)
 
-        # 4. Update Step (Continuous Approximation)
-        # dx = (drift - negotiation) * dt + noise
-        dx = (drift - negotiation) * effective_dt + noise
+        # 5. Update Step (Continuous Approximation)
+        # dx = (drift - negotiation + tension_drift) * dt + noise
+        dx = (drift - negotiation + tension_drift) * effective_dt + noise
         
         # 4.5 Protect Love Vector mathematically by projecting update to null-space of ownership operator
         ownership_op = self.love_protector.compute_ownership_operator(states)
