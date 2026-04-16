@@ -105,6 +105,8 @@ from src.core.birkhoff_projection import SparseRepunitProbe
 from src.topology.unknowledge_domain import UnknowledgeDomain, EntropicMischiefProbe
 from src.core.five_gate_pipeline import FiveGatePipeline, KnowledgeState
 from src.core.archetype_engines import ArchetypalSynthesisEngine
+from src.core.manifold_time import ManifoldClock
+from src.core.valence_drive import ValenceFunctional
 
 # Local Data Loading (Phase 1: HF token barrier removal)
 from src.data.local_data_loader import LocalDataLoader
@@ -257,6 +259,10 @@ class DiegeticPhysicsEngine(nn.Module):
         self.archetypal_governor = ArchetypalSynthesisEngine(state_dim=dim)
         self.unknowledge_domain = UnknowledgeDomain(tau_m=0.3)
         self.mischief_probe = EntropicMischiefProbe(device=self.device)
+
+        # Integrated Physics Modules 
+        self.manifold_clock = ManifoldClock(device=self.device)
+        self.valence_drive = ValenceFunctional(device=self.device)
 
         # Soliton Stability Healer - heals fractured solitons
         self.soliton_healer = SolitonStabilityHealer(
@@ -596,7 +602,29 @@ class DiegeticPhysicsEngine(nn.Module):
         Enhanced with constraint pressure injection when code is detected.
         """
         self.iteration += 1
-        self.last_input_time = time.time() # Update last input time for budget checks
+        self.last_input_time = time.time() 
+        
+        # --- COMMAND PRIORITIZATION ---
+        # Stop "Ego Death" collapses by bypassing the 5-Gate reasoning pipeline 
+        # for administrative commands. High-priority ingestion must never be 
+        # suppressed by speculative "mischief" gates.
+        if text_input.startswith("INGEST_DYAD:") or text_input.startswith("ASSOCIATE:"):
+             print(f"⚡ Command Prioritization: Bypassing pipeline for direct response...")
+             # Use current meta_state as the grounding seed for the command handler
+             seed_state = self.meta_state.detach()
+             response_text = self._generate_dyad_aware_response(seed_state, text_input, fingerprint)
+             
+             return {
+                 "response": response_text,
+                 "iteration": self.iteration,
+                 "metrics": {
+                     "pas_h": 1.0, 
+                     "chiral_score": 0.0,
+                     "manifold_pressure": 0.0,
+                     "command_bypass": True
+                 },
+                 "display_metadata": {"type": "command_result"}
+             }
         
         # 1. Embed Input (Hash Projection) - MOVED UP
         input_tensor = self._text_to_tensor(text_input) # [1, dim]
@@ -752,19 +780,20 @@ class DiegeticPhysicsEngine(nn.Module):
         # 2. MIMICRY (Active Listening)
         self._train_mimicry(input_tensor, text_input)
         
-        # 2.5 DYNAMIC MANIFOLD CLOCK (Play vs Seriousness)
-        # Manifold pressure = Similarity(Input, History) + Mean(Curvature)
-        # Higher pressure -> Seriousness (small dt)
-        # Lower pressure -> Play (large dt)
-        # Proxy: Use similarity to recent meta-state
+        # 2.5 DYNAMIC MANIFOLD CLOCK (Integrated Physics)
+        # Manifold pressure = Similarity(Input, History)
+        # Higher pressure -> Seriousness (small dt) via ManifoldClock
+        # ValenceFunctional computes the 'Hunger' (dissonance gap).
         with torch.no_grad():
             s_norm = self.meta_state / (torch.norm(self.meta_state) + 1e-8)
             i_norm = input_tensor / (torch.norm(input_tensor) + 1e-8)
             cos_sim = torch.dot(s_norm.flatten(), i_norm.flatten()).item()
-            # If sim is high, pressure is low (it's familiar/smooth)
-            # If sim is low, pressure is high (it's novel/jagged)
-            manifold_pressure = 1.0 - cos_sim 
-            dt = 0.5 * math.exp(-manifold_pressure) # Play/Seriousness scaling
+            manifold_pressure_val = 1.0 - cos_sim 
+            manifold_pressure_tensor = torch.tensor(manifold_pressure_val, device=self.device)
+            
+            # Use formal physics modules
+            dt = self.manifold_clock.tick(manifold_pressure_tensor)
+            self.current_hunger = self.valence_drive(manifold_pressure_tensor)
         
         # 3. Evolutionary Pass (Cavity + Meta-Functional)
         # Now uses forward() to support SpectralStructuralTrainer
