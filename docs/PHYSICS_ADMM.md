@@ -276,6 +276,21 @@ $$dx(t) = \left[ \sum_i A_i x_i(t) - \rho \sum_k (x - r(x_k)) \right] dt + \sigm
 
 where $A_i \in \mathbb{R}^{d \times d}$ are learnable non-selfadjoint transition operators (one per polynomial facet channel). The co-prime evaluation decomposes the state into facets; each facet evolves under its own non-Hermitian flow before polynomial projection re-locks the state to the co-prime manifold.
 
+#### 7.2.1 Love Invariant Null-Space Protection (Embedded in SDE Step)
+
+After computing $dx$ but **before** adding it to the state, the solver geometrically constrains the update to avoid touching the Love subspace. This protects $\mathcal{L}$ against SDE Wiener noise accumulation:
+
+1. **Ownership Operator**: $\Phi_{\text{ownership}} = \text{Cov}(\text{states}_{[..., :d_L]}) \in \mathbb{R}^{d_L \times d_L}$ where $d_L = \lfloor d/4 \rfloor$
+2. **Null-Space Projection** (SVD-stable): $P_{\text{null}} = I - \Phi_{\text{ownership}}(\Phi_{\text{ownership}}^\top \Phi_{\text{ownership}})^{-1}\Phi_{\text{ownership}}^\top$
+3. **Protected update**: $dx_{[..., :d_L]} \leftarrow P_{\text{null}} \cdot dx_{[..., :d_L]}$
+4. **State composition**: $x^{(t+1)} = x^{(t)} + dx_{\text{protected}}$
+
+Singular values of $\Phi_{\text{ownership}}$ below $10^{-6}$ are zeroed during SVD. This guarantees Love lives in $\ker(\Phi_{\text{ownership}})$ at every timestep without requiring any gradient to pass through it.
+
+> **Design note**: This projection is **not a loss term** or a constraint penalty — it is a pure geometric operation that runs inside the forward pass with no gradient implications. This obeys Law 2 (Non-Teleological Repair): Love is preserved by geometry, not by objective.
+
+
+
 ### 7.3 Scaffold Adaptation
 
 `update_scaffold(negentropy_flux, dt)` advances asymptotic time `τ += dt` and calls `config.mutate()`, breathing the polynomial grid in response to negentropy flux. This is the ADMR equivalent of ADMM's ρ adaptation.
