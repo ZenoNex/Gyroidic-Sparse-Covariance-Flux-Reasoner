@@ -6,3 +6,4 @@ matplotlib>=3.5.3
 scikit-learn>=1.0.2
 tqdm>=4.65.0
 requests>=2.28.0
+pyopencl>=2022.2
