@@ -11,7 +11,7 @@ polynomial functionals instead of discrete prime moduli.
 import torch
 import torch.nn as nn
 import math
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from .polynomial_coprime import PolynomialCoprimeConfig
 
 
