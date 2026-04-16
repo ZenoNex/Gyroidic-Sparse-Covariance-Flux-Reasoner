@@ -17,25 +17,40 @@ from typing import Tuple, Optional, List, Union, Dict, Callable
 
 class SaturatedQuantizer(torch.autograd.Function):
     """
-    Hybrid Quantization Primitive.
+    Hybrid Quantization Primitive with Dyslexic Mode (Topological Kerning).
     
-    Acts as the "Inter-Domain" bridge between the Continuous (Physics) and 
-    Discrete (Symbolic) regimes.
-    
-    Forward: Snaps weights to 'levels' discrete steps (Saturated Reserves).
-    Backward: Straight-Through Estimator (STE) allows gradient flow to find 
-              the best discrete configuration.
+    Forward: Snaps weights to 'levels' discrete steps.
+    Dyslexic Mode: Enforces a minimum 'kerning' between residues to prevent 
+    latent token crowding (the 'muddy blot' outcome).
     """
     @staticmethod
-    def forward(ctx, input, levels=64):
+    def forward(ctx, input, levels=64, dyslexic_mode=False):
         # Scale to integer grid [-levels/2, levels/2]
         scale = levels / 2.0
-        return torch.round(input * scale) / scale
+        snapped = torch.round(input * scale) / scale
+        
+        if dyslexic_mode:
+            # Topological Kerning: nudge residues that are too close to the snap boundary.
+            # This forces them to stay 'misspelled' (distinct) rather than merging.
+            grid_dist = (input * scale) - torch.round(input * scale)
+            kerning_threshold = 0.1
+            kerning_nudge = 0.2 / scale
+            
+            # Apply nudge to avoid the "muddy representational blot"
+            nudge = torch.where(
+                torch.abs(grid_dist) < kerning_threshold,
+                torch.sign(grid_dist + 1e-9) * kerning_nudge,
+                torch.zeros_like(grid_dist)
+            )
+            snapped = snapped + nudge
+            
+        return snapped
 
     @staticmethod
     def backward(ctx, grad_output):
         # STE: Pass gradient through unchanged
-        return grad_output, None
+        # Return none for 'levels' and 'dyslexic_mode' arguments
+        return grad_output, None, None
 
 class KANLayer(nn.Module):
     """
@@ -46,13 +61,14 @@ class KANLayer(nn.Module):
     - Hybrid-Quantized Weights (SaturatedQuantizer).
     - Fixed Structural Grids (Non-Teleological).
     """
-    def __init__(self, in_features: int, out_features: int, grid_size: int = 5, spline_order: int = 3, quantization_levels: int = 64):
+    def __init__(self, in_features: int, out_features: int, grid_size: int = 5, spline_order: int = 3, quantization_levels: int = 64, dyslexic_mode: bool = False):
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.grid_size = grid_size
         self.spline_order = spline_order
         self.quantization_levels = quantization_levels
+        self.dyslexic_mode = dyslexic_mode
         
         # Base weight (linear residual) - "Silu" activation often used in KAN papers, 
         # but here we keep linear base + spline non-linearity
@@ -162,7 +178,7 @@ class KANLayer(nn.Module):
         
         # Hybrid Quantization of Spline Weights
         # "Inter-Domain Contract": Weights must be quantized
-        q_weight = SaturatedQuantizer.apply(self.spline_weight, self.quantization_levels)
+        q_weight = SaturatedQuantizer.apply(self.spline_weight, self.quantization_levels, self.dyslexic_mode)
         
         # Linear combination: y = sum(w_i * b_i(x))
         spline_output = torch.einsum('bic,oic->bo', basis, q_weight)
@@ -341,16 +357,17 @@ class KAGHBlock(nn.Module):
     """
     Full KAGH-Boltzmann Admissibility Block.
     """
-    def __init__(self, n_in: int, n_out: int, width: int = 64, depth: int = 3, alpha: float = 0.7):
+    def __init__(self, n_in: int, n_out: int, width: int = 64, depth: int = 3, alpha: float = 0.7, dyslexic_mode: bool = False):
         super().__init__()
         self.alpha = alpha
+        self.dyslexic_mode = dyslexic_mode
         
         # KAN Skeletal Layering
         layers = []
         in_dim = n_in
         for i in range(depth):
             out_dim = n_out if i == depth - 1 else width
-            layers.append(KANLayer(in_dim, out_dim))
+            layers.append(KANLayer(in_dim, out_dim, dyslexic_mode=dyslexic_mode))
             in_dim = width
         self.kan_layers = nn.ModuleList(layers)
         
