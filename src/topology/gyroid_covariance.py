@@ -795,23 +795,12 @@ class GyroidCovarianceEstimator(nn.Module):
 
     def get_elipsodistrophy_metrics(self, sample: Optional[torch.Tensor] = None) -> Dict[str, float]:
         """
-        Measures the distortion/narrowing of the spectral envelope.
+        Measures the spectral envelope as Hyperbolic Shear (System 2 Driver).
 
-        Elipsodistrophy = 1 - std(λ) / (max(λ) - min(λ) + ε)
+        ECCENTRICITY = log(max(λ) / min(λ))
+        SHEAR = 2 * tanh(ECCENTRICITY / 2)
 
-        Maintains the relationship between ergodicity and non-ergodicity:
-        the eigenvalue spread IS the dark matter noise floor.
-        Narrow spread → ergodic soup → lobotomy risk.
-        Wide spread → non-ergodic solitons preserved.
-
-        NOTE: This is a diagnostic built on already-computed eigenvalues.
-        No additional O(N³) cost — it rides the existing spectral decomposition.
-
-        Args:
-            sample: Optional new sample to add to buffer first
-
-        Returns:
-            Dict with 'atrophy', 'spectral_width', 'is_dangerously_legible'.
+        NOTE: No additional O(N³) cost — it rides the existing spectral decomposition.
         """
         if sample is not None:
             self.update_buffer(sample)
@@ -831,13 +820,29 @@ class GyroidCovarianceEstimator(nn.Module):
         except Exception:
             return {'atrophy': 0.0, 'spectral_width': 1.0, 'is_dangerously_legible': False}
 
-        spectral_width = (eigenvalues.max() - eigenvalues.min()).item()
-        atrophy = 1.0 - (eigenvalues.std().item() / (spectral_width + 1e-6))
+        evs = torch.sort(eigenvalues, descending=True)[0]
+        lambda_max = evs[0]
+        lambda_min = evs[-1]
+
+        # Hyperbolic Eccentricity
+        eccentricity = torch.log(lambda_max / (lambda_min + 1e-9)).item()
+
+        # Hyperbolic Shear (Poincaré Projection)
+        shear = 2.0 * torch.tanh(torch.tensor(eccentricity / 2.0)).item()
+        
+        # Diffusion Coefficient for SDEs
+        diffusion_coefficient = 0.1 * (1.0 + shear)
+
+        # Atrophy: Still reported for backward compatibility
+        atrophy = 1.0 - (shear / 2.0)
         is_dangerously_legible = atrophy > 0.85
 
         return {
             'atrophy': atrophy,
-            'spectral_width': spectral_width,
+            'hyperbolic_shear': shear,
+            'eccentricity': eccentricity,
+            'diffusion_coefficient': diffusion_coefficient,
+            'spectral_width': (lambda_max - lambda_min).item(),
             'is_dangerously_legible': is_dangerously_legible
         }
 class LeyLineGeodesicMetric(nn.Module):
