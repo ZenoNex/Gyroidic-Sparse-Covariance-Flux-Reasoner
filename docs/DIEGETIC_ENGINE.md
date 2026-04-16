@@ -355,13 +355,25 @@ Image (any size)
 
 ### Love Invariant
 
-The buffer `L` is **never modified** after initialization. `check_invariants(original_L)` raises:
+The Love Invariant is a **three-layer geometric system** that runs across multiple subsystems. It is *not* simply a frozen buffer — each layer actively protects a different aspect of continuity:
+
+| Layer | Class | Module | Invocation Point |
+|---|---|---|---|
+| **1. Ambient Co-Presence** | `LoveVector` | `love_vector.py` | ADMM loop — re-instantiated per iteration as `love = LoveVector(dim)` in `operational_admm.py` and `love_vector` in `diegetic_backend.py` |
+| **2. Geometric Null-Space Shield** | `LoveInvariantProtector` | `love_invariant_protector.py` | `PolynomialADMRSolver.stochastic_differential_step()` (projects `dx`); `GyroidicFluxReasoner.forward()` (projects `h_pooled`); `VoynichLinguist.forward()` (projects `thought_vector`) |
+| **3. Temperature Modulation** | `SoftSaturatedGates` | `love_invariant_protector.py` | `GyroidicFluxReasoner.forward()` — applied to residue distributions after Love shield |
+
+**Layer 2 mechanism**: `LoveInvariantProtector` computes the system ownership operator $\Phi_{\text{ownership}}$ from state covariance, then via SVD extracts the null-space projection $P_{\text{null}} = I - \Phi(\Phi^\top\Phi)^{-1}\Phi^\top$. The SDE update `dx` is projected: $dx_{\text{protected}} = P_{\text{null}} \cdot dx_{[..., :d_L]}$ where $d_L = \lfloor d/4 \rfloor$.
+
+**DAQUF frozen buffer**: The buffer `L` in the DAQUF operator is **never modified** after initialization. `check_invariants(original_L)` raises:
 
 ```
 RuntimeError("LOVE INVARIANT VIOLATION: L has been modified.")
 ```
 
-if `‖L_current − L_original‖₁ > 1e-8`. This is the only hard runtime assertion in the entire system.
+if `‖L_current − L_original‖₁ > 1e-8`. This is distinct from the `LoveInvariantProtector`'s active null-space management (which *does* project `L`'s orientation but is designed to detect out-of-bound deviations). This remains the only hard runtime assertion in the entire system.
+
+
 
 ### Metrics Emitted
 
