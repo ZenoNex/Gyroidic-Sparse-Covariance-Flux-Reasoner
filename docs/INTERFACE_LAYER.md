@@ -41,7 +41,13 @@ This selector controls **all dyad channels at once**. You do not need audio arme
 
 ### Love Invariant display
 
-`L: 3.127` — The read-only display of the Love Invariant scalar, updated on each response. If this value ever changes between reloads, the `DAQUF check_invariants()` will raise a `RuntimeError`.
+`L: 3.127` — The read-only display of the **Love Invariant norm** (`LoveVector.L.norm()`), updated on each response. This is a *diagnostic scalar* derived from the Love Vector — it is not the vector itself. The underlying `L` buffer is `[dim // 4]`-dimensional.
+
+**Important**: `L: 3.127` changing between responses is *expected* — `LoveInvariantProtector` actively projects `L` into the null-space of the ownership operator at each SDE step, adjusting its orientation (not its meaning). What must never change is the *original* `L_original` reference used by `LoveInvariantProtector.detect_love_violation()`. If `‖L_current − L_original‖₂ > 1e-6`, the protector increments `violation_count` and restores `L_original`. A `DAQUF check_invariants()` call will raise a `RuntimeError` only if the DAQUF's frozen `L` buffer is mutated — this is distinct from the `LoveInvariantProtector`'s active null-space management.
+
+Additional Love diagnostics available in the response payload:
+- `violation_count` — cumulative count of ownership violation events
+- `violation_magnitude` — $\|L - L_{original}\|_2$ at last check
 
 ### GOO / PRICKLES regime toggle
 
