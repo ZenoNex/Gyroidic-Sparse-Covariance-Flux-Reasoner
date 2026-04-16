@@ -588,6 +588,10 @@
                 <div class="metric-value" id="voice-resonance" style="color: var(--terminal-magenta);">0.000</div>
             </div>
             <div class="metric-card">
+                <div class="metric-label">Brainspace Connection</div>
+                <div class="metric-value" id="resonance-score" style="color: var(--terminal-blue);">0.000</div>
+            </div>
+            <div class="metric-card">
                 <div class="metric-label">Ley Line Anisotropy</div>
                 <div class="metric-value" id="ley-line">0.000</div>
             </div>
@@ -707,6 +711,41 @@
                 <button id="commit-audio" disabled>COMMIT AUDIO DYAD</button>
                 <div id="audio-log" class="small-log"></div>
             </div>
+
+            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+            <!-- PANEL D: VIDEO DYAD INGESTOR -->
+            <div class="video-panel" id="video-panel">
+                <div class="section-title">Panel D: Video Dyad
+                    <small id="video-status" style="color:#555;">IDLE</small>
+                </div>
+
+                <!-- Commutativity Selector -->
+                <div class="commutativity-row">
+                    <label>ORDER</label>
+                    <select class="commute-select" id="commute-video">
+                        <option value="media_first">Video &#8594; Text</option>
+                        <option value="text_first">Text &#8594; Video</option>
+                        <option value="symmetric" selected>&#8771; Symmetric Entanglement</option>
+                    </select>
+                </div>
+
+                <!-- Drop zone -->
+                <div id="video-dropzone" style="width: 100%; height: 90px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 0.75rem;">
+                    <div style="font-size: 1.4rem; line-height: 1; color: var(--terminal-blue);">&#128249;</div>
+                    <div style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">DRAG BINARY VIDEO<br><span style="color:#444;">mp4 &bull; avi</span></div>
+                    <input type="file" id="video-file-input" style="display:none;" accept="video/mp4,video/avi,.mp4,.avi">
+                </div>
+
+                <!-- Description buffer -->
+                <div class="section-title" style="margin-top:0.75rem;">Description Buffer (D)</div>
+                <textarea id="video-description-buffer"
+                    style="width:100%;height:80px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:var(--terminal-green);font-family:var(--font-mono);font-size:0.7rem;padding:0.5rem;resize:none;outline:none;margin-bottom:0.75rem;border-radius:4px;"
+                    placeholder="Semantic annotation for cryptographic video parsing..."></textarea>
+
+                <button id="commit-video" style="width: 100%; background: rgba(0, 242, 255, 0.08); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;" disabled>COMMIT VIDEO DYAD</button>
+                <div id="video-log" class="small-log"></div>
+            </div>
         </aside>
     </main>
 
@@ -717,7 +756,9 @@
             iteration: 0,
             regime: 'goo',
             backend_url: window.location.origin.includes('localhost') ? 'http://localhost:8000' : window.location.origin,
-            active_fingerprint: null
+            active_fingerprint: null,
+            active_audio_dyad: null,
+            active_video_dyad: null
         };
 
         // UI References
@@ -764,9 +805,11 @@
         async function sendMessage(text) {
             const hasFingerprint = !!state.active_fingerprint;
             const hasAudio = !!state.active_audio_dyad;
+            const hasVideo = !!state.active_video_dyad;
             const finalInput = text.trim() ||
                 (hasFingerprint ? 'INGEST_DYAD: [RADIANCE]' : '') ||
-                (hasAudio       ? 'INGEST_AUDIO_DYAD: [ACOUSTIC]' : '');
+                (hasAudio       ? 'INGEST_AUDIO_DYAD: [ACOUSTIC]' : '') ||
+                (hasVideo       ? 'INGEST_VIDEO_DYAD: [CHRONOTOPE]' : '');
 
             if (!finalInput) return;
 
@@ -779,6 +822,7 @@
                     text: finalInput,
                     fingerprint: state.active_fingerprint,
                     audio_dyad: state.active_audio_dyad,
+                    video_dyad_b64: state.active_video_dyad,
                     commutativity: _resolveCommutativity(),
                 };
 
@@ -868,6 +912,7 @@
         function updateMetricsFromDiagnostics(data) {
             // Update Metrics (safely)
             if (data.iteration !== undefined) document.getElementById('stat-iteration').innerText = data.iteration;
+            if (data.resonance_score !== undefined) document.getElementById('resonance-score').innerText = data.resonance_score.toFixed(4);
             
             // Update Tri-State Meta State
             if (data.retrieval_state) {
@@ -1558,6 +1603,87 @@
             if (e.dataTransfer.files.length > 0) processAudioFile(e.dataTransfer.files[0]);
         };
         commitAudioBtn.onclick = commitAudioDyad;
+
+        // =====================================================
+        // PANEL D: VIDEO DYAD LOGIC
+        // =====================================================
+        const videoDropzone = document.getElementById('video-dropzone');
+        const videoFileInput = document.getElementById('video-file-input');
+        const commitVideoBtn = document.getElementById('commit-video');
+        const videoLog = document.getElementById('video-log');
+
+        async function processVideoFile(file) {
+            const validTypes = ['video/mp4', 'video/avi', 'video/x-matroska', ''];
+            const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+            if (!['.mp4', '.avi', '.mkv'].includes(ext)) {
+                appendMessage('system', `VIDEO DYAD REJECTED: Unsupported format.`);
+                return;
+            }
+
+            document.getElementById('video-status').innerText = 'READING';
+            document.getElementById('video-status').style.color = 'var(--terminal-warn)';
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const b64 = e.target.result; // "data:video/mp4;base64,..."
+                state.active_video_dyad = b64;
+                document.getElementById('video-status').innerText = 'ARMED';
+                document.getElementById('video-status').style.color = 'var(--terminal-green)';
+                document.querySelector('#video-dropzone div:nth-child(2)').innerHTML = `DYAD CAPTURED:<br/>${file.name}`;
+                commitVideoBtn.disabled = false;
+                appendMessage('system', `VIDEO DYAD INGESTED: ${file.name} | ${(file.size/1024/1024).toFixed(2)} MB`);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function commitVideoDyad() {
+            const description = document.getElementById('video-description-buffer').value.trim();
+            const b64 = state.active_video_dyad;
+            if (!b64) return;
+            
+            const commutativity = document.getElementById('commute-video').value;
+            const payload = {
+                text: description || `INGEST_VIDEO_DYAD: [CRYPTOGRAPHIC_PARSE]`,
+                video_dyad_b64: b64,
+                commutativity: commutativity
+            };
+            
+            appendMessage('user', `COMMITTING VIDEO DYAD: ${commutativity}`);
+            
+            try {
+                const response = await fetch(`${state.backend_url}/interact`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                handleResponse(data);
+                
+                const logEntry = document.createElement('div');
+                logEntry.innerText = `[${new Date().toLocaleTimeString()}] Video Dyad Parsed`;
+                videoLog.prepend(logEntry);
+                
+                // Reset
+                state.active_video_dyad = null;
+                document.getElementById('video-description-buffer').value = '';
+                document.getElementById('video-status').innerText = 'IDLE';
+                document.getElementById('video-status').style.color = '#555';
+                document.querySelector('#video-dropzone div:nth-child(2)').innerHTML = `DRAG BINARY VIDEO<br><span style="color:#444;">mp4 &bull; avi</span>`;
+                commitVideoBtn.disabled = true;
+            } catch (err) {
+                appendMessage('system', 'VIDEO COMMIT RUPTURE. BACKEND DISSOCIATED.');
+            }
+        }
+        
+        videoDropzone.onclick = () => videoFileInput.click();
+        videoFileInput.onchange = (e) => { if (e.target.files.length > 0) processVideoFile(e.target.files[0]); };
+        videoDropzone.ondragover = (e) => { e.preventDefault(); videoDropzone.style.borderColor = 'var(--terminal-blue)'; };
+        videoDropzone.ondragleave = (e) => { e.preventDefault(); videoDropzone.style.borderColor = 'rgba(0, 242, 255, 0.3)'; };
+        videoDropzone.ondrop = (e) => {
+            e.preventDefault();
+            videoDropzone.style.borderColor = 'rgba(0, 242, 255, 0.3)';
+            if (e.dataTransfer.files.length > 0) processVideoFile(e.dataTransfer.files[0]);
+        };
 
         // --- Event Listeners ---
         userInput.addEventListener('keypress', (e) => {
