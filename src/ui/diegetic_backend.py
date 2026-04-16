@@ -378,7 +378,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # where alpha_t in Z = Prod Z_{p_i} is the CRT index.
         # Enables multi-zeitgeist reasoning without forced scalar
         # reconciliation across culturally non-commensurable meaning systems.
-        # References: ai project report §VI, SYSTEM_ARCHITECTURE §9.4
+        # References: ai project report SEC VI, SYSTEM_ARCHITECTURE SEC 9.4
         # =============================================
         if EXTENSIONS_AVAILABLE:
             # Reuse the same CRT moduli as MetaPolytopeMatrioshka
@@ -688,19 +688,19 @@ class DiegeticPhysicsEngine(nn.Module):
         if constraint_forcing_needed:
             print(f"[FORCING] CONSTRAINT FORCING TRIGGERED:")
             if affordance_gradients['constraint_forcing_gradient'] > 0.1:
-                print(f"   • Affordance gradient: {affordance_gradients['constraint_forcing_gradient']:.4f}")
+                print(f"   * Affordance gradient: {affordance_gradients['constraint_forcing_gradient']:.4f}")
             if conversational_results.get('constraint_pressure_generated', 0.0) > 0.05:
-                print(f"   • Conversational pressure: {conversational_results['constraint_pressure_generated']:.4f}")
+                print(f"   * Conversational pressure: {conversational_results['constraint_pressure_generated']:.4f}")
             
             # Show which affordances contributed to constraint forcing
             if affordance_gradients['executability_pressure'] > 0.05:
-                print(f"   • Executability pressure: {affordance_gradients['executability_pressure']:.4f}")
+                print(f"   * Executability pressure: {affordance_gradients['executability_pressure']:.4f}")
             if affordance_gradients['formal_symbol_density'] > 0.05:
-                print(f"   • Formal symbol density: {affordance_gradients['formal_symbol_density']:.4f}")
+                print(f"   * Formal symbol density: {affordance_gradients['formal_symbol_density']:.4f}")
             if affordance_gradients['conversational_embedding_pressure'] > 0.05:
-                print(f"   • Conversational embedding: {affordance_gradients['conversational_embedding_pressure']:.4f}")
+                print(f"   * Conversational embedding: {affordance_gradients['conversational_embedding_pressure']:.4f}")
             if affordance_gradients['api_extraction_potential'] > 0.05:
-                print(f"   • API extraction potential: {affordance_gradients['api_extraction_potential']:.4f}")
+                print(f"   * API extraction potential: {affordance_gradients['api_extraction_potential']:.4f}")
         
         # Create constraint metrics from affordance gradients (no legacy code detection)
         enhanced_constraint_metrics = {
@@ -802,7 +802,7 @@ class DiegeticPhysicsEngine(nn.Module):
         manifold_state = self.forward(input_tensor, dt=dt)
         seed_state = manifold_state.detach() # Explicit seed for response
 
-        # text_first commutativity: apply media bias AFTER forward() —
+        # text_first commutativity: apply media bias AFTER forward() --
         # text already shaped the manifold; media now distorts the resulting state.
         if commutativity == 'text_first' and media_bias is not None:
             with torch.no_grad():
@@ -1030,12 +1030,12 @@ class DiegeticPhysicsEngine(nn.Module):
         seed_state = non_ergodic_component + 0.2 * ergodic_component + input_tensor * 0.3
 
         # =============================================
-        # PHASE 2.7: ZEITGEIST ROUTER — CRT POLYTOPE SWITCHING
+        # PHASE 2.7: ZEITGEIST ROUTER -- CRT POLYTOPE SWITCHING
         # Implements the non-commutative CRT index transition:
-        #   S_t = (x_t, alpha_t, l_t, u_t)  →  S_{t+1} = (x_{t+1}, alpha_{t+1}, l_{t+1}, u_{t+1})
+        #   S_t = (x_t, alpha_t, l_t, u_t)  ->  S_{t+1} = (x_{t+1}, alpha_{t+1}, l_{t+1}, u_{t+1})
         # Three modes: interior (scalar OK), grazing (tension), switching (non-commut.)
-        # The exterior case emits 'undefined' — topological refusal, not numeric error.
-        # References: ai project report §VI; BIOMIMETIC_SYNTHESIS_REPORT §4.4
+        # The exterior case emits 'undefined' -- topological refusal, not numeric error.
+        # References: ai project report SEC VI; BIOMIMETIC_SYNTHESIS_REPORT SEC 4.4
         # =============================================
         _zg_mode = 'interior'
         _zg_diag: dict = {}
@@ -1115,7 +1115,7 @@ class DiegeticPhysicsEngine(nn.Module):
             
             # Get spectral diagnostics
             spectral_diagnostics = self.spectral_corrector.get_diagnostics()
-            print(f" Spectral Coherence: θ={spectral_diagnostics['theta_coherence']:.3f}, "
+            print(f" Spectral Coherence: theta={spectral_diagnostics['theta_coherence']:.3f}, "
                   f"energy_ratio={spectral_diagnostics['energy_ratio']:.3f}")
             
             # Store diagnostics for metrics
@@ -3847,9 +3847,14 @@ class DiegeticPhysicsEngine(nn.Module):
                 if isinstance(tensor, torch.Tensor) and not torch.isfinite(tensor).all():
                     tensor.nan_to_num_(nan=0.0, posinf=0.0, neginf=0.0)
 
-# Initialize Engine
-ENGINE = DiegeticPhysicsEngine()
-ENGINE.load_state()
+# Initialize Engine (only when running as the server entry point, not when imported by tests)
+import os as _os
+_running_as_server = (__name__ == '__main__') or _os.environ.get('GYROID_SERVER_MODE', '0') == '1'
+if _running_as_server:
+    ENGINE = DiegeticPhysicsEngine()
+    ENGINE.load_state()
+else:
+    ENGINE = None  # Tests and importers must instantiate their own engine
 
 class RequestHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -4194,7 +4199,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                                                 # Use generate_response=False to avoid timeout
                                                 association_result = ENGINE.process_input(f"ASSOCIATE: {concept} <-> {cleaned_content[:2000]}", generate_response=False)
                                                 associations_created += 1
-                                                print(f" Created association: {concept} ↔ content")
+                                                print(f" Created association: {concept} <-> content")
                                                 
                                                 # Limit to 5 associations per page to prevent backend timeout
                                                 if associations_created >= 5:
@@ -4366,7 +4371,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                                         pass
                             
                             TRAINING_STATE['log'].append(
-                                f'Epoch {epoch+1} complete — iteration {ENGINE.iteration}'
+                                f'Epoch {epoch+1} complete -- iteration {ENGINE.iteration}'
                             )
                         
                         ENGINE.save_state()
