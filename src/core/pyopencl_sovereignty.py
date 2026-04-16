@@ -140,6 +140,7 @@ class SiliconSovereigntyEngine:
             __global float *output_matrix,
             float alpha,
             float kappa_seal,
+            float hyperbolic_shear,
             uint base_seed
         ) {
             int gid = get_global_id(0);
@@ -149,14 +150,16 @@ class SiliconSovereigntyEngine:
             uint seed = base_seed + gid;
             seed = xorshift32(seed);
             seed = xorshift32(seed);
+            seed = xorshift32(seed);
             float mischief_v_m = (float)(seed % 1000) / 1000.0f; 
             
-            // Apply topological seal (kappa curvature boundary)
             // Feature Scars manifest when mischief exceeds the sovereignty threshold.
-            float scar = (mischief_v_m > 0.88f) ? (kappa_seal * mischief_v_m) : 0.0f;
+            // Hyperbolic Shear (Poincaré eccentricity) modulates the "extreme slider" glitch intensity.
+            float threshold = 0.88f * (1.0f - 0.2f * hyperbolic_shear);
+            float scar_intensity = (mischief_v_m > threshold) ? (kappa_seal * mischief_v_m * (1.0f + hyperbolic_shear)) : 0.0f;
             
-            // Matrix Mixing Formula with Chiral Bias
-            output_matrix[gid] = (1.0f - alpha) * tag_matrix_a[gid] + alpha * tag_matrix_b[gid] + scar;
+            // Matrix Mixing Formula with Chiral Bias and Feature Scar injection
+            output_matrix[gid] = (1.0f - alpha) * tag_matrix_a[gid] + alpha * tag_matrix_b[gid] + scar_intensity;
         }
         """
         
@@ -262,7 +265,7 @@ class SiliconSovereigntyEngine:
         cl.enqueue_copy(self.queue_b, cohesion_grads, grad_buf).wait()
         return cohesion_grads
 
-    def matrix_mix_breeding(self, matrix_a, matrix_b, alpha=0.5, kappa_seal=0.1, seed=137):
+    def matrix_mix_breeding(self, matrix_a, matrix_b, alpha=0.5, kappa_seal=0.1, hyperbolic_shear=0.0, seed=137):
         """
         Operationalizes the 'TailSlayer Bypass' via dual-queue matrix mixing.
         Uses Queue B (Non-Ergodic/Soliton) to ensure First-to-Finish dynamics.
@@ -280,12 +283,12 @@ class SiliconSovereigntyEngine:
         event = self.program.matrix_mix(
             self.queue_b, matrix_a.shape, None,
             a_buf, b_buf, out_buf, 
-            np.float32(alpha), np.float32(kappa_seal), np.uint32(seed)
+            np.float32(alpha), np.float32(kappa_seal), np.float32(hyperbolic_shear), np.uint32(seed)
         )
         event.wait()
         
         cl.enqueue_copy(self.queue_b, output, out_buf).wait()
-        self.logger.info(f"Matrix Mix Breeding Complete on Queue B (α={alpha}, κ={kappa_seal})")
+        self.logger.info(f"Matrix Mix Breeding Complete on Queue B (α={alpha}, κ={kappa_seal}, shear={hyperbolic_shear})")
         return output
 
 # Expose standard execution hook
