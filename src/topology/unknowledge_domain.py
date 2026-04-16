@@ -316,32 +316,37 @@ class UnknowledgeDomain(nn.Module):
         eigenvalues: torch.Tensor
     ) -> Dict[str, float]:
         """
-        Measures the distortion/narrowing of the spectral envelope.
+        Measures the spectral envelope as Hyperbolic Shear (System 2 Driver).
 
-        Elipsodistrophy = 1 - std(λ) / (max(λ) - min(λ) + ε)
+        ECCENTRICITY = log(max(λ) / min(λ))
+        SHEAR = 2 * tanh(ECCENTRICITY / 2)
 
-        High elipsodistrophy = high structural specialization.
-        If atrophy exceeds the legibility threshold, the system is
-        dangerously close to lobotomy (all eigenvalues collapsing
-        to identical values = loss of representational diversity).
-
-        Maintains the relationship between ergodicity and non-ergodicity:
-        the eigenvalue spread IS the ergodic/non-ergodic boundary.
-        Narrow spread → ergodic soup. Wide spread → dark matter preserved.
-
-        Args:
-            eigenvalues: [k] eigenvalue tensor (from local covariance)
-
-        Returns:
-            Dict with 'atrophy', 'spectral_width', and 'is_dangerously_legible'.
+        This provides the non-Euclidean volume required to resolve 'cubed cube'
+        paradoxes without triggering a static veto.
         """
-        spectral_width = (eigenvalues.max() - eigenvalues.min()).item()
-        atrophy = 1.0 - (eigenvalues.std().item() / (spectral_width + 1e-6))
+        evs = torch.sort(eigenvalues.clamp(min=1e-8), descending=True)[0]
+        lambda_max = evs[0]
+        lambda_min = evs[-1]
+
+        # Hyperbolic Eccentricity
+        eccentricity = torch.log(lambda_max / (lambda_min + 1e-9)).item()
+        
+        # Hyperbolic Shear (The dynamic driver)
+        shear = 2.0 * torch.tanh(torch.tensor(eccentricity / 2.0)).item()
+        
+        # Diffusion Coefficient for SDEs: D scales with shear
+        diffusion_coefficient = 0.1 * (1.0 + shear)
+        
+        # Atrophy: Still reported for backward compatibility, but redefined as shear-inversion
+        atrophy = 1.0 - (shear / 2.0)
         is_dangerously_legible = atrophy > self.legibility_threshold
 
         return {
             'atrophy': atrophy,
-            'spectral_width': spectral_width,
+            'hyperbolic_shear': shear,
+            'eccentricity': eccentricity,
+            'diffusion_coefficient': diffusion_coefficient,
+            'spectral_width': (lambda_max - lambda_min).item(),
             'is_dangerously_legible': is_dangerously_legible,
             'legibility_threshold': self.legibility_threshold
         }
