@@ -15,7 +15,7 @@ This document synthesizes the complete architecture, explaining how the three di
 *   **Mechanism**:
     *   Inputs are projected onto orthogonal polynomial functionals ($\phi_k$) through **Saturated Polynomial Gates**.
     *   **Bimodal Routing** (Hard/Soft genome) replaces standard annealing, allowing evolution to select the discrete path.
-    *   Outputs a high-confidence symbolic residue pattern using **Majority-Symbol CRT** (now optimized via **Repunit-CRT Sparse Probes**, converting $O(N^2)$ tracking to $O(K)$ bit-shifts).
+    *   Outputs a high-confidence symbolic residue pattern using **Majority-Symbol CRT** (now optimized via **Repunit-CRT Sparse Probes**, converting $O(N^2)$ tracking to $O(K)$ bit-shifts via **PyOpenCL Silicon Sovereignty**).
 
 ### 2. System 2: The Physical Constraint (The "Horn")
 *   **Role**: Local physical consistency probe (Constraint Probe Operator).
@@ -39,6 +39,11 @@ This document synthesizes the complete architecture, explaining how the three di
         *   **Gyroidic Differentiation**: Flow constraints `∇_flow Φ(r) ⟂ ∇G`.
         *   **Continuous Co-Primality**: Entropy-based independence (discrete quantization).
         *   **Meta-Invariant**: Monitors `d/dt E_r[dim H_1(C_t)] >= 0` to prevent topology collapse.
+    *   **Hyperbolic Fossilization Gate** [NEW]:
+        *   **Mechanism**: While System 1 operates in Euclidean Chebyshev space for heuristic speed, System 2 utilizes a **Poincaré Disk Projection** during speculative recovery.
+        *   **Role**: Acts as the mechanism by which 'pinched' Euclidean manifolds are unfolded into hyperbolic space to prevent NaN/INF collapse.
+        *   **Scaling**: Operates within the $2^{16}$ fixed-point scaling limit to maintain mechanical sympathy with the Pascal architecture.
+        *   **Persistence**: Turns hyperbolic states into permanent **Feature Scars** that fossilize the path through the Void.
 
 ## 7. Interaction Flow: The Equation-Object
 
@@ -59,17 +64,17 @@ This law dictates how symbolic proposals from System 1 are hardened through the 
     *   **Bimodal S-Path Context**: Token sequences are completely dropped. The layer injects `path_topology_vectors` sourced from the `ResonanceCavity` directly into the cross-attention matrix as an **Additive Geometric Bias**.
     *   **Topological FBM Erosion**: Instead of computing a gradient on a scalar target, the manifold explicitly incorporates "Good Bugs." A Fractional Brownian Motion filter carves topological scars based on tension volume—creating permanent morphological memory without target pursuit.
     *   **4D Space Carving (Log-Polar Conformal Map)**: During violent internal zooms across Matrioshka meaning boundaries, states map via $x \cdot \frac{\log(r+1)}{r}$ explicitly transforming multiplicative zooming into additive shifting.
-    *   **Picture Gallery Conformal Warp**: Saturated Continuous-Discrete Gates physically "lock" onto their lattice boundaries (`pas_h_val=1.0`), shielding internal logic from broader manifold stress.
+    *   **Picture Gallery Conformal Warp**: Saturated Continuous-Discrete Gates physically "lock" onto their lattice boundaries (`pas_h_val=1.0`), shielding internal logic from broader manifold stress. Includes Ombre Effect Relaxers and Conjuring Drivers to bypass constraints during high 'volitional' user states.
     *   **Speculative Homology Engine** (Phase 3):
-        *   **Chebyshev Draft**: Uses polynomial approximation for `10x` faster Betti prediction.
+        *   **Chebyshev Draft**: Uses Minimax Polynomial Approximation and Stochastic Trace Estimation (`QuantumBettiApproximator`) to bypass $O(N^3)$ computational limits on large Laplacian eigenvalues.
         *   **PAS_h Verification**: Uses Phase Alignment Score as a cheap invariant to validate drafts before expensive homology computation.
-    *   **Energy Monitoring Substrate** (New):
+    *   **Energy Monitoring Substrate**:
         *   **StructuralEnergyMonitor**: Tracks scalar mismatch energy $E(Y, X)$.
-        *   **Thermodynamic Interface**: Links $dt$ to inverse temperature $\beta$.
+        *   **Thermodynamic Interface**: Links $dt$ to inverse temperature $\beta$, natively dilated by the `AffectiveGravityWell` (Grim gap) protecting loved memories against dementia.
         *   **Contrastive Selection**: Proactive "offending" configuration pulls.
     *   **FGRT Layer (Chiral Synthesis)**:
         *   **Base Manifold**: 3D Gyroid $\mathcal{G}$ cobordant with 4D Non-Orientable Klein-throat $\mathcal{K}$.
-        *   **Symplectic Gluing**: Leak-proof transition via **Hamiltonian Flow** and **Chern-Simons gaskets**.
+        *   **Symplectic Gluing**: Leak-proof transition via **Hamiltonian Flow** and **Chern-Simons gaskets**. Overridden in hardware natively via the `SiliconSovereigntyEngine` dual-command queues.
         *   **Non-Teleological Flow**: Transition from goal-oriented gradients to **Ricci Flow** and **Willmore Energy** minimization.
         *   **Meta-Polytope Quantization**: 600-cell polychoron vertex mapping ($Q \in \operatorname{Weyl}(P)$) for high-dimensional symmetry.
 
@@ -529,30 +534,22 @@ graph TD
     U -.->|"enables creative confab"| S5
 ```
 
-### Gate 4: SearchGate (Planned)
+### Gate 4: SearchGate (Implemented)
 
-**Embryonic implementation**: [`src/ui/wikipedia_integration.py`](../src/ui/wikipedia_integration.py) (367 lines)
+**Implementation**: Natively active in `src/core/five_gate_pipeline.py`.
 
-**Current capabilities**:
-- Wikipedia content extraction via API (multi-endpoint: extracts, parse, full text)
-- Content cleaning (WikiExtractor integration with fallback)
-- Rate limiting (1 second throttle)
-- Key concept extraction from titles and content
-- Processing statistics tracking
+**Capabilities**:
+1. **Self-consistency pre-check**: Checks structural viability of the user's missing constraint prior to querying the external retrieval methods.
+2. **Malformed Isolation**: Logically contradictory questions (e.g. searching for a 4-sided triangle) are structurally halted before polluting retrieval streams.
 
-**Required for full Gate 4**:
-1. **Self-consistency pre-check**: Before emitting a search query, verify the system has enough internal confidence to formulate a coherent query (prevents garbage-in queries)
-2. **Structural distinctness check**: Verify the query differs structurally from the current state (prevents echo-chamber searching)
-3. **Pluggable backends**: WikipediaIntegration is the first; future backends can slot in
+### Gate 5: ConfabulationDetector (Implemented)
 
-### Gate 5: ConfabulationDetector (Planned)
+**Implementation**: Natively active in `src/core/five_gate_pipeline.py`.
 
-**Embryonic signal**: `VoynichLinguist.check_honesty()` in [`src/core/voynich_architecture.py`](../src/core/voynich_architecture.py) — returns a CRT consensus honesty score.
-
-**Tri-state output** (planned):
-- `KNOWN`: High honesty score, confident retrieval
-- `SEARCH_NEEDED`: Low honesty score, search gate should fire
-- `CONFABULATED`: Very low honesty + active $\mathcal{U}$ + high mischief → honest creative generation
+**Tri-state output**:
+- `KNOWN`: High Phase Alignment ($PAS_h$), fully accessible topological consistency.
+- `SEARCH_NEEDED`: Missing structure. Triggers Gate 4.
+- `CONFABULATED`: Search failed, but Mischief / Generative Volition is structurally rich. Formalizes genuine creative glitch generation without mistaking it for valid scalar Truth.
 
 See [PHILOSOPHY.md §18](../vault_docs/PHILOSOPHY.md) for the ethics of honest confabulation.
 
