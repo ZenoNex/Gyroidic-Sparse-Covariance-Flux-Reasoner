@@ -108,8 +108,18 @@ class DyadFossilizer:
             
         for f in os.listdir(self.storage_dir):
             if f.endswith(".pt"):
+                filepath = os.path.join(self.storage_dir, f)
                 try:
-                    fossils.append(torch.load(os.path.join(self.storage_dir, f)))
+                    data = torch.load(filepath)
+                    if isinstance(data, dict) and 'residue_vector' in data:
+                        fossils.append(data)
+                    else:
+                        print(f"[RECOVERY] Deleting invalid fossil (missing residue_vector): {f}")
+                        os.remove(filepath)
                 except Exception as e:
-                    print(f"Failed to load fossil {f}: {e}")
+                    print(f"[RECOVERY] Deleting corrupted fossil {f}: {e}")
+                    try:
+                        os.remove(filepath)
+                    except:
+                        pass
         return fossils
