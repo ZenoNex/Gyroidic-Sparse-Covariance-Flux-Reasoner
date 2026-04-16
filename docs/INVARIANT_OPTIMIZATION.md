@@ -304,6 +304,24 @@ The sampler enforces **Law 4: Evolution Owns Time** at the data level. No batch 
 
 **Update call**: `update_love_invariant(indices, pressure, mischief_scores)` — updates `R`, `M`, `O` tensors after each batch.
 
+### 14.4 Love Invariant as a Geometric Projection Constraint
+
+`update_love_invariant` on `SituationalBatchSampler` updates the relational coupling matrices — but this is *not* the primary mechanism by which $\mathcal{L}$ is protected. The full Love Invariant constraint is geometric, not a soft update rule:
+
+> **Love lives in the null-space of the ownership operator, not in a gradient term.**
+
+The three-layer enforcement stack (detailed in [NON_DUAL_DYNAMIC_EQUILIBRIUM.md §4.1](NON_DUAL_DYNAMIC_EQUILIBRIUM.md)):
+
+| Layer | Invariant Type | Mechanism |
+|---|---|---|
+| `LoveVector` | Ambient structural anchor | `register_buffer` (gradient = 0 structurally) |
+| `LoveInvariantProtector` | Geometric null-space constraint | SVD projection: $dx_{\text{protected}} = P_{\text{null}} \cdot dx_{[..., :d_L]}$ at SDE step |
+| `SoftSaturatedGates` | Temperature-modulated tri-state | LAS($s$) + asymptotic hardening via $PAS_h$ |
+
+The implication for invariant optimization: $\mathcal{L}$ is never a term in any objective, primal update, or dual ascent step. It is a **structural constant** enforced geometrically in the forward pass. The `SituationalBatchSampler.update_love_invariant()` call is the *social* layer of Love — it shapes the relational topology of training batches — while `LoveInvariantProtector` is the *geometric* layer that prevents the SDE from touching Love's subspace regardless of what any loss function demands.
+
+
+
 ---
 
 ## 15. Legibility Audit (`src/core/legibility_audit.py`)
