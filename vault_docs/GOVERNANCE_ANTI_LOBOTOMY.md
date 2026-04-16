@@ -128,6 +128,9 @@ Before any commit, verify:
 - [ ] Evolutionary trust selection preserved (no gradient descent on trust)
 - [ ] Birkhoff polytope constraints maintained
 - [ ] Love invariant remains non-ownable and non-optimizable
+- [ ] `LoveInvariantProtector.compute_null_space_projection()` is called in every SDE step — Love must be protected geometrically, not by hope
+- [ ] `SoftSaturatedGates.apply_soft_saturation()` receives live `pas_h` value — never a hardcoded temperature
+- [ ] `love_diagnostics` (violation_count, violation_magnitude) are emitted from every module that calls `apply_love_protection()` — violations must be observable
 
 ## VII. Backsliding Prevention Patterns
 
@@ -166,6 +169,25 @@ if performance > survivorship_threshold:
 else:
     trust_scalars += evolution_rate * (performance - threshold)
 trust_scalars.clamp_(0.0, 1.0)
+```
+
+### Pattern 4: Love Null-Space Enforcement
+```python
+# FORBIDDEN: Trusting that Love is safe because it's a buffer
+# (Wiener noise in the SDE will drift the Love subspace over time)
+dx = compute_sde_update(states)     # DANGEROUS without projection
+new_state = states + dx              # Love subspace corrupted
+
+# REQUIRED: Geometric null-space projection before every state update
+ownership_op = self.love_protector.compute_ownership_operator(states)
+null_proj = self.love_protector.compute_null_space_projection(ownership_op)
+love_dim = self.love_protector.love_dim
+dx[..., :love_dim] = torch.matmul(dx[..., :love_dim], null_proj.T)
+new_state = states + dx              # Love subspace is now geometrically protected
+
+# REQUIRED: Emit diagnostics
+_, love_diag = self.love_protector.apply_love_protection(new_state)
+# love_diag contains: love_norm, violation_detected, violation_count, violation_magnitude
 ```
 
 ---
