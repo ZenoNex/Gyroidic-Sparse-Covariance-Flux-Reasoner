@@ -907,8 +907,11 @@
 
             updateMetricsFromDiagnostics(data);
 
-            // Clear fingerprint
+            // Clear fingerprint + disarm visual state
             state.active_fingerprint = null;
+            userInput.placeholder = 'Ingest symbolic residue...';
+            userInput.style.borderColor = '';
+            userInput.style.boxShadow = '';
             document.querySelector('.drop-hint').innerText = "DRAG DYAD (IMAGE)";
         }
 
@@ -996,9 +999,12 @@
             if (soliton && soliton.healing_progress > 0.1) {
                 triggerMischief(soliton.healing_progress);
             }
-            // Clear fingerprint
+            // Clear fingerprint + disarm visual state
             state.active_fingerprint = null;
-            document.querySelector('.drop-hint').innerText = "DRAP DYAD (IMAGE)";
+            userInput.placeholder = 'Ingest symbolic residue...';
+            userInput.style.borderColor = '';
+            userInput.style.boxShadow = '';
+            document.querySelector('.drop-hint').innerText = "DRAG DYAD (IMAGE)";
         }
 
         function appendMessage(type, text) {
@@ -1074,9 +1080,15 @@
                     document.querySelector('.drop-hint').innerText = `DYAD CAPTURED: ${file.name}`;
                     const totalCoeffs = fingerprint.L.length + fingerprint.Cr.length + fingerprint.Cb.length;
                     appendMessage('system',
-                        `DYAD INGESTED: ${totalCoeffs}-COEFF CHEBYSHEV FINGERPRINT ` +
-                        `(K=${fingerprint.chebyshev_degree}, ` +
-                        `${fingerprint.px_width}×${fingerprint.px_height}px).`);
+                        `⬡ DYAD ARMED — ${totalCoeffs}-coeff Chebyshev fingerprint computed locally ` +
+                        `(K=${fingerprint.chebyshev_degree}, ${fingerprint.px_width}\u00d7${fingerprint.px_height}px).\n` +
+                        `\u25b6 Type a description below and press Enter to transmit the dyad to the manifold.`);
+                    
+                    // Visual signal: arm the input box
+                    userInput.placeholder = 'Describe this dyad, then press Enter to transmit...';
+                    userInput.style.borderColor = 'var(--terminal-cyan, #00e5ff)';
+                    userInput.style.boxShadow = '0 0 8px var(--terminal-cyan, #00e5ff)';
+                    userInput.focus();
                 };
                 img.src = e.target.result;
             };
