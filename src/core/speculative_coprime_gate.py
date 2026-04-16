@@ -372,12 +372,28 @@ class ChiralCoherenceEstimator(nn.Module):
         
         # Compute covariance eigenvalues for each sector
         def get_eigenvalues(x):
+            # 1. NaN/Inf Guard: Prevent non-finite values from reaching MKL
+            if not torch.isfinite(x).all():
+                return torch.ones(x.shape[1], device=x.device) * 1e-8
+                
             centered = x - x.mean(dim=0, keepdim=True)
             cov = (centered.T @ centered) / (x.shape[0] - 1)
+            
+            # 2. Tikhonov Regularization: Add a 'thermal floor' to ensure positive definiteness
+            # Analog computing trick: adding noise/bias to prevent 'zero-division' singularities
+            eye = torch.eye(cov.shape[0], device=cov.device)
+            cov = cov + 1e-6 * eye
+            
+            # Double check finiteness of covariance matrix
+            if not torch.isfinite(cov).all():
+                return torch.ones(x.shape[1], device=x.device) * 1e-8
+                
             try:
                 eigvals = torch.linalg.eigvalsh(cov)
                 return eigvals.clamp(min=1e-8)
-            except:
+            except Exception as e:
+                # If Intel MKL still fails (e.g. LAPACK internal error), fall back to identity
+                print(f"[MKL_GUARD] eigvalsh failure: {e}")
                 return torch.ones(x.shape[1], device=x.device) * 1e-8
         
         lambda_plus = get_eigenvalues(positive_sector)
