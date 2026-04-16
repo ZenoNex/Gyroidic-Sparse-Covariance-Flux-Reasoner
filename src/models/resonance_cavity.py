@@ -74,7 +74,7 @@ class HeritableTrustVault(nn.Module):
         _salt_bytes = os.urandom(16)
         self.register_buffer(
             '_hash_salt',
-            torch.frombuffer(bytes(_salt_bytes), dtype=torch.uint8).clone()
+            torch.tensor(list(_salt_bytes), dtype=torch.uint8)
         )
 
     def _hash(self, residues: torch.Tensor) -> torch.Tensor:
