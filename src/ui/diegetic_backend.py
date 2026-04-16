@@ -107,6 +107,7 @@ from src.core.five_gate_pipeline import FiveGatePipeline, KnowledgeState
 from src.core.archetype_engines import ArchetypalSynthesisEngine
 from src.core.manifold_time import ManifoldClock
 from src.core.valence_drive import ValenceFunctional
+from src.core.voynich_architecture import VoynichLinguist
 
 # Local Data Loading (Phase 1: HF token barrier removal)
 from src.data.local_data_loader import LocalDataLoader
@@ -259,6 +260,7 @@ class DiegeticPhysicsEngine(nn.Module):
         self.archetypal_governor = ArchetypalSynthesisEngine(state_dim=dim)
         self.unknowledge_domain = UnknowledgeDomain(tau_m=0.3)
         self.mischief_probe = EntropicMischiefProbe(device=self.device)
+        self.voynich_linguist = VoynichLinguist(latent_dim=dim).to(self.device)
 
         # Integrated Physics Modules 
         self.manifold_clock = ManifoldClock(device=self.device)
@@ -360,7 +362,7 @@ class DiegeticPhysicsEngine(nn.Module):
             self.caq = None
 
         # trust_scalars: per-field trust scores evolved by TemporalAssociationTrainer.
-        # Shape [k] — one scalar per polynomial coprime field.
+        # Shape [k] -- one scalar per polynomial coprime field.
         self.register_buffer('trust_scalars', torch.ones(k))
 
         # Temporal Association Trainer state (lazy-init on first interaction)
@@ -390,7 +392,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 critical_boundary_threshold=0.5,
                 use_noncommutativity_check=True,
             )
-            # Persistent CRT index state — survives across process_input calls
+            # Persistent CRT index state -- survives across process_input calls
             self._zeitgeist_state: ZeitgeistState = ZeitgeistState.initial(
                 moduli=_mpm_moduli
             )
@@ -477,15 +479,15 @@ class DiegeticPhysicsEngine(nn.Module):
         self.optimizer = torch.optim.Adam(self.larynx.parameters(), lr=0.01)
         self.criterion = nn.CrossEntropyLoss()
         
-        # 12. Image Fingerprint Projection — Chebyshev format
-        # New format: {L:[K], Cr:[K], Cb:[K]} with K ∈ [5,32].
+        # 12. Image Fingerprint Projection -- Chebyshev format
+        # New format: {L:[K], Cr:[K], Cb:[K]} with K in [5,32].
         # Fixed projection input dim = K_IMAGE_MAX * 3 = 96.
         # Old 137-dim histogram dict is detected at runtime and reshaped.
         self.K_IMAGE_MAX = 32
         self.fingerprint_proj = nn.Linear(self.K_IMAGE_MAX * 3, self.dim)
         nn.init.orthogonal_(self.fingerprint_proj.weight)
 
-        # 13. Audio Dyad Projection — Chebyshev harmonics from Panel C
+        # 13. Audio Dyad Projection -- Chebyshev harmonics from Panel C
         # K_AUDIO_MAX caps the harmonics vector that arrives from JS.
         self.K_AUDIO_MAX = 64
         self.audio_dyad_proj = nn.Linear(self.K_AUDIO_MAX, self.dim)
@@ -684,7 +686,7 @@ class DiegeticPhysicsEngine(nn.Module):
         )
 
         if constraint_forcing_needed:
-            print(f"🔥 CONSTRAINT FORCING TRIGGERED:")
+            print(f"[FORCING] CONSTRAINT FORCING TRIGGERED:")
             if affordance_gradients['constraint_forcing_gradient'] > 0.1:
                 print(f"   • Affordance gradient: {affordance_gradients['constraint_forcing_gradient']:.4f}")
             if conversational_results.get('constraint_pressure_generated', 0.0) > 0.05:
@@ -717,7 +719,7 @@ class DiegeticPhysicsEngine(nn.Module):
             }
         }
         
-        # ── Non-Commutative Dyad Routing (§Braid Group) ─────────────────────────────────
+        # -- Non-Commutative Dyad Routing (Braid Group) --
         # Converts fingerprint dict or audio_dyad dict into a projection vector,
         # then applies it before or after the text tensor based on commutativity.
         def _build_fp_bias(fp_dict, audio_dict) -> Optional[torch.Tensor]:
@@ -995,13 +997,13 @@ class DiegeticPhysicsEngine(nn.Module):
                 
                 # Check if fixed point reached at this quantization level
                 if torch.norm(q_out - q_in) < 1e-3:
-                    print(f"🪆 Matrioshka fixed point reached at shell {self.caq._level} after {step+1} steps.")
+                    print(f" Matrioshka fixed point reached at shell {self.caq._level} after {step+1} steps.")
                     response_ghost = q_out
                     fixed_point = True
                     break
                     
                 if boundary is not None:
-                    print(f"🪆 Shell crossed (to level {boundary.level})! Falling back to coarser granularity.")
+                    print(f" Shell crossed (to level {boundary.level})! Falling back to coarser granularity.")
                     self._last_matrioshka_diag = boundary.__dict__
                     self._last_boundary_obj = boundary
                     
@@ -1412,7 +1414,7 @@ class DiegeticPhysicsEngine(nn.Module):
             
             # Get Soliton diagnostics
             soliton_diagnostics = self.soliton_healer.get_diagnostics()
-            print(f" Soliton Healer: α={soliton_diagnostics['alpha']:.3f}, progress={soliton_diagnostics['healing_progress']:.3f}")
+            print(f" Soliton Healer: alpha={soliton_diagnostics['alpha']:.3f}, progress={soliton_diagnostics['healing_progress']:.3f}")
             
             # Store Soliton diagnostics
             self._last_soliton_diagnostics = soliton_diagnostics
@@ -2466,7 +2468,7 @@ class DiegeticPhysicsEngine(nn.Module):
         if not constraint_metrics.get('constraint_forcing_needed', False):
             return seed_state
         
-        print("🔥 ENHANCED CONSTRAINT INJECTION: Processing multiple affordance types")
+        print("[FORCING] ENHANCED CONSTRAINT INJECTION: Processing multiple affordance types")
         
         # Extract affordance information
         affordance_gradients = constraint_metrics.get('affordance_gradients', {})
@@ -2507,15 +2509,15 @@ class DiegeticPhysicsEngine(nn.Module):
         digest = hashlib.blake2b(joined, digest_size=16).hexdigest()
         pressure_signature = int(digest[:12], 16) % 1000000
         
-        print(f"🔧 Constraint sources: {constraint_sources}")
-        print(f"🔧 Pressure signature: {pressure_signature}")
+        print(f"Constraint sources: {constraint_sources}")
+        print(f" Pressure signature: {pressure_signature}")
         
         # Check cache first
         if pressure_signature in self.constraint_pressure_cache:
-            print(f"🔧 Using cached constraint pressure for signature {pressure_signature}")
+            print(f" Using cached constraint pressure for signature {pressure_signature}")
             constraint_batch = self.constraint_pressure_cache[pressure_signature]
         else:
-            print(f"🔧 Generating new constraint pressure for signature {pressure_signature}")
+            print(f" Generating new constraint pressure for signature {pressure_signature}")
             
             # Determine pressure ingestor sources based on affordance types (pure affordance-based)
             sources = []
@@ -2923,7 +2925,7 @@ class DiegeticPhysicsEngine(nn.Module):
     def _handle_association_learning(self, input_text: str, seed_state: torch.Tensor) -> str:
         """Handle association learning via fossil recovery and resonance injection."""
         # Note: ASSOCIATE: command or affordance trigger
-        print("🔧 Phase 4: Dyadic Association Recovery")
+        print(" Phase 4: Dyadic Association Recovery")
         
         # Load all fossils
         fossils = self.fossilizer.recover_fossils()
@@ -2965,7 +2967,7 @@ class DiegeticPhysicsEngine(nn.Module):
         """Generate enhanced response with improved linguistic coherence."""
         # This method is now effectively replaced by the direct call to larynx.generate_response
         # in process_input. Keeping it here for reference but it should not be called.
-        print("🔧 Enhanced response generation with linguistic optimization (DEPRECATED PATH)")
+        print(" Enhanced response generation with linguistic optimization (DEPRECATED PATH)")
         
         # Phase 3.1: Reduce recursive echoing while preserving meta-cognition
         echo_suppression_factor = 0.7  # Reduce tendency to repeat input
@@ -3135,7 +3137,7 @@ class DiegeticPhysicsEngine(nn.Module):
         - Topological consistency checks
         - Response-state correlation analysis
         """
-        print("🔧 Phase 4.1: Computing Full Gyroid Violation Score...")
+        print(" Phase 4.1: Computing Full Gyroid Violation Score...")
         
         try:
             # Initialize gyroid covariance probe if not exists
@@ -3436,7 +3438,7 @@ class DiegeticPhysicsEngine(nn.Module):
         - Cycle detection and classification
         - Manifold curvature estimation
         """
-        print("🔧 Phase 4.3: Performing Advanced Topological Analysis...")
+        print(" Phase 4.3: Performing Advanced Topological Analysis...")
         
         try:
             # Initialize topological analyzer if not exists
@@ -3797,7 +3799,7 @@ class DiegeticPhysicsEngine(nn.Module):
                      
                      diagnostics['quantum_superposition'] = True
                      diagnostics['spectral_entropy'] = superposition_entropy # Override with quantum entropy
-                     print(f"✨ Advanced Physics: Matrioshka Level {level}, Quantum Entropy {superposition_entropy:.3f}")
+                     print(f" Advanced Physics: Matrioshka Level {level}, Quantum Entropy {superposition_entropy:.3f}")
             
         except Exception as e:
             print(f" Advanced Physics Error: {e}")
@@ -4045,7 +4047,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
 
 
             elif self.path == '/associate':
-                print("📥 Processing /associate request...")
+                print(" Processing /associate request...")
                 try:
                     content_len = int(self.headers.get('Content-Length', 0))
                     post_body = self.rfile.read(content_len)
@@ -4312,7 +4314,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 dataset_name = data.get('dataset', '')
                 max_samples = int(data.get('max_samples', 500))
                 
-                print(f"📥 Local ingestion: {dataset_name} (max={max_samples})")
+                print(f" Local ingestion: {dataset_name} (max={max_samples})")
                 
                 samples = []
                 quality_reports = []
