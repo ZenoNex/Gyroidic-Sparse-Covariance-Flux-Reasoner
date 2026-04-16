@@ -502,6 +502,10 @@ class DiegeticPhysicsEngine(nn.Module):
         self.iteration = 0
         self.encoding_manager = EncodingManager()
         
+        # Stabilization and Visibility Flags
+        self._is_training_temporal = False
+        self._last_resonance = 0.0
+        
         # Seed the Larynx if it's a "Blank Slate"
         self._initialize_larynx_weights()
 
@@ -1798,6 +1802,7 @@ class DiegeticPhysicsEngine(nn.Module):
         metrics = {
             "response": response_text,
             "retrieval_state": retrieval_state,
+            "resonance_score": self._last_resonance,
             "visualization_b64": visualization_b64,  # Manifold fracture render (base64 PNG or None)
             "honesty_score": float(honesty_score),
             "crt_honesty": crt_honesty,
@@ -1826,7 +1831,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 "stalk": topological_analysis,
                 "shape_violation": gyroid_violation_score,
                 "pas_h": pas_h_live,
-                "resonance": recovery_metrics.get('chirality_alignment', 0.0) if isinstance(recovery_metrics, dict) else 0.0
+                "resonance": self._last_resonance
             }
         }
         
@@ -1920,61 +1925,33 @@ class DiegeticPhysicsEngine(nn.Module):
         """
         Fire one TemporalAssociationTrainer.train_on_interaction in a background daemon
         thread so that it never blocks the HTTP response path.
-
-        The trainer is lazily initialised on the first call.  A new thread is
-        only spawned if the previous one has already finished (single-shot
-        per interaction, no queue build-up).
         """
-        import threading
-
-        # Need to capture tensor forms for background thread
-        # Use existing _text_to_tensor to convert response_text
-        try:
-            inp = input_tensor.detach().clone()
-            # Generate response tensor safely
-            resp = self._text_to_tensor(response_text).detach().clone()
-        except:
-            # Fallback if tensor creation fails
+        if self._is_training_temporal:
             return
 
-        def _run() -> None:
+        def _bg_train():
             try:
-                from src.training.temporal_association_trainer import (
-                    TemporalAssociationDataset,
-                    TemporalAssociationTrainer,
-                )
-                # Lazy init
-                if self._temporal_dataset is None:
-                    self._temporal_dataset = TemporalAssociationDataset(
-                        device=self.device
-                    )
-                if self._temporal_trainer is None:
-                    self._temporal_trainer = TemporalAssociationTrainer(
-                        model=self,
-                        dataset=self._temporal_dataset,
-                        learning_rate=1e-4,
-                        trust_update_rate=0.01,
-                        fossilization_threshold=0.8,
-                        device=self.device,
-                    )
-                # Live interaction update
-                result = self._temporal_trainer.train_on_interaction(inp, resp)
-                self._last_temporal_diag = result
-                print(
-                    f"[TAT] live temporal step: "
-                    f"acc={result.get('association_accuracy', 0):.4f} "
-                    f"coh={result.get('temporal_coherence', 0):.4f} "
-                    f"trust_mean={result.get('trust_mean', 0):.4f}"
-                )
-            except Exception as _tat_err:
-                # Trainer failure is never allowed to crash the main pipeline
-                self._last_temporal_diag = {"error": str(_tat_err)}
-                print(f"[TAT] background train_step failed: {_tat_err}")
+                self._is_training_temporal = True
+                # Detach for training
+                inp = input_tensor.detach().cpu()
+                
+                # Check for trainer availability
+                if not hasattr(self, 'trainer') or self.trainer is None:
+                    return
 
-        # Guard: only one background thread at a time
-        if self._temporal_thread is None or not self._temporal_thread.is_alive():
-            self._temporal_thread = threading.Thread(target=_run, daemon=True)
-            self._temporal_thread.start()
+                self.trainer.train_on_interaction(
+                    input_tensor=inp,
+                    response_text=response_text,
+                    meta_state=self.meta_state.detach().cpu()
+                )
+            except Exception as e:
+                print(f"[TAT] Background training error: {e}")
+            finally:
+                self._is_training_temporal = False
+
+        import threading
+        t = threading.Thread(target=_bg_train, daemon=True)
+        t.start()
 
     def forward_text_emb(
         self,
@@ -2923,22 +2900,29 @@ class DiegeticPhysicsEngine(nn.Module):
         print(" Phase 4: Dyadic Association Recovery")
         
         # Load all fossils
+        # Note: DyadFossilizer.recover_fossils now handles cleanup of invalid files
         fossils = self.fossilizer.recover_fossils()
         if not fossils:
+            self._last_resonance = 0.0
             return "No fossils found in data/encodings. Association requires existing topological obstructions."
             
         # Compute resonance between current seed_state and fossils
-        # Map seed_state to residue_dim (dim // k) for comparison
         best_resonance = -1.0
         best_fossil = None
         
         for f in fossils:
+            # Check for residue_vector (redundant if recover_fossils is robust, but safe)
+            if 'residue_vector' not in f:
+                continue
+                
             residue = f['residue_vector'].to(self.device).flatten()
             # Simple dot product resonance
             res = torch.dot(seed_state.flatten(), residue) / (torch.norm(seed_state) * torch.norm(residue) + 1e-8)
             if res > best_resonance:
                 best_resonance = res
                 best_fossil = f
+        
+        self._last_resonance = float(best_resonance)
                 
         if best_fossil and best_resonance > 0.5:
             # Inject residue into meta_state
