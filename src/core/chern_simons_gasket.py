@@ -284,7 +284,7 @@ class SolitonStabilityHealer(nn.Module):
             from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
             self.sovereignty_engine = SiliconSovereigntyEngine()
         except Exception as e:
-            print(f"⚠️ Soliton Healer running without PyOpenCL Hardware boundaries: {e}")
+            print(f"[WARNING] Soliton Healer running without PyOpenCL Hardware boundaries: {e}")
             self.sovereignty_engine = None
         
         # Healing progress tracking
@@ -344,10 +344,15 @@ class SolitonStabilityHealer(nn.Module):
         # Update alpha with ranging
         self.alpha = self.alpha_0 + self.gamma * (self.iteration_count / self.healing_iterations)
         
-        # Apply topological free energy heating
-        # Heat manifold by adding controlled noise scaled by alpha
-        heating_noise = torch.randn_like(residues) * (self.alpha * 0.1)
-        heated_residues = residues + heating_noise
+        if self.sovereignty_engine:
+            # PyOpenCL Lazarus Traversal
+            flat_res = residues.detach().flatten().cpu().numpy()
+            heated_flat = self.sovereignty_engine.lazarus_traversal(flat_res, float(self.alpha * 0.1))
+            heated_residues = torch.tensor(heated_flat, device=residues.device).view(residues.shape)
+        else:
+            # Heat manifold by adding controlled noise scaled by alpha
+            heating_noise = torch.randn_like(residues) * (self.alpha * 0.1)
+            heated_residues = residues + heating_noise
         
         # Increment iteration count
         self.iteration_count = torch.clamp(self.iteration_count + 1, max=self.healing_iterations)
