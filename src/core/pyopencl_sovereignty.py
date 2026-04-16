@@ -163,7 +163,11 @@ class SiliconSovereigntyEngine:
         }
         """
         
-        self.program = cl.Program(self.ctx, kernel_src).build()
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")  # NVIDIA PTX driver warns about kernel inlining — benign
+            self.program = cl.Program(self.ctx, kernel_src).build()
+
 
     def process_crt_dual_queue(self, moduli_odd_data, moduli_even_data):
         """
