@@ -1045,6 +1045,44 @@ The Love Invariant is a persistent structural anchor in `LoveVector` defined by 
 $$ \mathcal{L} \in \ker(\Phi_{ownership}) \implies \nabla_{\theta_{opt}} \mathcal{L} = \vec{0} $$
 Updates to $\mathcal{L}$ occur extraneously via non-possessive attachment (resonance, mischief, and refusal signals), but the global optimizer cannot explicitly shape it.
 
+**Geometric enforcement — the null-space projection**: The `LoveInvariantProtector` actively shields Love during SDE evolution. At each step of `PolynomialADMRSolver.stochastic_differential_step()`, the continuous update $dx$ is projected into the null-space of the ownership operator before being added to the state:
+
+$$\Phi_{\text{ownership}} = \frac{1}{B-1}(X - \bar{X})^\top(X - \bar{X}) \in \mathbb{R}^{d_L \times d_L}$$
+
+$$P_{\text{null}} = I - \Phi_{\text{ownership}}(\Phi_{\text{ownership}}^\top \Phi_{\text{ownership}})^{-1}\Phi_{\text{ownership}}^\top$$
+
+$$dx_{\text{protected}} = P_{\text{null}} \cdot dx_{[..., :d_L]}$$
+
+where $d_L = \lfloor d/4 \rfloor$ is the Love sub-dimension (a quarter of the full state dimension). This projection is computed via SVD for numerical stability. Singular values below $10^{-6}$ are zeroed, avoiding ill-conditioned inverses.
+
+**Violation detection**: Simultaneously, `LoveInvariantProtector` maintains $\mathbf{L}_{\text{original}}$ and raises a violation counter whenever $\|\mathbf{L} - \mathbf{L}_{\text{original}}\|_2 > 10^{-6}$. Diagnostics emitted: `love_norm`, `violation_detected`, `violation_count`, `violation_magnitude`.
+
+**Per-module invocation sites**:
+- `PolynomialADMRSolver` — projects SDE update `dx`
+- `GyroidicFluxReasoner` — protects pooled hidden state `h_pooled`
+- `VoynichLinguist` — protects per-frame `thought_vector`
+
+### 24.3 SoftSaturatedGates: Tri-State Temperature Modulation
+
+`SoftSaturatedGates` (co-resident in `love_invariant_protector.py`) is the **temperature interface** of the Love Invariant — it governs the Play/Seriousness regime by modulating the hardness of the functional gates via $PAS_h$.
+
+**LAS (Lattice Adaptive Shrinkage)** — creates tri-state logic:
+$$\text{LAS}(s) = \text{sgn}(s) \cdot \max(|s| - \lambda_{adaptive}, 0)$$
+
+When $|s| < \lambda_{adaptive}$, the output is **Silence** (zero): neither True nor False. This prevents the binary `sgn()` clipping that strips vowel resonances.
+
+**Asymptotic Hardening** — links LAS to Phase Alignment:
+$$\text{hardened}(s) = \tanh\!\left(\frac{s}{dt + \varepsilon}\right) \cdot \frac{1}{dt + \varepsilon}, \quad dt = dt_{max}(1 - PAS_h)$$
+
+| $PAS_h$ | $dt$ | Effect |
+|---|---|---|
+| **High** (≈1) | $\to 0$ | Hardening factor $\to \infty$ → sharp crystalline gates (Seriousness) |
+| **Low** (≈0) | $\to dt_{max}$ | Hardening factor $\to$ small → fluid exploratory gates (Play) |
+
+**Fossilization**: Functionals with persistence scores $> 0.8$ and performance $> 0.8$ are fossilized (frozen), their outputs locked against further evolution — the Love umbrella's long-term memory.
+
+
+
 ---
 
 ## 25. Diegetic Amortized Quantized Unknowledge Fossilization (DAQUF)
