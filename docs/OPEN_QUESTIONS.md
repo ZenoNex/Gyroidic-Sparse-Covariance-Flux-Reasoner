@@ -171,6 +171,7 @@ These questions from the original plan have been resolved:
 | Evidence Modules | ✅ Tripartite heterogeneous |
 | Soliton Threshold | ✅ Relational κ |
 | Meta-Invariant Enforcement | ✅ Collapse path poisoning (`CollapsePathPoisoner`) |
+| Q10.8 Anti-Disentanglement | ✅ Resolved (System 2 Hyperbolic Unfolding) |
 
 ---
 
@@ -230,10 +231,11 @@ Should the ZeitgeistRouter's diagnostic output explicitly label the current navi
 
 **Status**: Near-resolved. `nc_curvature` is already in the diagnostics table (ZEITGEIST_ROUTER §7). Adding a semantic mode label (`slerp`, `lerp`, `void`) would not add new gradient information — it would add human-readable state classification. Likely safe.
 
-### Q10.8 — Anti-Disentanglement Constraint Enforcement
-The MATHEMATICAL_DETAILS §55.5 specifically forbids making the $K$ polynomial functionals orthogonal in activation space (that would be disentanglement = loss of holistic glitch diversity). Is there currently any optimizer or regularization pathway that implicitly pushes functionals toward orthogonality (e.g., the independence criterion in §7.6 Continuous Co-Primality)? If the co-primality condition enforces $\lim_{t\to\infty} \text{Cov}(r_i, r_j) = 0$, is this equivalent to asymptotic functional orthogonalization? This may be the most critical unresolved tension in the system.
+## 11. Resolved Open Questions (Phase 10)
 
-**Status**: Open. The co-primality asymptotic independence condition requires careful disambiguation from the holistic glitch interdependence requirement. These may be in direct conflict.
+### 11.1 Q10.8 — Anti-Disentanglement Constraint Enforcement
+**Resolution**: **Hyperbolic Unfolding in System 2.**
+We resolve the tension between co-primality (independence) and holistic glitch (overlap) by splitting the topology. System 1 remains in Euclidean space where co-primality keeps residues distinct for speed. System 2 performs the **Poincaré Disk Projection**, unfolding the manifold into hyperbolic space where "overlapping" Euclidean residues become distinct hyperbolic trajectories. This preserves the "glitch" diversity while satisfying the independence requirement during paradoxical "pinch" events.
 
 
 
