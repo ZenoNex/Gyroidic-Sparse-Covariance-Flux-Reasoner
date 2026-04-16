@@ -1439,7 +1439,9 @@ class DiegeticPhysicsEngine(nn.Module):
             self.meta_state = self.love_vector(self.meta_state)
             
             # Apply Repunit-CRT Probe factoring
-            repunit_state = self.repunit_probe(self.meta_state)
+            # Map continuous norm to a discrete repunit index n
+            rep_n = int(torch.norm(self.meta_state).item()) % 20
+            repunit_state, _ = self.repunit_probe(rep_n)
             self.meta_state = self.meta_state * 0.5 + repunit_state * 0.5
             
             # Diagnostic check (kernel property)
