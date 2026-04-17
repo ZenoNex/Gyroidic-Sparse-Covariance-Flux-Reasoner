@@ -16,6 +16,7 @@ class KnowledgeDyad:
     gyroid_residue: Optional[torch.Tensor] = None # [n, n] irreducible entanglement
     relevance_score: float = 1.0
     timestamp: str = ""
+    metadata: Optional[Dict] = None
     
     def __post_init__(self):
         if not self.timestamp:
