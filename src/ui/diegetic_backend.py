@@ -78,6 +78,7 @@ from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.training.fgrt_fgrt_trainer import SpectralStructuralTrainer
 from src.models.resonance_cavity import ResonanceCavity
 from src.models.diegetic_heads import ResonanceLarynx, DataAssociationLayer
+from src.codec.gyroidic_codec import GyroidicCodec, CodecConfig
 
 # GARBLED OUTPUT REPAIR SYSTEM INTEGRATION
 from src.core.spectral_coherence_repair import SpectralCoherenceCorrector, BezoutCoefficientRefresh
@@ -222,6 +223,9 @@ class DiegeticPhysicsEngine(nn.Module):
         self.cavity = ResonanceCavity(hidden_dim=dim, num_modes=16)
         self.larynx = ResonanceLarynx(hidden_dim=dim, vocab_size=128) # ASCII
         self.associator = DataAssociationLayer(input_dim=dim, hidden_dim=dim, k=k)
+        
+        # 12. Gyroidic Codec (Gap B Integration)
+        self.codec = GyroidicCodec(CodecConfig(K=k, device=str(self.device)))
         
         # =============================================
         # GARBLED OUTPUT REPAIR SYSTEM
@@ -513,7 +517,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Seed the Larynx if it's a "Blank Slate"
         self._initialize_larynx_weights()
 
-    def forward(self, input_tensor: torch.Tensor, dt: float = 0.1) -> torch.Tensor:
+    def forward(self, input_tensor: torch.Tensor, dt: float = 0.1, collision_residues: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Evolutionary Forward Pass for Manifold Invariants.
         Used by SpectralStructuralTrainer for Ricci Flow and ADMM repairs.
@@ -524,8 +528,13 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # 3. Update Resonance Cavity (Explicit Memory Update)
         # We pass input_tensor as attention_states to trigger M update
-        # Analog trick: add epsilon to prevent near-zero division in attention/norms
-        cavity_out = self.cavity(input_tensor.unsqueeze(1))
+        # We also pass collision_residues (Gap A) to seed D_dark
+        expected_residues = getattr(self, '_last_est_residues', None)
+        cavity_out = self.cavity(
+            input_tensor.unsqueeze(1),
+            expected_residues=expected_residues,
+            refined_residues=collision_residues
+        )
         memory_state = cavity_out['memory_state'].mean(dim=1) # [1, dim]
         self._last_memory_state = memory_state
         
@@ -820,11 +829,6 @@ class DiegeticPhysicsEngine(nn.Module):
             dt = self.manifold_clock.tick(manifold_pressure_tensor)
             self.current_hunger = self.valence_drive(manifold_pressure_tensor)
         
-        # 3. Evolutionary Pass (Cavity + Meta-Functional)
-        # Now uses forward() to support SpectralStructuralTrainer
-        manifold_state = self.forward(input_tensor, dt=dt)
-        seed_state = manifold_state.detach() # Explicit seed for response
-
         # text_first commutativity: apply media bias AFTER forward() --
         # text already shaped the manifold; media now distorts the resulting state.
         if commutativity == 'text_first' and media_bias is not None:
@@ -833,6 +837,55 @@ class DiegeticPhysicsEngine(nn.Module):
                     self.meta_state + 0.5 * media_bias,
                     self.meta_state.shape[1:]
                 )
+
+        # =============================================
+        # PHASE 2: INTERNAL FUSION (GAP A)
+        # =============================================
+        collision_residues = None
+        codec_metrics = {}
+        if fingerprint:
+            try:
+                # 1. Compute Image Embedding for DataAssociationLayer
+                if 'L' in fingerprint:
+                    K_fp = len(fingerprint['L'])
+                    flat = fingerprint.get('L', [0.0]*K_fp) + fingerprint.get('Cr', [0.0]*K_fp) + fingerprint.get('Cb', [0.0]*K_fp)
+                else:
+                    flat = fingerprint.get('r',[]) + fingerprint.get('g',[]) + fingerprint.get('b',[]) + fingerprint.get('l',[]) + [fingerprint.get('texture', 0.0)] + fingerprint.get('edges', [0.0]*8)
+                
+                if flat:
+                    fp_tensor = torch.tensor(flat, dtype=torch.float32, device=self.device)
+                    target = self.K_IMAGE_MAX * 3 # 96
+                    if fp_tensor.numel() < target:
+                        fp_tensor = F.pad(fp_tensor, (0, target - fp_tensor.numel()))
+                    else:
+                        fp_tensor = fp_tensor[:target]
+                    
+                    # Compute embeddings
+                    image_emb = self.fingerprint_proj(fp_tensor.unsqueeze(0)) # [1, dim]
+                    text_emb = input_tensor # [1, dim]
+                    
+                    # COLLISION: DataAssociationLayer -> residues [1, K]
+                    collision_residues = self.associator(text_emb, image_emb)
+                    print(f"[DYAD] Internal Fusion Collision: L2={torch.norm(collision_residues).item():.4f}")
+                    
+                    # 2. Gyroidic Codec Diagnostics (Gap B Engagement)
+                    # We pass a reshaped version of fp_tensor as a 'dummy' image for the codec
+                    # until we have real spatial images. 96 coeffs -> 8x12 grid proxy.
+                    codec_result = self.codec.encode(text_input, fp_tensor.view(1, 8, 12))
+                    codec_metrics = {
+                        "entanglement_ratio": codec_result.diagnostics.get('entanglement_ratio', 0.0),
+                        "commutativity_gap": codec_result.commutativity_gap,
+                        "is_admissible": codec_result.diagnostics.get('is_admissible', False),
+                        "structural_state": codec_result.diagnostics.get('structural_state', "Unknown")
+                    }
+                    print(f"[CODEC] Entanglement: {codec_metrics['entanglement_ratio']:.4f} | Admissible: {codec_metrics['is_admissible']}")
+            except Exception as e:
+                print(f"[FAIL] Multimodal Collision failed: {e}")
+
+        # 3. Evolutionary Pass (Cavity + Meta-Functional)
+        # Now passes collision_residues to Gap A internal path
+        manifold_state = self.forward(input_tensor, dt=dt, collision_residues=collision_residues)
+        seed_state = manifold_state.detach() # Explicit seed for response
 
         memory_state = getattr(self, '_last_memory_state', self.meta_state)
         est_residues = getattr(self, '_last_est_residues', torch.zeros_like(self.meta_state))
