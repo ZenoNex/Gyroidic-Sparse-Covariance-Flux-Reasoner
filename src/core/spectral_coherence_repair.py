@@ -305,7 +305,14 @@ class BezoutCoefficientRefresh(nn.Module):
         
         # Compute pairwise residue correlations
         residue_flat = residues.contiguous().view(batch_size, -1)  # [batch, K*D]
-        correlation_matrix = torch.corrcoef(residue_flat.T)  # [K*D, K*D]
+        # corrcoef requires at least 2 samples; with batch=1 DoF is zero.
+        # Fall back to identity correlation (zero cross-correlation prior) for single-sample batches.
+        if batch_size >= 2:
+            correlation_matrix = torch.corrcoef(residue_flat.T)  # [K*D, K*D]
+        else:
+            kd = residue_flat.shape[1]
+            correlation_matrix = torch.eye(kd, device=self.device)
+
         
         # Aggregate to functional level [K, K]
         func_correlations = torch.zeros(self.K, self.K, device=self.device)
