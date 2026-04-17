@@ -157,14 +157,9 @@ class HuggingFaceConversationalIngestor:
             print(f"   ✓ Collected {len(samples)} samples total")
             return samples
             
-        except ImportError:
-            print(f"   ⚠ datasets library not available, using direct API method...")
-            return self._direct_api_download(dataset_id, max_samples)
-            
         except Exception as e:
             print(f"   ❌ datasets library failed: {e}")
-            print(f"   Trying direct API method...")
-            return self._direct_api_download(dataset_id, max_samples)
+            return []
     
     def _direct_api_download(self, dataset_id: str, max_samples: int) -> List[Dict[str, Any]]:
         """Direct API method to download real HF data when datasets library is not available."""
@@ -226,150 +221,14 @@ class HuggingFaceConversationalIngestor:
             return []
     
     def _generate_synthetic_lmsys_data(self, max_samples: int) -> List[Dict[str, Any]]:
-        """Generate synthetic LMSYS-style conversation data with diverse affordance patterns."""
-        import random
-        
-        # Enhanced conversation templates with diverse affordance patterns
-        conversation_templates = []
-        
-        # Basic conversational patterns
-        basic_conversations = [
-            {
-                "conversation_id": f"synthetic_lmsys_{i}",
-                "conversation": [
-                    {"role": "human", "content": f"Hello! Can you help me understand {topic}?"},
-                    {"role": "assistant", "content": f"Of course! I'd be happy to help you understand {topic}. {explanation}"},
-                    {"role": "human", "content": "That's very helpful, thank you!"},
-                    {"role": "assistant", "content": "You're welcome! Feel free to ask if you have any more questions about this topic."}
-                ],
-                "model": "synthetic-assistant",
-                "timestamp": "2024-01-01T00:00:00Z",
-                "language": "en"
-            }
-            for i, (topic, explanation) in enumerate([
-                ("machine learning", "Machine learning is a subset of AI that enables computers to learn from data without being explicitly programmed."),
-                ("Python programming", "Python is a versatile programming language known for its simplicity and readability."),
-                ("data science", "Data science combines statistics, programming, and domain expertise to extract insights from data."),
-                ("artificial intelligence", "AI refers to computer systems that can perform tasks typically requiring human intelligence."),
-                ("web development", "Web development involves creating websites and web applications using various technologies.")
-            ])
-        ]
-        
-        # Code execution patterns (high executability + formal symbols)
-        code_conversations = [
-            {
-                "conversation_id": f"synthetic_code_{i}",
-                "conversation": [
-                    {"role": "human", "content": f"Can you help me write a function to {task}?"},
-                    {"role": "assistant", "content": f"Sure! Here's a Python function:\n\n```python\ndef {func_name}({params}):\n    {implementation}\n    return result\n```\n\nThis function {explanation}"},
-                    {"role": "human", "content": "How do I run this code?"},
-                    {"role": "assistant", "content": f"To execute this function, call it like this: `{func_name}({example_args})`. Make sure to import any required libraries first."}
-                ],
-                "model": "synthetic-coder",
-                "timestamp": "2024-01-01T00:00:00Z",
-                "language": "en"
-            }
-            for i, (task, func_name, params, implementation, explanation, example_args) in enumerate([
-                ("calculate fibonacci numbers", "fibonacci", "n", "if n <= 1: return n\n    return fibonacci(n-1) + fibonacci(n-2)", "calculates the nth Fibonacci number recursively", "10"),
-                ("sort a list", "quicksort", "arr", "if len(arr) <= 1: return arr\n    pivot = arr[0]\n    return quicksort([x for x in arr[1:] if x < pivot]) + [pivot] + quicksort([x for x in arr[1:] if x >= pivot])", "implements the quicksort algorithm", "[3, 1, 4, 1, 5]"),
-                ("find prime numbers", "is_prime", "n", "if n < 2: return False\n    for i in range(2, int(n**0.5) + 1):\n        if n % i == 0: return False\n    return True", "checks if a number is prime", "17")
-            ])
-        ]
-        
-        # API extraction patterns (high api_extraction + conversational)
-        api_conversations = [
-            {
-                "conversation_id": f"synthetic_api_{i}",
-                "conversation": [
-                    {"role": "human", "content": f"Can you search for the latest information about {topic}? I need current data."},
-                    {"role": "assistant", "content": f"I'll help you find the latest information about {topic}. Let me search for recent articles and data sources. You might want to check {sources} for the most up-to-date information."},
-                    {"role": "human", "content": "Can you fetch the Wikipedia article about this topic?"},
-                    {"role": "assistant", "content": f"I can help you access Wikipedia content about {topic}. You can also use APIs to extract structured data from various online sources and databases."}
-                ],
-                "model": "synthetic-researcher",
-                "timestamp": "2024-01-01T00:00:00Z",
-                "language": "en"
-            }
-            for i, (topic, sources) in enumerate([
-                ("climate change", "NASA Climate Change, IPCC reports, and recent scientific publications"),
-                ("cryptocurrency prices", "CoinGecko API, CoinMarketCap, and financial news websites"),
-                ("stock market trends", "Yahoo Finance API, Bloomberg, and real-time market data feeds")
-            ])
-        ]
-        
-        # Formal symbols patterns (high formal_symbols + expandability)
-        math_conversations = [
-            {
-                "conversation_id": f"synthetic_math_{i}",
-                "conversation": [
-                    {"role": "human", "content": f"Can you explain {concept}?"},
-                    {"role": "assistant", "content": f"Certainly! {concept} can be expressed as: {formula}. This means {explanation}"},
-                    {"role": "human", "content": "Can you show me how to solve this step by step?"},
-                    {"role": "assistant", "content": f"Here's the step-by-step solution:\n1. Start with {formula}\n2. Apply the rule: {rule}\n3. Simplify: {simplified}\n4. Therefore: {conclusion}"}
-                ],
-                "model": "synthetic-mathematician",
-                "timestamp": "2024-01-01T00:00:00Z",
-                "language": "en"
-            }
-            for i, (concept, formula, explanation, rule, simplified, conclusion) in enumerate([
-                ("quadratic formula", "x = (-b ± √(b² - 4ac)) / 2a", "this formula solves equations of the form ax² + bx + c = 0", "discriminant = b² - 4ac", "x = (-b ± √Δ) / 2a", "we get two solutions when Δ > 0"),
-                ("derivatives", "f'(x) = lim(h→0) [f(x+h) - f(x)] / h", "this defines the instantaneous rate of change", "power rule: d/dx(x^n) = nx^(n-1)", "d/dx(x²) = 2x", "the derivative of x² is 2x"),
-                ("set theory", "A ∪ B = {x | x ∈ A ∨ x ∈ B}", "this represents the union of sets A and B", "De Morgan's law: (A ∪ B)' = A' ∩ B'", "complement of union equals intersection of complements", "set operations follow logical rules")
-            ])
-        ]
-        
-        # Meta-recursive patterns (high referential_closure + expandability)
-        meta_conversations = [
-            {
-                "conversation_id": f"synthetic_meta_{i}",
-                "conversation": [
-                    {"role": "human", "content": f"How does {system} work recursively?"},
-                    {"role": "assistant", "content": f"{system} creates recursive feedback loops where {description}. The system reflects on itself, creating meta-structures that generate their own constraints and invariants."},
-                    {"role": "human", "content": "Can this system modify itself?"},
-                    {"role": "assistant", "content": f"Yes, {system} exhibits self-referential properties. It can analyze its own structure, create templates for expansion, and generate new patterns dynamically. This recursive self-modification creates emergent behaviors."}
-                ],
-                "model": "synthetic-philosopher",
-                "timestamp": "2024-01-01T00:00:00Z",
-                "language": "en"
-            }
-            for i, (system, description) in enumerate([
-                ("neural networks", "each layer processes information and passes it to the next, while backpropagation creates feedback loops that modify the network's own weights"),
-                ("language models", "they generate text that can describe their own generation process, creating recursive loops of self-description and meta-cognition"),
-                ("fractal systems", "they contain copies of themselves at different scales, with each iteration generating new complexity through self-similar patterns")
-            ])
-        ]
-        
-        # Combine all conversation types
-        all_conversations = basic_conversations + code_conversations + api_conversations + math_conversations + meta_conversations
-        
-        # Select up to max_samples conversations
-        selected_conversations = all_conversations[:max_samples]
-        
-        print(f"   ✓ Generated {len(selected_conversations)} diverse synthetic LMSYS conversations")
-        print(f"     - Basic: {min(len(basic_conversations), max_samples)}")
-        print(f"     - Code: {min(len(code_conversations), max_samples - len(basic_conversations)) if max_samples > len(basic_conversations) else 0}")
-        print(f"     - API: {min(len(api_conversations), max_samples - len(basic_conversations) - len(code_conversations)) if max_samples > len(basic_conversations) + len(code_conversations) else 0}")
-        print(f"     - Math: {min(len(math_conversations), max_samples - len(basic_conversations) - len(code_conversations) - len(api_conversations)) if max_samples > len(basic_conversations) + len(code_conversations) + len(api_conversations) else 0}")
-        print(f"     - Meta: {min(len(meta_conversations), max_samples - len(basic_conversations) - len(code_conversations) - len(api_conversations) - len(math_conversations)) if max_samples > len(basic_conversations) + len(code_conversations) + len(api_conversations) + len(math_conversations) else 0}")
-        
-        return selected_conversations
+        """Placeholder removed to satisfy Structural Honesty Imperative §12."""
+        print("   ❌ Synthetic LMSYS data generation disabled (Structural Honesty violation).")
+        return []
     
     def _generate_synthetic_oasst_data(self, max_samples: int) -> List[Dict[str, Any]]:
-        """Generate synthetic OpenAssistant-style conversation data."""
-        conversations = []
-        
-        for i in range(max_samples):
-            conversations.append({
-                "message_id": f"synthetic_oasst_{i}",
-                "parent_id": None if i == 0 else f"synthetic_oasst_{i-1}",
-                "text": f"This is a synthetic OpenAssistant conversation turn {i}. How can I help you today?",
-                "role": "assistant" if i % 2 == 0 else "prompter",
-                "lang": "en",
-                "quality": {"rating": 4.5, "num_ratings": 10}
-            })
-        
-        print(f"   ✓ Generated {len(conversations)} synthetic OpenAssistant conversations")
-        return conversations
+        """Placeholder removed to satisfy Structural Honesty Imperative §12."""
+        print("   ❌ Synthetic OASST data generation disabled (Structural Honesty violation).")
+        return []
     
     def parse_lmsys_chat(self, samples: List[Dict[str, Any]]) -> List[Conversation]:
         """Parse LMSYS chat data into Conversation objects."""
