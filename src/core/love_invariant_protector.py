@@ -83,6 +83,13 @@ class LoveInvariantProtector(nn.Module):
         """
         # Compute pseudo-inverse for null space projection
         try:
+            # Guard against NaN/Inf from upstream emergency stabilization —
+            # these cause Intel MKL SLASCL "Parameter 4 incorrect" errors.
+            if not torch.isfinite(ownership_operator).all():
+                ownership_operator = torch.nan_to_num(
+                    ownership_operator, nan=0.0, posinf=1.0, neginf=-1.0
+                )
+
             # SVD for stable null space computation
             U, S, V = torch.svd(ownership_operator)
             
@@ -96,6 +103,10 @@ class LoveInvariantProtector(nn.Module):
             # Null space projection: P = I - Φ^+ Φ
             I = torch.eye(self.love_dim, device=self.device)
             null_projection = I - torch.matmul(phi_pinv, ownership_operator)
+
+            # Final sanity check — if SVD produced non-finite results, fall back
+            if not torch.isfinite(null_projection).all():
+                null_projection = torch.eye(self.love_dim, device=self.device)
             
         except Exception:
             # Fallback to identity if SVD fails
