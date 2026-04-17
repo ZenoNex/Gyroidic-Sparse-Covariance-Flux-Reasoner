@@ -676,9 +676,7 @@ class DiegeticPhysicsEngine(nn.Module):
         self.last_input_time = time.time() 
         
         # --- COMMAND PRIORITIZATION ---
-        # Stop "Ego Death" collapses by bypassing the 5-Gate reasoning pipeline 
-        # for administrative commands. High-priority ingestion must never be 
-        # suppressed by speculative "mischief" gates.
+        if text_input.startswith("INGEST_DYAD:") or text_input.startswith("ASSOCIATE:"):
              print(f"[CMD] Command Prioritization: Bypassing pipeline for direct response...")
              # Merciful Topological Reset: Clear historical trauma/dissonance for manual commands
              # to ensure the Braid Governor (Archetypes) has a fresh start.
