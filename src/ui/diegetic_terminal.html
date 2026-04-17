@@ -1354,7 +1354,11 @@
                 const response = await fetch(`${state.backend_url}/interact`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: command })
+                    body: JSON.stringify({ 
+                        text: command,
+                        fingerprint: state.active_fingerprint,
+                        commutativity: document.getElementById('commute-header')?.value || 'symmetric'
+                    })
                 });
 
                 const data = await response.json();
@@ -1672,7 +1676,7 @@
 
             try {
                 const payload = {
-                    text: description || `INGEST_AUDIO_DYAD: ${dyad.filename}`,
+                    text: `INGEST_AUDIO_DYAD: ${dyad.filename}${description ? ' | ' + description : ''}`,
                     audio_dyad: dyad,
                     commutativity: commutativity
                 };
@@ -1764,7 +1768,7 @@
             
             const commutativity = document.getElementById('commute-video').value;
             const payload = {
-                text: description || `INGEST_VIDEO_DYAD: [CRYPTOGRAPHIC_PARSE]`,
+                text: `INGEST_VIDEO_DYAD: [CRYPTOGRAPHIC_PARSE]${description ? ' | ' + description : ''}`,
                 video_dyad_b64: b64,
                 commutativity: commutativity
             };
