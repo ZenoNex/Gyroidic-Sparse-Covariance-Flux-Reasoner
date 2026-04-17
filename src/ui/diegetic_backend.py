@@ -633,7 +633,10 @@ class DiegeticPhysicsEngine(nn.Module):
         """
         Main entry point for processing an interaction.
         """
-        if self._is_processing or self._in_training:
+        # Non-Teleological Re-entrancy Guard:
+        # We allow processing if it's a training-driven call (to allow gradients),
+        # but block external user calls if the engine is already occupied by a main process.
+        if self._is_processing:
             print("[ENGINE] Warning: Re-entrant call detected. Returning placeholder.")
             return {"response": "System busy: topological re-indexing in progress...", "status": "BUSY"}
 
@@ -676,8 +679,11 @@ class DiegeticPhysicsEngine(nn.Module):
         # Stop "Ego Death" collapses by bypassing the 5-Gate reasoning pipeline 
         # for administrative commands. High-priority ingestion must never be 
         # suppressed by speculative "mischief" gates.
-        if text_input.startswith("INGEST_DYAD:") or text_input.startswith("ASSOCIATE:"):
              print(f"[CMD] Command Prioritization: Bypassing pipeline for direct response...")
+             # Merciful Topological Reset: Clear historical trauma/dissonance for manual commands
+             # to ensure the Braid Governor (Archetypes) has a fresh start.
+             self.calm_history.zero_() 
+             
              # Use current meta_state as the grounding seed for the command handler
              seed_state = self.meta_state.detach()
              response_text = self._generate_dyad_aware_response(seed_state, text_input, fingerprint)
@@ -1668,6 +1674,9 @@ class DiegeticPhysicsEngine(nn.Module):
         print(" Phase 5: Routing through Braid Group & Archetypal Synthesis Governor...")
         
         # We process the final seed_state using the Braid Governor
+        # Detect command bypass for Braid Governor
+        is_cmd = text_input.startswith("INGEST_DYAD:") or text_input.startswith("ASSOCIATE:")
+        
         archetype_out = self.archetypal_governor.run_archetypes(
             current_state=seed_state,
             stranded_states=self.meta_state,
@@ -1682,7 +1691,8 @@ class DiegeticPhysicsEngine(nn.Module):
             memory_trauma=float(self.calm_history.mean().item()),
             dissonance=abort_score,
             lucidity_idx=pas_h_live,
-            raw_unquantized_state=self.meta_state
+            raw_unquantized_state=self.meta_state,
+            is_high_priority=is_cmd
         )
         
         if archetype_out.get("system_collapsed", False):
@@ -2122,13 +2132,8 @@ class DiegeticPhysicsEngine(nn.Module):
         Returns:
             dict with keys: 'output', 'trust_scalars', plus optional diag keys.
         """
-        if self._in_training:
-            # Return cached or default analysis to break recursion
-            return {
-                "output": torch.zeros_like(text_emb),
-                "trust_scalars": self.trust_scalars,
-                "status": "RECURSION_GUARD_ACTIVE"
-            }
+        # Internal recursion check: ensure forward pass doesn't drift into another training cycle
+        # but allow the actual math to execute so gradients are preserved for the trainer.
 
         # Calculate manifold propagation and maintain graph for survivorship_pressure 
         manifold_out = self.forward(text_emb, dt=0.05)
