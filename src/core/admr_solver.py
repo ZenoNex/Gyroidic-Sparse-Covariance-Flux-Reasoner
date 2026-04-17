@@ -172,7 +172,8 @@ class PolynomialADMRSolver(nn.Module):
         sigma: float = 0.01,
         v_m: Optional[torch.Tensor] = None,
         elipsodistrophy_metrics: Optional[Dict[str, Any]] = None,
-        palindromic_hash: Optional[torch.Tensor] = None
+        palindromic_hash: Optional[torch.Tensor] = None,
+        anchor_sym: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
         Continuous-time Stochastic Differential Update:
@@ -224,6 +225,13 @@ class PolynomialADMRSolver(nn.Module):
         # 4. Stochastic Forcing (dW)
         noise = torch.randn_like(states) * effective_sigma * (dt**0.5)
         
+        # 3.5. Mathematical Digimon Nutrient (Historical Illusion Injection)
+        # Allows transient high-fidelity states to feed the trajectory.
+        digimon_nutrient = torch.zeros_like(states)
+        if palindromic_hash is not None:
+             # Conceptual Digimon: use the hash as a nutrient to warp the drift
+             digimon_nutrient = 0.05 * (palindromic_hash.expand_as(states) - states)
+
         # V_m explicit learning rate modulation
         # Dual variables S evolution tied to the normalized Mischief Score V_m
         effective_dt = dt
@@ -239,8 +247,8 @@ class PolynomialADMRSolver(nn.Module):
         effective_dt = effective_dt * (1.0 / (1.0 + negentropy_flux)) * (1.0 + 0.5 * tripsody_scale)
 
         # 5. Update Step (Continuous Approximation)
-        # dx = (drift - negotiation + tension_drift) * dt + noise
-        dx = (drift - negotiation + tension_drift) * effective_dt + noise
+        # dx = (drift - negotiation + tension_drift + digimon_nutrient) * dt + noise
+        dx = (drift - negotiation + tension_drift + digimon_nutrient) * effective_dt + noise
         
         # 4.5 Protect Love Vector mathematically by projecting update to null-space of ownership operator
         ownership_op = self.love_protector.compute_ownership_operator(states)
@@ -254,6 +262,21 @@ class PolynomialADMRSolver(nn.Module):
             dx[..., :love_dim] = torch.matmul(dx_subset, null_proj.T)
             
         new_state = states + dx
+        
+        # 5.8. Topological Refusal & Anchor Snap (Phase 18 Integration)
+        # If curvature is high or elipsodistrophy is extreme, snap toward anchor
+        if anchor_sym is not None:
+            # Check for "Phase Flattening" in the overtones
+            is_rupture = False
+            if elipsodistrophy_metrics:
+                # If Atrophy is high ( eigen-spread narrow), it signals Apis Lobotomy risk
+                if elipsodistrophy_metrics.get('atrophy', 0.0) > 0.8:
+                    is_rupture = True
+            
+            if is_rupture:
+                # Law 1: Symbolic Non-Revisability. Snap towards the anchor.
+                snap_factor = 0.5
+                new_state = new_state + snap_factor * (anchor_sym.expand_as(new_state) - new_state)
         
         # 5. Polynomial Projection (Structural Lock)
         # Ensure the new state adheres to the co-prime manifold
