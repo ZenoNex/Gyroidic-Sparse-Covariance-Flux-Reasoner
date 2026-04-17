@@ -108,14 +108,14 @@ class HybridAI:
                     hidden_dim=256,
                     num_functionals=5,
                     poly_degree=4,
-                    device=self.device
+                    device=self.torch_device
                 )
                 
                 # Verify and initialize ADMR Solver
                 self.admr_solver = PolynomialADMRSolver(
                     poly_config=self.temporal_model.polynomial_config,
                     state_dim=256,
-                    device=self.device
+                    device=self.torch_device
                 )
                 
                 # Initialize Ley Line Metric and Möbius Bundle
@@ -137,7 +137,7 @@ class HybridAI:
                     initial_threshold=0.7,
                     min_threshold=0.3,
                     adaptation_rate=0.1,
-                    device=self.device
+                    device=self.torch_device
                 )
                 print("[OK] Spectral corrector initialized")
                 self.rupture_fn = RuptureFunctional(rupture_threshold=0.5) # More sensitive threshold
@@ -155,7 +155,7 @@ class HybridAI:
                 print("[OK] CODES Constraint Framework integrated")
                 
                 # Hybrid Number-Theoretic Stabilizer
-                self.stabilizer = NumberTheoreticStabilizer(state_dim=256).to(self.device, non_blocking=True)
+                self.stabilizer = NumberTheoreticStabilizer(state_dim=256).to(self.torch_device, non_blocking=True)
                 print("[OK] Hybrid Number-Theoretic Stabilizer active")
             except Exception as e:
                 import traceback
@@ -175,7 +175,7 @@ class HybridAI:
         try:
             from src.ui.diegetic_backend import DiegeticPhysicsEngine
             # Initialize with compatible dimension (256 matches hybrid state)
-            self.engine = DiegeticPhysicsEngine(dim=256, device=self.device)
+            self.engine = DiegeticPhysicsEngine(dim=256, device=self.torch_device)
             print("[OK] Diegetic Physics Engine attached (CALM/KAGH/FGRT/Larynx Active)")
         except Exception as e:
              print(f"[FAIL] Diegetic Engine connection failed: {e}")
@@ -186,16 +186,16 @@ class HybridAI:
         # --- Implicated System State S(t) = <Phi_I, Phi_C, Delta> ---
         # Phi_I (Interiority): The latent manifold state (handled by hidden_state)
         # Phi_C (Narration): Persistent state of the linguistic output
-        self.narration_field = torch.randn(256, device=self.device) * 0.001
+        self.narration_field = torch.randn(256, device=self.torch_device) * 0.001
         # Delta (Damage): Accumulated paraconsistent contradictions (toxic memory)
-        self.damage_residue = torch.randn(256, device=self.device) * 0.001
+        self.damage_residue = torch.randn(256, device=self.torch_device) * 0.001
         # Perfect Memory Anchor (Phi_P): Lossless historical component
         self.perfect_memory = [] # Historical residues
 
         # Initialize Dataset System
         if DATASET_SYSTEM_AVAILABLE:
             try:
-                self.dataset_system = DatasetIngestionSystem(device=self.device)
+                self.dataset_system = DatasetIngestionSystem(device=self.torch_device)
                 print("[OK] Dataset Ingestion System initialized")
             except Exception as e:
                 print(f"[FAIL] Dataset Ingestion System init failed: {e}")
@@ -225,14 +225,14 @@ class HybridAI:
             print(f"[FAIL] Graph Manager init failed: {e}")
             self.graph_manager = None
     
-    def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative') -> dict:
+    def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None) -> dict:
         # --- FGRT HARMONIC SEED (Love Vector Norm 3.127) ---
-        t_basis = torch.linspace(0, 2 * 3.14159265, 256, device=self.device)
+        t_basis = torch.linspace(0, 2 * 3.14159265, 256, device=self.torch_device)
         # Establish the 3.127 Norm required for Klein-Gyroid stability
         initial_seed = torch.sin(t_basis) * (3.127 / torch.norm(torch.sin(t_basis)))
         self.hidden_state_scarred = initial_seed.clone()
         self.hidden_state = initial_seed.clone()
-        self.corrected_tensor = torch.zeros(256, device=self.device)
+        self.corrected_tensor = torch.zeros(256, device=self.torch_device)
         self.iteration_count += 1
         
         # Prevent heartbeat from showing up in main chat
@@ -246,11 +246,11 @@ class HybridAI:
         
         # Create deterministic topological hash embedding (CODES by Devin Bostick)
         # We project the text into a 768D manifold using character-position harmonics
-        text_embedding = torch.zeros(768, device=self.device)
+        text_embedding = torch.zeros(768, device=self.torch_device)
         for i, char in enumerate(text[:128]):
             # Use prime-based harmonics for character encoding
             freq = (i + 1) * (ord(char) / 128.0) * 3.14159
-            text_embedding += torch.sin(torch.linspace(0, freq, 768, device=self.device))
+            text_embedding += torch.sin(torch.linspace(0, freq, 768, device=self.torch_device))
             text_embedding = torch.tanh(text_embedding)
             
         # --- INFERENCE CONNECTION ---
@@ -258,11 +258,12 @@ class HybridAI:
         if self.engine:
             try:
                 # Process via Diegetic Engine
-                print(f"[ENGINE] Processing: '{text}' (Video Dyad: {'YES' if video_dyad_b64 else 'NO'})")
+                print(f"[ENGINE] Processing: '{text}' (Video Dyad: {'YES' if video_dyad_b64 else 'NO'}) (Image Fingerprint: {'YES' if fingerprint else 'NO'})")
                 engine_output = self.engine.process_input(
                     text_input=text, 
                     video_dyad_b64=video_dyad_b64, 
                     commutativity=commutativity,
+                    fingerprint=fingerprint,
                     generate_response=True
                 )
                 
@@ -319,8 +320,8 @@ class HybridAI:
         response_text = ""
         diagnostics = {}
         # --- UNIVERSAL MANIFOLD ANCHORS (Root Level) ---
-        self.hidden_state_scarred = torch.randn(256, device=self.device) * 0.001
-        self.corrected_tensor = torch.randn(256, device=self.device) * 0.001
+        self.hidden_state_scarred = torch.randn(256, device=self.torch_device) * 0.001
+        self.corrected_tensor = torch.randn(256, device=self.torch_device) * 0.001
         
         # Process through temporal model if available
         if self.temporal_model:
@@ -340,8 +341,8 @@ class HybridAI:
                     self.hidden_state_scarred = hidden_state_256
                 
                 # 3. Temporal Evolution (ADMR Solver)
-                neighbor_states = torch.stack([self.temporal_model.prev_states.mean(dim=0)] * 1).unsqueeze(0).to(self.device)
-                adj_weight = torch.ones(1, neighbor_states.shape[1]).to(self.device)
+                neighbor_states = torch.stack([self.temporal_model.prev_states.mean(dim=0)] * 1).unsqueeze(0).to(self.torch_device)
+                adj_weight = torch.ones(1, neighbor_states.shape[1]).to(self.torch_device)
                 hidden_state_evolved = self.admr_solver.stochastic_differential_step(
                     states=hidden_state.unsqueeze(0),
                     neighbor_states=neighbor_states,
@@ -375,7 +376,7 @@ class HybridAI:
                 conflict_tension = torch.dot(self.hidden_state_scarred, self.narration_field)
                 twist_trigger = (codes_energy > 0.4) and (conflict_tension < -0.01)
                 twist_gate_val = 1.0 if twist_trigger else 0.0
-                twist_gate = torch.tensor([twist_gate_val], device=self.device)
+                twist_gate = torch.tensor([twist_gate_val], device=self.torch_device)
                 fiber_state = self.moebius_bundle(self.hidden_state_scarred.unsqueeze(0), twist_gate)
                 moebius_holonomy = float(twist_gate.item())
                 
@@ -409,7 +410,7 @@ class HybridAI:
                 # Formula: Chi = Centroid(Spectrum) - D/2
                 # Proxy: mean index of energy
                 weights = torch.abs(self.hidden_state_scarred)
-                indices = torch.arange(len(weights), device=self.device).float()
+                indices = torch.arange(len(weights), device=self.torch_device).float()
                 chi_centroid = torch.sum(indices * weights) / (torch.sum(weights) + 1e-6)
                 chi = chi_centroid.item() - (len(weights) / 2.0)
                 
@@ -422,7 +423,7 @@ class HybridAI:
                 if phi_k.numel() > 1:
                     phi_var = torch.var(phi_k)
                 else:
-                    phi_var = torch.tensor(0.01, device=self.device)
+                    phi_var = torch.tensor(0.01, device=self.torch_device)
 
                 # Anisotropy (A) = diag(alpha) -> simplified as a scalar escape valve
                 anisotropy = (phi_var + 1e-8).sqrt().item()
@@ -925,10 +926,11 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             user_text = data.get('text', '').strip()
             video_dyad_b64 = data.get('video_dyad_b64')
             commutativity = data.get('commutativity', 'non_commutative')
+            fingerprint = data.get('fingerprint')  # Chebyshev image fingerprint {L, Cr, Cb}
             
             # Process through AI system
             if AI_SYSTEM:
-                result = AI_SYSTEM.process_text(user_text, video_dyad_b64, commutativity)
+                result = AI_SYSTEM.process_text(user_text, video_dyad_b64, commutativity, fingerprint)
             else:
                 result = {
                     'response': f"AI system not initialized. Received: {user_text}",
@@ -1180,9 +1182,10 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             user_text = data.get('message', data.get('text', '')).strip()
             video_dyad_b64 = data.get('video_dyad_b64')
             commutativity = data.get('commutativity', 'non_commutative')
+            fingerprint = data.get('fingerprint')  # Chebyshev image fingerprint {L, Cr, Cb}
 
             if AI_SYSTEM:
-                result = AI_SYSTEM.process_text(user_text, video_dyad_b64, commutativity)
+                result = AI_SYSTEM.process_text(user_text, video_dyad_b64, commutativity, fingerprint)
                 
                 # Extract meta-infra variables
                 diagnostics = result.get('diagnostics', {})
