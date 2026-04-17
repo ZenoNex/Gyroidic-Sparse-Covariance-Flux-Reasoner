@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+import sys, io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
 """
 diagnose_fossil.py — Knowledge Dyad Fossil Inspector
 
@@ -89,8 +93,35 @@ if fp is not None and rv is not None and l2 > 1e-4:
     # with it because ResidueFusion.forward() projects fp → 512D then computes
     # torsion = tanh(matmul(img_proj - txt_proj, torsion_matrix)).
     # We can test if zeroing out the fingerprint would change the residue.
-    # Since we don't have the trained fusion_layer weights here, we check
-    # whether fp contributes structurally:
+    # Load actual fusion_layer weights from the engine state file.
+    # After the fix, self.fusion_layer is a registered submodule of
+    # DiegeticPhysicsEngine, so its weights appear in gyroid_state.pt
+    # under the key prefix "fusion_layer.*".
+    import sys
+    sys.path.insert(0, ROOT)
+    from src.core.knowledge_dyad_fossilizer import ResidueFusion
+
+    fusion = ResidueFusion(feature_dim=256, fingerprint_dim=137)
+    state_pt = os.path.join(ROOT, "gyroid_state.pt")
+    weights_loaded = False
+    if os.path.exists(state_pt):
+        try:
+            full_state = torch.load(state_pt, map_location="cpu")
+            fl_state = {k.replace("fusion_layer.", ""): v
+                        for k, v in full_state.items()
+                        if k.startswith("fusion_layer.")}
+            if fl_state:
+                fusion.load_state_dict(fl_state)
+                weights_loaded = True
+                print(f"  Loaded fusion_layer weights from gyroid_state.pt ({len(fl_state)} tensors)")
+            else:
+                print("  gyroid_state.pt exists but has no 'fusion_layer.*' keys.")
+                print("  Restart the backend once to generate them, then re-run this script.")
+        except Exception as e:
+            print(f"  Could not load gyroid_state.pt: {e}")
+    else:
+        print("  gyroid_state.pt not found — using random fusion_layer (not representative).")
+
     fp_norm   = fp.norm().item()
     rv_norm   = rv.norm().item()
     cos_sim   = torch.dot(fp[:min(len(fp), len(rv))].flatten(),
