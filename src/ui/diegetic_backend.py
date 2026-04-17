@@ -962,7 +962,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Trigger Association if knowledge seeking is critical
         elif affordance_gradients.get('knowledge_seeking', 0.0) > 0.4:
             print("[TRIGGER] Agentic Association Triggered by Affordance Gradient")
-            dyad_override_response = self._handle_association_learning(text_input, seed_state)
+            dyad_override_response = self._handle_association_learning(text_input, None, seed_state)
             
         # 5.a Real Voynich Exemption (Self-Sovereign Alphabet)
         with torch.no_grad():
@@ -2930,7 +2930,7 @@ class DiegeticPhysicsEngine(nn.Module):
             association_text = f"ASSOCIATE: {source_text[:100]} <-> {api_content[:500]}"
             
             # Process through existing association learning
-            result = self._handle_association_learning(association_text, self.meta_state)
+            result = self._handle_association_learning(association_text, None, self.meta_state)
             
             if "learned" in result.lower():
                 associations_created = 1
@@ -3032,7 +3032,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Build fingerprint tensor — supports current Chebyshev format {L, Cr, Cb} and
         # the legacy 137-dim histogram format {r, g, b, l, texture, edges}.
         fp_tensor = torch.zeros(137, device=self.device)
-        if fingerprint:
+        if fingerprint and isinstance(fingerprint, dict):
             if 'L' in fingerprint and 'Cr' in fingerprint and 'Cb' in fingerprint:
                 # Current Chebyshev multimodal format
                 fp_list = (
