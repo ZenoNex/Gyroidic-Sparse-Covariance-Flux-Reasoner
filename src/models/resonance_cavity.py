@@ -476,11 +476,16 @@ class ResonanceCavity(nn.Module):
         # --- Speculative Neuroscience Layer: Dark Matter Accumulation ---
         # Dark matter captures the "unreconciled" residues (the holes).
         # It evolves slower and represents counterfactual potential.
-        if refined_residues is not None and expected_residues is not None:
-             residue_gap = torch.abs(refined_residues - expected_residues).mean()
-             if residue_gap > 0.1:
+        if refined_residues is not None:
+             # Use current field's refined residue
+             r_ref = refined_residues[:, field_idx].mean() if refined_residues.dim() > 1 else refined_residues.mean()
+             r_exp = (expected_residues[:, field_idx].mean() if expected_residues.dim() > 1 else expected_residues.mean()) if expected_residues is not None else 0.0
+             
+             residue_gap = torch.abs(r_ref - r_exp)
+             if residue_gap > 0.05:
                   # Inject gap into dark matter as a "speculative trace"
-                  dD_dt = (excitation - self.M[field_idx]) * residue_gap
+                  # Scaled by the refined residue itself to ensure multimodal collision 'seeds' it
+                  dD_dt = (excitation - self.M[field_idx]) * residue_gap * torch.abs(r_ref)
                   self.D_dark[field_idx] += dt * 0.1 * dD_dt
         
         # Normalize to prevent blow-up (Lipschitz Bound enforcement)
