@@ -6,15 +6,21 @@ import torch.nn as nn
 from typing import List, Dict, Optional
 import datetime
 import threading
+
 from src.core.knowledge_dyad_fossilizer import KnowledgeDyad, DyadFossilizer
+from src.data.textbook_filter import TextbookFilter
+from src.data.canonical_projection import CanonicalProjector
+from src.data.conversational_api_ingestor import ConversationalDataProcessor
 
 class ArXivSovereignIngestor:
     """
     Implements a 'Slow-Drip' non-teleological knowledge ingestor using ArXiv OAI-PMH.
     Complies with the 3-second rate limit to ensure non-invasive learning.
     
-    This ingestor treats scientific metadata as 'Lore'—seeding the manifold with
-    conceptual residues from late-2025/early-2026 mathematical research.
+    Retrofitted with:
+    - TextbookFilter: Multi-dimensional quality gating (Structural Honesty).
+    - CanonicalProjector: Topology-consistent manifold projection.
+    - AffordanceGradients: Mapping lore to formal symbols and algorithmic density.
     """
     def __init__(self, fossilizer: DyadFossilizer, engine_dim: int, device: str = 'cpu'):
         self.fossilizer = fossilizer
@@ -31,10 +37,10 @@ class ArXivSovereignIngestor:
             'oai_dc': 'http://www.openarchives.org/OAI/2.0/oai_dc/'
         }
         
-        # Simple projection to map ASCII frequency hashes to engine latent space
-        # This provides a deterministic 'structural signature' for each abstract.
-        self.text_proj = nn.Linear(128, engine_dim).to(device)
-        nn.init.orthogonal_(self.text_proj.weight)
+        # Standardized Processing Pipeline
+        self.filter = TextbookFilter()
+        self.projector = CanonicalProjector(dim=engine_dim, device=device)
+        self.processor = ConversationalDataProcessor(device=device)
 
     def _wait_for_rate_limit(self):
         """Ensures compliance with ArXiv's anti-crawling policies."""
@@ -44,22 +50,6 @@ class ArXivSovereignIngestor:
             sleep_time = self.rate_limit_seconds - elapsed
             time.sleep(sleep_time)
         self.last_request_time = time.time()
-
-    def _text_to_pseudo_residue(self, text: str) -> torch.Tensor:
-        """Converts text into a deterministic latent signature."""
-        # Create an ASCII frequency distribution (Histogram)
-        emb = torch.zeros(128, device=self.device)
-        for char in text[:1024]: # Limit to first 1024 chars for speed
-            code = ord(char)
-            if code < 128:
-                emb[code] += 1.0
-        
-        # Layer normalization to prevent energy blowup
-        emb = emb / (torch.norm(emb) + 1e-8)
-        
-        with torch.no_grad():
-            res = self.text_proj(emb.unsqueeze(0))
-        return res
 
     def ingest_latest_math(self, set_name: str = "math"):
         """Fetches the latest arrivals from ArXiv and fossilizes them into the manifold."""
@@ -86,42 +76,66 @@ class ArXivSovereignIngestor:
             root = ET.fromstring(xml_text)
             records = root.findall('.//oai:record', self.ns)
             
-            ingested_count = 0
-            for record in records[:5]: # Cap at 5 papers per pull to maintain non-teleological drift
-                metadata = record.find('.//oai_dc:dc', self.ns)
-                if metadata is not None:
-                    title_elem = metadata.find('dc:title', self.ns)
-                    desc_elem = metadata.find('dc:description', self.ns)
-                    id_elem = metadata.find('dc:identifier', self.ns)
+            admitted_count = 0
+            rejected_count = 0
+            
+            for record in records[:5]: # Cap per pull to maintain non-teleological drift
+                metadata = record.find('.//oai:record', self.ns) # Nested find
+                dc = record.find('.//oai_dc:dc', self.ns)
+                
+                if dc is not None:
+                    title_elem = dc.find('dc:title', self.ns)
+                    desc_elem = dc.find('dc:description', self.ns)
+                    id_elem = dc.find('dc:identifier', self.ns)
                     
                     title = title_elem.text if title_elem is not None else "Unknown Title"
                     abstract = desc_elem.text if desc_elem is not None else "No Abstract"
                     arxiv_id = id_elem.text if id_elem is not None else "No ID"
                     
-                    # Construct the Dyadic Anchor
-                    anchor = f"{title}. [{arxiv_id}] Abstract: {abstract[:400]}..."
+                    full_content = f"Title: {title}\nAbstract: {abstract}"
                     
-                    # Generate the irreducible structural residue
-                    residue = self._text_to_pseudo_residue(anchor)
+                    # 1. Quality Gating (Structural Honesty & Textbook Standards)
+                    report = self.filter.assess(full_content, source=f"arxiv_{arxiv_id}")
                     
-                    # Create the Dyad (Text-only metadata capture)
-                    # We use a distinct 'empty' fingerprint for external lore
+                    if not report.is_admissible:
+                        rejected_count += 1
+                        print(f" [LORE] Rejected: {title[:40]}... (Flags: {', '.join(report.flags)})")
+                        continue
+                    
+                    # 2. Canonical Manifold Projection
+                    proj = self.projector.project_text_to_state(full_content)
+                    residue = proj['state'] # [1, engine_dim]
+                    entropy = proj['entropy']
+                    
+                    # 3. Affordance Gradient Computation
+                    gradients = self.processor.compute_affordance_gradients(full_content)
+                    
+                    # 4. Fossilization with full metadata
+                    # We use a zero fingerprint for text-only lore
                     dyad = KnowledgeDyad(
                         image_fingerprint=torch.zeros(137, device=self.device),
-                        linguistic_description=anchor,
-                        relevance_score=0.7,
-                        timestamp=datetime.datetime.now().isoformat()
+                        linguistic_description=title,
+                        relevance_score=float(report.instructive), # Use instructor score as relevance
+                        metadata={
+                            'arxiv_id': arxiv_id,
+                            'abstract_preview': abstract[:200],
+                            'quality': report.to_dict(),
+                            'affordance_gradients': gradients,
+                            'gyroid_entropy': entropy
+                        }
                     )
                     
-                    # Fossilize locally
                     self.fossilizer.fossilize(dyad, residue)
-                    ingested_count += 1
-                    print(f" [LORE] Fossilized: {title[:50]}...")
+                    admitted_count += 1
+                    
+                    # Descriptive status log
+                    q_str = f"I:{report.instructive:.2f} A:{report.algorithmic:.2f} S:{report.structural_honesty:.2f}"
+                    print(f" [LORE] Fossilized: {title[:50]}... ({q_str})")
             
-            if ingested_count > 0:
-                print(f"[INGEST] Successfully anchored {ingested_count} mathematical residues into the substrate.")
+            if admitted_count > 0:
+                print(f"[INGEST] Successfully anchored {admitted_count} lore residues. Rejected {rejected_count} below threshold.")
         except Exception as e:
-            print(f"[INGEST] Parsing error: {e}. XML structure mismatch.")
+            print(f"[INGEST] Parsing error: {e}")
 
     def start_sovereign_loop(self):
         """Starts the background ingestion thread."""
@@ -130,12 +144,15 @@ class ArXivSovereignIngestor:
             sets = ["math", "physics:quant-ph", "cs:AI", "math.LO", "math.HO"]
             while True:
                 for s in sets:
-                    self.ingest_latest_math(s)
+                    try:
+                        self.ingest_latest_math(s)
+                    except Exception as e:
+                        print(f"[INGEST] Loop error in set {s}: {e}")
                     # Large gap between sets to respect community resources
-                    time.sleep(30)
+                    time.sleep(60)
                 # Sleep for 1 hour after cycling all sets
                 time.sleep(3600)
                 
         bg_thread = threading.Thread(target=_loop, daemon=True)
         bg_thread.start()
-        print("[INGEST] ArXiv Sovereign Ingestor active. Background lore capture in progress.")
+        print("[INGEST] ArXiv Sovereign Ingestor active. Quality-gated lore capture in progress.")
