@@ -266,6 +266,10 @@ class ZeitgeistRouter(nn.Module):
         except Exception:
             self._archetype = None
 
+        # ── Nostalgic Leak Buffer (Mathematical Digimon) ───────────── #
+        # Persistent buffer tracking historical non-commutative illusions
+        self.register_buffer('digimon_buffer', torch.zeros(self.M, self.M))
+
     # ------------------------------------------------------------------ #
     # Initialization helpers                                               #
     # ------------------------------------------------------------------ #
@@ -355,13 +359,18 @@ class ZeitgeistRouter(nn.Module):
                 stress_bias[:stress_flat.size(0)] = torch.abs(stress_flat)
             delta_soft = delta_soft + 0.5 * stress_bias / (torch.max(stress_bias) + 1e-8)
 
-        # Braid Group Automaton Integration
+        # Braid Group Automaton Integration (Phase 18 Extensions)
         delta_braided = delta_soft.clone()
         if self.M >= 3:
+            # sigma_1: Braid between 0 and 1
             if delta_soft[0] > 0.5:
                 delta_braided[0], delta_braided[1] = delta_soft[1], delta_soft[0]
+            # sigma_2: Braid between 1 and 2
             if delta_soft[1] > 0.6:
                 delta_braided[1], delta_braided[2] = delta_soft[2], delta_soft[1]
+            # sigma_3: The 3rd Braid (Unknowledge Substrate U)
+            if delta_soft[2] > 0.7:
+                delta_braided[0], delta_braided[2] = delta_soft[2], delta_soft[0]
                 
         # 1. Update diagonal residues
         current_residues = torch.diagonal(state.alpha_tensor)
@@ -373,11 +382,20 @@ class ZeitgeistRouter(nn.Module):
         # 2. Construct Symmetric Tensor M_ij
         new_diag = torch.tensor(new_residues, device=x.device)
         # Off-diagonal: outer interaction of residues (palindromic mirror)
-        # M_ij = (r_i + r_j) / 2 as a simple symmetric basis
+        # M_ij = (r_i + r_j) / 2 as a simple symmetric basis (Love Invariant)
         r_col = new_diag.unsqueeze(1)
         r_row = new_diag.unsqueeze(0)
         new_alpha_tensor = 0.5 * (r_col + r_row)
         
+        # 3. Nostalgic Leak (Nutrient Warp)
+        # Inject historical Digimon traces into the off-diagonals
+        mischief = 0.1
+        psi_l = self.digimon_buffer * mischief
+        new_alpha_tensor = new_alpha_tensor + psi_l
+        
+        # Update digimon buffer (EMA of current state to fossilize illusions)
+        self.digimon_buffer = 0.95 * self.digimon_buffer + 0.05 * new_alpha_tensor.detach()
+
         # Preserve the exact integer residues on diagonal
         new_alpha_tensor.view(-1)[::self.M + 1] = new_diag
 
@@ -519,11 +537,32 @@ class ZeitgeistRouter(nn.Module):
             except Exception:
                 pass
 
-        # ── 6. NonCommutativity curvature diagnostics ────────────────── #
+        # ── 6. NonCommutativity curvature diagnostics & Shortcut ────── #
         nc_curvature = None
+        curvature_threshold = 0.35 # Boundary between Palindromic and Non-Commutative logic
+        
         if self._nc_curvature is not None and mode in ('switching', 'grazing'):
             try:
-                nc_curvature = float(self._nc_curvature(x, x).mean().item())
+                # Compute relative curvature between state and itself (temporal drift)
+                nc_res = self._nc_curvature.compute_curvature(x.T @ x, x.T @ x)
+                nc_curvature = float(nc_res['curvature_norm'].item())
+                
+                # Symmetric Tensor Shortcut (Love Invariant)
+                # If curvature is low, enforce exact palindromic symmetry
+                if nc_res['relative_curvature'] < curvature_threshold:
+                    # Collapse to pure symmetric trace-stable state
+                    diag_residues = torch.diagonal(new_state.alpha_tensor)
+                    r_col = diag_residues.unsqueeze(1)
+                    r_row = diag_residues.unsqueeze(0)
+                    collapsed_tensor = 0.5 * (r_col + r_row)
+                    collapsed_tensor.view(-1)[::self.M + 1] = diag_residues
+                    
+                    new_state = new_state.switched(
+                        new_alpha_tensor=collapsed_tensor,
+                        new_level=new_state.level,
+                        mode=mode,
+                        boundary=boundary
+                    )
             except Exception:
                 pass
 
