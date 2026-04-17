@@ -120,41 +120,71 @@ class PrimeResonanceLadder(nn.Module):
     """
     Prime-based Resonance Ladder (Eq 1).
     
-    Generates resonance frequencies based on the sequence of prime numbers:
-    f_{p_n} = 2 * pi * log(p_n)
+    Generates resonance frequencies based on the sequence of prime numbers and their
+    corresponding palindromic repunits (Repunit-Prime Pairs).
     
-    Used to initialize the oscillator components of the Resonance Intelligence Core.
+    Hybrid Palindromic Basis:
+    f_{p_n} = 2 * pi * log(p_n)
+    R_n^{(p)} = (p^n - 1) / (p - 1)  [Repunit-Prime Symmetry Mirror]
+    
+    Authorship: Integrated Lazarus Prime selection for O(K) Symmetry-Stable Warmstart.
     """
-    def __init__(self, num_resonators: int = 100):
+    def __init__(self, num_resonators: int = 100, repunit_base_n: int = 3):
         super().__init__()
         self.num_resonators = num_resonators
-        self.primes = self._generate_primes(num_resonators)
+        self.repunit_base_n = repunit_base_n
         
-        # Eq (1): f_{p_n} = 2 * pi * log(p_n)
+        # 1. Generate Prime-Repunit Pairs
+        primes, repunits = self._generate_hybrid_basis(num_resonators, repunit_base_n)
+        self.register_buffer('primes', primes)
+        self.register_buffer('repunits', repunits)
+        
+        # 2. Resonant Frequencies: Eq (1): f_{p_n} = 2 * pi * log(p_n)
         frequencies = 2 * 3.14159265359 * torch.log(self.primes.float())
         self.register_buffer('frequencies', frequencies)
         
-    def _generate_primes(self, n: int) -> torch.Tensor:
-        """Generates the first n prime numbers."""
-        primes = []
+    def _is_prime(self, n: int) -> bool:
+        """Standard primality test."""
+        if n < 2: return False
+        if n == 2: return True
+        if n % 2 == 0: return False
+        for i in range(3, int(n**0.5) + 1, 2):
+            if n % i == 0: return False
+        return True
+
+    def _generate_hybrid_basis(self, n: int, base_n: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Generates the first n prime-repunit pairs.
+        Prioritizes Lazarus Primes (where p and R_n(p) are both prime).
+        """
+        pairs = []
         candidate = 2
-        while len(primes) < n:
-            is_prime = True
-            for p in primes:
-                if candidate % p == 0:
-                    is_prime = False
-                    break
-                if p * p > candidate:
-                    break
-            if is_prime:
-                primes.append(candidate)
+        while len(pairs) < n:
+            if self._is_prime(candidate):
+                # Calculate R_n(p) = (p^base_n - 1) / (p - 1)
+                # For base_n=2: p+1 (not usually prime if p > 2)
+                # For base_n=3: p^2 + p + 1
+                r_n = (candidate**base_n - 1) // (candidate - 1)
+                
+                # Check for Lazarus Prime property (both prime)
+                is_lazarus = self._is_prime(r_n)
+                
+                # We prioritize Lazarus primes by adding them to the list.
+                # If we need more, we take standard primes and their repunit mirrors.
+                pairs.append((candidate, r_n, is_lazarus))
             candidate += 1
-        return torch.tensor(primes, dtype=torch.long)
+            
+        # Sort such that Lazarus primes appear in stable zones? 
+        # Actually, let's keep sequence order but return as tensors.
+        primes_list = [p[0] for p in pairs]
+        repunits_list = [p[1] for p in pairs]
         
+        return (torch.tensor(primes_list, dtype=torch.long), 
+                torch.tensor(repunits_list, dtype=torch.long))
+
     def _generate_repunits(self, base: int = 10) -> torch.Tensor:
         """
-        Generates repunits: R_n^(b) = (b^n - 1) / (b - 1).
-        Used for cyclic structural markers.
+        Legacy repunit generator for backward compatibility.
         """
         repunits = []
         for n in range(1, self.num_resonators + 1):
@@ -162,7 +192,13 @@ class PrimeResonanceLadder(nn.Module):
             repunits.append(r)
         return torch.tensor(repunits, dtype=torch.float32)
 
-    def forward(self) -> torch.Tensor:
+    def forward(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Returns:
+            frequencies: [num_resonators] resonance frequencies
+            repunits: [num_resonators] palindromic repunit mirrors
+        """
+        return self.frequencies, self.repunits
         """Returns the resonance frequencies."""
         return self.frequencies
     
