@@ -13,6 +13,7 @@ class KnowledgeDyad:
     """
     image_fingerprint: torch.Tensor # [137] vector
     linguistic_description: str
+    gyroid_residue: Optional[torch.Tensor] = None # [n, n] irreducible entanglement
     relevance_score: float = 1.0
     timestamp: str = ""
     
@@ -104,6 +105,7 @@ class DyadFossilizer:
             'description': dyad.linguistic_description,
             'image_fingerprint': dyad.image_fingerprint,
             'residue_vector': residue.detach().cpu(),
+            'gyroid_residue': dyad.gyroid_residue.detach().cpu() if dyad.gyroid_residue is not None else None,
             'hyperbolic_residue': hyperbolic_residue.detach().cpu(),
             'timestamp': dyad.timestamp,
             'metrics': {
