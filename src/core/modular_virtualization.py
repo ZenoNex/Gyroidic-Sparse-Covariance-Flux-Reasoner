@@ -13,72 +13,70 @@ from typing import Optional
 
 class ModularVirtualizationLayer(nn.Module):
     """
-    A unified layer mapping floating-point states into a Residue Number System (RNS).
+    A hybrid layer mapping floating-point states into a Residue Number System (RNS)
+    with Palindromic Symmetry.
     
-    Refined Update: Uses a prime-indexed lattice to ensure spectral purity and 
-    coprime integrity across the modular torus.
+    Refined Update: Integrates the prime-based torus with palindromic repunit mirrors.
+    The hybrid modulus is defined as the product of the prime resonance and its 
+    corresponding repunit symmetry: hybrid_modulus = p * R_p.
     """
-    def __init__(self, dim: int, base: Optional[int] = None, device: str = None):
+    def __init__(self, dim: int, legacy_mode: bool = False, device: str = None):
         super().__init__()
         self.dim = dim
         self.device = device
+        self.legacy_mode = legacy_mode
         
-        # Prime Resonance Alignment: Fetch primes for the modular base
-        # This replaces standard binary base with an incommensurate prime lattice.
+        # Prime Resonance Alignment: Fetch (p, R_p) pairs
         self.resonance_ladder = PrimeResonanceLadder(num_resonators=max(dim, 100))
         self.register_buffer('primes', self.resonance_ladder.primes[:dim])
+        self.register_buffer('repunits', self.resonance_ladder.repunits[:dim])
         
-        # We still keep the hasher for Repunit-based rhythmic marking, 
-        # but the primary modular arithmetic now runs on the prime torus.
+        # Hasher for auxiliary palindromic markers (backward compatibility)
         self.hasher = RepunitHasher(base=2, sequence_length=max(dim, 10), device=device)
         
-    def get_modulus_bounds(self) -> torch.Tensor:
+    def get_hybrid_modulus(self) -> torch.Tensor:
         """
-        Fetch prime-based modulus bounds.
+        Fetch the composite hybrid modulus: p * R_p.
+        If legacy_mode is active, returns just the prime basis.
         """
-        return self.primes.float()
+        if self.legacy_mode:
+            return self.primes.float()
+        return self.primes.float() * self.repunits.float()
 
     def float_to_rns(self, tensor: torch.Tensor) -> torch.Tensor:
         """
-        Quantize state scaling onto a modular torus Z/pZ bounded by repunits.
+        Quantize state scaling onto a hybrid modular torus.
         """
-        bounds = self.get_modulus_bounds()
-        bounds = bounds.to(tensor.device)
+        modulus = self.get_hybrid_modulus().to(tensor.device)
         
-        # Absorb float into finite field via integer scaling and modulus
-        # Scaling factor:
+        # Scale for integer arithmetic (Signal Sovereignty precision)
         scale_factor = 1e4
         integerized = torch.round(tensor * scale_factor)
         
-        # Modulo bound constraints (RNS representation)
-        modular_residues = torch.remainder(integerized, bounds)
+        # Modulo bound constraints (Hybrid RNS representation)
+        modular_residues = torch.remainder(integerized, modulus)
         return modular_residues
 
     def rns_to_float(self, residues: torch.Tensor) -> torch.Tensor:
         """
-        Inverse projection from finite field back to pseudo-continuous float.
+        Inverse projection from hybrid finite field back to float.
         """
-        bounds = self.get_modulus_bounds()
-        bounds = bounds.to(residues.device)
-        
         # De-scale
         scale_factor = 1e4
         return residues / scale_factor
 
     def fast_congruence_check(self, state_a: torch.Tensor, state_b: torch.Tensor, tolerance: float = 0.05) -> bool:
         """
-        Check digit-pattern congruence (warmstart shortcut).
-        If states hash to similar RNS cyclic markers, they are congruent without 
-        needing full Wasserstein optimal transport.
+        Check digit-pattern congruence (warmstart shortcut) using the hybrid basis.
         """
         rns_a = self.float_to_rns(state_a)
         rns_b = self.float_to_rns(state_b)
         
-        bounds = self.get_modulus_bounds().to(state_a.device)
+        modulus = self.get_hybrid_modulus().to(state_a.device)
         
         # Wrapped cyclic distance
         diff = torch.abs(rns_a - rns_b)
-        cyclic_dist = torch.min(diff, bounds - diff)
+        cyclic_dist = torch.min(diff, modulus - diff)
         
-        mean_dist = torch.mean(cyclic_dist / bounds)
+        mean_dist = torch.mean(cyclic_dist / modulus)
         return mean_dist.item() < tolerance
