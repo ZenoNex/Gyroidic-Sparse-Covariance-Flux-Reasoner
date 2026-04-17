@@ -98,7 +98,23 @@ This bound prevents:
 
 ---
 
-## 4. Connection to Architecture
+## 5. Hybrid Basis & Lazarus Primes (Phase 18)
+
+In the Phase 18 refactor, the `PrimeResonanceLadder` no longer emits solitary primes. It emits **Repunit-Prime Pairs** $(p, R_p)$ to form a Hybrid Palindromic Basis.
+
+### 5.1 Lazarus Prime Prioritization
+The ladder prioritizes primes $p$ that satisfy the **Lazarus condition**: $R_p = (p^n - 1) / (p - 1)$ is also prime for some small $n$. 
+
+Lazarus primes provide:
+- **Maximum Symmetry**: The repunit $R_p$ acts as a geometric mirror for prime $p$.
+- **Symmetry-Stable Warmstarting**: $O(K)$ faster convergence by initializing in the stable zone.
+
+### 5.2 Hybrid Modulus
+The effective modulus for the RNS virtualization is the product $M_{hybrid} = p \cdot R_p$. This product prevents non-commutative drift during high-pressure polytope switches.
+
+---
+
+## 6. Connection to Architecture
 
 | RIC Component | System Role | Implementation |
 |---------------|-------------|----------------|
@@ -107,3 +123,4 @@ This bound prevents:
 | PAS (Eq 2) | Global coherence invariant | `PhaseAlignmentInvariant` |
 | Berry Phase | Arrow of Time / Chirality | `BerryPhaseTracker` |
 | Amplitude Evolution | Selection Pressure | `UniversalOrchestrator.forward()` |
+| **Hybrid Basis (p, R_p)** | **Palindromic Symmetry** | `PrimeResonanceLadder` (updated) |
