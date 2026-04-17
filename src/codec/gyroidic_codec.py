@@ -40,6 +40,7 @@ from dataclasses import dataclass, field
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.core.polynomial_crt import PolynomialCRT
 from src.codec.conformal_log_polar import ConformalLogPolarProjector
+from src.core.modular_virtualization import ModularVirtualizationLayer
 
 
 # =============================================================================
@@ -69,6 +70,7 @@ class EncodingResult:
     image_residues: torch.Tensor   # [K, n, n] — G_k(I) per channel
     residue: torch.Tensor          # [n, n] — irreducible entanglement
     commutativity_gap: float       # ||AB - BA|| for the encoding
+    modular_congruence: float = 0.0 # RNS-based symmetry score
     berry_phases: Optional[torch.Tensor] = None # chiral groupoid tracking for visual twist
     diagnostics: Dict = field(default_factory=dict)
 
@@ -717,6 +719,9 @@ class GyroidicCodec(nn.Module):
         self.crt_bridge = CodecCRTBridge(self.poly_config)
         self.residue_extractor = ResidueExtractor()
         self.entanglement_gate = StructuralEntanglementGate()
+        
+        # Modular Resolve (Gap B Integration)
+        self.modular_rns = ModularVirtualizationLayer(dim=self.config.n * self.config.n)
 
     def encode(
         self,
@@ -754,7 +759,13 @@ class GyroidicCodec(nn.Module):
         # 6. Commutativity gap
         comm_gap = self.combiner.commutativity_gap(text_residues, image_residues)
 
-        # 7. Structural Entanglement Gate (admissibility, not comprehension)
+        # 7. Modular Congruence (Prime-based RNS check)
+        # Check digit-pattern congruence in the modular torus
+        text_flat = text_residues.mean(dim=0).flatten()
+        image_flat = image_residues.mean(dim=0).flatten()
+        mod_congruence = 1.0 - (self.modular_rns.fast_congruence_check(text_flat.unsqueeze(0), image_flat.unsqueeze(0), tolerance=1.0) if hasattr(self, 'modular_rns') else 0.0)
+
+        # 8. Structural Entanglement Gate (admissibility, not comprehension)
         gate_result = self.entanglement_gate.evaluate(residue, res_diagnostics)
 
         # Combine all diagnostics
@@ -762,6 +773,7 @@ class GyroidicCodec(nn.Module):
             **res_diagnostics,
             **gate_result,
             'commutativity_gap': comm_gap,
+            'modular_congruence': mod_congruence,
         }
 
         return EncodingResult(
@@ -770,6 +782,7 @@ class GyroidicCodec(nn.Module):
             image_residues=image_residues,
             residue=residue,
             commutativity_gap=comm_gap,
+            modular_congruence=mod_congruence,
             berry_phases=berry_phases,
             diagnostics=diagnostics,
         )
