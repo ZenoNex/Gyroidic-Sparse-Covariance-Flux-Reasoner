@@ -1953,15 +1953,28 @@ class DiegeticPhysicsEngine(nn.Module):
                 if not hasattr(self, 'trainer') or self.trainer is None:
                     return
 
-                self.trainer.train_on_interaction(
-                    input_tensor=inp,
-                    response_text=response_text,
-                    meta_state=self.meta_state.detach().cpu()
-                )
+                # Dispatch to whichever training interface the trainer provides.
+                # SpectralStructuralTrainer  →  train_step(input_data)
+                # TemporalAssociationTrainer →  train_on_interaction(input_tensor, response_tensor)
+                if hasattr(self.trainer, 'train_on_interaction'):
+                    # Encode response_text as a float tensor for association learning
+                    resp_chars = [ord(c) / 128.0 for c in (response_text or '')[:256]]
+                    if len(resp_chars) < 256:
+                        resp_chars += [0.0] * (256 - len(resp_chars))
+                    resp_tensor = torch.tensor(resp_chars, dtype=torch.float32)
+                    self.trainer.train_on_interaction(
+                        input_tensor=inp,
+                        response_tensor=resp_tensor,
+                    )
+                elif hasattr(self.trainer, 'train_step'):
+                    self.trainer.train_step(inp)
+                else:
+                    print("[TAT] No known training interface on trainer — skipping.")
             except Exception as e:
                 print(f"[TAT] Background training error: {e}")
             finally:
                 self._is_training_temporal = False
+
 
         import threading
         t = threading.Thread(target=_bg_train, daemon=True)
