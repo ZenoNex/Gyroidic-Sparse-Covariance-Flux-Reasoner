@@ -114,6 +114,11 @@ class NonLobotomyTemporalModel(nn.Module):
         self.register_buffer('mutation_strengths', torch.full((self.K,), 0.05, device=device))
         self.register_buffer('is_fossilized', torch.zeros(self.K, dtype=torch.bool, device=device))
         
+        # Functional projections for System 1 scalar evaluation
+        self.functional_projections = nn.ModuleList([
+            nn.Linear(hidden_dim, 1) for _ in range(self.K)
+        ]).to(self.device, non_blocking=True)
+        
         # Temporal state tracking for coherence
         self.register_buffer('prev_states', torch.zeros(3, hidden_dim, device=device))
         self.state_history_idx = 0
@@ -147,11 +152,6 @@ class NonLobotomyTemporalModel(nn.Module):
         phi_values = torch.zeros(h.shape[0], self.K, device=self.device)
         
         # Use learned linear projections to create K scalar inputs
-        if not hasattr(self, 'functional_projections'):
-            self.functional_projections = nn.ModuleList([
-                nn.Linear(h.shape[1], 1) for _ in range(self.K)
-            ]).to(self.device, non_blocking=True)
-        
         for k in range(self.K):
             # Project hidden vector to scalar for k-th functional
             h_k = self.functional_projections[k](h)  # [batch, 1]
