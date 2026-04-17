@@ -236,7 +236,8 @@ class HybridAI:
         self.iteration_count += 1
         
         # Prevent heartbeat from showing up in main chat
-        if text == "IDLE_RESONANCE_HEARTBEAT":
+        # Prevent heartbeat from showing up in main chat or triggering Ego Death
+        if "IDLE_RESONANCE_HEARTBEAT" in text:
             return {
                 "status": "HEARTBEAT_ACK",
                 "response": None,
