@@ -3175,7 +3175,9 @@ class DiegeticPhysicsEngine(nn.Module):
                     last_char = response_chars[-1]
                     
                     # Prevent excessive symbol clustering (allow spaces)
-                    if not char.isalnum() and not last_char.isalnum() and char != ' ' and len(response_chars) > 3:
+                    is_symbol = not char.isalnum() and char != ' '
+                    is_last_symbol = not last_char.isalnum() and last_char != ' '
+                    if is_symbol and is_last_symbol and len(response_chars) > 3:
                         # Skip this symbol to prevent clustering
                         continue
                     
