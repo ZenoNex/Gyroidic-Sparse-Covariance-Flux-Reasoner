@@ -97,7 +97,7 @@ def verify_hybrid_palindromic_extended():
     p_hash = torch.ones(1, 10)
     out_digimon = solver.stochastic_differential_step(
         states,
-        neighbor_states=states,
+        neighbor_states=states.unsqueeze(1),
         adjacency_weight=adj,
         palindromic_hash=p_hash
     )
@@ -107,7 +107,7 @@ def verify_hybrid_palindromic_extended():
     anchor = torch.zeros(1, 10)
     out_snap = solver.stochastic_differential_step(
         states,
-        neighbor_states=states,
+        neighbor_states=states.unsqueeze(1),
         adjacency_weight=adj,
         elipsodistrophy_metrics=metrics,
         anchor_sym=anchor
