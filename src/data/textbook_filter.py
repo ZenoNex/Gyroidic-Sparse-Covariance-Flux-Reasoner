@@ -273,7 +273,8 @@ class TextbookFilter:
         for pattern in DISHONEST_PATTERNS:
             if re.search(pattern, text, re.IGNORECASE):
                 dishonest_hits += 1
-                report.flags.append(f'dishonest_pattern_{pattern.replace("\\","")}')
+                safe_pattern = pattern.replace("\\", "")
+                report.flags.append(f"dishonest_pattern_{safe_pattern}")
         
         # Admissibility check: even a single hit drops score significantly
         if dishonest_hits > 0:
