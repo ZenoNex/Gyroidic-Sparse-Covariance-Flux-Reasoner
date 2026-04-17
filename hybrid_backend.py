@@ -262,9 +262,10 @@ class HybridAI:
                 print(f"[ENGINE] Processing: '{text}' (Video Dyad: {'YES' if video_dyad_b64 else 'NO'}) (Image Fingerprint: {'YES' if fingerprint else 'NO'})")
                 engine_output = self.engine.process_input(
                     text_input=text, 
-                    video_dyad_b64=video_dyad_b64, 
-                    commutativity=commutativity,
                     fingerprint=fingerprint,
+                    audio_dyad=audio_dyad,
+                    video_dyad_b64=video_dyad_b64,
+                    commutativity=commutativity,
                     generate_response=True
                 )
                 
