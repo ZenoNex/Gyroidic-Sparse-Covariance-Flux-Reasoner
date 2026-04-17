@@ -216,7 +216,7 @@ class DiegeticPhysicsEngine(nn.Module):
         self.last_input_time = 0
         
         # Advanced Extensions (Lazy Init)
-        self.meta_polytope = None
+        self.meta_polytope = MetaPolytopeMatrioshka(max_depth=5, base_dim=dim) if EXTENSIONS_AVAILABLE else None
         self.quantum_reasoner = None
         self.extensions_enabled = EXTENSIONS_AVAILABLE
 
@@ -875,10 +875,33 @@ class DiegeticPhysicsEngine(nn.Module):
                     codec_metrics = {
                         "entanglement_ratio": codec_result.diagnostics.get('entanglement_ratio', 0.0),
                         "commutativity_gap": codec_result.commutativity_gap,
+                        "modular_congruence": codec_result.modular_congruence,
                         "is_admissible": codec_result.diagnostics.get('is_admissible', False),
                         "structural_state": codec_result.diagnostics.get('structural_state', "Unknown")
                     }
+                    
+                    # --- Surgery Physics (Mohr-Coulomb Yield) ---
+                    # Yield = |shear| - mu * normal - cohesion
+                    # We map this from the codec residue to see if the manifolds "snap"
+                    # mu=0.5, cohesion=0.1 (per SPECULATIVE_COPRIME_GATE.md)
+                    half_dim = self.dim // 2
+                    res_flat = codec_result.residue.flatten()
+                    if res_flat.numel() >= self.dim:
+                        normal_part = res_flat[:half_dim]
+                        shear_part = res_flat[half_dim:self.dim]
+                        yield_pressure = shear_part.abs().mean() - 0.5 * normal_part.abs().mean() - 0.1
+                        codec_metrics['yield_pressure'] = float(yield_pressure.item())
+                        codec_metrics['topological_rupture'] = bool(yield_pressure.item() > 0.0)
+                    
+                    # --- Matryoshka Depth ---
+                    if self.meta_polytope is not None:
+                        # Evaluate shell level of the collision residue
+                        _, _, shell_level = self.meta_polytope(collision_residues)
+                        codec_metrics['matryoshka_level'] = int(shell_level)
+
                     print(f"[CODEC] Entanglement: {codec_metrics['entanglement_ratio']:.4f} | Admissible: {codec_metrics['is_admissible']}")
+                    if codec_metrics.get('topological_rupture'):
+                         print(f"[SURGERY] Topological Rupture Detected! Yield Pressure: {codec_metrics['yield_pressure']:.4f}")
             except Exception as e:
                 print(f"[FAIL] Multimodal Collision failed: {e}")
 
@@ -1903,7 +1926,11 @@ class DiegeticPhysicsEngine(nn.Module):
                 "stalk": topological_analysis,
                 "shape_violation": gyroid_violation_score,
                 "pas_h": pas_h_live,
-                "resonance": self._last_resonance
+                "resonance": self._last_resonance,
+                "topological_rupture": codec_metrics.get('topological_rupture', False),
+                "lazarus_mode": bool(recovery_metrics.get('recovery_attempted', False) and recovery_metrics.get('is_generative', False)) if isinstance(recovery_metrics, dict) else False,
+                "matryoshka_level": codec_metrics.get('matryoshka_level', 0),
+                "curvature": float(codec_metrics.get('commutativity_gap', 0.0))
             }
         }
         
