@@ -1133,6 +1133,11 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 headers={'Authorization': f'Bearer {token}'},
                 timeout=15
             )
+            mode_str = _zg_mode if _zg_mode else 'interior'
+            alpha_str = str(self._zeitgeist_state.alpha) if hasattr(self._zeitgeist_state, 'alpha') else '[?]'
+            print(f" Zeitgeist mode: {mode_str} | alpha: {alpha_str} "
+                  f"| crt_idx: {self._zeitgeist_state.crt_index} "
+                  f"| step: {self._zeitgeist_state.step}")
             
             print(f"[KEY] HF API response status: {hf_resp.status_code}")
             
@@ -1189,27 +1194,39 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
             user_text = data.get('message', data.get('text', '')).strip()
+            
+            # Normalize input: Strip manual 'PROMPT:' if user erroneously included it
+            clean_text = user_text.strip()
+            if clean_text.upper().startswith("PROMPT:"):
+                clean_text = clean_text[7:].strip()
+                
+            # Detect commands
+            if not clean_text.startswith("INGEST_DYAD:") and not clean_text.startswith("ASSOCIATE:"):
+                text = f"PROMPT: {clean_text}"
+            else:
+                text = clean_text
+                
             video_dyad_b64 = data.get('video_dyad_b64')
             commutativity = data.get('commutativity', 'non_commutative')
             fingerprint = data.get('fingerprint')  # Chebyshev image fingerprint {L, Cr, Cb}
 
             if AI_SYSTEM:
-                result = AI_SYSTEM.process_text(user_text, video_dyad_b64, commutativity, fingerprint)
+                result = AI_SYSTEM.process_text(text, video_dyad_b64, commutativity, fingerprint)
                 
                 # Extract meta-infra variables
                 diagnostics = result.get('diagnostics', {})
-                pas_h = diagnostics.get('pas_h', 0.5)
+                pas_h = diagnostics.get('pas_h', 0.5) if diagnostics else 0.5
                 
-                if 'trust_mean' in diagnostics:
+                if diagnostics and 'trust_mean' in diagnostics:
                     trust = diagnostics.get('trust_mean', 0.5)
-                elif 'trust_scalars' in diagnostics and diagnostics['trust_scalars']:
+                elif diagnostics and 'trust_scalars' in diagnostics and diagnostics['trust_scalars']:
                     trust = sum(diagnostics['trust_scalars']) / len(diagnostics['trust_scalars'])
                 else:
                     trust = 0.5
                     
                 # Extract exact Tri-State metrics from the diegetic physics engine if available
-                retrieval_state = diagnostics.get('retrieval_state')
-                honesty_score = diagnostics.get('honesty_score')
+                retrieval_state = diagnostics.get('retrieval_state') if diagnostics else None
+                honesty_score = diagnostics.get('honesty_score') if diagnostics else None
                 
                 # Fallback approximation if engine is disabled
                 if retrieval_state is None or honesty_score is None:
@@ -1229,8 +1246,8 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                     'metrics': {
                         'pas_h': float(pas_h),
                         'trust': float(trust),
-                        'affordance': diagnostics.get('type', 'generic'),
-                        'affordance_strength': float(diagnostics.get('affordance_strength', 0.0))
+                        'affordance': diagnostics.get('type', 'generic') if diagnostics else 'generic',
+                        'affordance_strength': float(diagnostics.get('affordance_strength', 0.0)) if diagnostics else 0.0
                     }
                 }
                 
