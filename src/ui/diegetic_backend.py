@@ -643,7 +643,8 @@ class DiegeticPhysicsEngine(nn.Module):
                      "manifold_pressure": 0.0,
                      "command_bypass": True
                  },
-                 "display_metadata": {"type": "command_result"}
+                 "display_metadata": {"type": "command_result"},
+                 "fingerprint_received": fingerprint is not None,
              }
         
         # 1. Embed Input (Hash Projection) - MOVED UP
@@ -2850,7 +2851,7 @@ class DiegeticPhysicsEngine(nn.Module):
         if is_dyad_ingest:
             return self._handle_dyad_ingestion(input_text, fingerprint, seed_state)
         elif is_association:
-            return self._handle_association_learning(input_text, seed_state)
+            return self._handle_association_learning(input_text, fingerprint, seed_state)
         else:
             # Apply Dyadic Transfer (Phase 5) 
             # We use Task 0 (Code) and Task 1 (Conversational) leakage
@@ -2887,28 +2888,41 @@ class DiegeticPhysicsEngine(nn.Module):
     
     def _handle_dyad_ingestion(self, input_text: str, fingerprint: Optional[Dict], seed_state: torch.Tensor) -> str:
         """Handle canonical dyad ingestion using DyadFossilizer."""
-        raw_content = input_text.replace("INGEST_DYAD:", "").strip()
+        raw_content = input_text.replace("INGEST_DYAD:", "").replace("ASSOCIATE:", "").strip()
         
         # Support both [fingerprint_json] | description and just description
         if "|" in raw_content:
             fp_str, description = raw_content.split("|", 1)
             description = description.strip()
-            # If fingerprint passed in dict, use it, else parse from string
             if not fingerprint:
                 try: fingerprint = json.loads(fp_str)
                 except: fingerprint = None
         else:
             description = raw_content
 
-        # Create KnowledgeDyad object
-        # Note: Ingestion often comes from images, where fingerprint might be present
+        # Build fingerprint tensor — supports current Chebyshev format {L, Cr, Cb} and
+        # the legacy 137-dim histogram format {r, g, b, l, texture, edges}.
         fp_tensor = torch.zeros(137, device=self.device)
         if fingerprint:
-            # Flatten fingerprint features: [r, g, b, l, texture, edges]
-            fp_list = fingerprint.get('r', []) + fingerprint.get('g', []) + fingerprint.get('b', []) + \
-                      fingerprint.get('l', []) + [fingerprint.get('texture', 0.0)] + fingerprint.get('edges', [0.0]*8)
-            if len(fp_list) == 137:
+            if 'L' in fingerprint and 'Cr' in fingerprint and 'Cb' in fingerprint:
+                # Current Chebyshev multimodal format
+                fp_list = (
+                    fingerprint.get('L', []) +
+                    fingerprint.get('Cr', []) +
+                    fingerprint.get('Cb', [])
+                )
+                # Pad or truncate to 137 dims to match KnowledgeDyad tensor shape
+                fp_list = (fp_list + [0.0] * 137)[:137]
                 fp_tensor = torch.tensor(fp_list, device=self.device).float()
+            else:
+                # Legacy 137-dim histogram format
+                fp_list = (
+                    fingerprint.get('r', []) + fingerprint.get('g', []) +
+                    fingerprint.get('b', []) + fingerprint.get('l', []) +
+                    [fingerprint.get('texture', 0.0)] + fingerprint.get('edges', [0.0]*8)
+                )
+                if len(fp_list) == 137:
+                    fp_tensor = torch.tensor(fp_list, device=self.device).float()
 
         dyad = KnowledgeDyad(
             image_fingerprint=fp_tensor,
@@ -2919,31 +2933,50 @@ class DiegeticPhysicsEngine(nn.Module):
         fossil_path = self.fossilizer.fossilize(dyad, seed_state)
         
         print(f"[WAVE] Deposition confirmed: {fossil_path}")
-        return f"Knowledge Dyad fossilized at {os.path.basename(fossil_path)}. Association Implication preserved in manifold."
+        has_fp = fingerprint is not None
+        return (
+            f"Knowledge Dyad fossilized at {os.path.basename(fossil_path)}. "
+            f"{'Image fingerprint embedded (' + str(int(fp_tensor.norm().item()*1000)/1000) + ' L2-norm). ' if has_fp else 'No image fingerprint — text-only dyad. '}"
+            f"Association Implication preserved in manifold."
+        )
     
-    def _handle_association_learning(self, input_text: str, seed_state: torch.Tensor) -> str:
-        """Handle association learning via fossil recovery and resonance injection."""
-        # Note: ASSOCIATE: command or affordance trigger
+    def _handle_association_learning(self, input_text: str, fingerprint: Optional[Dict], seed_state: torch.Tensor) -> str:
+        """Handle association learning via fossil recovery and resonance injection.
+        
+        If input_text contains '<->' (a paired description), fossilize the new dyad
+        FIRST, then perform resonance scanning.  This is the standard ASSOCIATE workflow:
+        the user provides both sides of the dyad and expects a new fossil to be written.
+        """
         print(" Phase 4: Dyadic Association Recovery")
         
-        # Load all fossils
-        # Note: DyadFossilizer.recover_fossils now handles cleanup of invalid files
+        # --- FOSSILIZE if this is a paired association (contains '<->') ---
+        fossil_log = ""
+        if "<->" in input_text:
+            raw = input_text.replace("ASSOCIATE:", "").strip()
+            parts = raw.split("<->", 1)
+            source_desc = parts[0].strip()
+            target_desc = parts[1].strip() if len(parts) > 1 else ""
+            # Build a synthetic INGEST_DYAD: command from the paired text
+            ingest_cmd = f"INGEST_DYAD: {source_desc} <-> {target_desc}"
+            fossil_log = self._handle_dyad_ingestion(ingest_cmd, fingerprint, seed_state)
+            print(f"[ASSOCIATE] Auto-fossilized paired association. {fossil_log}")
+
+        # --- RESONANCE SCAN against existing fossils ---
         fossils = self.fossilizer.recover_fossils()
         if not fossils:
             self._last_resonance = 0.0
-            return "No fossils found in data/encodings. Association requires existing topological obstructions."
+            prefix = f"{fossil_log}\n" if fossil_log else ""
+            return prefix + "No prior fossils found. This association is now the first topological obstruction."
             
         # Compute resonance between current seed_state and fossils
         best_resonance = -1.0
         best_fossil = None
         
         for f in fossils:
-            # Check for residue_vector (redundant if recover_fossils is robust, but safe)
             if 'residue_vector' not in f:
                 continue
                 
             residue = f['residue_vector'].to(self.device).flatten()
-            # Simple dot product resonance
             res = torch.dot(seed_state.flatten(), residue) / (torch.norm(seed_state) * torch.norm(residue) + 1e-8)
             if res > best_resonance:
                 best_resonance = res
@@ -2951,16 +2984,19 @@ class DiegeticPhysicsEngine(nn.Module):
         
         self._last_resonance = float(best_resonance)
                 
+        prefix = f"{fossil_log}\n" if fossil_log else ""
         if best_fossil and best_resonance > 0.5:
-            # Inject residue into meta_state
             with torch.no_grad():
                 res_vec = best_fossil['residue_vector'].to(self.device).view_as(self.meta_state)
-                # Weighted injection based on resonance
                 self.meta_state = self.meta_state + 0.3 * res_vec
                 
-            return f"Resonating with fossil: '{best_fossil['description'][:40]}...'. Resonance Score: {best_resonance:.3f}. Residue injected into meta-functional manifold."
+            return (
+                prefix +
+                f"Resonating with prior fossil: '{best_fossil.get('description', '?')[:60]}...'. "
+                f"Resonance Score: {best_resonance:.3f}. Residue injected into meta-functional manifold."
+            )
         
-        return f"Manifold scanned. No resonant fossils found for current state (Max Resonance: {best_resonance:.3f})."
+        return prefix + f"Manifold scanned. No resonant fossils found for current state (Max Resonance: {best_resonance:.3f})."
     
     def _generate_enhanced_response(
         self, 
