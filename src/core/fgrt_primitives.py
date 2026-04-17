@@ -216,15 +216,6 @@ class PrimeResonanceLadder(nn.Module):
             repunits.append(r)
         return torch.tensor(repunits, dtype=torch.float32)
 
-    def forward(self) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Returns:
-            frequencies: [num_resonators] resonance frequencies
-            repunits: [num_resonators] palindromic repunit mirrors
-        """
-        return self.frequencies, self.repunits
-        """Returns the resonance frequencies."""
-        return self.frequencies
     
     def get_fibonacci_entropy(self, alpha: float = 1.0) -> dict:
         """
