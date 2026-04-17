@@ -531,7 +531,8 @@ class ResonanceCavity(nn.Module):
         
         # Get prime frequencies: f_{p_n} = 2π·ln(p_n)
         ladder = PrimeResonanceLadder(num_resonators=num_harmonics)
-        freqs = ladder.forward().to(self.M.device)  # [num_harmonics]
+        freqs, rep_mirrors = ladder.forward()
+        freqs = freqs.to(self.M.device)  # [num_harmonics]
         
         # Derive amplitudes from cavity mode energies (evolved, not learned)
         # a_n = ||M[field_idx, n, :]|| for modes that exist, else decay
