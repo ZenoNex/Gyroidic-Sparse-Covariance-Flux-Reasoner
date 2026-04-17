@@ -155,32 +155,56 @@ class PrimeResonanceLadder(nn.Module):
     def _generate_hybrid_basis(self, n: int, base_n: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Generates the first n prime-repunit pairs.
-        Prioritizes Lazarus Primes (where p and R_n(p) are both prime).
+        Prioritizes Lazarus Primes (where p and R_n(p) are both prime)
+        to simulate the "TailSlayer Bypass" (First-to-Finish).
         """
         pairs = []
+        lazarus_prioritized = []
         candidate = 2
+        
+        # Searching for Lazarus Primes
         while len(pairs) < n:
             if self._is_prime(candidate):
-                # Calculate R_n(p) = (p^base_n - 1) / (p - 1)
-                # For base_n=2: p+1 (not usually prime if p > 2)
-                # For base_n=3: p^2 + p + 1
                 r_n = (candidate**base_n - 1) // (candidate - 1)
-                
-                # Check for Lazarus Prime property (both prime)
                 is_lazarus = self._is_prime(r_n)
                 
-                # We prioritize Lazarus primes by adding them to the list.
-                # If we need more, we take standard primes and their repunit mirrors.
-                pairs.append((candidate, r_n, is_lazarus))
+                if is_lazarus:
+                    lazarus_prioritized.append((candidate, r_n))
+                
+                if len(lazarus_prioritized) + len(pairs) >= n:
+                    # Fill the rest with non-lazarus primes if needed
+                    break
+                pairs.append((candidate, r_n))
             candidate += 1
             
-        # Sort such that Lazarus primes appear in stable zones? 
-        # Actually, let's keep sequence order but return as tensors.
-        primes_list = [p[0] for p in pairs]
-        repunits_list = [p[1] for p in pairs]
+        # Combine: Lazarus Primes come first to ensure O(K) warmstart
+        all_pairs = lazarus_prioritized + pairs
+        all_pairs = all_pairs[:n]
+        
+        primes_list = [p[0] for p in all_pairs]
+        repunits_list = [p[1] for p in all_pairs]
         
         return (torch.tensor(primes_list, dtype=torch.long), 
                 torch.tensor(repunits_list, dtype=torch.long))
+
+    def forward(self) -> Tuple[torch.Tensor, torch.Tensor, dict]:
+        """
+        Returns:
+            frequencies: [num_resonators] resonance frequencies
+            repunits: [num_resonators] palindromic repunit mirrors
+            hardware_status: Dict containing TailSlayer bypass signals
+        """
+        # Simulate TailSlayer First-to-Finish Dynamics
+        # In a real OCL scenario, this would detect if Queue B (Soliton) finished before Queue A (Ergodic)
+        queue_b_finished_first = (torch.rand(1).item() > 0.4) # Simulated stochastic hardware event
+        
+        status = {
+            'tail_slayer_bypass': queue_b_finished_first,
+            'signal': "Chern-Simons Sync Barrier Complete" if queue_b_finished_first else "t_RFC Stall Detected",
+            'lsb_parity_ready': True
+        }
+        
+        return self.frequencies, self.repunits, status
 
     def _generate_repunits(self, base: int = 10) -> torch.Tensor:
         """
