@@ -20,10 +20,11 @@ class ModularVirtualizationLayer(nn.Module):
     The hybrid modulus is defined as the product of the prime resonance and its 
     corresponding repunit symmetry: hybrid_modulus = p * R_p.
     """
-    def __init__(self, dim: int, legacy_mode: bool = False, device: str = None):
+    def __init__(self, dim: int, base: int = 2, legacy_mode: bool = False, device: str = None):
         super().__init__()
         self.dim = dim
         self.device = device
+        self.base = base
         self.legacy_mode = legacy_mode
         
         # Prime Resonance Alignment: Fetch (p, R_p) pairs
