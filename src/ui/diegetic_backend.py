@@ -248,6 +248,12 @@ class DiegeticPhysicsEngine(nn.Module):
             poly_degree=self.poly_degree,
             device=device
         )
+        
+        # Re-entrancy guards for Temporal Association Trainer
+        self._in_training = False
+        self._is_training_temporal = False
+        self._last_temporal_diag = {}
+        self._last_matrioshka_diag = {}
 
         self.bezout_refresh.bezout_matrix.fill_(0.0)
         self.bezout_refresh.bezout_matrix.add_(torch.eye(5))  # Identity is the safest starting poin
@@ -627,7 +633,7 @@ class DiegeticPhysicsEngine(nn.Module):
         """
         Main entry point for processing an interaction.
         """
-        if self._is_processing:
+        if self._is_processing or self._in_training:
             print("[ENGINE] Warning: Re-entrant call detected. Returning placeholder.")
             return {"response": "System busy: topological re-indexing in progress...", "status": "BUSY"}
 
@@ -2060,6 +2066,7 @@ class DiegeticPhysicsEngine(nn.Module):
         def _bg_train():
             try:
                 self._is_training_temporal = True
+                self._in_training = True
                 # Detach for training
                 inp = input_tensor.detach().cpu()
                 
@@ -2088,6 +2095,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 print(f"[TAT] Background training error: {e}")
             finally:
                 self._is_training_temporal = False
+                self._in_training = False
 
 
         import threading
@@ -2114,6 +2122,14 @@ class DiegeticPhysicsEngine(nn.Module):
         Returns:
             dict with keys: 'output', 'trust_scalars', plus optional diag keys.
         """
+        if self._in_training:
+            # Return cached or default analysis to break recursion
+            return {
+                "output": torch.zeros_like(text_emb),
+                "trust_scalars": self.trust_scalars,
+                "status": "RECURSION_GUARD_ACTIVE"
+            }
+
         # Calculate manifold propagation and maintain graph for survivorship_pressure 
         manifold_out = self.forward(text_emb, dt=0.05)
 
