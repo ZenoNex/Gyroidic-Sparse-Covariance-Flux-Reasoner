@@ -8,24 +8,35 @@ for cyclic overflow prevention boundaries.
 
 import torch
 import torch.nn as nn
-from src.core.fgrt_primitives import RepunitHasher
+from src.core.fgrt_primitives import RepunitHasher, PrimeResonanceLadder
+from typing import Optional
 
 class ModularVirtualizationLayer(nn.Module):
     """
     A unified layer mapping floating-point states into a Residue Number System (RNS).
+    
+    Refined Update: Uses a prime-indexed lattice to ensure spectral purity and 
+    coprime integrity across the modular torus.
     """
-    def __init__(self, dim: int, base: int = 2, device: str = None):
+    def __init__(self, dim: int, base: Optional[int] = None, device: str = None):
         super().__init__()
         self.dim = dim
-        self.base = base
+        self.device = device
         
-        self.hasher = RepunitHasher(base=base, sequence_length=max(dim, 10), device=device)
+        # Prime Resonance Alignment: Fetch primes for the modular base
+        # This replaces standard binary base with an incommensurate prime lattice.
+        self.resonance_ladder = PrimeResonanceLadder(num_resonators=max(dim, 100))
+        self.register_buffer('primes', self.resonance_ladder.primes[:dim])
+        
+        # We still keep the hasher for Repunit-based rhythmic marking, 
+        # but the primary modular arithmetic now runs on the prime torus.
+        self.hasher = RepunitHasher(base=2, sequence_length=max(dim, 10), device=device)
         
     def get_modulus_bounds(self) -> torch.Tensor:
         """
-        Dynamically fetch modulus bounds defined by the repunit sequences.
+        Fetch prime-based modulus bounds.
         """
-        return self.hasher.repunits[:self.dim]
+        return self.primes.float()
 
     def float_to_rns(self, tensor: torch.Tensor) -> torch.Tensor:
         """
