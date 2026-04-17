@@ -43,9 +43,38 @@ class ModularVirtualizationLayer(nn.Module):
             return self.primes.float()
         return self.primes.float() * self.repunits.float()
 
-    def float_to_rns(self, tensor: torch.Tensor) -> torch.Tensor:
+    def repunit_crt_sparse_probe(self, candidate: torch.Tensor, target_residue: torch.Tensor) -> torch.Tensor:
+        """
+        O(1) Parity Filter (Repunit-CRT Sparse Probe)
+        Rejects invalid trajectories at zero cost based on LSB parity.
+        isValid = (candidate & 1) ^ (target_residue & 1) == 0
+        """
+        # Ensure integer bitwise compatibility
+        c_bits = candidate.long()
+        t_bits = target_residue.long()
+        
+        # XOR bitwise check
+        parity_check = (c_bits & 1) ^ (t_bits & 1)
+        return parity_check == 0
+
+    def topological_refusal_snap(self, x: torch.Tensor, anchor_sym: torch.Tensor) -> torch.Tensor:
+        """
+        Topological Refusal: Snaps the state back to the nearest Birkhoff Polytope boundary.
+        Biased towards the residue anchor (c_sym) to preserve Symbolic Non-Revisability (Law 1).
+        """
+        # Simple implementation: move towards anchor by a discrete 'snap' factor 
+        # when a rupture is detected.
+        snap_factor = 0.8
+        snapped = x + snap_factor * (anchor_sym - x)
+        
+        # In a full implementation, this would project onto the specific 
+        # Birkhoff facet hierarchy.
+        return snapped
+
+    def float_to_rns(self, tensor: torch.Tensor, anchor_sym: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Quantize state scaling onto a hybrid modular torus.
+        Utilizes the Repunit-CRT Sparse Probe for zero-cost rejection.
         """
         modulus = self.get_hybrid_modulus().to(tensor.device)
         
@@ -53,7 +82,17 @@ class ModularVirtualizationLayer(nn.Module):
         scale_factor = 1e4
         integerized = torch.round(tensor * scale_factor)
         
-        # Modulo bound constraints (Hybrid RNS representation)
+        # 1. Repunit-CRT Sparse Probe (Fast-Reject)
+        # If anchor_sym is provided, use it as the target parity anchor
+        if anchor_sym is not None:
+            target_residue = torch.remainder(torch.round(anchor_sym * scale_factor), modulus)
+            is_valid = self.repunit_crt_sparse_probe(integerized, target_residue)
+            
+            # If invalid, apply topological refusal snap before modulo
+            if not torch.all(is_valid):
+                integerized = torch.round(self.topological_refusal_snap(tensor, anchor_sym) * scale_factor)
+
+        # 2. Modulo bound constraints (Hybrid RNS representation)
         modular_residues = torch.remainder(integerized, modulus)
         return modular_residues
 
