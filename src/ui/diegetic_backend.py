@@ -676,7 +676,8 @@ class DiegeticPhysicsEngine(nn.Module):
         self.last_input_time = time.time() 
         
         # --- COMMAND PRIORITIZATION ---
-        if text_input.startswith("INGEST_DYAD:") or text_input.startswith("ASSOCIATE:"):
+        ingest_cmds = ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:"]
+        if any(text_input.startswith(cmd) for cmd in ingest_cmds):
              print(f"[CMD] Command Prioritization: Bypassing pipeline for direct response...")
              # Merciful Topological Reset: Clear historical trauma/dissonance for manual commands
              # to ensure the Braid Governor (Archetypes) has a fresh start.
@@ -684,7 +685,7 @@ class DiegeticPhysicsEngine(nn.Module):
              
              # Use current meta_state as the grounding seed for the command handler
              seed_state = self.meta_state.detach()
-             response_text = self._generate_dyad_aware_response(seed_state, text_input, fingerprint)
+             response_text = self._generate_dyad_aware_response(seed_state, text_input, fingerprint, audio_dyad=audio_dyad, video_dyad_b64=video_dyad_b64)
              
              return {
                  "response": response_text,
@@ -2965,6 +2966,8 @@ class DiegeticPhysicsEngine(nn.Module):
         seed_state: torch.Tensor, 
         input_text: str, 
         fingerprint: Optional[Dict] = None,
+        audio_dyad: Optional[Dict] = None,
+        video_dyad_b64: Optional[str] = None,
         max_length: int = 200,
         min_length: int = 20
     ) -> str:
@@ -2979,9 +2982,11 @@ class DiegeticPhysicsEngine(nn.Module):
         # Detect if this is a dyad ingestion or association command
         is_dyad_ingest = input_text.startswith("INGEST_DYAD:")
         is_association = input_text.startswith("ASSOCIATE:")
+        is_audio_ingest = input_text.startswith("INGEST_AUDIO_DYAD:")
+        is_video_ingest = input_text.startswith("INGEST_VIDEO_DYAD:")
         
-        if is_dyad_ingest:
-            return self._handle_dyad_ingestion(input_text, fingerprint, seed_state)
+        if is_dyad_ingest or is_audio_ingest or is_video_ingest:
+            return self._handle_dyad_ingestion(input_text, fingerprint, seed_state, audio_dyad=audio_dyad, video_dyad_b64=video_dyad_b64)
         elif is_association:
             return self._handle_association_learning(input_text, fingerprint, seed_state)
         else:
@@ -3018,58 +3023,83 @@ class DiegeticPhysicsEngine(nn.Module):
             )
 
     
-    def _handle_dyad_ingestion(self, input_text: str, fingerprint: Optional[Dict], seed_state: torch.Tensor) -> str:
-        """Handle canonical dyad ingestion using DyadFossilizer."""
-        raw_content = input_text.replace("INGEST_DYAD:", "").replace("ASSOCIATE:", "").strip()
+    def _handle_dyad_ingestion(self, input_text: str, fingerprint: Optional[Dict], seed_state: torch.Tensor, audio_dyad: Optional[Dict] = None, video_dyad_b64: Optional[str] = None) -> str:
+        """Handle multi-modal dyad ingestion (Image, Audio, Video) using DyadFossilizer and GyroidicCodec."""
+        # Determine modality from command prefix
+        modality = "Image"
+        if input_text.startswith("INGEST_AUDIO_DYAD:"): modality = "Audio"
+        elif input_text.startswith("INGEST_VIDEO_DYAD:"): modality = "Video"
         
-        # Support both [fingerprint_json] | description and just description
+        # Clean the command and separate binary-id from description
+        raw_content = input_text
+        for prefix in ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:"]:
+            raw_content = raw_content.replace(prefix, "")
+        raw_content = raw_content.strip()
+        
+        # Support both [id] | description and just description
+        description = raw_content
         if "|" in raw_content:
-            fp_str, description = raw_content.split("|", 1)
+            _, description = raw_content.split("|", 1)
             description = description.strip()
-            if not fingerprint:
-                try: fingerprint = json.loads(fp_str)
-                except: fingerprint = None
-        else:
-            description = raw_content
 
-        # Build fingerprint tensor — supports current Chebyshev format {L, Cr, Cb} and
-        # the legacy 137-dim histogram format {r, g, b, l, texture, edges}.
-        fp_tensor = torch.zeros(137, device=self.device)
-        if fingerprint and isinstance(fingerprint, dict):
+        # Build signal tensor [137] for the KnowledgeDyad
+        # All signals (Image fp, Audio harmonics) are normalized to this spectral form
+        signal_tensor = torch.zeros(137, device=self.device)
+        media_received = False
+        
+        if modality == "Audio" and audio_dyad:
+            harmonics = audio_dyad.get('chebyshev_harmonics', [])
+            # Pad/truncate to 137 to match schema
+            harmonics = (harmonics + [0.0] * 137)[:137]
+            signal_tensor = torch.tensor(harmonics, device=self.device).float()
+            media_received = True
+        elif modality == "Video" and video_dyad_b64:
+            # Video signals in this iteration are treated as text-conditioned text, 
+            # but we record the presence of the b64 stream.
+            media_received = True
+        elif fingerprint:
+            # Standard Image Ingestion
             if 'L' in fingerprint and 'Cr' in fingerprint and 'Cb' in fingerprint:
-                # Current Chebyshev multimodal format
-                fp_list = (
-                    fingerprint.get('L', []) +
-                    fingerprint.get('Cr', []) +
-                    fingerprint.get('Cb', [])
-                )
-                # Pad or truncate to 137 dims to match KnowledgeDyad tensor shape
+                fp_list = (fingerprint.get('L', []) + fingerprint.get('Cr', []) + fingerprint.get('Cb', []))
                 fp_list = (fp_list + [0.0] * 137)[:137]
-                fp_tensor = torch.tensor(fp_list, device=self.device).float()
-            else:
-                # Legacy 137-dim histogram format
-                fp_list = (
-                    fingerprint.get('r', []) + fingerprint.get('g', []) +
-                    fingerprint.get('b', []) + fingerprint.get('l', []) +
-                    [fingerprint.get('texture', 0.0)] + fingerprint.get('edges', [0.0]*8)
-                )
+                signal_tensor = torch.tensor(fp_list, device=self.device).float()
+                media_received = True
+            elif 'r' in fingerprint:
+                # Legacy 137-dim format
+                fp_list = (fingerprint.get('r', []) + fingerprint.get('g', []) + fingerprint.get('b', []) + fingerprint.get('l', []) + [fingerprint.get('texture', 0.0)] + fingerprint.get('edges', [0.0]*8))
                 if len(fp_list) == 137:
-                    fp_tensor = torch.tensor(fp_list, device=self.device).float()
+                    signal_tensor = torch.tensor(fp_list, device=self.device).float()
+                    media_received = True
 
+        # --- GYROIDIC CODEC ENTANGLEMENT ---
+        # Activate the non-Abelian residue generator to compute irreducible entanglement
+        entanglement_residue = None
+        if media_received and hasattr(self, 'codec'):
+            try:
+                # We project the spectral signal_tensor into the codec's GL(n) space
+                # result.residue is the [n, n] irreducible 'Meaning' of the association
+                # We use the description as the linguistic anchor E(T, I)
+                codec_result = self.codec.encode(text=description, image=signal_tensor)
+                entanglement_residue = codec_result.residue
+                print(f"[CODEC] Non-Abelian Entanglement calculated (Gap: {codec_result.commutativity_gap:.4f})")
+            except Exception as e:
+                print(f"[CODEC] Entanglement failure: {e}")
+
+        # Create the dyad object
         dyad = KnowledgeDyad(
-            image_fingerprint=fp_tensor,
-            linguistic_description=description
+            image_fingerprint=signal_tensor,
+            linguistic_description=description,
+            gyroid_residue=entanglement_residue
         )
         
         # Call fossilizer
         fossil_path = self.fossilizer.fossilize(dyad, seed_state)
         
-        print(f"[WAVE] Deposition confirmed: {fossil_path}")
-        has_fp = fingerprint is not None
+        print(f"[WAVE] {modality} Deposition confirmed: {fossil_path}")
         return (
-            f"Knowledge Dyad fossilized at {os.path.basename(fossil_path)}. "
-            f"{'Image fingerprint embedded (' + str(int(fp_tensor.norm().item()*1000)/1000) + ' L2-norm). ' if has_fp else 'No image fingerprint — text-only dyad. '}"
-            f"Association Implication preserved in manifold."
+            f"Knowledge Dyad ({modality}) fossilized at {os.path.basename(fossil_path)}. "
+            f"{'Signal embedded (' + str(int(signal_tensor.norm().item()*1000)/1000) + ' L2-norm). ' if media_received else 'No media signal — text-only dyad. '}"
+            f"Non-Abelian Implication preserved in manifold."
         )
     
     def _handle_association_learning(self, input_text: str, fingerprint: Optional[Dict], seed_state: torch.Tensor) -> str:
