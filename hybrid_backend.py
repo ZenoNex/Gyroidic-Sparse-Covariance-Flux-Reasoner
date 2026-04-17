@@ -267,6 +267,16 @@ class HybridAI:
                     generate_response=True
                 )
                 
+                # Fix: Handle case where engine_output might be a list (e.g. batch/bulk interaction)
+                if isinstance(engine_output, list):
+                    if len(engine_output) > 0:
+                        engine_output = engine_output[0]
+                    else:
+                        engine_output = {"response": "System quiescent: manifold empty.", "status": "EMPTY"}
+                
+                if not isinstance(engine_output, dict):
+                    raise ValueError(f"Engine returned invalid type: {type(engine_output)}")
+
                 response_text = engine_output.get('response', '')
                 diagnostics = engine_output # The whole output is essentially diagnostics
                 
@@ -284,7 +294,8 @@ class HybridAI:
                 print(f"[FAIL] Diegetic Engine processing failed: {e}")
                 # Fallthrough to legacy logic
         
-        # Legacy / Fallback Logic (Non-Lobotomy Model)
+        # 2. System 2 Fallback: Non-Lobotomy Temporal Model
+        # This replaces the legacy lobotomized prime tracker with the polynomial functional reasoner.
         model_diagnostics = {}
         if self.temporal_model:
             try:
@@ -292,13 +303,47 @@ class HybridAI:
                 model_input = text_embedding.unsqueeze(0)
                 
                 with torch.no_grad():
-                    # Run forward pass with analysis
+                    # Run forward pass with analysis (RECURSION GAURD: This is the single entry point)
                     model_out = self.temporal_model(model_input, return_analysis=True)
                 
-                # Update system state with REAL neural activation
-                self.hidden_state = model_out['hidden_state'].squeeze(0)  # [256]
+                # a) Update system state with REAL neural activation
+                self.hidden_state = model_out['hidden_state'].squeeze(0)  # [batch, dim]
                 
-                # Track metrics from the model
+                # b) Pythagorean Bridge: Project to 256D if needed (Legacy Support)
+                if self.hidden_state.shape[-1] == 768:
+                    self.hidden_state_scarred = self.hidden_state.view(256, 3).mean(dim=1)
+                else:
+                    self.hidden_state_scarred = self.hidden_state # Already correct dim or will be handled by ADMR
+                
+                # c) Temporal Evolution (ADMR Solver Integration)
+                hidden_state_256 = self.hidden_state_scarred.clone() # Anchor for negotiation loss
+                hidden_state_evolved = self.hidden_state.unsqueeze(0) # Default to static if solver missing
+                hidden_state_evolved_sq = self.hidden_state.clone()
+                
+                if hasattr(self, 'admr_solver'):
+                    neighbor_states = torch.stack([self.temporal_model.prev_states.mean(dim=0)] * 1).unsqueeze(0).to(self.torch_device)
+                    adj_weight = torch.ones(1, neighbor_states.shape[1]).to(self.torch_device)
+                    # We use the raw hidden state for the ADMR step
+                    _out = self.admr_solver.stochastic_differential_step(
+                        states=self.hidden_state.unsqueeze(0),
+                        neighbor_states=neighbor_states,
+                        adjacency_weight=adj_weight
+                    )
+                    # Update state from solver
+                    if isinstance(_out, torch.Tensor):
+                        hidden_state_evolved = _out
+                        self.hidden_state = hidden_state_evolved.squeeze(0).squeeze(0)
+                        
+                        # Update the state with the evolved trajectory
+                        hidden_state_evolved_sq = hidden_state_evolved.squeeze(0)
+                        # Define Lawful Distortion (0.01 sigma as per Solver signature)
+                        distortion = torch.randn_like(hidden_state_evolved_sq) * 0.01
+                        self.hidden_state_scarred = hidden_state_evolved_sq + distortion
+
+                # Map evolved state to the corrected tensor for downstream affordance tracking
+                self.corrected_tensor = self.hidden_state_scarred.clone()
+                
+                # d) Track metrics from the model
                 model_diagnostics = {
                     'pas_h': float(model_out.get('pas_h', 0.0)),
                     'containment_pressure': float(model_out.get('containment_pressure', 0.0)),
@@ -311,50 +356,14 @@ class HybridAI:
                     model_diagnostics.update({k: v for k, v in poly_diag.items() if isinstance(v, (float, int))})
                     
             except Exception as e:
-                print(f"[WARN] Inference failed: {e}")
-                # Fallback to existing hidden state logic (already set above)
-        
-        # 3. Compute Affordance Gradients (Standard Pipeline)
-        # ...
-        
-        response_text = ""
-        diagnostics = {}
-        # --- UNIVERSAL MANIFOLD ANCHORS (Root Level) ---
-        self.hidden_state_scarred = torch.randn(256, device=self.torch_device) * 0.001
-        self.corrected_tensor = torch.randn(256, device=self.torch_device) * 0.001
-        
-        # Process through temporal model if available
-        if self.temporal_model:
-            try:
-                # 1. Generate the Hidden State
-                with torch.no_grad():
-                    model_output = self.temporal_model(text_embedding.unsqueeze(0), return_analysis=True)
-                    hidden_state = model_output['hidden_state'].squeeze(0)
-                    # Pythagorean Bridge: Project 768D -> 256D
-                # 2. Pythagorean Bridge: Project 768D -> 256D (Scope: Parent)
-                h_size = hidden_state.shape[-1]
-                if h_size == 768:
-                    hidden_state_256 = hidden_state.view(256, 3).mean(dim=1)
-                    self.hidden_state_scarred = hidden_state_256
-                else:
-                    hidden_state_256 = hidden_state
-                    self.hidden_state_scarred = hidden_state_256
-                
-                # 3. Temporal Evolution (ADMR Solver)
-                neighbor_states = torch.stack([self.temporal_model.prev_states.mean(dim=0)] * 1).unsqueeze(0).to(self.torch_device)
-                adj_weight = torch.ones(1, neighbor_states.shape[1]).to(self.torch_device)
-                hidden_state_evolved = self.admr_solver.stochastic_differential_step(
-                    states=hidden_state.unsqueeze(0),
-                    neighbor_states=neighbor_states,
-                    adjacency_weight=adj_weight
-                )
-                # Update the state with the evolved trajectory
-                
-                # Update the state with the evolved trajectory
-                hidden_state_evolved_sq = hidden_state_evolved.squeeze(0)
-                # Define Lawful Distortion (0.01 sigma as per Solver signature)
-                distortion = torch.randn_like(hidden_state_evolved_sq) * 0.01
-                self.hidden_state_scarred = hidden_state_evolved_sq + distortion
+                print(f"[WARN] System 2 Inference failed: {e}")
+                import traceback
+                traceback.print_exc()
+                # Fallback to existing hidden state logic
+                model_diagnostics = {'error': str(e)}
+                hidden_state_256 = self.hidden_state_scarred.clone()
+                hidden_state_evolved_sq = self.hidden_state_scarred.clone()
+                hidden_state_evolved = self.hidden_state_scarred.clone().unsqueeze(0)
 
                 
 
