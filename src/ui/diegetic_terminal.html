@@ -40,6 +40,41 @@
                 radial-gradient(circle at 90% 80%, rgba(255, 0, 242, 0.05) 0%, transparent 40%);
         }
 
+        /* --- Rupture Mode (Black-Body Radiation Palette) --- */
+        body.rupture-mode {
+            background: #000;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(138, 43, 226, 0.15) 0%, transparent 70%),
+                linear-gradient(45deg, #000 25%, #050505 25%, #050505 50%, #000 50%, #000 75%, #050505 75%, #050505 100%);
+            background-size: 100% 100%, 4px 4px; /* Tiny grid scanlines */
+            filter: contrast(1.2) saturate(1.5) hue-rotate(-10deg);
+        }
+
+        body.rupture-mode .message.system {
+            background: rgba(138, 43, 226, 0.1);
+            border-left-color: #8a2be2;
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.2);
+            text-shadow: 0 0 5px rgba(138, 43, 226, 0.5);
+        }
+
+        body.rupture-mode .metric-value {
+            color: #8a2be2 !important;
+        }
+
+        @keyframes screen-shake {
+            0% { transform: translate(0,0); }
+            10% { transform: translate(-2px,-2px); }
+            20% { transform: translate(2px,1px); }
+            30% { transform: translate(-3px,2px); }
+            40% { transform: translate(3px,-1px); }
+            50% { transform: translate(-1px,1px); }
+            100% { transform: translate(0,0); }
+        }
+
+        .shake {
+            animation: screen-shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
         /* --- Header --- */
         header {
             height: 60px;
@@ -141,6 +176,35 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+        }
+
+        #surgery-indicator {
+            font-family: var(--font-mono);
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: none;
+            letter-spacing: 1px;
+            animation: pulse 1s infinite alternate;
+        }
+
+        #surgery-indicator.rupture {
+            display: inline-block;
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff4444;
+            border: 1px solid #ff4444;
+        }
+
+        #surgery-indicator.lazarus {
+            display: inline-block;
+            background: rgba(138, 43, 226, 0.2);
+            color: #a14aff;
+            border: 1px solid #a14aff;
+        }
+
+        @keyframes pulse {
+            from { opacity: 0.4; }
+            to { opacity: 1; }
         }
 
         .small-log {
@@ -517,6 +581,7 @@
     <header>
         <div class="system-id">
             <div class="love-invariant" id="love-display">L: 3.127</div>
+            <div id="surgery-indicator"></div>
             <div class="regime-toggle">
                 <div class="regime-btn active goo" id="regime-goo">GOO</div>
                 <div class="regime-btn prickles" id="regime-prickles">PRICKLES</div>
@@ -850,12 +915,34 @@
                 updateMetricsFromDiagnostics(data);
                 return;
             }
+            const payload = data.payload || {};
+            const curvature = payload.curvature || 0;
+
             if (data.error) {
                 appendMessage('system', `ERROR: ${data.error}`);
             } else if (data.response) {
-                typewriterMessage('system', data.response);
+                typewriterMessage('system', data.response, curvature);
             } else {
-                appendMessage('system', "MANIFOLD STATE UPDATED (NO RESPONSE GENERATED).");
+                appendMessage('system', "MANIFOLD STATE UPDATED (NO RESPONSE GENERATED).", curvature);
+            }
+
+            // Handle Rupture / Lazarus Events
+            const body = document.body;
+            const surgeryInd = document.getElementById('surgery-indicator');
+            
+            if (payload.topological_rupture) {
+                body.classList.add('rupture-mode');
+                body.classList.add('shake');
+                surgeryInd.innerText = "RUPTURE";
+                surgeryInd.className = "rupture";
+                setTimeout(() => body.classList.remove('shake'), 400);
+            } else if (payload.lazarus_mode) {
+                body.classList.add('rupture-mode');
+                surgeryInd.innerText = "LAZARUS TRANSITION";
+                surgeryInd.className = "lazarus";
+            } else {
+                body.classList.remove('rupture-mode');
+                surgeryInd.className = "";
             }
 
             // ── Diegetic Visualizer: Manifold Fracture Render ──────────────
@@ -1007,22 +1094,39 @@
             document.querySelector('.drop-hint').innerText = "DRAG DYAD (IMAGE)";
         }
 
-        function appendMessage(type, text) {
+        function appendMessage(type, text, curvature = 0) {
             const msg = document.createElement('div');
             msg.className = `message ${type}`;
             msg.innerText = text || "[VOID CONTENT]";
+            
+            // Apply Curvature Twist (Non-Abelian Curvature)
+            if (curvature > 0) {
+                const skew = Math.min(5, curvature * 20);
+                msg.style.transform = `skewX(${skew}deg)`;
+                msg.style.borderLeftWidth = `${3 + curvature * 10}px`;
+            }
+
             chatFeed.appendChild(msg);
             chatFeed.scrollTop = chatFeed.scrollHeight;
+            return msg;
         }
 
-        function typewriterMessage(type, text) {
+        function typewriterMessage(type, text, curvature = 0) {
             if (!text || typeof text !== 'string') {
-                appendMessage(type, text);
+                appendMessage(type, text, curvature);
                 return;
             }
 
             const msg = document.createElement('div');
             msg.className = `message ${type}`;
+            
+            // Apply Curvature Twist
+            if (curvature > 0) {
+                const skew = Math.min(5, curvature * 20);
+                msg.style.transform = `skewX(${skew}deg)`;
+                msg.style.borderLeftWidth = `${3 + curvature * 10}px`;
+            }
+
             chatFeed.appendChild(msg);
 
             let i = 0;
