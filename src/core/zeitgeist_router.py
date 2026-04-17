@@ -78,7 +78,7 @@ class ZeitgeistState:
         mode    : Current classification: 'interior', 'grazing', 'switching', 'undefined'.
         step    : Monotonic counter — how many times the state has been updated.
     """
-    alpha   : Tuple[int, ...]
+    alpha_tensor : torch.Tensor  # Symmetric Tensor [M, M] representing the Hybrid CRT index
     level   : int
     moduli  : Tuple[int, ...]
     boundary: Optional[object] = None          # BoundaryState; type-erased to avoid circular import
@@ -91,27 +91,23 @@ class ZeitgeistState:
     @property
     def crt_index(self) -> int:
         """
-        Reconstruct the unique integer index α ∈ [0, M) from residues via CRT.
-
-        Uses the standard constructive CRT formula:
-            α = Σ_i  r_i · M_i · y_i  mod M
-        where M = ∏ p_i,  M_i = M / p_i,  y_i = M_i^{-1} mod p_i.
+        Reconstruct the unique integer index α ∈ [0, M) from the diagonal of the 
+        Symmetric Tensor alpha_tensor via CRT.
         """
         moduli = self.moduli
-        residues = self.alpha
-        M = 1
+        # Diagonal contains the residues r_i
+        residues = torch.diagonal(self.alpha_tensor).long().tolist()
+        
+        M_total = 1
         for p in moduli:
-            M *= p
+            M_total *= p
 
         result = 0
         for r_i, p_i in zip(residues, moduli):
-            M_i = M // p_i
-            # Modular inverse via Fermat's little theorem: M_i^{p_i-1} ≡ 1 (mod p_i)
-            # Since all p_i are prime and gcd(M_i, p_i) = 1 (distinct primes),
-            # y_i = M_i^{p_i-2} mod p_i  is the unique inverse.
+            M_i = M_total // p_i
             y_i = pow(int(M_i), int(p_i) - 2, int(p_i))
             result += int(r_i) * int(M_i) * y_i
-        return result % M
+        return result % M_total
 
     @property
     def is_undefined(self) -> bool:
@@ -124,11 +120,11 @@ class ZeitgeistState:
     @classmethod
     def initial(cls, moduli: Tuple[int, ...]) -> 'ZeitgeistState':
         """
-        Create a zero-residue initial state: α = (0, 0, ..., 0).
-        This places the system at the origin of the first (default) polytope.
+        Create a zero-residue initial state with a zero symmetric tensor.
         """
+        M = len(moduli)
         return cls(
-            alpha=tuple(0 for _ in moduli),
+            alpha_tensor=torch.zeros((M, M), dtype=torch.float32),
             level=0,
             moduli=moduli,
             boundary=None,
@@ -138,14 +134,14 @@ class ZeitgeistState:
 
     def switched(
         self,
-        new_alpha: Tuple[int, ...],
+        new_alpha_tensor: torch.Tensor,
         new_level: int,
         mode: str,
         boundary: Optional[object] = None,
     ) -> 'ZeitgeistState':
-        """Return a new ZeitgeistState with updated alpha, preserving moduli."""
+        """Return a new ZeitgeistState with updated alpha_tensor, preserving moduli."""
         return ZeitgeistState(
-            alpha=new_alpha,
+            alpha_tensor=new_alpha_tensor,
             level=new_level,
             moduli=self.moduli,
             boundary=boundary,
@@ -156,7 +152,7 @@ class ZeitgeistState:
     def to_dict(self) -> Dict:
         """Serialise for embedding into the process_input metrics payload."""
         d = {
-            'alpha': list(self.alpha),
+            'alpha_tensor_sum': float(self.alpha_tensor.sum().item()),
             'crt_index': self.crt_index,
             'level': self.level,
             'mode': self.mode,
@@ -338,67 +334,58 @@ class ZeitgeistRouter(nn.Module):
         x: torch.Tensor,
         state: ZeitgeistState,
         boundary=None
-    ) -> Tuple[Tuple[int, ...], int]:
+    ) -> Tuple[torch.Tensor, int]:
         """
-        Compute new residues (α_1', ..., α_m') and new level ℓ' after a switch.
-
-        Δα_i = round(σ(gate(x))_i · p_i)  mod  p_i
-        α_i' = (α_i + Δα_i)  mod  p_i
-
-        The non-commutativity arises because gate(x) depends on x, and two
-        different states x, y produce different Δα vectors; composing in
-        different orders gives different paths through Z.
-
-        Returns:
-            new_alpha : Tuple[int, ...] of length M
-            new_level : int (preserved or updated from BoundaryState Matrioshka level)
+        Compute new Symmetric Tensor CRT index M_ij.
+        
+        M_ii = (r_i + Δr_i) mod p_i
+        M_ij = symmetry interaction term (palindromic routing)
         """
-        # Phase 6: Apply Log-Polar projection to stabilize explosive zooming 
-        # during facet switching (acts as the 4D Space Carving conformal map)
         x_mapped = self._apply_log_polar_projection(x)
         
-        # gate output: [batch, M] → take mean over batch → [M]
         gate_out = torch.sigmoid(self.switch_gate(x_mapped))   # [batch, M]
         delta_soft = gate_out.mean(dim=0)                # [M]
         
-        # Incorporate BoundaryState stress tensor to bias the CRT transition
         if boundary is not None and hasattr(boundary, 'stress_tensor') and boundary.stress_tensor is not None:
-            # Flatten stress tensor and project down to M dimensions
             stress_flat = boundary.stress_tensor.flatten()
             if stress_flat.size(0) >= self.M:
                 stress_bias = torch.abs(stress_flat[:self.M])
             else:
                 stress_bias = torch.zeros(self.M, device=delta_soft.device)
                 stress_bias[:stress_flat.size(0)] = torch.abs(stress_flat)
-                
-            # Gate output gets a spike from extreme stress directing it away
             delta_soft = delta_soft + 0.5 * stress_bias / (torch.max(stress_bias) + 1e-8)
 
-        # Braid Group Automaton Integration (Phase 2.6):
-        # We process the delta_soft array through a Braid Group generator
-        # \sigma_1, \sigma_2, \sigma_3 twisting adjacent dimensional moduli
-        # This formalizes the "slender seams" mapping
+        # Braid Group Automaton Integration
         delta_braided = delta_soft.clone()
         if self.M >= 3:
-            # \sigma_1: local twist between dim 0 and 1
             if delta_soft[0] > 0.5:
                 delta_braided[0], delta_braided[1] = delta_soft[1], delta_soft[0]
-            # \sigma_2: local twist between dim 1 and 2
             if delta_soft[1] > 0.6:
                 delta_braided[1], delta_braided[2] = delta_soft[2], delta_soft[1]
                 
-        new_alpha = tuple(
-            int((state.alpha[i] + round(float(delta_braided[i]) * self.moduli[i]))
-                % self.moduli[i])
-            for i in range(self.M)
-        )
+        # 1. Update diagonal residues
+        current_residues = torch.diagonal(state.alpha_tensor)
+        new_residues = []
+        for i in range(self.M):
+            r_new = (int(current_residues[i].item()) + round(float(delta_braided[i]) * self.moduli[i])) % self.moduli[i]
+            new_residues.append(float(r_new))
+            
+        # 2. Construct Symmetric Tensor M_ij
+        new_diag = torch.tensor(new_residues, device=x.device)
+        # Off-diagonal: outer interaction of residues (palindromic mirror)
+        # M_ij = (r_i + r_j) / 2 as a simple symmetric basis
+        r_col = new_diag.unsqueeze(1)
+        r_row = new_diag.unsqueeze(0)
+        new_alpha_tensor = 0.5 * (r_col + r_row)
         
-        # Use boundary level if available and valid (>=0), otherwise preserve state
+        # Preserve the exact integer residues on diagonal
+        new_alpha_tensor.view(-1)[::self.M + 1] = new_diag
+
         new_level = state.level
         if boundary is not None and hasattr(boundary, 'level') and boundary.level >= 0:
             new_level = boundary.level
             
-        return new_alpha, new_level
+        return new_alpha_tensor, new_level
 
     # ------------------------------------------------------------------ #
     # Forward                                                              #
@@ -478,7 +465,7 @@ class ZeitgeistRouter(nn.Module):
         # → topological impossibility: refuse to emit (NaN-equivalent)
         if is_critical and any_grazing:
             new_state = state.switched(
-                new_alpha=state.alpha,
+                new_alpha_tensor=state.alpha_tensor,
                 new_level=state.level,
                 mode='undefined',
                 boundary=boundary,
@@ -492,21 +479,21 @@ class ZeitgeistRouter(nn.Module):
             # Interior: x is safely inside P_α — no switch, no pressure
             mode = 'interior'
             new_state = state.switched(
-                new_alpha=state.alpha,
+                new_alpha_tensor=state.alpha_tensor,
                 new_level=state.level,
                 mode=mode,
                 boundary=boundary,
             )
         else:
             # Grazing or crossing — execute non-commutative CRT switch
-            new_alpha, new_level = self._compute_switch(x, state, boundary=boundary)
-            # If the alpha residues actually changed, this is a full switch
-            if new_alpha != state.alpha:
+            new_alpha_tensor, new_level = self._compute_switch(x, state, boundary=boundary)
+            # If the alpha residues (diagonal) actually changed, this is a full switch
+            if not torch.equal(new_alpha_tensor, state.alpha_tensor):
                 mode = 'switching'
             else:
                 mode = 'grazing'
             new_state = state.switched(
-                new_alpha=new_alpha,
+                new_alpha_tensor=new_alpha_tensor,
                 new_level=new_level,
                 mode=mode,
                 boundary=boundary,
@@ -566,11 +553,11 @@ class ZeitgeistRouter(nn.Module):
         d = {
             # Core state
             'mode': mode,
-            'prev_alpha': list(prev_state.alpha),
-            'new_alpha': list(new_state.alpha),
+            'prev_alpha_diag': torch.diagonal(prev_state.alpha_tensor).long().tolist(),
+            'new_alpha_diag': torch.diagonal(new_state.alpha_tensor).long().tolist(),
             'prev_crt_index': prev_state.crt_index,
             'new_crt_index': new_state.crt_index,
-            'alpha_changed': prev_state.alpha != new_state.alpha,
+            'alpha_changed': not torch.equal(prev_state.alpha_tensor, new_state.alpha_tensor),
             'level': new_state.level,
             'step': new_state.step,
             # Geometry
