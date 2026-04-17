@@ -55,14 +55,20 @@ def verify_hybrid_palindromic_extended():
     
     # Test Braid sigma_3 (triggered by delta_soft[2] > 0.7)
     # We'll mock the gate output to trigger the braid
-    x = torch.randn(1, 10)
-    
-    # Force high delta on 3rd component to trigger sigma_3
+    # Force high delta on 3rd component and force GRAZING state
     with torch.no_grad():
         router.switch_gate.weight[2, :] = 10.0
         router.switch_gate.bias[2] = 5.0
+        # Force a grazing condition: make the first facet normal aligned with x
+        # and make the threshold close to the projection.
+        x = torch.zeros(1, 10)
+        x[0, 0] = 1.0
+        router.facet_normals[0, :] = 0.0
+        router.facet_normals[0, 0] = 1.0
+        router.facet_thresholds[0] = 0.99
         
     mode, new_state, diag = router.forward(x, state)
+    print(f"Switch Mode: {mode}, Grazing Dims: {diag['grazing_dims']}")
     print(f"Switch Mode: {mode}")
     print(f"Braid Active: {diag['alpha_changed']}")
     
