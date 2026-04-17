@@ -26,22 +26,19 @@ $$S_t = (x_t,\; \alpha_t,\; \ell_t,\; u_t)$$
 | Component | Type | Meaning |
 |---|---|---|
 | $x_t$ | `[batch, dim]` tensor | Current representation vector |
-| $\alpha_t$ | tuple of residues $(r_1, \ldots, r_m)$ | Active polytope index (Zeitgeist) |
+| $\alpha_t$ | `[M, M]` symmetric tensor | **Symmetric CRT index** ($M_{ij} = M_{ji}$) |
 | $\ell_t$ | int | Matrioshka shell depth |
 | $u_t$ | `BoundaryState` or `None` | Last facet crossing event |
 
-### The CRT Index
+### The Symmetric Tensor CRT Index
 
-The Chinese Remainder Theorem guarantees a bijection between the residue tuple and a unique integer α ∈ [0, M):
+The CRT index $\alpha$ is no longer a flat tuple but a **Symmetric Tensor** $M \in \mathbb{R}^{m \times m}$ where the diagonal $M_{ii}$ contains the modular residues $r_i$ and the off-diagonal elements $M_{ij}$ represent palindromic routing interactions.
+
+The Chinese Remainder Theorem is applied to the **diagonal** residues $(r_1, \ldots, r_m)$ to reconstruct the unique integer index $\alpha \in [0, M)$:
 
 $$\alpha = \sum_{i=1}^m r_i \cdot M_i \cdot y_i \pmod{M}$$
 
-where:
-- $M = \prod_i p_i$ (total polytope space)
-- $M_i = M / p_i$ (partial product)
-- $y_i = M_i^{p_i - 2} \bmod p_i$ (modular inverse via Fermat's little theorem, valid for prime $p_i$)
-
-The primes $(p_1, \ldots, p_m)$ are shared with `MetaPolytopeMatrioshka` and are dynamically generated (no hardcoded lists) to ensure uniqueness of the index across the full Matrioshka depth.
+The off-diagonal elements $M_{ij} = (r_i + r_j) / 2$ create a "Palindromic Mirror" that stabilizes the routing against non-commutative drift.
 
 > **Note on implementation**: `pow(M_i, -1, p_i)` was intentionally replaced by `pow(M_i, p_i-2, p_i)` (Fermat's little theorem) for compatibility across all Python 3 versions.
 
@@ -53,22 +50,22 @@ The router classifies each forward pass into one of four mutually exclusive mode
 
 ```
                ┌─────────────────────────────────────────────────┐
-               │             ZeitgeistRouter.forward             │
-               │                                      .          │
-  x_t ──────►  │  facet check: |⟨nᵢ, x̂⟩ − cᵢ| < ε?                │
+               │             ZeitgeistRouter.forward              │
+               │                                                  │
+  x_t ──────►  │  facet check: |⟨nᵢ, x̂⟩ − cᵢ| < ε?            │
                │        │                                        │
                │   NO   ▼   YES                                  │
-               │  ┌─────────────┐   ┌──────────────────────┐     │
-               │  │  INTERIOR   │   │  boundary critical?  │.    │
-               │  │  α unchanged│   │  (stress norm > thr) │ .   │
-               │  └─────────────┘   └──┬──────────────────-┘  .  │
+               │  ┌─────────────┐   ┌──────────────────────┐    │
+               │  │  INTERIOR   │   │  boundary critical?  │    │
+               │  │  α unchanged│   │  (stress norm > thr) │    │
+               │  └─────────────┘   └──┬──────────────────-┘    │
                │                   NO  │  YES                    │
                │             ┌─────────┘  └──────────────────┐   │
                │             ▼                               ▼   │
-               │  ┌──────────────────┐      ┌─────────────────┐. │
-               │  │  α changed?      │      │   UNDEFINED     │. │
-               │  │  SWITCHING/GRAZING│      │  NaN guard.    │. │
-               │  └──────────────────┘      └─────────────────┘. │
+               │  ┌──────────────────┐      ┌─────────────────┐ │
+               │  │  α changed?      │      │   UNDEFINED     │ │
+               │  │  SWITCHING/GRAZING│      │  NaN guard      │ │
+               │  └──────────────────┘      └─────────────────┘ │
                └─────────────────────────────────────────────────┘
 ```
 
@@ -110,12 +107,12 @@ This arises naturally from the switch computation: $\Delta\alpha_i = \text{round
 ```python
 @dataclass
 class ZeitgeistState:
-    alpha   : Tuple[int, ...]   # CRT residues (r_1, ..., r_m)
-    level   : int               # Matrioshka shell depth ℓ_t
-    moduli  : Tuple[int, ...]   # Fixed primes — session invariant
-    boundary: Optional[object]  # Last BoundaryState (type-erased)
-    mode    : str               # Current classification
-    step    : int               # Monotonic update counter
+    alpha_tensor : torch.Tensor      # Symmetric Tensor [M, M]
+    level        : int               # Matrioshka shell depth ℓ_t
+    moduli       : Tuple[int, ...]   # Fixed primes — session invariant
+    boundary     : Optional[object]  # Last BoundaryState (type-erased)
+    mode         : str               # Current classification
+    step         : int               # Monotonic update counter
 ```
 
 **Factories**:
@@ -178,8 +175,8 @@ _zg_mode, self._zeitgeist_state, _zg_diag = self.zeitgeist_router(
 ```python
 metrics['zeitgeist'] = {
     'mode':        _zg_mode,          # 'interior' | 'grazing' | 'switching' | 'undefined'
-    'alpha':       [...],             # current residue tuple as list
-    'crt_index':   ...,               # unique int ∈ [0, M)
+    'alpha_tensor_sum': ...,          # sum of the symmetric tensor
+    'crt_index':   ...,               # unique int ∈ [0, M) reconstructed from diagonal
     'step':        ...,               # monotonic counter
     'diagnostics': {                  # full _zg_diag dict
         'prev_alpha', 'new_alpha', 'alpha_changed',
