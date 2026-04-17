@@ -91,7 +91,7 @@ def verify_hybrid_palindromic_extended():
     solver = PolynomialADMRSolver(poly_config=config, state_dim=10)
     
     states = torch.randn(1, 10)
-    adj = torch.ones(1, 1, 10) # Simple adjacency
+    adj = torch.ones(1, 1) # [batch, num_neighbors]
     
     # Test with Digimon Nutrient (palindromic_hash)
     p_hash = torch.ones(1, 10)
