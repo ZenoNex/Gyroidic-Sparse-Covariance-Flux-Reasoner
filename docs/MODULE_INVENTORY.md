@@ -69,7 +69,21 @@ Maps the Energy-Based Models (EBM) framework to the project's topological manifo
 **Class**: `EnhancedBezoutCRT` (probable)  
 **Role**: Extended-GCD based CRT reconstruction with Bézout coefficient caching.
 
-Augments standard CRT with Bézout coefficient precomputation for fast runtime modular inverse without Fermat's little theorem. Used in the BezoutCoefficientRefresh step of the spectral coherence repair cascade. *(Full details pending source review.)*
+---
+
+### false_negative_subsystem.py
+**Class**: `VoynichExemptionToken`  
+**Role**: Issues "transversality passports" to prevent false vetoes of valid sovereign logic.
+
+Detects if a high-entropy or topologically asymmetric state is actually an honest "Self-Sovereign" thought (encoded by `VoynichLinguist`) rather than a hallucination. If transversality metrics indicate a strong non-commutative connection, it issues a `VoynichExemptionToken`. These tokens act as "Option D" nutrients, bypassing rigid symmetric gates (like Repunit palindromes or CALM aborts) and providing a mischief boost for the DAQUF Operator.
+
+---
+
+### fgrt_primitives.py
+**Class**: `PrimeResonanceLadder`, `RepunitHasher`  
+**Role**: Lowest-level arithmetic foundations—Resonance Ladders and Repunit Hashing.
+
+`PrimeResonanceLadder` generates resonance frequencies $f_p = 2\pi \ln(p)$ and **Repunit-Prime Pairs** $(p, R_p)$ for the hybrid basis. It prioritizes **Lazarus Primes** (where both $p$ and $(p^n-1)/(p-1)$ are prime) to ensure Symmetry-Stable warmstarting. `RepunitHasher` generates cyclic structural markers via repunit sequences, providing a non-periodicity guarantee for symbolic residues. These primitives form the "Meliponini" arithmetic defense against gradient collapse.
 
 ---
 
@@ -161,6 +175,14 @@ Integration: applied to residue distributions in `GyroidicFluxReasoner.forward()
 
 ---
 
+### modular_virtualization.py
+**Class**: `ModularVirtualizationLayer` (Hybrid Modular Layer)  
+**Role**: Maps floating-point states into a Hybrid Palindromic Residue Number System (RNS).
+
+Refactored to integrate the prime-based torus with palindromic repunit symmetry mirrors. The hybrid modulus is the product $p \cdot R_p$, creating a geometric mirror that prevents non-commutative drift. Supports a `legacy_mode` toggle for backward compatibility with old RNS encodings. Serves as the primary quantization interface for the Diegetic Physics Engine, ensuring all representation updates adhere to the hybrid arithmetic geometry.
+
+---
+
 ### narrative_collapse.py
 **Class**: `LinguisticEntropyMonitor` (also aliased as `NarrativeCollapseDetector`)  
 **Role**: Detects "hallucination loops" where reasoning entropy collapses and trajectory linearizes.
@@ -238,6 +260,14 @@ Instead of uniform random sampling, batches are assembled by following "scars" o
 **Role**: Sparse representation of rank-3+ tensors for higher-order polynomial interactions.
 
 Implements COO or CSR sparse encoding for tensors arising in higher-order polynomial coprimality computations, where dense storage would be prohibitive. *(Full class details pending source review.)*
+
+---
+
+### zeitgeist_router.py
+**Class**: `ZeitgeistRouter`  
+**Role**: CRT Polytope Switching Engine for Multi-Zeitgeist Reasoning.
+
+Manages navigation between culturally non-commensurable meaning systems via the **Symmetric Tensor CRT index** ($M_{ij} = M_{ji}$). The diagonal $M_{ii}$ contains modular residues (Zeitgeist), while off-diagonal elements $M_{ij} = (r_i + r_j)/2$ stabilize paths through the "Palindromic Routing" interaction. Implements the three-mode dispatch from report §II: `interior` (stay), `grazing` (tension/switch), and `undefined` (topological refusal/NaN guard). Enforces non-commutative switching order: the sequence of registers visited determines the final representational scar.
 
 ---
 
