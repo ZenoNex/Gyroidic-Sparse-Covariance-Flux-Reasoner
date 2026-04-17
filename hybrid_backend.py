@@ -933,13 +933,25 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             data = json.loads(post_data.decode('utf-8'))
             
             user_text = data.get('text', '').strip()
+            
+            # Normalize input: Strip manual 'PROMPT:' if user erroneously included it
+            clean_text = user_text.strip()
+            if clean_text.upper().startswith("PROMPT:"):
+                clean_text = clean_text[7:].strip()
+                
+            # Detect commands
+            if not clean_text.startswith("INGEST_DYAD:") and not clean_text.startswith("ASSOCIATE:"):
+                text = f"PROMPT: {clean_text}"
+            else:
+                text = clean_text
+                
             video_dyad_b64 = data.get('video_dyad_b64')
             commutativity = data.get('commutativity', 'non_commutative')
             fingerprint = data.get('fingerprint')  # Chebyshev image fingerprint {L, Cr, Cb}
             
             # Process through AI system
             if AI_SYSTEM:
-                result = AI_SYSTEM.process_text(user_text, video_dyad_b64, commutativity, fingerprint)
+                result = AI_SYSTEM.process_text(text, video_dyad_b64, commutativity, fingerprint)
             else:
                 result = {
                     'response': f"AI system not initialized. Received: {user_text}",
@@ -1133,11 +1145,6 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 headers={'Authorization': f'Bearer {token}'},
                 timeout=15
             )
-            mode_str = _zg_mode if _zg_mode else 'interior'
-            alpha_str = str(self._zeitgeist_state.alpha) if hasattr(self._zeitgeist_state, 'alpha') else '[?]'
-            print(f" Zeitgeist mode: {mode_str} | alpha: {alpha_str} "
-                  f"| crt_idx: {self._zeitgeist_state.crt_index} "
-                  f"| step: {self._zeitgeist_state.step}")
             
             print(f"[KEY] HF API response status: {hf_resp.status_code}")
             
