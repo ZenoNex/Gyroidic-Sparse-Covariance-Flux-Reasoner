@@ -512,6 +512,7 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Stabilization and Visibility Flags
         self._is_training_temporal = False
+        self._is_processing = False
         self._last_resonance = 0.0
         
         # Seed the Larynx if it's a "Blank Slate"
@@ -614,8 +615,36 @@ class DiegeticPhysicsEngine(nn.Module):
                 'closure_margin': -0.5,
                 'components': {'error': str(e)}
             }
-        
     def process_input(
+        self,
+        text_input: str,
+        fingerprint: Optional[Dict] = None,
+        audio_dyad: Optional[Dict] = None,
+        video_dyad_b64: Optional[str] = None,
+        commutativity: str = 'symmetric',
+        generate_response: bool = True,
+    ) -> dict:
+        """
+        Main entry point for processing an interaction.
+        """
+        if self._is_processing:
+            print("[ENGINE] Warning: Re-entrant call detected. Returning placeholder.")
+            return {"response": "System busy: topological re-indexing in progress...", "status": "BUSY"}
+
+        try:
+            self._is_processing = True
+            return self._process_input_internal(
+                text_input=text_input,
+                fingerprint=fingerprint,
+                audio_dyad=audio_dyad,
+                video_dyad_b64=video_dyad_b64,
+                commutativity=commutativity,
+                generate_response=generate_response
+            )
+        finally:
+            self._is_processing = False
+
+    def _process_input_internal(
         self,
         text_input: str,
         fingerprint: Optional[Dict] = None,
@@ -3130,7 +3159,7 @@ class DiegeticPhysicsEngine(nn.Module):
             if i > 5:  # After initial characters
                 for char in input_text.lower():
                     char_idx = ord(char)
-                    if char_idx < logits.shape[-1]:
+                    if char_idx < logits.shape[-1] and char_idx != 32: # Preserve spaces
                         logits[0, char_idx] *= echo_suppression_factor
             
             # Sample from the distribution
@@ -3145,8 +3174,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 if len(response_chars) > 0:
                     last_char = response_chars[-1]
                     
-                    # Prevent excessive symbol clustering
-                    if not char.isalnum() and not last_char.isalnum() and len(response_chars) > 3:
+                    # Prevent excessive symbol clustering (allow spaces)
+                    if not char.isalnum() and not last_char.isalnum() and char != ' ' and len(response_chars) > 3:
                         # Skip this symbol to prevent clustering
                         continue
                     
