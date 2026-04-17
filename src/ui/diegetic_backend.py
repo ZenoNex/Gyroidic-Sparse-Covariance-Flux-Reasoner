@@ -463,10 +463,14 @@ class DiegeticPhysicsEngine(nn.Module):
         self.transfer_map = DyadicTransferMap(num_tasks=8, embedding_dim=self.dim)
         
         # 11. Knowledge Dyad Fossilizer
+        # Register fusion_layer directly on the engine so nn.Module.state_dict()
+        # captures and persists its weights across restarts. DyadFossilizer gets
+        # the same reference — one truth, one set of weights.
         from src.core.knowledge_dyad_fossilizer import ResidueFusion
+        self.fusion_layer = ResidueFusion(feature_dim=self.dim, fingerprint_dim=137)
         self.fossilizer = DyadFossilizer(
             storage_dir="data/encodings",
-            fusion_layer=ResidueFusion(feature_dim=self.dim, fingerprint_dim=137)
+            fusion_layer=self.fusion_layer  # shared reference
         )
         
         # 11. Spectral Structural Trainer (Deeper Dynamics)
