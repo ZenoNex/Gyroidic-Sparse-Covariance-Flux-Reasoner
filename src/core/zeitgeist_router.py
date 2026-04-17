@@ -85,6 +85,14 @@ class ZeitgeistState:
     mode    : str = 'interior'
     step    : int = 0
 
+    @property
+    def alpha(self) -> List[int]:
+        """
+        Return the diagonal residues (r_1, ..., r_m) from the Symmetric Tensor.
+        This provides backward compatibility for legacy diagnostics.
+        """
+        return torch.diagonal(self.alpha_tensor).long().tolist()
+
     # ------------------------------------------------------------------ #
     # CRT integer representation of the current alpha                     #
     # ------------------------------------------------------------------ #
