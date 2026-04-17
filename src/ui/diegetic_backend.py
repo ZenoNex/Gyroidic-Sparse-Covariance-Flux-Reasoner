@@ -516,6 +516,22 @@ class DiegeticPhysicsEngine(nn.Module):
         self.iteration = 0
         self.encoding_manager = EncodingManager()
         
+        # Speculative Memory Bridge: Recover legacy fossils into cache
+        self.fossil_cache = []
+        self._refresh_fossil_cache()
+        
+        # Sovereign Ingestor: Background Knowledge Acquisition
+        try:
+            self.ingestor = ArXivSovereignIngestor(
+                fossilizer=self.fossilizer,
+                engine_dim=self.dim,
+                device=self.device
+            )
+            self.ingestor.start_sovereign_loop()
+        except Exception as e:
+            print(f"[INGEST] Failed to start sovereign ingestor: {e}")
+            self.ingestor = None
+        
         # Stabilization and Visibility Flags
         self._is_training_temporal = False
         self._is_processing = False
@@ -571,6 +587,15 @@ class DiegeticPhysicsEngine(nn.Module):
         # Return state for character generation / training
         return self.meta_state
 
+    def _refresh_fossil_cache(self):
+        """Speculatively recovers legacy fossils into the live session cache."""
+        try:
+            print("[MEMORY] Speculatively recovering legacy fossils...")
+            self.fossil_cache = self.fossilizer.recover_fossils()
+            print(f"[MEMORY] {len(self.fossil_cache)} fossils recovered into speculative cache.")
+        except Exception as e:
+            print(f"[MEMORY] Warning: Fossil recovery failed: {e}")
+
     def _initialize_larynx_weights(self):
         """Seed character projections with basic English frequency priors."""
         # Simple vowel-biased seeding to prevent random symbol noise
@@ -598,6 +623,50 @@ class DiegeticPhysicsEngine(nn.Module):
                 resp_tensor = self._text_to_tensor(response_text)
                 s = state / (torch.norm(state, dim=-1, keepdim=True) + 1e-8)
                 r = resp_tensor / (torch.norm(resp_tensor, dim=-1, keepdim=True) + 1e-8)
+                
+    def _prime_manifold_with_fossils(self, input_tensor: torch.Tensor):
+        """
+        Speculative Recovery: Pre-emptively nudges the meta_state toward
+        relevant legacy fossils discovered in the cache.
+        """
+        if not self.fossil_cache:
+            return
+
+        with torch.no_grad():
+            # 1. Compute similarity against the entire cache
+            # input_tensor is [1, dim], residue_vectors are [1, dim]
+            input_norm = input_tensor / (torch.norm(input_tensor) + 1e-8)
+            
+            similarities = []
+            for fossil in self.fossil_cache:
+                # Residue vectors are stored as CPU tensors in the cache
+                res_vec = fossil['residue_vector']
+                if not isinstance(res_vec, torch.Tensor):
+                    continue
+                    
+                res_vec = res_vec.to(self.device).view(1, -1)
+                res_norm = res_vec / (torch.norm(res_vec) + 1e-8)
+                sim = torch.mm(input_norm, res_norm.t()).item()
+                similarities.append((sim, res_vec))
+
+            # 2. Extract top-N matches
+            # Speculative threshold: only match if similarity > 0.4
+            top_matches = sorted([m for m in similarities if m[0] > 0.4], key=lambda x: x[0], reverse=True)[:3]
+
+            if top_matches:
+                print(f"[MEMORY] Speculative Recovery: Found {len(top_matches)} relevant legacy fossils.")
+                # Nudge the meta_state using a weighted sum of legacy residues
+                nudge = torch.zeros_like(self.meta_state)
+                total_sim = sum(m[0] for m in top_matches)
+                for sim, res in top_matches:
+                    weight = sim / total_sim
+                    nudge += weight * res
+                
+                # Apply nudge: meta_state = (1-eta)*meta_state + eta*nudge
+                eta = 0.2
+                self.meta_state.copy_((1.0 - eta) * self.meta_state + eta * nudge)
+            else:
+                pass # No relevant fossils detected for this input
                 cos = torch.clamp(torch.sum(s * r, dim=-1), -1.0, 1.0)
                 closure_score = float((1.0 - cos).abs().mean().item())
                 closure_threshold = 0.5
@@ -702,6 +771,10 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # 1. Embed Input (Hash Projection) - MOVED UP
         input_tensor = self._text_to_tensor(text_input) # [1, dim]
+        
+        # --- SPECULATIVE MEMORY BRIDGE ---
+        # Prime the manifold with relevant fossils before starting the reasoning pass
+        self._prime_manifold_with_fossils(input_tensor)
         
         # --- VIDEO DYAD PATH ---
         if video_dyad_b64 is not None:
