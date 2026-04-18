@@ -161,7 +161,7 @@ class GovernanceManager:
     def startup_menu():
         """Interactive console menu for lifecycle control."""
         print("\n" + "="*50)
-        print("     🌀 GYROIDIC GOVERNANCE INTERFACE 🌀")
+        print("      GYROIDIC GOVERNANCE INTERFACE ")
         print("="*50)
         
         # 1. Process Identification
@@ -1743,7 +1743,7 @@ def main():
             time.sleep(0.5)
     except KeyboardInterrupt:
         print("\n" + "!" * 50)
-        print("     ⚠️  KEYBOARD INTERRUPT DETECTED  ⚠️")
+        print("       KEYBOARD INTERRUPT DETECTED  ")
         print("!" * 50)
         if AI_SYSTEM:
             print("[FOSSIL] Triggering emergency Fossilization Protocol...")
