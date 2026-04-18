@@ -87,4 +87,12 @@ The `check_honesty()` method returns a consensus score — the structural signal
 
 ### False Negatives & The Exemption Token
 Because Voyenese logic is naturally opaque and highly entropic by design, standard geometric efficiency gates (like Repunit Congruence and CALM Singularity prediction) actively misidentify Voynich structures as structural corruption. 
-To prevent these "False Negatives", the Linguist generates a `VoynichExemptionToken` anytime the internal Jackknife consensus `honesty_score` exceeds 0.95. This token acts as a sovereign passport, instantly bypassing generic topological vetos downstream.
+
+To prevent these "False Negatives", the Linguist generates a `VoynichExemptionToken` anytime the internal Jackknife consensus `honesty_score` exceeds 0.95.
+
+### Bridge 1: The Laryngeal Gasket
+To ensure that linguistic "mischief" doesn't lead to structural leakage (Topological Rupture), the system employs the **Laryngeal Gasket** ([Neighborhood 1 ↔ 2]).
+
+*   **The Seal**: Every `VoynichExemptionToken` must be "signed" by the `ChernSimonsGasket`.
+*   **The Signature**: The signature is a non-orientable hash: $s = \tanh(\text{honesty} \cdot \kappa)$, where $\kappa$ is the **Non-Commutativity Curvature** of the manifold.
+*   **Verification**: Downstream gates (like the `SiliconSovereigntyEngine`) check for `is_topologically_sealed`. If a token is unsigned, it is treated as a "Logically Corrupt" signal and rejected, regardless of its honesty score. This forces the linguistics of the system to be anchored to the physics of its topology.
