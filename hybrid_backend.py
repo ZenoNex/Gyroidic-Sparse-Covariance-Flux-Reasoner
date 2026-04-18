@@ -362,19 +362,25 @@ class HybridAI:
             
             # 2. MANIFOLD SOUL (Phase 18 Protocol)
             if self.engine:
-                manifold_assets = self.engine.get_manifold_state()
-                save_dict.update({
-                    'zeitgeist': manifold_assets['zeitgeist'],     # Full ZeitgeistState
-                    'love_invariant': manifold_assets['love_invariant'], # L_vector
-                    'fossil_memory': manifold_assets['fossil_memory'],  # EmbeddingGraph Snapshot
-                    'cavity_M': manifold_assets['cavity']['M'],
-                    'cavity_D_dark': manifold_assets['cavity']['D_dark'],
-                    'engine_meta_state': manifold_assets['meta_state']
-                })
+                try:
+                    manifold_assets = self.engine.get_manifold_state()
+                    save_dict.update({
+                        'zeitgeist': manifold_assets.get('zeitgeist'),
+                        'love_invariant': manifold_assets.get('love_invariant'),
+                        'fossil_memory': manifold_assets.get('fossil_memory'),
+                        'cavity_M': manifold_assets.get('cavity', {}).get('M'),
+                        'cavity_D_dark': manifold_assets.get('cavity', {}).get('D_dark'),
+                        'engine_meta_state': manifold_assets.get('meta_state')
+                    })
+                except Exception as engine_err:
+                    print(f"[WARN] Engine manifold extraction failed: {engine_err}. Saving core state only.")
             
             # 3. Temporal Model if available
             if self.temporal_model:
-                save_dict['temporal_model_state'] = self.temporal_model.state_dict()
+                try:
+                    save_dict['temporal_model_state'] = self.temporal_model.state_dict()
+                except Exception as model_err:
+                    print(f"[WARN] Temporal model state extraction failed: {model_err}")
             
             # ATOMIC SAVE
             torch.save(save_dict, state_path)
@@ -383,8 +389,8 @@ class HybridAI:
             print(f"[FOSSIL] Manifold serialized to {state_path} ({size_mb:.2f} MB)")
             return f"Fossilization Protocol Complete: {size_mb:.2f} MB saved."
         except Exception as e:
-            print(f"[FOSSIL] Save failed: {e}")
-            raise e
+            print(f"[FOSSIL] Emergency shutdown save failed: {e}")
+            return f"Fossilization Failure: {e}"
 
     def load_model_state(self):
         """Restore manifold state from gyroid_state.pt (Warmstart)."""
@@ -1112,10 +1118,22 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             addMessage('USER', message);
             input.value = '';
 
+            let payload = { text: message };
+            
+            // Bridge: Detect "armed" status simulations
+            if (message.toUpperCase().includes('FINGERPRINT:') || message.toUpperCase().includes('ARMED:')) {
+                payload.fingerprint = {
+                    L: [0.5, 0.2, 0.8],
+                    Cr: [0.1, 0.9, 0.4],
+                    Cb: [0.3, 0.3, 0.6],
+                    status: 'armed_via_terminal_bridge'
+                };
+            }
+
             fetch('/interact', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({text: message})
+                body: JSON.stringify(payload)
             })
             .then(response => response.json())
             .then(data => {
