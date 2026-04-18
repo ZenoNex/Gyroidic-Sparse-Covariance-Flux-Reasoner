@@ -226,7 +226,86 @@ class HybridAI:
             self.graph_manager = None
 
         # SOVEREIGN WARMSTART: Restore manifold if fossil exists (Thorium Protocol)
-        self._load_model_state()
+        self.load_model_state()
+
+    def save_model_state(self) -> str:
+        """Implements Thorium Fossilization Protocol: Serializes the manifold soul."""
+        try:
+            state_path = os.path.join(root_dir, 'gyroid_state.pt')
+            
+            # 1. Standard Core States
+            save_dict = {
+                'iteration': self.iteration_count,
+                'hidden_state': self.hidden_state,
+                'damage_residue': self.damage_residue,
+            }
+            
+            # 2. MANIFOLD SOUL (Phase 18 Protocol)
+            if self.engine:
+                manifold_assets = self.engine.get_manifold_state()
+                save_dict.update({
+                    'zeitgeist': manifold_assets['zeitgeist'],     # Full ZeitgeistState
+                    'love_invariant': manifold_assets['love_invariant'], # L_vector
+                    'fossil_memory': manifold_assets['fossil_memory'],  # EmbeddingGraph Snapshot
+                    'cavity_M': manifold_assets['cavity']['M'],
+                    'cavity_D_dark': manifold_assets['cavity']['D_dark'],
+                    'engine_meta_state': manifold_assets['meta_state']
+                })
+            
+            # 3. Temporal Model if available
+            if self.temporal_model:
+                save_dict['temporal_model_state'] = self.temporal_model.state_dict()
+            
+            # ATOMIC SAVE
+            torch.save(save_dict, state_path)
+            
+            size_mb = os.path.getsize(state_path) / (1024 * 1024)
+            print(f"[FOSSIL] Manifold serialized to {state_path} ({size_mb:.2f} MB)")
+            return f"Fossilization Protocol Complete: {size_mb:.2f} MB saved."
+        except Exception as e:
+            print(f"[FOSSIL] Save failed: {e}")
+            raise e
+
+    def load_model_state(self):
+        """Restore manifold state from gyroid_state.pt (Warmstart)."""
+        state_path = os.path.join(root_dir, 'gyroid_state.pt')
+        if not os.path.exists(state_path):
+            print("[WARMSTART] No fossilized state found at root. Starting clean.")
+            return
+
+        try:
+            print(f"[WARMSTART] Recovering manifold from {state_path}...")
+            # Load with map_location='cpu' for cross-hardware soul-transfer
+            checkpoint = torch.load(state_path, map_location='cpu')
+            
+            self.iteration_count = checkpoint.get('iteration', 0)
+            if 'hidden_state' in checkpoint:
+                self.hidden_state = checkpoint['hidden_state']
+            if 'damage_residue' in checkpoint:
+                self.damage_residue = checkpoint['damage_residue']
+
+            # Restore Manifold Assets via Engine
+            if self.engine:
+                # Map standard keys to manifold dict
+                manifold_dict = {
+                    "zeitgeist": checkpoint.get("zeitgeist"),
+                    "love_invariant": checkpoint.get("love_invariant"),
+                    "fossil_memory": checkpoint.get("fossil_memory"),
+                    "cavity": {
+                        "M": checkpoint.get("cavity_M"),
+                        "D_dark": checkpoint.get("cavity_D_dark")
+                    },
+                    "meta_state": checkpoint.get("engine_meta_state"),
+                    "iteration": checkpoint.get("iteration")
+                }
+                self.engine.load_manifold_state(manifold_dict)
+
+            if self.temporal_model and 'temporal_model_state' in checkpoint:
+                self.temporal_model.load_state_dict(checkpoint['temporal_model_state'], strict=False)
+            
+            print("[WARMSTART] Manifold soul restored successfully.")
+        except Exception as e:
+            print(f"[WARMSTART] Error during recovery: {e}. Manifold may be corrupt or entropic.")
 
     
     def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None, audio_dyad: dict = None) -> dict:
@@ -1282,87 +1361,15 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             })
 
     def _handle_save_model(self):
-        """Handle /api/save_model - Implements Thorium Fossilization Protocol."""
+        """Handle /api/save_model."""
         try:
             if AI_SYSTEM:
-                # Save the current state
-                state_path = os.path.join(root_dir, 'gyroid_state.pt')
-                
-                # 1. Standard Hidden States
-                save_dict = {
-                    'iteration': AI_SYSTEM.iteration_count,
-                    'hidden_state': AI_SYSTEM.hidden_state,
-                    'damage_residue': AI_SYSTEM.damage_residue,
-                }
-                
-                # 2. MANIFOLD SOUL (Phase 18 Protocol)
-                if AI_SYSTEM.engine:
-                    manifold_assets = AI_SYSTEM.engine.get_manifold_state()
-                    save_dict.update({
-                        'zeitgeist': manifold_assets['zeitgeist'],     # Full ZeitgeistState
-                        'love_invariant': manifold_assets['love_invariant'], # L_vector
-                        'fossil_memory': manifold_assets['fossil_memory'],  # EmbeddingGraph Snapshot
-                        'cavity_M': manifold_assets['cavity']['M'],
-                        'cavity_D_dark': manifold_assets['cavity']['D_dark'],
-                        'engine_meta_state': manifold_assets['meta_state']
-                    })
-                
-                # 3. Temporal Model if available
-                if AI_SYSTEM.temporal_model:
-                    save_dict['temporal_model_state'] = AI_SYSTEM.temporal_model.state_dict()
-                
-                # ATOMIC SAVE: ensure no ergodic leakage
-                torch.save(save_dict, state_path)
-                
-                size_mb = os.path.getsize(state_path) / (1024 * 1024)
-                print(f"[FOSSIL] Manifold serialized to {state_path} ({size_mb:.2f} MB)")
-                self._send_json({'success': True, 'message': f'Fossilization Protocol Complete: {size_mb:.2f} MB saved.'})
+                message = AI_SYSTEM.save_model_state()
+                self._send_json({'success': True, 'message': message})
             else:
                 self._send_json({'success': False, 'message': 'No AI system to save'})
         except Exception as e:
-            print(f"[FOSSIL] Save failed: {e}")
             self._send_json({'success': False, 'message': f'Fossilization failed: {str(e)}'})
-
-    def _load_model_state(self):
-        """Restore manifold state from gyroid_state.pt (Warmstart)."""
-        state_path = os.path.join(root_dir, 'gyroid_state.pt')
-        if not os.path.exists(state_path):
-            print("[WARMSTART] No fossilized state found at root. Starting clean.")
-            return
-
-        try:
-            print(f"[WARMSTART] Recovering manifold from {state_path}...")
-            # Load with map_location='cpu' for cross-hardware soul-transfer
-            checkpoint = torch.load(state_path, map_location='cpu')
-            
-            self.iteration_count = checkpoint.get('iteration', 0)
-            if 'hidden_state' in checkpoint:
-                self.hidden_state = checkpoint['hidden_state']
-            if 'damage_residue' in checkpoint:
-                self.damage_residue = checkpoint['damage_residue']
-
-            # Restore Manifold Assets via Engine
-            if self.engine:
-                # Map standard keys to manifold dict
-                manifold_dict = {
-                    "zeitgeist": checkpoint.get("zeitgeist"),
-                    "love_invariant": checkpoint.get("love_invariant"),
-                    "fossil_memory": checkpoint.get("fossil_memory"),
-                    "cavity": {
-                        "M": checkpoint.get("cavity_M"),
-                        "D_dark": checkpoint.get("cavity_D_dark")
-                    },
-                    "meta_state": checkpoint.get("engine_meta_state"),
-                    "iteration": checkpoint.get("iteration")
-                }
-                self.engine.load_manifold_state(manifold_dict)
-
-            if self.temporal_model and 'temporal_model_state' in checkpoint:
-                self.temporal_model.load_state_dict(checkpoint['temporal_model_state'], strict=False)
-            
-            print("[WARMSTART] Manifold soul restored successfully.")
-        except Exception as e:
-            print(f"[WARMSTART] Error during recovery: {e}. Manifold may be corrupt or entropic.")
 
     def _handle_local_datasets(self):
         """Scan and return local datasets."""
