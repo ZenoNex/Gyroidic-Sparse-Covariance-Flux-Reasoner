@@ -1001,67 +1001,37 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
 <head>
     <title>Gyroidic Diegetic Terminal</title>
     <style>
-        body { 
-            font-family: 'Courier New', monospace; 
-            background: #000; 
-            color: #00ff00; 
-            margin: 0; 
-            padding: 20px; 
+        .dock-container {
+            border: 1px solid #004400;
+            background: #000800;
+            padding: 10px;
+            margin-bottom: 20px;
+            text-align: center;
         }
-        .terminal { 
-            max-width: 1000px; 
-            margin: 0 auto; 
-            background: #001100; 
-            border: 2px solid #00ff00; 
-            border-radius: 10px; 
-            padding: 20px; 
+        .dock-title {
+            color: #00ff00;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            font-weight: bold;
         }
-        .header { 
-            text-align: center; 
-            color: #00ffff; 
-            margin-bottom: 20px; 
+        #dock-drop-zone {
+            border: 1px dashed #008800;
+            padding: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
         }
-        .chat-area { 
-            height: 500px; 
-            overflow-y: scroll; 
-            border: 1px solid #004400; 
-            padding: 10px; 
-            margin-bottom: 10px; 
-            background: #000; 
+        #dock-drop-zone:hover {
+            background: #001100;
         }
-        .input-area { 
-            display: flex; 
+        .hint {
+            color: #00aa00;
+            font-size: 0.75rem;
         }
-        .input-area input { 
-            flex: 1; 
-            background: #002200; 
-            color: #00ff00; 
-            border: 1px solid #004400; 
-            padding: 10px; 
-            font-family: 'Courier New', monospace; 
-        }
-        .input-area button { 
-            background: #004400; 
-            color: #00ff00; 
-            border: 1px solid #00ff00; 
-            padding: 10px 20px; 
-            cursor: pointer; 
-            font-family: 'Courier New', monospace; 
-        }
-        .message { 
-            margin: 5px 0; 
-            padding: 5px; 
-        }
-        .user { 
-            color: #ffff00; 
-        }
-        .ai { 
-            color: #00ffff; 
-        }
-        .diagnostics { 
-            color: #ff8800; 
-            font-size: 0.8em; 
-            margin-left: 20px; 
+        #arm-status {
+            color: #00ffff;
+            font-size: 0.7rem;
+            margin-top: 5px;
+            letter-spacing: 1px;
         }
     </style>
 </head>
@@ -1071,6 +1041,15 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             <h1>[BRAIN] GYROIDIC DIEGETIC TERMINAL</h1>
             <p>Hybrid Backend - Temporal Reasoning + Spectral Correction</p>
         </div>
+
+        <div id="visual-dock" class="dock-container">
+            <div class="dock-title">⬡ VISUAL ASSET DOCK (ARMING SYSTEM)</div>
+            <input type="file" id="image-ingest" accept="image/*" style="display:none" onchange="processImage(this.files[0])">
+            <div id="dock-drop-zone" onclick="document.getElementById('image-ingest').click()">
+                <span class="hint">CLICK OR DROP DYAD TO ARM MANIFOLD</span>
+            </div>
+            <div id="arm-status">STATUS: NAKED SYMBOLIC STRING</div>
+        </div>
         
         <div id="chat-area" class="chat-area">
             <div class="message ai">
@@ -1078,7 +1057,7 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 <span class="diagnostics">
                     • Temporal Model: """ + ("ACTIVE" if TEMPORAL_MODEL_AVAILABLE else "OFFLINE") + """<br>
                     • Spectral Corrector: """ + ("ACTIVE" if SPECTRAL_CORRECTOR_AVAILABLE else "OFFLINE") + """<br>
-                    • Status: Ready for interaction
+                    • Status: Ready for interaction (Structural Honesty Enforced)
                 </span>
             </div>
         </div>
@@ -1090,12 +1069,16 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
     </div>
 
     <script>
+        let state = {
+            active_fingerprint: null
+        };
+
         function addMessage(sender, message, diagnostics) {
             const chatArea = document.getElementById('chat-area');
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + sender.toLowerCase();
             
-            let html = '<strong>' + sender.toUpperCase() + ':</strong> ' + message;
+            let html = '<strong>' + sender.toUpperCase() + ':</strong> ' + (message || '[VOID]');
             
             if (diagnostics && Object.keys(diagnostics).length > 0) {
                 html += '<br><span class="diagnostics">';
@@ -1110,25 +1093,126 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             chatArea.scrollTop = chatArea.scrollHeight;
         }
 
+        async function processImage(file) {
+            if (!file) return;
+            document.getElementById('arm-status').innerText = "ARMING: ANALYSING TOPOLOGY...";
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const fingerprint = computeChebyshevFingerprint(img);
+                    state.active_fingerprint = fingerprint;
+                    document.getElementById('arm-status').innerText = "STATUS: ARMED (" + file.name + ")";
+                    document.getElementById('arm-status').style.color = "#00ffff";
+                    addMessage('SYSTEM', "⬡ DYAD ARMED — " + fingerprint.degree + "-mode Chebyshev fingerprint computed locally.");
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function computeChebyshevFingerprint(img) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const SIDE = 64;
+            canvas.width = SIDE; canvas.height = SIDE;
+            ctx.drawImage(img, 0, 0, SIDE, SIDE);
+            const px = ctx.getImageData(0, 0, SIDE, SIDE).data;
+            const N = SIDE * SIDE;
+            
+            const lumArr = new Float64Array(N);
+            const crArr = new Float64Array(N);
+            const cbArr = new Float64Array(N);
+            
+            for (let i = 0; i < N; i++) {
+                const r = px[i * 4] / 255;
+                const g = px[i * 4 + 1] / 255;
+                const b = px[i * 4 + 2] / 255;
+                lumArr[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+                crArr[i]  = 0.500 * r - 0.419 * g - 0.081 * b + 0.5;
+                cbArr[i]  = -0.169 * r - 0.331 * g + 0.500 * b + 0.5;
+            }
+
+            const K = 8; // Fixed K-alignment for GL(8) compatibility
+            
+            function chebyshevProject(arr) {
+                const arrN = arr.length;
+                let vMin = Math.min(...arr), vMax = Math.max(...arr);
+                const vRange = Math.max(vMax - vMin, 1e-12);
+                const xNorm = arr.map(v => 2 * (v - vMin) / vRange - 1);
+                
+                const frameCount = K + 1;
+                const frameSize = Math.floor(arrN / frameCount);
+                const xF = new Float64Array(frameCount);
+                
+                for (let f = 0; f < frameCount; f++) {
+                    const start = f * frameSize;
+                    let energy = 0;
+                    for (let i = 0; i < frameSize; i++) {
+                        const w = 0.5 * (1 - Math.cos(2 * Math.PI * i / (frameSize - 1)));
+                        const s = xNorm[start + i] * w;
+                        energy += s * s;
+                    }
+                    xF[f] = 2 * (Math.sqrt(energy / frameSize) || 0) - 1;
+                }
+
+                const rawCoeffs = new Float64Array(K);
+                for (let k = 0; k < K; k++) {
+                    let acc = 0;
+                    for (let f = 0; f < frameCount; f++) {
+                        const x = xF[f];
+                        let T_curr = 1.0;
+                        if (k === 1) T_curr = x;
+                        else if (k > 1) {
+                            let T_p = 1.0, T_c = x;
+                            for (let n = 2; n <= k; n++) { let T_n = 2*x*T_c - T_p; T_p = T_c; T_c = T_n; }
+                            T_curr = T_c;
+                        }
+                        acc += T_curr;
+                    }
+                    rawCoeffs[k] = acc / frameCount;
+                }
+
+                const coeffSum = rawCoeffs.reduce((a, b) => a + Math.abs(b), 0);
+                const thetaRow = rawCoeffs.map(c => coeffSum > 1e-12 ? Math.abs(c) / coeffSum : 1 / K);
+                
+                const SCALE = 1024.0;
+                return thetaRow.map((val, k) => {
+                    let seed = (arrN ^ (K << 8) ^ k) >>> 0;
+                    let v = val * SCALE;
+                    let floorV = Math.floor(v);
+                    let frac = v - floorV;
+                    seed ^= (seed << 13); seed ^= (seed >>> 17); seed ^= (seed << 5);
+                    const bit = (seed / 4294967295.0) < frac ? 1 : 0;
+                    return parseFloat(((floorV + bit) / SCALE).toFixed(6));
+                });
+            }
+
+            return {
+                L: chebyshevProject(lumArr),
+                Cr: chebyshevProject(crArr),
+                Cb: chebyshevProject(cbArr),
+                degree: K
+            };
+        }
+
         function sendMessage() {
             const input = document.getElementById('user-input');
             const message = input.value.trim();
-            if (!message) return;
+            if (!message && !state.active_fingerprint) return;
 
-            addMessage('USER', message);
+            addMessage('USER', message || "[INGESTING VISUAL RESIDUE]");
             input.value = '';
 
-            let payload = { text: message };
+            let payload = { 
+                text: message,
+                fingerprint: state.active_fingerprint
+            };
             
-            // Bridge: Detect "armed" status simulations
-            if (message.toUpperCase().includes('FINGERPRINT:') || message.toUpperCase().includes('ARMED:')) {
-                payload.fingerprint = {
-                    L: [0.5, 0.2, 0.8],
-                    Cr: [0.1, 0.9, 0.4],
-                    Cb: [0.3, 0.3, 0.6],
-                    status: 'armed_via_terminal_bridge'
-                };
-            }
+            state.active_fingerprint = null;
+            document.getElementById('arm-status').innerText = "STATUS: NAKED SYMBOLIC STRING";
+            document.getElementById('arm-status').style.color = "#00ff00";
 
             fetch('/interact', {
                 method: 'POST',
@@ -1137,7 +1221,8 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             })
             .then(response => response.json())
             .then(data => {
-                addMessage('AI', data.response || 'No response received.', data.diagnostics);
+                if (data.error) addMessage('SYSTEM', 'REFUSAL: ' + data.error);
+                else addMessage('AI', data.response || 'No response received.', data.diagnostics);
             })
             .catch(error => {
                 addMessage('SYSTEM', 'ERROR: Connection failed - ' + error);
@@ -1156,6 +1241,18 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             data = json.loads(post_data.decode('utf-8'))
             
             user_text = data.get('text', '').strip()
+            fingerprint = data.get('fingerprint')  # Chebyshev image fingerprint {L, Cr, Cb}
+
+            # =============================================
+            # STRUCTURAL INTEGRITY CHECK (§12.1)
+            # Rejects mock scalars to protect manifold
+            # =============================================
+            if fingerprint:
+                l_data = fingerprint.get('L')
+                if not isinstance(l_data, list):
+                    return self._send_json({'error': 'STRUCTURAL REFUSAL: Mock scalar detected. Ingestion requires modal arrays.'})
+                if len(l_data) < 5:
+                    return self._send_json({'error': 'TOPOLOGICAL RUPTURE: Insufficient modes (K < 5).'})
             
             # Normalize input: Strip manual 'PROMPT:' if user erroneously included it
             clean_text = user_text.strip()
@@ -1170,7 +1267,6 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 
             video_dyad_b64 = data.get('video_dyad_b64')
             commutativity = data.get('commutativity', 'non_commutative')
-            fingerprint = data.get('fingerprint')  # Chebyshev image fingerprint {L, Cr, Cb}
             
             # Process through AI system
             if AI_SYSTEM:
