@@ -340,15 +340,22 @@ class GyroidImageProjector(nn.Module):
 
             # 2. Modulate with image if provided
             if image is not None:
+                is_1d = image.dim() == 1
                 img_2d = self._prepare_image(image)  # [res, res]
                 modulated = gyroid_slice * img_2d
                 
                 # Compute Chiral Groupoid Anisotropy (Berry Phase analog)
                 # Calculates the geometric twist of image gradients across the gyroid slice
-                dy, dx = torch.gradient(img_2d)
-                gy, gx = torch.gradient(gyroid_slice)
-                # Cross product proxy for 2D gradients (curl-like twist)
-                twist = (dx * gy - dy * gx).mean()
+                if is_1d:
+                    # Bridge: For 1D spectral residues, twist is modal gradient
+                    # d_coeff / d_mode instead of d_pixel / d_space
+                    # We use a proxy: difference in mean values of neighboring coefficients
+                    twist = (image.diff().mean() * gyroid_slice.mean()).clamp(-1.0, 1.0)
+                else:
+                    dy, dx = torch.gradient(img_2d)
+                    gy, gx = torch.gradient(gyroid_slice)
+                    # Cross product proxy for 2D gradients (curl-like twist)
+                    twist = (dx * gy - dy * gx).mean()
                 berry_phases.append(twist)
             else:
                 modulated = gyroid_slice
@@ -370,6 +377,24 @@ class GyroidImageProjector(nn.Module):
 
     def _prepare_image(self, image: torch.Tensor) -> torch.Tensor:
         """Resize/reshape image to match gyroid resolution."""
+        # Handle 1D Spectral Residues (Zero-Mock Path)
+        if image.dim() == 1:
+            # Reshape 1D [24] or [137] into a square Spectral Landscape
+            n_in = image.size(0)
+            res_side = int(math.ceil(math.sqrt(n_in)))
+            
+            # Pad to square
+            pad_size = (res_side ** 2) - n_in
+            if pad_size > 0:
+                image = F.pad(image, (0, pad_size))
+            
+            image = image.view(res_side, res_side)
+            # Bilinear upsample to gyroid resolution
+            image = F.interpolate(image.unsqueeze(0).unsqueeze(0), 
+                                size=(self.gyroid.resolution, self.gyroid.resolution), 
+                                mode='bilinear', align_corners=False).squeeze()
+            return image
+
         # Handle channel dimension
         if image.dim() == 3:
             image = image.mean(dim=0)  # Average over channels → [H, W]
