@@ -706,6 +706,14 @@
                 <div class="metric-label">Spectral Coherence</div>
                 <div class="metric-value" id="coherence">0.985</div>
             </div>
+            <div class="metric-card">
+                <div class="metric-label">Honest Silicon Jitter</div>
+                <div class="metric-value" id="honest-jitter" style="color: var(--terminal-warn);">0.0000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Substream Entropy (Atoms)</div>
+                <div class="metric-value" id="substream-entropy" style="color: var(--terminal-magenta);">0.0000</div>
+            </div>
 
             <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1rem 0;">
             <div class="section-title">CALM Momentum <small id="calm-status">STABLE</small></div>
@@ -874,8 +882,8 @@
                 <!-- Drop zone -->
                 <div id="video-dropzone" style="width: 100%; height: 90px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 0.75rem;">
                     <div style="font-size: 1.4rem; line-height: 1; color: var(--terminal-blue);">&#128249;</div>
-                    <div style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">DRAG BINARY VIDEO<br><span style="color:#444;">mp4 &bull; avi</span></div>
-                    <input type="file" id="video-file-input" style="display:none;" accept="video/mp4,video/avi,.mp4,.avi">
+                    <div style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">DRAG BINARY MEDIA<br><span style="color:#444;">mp4 &bull; avi &bull; gif &bull; webm</span></div>
+                    <input type="file" id="video-file-input" style="display:none;" accept="video/mp4,video/avi,video/webm,image/gif,.mp4,.avi,.webm,.gif">
                 </div>
 
                 <!-- Description buffer -->
@@ -1197,6 +1205,12 @@
                 }
                 if (diag.spectral_entropy !== undefined) {
                     document.getElementById('stat-tau').innerText = diag.spectral_entropy.toFixed(3);
+                }
+                if (diag.honest_jitter !== undefined) {
+                    document.getElementById('honest-jitter').innerText = diag.honest_jitter.toFixed(4);
+                }
+                if (diag.substream_entropy !== undefined) {
+                    document.getElementById('substream-entropy').innerText = diag.substream_entropy.toFixed(4);
                 }
             }
 
@@ -1857,10 +1871,11 @@
         const videoLog = document.getElementById('video-log');
 
         async function processVideoFile(file) {
-            const validTypes = ['video/mp4', 'video/avi', 'video/x-matroska', ''];
+            const validTypes = ['video/mp4', 'video/avi', 'video/x-matroska', 'video/webm', 'image/gif', ''];
+            const validExts = ['.mp4', '.avi', '.mkv', '.webm', '.gif'];
             const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
-            if (!['.mp4', '.avi', '.mkv'].includes(ext)) {
-                appendMessage('system', `VIDEO DYAD REJECTED: Unsupported format.`);
+            if (!validExts.includes(ext)) {
+                appendMessage('system', `MEDIA DYAD REJECTED: Unsupported format.`);
                 return;
             }
 
