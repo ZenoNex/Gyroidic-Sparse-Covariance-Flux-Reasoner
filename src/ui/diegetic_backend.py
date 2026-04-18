@@ -97,6 +97,10 @@ from src.surrogates.kagh_networks import KAGHBlock, HarmonicWaveDecomposition, H
 from src.topology.gyroid_covariance import GyroidCovarianceEstimator
 # Speculative Coprime Chiral Gating (Legacy Recovery)
 from src.core.speculative_coprime_gate import SpeculativeCoprimeGate
+
+# SOVEREIGN INGESTION SYSTEM
+from src.data.knowledge_ingestor import ArXivSovereignIngestor
+
 # Graph Topology
 from src.topology.embedding_graph import GyroidicGraphManager
 # Pressure Ingestor for constraint forcing when code is detected
@@ -623,7 +627,25 @@ class DiegeticPhysicsEngine(nn.Module):
                 resp_tensor = self._text_to_tensor(response_text)
                 s = state / (torch.norm(state, dim=-1, keepdim=True) + 1e-8)
                 r = resp_tensor / (torch.norm(resp_tensor, dim=-1, keepdim=True) + 1e-8)
+                cos = torch.clamp(torch.sum(s * r, dim=-1), -1.0, 1.0)
+                closure_score = float((1.0 - cos).abs().mean().item())
+                closure_threshold = 0.5
+                closure_margin = closure_threshold - closure_score
                 
+                return {
+                    'closure_score': closure_score,
+                    'closure_threshold': closure_threshold,
+                    'closure_margin': closure_margin,
+                    'components': {'status': 'numeric_success'}
+                }
+        except Exception as e:
+            return {
+                'closure_score': 1.0,
+                'closure_threshold': 0.5,
+                'closure_margin': -0.5,
+                'components': {'error': str(e)}
+            }
+
     def _prime_manifold_with_fossils(self, input_tensor: torch.Tensor):
         """
         Speculative Recovery: Pre-emptively nudges the meta_state toward
@@ -667,29 +689,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 self.meta_state.copy_((1.0 - eta) * self.meta_state + eta * nudge)
             else:
                 pass # No relevant fossils detected for this input
-                cos = torch.clamp(torch.sum(s * r, dim=-1), -1.0, 1.0)
-                closure_score = float((1.0 - cos).abs().mean().item())
-                closure_threshold = 0.5
-                closure_margin = float(closure_threshold - closure_score)
-                components = {
-                    'cosine_similarity_mean': float(cos.mean().item()),
-                    'cosine_similarity_min': float(cos.min().item()),
-                    'cosine_similarity_max': float(cos.max().item())
-                }
-                return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 
-                    'closure_score': closure_score,
-                    'closure_threshold': closure_threshold,
-                    'closure_margin': closure_margin,
-                    'components': components
-                }
-        except Exception as e:
-            print(f"[REPAIR] Unfolding closure check fallback due to error: {e}")
-            return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 
-                'closure_score': 1.0,
-                'closure_threshold': 0.5,
-                'closure_margin': -0.5,
-                'components': {'error': str(e)}
-            }
+
     def process_input(
         self,
         text_input: str,
