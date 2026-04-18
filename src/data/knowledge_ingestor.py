@@ -155,4 +155,5 @@ class ArXivSovereignIngestor:
                 
         bg_thread = threading.Thread(target=_loop, daemon=True)
         bg_thread.start()
-        print("[INGEST] ArXiv Sovereign Ingestor active. Quality-gated lore capture in progress.")
+        print(" [INGEST] ArXiv Sovereign Ingestor ACTIVE. Starting quality-gated lore drip...")
+        print(" [INGEST] Background monitoring active. Press Ctrl+C in terminal for sovereign audit.")
