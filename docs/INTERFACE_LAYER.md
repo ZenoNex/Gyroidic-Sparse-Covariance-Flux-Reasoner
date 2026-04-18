@@ -155,6 +155,10 @@ Panel C exposes its own within-panel ordering (audio-first vs. text-first for th
 
 ---
 
+| **Spectral Ribbon** | 24-bin display of the armed real residue (3 channels x 8 modes). Replaces the legacy 137-dim mock padding with **Zero-Mock** spectral information. |
+
+---
+
 ## 8. Image Drop Zone
 
 Drop any image file onto the left panel's **DYAD CAPTURE** zone.
@@ -163,10 +167,10 @@ Drop any image file onto the left panel's **DYAD CAPTURE** zone.
 
 1. Canvas renders the image at 64×64.
 2. BT.601 L/Cr/Cb channels extracted.
-3. K derived from pixel count (K = clamp(round(√4096 / 4), 5, 32) = 16 for 64×64).
-4. Chebyshev projection runs on each of the three channels.
-5. Status: `DYAD INGESTED: 48-COEFF CHEBYSHEV FINGERPRINT (K=16, 1920×1080px)`.
-6. Spectral ribbon updates to show the flattened L+Cr+Cb vector.
+3. **Zero-Mock Ingestion**: Chebyshev projection runs on each of the three channels (8 modes each).
+4. **Meliponini Coupling**: The hardware $t_{RFC}$ stall intensity is injected into the $T_0$ component of the Luminance residue.
+5. Status: `DYAD INGESTED: 24-COEFF ZERO-MOCK FINGERPRINT (Hardware-Coupled)`.
+6. Spectral ribbon updates to show the real 24-dim spectral signal.
 
 The fingerprint is **attached to every `/interact` call** until the page is refreshed or a new image is dropped.
 
