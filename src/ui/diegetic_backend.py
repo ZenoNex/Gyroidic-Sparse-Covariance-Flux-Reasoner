@@ -1807,7 +1807,8 @@ class DiegeticPhysicsEngine(nn.Module):
 
         print(" Starting text generation with fully repaired state...")
         
-        # =============================================
+        # Initialize response_text to prevent UnboundLocalError in case of catastrophic failure
+        response_text = ""
         # PHASE 5: THE WORLD DOWN THERE (Archetypal Governor)
         # =============================================
         print(" Phase 5: Routing through Braid Group & Archetypal Synthesis Governor...")
@@ -1816,23 +1817,34 @@ class DiegeticPhysicsEngine(nn.Module):
         # Detect command bypass for Braid Governor
         is_cmd = text_input.startswith("INGEST_DYAD:") or text_input.startswith("ASSOCIATE:")
         
-        archetype_out = self.archetypal_governor.run_archetypes(
-            current_state=seed_state,
-            stranded_states=self.meta_state,
-            current_mischief=self.mischief_probe.H_mischief.item(),
-            phase_alignment=pas_h_live,
-            love_strengths=torch.cat([torch.tensor([0.1]), self.love_vector.L.flatten()]),
-            void_frictions=torch.tensor([abort_score]), # use CALM abort as tension
-            global_dt=dt,
-            env_luminosity=1.0,
-            volitional_scalar=affordance_gradients.get('executability_pressure', 0.5),
-            system_entropy=gyroid_entropy.item() if 'gyroid_entropy' in locals() else 0.5,
-            memory_trauma=float(self.calm_history.mean().item()),
-            dissonance=abort_score,
-            lucidity_idx=pas_h_live,
-            raw_unquantized_state=self.meta_state,
-            is_high_priority=is_cmd
-        )
+        try:
+            archetype_out = self.archetypal_governor.run_archetypes(
+                current_state=seed_state,
+                stranded_states=self.meta_state,
+                current_mischief=self.mischief_probe.H_mischief.item(),
+                phase_alignment=pas_h_live,
+                love_strengths=torch.cat([torch.tensor([0.1]), self.love_vector.L.flatten()]),
+                void_frictions=torch.tensor([abort_score]), # use CALM abort as tension
+                global_dt=dt,
+                env_luminosity=1.0,
+                volitional_scalar=affordance_gradients.get('executability_pressure', 0.5),
+                system_entropy=gyroid_entropy.item() if 'gyroid_entropy' in locals() else 0.5,
+                memory_trauma=float(self.calm_history.mean().item()),
+                dissonance=abort_score,
+                lucidity_idx=pas_h_live,
+                raw_unquantized_state=self.meta_state,
+                is_high_priority=is_cmd
+            )
+        except Exception as arch_err:
+            print(f"[FAIL] Diegetic Engine processing failed: {arch_err}")
+            # Recovery Fallback: Create a benign archetype output to allow generation to continue
+            archetype_out = {
+                "active_state": seed_state,
+                "resurrections": [],
+                "localized_dt": dt,
+                "abstraction_rate": 0.0,
+                "system_collapsed": False
+            }
         
         if archetype_out.get("system_collapsed", False):
             # THE RA EGO DEATH EVENT HAS TRIGGERED
