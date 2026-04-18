@@ -139,6 +139,12 @@ Two previously documented-but-disconnected modules are now active inside `Zeitge
 - **Effect**: High valence = urgency to resolve structural dissonance
 - **Emitted in**: `diagnostics['valence']`
 
+### Fossil Gravity Wells (Bridge 4: Navigation over Storage)
+- **Source**: `src/core/zeitgeist_router.py` (Registry)
+- **Mechanism**: Maps a Fossil's `Blake2s` digest ID directly to a stable displacement in the CRT Polytope space.
+- **Poincaré Projection**: These IDs act as "landmarks" (Gravity Wells) on the Poincaré Disk. As the system navigates, trajectories are pulled toward these historical landmarks, ensuring that the **Navigation** of the manifold is anchored to its **Storage** (Fossilized memory).
+- **Effect**: Fossilization no longer just "saves data"; it defines the future curvature of the system's thought-trajectories.
+
 Both modules fail gracefully (try/except on import and call) — the router runs normally without them.
 
 ---
