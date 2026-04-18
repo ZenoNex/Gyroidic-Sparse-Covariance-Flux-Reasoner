@@ -209,13 +209,17 @@ class ArchetypalSynthesisEngine(nn.Module):
         memory_trauma: float,
         dissonance: float,
         lucidity_idx: float,
-        raw_unquantized_state: torch.Tensor
+        raw_unquantized_state: torch.Tensor,
+        is_high_priority: bool = False
     ):
         """Unified runner for the full archetypal and psycho-topological constraint matrix."""
         
         # 1. TADC Abstraction Check (Ego Death) - Must run first before filtering
-        r_a = self.abstraction.calculate_abstraction_rate(system_entropy, memory_trauma, dissonance, lucidity_idx)
-        state_alive = self.abstraction(current_state, r_a)
+        r_a = self.abstraction.calculate_abstraction_rate(
+            system_entropy, memory_trauma, dissonance, lucidity_idx, 
+            is_high_priority=is_high_priority
+        )
+        state_alive = self.abstraction(current_state, r_a, is_high_priority=is_high_priority)
 
         # If abstracted (random noise), further psychology checks are mostly moot, but let's flow it.
         # 2. TADC Volition / Conjuring Check
