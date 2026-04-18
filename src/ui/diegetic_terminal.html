@@ -571,6 +571,78 @@
         .panel-c-title {
             color: var(--terminal-warn);
         }
+
+        /* --- Media Chain Styling (Panels E & F) --- */
+        .media-chain-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            padding: 6px 10px;
+            margin-bottom: 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .media-chain-item .icon {
+            font-size: 1rem;
+        }
+
+        .media-chain-item .name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #aaa;
+        }
+
+        .media-chain-item .remove {
+            cursor: pointer;
+            color: #555;
+            transition: color 0.2s;
+        }
+
+        .media-chain-item .remove:hover {
+            color: #ff4444;
+        }
+
+        .chain-visualizer {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            min-height: 40px;
+            position: relative;
+        }
+
+        .chain-visualizer:empty::after {
+            content: "CHAIN EMPTY — DRAG RESIDUES HERE";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.6rem;
+            color: #444;
+            letter-spacing: 1px;
+        }
+
+        .braid-arrow {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--glass-border);
+            line-height: 0.5;
+            margin: -2px 0;
+        }
+
+        .panel-e-title { color: var(--terminal-magenta); }
+        .panel-f-title { color: #8a2be2; }
     </style>
 </head>
 
@@ -815,6 +887,51 @@
                 <button id="commit-video" style="width: 100%; background: rgba(0, 242, 255, 0.08); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;" disabled>COMMIT VIDEO DYAD</button>
                 <div id="video-log" class="small-log"></div>
             </div>
+
+            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+            <!-- PANEL E: IMAGE-MUSIC BRAID -->
+            <div class="chain-panel" id="panel-e">
+                <div class="section-title panel-e-title">Panel E: Image-Music Braid</div>
+                
+                <div class="commutativity-row">
+                    <label>BRAID PATH</label>
+                    <select class="commute-select" id="commute-e">
+                        <option value="image_to_audio">Image &#x2192; Audio</option>
+                        <option value="audio_to_image">Audio &#x2192; Image</option>
+                        <option value="symmetric" selected>Symmetric Collapse</option>
+                    </select>
+                </div>
+
+                <div id="chain-e-visualizer" class="chain-visualizer"></div>
+                
+                <button id="commit-e" style="width: 100%; background: rgba(255, 0, 242, 0.08); border: 1px solid var(--terminal-magenta); color: var(--terminal-magenta); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">COMMIT BI-MODAL BRAID</button>
+                <div id="log-e" class="small-log"></div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+            <!-- PANEL F: HETEROGENEOUS CHAIN -->
+            <div class="chain-panel" id="panel-f">
+                <div class="section-title panel-f-title">Panel F: Heterogeneous Chain</div>
+                
+                <div class="commutativity-row">
+                    <label>EXECUTION</label>
+                    <select class="commute-select" id="commute-f">
+                        <option value="sequential" selected>Sequential Evolution</option>
+                        <option value="symmetric">Simultaneous Injection</option>
+                    </select>
+                </div>
+
+                <div id="chain-f-visualizer" class="chain-visualizer"></div>
+                
+                <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+                    <button id="clear-chain-f" style="flex:1; background:rgba(255,255,255,0.05); border:1px solid #444; color:#888; padding:4px; border-radius:4px; font-size:0.6rem; cursor:pointer;">CLEAR CHAIN</button>
+                </div>
+
+                <button id="commit-f" style="width: 100%; background: rgba(138, 43, 226, 0.08); border: 1px solid #8a2be2; color: #8a2be2; padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">EXECUTE MANIFOLD BRAID</button>
+                <div id="log-f" class="small-log"></div>
+            </div>
         </aside>
     </main>
 
@@ -827,7 +944,8 @@
             backend_url: window.location.origin.includes('localhost') ? 'http://localhost:8000' : window.location.origin,
             active_fingerprint: null,
             active_audio_dyad: null,
-            active_video_dyad: null
+            active_video_dyad: null,
+            media_chain: [] // Array of {type, data, filename, icon}
         };
 
         // UI References
@@ -892,7 +1010,8 @@
                     fingerprint: state.active_fingerprint,
                     audio_dyad: state.active_audio_dyad,
                     video_dyad_b64: state.active_video_dyad,
-                    commutativity: _resolveCommutativity(),
+                    media_chain: state.media_chain.map(item => ({ type: item.type, data: item.data })),
+                    commutativity: _calculateContextualCommutativity(),
                 };
 
                 const response = await fetch(`${state.backend_url}/interact`, {
@@ -1861,6 +1980,114 @@
                 console.warn("HEARTBEAT RUPTURE. BACKEND STOCHASTIC.");
             }
         }, 15000);
+
+        // --- Media Chain Logic ---
+        function _calculateContextualCommutativity() {
+            // If we are committing from a specific panel, that panel's logic wins.
+            // Otherwise, use the master header selector.
+            return state.forced_commutativity || _resolveCommutativity();
+        }
+
+        function updateChainVisualizer(panelId) {
+            const viz = document.getElementById(`chain-${panelId}-visualizer`);
+            if (!viz) return;
+            viz.innerHTML = '';
+            
+            state.media_chain.forEach((item, index) => {
+                const el = document.createElement('div');
+                el.className = 'media-chain-item';
+                el.innerHTML = `
+                    <span class="icon">${item.icon}</span>
+                    <span class="name">${item.filename}</span>
+                    <span class="remove" onclick="removeFromChain(${index}, '${panelId}')">&times;</span>
+                `;
+                viz.appendChild(el);
+                
+                if (index < state.media_chain.length - 1) {
+                    const arrow = document.createElement('div');
+                    arrow.className = 'braid-arrow';
+                    arrow.innerHTML = '&#x2193;';
+                    viz.appendChild(arrow);
+                }
+            });
+        }
+
+        window.removeFromChain = function(index, panelId) {
+            state.media_chain.splice(index, 1);
+            updateChainVisualizer(panelId);
+        };
+
+        function addToChain(type, data, filename, icon, panelId) {
+            state.media_chain.push({ type, data, filename, icon });
+            updateChainVisualizer(panelId);
+        }
+
+        // Panel E logic (I-M Braid)
+        // We override state media chain to be exactly [I, M] or [M, I]
+        document.getElementById('commit-e').onclick = async () => {
+            const mode = document.getElementById('commute-e').value;
+            const chain = [];
+            const hasImg = !!state.active_fingerprint;
+            const hasAud = !!state.active_audio_dyad;
+            
+            if (!hasImg || !hasAud) {
+                appendMessage('system', "PANEL E RUPTURE: BOTH IMAGE AND AUDIO MUST BE ARMED.");
+                return;
+            }
+            
+            if (mode === 'image_to_audio') {
+                chain.push({ type: 'image', data: state.active_fingerprint, filename: 'Image Residue', icon: '+' });
+                chain.push({ type: 'audio', data: state.active_audio_dyad, filename: state.active_audio_dyad.filename, icon: '&#9836;' });
+            } else if (mode === 'audio_to_image') {
+                chain.push({ type: 'audio', data: state.active_audio_dyad, filename: state.active_audio_dyad.filename, icon: '&#9836;' });
+                chain.push({ type: 'image', data: state.active_fingerprint, filename: 'Image Residue', icon: '+' });
+            } else {
+                // Symmetric is handled by sending both and letting backend decide
+                chain.push({ type: 'image', data: state.active_fingerprint, filename: 'Image Residue', icon: '+' });
+                chain.push({ type: 'audio', data: state.active_audio_dyad, filename: state.active_audio_dyad.filename, icon: '&#9836;' });
+            }
+            
+            state.media_chain = chain;
+            state.forced_commutativity = (mode === 'symmetric') ? 'symmetric' : 'media_first';
+            await sendMessage(`INGEST_BRAID: [PANEL_E] ${mode}`);
+            state.forced_commutativity = null;
+            state.media_chain = [];
+            updateChainVisualizer('e');
+        };
+
+        // Panel F logic (Heterogeneous)
+        // Drag over visualizer to add currently armed item
+        const visualizerF = document.getElementById('chain-f-visualizer');
+        visualizerF.onclick = () => {
+            // Add whatever is currently armed to the chain
+            if (state.active_fingerprint) {
+                addToChain('image', state.active_fingerprint, 'Image Residue', '+', 'f');
+            } else if (state.active_audio_dyad) {
+                addToChain('audio', state.active_audio_dyad, state.active_audio_dyad.filename, '&#9836;', 'f');
+            } else if (state.active_video_dyad) {
+                addToChain('video', state.active_video_dyad, 'Video Residue', '&#128249;', 'f');
+            } else {
+                appendMessage('system', "PANEL F: ARM A RESIDUE FIRST TO ADD TO CHAIN.");
+            }
+        };
+
+        document.getElementById('clear-chain-f').onclick = () => {
+            state.media_chain = [];
+            updateChainVisualizer('f');
+        };
+
+        document.getElementById('commit-f').onclick = async () => {
+            if (state.media_chain.length === 0) {
+                appendMessage('system', "PANEL F RUPTURE: CHAIN EMPTY.");
+                return;
+            }
+            const mode = document.getElementById('commute-f').value; // sequential or symmetric
+            state.forced_commutativity = (mode === 'sequential') ? 'media_first' : 'symmetric';
+            await sendMessage(`INGEST_BRAID: [PANEL_F] ${state.media_chain.length}-step chain`);
+            state.forced_commutativity = null;
+            state.media_chain = [];
+            updateChainVisualizer('f');
+        };
 
     </script>
 </body>
