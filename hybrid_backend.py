@@ -12,6 +12,9 @@ import torch
 import threading
 import socketserver
 import numpy as np
+import psutil
+import signal
+import time
 from urllib.parse import urlparse, parse_qs
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib.request
@@ -78,6 +81,87 @@ try:
 except Exception as e:
     DATASET_SYSTEM_AVAILABLE = False
     print(f"[FAIL] Dataset Ingestion System failed to import: {e}")
+
+
+class GovernanceManager:
+    """Manages Gyroidic process identification, port selection, and lifecycle."""
+    
+    @staticmethod
+    def find_existing_processes():
+        """Identify other running instances of the hybrid_backend."""
+        my_pid = os.getpid()
+        matches = []
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                # Look for python processes running 'hybrid_backend.py'
+                if proc.info['name'] and 'python' in proc.info['name'].lower():
+                    cmdline = proc.info['cmdline']
+                    if cmdline and any('hybrid_backend.py' in part for part in cmdline):
+                        if proc.info['pid'] != my_pid:
+                            matches.append(proc.info)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        return matches
+
+    @staticmethod
+    def shutdown_processes(processes):
+        """Perform safe shutdown on identified processes."""
+        for p in processes:
+            pid = p['pid']
+            try:
+                print(f"[GOVERNANCE] Terminating shadow process {pid}...")
+                proc = psutil.Process(pid)
+                # Attempt graceful terminate first
+                proc.terminate()
+                try:
+                    proc.wait(timeout=3)
+                except psutil.TimeoutExpired:
+                    print(f"[GOVERNANCE] Force killing {pid} (timeout).")
+                    proc.kill()
+            except Exception as e:
+                print(f"[FAIL] Could not shutdown {pid}: {e}")
+
+    @staticmethod
+    def startup_menu():
+        """Interactive console menu for lifecycle control."""
+        print("\n" + "="*50)
+        print("     🌀 GYROIDIC GOVERNANCE INTERFACE 🌀")
+        print("="*50)
+        
+        # 1. Process Identification
+        print("[SCANNING] Checking for background gyroid processes...")
+        others = GovernanceManager.find_existing_processes()
+        
+        if others:
+            print(f"[ALERT] {len(others)} existing processes detected.")
+            for p in others:
+                print(f"   • PID {p['pid']} | Cmd: {' '.join(p['cmdline'][:3])}...")
+            
+            choice = input("\n[?] Shutdown background gyroid processes? (y/N): ").lower().strip()
+            if choice == 'y':
+                GovernanceManager.shutdown_processes(others)
+                # Small delay to let OS release ports
+                time.sleep(2)
+        else:
+            print("[OK] No shadow processes identified.")
+
+        # 2. Port Infrastructure
+        print("\n[CONFIG] Port Selection Infrastructure")
+        ports = [8000, 8080]
+        print(f"   Default ports: {ports}")
+        
+        extra_ports_raw = input("[?] Specify extra ports to scale (comma separated) or [Enter] for defaults: ").strip()
+        if extra_ports_raw:
+            try:
+                extra_ports = [int(p.strip()) for p in extra_ports_raw.split(',') if p.strip()]
+                ports.extend(extra_ports)
+                # Ensure unique
+                ports = sorted(list(set(ports)))
+                print(f"[OK] Manifold scaled to ports: {ports}")
+            except ValueError:
+                print("[FAIL] Invalid port format. Using defaults.")
+        
+        return ports
 
 
 class HybridAI:
@@ -1471,13 +1555,16 @@ def start_server(port):
         print(f"[FAIL] Server error on port {port}: {e}")
 
 def main():
-    """Start the dual hybrid backend servers."""
+    """Start the Gyroidic Backend with Governance and Persistence."""
     global AI_SYSTEM
     
-    print("[START] Gyroidic Hybrid Backend (Dual Port Mode)")
+    # 1. Governance Startup (Interactive)
+    active_ports = GovernanceManager.startup_menu()
+    
+    print("\n[START] Gyroidic Hybrid Backend (Sovereign Mode)")
     print("=" * 45)
     
-    # Initialize AI system
+    # 2. Initialize AI system
     print("[BRAIN] Initializing AI components...")
     try:
         AI_SYSTEM = HybridAI()
@@ -1486,26 +1573,40 @@ def main():
         print(f"[FAIL] AI system initialization failed: {e}")
         AI_SYSTEM = None
     
-    print("[WEB] Starting servers on ports 8000 and 8080...")
+    print(f"[WEB] Initializing listeners on {len(active_ports)} ports...")
     print("[CONFIG] Components active:")
     print(f"   • Temporal Model: {'[OK]' if TEMPORAL_MODEL_AVAILABLE else '[FAIL]'}")
     print(f"   • Spectral Corrector: {'[OK]' if SPECTRAL_CORRECTOR_AVAILABLE else '[FAIL]'}")
-    print("[STOP]  Press Ctrl+C to stop")
+    print("[STOP]  Press Ctrl+C to trigger Fossilization and Exit")
     
-    # Start servers in separate threads
-    t1 = threading.Thread(target=start_server, args=(8000,), daemon=True)
-    t2 = threading.Thread(target=start_server, args=(8080,), daemon=True)
+    # 3. Dynamic Port Selection Infrastructure
+    threads = []
+    for port in active_ports:
+        t = threading.Thread(target=start_server, args=(port,), daemon=True, name=f"ServerThread-{port}")
+        t.start()
+        threads.append(t)
     
-    t1.start()
-    t2.start()
-    
+    # 4. Lifecycle Control (Ctrl+C Fossilization)
     try:
         while True:
-            # Keep main thread alive
-            import time
-            time.sleep(1)
+            # We use a short sleep to remain responsive to SIGINT
+            time.sleep(0.5)
     except KeyboardInterrupt:
-        print("\n⏹️  Servers stopped")
+        print("\n" + "!" * 50)
+        print("     ⚠️  KEYBOARD INTERRUPT DETECTED  ⚠️")
+        print("!" * 50)
+        if AI_SYSTEM:
+            print("[FOSSIL] Triggering emergency Fossilization Protocol...")
+            try:
+                message = AI_SYSTEM.save_model_state()
+                print(f"[OK] {message}")
+            except Exception as e:
+                print(f"[FAIL] Emergency save failed: {e}")
+        else:
+            print("[WARN] AI_SYSTEM not initialized; bypassing fossilization.")
+        
+        print("[STOP]  Shutting down manifolds. Goodbye.")
+        os._exit(0)
 
 if __name__ == "__main__":
     main()
