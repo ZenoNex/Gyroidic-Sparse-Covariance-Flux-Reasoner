@@ -25,12 +25,14 @@ class KnowledgeDyad:
 class ResidueFusion(nn.Module):
     """
     Computes the 'Cross-Modality Torsion' between image and text features.
-    Unlike standard fusion (concatenation), this computes the *mismatch* (residue).
+    Handles dynamic fingerprint dimensions (137 legacy, 96 Chebyshev un-lobotomized).
     """
-    def __init__(self, feature_dim: int = 512, fingerprint_dim: int = 137):
+    def __init__(self, feature_dim: int = 512):
         super().__init__()
-        self.image_proj = nn.Linear(fingerprint_dim, feature_dim)
-        self.text_proj = nn.Linear(feature_dim, feature_dim) # Assuming text is already embedded
+        # Dynamic projectors to handle different input standards
+        self.image_proj_137 = nn.Linear(137, feature_dim)
+        self.image_proj_96 = nn.Linear(96, feature_dim)
+        self.text_proj = nn.Linear(feature_dim, feature_dim)
         
         # Torsion operator: computes the 'twist' between the two vectors
         self.torsion_matrix = nn.Parameter(torch.randn(feature_dim, feature_dim))
@@ -40,9 +42,21 @@ class ResidueFusion(nn.Module):
                 text_embedding: torch.Tensor) -> torch.Tensor:
         """
         Compute Residue R = Torsion(I, L).
-        R represents the 'unexplained' part of the dyad.
+        Automatically aligns input dimensions to feature_dim.
         """
-        img_proj = self.image_proj(image_fingerprint)
+        # Handle input dimension drift (Anti-Lobotomy alignment)
+        in_dim = image_fingerprint.size(-1)
+        if in_dim == 137:
+            img_proj = self.image_proj_137(image_fingerprint)
+        elif in_dim == 96:
+            img_proj = self.image_proj_96(image_fingerprint)
+        else:
+            # Fallback zero-pad or trim to 137
+            padded = torch.zeros(*image_fingerprint.shape[:-1], 137, device=image_fingerprint.device)
+            min_dim = min(in_dim, 137)
+            padded[..., :min_dim] = image_fingerprint[..., :min_dim]
+            img_proj = self.image_proj_137(padded)
+
         txt_proj = self.text_proj(text_embedding)
         
         # Calculate torsion: (I - L) varies with the metric twist
