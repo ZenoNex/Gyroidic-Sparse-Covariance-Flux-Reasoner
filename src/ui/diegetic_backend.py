@@ -3265,6 +3265,12 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Call fossilizer
         fossil_path = self.fossilizer.fossilize(dyad, seed_state)
+        fossil_id = os.path.basename(fossil_path).replace(".fossil", "")
+        
+        # Bridge 4: Navigation over Storage (Zeitgeist Landmark)
+        if hasattr(self, 'router'):
+            self.router.register_fossil_landmark(fossil_id, intensity=1.2)
+            print(f"[ROUTER] Fossil {fossil_id[:8]}... registered as Poincaré Gravity Well.")
         
         print(f"[WAVE] {modality} Deposition confirmed: {fossil_path}")
         return (
