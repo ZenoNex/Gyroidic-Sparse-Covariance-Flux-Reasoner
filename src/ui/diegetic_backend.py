@@ -3192,11 +3192,27 @@ class DiegeticPhysicsEngine(nn.Module):
             media_received = True
         elif fingerprint:
             # Standard Image Ingestion
-            if 'L' in fingerprint and 'Cr' in fingerprint and 'Cb' in fingerprint:
-                fp_list = (fingerprint.get('L', []) + fingerprint.get('Cr', []) + fingerprint.get('Cb', []))
-                fp_list = (fp_list + [0.0] * 137)[:137]
-                signal_tensor = torch.tensor(fp_list, device=self.device).float()
-                media_received = True
+            if 'L' in fingerprint:
+                # =============================================
+                # PHASE 19: §13 PUSAFILIACRIMONTO ATTACHMENT
+                # Non-dual anchoring of Luminance to Love Invariant
+                # =============================================
+                l_coeffs = fingerprint.get('L', [])
+                if l_coeffs and hasattr(self, 'love_protector'):
+                    l_tensor = torch.tensor(l_coeffs, device=self.device).float()
+                    with torch.no_grad():
+                        # Anchor the Love Invariant via visual residue moving average
+                        # L is the internal buffer name for the Love Vector
+                        self.love_protector.L.data.copy_(
+                            0.9 * self.love_protector.L.data + 0.1 * l_tensor.mean()
+                        )
+                    print("[§13] Love Invariant anchored via visual Luminance residue.")
+
+                if 'Cr' in fingerprint and 'Cb' in fingerprint:
+                    fp_list = (l_coeffs + fingerprint.get('Cr', []) + fingerprint.get('Cb', []))
+                    fp_list = (fp_list + [0.0] * 137)[:137]
+                    signal_tensor = torch.tensor(fp_list, device=self.device).float()
+                    media_received = True
             elif 'r' in fingerprint:
                 # Legacy 137-dim format
                 fp_list = (fingerprint.get('r', []) + fingerprint.get('g', []) + fingerprint.get('b', []) + fingerprint.get('l', []) + [fingerprint.get('texture', 0.0)] + fingerprint.get('edges', [0.0]*8))
