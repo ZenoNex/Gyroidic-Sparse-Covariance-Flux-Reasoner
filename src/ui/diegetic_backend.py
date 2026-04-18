@@ -598,7 +598,62 @@ class DiegeticPhysicsEngine(nn.Module):
             self.fossil_cache = self.fossilizer.recover_fossils()
             print(f"[MEMORY] {len(self.fossil_cache)} fossils recovered into speculative cache.")
         except Exception as e:
-            print(f"[MEMORY] Warning: Fossil recovery failed: {e}")
+            print(f"[MEMORY] Fossil recovery failed: {e}")
+
+    def get_manifold_state(self) -> Dict[str, Any]:
+        """
+        Extracts the full manifold 'Soul' for fossilization.
+        Follows the Phase 18 Thorium Protocol.
+        """
+        state = {
+            "zeitgeist": self._zeitgeist_state, # Full ZeitgeistState object
+            "love_invariant": self.love_protector.love_vector.detach().cpu(),
+            "fossil_memory": self.graph_manager.get_memory_snapshot(),
+            "cavity": {
+                "M": self.cavity.M.detach().cpu(),
+                "D_dark": self.cavity.D_dark.detach().cpu()
+            },
+            "meta_state": self.meta_state.detach().cpu(),
+            "iteration": self.iteration
+        }
+        return state
+
+    def load_manifold_state(self, state_dict: Dict[str, Any]):
+        """
+        Restores the manifold 'Soul' from a fossilized snapshot.
+        Enforces non-strict structural recovery to prevent topological rupture.
+        """
+        if not state_dict:
+            return
+
+        # 1. Restore Zeitgeist (with mode and step momentum)
+        if "zeitgeist" in state_dict:
+            self._zeitgeist_state = state_dict["zeitgeist"]
+            print(f"[RECOVERY] Zeitgeist restored: {self._zeitgeist_state.mode} mode, step {self._zeitgeist_state.step}")
+
+        # 2. Restore Love Invariant Anchor
+        if "love_invariant" in state_dict:
+            self.love_protector.love_vector.data.copy_(state_dict["love_invariant"])
+            print("[RECOVERY] Love Invariant anchor secured.")
+
+        # 3. Restore Neglecton Fossil Graph (zero-latency injection)
+        if "fossil_memory" in state_dict:
+            self.graph_manager.load_memory_snapshot(state_dict["fossil_memory"])
+
+        # 4. Restore Resonance Cavity states
+        if "cavity" in state_dict:
+            c_data = state_dict["cavity"]
+            if "M" in c_data:
+                self.cavity.M.data.copy_(c_data["M"])
+            if "D_dark" in c_data:
+                self.cavity.D_dark.data.copy_(c_data["D_dark"])
+            print("[RECOVERY] Resonance Cavity memory restored.")
+
+        # 5. Iteration and Meta-state
+        self.iteration = state_dict.get("iteration", self.iteration)
+        if "meta_state" in state_dict:
+            self.meta_state.data.copy_(state_dict["meta_state"])
+
 
     def _initialize_larynx_weights(self):
         """Seed character projections with basic English frequency priors."""
