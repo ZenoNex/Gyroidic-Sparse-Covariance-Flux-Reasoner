@@ -934,6 +934,20 @@ class ChernSimonsGasket(nn.Module):
     def __init__(self):
         super().__init__()
          
+    def sign_exemption_token(self, token: 'VoynichExemptionToken', kappa: torch.Tensor) -> 'VoynichExemptionToken':
+        """
+        Laryngeal Gasket Integration (Bridge 1):
+        Signs the VoynichExemptionToken with the Gasket's non-orientable curvature.
+        This ensures linguistic mischief is only allowed when the manifold is 'sealed'.
+        """
+        # Calculate a non-orientable signature from the mean kappa (curvature)
+        # s = tanh(honesty * mean(kappa))
+        mean_k = torch.mean(kappa).item()
+        signature = math.tanh(token.honesty_score * mean_k)
+        
+        token.gasket_signature = max(signature, 1e-6) # Ensure non-zero
+        return token
+
     def forward(self, state_a: torch.Tensor, state_b: torch.Tensor) -> Dict[str, torch.Tensor]:
         """
         Lock-in check for cross-modal recombinations using topological mismatch.
