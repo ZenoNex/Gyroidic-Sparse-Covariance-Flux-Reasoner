@@ -12,9 +12,15 @@ import torch
 import threading
 import socketserver
 import numpy as np
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
 import signal
 import time
+import subprocess
+import csv
+import io
 from urllib.parse import urlparse, parse_qs
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib.request
@@ -88,36 +94,66 @@ class GovernanceManager:
     
     @staticmethod
     def find_existing_processes():
-        """Identify other running instances of the hybrid_backend."""
+        """Identify other running instances. Falls back to tasklist if psutil is unavailable."""
         my_pid = os.getpid()
         matches = []
-        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        
+        # --- PATH A: PSUTIL (Preferred) ---
+        if psutil:
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    if proc.info['name'] and 'python' in proc.info['name'].lower():
+                        cmdline = proc.info['cmdline']
+                        if cmdline and any('hybrid_backend.py' in part for part in cmdline):
+                            if proc.info['pid'] != my_pid:
+                                matches.append(proc.info)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            return matches
+            
+        # --- PATH B: TASKLIST FALLBACK (Standard Library) ---
+        print("[WARN] psutil unavailable. Falling back to platform-specific process scan.")
+        if sys.platform == 'win32':
             try:
-                # Look for python processes running 'hybrid_backend.py'
-                if proc.info['name'] and 'python' in proc.info['name'].lower():
-                    cmdline = proc.info['cmdline']
-                    if cmdline and any('hybrid_backend.py' in part for part in cmdline):
-                        if proc.info['pid'] != my_pid:
-                            matches.append(proc.info)
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue
+                # Use tasklist with verbose mode to see the command line (indirectly)
+                # Note: tasklist /v /fo csv is slower but reliable on Windows
+                output = subprocess.check_output(['tasklist', '/v', '/fo', 'csv'], text=True, encoding='utf-8', errors='ignore')
+                reader = csv.reader(io.StringIO(output))
+                for row in reader:
+                    if not row or len(row) < 9: continue
+                    process_name = row[0]
+                    pid = int(row[1])
+                    window_title = row[8] # Often contains the script name if running in a window
+                    
+                    if 'python' in process_name.lower():
+                        # We look for 'hybrid_backend' in the window title as a heuristic
+                        if 'hybrid_backend.py' in window_title or 'Hybrid Backend' in window_title:
+                            if pid != my_pid:
+                                matches.append({'pid': pid, 'cmdline': [window_title]})
+            except Exception as e:
+                print(f"[FAIL] Tasklist fallback failed: {e}")
         return matches
 
     @staticmethod
     def shutdown_processes(processes):
-        """Perform safe shutdown on identified processes."""
+        """Perform safe shutdown. Supports OS level kill if psutil is missing."""
         for p in processes:
             pid = p['pid']
             try:
                 print(f"[GOVERNANCE] Terminating shadow process {pid}...")
-                proc = psutil.Process(pid)
-                # Attempt graceful terminate first
-                proc.terminate()
-                try:
-                    proc.wait(timeout=3)
-                except psutil.TimeoutExpired:
-                    print(f"[GOVERNANCE] Force killing {pid} (timeout).")
-                    proc.kill()
+                if psutil:
+                    proc = psutil.Process(pid)
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=3)
+                    except psutil.TimeoutExpired:
+                        proc.kill()
+                else:
+                    # Generic OS fallback
+                    if sys.platform == 'win32':
+                        subprocess.call(['taskkill', '/PID', str(pid), '/F'])
+                    else:
+                        os.kill(pid, signal.SIGTERM)
             except Exception as e:
                 print(f"[FAIL] Could not shutdown {pid}: {e}")
 
