@@ -763,6 +763,7 @@ class DiegeticPhysicsEngine(nn.Module):
         fingerprint: Optional[Dict] = None,
         audio_dyad: Optional[Dict] = None,
         video_dyad_b64: Optional[str] = None,
+        media_chain: Optional[List[Dict]] = None,
         commutativity: str = 'symmetric',
         generate_response: bool = True,
     ) -> dict:
@@ -783,6 +784,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 fingerprint=fingerprint,
                 audio_dyad=audio_dyad,
                 video_dyad_b64=video_dyad_b64,
+                media_chain=media_chain,
                 commutativity=commutativity,
                 generate_response=generate_response
             )
@@ -795,6 +797,7 @@ class DiegeticPhysicsEngine(nn.Module):
         fingerprint: Optional[Dict] = None,
         audio_dyad: Optional[Dict] = None,
         video_dyad_b64: Optional[str] = None,
+        media_chain: Optional[List[Dict]] = None,
         commutativity: str = 'symmetric',
         generate_response: bool = True,
     ) -> dict:
@@ -934,62 +937,84 @@ class DiegeticPhysicsEngine(nn.Module):
         # -- Non-Commutative Dyad Routing (Braid Group) --
         # Converts fingerprint dict or audio_dyad dict into a projection vector,
         # then applies it before or after the text tensor based on commutativity.
-        def _build_fp_bias(fp_dict, audio_dict) -> Optional[torch.Tensor]:
-            """Returns [1, dim] media bias tensor, or None if no media present."""
-            parts = []
-            if fp_dict:
-                if 'L' in fp_dict:  # New Chebyshev format {L, Cr, Cb}
-                    K = len(fp_dict['L'])
-                    L_coeff  = fp_dict.get('L',  [0.0] * K)
-                    Cr_coeff = fp_dict.get('Cr', [0.0] * K)
-                    Cb_coeff = fp_dict.get('Cb', [0.0] * K)
-                    flat = L_coeff + Cr_coeff + Cb_coeff
-                elif 'r' in fp_dict:  # Legacy 137-dim histogram (backward compat)
-                    flat = (
-                        fp_dict.get('r', []) + fp_dict.get('g', []) +
-                        fp_dict.get('b', []) + fp_dict.get('l', []) +
-                        [fp_dict.get('texture', 0.0)] +
-                        fp_dict.get('edges', [0.0] * 8)
-                    )
-                else:
-                    flat = []
+        
+        def _project_media_item(item_type, item_data) -> Optional[torch.Tensor]:
+            """Projects a single media item (image, audio, video) into manifold space."""
+            if not item_data: return None
+            
+            if item_type == 'image':
+                # Chebyshev format
+                if isinstance(item_data, dict) and 'L' in item_data:
+                    K = len(item_data['L'])
+                    flat = item_data.get('L', []) + item_data.get('Cr', []) + item_data.get('Cb', [])
+                else: 
+                    # Legacy or raw list
+                    flat = item_data if isinstance(item_data, list) else []
+                
                 if flat:
                     t = torch.tensor(flat, dtype=torch.float32, device=self.device)
-                    target = self.K_IMAGE_MAX * 3  # 96
-                    if t.numel() < target:
-                        t = F.pad(t, (0, target - t.numel()))
-                    else:
-                        t = t[:target]
-                    parts.append(self.fingerprint_proj(t.unsqueeze(0)))  # [1, dim]
-            if audio_dict:
-                harmonics = audio_dict.get('chebyshev_harmonics', [])
+                    target = self.K_IMAGE_MAX * 3
+                    if t.numel() < target: t = F.pad(t, (0, target - t.numel()))
+                    else: t = t[:target]
+                    return self.fingerprint_proj(t.unsqueeze(0))
+                    
+            elif item_type == 'audio':
+                harmonics = item_data.get('chebyshev_harmonics', []) if isinstance(item_data, dict) else item_data
                 if harmonics:
                     t = torch.tensor(harmonics, dtype=torch.float32, device=self.device)
-                    if t.numel() < self.K_AUDIO_MAX:
-                        t = F.pad(t, (0, self.K_AUDIO_MAX - t.numel()))
-                    else:
-                        t = t[:self.K_AUDIO_MAX]
-                    parts.append(self.audio_dyad_proj(t.unsqueeze(0)))  # [1, dim]
-            if not parts:
-                return None
-            with torch.no_grad():
-                bias = torch.stack(parts).mean(dim=0)  # [1, dim]
-            return bias
+                    if t.numel() < self.K_AUDIO_MAX: t = F.pad(t, (0, self.K_AUDIO_MAX - t.numel()))
+                    else: t = t[:self.K_AUDIO_MAX]
+                    return self.audio_dyad_proj(t.unsqueeze(0))
+                    
+            elif item_type == 'video':
+                # Video is special; typically we parse it once. 
+                # If it's in a chain, we treat its fractal entropy as the bias if possible,
+                # but currently we project it as a generic media vector if we have a parser.
+                # For now, we support video as a Base64 string in the item_data.
+                if isinstance(item_data, str) and item_data.startswith("data:video"):
+                    if not hasattr(self, 'video_parser'):
+                        from src.core.video_dyad_parser import VideoDyadParser
+                        self.video_parser = VideoDyadParser(device=self.device)
+                    metrics = self.video_parser.parse_video_b64(item_data)
+                    # Use entropy as a scalar bias across all dimensions
+                    ent = metrics['fractal_entropy']
+                    return torch.ones((1, self.dim), device=self.device) * ent
+            return None
 
-        media_bias = _build_fp_bias(fingerprint, audio_dyad)
+        def _get_media_biases(fp_dict, audio_dict, chain) -> List[torch.Tensor]:
+            """Returns ordered list of [1, dim] bias tensors."""
+            biases = []
+            if chain:
+                for item in chain:
+                    b = _project_media_item(item.get('type'), item.get('data'))
+                    if b is not None: biases.append(b)
+            else:
+                # Fallback to single-item fields
+                b_img = _project_media_item('image', fp_dict)
+                if b_img is not None: biases.append(b_img)
+                b_aud = _project_media_item('audio', audio_dict)
+                if b_aud is not None: biases.append(b_aud)
+            return biases
 
-        if commutativity == 'media_first' and media_bias is not None:
-            # Media evolves meta_state BEFORE text is embedded.
-            # Temporarily perturb meta_state, run forward, then restore.
+        media_biases = _get_media_biases(fingerprint, audio_dyad, media_chain)
+
+        # Sequential Application Loop
+        def _apply_sequential_biases(biases):
             with torch.no_grad():
-                self.meta_state = F.layer_norm(
-                    self.meta_state + 0.5 * media_bias,
-                    self.meta_state.shape[1:]
-                )
-        elif commutativity == 'symmetric' and media_bias is not None:
-            # Existing behaviour: add bias to input_tensor simultaneously.
-            input_tensor = input_tensor + 0.5 * media_bias
-        # 'text_first': media_bias applied after forward() below.
+                for b in biases:
+                    self.meta_state = F.layer_norm(
+                        self.meta_state + 0.5 * b,
+                        self.meta_state.shape[1:]
+                    )
+
+        if commutativity == 'media_first' and media_biases:
+            # Media chain evolves meta_state BEFORE text.
+            _apply_sequential_biases(media_biases)
+        elif commutativity == 'symmetric' and media_biases:
+            # Simultaneous injection: Add the mean of all biases to input_tensor.
+            mean_bias = torch.stack(media_biases).mean(dim=0)
+            input_tensor = input_tensor + 0.5 * mean_bias
+        # 'text_first' handled after forward()
         
         # 2. MIMICRY (Active Listening)
         self._train_mimicry(input_tensor, text_input)
@@ -1009,14 +1034,10 @@ class DiegeticPhysicsEngine(nn.Module):
             dt = self.manifold_clock.tick(manifold_pressure_tensor)
             self.current_hunger = self.valence_drive(manifold_pressure_tensor)
         
-        # text_first commutativity: apply media bias AFTER forward() --
+        # text_first commutativity: apply media biases AFTER forward() --
         # text already shaped the manifold; media now distorts the resulting state.
-        if commutativity == 'text_first' and media_bias is not None:
-            with torch.no_grad():
-                self.meta_state = F.layer_norm(
-                    self.meta_state + 0.5 * media_bias,
-                    self.meta_state.shape[1:]
-                )
+        if commutativity == 'text_first' and media_biases:
+            _apply_sequential_biases(media_biases)
 
         # =============================================
         # PHASE 2: INTERNAL FUSION (GAP A)
@@ -4435,6 +4456,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         fingerprint=fingerprint,
                         audio_dyad=audio_dyad,
                         video_dyad_b64=video_dyad_b64,
+                        media_chain=data.get('media_chain', None),
                         commutativity=commutativity,
                     )
                     self._send_json(response_data)
