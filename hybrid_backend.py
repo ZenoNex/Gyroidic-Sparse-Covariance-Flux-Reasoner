@@ -225,7 +225,7 @@ class HybridAI:
             print(f"[FAIL] Graph Manager init failed: {e}")
             self.graph_manager = None
     
-    def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None) -> dict:
+    def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None, audio_dyad: dict = None) -> dict:
         # --- FGRT HARMONIC SEED (Love Vector Norm 3.127) ---
         t_basis = torch.linspace(0, 2 * 3.14159265, 256, device=self.torch_device)
         # Establish the 3.127 Norm required for Klein-Gyroid stability
@@ -1216,11 +1216,12 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 text = clean_text
                 
             video_dyad_b64 = data.get('video_dyad_b64')
+            audio_dyad = data.get('audio_dyad')  # Extract Panel C audio components
             commutativity = data.get('commutativity', 'non_commutative')
             fingerprint = data.get('fingerprint')  # Chebyshev image fingerprint {L, Cr, Cb}
 
             if AI_SYSTEM:
-                result = AI_SYSTEM.process_text(text, video_dyad_b64, commutativity, fingerprint)
+                result = AI_SYSTEM.process_text(text, video_dyad_b64, commutativity, fingerprint, audio_dyad)
                 
                 # Extract meta-infra variables
                 diagnostics = result.get('diagnostics', {})
