@@ -607,7 +607,7 @@ class DiegeticPhysicsEngine(nn.Module):
         """
         state = {
             "zeitgeist": self._zeitgeist_state, # Full ZeitgeistState object
-            "love_invariant": self.love_protector.love_vector.detach().cpu(),
+            "love_invariant": self.love_protector.L.detach().cpu(),
             "fossil_memory": self.graph_manager.get_memory_snapshot(),
             "cavity": {
                 "M": self.cavity.M.detach().cpu(),
@@ -627,14 +627,19 @@ class DiegeticPhysicsEngine(nn.Module):
             return
 
         # 1. Restore Zeitgeist (with mode and step momentum)
-        if "zeitgeist" in state_dict:
+        if "zeitgeist" in state_dict and state_dict["zeitgeist"] is not None:
             self._zeitgeist_state = state_dict["zeitgeist"]
             print(f"[RECOVERY] Zeitgeist restored: {self._zeitgeist_state.mode} mode, step {self._zeitgeist_state.step}")
+        else:
+            print("[RECOVERY] No valid Zeitgeist found. Initializing Sovereign Re-genesis.")
 
         # 2. Restore Love Invariant Anchor
         if "love_invariant" in state_dict:
-            self.love_protector.love_vector.data.copy_(state_dict["love_invariant"])
-            print("[RECOVERY] Love Invariant anchor secured.")
+            try:
+                self.love_protector.L.data.copy_(state_dict["love_invariant"])
+                print("[RECOVERY] Love Invariant anchor secured.")
+            except Exception as e:
+                print(f"[RECOVERY] Love Invariant restore failed (shape mismatch?): {e}")
 
         # 3. Restore Neglecton Fossil Graph (zero-latency injection)
         if "fossil_memory" in state_dict:
