@@ -113,6 +113,7 @@ from src.core.archetype_engines import ArchetypalSynthesisEngine
 from src.core.manifold_time import ManifoldClock
 from src.core.valence_drive import ValenceFunctional
 from src.core.voynich_architecture import VoynichLinguist
+from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
 
 # Local Data Loading (Phase 1: HF token barrier removal)
 from src.data.local_data_loader import LocalDataLoader
@@ -318,6 +319,12 @@ class DiegeticPhysicsEngine(nn.Module):
             num_functionals=k,
             poly_degree=4,
             device=device
+        )
+        
+        # Silicon Sovereignty - PyOpenCL Hardware bridge (Bridge 3)
+        self.sovereignty_engine = SiliconSovereigntyEngine(
+            use_gpu=(device == 'cuda' or device is None),
+            love_protector=self.love_protector
         )
         
         # Polynomial Config for repair system (anti-lobotomy compliance)
@@ -3191,28 +3198,43 @@ class DiegeticPhysicsEngine(nn.Module):
             # but we record the presence of the b64 stream.
             media_received = True
         elif fingerprint:
-            # Standard Image Ingestion
-            if 'L' in fingerprint:
+            # Standard Image Ingestion (Zero-Mock Path)
+            if 'L' in fingerprint and 'Cr' in fingerprint and 'Cb' in fingerprint:
                 # =============================================
-                # PHASE 19: §13 PUSAFILIACRIMONTO ATTACHMENT
-                # Non-dual anchoring of Luminance to Love Invariant
+                # BRIDGE 2: MELIPONINI-CHEBYSHEV COUPLING
                 # =============================================
                 l_coeffs = fingerprint.get('L', [])
-                if l_coeffs and hasattr(self, 'love_protector'):
-                    l_tensor = torch.tensor(l_coeffs, device=self.device).float()
+                cr_coeffs = fingerprint.get('Cr', [])
+                cb_coeffs = fingerprint.get('Cb', [])
+                
+                # Fetch hardware stall intensity (kappa) from sovereignty engine
+                stall_k = self.sovereignty_engine.get_stall_intensity()
+                
+                # Zero-Mock: We use the raw residues (3x8 = 24 dims)
+                l_tensor = torch.tensor(l_coeffs, device=self.device).float()
+                cr_tensor = torch.tensor(cr_coeffs, device=self.device).float()
+                cb_tensor = torch.tensor(cb_coeffs, device=self.device).float()
+                
+                # Formalize kappa as the T0 (DC) component (Meliponini Coupling)
+                # T0 acts as the baseline energy level based on hardware friction.
+                l_tensor[0] = l_tensor[0] + stall_k
+                
+                # PHASE 19: §13 PUSAFILIACRIMONTO ATTACHMENT
+                # Non-dual anchoring of visual luminance to Love Invariant
+                if hasattr(self, 'love_protector'):
                     with torch.no_grad():
                         # Anchor the Love Invariant via visual residue moving average
                         # L is the internal buffer name for the Love Vector
                         self.love_protector.L.data.copy_(
                             0.9 * self.love_protector.L.data + 0.1 * l_tensor.mean()
                         )
-                    print("[§13] Love Invariant anchored via visual Luminance residue.")
+                    print(f"[§13] Love Invariant anchored via visual residue (stall_k={stall_k:.4f}).")
 
-                if 'Cr' in fingerprint and 'Cb' in fingerprint:
-                    fp_list = (l_coeffs + fingerprint.get('Cr', []) + fingerprint.get('Cb', []))
-                    fp_list = (fp_list + [0.0] * 137)[:137]
-                    signal_tensor = torch.tensor(fp_list, device=self.device).float()
-                    media_received = True
+                # Combine into a 24-dim spectral signal tensor.
+                # The GyroidicCodec will handle the 1D->2D landscape transition.
+                signal_tensor = torch.cat([l_tensor, cr_tensor, cb_tensor])
+                media_received = True
+
             elif 'r' in fingerprint:
                 # Legacy 137-dim format
                 fp_list = (fingerprint.get('r', []) + fingerprint.get('g', []) + fingerprint.get('b', []) + fingerprint.get('l', []) + [fingerprint.get('texture', 0.0)] + fingerprint.get('edges', [0.0]*8))
