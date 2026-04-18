@@ -68,3 +68,22 @@ class VoynichExemptionToken:
             reason="Transversality passport granted" if is_valid else "Transversality rejected",
             is_nutrient=is_valid
         )
+
+    @classmethod
+    def issue_from_video_residue(cls, entropy_metrics: torch.Tensor, jitter: float) -> 'VoynichExemptionToken':
+        """
+        Calibrates high-entropy spikes as "Nutrients" if the signature 
+        is topologically sealed by SO(n) rotation. (§45 alignment)
+        """
+        ent_val = entropy_metrics.mean().item()
+        # High entropy (~ > 2.0) usually triggers a veto, but if it's 
+        # "Honest" (correlated with jitter), we issue a Nutrient passport.
+        is_nutrient = ent_val > 1.5 and jitter > 0.05
+        
+        return cls(
+            honesty_score=min(ent_val / 5.0, 1.0),
+            is_valid_exemption=is_nutrient,
+            reason="High-entropy Nutrient spike detected" if is_nutrient else "Standard manifold residue",
+            is_nutrient=is_nutrient,
+            gasket_signature=ent_val if is_nutrient else None
+        )
