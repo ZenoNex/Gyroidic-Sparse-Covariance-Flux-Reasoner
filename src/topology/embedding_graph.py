@@ -147,6 +147,52 @@ class GyroidicGraphManager:
                     
         return edges
 
+    def get_memory_snapshot(self) -> Dict[str, Any]:
+        """
+        Capture the live Neglecton state as a binary-compatible snapshot.
+        Includes node states (tensors), metadata, and resonance parameters.
+        """
+        # We store the core tensors and the text residues
+        fossil_data = []
+        for n in self.nodes:
+            fossil_data.append({
+                "node_id": n.node_id,
+                "state": n.state.detach().cpu(), # The embedding seed
+                "text": n.text,
+                "metrics": n.metrics
+            })
+            
+        return {
+            "nodes": fossil_data,
+            "edge_threshold": self.edge_threshold,
+            "dedup_threshold": self.dedup_threshold,
+            "dim": self.dim
+        }
+
+    def load_memory_snapshot(self, snapshot: Dict[str, Any]):
+        """
+        Inject a fossilized snapshot into the live manager.
+        Bypasses disk scanning to ensure zero-latency soul recovery.
+        """
+        if not snapshot:
+            return
+            
+        self.dim = snapshot.get("dim", self.dim)
+        self.edge_threshold = snapshot.get("edge_threshold", self.edge_threshold)
+        self.dedup_threshold = snapshot.get("dedup_threshold", self.dedup_threshold)
+        
+        self.nodes = []
+        for node_data in snapshot.get("nodes", []):
+            node = KnowledgeFossilNode(
+                node_id=node_data["node_id"],
+                state=node_data["state"],
+                text=node_data["text"],
+                metrics=node_data["metrics"]
+            )
+            self.nodes.append(node)
+            
+        print(f"[RECOVERY] Fossilized graph restored: {len(self.nodes)} nodes injected into the Neglecton.")
+
     def export_graph_json(self) -> str:
         """Export nodes and edges with Rich Metadata."""
         edges = self.get_adjacency_list()
