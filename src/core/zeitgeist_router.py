@@ -278,6 +278,11 @@ class ZeitgeistRouter(nn.Module):
         # Persistent buffer tracking historical non-commutative illusions
         self.register_buffer('digimon_buffer', torch.zeros(self.M, self.M))
 
+        # ── Fossil Landmarks (Bridge 4: Navigation over Storage) ────── #
+        # Map: Blake2s ID -> Poincaré Delta (Residue Displacement)
+        self.fossil_landmarks: Dict[str, torch.Tensor] = {}
+        self.register_buffer('gravity_well_bias', torch.zeros(self.M))
+
     # ------------------------------------------------------------------ #
     # Initialization helpers                                               #
     # ------------------------------------------------------------------ #
@@ -382,9 +387,13 @@ class ZeitgeistRouter(nn.Module):
                 
         # 1. Update diagonal residues
         current_residues = torch.diagonal(state.alpha_tensor)
+        
+        # Bridge 4: Inject Gravity Well influence from Fossil Landmarks
+        delta_final = delta_braided + 0.3 * self.gravity_well_bias
+        
         new_residues = []
         for i in range(self.M):
-            r_new = (int(current_residues[i].item()) + round(float(delta_braided[i]) * self.moduli[i])) % self.moduli[i]
+            r_new = (int(current_residues[i].item()) + round(float(delta_final[i]) * self.moduli[i])) % self.moduli[i]
             new_residues.append(float(r_new))
             
         # 2. Construct Symmetric Tensor M_ij
@@ -412,6 +421,24 @@ class ZeitgeistRouter(nn.Module):
             new_level = boundary.level
             
         return new_alpha_tensor, new_level
+
+    def register_fossil_landmark(self, blake2s_id: str, intensity: float = 1.0):
+        """
+        Bridge 4: Maps a Fossil ID to a Poincaré Gravity Well.
+        The ID is hashed to a stable displacement in the CRT Polytope space.
+        """
+        # Deterministic mapping from ID to M-dimensional bias
+        hash_bytes = bytes.fromhex(blake2s_id[:16]) if len(blake2s_id) >= 16 else b'\x00'*8
+        bias_list = []
+        for i in range(self.M):
+            val = (hash_bytes[i % len(hash_bytes)] / 255.0) - 0.5
+            bias_list.append(val * intensity)
+        
+        bias_tensor = torch.tensor(bias_list, device=self.gravity_well_bias.device)
+        self.fossil_landmarks[blake2s_id] = bias_tensor
+        
+        # Accumulate into global gravity well (defining future curvature)
+        self.gravity_well_bias.data = 0.9 * self.gravity_well_bias.data + 0.1 * bias_tensor
 
     # ------------------------------------------------------------------ #
     # Forward                                                              #
