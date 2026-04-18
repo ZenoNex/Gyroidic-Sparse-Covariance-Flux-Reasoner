@@ -205,6 +205,13 @@ $$\dot{\mathcal{X}} = \Pi_{\text{DP}} \!\left(\text{ADMM}_{\lambda_j} \!\left[\t
 
 Read right-to-left: (1) Compute functional gradients fused with Love Invariant, (2) Project onto symbolic residues modulo $m_k$, (3) Reconstruct via CRT, (4) Probe through ADMM constraints, (5) Accept via Diegetic Projection.
 
+### 7.2 Zero-Mock Residue Ingestion (Phase 19 Update)
+To achieve **Structural Honesty** (§12.1), the system has transitioned away from 137-dim "Simulation" padding.
+
+*   **Primary Residue**: Visual data is ingested as a 24-dim spectral residue (3 channels $\{L, Cr, Cb\} \times 8$ Chebyshev modes).
+*   **Hardware-Perceptual Coupling**: The baseline energy ($T_0$) of the luminance residue is directly coupled to hardware $t_{RFC}$ stall intensity.
+*   **Spectral Reshaping**: 1D spectral residues are reshaped into 2D **Spectral Landscapes** within the `GyroidicCodec`, allowing the system to perform non-commutative collisions without relying on spatial pixel-grid placeholders.
+
 ---
 
 ## ⚡ Energy-Based Structural Survival
