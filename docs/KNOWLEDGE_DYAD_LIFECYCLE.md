@@ -158,7 +158,7 @@ Every dyad ingestion that passes through `/ingest` triggers a **Persistent Encod
 3. **Extractable Agent Protocol**: A dyad that reaches a stable GLYPHLOCK state can be cleanly exported via `fossilizer.export_agent_smith()`. This generates a `soliton_smith.json` file containing only the structural algebra (prime frequencies, Betti numbers, symbolic residues), completely decoupling the "Syntax" from the hardware "Substrate".
 4. Future confabulation recovery uses these fossilised dyads as gravity wells.
 
-Audio dyads currently ride through `/interact` as live per-request biases. Long-term fossilisation of audio harmonics is a planned extension.
+Audio dyads and Video base64 streams are formally supported. Audio sequences route into `audio_harmonics` tensors. Video streams are decoded by the `VideoDyadParser`, producing integer bitstream topological metrics (`fractal_entropy`, `substream_entropy`) stored as `video_breather` modes. Both modalities are cleanly fossilized in the `.pt` storage backend alongside text.
 
 ### 6.1 Internal Ouroboros Dyad Generation
 Knowledge Dyads are not strictly limited to external signals provided by the user. Through the **Ouroboros Loop** (Phase 6.3 Update), the system autonomously generates internal dyads.
