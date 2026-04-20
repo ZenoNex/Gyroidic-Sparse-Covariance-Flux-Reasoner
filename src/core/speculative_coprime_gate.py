@@ -440,6 +440,9 @@ class SpeculativeCoprimeGate(nn.Module):
         self.dim = dim
         self.recovery_threshold = recovery_threshold
         
+        # Buffer for internal shadow logs
+        self.shadow_logs = []
+        
         # Sub-modules
         self.winding_tracker = CoprimeWindingTracker(dim=dim, num_heads=num_heads)
         self.chiral_estimator = ChiralCoherenceEstimator(dim=dim)
@@ -474,6 +477,12 @@ class SpeculativeCoprimeGate(nn.Module):
             nn.GELU(),
             nn.Linear(dim * 2, dim)
         )
+        
+    def pop_shadow_logs(self) -> list:
+        """Retrieves and clears the internal shadow logs for fossilization."""
+        logs = self.shadow_logs.copy()
+        self.shadow_logs.clear()
+        return logs
         
     def get_yield_pressure(self, state: torch.Tensor) -> torch.Tensor:
         """
@@ -520,7 +529,9 @@ class SpeculativeCoprimeGate(nn.Module):
         # Shadow Logging
         if exemption_token is not None and exemption_token.is_valid_exemption:
             if parity_violations.any():
-                print(f"[SHADOW LOG] Token would have bypassed {parity_violations.sum().item()} homological suppressions. Letting Math (PAS_h) decide.")
+                log_msg = f"[SHADOW LOG] Token would have bypassed {parity_violations.sum().item()} homological suppressions. Letting Math (PAS_h) decide."
+                print(log_msg)
+                self.shadow_logs.append(log_msg)
         
         # Apply learned gate and mask
         gate = torch.sigmoid(self.dim_gate) * gate_mask
@@ -660,7 +671,9 @@ class SpeculativeCoprimeGate(nn.Module):
         # Shadow Logging Phase
         if exemption_token is not None and exemption_token.is_valid_exemption:
             if needs_recovery:
-                print(f"[SHADOW LOG] Token would have bypassed recovery, but Math decided recovery is needed (Chiral: {chiral_score:.2f}).")
+                log_msg = f"[SHADOW LOG] Token would have bypassed recovery, but Math decided recovery is needed (Chiral: {chiral_score:.2f})."
+                print(log_msg)
+                self.shadow_logs.append(log_msg)
             
         # Attempt recovery or pass through
         if needs_recovery:
