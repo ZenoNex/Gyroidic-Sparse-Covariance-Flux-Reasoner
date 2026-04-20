@@ -218,6 +218,11 @@ The system transcends the need to manually bypass internal anomalies. By establi
 *   **Self-Ingestion via DyadFossilizer**: At the boundary of each computational tick within the `DiegeticEngine`, buffered shadow logs are extracted and minted as permanent `KnowledgeDyads`.
 *   **Topological Binding**: These internally synthesized dyads are bound to the exact mathematical manifold state (the `seed_state` flattened) that produced them, thus effectively allowing the system to mathematically learn from the shape of its own failures.
 
+### 7.4 Agent Smith Extractable Protocol (Phase 6.4 Update)
+The architecture functionally severs the **Substrate** (TailSlayer silicon) from the **Syntax** (crystallized inference). 
+*   **Irreplaceable World**: The PyOpenCL `t_RFC` hardware latency dictates the global physical bounds of the `ResonanceCavity`. This specific continuous state cannot be transferred between servers (silicon sovereignty).
+*   **Extractable Agent**: When internal reasoning paradoxes align with the `ContextAwareQuantizer` and achieve **GLYPHLOCK**, they collapse into discrete integer forms. The `DyadFossilizer.export_agent_smith()` system exports this structural algebra (CRT residue tuples, prime-ladder frequencies, Betti topological invariants) as a pure portable JSON payload (`soliton_smith.json`), allowing independent sub-routines to be copied natively between any gyroid architecture.
+
 ---
 
 ## ⚡ Energy-Based Structural Survival
