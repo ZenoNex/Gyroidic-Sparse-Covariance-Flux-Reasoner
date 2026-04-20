@@ -435,6 +435,12 @@ class HybridAI:
 
     
     def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None, audio_dyad: dict = None) -> dict:
+        # --- EXPLICIT LOCAL BINDING (Temporal Isolation Snapshot) ---
+        # Disconnecting from persistent state to shield autograd from in-place leaks.
+        hidden_state = self.hidden_state.clone()
+        diagnostics = {}
+        response_text = ""
+        
         # --- FGRT HARMONIC SEED (Love Vector Norm 3.127) ---
         t_basis = torch.linspace(0, 2 * 3.14159265, 256, device=self.torch_device)
         # Establish the 3.127 Norm required for Klein-Gyroid stability
@@ -444,7 +450,6 @@ class HybridAI:
         self.corrected_tensor = torch.zeros(256, device=self.torch_device)
         self.iteration_count += 1
         
-        # Prevent heartbeat from showing up in main chat
         # Prevent heartbeat from showing up in main chat or triggering Ego Death
         if "IDLE_RESONANCE_HEARTBEAT" in text:
             return {
@@ -489,7 +494,12 @@ class HybridAI:
                     raise ValueError(f"Engine returned invalid type: {type(engine_output)}")
 
                 response_text = engine_output.get('response', '')
-                diagnostics = engine_output # The whole output is essentially diagnostics
+                diagnostics = engine_output
+                # Capture evolved state in local binding for isolation-safe fossilization
+                if 'hidden_state' in engine_output:
+                    hidden_state = engine_output['hidden_state']
+                elif hasattr(self.engine, 'meta_state'):
+                    hidden_state = self.engine.meta_state.clone()
                 
                 # Check for "topological_shape_stalk" payload
                 if 'payload' in engine_output and engine_output['payload'].get('type') == 'topological_shape_stalk':
@@ -544,12 +554,13 @@ class HybridAI:
                     if isinstance(_out, torch.Tensor):
                         hidden_state_evolved = _out
                         self.hidden_state = hidden_state_evolved.squeeze(0).squeeze(0)
-                        
-                        # Update the state with the evolved trajectory
-                        hidden_state_evolved_sq = hidden_state_evolved.squeeze(0)
-                        # Define Lawful Distortion (0.01 sigma as per Solver signature)
-                        distortion = torch.randn_like(hidden_state_evolved_sq) * 0.01
-                        self.hidden_state_scarred = hidden_state_evolved_sq + distortion
+                    hidden_state = self.hidden_state.clone() # Update local binding
+                    
+                    # Update the state with the evolved trajectory
+                    hidden_state_evolved_sq = hidden_state_evolved.squeeze(0)
+                    # Define Lawful Distortion (0.01 sigma as per Solver signature)
+                    distortion = torch.randn_like(hidden_state_evolved_sq) * 0.01
+                    self.hidden_state_scarred = hidden_state_evolved_sq + distortion
 
                 # Map evolved state to the corrected tensor for downstream affordance tracking
                 self.corrected_tensor = self.hidden_state_scarred.clone()
@@ -1580,12 +1591,18 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 
                 self._send_json(formatted_result)
             else:
+                # 503 SERVICE UNAVAILABLE: System Warming Protocol
+                self.send_response(503)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Retry-After', '30')
+                self.end_headers()
                 self._send_json({
                     'success': False,
-                    'response': f'AI system not initialized. Received: {user_text}',
-                    'diagnostics': {},
-                    'backend': 'hybrid-error'
+                    'response': 'ARCHITECTURAL SYNTHESIS IN PROGRESS: System Warming...',
+                    'status': 'WARMING',
+                    'diagnostics': {'code': 503, 'manifold': 'non_coherent'}
                 })
+                return
         except Exception as e:
             self._send_json({
                 'success': False,
