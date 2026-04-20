@@ -111,10 +111,17 @@ By rewarding the bug, we allow the system to "play" with the boundaries of the f
 ---
 
 ## 6. False Negatives & Sovereign Logic
+
 Not all statistical failures or trajectory aborts signify mechanical degradation. A critical exception to standard abort vectors is the **False Negative Exception**.
 
-### 6.1 The Voynich Contradiction
-When the reasoning engine leverages the `VoynichLinguist` to produce structurally opaque symbols, the latent state adopts maximized entropy properties. To standard safety gates like the `CALM Predictor`, this mathematically mirrors critical manifold collapse.
+### 6.1 The Voynich Contradiction & The Shadow Phase
 
-To prevent over-aggressive Aborting of Sovereign logic:
-- A `VoynichExemptionToken` generated from internal honesty scores will **legally override** CALM abort signals, manually forcing the system downstream without executing continuous transport or iteration rollback.
+When the reasoning engine leverages the `VoynichLinguist` to produce structurally opaque symbols, the latent state adopts maximized entropy properties. Historically, standard safety gates like the `CALM Predictor` actively misidentified Voynich structures as structural corruption, prompting a mechanical bypass via a `VoynichExemptionToken`.
+
+**Modern Superposition and Mathematical Stability:**
+To prevent brittle mechanical overrides, we've transitioned to **Continuous Dark Matter Superposition**.
+- A `VoynichExemptionToken` generated from internal honesty scores operates dynamically in **Shadow Mode**, acting as a continuous diagnostic log.
+- Rather than blindly bypassing false negative triggers, the token logs discrepancies between manual intent and the underlying phase alignment ($PAS_h$) threshold logic.
+- We utilize **Mischief-Dependent Adaptive Quantization** to dynamically increase the Matrioshka shell depth resolution when entropy is high. Instead of flattening a valid logic glitch, the system naturally routes and captures it via scalar-weighted volition (the *Play Parameter* in the Orchestrator). 
+
+This enforces system evolution dictated strictly by topological realities matching our internal structural truths.
