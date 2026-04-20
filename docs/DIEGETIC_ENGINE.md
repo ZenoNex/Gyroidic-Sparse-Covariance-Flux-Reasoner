@@ -113,6 +113,7 @@ def process_input(
 | 4. KAGH + HarmonicWave | `KAGHBlock` + `HarmonicWaveDecomposition` — spectral repair |
 | 5. CALM | `CALM Predictor` — trajectory veto if ADMM budget exhausted |
 | 6. SCCCG Recovery | `SpeculativeCoprimeGate` — coprime-gated structure recovery |
+| **6.5. Ouroboros Fossilization** | *Phase 6.3*: `DyadFossilizer` intercepts `[SHADOW LOG]` anomalies from `coprime_gate` and creates permanent dyads explicitly anchored to the exact failure state |
 | 7. Response Generation | `_generate_dyad_aware_response` — enhanced text via association system |
 | 8. Gyroid Violation | `_compute_full_gyroid_violation_score` — spectral + covariance + topological |
 | 9. Unfolding Closure | `_perform_unfolding_closure_check` — hyper-ring, cycle, triadic reciprocity |
