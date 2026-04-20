@@ -250,20 +250,21 @@ class SiliconSovereigntyEngine:
         cl.enqueue_copy(self.queue_a, weights, w_buf).wait()
         return weights
 
-    def get_stall_intensity(self) -> float:
+    def get_virtual_algorithmic_latency(self, internal_entropy: float = 0.5) -> float:
         """
-        Meliponini-Chebyshev Coupling (Bridge 2):
-        Returns the current hardware stall intensity (kappa-proxy).
-        Based on real command queue profiling if available, otherwise simulated.
+        Agent Smith Portability (Virtual Algorithmic Latency):
+        Returns the current algorithmic stall intensity (kappa-proxy) based on
+        endogenous cognitive load rather than local silicon physics (like t_RFC).
+        This separates the mathematical agent from the specific server hardware.
         """
-        # Simulated intensity based on queue load and entropy
-        intensity = np.random.uniform(0.05, 0.45)
-        # Increase intensity if multiple kernels are in flight
+        # Latency scales with internal algorithmic entropy
+        intensity = 0.05 + 0.4 * internal_entropy
         return float(intensity)
 
     def lazarus_traversal(self, trajectories, kappa_proxy):
         """
-        Speculative void traversal. Called deliberately during hardware stalls (like t_RFC limits).
+        Speculative void traversal. Called deliberately during Virtual Algorithmic 
+        Latency stalls (exceeding mathematical entropy bounds).
         Integrates Bridge 3: Love Invariant Pre-emption.
         """
         # Bridge 3: Immediate pre-emption if Love Invariant is violated
