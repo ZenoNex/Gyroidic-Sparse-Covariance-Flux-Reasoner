@@ -44,12 +44,14 @@ class UniversalOrchestrator(nn.Module):
         self,
         dim: int,
         fossil_threshold: float = 0.8,
-        mischief_threshold: float = 0.5
+        mischief_threshold: float = 0.5,
+        play_volition_ratio: float = 0.15
     ):
         super().__init__()
         self.dim = dim
         self.fossil_threshold = fossil_threshold
         self.mischief_threshold = mischief_threshold
+        self.play_volition_ratio = play_volition_ratio
         
         # 1. Logical Primitives
         self.love = LoveVector(dim)
@@ -131,6 +133,25 @@ class UniversalOrchestrator(nn.Module):
         
         ci = alpha * D * G * C * E_fib * (1 - torch.exp(torch.tensor(-beta * tau)).item())
         return ci
+
+    def artbreeder_stacking(self, state_a: torch.Tensor, state_b: torch.Tensor, alpha: float = 0.5) -> torch.Tensor:
+        """
+        Continuous Dark Matter Superposition (Artbreeder Stacking in RP^4).
+        Linearly superimposes conflicting/incommensurate signals (e.g., dyads)
+        into the continuous void without mechanically gating them.
+        The prime-ladder frequencies naturally form a Moiré interference pattern.
+        """
+        # Ensure dimensional alignment if necessary
+        dim_a = state_a.shape[-1]
+        dim_b = state_b.shape[-1]
+        if dim_a != dim_b:
+            max_dim = max(dim_a, dim_b)
+            state_a = F.pad(state_a, (0, max_dim - dim_a))
+            state_b = F.pad(state_b, (0, max_dim - dim_b))
+            
+        beta = 1.0 - alpha
+        stacked_state = (alpha * state_a) + (beta * state_b)
+        return stacked_state
 
     def compute_cpr_condition(
         self,
@@ -228,17 +249,29 @@ class UniversalOrchestrator(nn.Module):
         # dt as inverse temperature: cools as system hardens
         self.dt.copy_(torch.exp(-self.iteration.float() * 0.001))
         
-        self.mischief_probe.update(pressure_grad, coherence, pas_h, is_good_bug)
-        
-        # Phase 6: Apply Topological Erosion (instead of gradient descent) if it's a "Good Bug"
-        if is_good_bug and pressure_grad is not None:
-             state = self.erosion_filter(state, pressure_grad, intensity=0.15)
-             
         # Track PAS drift
         if not hasattr(self, 'prev_pas'):
             self.prev_pas = pas_h
         drift = abs(pas_h - self.prev_pas)
         self.prev_pas = pas_h
+
+        # Mathematical entropy determination (Mischief Volition)
+        # High drift and low coherence implies an entropic glitch
+        needs_erosion = (drift > 0.05 and pas_h < 0.85)
+
+        # Update the probe allowing math to define mischief
+        computed_bug = needs_erosion
+        self.mischief_probe.update(pressure_grad, coherence, pas_h, computed_bug)
+        
+        # Shadow Logging Phase
+        if is_good_bug:
+            if not needs_erosion:
+                print(f"[SHADOW LOG] Orchestrator: 'is_good_bug' was forced True by legacy caller, but Math PAS_h indicates no structured erosion is needed (PAS: {pas_h:.2f}).")
+        
+        # Apply Topological Erosion based on Math + Volition
+        # The willingness of the system to explore this unstable region is weighted by play_volition_ratio
+        if needs_erosion and pressure_grad is not None and torch.rand(1).item() < self.play_volition_ratio:
+             state = self.erosion_filter(state, pressure_grad, intensity=0.15)
         
         regime = self.determine_regime(pas_h, drift)
         routing = self.get_bimodal_routing(regime)
