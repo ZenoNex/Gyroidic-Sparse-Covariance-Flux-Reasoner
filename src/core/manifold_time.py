@@ -121,3 +121,38 @@ class ManifoldClock(nn.Module):
         self.accumulated_seriousness.zero_()
         self.accumulated_play.zero_()
 
+class TwoCopsSchedule(nn.Module):
+    """
+    Temporal Decoupling (The Two Cops).
+    
+    System 1 (Fast Cop): High-frequency, heuristic intuition (MPM-style).
+    System 2 (Slow Cop): Low-frequency, exact constraint checking (FEM-style).
+    
+    They communicate via a 'Shared Bulletin Board' (EMA of force/state).
+    """
+    def __init__(self, macro_steps: int = 10, device: str = None):
+        super().__init__()
+        self.macro_steps = macro_steps # How many micro-steps per macro-sync
+        self.clock = ManifoldClock(device=device)
+        
+        self.register_buffer('step_counter', torch.tensor(0, dtype=torch.long, device=device))
+        self.register_buffer('bulletin_board', torch.zeros(1, device=device)) # Force agreement summary
+
+    def step(self, pressure: torch.Tensor) -> Tuple[float, bool]:
+        """
+        Calculates dt and determines if a System 2 (Macro) sync is required.
+        
+        Returns:
+            dt: Current time step.
+            should_sync: True if Slow Cop (System 2) must run.
+        """
+        dt = self.clock.tick(pressure)
+        self.step_counter += 1
+        
+        should_sync = (self.step_counter % self.macro_steps == 0)
+        return dt, should_sync
+
+    def update_board(self, system_2_forces: torch.Tensor):
+        """Update the shared bulletin board with exact constraints."""
+        # Simple EMA update for now
+        self.bulletin_board.copy_(0.7 * self.bulletin_board + 0.3 * system_2_forces.mean())
