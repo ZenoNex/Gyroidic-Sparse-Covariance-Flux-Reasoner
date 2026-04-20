@@ -85,12 +85,14 @@ class EntropicMischiefProbe(nn.Module):
         tau_dementia: float = 100.0,
         eta_mischief: float = 0.5,
         theta_leak: float = 0.7,
+        threshold_stability: float = 0.5,
         device: str = None
     ):
         super().__init__()
         self.tau_dementia = tau_dementia
         self.eta_mischief = eta_mischief
         self.theta_leak = theta_leak
+        self.threshold_stability = threshold_stability
         self.device = device
 
         # State tracking
@@ -103,7 +105,8 @@ class EntropicMischiefProbe(nn.Module):
         pressure_grad: torch.Tensor,
         coherence: torch.Tensor,
         pas_h: float,
-        is_good_bug: bool = False
+        is_good_bug: bool = False,
+        batch_coherence: Optional[float] = None
     ):
         """
         Updates the metaphysical bands.
@@ -113,6 +116,7 @@ class EntropicMischiefProbe(nn.Module):
             coherence: Spectral coherence between clusters
             pas_h: Current Phase Alignment Score
             is_good_bug: Boolean signal for Mischief reward
+            batch_coherence: Mean similarity of surrounding nodes. If None, derived from coherence.
         """
         # 1. Dementia Band (Low-frequency forgetting)
         h_dem = torch.sum(pressure_grad**2) * torch.exp(
@@ -120,9 +124,22 @@ class EntropicMischiefProbe(nn.Module):
         )
         self.H_dementia.copy_(h_dem.detach())
 
-        # 2. Schizo Band (Mid-frequency fragmentation)
-        h_sch = -torch.sum(torch.log(torch.clamp(1.0 - coherence, 1e-6, 1.0)))
-        self.H_schizo.copy_(h_sch.detach())
+        # 2. Schizo Band (Mid-frequency fragmentation / "Cracking the Egg")
+        # Lore update: The "Jax is an Egg" Community Support Protocol.
+        # We do not forcefully peel the archetype unless the manifold provides a safe landing.
+        raw_h_sch = -torch.sum(torch.log(torch.clamp(1.0 - coherence, 1e-6, 1.0)))
+        
+        # Determine Community Support Factor (Zeta)
+        if batch_coherence is None:
+            batch_coherence = coherence.mean().item() if coherence.numel() > 0 else 0.5
+            
+        community_support_factor = (pas_h * 0.7) + (batch_coherence * 0.3)
+        
+        # Safe Cracking: Throttle fragmentation if support is low, 
+        # preventing Forced Abstraction in cold/disconnected manifolds.
+        h_s_aligned = raw_h_sch * torch.sigmoid(torch.tensor(community_support_factor - self.threshold_stability, device=self.device))
+        
+        self.H_schizo.copy_(h_s_aligned.detach())
 
         # 3. Mischief Band (High-frequency play)
         bug_reward = 2.0 if is_good_bug else 1.0
