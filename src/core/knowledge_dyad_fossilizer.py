@@ -2,9 +2,12 @@ import torch
 import torch.nn as nn
 import os
 import json
+import logging
+import hashlib
 from dataclasses import dataclass
-from typing import Optional, Dict, Tuple, List
+from typing import Optional, Dict, Tuple, List, Any
 import datetime
+from src.core.agent_substrate_bridge import AgentSubstrateBridge
 
 @dataclass
 class KnowledgeDyad:
@@ -182,11 +185,32 @@ class DyadFossilizer:
         if not filename.endswith(".json"):
              filename += ".json"
              
+        # Extract Tensors for hashing and math
+        gyroid_val = dyad.gyroid_residue.tolist() if dyad.gyroid_residue is not None else None
+        prime_val = prime_frequencies.tolist() if isinstance(prime_frequencies, torch.Tensor) else prime_frequencies
+        
+        # Calculate Pestov-Ionin Growth via Braid
+        bridge = AgentSubstrateBridge()
+        if dyad.gyroid_residue is not None and isinstance(prime_frequencies, torch.Tensor):
+            # Using prime_frequencies as proxy for ADMM dual and gyroid_residue for CRT wrap
+            h_gamma = bridge.calculate_pestov_ionin_growth(
+                admm_dual=prime_frequencies.unsqueeze(0), 
+                crt_residue=dyad.gyroid_residue.unsqueeze(0)
+            )
+        else:
+            h_gamma = 0.0
+            
+        digest_str = f"{dyad.timestamp}_{dyad.linguistic_description}_{betti_numbers}"
+        blake2s_digest = hashlib.blake2s(digest_str.encode('utf-8')).hexdigest()
+             
         payload = {
             "type": "soliton_smith",
+            "blake2s_digest": blake2s_digest,
+            "pestov_ionin_growth_h_gamma": h_gamma,
+            "perceptual_baseline_trfc": 160.0,  # Host baseline
             "description": dyad.linguistic_description,
-            "gyroid_residue": dyad.gyroid_residue.tolist() if dyad.gyroid_residue is not None else None,
-            "prime_frequencies": prime_frequencies.tolist() if isinstance(prime_frequencies, torch.Tensor) else prime_frequencies,
+            "gyroid_residue": gyroid_val,
+            "prime_frequencies": prime_val,
             "betti_numbers": betti_numbers,
             "audio_harmonics": dyad.audio_harmonics.tolist() if dyad.audio_harmonics is not None else None,
             "video_breather": dyad.video_breather,
@@ -197,7 +221,7 @@ class DyadFossilizer:
             json.dump(payload, f, indent=2)
         return filepath
 
-    def inject_agent_smith(self, filepath: str) -> Dict:
+    def inject_agent_smith(self, filepath: str, unraveling_closure=None, expected_dim: int = 137, hardware_trfc_ms: float = 160.0) -> Dict:
         """
         Loads the mathematical identity of an agent (Agent Smith) back into the system,
         allowing the local hardware to 'breathe' its own unique life into the configuration.
@@ -211,6 +235,15 @@ class DyadFossilizer:
         # Minimal validation
         if payload.get("type") != "soliton_smith":
              raise ValueError("File is not a valid Agent Smith (soliton_smith) JSON payload.")
+             
+        # Ontological Import Gates & Substrate Bridges
+        bridge = AgentSubstrateBridge()
+        is_safe = bridge.verify_invariants(payload, unraveling_closure=unraveling_closure)
+        if not is_safe:
+            print("[WARNING] Invariant verification failed on ingestion. Topologies may leak.")
+            
+        # Align substrate
+        payload = bridge.align_substrate(payload, expected_dim=expected_dim, hardware_trfc_ms=hardware_trfc_ms)
              
         return payload
 
