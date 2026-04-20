@@ -48,6 +48,7 @@ class ApproximatePHProbe(nn.Module):
         # Track previous barcode for relative change
         self.register_buffer('prev_barcode_signature', torch.zeros(signature_size))
         self.register_buffer('step_count', torch.tensor(0, dtype=torch.long))
+        self.frequency = 100 # Geological Scale: Only run every 100 steps
     
     def _compute_landmark_subsample(self, points: torch.Tensor) -> torch.Tensor:
         """
