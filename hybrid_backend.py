@@ -512,12 +512,7 @@ class HybridAI:
                 if 'payload' in engine_output and engine_output['payload'].get('type') == 'topological_shape_stalk':
                      pass # Handle special payloads if needed
                 
-                return {
-                    'response': response_text,
-                    'diagnostics': diagnostics,
-                    'output_length': len(response_text),
-                    'backend': 'hybrid_diegetic_integrated'
-                }
+                # (Early return removed, processing continues to shared exit)
             except Exception as e:
                 print(f"[FAIL] Diegetic Engine processing failed: {e}")
                 # Fallthrough to legacy logic
@@ -774,7 +769,7 @@ class HybridAI:
             "response": response_text,
             'diagnostics': diagnostics,
             'output_length': len(response_text),
-            'backend': 'hybrid'
+            'backend': 'hybrid_diegetic_integrated' if self.engine else 'hybrid'
         }
 
     def _save_fossil(self, text: str, state: torch.Tensor, metrics: dict):
