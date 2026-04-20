@@ -877,7 +877,8 @@ class GyroidicFluxReasoner(nn.Module):
             'chern_simons_diagnostics': self.chern_simons_gasket.get_diagnostics(),
             'soliton_healing_diagnostics': self.soliton_healer.get_diagnostics(),
             'love_diagnostics': love_diagnostics,
-            'soft_gates_diagnostics': self.soft_gates.get_diagnostics()
+            'soft_gates_diagnostics': self.soft_gates.get_diagnostics(),
+            'shadow_logs': self.orchestrator.pop_shadow_logs() if hasattr(self.orchestrator, 'pop_shadow_logs') else []
         }
         
         if return_analysis:
