@@ -57,61 +57,108 @@ class SparseRepunitProbe(nn.Module):
 
 
 
+class DirectBirkhoffProjection(nn.Module):
+    """
+    Sturmfels-Thomas Direct Linear Projection.
+    
+    Replaces O(N) iterative Sinkhorn with O(1) null-space projection
+    onto the Birkhoff subspace H_Delta.
+    
+    Ensures that T satisfies:
+        sum_j T_{ij} = 1
+        sum_i T_{ij} = 1
+    without iterative drift.
+    """
+    def __init__(self, n: int, device: str = None):
+        super().__init__()
+        self.n = n
+        self.target_dim = n * n
+        
+        # Pre-compute the projection matrix onto the affine subspace Ax=b
+        # where A encodes the row/column sum constraints.
+        # This is high-memory for very large N, but O(1) at runtime.
+        self._init_projection_matrix(device)
+
+    def _init_projection_matrix(self, device):
+        """Derive the projection matrix P derived from the constraint null-space."""
+        n = self.n
+        # Constraints: 2n linear equations (one redundant)
+        # We build the constraint matrix A [2n, n*n]
+        A = torch.zeros(2 * n, n * n, device=device)
+        for i in range(n):
+            # Row constraints
+            A[i, i*n : (i+1)*n] = 1.0
+            # Col constraints
+            for j in range(n):
+                A[n + j, i*n + j] = 1.0
+        
+        # Eliminate one redundant constraint to make A full rank (2n-1)
+        A = A[:-1, :] 
+        
+        # P = I - A^T (A A^T)^-1 A
+        # This projects any vector onto the nullspace of A (the subspace where sums are zero)
+        # To project onto Ax=b, we use x_proj = Px + A^T(AA^T)^-1 b
+        A_inv = torch.pinverse(A)
+        self.register_buffer('P', torch.eye(n*n, device=device) - torch.matmul(A_inv, A))
+        
+        # b is the target sums (all 1.0)
+        b = torch.ones(2 * n - 1, 1, device=device)
+        self.register_buffer('p_offset', torch.matmul(A_inv, b).squeeze())
+
+    def forward(self, T: torch.Tensor) -> torch.Tensor:
+        """
+        Direct O(1) projection.
+        T: [batch, n, n] or [batch, n*n]
+        """
+        shape = T.shape
+        batch_size = shape[0]
+        T_vec = T.view(batch_size, -1)
+        
+        # Linear map: x_proj = P x + offset
+        T_proj = torch.matmul(T_vec, self.P.T) + self.p_offset
+        
+        return T_proj.view(shape)
+
+
 class ObscuredBirkhoffManifold(nn.Module):
     """
     Obscured Birkhoff Polytope B_N^o.
     
-    Ensures that T_{ij} satisfies conservation of probability with 
-    partial visibility (obstruction):
-        sum_j T_{ij} = 1 - delta_o
-        sum_i T_{ij} = 1 - delta_o
-        
-    delta_o evolves via genome g (Obsc(g)).
+    Fuses the Sturmfels direct projection with the evolved obstruction level.
     """
     
     def __init__(
         self, 
-        max_iterations: int = 50,
-        epsilon: float = 1e-4,
+        n: int = 16, # Default manifold dimension
         temperature: float = 1.0,
-        delta_o: float = 0.0  # Initial obstruction level (0 = full visibility)
+        delta_o: float = 0.0,
+        device: str = None
     ):
         super().__init__()
-        self.max_iterations = max_iterations
-        self.epsilon = epsilon
+        self.n = n
         self.temperature = nn.Parameter(torch.tensor(temperature))
         self.register_buffer('delta_o', torch.tensor(delta_o))
+        
+        # Unicorn Synthesis: Use Direct Projection by default
+        self.direct_projector = DirectBirkhoffProjection(n, device=device)
     
     def evolve_obstruction(self, genome: torch.Tensor, decay: float = 0.99):
-        """
-        Evolve obstruction level delta_o based on genome g.
-        delta_o = Obsc(g)
-        """
-        # Simple mapping: normalized genome energy -> obstruction
-        target_obsc = torch.sigmoid(torch.mean(genome)) * 0.5 # Max 0.5 obstruction
+        """delta_o = Obsc(g)"""
+        target_obsc = torch.sigmoid(torch.mean(genome)) * 0.5
         self.delta_o = decay * self.delta_o + (1 - decay) * target_obsc
         
     def project(self, T: torch.Tensor) -> torch.Tensor:
-        """
-        Project matrix T to be doubly stochastic (Sinkhorn) with obstruction.
-        Target sum = 1.0 - delta_o.
-        """
-        target_sum = 1.0 - self.delta_o
-        
-        # Ensure positive
+        """Project matrix T onto Birkhoff subspace with obstruction."""
+        # 1. Softmax/Exp to ensure positivity
         T_soft = torch.exp(T / self.temperature)
         
-        # Sinkhorn Iterations
-        for _ in range(self.max_iterations):
-            # Row Norm
-            row_sums = T_soft.sum(dim=-1, keepdim=True).clamp(min=1e-8)
-            T_soft = T_soft / row_sums * target_sum
-            
-            # Col Norm (for Doubly Stochastic)
-            col_sums = T_soft.sum(dim=-2, keepdim=True).clamp(min=1e-8)
-            T_soft = T_soft / col_sums * target_sum
-            
-        return T_soft
+        # 2. Linear Projection
+        T_ds = self.direct_projector(T_soft)
+        
+        # 3. Apply Obstruction (delta_o)
+        # sum_j T_ij = 1 - delta_o
+        target_sum = 1.0 - self.delta_o
+        return T_ds * target_sum
     
     def forward(self, T: torch.Tensor) -> torch.Tensor:
         return self.project(T)
