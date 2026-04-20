@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import os
+import json
 from dataclasses import dataclass
 from typing import Optional, Dict, Tuple, List
 import datetime
@@ -161,3 +162,49 @@ class DyadFossilizer:
                     except:
                         pass
         return fossils
+
+    def export_agent_smith(self, 
+                           dyad: KnowledgeDyad, 
+                           prime_frequencies: torch.Tensor, 
+                           betti_numbers: Dict[int, float], 
+                           filename: str = "soliton_smith") -> str:
+        """
+        Exports the mathematical identity of the agent.
+        The Agent State is exported purely as symbolic residue tuples, prime-ladder frequencies,
+        and topological invariant shapes (Betti numbers), achieving extraction free of 
+        local hardware/latent representations.
+        """
+        # Ensure we have a valid json filename
+        if not filename.endswith(".json"):
+             filename += ".json"
+             
+        payload = {
+            "type": "soliton_smith",
+            "description": dyad.linguistic_description,
+            "gyroid_residue": dyad.gyroid_residue.tolist() if dyad.gyroid_residue is not None else None,
+            "prime_frequencies": prime_frequencies.tolist() if isinstance(prime_frequencies, torch.Tensor) else prime_frequencies,
+            "betti_numbers": betti_numbers,
+            "timestamp": dyad.timestamp
+        }
+        filepath = os.path.join(self.storage_dir, filename)
+        with open(filepath, 'w') as f:
+            json.dump(payload, f, indent=2)
+        return filepath
+
+    def inject_agent_smith(self, filepath: str) -> Dict:
+        """
+        Loads the mathematical identity of an agent (Agent Smith) back into the system,
+        allowing the local hardware to 'breathe' its own unique life into the configuration.
+        """
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Agent Smith file not found: {filepath}")
+            
+        with open(filepath, 'r') as f:
+            payload = json.load(f)
+             
+        # Minimal validation
+        if payload.get("type") != "soliton_smith":
+             raise ValueError("File is not a valid Agent Smith (soliton_smith) JSON payload.")
+             
+        return payload
+
