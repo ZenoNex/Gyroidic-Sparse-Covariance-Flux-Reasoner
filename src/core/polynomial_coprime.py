@@ -599,6 +599,17 @@ class PolynomialCoprimeConfig:
         self.is_fossilized[k] = True
         return True
     
+    def _apply_cyclotomic_shield(self, phi: torch.Tensor) -> torch.Tensor:
+        """
+        Apply modular cyclotomic quantization to the functional response.
+        Mapped to the upgraded CyclotomicTDACompressor.
+        """
+        if not hasattr(self, '_cyclotomic_shield'):
+            from src.topology.modular_homology_fft import CyclotomicTDACompressor
+            self._cyclotomic_shield = CyclotomicTDACompressor(p=17, ring_size=64).to(self.device)
+            
+        return self._cyclotomic_shield.cyclotomic_quantization(phi)
+    
     def update_pressure_history(self, k: int, pressure: float):
         """Track pressure for saturation detection."""
         self._init_saturation_tracking()
@@ -699,6 +710,9 @@ class PolynomialCoprimeConfig:
         # Apply Hybrid LAS-Quantization (Bostick, 2026 update)
         if hasattr(self, 'quantizer') and self.quantizer is not None:
             phi = self.quantizer(phi)
+        
+        # Apply Cyclotomic Shield (Sovereign Quantization)
+        phi = self._apply_cyclotomic_shield(phi)
         
         return phi
     
