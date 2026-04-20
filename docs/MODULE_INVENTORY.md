@@ -19,8 +19,9 @@ Instead of discrete prime moduli, this solver uses co-prime polynomial functiona
 ### audience_mapping.py
 **Class**: `AudienceProjection`  
 **Role**: Lipschitz homeomorphic projection from manifold M to audience space A.
+**Status**: ACTIVE (Integrated into `diegetic_backend.py` and `hybrid_backend.py`)
 
-Implements the operator Φ: M → A defined in the Garden Statistical Attractors design. Uses spectral normalization on all linear layers to enforce Lipschitz constant ≤ 1, and a residual skip connection (`y = f(x) + x`) to approximate homeomorphism (continuous, bijective). An approximate inverse `Φ⁻¹` is provided via fixed-point iteration (Banach theorem, valid when `Lip(f) < 1`). The key requirement it enforces is *roughness preservation*: topological singularities (sharp features, discontinuities) in the manifold are transmitted into audience space rather than smoothed away.
+Implements the operator Φ: M → A defined in the Garden Statistical Attractors design. Uses spectral normalization on all linear layers to enforce Lipschitz constant ≤ 1, and a residual skip connection (`y = f(x) + x`) to approximate homeomorphism (continuous, bijective). An approximate inverse `Φ⁻¹` is provided via fixed-point iteration (Banach theorem, valid when `Lip(f) < 1`). The key requirement it enforces is *roughness preservation*: topological singularities (sharp features, discontinuities) in the manifold are transmitted into audience space rather than smoothed away. In the backend, it projects the "detached" hidden state snapshot to the user-facing audience space for each interaction.
 
 ---
 
