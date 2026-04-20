@@ -135,7 +135,7 @@ class SiliconSovereigntyEngine:
         }
 
         // 5. Matrix Mix Breeding (Tag-Based Matrix Mixing)
-        // Implements Async Mischief Injection and Topological Seals
+        // Implements Async Mischief Injection and First-to-Finish dynamics
         __kernel void matrix_mix(
             __global const float *tag_matrix_a,
             __global const float *tag_matrix_b,
@@ -147,21 +147,38 @@ class SiliconSovereigntyEngine:
         ) {
             int gid = get_global_id(0);
             
-            // Async Mischief Injection: sample V_m (mischief score) locally
-            // This prevents CPU-side bottlenecks and preserves hardware sovereignty.
+            // First-to-Finish Logic: locally sampled mischief modulates weight
             uint seed = base_seed + gid;
-            seed = xorshift32(seed);
-            seed = xorshift32(seed);
             seed = xorshift32(seed);
             float mischief_v_m = (float)(seed % 1000) / 1000.0f; 
             
-            // Feature Scars manifest when mischief exceeds the sovereignty threshold.
-            // Hyperbolic Shear (Poincaré eccentricity) modulates the "extreme slider" glitch intensity.
-            float threshold = 0.88f * (1.0f - 0.2f * hyperbolic_shear);
-            float scar_intensity = (mischief_v_m > threshold) ? (kappa_seal * mischief_v_m * (1.0f + hyperbolic_shear)) : 0.0f;
+            // Exact Rational Constraint (The Sovereign Shield)
+            // If mischief is extreme, we lock to the nearest rational lattice point
+            float val_a = tag_matrix_a[gid];
+            float val_b = tag_matrix_b[gid];
+            float mixed = (1.0f - alpha) * val_a + alpha * val_b;
             
-            // Matrix Mixing Formula with Chiral Bias and Feature Scar injection
-            output_matrix[gid] = (1.0f - alpha) * tag_matrix_a[gid] + alpha * tag_matrix_b[gid] + scar_intensity;
+            float scale = 65536.0f; // Bit-exact Int16 scale
+            if (mischief_v_m > 0.95f) {
+                mixed = round(mixed * scale) / scale;
+            }
+            
+            output_matrix[gid] = mixed;
+        }
+
+        // 6. Rational Constraint Enforcement (Sturmfels/Thomas)
+        __kernel void rational_enforcement(
+            __global float *data,
+            __global const float *projection_matrix, // [N, N]
+            __global const float *offset_vector,      // [N]
+            int n
+        ) {
+            int gid = get_global_id(0);
+            float sum = offset_vector[gid];
+            for (int j = 0; j < n; j++) {
+                sum += projection_matrix[gid * n + j] * data[j];
+            }
+            data[gid] = sum;
         }
         """
         
