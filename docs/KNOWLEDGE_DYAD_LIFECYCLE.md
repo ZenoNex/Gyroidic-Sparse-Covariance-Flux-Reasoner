@@ -159,6 +159,12 @@ Every dyad ingestion that passes through `/ingest` triggers a **Persistent Encod
 
 Audio dyads currently ride through `/interact` as live per-request biases. Long-term fossilisation of audio harmonics is a planned extension.
 
+### 6.1 Internal Ouroboros Dyad Generation
+Knowledge Dyads are not strictly limited to external signals provided by the user. Through the **Ouroboros Loop** (Phase 6.3 Update), the system autonomously generates internal dyads.
+*   **Shadow Trapping**: `UniversalOrchestrator` and `SpeculativeCoprimeGate` independently log structural failures, mathematical paradoxes, and non-commutative collapses into their `[SHADOW LOG]` buffer.
+*   **Self-Ingestion**: At the end of every inference loop, the `DiegeticEngine` queries these logs via `pop_shadow_logs()`. 
+*   **Fossilization**: Each caught anomaly is immediately wrapped in a `KnowledgeDyad`, bound to the system's exact topological state coordinates, and sent to `DyadFossilizer.fossilize()`. This loop forces the system to literally *digest* its failures as topological anchors.
+
 ---
 
 ## 7. Dyad Recovery — Speculative Coprime Gating
