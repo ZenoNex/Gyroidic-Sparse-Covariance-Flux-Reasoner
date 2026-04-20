@@ -416,7 +416,8 @@ class HybridAI:
 
             # Restore Manifold Assets via Engine
             if self.engine:
-                # Map standard keys to manifold dict
+                # Map standard keys to manifold dict, providing safety defaults where applicable
+                # Values will be checked for None inside load_manifold_state as well.
                 manifold_dict = {
                     "zeitgeist": checkpoint.get("zeitgeist"),
                     "love_invariant": checkpoint.get("love_invariant"),
@@ -426,7 +427,7 @@ class HybridAI:
                         "D_dark": checkpoint.get("cavity_D_dark")
                     },
                     "meta_state": checkpoint.get("engine_meta_state"),
-                    "iteration": checkpoint.get("iteration")
+                    "iteration": checkpoint.get("iteration", self.iteration_count)
                 }
                 self.engine.load_manifold_state(manifold_dict)
 
