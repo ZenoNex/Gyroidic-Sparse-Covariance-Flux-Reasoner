@@ -21,6 +21,11 @@ class VoynichExemptionToken:
     is_nutrient: bool = False
     fossilized_state: Optional[torch.Tensor] = None
     gasket_signature: Optional[float] = None
+    
+    # Shadow Token Phase Migration:
+    # If shadow_mode is True, this token acts purely as a diagnostic log.
+    # It must NOT override mathematical PAS_h gating in the main pipeline.
+    shadow_mode: bool = True
 
     @property
     def is_topologically_sealed(self) -> bool:
@@ -36,6 +41,9 @@ class VoynichExemptionToken:
         return self.is_valid_exemption and self.gasket_signature > 0.0
 
     def __bool__(self):
+        # In shadow mode, the token evaluates to False so it does not bypass standard gates mechanically.
+        if self.shadow_mode:
+            return False
         return self.is_valid_exemption
 
     def to_daquf_mischief_boost(self) -> Optional[torch.Tensor]:
@@ -87,3 +95,18 @@ class VoynichExemptionToken:
             is_nutrient=is_nutrient,
             gasket_signature=ent_val if is_nutrient else None
         )
+
+def get_mischief_dependent_shell_depth(entropy: float, base_depth: int = 3, max_depth: int = 7) -> int:
+    """
+    Adaptive Quantization Levels (Mischief-Dependent Quantization):
+    When high entropy is detected in RP^4, the Saturated Quantizer dynamically 
+    increases its resolution (Matrioshka shell depth) to capture the nuance 
+    of the glitch instead of flattening it.
+    """
+    # Scale depth conditionally if entropy is anomalously high (> 1.5)
+    if entropy <= 1.0:
+        return base_depth
+    
+    # Linearly scale depth up to max_depth based on the severity of the entropy spike
+    scaled_depth = base_depth + int((entropy - 1.0) * 2.0)
+    return min(scaled_depth, max_depth)
