@@ -443,6 +443,9 @@ class SpeculativeCoprimeGate(nn.Module):
         # Buffer for internal shadow logs
         self.shadow_logs = []
         
+        # Buffer for internal shadow logs
+        self.shadow_logs = []
+        
         # Sub-modules
         self.winding_tracker = CoprimeWindingTracker(dim=dim, num_heads=num_heads)
         self.chiral_estimator = ChiralCoherenceEstimator(dim=dim)
@@ -564,6 +567,28 @@ class SpeculativeCoprimeGate(nn.Module):
         
         # Project coprime manifold through learnable transform
         target_manifold = self.manifold_proj(self.coprime_manifold)
+        
+        # --- Add fossils as gravity wells ---
+        try:
+            from src.core.knowledge_dyad_fossilizer import DyadFossilizer
+            fossilizer = DyadFossilizer()
+            fossils = fossilizer.recover_fossils()
+            if fossils:
+                # Extract up to 16 fossil residue vectors to act as gravity wells
+                gravity_wells = []
+                for f in fossils[:16]:
+                    if 'residue_vector' in f:
+                        res = f['residue_vector'].to(converged_state.device)
+                        if res.shape[-1] == self.dim:
+                            gravity_wells.append(res.view(1, -1))
+                            
+                if gravity_wells:
+                    gravity_tensor = torch.cat(gravity_wells, dim=0)
+                    # Blend the math targets with the coprime manifold target space
+                    target_manifold = torch.cat([target_manifold, gravity_tensor], dim=0)
+                    print(f"[RECOVERY] Integrated {len(gravity_wells)} fossil gravity wells into Wasserstein target manifold.")
+        except Exception as e:
+            print(f"[RECOVERY] Failed to load fossil gravity wells: {e}")
         
         # If chirality target provided, bias manifold toward it
         if chirality_target is not None:
