@@ -199,7 +199,7 @@ class PrimeResonanceLadder(nn.Module):
         # For the stabilization, we use a more sophisticated simulation if real engine isn't found
         
         queue_b_finished_first = False
-        signal = "t_RFC Stall Detected"
+        signal = "Virtual Algorithmic Latency Stall Detected"
         
         try:
             # Check for PyOpenCL availability
