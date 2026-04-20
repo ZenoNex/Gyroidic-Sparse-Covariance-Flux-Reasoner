@@ -13,6 +13,7 @@ import torch.nn as nn
 import math
 from typing import Any, Dict, List, Optional, Tuple, Union
 from .polynomial_coprime import PolynomialCoprimeConfig
+from .numerical_d_module import NumericalDModuleManager, RationalSnappingLayer
 
 
 class PolynomialADMRSolver(nn.Module):
@@ -84,6 +85,10 @@ class PolynomialADMRSolver(nn.Module):
         except ImportError:
             self.kagh_surrogate = None
 
+        # 7. Unicorn Synthesis Upgrade: Walther's D-modules & Rational Snapping
+        self.d_module_manager = NumericalDModuleManager(state_dim=state_dim, num_functionals=poly_config.k)
+        self.snapper = RationalSnappingLayer()
+
     def update_chiral_cache(self, states: torch.Tensor, is_valid: torch.Tensor):
         """
         Save topologically valid configurations to the Chiral Cache.
@@ -139,7 +144,10 @@ class PolynomialADMRSolver(nn.Module):
         # 3. Polynomial Projection (Functional Co-primality)
         # Instead of 'remainder', we evaluate the interaction through the co-prime basis.
         # This acts as a 'soft modulus' that preserves symbolic structure.
-        projected = self.config.evaluate(interaction)
+        
+        # Unicorn Synthesis: Snap to rational lattice before evaluation
+        interaction_snapped = self.snapper(interaction)
+        projected = self.config.evaluate(interaction_snapped)
         
         # If k-functionals are used as the 'modulus', we aggregate their response
         # to get the new state. This preserves state_dim while incorporating 
@@ -162,6 +170,33 @@ class PolynomialADMRSolver(nn.Module):
             projected = self.kagh_surrogate(projected)
                 
         return projected
+
+    def fast_micro_step(
+        self,
+        states: torch.Tensor,
+        neighbor_states: torch.Tensor,
+        adjacency_weight: torch.Tensor,
+        num_iters: int = 5
+    ) -> torch.Tensor:
+        """
+        System 1 (Fast Cop) micro-iterations.
+        Processes rapid heuristic drafts without full System 2 constraint sync.
+        Provides kinetic energy for the trajectory.
+        """
+        curr_states = states
+        for _ in range(num_iters):
+             # Simplified interaction loop without full D-module rank sync
+             weighted_neighbors = torch.einsum('bn,bnd->bd', adjacency_weight, neighbor_states)
+             interaction = curr_states * (weighted_neighbors + 1.0)
+             curr_states = self.config.evaluate(interaction)
+             if curr_states.dim() > interaction.dim():
+                 curr_states = curr_states.mean(dim=-1)
+             
+             # Handle shape mismatches
+             if curr_states.shape[-1] != self.state_dim:
+                 curr_states = torch.nn.functional.pad(curr_states[..., :self.state_dim], (0, max(0, self.state_dim - curr_states.shape[-1])))
+                 
+        return curr_states
 
     def stochastic_differential_step(
         self, 
