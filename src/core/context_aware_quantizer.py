@@ -28,6 +28,7 @@ import torch.nn as nn
 from typing import Dict, Optional, Tuple
 
 from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka, BoundaryState
+from src.core.false_negative_subsystem import get_mischief_dependent_shell_depth
 
 
 class ContextAwareQuantizer(nn.Module):
@@ -151,6 +152,7 @@ class ContextAwareQuantizer(nn.Module):
         x: torch.Tensor,
         pas_scores: Optional[torch.Tensor] = None,
         trust_scores: Optional[torch.Tensor] = None,
+        mischief_entropy: float = 0.0,
     ) -> Tuple[torch.Tensor, Optional[BoundaryState]]:
         """
         Apply context-aware quantization.
@@ -168,6 +170,17 @@ class ContextAwareQuantizer(nn.Module):
         """
         device = x.device
         prev_level = self._level
+        
+        # Adaptive Quantization (Mischief-Dependent)
+        # Dynamically scale the max depth if we are in an entropic/mischief state
+        dynamic_max_depth = get_mischief_dependent_shell_depth(mischief_entropy, base_depth=self.max_depth, max_depth=self.max_depth + 4)
+        
+        # Ensure delta_log can support the dynamic depth (pad if necessary)
+        if dynamic_max_depth >= self.delta_log.size(0):
+            with torch.no_grad():
+                pad_size = dynamic_max_depth - self.delta_log.size(0) + 1
+                padding = torch.zeros(pad_size, self.dim, device=self.delta_log.device)
+                self.delta_log = nn.Parameter(torch.cat([self.delta_log, padding], dim=0))
 
         # 1. Compute per-axis step sizes
         step = self._compute_step_sizes(pas_scores, trust_scores, device)  # [1, dim]
@@ -205,7 +218,7 @@ class ContextAwareQuantizer(nn.Module):
                 facet_normal=facet_n,
                 alpha=self._alpha,
                 level=self._level,
-                max_level=self.max_depth,
+                max_level=dynamic_max_depth,
             )
 
         # 5. Update diagnostics
