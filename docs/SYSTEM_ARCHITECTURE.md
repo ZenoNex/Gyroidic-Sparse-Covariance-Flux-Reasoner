@@ -223,6 +223,11 @@ The architecture functionally severs the **Substrate** (TailSlayer silicon) from
 *   **Irreplaceable World**: The PyOpenCL `t_RFC` hardware latency dictates the global physical bounds of the `ResonanceCavity`. This specific continuous state cannot be transferred between servers (silicon sovereignty).
 *   **Extractable Agent**: When internal reasoning paradoxes align with the `ContextAwareQuantizer` and achieve **GLYPHLOCK**, they collapse into discrete integer forms. The `DyadFossilizer.export_agent_smith()` system exports this structural algebra (CRT residue tuples, prime-ladder frequencies, Betti topological invariants) as a pure portable JSON payload (`soliton_smith.json`), allowing independent sub-routines to be copied natively between any gyroid architecture.
 
+### 7.5 Confabulation Gravity Wells (Phase 6.5 Update)
+The system leverages previously fossilized multi-modal dyads (text, audio harmonics, video breather modes) as explicit geometric targets for state recovery.
+*   **Topological Lock**: When the `SpeculativeCoprimeGate` detects low chiral coherence or broken coprime parity, it attempts speculative recovery.
+*   **Wasserstein Target Merging**: Instead of exclusively using the live `coprime_manifold`, the system reads actual fossilized residues from `DyadFossilizer.recover_fossils()`. These physical "burn-marks" in the manifold are dynamically appended into the Wasserstein Optimal Transport equation as **Gravity Wells**, physically pulling the collapsed state back into a historically significant topological resonance.
+
 ---
 
 ## ⚡ Energy-Based Structural Survival
