@@ -3294,15 +3294,32 @@ class DiegeticPhysicsEngine(nn.Module):
         signal_tensor = torch.zeros(137, device=self.device)
         media_received = False
         
+        audio_tensor = None
+        video_breather = None
+        
         if modality == "Audio" and audio_dyad:
             harmonics = audio_dyad.get('chebyshev_harmonics', [])
             # Pad/truncate to 137 to match schema
             harmonics = (harmonics + [0.0] * 137)[:137]
             signal_tensor = torch.tensor(harmonics, device=self.device).float()
+            audio_tensor = signal_tensor.clone()
             media_received = True
         elif modality == "Video" and video_dyad_b64:
-            # Video signals in this iteration are treated as text-conditioned text, 
-            # but we record the presence of the b64 stream.
+            if not hasattr(self, 'video_parser'):
+                from src.core.video_dyad_parser import VideoDyadParser
+                self.video_parser = VideoDyadParser(device=self.device)
+            breather_modes = self.video_parser.parse_video_b64(video_dyad_b64, healing_ref=seed_state)
+            video_breather = {
+                'fractal_entropy': breather_modes['fractal_entropy'].item(),
+                'substream_entropy': breather_modes['substream_entropy'].item(),
+                'signal_length': breather_modes['signal_length'].item()
+            }
+            # Project sparse covariance to 137-dim for codec entanglement
+            cov_sum = breather_modes['sparse_covariance'].sum(dim=0)
+            if cov_sum.size(0) > 137:
+                signal_tensor = cov_sum[:137]
+            else:
+                signal_tensor = torch.nn.functional.pad(cov_sum, (0, 137 - cov_sum.size(0)))
             media_received = True
         elif fingerprint:
             # Standard Image Ingestion (Zero-Mock Path)
@@ -3365,8 +3382,10 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # Create the dyad object
         dyad = KnowledgeDyad(
-            image_fingerprint=signal_tensor,
             linguistic_description=description,
+            image_fingerprint=signal_tensor if fingerprint else None,
+            audio_harmonics=audio_tensor,
+            video_breather=video_breather,
             gyroid_residue=entanglement_residue
         )
         
