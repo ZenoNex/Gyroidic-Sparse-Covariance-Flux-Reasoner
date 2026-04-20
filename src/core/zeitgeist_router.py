@@ -278,9 +278,11 @@ class ZeitgeistRouter(nn.Module):
         # Persistent buffer tracking historical non-commutative illusions
         self.register_buffer('digimon_buffer', torch.zeros(self.M, self.M))
 
-        # ── Fossil Landmarks (Bridge 4: Navigation over Storage) ────── #
-        # Map: Blake2s ID -> Poincaré Delta (Residue Displacement)
-        self.fossil_landmarks: Dict[str, torch.Tensor] = {}
+        # ── Unicorn Synthesis Upgrade: Exact Algebraic Geometry ────── #
+        from .numerical_d_module import NumericalDModuleManager, RationalSnappingLayer
+        self.d_module_manager = NumericalDModuleManager(state_dim=dim, num_functionals=self.M)
+        self.snapper = RationalSnappingLayer()
+
         self.register_buffer('gravity_well_bias', torch.zeros(self.M))
 
     # ------------------------------------------------------------------ #
@@ -503,10 +505,22 @@ class ZeitgeistRouter(nn.Module):
         x_norm = F.normalize(x, dim=-1) # [batch, dim]
 
         # ── 1. Facet grazing check ───────────────────────────────────── #
-        g = self._facet_projections(x_norm)         # [batch, M]
-        grazing_mask = self._grazing_mask(g)        # [batch, M]
+        # ── 1. Algebraic State Classification (Unicorn Synthesis) ────── #
+        # Snap and compute rank
+        x_snapped = self.snapper(x_norm)
+        # Use entropy from tadc_kwargs if available, else 0.5 default
+        entropy = tadc_kwargs.get('entropy', 0.5) if tadc_kwargs else 0.5
+        
+        # Approximate Jacobian by using facet projections
+        g = self._facet_projections(x_snapped) # [batch, M]
+        d_module_results = self.d_module_manager(g.unsqueeze(1), entropy)
+        
+        cohom_dim = d_module_results["cohomological_dimension"]
+        is_lazarus_void = d_module_results["is_lazarus_void"]
+        
+        # Facet grazing mask for fallback/legacy logic
+        grazing_mask = self._grazing_mask(g)
         any_grazing = grazing_mask.any().item()
-
         grazing_pressure = (g - self.facet_thresholds).abs().mean().item()
 
         # ── 2. BoundaryState critical check (exterior / NaN guard) ───── #
@@ -514,9 +528,10 @@ class ZeitgeistRouter(nn.Module):
         if boundary is not None and hasattr(boundary, 'is_critical'):
             is_critical = boundary.is_critical(self.critical_boundary_threshold)
 
-        # Exterior case: already grazing AND boundary is critical
+        # Exterior case: D-module rank indicates rupture or boundary is critical
         # → topological impossibility: refuse to emit (NaN-equivalent)
-        if is_critical and any_grazing:
+        # Lazaraus Void (cohom_dim > dim/2) signifies entry into undefined territory
+        if is_critical or is_lazarus_void:
             new_state = state.switched(
                 new_alpha_tensor=state.alpha_tensor,
                 new_level=state.level,
@@ -525,6 +540,7 @@ class ZeitgeistRouter(nn.Module):
             )
             mode = 'undefined'
             diag = self._build_diagnostics(g, grazing_mask, mode, state, new_state)
+            diag["cohomological_dimension"] = cohom_dim
             return mode, new_state, diag
 
         # ── 3. Mode dispatch ─────────────────────────────────────────── #
