@@ -86,13 +86,14 @@ The `VoynichLinguist` uses `PolynomialCoprimeConfig` to generate its symbolic re
 The `check_honesty()` method returns a consensus score — the structural signal for detecting confidence vs uncertainty. This serves as the embryonic **Gate 5 (ConfabulationDetector)** in the five-part decision architecture. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full flow and [PHILOSOPHY.md §18](../vault_docs/PHILOSOPHY.md) for the ethics of honest confabulation.
 
 ### False Negatives & The Exemption Token
-Because Voyenese logic is naturally opaque and highly entropic by design, standard geometric efficiency gates (like Repunit Congruence and CALM Singularity prediction) actively misidentify Voynich structures as structural corruption. 
+Because Voyenese logic is naturally opaque and highly entropic by design, standard geometric efficiency gates (like Repunit Congruence and CALM Singularity prediction) historically misidentified Voynich structures as structural corruption. 
 
 To prevent these "False Negatives", the Linguist generates a `VoynichExemptionToken` anytime the internal Jackknife consensus `honesty_score` exceeds 0.95.
+In the current architecture, the token operates purely in **Shadow Mode**. Instead of mechanically bypassing false negative triggers, it serves as a continuous diagnostic log. The system dynamically scales Matrioshka shell depth via **Mischief-Dependent Adaptive Quantization** ($\mathbb{RP}^4$ entropy) allowing mathematical thresholds (Phase Alignment $PAS_h$) to decide routing organically.
 
 ### Bridge 1: The Laryngeal Gasket
 To ensure that linguistic "mischief" doesn't lead to structural leakage (Topological Rupture), the system employs the **Laryngeal Gasket** ([Neighborhood 1 ↔ 2]).
 
 *   **The Seal**: Every `VoynichExemptionToken` must be "signed" by the `ChernSimonsGasket`.
 *   **The Signature**: The signature is a non-orientable hash: $s = \tanh(\text{honesty} \cdot \kappa)$, where $\kappa$ is the **Non-Commutativity Curvature** of the manifold.
-*   **Verification**: Downstream gates (like the `SiliconSovereigntyEngine`) check for `is_topologically_sealed`. If a token is unsigned, it is treated as a "Logically Corrupt" signal and rejected, regardless of its honesty score. This forces the linguistics of the system to be anchored to the physics of its topology.
+*   **Verification**: Downstream gates (like the `SiliconSovereigntyEngine`) check for `is_topologically_sealed`. Unsigned tokens log anomalies immediately without enforcing logic drops, anchoring the linguistics of the system to the pure topology via the scalar-weighted volition (Play parameter).
