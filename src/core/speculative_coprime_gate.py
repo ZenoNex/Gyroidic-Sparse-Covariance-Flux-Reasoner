@@ -510,14 +510,17 @@ class SpeculativeCoprimeGate(nn.Module):
         
         gate_mask = torch.ones(self.dim, device=state.device)
         
-        # If we have a valid Voynich Exemption Token, skip homological suppression
-        # (Honest Confabulation allowed to pass unchanged)
-        if exemption_token is None or not exemption_token.is_valid_exemption:
-            for h in range(num_heads):
-                if parity_violations[h]:
-                    start = h * dims_per_head
-                    end = start + dims_per_head
-                    gate_mask[start:end] *= 0.1  # Suppress violated dimensions
+        # Always enforce mathematical homological suppression
+        for h in range(num_heads):
+            if parity_violations[h]:
+                start = h * dims_per_head
+                end = start + dims_per_head
+                gate_mask[start:end] *= 0.1  # Suppress violated dimensions
+
+        # Shadow Logging
+        if exemption_token is not None and exemption_token.is_valid_exemption:
+            if parity_violations.any():
+                print(f"[SHADOW LOG] Token would have bypassed {parity_violations.sum().item()} homological suppressions. Letting Math (PAS_h) decide.")
         
         # Apply learned gate and mask
         gate = torch.sigmoid(self.dim_gate) * gate_mask
@@ -647,16 +650,17 @@ class SpeculativeCoprimeGate(nn.Module):
         # Determine if recovery needed
         needs_recovery = False
         
+        if abort_score is not None and abort_score.mean().item() > 0.5:
+            needs_recovery = True
+        elif chiral_score < self.recovery_threshold:
+            needs_recovery = True
+        elif not winding_result['coprime_lock']:
+            needs_recovery = True
+
+        # Shadow Logging Phase
         if exemption_token is not None and exemption_token.is_valid_exemption:
-            # Bypass false negative triggers: Voynich logic is geometrically opaque by design
-            needs_recovery = False
-        else:
-            if abort_score is not None and abort_score.mean().item() > 0.5:
-                needs_recovery = True
-            elif chiral_score < self.recovery_threshold:
-                needs_recovery = True
-            elif not winding_result['coprime_lock']:
-                needs_recovery = True
+            if needs_recovery:
+                print(f"[SHADOW LOG] Token would have bypassed recovery, but Math decided recovery is needed (Chiral: {chiral_score:.2f}).")
             
         # Attempt recovery or pass through
         if needs_recovery:
