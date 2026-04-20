@@ -2278,6 +2278,32 @@ class DiegeticPhysicsEngine(nn.Module):
         # Trigger one background temporal association train_step on live interaction
         self._maybe_trigger_temporal_training(input_tensor, response_text)
 
+        # ==========================================
+        # OUROBOROS LOOP: SHADOW LOG FOSSILIZATION
+        # ==========================================
+        if hasattr(self, 'coprime_gate') and hasattr(self.coprime_gate, 'pop_shadow_logs'):
+            shadow_logs = self.coprime_gate.pop_shadow_logs()
+            if shadow_logs:
+                from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
+                # Fossilize structural anomalies binding them to the current physics state
+                flat_state = seed_state.detach().cpu().flatten()
+                # Ensure the vector is suitable for the fossilizer (e.g., 96 or 137)
+                target_len = 137
+                if len(flat_state) < target_len:
+                    import torch.nn.functional as F
+                    flat_state = F.pad(flat_state, (0, target_len - len(flat_state)))
+                else:
+                    flat_state = flat_state[:target_len]
+                
+                for sl in shadow_logs:
+                    sl_dyad = KnowledgeDyad(
+                        image_fingerprint=flat_state,
+                        linguistic_description=sl,
+                        metadata={'source': 'ShadowLogPhase'}
+                    )
+                    self.fossilizer.fossilize(sl_dyad, seed_state)
+                    print(f"[OUROBOROS] Fossilized Shadow Log: {sl[:60]}...")
+
         print("[OUT] Returning metrics")
         return metrics
 
