@@ -645,7 +645,7 @@ class DiegeticPhysicsEngine(nn.Module):
             print("[RECOVERY] No valid Zeitgeist found. Initializing Sovereign Re-genesis.")
 
         # 2. Restore Love Invariant Anchor
-        if "love_invariant" in state_dict:
+        if "love_invariant" in state_dict and state_dict["love_invariant"] is not None:
             try:
                 self.love_protector.L.data.copy_(state_dict["love_invariant"])
                 print("[RECOVERY] Love Invariant anchor secured.")
@@ -653,21 +653,21 @@ class DiegeticPhysicsEngine(nn.Module):
                 print(f"[RECOVERY] Love Invariant restore failed (shape mismatch?): {e}")
 
         # 3. Restore Neglecton Fossil Graph (zero-latency injection)
-        if "fossil_memory" in state_dict:
+        if "fossil_memory" in state_dict and state_dict["fossil_memory"] is not None:
             self.graph_manager.load_memory_snapshot(state_dict["fossil_memory"])
 
         # 4. Restore Resonance Cavity states
-        if "cavity" in state_dict:
+        if "cavity" in state_dict and state_dict["cavity"] is not None:
             c_data = state_dict["cavity"]
-            if "M" in c_data:
+            if "M" in c_data and c_data["M"] is not None:
                 self.cavity.M.data.copy_(c_data["M"])
-            if "D_dark" in c_data:
+            if "D_dark" in c_data and c_data["D_dark"] is not None:
                 self.cavity.D_dark.data.copy_(c_data["D_dark"])
             print("[RECOVERY] Resonance Cavity memory restored.")
 
         # 5. Iteration and Meta-state
         self.iteration = state_dict.get("iteration", self.iteration)
-        if "meta_state" in state_dict:
+        if "meta_state" in state_dict and state_dict["meta_state"] is not None:
             self.meta_state.data.copy_(state_dict["meta_state"])
 
 
