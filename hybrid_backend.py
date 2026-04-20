@@ -25,6 +25,7 @@ from urllib.parse import urlparse, parse_qs
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib.request
 import urllib.error
+from src.core.audience_mapping import AudienceProjection
 
 # Add project root to path
 root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -345,6 +346,9 @@ class HybridAI:
             print(f"[FAIL] Graph Manager init failed: {e}")
             self.graph_manager = None
 
+        # Audience Mapping (Φ: M -> A)
+        self.audience_mapper = AudienceProjection(input_dim=256, audience_dim=256)
+
         # SOVEREIGN WARMSTART: Restore manifold if fossil exists (Thorium Protocol)
         self.load_model_state()
 
@@ -442,11 +446,14 @@ class HybridAI:
         response_text = ""
         
         # --- FGRT HARMONIC SEED (Love Vector Norm 3.127) ---
-        t_basis = torch.linspace(0, 2 * 3.14159265, 256, device=self.torch_device)
-        # Establish the 3.127 Norm required for Klein-Gyroid stability
-        initial_seed = torch.sin(t_basis) * (3.127 / torch.norm(torch.sin(t_basis)))
-        self.hidden_state_scarred = initial_seed.clone()
-        self.hidden_state = initial_seed.clone()
+        # Only initialize if state is trivial (all zeros or None) to ensure persistence
+        if self.hidden_state is None or torch.norm(self.hidden_state) < 1e-4:
+            t_basis = torch.linspace(0, 2 * 3.14159265, 256, device=self.torch_device)
+            initial_seed = torch.sin(t_basis) * (3.127 / torch.norm(torch.sin(t_basis)))
+            self.hidden_state_scarred = initial_seed.clone()
+            self.hidden_state = initial_seed.clone()
+            print("[PERSISTENCE] Manifold initialized from seeded harmonics.")
+        
         self.corrected_tensor = torch.zeros(256, device=self.torch_device)
         self.iteration_count += 1
         
@@ -752,10 +759,19 @@ class HybridAI:
                 diagnostics['spectral_correction_applied'] = False
         
         # Save Interaction as Topological Fossil
-        self._save_fossil(text, hidden_state, diagnostics)
+        self._save_fossil(text, self.hidden_state_scarred, diagnostics)
+
+        # Apply Audience Mapping (Φ: M -> A)
+        if self.audience_mapper:
+            try:
+                # Map the evolved hidden state to audience space
+                audience_coords = self.audience_mapper(self.hidden_state_scarred.detach().unsqueeze(0))
+                diagnostics['audience_coordinates'] = audience_coords.squeeze(0).cpu().tolist()
+            except Exception as e:
+                print(f"[AUDIENCE] Projection failed: {e}")
 
         return {
-            'response': response_text,
+            "response": response_text,
             'diagnostics': diagnostics,
             'output_length': len(response_text),
             'backend': 'hybrid'
