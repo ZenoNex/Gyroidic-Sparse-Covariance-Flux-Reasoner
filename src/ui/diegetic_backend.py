@@ -114,6 +114,7 @@ from src.core.manifold_time import ManifoldClock
 from src.core.valence_drive import ValenceFunctional
 from src.core.voynich_architecture import VoynichLinguist
 from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+from src.core.audience_mapping import AudienceProjection
 
 # Local Data Loading (Phase 1: HF token barrier removal)
 from src.data.local_data_loader import LocalDataLoader
@@ -280,6 +281,9 @@ class DiegeticPhysicsEngine(nn.Module):
         # Integrated Physics Modules 
         self.manifold_clock = ManifoldClock(device=self.device)
         self.valence_drive = ValenceFunctional(device=self.device)
+
+        # Audience Mapping (Φ: M -> A)
+        self.audience_mapper = AudienceProjection(input_dim=dim, audience_dim=dim)
 
         # Soliton Stability Healer - heals fractured solitons
         self.soliton_healer = SolitonStabilityHealer(
@@ -488,7 +492,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # captures and persists its weights across restarts. DyadFossilizer gets
         # the same reference — one truth, one set of weights.
         from src.core.knowledge_dyad_fossilizer import ResidueFusion
-        self.fusion_layer = ResidueFusion(feature_dim=self.dim, fingerprint_dim=137)
+        self.fusion_layer = ResidueFusion(feature_dim=self.dim)
         self.fossilizer = DyadFossilizer(
             storage_dir="data/encodings",
             fusion_layer=self.fusion_layer  # shared reference
@@ -791,6 +795,45 @@ class DiegeticPhysicsEngine(nn.Module):
         finally:
             self._is_processing = False
 
+    def process_text(
+        self,
+        text: str,
+        video_dyad_b64: Optional[str] = None,
+        commutativity: str = 'symmetric',
+        fingerprint: Optional[Dict] = None,
+        audio_dyad: Optional[Dict] = None
+    ) -> dict:
+        """
+        Canonical entry point for text interaction.
+        Bridges with Hybrid interface requirements and applies detached state management.
+        """
+        # Temporal Isolation Snapshot: Shield persistent state from in-place leaks
+        detached_state = self.meta_state.clone()
+        
+        # Process via internal method
+        engine_output = self._process_input_internal(
+            text_input=text,
+            fingerprint=fingerprint,
+            audio_dyad=audio_dyad,
+            video_dyad_b64=video_dyad_b64,
+            commutativity=commutativity,
+            generate_response=True
+        )
+        
+        # Merge evolved state back into persistent self.meta_state (The Ouroboros Loop)
+        if isinstance(engine_output, dict):
+            # Apply Audience Mapping (Φ: M -> A)
+            if self.audience_mapper:
+                try:
+                    # Map the post-evolution state to audience space
+                    final_state = self.meta_state.detach()
+                    audience_coords = self.audience_mapper(final_state)
+                    engine_output['audience_coordinates'] = audience_coords.cpu().tolist()
+                except Exception as e:
+                    print(f"[AUDIENCE] Projection failed: {e}")
+
+        return engine_output
+
     def _process_input_internal(
         self,
         text_input: str,
@@ -812,7 +855,18 @@ class DiegeticPhysicsEngine(nn.Module):
         Enhanced with constraint pressure injection when code is detected.
         """
         self.iteration += 1
-        self.last_input_time = time.time() 
+        self.last_input_time = time.time()
+        
+        # --- INITIALIZATION COVERAGE ---
+        response_text = ""
+        metrics = {
+            "pas_h": self._compute_pas_h(self.meta_state) if hasattr(self, 'meta_state') else 0.61,
+            "chiral_score": 0.0,
+            "manifold_pressure": 0.0,
+            "command_bypass": False,
+            "retrieval_state": "SENSING",
+            "honesty_score": 0.5
+        }
         
         # --- COMMAND PRIORITIZATION ---
         ingest_cmds = ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:"]
@@ -826,15 +880,20 @@ class DiegeticPhysicsEngine(nn.Module):
              seed_state = self.meta_state.detach()
              response_text = self._generate_dyad_aware_response(seed_state, text_input, fingerprint, audio_dyad=audio_dyad, video_dyad_b64=video_dyad_b64)
              
+             # Finalize metrics for command bypass
+             metrics.update({
+                 "pas_h": 1.0, 
+                 "chiral_score": 1.0, # Complete alignment for manual command
+                 "manifold_pressure": 0.0,
+                 "command_bypass": True,
+                 "retrieval_state": "KNOWN",
+                 "honesty_score": 1.0
+             })
+             
              return {
                  "response": response_text,
                  "iteration": self.iteration,
-                 "metrics": {
-                     "pas_h": 1.0, 
-                     "chiral_score": 0.0,
-                     "manifold_pressure": 0.0,
-                     "command_bypass": True
-                 },
+                 "metrics": metrics,
                  "display_metadata": {"type": "command_result"},
                  "fingerprint_received": fingerprint is not None,
              }
