@@ -140,8 +140,8 @@ class ArXivSovereignIngestor:
     def start_sovereign_loop(self):
         """Starts the background ingestion thread."""
         def _loop():
-            # Cycle through high-density mathematical and AI sets
-            sets = ["math", "physics:quant-ph", "cs:AI", "math.LO", "math.HO"]
+            # Cycle through high-density mathematical, AI, and cognitive/societal sets
+            sets = ["math", "physics:quant-ph", "cs:AI", "math.LO", "math.HO", "cs:CY", "physics:physics.soc-ph", "q-bio.NC", "cs:HC"]
             while True:
                 for s in sets:
                     try:
