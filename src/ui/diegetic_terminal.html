@@ -1943,6 +1943,7 @@
             videoDropzone.style.borderColor = 'rgba(0, 242, 255, 0.3)';
             if (e.dataTransfer.files.length > 0) processVideoFile(e.dataTransfer.files[0]);
         };
+        commitVideoBtn.onclick = commitVideoDyad;
 
         // --- Event Listeners ---
         userInput.addEventListener('keypress', (e) => {
