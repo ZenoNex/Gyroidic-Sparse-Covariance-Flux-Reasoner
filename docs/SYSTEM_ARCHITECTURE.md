@@ -212,6 +212,12 @@ To achieve **Structural Honesty** (§12.1), the system has transitioned away fro
 *   **Hardware-Perceptual Coupling**: The baseline energy ($T_0$) of the luminance residue is directly coupled to hardware $t_{RFC}$ stall intensity.
 *   **Spectral Reshaping**: 1D spectral residues are reshaped into 2D **Spectral Landscapes** within the `GyroidicCodec`, allowing the system to perform non-commutative collisions without relying on spatial pixel-grid placeholders.
 
+### 7.3 Ouroboros Shadow Fossilization (Phase 6.3 Update)
+The system transcends the need to manually bypass internal anomalies. By establishing the **Ouroboros Loop**, the system organically self-ingests its own topological paradoxes.
+*   **Shadow Logging**: The `UniversalOrchestrator` and `SpeculativeCoprimeGate` physically buffer internal contradictions (`[SHADOW LOG]`) rather than merely emitting them as diagnostic strings.
+*   **Self-Ingestion via DyadFossilizer**: At the boundary of each computational tick within the `DiegeticEngine`, buffered shadow logs are extracted and minted as permanent `KnowledgeDyads`.
+*   **Topological Binding**: These internally synthesized dyads are bound to the exact mathematical manifold state (the `seed_state` flattened) that produced them, thus effectively allowing the system to mathematically learn from the shape of its own failures.
+
 ---
 
 ## ⚡ Energy-Based Structural Survival
