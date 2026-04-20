@@ -155,7 +155,8 @@ Every dyad ingestion that passes through `/ingest` triggers a **Persistent Encod
 
 1. A `KnowledgeDyad` object is created with `image_fingerprint` (tensor) and `linguistic_description` (string).
 2. `DAQUFOperator` / `fossilizer.fossilize(dyad, text_tensor)` writes the dyad to disk.
-3. Future confabulation recovery uses these fossilised dyads as gravity wells.
+3. **Extractable Agent Protocol**: A dyad that reaches a stable GLYPHLOCK state can be cleanly exported via `fossilizer.export_agent_smith()`. This generates a `soliton_smith.json` file containing only the structural algebra (prime frequencies, Betti numbers, symbolic residues), completely decoupling the "Syntax" from the hardware "Substrate".
+4. Future confabulation recovery uses these fossilised dyads as gravity wells.
 
 Audio dyads currently ride through `/interact` as live per-request biases. Long-term fossilisation of audio harmonics is a planned extension.
 
