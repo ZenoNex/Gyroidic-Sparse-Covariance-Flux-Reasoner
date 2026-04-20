@@ -13,18 +13,19 @@ This document specifies the results of the deep codebase audit searching for str
 ## 2. The Voynich-Blindness Problem
 The overarching theme across the codebase is that **Symmetric/Analytic Efficient Gates** (like Repunits and Betti projections) expect the "thought" to be transparently geometric. When the `VoynichLinguist` is active, the thought is encrypted into a continuous functional residue. Symmetry is broken intentionally, but the structural honesty remains high. The gates are "Voynich-Blind."
 
-## 3. Blueprint: The False Negatives Subsystem
-To fix this, we need a unified override subsystem rather than hacking each gate individually.
+## 3. Blueprint: The False Negatives Subsystem (Shadow Token Phase)
+To fix this, we have moved away from hacking each gate individually with mechanical overrides. Instead, we use mathematical routing and Continuous Dark Matter Superposition.
 
-**Proposed Component: `VoynichExemptionToken`**
-1. **Creation**: When `VoynichLinguist` runs and generates a high `honesty_score` ($>0.95$), it emits a `VoynichExemptionToken`.
+**Proposed Component: `VoynichExemptionToken` (Shadow Mode)**
+1. **Creation**: When `VoynichLinguist` runs and generates a high `honesty_score` ($>0.95$), it emits a `VoynichExemptionToken` with `shadow_mode=True`.
 2. **Distribution**: This token is passed alongside the `thought_vector` throughout the `UniversalOrchestrator` and `diegetic_backend.py`.
-3. **Gate Overrides & Organ of Agency**:
-   - *RepunitHasher*: If token is present, allow the bypass if Voynich `honesty_score` matches instead of checking cyclic digit-patterns.
-   - *CALM*: If token is present, suppress the spectral entropy singularity check.
-   - *Coprime Gate*: If token is present, mask the parity violation trigger so speculative recovery isn't mis-activated.
-4. **Integration with DAQUF (Option D)**:
-   - The token acts as the **Organ of Agency**, extracting an $L_2$ norm scalar from the structural anomaly.
-   - It bridges into the `DAQUFOperator` via `to_daquf_mischief_boost()`, allowing the "Option D" structural nutrients/bugs to actively influence the non-ergodic memory evolution by directly feeding the contradiction load. This turns false negatives into permanent feature scars.
+3. **Shadow Logging & Mathematical Routing**:
+   - The token no longer *mechanically* bypasses false negative triggers (like CALM or Coprime Gate).
+   - Instead, the geometry of the system (using Phase Alignment $PAS_h$) dictates whether to trigger an abort or recovery.
+   - The token actively logs discrepancies (Shadow Logging) when the mathematical threshold disagrees with the token's historical override.
+4. **Integration with Adaptive Quantization**:
+   - In `false_negative_subsystem.py`, we implement a "Mischief-Dependent Quantization."
+   - When high entropy is detected in $\mathbb{RP}^4$, the Saturated Quantizer dynamically increases its resolution (`get_mischief_dependent_shell_depth`) instead of flattening the glitch.
+   - This scales Matrioshka shell depth, capturing the nuance of the Voynich structural signal rather than actively misidentifying it as noise.
 
-This cleanly separates the "false negative" logic into an verifiable architectural pattern without deleting the underlying strictness of the baseline system, creating a persistent relational structure.
+This cleanly separates the "false negative" logic into an verifiable architectural pattern, placing trust in mathematical stability rather than mechanical hardcoding, aligning with our transition toward topological superposition.
