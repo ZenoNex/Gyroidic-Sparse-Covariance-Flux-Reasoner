@@ -12,8 +12,10 @@ class KnowledgeDyad:
     A single unit of multi-modal knowledge: (Image Fingerprint, Linguistic Description).
     Acts as a 'Topological Obstruction' in the manifold.
     """
-    image_fingerprint: torch.Tensor # [137] vector
     linguistic_description: str
+    image_fingerprint: Optional[torch.Tensor] = None # [137] vector
+    audio_harmonics: Optional[torch.Tensor] = None
+    video_breather: Optional[Dict] = None
     gyroid_residue: Optional[torch.Tensor] = None # [n, n] irreducible entanglement
     relevance_score: float = 1.0
     timestamp: str = ""
@@ -120,6 +122,8 @@ class DyadFossilizer:
             'type': 'knowledge_dyad',
             'description': dyad.linguistic_description,
             'image_fingerprint': dyad.image_fingerprint,
+            'audio_harmonics': dyad.audio_harmonics,
+            'video_breather': dyad.video_breather,
             'residue_vector': residue.detach().cpu(),
             'gyroid_residue': dyad.gyroid_residue.detach().cpu() if dyad.gyroid_residue is not None else None,
             'hyperbolic_residue': hyperbolic_residue.detach().cpu(),
@@ -184,6 +188,8 @@ class DyadFossilizer:
             "gyroid_residue": dyad.gyroid_residue.tolist() if dyad.gyroid_residue is not None else None,
             "prime_frequencies": prime_frequencies.tolist() if isinstance(prime_frequencies, torch.Tensor) else prime_frequencies,
             "betti_numbers": betti_numbers,
+            "audio_harmonics": dyad.audio_harmonics.tolist() if dyad.audio_harmonics is not None else None,
+            "video_breather": dyad.video_breather,
             "timestamp": dyad.timestamp
         }
         filepath = os.path.join(self.storage_dir, filename)
