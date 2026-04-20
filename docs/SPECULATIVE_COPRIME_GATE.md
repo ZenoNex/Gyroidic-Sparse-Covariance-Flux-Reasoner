@@ -143,7 +143,10 @@ else:
 
 ---
 
-## 8. False Negative Bypasses
+## 8. False Negative Bypasses & The Shadow Phase
 The SCCCG contains strict geometric checks (Repunit virtual traces, Coprime Parity windings). Geometrically opaque states generated via the Sovereign Alphabet (`VoynichLinguist`) intentionally lack these standard homological features, resulting in false negative recovery triggers.
 
-If a validated `VoynichExemptionToken` is present in the forward pass, SCCCG will instantaneously suppress the need for `speculative_recovery()` regardless of chiral scores or parity faults, preserving the mathematically alien representation.
+Originally, a `VoynichExemptionToken` would categorically override these recovery events. In Phase 6.3, this has been upgraded into the **Shadow Phase & Ouroboros Loop**:
+- `VoynichExemptionToken` now acts as a diagnostic anchor rather than a blunt override.
+- Discrepancies between the math and the token are logged internally via `self.shadow_logs.append(...)`.
+- The `DiegeticEngine` extracts these logs (`pop_shadow_logs()`) and mints them as new structurally bound `KnowledgeDyads`, completing the Ouroboros Ouroboros loop. The system learns from its own non-commutative paradoxes rather than silencing them.
