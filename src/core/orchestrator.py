@@ -55,6 +55,10 @@ class UniversalOrchestrator(nn.Module):
         
         # 1. Logical Primitives
         self.love = LoveVector(dim)
+        
+        # Buffer for internal shadow logs (ouroboros ingestion loop)
+        self.shadow_logs = []
+        
         # --- V3.127 MANDATORY ALIGNMENT ---
         with torch.no_grad():
             l_data = self.love.L.data
@@ -233,6 +237,12 @@ class UniversalOrchestrator(nn.Module):
         # Simple exponential hardening
         return torch.exp(self.iteration.float() * 0.01).item()
 
+    def pop_shadow_logs(self) -> list:
+        """Retrieves and clears the internal shadow logs for fossilization."""
+        logs = self.shadow_logs.copy()
+        self.shadow_logs.clear()
+        return logs
+
     def forward(
         self, 
         state: torch.Tensor, 
@@ -266,7 +276,9 @@ class UniversalOrchestrator(nn.Module):
         # Shadow Logging Phase
         if is_good_bug:
             if not needs_erosion:
-                print(f"[SHADOW LOG] Orchestrator: 'is_good_bug' was forced True by legacy caller, but Math PAS_h indicates no structured erosion is needed (PAS: {pas_h:.2f}).")
+                log_msg = f"[SHADOW LOG] Orchestrator: 'is_good_bug' was forced True by legacy caller, but Math PAS_h indicates no structured erosion is needed (PAS: {pas_h:.2f})."
+                print(log_msg)
+                self.shadow_logs.append(log_msg)
         
         # Apply Topological Erosion based on Math + Volition
         # The willingness of the system to explore this unstable region is weighted by play_volition_ratio
