@@ -1028,6 +1028,18 @@
                     body: JSON.stringify(payload)
                 });
 
+                if (response.status === 503) {
+                    const data = await response.json();
+                    _logTerminal(`[WARM] ${data.response}`, 'warning');
+                    console.warn("[SYSTEM_WARMING] Received 503 from backend. Manifold synthesis in progress.", data);
+                    return;
+                }
+
+                if (!response.ok) {
+                    console.trace("[ERROR_TRACE] Backend communication failed");
+                    throw new Error(`HTTP Error: ${response.status}`);
+                }
+
                 const data = await response.json();
                 handleResponse(data);
 
