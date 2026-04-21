@@ -552,6 +552,11 @@ class DiegeticPhysicsEngine(nn.Module):
         self._is_processing = False
         self._last_resonance = 0.0
         
+        # Interaction Context Buffer (Last 10 interaction seed_states)
+        # Required by ResonanceLarynx.generate_response for autoregressive coherence.
+        self.interaction_context: List[torch.Tensor] = []
+        self.max_context_len = 10
+        
         # Seed the Larynx if it's a "Blank Slate"
         self._initialize_larynx_weights()
 
@@ -868,6 +873,9 @@ class DiegeticPhysicsEngine(nn.Module):
             "honesty_score": 0.5
         }
         
+        # 1. Embed Input (Hash Projection)
+        input_tensor = self._text_to_tensor(text_input) # [1, dim]
+        
         # --- COMMAND PRIORITIZATION ---
         ingest_cmds = ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:"]
         if any(text_input.startswith(cmd) for cmd in ingest_cmds):
@@ -878,6 +886,20 @@ class DiegeticPhysicsEngine(nn.Module):
              
              # Use current meta_state as the grounding seed for the command handler
              seed_state = self.meta_state.detach()
+             
+             # NEW: Generate diagnostics before early return to populate the terminal UI
+             # This resolve the problem of "missing fingerprints" when using panels
+             collision_res, collision_metrics = self._diagnose_multimodal_collision(
+                 text_input=text_input,
+                 input_tensor=input_tensor,
+                 fingerprint=fingerprint,
+                 audio_dyad=audio_dyad,
+                 video_dyad_b64=video_dyad_b64,
+                 media_chain=media_chain,
+                 commutativity=commutativity
+             )
+             metrics.update(collision_metrics)
+             
              response_text = self._generate_dyad_aware_response(seed_state, text_input, fingerprint, audio_dyad=audio_dyad, video_dyad_b64=video_dyad_b64)
              
              # Finalize metrics for command bypass
@@ -895,12 +917,9 @@ class DiegeticPhysicsEngine(nn.Module):
                  "iteration": self.iteration,
                  "metrics": metrics,
                  "display_metadata": {"type": "command_result"},
-                 "fingerprint_received": fingerprint is not None,
+                 "fingerprint_received": fingerprint is not None or audio_dyad is not None or video_dyad_b64 is not None,
              }
-        
-        # 1. Embed Input (Hash Projection) - MOVED UP
-        input_tensor = self._text_to_tensor(text_input) # [1, dim]
-        
+
         # --- SPECULATIVE MEMORY BRIDGE ---
         # Prime the manifold with relevant fossils before starting the reasoning pass
         self._prime_manifold_with_fossils(input_tensor)
@@ -1147,71 +1166,19 @@ class DiegeticPhysicsEngine(nn.Module):
             _apply_sequential_biases(media_biases)
 
         # =============================================
+        # =============================================
         # PHASE 2: INTERNAL FUSION (GAP A)
         # =============================================
-        collision_residues = None
-        codec_metrics = {}
-        if fingerprint:
-            try:
-                # 1. Compute Image Embedding for DataAssociationLayer
-                if 'L' in fingerprint:
-                    K_fp = len(fingerprint['L'])
-                    flat = fingerprint.get('L', [0.0]*K_fp) + fingerprint.get('Cr', [0.0]*K_fp) + fingerprint.get('Cb', [0.0]*K_fp)
-                else:
-                    flat = fingerprint.get('r',[]) + fingerprint.get('g',[]) + fingerprint.get('b',[]) + fingerprint.get('l',[]) + [fingerprint.get('texture', 0.0)] + fingerprint.get('edges', [0.0]*8)
-                
-                if flat:
-                    fp_tensor = torch.tensor(flat, dtype=torch.float32, device=self.device)
-                    target = self.K_IMAGE_MAX * 3 # 96
-                    if fp_tensor.numel() < target:
-                        fp_tensor = F.pad(fp_tensor, (0, target - fp_tensor.numel()))
-                    else:
-                        fp_tensor = fp_tensor[:target]
-                    
-                    # Compute embeddings
-                    image_emb = self.fingerprint_proj(fp_tensor.unsqueeze(0)) # [1, dim]
-                    text_emb = input_tensor # [1, dim]
-                    
-                    # COLLISION: DataAssociationLayer -> residues [1, K]
-                    collision_residues = self.associator(text_emb, image_emb)
-                    print(f"[DYAD] Internal Fusion Collision: L2={torch.norm(collision_residues).item():.4f}")
-                    
-                    # 2. Gyroidic Codec Diagnostics (Gap B Engagement)
-                    # We pass a reshaped version of fp_tensor as a 'dummy' image for the codec
-                    # until we have real spatial images. 96 coeffs -> 8x12 grid proxy.
-                    codec_result = self.codec.encode(text_input, fp_tensor.view(1, 8, 12))
-                    codec_metrics = {
-                        "entanglement_ratio": codec_result.diagnostics.get('entanglement_ratio', 0.0),
-                        "commutativity_gap": codec_result.commutativity_gap,
-                        "modular_congruence": codec_result.modular_congruence,
-                        "is_admissible": codec_result.diagnostics.get('is_admissible', False),
-                        "structural_state": codec_result.diagnostics.get('structural_state', "Unknown")
-                    }
-                    
-                    # --- Surgery Physics (Mohr-Coulomb Yield) ---
-                    # Yield = |shear| - mu * normal - cohesion
-                    # We map this from the codec residue to see if the manifolds "snap"
-                    # mu=0.5, cohesion=0.1 (per SPECULATIVE_COPRIME_GATE.md)
-                    half_dim = self.dim // 2
-                    res_flat = codec_result.residue.flatten()
-                    if res_flat.numel() >= self.dim:
-                        normal_part = res_flat[:half_dim]
-                        shear_part = res_flat[half_dim:self.dim]
-                        yield_pressure = shear_part.abs().mean() - 0.5 * normal_part.abs().mean() - 0.1
-                        codec_metrics['yield_pressure'] = float(yield_pressure.item())
-                        codec_metrics['topological_rupture'] = bool(yield_pressure.item() > 0.0)
-                    
-                    # --- Matryoshka Depth ---
-                    if self.meta_polytope is not None:
-                        # Evaluate shell level of the collision residue
-                        _, _, shell_level = self.meta_polytope(collision_residues)
-                        codec_metrics['matryoshka_level'] = int(shell_level)
-
-                    print(f"[CODEC] Entanglement: {codec_metrics['entanglement_ratio']:.4f} | Admissible: {codec_metrics['is_admissible']}")
-                    if codec_metrics.get('topological_rupture'):
-                         print(f"[SURGERY] Topological Rupture Detected! Yield Pressure: {codec_metrics['yield_pressure']:.4f}")
-            except Exception as e:
-                print(f"[FAIL] Multimodal Collision failed: {e}")
+        collision_residues, collision_metrics = self._diagnose_multimodal_collision(
+            text_input=text_input,
+            input_tensor=input_tensor,
+            fingerprint=fingerprint,
+            audio_dyad=audio_dyad,
+            video_dyad_b64=video_dyad_b64,
+            media_chain=media_chain,
+            commutativity=commutativity
+        )
+        metrics.update(collision_metrics)
 
         # 3. Evolutionary Pass (Cavity + Meta-Functional)
         # Now passes collision_residues to Gap A internal path
@@ -2009,13 +1976,26 @@ class DiegeticPhysicsEngine(nn.Module):
             response_text = override_response + confab_gen
         else:
             # Enhanced dyad-aware response generation
-            response_text = self._generate_dyad_aware_response(
-                seed_state=seed_state,
-                input_text=text_input,
-                fingerprint=fingerprint,
-                max_length=max_output_length,
-                min_length=min_output_length
+            # =============================================
+            # PHASE 19: OFFICIAL DYAD-AWARE RESPONSE 
+            # =============================================
+            # We call the core ResonanceLarynx.generate_response which handles
+            # autoregressive 'singing' modulated by physics states (Quantum/Matrioshka).
+            quantum_state = getattr(self, 'quantum_reasoner', None) is not None
+            matrioshka_level = getattr(self.caq, '_level', 0) if hasattr(self, 'caq') else 0
+            
+            response_text, _ = self.larynx.generate_response(
+                text_input=text_input,
+                context=self.interaction_context,
+                affordance_gradients=affordance_gradients,
+                quantum_state=quantum_state,
+                matrioshka_level=matrioshka_level
             )
+            
+            # Update Interaction Context Buffer for next pass
+            self.interaction_context.append(seed_state.detach())
+            if len(self.interaction_context) > self.max_context_len:
+                self.interaction_context.pop(0)
             if gate_out["knowledge_state"] == KnowledgeState.SEARCH_NEEDED:
                 response_text = "[SEARCH_GATE_TRIGGERED] Internal manifold lacks topology. " + response_text
         print(f" Generated dyad-aware response: {response_text}")
@@ -3267,66 +3247,133 @@ class DiegeticPhysicsEngine(nn.Module):
         # Cap at reasonable maximum
         return min(constraint_pressure, 1.0)
     
-    def _generate_dyad_aware_response(
-        self, 
-        seed_state: torch.Tensor, 
-        input_text: str, 
+    def _diagnose_multimodal_collision(
+        self,
+        text_input: str,
+        input_tensor: torch.Tensor,
         fingerprint: Optional[Dict] = None,
         audio_dyad: Optional[Dict] = None,
         video_dyad_b64: Optional[str] = None,
-        max_length: int = 200,
-        min_length: int = 20
-    ) -> str:
+        media_chain: Optional[List[Dict]] = None,
+        commutativity: str = 'symmetric'
+    ) -> Tuple[Optional[torch.Tensor], Dict[str, Any]]:
         """
-        Phase 3: Enhanced response generation with dyad-aware optimization.
-        
-        Leverages the privileged text-to-image and text-to-text association system
-        to generate more coherent and contextually relevant responses.
+        Calculates internal fusion residues and codec diagnostics for ANY media type.
+        Ensures parity between image, audio, and video collision reporting.
         """
-        print("[PHASE 3] Dyad-Aware Response Generation")
+        collision_residues = None
+        codec_metrics = {}
+
+        # 1. Identify Primary Media Trace (PMT)
+        primary_item = None
+        pmt_type = None
         
-        # Detect if this is a dyad ingestion or association command
-        is_dyad_ingest = input_text.startswith("INGEST_DYAD:")
-        is_association = input_text.startswith("ASSOCIATE:")
-        is_audio_ingest = input_text.startswith("INGEST_AUDIO_DYAD:")
-        is_video_ingest = input_text.startswith("INGEST_VIDEO_DYAD:")
-        
-        if is_dyad_ingest or is_audio_ingest or is_video_ingest:
-            return self._handle_dyad_ingestion(input_text, fingerprint, seed_state, audio_dyad=audio_dyad, video_dyad_b64=video_dyad_b64)
-        elif is_association:
-            return self._handle_association_learning(input_text, fingerprint, seed_state)
-        else:
-            # Apply Dyadic Transfer (Phase 5) 
-            # We use Task 0 (Code) and Task 1 (Conversational) leakage
-            with torch.no_grad():
-                # Detect proficiency from affordance gradients (calculated earlier in process_input)
-                # Assuming they are stored or accessible. For now, we use a simple heuristic:
-                # If seed_state has high variance -> Code proficiency? 
-                # Better: uses the internal transfer_map with dummy task states
-                task_states = seed_state.unsqueeze(1).expand(-1, 8, -1) # Broad-cast to 8 tasks
+        if media_chain:
+            primary_item = media_chain[-1].get('data')
+            pmt_type = media_chain[-1].get('type')
+        elif fingerprint:
+            primary_item = fingerprint
+            pmt_type = 'image'
+        elif audio_dyad:
+            primary_item = audio_dyad
+            pmt_type = 'audio'
+        elif video_dyad_b64:
+            primary_item = video_dyad_b64
+            pmt_type = 'video'
+
+        if not primary_item:
+            return None, {}
+
+        try:
+            # 2. Extract 96-dim Coeffs (fp_tensor) and manifold embedding (media_emb)
+            fp_tensor = None
+            media_emb = None
+            
+            if pmt_type == 'image':
+                if 'L' in primary_item:
+                    K_fp = len(primary_item['L'])
+                    flat = primary_item.get('L', [0.0]*K_fp) + primary_item.get('Cr', [0.0]*K_fp) + primary_item.get('Cb', [0.0]*K_fp)
+                else:
+                    flat = primary_item.get('r',[]) + primary_item.get('g',[]) + primary_item.get('b',[]) + primary_item.get('l',[]) + [primary_item.get('texture', 0.0)] + primary_item.get('edges', [0.0]*8)
                 
-                # Proficiency scores: 0=Code, 1=Conversation
-                # Using the affordances calculated in process_input (if we can find them)
-                # For this implementation, we simulate them or use seed_state properties
-                p_code = torch.sigmoid(torch.norm(seed_state)) 
-                p_conv = torch.sigmoid(torch.norm(seed_state - 0.5))
-                proficiency = torch.zeros(1, 8, device=self.device)
-                proficiency[0, 0] = p_code
-                proficiency[0, 1] = p_conv
+                fp_tensor = torch.tensor(flat, dtype=torch.float32, device=self.device)
+                target = self.K_IMAGE_MAX * 3 # 96
+                if fp_tensor.numel() < target:
+                    fp_tensor = F.pad(fp_tensor, (0, target - fp_tensor.numel()))
+                else:
+                    fp_tensor = fp_tensor[:target]
+                media_emb = self.fingerprint_proj(fp_tensor.unsqueeze(0))
                 
-                # Apply leakage
-                leaked_state = self.transfer_map(task_states, proficiency)
-                # Take the mean across Tasks 0 and 1
-                seed_state = (leaked_state[:, 0, :] + leaked_state[:, 1, :]) / 2.0
+            elif pmt_type == 'audio':
+                harmonics = primary_item.get('chebyshev_harmonics', []) if isinstance(primary_item, dict) else primary_item
+                if harmonics:
+                    t = torch.tensor(harmonics, dtype=torch.float32, device=self.device)
+                    # Pad to K_AUDIO_MAX for projection
+                    if t.numel() < self.K_AUDIO_MAX: t = F.pad(t, (0, self.K_AUDIO_MAX - t.numel()))
+                    else: t = t[:self.K_AUDIO_MAX]
+                    media_emb = self.audio_dyad_proj(t.unsqueeze(0))
+                    
+                    # Pad to 96 for codec view
+                    fp_tensor = F.pad(t, (0, 96 - t.numel())) if t.numel() < 96 else t[:96]
+                    
+            elif pmt_type == 'video' or pmt_type == 'gif':
+                if not hasattr(self, 'video_parser'):
+                    from src.core.video_dyad_parser import VideoDyadParser
+                    self.video_parser = VideoDyadParser(device=self.device)
                 
-            # Fallback to general enhanced response generation
-            return self._generate_enhanced_response(
-                seed_state=seed_state,
-                input_text=input_text,
-                fingerprint=fingerprint,
-                max_length=max_length,
-                min_length=min_length,
-            )
+                target_b64 = primary_item
+                if isinstance(target_b64, str) and ',' in target_b64:
+                    target_b64 = target_b64.split(',', 1)[1]
+                
+                healing_ref = self.cavity.M.mean(dim=0).flatten() if hasattr(self, 'cavity') else None
+                v_metrics = self.video_parser.parse_video_b64(target_b64, healing_ref=healing_ref)
+                
+                # Derive media_emb from spectral entropy biases
+                ent = v_metrics['fractal_entropy']
+                sub = v_metrics['substream_entropy']
+                base_vector = torch.ones((1, self.dim), device=self.device) * ent
+                media_emb = base_vector + (torch.ones((1, self.dim), device=self.device) * sub * 0.5)
+                
+                # Create fp_tensor from video metrics (use coeffs or entropy trace)
+                coeffs = v_metrics.get('coeffs', [v_metrics['fractal_entropy']] * 96)
+                fp_tensor = torch.tensor(coeffs, dtype=torch.float32, device=self.device)
+                if fp_tensor.numel() < 96: fp_tensor = F.pad(fp_tensor, (0, 96 - fp_tensor.numel()))
+                else: fp_tensor = fp_tensor[:96]
+
+            # 3. Collision Logic
+            if media_emb is not None:
+                text_emb = input_tensor
+                collision_residues = self.associator(text_emb, media_emb)
+                
+                # 4. Codec Diagnostics with Non-Commutativity
+                codec_result = self.codec.encode(text_input, fp_tensor.view(1, 8, 12), commutativity=commutativity)
+                codec_metrics = {
+                    "entanglement_ratio": codec_result.diagnostics.get('entanglement_ratio', 0.0),
+                    "commutativity_gap": codec_result.commutativity_gap,
+                    "modular_congruence": codec_result.modular_congruence,
+                    "is_admissible": codec_result.diagnostics.get('is_admissible', False),
+                    "structural_state": codec_result.diagnostics.get('structural_state', "Unknown")
+                }
+                
+                # Surgery Yield Physics
+                half_dim = self.dim // 2
+                res_flat = codec_result.residue.flatten()
+                if res_flat.numel() >= self.dim:
+                    normal_part = res_flat[:half_dim]
+                    shear_part = res_flat[half_dim:self.dim]
+                    yield_pressure = shear_part.abs().mean() - 0.5 * normal_part.abs().mean() - 0.1
+                    codec_metrics['yield_pressure'] = float(yield_pressure.item())
+                    codec_metrics['topological_rupture'] = bool(yield_pressure.item() > 0.0)
+                
+                # Matryoshka Depth
+                if self.meta_polytope is not None:
+                    _, _, shell_level = self.meta_polytope(collision_residues)
+                    codec_metrics['matryoshka_level'] = int(shell_level)
+
+        except Exception as e:
+            print(f"[FAIL] Multimodal Collision Helper Error: {e}")
+
+        return collision_residues, codec_metrics
 
     
     def _handle_dyad_ingestion(self, input_text: str, fingerprint: Optional[Dict], seed_state: torch.Tensor, audio_dyad: Optional[Dict] = None, video_dyad_b64: Optional[str] = None) -> str:
@@ -3425,31 +3472,77 @@ class DiegeticPhysicsEngine(nn.Module):
                     signal_tensor = torch.tensor(fp_list, device=self.device).float()
                     media_received = True
 
-        # --- GYROIDIC CODEC ENTANGLEMENT ---
-        # Activate the non-Abelian residue generator to compute irreducible entanglement
-        entanglement_residue = None
-        if media_received and hasattr(self, 'codec'):
+        # --- TOPOLOGICAL MATURATION (Augmentation Phase) ---
+        # We perform augmentation-first to ensure matured, fractal-stable signals
+        # interact with the non-Abelian engine.
+        if media_received and hasattr(self, 'augmenter'):
             try:
-                # We project the spectral signal_tensor into the codec's GL(n) space
-                # result.residue is the [n, n] irreducible 'Meaning' of the association
-                # We use the description as the linguistic anchor E(T, I)
-                codec_result = self.codec.encode(text=description, image=signal_tensor)
-                entanglement_residue = codec_result.residue
-                print(f"[CODEC] Non-Abelian Entanglement calculated (Gap: {codec_result.commutativity_gap:.4f})")
+                # Map Router mode to Chromatic shift
+                router_mode = getattr(self.router, 'mode', 'interior')
+                chromatic_mode = 'pink' if router_mode == 'interior' else 'atomic'
+                
+                print(f" [PIPELINE] 🌀 MANDELBULB RECURSIVE EMBEDDING... (Seed: {signal_tensor.norm().item():.4f})")
+                signal_tensor, _ = self.augmenter.forward(
+                    signal_tensor.unsqueeze(0), 
+                    augmentation_factor=1,
+                    chromatic_mode=chromatic_mode
+                )
+                signal_tensor = signal_tensor.squeeze(0)
             except Exception as e:
-                print(f"[CODEC] Entanglement failure: {e}")
+                print(f" [PIPELINE] ⚠️ Augmentation-first bypass: {e}")
+
+        # --- OFFICIAL DATA ASSOCIATION (Collision Phase) ---
+        # Use DataAssociationLayer to fuse Multi-modal Invariants.
+        entanglement_residue = None
+        text_emb = self._text_to_tensor(description)
+        
+        # Project signal to manifold dim
+        if signal_tensor.size(0) == 137:
+            # Shift legacy 137 to 96
+            fp_p = torch.zeros(96, device=self.device)
+            fp_p[:min(137, 96)] = signal_tensor[:min(137, 96)]
+            media_emb = self.fingerprint_proj(fp_p.unsqueeze(0))
+        elif signal_tensor.size(0) == 24:
+            # Zero-mock 24 to 96
+            fp_p = torch.zeros(96, device=self.device)
+            fp_p[:24] = signal_tensor
+            media_emb = self.fingerprint_proj(fp_p.unsqueeze(0))
+        else:
+            # Fallback zero-pad
+            fp_p = torch.zeros(96, device=self.device)
+            min_sz = min(signal_tensor.size(0), 96)
+            fp_p[:min_sz] = signal_tensor[:min_sz]
+            media_emb = self.fingerprint_proj(fp_p.unsqueeze(0))
+            
+        if media_received:
+            try:
+                # [Batch, k] residues from the official associator head
+                # This implements the structural collision Φ(T, I)
+                ent_k = self.associator(text_emb, media_emb)
+                
+                # We also want the [dim] dense residue for the KnowledgeDyad
+                # Use the fusion gate directly from the associator
+                fused = torch.cat([F.silu(self.associator.text_prj(text_emb)), 
+                                  F.silu(self.associator.img_prj(media_emb))], dim=-1)
+                entanglement_residue = F.silu(self.associator.fusion_gate(fused))
+                
+                print(f"[ASSOCIATOR] Multi-modal collision preserved (Residue K-norm: {ent_k.norm().item():.4f})")
+            except Exception as e:
+                print(f"[ASSOCIATOR] Collision failure: {e}")
 
         # Create the dyad object
         dyad = KnowledgeDyad(
             linguistic_description=description,
-            image_fingerprint=signal_tensor if fingerprint else None,
+            # If no fingerprint provided, use the zero-filled signal_tensor [137] as the 'Image Ground State'
+            image_fingerprint=signal_tensor if (fingerprint or modality == "Image") else None,
             audio_harmonics=audio_tensor,
             video_breather=video_breather,
             gyroid_residue=entanglement_residue
         )
         
-        # Call fossilizer
-        fossil_path = self.fossilizer.fossilize(dyad, seed_state)
+        # 3. Call fossilizer (Official Persistence Path)
+        # Use text_emb [1, dim] for the residue calculation
+        fossil_path = self.fossilizer.fossilize(dyad, text_emb)
         fossil_id = os.path.basename(fossil_path).replace(".fossil", "")
         
         # Bridge 4: Navigation over Storage (Zeitgeist Landmark)
@@ -3522,178 +3615,6 @@ class DiegeticPhysicsEngine(nn.Module):
         
         return prefix + f"Manifold scanned. No resonant fossils found for current state (Max Resonance: {best_resonance:.3f})."
     
-    def _generate_enhanced_response(
-        self, 
-        seed_state: torch.Tensor, 
-        input_text: str, 
-        fingerprint: Optional[Dict],
-        max_length: int,
-        min_length: int
-    ) -> str:
-        """Generate enhanced response with improved linguistic coherence."""
-        # This method is now effectively replaced by the direct call to larynx.generate_response
-        # in process_input. Keeping it here for reference but it should not be called.
-        print(" Enhanced response generation with linguistic optimization (DEPRECATED PATH)")
-        
-        # Phase 3.1: Reduce recursive echoing while preserving meta-cognition
-        echo_suppression_factor = 0.7  # Reduce tendency to repeat input
-        
-        # Phase 3.2: Improve response diversity through temperature scheduling
-        base_temperature = 0.6  # Start more focused
-        temperature_decay = 0.95  # Gradually increase creativity
-        
-        # Phase 3.3: Vowel-consonant balance optimization
-        vowel_boost_factor = 1.5  # Encourage vowel generation
-        
-        response_chars = []
-        current_state = seed_state.clone()
-        
-        # Apply echo suppression by reducing input influence over time
-        input_influence = 1.0
-        
-        # Enhanced character generation loop
-        for i in range(min(max_length, 300)):
-            # Dynamic temperature scheduling
-            current_temperature = base_temperature * (temperature_decay ** i)
-            current_temperature = max(current_temperature, 0.3)  # Minimum temperature
-            
-            # Get logits from larynx
-            logits, confidence = self.larynx(current_state, temperature=current_temperature)
-            
-            # Apply vowel bias to improve linguistic balance
-            vowel_indices = [ord(c) for c in "aeiouAEIOU" if ord(c) < 128]
-            for idx in vowel_indices:
-                if idx < logits.shape[-1]:
-                    logits[0, idx] *= vowel_boost_factor
-            
-            # Apply echo suppression (reduce probability of repeating input characters)
-            if i > 5:  # After initial characters
-                for char in input_text.lower():
-                    char_idx = ord(char)
-                    if char_idx < logits.shape[-1] and char_idx != 32: # Preserve spaces
-                        logits[0, char_idx] *= echo_suppression_factor
-            
-            # Sample from the distribution
-            probs = torch.softmax(logits, dim=-1)
-            char_idx = torch.multinomial(probs.squeeze(0), 1).item()
-            
-            # Enhanced character filtering and validation
-            if 32 <= char_idx <= 126:  # Printable ASCII
-                char = chr(char_idx)
-                
-                # Linguistic coherence checks
-                if len(response_chars) > 0:
-                    last_char = response_chars[-1]
-                    
-                    # Prevent excessive symbol clustering (allow spaces)
-                    is_symbol = not char.isalnum() and char != ' '
-                    is_last_symbol = not last_char.isalnum() and last_char != ' '
-                    if is_symbol and is_last_symbol and len(response_chars) > 3:
-                        # Skip this symbol to prevent clustering
-                        continue
-                    
-                    # Encourage word boundaries
-                    if char == ' ' and last_char == ' ':
-                        continue  # Prevent double spaces
-                
-                response_chars.append(char)
-                
-                # Natural stopping conditions
-                if char in '.!?' and len(response_chars) >= min_length:
-                    # Check if we have reasonable content
-                    text_so_far = ''.join(response_chars)
-                    vowel_count = sum(1 for c in text_so_far.lower() if c in 'aeiou')
-                    if vowel_count >= len(text_so_far) * 0.1:  # At least 10% vowels
-                        break
-                
-                # Stop if we reach minimum length and have good linguistic balance
-                if len(response_chars) >= min_length:
-                    text_so_far = ''.join(response_chars)
-                    vowel_ratio = sum(1 for c in text_so_far.lower() if c in 'aeiou') / len(text_so_far)
-                    if vowel_ratio > 0.15 and i > min_length * 1.5:  # Good balance achieved
-                        break
-            
-            # State evolution with reduced chaos
-            # Phase 3.4: Optimize generation speed through controlled state updates
-            state_update_magnitude = 0.05 * (1.0 - i / max_length)  # Decrease over time
-            noise = torch.randn_like(current_state) * state_update_magnitude
-            
-            # Incorporate fingerprint influence if available
-            if fingerprint and i < max_length * 0.3:  # Early influence only
-                fp_influence = self._get_fingerprint_influence(fingerprint, i)
-                current_state = current_state + noise + fp_influence * 0.02
-            else:
-                current_state = current_state + noise
-            
-            # Normalize to prevent explosion
-            current_state = current_state / (torch.norm(current_state, dim=-1, keepdim=True) + 1e-8)
-            
-            # Reduce input influence over time (echo suppression)
-            input_influence *= 0.98
-        
-        response_text = ''.join(response_chars)
-        
-        # Phase 3.5: Post-processing quality checks and fallbacks
-        if len(response_text.strip()) < 5:
-            print("  Generated text too short, using enhanced fallback")
-            return self._generate_fallback_response(input_text, fingerprint)
-        
-        # Check linguistic quality
-        vowel_count = sum(1 for c in response_text.lower() if c in 'aeiou')
-        vowel_ratio = vowel_count / len(response_text) if len(response_text) > 0 else 0
-        
-        if vowel_ratio < 0.08:  # Very poor linguistic balance
-            print("  Poor linguistic balance detected, applying post-correction")
-            response_text = self._apply_linguistic_correction(response_text)
-        
-        return response_text
-    
-    def _get_fingerprint_influence(self, fingerprint: Dict, position: int) -> torch.Tensor:
-        """Extract positional influence from visual fingerprint."""
-        # Use RGB values to influence different parts of the state vector
-        r_val = fingerprint['r'][position % len(fingerprint['r'])]
-        g_val = fingerprint['g'][position % len(fingerprint['g'])]
-        b_val = fingerprint['b'][position % len(fingerprint['b'])]
-        
-        # Create influence vector
-        influence = torch.zeros(1, self.dim)
-        influence[0, :self.dim//3] = r_val * 0.1
-        influence[0, self.dim//3:2*self.dim//3] = g_val * 0.1
-        influence[0, 2*self.dim//3:] = b_val * 0.1
-        
-        return influence
-    
-    def _generate_fallback_response(self, input_text: str, fingerprint: Optional[Dict]) -> str:
-        """Generate enhanced fallback response."""
-        if fingerprint:
-            return f"Visual resonance detected. Processing '{input_text}' through multimodal manifold topology."
-        else:
-            return f"Processing '{input_text}' through linguistic manifold. Coherence patterns emerging."
-    
-    def _apply_linguistic_correction(self, text: str) -> str:
-        """Apply post-processing linguistic correction."""
-        # Simple vowel injection for extremely poor outputs
-        if len(text) < 10:
-            return text
-        
-        # Insert vowels at strategic positions
-        corrected = []
-        consonant_run = 0
-        
-        for i, char in enumerate(text):
-            corrected.append(char)
-            
-            if char.isalpha() and char.lower() not in 'aeiou':
-                consonant_run += 1
-                # Insert vowel after 3+ consonants
-                if consonant_run >= 3 and i < len(text) - 1:
-                    vowel = ['a', 'e', 'i', 'o', 'u'][i % 5]
-                    corrected.append(vowel)
-                    consonant_run = 0
-            else:
-                consonant_run = 0
-        
-        return ''.join(corrected)
     
     def _compute_full_gyroid_violation_score(self, state: torch.Tensor, response_text: str) -> float:
         """
@@ -4421,7 +4342,6 @@ class DiegeticPhysicsEngine(nn.Module):
                     tensor.nan_to_num_(nan=0.0, posinf=0.0, neginf=0.0)
 
 # Initialize Engine (only when running as the server entry point, not when imported by tests)
-import os as _os
 _running_as_server = (__name__ == '__main__') or _os.environ.get('GYROID_SERVER_MODE', '0') == '1'
 if _running_as_server:
     ENGINE = DiegeticPhysicsEngine()
