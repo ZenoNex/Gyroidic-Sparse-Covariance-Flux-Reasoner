@@ -196,12 +196,40 @@ class PolynomialFunctionalEmbedder(nn.Module):
 
 
 class SimpleTextEncoder(nn.Module):
-    """Simple bag-of-words text encoder for demonstration."""
+    """
+    Simple bag-of-words text encoder with Sovereign Fuzzy Decoding.
+    
+    Per Option D: Error-recovery is treated as valid topological friction 
+    rather than a teleological failure.
+    """
     
     def __init__(self, vocab_size: int = 1000, embed_dim: int = 768):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embed_dim)
+        self.vocab_size = vocab_size
+
+    @staticmethod
+    def fuzzy_decode_bytes(raw_bytes: bytes) -> str:
+        """
+        Perform fuzzy decoding on raw bytes to preserve structural honesty.
+        Treats mixed encodings and fragmented syntax as valid data.
+        """
+        try:
+            # Attempt clean UTF-8
+            return raw_bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            # Fallback to latin-1 with character replacement to preserve noise
+            return raw_bytes.decode('latin-1', errors='replace')
     
+    def tokenize_fuzzy(self, text: str) -> torch.Tensor:
+        """Simple mapping of text to tokens using the fuzzy-decoded text."""
+        # This is a placeholder tokenizer that maps characters to indices
+        # capped by vocab_size for demonstration.
+        tokens = [ord(c) % self.vocab_size for c in text[:512]]
+        if not tokens:
+            tokens = [0]
+        return torch.tensor(tokens, dtype=torch.long)
+
     def forward(self, token_ids: torch.Tensor) -> torch.Tensor:
         """
         Args:
