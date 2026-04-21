@@ -546,7 +546,6 @@ class SovereignConvoKitLoader:
             
             return conversations
         except Exception as e:
-            print(f"❌ Error parsing sovereign utterances: {e}")
             return []
 
 
@@ -635,7 +634,6 @@ class ConvoKitIngestor:
             return conversations
             
         except Exception as e:
-            print(f" Failed to parse ConvoKit corpus: {e}")
             return []
 
 
