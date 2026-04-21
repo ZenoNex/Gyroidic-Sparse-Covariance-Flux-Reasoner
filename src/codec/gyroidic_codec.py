@@ -41,6 +41,7 @@ from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.core.polynomial_crt import PolynomialCRT
 from src.codec.conformal_log_polar import ConformalLogPolarProjector
 from src.core.modular_virtualization import ModularVirtualizationLayer
+from src.codec.context_aware_quantizer import ContextAwareQuantizer
 
 
 # =============================================================================
@@ -234,6 +235,7 @@ class TextResidueProjector(nn.Module):
             )
             for _ in range(config.K)
         ])
+        self.caq = ContextAwareQuantizer()
 
     def forward(self, text: str) -> torch.Tensor:
         """
@@ -269,11 +271,12 @@ class TextResidueProjector(nn.Module):
             # Project to n×n matrix
             flat_matrix = self.channel_projectors[k](modulated)  # [n*n]
             matrix = flat_matrix.view(self.n, self.n)
+            
+            # Apply Context-Aware Quantization (CAQ) - Shell 5 (16-bit)
+            quantized_matrix = self.caq(matrix, depth=5)[16]
 
-            # Project to GL(n) via matrix exponential
-            # exp(A) is always invertible → guarantees GL(n) membership
-            gl_matrix = torch.matrix_exp(matrix)
-            residues.append(gl_matrix)
+            # Generators live in the Lie Algebra
+            residues.append(quantized_matrix)
 
         return torch.stack(residues)  # [K, n, n]
 
@@ -318,6 +321,7 @@ class GyroidImageProjector(nn.Module):
             nn.Linear(config.n * config.n, config.n * config.n)
             for _ in range(config.K)
         ])
+        self.caq = ContextAwareQuantizer()
 
     def forward(self, image: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
@@ -368,10 +372,12 @@ class GyroidImageProjector(nn.Module):
             flat = downsampled.reshape(-1)  # [n*n]
             projected = self.channel_projectors[k](flat)  # [n*n]
             matrix = projected.view(self.n, self.n)
+            
+            # Apply CAQ
+            quantized_matrix = self.caq(matrix, depth=5)[16]
 
-            # 5. Project to GL(n) via matrix exponential
-            gl_matrix = torch.matrix_exp(matrix)
-            residues.append(gl_matrix)
+            # Generators live in the Lie Algebra
+            residues.append(quantized_matrix)
 
         return torch.stack(residues), torch.stack(berry_phases)  # [K, n, n], [K]
 
@@ -444,33 +450,38 @@ class NonAbelianCombiner:
     """
 
     @staticmethod
+    def _bch_formula(X: torch.Tensor, Y: torch.Tensor) -> torch.Tensor:
+        """
+        Baker-Campbell-Hausdorff (BCH) Formula approximation.
+        Z = log(exp(X)exp(Y)) ≈ X + Y + 0.5[X, Y]
+        """
+        # Commutator [X, Y] = XY - YX
+        commutator = torch.matmul(X, Y) - torch.matmul(Y, X)
+        return X + Y + 0.5 * commutator
+
     def combine(
+        self,
         text_residues: torch.Tensor,
         image_residues: torch.Tensor
     ) -> torch.Tensor:
         """
-        Non-abelian combination: R_k(T) · G_k(I) for each channel k.
-
-        Args:
-            text_residues:  [K, n, n]
-            image_residues: [K, n, n]
-
-        Returns:
-            combined: [K, n, n] — R_k · G_k (matrix product per channel)
+        Non-abelian combination via BCH formula.
         """
-        return torch.bmm(text_residues, image_residues)
+        # Apply BCH to every channel
+        combined_algebra = self._bch_formula(text_residues, image_residues)
+        # Project back to group elements via matrix exponential
+        return torch.matrix_exp(combined_algebra)
 
-    @staticmethod
     def combine_reverse(
+        self,
         text_residues: torch.Tensor,
         image_residues: torch.Tensor
     ) -> torch.Tensor:
         """
-        Reversed combination: G_k(I) · R_k(T).
-
-        If non-abelian, this differs from combine().
+        Reversed combination: G_k(I) · R_k(T) via BCH.
         """
-        return torch.bmm(image_residues, text_residues)
+        combined_algebra = self._bch_formula(image_residues, text_residues)
+        return torch.matrix_exp(combined_algebra)
 
     @staticmethod
     def commutativity_gap(
