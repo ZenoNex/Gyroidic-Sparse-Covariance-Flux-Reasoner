@@ -402,6 +402,7 @@ class GyroidImageProjector(nn.Module):
         # Apply Conformal Escher Mapping if enabled
         if self.conformal_wrap is not None:
             # Transforms Scale -> Shift_X, Rotation -> Shift_Y
+            print(" [PIPELINE] ❄️ CONFORMAL ESCHER LOG-POLAR mapping applied.")
             image = self.conformal_wrap(image)
 
         # Resize to gyroid resolution
