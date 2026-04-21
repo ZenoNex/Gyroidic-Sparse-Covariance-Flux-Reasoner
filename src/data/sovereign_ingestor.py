@@ -67,7 +67,7 @@ class SovereignIngestor:
         Ingest from Hacker News Firebase API.
         Focuses on 'ask' and 'recent' to maximize entropy per Option D.
         """
-        print(f"🔥 Fetching HN {mode} stories for High-Entropy Ingestion...")
+        print(f"Fetching HN {mode} stories for High-Entropy Ingestion...")
         base_url = "https://hacker-news.firebaseio.com/v0"
         
         endpoint = f"{mode}stories.json"
@@ -76,7 +76,7 @@ class SovereignIngestor:
             response.raise_for_status()
             story_ids = response.json()[:limit]
         except Exception as e:
-            print(f"❌ HN API Fetch failed: {e}")
+            print(f" HN API Fetch failed: {e}")
             return []
 
         conversations = []
@@ -126,7 +126,7 @@ class SovereignIngestor:
         """
         Ingest from Stack Exchange API (zero-auth).
         """
-        print(f"📗 Ingesting Sovereign Logic from {site}...")
+        print(f" Ingesting Sovereign Logic from {site}...")
         url = f"https://api.stackexchange.com/2.3/questions"
         params = {
             'order': 'desc',
@@ -141,7 +141,7 @@ class SovereignIngestor:
             response.raise_for_status()
             data = response.json()
         except Exception as e:
-            print(f"❌ Stack Exchange Fetch failed: {e}")
+            print(f" Stack Exchange Fetch failed: {e}")
             return []
 
         conversations = []
@@ -177,10 +177,10 @@ class SovereignIngestor:
         """
         irc_dir = self.root / sub_path
         if not irc_dir.exists():
-            print(f"⚠️ IRC Directory not found at {irc_dir}")
+            print(f" IRC Directory not found at {irc_dir}")
             return []
 
-        print(f"📟 Ingesting IRC Logs with Fuzzy Decoding for Topological Friction...")
+        print(f" Ingesting IRC Logs with Fuzzy Decoding for Topological Friction...")
         conversations = []
         
         for log_file in irc_dir.glob('*.log'):
@@ -221,7 +221,7 @@ class SovereignIngestor:
                     source='irc_snapshot'
                 ))
             except Exception as e:
-                print(f"⚠️ Failed to parse IRC log {log_file.name}: {e}")
+                print(f" Failed to parse IRC log {log_file.name}: {e}")
                 
         return conversations
 
@@ -231,10 +231,10 @@ class SovereignIngestor:
         """
         madoc_dir = self.root / sub_path
         if not madoc_dir.exists():
-            print(f"⚠️ MADOC Snapshot not found at {madoc_dir}")
+            print(f" MADOC Snapshot not found at {madoc_dir}")
             return []
 
-        print(f"🧱 Ingesting Immutable MADOC Snapshot for Silicon Sovereignty...")
+        print(f" Ingesting Immutable MADOC Snapshot for Silicon Sovereignty...")
         # Implementation depends on MADOC structure (usually JSON/JSONL)
         # Placeholder for directory-based scan
         return [] # MADOC logic would go here
