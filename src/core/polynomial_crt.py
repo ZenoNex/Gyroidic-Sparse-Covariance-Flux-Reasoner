@@ -75,7 +75,8 @@ class PolynomialCRT(nn.Module):
     def fixed_point_reconstruction(
         self,
         residue_distributions: torch.Tensor,
-        trust_scalars: Optional[torch.Tensor] = None
+        trust_scalars: Optional[torch.Tensor] = None,
+        veto_mask: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
         Algebraically exact CRT reconstruction using 16-bit fixed-point arithmetic.
@@ -99,11 +100,19 @@ class PolynomialCRT(nn.Module):
             trust_fp = (trust_scalars * self.scaling_factor).to(torch.int64)
             weights_fp = (weights_fp * trust_fp) // self.scaling_factor
             
+        if veto_mask is not None:
+            # Mask out vetoed channels [B, K]
+            # Convert bool/float mask to 0/1 multiplier
+            mask_multiplier = (~veto_mask).to(torch.int64)
+            weights_fp = weights_fp.view(1, self.K) * mask_multiplier
+        else:
+            weights_fp = weights_fp.view(1, self.K)
+
         # 3. Summation: L = sum(r_k * W_k)
         # In fixed-point: (r * S) * (W * S) / S = (r * W * S)
-        # [B, K, D] * [K] -> [B, D]
+        # [B, K, D] * [B, K] -> [B, D]
         reconstruction_fp = torch.sum(
-            scaled_residues * weights_fp.view(1, self.K, 1),
+            scaled_residues * weights_fp.unsqueeze(-1),
             dim=1
         )
         
@@ -114,6 +123,7 @@ class PolynomialCRT(nn.Module):
         self,
         residue_distributions: torch.Tensor,
         trust_scalars: Optional[torch.Tensor] = None,
+        veto_mask: Optional[torch.Tensor] = None,
         mode: str = 'majority',
         return_diagnostics: bool = False
     ) -> torch.Tensor:
@@ -141,7 +151,8 @@ class PolynomialCRT(nn.Module):
             # Fixed-Point Algebraic CRT
             reconstruction = self.fixed_point_reconstruction(
                 residue_distributions,
-                trust_scalars=trust_scalars
+                trust_scalars=trust_scalars,
+                veto_mask=veto_mask
             )
             if return_diagnostics:
                 return reconstruction, {'mode_used': 'fixed_point'}
@@ -152,13 +163,18 @@ class PolynomialCRT(nn.Module):
             expected_residues = residue_distributions
         
         # Polynomial CRT reconstruction (Symbolic-weighted)
-        weights = self.recon_weights
+        weights = self.recon_weights.unsqueeze(0)  # [1, K]
         if trust_scalars is not None:
             weights = weights * trust_scalars
-            weights = weights / (weights.sum() + 1e-8)
+            
+        if veto_mask is not None:
+            # Apply Meliponini isolation (Cerumen mask)
+            weights = weights * (~veto_mask).float()
+            
+        weights = weights / (weights.sum(dim=1, keepdim=True) + 1e-8)
 
         reconstruction = torch.sum(
-            weights.unsqueeze(0).unsqueeze(-1) * expected_residues,
+            weights.unsqueeze(-1) * expected_residues,
             dim=1
         )
         
