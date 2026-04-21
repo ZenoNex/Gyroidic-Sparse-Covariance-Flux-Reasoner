@@ -61,6 +61,28 @@ class VetoSignal:
         return self.triggered and self.severity > 0
 
 
+class CerumenPot:
+    """
+    Isolated 'Cerumen Pot' for Meliponini-based signal isolation.
+    
+    Prevents global manifold collapse by isolating toxic/high-entropy
+    signals into specific pots.
+    """
+    def __init__(self, pot_id: str):
+        self.pot_id = pot_id
+        self.signals: List[VetoSignal] = []
+        self.is_sealed = False
+    
+    def add_signal(self, signal: VetoSignal):
+        if not self.is_sealed:
+            self.signals.append(signal)
+            
+    def seal(self):
+        """Seal the pot to prevent diffusion into global manifold."""
+        self.is_sealed = True
+        print(f" [MELIPONINI] Cerumen Pot {self.pot_id} sealed against diffusion toxins.")
+
+
 @dataclass
 class VetoResult:
     """
@@ -118,6 +140,10 @@ class VetoSubspace(nn.Module):
         self.chiral_threshold = chiral_threshold
         self.containment_budget = containment_budget
         self.latency_budget_seconds = latency_budget_seconds
+        
+        # Isolated pots (Meliponini Sovereignty)
+        self.pots: Dict[str, CerumenPot] = {}
+        self.feature_scars: List[str] = []
     
     def _evaluate_trajectory(
         self,
@@ -385,6 +411,16 @@ class VetoSubspace(nn.Module):
         # Final severity = max across all active signals
         final_severity = max((s.severity for s in all_signals), default=0.0)
         
+        # Step 4: Meliponini Isolation (Pot Sealed)
+        if status == RecoveryStatus.ESCALATED or final_severity > 0.9:
+            pot_id = f"mischief_{len(self.pots)}"
+            pot = CerumenPot(pot_id)
+            for s in active:
+                pot.add_signal(s)
+            pot.seal()
+            self.pots[pot_id] = pot
+            self.feature_scars.append(f"Pot_{pot_id}_isolated_at_high_entropy")
+
         return VetoResult(
             status=status,
             signals=all_signals,
