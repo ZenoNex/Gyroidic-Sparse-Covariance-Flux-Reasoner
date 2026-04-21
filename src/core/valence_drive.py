@@ -32,18 +32,43 @@ class ValenceFunctional(nn.Module):
         # Historical Satisfaction baseline 
         self.register_buffer('satisfaction', torch.tensor(0.0, device=device))
 
-    def forward(self, current_pressure: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, 
+        current_pressure: torch.Tensor,
+        mischief: Optional[torch.Tensor] = None,
+        entropy: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Computes the Training Valence (Hunger).
-        V = hunger_scale * max(0, current_pressure - satisfaction)
+        V = hunger_scale * (max(0, current_pressure - satisfaction) + Dissonance)
+        
+        Following MATHEMATICAL_DETAILS.md §15.2: 
+        Hunger should be high if system is in 'Babbling' or 'Degenerate' states.
         """
-        # Update baseline (asymptotic satisfaction)
+        # 1. Update baseline (asymptotic satisfaction)
+        # We detach pressure to keep satisfaction as a non-differentiable reference
         self.satisfaction.mul_(self.decay).add_((1.0 - self.decay) * current_pressure.mean().detach())
         
-        # Hunger is the positive dissonance gap
-        hunger = torch.clamp(current_pressure - self.satisfaction, min=0.0)
+        # 2. Compute primary pressure gap (Surprise)
+        surprise = torch.clamp(current_pressure - self.satisfaction, min=0.0)
         
-        return hunger * self.hunger_scale
+        # 3. Inject Structural Dissonance (Entropy/Mischief)
+        # If mischief is high (babbling) or entropy is high (noise), increase hunger
+        dissonance = 0.0
+        if mischief is not None:
+            # Mischief rewards logic-breaks, but high mischief without pas_h 
+            # should drive the system to find structured associations (Hunger)
+            dissonance += 0.5 * mischief.mean()
+            
+        if entropy is not None:
+            # High spectral entropy means the proposal is noise/babble
+            dissonance += 0.3 * entropy.mean()
+
+        # 4. Total Hunger
+        hunger = (surprise + dissonance) * self.hunger_scale
+        
+        return hunger
+
 
     def get_metrics(self) -> Dict[str, float]:
         return {
