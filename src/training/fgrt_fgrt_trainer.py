@@ -19,6 +19,8 @@ from src.core.fgrt_primitives import GyroidManifold, BerryPhaseTracker
 from src.optimization.sic_fa_admm import SicFaAdmmSolver
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.core.admr_solver import PolynomialADMRSolver
+from src.core.codes_constraint_framework import CODESConstraintFramework
+from src.models.resonance_cavity import ResonanceCavity
 from src.core.invariants import PhaseAlignmentInvariant
 
 # Fix import paths
@@ -59,15 +61,25 @@ class SpectralStructuralTrainer:
         # 1. Polynomial ADMR for state reconciliation
         self.admr = PolynomialADMRSolver(
             poly_config=poly_config,
-            state_dim=64 # Assuming default dimension
+            state_dim=256 
         )
         
         # 2. System 2 Probe: SIC-FA-ADMM
         self.system2_probe = SicFaAdmmSolver(
-            dim=64, # state_dim
+            dim=256, # state_dim
             max_iters=50,
             admissibility_threshold=spectral_threshold
         )
+        
+        # 3. Formal System 2 Constraints (RIC/CODES)
+        # These are used for calculating the formal Survivorship Pressure (§6.3)
+        self.ric = ResonanceCavity(hidden_dim=256, num_modes=64, poly_config=poly_config)
+        self.codes = CODESConstraintFramework(state_dim=256)
+        
+        # Seed CODES with standard formal constraints
+        self.codes.add_constraint(0, constraint_type='quadratic')
+        self.codes.add_constraint(1, constraint_type='harmonic')
+        self.codes.add_constraint(2, constraint_type='polynomial_coprime')
         
         self.register_buffer('prev_output', None, persistent=False)
 
@@ -113,17 +125,35 @@ class SpectralStructuralTrainer:
         # 4. Compute Invariants
         pas_h = self.pas_metric(output.unsqueeze(1) if output.dim() == 2 else output).mean().item()
         
-        # 5. Compute formal Survivorship Pressure (§6.3 TAT)
-        # Survivorship_Pressure = Association_Inaccuracy - α × Temporal_Coherence
-        # Here recon_loss is our measure of 'Inaccuracy' relative to System 2 repair.
-        # We use a running coherence score from the phase tracker.
-        alpha_coh = 0.05
-        coherence = 1.0 - torch.tanh(self.phase_tracker.running_phase.abs())
+        # 5. Compute formal Survivorship Pressure (§6.3 TAT Unified)
+        # Survivorship_Pressure = Association_Inaccuracy + α × (1.0 - Coherence) - β × Mischief
+        # - Association_Inaccuracy (recon_loss): Pressure to find the correct manifold.
+        # - Coherence Penalty (1.0 - coherence): Pressure to maintain temporal stability.
+        # - Mischief Reward (mischief): Reward for novel topological exploration (§15.2).
         
-        survivorship_pressure = recon_loss - (alpha_coh * coherence)
+        alpha_coh = 0.1
+        beta_mischief = 0.05
+        
+        # Formal Coherence via Resonance Cavity (RIC)
+        # We query the cavity to see how much the proposal resonates with known patterns.
+        resonance_data = self.ric.query(proposal)
+        coherence = resonance_data['resonance_scores'].mean()
+        
+        # Formal Mischief via High-Order Resonance (§15.2)
+        # Mischief is the measure of novelty relative to the resonant baseline.
+        # It's high when the proposal is structurally valid but 'surprising' to the RIC.
+        mischief = (1.0 - coherence) * spectral_entropy
+        
+        # Formal Survivorship Pressure ensuring non-negative bias for accuracy/coherence
+        # and a reward for 'Play' (mischief).
+        survivorship_pressure = recon_loss + alpha_coh * (1.0 - coherence) - beta_mischief * mischief
+        
+        # Formal Constrainment Energy via CODES
+        # This replaces the Willmore heuristic for the local manifold curvature.
+        formal_energy = self.codes.compute_total_energy(proposal).mean()
         
         # Total Non-Teleological Energy
-        energy = self.willmore(proposal) + survivorship_pressure
+        energy = formal_energy + survivorship_pressure
         
         # 6. Topological Curvature Modulation
         # f_topo = f * (1 + gamma * K)
