@@ -159,7 +159,7 @@ class HuggingFaceConversationalIngestor:
                 if (i + 1) % 10 == 0:
                     print(f"   Collected {i + 1} samples...")
             
-            print(f"   ✓ Collected {len(samples)} samples total")
+            print(f"    Collected {len(samples)} samples total")
             return samples
             
         except Exception as e:
@@ -204,7 +204,7 @@ class HuggingFaceConversationalIngestor:
                 samples = df.head(max_samples).to_dict('records')
             elif data_file.endswith(('.jsonl', '.json')):
                 import json
-                with open(file_path, 'r') as f:
+                with open(file_path, 'r', encoding='utf-8') as f:
                     if data_file.endswith('.jsonl'):
                         for i, line in enumerate(f):
                             if i >= max_samples:
@@ -217,7 +217,7 @@ class HuggingFaceConversationalIngestor:
                         else:
                             samples = [data]
             
-            print(f"   ✓ Downloaded {len(samples)} real samples via direct API")
+            print(f"    Downloaded {len(samples)} real samples via direct API")
             return samples
             
         except Exception as e:
@@ -483,7 +483,7 @@ class SovereignConvoKitLoader:
             return target_dir
 
         zip_url = f"{self.base_url}/{corpus_name}/{corpus_name}.zip"
-        print(f"📥 Downloading Sovereign Corpus: {corpus_name} from {zip_url}...")
+        print(f" Downloading Sovereign Corpus: {corpus_name} from {zip_url}...")
         
         try:
             response = requests.get(zip_url, stream=True)
@@ -492,17 +492,17 @@ class SovereignConvoKitLoader:
             with zipfile.ZipFile(io.BytesIO(response.content)) as z:
                 z.extractall(self.cache_dir)
             
-            print(f"✅ Extracted to {target_dir}")
+            print(f" Extracted to {target_dir}")
             return target_dir
         except Exception as e:
-            print(f"❌ Failed to download sovereign corpus {corpus_name}: {e}")
+            print(f" Failed to download sovereign corpus {corpus_name}: {e}")
             return None
 
     def parse_utterances(self, corpus_path: Path, max_conversations: int = 1000) -> List[Conversation]:
         """Parse utterances.jsonl and reconstruct conversations."""
         utterances_file = corpus_path / "utterances.jsonl"
         if not utterances_file.exists():
-            print(f"❌ utterances.jsonl not found in {corpus_path}")
+            print(f" utterances.jsonl not found in {corpus_path}")
             return []
 
         # Map conversation_id -> list of turns
@@ -578,15 +578,15 @@ class ConvoKitIngestor:
             try:
                 import convokit
                 corpus = convokit.download(corpus_name)
-                print(f"✅ Loaded ConvoKit corpus via library: {corpus_name}")
+                print(f" Loaded ConvoKit corpus via library: {corpus_name}")
                 return corpus
             except Exception as e:
-                print(f"⚠️ Library load failed, falling back to Sovereign Loader: {e}")
+                print(f" Library load failed, falling back to Sovereign Loader: {e}")
 
         # Sovereign Fallback
         path = self.sovereign_loader.download_corpus(corpus_name)
         if path:
-            print(f"✅ Loaded ConvoKit corpus via Sovereign Loader: {corpus_name}")
+            print(f" Loaded ConvoKit corpus via Sovereign Loader: {corpus_name}")
             return {'sovereign_path': path}
         return None
 
@@ -819,7 +819,7 @@ class ConversationalAPIIngestor:
         cache_file = self.cache_dir / f"hf_{dataset_id.replace('/', '_')}.json"
         if cache_file.exists():
             print(f" Loading from cache: {cache_file}")
-            with open(cache_file, 'r') as f:
+            with open(cache_file, 'r', encoding='utf-8') as f:
                 cached_data = json.load(f)
                 return [self._dict_to_conversation(conv_dict) for conv_dict in cached_data]
         
@@ -831,7 +831,7 @@ class ConversationalAPIIngestor:
             print(f" No samples downloaded from {dataset_id}")
             return []
         
-        print(f"✓ Downloaded {len(samples)} samples, parsing...")
+        print(f" Downloaded {len(samples)} samples, parsing...")
         
         # Parse based on dataset type
         if 'lmsys' in dataset_id.lower():
@@ -857,7 +857,7 @@ class ConversationalAPIIngestor:
         
         # Cache results
         try:
-            with open(cache_file, 'w') as f:
+            with open(cache_file, 'w', encoding='utf-8') as f:
                 json.dump([self._conversation_to_dict(conv) for conv in processed_conversations], f)
             print(f" Cached results to {cache_file}")
         except Exception as e:
