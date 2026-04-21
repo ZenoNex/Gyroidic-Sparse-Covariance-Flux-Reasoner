@@ -981,6 +981,10 @@ class DiegeticPhysicsEngine(nn.Module):
         # 1. Embed Input (Hash Projection)
         input_tensor = self._text_to_tensor(text_input) # [1, dim]
         
+        # --- PHASE 0: AFFORDANCE GRADIENT COMPUTATION (Hoisted) ---
+        # Compute affordance gradients for both code and conversational patterns
+        affordance_gradients = self._compute_affordance_gradients(text_input, input_tensor)
+        
         # --- COMMAND PRIORITIZATION ---
         ingest_cmds = ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:", "SOVEREIGN_FETCH:", "CLOUD_FETCH:"]
         if any(text_input.startswith(cmd) for cmd in ingest_cmds):
@@ -1048,10 +1052,6 @@ class DiegeticPhysicsEngine(nn.Module):
                  "fingerprint_received": fingerprint is not None or audio_dyad is not None or video_dyad_b64 is not None,
              }
 
-        # --- SPECULATIVE MEMORY BRIDGE ---
-        # Prime the manifold with relevant fossils before starting the reasoning pass
-        self._prime_manifold_with_fossils(input_tensor)
-        
         # --- VIDEO DYAD PATH ---
         if video_dyad_b64 is not None:
             print("[DYAD] Integrating Video Dyad via Base64 Integer Parser...")
@@ -1072,13 +1072,10 @@ class DiegeticPhysicsEngine(nn.Module):
                 pass # handled below
             else: # symmetric
                 input_tensor = input_tensor + (ent * 0.1)
-        
-        # =============================================
-        # PHASE 0: AFFORDANCE GRADIENT COMPUTATION
-        # =============================================
-        
-        # Compute affordance gradients for both code and conversational patterns
-        affordance_gradients = self._compute_affordance_gradients(text_input, input_tensor)
+
+        # --- SPECULATIVE MEMORY BRIDGE ---
+        # Prime the manifold with relevant fossils before starting the reasoning pass
+        self._prime_manifold_with_fossils(input_tensor)
         
         print(f"[CONFIG] Affordance Gradients Computed:")
         print(f"   Executability: {affordance_gradients['executability_pressure']:.4f}")
@@ -3556,8 +3553,13 @@ class DiegeticPhysicsEngine(nn.Module):
                 if self.meta_polytope is not None:
                     # evaluate the post-fusion manifold state against the polytope
                     # ensuring boundary crossings are tracked relative to the text context
-                    _, _, shell_level = self.meta_polytope(text_emb)
-                    codec_metrics['matryoshka_level'] = int(shell_level)
+                    poly_res = self.meta_polytope(text_emb)
+                    if hasattr(poly_res, 'level'): # BoundaryState case
+                        codec_metrics['matryoshka_level'] = int(poly_res.level)
+                        codec_metrics['topological_refusal'] = True
+                    else: # Tuple case (yq, new_alpha, new_level)
+                        yq, _, shell_level = poly_res
+                        codec_metrics['matryoshka_level'] = int(shell_level)
 
         except Exception as e:
             print(f"[FAIL] Multimodal Collision Helper Error: {e}")
