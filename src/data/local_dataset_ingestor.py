@@ -82,13 +82,72 @@ class LocalDatasetIngestor:
                     )
                     count += 1
                 except Exception as e:
-                    print(f" Skip CIFAR frame {row['filename']}: {e}")
+                    print(f" Skip CIFAR frame {row['img']}: {e}")
                     continue
 
     def mnist_generator(self, limit: int = 2000) -> Generator[Conversation, None, None]:
         """
-        Placeholder for MNIST ingestion logic.
+        Drip-feeds MNIST images as conversational dyads (Label -> Image).
         """
-        # Logic similar to CIFAR if images are stored individually
-        return
-        yield from [] 
+        mnist_path = self.root / 'mnist'
+        image_dir = mnist_path # In MNIST, images are often in the root or 'images'
+        csv_path = mnist_path / 'train.csv'
+        
+        # Check if 'images' subdirectory exists, otherwise use root
+        if (mnist_path / 'images').exists():
+            image_dir = mnist_path / 'images'
+            
+        if not csv_path.exists():
+            print(f"⚠️ MNIST train.csv not found at {csv_path}")
+            return
+
+        print(f"🔢 Initializing MNIST Drip-Feed from {image_dir}...")
+        
+        count = 0
+        with open(csv_path, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if count >= limit:
+                    break
+                
+                # MNIST CSV uses 'Digit Label' and 'Image' (path)
+                label = row.get('Digit Label', row.get('label', 'unknown'))
+                img_rel_path = row.get('Image', row.get('img', ''))
+                
+                if not img_rel_path:
+                    continue
+                    
+                # Clean up path if it starts with ./
+                if img_rel_path.startswith('./'):
+                    img_rel_path = img_rel_path[2:]
+                    
+                img_path = mnist_path / img_rel_path
+                if not img_path.exists():
+                    continue
+                
+                try:
+                    proj = self.projector.project_image_path_to_state(str(img_path))
+                    
+                    turns = [
+                        ConversationTurn(
+                            speaker_id="digit_oracle",
+                            text=f"Digit: {label}",
+                            metadata={'label': label}
+                        ),
+                        ConversationTurn(
+                            speaker_id="visual_sensor",
+                            text="[MNIST Digit Projection]",
+                            embedding=proj['state'],
+                            metadata={'entropy': proj['entropy'], 'source': str(img_path)}
+                        )
+                    ]
+                    
+                    yield Conversation(
+                        conversation_id=_stable_id("mnist", img_rel_path),
+                        turns=turns,
+                        context={'dataset': 'mnist'},
+                        source='local_dataset'
+                    )
+                    count += 1
+                except Exception as e:
+                    continue
