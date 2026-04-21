@@ -51,6 +51,26 @@ try:
 except ImportError:
     AIOHTTP_AVAILABLE = False
 
+try:
+    from datasets import load_dataset
+    DATASETS_AVAILABLE = True
+except ImportError:
+    DATASETS_AVAILABLE = False
+    print("  'datasets' (Hugging Face) not available. HF ingestion will be disabled.")
+
+try:
+    from convokit import Corpus, download
+    CONVOKIT_AVAILABLE = True
+except ImportError:
+    CONVOKIT_AVAILABLE = False
+    print("  'convokit' not available. ConvoKit ingestion will be disabled.")
+    
+try:
+    from huggingface_hub import HfApi
+    HF_HUB_AVAILABLE = True
+except ImportError:
+    HF_HUB_AVAILABLE = False
+
 # Core imports
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.data.pressure_ingestor import PressureIngestor
@@ -92,7 +112,7 @@ class HuggingFaceConversationalIngestor:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"❌ Failed to list datasets: {e}")
+            print(f" Failed to list datasets: {e}")
             return []
     
     def get_dataset_info(self, dataset_id: str) -> Dict[str, Any]:
@@ -104,7 +124,7 @@ class HuggingFaceConversationalIngestor:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"❌ Failed to get dataset info for {dataset_id}: {e}")
+            print(f" Failed to get dataset info for {dataset_id}: {e}")
             return {}
     
     def download_dataset_sample(self, dataset_id: str, split: str = 'train', 
@@ -140,12 +160,12 @@ class HuggingFaceConversationalIngestor:
             return samples
             
         except Exception as e:
-            print(f"   ❌ datasets library failed: {e}")
+            print(f"   datasets library failed: {e}")
             return []
     
     def _direct_api_download(self, dataset_id: str, max_samples: int) -> List[Dict[str, Any]]:
         """Direct API method to download real HF data when datasets library is not available."""
-        print(f"   � Using direct HF API to download real data from {dataset_id}...")
+        print(f"   Using direct HF API to download real data from {dataset_id}...")
         
         try:
             # Use HF Hub API to get dataset files
@@ -159,12 +179,12 @@ class HuggingFaceConversationalIngestor:
             data_files = [f for f in files if f.endswith(('.parquet', '.jsonl', '.json'))]
             
             if not data_files:
-                print(f"   ❌ No data files found in {dataset_id}")
+                print(f"   No data files found in {dataset_id}")
                 return []
             
             # Download the first data file
             data_file = data_files[0]
-            print(f"   📥 Downloading {data_file}...")
+            print(f"    Downloading {data_file}...")
             
             file_path = hf_hub_download(
                 repo_id=dataset_id,
@@ -198,18 +218,18 @@ class HuggingFaceConversationalIngestor:
             return samples
             
         except Exception as e:
-            print(f"   ❌ Direct API download failed: {e}")
+            print(f"    Direct API download failed: {e}")
             print(f"   This means there's an issue with your HF token or dataset access")
             return []
     
     def _generate_synthetic_lmsys_data(self, max_samples: int) -> List[Dict[str, Any]]:
         """Placeholder removed to satisfy Structural Honesty Imperative §12."""
-        print("   ❌ Synthetic LMSYS data generation disabled (Structural Honesty violation).")
+        print("    Synthetic LMSYS data generation disabled (Structural Honesty violation).")
         return []
     
     def _generate_synthetic_oasst_data(self, max_samples: int) -> List[Dict[str, Any]]:
         """Placeholder removed to satisfy Structural Honesty Imperative §12."""
-        print("   ❌ Synthetic OASST data generation disabled (Structural Honesty violation).")
+        print("    Synthetic OASST data generation disabled (Structural Honesty violation).")
         return []
     
     def parse_lmsys_chat(self, samples: List[Dict[str, Any]]) -> List[Conversation]:
@@ -242,7 +262,7 @@ class HuggingFaceConversationalIngestor:
                 conversations.append(conversation)
                 
             except Exception as e:
-                print(f"⚠️ Failed to parse LMSYS sample: {e}")
+                print(f" Failed to parse LMSYS sample: {e}")
                 continue
         
         return conversations
@@ -280,7 +300,7 @@ class HuggingFaceConversationalIngestor:
                 conversations.append(conversation)
                 
             except Exception as e:
-                print(f"⚠️ Failed to parse OpenAssistant sample: {e}")
+                print(f" Failed to parse OpenAssistant sample: {e}")
                 continue
         
         return conversations
@@ -318,10 +338,10 @@ class RedditConversationalIngestor:
             
             token_data = response.json()
             self.access_token = token_data['access_token']
-            print(f"✅ Reddit authentication successful")
+            print(f" Reddit authentication successful")
             
         except Exception as e:
-            print(f"❌ Reddit authentication failed: {e}")
+            print(f" Reddit authentication failed: {e}")
     
     def get_subreddit_posts(self, subreddit: str, limit: int = 100, 
                            sort: str = 'hot') -> List[Dict[str, Any]]:
@@ -344,7 +364,7 @@ class RedditConversationalIngestor:
             return data['data']['children']
             
         except Exception as e:
-            print(f"❌ Failed to get posts from r/{subreddit}: {e}")
+            print(f" Failed to get posts from r/{subreddit}: {e}")
             return []
     
     def get_post_comments(self, subreddit: str, post_id: str, 
@@ -370,7 +390,7 @@ class RedditConversationalIngestor:
             return []
             
         except Exception as e:
-            print(f"❌ Failed to get comments for post {post_id}: {e}")
+            print(f" Failed to get comments for post {post_id}: {e}")
             return []
     
     def parse_comment_thread(self, comments: List[Dict[str, Any]], 
@@ -467,7 +487,7 @@ class ConvoKitIngestor:
             import convokit
             return self.available_corpora
         except ImportError:
-            print("❌ ConvoKit not installed. Install with: pip install convokit")
+            print(" ConvoKit not installed. Install with: pip install convokit")
             return []
     
     def load_corpus(self, corpus_name: str) -> Optional[Any]:
@@ -475,10 +495,10 @@ class ConvoKitIngestor:
         try:
             import convokit
             corpus = convokit.download(corpus_name)
-            print(f"✅ Loaded ConvoKit corpus: {corpus_name}")
+            print(f" Loaded ConvoKit corpus: {corpus_name}")
             return corpus
         except Exception as e:
-            print(f"❌ Failed to load corpus {corpus_name}: {e}")
+            print(f" Failed to load corpus {corpus_name}: {e}")
             return None
     
     def parse_convokit_corpus(self, corpus, max_conversations: int = 1000) -> List[Conversation]:
@@ -518,11 +538,11 @@ class ConvoKitIngestor:
                 conversations.append(conversation)
                 conv_count += 1
             
-            print(f"✅ Parsed {len(conversations)} conversations from ConvoKit corpus")
+            print(f" Parsed {len(conversations)} conversations from ConvoKit corpus")
             return conversations
             
         except Exception as e:
-            print(f"❌ Failed to parse ConvoKit corpus: {e}")
+            print(f" Failed to parse ConvoKit corpus: {e}")
             return []
 
 
@@ -663,10 +683,10 @@ class ConversationalDataProcessor:
                 processed.append(processed_conv)
                 
                 if (i + 1) % 100 == 0:
-                    print(f"✅ Processed {i + 1}/{len(conversations)} conversations")
+                    print(f" Processed {i + 1}/{len(conversations)} conversations")
                     
             except Exception as e:
-                print(f"⚠️ Failed to process conversation {conversation.conversation_id}: {e}")
+                print(f" Failed to process conversation {conversation.conversation_id}: {e}")
                 continue
         
         return processed
@@ -702,22 +722,22 @@ class ConversationalAPIIngestor:
     
     def ingest_huggingface_dataset(self, dataset_id: str, max_samples: int = 1000) -> List[Conversation]:
         """Ingest conversational data from Hugging Face dataset."""
-        print(f"🔄 Ingesting Hugging Face dataset: {dataset_id}")
+        print(f" Ingesting Hugging Face dataset: {dataset_id}")
         
         # Check cache first
         cache_file = self.cache_dir / f"hf_{dataset_id.replace('/', '_')}.json"
         if cache_file.exists():
-            print(f"📁 Loading from cache: {cache_file}")
+            print(f" Loading from cache: {cache_file}")
             with open(cache_file, 'r') as f:
                 cached_data = json.load(f)
                 return [self._dict_to_conversation(conv_dict) for conv_dict in cached_data]
         
         # Download samples
-        print(f"📥 Downloading {max_samples} samples from {dataset_id}...")
+        print(f" Downloading {max_samples} samples from {dataset_id}...")
         samples = self.hf_ingestor.download_dataset_sample(dataset_id, max_samples=max_samples)
         
         if not samples:
-            print(f"❌ No samples downloaded from {dataset_id}")
+            print(f" No samples downloaded from {dataset_id}")
             return []
         
         print(f"✓ Downloaded {len(samples)} samples, parsing...")
@@ -732,36 +752,36 @@ class ConversationalAPIIngestor:
             conversations = self.hf_ingestor.parse_lmsys_chat(samples)
         
         if not conversations:
-            print(f"❌ No conversations parsed from {len(samples)} samples")
+            print(f" No conversations parsed from {len(samples)} samples")
             return []
         
-        print(f"✓ Parsed {len(conversations)} conversations, processing...")
+        print(f" Parsed {len(conversations)} conversations, processing...")
         
         # Process conversations
         processed_conversations = self.processor.process_conversations(conversations)
         
         if not processed_conversations:
-            print(f"❌ No conversations after processing")
+            print(f"No conversations after processing")
             return []
         
         # Cache results
         try:
             with open(cache_file, 'w') as f:
                 json.dump([self._conversation_to_dict(conv) for conv in processed_conversations], f)
-            print(f"💾 Cached results to {cache_file}")
+            print(f" Cached results to {cache_file}")
         except Exception as e:
-            print(f"⚠️ Failed to cache results: {e}")
+            print(f" Failed to cache results: {e}")
         
-        print(f"✅ Successfully ingested {len(processed_conversations)} conversations from {dataset_id}")
+        print(f" Successfully ingested {len(processed_conversations)} conversations from {dataset_id}")
         return processed_conversations
     
     def ingest_reddit_subreddit(self, subreddit: str, max_posts: int = 50) -> List[Conversation]:
         """Ingest conversational threads from Reddit subreddit."""
         if not self.reddit_ingestor:
-            print("❌ Reddit ingestor not configured. Use setup_reddit() first.")
+            print(" Reddit ingestor not configured. Use setup_reddit() first.")
             return []
         
-        print(f"🔄 Ingesting Reddit subreddit: r/{subreddit}")
+        print(f" Ingesting Reddit subreddit: r/{subreddit}")
         
         # Get posts
         posts = self.reddit_ingestor.get_subreddit_posts(subreddit, limit=max_posts)
@@ -780,12 +800,12 @@ class ConversationalAPIIngestor:
             processed = self.processor.process_conversations(conversations)
             all_conversations.extend(processed)
         
-        print(f"✅ Ingested {len(all_conversations)} conversations from r/{subreddit}")
+        print(f"Ingested {len(all_conversations)} conversations from r/{subreddit}")
         return all_conversations
     
     def ingest_convokit_corpus(self, corpus_name: str, max_conversations: int = 1000) -> List[Conversation]:
         """Ingest labeled conversational data from ConvoKit."""
-        print(f"🔄 Ingesting ConvoKit corpus: {corpus_name}")
+        print(f" Ingesting ConvoKit corpus: {corpus_name}")
         
         # Load corpus
         corpus = self.convokit_ingestor.load_corpus(corpus_name)
@@ -798,7 +818,7 @@ class ConversationalAPIIngestor:
         # Process conversations
         processed_conversations = self.processor.process_conversations(conversations)
         
-        print(f"✅ Ingested {len(processed_conversations)} conversations from {corpus_name}")
+        print(f"Ingested {len(processed_conversations)} conversations from {corpus_name}")
         return processed_conversations
     
     def _conversation_to_dict(self, conversation: Conversation) -> Dict[str, Any]:
@@ -904,7 +924,7 @@ def demo_huggingface_ingestion():
     
     if conversations:
         summary = ingestor.get_ingestion_summary(conversations)
-        print(f"📊 Ingestion Summary:")
+        print(f"   Ingestion Summary:")
         print(f"   Conversations: {summary['total_conversations']}")
         print(f"   Total turns: {summary['total_turns']}")
         print(f"   Avg turns per conversation: {summary['avg_turns_per_conversation']:.2f}")
@@ -913,7 +933,7 @@ def demo_huggingface_ingestion():
         # Show sample conversation
         if conversations:
             sample = conversations[0]
-            print(f"\n💬 Sample Conversation ({sample.conversation_id}):")
+            print(f"\n Sample Conversation ({sample.conversation_id}):")
             for i, turn in enumerate(sample.turns[:3]):  # First 3 turns
                 print(f"   Turn {i+1} ({turn.speaker_id}): {turn.text[:100]}...")
                 if turn.affordance_gradients:
@@ -929,7 +949,7 @@ def demo_convokit_ingestion():
     
     if conversations:
         summary = ingestor.get_ingestion_summary(conversations)
-        print(f"📊 ConvoKit Ingestion Summary:")
+        print(f"   ConvoKit Ingestion Summary:")
         print(f"   Conversations: {summary['total_conversations']}")
         print(f"   Affordance gradients: {list(summary['affordance_gradient_stats'].keys())}")
 
@@ -969,22 +989,22 @@ class SovereignConversationalIngestor:
                 self.google_manager = GoogleClientManager(google_secrets_path)
                 self.drive = GoogleDriveIngestor(self.google_manager)
                 self.cloud = GoogleCloudIngestor(self.google_manager)
-                print("☁️ Google Cloud & Drive connectors initialized.")
+                print(" Google Cloud & Drive connectors initialized.")
             except Exception as e:
-                print(f"⚠️ Failed to initialize Google services: {e}")
+                print(f" Failed to initialize Google services: {e}")
 
     def ingest_sovereign_logic(self, limit: int = 50) -> List[Conversation]:
         """Fetch high-entropy logic from SE and HN."""
         convs = self.sovereign.ingest_stack_exchange(limit=limit)
         convs.extend(self.sovereign.ingest_hacker_news(limit=limit, mode='ask'))
-        convs.extend(self.sovereign.ingest_hacker_news(limit=limit, mode='recent'))
+        convs.extend(self.sovereign.ingest_hacker_news(limit=limit, mode='new'))
         return convs
 
     def start_background_learning(self):
         """Starts the slow-drip sovereign learning manifold."""
         bg_thread = threading.Thread(target=self._background_loop, daemon=True)
         bg_thread.start()
-        print("💡 Sovereign Background Learning ACTIVE. Respecting Valence Gradients.")
+        print(" Sovereign Background Learning ACTIVE. Respecting Valence Gradients.")
 
     def _background_loop(self):
         """
@@ -992,7 +1012,7 @@ class SovereignConversationalIngestor:
         Alternates between logical nutrients (SE/HN) and visual nutrients (CIFAR/MNIST).
         Modulates frequency based on Valence (Manifold Hunger).
         """
-        print("🌌 Background Manifold Loop initiated...")
+        print(" Background Manifold Loop initiated...")
         
         # Generator for local image drip-feed
         cifar_drip = self.local_images.cifar10_generator(limit=5000)
@@ -1008,19 +1028,19 @@ class SovereignConversationalIngestor:
                     
                     # If satisfaction is extremely high, we dormancy
                     if satisfaction > 0.9:
-                        print(f"💤 Manifold Saturation High ({satisfaction:.2f}). Deep dormancy...")
+                        print(f"Manifold Saturation High ({satisfaction:.2f}). Deep dormancy...")
                         sleep_interval = 3600 # 1 hour
                     elif hunger < 0.1:
-                        print(f"🛌 Manifold Hunger Low ({hunger:.2f}). Slowing drip...")
+                        print(f" Manifold Hunger Low ({hunger:.2f}). Slowing drip...")
                         sleep_interval = 600 # 10 minutes
                 
                 # 2. logical Drip (Hacker News / Stack Exchange)
-                print("🧪 Extracting Sovereign Logic drip...")
+                print(" Extracting Sovereign Logic drip...")
                 logic_convs = self.ingest_sovereign_logic(limit=5)
                 self._fossilize_batch(logic_convs)
                 
                 # 3. Visual Drip (CIFAR-10)
-                print("🎨 Projecting Local Image drip...")
+                print(" Projecting Local Image drip...")
                 for _ in range(5):
                     try:
                         image_convo = next(cifar_drip)
@@ -1033,7 +1053,7 @@ class SovereignConversationalIngestor:
                 time.sleep(sleep_interval)
                 
             except Exception as e:
-                print(f"⚠️ Background Loop Error: {e}")
+                print(f" Background Loop Error: {e}")
                 time.sleep(60)
 
     def _fossilize_batch(self, conversations: List[Conversation]):
@@ -1076,27 +1096,27 @@ class SovereignConversationalIngestor:
     def sync_cloud_nutrients(self, drive_folder: str = 'REASONER_NUTRIENTS') -> List[Conversation]:
         """Ingest from curated Google Drive folders."""
         if not self.drive:
-            print("⚠️ Drive ingestor not available.")
+            print(" Drive ingestor not available.")
             return []
         return self.drive.sync_nutrient_folder(drive_folder)
 
     def query_cloud_manifold(self, project_id: str, query: str) -> List[Conversation]:
         """Run a BQ query and ingest the resulting conversation rows."""
         if not self.cloud:
-            print("⚠️ Cloud ingestor not available.")
+            print(" Cloud ingestor not available.")
             return []
         return self.cloud.query_bigquery(project_id, query)
 
 
 if __name__ == "__main__":
-    print("🗣️ Conversational API Data Ingestor")
+    print(" Conversational API Data Ingestor")
     print("Demonstrates programmatic ingestion of conversational data")
     print("=" * 60)
     
     # Demo Hugging Face ingestion
-    print("\n🤗 Hugging Face Dataset Ingestion:")
+    print("\n Hugging Face Dataset Ingestion:")
     demo_huggingface_ingestion()
     
     # Demo ConvoKit ingestion
-    print("\n📚 ConvoKit Corpus Ingestion:")
+    print("\n ConvoKit Corpus Ingestion:")
     demo_convokit_ingestion()
