@@ -550,7 +550,7 @@ class DiegeticPhysicsEngine(nn.Module):
             )
             # Re-enable the background slow-drip learning (Valence Modulated)
             self.ingestor.start_background_learning()
-            print("🚀 Sovereign Ingestor (Option D) initialized. Background learning ACTIVE.")
+            print(" Sovereign Ingestor (Option D) initialized. Background learning ACTIVE.")
         except Exception as e:
             print(f"[INGEST] Failed to start sovereign ingestor: {e}")
             self.ingestor = None
@@ -990,20 +990,20 @@ class DiegeticPhysicsEngine(nn.Module):
              # Handle Sovereign/Cloud fetches
              if text_input.startswith("SOVEREIGN_FETCH:"):
                  if self.ingestor:
-                     print("🔥 Manual Sovereign Nutrient Fetch initiated...")
+                     print(" Manual Sovereign Nutrient Fetch initiated...")
                      convs = self.ingestor.ingest_sovereign_logic(limit=10)
                      response_text = f"SOVEREIGN_FETCH: Ingested {len(convs)} High-Entropy conversations from HN/SE."
                  else:
                      response_text = "SOVEREIGN_FETCH: Ingestor not initialized."
              elif text_input.startswith("CLOUD_FETCH:"):
                  if self.ingestor and self.ingestor.drive:
-                     print("☁️ Manual Cloud Nutrient Sync initiated...")
+                     print(" Manual Cloud Nutrient Sync initiated...")
                      convs = self.ingestor.sync_cloud_nutrients()
                      response_text = f"CLOUD_FETCH: Synced {len(convs)} shards from Google Drive."
                  else:
                      response_text = "CLOUD_FETCH: Cloud connectors not available."
              else:
-                 response_text = self._generate_dyad_aware_response(seed_state, text_input, fingerprint, audio_dyad=audio_dyad, video_dyad_b64=video_dyad_b64)
+                 response_text = self._generate_converged_response(seed_state, text_input, fingerprint, audio_dyad=audio_dyad, video_dyad_b64=video_dyad_b64)
              
              # Finalize metrics for command bypass
              metrics.update({
@@ -1797,7 +1797,7 @@ class DiegeticPhysicsEngine(nn.Module):
                     codec_metrics['yield_pressure'] = yield_p
                     
                     if yield_p > 0:
-                        print(f" [SURGERY] ⚡ TOPOLOGICAL RUPTURE DETECTED (Yield: {yield_p:.4f})")
+                        print(f" [SURGERY]  TOPOLOGICAL RUPTURE DETECTED (Yield: {yield_p:.4f})")
                         seed_state = seed_state * (1.0 + yield_p) # Amplify residue energy
                     
                     # 6. Evaluate Matryoshka shell from collision
@@ -3638,7 +3638,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 router_mode = getattr(self.router, 'mode', 'interior')
                 chromatic_mode = 'pink' if router_mode == 'interior' else 'atomic'
                 
-                print(f" [PIPELINE] 🌀 MANDELBULB RECURSIVE EMBEDDING... (Seed: {signal_tensor.norm().item():.4f})")
+                print(f" [PIPELINE]  MANDELBULB RECURSIVE EMBEDDING... (Seed: {signal_tensor.norm().item():.4f})")
                 signal_tensor, _ = self.augmenter.forward(
                     signal_tensor.unsqueeze(0), 
                     augmentation_factor=1,
@@ -3646,7 +3646,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 )
                 signal_tensor = signal_tensor.squeeze(0)
             except Exception as e:
-                print(f" [PIPELINE] ⚠️ Augmentation-first bypass: {e}")
+                print(f" [PIPELINE]  Augmentation-first bypass: {e}")
 
         # --- OFFICIAL DATA ASSOCIATION (Collision Phase) ---
         # Use DataAssociationLayer to fuse Multi-modal Invariants.
@@ -4740,10 +4740,16 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         self._send_error_json("Missing text1 or text2")
                         return
 
+                    fingerprint = data.get('fingerprint', None)
+                    commutativity = data.get('commutativity', 'symmetric')
                     association_command = f"ASSOCIATE: {text1} <-> {text2}"
-                    print(f" Association command: '{association_command}'")
+                    print(f" Association command: '{association_command}' | has_fp: {fingerprint is not None}")
                     
-                    response_data = ENGINE.process_input(association_command)
+                    response_data = ENGINE.process_input(
+                        association_command,
+                        fingerprint=fingerprint,
+                        commutativity=commutativity
+                    )
                     self._send_json(response_data)
                 except Exception as e:
                     print(f" Error processing association: {e}")
