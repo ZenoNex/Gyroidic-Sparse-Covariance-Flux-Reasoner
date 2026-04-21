@@ -32,15 +32,15 @@ import asyncio
 # Canonical projector for manifold-consistent embeddings
 from src.data.canonical_projection import CanonicalProjector
 
+# Sovereign and Cloud Ingestors
+from src.data.sovereign_ingestor import SovereignIngestor
+from src.data.google_client_manager import GoogleClientManager
+from src.data.google_drive_ingestor import GoogleDriveIngestor
+from src.data.google_cloud_ingestor import GoogleCloudIngestor
 
-def _stable_id(prefix: str, obj: Any) -> str:
-    """Deterministic ID using Blake2s over canonical JSON (sorted keys)."""
-    try:
-        payload = json.dumps(obj, sort_keys=True, ensure_ascii=False, default=str)
-    except Exception:
-        payload = str(obj)
-    hexdigest = hashlib.blake2s(payload.encode('utf-8'), digest_size=10).hexdigest()
-    return f"{prefix}_{hexdigest}"
+
+# Type definitions and utilities
+from src.data.conversational_types import Conversation, ConversationTurn, _stable_id
 
 # Optional imports
 try:
@@ -54,26 +54,6 @@ from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.data.pressure_ingestor import PressureIngestor
 
 
-@dataclass
-class ConversationTurn:
-    """Single turn in a conversation."""
-    speaker_id: str
-    text: str
-    timestamp: Optional[datetime] = None
-    metadata: Optional[Dict[str, Any]] = None
-    embedding: Optional[torch.Tensor] = None
-    affordance_gradients: Optional[Dict[str, float]] = None
-
-
-@dataclass
-class Conversation:
-    """Complete conversation with multiple turns."""
-    conversation_id: str
-    turns: List[ConversationTurn]
-    context: Dict[str, Any]
-    source: str
-    labels: Optional[Dict[str, Any]] = None
-    pressure_signature: Optional[torch.Tensor] = None
 
 
 class HuggingFaceConversationalIngestor:
@@ -950,6 +930,64 @@ def demo_convokit_ingestion():
         print(f"📊 ConvoKit Ingestion Summary:")
         print(f"   Conversations: {summary['total_conversations']}")
         print(f"   Affordance gradients: {list(summary['affordance_gradient_stats'].keys())}")
+
+
+class SovereignConversationalIngestor:
+    """
+    Sovereign Ingestor Hub for zero-auth and cloud-sourced data.
+    
+    Integrates Stack Exchange, HN, Drive, and GCP manifolds into
+    the Reasoner's unified conversational pipeline.
+    """
+    
+    def __init__(
+        self, 
+        repository_root: Optional[str] = None,
+        google_secrets_path: Optional[str] = None,
+        device: str = 'cpu'
+    ):
+        self.device = device
+        self.sovereign = SovereignIngestor(repository_root=repository_root)
+        
+        self.google_manager = None
+        self.drive = None
+        self.cloud = None
+        
+        if google_secrets_path and os.path.exists(google_secrets_path):
+            try:
+                self.google_manager = GoogleClientManager(google_secrets_path)
+                self.drive = GoogleDriveIngestor(self.google_manager)
+                self.cloud = GoogleCloudIngestor(self.google_manager)
+                print("☁️ Google Cloud & Drive connectors initialized.")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize Google services: {e}")
+
+    def ingest_sovereign_logic(self, limit: int = 50) -> List[Conversation]:
+        """Fetch high-entropy logic from SE and HN."""
+        convs = self.sovereign.ingest_stack_exchange(limit=limit)
+        convs.extend(self.sovereign.ingest_hacker_news(limit=limit, mode='ask'))
+        convs.extend(self.sovereign.ingest_hacker_news(limit=limit, mode='newest'))
+        return convs
+
+    def ingest_local_mirrors(self) -> List[Conversation]:
+        """Ingest from local snapshots (IRC logs, MADOC)."""
+        convs = self.sovereign.ingest_irc_logs()
+        convs.extend(self.sovereign.ingest_madoc_snapshot())
+        return convs
+
+    def sync_cloud_nutrients(self, drive_folder: str = 'REASONER_NUTRIENTS') -> List[Conversation]:
+        """Ingest from curated Google Drive folders."""
+        if not self.drive:
+            print("⚠️ Drive ingestor not available.")
+            return []
+        return self.drive.sync_nutrient_folder(drive_folder)
+
+    def query_cloud_manifold(self, project_id: str, query: str) -> List[Conversation]:
+        """Run a BQ query and ingest the resulting conversation rows."""
+        if not self.cloud:
+            print("⚠️ Cloud ingestor not available.")
+            return []
+        return self.cloud.query_bigquery(project_id, query)
 
 
 if __name__ == "__main__":
