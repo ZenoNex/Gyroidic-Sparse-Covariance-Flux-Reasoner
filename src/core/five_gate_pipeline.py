@@ -61,9 +61,16 @@ class ConfabulationDetector(nn.Module):
                 current_pas_h: float, target_mischief: float) -> KnowledgeState:
         """
         Tri-State Logic router based on the Unified Theory's Five-Gate Pipeline.
+        
+        Following §255: min_pas_h is modulated by the Mischief (Play) drive.
+        Higher mischief (play) allows for lower phase alignment before confabulating.
         """
+        # Dynamic Threshold: min_pas_h scaled from [0.4] down to [0.1] by mischief
+        # If mischief is 0 -> thresh=0.4. If mischief is 1.0 -> thresh=0.1
+        dynamic_thresh = max(0.1, self.min_pas_h - (target_mischief * 0.3))
+        
         if not search_gate_authorized:
-            if current_pas_h >= self.min_pas_h:
+            if current_pas_h >= dynamic_thresh:
                 # Topologically sound and internally accessible
                 return KnowledgeState.KNOWN
             else:
