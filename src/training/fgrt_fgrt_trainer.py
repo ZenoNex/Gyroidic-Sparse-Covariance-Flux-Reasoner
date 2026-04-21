@@ -113,10 +113,17 @@ class SpectralStructuralTrainer:
         # 4. Compute Invariants
         pas_h = self.pas_metric(output.unsqueeze(1) if output.dim() == 2 else output).mean().item()
         
-        # 5. Compute Non-Teleological Energy (Willmore + Curvature)
-        # Willmore energy preserves 'smoothness', Curvature preserves 'roughness'.
-        # We compute this on THE PROPOSAL to train the model to be smooth.
-        energy = self.willmore(proposal) + recon_loss
+        # 5. Compute formal Survivorship Pressure (§6.3 TAT)
+        # Survivorship_Pressure = Association_Inaccuracy - α × Temporal_Coherence
+        # Here recon_loss is our measure of 'Inaccuracy' relative to System 2 repair.
+        # We use a running coherence score from the phase tracker.
+        alpha_coh = 0.05
+        coherence = 1.0 - torch.tanh(self.phase_tracker.running_phase.abs())
+        
+        survivorship_pressure = recon_loss - (alpha_coh * coherence)
+        
+        # Total Non-Teleological Energy
+        energy = self.willmore(proposal) + survivorship_pressure
         
         # 6. Topological Curvature Modulation
         # f_topo = f * (1 + gamma * K)
