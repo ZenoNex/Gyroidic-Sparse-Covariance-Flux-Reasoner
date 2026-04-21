@@ -77,6 +77,8 @@ class ZeitgeistState:
         boundary: Last BoundaryState from the Matrioshka loop, if any.
         mode    : Current classification: 'interior', 'grazing', 'switching', 'undefined'.
         step    : Monotonic counter — how many times the state has been updated.
+        braid_word : List of generators [sigma_1, ..., sigma_n] in the group B_n.
+        cs_phase: Accumulated Chern-Simons phase (topological shift).
     """
     alpha_tensor : torch.Tensor  # Symmetric Tensor [M, M] representing the Hybrid CRT index
     level   : int
@@ -84,6 +86,8 @@ class ZeitgeistState:
     boundary: Optional[object] = None          # BoundaryState; type-erased to avoid circular import
     mode    : str = 'interior'
     step    : int = 0
+    braid_word: List[int] = field(default_factory=list)
+    cs_phase: float = 0.0
 
     @property
     def alpha(self) -> List[int]:
@@ -138,6 +142,8 @@ class ZeitgeistState:
             boundary=None,
             mode='interior',
             step=0,
+            braid_word=[],
+            cs_phase=0.0
         )
 
     def switched(
@@ -146,6 +152,8 @@ class ZeitgeistState:
         new_level: int,
         mode: str,
         boundary: Optional[object] = None,
+        new_braid_word: Optional[List[int]] = None,
+        new_cs_phase: Optional[float] = None,
     ) -> 'ZeitgeistState':
         """Return a new ZeitgeistState with updated alpha_tensor, preserving moduli."""
         return ZeitgeistState(
@@ -155,6 +163,8 @@ class ZeitgeistState:
             boundary=boundary,
             mode=mode,
             step=self.step + 1,
+            braid_word=new_braid_word if new_braid_word is not None else self.braid_word,
+            cs_phase=new_cs_phase if new_cs_phase is not None else self.cs_phase,
         )
 
     def to_dict(self) -> Dict:
@@ -166,6 +176,9 @@ class ZeitgeistState:
             'mode': self.mode,
             'step': self.step,
             'is_undefined': self.is_undefined,
+            'braid_word': self.braid_word,
+            'cs_phase': self.cs_phase,
+            'word_length': len(self.braid_word)
         }
         if self.boundary is not None and hasattr(self.boundary, 'to_dict'):
             d['boundary'] = self.boundary.to_dict()
@@ -346,6 +359,69 @@ class ZeitgeistRouter(nn.Module):
         return (g - self.facet_thresholds).abs() < self.grazing_eps
 
     # ------------------------------------------------------------------ #
+    # Braid Automaton Functions (Group B_n)                              #
+    # ------------------------------------------------------------------ #
+    def apply_generator(self, word: List[int], i: int, sign: int = 1) -> List[int]:
+        """
+        Append generator sigma_i (sign=1) or its inverse (sign=-1) and reduce.
+        i is 1-indexed generator index in {1, ..., M-1}.
+        """
+        # Ensure i is within B_M bounds
+        if not (1 <= i < self.M):
+            return word
+            
+        new_word = word + [sign * i]
+        return self.braid_reduce(new_word)
+
+    def braid_reduce(self, word: List[int]) -> List[int]:
+        """
+        Peform greedy reduction of a braid word using B_n relations.
+        1. Inverse Law: sigma_i * sigma_i^-1 = e
+        2. Far Commutativity: sigma_i * sigma_j = sigma_j * sigma_i if |i-j| > 1
+        3. Braid Relation: sigma_i * sigma_{i+1} * sigma_i = sigma_{i+1} * sigma_i * sigma_{i+1}
+        """
+        reduced = True
+        current = list(word)
+        
+        # Limit iterations to prevent infinite loops in non-terminating word games
+        for _ in range(100):
+            reduced = True
+            i = 0
+            while i < len(current):
+                # 1. Inverse Law
+                if i < len(current) - 1 and current[i] == -current[i+1]:
+                    current.pop(i)
+                    current.pop(i)
+                    reduced = False
+                    continue
+                
+                # 2. Far Commutativity (reordering for canonical form)
+                if i < len(current) - 1:
+                    a, b = abs(current[i]), abs(current[i+1])
+                    if abs(a - b) > 1 and a > b:
+                        current[i], current[i+1] = current[i+1], current[i]
+                        reduced = False
+                
+                # 3. Braid Relation (B3-like triple swap)
+                if i < len(current) - 2:
+                    a, b, c = current[i], current[i+1], current[i+2]
+                    if a == c and abs(a - b) == 1:
+                        # sigma_i * sigma_{i+1} * sigma_i -> sigma_{i+1} * sigma_i * sigma_{i+1}
+                        current[i], current[i+1], current[i+2] = b, a, b
+                        reduced = False
+                i += 1
+            
+            if reduced:
+                break
+                
+        return current
+
+    def chern_simons_increment(self, generator: int) -> float:
+        """Calculate Chern-Simons phase shift based on the generator index."""
+        # Anchored to the Prime Resonance Ladder: phase depends on generator 'energy'
+        return (abs(generator) * math.pi) / self.M
+
+    # ------------------------------------------------------------------ #
     # Core CRT switch computation                                          #
     # ------------------------------------------------------------------ #
     def _compute_switch(
@@ -374,18 +450,35 @@ class ZeitgeistRouter(nn.Module):
                 stress_bias[:stress_flat.size(0)] = torch.abs(stress_flat)
             delta_soft = delta_soft + 0.5 * stress_bias / (torch.max(stress_bias) + 1e-8)
 
-        # Braid Group Automaton Integration (Phase 18 Extensions)
-        delta_braided = delta_soft.clone()
-        if self.M >= 3:
-            # sigma_1: Braid between 0 and 1
-            if delta_soft[0] > 0.5:
-                delta_braided[0], delta_braided[1] = delta_soft[1], delta_soft[0]
-            # sigma_2: Braid between 1 and 2
-            if delta_soft[1] > 0.6:
-                delta_braided[1], delta_braided[2] = delta_soft[2], delta_soft[1]
-            # sigma_3: The 3rd Braid (Unknowledge Substrate U)
-            if delta_soft[2] > 0.7:
-                delta_braided[0], delta_braided[2] = delta_soft[2], delta_soft[0]
+        # Braid Group Automaton Integration (n=M Dynamic Rank)
+        # We replace hardcoded swaps with generator applications based on pressure.
+        new_word = list(state.braid_word)
+        new_cs_phase = state.cs_phase
+        
+        # Threshold-based generator application
+        # If switching pressure delta_i is high, it triggers a sigma_i operation.
+        for i in range(1, self.M):
+            # Use delta_soft components as 'Braiding Pressure'
+            # We map even/odd indices to positive/negative generators for chiral diversity
+            pressure = delta_soft[i-1]
+            if pressure > 0.5:
+                sign = 1 if i % 2 == 0 else -1
+                new_word = self.apply_generator(new_word, i, sign=sign)
+                new_cs_phase += self.chern_simons_increment(i * sign)
+
+        # Fossilize Near-Misses: If word length is excessive, it's a 'Topological Refusal'
+        # This acts as a NaN-guard/Suture rhythm regulator.
+        if len(new_word) > self.M * 2:
+            print(f" [ROUTER] ☢️ Topological Refusal: Braid word length {len(new_word)} exceeds rank {self.M}.")
+            # Reset word but preserve the 'scar' in the cs_phase
+            new_word = [] 
+            # In a real scenario, we would trigger a .fossil write here
+            # self.fossilizer.scar_manifold(state, reason="braid_overflow")
+
+        # Derive delta_braided from the current word state (The Suture Rhythm)
+        # Word length increases 'tension' / non-commutativity
+        gasket_tension = len(new_word) / self.M
+        delta_braided = delta_soft * (1.0 + 0.2 * gasket_tension)
                 
         # 1. Update diagonal residues
         current_residues = torch.diagonal(state.alpha_tensor)
@@ -422,7 +515,7 @@ class ZeitgeistRouter(nn.Module):
         if boundary is not None and hasattr(boundary, 'level') and boundary.level >= 0:
             new_level = boundary.level
             
-        return new_alpha_tensor, new_level
+        return new_alpha_tensor, new_level, new_word, new_cs_phase
 
     def register_fossil_landmark(self, blake2s_id: str, intensity: float = 1.0):
         """
@@ -555,7 +648,7 @@ class ZeitgeistRouter(nn.Module):
             )
         else:
             # Grazing or crossing — execute non-commutative CRT switch
-            new_alpha_tensor, new_level = self._compute_switch(x, state, boundary=boundary)
+            new_alpha_tensor, new_level, new_word, new_cs_phase = self._compute_switch(x, state, boundary=boundary)
             # If the alpha residues (diagonal) actually changed, this is a full switch
             if not torch.equal(new_alpha_tensor, state.alpha_tensor):
                 mode = 'switching'
@@ -566,6 +659,8 @@ class ZeitgeistRouter(nn.Module):
                 new_level=new_level,
                 mode=mode,
                 boundary=boundary,
+                new_braid_word=new_word,
+                new_cs_phase=new_cs_phase,
             )
 
         # ── 4. ManifoldClock tick (breathing time) ───────────────────── #
@@ -658,6 +753,11 @@ class ZeitgeistRouter(nn.Module):
             'clock_dt': clock_dt,
             'valence': valence,
             'nc_curvature': nc_curvature,
+            # Braid Automaton diagnostics
+            'braid_word': new_state.braid_word,
+            'cs_phase': new_state.cs_phase,
+            'word_length': len(new_state.braid_word),
+            'gasket_tension': len(new_state.braid_word) / self.M,
             # Serialised state for payload
             'state': new_state.to_dict(),
         }
