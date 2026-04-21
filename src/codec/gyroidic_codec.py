@@ -751,7 +751,8 @@ class GyroidicCodec(nn.Module):
     def encode(
         self,
         text: str,
-        image: Optional[torch.Tensor] = None
+        image: Optional[torch.Tensor] = None,
+        commutativity: str = 'symmetric'
     ) -> EncodingResult:
         """
         Encode a text-image pair.
@@ -760,6 +761,7 @@ class GyroidicCodec(nn.Module):
             text: Input text string
             image: Optional image tensor [H,W] or [C,H,W].
                    If None, uses gyroid self-reference.
+            commutativity: 'media_first' (M*T), 'text_first' (T*M), or 'symmetric' (Mean).
 
         Returns:
             EncodingResult with full encoding diagnostics
@@ -771,7 +773,17 @@ class GyroidicCodec(nn.Module):
         image_residues, berry_phases = self.image_projector(image)    # [K, n, n], [K]
 
         # 3. Non-abelian combination
-        combined_channels = self.combiner.combine(text_residues, image_residues)  # [K, n, n]
+        if commutativity == 'media_first':
+            # Reverse order: Image residues act on Text residues (M * T)
+            combined_channels = self.combiner.combine_reverse(text_residues, image_residues)
+        elif commutativity == 'symmetric':
+            # Symmetric combination: Average of both orders to minimize bias
+            fwd = self.combiner.combine(text_residues, image_residues)
+            rev = self.combiner.combine_reverse(text_residues, image_residues)
+            combined_channels = (fwd + rev) * 0.5
+        else:
+            # Default: Text residues act on Image residues (T * M)
+            combined_channels = self.combiner.combine(text_residues, image_residues)
 
         # 4. CRT reconstruction via PolynomialCRT
         encoded = self.crt_bridge.reconstruct(combined_channels)  # [n, n]
