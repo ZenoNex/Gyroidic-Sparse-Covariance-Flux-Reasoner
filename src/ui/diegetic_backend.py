@@ -851,7 +851,9 @@ class DiegeticPhysicsEngine(nn.Module):
                                      text_input: str, 
                                      seed_state: torch.Tensor, 
                                      fingerprint: Optional[Dict],
-                                     affordance_gradients: Dict[str, float]) -> str:
+                                     affordance_gradients: Dict[str, float],
+                                     audio_dyad: Optional[Dict] = None,
+                                     video_dyad_b64: Optional[str] = None) -> str:
         """
         Restored physics-optimized generation loop.
         Applies echo suppression, vowel boosting, and positional fingerprint influence.
@@ -879,6 +881,17 @@ class DiegeticPhysicsEngine(nn.Module):
             if fp_bias.numel() < seed_state.shape[-1]:
                 fp_bias = F.pad(fp_bias, (0, seed_state.shape[-1] - fp_bias.numel()))
             current_state = 0.8 * current_state + 0.2 * fp_bias.unsqueeze(0)
+        
+        if audio_dyad:
+            # Inject audio harmonics influence
+            harmonics = audio_dyad.get('chebyshev_harmonics', [0.0]*10)
+            a_bias = torch.tensor(harmonics, device=self.device, dtype=torch.float32)
+            if a_bias.numel() < seed_state.shape[-1]: a_bias = F.pad(a_bias, (0, seed_state.shape[-1] - a_bias.numel()))
+            current_state = 0.9 * current_state + 0.1 * a_bias.unsqueeze(0)
+
+        if video_dyad_b64:
+            # Subtle entropy shift for video
+            current_state = current_state * 1.05 # 'Excited' state evolution for video context
 
         generated_chars = []
         max_len = 150
@@ -1003,7 +1016,14 @@ class DiegeticPhysicsEngine(nn.Module):
                  else:
                      response_text = "CLOUD_FETCH: Cloud connectors not available."
              else:
-                 response_text = self._generate_converged_response(seed_state, text_input, fingerprint, audio_dyad=audio_dyad, video_dyad_b64=video_dyad_b64)
+                 response_text = self._generate_converged_response(
+                        text_input=text_input, 
+                        seed_state=seed_state, 
+                        fingerprint=fingerprint, 
+                        affordance_gradients=affordance_gradients,
+                        audio_dyad=audio_dyad, 
+                        video_dyad_b64=video_dyad_b64
+                    )
              
              # Finalize metrics for command bypass
              metrics.update({
@@ -3524,7 +3544,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 
                 # Matryoshka Depth
                 if self.meta_polytope is not None:
-                    _, _, shell_level = self.meta_polytope(collision_residues)
+                    # evaluate the manifold state (text_emb) against the polytope, not the residues
+                    _, _, shell_level = self.meta_polytope(text_emb)
                     codec_metrics['matryoshka_level'] = int(shell_level)
 
         except Exception as e:
