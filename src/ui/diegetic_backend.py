@@ -211,7 +211,7 @@ class DiegeticPhysicsEngine(nn.Module):
     The Core Engine.
     Combines Cavity + Larynx + Persistence + Fractal Meta-Recursion + CALM + KAGH.
     """
-    def __init__(self, dim=80, k=5, calm_history_len=8, device=None):
+    def __init__(self, dim=256, k=5, calm_history_len=8, device=None):
         super().__init__()
         if device is None:
             self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
