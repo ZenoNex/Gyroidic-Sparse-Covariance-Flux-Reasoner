@@ -887,9 +887,10 @@ else:
 
 **Contrastive Energy Shaping**: Following EBM tutorial principles
 ```python
-# Push down correct answer energy, pull up incorrect answer energies
-survivorship_pressure = 1.0 - association_accuracy + 0.1 * (1.0 - coherence)
-# No global minimization - use survivorship selection
+# Push down correct answer energy, pull up incorrect answer energies.
+# Unified Pressure Equation (§6.3 TAT):
+survivorship_pressure = (1.0 - association_accuracy) + 0.1 * (1.0 - coherence) - 0.05 * mischief
+# No global minimization - use survivorship selection to preserve 'Play' range.
 ```
 
 **Non-Teleological System 2**: Constraint probe operators without global objective
