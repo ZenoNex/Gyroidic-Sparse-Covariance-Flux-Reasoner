@@ -80,7 +80,7 @@ The Gyroidic Flux Reasoner is designed for **ecological learning** where:
 Instead of teleological loss minimization, we use **survivorship pressure**:
 
 ```
-Survivorship_Pressure = Association_Inaccuracy - α × Temporal_Coherence
+Survivorship_Pressure = Association_Inaccuracy + α × (1.0 - Coherence) - β × Mischief
 ```
 
 Where:
@@ -426,8 +426,9 @@ if containment_pressure > 0.5:  # Rescue trigger
 ```python
 class NonLobotomyTemporalTrainer:
     def train_step(self, batch):
-        # Measure survivorship pressure (not loss)
-        survivorship_pressure = 1.0 - association_accuracy + 0.1 * (1.0 - coherence)
+        # Measure survivorship pressure (Unified Equation §6.3 TAT)
+        # alpha * (1-coh) penalizes instability; beta * mischief rewards novel thought
+        survivorship_pressure = 1.0 - association_accuracy + 0.1 * (1.0 - coherence) - 0.05 * mischief
         
         # Neural component optimization (not polynomial coefficients)
         self.optimizer.zero_grad()
