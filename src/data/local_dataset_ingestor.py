@@ -50,7 +50,7 @@ class LocalDatasetIngestor:
                 if count >= limit:
                     break
                     
-                img_path = image_dir / row['filename']
+                img_path = image_dir / row['img']
                 if not img_path.exists():
                     continue
                 
@@ -75,7 +75,7 @@ class LocalDatasetIngestor:
                     ]
                     
                     yield Conversation(
-                        conversation_id=_stable_id("cifar10", row['filename']),
+                        conversation_id=_stable_id("cifar10", row['img']),
                         turns=turns,
                         context={'source': 'local_deeplearning_studio', 'dataset': 'cifar-10'},
                         source='local_dataset'
