@@ -45,7 +45,7 @@ class SovereignIngestor:
         else:
             self.root = Path(repository_root)
             
-        print(f"🌲 Sovereign Ingestor initialized with REPOSITORY_ROOT: {self.root}")
+        print(f"[*] Sovereign Ingestor initialized with REPOSITORY_ROOT: {self.root}")
         
     def _fuzzy_decode(self, bytes_data: bytes) -> str:
         """
