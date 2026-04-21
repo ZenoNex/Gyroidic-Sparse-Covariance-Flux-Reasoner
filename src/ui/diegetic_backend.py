@@ -613,6 +613,11 @@ class DiegeticPhysicsEngine(nn.Module):
         self.meta_state = torch.clamp(new_meta, -10.0, 10.0)
         
         # Return state for character generation / training
+        # IMPORTANT: During training, we return the non-detached fractal state
+        # to allow gradient propagation for Ricci Flow and Association learning.
+        if self.training:
+            return meta_out['s_fractal']
+            
         return self.meta_state
 
     def _refresh_fossil_cache(self):
@@ -1281,7 +1286,12 @@ class DiegeticPhysicsEngine(nn.Module):
             
             # Use formal physics modules
             dt = self.manifold_clock.tick(manifold_pressure_tensor)
-            self.current_hunger = self.valence_drive(manifold_pressure_tensor)
+            # Inject Dissonance Triggers (Mischief & Entropy)
+            # Calculated based on latest spectral analysis from previous steps
+            mischief = getattr(self, '_last_mischief', torch.zeros(1, device=self.device))
+            entropy = getattr(self, '_last_spectral_entropy', torch.zeros(1, device=self.device))
+            
+            self.current_hunger = self.valence_drive(manifold_pressure_tensor, mischief=mischief, entropy=entropy)
         
         # text_first commutativity: apply media biases AFTER forward() --
         # text already shaped the manifold; media now distorts the resulting state.
@@ -3542,9 +3552,10 @@ class DiegeticPhysicsEngine(nn.Module):
                     codec_metrics['yield_pressure'] = float(yield_pressure.item())
                     codec_metrics['topological_rupture'] = bool(yield_pressure.item() > 0.0)
                 
-                # Matryoshka Depth
+                # Matryoshka Depth - Evaluated against post-collision Text Embedding
                 if self.meta_polytope is not None:
-                    # evaluate the manifold state (text_emb) against the polytope, not the residues
+                    # evaluate the post-fusion manifold state against the polytope
+                    # ensuring boundary crossings are tracked relative to the text context
                     _, _, shell_level = self.meta_polytope(text_emb)
                     codec_metrics['matryoshka_level'] = int(shell_level)
 
