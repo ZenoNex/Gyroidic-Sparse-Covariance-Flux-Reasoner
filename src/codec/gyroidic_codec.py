@@ -320,7 +320,10 @@ class GyroidImageProjector(nn.Module):
 
         # Per-channel projection from gyroid features to GL(n)
         self.channel_projectors = nn.ModuleList([
-            nn.Linear(config.n * config.n, config.n * config.n)
+            nn.Sequential(
+                nn.Linear(config.n * config.n, config.n * config.n),
+                nn.Tanh()
+            )
             for _ in range(config.K)
         ])
         self.caq = ContextAwareQuantizer(dim=config.n * config.n, max_depth=config.degree)
@@ -379,10 +382,8 @@ class GyroidImageProjector(nn.Module):
             matrix = quantized_flat.view(self.n, self.n)
 
             # Project to GL(n) via matrix exponential (Group Theory Invariant)
-            gl_matrix = torch.matrix_exp(matrix)
+            gl_matrix = torch.matrix_exp(torch.tanh(matrix))
             residues.append(gl_matrix)
-
-        return torch.stack(residues), torch.stack(berry_phases)  # [K, n, n], [K]
 
         return torch.stack(residues), torch.stack(berry_phases)  # [K, n, n], [K]
 
