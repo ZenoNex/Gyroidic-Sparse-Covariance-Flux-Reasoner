@@ -98,6 +98,9 @@ from src.topology.gyroid_covariance import GyroidCovarianceEstimator
 # Speculative Coprime Chiral Gating (Legacy Recovery)
 from src.core.speculative_coprime_gate import SpeculativeCoprimeGate
 
+# Sovereign Ingestion Integration
+from src.data.conversational_api_ingestor import SovereignConversationalIngestor
+
 # SOVEREIGN INGESTION SYSTEM
 from src.data.knowledge_ingestor import ArXivSovereignIngestor
 
@@ -537,12 +540,13 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Sovereign Ingestor: Background Knowledge Acquisition
         try:
-            self.ingestor = ArXivSovereignIngestor(
-                fossilizer=self.fossilizer,
-                engine_dim=self.dim,
+            # Mandated REPOSITORY_ROOT configuration (Sovereign Context)
+            self.ingestor = SovereignConversationalIngestor(
+                repository_root="data/sovereign",
+                google_secrets_path="google secret/client_secret_1073144391592-6r5kcdj84sag4eau5rspd0k60ii1vpd2.apps.googleusercontent.com.json",
                 device=self.device
             )
-            self.ingestor.start_sovereign_loop()
+            print("🚀 Sovereign Ingestor (Option D) initialized.")
         except Exception as e:
             print(f"[INGEST] Failed to start sovereign ingestor: {e}")
             self.ingestor = None
@@ -956,7 +960,7 @@ class DiegeticPhysicsEngine(nn.Module):
         input_tensor = self._text_to_tensor(text_input) # [1, dim]
         
         # --- COMMAND PRIORITIZATION ---
-        ingest_cmds = ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:"]
+        ingest_cmds = ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:", "SOVEREIGN_FETCH:", "CLOUD_FETCH:"]
         if any(text_input.startswith(cmd) for cmd in ingest_cmds):
              print(f"[CMD] Command Prioritization: Bypassing pipeline for direct response...")
              # Merciful Topological Reset: Clear historical trauma/dissonance for manual commands
@@ -979,7 +983,23 @@ class DiegeticPhysicsEngine(nn.Module):
              )
              metrics.update(collision_metrics)
              
-             response_text = self._generate_dyad_aware_response(seed_state, text_input, fingerprint, audio_dyad=audio_dyad, video_dyad_b64=video_dyad_b64)
+             # Handle Sovereign/Cloud fetches
+             if text_input.startswith("SOVEREIGN_FETCH:"):
+                 if self.ingestor:
+                     print("🔥 Manual Sovereign Nutrient Fetch initiated...")
+                     convs = self.ingestor.ingest_sovereign_logic(limit=10)
+                     response_text = f"SOVEREIGN_FETCH: Ingested {len(convs)} High-Entropy conversations from HN/SE."
+                 else:
+                     response_text = "SOVEREIGN_FETCH: Ingestor not initialized."
+             elif text_input.startswith("CLOUD_FETCH:"):
+                 if self.ingestor and self.ingestor.drive:
+                     print("☁️ Manual Cloud Nutrient Sync initiated...")
+                     convs = self.ingestor.sync_cloud_nutrients()
+                     response_text = f"CLOUD_FETCH: Synced {len(convs)} shards from Google Drive."
+                 else:
+                     response_text = "CLOUD_FETCH: Cloud connectors not available."
+             else:
+                 response_text = self._generate_dyad_aware_response(seed_state, text_input, fingerprint, audio_dyad=audio_dyad, video_dyad_b64=video_dyad_b64)
              
              # Finalize metrics for command bypass
              metrics.update({
