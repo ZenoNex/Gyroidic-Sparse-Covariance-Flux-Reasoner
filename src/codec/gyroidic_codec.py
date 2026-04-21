@@ -33,6 +33,7 @@ Created: February 2026
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import math
 from typing import Dict, List, Optional, Tuple, Union
 from dataclasses import dataclass, field
