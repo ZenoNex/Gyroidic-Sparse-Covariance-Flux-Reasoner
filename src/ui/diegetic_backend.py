@@ -4529,7 +4529,7 @@ class DiegeticPhysicsEngine(nn.Module):
                     tensor.nan_to_num_(nan=0.0, posinf=0.0, neginf=0.0)
 
 # Initialize Engine (only when running as the server entry point, not when imported by tests)
-_running_as_server = (__name__ == '__main__') or _os.environ.get('GYROID_SERVER_MODE', '0') == '1'
+_running_as_server = (__name__ == '__main__') or os.environ.get('GYROID_SERVER_MODE', '0') == '1'
 if _running_as_server:
     ENGINE = DiegeticPhysicsEngine()
     ENGINE.load_state()
