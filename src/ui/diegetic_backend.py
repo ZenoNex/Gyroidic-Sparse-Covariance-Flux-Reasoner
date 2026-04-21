@@ -839,6 +839,85 @@ class DiegeticPhysicsEngine(nn.Module):
 
         return engine_output
 
+    def _generate_converged_response(self, 
+                                     text_input: str, 
+                                     seed_state: torch.Tensor, 
+                                     fingerprint: Optional[Dict],
+                                     affordance_gradients: Dict[str, float]) -> str:
+        """
+        Restored physics-optimized generation loop.
+        Applies echo suppression, vowel boosting, and positional fingerprint influence.
+        """
+        # 1. Physics Modulation
+        quantum_state = getattr(self, 'quantum_reasoner', None) is not None
+        matrioshka_level = getattr(self.caq, '_level', 0) if hasattr(self, 'caq') else 0
+        
+        temperature = 1.0 + (0.5 if quantum_state else 0.0)
+        if matrioshka_level >= 3: temperature *= 0.7 # Focus under deep quantization
+        
+        # 2. Echo Suppression Setup
+        input_chars = set(text_input.lower())
+        suppression_factor = 0.4 # Penalty for repeating input
+        
+        # 3. Vowel Boost Setup
+        vowels = set("aeiouAEIOU")
+        vowel_boost_factor = 1.5 # Mandated for 'singing' quality
+        
+        # 4. Positional State Evolution
+        current_state = seed_state
+        if fingerprint and 'L' in fingerprint:
+            # Inject fingerprint residue into starting state
+            fp_bias = torch.tensor(fingerprint['L'][:seed_state.shape[-1]], device=self.device, dtype=torch.float32)
+            if fp_bias.numel() < seed_state.shape[-1]:
+                fp_bias = F.pad(fp_bias, (0, seed_state.shape[-1] - fp_bias.numel()))
+            current_state = 0.8 * current_state + 0.2 * fp_bias.unsqueeze(0)
+
+        generated_chars = []
+        max_len = 150
+        min_len = 20
+        
+        # Autoregressive Loop
+        for i in range(max_len):
+            # Gradual temperature decay (Start focused -> End creative)
+            iter_temp = temperature * (1.0 + 0.002 * i) 
+            
+            logits, conf = self.larynx(current_state, temperature=iter_temp)
+            
+            # Apply Echo Suppression
+            for char in input_chars:
+                if ord(char) < logits.shape[-1]:
+                    logits[0, ord(char)] -= suppression_factor
+            
+            # Apply Vowel Boosting
+            for v in vowels:
+                if ord(v) < logits.shape[-1]:
+                    logits[0, ord(v)] *= vowel_boost_factor
+            
+            probs = torch.softmax(logits, dim=-1)
+            char_idx = torch.multinomial(probs[0], 1).item()
+            
+            char = chr(max(32, min(126, char_idx)))
+            generated_chars.append(char)
+            
+            # Stop condition
+            if len(generated_chars) >= min_len and char in ('.', '!', '?') and conf.item() > 0.7:
+                break
+                
+            # State Evolution (Singing)
+            # Use Larynx weights to rotate the state based on the symbol emitted
+            feedback = torch.tanh(self.larynx.proj.weight[char_idx].unsqueeze(0))
+            current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * torch.randn_like(current_state)
+
+        # 5. Linguistic Correction (Anti-glitch filter)
+        res = "".join(generated_chars)
+        # Fix excessive consonant runs
+        vowel_indices = [i for i, c in enumerate(res) if c.lower() in 'aeiou']
+        if len(vowel_indices) < len(res) / 5:
+            # Add emergency vowel if too dry
+            res += " eia"
+            
+        return res
+
     def _process_input_internal(
         self,
         text_input: str,
@@ -1648,6 +1727,64 @@ class DiegeticPhysicsEngine(nn.Module):
         seed_state = torch.clamp(seed_state, min=-10.0, max=10.0)
         seed_state = seed_state / (torch.norm(seed_state, dim=-1, keepdim=True) + 1e-8)
         
+        # =============================================
+        # PHASE 2.8: MULTI-MODAL COLLISION (Physics restoration)
+        # =============================================
+        # Collide image and text residues via DataAssociationLayer
+        collision_residues = None
+        codec_metrics = {}
+        if fingerprint:
+            try:
+                # 1. Compute Image Embedding for DataAssociationLayer
+                if 'L' in fingerprint:
+                    K_fp = len(fingerprint['L'])
+                    flat = fingerprint.get('L', [0.0]*K_fp) + fingerprint.get('Cr', [0.0]*K_fp) + fingerprint.get('Cb', [0.0]*K_fp)
+                else:
+                    flat = fingerprint.get('r',[]) + fingerprint.get('g',[]) + fingerprint.get('b',[]) + fingerprint.get('l',[]) + [fingerprint.get('texture', 0.0)] + fingerprint.get('edges', [0.0]*8)
+                
+                if flat:
+                    fp_tensor = torch.tensor(flat, dtype=torch.float32, device=self.device)
+                    target = self.K_IMAGE_MAX * 3 # 96
+                    if fp_tensor.numel() < target:
+                        fp_tensor = F.pad(fp_tensor, (0, target - fp_tensor.numel()))
+                    elif fp_tensor.numel() > target:
+                        fp_tensor = fp_tensor[:target]
+                    
+                    input_image_emb = self.fingerprint_proj(fp_tensor.unsqueeze(0))
+                    
+                    # 2. Extract Text Embedding for collision
+                    input_text_emb = self.embedding(torch.tensor([ord(c) % self.vocab_size for c in text_input[:128]], device=self.device).unsqueeze(0)).mean(dim=1)
+                    
+                    # 3. Perform Multi-modal Collision
+                    collision_residues = self.associator(input_text_emb, input_image_emb) # [1, k]
+                    
+                    # 4. Codec Verification (Non-Abelian Entanglement)
+                    # We pass the raw signal to the codec to calculate the commutativity gap
+                    codec_result = self.codec.encode(text_input, fp_tensor)
+                    codec_metrics = codec_result.diagnostics
+                    
+                    # 5. Mohr-Coulomb Yield Pressure (Topological Rupture)
+                    # Yield = |shear| - mu * normal - cohesion
+                    mu = 0.5
+                    cohesion = 0.1
+                    shear = codec_metrics.get('entanglement_ratio', 0.0)
+                    normal = codec_metrics.get('modular_congruence', 0.0)
+                    yield_p = shear - (mu * normal) - cohesion
+                    codec_metrics['yield_pressure'] = yield_p
+                    
+                    if yield_p > 0:
+                        print(f" [SURGERY] ⚡ TOPOLOGICAL RUPTURE DETECTED (Yield: {yield_p:.4f})")
+                        seed_state = seed_state * (1.0 + yield_p) # Amplify residue energy
+                    
+                    # 6. Evaluate Matryoshka shell from collision
+                    if hasattr(self, 'meta_polytope'):
+                        shell_level = self.meta_polytope.evaluate_matryoshka(collision_residues)
+                        codec_metrics['matryoshka_depth'] = shell_level
+                
+                self._last_codec_diagnostics = codec_metrics
+            except Exception as collision_err:
+                print(f"  Multi-modal collision failed: {collision_err}")
+        
         print(f" Applied numerical stabilization. State range: [{seed_state.min():.3f}, {seed_state.max():.3f}]")
         
         # =============================================
@@ -1975,21 +2112,17 @@ class DiegeticPhysicsEngine(nn.Module):
             confab_gen = "The " + " ".join([chr((int(val) % 26) + 97) for val in seed_state[0][:10].abs() * 100]) + "..."
             response_text = override_response + confab_gen
         else:
-            # Enhanced dyad-aware response generation
+            # Enhanced dyad-aware converged response generation
             # =============================================
-            # PHASE 19: OFFICIAL DYAD-AWARE RESPONSE 
+            # PHASE 19: ENRICHED CONVERGED RESPONSE 
             # =============================================
-            # We call the core ResonanceLarynx.generate_response which handles
-            # autoregressive 'singing' modulated by physics states (Quantum/Matrioshka).
-            quantum_state = getattr(self, 'quantum_reasoner', None) is not None
-            matrioshka_level = getattr(self.caq, '_level', 0) if hasattr(self, 'caq') else 0
-            
-            response_text, _ = self.larynx.generate_response(
+            # We wrap the core ResonanceLarynx engine with advanced linguistic
+            # filters (Echo Suppression, Vowel Boosting) to ensure convergence.
+            response_text = self._generate_converged_response(
                 text_input=text_input,
-                context=self.interaction_context,
-                affordance_gradients=affordance_gradients,
-                quantum_state=quantum_state,
-                matrioshka_level=matrioshka_level
+                seed_state=seed_state,
+                fingerprint=fingerprint,
+                affordance_gradients=affordance_gradients
             )
             
             # Update Interaction Context Buffer for next pass
@@ -1998,7 +2131,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 self.interaction_context.pop(0)
             if gate_out["knowledge_state"] == KnowledgeState.SEARCH_NEEDED:
                 response_text = "[SEARCH_GATE_TRIGGERED] Internal manifold lacks topology. " + response_text
-        print(f" Generated dyad-aware response: {response_text}")
+        print(f" Generated physics-enriched response: {response_text}")
         print(f" Response length: {len(response_text)} characters")
         
         # Inject CALM veto message if trajectory is unstable
@@ -3528,8 +3661,38 @@ class DiegeticPhysicsEngine(nn.Module):
                 
                 print(f"[ASSOCIATOR] Multi-modal collision preserved (Residue K-norm: {ent_k.norm().item():.4f})")
             except Exception as e:
-                print(f"[ASSOCIATOR] Collision failure: {e}")
+                print(f"[ASSOCIATOR] Collision failure")
+            
+            # Restore non-Abelian check
+            codec_result = self.codec.encode(description, signal_tensor)
+            entanglement = codec_result.diagnostics.get('entanglement_ratio', 0.0)
+            print(f" [CODEC] Non-Abelian Entanglement: {entanglement:.4f}")
+            
+            # Mandatory check: if low entanglement, we label as 'Stale' or 'Separable'
+            if entanglement < 0.1:
+                print(" [WARNING] Separable manifold detected. Ingestion may lack topological depth.")
 
+            dyad = KnowledgeDyad(
+                linguistic_description=description,
+                image_fingerprint=signal_tensor,
+                gyroid_residue=codec_result.residue, # Irreducible cross-modal state
+                metadata={
+                    "entanglement": entanglement,
+                    "ingestion_iteration": self.iteration,
+                    "spectral_entropy": codec_result.diagnostics.get('spectral_entropy', 0.0)
+                }
+            )
+            
+            # FOSSILIZE logic: preserve the seed_state (residue) alongside the dyad
+            # This ensures 'No Erasing of Implication'
+            self.fossilizer.fossilize(dyad, seed_state=seed_state)
+            
+            # Self-Correction via Ingestion Trace
+            self.iteration += 1
+            response_text = f"[INGESTION_SUCCESS] Dyad fossilized. Entanglement: {entanglement:.4f}. Iteration: {self.iteration}."
+            
+            return response_text
+        
         # Create the dyad object
         dyad = KnowledgeDyad(
             linguistic_description=description,
