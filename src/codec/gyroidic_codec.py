@@ -402,7 +402,7 @@ class GyroidImageProjector(nn.Module):
         # Apply Conformal Escher Mapping if enabled
         if self.conformal_wrap is not None:
             # Transforms Scale -> Shift_X, Rotation -> Shift_Y
-            print(" [PIPELINE] ❄️ CONFORMAL ESCHER LOG-POLAR mapping applied.")
+            print(" [PIPELINE] CONFORMAL ESCHER LOG-POLAR mapping applied.")
             image = self.conformal_wrap(image)
 
         # Resize to gyroid resolution
@@ -526,9 +526,10 @@ class CodecCRTBridge:
         reshaped = channel_matrices.permute(1, 0, 2)  # [n, K, n]
 
         # Delegate to canonical PolynomialCRT
+        # We use 'expectation' mode to ensure differentiability for training
         reconstructed = self.crt.forward(
             reshaped,
-            mode='majority',
+            mode='expectation',
             return_diagnostics=False
         )  # [n, n]
 
@@ -753,7 +754,7 @@ class GyroidicCodec(nn.Module):
         self,
         text: str,
         image: Optional[torch.Tensor] = None,
-        commutativity: str = 'symmetric'
+        commutativity: str = 'text_first'
     ) -> EncodingResult:
         """
         Encode a text-image pair.
