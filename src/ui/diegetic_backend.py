@@ -67,7 +67,7 @@ def compute_autocorrelation(x: torch.Tensor) -> torch.Tensor:
     # Return only the positive lags (symmetric)
     return autocorr[:2*n-1]
 from urllib.parse import urlparse, parse_qs
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple, Union
 import hashlib
 
 # Import Gyroidic Components
