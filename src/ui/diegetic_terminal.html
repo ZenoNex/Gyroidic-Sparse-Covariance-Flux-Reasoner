@@ -1538,7 +1538,11 @@
                 const response = await fetch(`${state.backend_url}/interact`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: command })
+                    body: JSON.stringify({ 
+                        text: command,
+                        fingerprint: state.active_fingerprint,
+                        commutativity: document.getElementById('commute-header')?.value || 'symmetric'
+                    })
                 });
 
                 const data = await response.json();
