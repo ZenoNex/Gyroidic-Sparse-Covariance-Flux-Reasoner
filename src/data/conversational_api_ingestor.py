@@ -29,6 +29,9 @@ from datetime import datetime
 import hashlib
 import asyncio
 import threading
+import zipfile
+import io
+import shutil
 
 # Canonical projector for manifold-consistent embeddings
 from src.data.canonical_projection import CanonicalProjector
@@ -463,6 +466,90 @@ class RedditConversationalIngestor:
         return all_conversations
 
 
+class SovereignConvoKitLoader:
+    """
+    Sovereign (native) implementation for loading ConvoKit corpora.
+    Handles zip downloads and JSONL parsing without external dependencies.
+    """
+    def __init__(self, cache_dir: str = './data/conversational_cache'):
+        self.cache_dir = Path(cache_dir)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.base_url = "https://zissou.infosci.cornell.edu/convokit/datasets"
+
+    def download_corpus(self, corpus_name: str) -> Optional[Path]:
+        """Download and extract a ConvoKit corpus."""
+        target_dir = self.cache_dir / corpus_name
+        if target_dir.exists():
+            return target_dir
+
+        zip_url = f"{self.base_url}/{corpus_name}/{corpus_name}.zip"
+        print(f"📥 Downloading Sovereign Corpus: {corpus_name} from {zip_url}...")
+        
+        try:
+            response = requests.get(zip_url, stream=True)
+            response.raise_for_status()
+            
+            with zipfile.ZipFile(io.BytesIO(response.content)) as z:
+                z.extractall(self.cache_dir)
+            
+            print(f"✅ Extracted to {target_dir}")
+            return target_dir
+        except Exception as e:
+            print(f"❌ Failed to download sovereign corpus {corpus_name}: {e}")
+            return None
+
+    def parse_utterances(self, corpus_path: Path, max_conversations: int = 1000) -> List[Conversation]:
+        """Parse utterances.jsonl and reconstruct conversations."""
+        utterances_file = corpus_path / "utterances.jsonl"
+        if not utterances_file.exists():
+            print(f"❌ utterances.jsonl not found in {corpus_path}")
+            return []
+
+        # Map conversation_id -> list of turns
+        convo_map = {}
+        
+        try:
+            with open(utterances_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    data = json.loads(line)
+                    cid = data.get('conversation_id')
+                    if not cid: continue
+                    
+                    if cid not in convo_map:
+                        if len(convo_map) >= max_conversations:
+                            continue
+                        convo_map[cid] = []
+                    
+                    turn = ConversationTurn(
+                        speaker_id=data.get('speaker', data.get('user', 'unknown')),
+                        text=data.get('text', ''),
+                        metadata={
+                            'utterance_id': data.get('id'),
+                            'reply_to': data.get('reply_to'),
+                            'timestamp': data.get('timestamp'),
+                            **(data.get('meta', {}))
+                        }
+                    )
+                    convo_map[cid].append(turn)
+
+            conversations = []
+            for cid, turns in convo_map.items():
+                # Sort turns by timestamp if available
+                turns.sort(key=lambda x: x.metadata.get('timestamp') or 0)
+                
+                conversations.append(Conversation(
+                    conversation_id=cid,
+                    turns=turns,
+                    source='sovereign_convokit',
+                    context={'corpus_path': str(corpus_path)}
+                ))
+            
+            return conversations
+        except Exception as e:
+            print(f"❌ Error parsing sovereign utterances: {e}")
+            return []
+
+
 class ConvoKitIngestor:
     """
     Ingest labeled conversational data using ConvoKit library.
@@ -480,33 +567,39 @@ class ConvoKitIngestor:
             'tennis-corpus',
             'wikipedia-corpus'
         ]
+        self.sovereign_loader = SovereignConvoKitLoader()
     
     def list_available_corpora(self) -> List[str]:
         """List available ConvoKit corpora."""
-        try:
-            import convokit
-            return self.available_corpora
-        except ImportError:
-            print(" ConvoKit not installed. Install with: pip install convokit")
-            return []
+        return self.available_corpora
     
     def load_corpus(self, corpus_name: str) -> Optional[Any]:
         """Load a ConvoKit corpus."""
-        try:
-            import convokit
-            corpus = convokit.download(corpus_name)
-            print(f" Loaded ConvoKit corpus: {corpus_name}")
-            return corpus
-        except Exception as e:
-            print(f" Failed to load corpus {corpus_name}: {e}")
-            return None
-    
+        if CONVOKIT_AVAILABLE:
+            try:
+                import convokit
+                corpus = convokit.download(corpus_name)
+                print(f"✅ Loaded ConvoKit corpus via library: {corpus_name}")
+                return corpus
+            except Exception as e:
+                print(f"⚠️ Library load failed, falling back to Sovereign Loader: {e}")
+
+        # Sovereign Fallback
+        path = self.sovereign_loader.download_corpus(corpus_name)
+        if path:
+            print(f"✅ Loaded ConvoKit corpus via Sovereign Loader: {corpus_name}")
+            return {'sovereign_path': path}
+        return None
+
     def parse_convokit_corpus(self, corpus, max_conversations: int = 1000) -> List[Conversation]:
         """Parse ConvoKit corpus into Conversation objects."""
-        conversations = []
-        
+        if isinstance(corpus, dict) and 'sovereign_path' in corpus:
+            return self.sovereign_loader.parse_utterances(corpus['sovereign_path'], max_conversations)
+            
         try:
+            conversations = []
             conv_count = 0
+            
             for convo_id in corpus.get_conversation_ids():
                 if conv_count >= max_conversations:
                     break
