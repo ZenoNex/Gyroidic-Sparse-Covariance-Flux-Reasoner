@@ -544,9 +544,13 @@ class DiegeticPhysicsEngine(nn.Module):
             self.ingestor = SovereignConversationalIngestor(
                 repository_root="data/sovereign",
                 google_secrets_path="google secret/client_secret_1073144391592-6r5kcdj84sag4eau5rspd0k60ii1vpd2.apps.googleusercontent.com.json",
+                fossilizer=self.fossilizer,
+                router=self.zeitgeist_router,
                 device=self.device
             )
-            print("🚀 Sovereign Ingestor (Option D) initialized.")
+            # Re-enable the background slow-drip learning (Valence Modulated)
+            self.ingestor.start_background_learning()
+            print("🚀 Sovereign Ingestor (Option D) initialized. Background learning ACTIVE.")
         except Exception as e:
             print(f"[INGEST] Failed to start sovereign ingestor: {e}")
             self.ingestor = None
