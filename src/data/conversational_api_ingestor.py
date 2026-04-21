@@ -28,6 +28,7 @@ import numpy as np
 from datetime import datetime
 import hashlib
 import asyncio
+import threading
 
 # Canonical projector for manifold-consistent embeddings
 from src.data.canonical_projection import CanonicalProjector
@@ -37,6 +38,7 @@ from src.data.sovereign_ingestor import SovereignIngestor
 from src.data.google_client_manager import GoogleClientManager
 from src.data.google_drive_ingestor import GoogleDriveIngestor
 from src.data.google_cloud_ingestor import GoogleCloudIngestor
+from src.data.local_dataset_ingestor import LocalDatasetIngestor
 
 
 # Type definitions and utilities
@@ -944,10 +946,19 @@ class SovereignConversationalIngestor:
         self, 
         repository_root: Optional[str] = None,
         google_secrets_path: Optional[str] = None,
+        fossilizer: Optional[Any] = None,
+        router: Optional[Any] = None,
         device: str = 'cpu'
     ):
         self.device = device
+        self.fossilizer = fossilizer
+        self.router = router # Access to ZeitgeistRouter for Valence checks
+        
         self.sovereign = SovereignIngestor(repository_root=repository_root)
+        self.local_images = LocalDatasetIngestor(
+            datasets_root=r"D:\Users\Aweso\AppData\Local\Programs\DeepLearningStudio\data\public\datasets",
+            device=device
+        )
         
         self.google_manager = None
         self.drive = None
@@ -966,8 +977,95 @@ class SovereignConversationalIngestor:
         """Fetch high-entropy logic from SE and HN."""
         convs = self.sovereign.ingest_stack_exchange(limit=limit)
         convs.extend(self.sovereign.ingest_hacker_news(limit=limit, mode='ask'))
-        convs.extend(self.sovereign.ingest_hacker_news(limit=limit, mode='newest'))
+        convs.extend(self.sovereign.ingest_hacker_news(limit=limit, mode='recent'))
         return convs
+
+    def start_background_learning(self):
+        """Starts the slow-drip sovereign learning manifold."""
+        bg_thread = threading.Thread(target=self._background_loop, daemon=True)
+        bg_thread.start()
+        print("💡 Sovereign Background Learning ACTIVE. Respecting Valence Gradients.")
+
+    def _background_loop(self):
+        """
+        The Slow-Drip loop.
+        Alternates between logical nutrients (SE/HN) and visual nutrients (CIFAR/MNIST).
+        Modulates frequency based on Valence (Manifold Hunger).
+        """
+        print("🌌 Background Manifold Loop initiated...")
+        
+        # Generator for local image drip-feed
+        cifar_drip = self.local_images.cifar10_generator(limit=5000)
+        
+        while True:
+            try:
+                # 1. Check Valence (Hunger for new nutrients)
+                sleep_interval = 60 # Default 1 minute
+                if self.router and hasattr(self.router, '_valence'):
+                    metrics = self.router._valence.get_metrics()
+                    hunger = metrics.get('current_hunger_drive', 1.0)
+                    satisfaction = metrics.get('asymptotic_satisfaction', 0.0)
+                    
+                    # If satisfaction is extremely high, we dormancy
+                    if satisfaction > 0.9:
+                        print(f"💤 Manifold Saturation High ({satisfaction:.2f}). Deep dormancy...")
+                        sleep_interval = 3600 # 1 hour
+                    elif hunger < 0.1:
+                        print(f"🛌 Manifold Hunger Low ({hunger:.2f}). Slowing drip...")
+                        sleep_interval = 600 # 10 minutes
+                
+                # 2. logical Drip (Hacker News / Stack Exchange)
+                print("🧪 Extracting Sovereign Logic drip...")
+                logic_convs = self.ingest_sovereign_logic(limit=5)
+                self._fossilize_batch(logic_convs)
+                
+                # 3. Visual Drip (CIFAR-10)
+                print("🎨 Projecting Local Image drip...")
+                for _ in range(5):
+                    try:
+                        image_convo = next(cifar_drip)
+                        self._fossilize_batch([image_convo])
+                    except StopIteration:
+                        # Reset generator if exhausted or loop back
+                        cifar_drip = self.local_images.cifar10_generator(limit=5000)
+                        break
+                
+                time.sleep(sleep_interval)
+                
+            except Exception as e:
+                print(f"⚠️ Background Loop Error: {e}")
+                time.sleep(60)
+
+    def _fossilize_batch(self, conversations: List[Conversation]):
+        """Integrates conversations into the manifold residues."""
+        if not self.fossilizer:
+            return
+            
+        for convo in conversations:
+            try:
+                # Use the first turn's text as the primary description
+                desc = convo.turns[0].text[:100]
+                
+                # Generate residue from embeddings if present (for images)
+                # else use text_to_tensor via projector
+                if any(t.embedding is not None for t in convo.turns):
+                    residue = next(t.embedding for t in convo.turns if t.embedding is not None)
+                else:
+                    proj = self.sovereign.projector.project_text_to_state(convo.turns[0].text)
+                    residue = proj['state']
+                
+                # Create Dyad for fossilization
+                from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
+                dyad = KnowledgeDyad(
+                    image_fingerprint=torch.zeros(137, device=self.device), # Placeholder
+                    linguistic_description=desc,
+                    relevance_score=0.8,
+                    metadata=convo.context
+                )
+                
+                self.fossilizer.fossilize(dyad, residue)
+            except Exception as e:
+                continue
 
     def ingest_local_mirrors(self) -> List[Conversation]:
         """Ingest from local snapshots (IRC logs, MADOC)."""
