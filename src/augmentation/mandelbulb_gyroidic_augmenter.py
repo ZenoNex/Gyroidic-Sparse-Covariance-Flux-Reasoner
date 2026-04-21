@@ -475,7 +475,8 @@ class MandelbulbGyroidicAugmenter(nn.Module):
     def forward(self, 
                 X: torch.Tensor, 
                 y: torch.Tensor = None,
-                augmentation_factor: int = 2) -> Tuple[torch.Tensor, torch.Tensor]:
+                augmentation_factor: int = 2,
+                chromatic_mode: str = 'pink') -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Generate augmented dataset using Mandelbulb-Gyroidic framework.
         
@@ -483,6 +484,7 @@ class MandelbulbGyroidicAugmenter(nn.Module):
             X: Input features [batch_size, feature_dim]
             y: Labels [batch_size] (optional)
             augmentation_factor: Number of augmentations per sample
+            chromatic_mode: 'pink' (Subjective/Interior) or 'atomic' (Objective/Grazing)
             
         Returns:
             Tuple of (augmented_X, augmented_y)
@@ -491,6 +493,9 @@ class MandelbulbGyroidicAugmenter(nn.Module):
         
         # Input validation and preprocessing
         X_processed = torch.clamp(X, min=-10.0, max=10.0)  # Prevent extreme inputs
+        
+        # Apply Barbenheimer Chromatic Shift (Unicorn Synthesis)
+        X_processed = self._apply_barbenheimer_quantization(X_processed, chromatic_mode)
         
         # Check for NaN/inf in input
         if torch.isnan(X_processed).any() or torch.isinf(X_processed).any():
@@ -588,6 +593,27 @@ class MandelbulbGyroidicAugmenter(nn.Module):
         
         return augmented_X, augmented_y
     
+    def _apply_barbenheimer_quantization(self, X: torch.Tensor, mode: str) -> torch.Tensor:
+        """
+        Implement the Pink/Atomic spectral shift (Unicorn Synthesis).
+        
+        - Pink (Interior/Barbie Land): Boost high-frequency harmonics (Subjective Experience).
+        - Atomic (Grazing/Los Alamos): Monochrome spectral damping (Objective Reality).
+        """
+        if mode == 'pink':
+            print(" [PIPELINE] 🌀 Entering Barbie Land (Pink/Interior)... boosting high-freq residues.")
+            # Map chromaticity: non-linear gain on the "tail" of the spectral signal
+            # This represents hyper-saturated ideal states.
+            gain = torch.linspace(1.0, 2.5, steps=X.shape[-1], device=X.device)
+            return X * gain
+        elif mode == 'atomic':
+            print(" [PIPELINE] ☢️ Transitioning to Los Alamos (Atomic/Grazing)... applying monochrome damping.")
+            # Map monochrome: compress variance and dampen high-freq harmonics.
+            # This represents the decay and mortality of the "Real World".
+            decay = torch.linspace(1.0, 0.2, steps=X.shape[-1], device=X.device)
+            return (X - X.mean(dim=-1, keepdim=True)) * decay + X.mean(dim=-1, keepdim=True)
+        return X
+
     def validate_augmentation(self, 
                             original_data: torch.Tensor,
                             augmented_data: torch.Tensor) -> Dict[str, bool]:
