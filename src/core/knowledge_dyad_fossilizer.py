@@ -12,6 +12,7 @@ from src.topology.speculative_homology import SpeculativeHomologyEngine
 from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
 from src.core.non_ergodic_entropy import NonErgodicEntropyEstimator
 from src.core.love_invariant_protector import LoveInvariantProtector
+from src.core.invariants import compute_chirality, compute_chiral_shift, check_glyphlock
 
 @dataclass
 class KnowledgeDyad:
@@ -153,10 +154,18 @@ class DyadFossilizer:
             betti_results, current_pas, _ = self.homology_engine(s_state, self.prev_pas.to(device))
             self.prev_pas = current_pas.detach().cpu()
             
-            # B. Chiral Score & Spectral Pressure
+            # B. Chiral Metrics & Spectral Pressure
             # Probe expects [B, Seq, Dim] or [B, C, R, T] - we provide [1, 1, Dim]
             probe_results = self.covariance_probe(s_state.unsqueeze(1))
-            chiral_score = probe_results['total_pressure'].mean().item()
+            
+            # Extract both centroid shift and parity torsion
+            # (Architecture alignment: chiral_score is the shift, torsion is the invariant)
+            chiral_shift = compute_chiral_shift(s_state).item()
+            chiral_torsion = compute_chirality(s_state).abs().item()
+            is_glyph_locked = bool(check_glyphlock(s_state).item() > 0)
+            
+            # total_pressure as scalar energy proxy
+            spectral_pressure = probe_results['total_pressure'].mean().item()
             
             # C. Spectral Entropy (Non-Ergodic decomposition)
             entropy_results = self.entropy_estimator(s_state)
@@ -166,7 +175,10 @@ class DyadFossilizer:
             b0, b1 = betti_results.get(0, 1), betti_results.get(1, 0)
         else:
             # Fallback for headless ingestion (Lobotomy Warning)
-            chiral_score = 0.0
+            chiral_shift = 0.0
+            chiral_torsion = 0.0
+            is_glyph_locked = False
+            spectral_pressure = 0.0
             spectral_entropy = 0.0
             soliton_entropy = 0.0
             b0, b1 = 1, 0
@@ -178,7 +190,10 @@ class DyadFossilizer:
             'description': dyad.linguistic_description, # Legacy description key
             'text_input': dyad.linguistic_description,
             'meta_state': seed_state.detach().cpu() if seed_state is not None else None,
-            'chiral_score': float(chiral_score),
+            'chiral_score': float(chiral_shift),
+            'chiral_torsion': float(chiral_torsion),
+            'glyphlock': is_glyph_locked,
+            'spectral_pressure': float(spectral_pressure),
             'spectral_entropy': float(spectral_entropy),
             'betti_0': int(b0),
             'betti_1': int(b1),
