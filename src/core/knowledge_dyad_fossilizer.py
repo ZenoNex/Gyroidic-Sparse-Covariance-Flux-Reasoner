@@ -8,6 +8,10 @@ from dataclasses import dataclass
 from typing import Optional, Dict, Tuple, List, Any
 import datetime
 from src.core.agent_substrate_bridge import AgentSubstrateBridge
+from src.topology.speculative_homology import SpeculativeHomologyEngine
+from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
+from src.core.non_ergodic_entropy import NonErgodicEntropyEstimator
+from src.core.love_invariant_protector import LoveInvariantProtector
 
 @dataclass
 class KnowledgeDyad:
@@ -82,10 +86,21 @@ class DyadFossilizer:
     
     def __init__(self, 
                  storage_dir: str = "data/encodings",
-                 fusion_layer: Optional[ResidueFusion] = None):
+                 fusion_layer: Optional[ResidueFusion] = None,
+                 feature_dim: int = 512):
         self.storage_dir = storage_dir
         os.makedirs(self.storage_dir, exist_ok=True)
-        self.fusion_layer = fusion_layer or ResidueFusion()
+        self.feature_dim = feature_dim
+        self.fusion_layer = fusion_layer or ResidueFusion(feature_dim=feature_dim)
+        
+        # Topological Derivation Engines (Non-Lazy Implication Binding)
+        self.homology_engine = SpeculativeHomologyEngine(feature_dim=feature_dim)
+        self.covariance_probe = SparseGyroidCovarianceProbe(hidden_dim=feature_dim)
+        self.entropy_estimator = NonErgodicEntropyEstimator()
+        self.love_protector = LoveInvariantProtector(love_dim=feature_dim)
+        
+        # Phase Alignment tracking
+        self.prev_pas = torch.tensor(0.91) # Initial stability threshold
         
     def compute_poincaré_embedding(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -102,29 +117,72 @@ class DyadFossilizer:
 
     def fossilize(self, 
                   dyad: KnowledgeDyad, 
-                  text_embedding: torch.Tensor) -> str:
+                  text_embedding: torch.Tensor,
+                  seed_state: Optional[torch.Tensor] = None) -> str:
         """
-        Save the dyad and its computed residue to disk.
+        Save the dyad and its computed residue to disk, binding it to the derived
+        topological invariants of the seed_state (Architecture History).
         Returns the filename of the fossil.
         """
         # 1. Compute Residue (The 'Meaning' of the association)
-        # Ensure inputs are tensors
-        if not isinstance(dyad.image_fingerprint, torch.Tensor):
-             img_tensor = torch.tensor(dyad.image_fingerprint)
+        # Ensure inputs are tensors and align devices
+        device = text_embedding.device
+        if dyad.image_fingerprint is None:
+             img_tensor = torch.zeros(137, device=device)
+        elif not isinstance(dyad.image_fingerprint, torch.Tensor):
+             img_tensor = torch.tensor(dyad.image_fingerprint, dtype=torch.float32, device=device)
         else:
-             img_tensor = dyad.image_fingerprint
+             img_tensor = dyad.image_fingerprint.to(device)
              
+        # 2. Compute Modality Residue (Shear/Torsion)
         residue = self.fusion_layer(img_tensor, text_embedding)
         
         # 2. System 2 Hyperbolic Unfolding (Speculative Recovery)
         # We only perform this 'expensive' magic during fossilization to save heuristic speed.
         hyperbolic_residue = self.compute_poincaré_embedding(residue)
         
-        # 3. Prepare Payload
+        # 3. Real-time Topological Derivation (No Erasing of Implication)
+        # We derive the 'Shadow' of the thought from the seed_state history.
+        if seed_state is not None:
+            # Align seed_state to [Batch, Dim] for engines
+            s_state = seed_state.to(device)
+            if s_state.dim() == 1:
+                s_state = s_state.unsqueeze(0)
+            
+            # A. Betti Numbers (Draft)
+            betti_results, current_pas, _ = self.homology_engine(s_state, self.prev_pas.to(device))
+            self.prev_pas = current_pas.detach().cpu()
+            
+            # B. Chiral Score & Spectral Pressure
+            # Probe expects [B, Seq, Dim] or [B, C, R, T] - we provide [1, 1, Dim]
+            probe_results = self.covariance_probe(s_state.unsqueeze(1))
+            chiral_score = probe_results['total_pressure'].mean().item()
+            
+            # C. Spectral Entropy (Non-Ergodic decomposition)
+            entropy_results = self.entropy_estimator(s_state)
+            spectral_entropy = entropy_results['ergodic_entropy'].item()
+            soliton_entropy = entropy_results['soliton_entropy'].item()
+            
+            b0, b1 = betti_results.get(0, 1), betti_results.get(1, 0)
+        else:
+            # Fallback for headless ingestion (Lobotomy Warning)
+            chiral_score = 0.0
+            spectral_entropy = 0.0
+            soliton_entropy = 0.0
+            b0, b1 = 1, 0
+            current_pas = torch.tensor(0.0)
+
+        # 4. Prepare Payload (Aligned with System Schema)
         payload = {
             'type': 'knowledge_dyad',
-            'description': dyad.linguistic_description,
-            'image_fingerprint': dyad.image_fingerprint,
+            'description': dyad.linguistic_description, # Legacy description key
+            'text_input': dyad.linguistic_description,
+            'meta_state': seed_state.detach().cpu() if seed_state is not None else None,
+            'chiral_score': float(chiral_score),
+            'spectral_entropy': float(spectral_entropy),
+            'betti_0': int(b0),
+            'betti_1': int(b1),
+            'image_fingerprint': dyad.image_fingerprint.detach().cpu() if isinstance(dyad.image_fingerprint, torch.Tensor) else dyad.image_fingerprint,
             'audio_harmonics': dyad.audio_harmonics,
             'video_breather': dyad.video_breather,
             'residue_vector': residue.detach().cpu(),
@@ -133,13 +191,19 @@ class DyadFossilizer:
             'timestamp': dyad.timestamp,
             'metrics': {
                 'relevance': dyad.relevance_score,
+                'pas_h': float(current_pas.item()),
+                'soliton_entropy': float(soliton_entropy),
+                'response': dyad.metadata.get('response_text', '') if dyad.metadata else '',
                 'hyperbolic_eccentricity': torch.norm(hyperbolic_residue).item()
-            }
+            },
+            'dyad_metadata': dyad.metadata # Preserve original context
         }
         
-        # 4. Save to Disk (Safe, atomic-like write)
+        # 5. Save to Disk (Safe, atomic-like write)
+        # Use descriptive filename to prevent 'erasing of implication' visibility.
         safe_desc = "".join(c for c in dyad.linguistic_description[:20] if c.isalnum())
-        filename = f"encoding_{safe_desc}_{int(datetime.datetime.now().timestamp())}.pt"
+        timestamp_int = int(datetime.datetime.now().timestamp() * 1000)
+        filename = f"encoding_{safe_desc}_{timestamp_int}.pt"
         filepath = os.path.join(self.storage_dir, filename)
         
         torch.save(payload, filepath)
@@ -157,7 +221,8 @@ class DyadFossilizer:
                 filepath = os.path.join(self.storage_dir, f)
                 try:
                     data = torch.load(filepath)
-                    if isinstance(data, dict) and 'residue_vector' in data:
+                    # Check both 'text_input' (new) and 'description' (legacy)
+                    if isinstance(data, dict) and ('residue_vector' in data or 'meta_state' in data):
                         fossils.append(data)
                     else:
                         print(f"[RECOVERY] Deleting invalid fossil (missing residue_vector): {f}")
