@@ -88,6 +88,15 @@ class AgentSubstrateBridge(nn.Module):
                 if is_nontrivial.sum() == 0:
                     print("[Substrate Bridge Warning] Unraveling Closure operator classified soliton as completely trivial.")
                     
+            # 3. Chirality Validation (Structural Handedness)
+            c_torsion = payload.get('chiral_torsion', 0.0)
+            g_lock = payload.get('glyphlock', False)
+            
+            if g_lock and c_torsion < 1e-4:
+                print("[Substrate Bridge Warning] Agent Smith claims GLYPHLOCK but has near-zero torsion. Potential topological spoofing.")
+            elif not g_lock:
+                print("[Substrate Bridge Warning] Importing an un-locked Agent Smith. Manifold may remain in PLAY regime.")
+
             return True
         except Exception as e:
             print(f"[Substrate Bridge Error] Ontological import probe failed: {e}")
