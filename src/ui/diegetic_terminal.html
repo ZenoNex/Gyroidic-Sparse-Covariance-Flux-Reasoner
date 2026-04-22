@@ -1020,6 +1020,7 @@
                     video_dyad_b64: state.active_video_dyad,
                     media_chain: state.media_chain.map(item => ({ type: item.type, data: item.data })),
                     commutativity: _calculateContextualCommutativity(),
+                    regime: state.regime,
                 };
 
                 const response = await fetch(`${state.backend_url}/interact`, {
