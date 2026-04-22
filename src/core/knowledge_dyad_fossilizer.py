@@ -25,6 +25,7 @@ class KnowledgeDyad:
     audio_harmonics: Optional[torch.Tensor] = None
     video_breather: Optional[Dict] = None
     gyroid_residue: Optional[torch.Tensor] = None # [n, n] irreducible entanglement
+    meta_state: Optional[torch.Tensor] = None # [dim] architecture state
     relevance_score: float = 1.0
     timestamp: str = ""
     metadata: Optional[Dict] = None
@@ -265,6 +266,18 @@ class DyadFossilizer:
         if not filename.endswith(".json"):
              filename += ".json"
              
+        # Extract Chiral Invariants for the Mathematical Identity
+        # (Using seed_state as the source of truth for the Agent's 'Shape')
+        if dyad.meta_state is not None:
+             s_state = dyad.meta_state.to(prime_frequencies.device)
+             if s_state.dim() == 1: s_state = s_state.unsqueeze(0)
+             from src.core.invariants import compute_chiral_shift, compute_chirality, check_glyphlock
+             c_shift = float(compute_chiral_shift(s_state).item())
+             c_torsion = float(compute_chirality(s_state).abs().item())
+             g_lock = bool(check_glyphlock(s_state).item() > 0)
+        else:
+             c_shift, c_torsion, g_lock = 0.0, 0.0, False
+             
         # Extract Tensors for hashing and math
         gyroid_val = dyad.gyroid_residue.tolist() if dyad.gyroid_residue is not None else None
         prime_val = prime_frequencies.tolist() if isinstance(prime_frequencies, torch.Tensor) else prime_frequencies
@@ -289,6 +302,10 @@ class DyadFossilizer:
             "pestov_ionin_growth_h_gamma": h_gamma,
             "perceptual_baseline_trfc": 160.0,  # Host baseline
             "description": dyad.linguistic_description,
+            "chiral_shift": c_shift,
+            "chiral_torsion": c_torsion,
+            "glyphlock": g_lock,
+            "spectral_entropy": dyad.metadata.get('spectral_entropy', 0.0) if dyad.metadata else 0.0,
             "gyroid_residue": gyroid_val,
             "prime_frequencies": prime_val,
             "betti_numbers": betti_numbers,
