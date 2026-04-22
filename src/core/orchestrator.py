@@ -190,7 +190,8 @@ class UniversalOrchestrator(nn.Module):
         pas_h: float,
         drift: float = 0.0,
         ci: float = None,
-        cpr_satisfied: bool = None
+        cpr_satisfied: bool = None,
+        state: torch.Tensor = None
     ) -> str:
         """
         Integrated Emergence Condition (Eq 10).
@@ -227,12 +228,26 @@ class UniversalOrchestrator(nn.Module):
              is_glyph_locked = bool(check_glyphlock(coeffs).item() > 0)
         
         # 4. Topological Non-triviality (H_1 != 0)
-        # We check the most recent Betti_1 from the Approximator or history
+        # We check the most recent Betti_1 from the Approximator
         has_homology = True
-        if hasattr(self, 'quantum_betti'):
-             # If Betti_1 > 0, we have a non-trivial cycle (survivable soliton)
-             # Default to True if not yet computed to avoid Play-loop death.
-             has_homology = True # Placeholder until real-time Betti is wired
+        if hasattr(self, 'quantum_betti') and state is not None:
+             # Construct Adjacency Matrix from state correlation (Spatial Topology)
+             # state: [B, D]. For B=1, we treat features as nodes.
+             # We use a thresholded correlation to define edges.
+             with torch.no_grad():
+                 s = state.view(1, -1)
+                 # Correlation proxy: A_ij = |s_i * s_j| / (||s||^2 + eps)
+                 # This simulates a clique complex built from feature associations
+                 norm_s = s / (s.norm() + 1e-8)
+                 adj = torch.abs(norm_s.T @ norm_s)
+                 # Thresholding to create a sparse simplicial complex
+                 adj = (adj > 0.1).float()
+                 
+                 betti_results = self.quantum_betti.estimate_betti_numbers(adj, max_dim=1)
+                 b1 = betti_results.get(1, 0.0)
+                 
+                 # H_1 != 0 indicates a non-trivial cycle (The 'Hole' in the manifold)
+                 has_homology = (b1 > 0.01)
         
         # Emergence = Seriousness (Structure Emerged)
         # Now requires GLYPHLOCK and non-trivial Homology
@@ -302,7 +317,7 @@ class UniversalOrchestrator(nn.Module):
         if needs_erosion and pressure_grad is not None and torch.rand(1).item() < self.play_volition_ratio:
              state = self.erosion_filter(state, pressure_grad, intensity=0.15)
         
-        regime = self.determine_regime(pas_h, drift)
+        regime = self.determine_regime(pas_h, drift, state=state)
         routing = self.get_bimodal_routing(regime)
         
         # Monitor CI
