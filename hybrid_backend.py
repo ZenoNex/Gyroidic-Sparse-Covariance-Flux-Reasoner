@@ -439,7 +439,7 @@ class HybridAI:
             print(f"[WARMSTART] Error during recovery: {e}. Manifold may be corrupt or entropic.")
 
     
-    def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None, audio_dyad: dict = None) -> dict:
+    def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None, audio_dyad: dict = None, regime: str = 'goo') -> dict:
         # --- EXPLICIT LOCAL BINDING (Temporal Isolation Snapshot) ---
         # Disconnecting from persistent state to shield autograd from in-place leaks.
         hidden_state = self.hidden_state.clone()
@@ -488,7 +488,8 @@ class HybridAI:
                     audio_dyad=audio_dyad,
                     video_dyad_b64=video_dyad_b64,
                     commutativity=commutativity,
-                    generate_response=True
+                    generate_response=True,
+                    regime=regime
                 )
                 
                 # Fix: Handle case where engine_output might be a list (e.g. batch/bulk interaction)
@@ -784,9 +785,18 @@ class HybridAI:
             filename = f"fossil_{timestamp}.pt"
             filepath = os.path.join(self.graph_dir, filename)
             
+            # Extract residue vector from diagnostics if available (Feature Scars)
+            residue_vector = metrics.get('residue_vector')
+            if residue_vector is None and self.engine:
+                # Fallback to estimated residues from the engine's last pass
+                residue_vector = getattr(self.engine, '_last_est_residues', state).detach().cpu()
+            elif isinstance(residue_vector, (list, tuple)):
+                residue_vector = torch.tensor(residue_vector)
+            
             fossil_data = {
                 'text_input': text,
                 'meta_state': state.detach().cpu(), # The "embedding"
+                'residue_vector': residue_vector,
                 'metrics': metrics,
                 'chiral_score': metrics.get('manifold_voice_resonance', 0.0), # Approximate chirality from resonance
                 'spectral_entropy': metrics.get('spectral_entropy', 0.0),
@@ -1290,10 +1300,11 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 
             video_dyad_b64 = data.get('video_dyad_b64')
             commutativity = data.get('commutativity', 'non_commutative')
+            regime = data.get('regime', 'goo')
             
             # Process through AI system
             if AI_SYSTEM:
-                result = AI_SYSTEM.process_text(text, video_dyad_b64, commutativity, fingerprint)
+                result = AI_SYSTEM.process_text(text, video_dyad_b64, commutativity, fingerprint, regime=regime)
             else:
                 result = {
                     'response': f"AI system not initialized. Received: {user_text}",
