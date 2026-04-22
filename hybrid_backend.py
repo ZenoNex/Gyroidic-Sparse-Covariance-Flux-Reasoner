@@ -12,6 +12,7 @@ import torch
 import threading
 import socketserver
 import numpy as np
+from src.core.invariants import compute_chirality, check_glyphlock
 try:
     import psutil
 except ImportError:
@@ -663,8 +664,10 @@ class HybridAI:
                 # Anisotropy (A) = diag(alpha) -> simplified as a scalar escape valve
                 anisotropy = (phi_var + 1e-8).sqrt().item()
 
-                # Calculate Chiral Score (C) using the newly defined anisotropy
-                chiral_score = chi * torch.exp(torch.tensor(-anisotropy)).item()
+                # Calculate Chiral Torsion (Structural Invariant)
+                # Instead of a score, we track the raw asymmetry magnitude
+                chiral_torsion = float(compute_chirality(self.hidden_state_scarred).abs().item())
+                glyphlock = bool(check_glyphlock(self.hidden_state_scarred).item() > 0)
 
                 zeta = 0.5
                 c_score = chi * np.exp(-abs(pas_h - 1.0) / zeta)
@@ -696,11 +699,12 @@ class HybridAI:
                 # Extract diagnostics
                 diagnostics.update({
                     'pas_h': pas_h,
-                    'chi': chi,
-                    'chiral_score': c_score,
+                    'chiral_torsion': chiral_torsion,
+                    'glyphlock': glyphlock,
                     'codes_energy': codes_energy,
                     'ley_line_anisotropy': anisotropy,
                     'damage_delta': float(self.damage_residue.detach().norm()),
+                    'residue_vector': self.damage_residue.detach().cpu(),
                     'narration_pressure': float(self.narration_field.detach().norm()),
                     'iteration': self.iteration_count
                 })
@@ -798,7 +802,8 @@ class HybridAI:
                 'meta_state': state.detach().cpu(), # The "embedding"
                 'residue_vector': residue_vector,
                 'metrics': metrics,
-                'chiral_score': metrics.get('manifold_voice_resonance', 0.0), # Approximate chirality from resonance
+                'chiral_torsion': metrics.get('chiral_torsion', 0.0),
+                'glyphlock': metrics.get('glyphlock', False),
                 'spectral_entropy': metrics.get('spectral_entropy', 0.0),
                 'timestamp': timestamp
             }
