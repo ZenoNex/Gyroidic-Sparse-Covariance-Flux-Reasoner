@@ -752,11 +752,19 @@ class DiegeticPhysicsEngine(nn.Module):
             similarities = []
             for fossil in self.fossil_cache:
                 # Residue vectors are stored as CPU tensors in the cache
-                res_vec = fossil['residue_vector']
+                # Robust Fallback: handle legacy fossils missing 'residue_vector'
+                res_vec = fossil.get('residue_vector', fossil.get('meta_state'))
                 if not isinstance(res_vec, torch.Tensor):
                     continue
                     
                 res_vec = res_vec.to(self.device).view(1, -1)
+                # Handle dimension mismatch (e.g. if meta_state used as fallback has wrong dim)
+                if res_vec.shape[-1] != self.dim:
+                    if res_vec.shape[-1] < self.dim:
+                        res_vec = F.pad(res_vec, (0, self.dim - res_vec.shape[-1]))
+                    else:
+                        res_vec = res_vec[:, :self.dim]
+
                 res_norm = res_vec / (torch.norm(res_vec) + 1e-8)
                 sim = torch.mm(input_norm, res_norm.t()).item()
                 similarities.append((sim, res_vec))
@@ -789,6 +797,7 @@ class DiegeticPhysicsEngine(nn.Module):
         media_chain: Optional[List[Dict]] = None,
         commutativity: str = 'symmetric',
         generate_response: bool = True,
+        regime: str = 'goo',
     ) -> dict:
         """
         Main entry point for processing an interaction.
@@ -809,7 +818,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 video_dyad_b64=video_dyad_b64,
                 media_chain=media_chain,
                 commutativity=commutativity,
-                generate_response=generate_response
+                generate_response=generate_response,
+                regime=regime
             )
         finally:
             self._is_processing = False
@@ -836,7 +846,8 @@ class DiegeticPhysicsEngine(nn.Module):
             audio_dyad=audio_dyad,
             video_dyad_b64=video_dyad_b64,
             commutativity=commutativity,
-            generate_response=True
+            generate_response=True,
+            regime=fingerprint.get('regime', 'goo') if fingerprint else 'goo'
         )
         
         # Merge evolved state back into persistent self.meta_state (The Ouroboros Loop)
@@ -954,6 +965,7 @@ class DiegeticPhysicsEngine(nn.Module):
         media_chain: Optional[List[Dict]] = None,
         commutativity: str = 'symmetric',
         generate_response: bool = True,
+        regime: str = 'goo',
     ) -> dict:
         """
         Process user text, update cavity, and generate emergent response via Fractal Recursion.
@@ -967,6 +979,25 @@ class DiegeticPhysicsEngine(nn.Module):
         """
         self.iteration += 1
         self.last_input_time = time.time()
+        
+        # --- REGIME-BASED ENTROPY INJECTION ---
+        # Moving to 'goo' reduces hardening and increases mischief/entropy.
+        # Moving to 'prickles' increases hardening for logical consistency.
+        if regime == 'goo':
+            print(f"[PHYSICS] Regime: GOO. Injecting Nutrients (Entropy boost).")
+            # Nudge hardening toward 0.15 (soft manifold)
+            self.hardening = 0.8 * self.hardening + 0.2 * 0.15
+            mischief_bias = 0.5
+            entropy_bias = 0.3
+        else:
+            print(f"[PHYSICS] Regime: PRICKLES. Hardening manifold for truth branching.")
+            # Nudge hardening toward 1.0 (crystallized manifold)
+            self.hardening = 0.8 * self.hardening + 0.2 * 1.0
+            mischief_bias = 0.05
+            entropy_bias = 0.01
+            
+        self._last_mischief = torch.tensor([mischief_bias], device=self.device)
+        self._last_spectral_entropy = torch.tensor([entropy_bias], device=self.device)
         
         # --- INITIALIZATION COVERAGE ---
         response_text = ""
