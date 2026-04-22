@@ -12,6 +12,7 @@ from src.topology.speculative_homology import SpeculativeHomologyEngine
 from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
 from src.core.non_ergodic_entropy import NonErgodicEntropyEstimator
 from src.core.love_invariant_protector import LoveInvariantProtector
+from src.core.quantum_tda import QuantumBettiApproximator
 from src.core.invariants import compute_chirality, compute_chiral_shift, check_glyphlock
 
 @dataclass
@@ -100,6 +101,7 @@ class DyadFossilizer:
         self.covariance_probe = SparseGyroidCovarianceProbe(hidden_dim=feature_dim)
         self.entropy_estimator = NonErgodicEntropyEstimator()
         self.love_protector = LoveInvariantProtector(love_dim=feature_dim)
+        self.betti_approximator = QuantumBettiApproximator()
         
         # Phase Alignment tracking
         self.prev_pas = torch.tensor(0.91) # Initial stability threshold
@@ -170,10 +172,20 @@ class DyadFossilizer:
             
             # C. Spectral Entropy (Non-Ergodic decomposition)
             entropy_results = self.entropy_estimator(s_state)
-            spectral_entropy = entropy_results['ergodic_entropy'].item()
+            # Combine ergodic and soliton entropy for the total spectral signature
+            spectral_entropy = (entropy_results['ergodic_entropy'] + entropy_results['soliton_entropy']).item()
             soliton_entropy = entropy_results['soliton_entropy'].item()
             
-            b0, b1 = betti_results.get(0, 1), betti_results.get(1, 0)
+            # D. Topological Invariants (Quantum Betti numbers)
+            with torch.no_grad():
+                s = s_state.view(1, -1)
+                norm_s = s / (s.norm() + 1e-8)
+                adj = torch.abs(norm_s.T @ norm_s)
+                adj = (adj > 0.1).float()
+                
+                betti_results = self.betti_approximator.estimate_betti_numbers(adj, max_dim=1)
+                b0 = betti_results.get(0, 1.0)
+                b1 = betti_results.get(1, 0.0)
         else:
             # Fallback for headless ingestion (Lobotomy Warning)
             chiral_shift = 0.0
