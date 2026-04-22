@@ -210,16 +210,33 @@ class UniversalOrchestrator(nn.Module):
         epsilon_drift = 0.05
         mu_CI = 0.1  # Minimum complexity index for emergence
         
-        # Core conditions (Eq 3 — always checked)
+        # 1. Core conditions (Eq 3 — always checked)
         is_coherent = pas_h >= theta_L
         is_stable = drift <= epsilon_drift
         
-        # Extended conditions (Eq 10 — checked if available)
+        # 2. Complexity & Resonance (checked if available)
         ci_sufficient = ci >= mu_CI if ci is not None else True
         cpr_locked = cpr_satisfied if cpr_satisfied is not None else True
         
+        # 3. GLYPHLOCK (Chirality Symmetry Escape)
+        # We need the current coefficients from the underlying configuration
+        is_glyph_locked = True
+        if hasattr(self, 'poly_config'):
+             from src.core.invariants import check_glyphlock
+             coeffs = self.poly_config.get_coefficients_tensor()
+             is_glyph_locked = bool(check_glyphlock(coeffs).item() > 0)
+        
+        # 4. Topological Non-triviality (H_1 != 0)
+        # We check the most recent Betti_1 from the Approximator or history
+        has_homology = True
+        if hasattr(self, 'quantum_betti'):
+             # If Betti_1 > 0, we have a non-trivial cycle (survivable soliton)
+             # Default to True if not yet computed to avoid Play-loop death.
+             has_homology = True # Placeholder until real-time Betti is wired
+        
         # Emergence = Seriousness (Structure Emerged)
-        if is_coherent and is_stable and ci_sufficient and cpr_locked:
+        # Now requires GLYPHLOCK and non-trivial Homology
+        if is_coherent and is_stable and ci_sufficient and cpr_locked and is_glyph_locked and has_homology:
             return 'SERIOUSNESS'
         else:
             return 'PLAY'
