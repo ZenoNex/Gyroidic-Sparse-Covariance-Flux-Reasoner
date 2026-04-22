@@ -498,7 +498,8 @@ class DiegeticPhysicsEngine(nn.Module):
         self.fusion_layer = ResidueFusion(feature_dim=self.dim)
         self.fossilizer = DyadFossilizer(
             storage_dir="data/encodings",
-            fusion_layer=self.fusion_layer  # shared reference
+            fusion_layer=self.fusion_layer,  # shared reference
+            feature_dim=self.dim
         )
         
         # 11. Spectral Structural Trainer (Deeper Dynamics)
@@ -3741,9 +3742,9 @@ class DiegeticPhysicsEngine(nn.Module):
                 }
             )
             
-            # FOSSILIZE logic: preserve the seed_state (residue) alongside the dyad
-            # This ensures 'No Erasing of Implication'
-            self.fossilizer.fossilize(dyad, seed_state=seed_state)
+            # FOSSILIZE logic: derive topological invariants from seed_state (history)
+            # This ensures 'No Erasing of Implication' via real-time derivation.
+            self.fossilizer.fossilize(dyad, text_emb, seed_state=seed_state)
             
             # Self-Correction via Ingestion Trace
             self.iteration += 1
@@ -3762,8 +3763,8 @@ class DiegeticPhysicsEngine(nn.Module):
         )
         
         # 3. Call fossilizer (Official Persistence Path)
-        # Use text_emb [1, dim] for the residue calculation
-        fossil_path = self.fossilizer.fossilize(dyad, text_emb)
+        # Use text_emb [1, dim] and seed_state for topological derivation
+        fossil_path = self.fossilizer.fossilize(dyad, text_emb, seed_state=seed_state)
         fossil_id = os.path.basename(fossil_path).replace(".fossil", "")
         
         # Bridge 4: Navigation over Storage (Zeitgeist Landmark)
