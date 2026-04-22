@@ -127,26 +127,33 @@ class SpectralCoherenceCorrector(nn.Module):
             ergodic_band: Low-frequency components
         """
         if signal.dim() == 2:
-            signal = signal.unsqueeze(1)  # Add seq dimension
+            # For [batch, dim] signals, treat dim as the spatial signal
+            signal_for_fft = signal
+            fft_dim = -1
+        else:
+            # For [batch, seq, dim] signals, treat seq as the temporal signal
+            signal_for_fft = signal
+            fft_dim = 1
         
         # FFT-based spectral decomposition
-        fft_signal = torch.fft.fft(signal, dim=1)
-        freqs = torch.fft.fftfreq(signal.shape[1], device=signal.device)
+        # (Architecture Alignment: features are treated as a spatial wave)
+        fft_signal = torch.fft.fft(signal_for_fft, dim=fft_dim)
+        freqs = torch.fft.fftfreq(signal_for_fft.shape[fft_dim], device=signal.device)
         
-        # Split at median frequency
+        # Split at median frequency (Nyquist/2)
         median_freq = torch.median(torch.abs(freqs))
         high_freq_mask = torch.abs(freqs) > median_freq
         low_freq_mask = ~high_freq_mask
         
         # Separate bands
         soliton_fft = fft_signal.clone()
-        soliton_fft[:, low_freq_mask, :] = 0
+        soliton_fft[..., low_freq_mask] = 0 if fft_dim == -1 else soliton_fft[:, low_freq_mask, :].zero_()
         
         ergodic_fft = fft_signal.clone()
-        ergodic_fft[:, high_freq_mask, :] = 0
+        ergodic_fft[..., high_freq_mask] = 0 if fft_dim == -1 else ergodic_fft[:, high_freq_mask, :].zero_()
         
-        soliton_band = torch.fft.ifft(soliton_fft, dim=1).real
-        ergodic_band = torch.fft.ifft(ergodic_fft, dim=1).real
+        soliton_band = torch.fft.ifft(soliton_fft, dim=fft_dim).real
+        ergodic_band = torch.fft.ifft(ergodic_fft, dim=fft_dim).real
         
         return soliton_band, ergodic_band
     
