@@ -97,6 +97,7 @@ from src.surrogates.kagh_networks import KAGHBlock, HarmonicWaveDecomposition, H
 from src.topology.gyroid_covariance import GyroidCovarianceEstimator
 # Speculative Coprime Chiral Gating (Legacy Recovery)
 from src.core.speculative_coprime_gate import SpeculativeCoprimeGate
+from src.core.invariants import compute_chirality, check_glyphlock
 
 # Sovereign Ingestion Integration
 from src.data.conversational_api_ingestor import SovereignConversationalIngestor
@@ -223,6 +224,7 @@ class DiegeticPhysicsEngine(nn.Module):
         self.dim = dim
         self.k = k
         self.last_input_time = 0
+        self.hardening = 0.5 # Default manifold state
         
         # Advanced Extensions (Lazy Init)
         self.meta_polytope = MetaPolytopeMatrioshka(max_depth=5, base_dim=dim) if EXTENSIONS_AVAILABLE else None
@@ -1003,7 +1005,8 @@ class DiegeticPhysicsEngine(nn.Module):
         response_text = ""
         metrics = {
             "pas_h": self._compute_pas_h(self.meta_state) if hasattr(self, 'meta_state') else 0.61,
-            "chiral_score": 0.0,
+            "chiral_torsion": 0.0,
+            "glyphlock": False,
             "manifold_pressure": 0.0,
             "command_bypass": False,
             "retrieval_state": "SENSING",
@@ -1040,6 +1043,12 @@ class DiegeticPhysicsEngine(nn.Module):
                  commutativity=commutativity
              )
              metrics.update(collision_metrics)
+             
+             # Calculate Chiral Torsion (Structural Invariant)
+             if hasattr(self, 'repair_polynomial_config'):
+                 coeffs = self.repair_polynomial_config.get_coefficients_tensor()
+                 metrics['chiral_torsion'] = float(compute_chirality(coeffs).abs().item())
+                 metrics['glyphlock'] = bool(check_glyphlock(coeffs).item() > 0)
              
              # Handle Sovereign/Cloud fetches
              if text_input.startswith("SOVEREIGN_FETCH:"):
@@ -2423,8 +2432,9 @@ class DiegeticPhysicsEngine(nn.Module):
             "crt_honesty": crt_honesty,
             "h_mischief": h_mischief,
             "iteration": self.iteration,
-            "spectral_entropy": 0.5,
-            "chiral_score": 0.1,
+            "spectral_entropy": float(self._last_spectral_entropy.item()) if hasattr(self, '_last_spectral_entropy') else 0.5,
+            "chiral_torsion": float(compute_chirality(self.repair_polynomial_config.get_coefficients_tensor()).abs().item()) if hasattr(self, 'repair_polynomial_config') else 0.0,
+            "glyphlock": bool(check_glyphlock(self.repair_polynomial_config.get_coefficients_tensor()).item() > 0) if hasattr(self, 'repair_polynomial_config') else False,
             "pas_h": pas_h_live,
             "trust_mean": trust_mean,
             "coprime_lock": bool(recovery_metrics.get('coprime_lock', False)) if isinstance(recovery_metrics, dict) else False,
