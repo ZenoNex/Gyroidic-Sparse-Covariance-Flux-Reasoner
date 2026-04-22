@@ -97,7 +97,7 @@ from src.surrogates.kagh_networks import KAGHBlock, HarmonicWaveDecomposition, H
 from src.topology.gyroid_covariance import GyroidCovarianceEstimator
 # Speculative Coprime Chiral Gating (Legacy Recovery)
 from src.core.speculative_coprime_gate import SpeculativeCoprimeGate
-from src.core.invariants import compute_chirality, check_glyphlock
+from src.core.invariants import compute_chirality, check_glyphlock, compute_chiral_shift
 
 # Sovereign Ingestion Integration
 from src.data.conversational_api_ingestor import SovereignConversationalIngestor
@@ -297,6 +297,8 @@ class DiegeticPhysicsEngine(nn.Module):
             healing_iterations=400,
             device=device
         )
+        
+        self.current_regime = 'goo' # Default starting regime
         
         # Repunit-CRT Sparse Probe - for topological factoring
         # Using Legendre polynomial generated coefficients instead of hardcoded primes (anti-lobotomy compliance)
@@ -986,12 +988,14 @@ class DiegeticPhysicsEngine(nn.Module):
         # Moving to 'goo' reduces hardening and increases mischief/entropy.
         # Moving to 'prickles' increases hardening for logical consistency.
         if regime == 'goo':
+            self.current_regime = 'goo'
             print(f"[PHYSICS] Regime: GOO. Injecting Nutrients (Entropy boost).")
             # Nudge hardening toward 0.15 (soft manifold)
             self.hardening = 0.8 * self.hardening + 0.2 * 0.15
             mischief_bias = 0.5
             entropy_bias = 0.3
         else:
+            self.current_regime = 'prickles'
             print(f"[PHYSICS] Regime: PRICKLES. Hardening manifold for truth branching.")
             # Nudge hardening toward 1.0 (crystallized manifold)
             self.hardening = 0.8 * self.hardening + 0.2 * 1.0
@@ -1044,9 +1048,10 @@ class DiegeticPhysicsEngine(nn.Module):
              )
              metrics.update(collision_metrics)
              
-             # Calculate Chiral Torsion (Structural Invariant)
+             # Calculate Chiral Metrics (Structural Invariants)
              if hasattr(self, 'repair_polynomial_config'):
                  coeffs = self.repair_polynomial_config.get_coefficients_tensor()
+                 metrics['chiral_score'] = float(compute_chiral_shift(coeffs).item())
                  metrics['chiral_torsion'] = float(compute_chirality(coeffs).abs().item())
                  metrics['glyphlock'] = bool(check_glyphlock(coeffs).item() > 0)
              
@@ -1066,6 +1071,18 @@ class DiegeticPhysicsEngine(nn.Module):
                  else:
                      response_text = "CLOUD_FETCH: Cloud connectors not available."
              else:
+                 # --- PRE-GENERATION DIAGNOSTICS & MISCHIEF UPDATE ---
+                 # Update Mischief Probe with current regime and pressure
+                 mischief_active = (self.current_regime == 'goo') or (current_gcve > 0.3)
+                 pressure_grad = self.calm_history.mean(dim=0) if self.calm_history is not None else torch.zeros(self.dim, device=self.device)
+        
+                 self.mischief_probe.update(
+                     pressure_grad=pressure_grad, 
+                     coherence=torch.tensor(0.5, device=self.device), 
+                     pas_h=pas_h_live, 
+                     is_good_bug=mischief_active
+                 )
+        
                  response_text = self._generate_converged_response(
                         text_input=text_input, 
                         seed_state=seed_state, 
@@ -2140,6 +2157,17 @@ class DiegeticPhysicsEngine(nn.Module):
         # We process the final seed_state using the Braid Governor
         # Detect command bypass for Braid Governor
         is_cmd = text_input.startswith("INGEST_DYAD:") or text_input.startswith("ASSOCIATE:")
+        # --- PRE-GENERATION DIAGNOSTICS & MISCHIEF UPDATE ---
+        # Update Mischief Probe with current regime and pressure
+        mischief_active = (self.current_regime == 'goo') or (current_gcve > 0.3)
+        pressure_grad = self.calm_history.mean(dim=0) if self.calm_history is not None else torch.zeros(self.dim, device=self.device)
+        
+        self.mischief_probe.update(
+            pressure_grad=pressure_grad, 
+            coherence=torch.tensor(0.5, device=self.device), 
+            pas_h=pas_h_live, 
+            is_good_bug=mischief_active
+        )
         
         try:
             archetype_out = self.archetypal_governor.run_archetypes(
@@ -2165,7 +2193,7 @@ class DiegeticPhysicsEngine(nn.Module):
             archetype_out = {
                 "active_state": seed_state,
                 "resurrections": [],
-                "localized_dt": dt,
+                "localized_dt": 0.1,
                 "abstraction_rate": 0.0,
                 "system_collapsed": False
             }
@@ -2284,8 +2312,7 @@ class DiegeticPhysicsEngine(nn.Module):
             residues, _, _, _ = self.voynich_linguist(seed_state)
             crt_honesty = float(self.voynich_linguist.get_continuous_honesty(residues).item())
             
-        # Update Mischief Probe
-        self.mischief_probe.update(torch.tensor(0.1, device=self.device), torch.tensor(0.5, device=self.device), pas_h_live, is_good_bug=False)
+        # Diagnostics
         h_mischief = self.mischief_probe.H_mischief.item()
         
         honesty_score = (crt_honesty + trust_mean) / 2.0 # Blend Voynich with generic trust
@@ -2433,6 +2460,7 @@ class DiegeticPhysicsEngine(nn.Module):
             "h_mischief": h_mischief,
             "iteration": self.iteration,
             "spectral_entropy": float(self._last_spectral_entropy.item()) if hasattr(self, '_last_spectral_entropy') else 0.5,
+            "chiral_score": float(compute_chiral_shift(self.repair_polynomial_config.get_coefficients_tensor()).item()) if hasattr(self, 'repair_polynomial_config') else 0.1,
             "chiral_torsion": float(compute_chirality(self.repair_polynomial_config.get_coefficients_tensor()).abs().item()) if hasattr(self, 'repair_polynomial_config') else 0.0,
             "glyphlock": bool(check_glyphlock(self.repair_polynomial_config.get_coefficients_tensor()).item() > 0) if hasattr(self, 'repair_polynomial_config') else False,
             "pas_h": pas_h_live,
@@ -2822,9 +2850,12 @@ class DiegeticPhysicsEngine(nn.Module):
         referential_density = len([w for w in text.lower().split() 
                                  if w in ['this', 'that', 'it', 'above', 'below', 'here', 'there']])
         
-        executability_pressure = (imperative_markers * 0.1 + 
-                                procedural_indicators * 0.05 + 
-                                referential_density * 0.02) / max(len(text.split()), 1)
+        executability_pressure = (imperative_markers * 0.2 + 
+                                procedural_indicators * 0.1 + 
+                                referential_density * 0.05) / max(len(text.split()), 4)
+        
+        # Add a tiny bias to prevent dead gradients in the UI
+        executability_pressure = max(executability_pressure, 0.0001)
         
         # =============================================
         # FORMAL SYMBOL DENSITY
@@ -2842,9 +2873,11 @@ class DiegeticPhysicsEngine(nn.Module):
         structured_delims = (text.count('{') + text.count('[') + text.count('(') + 
                            text.count('"') + text.count("'"))
         
-        formal_symbol_density = (symbolic_chars * 0.01 + 
-                               formal_operators * 0.1 + 
-                               structured_delims * 0.05) / max(len(text), 1)
+        formal_symbol_density = (symbolic_chars * 0.05 + 
+                               formal_operators * 0.2 + 
+                               structured_delims * 0.1) / max(len(text), 20)
+        
+        formal_symbol_density = max(formal_symbol_density, 0.0001)
         
         # =============================================
         # RUNTIME EXPANDABILITY
