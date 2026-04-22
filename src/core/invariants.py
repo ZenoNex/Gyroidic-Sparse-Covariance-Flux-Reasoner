@@ -103,40 +103,51 @@ import torch
 
 def compute_chirality(coeffs: torch.Tensor) -> torch.Tensor:
     """
-    Compute Chirality Index with Batch-Awareness.
-    Fixed to handle [K, D] (Test/Single) and [B, K, D] (Operational).
+    Compute Chirality Invariant (Delta Chi) with Batch-Awareness.
+    
+    Chirality is a topological invariant (Delta Chi != 0) ensuring
+    non-symmetric basis recursion. It is NOT a score to be minimized.
+    
+    Returns:
+       delta_chi: [batch] raw energy asymmetry between even and odd modes.
     """
-    # 1. Capture context
-    original_dim = coeffs.dim()
-
-    # 2. Force to 3D: [Batch, K-Manifold, D-Degree]
-    if original_dim == 2:
-        # If [K, D], make it [1, K, D]
+    # 1. Force to 3D: [Batch, K-Manifold, D-Degree]
+    if coeffs.dim() == 2:
         coeffs = coeffs.unsqueeze(0)
-    elif original_dim != 3:
-        raise ValueError(f"Expected 2D or 3D tensor, got {original_dim}D")
+    elif coeffs.dim() != 3:
+        raise ValueError(f"Expected 2D or 3D tensor, got {coeffs.dim()}D")
 
     B, K, D = coeffs.shape
 
-    # 3. Energy extraction (Summing across the K-manifold)
-    # We use non_blocking logic implicitly by staying on the tensor's device
-    energy = coeffs.pow(2).sum(dim=1)  # Shape: [B, D]
+    # 2. Extract Parity Energies (Delta Chi = E_even - E_odd)
+    # We treat the D-degree indices as polynomial frequencies
+    indices = torch.arange(D, device=coeffs.device)
+    even_mask = (indices % 2 == 0)
+    odd_mask = ~even_mask
+    
+    # Energy per mode: [B, K, D] -> [B, D]
+    energy = coeffs.pow(2).sum(dim=1)
+    
+    even_energy = energy[:, even_mask].sum(dim=1)
+    odd_energy = energy[:, odd_mask].sum(dim=1)
+    
+    # Delta Chi (Structural Chirality)
+    delta_chi = even_energy - odd_energy
+    
+    # Return to original context
+    return delta_chi.squeeze()
 
-    # 4. Spectral Centroid Calculation
-    # Arange must be on the SAME device to avoid the 'Synchronous Transfer'
-    # identified in the audit (e.g., uni_pc.py Line 465)
-    indices = torch.arange(D, device=coeffs.device, dtype=coeffs.dtype)
-
-    total_energy = energy.sum(dim=1, keepdim=True) + 1e-8
-    spectral_centroid = (energy * indices).sum(dim=1, keepdim=True) / total_energy
-
-    # 5. Chirality Index: (Centroid - Midpoint) / Midpoint
-    # Positive = High-Freq/Entropic, Negative = Low-Freq/Negentropic
-    midpoint = D / 2.0
-    chirality = (spectral_centroid - midpoint) / midpoint
-
-    # 6. Return to original context (scalar if 2D, vector if 3D)
-    return chirality.squeeze()
+def check_glyphlock(coeffs: torch.Tensor, threshold: float = 1e-4) -> torch.Tensor:
+    """
+    GLYPHLOCK — chirality-constrained emission validation.
+    
+    Returns True (1.0) if chirality (Delta Chi) is non-zero, indicating
+    the system has escaped the 'Symmetry Trap'.
+    """
+    delta_chi = compute_chirality(coeffs)
+    # Glyphlock is active if there is non-trivial asymmetry
+    is_locked = (delta_chi.abs() > threshold).float()
+    return is_locked
 
 class ImplicationInvariant(nn.Module):
     """
