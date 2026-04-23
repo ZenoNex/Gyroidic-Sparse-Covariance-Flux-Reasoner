@@ -99,18 +99,22 @@ class DiegeticConversationalBackend:
             try:
                 checkpoint = torch.load(model_path, map_location=self.device)
                 self.conversational_model.load_state_dict(checkpoint['model_state_dict'])
-                print(f"✅ Loaded pre-trained conversational model from {model_path}")
+                print(f" Loaded pre-trained conversational model from {model_path}")
                 
                 # Show training info
                 if 'conversations_count' in checkpoint:
                     print(f"   Trained on {checkpoint['conversations_count']} real conversations")
                 
             except Exception as e:
-                print(f"⚠️ Could not load pre-trained model: {e}")
+                print(f" Could not load pre-trained model: {e}")
                 print(f"   Using fresh model instead")
     
-    def start_conversation(self, initial_message: str, user_id: str = "user") -> Dict[str, Any]:
-        """Start a new conversation with affordance analysis."""
+    def start_conversation(self, initial_message: str, 
+                         fingerprint: Optional[Dict] = None, 
+                         audio_dyad: Optional[Dict] = None,
+                         video_dyad_b64: Optional[str] = None,
+                         user_id: str = "user") -> Dict[str, Any]:
+        """Start a new conversation with affordance and multimodal analysis."""
         print(f"\n🗣️ Starting new conversation")
         print(f"User: {initial_message}")
         
@@ -125,13 +129,19 @@ class DiegeticConversationalBackend:
         self.turn_counter = 0
         
         # Process initial message
-        return self.process_user_input(initial_message, user_id)
+        return self.process_user_input(initial_message, fingerprint=fingerprint, 
+                                     audio_dyad=audio_dyad, video_dyad_b64=video_dyad_b64, 
+                                     user_id=user_id)
     
-    def process_user_input(self, message: str, user_id: str = "user") -> Dict[str, Any]:
-        """Process user input with real-time affordance analysis."""
+    def process_user_input(self, message: str, 
+                         fingerprint: Optional[Dict] = None, 
+                         audio_dyad: Optional[Dict] = None,
+                         video_dyad_b64: Optional[str] = None,
+                         user_id: str = "user") -> Dict[str, Any]:
+        """Process user input with real-time affordance and multimodal analysis."""
         self.turn_counter += 1
         
-        print(f"\n🔄 Processing turn {self.turn_counter}")
+        print(f"\n Processing turn {self.turn_counter}")
         print(f"Input: {message[:100]}...")
         
         # Create conversation turn
@@ -158,8 +168,14 @@ class DiegeticConversationalBackend:
         # Compute real-time metrics
         affordance_gradients = processed_turn.affordance_gradients or {}
         
-        # Run through conversational model
-        model_output = self._run_conversational_model(processed_turn, affordance_gradients)
+        # Run through conversational model with multimodal injection
+        model_output = self._run_conversational_model(
+            processed_turn, 
+            fingerprint=fingerprint, 
+            audio_dyad=audio_dyad, 
+            video_dyad_b64=video_dyad_b64,
+            affordance_gradients=affordance_gradients
+        )
         
         # Update live metrics
         self._update_live_metrics(affordance_gradients, model_output)
@@ -188,8 +204,11 @@ class DiegeticConversationalBackend:
         }
     
     def _run_conversational_model(self, turn: ConversationTurn, 
-                                affordance_gradients: Dict[str, float]) -> Dict[str, Any]:
-        """Run the conversational temporal model on the turn."""
+                                fingerprint: Optional[Dict] = None,
+                                audio_dyad: Optional[Dict] = None,
+                                video_dyad_b64: Optional[str] = None,
+                                affordance_gradients: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
+        """Run the conversational temporal model on the turn with optional multimodal injection."""
         if turn.embedding is None:
             return {}
         
@@ -204,6 +223,9 @@ class DiegeticConversationalBackend:
         with torch.no_grad():
             model_output = self.conversational_model(
                 turn.embedding.unsqueeze(0),
+                fingerprint=fingerprint,
+                audio_dyad=audio_dyad,
+                video_dyad_b64=video_dyad_b64,
                 affordance_gradients=affordance_gradients,
                 conversation_context=conversation_context,
                 return_analysis=True
@@ -394,17 +416,17 @@ class DiegeticConversationalBackend:
 
 def demo_diegetic_conversational_integration():
     """Demonstrate diegetic conversational integration."""
-    print("🎭 Diegetic Terminal Conversational Integration Demo")
+    print(" Diegetic Terminal Conversational Integration Demo")
     print("=" * 55)
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
     print(f"Device: {device}")
     
     # Create enhanced backend
-    print("\n🏗️ Initializing enhanced diegetic backend...")
+    print("\nInitializing enhanced diegetic backend...")
     backend = DiegeticConversationalBackend(device=device)
     
-    print("✅ Backend initialized with conversational AI integration")
+    print(" Backend initialized with conversational AI integration")
     
     # Demo conversation scenarios
     demo_scenarios = [
@@ -452,9 +474,9 @@ def demo_diegetic_conversational_integration():
         first_message = scenario['messages'][0]
         result = backend.start_conversation(first_message, user_id="demo_user")
         
-        print(f"\n💬 Assistant Response:")
+        print(f"\n Assistant Response:")
         print(f"   {result['response']['text']}")
-        print(f"\n📊 Analysis:")
+        print(f"\n Analysis:")
         print(f"   Response Type: {result['response']['type']}")
         print(f"   Affordance Strength: {result['response']['affordance_strength']:.3f}")
         print(f"   PAS_h: {result['response']['pas_h']:.3f}")
@@ -466,37 +488,37 @@ def demo_diegetic_conversational_integration():
             
             result = backend.process_user_input(message, user_id="demo_user")
             
-            print(f"\n🤖 Assistant: {result['response']['text']}")
+            print(f"\n Assistant: {result['response']['text']}")
             print(f"   PAS_h: {result['response']['pas_h']:.3f}")
             print(f"   Affordance: {result['response']['type']} ({result['response']['affordance_strength']:.3f})")
         
         # Show conversation summary
         summary = backend.get_conversation_summary()
-        print(f"\n📈 Conversation Summary:")
+        print(f"\n Conversation Summary:")
         print(f"   Total Turns: {summary['total_turns']}")
         print(f"   Average Affordances: {summary['average_affordances']}")
         print(f"   Current PAS_h: {summary['live_metrics']['pas_h']['current']:.3f}")
         print(f"   Trust Stability: {summary['live_metrics']['trust']['stability']:.3f}")
     
-    print(f"\n🎯 Demo Complete!")
-    print(f"✅ Demonstrated real-time conversational processing")
-    print(f"✅ Showed affordance gradient detection in action")
-    print(f"✅ Verified PAS_h computation with conversational context")
-    print(f"✅ Confirmed trust scalar evolution")
-    print(f"✅ Validated integration with diegetic terminal architecture")
+    print(f"\n Demo Complete!")
+    print(f" Demonstrated real-time conversational processing")
+    print(f" Showed affordance gradient detection in action")
+    print(f" Verified PAS_h computation with conversational context")
+    print(f" Confirmed trust scalar evolution")
+    print(f" Validated integration with diegetic terminal architecture")
     
     return backend
 
 
 if __name__ == "__main__":
-    print("🎭 Diegetic Terminal Conversational Integration")
+    print(" Diegetic Terminal Conversational Integration")
     print("Real-time conversational AI with affordance gradient analysis")
     print("=" * 70)
     
     try:
         backend = demo_diegetic_conversational_integration()
         
-        print(f"\n✅ Integration completed successfully!")
+        print(f"\n Integration completed successfully!")
         print(f"\nThe enhanced diegetic backend now provides:")
         print(f"• Real-time affordance gradient computation")
         print(f"• Live PAS_h monitoring during conversations")
@@ -512,6 +534,6 @@ if __name__ == "__main__":
         print(f"• Maintains conversation state and history")
         
     except Exception as e:
-        print(f"\n❌ Integration failed with error: {e}")
+        print(f"\n Integration failed with error: {e}")
         import traceback
         traceback.print_exc()
