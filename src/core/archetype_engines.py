@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import math
+from src.core.honest_jitter import harvest_honest_jitter
 
 # =========================================================================
 # PHASE 2A: The Unified Theory Archetypal Logic Gaps
@@ -20,8 +21,10 @@ class RecursiveNonSequiturGenerator(nn.Module):
         
     def forward(self, state: torch.Tensor, current_mischief: float) -> torch.Tensor:
         if current_mischief < self.mischief_threshold:
-            noise = torch.randn_like(state)
-            rupture_mask = torch.rand_like(state) > 0.8
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            noise = harvest_honest_jitter(state.shape, device=state.device, scaled=True)
+            # Replace torch.rand with a deterministic chaotic mask if needed, but for now we'll use a fixed threshold on jitter
+            rupture_mask = harvest_honest_jitter(state.shape, device=state.device, scaled=False) > 0.8
             state[rupture_mask] = state[rupture_mask] * torch.sin(self.oscillator_phase * math.pi) + noise[rupture_mask]
         return state
 
@@ -114,7 +117,9 @@ class PictureGalleryWarp(nn.Module):
     """
     def __init__(self, state_dim: int, num_archetypes: int = 6):
         super().__init__()
-        self.archetype_embeddings = nn.Parameter(torch.randn(num_archetypes, state_dim))
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        # We need a manual device or wait for first forward, but here we can just use a placeholder and init properly
+        self.archetype_embeddings = nn.Parameter(harvest_honest_jitter((num_archetypes, state_dim), scaled=True))
         
     def forward(self, state: torch.Tensor) -> torch.Tensor:
         # Cosine similarity to snap the complex state into the nearest 'cartoon' archetype profile
@@ -166,8 +171,9 @@ class AbstractionThresholdMonitor(nn.Module):
         # If high priority, we attempt to tunnel through the Ego Death barrier
         # by preserving at least the core structure of the input state.
         if r_a_score >= self.abstraction_limit and not is_high_priority:
-            # Ego Death: Total collapse into glitched matter (random unstructured noise)
-            return torch.randn_like(state) * 5.0
+            # Ego Death: Total collapse into glitched matter (Honest Jitter instead of random noise)
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            return harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 5.0
         return state
 
 # =========================================================================
