@@ -12,6 +12,7 @@ Implements the structural operator for:
 import torch
 import torch.nn as nn
 from typing import Dict, List, Tuple, Optional, Any
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 class DAQUFOperator(nn.Module):
@@ -40,7 +41,8 @@ class DAQUFOperator(nn.Module):
         self.device = device
         
         # 1. Fossil Parameters (Non-updatable)
-        self.register_buffer('fossils', torch.randn(num_fossils, fossil_dim, device=device))
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.register_buffer('fossils', harvest_honest_jitter((num_fossils, fossil_dim), device=device, scaled=True))
         self.fossil_margin = fossil_margin
         self.persistence_threshold = persistence_threshold
         
@@ -50,11 +52,13 @@ class DAQUFOperator(nn.Module):
         self.register_buffer('gap_stability', torch.zeros(num_fossils, device=device))
         
         # 3. Lattice Projection (Quantization)
-        self.register_buffer('Q_proj', torch.randn(fossil_dim, lattice_dim, device=device))
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.register_buffer('Q_proj', harvest_honest_jitter((fossil_dim, lattice_dim), device=device, scaled=False))
         torch.nn.init.orthogonal_(self.Q_proj)
         
         # 4. Love Invariant (The Non-Transferable Value)
-        self.register_buffer('L', torch.randn(num_fossils, device=device))
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.register_buffer('L', harvest_honest_jitter((num_fossils,), device=device, scaled=True))
         
         # 5. Narrative state (Wattsian Play)
         self.register_buffer('tau', torch.tensor(0.0, device=device))
