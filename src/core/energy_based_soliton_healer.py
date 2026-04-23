@@ -14,6 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from typing import Dict, Tuple, Optional
+from src.core.honest_jitter import harvest_honest_jitter
 
 class EnergyBasedSolitonHealer(nn.Module):
     """
@@ -38,7 +39,8 @@ class EnergyBasedSolitonHealer(nn.Module):
         self.stability_threshold = stability_threshold
         
         # Energy function parameters (learnable)
-        self.energy_weights = nn.Parameter(torch.randn(state_dim, state_dim) * 0.01)
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.energy_weights = nn.Parameter(harvest_honest_jitter((state_dim, state_dim)) * 0.01)
         self.energy_bias = nn.Parameter(torch.zeros(state_dim))
         
         # Soliton template (stable configuration)
