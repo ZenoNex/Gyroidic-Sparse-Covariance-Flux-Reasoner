@@ -17,6 +17,7 @@ import struct
 import sys
 import os
 from typing import Dict, List, Optional, Tuple, Any
+from src.core.honest_jitter import harvest_honest_jitter
 
 sys.path.append(os.getcwd())
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
