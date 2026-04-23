@@ -1124,15 +1124,18 @@ class DiegeticPhysicsEngine(nn.Module):
              else:
                  # --- PRE-GENERATION DIAGNOSTICS & MISCHIEF UPDATE ---
                  # Update Mischief Probe with current regime and pressure
-                 mischief_active = (self.current_regime == 'goo') or (current_gcve > 0.3)
-                 pressure_grad = self.calm_history.mean(dim=0) if self.calm_history is not None else torch.zeros(self.dim, device=self.device)
-        
-                 self.mischief_probe.update(
-                     pressure_grad=pressure_grad, 
-                     coherence=torch.tensor(0.5, device=self.device), 
-                     pas_h=pas_h_live, 
-                     is_good_bug=mischief_active
-                 )
+                 with torch.no_grad():
+                     pas_h_cmd = self._compute_pas_h(self.meta_state)
+                     gyroid_ent_cmd = self.gyroid_cov.estimate_entropy(self.meta_state).item()
+                     mischief_active = (self.current_regime == 'goo') or (gyroid_ent_cmd > 0.3)
+                     pressure_grad = self.calm_history.mean(dim=0) if self.calm_history is not None else torch.zeros(self.dim, device=self.device)
+            
+                     self.mischief_probe.update(
+                         pressure_grad=pressure_grad, 
+                         coherence=torch.tensor(0.5, device=self.device), 
+                         pas_h=torch.tensor(pas_h_cmd, device=self.device), 
+                         is_good_bug=mischief_active
+                     )
         
                  response_text = self._generate_converged_response(
                         text_input=text_input, 
@@ -1302,8 +1305,6 @@ class DiegeticPhysicsEngine(nn.Module):
                     
                     # 2. Extract residues and calculate Lazarus Shift (PAS_h)
                     ent = metrics['fractal_entropy']      # Nested Russian Doll entropy
-                    sub = metrics['substream_entropy']    # Audio/Metadata atoms
-                    jit = metrics['honest_jitter']        # Silicon character
                     
                     # Track Phase Alignment Shift for Lazarus Transition
                     pas_h = torch.norm(ent).item()
@@ -1314,13 +1315,12 @@ class DiegeticPhysicsEngine(nn.Module):
                     if delta_pas_h > 0.5:
                         print(f"!!! LAZARUS TRANSITION DETECTED: delta_pas_h={delta_pas_h:.4f}")
                     
-                    # 3. Project into manifold space as a composite bias
-                    # Composite = [Fractal Signal] + [Substream Signature] + [Silicon Noise]
-                    base_vector = torch.ones((1, self.dim), device=self.device) * ent
-                    substream_vector = torch.ones((1, self.dim), device=self.device) * sub * 0.5
-                    jitter_vector = torch.randn((1, self.dim), device=self.device) * jit * 0.1
+                    # 3. Project into manifold space as a composite bias using the structural signature
+                    # Replacing the silent scalar bypass with formal spectral projection
+                    fp_tensor = self.video_parser.extract_96_spectral_signature(metrics)
+                    media_emb = self.fingerprint_proj(fp_tensor.unsqueeze(0))
                     
-                    return base_vector + substream_vector + jitter_vector
+                    return media_emb
             return None
 
         def _get_media_biases(fp_dict, audio_dict, chain) -> List[torch.Tensor]:
@@ -3622,17 +3622,13 @@ class DiegeticPhysicsEngine(nn.Module):
                 healing_ref = self.cavity.M.mean(dim=0).flatten() if hasattr(self, 'cavity') else None
                 v_metrics = self.video_parser.parse_video_b64(target_b64, healing_ref=healing_ref)
                 
-                # Derive media_emb from spectral entropy biases
-                ent = v_metrics['fractal_entropy']
-                sub = v_metrics['substream_entropy']
-                base_vector = torch.ones((1, self.dim), device=self.device) * ent
-                media_emb = base_vector + (torch.ones((1, self.dim), device=self.device) * sub * 0.5)
+                # Derive media_emb and fp_tensor from the structural signature
+                fp_tensor = self.video_parser.extract_96_spectral_signature(v_metrics)
+                media_emb = self.fingerprint_proj(fp_tensor.unsqueeze(0))
                 
-                # Create fp_tensor from video metrics (use coeffs or entropy trace)
-                coeffs = v_metrics.get('coeffs', [v_metrics['fractal_entropy']] * 96)
-                fp_tensor = torch.tensor(coeffs, dtype=torch.float32, device=self.device)
-                if fp_tensor.numel() < 96: fp_tensor = F.pad(fp_tensor, (0, 96 - fp_tensor.numel()))
-                else: fp_tensor = fp_tensor[:96]
+                # Update diagnostics with high-dim metrics
+                codec_metrics['spectral_dominance'] = float(fp_tensor[:32].mean().item())
+                codec_metrics['anisotropic_gap'] = float(v_metrics['fractal_entropy'].item())
 
             # 3. Collision Logic
             if media_emb is not None:
@@ -3641,13 +3637,13 @@ class DiegeticPhysicsEngine(nn.Module):
                 
                 # 4. Codec Diagnostics with Non-Commutativity
                 codec_result = self.codec.encode(text_input, fp_tensor.view(1, 8, 12), commutativity=commutativity)
-                codec_metrics = {
+                codec_metrics.update({
                     "entanglement_ratio": codec_result.diagnostics.get('entanglement_ratio', 0.0),
                     "commutativity_gap": codec_result.commutativity_gap,
                     "modular_congruence": codec_result.modular_congruence,
                     "is_admissible": codec_result.diagnostics.get('is_admissible', False),
                     "structural_state": codec_result.diagnostics.get('structural_state', "Unknown")
-                }
+                })
                 
                 # Surgery Yield Physics
                 half_dim = self.dim // 2
