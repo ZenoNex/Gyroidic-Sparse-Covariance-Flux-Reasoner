@@ -56,6 +56,7 @@ from typing import Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 # ---------------------------------------------------------------------------
@@ -309,12 +310,14 @@ class ZeitgeistRouter(nn.Module):
         """
         if M >= dim:
             # More moduli than dimensions: random unit vectors
-            raw = torch.randn(M, dim)
+            # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+            raw = harvest_honest_jitter((M, dim), scaled=True)
             norms = raw.norm(dim=1, keepdim=True).clamp(min=1e-8)
             return raw / norms
         # Gram-Schmidt on M random vectors in R^dim
         vecs = []
-        raw = torch.randn(M, dim)
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        raw = harvest_honest_jitter((M, dim), scaled=True)
         for i in range(M):
             v = raw[i]
             for u in vecs:
