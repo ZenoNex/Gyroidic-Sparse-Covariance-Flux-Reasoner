@@ -4,6 +4,7 @@ import torch.nn as nn
 from typing import Dict, List, Optional
 import time
 import math
+from src.core.honest_jitter import harvest_honest_jitter
 
 class VideoDyadParser(nn.Module):
     """
@@ -67,7 +68,8 @@ class VideoDyadParser(nn.Module):
         t_start = time.perf_counter_ns()
         # 2. Memory-weighted calibration loop (honest friction)
         for _ in range(10):
-            _ = torch.det(torch.randn((32, 32), device=self.device))
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            _ = torch.det(harvest_honest_jitter((32, 32), device=self.device, scaled=True))
         t_end = time.perf_counter_ns()
         
         # Jitter is the nano-variance (scaled to a manageable entropy perturbation)
@@ -268,8 +270,8 @@ class VideoDyadParser(nn.Module):
         # Pad this mix to 32
         meta_mix = torch.cat([sub_res, jitter, length, sub_ent])
         if meta_mix.numel() < 32:
-            # Pad with noise/random for structural variety
-            padding = torch.randn(32 - meta_mix.numel(), device=self.device) * 0.01
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            padding = harvest_honest_jitter((32 - meta_mix.numel(),), device=self.device, scaled=True) * 0.01
             meta_mix = torch.cat([meta_mix, padding])
         else:
             meta_mix = meta_mix[:32]
