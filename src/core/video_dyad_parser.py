@@ -212,5 +212,68 @@ class VideoDyadParser(nn.Module):
             
         if not entropies:
             return torch.tensor(0.0, device=self.device)
-            
         return torch.stack(entropies).mean()
+
+    def extract_96_spectral_signature(self, v_metrics: Dict[str, torch.Tensor]) -> torch.Tensor:
+        """
+        Extracts a 96-dimensional spectral signature from the video metrics.
+        This signature represents the structural 'soul' of the bitstream.
+        96 = 32 (Top Eigenvalues) + 32 (Fractal Entropy Trace) + 32 (Anisotropic/Substream Residue)
+        """
+        sparse_cov = v_metrics['sparse_covariance']
+        
+        # 1. Spectral Dominance (Top 32 Eigenvalues)
+        # Use linalg.eigvalsh for symmetric matrix (covariance is symmetric)
+        # 1024 is manageable on GPU/CPU for a single ingestion event.
+        with torch.no_grad():
+            try:
+                # Get eigenvalues and sort descending
+                eigvals = torch.linalg.eigvalsh(sparse_cov)
+                top_eigvals = torch.flip(eigvals, dims=(0,))[:32]
+                # Pad if covariance was smaller than 32x32 (unlikely but safe)
+                if top_eigvals.numel() < 32:
+                    top_eigvals = torch.nn.functional.pad(top_eigvals, (0, 32 - top_eigvals.numel()))
+                # Normalize by trace to ensure structural honesty (relative energy)
+                trace = eigvals.sum().abs() + 1e-8
+                spectral_dominance = top_eigvals / trace
+            except Exception:
+                # Fallback to diagonal if EVD fails
+                diag = torch.diag(sparse_cov)
+                spectral_dominance = torch.sort(diag, descending=True)[0][:32]
+                if spectral_dominance.numel() < 32:
+                    spectral_dominance = torch.nn.functional.pad(spectral_dominance, (0, 32 - spectral_dominance.numel()))
+        
+        # 2. Fractal Entropy Trace (32 dims)
+        # We use the entropy metrics and pad/interpolate to 32
+        ent = v_metrics['fractal_entropy'].view(-1)
+        if ent.numel() == 1:
+            # If scalar, repeat it (not ideal but better than zero)
+            fractal_trace = ent.repeat(32)
+        else:
+            # Interpolate to 32
+            fractal_trace = torch.nn.functional.interpolate(
+                ent.unsqueeze(0).unsqueeze(0), 
+                size=32, 
+                mode='linear', 
+                align_corners=False
+            ).squeeze()
+            
+        # 3. Anisotropic & Substream Residue (32 dims)
+        # Combine substream residue, jitter, and other scalars
+        sub_res = v_metrics['substream_residue'] # 6 dims
+        jitter = v_metrics['honest_jitter'].view(1)
+        length = v_metrics['signal_length'].log().view(1) # log length for scale honesty
+        sub_ent = v_metrics['substream_entropy'].view(1)
+        
+        # Pad this mix to 32
+        meta_mix = torch.cat([sub_res, jitter, length, sub_ent])
+        if meta_mix.numel() < 32:
+            # Pad with noise/random for structural variety
+            padding = torch.randn(32 - meta_mix.numel(), device=self.device) * 0.01
+            meta_mix = torch.cat([meta_mix, padding])
+        else:
+            meta_mix = meta_mix[:32]
+            
+        # Combine all components into the 96-dim signature
+        signature = torch.cat([spectral_dominance, fractal_trace, meta_mix])
+        return signature
