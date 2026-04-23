@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from typing import Dict, Tuple, Optional
 import math
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 class ChernSimonsGasket(nn.Module):
@@ -351,7 +352,8 @@ class SolitonStabilityHealer(nn.Module):
             heated_residues = torch.tensor(heated_flat, device=residues.device).view(residues.shape)
         else:
             # Heat manifold by adding controlled noise scaled by alpha
-            heating_noise = torch.randn_like(residues) * (self.alpha * 0.1)
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            heating_noise = harvest_honest_jitter(residues.shape, device=residues.device, scaled=True) * (self.alpha * 0.1)
             heated_residues = residues + heating_noise
         
         # Increment iteration count
