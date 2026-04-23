@@ -20,19 +20,32 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from flask import Flask, request, jsonify, render_template_string, send_from_directory
-from flask_cors import CORS
 import threading
-import queue
-import json
 import time
 from datetime import datetime
 import requests
+import torch
+
+try:
+    from flask import Flask, request, jsonify, render_template_string, send_from_directory
+    from flask_cors import CORS
+    HAS_FLASK = True
+except ImportError:
+    HAS_FLASK = False
+    # Mock Flask/CORS for import-time stability
+    class Flask:
+        def __init__(self, name): pass
+        def route(self, *args, **kwargs): return lambda x: x
+    def CORS(app, *args, **kwargs): pass
+    def jsonify(*args, **kwargs): return args
+    request = None
 
 # Core imports
 from src.data.conversational_api_ingestor import ConversationalAPIIngestor
 from examples.conversational_api_training import ConversationalTemporalModel, ConversationalAPITrainer
 from examples.diegetic_conversational_integration import DiegeticConversationalBackend
+from src.core.honest_jitter import harvest_honest_jitter
+from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
 
 app = Flask(__name__)
 CORS(app)
@@ -50,8 +63,45 @@ class ServerState:
         self.training_progress = 0
         self.training_log = []
         self.diegetic_backend = None
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu' if self._check_cuda() else 'cpu'
+        
+        # Silicon Sovereignty / Tailslayer Architecture Initialization
+        self.sovereign_engine = None
+        self.device = self._detect_sovereign_device()
+        self._initialize_honest_entropy()
     
+    def _detect_sovereign_device(self):
+        """
+        Detects the best hardware target following Tailslayer Architecture.
+        Prioritizes OpenCL (Silicon Sovereignty) then CUDA.
+        """
+        try:
+            import pyopencl as cl
+            platforms = cl.get_platforms()
+            if platforms:
+                print(f" [TAILSLAYER] Silicon Sovereignty Detected: {platforms[0].name}")
+                # Instantiate Sovereign Engine (Tailslayer §1.1)
+                try:
+                    self.sovereign_engine = SiliconSovereigntyEngine(use_gpu=torch.cuda.is_available())
+                    print(f" [TAILSLAYER] Dual Command Queues Initialized.")
+                except Exception as e:
+                    print(f" [WARNING] Could not initialize Sovereign Engine: {e}")
+                
+                return 'cuda' if torch.cuda.is_available() else 'cpu'
+        except ImportError:
+            pass
+            
+        return 'cuda' if torch.cuda.is_available() else 'cpu'
+    
+    def _initialize_honest_entropy(self):
+        """Warm up the silicon and harvest honest jitter for the server session."""
+        print(" [TAILSLAYER] Harvesting initial honest jitter...")
+        try:
+            # Generate a small entropy seed tensor
+            seed = harvest_honest_jitter((1, 128), device=torch.device(self.device if self.device != 'cuda' else 'cuda'))
+            print(f" [TAILSLAYER] Entropy pool initialized: mean_variance={seed.var().item():.6f}")
+        except Exception as e:
+            print(f" [WARNING] Honest jitter harvest failed: {e}")
+
     def _check_cuda(self):
         try:
             import torch
@@ -353,15 +403,28 @@ def chat():
         
         data = request.get_json()
         message = data.get('message', '').strip()
+        fingerprint = data.get('fingerprint')
+        audio_dyad = data.get('audio_dyad')
+        video_dyad_b64 = data.get('video_dyad_b64')
         
         if not message:
             return jsonify({'success': False, 'message': 'No message provided'})
         
         # Process message with diegetic backend
         if not hasattr(state.diegetic_backend, 'current_conversation') or not state.diegetic_backend.current_conversation:
-            result = state.diegetic_backend.start_conversation(message)
+            result = state.diegetic_backend.start_conversation(
+                message, 
+                fingerprint=fingerprint,
+                audio_dyad=audio_dyad,
+                video_dyad_b64=video_dyad_b64
+            )
         else:
-            result = state.diegetic_backend.process_user_input(message)
+            result = state.diegetic_backend.process_user_input(
+                message, 
+                fingerprint=fingerprint,
+                audio_dyad=audio_dyad,
+                video_dyad_b64=video_dyad_b64
+            )
         
         # Calculate honesty score for Tri-state Meta Infra
         pas_h = result['response'].get('pas_h', 0.5)
@@ -389,6 +452,59 @@ def chat():
         })
         
     except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/associate', methods=['POST'])
+def associate():
+    """Handle association learning."""
+    try:
+        if not state.diegetic_backend:
+            return jsonify({'success': False, 'message': 'No trained model available'})
+        
+        data = request.get_json()
+        source = data.get('source', data.get('text1', '')).strip()
+        target = data.get('target', data.get('text2', '')).strip()
+        fingerprint = data.get('fingerprint')
+        audio_dyad = data.get('audio_dyad')
+        video_dyad_b64 = data.get('video_dyad_b64')
+        
+        if not source or not target:
+            return jsonify({'success': False, 'message': 'No source or target provided'})
+        
+        # Format as association command
+        message = f"ASSOCIATE: {source} <-> {target}"
+        
+        # Process with diegetic backend
+        if not hasattr(state.diegetic_backend, 'current_conversation') or not state.diegetic_backend.current_conversation:
+            result = state.diegetic_backend.start_conversation(
+                message, 
+                fingerprint=fingerprint,
+                audio_dyad=audio_dyad,
+                video_dyad_b64=video_dyad_b64
+            )
+        else:
+            result = state.diegetic_backend.process_user_input(
+                message, 
+                fingerprint=fingerprint,
+                audio_dyad=audio_dyad,
+                video_dyad_b64=video_dyad_b64
+            )
+            
+        return jsonify({
+            'success': True,
+            'status': 'associated',
+            'source': source,
+            'target': target,
+            'multimodal_injection': {
+                'fingerprint': fingerprint is not None,
+                'audio': audio_dyad is not None,
+                'video': video_dyad_b64 is not None
+            },
+            'metrics': result
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/api/save_model', methods=['POST'])
