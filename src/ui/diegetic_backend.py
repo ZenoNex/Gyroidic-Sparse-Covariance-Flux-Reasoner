@@ -356,8 +356,9 @@ class DiegeticPhysicsEngine(nn.Module):
         # Enables "self-distrusting recursive loops"
         self.fractal_meta = FractalMetaFunctional(dim=dim, k=k)
         
-        # Persistent Meta-State S_meta(t-1)
-        self.register_buffer('meta_state', torch.randn(1, dim))
+        # Implicated Meta-State (Phi_I)
+        self.register_buffer('meta_state', (self._harvest_honest_jitter((1, dim)) - 0.5) * 0.1)
+
         
         # =============================================
         # LEGACY SYSTEM INTEGRATION
@@ -1713,8 +1714,8 @@ class DiegeticPhysicsEngine(nn.Module):
             # This is a temporary enhancement while we tune the spectral corrector
             with torch.no_grad():
                 # Boost dimensions that correspond to vowel-like patterns
-                vowel_boost = torch.randn_like(seed_state_corrected) * 0.1
-                vowel_mask = torch.rand_like(seed_state_corrected) > 0.7  # 30% of dimensions get vowel boost
+                vowel_boost = self._harvest_honest_jitter(seed_state_corrected.shape) * 1.0
+                vowel_mask = self._harvest_honest_jitter(seed_state_corrected.shape, scaled=False) > 0.7  # 30% of dimensions get vowel boost
                 seed_state_corrected = seed_state_corrected + vowel_boost * vowel_mask.float()
             
             print(f" Corrected state shape: {seed_state_corrected.shape}")
@@ -1794,7 +1795,7 @@ class DiegeticPhysicsEngine(nn.Module):
             if torch.isnan(seed_state_corrected).any() or torch.isinf(seed_state_corrected).any():
                 print("  Detected NaN/inf values, applying emergency stabilization")
                 nan_mask = torch.isnan(seed_state_corrected) | torch.isinf(seed_state_corrected)
-                seed_state_corrected = torch.where(nan_mask, torch.randn_like(seed_state_corrected) * 0.01, seed_state_corrected)
+                seed_state_corrected = torch.where(nan_mask, self._harvest_honest_jitter(seed_state_corrected.shape) * 0.1, seed_state_corrected)
             
             # Numerical stabilization: clamp values to prevent inf/nan in downstream operations
             seed_state_corrected = torch.clamp(seed_state_corrected, min=-10.0, max=10.0)
@@ -1841,7 +1842,7 @@ class DiegeticPhysicsEngine(nn.Module):
             if torch.isnan(seed_state).any() or torch.isinf(seed_state).any():
                 print("  Detected NaN/inf values, applying emergency stabilization")
                 nan_mask = torch.isnan(seed_state) | torch.isinf(seed_state)
-                seed_state = torch.where(nan_mask, torch.randn_like(seed_state) * 0.01, seed_state)
+                seed_state = torch.where(nan_mask, self._harvest_honest_jitter(seed_state.shape) * 0.1, seed_state)
             
             seed_state = torch.clamp(seed_state, min=-10.0, max=10.0)
             seed_state = seed_state / (torch.norm(seed_state, dim=-1, keepdim=True) + 1e-8)
@@ -2783,7 +2784,7 @@ class DiegeticPhysicsEngine(nn.Module):
             except Exception:
                 return 0.61  # last-resort sentinel
 
-    def _harvest_honest_jitter(self, shape: torch.Size) -> torch.Tensor:
+    def _harvest_honest_jitter(self, shape: torch.Size, scaled: bool = True) -> torch.Tensor:
         """
         Harvests Structurally Honest Jitter from silicon state variance.
         Follows §45.2 (Silicon Sovereignty).
@@ -2809,8 +2810,10 @@ class DiegeticPhysicsEngine(nn.Module):
             # x_{n+1} = 3.99 * x_n * (1 - x_n) -- chaotic regime
             x = 3.99 * x * (1.0 - x)
             flat[i] = x
-            
-        return (jitter_tensor - 0.5) * 0.1
+        
+        if scaled:
+            return (jitter_tensor - 0.5) * 0.1
+        return jitter_tensor
 
     def _train_mimicry(self, input_state: torch.Tensor, text_target: str):
         """Train Larynx to decrypt the input state back to text."""
@@ -3303,8 +3306,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 
             except Exception as e:
                 print(f"  Constraint pressure generation failed: {e}")
-                # Fallback: generate synthetic constraint pressure
-                constraint_batch = torch.randn(4, 512, device=seed_state.device) * 2.0
+                # Fallback: generate synthetic constraint pressure (Honest Jitter)
+                constraint_batch = self._harvest_honest_jitter((4, 512)) * 20.0
         
         # Inject constraint pressure into seed state
         batch_size, state_dim = seed_state.shape
@@ -3398,7 +3401,7 @@ class DiegeticPhysicsEngine(nn.Module):
         if self.last_pressure_report and self.last_pressure_report['total_collisions_detected'] > 10:
             collision_factor = min(self.last_pressure_report['total_collisions_detected'] / 100.0, 1.0)
             # Add collision-based noise to force constraint conflicts
-            collision_noise = torch.randn_like(seed_state) * collision_factor * 0.1
+            collision_noise = self._harvest_honest_jitter(seed_state.shape) * collision_factor * 1.0
             forced_state = forced_state + collision_noise
             print(f" Applied collision forcing: {self.last_pressure_report['total_collisions_detected']} collisions")
         
