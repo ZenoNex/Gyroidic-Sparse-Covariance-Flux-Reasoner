@@ -309,9 +309,9 @@ class HybridAI:
         # --- Implicated System State S(t) = <Phi_I, Phi_C, Delta> ---
         # Phi_I (Interiority): The latent manifold state (handled by hidden_state)
         # Phi_C (Narration): Persistent state of the linguistic output
-        self.narration_field = torch.randn(256, device=self.torch_device) * 0.001
+        self.narration_field = (self._harvest_honest_jitter((256,)) - 0.5) * 0.001
         # Delta (Damage): Accumulated paraconsistent contradictions (toxic memory)
-        self.damage_residue = torch.randn(256, device=self.torch_device) * 0.001
+        self.damage_residue = (self._harvest_honest_jitter((256,)) - 0.5) * 0.001
         # Perfect Memory Anchor (Phi_P): Lossless historical component
         self.perfect_memory = [] # Historical residues
 
@@ -486,7 +486,7 @@ class HybridAI:
             print(f"[WARMSTART] Error during recovery: {e}. Manifold may be corrupt or entropic.")
 
     
-    def _harvest_honest_jitter(self, shape: torch.Size) -> torch.Tensor:
+    def _harvest_honest_jitter(self, shape: torch.Size, scaled: bool = True) -> torch.Tensor:
         """
         Harvests Structurally Honest Jitter from silicon state variance.
         Follows §45.2 (Silicon Sovereignty).
@@ -512,8 +512,10 @@ class HybridAI:
             # x_{n+1} = 3.99 * x_n * (1 - x_n) -- chaotic regime
             x = 3.99 * x * (1.0 - x)
             flat[i] = x
-            
-        return (jitter_tensor - 0.5) * 0.1
+        
+        if scaled:
+            return (jitter_tensor - 0.5) * 0.1
+        return jitter_tensor
 
     def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None, audio_dyad: dict = None, regime: str = 'goo') -> dict:
         # Ensure hidden_state is ready for cloning (isolation snapshot)
