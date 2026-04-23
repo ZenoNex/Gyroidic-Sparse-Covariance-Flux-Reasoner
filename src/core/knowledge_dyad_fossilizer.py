@@ -7,6 +7,7 @@ import hashlib
 from dataclasses import dataclass
 from typing import Optional, Dict, Tuple, List, Any
 import datetime
+from src.core.honest_jitter import harvest_honest_jitter
 from src.core.agent_substrate_bridge import AgentSubstrateBridge
 from src.topology.speculative_homology import SpeculativeHomologyEngine
 from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
@@ -48,7 +49,8 @@ class ResidueFusion(nn.Module):
         self.text_proj = nn.Linear(feature_dim, feature_dim)
         
         # Torsion operator: computes the 'twist' between the two vectors
-        self.torsion_matrix = nn.Parameter(torch.randn(feature_dim, feature_dim))
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.torsion_matrix = nn.Parameter(harvest_honest_jitter((feature_dim, feature_dim)))
         
     def forward(self, 
                 image_fingerprint: torch.Tensor, 
