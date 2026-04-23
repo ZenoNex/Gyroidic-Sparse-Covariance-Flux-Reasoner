@@ -22,6 +22,7 @@ References:
 import torch
 import torch.nn as nn
 from typing import Dict, Optional, Tuple
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 # ---------------------------------------------------------------------------
@@ -48,7 +49,8 @@ class NostalgicLeakFunctional(nn.Module):
         self.device = device
 
         # Archetype coefficients μ_l (Obscured)
-        self.register_buffer('mu_l', torch.randn(fossil_dim, device=device))
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.register_buffer('mu_l', harvest_honest_jitter((fossil_dim,), device=device, scaled=True))
 
         # Obstruction point o (The Apple/Mask center)
         self.register_buffer('o', torch.zeros(fossil_dim, device=device))
