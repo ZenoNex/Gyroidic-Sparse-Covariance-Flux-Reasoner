@@ -319,9 +319,10 @@ class ResonanceCavity(nn.Module):
         
         # 1. Memory state: [K, num_modes, hidden_dim]
         # Each prime field has its own resonant modes
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
         self.register_buffer(
             'M',
-            torch.randn(self.K, num_modes, hidden_dim) * 0.01
+            harvest_honest_jitter((self.K, num_modes, hidden_dim), scaled=True)
         )
         
         # 2. Dark Matter Store (Speculative Latent states)
@@ -478,7 +479,8 @@ class ResonanceCavity(nn.Module):
         # Reward topological violations with "mischief" to prevent collapse.
         # When mean_violation is low (Play), we inject more mischief to explore.
         mischief_strength = 0.05 * (1.0 - torch.tanh(mean_violation if 'mean_violation' in locals() else torch.tensor(0.0)))
-        mischief_noise = torch.randn_like(self.M[field_idx]) * mischief_strength
+        # SILICON SOVEREIGNTY: Replace stochastic mischief with Honest Jitter
+        mischief_noise = harvest_honest_jitter(self.M[field_idx].shape, device=self.M.device, scaled=True) * (mischief_strength * 10.0)
         
         # Evaluate breather contribution with multimodal injection
         # --- BREATHER MODE INTEGRATION (RIC Eq 6) ---
