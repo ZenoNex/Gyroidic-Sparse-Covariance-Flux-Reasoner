@@ -20,6 +20,7 @@ import torch
 import torch.nn as nn
 from typing import List, Tuple, Optional, Dict
 import numpy as np
+from src.core.honest_jitter import harvest_honest_jitter
 
 # Non-ergodic entropy optimization (January 2026)
 try:
@@ -242,7 +243,8 @@ class RootPersistencePressure(nn.Module):
         phi_raw = torch.matmul(basis_eval, theta.t()) # [N, K]
         
         # Perturb and evaluate roots
-        noise = torch.randn_like(theta) * self.perturbation_scale
+        # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+        noise = harvest_honest_jitter(theta.shape, device=theta.device, scaled=True) * self.perturbation_scale
         phi_perturbed = torch.matmul(basis_eval, (theta + noise).t())
         
         # Detect zero-crossings
@@ -318,7 +320,8 @@ class BirkhoffPolytopeSampler:
                 theta = torch.cat([theta, torch.ones(self.K, self.D - self.K) / self.K], dim=1)
         elif init_mode == 'orthogonal':
             # Start from orthogonal matrix (Gram-Schmidt via QR) to ensure initial co-primality
-            rand_mat = torch.randn(max(self.K, self.D), max(self.K, self.D))
+            # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+            rand_mat = harvest_honest_jitter((max(self.K, self.D), max(self.K, self.D)), scaled=True)
             q, r = torch.linalg.qr(rand_mat)
             theta = q[:self.K, :self.D].abs() # Abs since Birkhoff is internal
         else:
@@ -358,7 +361,8 @@ class BirkhoffPolytopeSampler:
         skewing the barycenter away from the uniform matrix.
         """
         # 1. Asymmetric Skew
-        skew = torch.randn_like(M) * twist_strength
+        # SILICON SOVEREIGNTY: Replace stochastic skew with Honest Jitter
+        skew = harvest_honest_jitter(M.shape, device=M.device, scaled=True) * twist_strength
         M_skewed = M + skew
         
         # 2. Rescale without Sinkhorn (Violating bistochastic symmetry)
@@ -473,7 +477,8 @@ class PolynomialCoprimeConfig:
                 for idx in target_indices:
                     # If even, add to odd. If odd, add to even.
                     # Or just add random noise to everything and re-project
-                    noise = torch.randn(self.theta.shape[1], device=self.device) * 0.05
+                    # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+                    noise = harvest_honest_jitter((self.theta.shape[1],), device=self.device, scaled=True) * 0.05
                     # Bias towards missing parity?
                     if pure_even[idx]:
                         noise[even_mask] = 0 # Only perturb odd
@@ -532,7 +537,8 @@ class PolynomialCoprimeConfig:
             
             # Locally inherited mutation strengths
             noise_scale = self.mutation_strengths[active_mask].unsqueeze(-1)
-            noise = torch.randn_like(self.theta[active_mask]) * noise_scale
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            noise = harvest_honest_jitter(self.theta[active_mask].shape, device=self.theta.device, scaled=True) * noise_scale
             
             # Apply mutation to active theta
             new_theta_raw = torch.log(self.theta[active_mask] + 1e-8) + noise
@@ -547,7 +553,8 @@ class PolynomialCoprimeConfig:
             self.theta[active_mask] = mutated_theta
             
             # Mutate local mutation strengths (Heritability)
-            m_noise = torch.randn_like(self.mutation_strengths[active_mask]) * 0.01
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            m_noise = harvest_honest_jitter(self.mutation_strengths[active_mask].shape, device=self.theta.device, scaled=True) * 0.01
             self.mutation_strengths[active_mask] *= torch.exp(m_noise)
             self.mutation_strengths[active_mask] = torch.clamp(self.mutation_strengths[active_mask], 0.001, 0.2)
     
