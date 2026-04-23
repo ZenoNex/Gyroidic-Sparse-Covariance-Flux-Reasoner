@@ -83,6 +83,7 @@ from src.codec.gyroidic_codec import GyroidicCodec, CodecConfig
 # GARBLED OUTPUT REPAIR SYSTEM INTEGRATION
 from src.core.spectral_coherence_repair import SpectralCoherenceCorrector, BezoutCoefficientRefresh
 from src.core.chern_simons_gasket import ChernSimonsGasket, SolitonStabilityHealer
+from src.core.honest_jitter import harvest_honest_jitter
 from src.core.love_vector import LoveVector
 from src.core.knowledge_dyad_fossilizer import DyadFossilizer, KnowledgeDyad
 from src.core.dyadic_transfer import DyadicTransferMap
@@ -2795,9 +2796,10 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Warm up cache and measure nano-variance friction
         t0 = time.perf_counter_ns()
-        # Small matrix ops to generate hardware friction
+        # SILICON SOVEREIGNTY: Generate hardware friction via deterministic ops
         for _ in range(5):
-             _ = torch.det(torch.randn((8, 8), device=self.device))
+             a = torch.ones((8, 8), device=self.device) * 0.5
+             _ = torch.mm(a, a)
         t1 = time.perf_counter_ns()
         
         # Harvest the 'least significant nanoseconds' as a seed val
@@ -4914,26 +4916,59 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     content_len = int(self.headers.get('Content-Length', 0))
                     post_body = self.rfile.read(content_len)
                     data = json.loads(post_body.decode('utf-8'))
-                    text1 = data.get('text1', '')
-                    text2 = data.get('text2', '')
+                    
+                    # Support both text1/text2 (original) and source/target (new/GUI) formats
+                    text1 = data.get('text1', data.get('source', ''))
+                    text2 = data.get('text2', data.get('target', ''))
                     
                     if not text1 or not text2:
-                        self._send_error_json("Missing text1 or text2")
+                        self._send_error_json("Missing text1/text2 or source/target")
                         return
 
                     fingerprint = data.get('fingerprint', None)
+                    audio_dyad = data.get('audio_dyad', None)
+                    video_dyad_b64 = data.get('video_dyad_b64', None)
+                    media_chain = data.get('media_chain', None)
                     commutativity = data.get('commutativity', 'symmetric')
+                    
                     association_command = f"ASSOCIATE: {text1} <-> {text2}"
-                    print(f" Association command: '{association_command}' | has_fp: {fingerprint is not None}")
+                    print(f" Association command: '{association_command}' | "
+                          f"has_fp={fingerprint is not None} | has_audio={audio_dyad is not None} | "
+                          f"has_video={video_dyad_b64 is not None}")
                     
                     response_data = ENGINE.process_input(
                         association_command,
                         fingerprint=fingerprint,
+                        audio_dyad=audio_dyad,
+                        video_dyad_b64=video_dyad_b64,
+                        media_chain=media_chain,
                         commutativity=commutativity
                     )
+                    ENGINE.save_state()
+                    
+                    # Ensure response is consistent
+                    if not isinstance(response_data, dict):
+                        response_data = {
+                            "status": "associated",
+                            "source": text1,
+                            "target": text2,
+                            "metrics": response_data,
+                            "multimodal_injection": {
+                                "fingerprint": fingerprint is not None,
+                                "audio": audio_dyad is not None,
+                                "video": video_dyad_b64 is not None
+                            }
+                        }
+                    elif "status" not in response_data:
+                        response_data["status"] = "associated"
+                        response_data["source"] = text1
+                        response_data["target"] = text2
+
                     self._send_json(response_data)
                 except Exception as e:
                     print(f" Error processing association: {e}")
+                    import traceback
+                    traceback.print_exc()
                     self._send_error_json(str(e))
                 return
 
@@ -5120,15 +5155,6 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     print(f" Wikipedia extraction endpoint error: {e}")
                     self._send_error_json(f"Wikipedia extraction failed: {e}")
                 
-            elif self.path == '/associate':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                source = data.get('source', '')
-                target = data.get('target', '')
-                result = ENGINE.process_input(f"ASSOCIATE: {source} <-> {target}")
-                ENGINE.save_state()
-                self._send_json({"status": "associated", "source": source, "target": target, "metrics": result})
             
             # ================================================================
             # PHASE 1: LOCAL DATA ENDPOINTS (No HF Token Required)
