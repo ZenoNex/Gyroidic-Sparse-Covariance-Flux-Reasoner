@@ -20,6 +20,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, List, Optional, Tuple
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 class FeaturePreservationProjection(nn.Module):
@@ -62,8 +63,9 @@ class FeaturePreservationProjection(nn.Module):
         self.delta_max = delta_max
         
         # Learnable facet normal directions (on the unit sphere after normalization)
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
         self.facet_normals = nn.Parameter(
-            F.normalize(torch.randn(num_facets, dim), dim=-1)
+            F.normalize(harvest_honest_jitter((num_facets, dim), scaled=True), dim=-1)
         )
         
         # Per-facet trust scores: high trust → small delta → preserved features
