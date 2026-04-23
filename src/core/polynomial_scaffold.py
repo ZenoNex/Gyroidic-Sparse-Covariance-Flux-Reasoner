@@ -9,6 +9,7 @@ Uses orthogonal basis functions for stability.
 import torch
 import torch.nn as nn
 from typing import Dict, Optional
+from src.core.honest_jitter import harvest_honest_jitter
 from src.core.polynomial_coprime import PolynomialBasis
 
 
@@ -48,7 +49,8 @@ class PolynomialCoefficientFunctional(nn.Module):
         
         # 2. Coefficients a_n: [state_dim, degree + 1]
         # We store them per-dimension to allow anisotropic shaping
-        self.a = nn.Parameter(torch.randn(state_dim, degree + 1, device=device) * 0.01)
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.a = nn.Parameter(harvest_honest_jitter((state_dim, degree + 1), device=device) * 0.01)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
