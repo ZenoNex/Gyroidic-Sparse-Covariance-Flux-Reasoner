@@ -8,6 +8,7 @@ basis configurations using trigonometric oscillators governed by negentropy.
 import torch
 import torch.nn as nn
 from typing import Dict, Tuple
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 class NTMOperator(nn.Module):
@@ -37,7 +38,8 @@ class NTMOperator(nn.Module):
         self.register_buffer('frequencies', torch.linspace(0.5, 2.5, degree + 1, device=device))
         
         # 3. Phase offsets φ
-        self.register_buffer('phases', torch.randn(degree + 1, device=device))
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.register_buffer('phases', harvest_honest_jitter((degree + 1,), device=device, scaled=True))
 
     def forward(self, negentropy: torch.Tensor, dt: torch.Tensor) -> torch.Tensor:
         """
