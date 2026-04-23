@@ -207,6 +207,7 @@ class HybridAI:
     
     def __init__(self, use_spectral_correction: bool = True):
         if torch.cuda.is_available():
+
             self.device = 'cuda'
         else:
             # Prefer PyOpenCL compute path; fall back to CPU
@@ -314,6 +315,10 @@ class HybridAI:
         # Perfect Memory Anchor (Phi_P): Lossless historical component
         self.perfect_memory = [] # Historical residues
 
+        # Initialize the manifold with harmonic seed before potentially loading fossil
+        self._initialize_manifold_state()
+
+
         # Initialize Dataset System
         if DATASET_SYSTEM_AVAILABLE:
             try:
@@ -353,17 +358,33 @@ class HybridAI:
         # SOVEREIGN WARMSTART: Restore manifold if fossil exists (Thorium Protocol)
         self.load_model_state()
 
-    def save_model_state(self) -> str:
+    def _initialize_manifold_state(self):
+        """Initialize the manifold with the FGRT harmonic seed (Love Vector Norm 3.127)."""
+        t_basis = torch.linspace(0, 2 * 3.14159265, 256, device=self.torch_device)
+        initial_seed = torch.sin(t_basis) * (3.127 / torch.norm(torch.sin(t_basis)))
+        self.hidden_state = initial_seed.clone()
+        self.hidden_state_scarred = initial_seed.clone()
+        print("[INIT] Manifold soul initialized with harmonic seed (Norm 3.127).")
+
+
+    def save_model_state(self, state_path: str = None) -> str:
         """Implements Thorium Fossilization Protocol: Serializes the manifold soul."""
         try:
-            state_path = os.path.join(root_dir, 'gyroid_state.pt')
+            if state_path is None:
+                state_path = os.path.join(root_dir, 'gyroid_state.pt')
             
-            # 1. Standard Core States
+            # 1. Standard Core States (Safety Check: verify attribute existence)
+            if not hasattr(self, 'hidden_state') or self.hidden_state is None:
+                 print("[WARN] Fossilization attempted with missing hidden_state. Re-initializing.")
+                 self._initialize_manifold_state()
+
             save_dict = {
                 'iteration': self.iteration_count,
                 'hidden_state': self.hidden_state,
+                'hidden_state_scarred': self.hidden_state_scarred,
                 'damage_residue': self.damage_residue,
             }
+
             
             # 2. MANIFOLD SOUL (Phase 18 Protocol)
             if self.engine:
@@ -397,9 +418,10 @@ class HybridAI:
             print(f"[FOSSIL] Emergency shutdown save failed: {e}")
             return f"Fossilization Failure: {e}"
 
-    def load_model_state(self):
+    def load_model_state(self, state_path: str = None):
         """Restore manifold state from gyroid_state.pt (Warmstart)."""
-        state_path = os.path.join(root_dir, 'gyroid_state.pt')
+        if state_path is None:
+            state_path = os.path.join(root_dir, 'gyroid_state.pt')
         if not os.path.exists(state_path):
             print("[WARMSTART] No fossilized state found at root. Starting clean.")
             return
@@ -411,8 +433,32 @@ class HybridAI:
             
             self.iteration_count = checkpoint.get('iteration', 0)
             if 'hidden_state' in checkpoint:
-                self.hidden_state = checkpoint['hidden_state']
+                loaded_state = checkpoint['hidden_state']
+                
+                # VALIDATION: Check against Phase 18 Harmonic Seed Dynamics (Norm 3.127)
+                t_basis = torch.linspace(0, 2 * 3.14159265, 256, device=self.torch_device)
+                harmonic_seed = torch.sin(t_basis) * (3.127 / torch.norm(torch.sin(t_basis), p=2))
+                
+                loaded_norm = torch.norm(loaded_state, p=2).item()
+                # Correlation check to ensure the manifold hasn't flattened into ergodic noise
+                correlation = torch.abs(torch.dot(loaded_state.flatten(), harmonic_seed.flatten()) / (torch.norm(loaded_state) * torch.norm(harmonic_seed) + 1e-8)).item()
+                
+                if loaded_norm < 0.5 or correlation < 0.01:
+                    print(f"[RECOVERY] Fossil integrity check FAILED (Norm: {loaded_norm:.4f}, Corr: {correlation:.4f}).")
+                    print("[RECOVERY] Manifold is spectrally flat or corrupted. Triggering Harmonic Re-genesis...")
+                    self._initialize_manifold_state()
+                else:
+                    self.hidden_state = loaded_state.clone()
+                    # Sync scarred state for temporal continuity
+                    if 'hidden_state_scarred' in checkpoint:
+                        self.hidden_state_scarred = checkpoint['hidden_state_scarred'].clone()
+                    else:
+                        # Apply Structurally Honest Jitter to break potential phase-locks (§45.2)
+                        jitter = self._harvest_honest_jitter(self.hidden_state.shape)
+                        self.hidden_state_scarred = self.hidden_state + jitter
+                    print(f"[RECOVERY] Fossil integrity verified (Norm: {loaded_norm:.4f}, Corr: {correlation:.4f}).")
             if 'damage_residue' in checkpoint:
+
                 self.damage_residue = checkpoint['damage_residue']
 
             # Restore Manifold Assets via Engine
@@ -440,21 +486,44 @@ class HybridAI:
             print(f"[WARMSTART] Error during recovery: {e}. Manifold may be corrupt or entropic.")
 
     
+    def _harvest_honest_jitter(self, shape: torch.Size) -> torch.Tensor:
+        """
+        Harvests Structurally Honest Jitter from silicon state variance.
+        Follows §45.2 (Silicon Sovereignty).
+        """
+        import time
+        jitter_tensor = torch.zeros(shape, device=self.torch_device)
+        flat = jitter_tensor.flatten()
+        
+        # Warm up cache and measure nano-variance friction
+        t0 = time.perf_counter_ns()
+        # Small matrix ops to generate hardware friction
+        for _ in range(5):
+             _ = torch.det(torch.randn((8, 8), device=self.torch_device))
+        t1 = time.perf_counter_ns()
+        
+        # Harvest the 'least significant nanoseconds' as a seed val
+        seed_val = ((t1 - t0) % 1000) / 1000.0
+        if seed_val == 0: seed_val = 0.5
+        
+        # Deterministic chaotic expansion (Logistic map)
+        x = seed_val
+        for i in range(len(flat)):
+            # x_{n+1} = 3.99 * x_n * (1 - x_n) -- chaotic regime
+            x = 3.99 * x * (1.0 - x)
+            flat[i] = x
+            
+        return (jitter_tensor - 0.5) * 0.1
+
     def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None, audio_dyad: dict = None, regime: str = 'goo') -> dict:
-        # --- EXPLICIT LOCAL BINDING (Temporal Isolation Snapshot) ---
-        # Disconnecting from persistent state to shield autograd from in-place leaks.
+        # Ensure hidden_state is ready for cloning (isolation snapshot)
+        if not hasattr(self, 'hidden_state') or self.hidden_state is None:
+            self._initialize_manifold_state()
+            
         hidden_state = self.hidden_state.clone()
         diagnostics = {}
         response_text = ""
-        
-        # --- FGRT HARMONIC SEED (Love Vector Norm 3.127) ---
-        # Only initialize if state is trivial (all zeros or None) to ensure persistence
-        if self.hidden_state is None or torch.norm(self.hidden_state) < 1e-4:
-            t_basis = torch.linspace(0, 2 * 3.14159265, 256, device=self.torch_device)
-            initial_seed = torch.sin(t_basis) * (3.127 / torch.norm(torch.sin(t_basis)))
-            self.hidden_state_scarred = initial_seed.clone()
-            self.hidden_state = initial_seed.clone()
-            print("[PERSISTENCE] Manifold initialized from seeded harmonics.")
+
         
         self.corrected_tensor = torch.zeros(256, device=self.torch_device)
         self.iteration_count += 1
@@ -505,6 +574,22 @@ class HybridAI:
 
                 response_text = engine_output.get('response', '')
                 diagnostics = engine_output
+                
+                # --- ENTROPY MONITORING & ACTIVITY INDUCTION ---
+                # Monitor spectral entropy to prevent manifold collapse
+                spectral_entropy = engine_output.get('spectral_entropy', 0.0)
+                if isinstance(spectral_entropy, torch.Tensor):
+                    spectral_entropy = spectral_entropy.item()
+                
+                if spectral_entropy < 0.05:
+                    print(f"[PHYSICS] Spectral Flatness Detected (Entropy: {spectral_entropy:.4f}).")
+                    print("[PHYSICS] Inducing topological activity via Soliton Healer...")
+                    if hasattr(self.engine, 'soliton_healer'):
+                        self.engine.soliton_healer.reset_healing()
+                        # Apply high-pressure ranging signal (Honest Jitter) to "heat" the manifold
+                        honest_heat = self._harvest_honest_jitter(self.engine.soliton_healer.alpha.shape)
+                        self.engine.soliton_healer.alpha.data.add_(torch.abs(honest_heat) * 0.5)
+                
                 # Capture evolved state in local binding for isolation-safe fossilization
                 if 'hidden_state' in engine_output:
                     hidden_state = engine_output['hidden_state']
@@ -564,7 +649,7 @@ class HybridAI:
                     # Update the state with the evolved trajectory
                     hidden_state_evolved_sq = hidden_state_evolved.squeeze(0)
                     # Define Lawful Distortion (0.01 sigma as per Solver signature)
-                    distortion = torch.randn_like(hidden_state_evolved_sq) * 0.01
+                    distortion = self._harvest_honest_jitter(hidden_state_evolved_sq.shape) * 0.1
                     self.hidden_state_scarred = hidden_state_evolved_sq + distortion
 
                 # Map evolved state to the corrected tensor for downstream affordance tracking
@@ -742,7 +827,7 @@ class HybridAI:
                     time_step = torch.tensor([self.iteration_count * 0.1])
                     acoustic_res = self.spectral_corrector.project_to_acoustic_resonance(facets, time_step)
                     # Bostick Jitter: Breaking the 0.3069 Phase-Lock
-                    acoustic_res = acoustic_res + (torch.randn_like(acoustic_res) * 0.01)
+                    acoustic_res = acoustic_res + (self._harvest_honest_jitter(acoustic_res.shape) * 0.1)
                     acoustic_val = float(acoustic_res.detach().abs().mean())
                     
                     # Apply the correction to the tensor
