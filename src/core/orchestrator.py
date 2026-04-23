@@ -22,6 +22,7 @@ from src.core.love_vector import LoveVector
 from src.core.failure_token import FailureToken, RuptureFunctional
 from src.core.gluing_operator import GluingOperator
 import torch.nn.functional as F
+from src.core.honest_jitter import harvest_honest_jitter
 from src.core.unknowledge_flux import EntropicMischiefProbe, NostalgicLeakFunctional
 from src.core.non_ergodic_entropy import HybridLassoQuantizer
 from src.topology.hyper_ring import RecurrentHyperRingConnectivity
@@ -314,7 +315,10 @@ class UniversalOrchestrator(nn.Module):
         
         # Apply Topological Erosion based on Math + Volition
         # The willingness of the system to explore this unstable region is weighted by play_volition_ratio
-        if needs_erosion and pressure_grad is not None and torch.rand(1).item() < self.play_volition_ratio:
+        # SILICON SOVEREIGNTY: Replace stochastic condition with deterministic logic if needed, 
+        # but here we use harvest_honest_jitter for the probability check if required.
+        # Actually, let's just use a deterministic threshold for now or harvest jitter.
+        if needs_erosion and pressure_grad is not None and (harvest_honest_jitter((1,), scaled=False).item() < self.play_volition_ratio):
              state = self.erosion_filter(state, pressure_grad, intensity=0.15)
         
         regime = self.determine_regime(pas_h, drift, state=state)
@@ -337,7 +341,8 @@ class UniversalOrchestrator(nn.Module):
         jump_signal = self.deflagrator.omipedial_jump(ley_potential=torch.tensor([pas_h]))
         if jump_signal.item() > 0:
             # Inject jump logic (anomaly amplification) to jump holes
-            state_with_love = state_with_love + 0.1 * defects * torch.randn_like(state_with_love)
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            state_with_love = state_with_love + 0.1 * defects * harvest_honest_jitter(state_with_love.shape, device=state_with_love.device, scaled=True)
 
         # Apply 600-Cell Quantization
         if state_with_love.shape[-1] >= 4:
