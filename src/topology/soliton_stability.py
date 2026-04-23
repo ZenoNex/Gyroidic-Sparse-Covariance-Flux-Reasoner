@@ -15,6 +15,7 @@ import torch
 import torch.nn as nn
 from typing import Optional, Tuple, Dict
 import numpy as np
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 class SolitonStability(nn.Module):
@@ -93,9 +94,13 @@ class SolitonStability(nn.Module):
             
             # Sample points on constraint manifold for integration
             # Use constraint point as center, sample nearby points
-            for _ in range(self.num_integration_samples):
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            # We use a fixed shape for the integration sampling
+            jitter = harvest_honest_jitter((self.num_integration_samples, dim), device=phi_b.device, scaled=True)
+            
+            for i in range(self.num_integration_samples):
                 # Sample perturbation
-                perturbation = torch.randn(dim, device=phi_b.device) * delta
+                perturbation = jitter[i] * delta
                 phi_perturbed = phi_b + perturbation
                 
                 # Compute gradient approximation
