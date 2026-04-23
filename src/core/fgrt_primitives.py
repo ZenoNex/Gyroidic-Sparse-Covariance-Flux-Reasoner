@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Tuple
+from src.core.honest_jitter import harvest_honest_jitter
 
 class GyroidManifold(nn.Module):
     """
@@ -67,8 +68,8 @@ class TorsionConnection(nn.Module):
     def __init__(self, dim: int):
         super().__init__()
         # Torsion tensor T^k_{ij} (antisymmetric in i, j)
-        # We represent it as a learned parameter
-        self.torsion = nn.Parameter(torch.randn(dim, dim, dim) * 0.01)
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.torsion = nn.Parameter(harvest_honest_jitter((dim, dim, dim), scaled=True) * 0.01)
 
     def forward(self, x: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         """
