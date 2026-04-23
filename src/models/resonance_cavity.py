@@ -224,19 +224,32 @@ class BreatherMode(nn.Module):
         
         return torch.stack(results, dim=-1)  # [batch, num_breathers]
     
-    def forward(self, x: torch.Tensor, dt: float = 0.1) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, dt: float = 0.1, excitation: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Advance breather clock and return projected breather field.
         
         Args:
             x: [batch, dim] state positions
             dt: Time step
+            excitation: Optional [batch, num_breathers] external media excitation
         
         Returns:
             breather_contribution: [batch, dim] projected breather excitations
         """
         self.t += dt
         amplitudes = self.evaluate(x)  # [batch, num_breathers]
+        
+        if excitation is not None:
+            # Inject external media energy into the standing waves
+            # Ensures structural honesty by driving manifold transition with media bits
+            # Align excitation to num_breathers if needed
+            if excitation.shape[-1] != self.num_breathers:
+                # Simple adaptive pooling/interpolation for shape alignment
+                excitation = torch.nn.functional.adaptive_avg_pool1d(
+                    excitation.unsqueeze(1), self.num_breathers
+                ).squeeze(1)
+            amplitudes = amplitudes + excitation
+            
         return self.projection(amplitudes)  # [batch, dim]
 
 class ResonanceCavity(nn.Module):
@@ -352,6 +365,7 @@ class ResonanceCavity(nn.Module):
         introspection_directions: Optional[torch.Tensor] = None,
         expected_residues: Optional[torch.Tensor] = None,
         gcve_pressures: Optional[torch.Tensor] = None,
+        multimodal_excitation: Optional[torch.Tensor] = None,
         field_idx: int = 0,
         dt: float = 0.1,
         reconstruction_pressure: Optional[torch.Tensor] = None,
@@ -366,6 +380,7 @@ class ResonanceCavity(nn.Module):
             introspection_directions: Optional [batch, hidden_dim] validated directions
             expected_residues: Optional [batch, K] System 1 guess
             gcve_pressures: Optional [batch, num_windows] GCVE violation scores
+            multimodal_excitation: Optional [batch, dim] external media excitation
             field_idx: Which prime field (0 to K-1)
             dt: Time step for update
             reconstruction_pressure: Optional [batch] CRT reconstruction errors
@@ -458,15 +473,15 @@ class ResonanceCavity(nn.Module):
         mischief_strength = 0.05 * (1.0 - torch.tanh(mean_violation if 'mean_violation' in locals() else torch.tensor(0.0)))
         mischief_noise = torch.randn_like(self.M[field_idx]) * mischief_strength
         
-        # dC/dt = Gamma + lambda + eta + mischief
-        dC_dt = Gamma_term + lambda_term + eta_term + mischief_noise
+        # Evaluate breather contribution with multimodal injection
+        breather_excitation = self.breather(
+            attention_states.mean(dim=1), 
+            dt=dt,
+            excitation=multimodal_excitation
+        )
         
-        # --- BREATHER MODE INTEGRATION (RIC Eq 6) ---
-        # Localized breather excitations preserve concept packets as
-        # standing-wave interference patterns within the cavity.
-        breather_input = self.M[field_idx].mean(dim=0, keepdim=True)  # [1, hidden_dim]
-        breather_excitation = self.breather(breather_input, dt=dt)  # [1, hidden_dim]
-        # Scale breather contribution to avoid overwhelming the decay dynamics
+        # dC/dt = Gamma + lambda + eta + mischief + breather
+        dC_dt = Gamma_term + lambda_term + eta_term + mischief_noise
         dC_dt = dC_dt + 0.05 * breather_excitation.expand_as(dC_dt)
         
         # Update Memory for Non-Teleological Flow
@@ -670,6 +685,7 @@ class ResonanceCavity(nn.Module):
         introspection_directions: Optional[torch.Tensor] = None,
         expected_residues: Optional[torch.Tensor] = None,
         gcve_pressures: Optional[torch.Tensor] = None,
+        multimodal_excitation: Optional[torch.Tensor] = None,
         reconstruction_pressure: Optional[torch.Tensor] = None,
         refined_residues: Optional[torch.Tensor] = None,
         instability_severity: float = 0.0
@@ -682,6 +698,7 @@ class ResonanceCavity(nn.Module):
             introspection_directions: Optional [batch, hidden_dim]
             expected_residues: Optional [batch, K] for residue pattern storage
             gcve_pressures: Optional [batch, num_windows] GCVE violation scores
+            multimodal_excitation: Optional [batch, dim] external media excitation
             reconstruction_pressure: Optional [batch] for quality filtering
             refined_residues: Optional [batch, K] System 2 feedback
             instability_severity: [0, 1] topological panic indicator
@@ -699,6 +716,7 @@ class ResonanceCavity(nn.Module):
                 introspection_directions,
                 expected_residues,
                 gcve_pressures,
+                multimodal_excitation=multimodal_excitation,
                 field_idx=k,
                 reconstruction_pressure=reconstruction_pressure,
                 refined_residues=refined_residues,
