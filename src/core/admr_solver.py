@@ -14,6 +14,7 @@ import math
 from typing import Any, Dict, List, Optional, Tuple, Union
 from .polynomial_coprime import PolynomialCoprimeConfig
 from .numerical_d_module import NumericalDModuleManager, RationalSnappingLayer
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 class PolynomialADMRSolver(nn.Module):
@@ -63,10 +64,12 @@ class PolynomialADMRSolver(nn.Module):
         # 2. Non-selfadjoint Transition Operators (A_i)
         # We initialize non-selfadjoint matrices for facet-wise dynamics
         num_facet_channels = poly_config.k
-        self.A = nn.Parameter(torch.randn(num_facet_channels, state_dim, state_dim, device=device) * 0.01)
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.A = nn.Parameter(harvest_honest_jitter((num_facet_channels, state_dim, state_dim), device=device, scaled=True) * 0.01)
         
         # 3. Stochastic Forcing Buffer
-        self.register_buffer('eta', torch.randn(state_dim, device=device) * 0.005)
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.register_buffer('eta', harvest_honest_jitter((state_dim,), device=device, scaled=True) * 0.005)
         
         # 4. Chiral Residue Cache (Warm-start backtracking)
         self.register_buffer('chiral_cache', torch.zeros(1, state_dim, device=device))
@@ -258,7 +261,8 @@ class PolynomialADMRSolver(nn.Module):
         tension_drift = -gamma * negotiation * (1.0 + breather)
         
         # 4. Stochastic Forcing (dW)
-        noise = torch.randn_like(states) * effective_sigma * (dt**0.5)
+        # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+        noise = harvest_honest_jitter(states.shape, device=states.device, scaled=True) * effective_sigma * (dt**0.5)
         
         # 3.5. Mathematical Digimon Nutrient (Historical Illusion Injection)
         # Allows transient high-fidelity states to feed the trajectory.
