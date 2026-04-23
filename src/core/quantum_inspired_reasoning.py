@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from typing import List, Tuple, Optional
+from src.core.honest_jitter import harvest_honest_jitter
 
 class QuantumInspiredReasoningState(nn.Module):
     """
@@ -12,13 +13,15 @@ class QuantumInspiredReasoningState(nn.Module):
         super().__init__()
         self.dim = dim
         # Initialize complex amplitude state |ψ⟩
-        real_part = torch.randn(dim)
-        imag_part = torch.randn(dim)
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        real_part = harvest_honest_jitter((dim,))
+        imag_part = harvest_honest_jitter((dim,))
         self.amplitude = torch.complex(real_part, imag_part)
         self.amplitude = self.amplitude / (torch.norm(self.amplitude) + 1e-8)
         
         # Hamiltonian for evolution (Hermitian)
-        H_real = torch.randn(dim, dim)
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        H_real = harvest_honest_jitter((dim, dim))
         self.reasoning_hamiltonian = torch.complex(H_real, torch.zeros_like(H_real))
         # Make Hermitian: H = (A + A^H) / 2
         self.reasoning_hamiltonian = (self.reasoning_hamiltonian + self.reasoning_hamiltonian.conj().T) * 0.5
@@ -126,7 +129,10 @@ class QuantumInspiredReasoningState(nn.Module):
         
     def decoherence_model(self, state: torch.Tensor, noise_strength: float = 0.1) -> torch.Tensor:
         """Mix state with max-entropy noise."""
-        noise = torch.complex(torch.randn_like(state.real), torch.randn_like(state.real))
+        # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+        noise_real = harvest_honest_jitter(state.shape)
+        noise_imag = harvest_honest_jitter(state.shape)
+        noise = torch.complex(noise_real, noise_imag)
         noise = noise / torch.norm(noise)
         
         # ρ' = (1-p)ρ + p(I/d)
