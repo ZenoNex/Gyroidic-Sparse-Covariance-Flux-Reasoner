@@ -14,6 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from typing import Dict, List, Tuple, Optional, Callable
+from src.core.honest_jitter import harvest_honest_jitter
 
 class CODESConstraintFramework(nn.Module):
     """
@@ -39,8 +40,9 @@ class CODESConstraintFramework(nn.Module):
         self.convergence_threshold = convergence_threshold
         
         # Constraint energy functions
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
         self.constraint_weights = nn.ParameterList([
-            nn.Parameter(torch.randn(state_dim, state_dim) * 0.01)
+            nn.Parameter(harvest_honest_jitter((state_dim, state_dim)) * 0.01)
             for _ in range(max_constraints)
         ])
         
@@ -79,14 +81,16 @@ class CODESConstraintFramework(nn.Module):
         # Initialize constraint based on type
         if constraint_type == 'quadratic':
             # Positive definite quadratic form
-            W = torch.randn(self.state_dim, self.state_dim) * 0.01
+            # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+            W = harvest_honest_jitter((self.state_dim, self.state_dim)) * 0.01
             self.constraint_weights[constraint_id].data = W @ W.t() + torch.eye(self.state_dim) * 0.01
         elif constraint_type == 'harmonic':
             # Harmonic oscillator constraint
             self.constraint_weights[constraint_id].data = torch.eye(self.state_dim) * 0.1
         elif constraint_type == 'polynomial_coprime':
             # Polynomial co-prime constraint using existing system
-            phi_values = self.polynomial_config.evaluate(torch.randn(1, self.state_dim))
+            # SILICON SOVEREIGNTY: Replace stochastic evaluation with Honest Jitter
+            phi_values = self.polynomial_config.evaluate(harvest_honest_jitter((1, self.state_dim)))
             W = torch.zeros(self.state_dim, self.state_dim)
             
             # Create constraint matrix based on polynomial functional structure
