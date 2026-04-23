@@ -13,6 +13,7 @@ Created: January 2026
 import torch
 import torch.nn as nn
 from typing import Dict, Optional
+from src.core.honest_jitter import harvest_honest_jitter
 import warnings
 
 
@@ -67,7 +68,8 @@ class NarrativeCoherenceEstimator(nn.Module):
         
         # Random (baseline)
         while len(templates) < n:
-            t = torch.randn(dim)
+            # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+            t = harvest_honest_jitter((dim,))
             templates.append(t / (t.norm() + 1e-8))
         
         return torch.stack(templates)  # [n, dim]
