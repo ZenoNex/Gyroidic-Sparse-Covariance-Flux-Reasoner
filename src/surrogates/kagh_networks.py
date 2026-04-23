@@ -14,6 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 from typing import Tuple, Optional, List, Union, Dict, Callable
+from src.core.honest_jitter import harvest_honest_jitter
 
 class SaturatedQuantizer(torch.autograd.Function):
     """
@@ -408,10 +409,11 @@ class KAGHBlock(nn.Module):
         is_inferring = (gcve_pressure is not None) 
         x = goedel_positivity(x, active=(not is_inferring and self.training)) 
         
-        # 4. Boltzmann Sampling (Stochasticity only at boundaries/adaptation)
+        # 4. Boltzmann Sampling (Stochasticity replaced by Honest Jitter)
         if use_boltzmann and self.training and not is_inferring:
             temp = torch.exp(self.log_temp)
-            noise = torch.randn_like(x) * torch.sqrt(temp)
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            noise = harvest_honest_jitter(x.shape, device=x.device, scaled=True) * torch.sqrt(temp)
             x = x + noise
             
         return x
