@@ -10,10 +10,16 @@ Enhanced: January 2026 with GDPO integration
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import math
 import hashlib
 import struct
-from typing import List, Dict, Optional, Tuple
+import sys
+import os
+from typing import Dict, List, Optional, Tuple, Any
+
+sys.path.append(os.getcwd())
+from src.core.polynomial_coprime import PolynomialCoprimeConfig
 
 
 class GyroidicFluxAlignment(nn.Module):
@@ -474,8 +480,14 @@ class ResonanceCavity(nn.Module):
         mischief_noise = torch.randn_like(self.M[field_idx]) * mischief_strength
         
         # Evaluate breather contribution with multimodal injection
+        # --- BREATHER MODE INTEGRATION (RIC Eq 6) ---
+        # Localized breather excitations preserve concept packets as
+        # standing-wave interference patterns within the cavity.
+        # We combine Input Position (Attention) with Memory Position (M)
+        # to ensure both new excitation and historical preservation.
+        breather_pos_proxy = 0.7 * attention_states.mean(dim=1) + 0.3 * self.M[field_idx].mean(dim=0, keepdim=True)
         breather_excitation = self.breather(
-            attention_states.mean(dim=1), 
+            breather_pos_proxy, 
             dt=dt,
             excitation=multimodal_excitation
         )
@@ -490,10 +502,11 @@ class ResonanceCavity(nn.Module):
         
         # --- Speculative Neuroscience Layer: Dark Matter Accumulation ---
         # Dark matter captures the "unreconciled" residues (the holes).
-        # It evolves slower and represents counterfactual potential.
-        if refined_residues is not None:
+        # We use multimodal_excitation as a proxy for refined_residues (Gap A) if missing.
+        target_ref_residues = refined_residues if refined_residues is not None else multimodal_excitation
+        if target_ref_residues is not None:
              # Use current field's refined residue
-             r_ref = refined_residues[:, field_idx].mean() if refined_residues.dim() > 1 else refined_residues.mean()
+             r_ref = target_ref_residues[:, field_idx].mean() if target_ref_residues.dim() > 1 else target_ref_residues.mean()
              r_exp = (expected_residues[:, field_idx].mean() if expected_residues.dim() > 1 else expected_residues.mean()) if expected_residues is not None else 0.0
              
              residue_gap = torch.abs(r_ref - r_exp)
