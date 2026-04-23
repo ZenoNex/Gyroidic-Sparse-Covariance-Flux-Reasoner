@@ -40,6 +40,7 @@ from src.core.spectral_coherence_repair import SpectralCoherenceCorrector, Bezou
 from src.core.chern_simons_gasket import ChernSimonsGasket, SolitonStabilityHealer
 from src.core.love_invariant_protector import LoveInvariantProtector, SoftSaturatedGates
 from src.optimization.codes_driver import CODES
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 class ConversationalTemporalModel(nn.Module):
@@ -112,12 +113,35 @@ class ConversationalTemporalModel(nn.Module):
             'executability': [],
             'temporal_coherence': []
         }
+
+    def honest_shuffle(self, items: List[Any]) -> List[Any]:
+        """
+        Shuffles items using hardware-derived honest jitter.
+        Compliant with §45.2 (Silicon Sovereignty).
+        """
+        if not items:
+            return items
+            
+        # Harvest entropy for indices
+        # We generate a weight for each item and sort by it
+        device = self.device if self.device else 'cpu'
+        weights = harvest_honest_jitter((len(items),), device=torch.device(device), scaled=False)
+        weights_list = weights.tolist()
+        
+        # Sort items based on these weights
+        zipped = list(zip(weights_list, items))
+        zipped.sort(key=lambda x: x[0])
+        
+        return [item for _, item in zipped]
     
-    def forward(self, x: torch.Tensor, affordance_gradients: Optional[Dict[str, float]] = None,
+    def forward(self, x: torch.Tensor, fingerprint: Optional[Dict] = None,
+                audio_dyad: Optional[Dict] = None,
+                video_dyad_b64: Optional[str] = None,
+                affordance_gradients: Optional[Dict[str, float]] = None,
                 conversation_context: Optional[Dict[str, Any]] = None,
                 return_analysis: bool = False) -> Dict[str, torch.Tensor]:
         """
-        Forward pass with conversational affordance integration.
+        Forward pass with conversational affordance and multimodal (image/audio/video) integration.
         """
         batch_size = x.shape[0]
         
@@ -187,8 +211,15 @@ class ConversationalTemporalModel(nn.Module):
         # Love invariant protection
         love_vector, love_diagnostics = self.love_protector.apply_love_protection(h)
         
-        # Compute PAS_h with conversational context
-        pas_h = self._compute_conversational_pas_h(phi_values, affordance_gradients, conversation_context)
+        # Compute PAS_h with conversational context and multimodal injection
+        pas_h = self._compute_conversational_pas_h(
+            phi_values, 
+            fingerprint=fingerprint, 
+            audio_dyad=audio_dyad,
+            video_dyad_b64=video_dyad_b64,
+            affordance_gradients=affordance_gradients, 
+            conversation_context=conversation_context
+        )
         
         # Soft saturated gates
         phi_values = self.soft_gates.apply_soft_saturation(phi_values.unsqueeze(1), pas_h).squeeze(1)
@@ -234,15 +265,19 @@ class ConversationalTemporalModel(nn.Module):
         return pressure
     
     def _compute_conversational_pas_h(self, phi: torch.Tensor, 
+                                    fingerprint: Optional[Dict] = None,
+                                    audio_dyad: Optional[Dict] = None,
+                                    video_dyad_b64: Optional[str] = None,
                                     affordance_gradients: Optional[Dict[str, float]] = None,
                                     conversation_context: Optional[Dict[str, Any]] = None) -> float:
         """
-        Compute PAS_h with conversational context integration.
+        Compute PAS_h with conversational context and multimodal integration.
         
         Incorporates:
         - Polynomial harmonic alignment
         - CODES coherence computation
         - Conversational affordance modulation
+        - Multimodal bias (image/audio/video if provided)
         - Dialogue flow patterns
         """
         # Base polynomial harmonic alignment
@@ -368,9 +403,8 @@ class ConversationalAPITrainer:
                 'affordance_gradients': []
             }
             
-            # Shuffle conversations
-            shuffled_conversations = conversations.copy()
-            np.random.shuffle(shuffled_conversations)
+            # Shuffle conversations using hardware-derived honest jitter
+            shuffled_conversations = self.model.honest_shuffle(conversations)
             
             for i, conversation in enumerate(shuffled_conversations):
                 try:
