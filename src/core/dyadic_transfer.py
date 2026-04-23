@@ -16,6 +16,7 @@ Created: January 2026
 import torch
 import torch.nn as nn
 from typing import Dict, Tuple, Optional
+from src.core.honest_jitter import harvest_honest_jitter
 
 class DyadicTransferMap(nn.Module):
     """
@@ -32,7 +33,8 @@ class DyadicTransferMap(nn.Module):
         # Learnable transfer matrix (Directed Graph)
         # We model this as an attention mechanism or direct matrix
         # Let's use a bilinear map for richer interaction: T_ij = u_i^T W u_j
-        self.task_embeddings = nn.Parameter(torch.randn(num_tasks, embedding_dim))
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.task_embeddings = nn.Parameter(harvest_honest_jitter((num_tasks, embedding_dim)))
         self.transfer_bilinear = nn.Bilinear(embedding_dim, embedding_dim, 1)
         
         # Commutator oracle is implicitly this learned structure
