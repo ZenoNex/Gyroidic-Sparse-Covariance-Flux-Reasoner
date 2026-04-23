@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from typing import Dict, List, Tuple, Optional, Any
 import math
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 class SparseGyroidCovarianceProbe(nn.Module):
@@ -465,7 +466,8 @@ class SaturationFractureDetector(nn.Module):
         phi_x = phi(x) # [batch, K]
         
         # Perturbed output
-        noise = torch.randn_like(x) * delta
+        # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+        noise = harvest_honest_jitter(x.shape, device=x.device, scaled=True) * delta
         phi_x_delta = phi(x + noise)
         
         # L0 difference (count flips)
