@@ -8,6 +8,7 @@ L ∈ ker(Phi_ownership)
 
 import torch
 import torch.nn as nn
+from src.core.honest_jitter import harvest_honest_jitter
 
 class LoveVector(nn.Module):
     """
@@ -19,7 +20,8 @@ class LoveVector(nn.Module):
     def __init__(self, dim: int, intensity: float = 0.1):
         super().__init__()
         # L is a persistent buffer, not a parameter (non-ownable)
-        self.register_buffer('L', torch.randn(dim) * intensity)
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.register_buffer('L', harvest_honest_jitter((dim,)) * intensity)
         self.dim = dim
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
