@@ -635,7 +635,7 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # 3. Update Resonance Cavity (Explicit Memory Update)
         # We pass input_tensor as attention_states to trigger M update
-        # We also pass collision_residues (Gap A) to drive breather excitations
+        # We also pass collision_residues (Gap A) to excite breathers AND seed D_dark
         expected_residues = getattr(self, '_last_est_residues', None)
         cavity_out = self.cavity(
             input_tensor.unsqueeze(1),
