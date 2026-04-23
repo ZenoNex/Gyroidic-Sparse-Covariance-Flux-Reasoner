@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import math
-from typing import Dict, List, Tuple, Optional, Union, Callable
+from typing import Dict, List, Tuple, Optional, Union, Callable, Any 
 import torch.nn.functional as F
 
 
@@ -105,7 +105,7 @@ class MetaPolytopeMatrioshka(nn.Module):
         super().__init__()
         self.max_depth = max_depth
         self.base_dim = base_dim
-        
+
         # Initialize CRT system with dynamically generated primes
         num_moduli = max_depth + 3
         self.crt_moduli = crt_moduli if crt_moduli else self._generate_primes(num_moduli)
@@ -128,7 +128,8 @@ class MetaPolytopeMatrioshka(nn.Module):
         evolve_fn: Optional[Callable] = None,
         calm_veto_score: float = 0.0,
         calm_gauge: float = 0.5,
-        geom_veto_score: float = 0.0
+        geom_veto_score: float = 0.0,
+        voynich_token: Optional[Any] = None
     ) -> Union[Tuple[torch.Tensor, int, int], BoundaryState]:
         """
         Apply Matrioshka-nested context-aware quantization and evolution.
@@ -143,6 +144,13 @@ class MetaPolytopeMatrioshka(nn.Module):
         # Non-Dual Topo/CALM Veto Superposition
         # "allow the architecture to fluctuate along a critical line"
         total_veto = (1.0 - calm_gauge) * geom_veto_score + calm_gauge * calm_veto_score
+        
+        # Voynich Exemption (Phase 6.3): Soften boundary for opaque signatures
+        exemption_scale = 1.0
+        if voynich_token is not None:
+            # We scale the margin to allow the manifold to 'flex' around opaque signatures
+            exemption_scale = 2.0
+            # Note: Shadow logging happens in the orchestrator/engine caller
         
         best_quantization = None
         min_energy = float('inf')
@@ -159,7 +167,7 @@ class MetaPolytopeMatrioshka(nn.Module):
             
             # Simple geometric containment proxy (distance to lattice < delta * factor)
             # Modulated by total_veto: higher veto shrinks the containment boundary
-            boundary_margin_tensor = effective_delta * (1.0 - 0.5 * total_veto)
+            boundary_margin_tensor = effective_delta * (1.0 - 0.5 * total_veto) * exemption_scale
             boundary_margin = boundary_margin_tensor.mean().item()
             
             # If the veto is extreme, we forcibly pop outward (manifold tear)
