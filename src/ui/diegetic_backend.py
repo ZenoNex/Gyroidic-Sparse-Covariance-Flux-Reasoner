@@ -999,7 +999,7 @@ class DiegeticPhysicsEngine(nn.Module):
             # State Evolution (Singing)
             # Use Larynx weights to rotate the state based on the symbol emitted
             feedback = torch.tanh(self.larynx.proj.weight[char_idx].unsqueeze(0))
-            current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * torch.randn_like(current_state)
+            current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * self._harvest_honest_jitter(current_state.shape)
 
         # 5. Linguistic Correction (Anti-glitch filter)
         res = "".join(generated_chars)
@@ -1054,7 +1054,16 @@ class DiegeticPhysicsEngine(nn.Module):
             entropy_bias = 0.01
             
         self._last_mischief = torch.tensor([mischief_bias], device=self.device)
-        self._last_spectral_entropy = torch.tensor([entropy_bias], device=self.device)
+        
+        # Calculate real-time spectral entropy of the current meta_state
+        with torch.no_grad():
+            spectrum = torch.fft.rfft(self.meta_state).abs()
+            spectrum_norm = spectrum / (spectrum.sum(dim=-1, keepdim=True) + 1e-8)
+            real_entropy = -(spectrum_norm * torch.log(spectrum_norm + 1e-8)).sum(dim=-1).mean()
+            self._last_spectral_entropy = real_entropy.unsqueeze(0)
+            
+            # Blend with regime bias
+            self._last_spectral_entropy = 0.7 * self._last_spectral_entropy + 0.3 * entropy_bias
         
         # --- INITIALIZATION COVERAGE ---
         response_text = ""
@@ -2494,7 +2503,7 @@ class DiegeticPhysicsEngine(nn.Module):
             "crt_honesty": crt_honesty,
             "h_mischief": h_mischief,
             "iteration": self.iteration,
-            "spectral_entropy": float(self._last_spectral_entropy.item()) if hasattr(self, '_last_spectral_entropy') else 0.5,
+            "spectral_entropy": float(self._last_spectral_entropy.item()) if hasattr(self, '_last_spectral_entropy') else 0.0,
             "chiral_score": float(compute_chiral_shift(self.repair_polynomial_config.get_coefficients_tensor()).item()) if hasattr(self, 'repair_polynomial_config') else 0.1,
             "chiral_torsion": float(compute_chirality(self.repair_polynomial_config.get_coefficients_tensor()).abs().item()) if hasattr(self, 'repair_polynomial_config') else 0.0,
             "glyphlock": bool(check_glyphlock(self.repair_polynomial_config.get_coefficients_tensor()).item() > 0) if hasattr(self, 'repair_polynomial_config') else False,
@@ -2773,6 +2782,35 @@ class DiegeticPhysicsEngine(nn.Module):
                 return float(torch.norm(self.love_vector.L).item() / 5.0)
             except Exception:
                 return 0.61  # last-resort sentinel
+
+    def _harvest_honest_jitter(self, shape: torch.Size) -> torch.Tensor:
+        """
+        Harvests Structurally Honest Jitter from silicon state variance.
+        Follows §45.2 (Silicon Sovereignty).
+        """
+        import time
+        jitter_tensor = torch.zeros(shape, device=self.device)
+        flat = jitter_tensor.flatten()
+        
+        # Warm up cache and measure nano-variance friction
+        t0 = time.perf_counter_ns()
+        # Small matrix ops to generate hardware friction
+        for _ in range(5):
+             _ = torch.det(torch.randn((8, 8), device=self.device))
+        t1 = time.perf_counter_ns()
+        
+        # Harvest the 'least significant nanoseconds' as a seed val
+        seed_val = ((t1 - t0) % 1000) / 1000.0
+        if seed_val == 0: seed_val = 0.5
+        
+        # Deterministic chaotic expansion (Logistic map)
+        x = seed_val
+        for i in range(len(flat)):
+            # x_{n+1} = 3.99 * x_n * (1 - x_n) -- chaotic regime
+            x = 3.99 * x * (1.0 - x)
+            flat[i] = x
+            
+        return (jitter_tensor - 0.5) * 0.1
 
     def _train_mimicry(self, input_state: torch.Tensor, text_target: str):
         """Train Larynx to decrypt the input state back to text."""
