@@ -192,7 +192,8 @@ class UniversalOrchestrator(nn.Module):
         drift: float = 0.0,
         ci: float = None,
         cpr_satisfied: bool = None,
-        state: torch.Tensor = None
+        state: torch.Tensor = None,
+        atrophy: float = 0.0
     ) -> str:
         """
         Integrated Emergence Condition (Eq 10).
@@ -252,7 +253,8 @@ class UniversalOrchestrator(nn.Module):
         
         # Emergence = Seriousness (Structure Emerged)
         # Now requires GLYPHLOCK and non-trivial Homology
-        if is_coherent and is_stable and ci_sufficient and cpr_locked and is_glyph_locked and has_homology:
+        # Anti-Lobotomy: High atrophy (low entropy) forces PLAY regardless of coherence
+        if is_coherent and is_stable and ci_sufficient and cpr_locked and is_glyph_locked and has_homology and atrophy < 0.85:
             return 'SERIOUSNESS'
         else:
             return 'PLAY'
@@ -282,7 +284,8 @@ class UniversalOrchestrator(nn.Module):
         pressure_grad: torch.Tensor,
         pas_h: float,
         coherence: torch.Tensor,
-        is_good_bug: bool = False
+        is_good_bug: bool = False,
+        atrophy: float = 0.0
     ) -> Tuple[torch.Tensor, str, str]:
         """
         Orchestrates the logical primitives through the state.
@@ -299,8 +302,9 @@ class UniversalOrchestrator(nn.Module):
         self.prev_pas = pas_h
 
         # Mathematical entropy determination (Mischief Volition)
-        # High drift and low coherence implies an entropic glitch
-        needs_erosion = (drift > 0.05 and pas_h < 0.85)
+        # High drift and low coherence implies an entropic glitch.
+        # High atrophy (spectral collapse) also necessitates erosion (mischief).
+        needs_erosion = (drift > 0.05 and pas_h < 0.85) or (atrophy > 0.85)
 
         # Update the probe allowing math to define mischief
         computed_bug = needs_erosion
@@ -318,10 +322,19 @@ class UniversalOrchestrator(nn.Module):
         # SILICON SOVEREIGNTY: Replace stochastic condition with deterministic logic if needed, 
         # but here we use harvest_honest_jitter for the probability check if required.
         # Actually, let's just use a deterministic threshold for now or harvest jitter.
-        if needs_erosion and pressure_grad is not None and (harvest_honest_jitter((1,), scaled=False).item() < self.play_volition_ratio):
-             state = self.erosion_filter(state, pressure_grad, intensity=0.15)
+        if (needs_erosion or atrophy > 0.85) and pressure_grad is not None:
+             # Increase play volition when in structural collapse
+             volition = self.play_volition_ratio * (2.0 if atrophy > 0.85 else 1.0)
+             if harvest_honest_jitter((1,), scaled=False).item() < volition:
+                  # Inject Mischief: Perturb the state using Honest Jitter to break the deadlock
+                  # Intensity scales with atrophy
+                  mischief_intensity = 0.15 + 0.35 * max(0.0, atrophy - 0.5)
+                  state = state + mischief_intensity * harvest_honest_jitter(state.shape, device=state.device, scaled=True)
+                  print(f"[ORCHESTRATOR] Mischief Injected (Atrophy: {atrophy:.2f})")
+                  # Also apply erosion filter to the state
+                  state = self.erosion_filter(state, pressure_grad, intensity=0.15)
         
-        regime = self.determine_regime(pas_h, drift, state=state)
+        regime = self.determine_regime(pas_h, drift, state=state, atrophy=atrophy)
         routing = self.get_bimodal_routing(regime)
         
         # Monitor CI
