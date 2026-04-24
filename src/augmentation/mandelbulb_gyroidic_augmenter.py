@@ -13,6 +13,7 @@ import numpy as np
 import math
 from typing import Tuple, Dict, Optional, List
 from dataclasses import dataclass
+from src.core.honest_jitter import harvest_honest_jitter
 
 @dataclass
 class AugmentationConfig:
@@ -150,7 +151,8 @@ class MandelbulbEmbedder(nn.Module):
             # Check for NaN/inf and reset if needed
             nan_mask = torch.isnan(z) | torch.isinf(z)
             if nan_mask.any():
-                z = torch.where(nan_mask, torch.randn_like(z) * 0.1, z)
+                # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+                z = torch.where(nan_mask, harvest_honest_jitter(z.shape, device=z.device, scaled=True) * 0.2, z)
         
         return z
 
@@ -241,7 +243,8 @@ class GyroidicConstraintProjector(nn.Module):
             if nan_mask.any():
                 projected_coords = torch.where(
                     nan_mask, 
-                    torch.randn_like(projected_coords) * 0.1, 
+                    # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+                    harvest_honest_jitter(projected_coords.shape, device=projected_coords.device, scaled=True) * 0.2, 
                     projected_coords
                 )
         
@@ -501,7 +504,8 @@ class MandelbulbGyroidicAugmenter(nn.Module):
         if torch.isnan(X_processed).any() or torch.isinf(X_processed).any():
             print("⚠️  Input contains NaN/inf values, applying preprocessing...")
             nan_mask = torch.isnan(X_processed) | torch.isinf(X_processed)
-            X_processed = torch.where(nan_mask, torch.randn_like(X_processed) * 0.1, X_processed)
+            # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+            X_processed = torch.where(nan_mask, harvest_honest_jitter(X_processed.shape, device=X_processed.device, scaled=True) * 0.2, X_processed)
         
         augmented_X_list = []
         augmented_y_list = []
@@ -513,11 +517,12 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                 
                 # Numerical stability check after Mandelbulb
                 if torch.isnan(mandelbulb_features).any() or torch.isinf(mandelbulb_features).any():
-                    print(f"⚠️  Mandelbulb output unstable for augmentation {aug_idx}, applying correction...")
+                    print(f"  Mandelbulb output unstable for augmentation {aug_idx}, applying correction...")
                     nan_mask = torch.isnan(mandelbulb_features) | torch.isinf(mandelbulb_features)
                     mandelbulb_features = torch.where(
                         nan_mask, 
-                        torch.randn_like(mandelbulb_features) * 0.1, 
+                        # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+                        harvest_honest_jitter(mandelbulb_features.shape, device=mandelbulb_features.device, scaled=True) * 0.2, 
                         mandelbulb_features
                     )
                 
@@ -526,11 +531,12 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                 
                 # Numerical stability check after Gyroid
                 if torch.isnan(gyroid_features).any() or torch.isinf(gyroid_features).any():
-                    print(f"⚠️  Gyroid output unstable for augmentation {aug_idx}, applying correction...")
+                    print(f"  Gyroid output unstable for augmentation {aug_idx}, applying correction...")
                     nan_mask = torch.isnan(gyroid_features) | torch.isinf(gyroid_features)
                     gyroid_features = torch.where(
                         nan_mask, 
-                        torch.randn_like(gyroid_features) * 0.1, 
+                        # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+                        harvest_honest_jitter(gyroid_features.shape, device=gyroid_features.device, scaled=True) * 0.2, 
                         gyroid_features
                     )
                 
@@ -543,18 +549,21 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                     # If dimensions don't match, use adaptive projection
                     if gyroid_features.shape[1] > feature_dim:
                         # Project down to original dimensions
-                        projection_matrix = torch.randn(gyroid_features.shape[1], feature_dim) * 0.1
+                        # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+                        projection_matrix = harvest_honest_jitter((gyroid_features.shape[1], feature_dim), device=gyroid_features.device, scaled=True) * 0.2
                         final_features = torch.mm(gyroid_features, projection_matrix)
                     else:
                         # Pad up to original dimensions
                         padding_size = feature_dim - gyroid_features.shape[1]
-                        padding = torch.randn(batch_size, padding_size) * 0.1
+                        # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+                        padding = harvest_honest_jitter((batch_size, padding_size), device=gyroid_features.device, scaled=True) * 0.2
                         final_features = torch.cat([gyroid_features, padding], dim=1)
                 
                 # Final numerical stability check
                 if torch.isnan(final_features).any() or torch.isinf(final_features).any():
-                    print(f"⚠️  Final features unstable for augmentation {aug_idx}, using fallback...")
-                    final_features = X_processed + torch.randn_like(X_processed) * 0.1
+                    print(f"  Final features unstable for augmentation {aug_idx}, using fallback...")
+                    # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+                    final_features = X_processed + harvest_honest_jitter(X_processed.shape, device=X_processed.device, scaled=True) * 0.2
                 
                 # Clamp final output to reasonable range
                 final_features = torch.clamp(final_features, min=-20.0, max=20.0)
@@ -565,10 +574,11 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                     augmented_y_list.append(y)
                     
             except Exception as e:
-                print(f"⚠️  Augmentation {aug_idx} failed: {e}")
-                print("⚠️  Using fallback augmentation...")
+                print(f"  Augmentation {aug_idx} failed: {e}")
+                print("  Using fallback augmentation...")
                 # Fallback: simple noise augmentation
-                fallback_features = X_processed + torch.randn_like(X_processed) * 0.1
+                # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+                fallback_features = X_processed + harvest_honest_jitter(X_processed.shape, device=X_processed.device, scaled=True) * 0.2
                 augmented_X_list.append(fallback_features)
                 
                 if y is not None:
@@ -589,7 +599,7 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                 pressure_metrics = self.pressure_monitor.compute_pressure(X_processed, augmented_X[:batch_size])
                 # Could adapt config for next iteration based on pressure
             except Exception as e:
-                print(f"⚠️  Pressure monitoring failed: {e}")
+                print(f"  Pressure monitoring failed: {e}")
         
         return augmented_X, augmented_y
     
@@ -601,13 +611,13 @@ class MandelbulbGyroidicAugmenter(nn.Module):
         - Atomic (Grazing/Los Alamos): Monochrome spectral damping (Objective Reality).
         """
         if mode == 'pink':
-            print(" [PIPELINE] 🌀 Entering Barbie Land (Pink/Interior)... boosting high-freq residues.")
+            print(" [PIPELINE]  Entering Barbie Land (Pink/Interior)... boosting high-freq residues.")
             # Map chromaticity: non-linear gain on the "tail" of the spectral signal
             # This represents hyper-saturated ideal states.
             gain = torch.linspace(1.0, 2.5, steps=X.shape[-1], device=X.device)
             return X * gain
         elif mode == 'atomic':
-            print(" [PIPELINE] ☢️ Transitioning to Los Alamos (Atomic/Grazing)... applying monochrome damping.")
+            print(" [PIPELINE]  Transitioning to Los Alamos (Atomic/Grazing)... applying monochrome damping.")
             # Map monochrome: compress variance and dampen high-freq harmonics.
             # This represents the decay and mortality of the "Real World".
             decay = torch.linspace(1.0, 0.2, steps=X.shape[-1], device=X.device)
@@ -702,10 +712,10 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                 
                 # Debug info (can be removed in production)
                 if not validation_results['covariance_preservation']:
-                    print(f"   🔍 Covariance metrics: cos_sim={cov_similarity:.3f}, norm_ratio={norm_ratio:.3f}, eig_sim={eig_similarity:.3f}")
+                    print(f"Covariance metrics: cos_sim={cov_similarity:.3f}, norm_ratio={norm_ratio:.3f}, eig_sim={eig_similarity:.3f}")
                 
             except Exception as e:
-                print(f"   ⚠️  Covariance validation failed with error: {e}")
+                print(f"Covariance validation failed with error: {e}")
                 # If covariance computation fails, check if the data is at least reasonable
                 validation_results['covariance_preservation'] = (
                     not torch.isnan(augmented_data).any() and 
@@ -728,10 +738,12 @@ def demo_mandelbulb_gyroidic_augmentation():
     
     # Create synthetic dataset
     batch_size, feature_dim = 100, 10
-    X = torch.randn(batch_size, feature_dim)
-    y = torch.randint(0, 3, (batch_size,))
+    # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter in demo
+    X = harvest_honest_jitter((batch_size, feature_dim), scaled=True) * 2.0
+    # SILICON SOVEREIGNTY: Replaced torch.randint with Honest Jitter derivation
+    y = (harvest_honest_jitter((batch_size,), scaled=True) * 3).long() % 3
     
-    print("🌀 Mandelbulb-Gyroidic Dataset Augmentation Demo")
+    print(" Mandelbulb-Gyroidic Dataset Augmentation Demo")
     print("=" * 60)
     print(f"Original dataset: {X.shape}")
     
@@ -747,24 +759,24 @@ def demo_mandelbulb_gyroidic_augmentation():
     augmenter = MandelbulbGyroidicAugmenter(config)
     
     # Generate augmented dataset
-    print("🔧 Generating augmented dataset...")
+    print(" Generating augmented dataset...")
     augmented_X, augmented_y = augmenter(X, y, augmentation_factor=3)
     
     print(f"Augmented dataset: {augmented_X.shape}")
     print(f"Augmentation ratio: {augmented_X.shape[0] / X.shape[0]:.1f}x")
     
     # Validate augmentation
-    print("\n🔍 Validating augmentation quality...")
+    print("\n Validating augmentation quality...")
     validation_results = augmenter.validate_augmentation(X, augmented_X[:X.shape[0]])
     
     for check, passed in validation_results.items():
-        status = "✅ PASS" if passed else "❌ FAIL"
+        status = " PASS" if passed else " FAIL"
         print(f"• {check}: {status}")
     
     # Compute pressure metrics
     if hasattr(augmenter, 'pressure_monitor'):
         pressure_metrics = augmenter.pressure_monitor.compute_pressure(X, augmented_X[:X.shape[0]])
-        print(f"\n📊 Pressure Metrics:")
+        print(f"\n Pressure Metrics:")
         for metric, value in pressure_metrics.items():
             print(f"• {metric}: {value:.3f}")
     
