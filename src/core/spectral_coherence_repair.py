@@ -8,6 +8,7 @@ with Ergodic Band and prevent vowel starvation.
 import torch
 import torch.nn as nn
 from typing import Dict, Tuple, Optional
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 from .energy_based_soliton_healer import EnergyBasedSolitonHealer
@@ -28,8 +29,9 @@ def apply_energy_based_stabilization(state: torch.Tensor,
     if torch.isnan(state).any() or torch.isinf(state).any():
         print("state = apply_energy_based_stabilization(state)")
         # Replace NaN/inf with small random values
+        # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
         state = torch.where(torch.isnan(state) | torch.isinf(state), 
-                          torch.randn_like(state) * stability_margin, 
+                          harvest_honest_jitter(state.shape, device=state.device, scaled=True) * stability_margin, 
                           state)
     
     # Energy-based clamping
