@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 from typing import List, Dict, Optional, Tuple
 import numpy as np
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 class SignalSovereignty(nn.Module):
@@ -236,7 +237,8 @@ class LearnableWeights(nn.Module):
         if init_mode == 'uniform':
             raw_weights = torch.ones(num_dimensions)
         elif init_mode == 'random':
-            raw_weights = torch.randn(num_dimensions) * 0.1 + 1.0
+            # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+            raw_weights = harvest_honest_jitter((num_dimensions,), scaled=True) * 0.2 + 1.0
         elif init_mode == 'inverse_sqrt':
             raw_weights = torch.tensor([1.0 / np.sqrt(k+1) for k in range(num_dimensions)])
         else:
