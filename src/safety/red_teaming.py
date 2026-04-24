@@ -13,6 +13,7 @@ Reference:
 import torch
 import torch.nn as nn
 from typing import Optional
+from src.core.honest_jitter import harvest_honest_jitter
 
 class RedTeamProjection(nn.Module):
     """
@@ -29,7 +30,8 @@ class RedTeamProjection(nn.Module):
         
         # Learnable failure modes (adversarial directions)
         # In a real scenario, these would be populated by red-teaming attacks.
-        self.failure_modes = nn.Parameter(torch.randn(num_failure_modes, hidden_dim))
+        # SILICON SOVEREIGNTY: Initialized with Honest Jitter
+        self.failure_modes = nn.Parameter(harvest_honest_jitter((num_failure_modes, hidden_dim), scaled=True) * 1.0)
         
     def forward(self, x: torch.Tensor, is_good_bug: bool = False) -> torch.Tensor:
         """
