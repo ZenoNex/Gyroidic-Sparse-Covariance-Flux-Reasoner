@@ -455,14 +455,14 @@ class ZeitgeistRouter(nn.Module):
                 
                 # 3. Braid Relation (B3-like triple swap)
                 if i < len(current) - 2:
-                    a, b, c = current[i], current[i+1], current[i+2]
+                    a_br, b_br, c_br = current[i], current[i+1], current[i+2]
                     # Check for sigma_i * sigma_{i+1} * sigma_i
-                    if a == c and abs(a - b) == 1 and a != 0:
-                        # Found the relation!
-                        # sigma_i * sigma_{i+1} * sigma_i -> sigma_{i+1} * sigma_i * sigma_{i+1}
-                        print(f" [BRAID] \u2693 Braid Relation Detected: \u03c3{a}\u03c3{b}\u03c3{a} \u2192 \u03c3{b}\u03c3{a}\u03c3{b} (Type-II Reidemeister Trace)")
-                        current[i], current[i+1], current[i+2] = b, a, b
-                        reduced = False
+                    if a_br == c_br and abs(a_br - b_br) == 1 and a_br != 0:
+                        # To avoid infinite oscillation, we only swap in one direction (canonical ordering)
+                        if abs(a_br) > abs(b_br):
+                             print(f" [BRAID] [SUTURE] Braid Relation Detected: sigma{a_br}sigma{b_br}sigma{a_br} -> sigma{b_br}sigma{a_br}sigma{b_br} (Type-II Reidemeister Trace)")
+                             current[i], current[i+1], current[i+2] = b_br, a_br, b_br
+                             reduced = False
                 i += 1
             
             if reduced:
