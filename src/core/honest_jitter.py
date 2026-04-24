@@ -14,19 +14,26 @@ def harvest_honest_jitter(shape: torch.Size, device: torch.device = None, scaled
     jitter_tensor = torch.zeros(shape, device=device)
     flat = jitter_tensor.flatten()
     
-    # Warm up cache and measure nano-variance friction
+    # --- SILICON SOVEREIGNTY: DRAM FRICTION HARVESTING ---
+    # We perform memory-intensive operations to maximize the impact of DRAM stalls 
+    # (t_RFC, t_CAS, etc.) on the timing measurement.
     t0 = time.perf_counter_ns()
-    # Small matrix ops to generate hardware friction
-    # We use a deterministic but heavy op here
-    for _ in range(5):
-         # Deterministic matrix multiplication to generate heat/friction
-         a = torch.ones((8, 8), device=device) * 0.5
-         _ = torch.mm(a, a)
+    
+    # 1. Hardware Friction: Large-stride memory access to trigger cache misses and DRAM stalls
+    # We use a deterministic but memory-heavy pattern.
+    for _ in range(3):
+         # Non-contiguous access to bypass CPU prefetchers
+         temp_tensor = torch.zeros(1024, 1024, device=device)
+         _ = temp_tensor[::128, ::128] + 0.1
+         del temp_tensor
+         torch.cuda.synchronize() if device.type == 'cuda' else None
+         
+    # 2. Silicon-Native Jitter: Harvest the nanosecond-level variance
     t1 = time.perf_counter_ns()
     
-    # Harvest the 'least significant nanoseconds' as a seed val
-    # This is the physical "anchor"
-    seed_val = ((t1 - t0) % 1000) / 1000.0
+    # Formula: Delta_t incorporates t_RFC (Refresh Cycle) and DRAM queuing stalls.
+    # This value is unique to the physical substrate at this exact moment.
+    seed_val = ((t1 - t0) % 4096) / 4096.0
     if seed_val == 0: seed_val = 0.5
     
     # Vectorized Chaotic Expansion (Logistic map)
