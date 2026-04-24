@@ -9,6 +9,7 @@ for cyclic overflow prevention boundaries.
 import torch
 import torch.nn as nn
 from src.core.fgrt_primitives import RepunitHasher, PrimeResonanceLadder
+from src.core.primitive_ops import stochastic_round
 from typing import Optional
 
 class ModularVirtualizationLayer(nn.Module):
@@ -26,6 +27,7 @@ class ModularVirtualizationLayer(nn.Module):
         self.device = device
         self.base = base
         self.legacy_mode = legacy_mode
+        self.scale_factor = 1e4
         
         # Prime Resonance Alignment: Fetch (p, R_p) pairs
         self.resonance_ladder = PrimeResonanceLadder(num_resonators=max(dim, 100))
@@ -80,22 +82,28 @@ class ModularVirtualizationLayer(nn.Module):
         modulus = self.get_hybrid_modulus().to(tensor.device)
         
         # Scale for integer arithmetic (Signal Sovereignty precision)
-        scale_factor = 1e4
-        integerized = torch.round(tensor * scale_factor)
+        # Use stochastic rounding instead of deterministic round
+        integerized = (stochastic_round(tensor, self.scale_factor) * self.scale_factor).long()
         
         # 1. Repunit-CRT Sparse Probe (Fast-Reject)
         # If anchor_sym is provided, use it as the target parity anchor
         if anchor_sym is not None:
-            target_residue = torch.remainder(torch.round(anchor_sym * scale_factor), modulus)
+            target_residue = torch.remainder(
+                (stochastic_round(anchor_sym, self.scale_factor) * self.scale_factor).long(), 
+                modulus.long()
+            )
             is_valid = self.repunit_crt_sparse_probe(integerized, target_residue)
             
             # If invalid, apply topological refusal snap before modulo
             if not torch.all(is_valid):
-                integerized = torch.round(self.topological_refusal_snap(tensor, anchor_sym) * scale_factor)
+                integerized = (stochastic_round(
+                    self.topological_refusal_snap(tensor, anchor_sym), 
+                    self.scale_factor
+                ) * self.scale_factor).long()
 
         # 2. Modulo bound constraints (Hybrid RNS representation)
-        modular_residues = torch.remainder(integerized, modulus)
-        return modular_residues
+        modular_residues = torch.remainder(integerized, modulus.long())
+        return modular_residues.float()
 
     def rns_to_float(self, residues: torch.Tensor) -> torch.Tensor:
         """
