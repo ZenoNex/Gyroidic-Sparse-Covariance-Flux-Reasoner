@@ -22,6 +22,7 @@ import torch.nn.functional as F
 from typing import Dict, Tuple, Optional
 import math
 from src.core.false_negative_subsystem import VoynichExemptionToken
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 class WassersteinOptimalTransport(nn.Module):
@@ -443,9 +444,6 @@ class SpeculativeCoprimeGate(nn.Module):
         # Buffer for internal shadow logs
         self.shadow_logs = []
         
-        # Buffer for internal shadow logs
-        self.shadow_logs = []
-        
         # Sub-modules
         self.winding_tracker = CoprimeWindingTracker(dim=dim, num_heads=num_heads)
         self.chiral_estimator = ChiralCoherenceEstimator(dim=dim)
@@ -459,7 +457,8 @@ class SpeculativeCoprimeGate(nn.Module):
         self.modular_rns = ModularVirtualizationLayer(dim=dim, base=2)
         
         # Coprime reference manifold (learned target for recovery)
-        self.register_buffer('coprime_manifold', torch.randn(16, dim))
+        # SILICON SOVEREIGNTY: Initialized with Honest Jitter instead of Gaussian noise
+        self.register_buffer('coprime_manifold', harvest_honest_jitter((16, dim), scaled=True))
         self.manifold_proj = nn.Linear(dim, dim)
         
         # Dimensional gating weights (learned per-dimension importance)
@@ -605,7 +604,8 @@ class SpeculativeCoprimeGate(nn.Module):
         target_mean = target_manifold.mean(dim=0, keepdim=True).expand(batch, -1)
         if self.modular_rns.fast_congruence_check(source, target_mean):
             # Bypass Wasserstein OT: Align directly in finite field mapping
-            transported = target_mean + torch.randn_like(target_mean) * 0.01
+            # SILICON SOVEREIGNTY: Replaced PRNG noise with hardware-anchored honest jitter
+            transported = target_mean + harvest_honest_jitter(target_mean.shape, device=source.device, scaled=True) * 0.2
             wasserstein_dist = torch.tensor(0.0, device=source.device)
         else:
             # Compute optimal transport toward coprime manifold (Fallback)
