@@ -28,6 +28,8 @@ if os.path.join(os.path.dirname(os.path.abspath(__file__)), "..") not in sys.pat
 
 
 
+from src.core.bulletin_board import BulletinBoard
+
 class TemporalAssociationDataset:
     """
     Dataset that provides temporal sequences and associative patterns.
@@ -256,6 +258,9 @@ class TemporalAssociationTrainer:
         
         self.unknowledge_domain = UnknowledgeDomain(tau_m=0.5)
         
+        # Asynchronous Bulletin Board
+        self.bulletin_board = BulletinBoard(size=model.dim, device=device)
+        
         # Training history
         self.training_history = {
             'trust_evolution': [],
@@ -427,12 +432,28 @@ class TemporalAssociationTrainer:
         tr_c = final_output.get('trace_c', torch.tensor([1.0], device=self.device)).mean().item()
         
         # Approximate V_m directly (Grounding for Manifold Hunger)
+        # Reference: §45.2 (Silicon Sovereignty) - surfacing persistent dissonance.
         tau_decay = 10.0
         # Safe tr_c: ensure non-zero denominator to prevent 'Overflow Exceeded' (§6.2)
         safe_tr_c = torch.clamp(torch.tensor(tr_c), min=1e-3).item()
+        
+        # Surfacing Hunger: Dissonance between Symbolic and Physical state
+        # Hunger = (Pressure + Mischief) - (Structural Integrity)
         v_m = v_tensor + (h_mischief / tau_decay) - (l_min / safe_tr_c)
-        v_m = torch.clamp(torch.tensor(v_m), min=-100.0, max=100.0).item()
-
+        
+        # Stability Guard: Hardware-anchored jitter grounding to prevent diagnostic lock
+        # Prevents the 0.4390 / 0.8824 attractor traps
+        jitter_ground = harvest_honest_jitter((1,), device=self.device, scaled=True).item() * 0.01
+        v_m = torch.clamp(torch.tensor(v_m + jitter_ground), min=-100.0, max=100.0).item()
+        
+        # Post to Bulletin Board for System 2 asynchronous retrieval
+        self.bulletin_board.post_residue(final_output.get('residue_distributions', torch.zeros(1, device=self.device)).mean(dim=0).mean(dim=0))
+        
+        # Read forces from Bulletin Board (System 2 feedback)
+        posted_force = self.bulletin_board.read_force()
+        if posted_force.abs().sum() > 0:
+            # Inject System 2 forces back into the survivorship pressure
+            survivorship_pressure = survivorship_pressure + 0.05 * posted_force.norm()
         
         hyper_ring_status = final_output.get('hyper_ring_status', 'unknown')
         
