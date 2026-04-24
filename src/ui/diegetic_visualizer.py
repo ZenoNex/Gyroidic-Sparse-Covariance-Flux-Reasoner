@@ -467,22 +467,27 @@ def _chebyshev_project_np(arr: np.ndarray, K: int) -> List[float]:
 def _lsb_round_np(arr: np.ndarray, scale: float = 1024.0) -> np.ndarray:
     """
     Apply LSB stochastic rounding to a float32 array.
-    Seed derived from array length and scale (same pattern as JS Xorshift32).
+    Uses Structurally Honest Jitter (Silicon Sovereignty §45.2).
     """
+    from src.core.honest_jitter import harvest_honest_jitter
+    import torch
+    
     N = len(arr)
-    seed = (N ^ int(scale)) & 0xFFFFFFFF
+    # Harvest hardware entropy for the stochastic bit mask
+    jitter = harvest_honest_jitter((N,), scaled=False) # [0, 1]
+    jitter_np = jitter.detach().cpu().numpy()
+    
     result = np.zeros(N, dtype=np.float32)
     for i, v in enumerate(arr):
         scaled = float(v) * scale
         fl = math.floor(scaled)
         frac = scaled - fl
-        # Xorshift32
-        seed ^= (seed << 13) & 0xFFFFFFFF
-        seed ^= (seed >> 17) & 0xFFFFFFFF
-        seed ^= (seed << 5) & 0xFFFFFFFF
-        bit = 1 if (seed / 4294967295.0) < frac else 0
+        
+        # Stochastic bit from honest jitter
+        bit = 1 if jitter_np[i] < frac else 0
         result[i] = float(fl + bit) / scale
     return result
+
 
 
 def _safe_to_numpy(tensor: Any) -> np.ndarray:
