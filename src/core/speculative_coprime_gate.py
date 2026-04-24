@@ -270,8 +270,9 @@ class CoprimeWindingTracker(nn.Module):
         self.winding_history[idx] = new_winding
         self.history_idx += 1
         
-        # Quantize to nearest integer for GCD check
-        winding_int = torch.round(self.winding_numbers).long().abs()
+        # Quantize to nearest integer for GCD check using stochastic rounding
+        from src.core.primitive_ops import stochastic_round
+        winding_int = stochastic_round(self.winding_numbers.abs(), 1.0).long()
         winding_int = torch.clamp(winding_int, min=1)  # Avoid gcd(0, p) = p
         
         # Check coprime parity using polynomial coefficients instead of primes
