@@ -57,7 +57,14 @@ class GyroidicGraphManager:
                 data = torch.load(path, map_location='cpu')
                 
                 # Extract embeddings. Fallback sequence: meta_state -> memory_state -> input_tensor
-                embedding = data.get('meta_state', data.get('memory_state', data.get('input_tensor', torch.zeros(self.dim))))
+                # We check explicitly for None to avoid key-exists-but-value-is-None traps.
+                embedding = data.get('meta_state')
+                if embedding is None:
+                    embedding = data.get('memory_state')
+                if embedding is None:
+                    embedding = data.get('input_tensor')
+                if embedding is None:
+                    embedding = torch.zeros(self.dim)
                 
                 # Ensure it's [dim]
                 if embedding.dim() > 1:
