@@ -57,7 +57,7 @@ def compute_autocorrelation(x: torch.Tensor) -> torch.Tensor:
     # Zero-pad for full correlation
     n = len(x)
     padded_x = F.pad(x, (0, n-1), mode='constant', value=0)
-    
+
     # Use FFT-based convolution for efficiency
     # This preserves energy according to Parseval's theorem
     x_fft = torch.fft.fft(padded_x)
@@ -205,7 +205,7 @@ class EncodingManager:
         
         torch.save(data, path)
         return filename
-
+        
 from src.core.fractal_meta_functional import FractalMetaFunctional
 
 class DiegeticPhysicsEngine(nn.Module):
@@ -855,6 +855,7 @@ class DiegeticPhysicsEngine(nn.Module):
         commutativity: str = 'symmetric',
         generate_response: bool = True,
         regime: str = 'goo',
+        voynich_token: Optional[Any] = None
     ) -> dict:
         """
         Main entry point for processing an interaction.
@@ -876,7 +877,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 media_chain=media_chain,
                 commutativity=commutativity,
                 generate_response=generate_response,
-                regime=regime
+                regime=regime,
+                voynich_token=voynich_token
             )
         finally:
             self._is_processing = False
@@ -927,7 +929,8 @@ class DiegeticPhysicsEngine(nn.Module):
                                      fingerprint: Optional[Dict],
                                      affordance_gradients: Dict[str, float],
                                      audio_dyad: Optional[Dict] = None,
-                                     video_dyad_b64: Optional[str] = None) -> str:
+                                     video_dyad_b64: Optional[str] = None,
+                                     voynich_token: Optional[Any] = None) -> str:
         """
         Restored physics-optimized generation loop.
         Applies echo suppression, vowel boosting, and positional fingerprint influence.
@@ -1023,6 +1026,7 @@ class DiegeticPhysicsEngine(nn.Module):
         commutativity: str = 'symmetric',
         generate_response: bool = True,
         regime: str = 'goo',
+        voynich_token: Optional[Any] = None
     ) -> dict:
         """
         Process user text, update cavity, and generate emergent response via Fractal Recursion.
@@ -1154,7 +1158,8 @@ class DiegeticPhysicsEngine(nn.Module):
                         fingerprint=fingerprint, 
                         affordance_gradients=affordance_gradients,
                         audio_dyad=audio_dyad, 
-                        video_dyad_b64=video_dyad_b64
+                        video_dyad_b64=video_dyad_b64,
+                        voynich_token=voynich_token
                     )
              
              # Finalize metrics for command bypass
@@ -1594,9 +1599,9 @@ class DiegeticPhysicsEngine(nn.Module):
             fixed_point = False
             
             for step in range(max_matrioshka_steps):
-                q_in, _ = self.caq(current_state, pas_scores=pas_vec, trust_scores=trust_exp)
+                q_in, _ = self.caq(current_state, pas_scores=pas_vec, trust_scores=trust_exp, voynich_token=voynich_token)
                 ghost_next = self.kagh_drafter(q_in)
-                q_out, boundary = self.caq(ghost_next, pas_scores=pas_vec, trust_scores=trust_exp)
+                q_out, boundary = self.caq(ghost_next, pas_scores=pas_vec, trust_scores=trust_exp, voynich_token=voynich_token)
                 
                 # Check if fixed point reached at this quantization level
                 if torch.norm(q_out - q_in) < 1e-3:
@@ -2171,12 +2176,12 @@ class DiegeticPhysicsEngine(nn.Module):
                 _boundary_hit = False
                 for _loop in range(_matrioshka_steps):
                     # Inner quantization: Q_Z(x)
-                    q_inner, _b_inner = self.caq(seed_state, pas_scores=_pas_scores)
+                    q_inner, _b_inner = self.caq(seed_state, pas_scores=_pas_scores, voynich_token=voynich_token)
                     # Evolve through physics surrogate: F(Q_Z(x))
                     with torch.no_grad():
                         q_evolved = self.kagh_drafter(q_inner)
                     # Outer quantization: Q_Z(F(Q_Z(x)))
-                    seed_state, _b_outer = self.caq(q_evolved, pas_scores=_pas_scores)
+                    seed_state, _b_outer = self.caq(q_evolved, pas_scores=_pas_scores, voynich_token=voynich_token)
                     # Detect critical shell ceiling -- stop forcing if hit
                     if _b_outer is not None and _b_outer.is_critical():
                         print(f"[SHELL] Matrioshka shell ceiling hit at step {_loop} -- halting loop")
@@ -2288,7 +2293,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 text_input=text_input,
                 seed_state=seed_state,
                 fingerprint=fingerprint,
-                affordance_gradients=affordance_gradients
+                affordance_gradients=affordance_gradients,
+                voynich_token=voynich_token
             )
             
             # Update Interaction Context Buffer for next pass
@@ -3729,6 +3735,14 @@ class DiegeticPhysicsEngine(nn.Module):
             raw_content = raw_content.replace(prefix, "")
         raw_content = raw_content.strip()
         
+        # Priority-Based Modality Detection (Multi-modal simultaneous ingestion)
+        # We prioritize Video > Audio > Image if multiple are present in an ASSOCIATE: command
+        active_modality = modality
+        if modality == "Image": # Default for ASSOCIATE:
+             if video_dyad_b64: active_modality = "Video"
+             elif audio_dyad: active_modality = "Audio"
+             elif fingerprint: active_modality = "Image"
+        
         # Support both [id] | description and just description
         description = raw_content
         if "|" in raw_content:
@@ -3743,14 +3757,14 @@ class DiegeticPhysicsEngine(nn.Module):
         audio_tensor = None
         video_breather = None
         
-        if modality == "Audio" and audio_dyad:
+        if active_modality == "Audio" and audio_dyad:
             harmonics = audio_dyad.get('chebyshev_harmonics', [])
             # Pad/truncate to 137 to match schema
             harmonics = (harmonics + [0.0] * 137)[:137]
             signal_tensor = torch.tensor(harmonics, device=self.device).float()
             audio_tensor = signal_tensor.clone()
             media_received = True
-        elif modality == "Video" and video_dyad_b64:
+        elif active_modality == "Video" and video_dyad_b64:
             if not hasattr(self, 'video_parser'):
                 from src.core.video_dyad_parser import VideoDyadParser
                 self.video_parser = VideoDyadParser(device=self.device)
@@ -3767,7 +3781,7 @@ class DiegeticPhysicsEngine(nn.Module):
             else:
                 signal_tensor = torch.nn.functional.pad(cov_sum, (0, 137 - cov_sum.size(0)))
             media_received = True
-        elif fingerprint:
+        elif active_modality == "Image" and fingerprint:
             # Standard Image Ingestion (Zero-Mock Path)
             if 'L' in fingerprint and 'Cr' in fingerprint and 'Cb' in fingerprint:
                 # =============================================
@@ -3803,6 +3817,17 @@ class DiegeticPhysicsEngine(nn.Module):
                 # Combine into a 24-dim spectral signal tensor.
                 # The GyroidicCodec will handle the 1D->2D landscape transition.
                 signal_tensor = torch.cat([l_tensor, cr_tensor, cb_tensor])
+                media_received = True
+
+            elif 'chebyshev' in fingerprint:
+                # Modern Chebyshev Spectral Signature (Phase 12 un-lobotomized)
+                # Typically 96 dimensions, but we project/pad to 137 for fossil compatibility
+                coeffs = fingerprint.get('chebyshev', [])
+                fp_tensor = torch.tensor(coeffs, device=self.device).float()
+                if fp_tensor.size(0) >= 137:
+                    signal_tensor = fp_tensor[:137]
+                else:
+                    signal_tensor = torch.nn.functional.pad(fp_tensor, (0, 137 - fp_tensor.size(0)))
                 media_received = True
 
             elif 'r' in fingerprint:
@@ -4930,11 +4955,12 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     video_dyad_b64 = data.get('video_dyad_b64', None)
                     media_chain = data.get('media_chain', None)
                     commutativity = data.get('commutativity', 'symmetric')
+                    voynich_token = data.get('voynich_token', None)
                     
                     association_command = f"ASSOCIATE: {text1} <-> {text2}"
                     print(f" Association command: '{association_command}' | "
                           f"has_fp={fingerprint is not None} | has_audio={audio_dyad is not None} | "
-                          f"has_video={video_dyad_b64 is not None}")
+                          f"has_video={video_dyad_b64 is not None} | has_voynich={voynich_token is not None}")
                     
                     response_data = ENGINE.process_input(
                         association_command,
@@ -4942,7 +4968,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         audio_dyad=audio_dyad,
                         video_dyad_b64=video_dyad_b64,
                         media_chain=media_chain,
-                        commutativity=commutativity
+                        commutativity=commutativity,
+                        voynich_token=voynich_token
                     )
                     ENGINE.save_state()
                     
