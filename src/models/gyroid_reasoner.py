@@ -479,6 +479,7 @@ class GyroidicFluxReasoner(nn.Module):
             if self.sparse_explorer is not None:
                 # 1. Scout violations
                 scout_results = self.gyroid_probe.scout_violations(h, return_indices=True)
+                mean_violation = scout_results['deviation_magnitudes']
                 violation_indices = scout_results.get('violation_indices', [])
                 
                 if len(violation_indices) > 0:
