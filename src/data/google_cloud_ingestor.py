@@ -62,8 +62,10 @@ class GoogleCloudIngestor:
                 
                 turns = [ConversationTurn(speaker_id=speaker, text=text)]
                 
+                import hashlib
+                text_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]
                 conversations.append(Conversation(
-                    conversation_id=_stable_id("bq", f"{project_id}_{hash(text)}"),
+                    conversation_id=_stable_id("bq", f"{project_id}_{text_hash}"),
                     turns=turns,
                     context={'query': query, 'source_row': mapping},
                     source='google_bigquery'
