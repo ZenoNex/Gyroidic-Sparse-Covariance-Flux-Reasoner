@@ -44,6 +44,12 @@ This document synthesizes the complete architecture, explaining how the three di
         *   **Role**: Acts as the mechanism by which 'pinched' Euclidean manifolds are unfolded into hyperbolic space to prevent NaN/INF collapse.
         *   **Scaling**: Operates within the $2^{16}$ fixed-point scaling limit to maintain mechanical sympathy with the Pascal architecture.
         *   **Persistence**: Turns hyperbolic states into permanent **Feature Scars** that fossilize the path through the Void.
+    *   **Crossbar IK Solver** [NEW]:
+        *   **Mechanism**: Synchronizes note-drop events with operator drawing using Bézout coefficients.
+        *   **Role**: Ensures high-speed glyph trajectory rendering maintains resonance-stable synchronization.
+    *   **Surgical Seam Visualizer** [NEW]:
+        *   **Mechanism**: Monitors "slender seam" tension ($\kappa$) at hyperbolic boundaries.
+        *   **Role**: Tracks manifold stress where incommensurate logical systems are stitched, preventing rupture via Drucker-Prager flow.
 
 ## 7. Interaction Flow: The Equation-Object
 
