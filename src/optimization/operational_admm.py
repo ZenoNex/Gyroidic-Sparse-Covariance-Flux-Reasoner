@@ -30,6 +30,7 @@ from src.topology.soliton_stability import SolitonStability
 from src.core.yield_criteria import MohrCoulombProjection, DruckerPragerProjection
 from src.core.love_vector import LoveVector
 from src.topology.gyroid_differentiation import GyroidFlowConstraint
+from src.core.bulletin_board import BulletinBoard
 
 class ChiralDriftStabilizer:
     """
@@ -84,7 +85,8 @@ class OperationalAdmmPrimitive(autograd.Function):
                 chirality_index: Optional[torch.Tensor] = None,
                 use_constraint_probes: bool = True,
                 constraint_probes: Optional[List[ConstraintProbeOperator]] = None,
-                num_constraints: int = 1) -> torch.Tensor:
+                num_constraints: int = 1,
+                bulletin_board: Optional[BulletinBoard] = None) -> torch.Tensor:
         
         ctx.rho = rho
         ctx.lambda_sparse = lambda_sparse
@@ -96,6 +98,16 @@ class OperationalAdmmPrimitive(autograd.Function):
         cds = ChiralDriftStabilizer(zeta)
         rupture_fn = RuptureFunctional(rupture_threshold=1e6)
         gyroid_flow = GyroidFlowConstraint()
+        
+        # Phase 2 Stabilizers
+        hyper_ring_op = HyperRingOperator()
+        hyper_ring_checker = HyperRingClosureChecker()
+        soliton_checker = SolitonStability()
+        
+        # Local Projections
+        mc_proj = MohrCoulombProjection().to(initial_c.device)
+        love = LoveVector(initial_c.shape[-1]).to(initial_c.device)
+        dp_proj = DruckerPragerProjection().to(initial_c.device)
         
         # 0. Ontological Splitting:
         # c_sym: The frozen symbolic residues from System 1 (initial guess)
@@ -124,9 +136,27 @@ class OperationalAdmmPrimitive(autograd.Function):
             recent_states = []  # Store recent constraint states
             oscillation_window = min(5, max_iters // 2)
             
-            # Evolution Loop with Cyclic Constraint Traversal
+            # Pre-calculate curvature κ for prioritization if possible
+            curvature_weights = torch.ones(K, device=initial_c.device)
+            from src.core.fgrt_primitives import GyroidManifold
+            gyroid = GyroidManifold().to(initial_c.device)
+            
+            # Evolution Loop with Curvature-Prioritized Constraint Traversal
             for t in range(max_iters):
-                k = (t % K)  # Cycle through constraints: k = 0, ..., K-1
+                # Phase 5: High-Curvature (κ) Prioritization
+                # We prioritize constraints in high-curvature topological zones.
+                if t % 5 == 0: # Recalculate weights periodically
+                    with torch.no_grad():
+                        # Sample curvature at current state for each probe's embedding
+                        for i in range(K):
+                            phi_i = constraint_probes[i].embedding_fn(c_phys)
+                            # G_kappa = |K| where K is Gaussian curvature
+                            # Minimal surfaces have K <= 0, so we use abs()
+                            k_val = gyroid.gaussian_curvature(phi_i).abs().mean().item()
+                            curvature_weights[i] = 1.0 + 10.0 * k_val # Bias toward high curvature
+                
+                # Sample k based on curvature weights (Sovereign Importance Sampling)
+                k = torch.multinomial(curvature_weights, 1).item()
                 probe_k = constraint_probes[k]
                 
                 # Probe for local feasibility: c_k = P_k(r, lambda_k)
@@ -140,6 +170,13 @@ class OperationalAdmmPrimitive(autograd.Function):
                 
                 # Update Lagrange multiplier: lambda_k = lambda_k + rho * (Phi_k(r) - c_k)
                 phi_r = probe_k.embedding_fn(c_phys)
+                
+                # Post local force to Bulletin Board (Asynchronous feedback)
+                if bulletin_board is not None:
+                    local_force = (phi_r - c_k).mean(dim=0)
+                    if local_force.dim() > 1: local_force = local_force.flatten()[:bulletin_board.size]
+                    bulletin_board.post_force(local_force)
+                
                 if phi_r.shape != c_k.shape:
                     # Align shapes
                     if phi_r.numel() == c_k.numel():
@@ -156,8 +193,6 @@ class OperationalAdmmPrimitive(autograd.Function):
                 
                 # Apply Local Yield (Mohr-Coulomb) and Love Vector
                 # This ensures sharp situational logic is maintained
-                mc_proj = MohrCoulombProjection().to(c_phys.device)
-                love = LoveVector(c_phys.shape[-1]).to(c_phys.device)
                 c_phys = love(mc_proj(c_phys, c_phys)) # Self-limiting local yield
                 
                 # Check for rupture
@@ -268,11 +303,6 @@ class OperationalAdmmPrimitive(autograd.Function):
                     
                     structural_tension = violation_pressure + admm_tension
                     grad_c = torch.autograd.grad(structural_tension, c_in)[0]
-                # Yield-aware perturbation with Love Vector
-                # MC Projection preserves sharp local situational failure
-                mc_proj = MohrCoulombProjection().to(c_phys.device)
-                love = LoveVector(c_phys.shape[-1]).to(c_phys.device)
-                
                 # Apply Love and MC to the current state/gradient
                 step_size = 0.1 
                 c_yielded = mc_proj(c_phys, grad_c)
@@ -355,7 +385,6 @@ class OperationalAdmmPrimitive(autograd.Function):
             c_raw = c_sym + symbolic_delta
             
             # Apply Global Yield (Drucker-Prager) as smooth envelope
-            dp_proj = DruckerPragerProjection().to(c_raw.device)
             c_compressed = dp_proj(c_raw)
             
         # Save for backward (Compressed)
@@ -414,7 +443,8 @@ class OperationalAdmm(nn.Module):
         forward_op, 
         gcve_pressure=None, 
         chirality=None,
-        constraint_probes: Optional[List[ConstraintProbeOperator]] = None
+        constraint_probes: Optional[List[ConstraintProbeOperator]] = None,
+        bulletin_board: Optional[BulletinBoard] = None
     ):
         """
         Forward pass with optional constraint probes.
@@ -436,6 +466,7 @@ class OperationalAdmm(nn.Module):
             gcve_pressure, chirality,
             self.use_constraint_probes,
             probes,
-            self.num_constraints
+            self.num_constraints,
+            bulletin_board
         )
 
