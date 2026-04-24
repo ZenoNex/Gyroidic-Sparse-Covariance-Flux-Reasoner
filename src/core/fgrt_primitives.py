@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Tuple
 from src.core.honest_jitter import harvest_honest_jitter
+import time
 
 class GyroidManifold(nn.Module):
     """
@@ -209,7 +210,11 @@ class PrimeResonanceLadder(nn.Module):
             
             # Since we don't hold a persistent engine here, we simulate the sensing
             # of the dual-queue architecture described in pyopencl_sovereignty.py
-            queue_b_finished_first = (torch.rand(1).item() > 0.3) # Higher probability of soliton success
+            # SILICON SOVEREIGNTY: Replaced torch.rand with honest jitter from hardware timing.
+            # The logistic map seed is derived from sub-microsecond CPU timing variance,
+            # not a synthetic PRNG. 0.3 is the Tailslayer bypass threshold.
+            _jitter = harvest_honest_jitter((1,), scaled=False)
+            queue_b_finished_first = bool(_jitter[0].item() > 0.3)  # Sovereign Tailslayer probe
             if queue_b_finished_first:
                 signal = "Chern-Simons Sync Barrier Complete (Hardware Bypass Active)"
         except ImportError:
