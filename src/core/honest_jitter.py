@@ -25,15 +25,30 @@ def harvest_honest_jitter(shape: torch.Size, device: torch.device = None, scaled
     t1 = time.perf_counter_ns()
     
     # Harvest the 'least significant nanoseconds' as a seed val
+    # This is the physical "anchor"
     seed_val = ((t1 - t0) % 1000) / 1000.0
     if seed_val == 0: seed_val = 0.5
     
-    # Deterministic chaotic expansion (Logistic map)
-    # x_{n+1} = 3.99 * x_n * (1 - x_n) -- chaotic regime
-    x = seed_val
-    for i in range(len(flat)):
+    # Vectorized Chaotic Expansion (Logistic map)
+    # We use a linspace of seeds derived from the hardware seed to ensure
+    # that every element of the tensor evolves into a unique but sovereign state.
+    # Formula: x_{n+1} = 3.99 * x_n * (1 - x_n)
+    
+    # Create a vector of seeds
+    num_elements = flat.numel()
+    if num_elements == 0:
+        return jitter_tensor
+        
+    # Initial states derived from hardware seed + positional variance
+    # This ensures that even for large tensors, we don't just have one seed.
+    x = (torch.linspace(0.1, 0.9, num_elements, device=device) + seed_val) % 1.0
+    
+    # Iterate in parallel to reach chaotic regime (50 iterations is typically enough)
+    for _ in range(50):
         x = 3.99 * x * (1.0 - x)
-        flat[i] = x
+    
+    flat.copy_(x)
+    jitter_tensor = flat.view(shape)
     
     if scaled:
         return (jitter_tensor - 0.5) * 0.1
