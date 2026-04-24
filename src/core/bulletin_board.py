@@ -14,27 +14,42 @@ class BulletinBoard(nn.Module):
         self.size = size
         self.device = device
         # Global Force Register: Σ F_i
-        self.register_buffer('register_buffer', torch.zeros(size, device=device))
+        self.register_buffer('force_register', torch.zeros(size, device=device))
         # Residue Mailbox: Stores the latest 'Corrected' residues from System 1
         self.register_buffer('residue_mailbox', torch.zeros(size, device=device))
         # Timestamp/Lock-free counter to detect stale forces
         self.register_buffer('update_count', torch.tensor(0, dtype=torch.long, device=device))
+        # Asynchronous residue history for micro-stepping
+        self.register_buffer('residue_history', torch.zeros(8, size, device=device))
+        self.history_idx = 0
         
     def post_force(self, force: torch.Tensor):
         """System 2 posts a local constraint force to the board."""
         # Use exponential moving average to avoid sudden rupture
         alpha = 0.3
-        self.register_buffer.copy_((1.0 - alpha) * self.register_buffer + alpha * force.detach())
+        self.force_register.copy_((1.0 - alpha) * self.force_register + alpha * force.detach())
         self.update_count += 1
         
     def read_force(self) -> torch.Tensor:
         """System 1 reads the aggregated force for the current residue."""
-        return self.register_buffer.clone()
+        return self.force_register.clone()
         
     def post_residue(self, residue: torch.Tensor):
         """System 1 posts its current 'repaired' state."""
         self.residue_mailbox.copy_(residue.detach())
+        # Store in history for micro-stepping
+        self.residue_history[self.history_idx].copy_(residue.detach())
+        self.history_idx = (self.history_idx + 1) % 8
         
     def read_residue(self) -> torch.Tensor:
         """System 2 reads the latest residue to probe for constraints."""
         return self.residue_mailbox.clone()
+
+    def micro_step(self, dt: float = 0.01):
+        """
+        Asynchronous micro-step for ADMM consensus.
+        Smoothly interpolates forces between major updates to prevent manifold rupture.
+        """
+        # Pseudo-interpolation of force towards current goal
+        target_force = self.read_force()
+        self.force_register.add_(target_force * dt) # Euler micro-step
