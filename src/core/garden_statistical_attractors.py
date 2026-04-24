@@ -16,6 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from typing import Dict, List, Optional, Tuple, Any, Union
+from src.core.honest_jitter import harvest_honest_jitter
 from enum import Enum
 import math
 
@@ -63,20 +64,23 @@ class InfluenceAttractor(nn.Module):
         self.device = device
         
         # Fossilized concept basins (learned attractor centers)
-        self.register_buffer('fossilized_basins', torch.randn(num_attractors, feature_dim) * 0.5)
+        # SILICON SOVEREIGNTY: Initialized with Honest Jitter instead of Gaussian noise
+        self.register_buffer('fossilized_basins', harvest_honest_jitter((num_attractors, feature_dim), scaled=True) * 1.0)
         
         # Trust scalars (fossilization degree)
         self.register_buffer('trust_scalars', torch.ones(num_attractors))
         
         # Torsion field parameters (chiral correction)
-        self.torsion_field = nn.Parameter(torch.randn(feature_dim, feature_dim) * 0.1)
+        # SILICON SOVEREIGNTY: Initialized with Honest Jitter
+        self.torsion_field = nn.Parameter(harvest_honest_jitter((feature_dim, feature_dim), scaled=True) * 0.2)
         
         # Poincare ball parameters for hyperbolic distance
         self.poincare_curvature = nn.Parameter(torch.tensor(1.0))
         
         # Bostick-style extensions
         # Chiral orientation vectors for gating
-        self.chiral_vectors = nn.Parameter(torch.randn(num_attractors, feature_dim) * 0.1)
+        # SILICON SOVEREIGNTY: Initialized with Honest Jitter
+        self.chiral_vectors = nn.Parameter(harvest_honest_jitter((num_attractors, feature_dim), scaled=True) * 0.2)
         
         # Phase alignment parameters
         self.register_buffer('preferred_phases', torch.zeros(num_attractors))
@@ -414,11 +418,15 @@ class DefectAttractor(nn.Module):
         self.device = device
         
         # Defect attractor locations (minima in Willmore energy)
-        self.register_buffer('defect_sites', torch.randn(num_defect_sites, feature_dim) * 0.3)
+        # SILICON SOVEREIGNTY: Initialized with Honest Jitter
+        self.register_buffer('defect_sites', harvest_honest_jitter((num_defect_sites, feature_dim), scaled=True) * 0.6)
         
         # Defect types and their propagation characteristics
         self.defect_types = ['chiral', 'topological', 'metric']
-        self.register_buffer('defect_charges', torch.randint(0, len(self.defect_types), (num_defect_sites,)))
+        # SILICON SOVEREIGNTY: Replaced torch.randint with Honest Jitter derivation
+        num_types = len(self.defect_types)
+        jitter = harvest_honest_jitter((num_defect_sites,), device=device, scaled=True)
+        self.register_buffer('defect_charges', (jitter * num_types).long() % num_types)
         
         # Ricci flow parameters
         self.ricci_flow_rate = nn.Parameter(torch.tensor(0.1))
@@ -742,8 +750,9 @@ class GardenOrchestrator(nn.Module):
         """
         metrics = {}
         
-        # Add small noise for numerical stability
-        concepts_stable = concepts + torch.randn_like(concepts) * 1e-6
+        # Add small honest jitter for numerical stability
+        # SILICON SOVEREIGNTY: Replaced PRNG noise with hardware-anchored jitter
+        concepts_stable = concepts + harvest_honest_jitter(concepts.shape, device=concepts.device, scaled=True) * 0.002
         
         # 1. Bostick-Aware Feature Separation Index
         if concepts.shape[0] > 1:
@@ -1020,7 +1029,8 @@ def test_garden_statistical_attractors():
     
     # Create test concept distribution
     batch_size = 16
-    concepts = torch.randn(batch_size, feature_dim) * 0.5
+    # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter in test
+    concepts = harvest_honest_jitter((batch_size, feature_dim), scaled=True) * 1.0
     
     print(f"🌱 Initial Garden State:")
     print(f"   • Concepts shape: {concepts.shape}")
