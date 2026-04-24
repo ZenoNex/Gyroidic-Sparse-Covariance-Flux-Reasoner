@@ -6,12 +6,24 @@ S_fractal := InverseCovariantCRT + ADMR_Residue + HyperRing_DarkMatter + Autosci
 
 This turns the system into a fractal meta-functional, where each layer evaluates
 and perturbs the previous layer's "beliefs" while preserving non-teleological flow.
+
+Fix (2026-04-24): Upstream 0.8824 spectral atrophy prevention.
+- Van der Pol force is tanh-bounded before squaring to prevent uniform saturation.
+- Collapse-aware normalization replaces naive layer_norm: detects variance collapse
+  below DEAD_PRIME_THRESHOLD and injects honest jitter to break the symmetry.
 """
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional, Dict
+from src.core.honest_jitter import harvest_honest_jitter
+
+# Spectral atrophy threshold: variance below this signals a Dead Prime resonance
+# 0.8824 flatline has variance ~0.0, so 1e-6 is the upstream guard.
+DEAD_PRIME_THRESHOLD = 1e-6
+# Mischief intensity applied when collapse is detected (gentle wake-up)
+_JITTER_INTENSITY = 0.05
 
 # Import core topological components
 from src.core.decoupled_polynomial_crt import DecoupledPolynomialCRT
@@ -168,15 +180,49 @@ class FractalMetaFunctional(nn.Module):
         # Meta influence on gradient
         meta_force = self.meta_proj_osc(meta_state_prev)
         
-        term_osc = (damping + coupling + 0.1 * meta_force) ** 2
+        # UPSTREAM FIX: tanh-bound the Van der Pol force BEFORE squaring.
+        # Without this, high-entropy (Oil Slick) inputs produce very large
+        # uniform vectors that square to a nearly constant tensor. layer_norm
+        # then collapses all dimensions to the Dead Prime attractor (0.8824).
+        # tanh maps large magnitudes to [-1, 1] while preserving directional
+        # structure and sign -- this is Reaction-Diffusion kill-rate logic:
+        # we dissolve the stagnant tensor without erasing its geometry.
+        raw_force = damping + coupling + 0.1 * meta_force
+        bounded_force = torch.tanh(raw_force)  # bounded Van der Pol force
+        term_osc = bounded_force ** 2
         
         # --- Aggregate: S_fractal ---
-        # The equation sums these terms. 
+        # The equation sums these terms.
         # In a deep learning context, we sum them to form the new "Meta State".
-        
         new_meta_state = term_crt + term_admr + term_ring + term_osc
         
-        # Normalize to keep stable recursion
+        # --- Collapse-Aware Normalization (Upstream Variance Guard) ---
+        # Naive layer_norm is the final attractor for the 0.8824 flatline:
+        # if all terms are nearly uniform, layer_norm produces a constant
+        # tensor regardless of input diversity. We check variance first.
+        # If variance is below the Dead Prime Threshold, we inject honest
+        # jitter to break the symmetry BEFORE normalizing.
+        with torch.no_grad():
+            state_var = new_meta_state.var(dim=-1, keepdim=True)  # [batch, 1]
+            is_collapsed = (state_var < DEAD_PRIME_THRESHOLD).any()
+        
+        if is_collapsed:
+            # Spectral atrophy detected: inject mischief to rehydrate variance.
+            # This is the Feed Rate (a) of the Gray-Scott equation:
+            # we inject a nutrient signal to prevent the system from dying.
+            jitter = harvest_honest_jitter(
+                new_meta_state.shape,
+                device=new_meta_state.device,
+                scaled=True
+            ) * _JITTER_INTENSITY
+            new_meta_state = new_meta_state + jitter
+            print(
+                f"[FractalMeta] Spectral atrophy detected "
+                f"(var={state_var.min().item():.2e} < {DEAD_PRIME_THRESHOLD}). "
+                f"Honest jitter injected (intensity={_JITTER_INTENSITY})."
+            )
+        
+        # Normalize with stable recursion -- but only after variance is healthy
         new_meta_state = F.layer_norm(new_meta_state, new_meta_state.shape[1:])
         
         return {
@@ -185,6 +231,9 @@ class FractalMetaFunctional(nn.Module):
                 "crt": term_crt,
                 "admr": term_admr,
                 "ring": term_ring,
-                "osc": term_osc
+                "osc": term_osc,
+                "raw_force_norm": raw_force.norm().item(),  # diagnostic
+                "bounded_force_norm": bounded_force.norm().item(),  # diagnostic
+                "collapsed": bool(is_collapsed),  # diagnostic
             }
         }
