@@ -10,6 +10,8 @@ import torch.nn as nn
 from typing import Dict, List, Tuple, Optional, Any
 import math
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.false_negative_subsystem import VoynichExemptionToken
+
 
 
 class SparseGyroidCovarianceProbe(nn.Module):
@@ -478,7 +480,6 @@ class SaturationFractureDetector(nn.Module):
         
         return V_sat
 
-        return results
 
 
 class PalindromicRoutingCheck(nn.Module):
@@ -593,8 +594,9 @@ class SparseExplorerRouting(nn.Module):
                 for step in range(self.walk_length):
                     # 1. Compute local transition probs based on similarity
                     # (Restricted to small neighborhood for efficiency)
-                    window_start = max(0, current_node - 16)
-                    window_end = min(seq_len, current_node + 17)
+                    window_start = max(0, current_node - self.window_size // 2)
+                    window_end = min(seq_len, current_node + (self.window_size // 2 + 1))
+
                     
                     # Local extraction
                     local_indices = torch.arange(window_start, window_end, device=hidden_states.device)
