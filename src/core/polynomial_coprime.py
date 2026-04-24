@@ -326,7 +326,8 @@ class BirkhoffPolytopeSampler:
             theta = q[:self.K, :self.D].abs() # Abs since Birkhoff is internal
         else:
             # Random initialization
-            theta = torch.rand(self.K, self.D) / temperature
+            # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+            theta = harvest_honest_jitter((self.K, self.D), scaled=False) / temperature
         
         # Project onto Birkhoff polytope using Sinkhorn-Knopp
         theta = self.sinkhorn_knopp(torch.exp(theta))
