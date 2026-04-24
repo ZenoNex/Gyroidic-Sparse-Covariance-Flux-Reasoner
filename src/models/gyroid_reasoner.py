@@ -50,6 +50,9 @@ from src.core.spectral_coherence_repair import SpectralCoherenceCorrector, Bezou
 from src.core.chern_simons_gasket import ChernSimonsGasket, SolitonStabilityHealer
 from src.core.love_invariant_protector import LoveInvariantProtector, SoftSaturatedGates
 from src.core.veto_subspace import VetoSubspace, VetoResult
+from src.core.honest_jitter import harvest_honest_jitter
+from src.surrogates.kagh_networks import KAGHBlock
+from src.surrogates.calm_predictor import CALM
 
 
 class GyroidicFluxReasoner(nn.Module):
@@ -339,8 +342,8 @@ class GyroidicFluxReasoner(nn.Module):
             # Use identity with small random perturbation for anisotropy
             cov_dim = self.D  # Dimension matches polynomial degree
             sparse_cov = torch.eye(cov_dim, device=device) * 0.5
-            # Add small random anisotropy
-            sparse_cov += torch.randn(cov_dim, cov_dim, device=device) * 0.1
+            # Add small honest anisotropy
+            sparse_cov += harvest_honest_jitter((cov_dim, cov_dim), device=device, scaled=True)
             sparse_cov = (sparse_cov + sparse_cov.t()) / 2.0  # Symmetrize
             
             # Embedding function: identity for now (can be customized)
@@ -376,7 +379,8 @@ class GyroidicFluxReasoner(nn.Module):
         num_features: Optional[torch.Tensor] = None,
         anchors: Optional[torch.Tensor] = None,
         group_ids: Optional[torch.Tensor] = None,
-        return_analysis: bool = False
+        return_analysis: bool = False,
+        voynich_token: Optional[Any] = None
     ) -> Dict[str, torch.Tensor]:
         """
         Forward pass (Ecology over Algebra).
@@ -619,13 +623,42 @@ class GyroidicFluxReasoner(nn.Module):
         # Real Pressure Gradient: Gradient of the containment pressure w.r.t the state
         pressure_grad = torch.autograd.grad(containment_pressure_total, h, retain_graph=True)[0]
         
+        # Anti-Lobotomy: Calculate Manifold Atrophy (Spectral Collapse)
+        atrophy_val = 0.0
+        if self.use_gyroid_probes:
+             # Sample the recent history from the probe's buffer
+             atrophy_metrics = self.gyroid_probe.gyroid_cov.get_elipsodistrophy_metrics()
+             atrophy_val = atrophy_metrics.get('atrophy', 0.0)
+        
+        # Prepare Voynich Token (passed via text_emb's metadata if available, or attribute)
+        voynich_token = getattr(self, '_current_voynich_token', None)
+
         h_orchestrated, regime, routing = self.orchestrator(
             state=h,
             pressure_grad=pressure_grad,
             pas_h=pas_h_val,
-            coherence=coherence_val
+            coherence=coherence_val,
+            atrophy=atrophy_val
         )
         h = h_orchestrated # Apply logical primitives
+        
+        # 3e. Quantization & Shell Tracking
+        # Use CAQ to track Matrioshka shell depth and apply per-axis step sizes
+        if hasattr(self, 'caq'):
+             # Extract pas_scores for anisotropy
+             pas_scores = self.poly_config.orth_pressure_fn.entropy_estimator(raw_residues.view(raw_residues.shape[0], -1))['pas_scores'] if hasattr(self.poly_config, 'orth_pressure_fn') else None
+             
+             # Map hidden state to CAQ quantization
+             h_quant, boundary_state = self.caq(
+                 h.squeeze(1), 
+                 pas_scores=pas_scores, 
+                 trust_scores=self.trust_scalars,
+                 mischief_entropy=self._last_spectral_entropy.item() if hasattr(self, '_last_spectral_entropy') else 0.0,
+                 voynich_token=voynich_token
+             )
+             # Update hidden state with quantized value (Topological Snapping)
+             h = h_quant.unsqueeze(1) if h.dim() == 3 else h_quant
+             self._last_boundary_state = boundary_state
         
         # Track regime for the next cyclic forward pass or downstream integrations 
         self._last_regime = regime
@@ -908,7 +941,7 @@ class GyroidicFluxReasoner(nn.Module):
             # Create evidence cluster from functional k
             # Simplified: use identity cluster
             evidence_cluster = torch.eye(self.D, device=device) * 0.5
-            evidence_cluster += torch.randn(self.D, self.D, device=device) * 0.1
+            evidence_cluster += harvest_honest_jitter((self.D, self.D), device=device, scaled=True)
             
             # Projection dimension: use D (polynomial degree)
             projection_dim = self.D
@@ -970,8 +1003,8 @@ class GyroidicFluxReasoner(nn.Module):
             # Use identity with small random perturbation for anisotropy
             cov_dim = self.D  # Dimension matches polynomial degree
             sparse_cov = torch.eye(cov_dim, device=device) * 0.5
-            # Add small random anisotropy
-            sparse_cov += torch.randn(cov_dim, cov_dim, device=device) * 0.1
+            # Add small honest anisotropy
+            sparse_cov += harvest_honest_jitter((cov_dim, cov_dim), device=device, scaled=True)
             sparse_cov = (sparse_cov + sparse_cov.t()) / 2.0  # Symmetrize
             
             # Embedding function: identity for now (can be customized)
