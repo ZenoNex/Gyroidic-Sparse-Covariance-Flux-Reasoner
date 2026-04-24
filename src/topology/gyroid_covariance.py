@@ -642,7 +642,9 @@ class SparseExplorerRouting(nn.Module):
                         # if we are stuck in a non-commutative cul-de-sac
                         total_restarts += 1
                         if len(violation_indices) > 0:
-                            rand_idx = torch.randint(0, len(violation_indices), (1,)).item()
+                            # SILICON SOVEREIGNTY: Replaced torch.randint with Honest Jitter derivation
+                            jitter = harvest_honest_jitter((1,), device=hidden_states.device, scaled=True).item()
+                            rand_idx = int(jitter * len(violation_indices)) % len(violation_indices)
                             current_node = violation_indices[rand_idx].item()
                             path_nodes = [current_node] # Reset path
                             continue # Restart walk from new track
