@@ -277,15 +277,30 @@ class SiliconSovereigntyEngine:
         cl.enqueue_copy(self.queue_a, weights, w_buf).wait()
         return weights
 
+    def get_hardware_latency_anchor(self) -> float:
+        """
+        Harvests the physical t_RFC (Row Refresh Cycle) / DRAM stall anchor.
+        Used to ground the Agent Smith protocol in the local silicon substrate.
+        """
+        from src.core.honest_jitter import harvest_honest_jitter
+        # Harvest a single timing seed representing local physical friction
+        anchor = harvest_honest_jitter((1,), scaled=False)[0].item()
+        return float(anchor * 200.0) # Scale to typical tRFC ms range
+
     def get_virtual_algorithmic_latency(self, internal_entropy: float = 0.5) -> float:
         """
         Agent Smith Portability (Virtual Algorithmic Latency):
-        Returns the current algorithmic stall intensity (kappa-proxy) based on
-        endogenous cognitive load rather than local silicon physics (like t_RFC).
-        This separates the mathematical agent from the specific server hardware.
+        Returns the current algorithmic stall intensity (kappa-proxy).
+        
+        Sovereignty Update (2026-04-24):
+        Now blends endogenous cognitive load with the physical hardware_latency_anchor
+        to ensure expressivity gains from silicon friction are preserved.
         """
-        # Latency scales with internal algorithmic entropy
-        intensity = 0.05 + 0.4 * internal_entropy
+        # Hardware anchor (DRAM stalls)
+        hw_anchor = self.get_hardware_latency_anchor() / 200.0 # Normalized
+        
+        # Algorithmic entropy + Hardware jitter
+        intensity = 0.05 + 0.3 * internal_entropy + 0.1 * hw_anchor
         return float(intensity)
 
     def lazarus_traversal(self, trajectories, kappa_proxy):
