@@ -12,6 +12,7 @@ Quantum Phase Estimation (QPE) of the Combinatorial Laplacian spectrum.
 
 import torch
 import torch.nn as nn
+from src.core.honest_jitter import harvest_honest_jitter
 from typing import Dict, List, Tuple
 import math
 
@@ -68,8 +69,26 @@ class QuantumBettiApproximator(nn.Module):
             L_norm = (2.0 / max_eig) * L - torch.eye(dim_size, device=L.device)
             
             trace_est = 0.0
+            
+            # PyOpenCL Sovereignty Engine setup for hardware-based quantum probes
+            try:
+                from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+                hardware_engine = SiliconSovereigntyEngine()
+            except Exception:
+                hardware_engine = None
+
             for _ in range(num_probes):
-                z = torch.randn(dim_size, 1, device=L.device)
+                # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+                raw_z = harvest_honest_jitter((dim_size, 1), device=L.device, scaled=True) * 1.0
+                
+                # Apply hardware LSB rounding to strictly enforce non-simulated noise grounding
+                if hardware_engine:
+                    flat_z = raw_z.flatten().cpu().numpy()
+                    rounded_z = hardware_engine.apply_stochastic_rounding(flat_z, scale=100.0)
+                    z = (torch.tensor(rounded_z, device=L.device, dtype=torch.float32) / 100.0).view(dim_size, 1)
+                else:
+                    z = raw_z
+                    
                 # Rademacher or Gaussian vector. Gaussian used here.
                 # Project via Chebyshev polynomials targeting x = -1 (which maps to original 0)
                 # T_k(-1) = (-1)^k. We want sum_k c_k T_k(L_norm) z where c_k are weights 
@@ -114,7 +133,8 @@ class QuantumBettiApproximator(nn.Module):
                 chi_est = N - num_edges
                 beta_1_est = max(0.0, beta_0 - chi_est)
                 
-            noise = (1 - self.simulation_fidelity) * (beta_1_est * 0.1) * torch.randn(1).item()
+            # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+            noise = (1 - self.simulation_fidelity) * (beta_1_est * 0.1) * harvest_honest_jitter((1,), scaled=True).item()
             results[1] = max(0.0, beta_1_est + noise)
             
         return results
