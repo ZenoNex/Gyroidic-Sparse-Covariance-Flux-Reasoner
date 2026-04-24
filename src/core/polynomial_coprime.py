@@ -342,6 +342,10 @@ class BirkhoffPolytopeSampler:
         """
         Sinkhorn-Knopp algorithm for Birkhoff polytope projection.
         
+        Ensures:
+            - Sum_j M_ij = 1 (Row sums)
+            - Sum_i M_ij = 1 (Column sums)
+        
         Args:
             M: [K, D] positive matrix
             num_iters: Number of iterations (default: self.sinkhorn_iters)
@@ -352,7 +356,20 @@ class BirkhoffPolytopeSampler:
         if num_iters is None:
             num_iters = self.sinkhorn_iters
         
-        M = torch.clamp(M, min=self.epsilon)
+        # Stability epsilon
+        eps = self.epsilon
+        
+        M = torch.clamp(M, min=eps)
+        
+        for _ in range(num_iters):
+            # 1. Normalize rows
+            row_sums = M.sum(dim=1, keepdim=True)
+            M = M / (row_sums + eps)
+            
+            # 2. Normalize columns
+            col_sums = M.sum(dim=0, keepdim=True)
+            M = M / (col_sums + eps)
+            
         return M
 
     def apply_berkoff_deformation(self, M: torch.Tensor, twist_strength: float = 0.1) -> torch.Tensor:
