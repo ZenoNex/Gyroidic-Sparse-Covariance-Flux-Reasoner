@@ -11,6 +11,7 @@ import torch
 from torch.utils.data import Sampler
 from typing import List, Iterator, Optional, Dict
 import numpy as np
+from src.core.honest_jitter import harvest_honest_jitter
 
 from src.core.garden_statistical_attractors import CerumenPotIsolation
 
@@ -73,7 +74,10 @@ class SituationalBatchSampler(Sampler[List[int]]):
         """
         Generates batches based on Resonance and Mischief.
         """
-        seeds = torch.randperm(self.num_samples).tolist()
+        # SILICON SOVEREIGNTY: Replaced torch.randperm with Honest Jitter derivation
+        # We generate a random permutation by sorting honest jitter values
+        jitter = harvest_honest_jitter((self.num_samples,), device=self.device, scaled=True)
+        seeds = torch.argsort(jitter).tolist()
         consumed = set()
         
         for i in seeds:
@@ -113,7 +117,14 @@ class SituationalBatchSampler(Sampler[List[int]]):
                 remaining = list(set(range(self.num_samples)) - consumed)
                 if remaining:
                     idx_to_sample = min(num_play, len(remaining))
-                    play_samples = np.random.choice(remaining, idx_to_sample, replace=False).tolist()
+                    # SILICON SOVEREIGNTY: Replaced np.random.choice with Honest Jitter derivation
+                    jitter = harvest_honest_jitter((idx_to_sample,), device=self.R.device, scaled=True)
+                    play_samples = []
+                    temp_remaining = list(remaining)
+                    for val in jitter:
+                        idx = int(val.item() * len(temp_remaining)) % len(temp_remaining)
+                        play_samples.append(temp_remaining.pop(idx))
+                    
                     batch.extend(play_samples)
                     for p in play_samples:
                         consumed.add(p)
