@@ -15,11 +15,24 @@ Created: January 2026
 import torch
 import torch.nn as nn
 from typing import Optional, Union
+from src.core.honest_jitter import harvest_honest_jitter
 
 # Global Scale Factor for Fixed Point: Q16.16 or similar
 # We use a large scale to maintain precision for "scalar gyroidic ergodicity"
 SCALE_FACTOR = 65536.0  # 2^16
 SCALE_INT = 65536
+
+def stochastic_round(x: torch.Tensor, scale: float = 1.0) -> torch.Tensor:
+    """
+    Apply Stochastic Rounding (SR) to prevent quantization bias.
+    Formula: floor(x * scale + harvest_honest_jitter()) / scale
+    
+    Reference: §45.2 (Silicon Sovereignty) - "No Deterministic Rounding".
+    """
+    # Scale and add honest jitter [0, 1)
+    # harvest_honest_jitter with scaled=False returns [0, 1]
+    jitter = harvest_honest_jitter(x.shape, device=x.device, scaled=False)
+    return torch.floor(x * scale + jitter) / scale
 
 class FixedPointField(nn.Module):
     """
@@ -32,9 +45,10 @@ class FixedPointField(nn.Module):
         super().__init__()
         self.scale = scale
         
-        # Quantize immediately on init
+        # Quantize immediately on init using Stochastic Rounding
         if data.is_floating_point():
-            self.int_data = (data * scale).round().to(torch.int64)
+            # (data * scale).round() -> stochastic_round(data, scale) * scale
+            self.int_data = (stochastic_round(data, scale) * scale).to(torch.int64)
         else:
             self.int_data = data.to(torch.int64)
             
@@ -93,8 +107,8 @@ class LearnedPrimitivePerturbation(nn.Module):
         return FixedPointField(out_data.float(), field.scale) # Re-wrap (hacky float cast for init)
 
 def to_fixed_point(x: torch.Tensor) -> torch.Tensor:
-    """Helper to quantize a tensor."""
-    return (x * SCALE_FACTOR).round().to(torch.int64)
+    """Helper to quantize a tensor using stochastic rounding."""
+    return (stochastic_round(x, SCALE_FACTOR) * SCALE_FACTOR).to(torch.int64)
 
 def from_fixed_point(x: torch.Tensor) -> torch.Tensor:
     """Helper to dequantize a tensor."""
