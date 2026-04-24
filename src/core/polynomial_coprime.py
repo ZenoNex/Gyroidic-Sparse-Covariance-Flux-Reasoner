@@ -614,9 +614,27 @@ class PolynomialCoprimeConfig:
         """
         if not hasattr(self, '_cyclotomic_shield'):
             from src.topology.modular_homology_fft import CyclotomicTDACompressor
-            self._cyclotomic_shield = CyclotomicTDACompressor(p=17, ring_size=64).to(self.device)
+            from src.core.fgrt_primitives import PrimeResonanceLadder
+            
+            # Phase 17+18 Silicon Sovereignty:
+            # All prime-like sequences now generated from polynomial evaluations or ladders.
+            # No hardcoded primes permitted (Implementation Integrity Guide §1).
+            if not hasattr(self, '_prime_ladder'):
+                self._prime_ladder = PrimeResonanceLadder(num_resonators=32).to(self.device)
+            
+            # Extract dynamically generated primes (including Lazarus-prioritized)
+            primes = self._prime_ladder.primes
+            
+            # Select p using hardware-anchored entropy (honest jitter)
+            # Reference: §45.2 (Silicon Sovereignty)
+            jitter = harvest_honest_jitter((1,), device=self.device, scaled=False)
+            p_idx = int(jitter[0].item() * len(primes)) % len(primes)
+            p_selected = int(primes[p_idx].item())
+            
+            self._cyclotomic_shield = CyclotomicTDACompressor(p=p_selected, ring_size=64).to(self.device)
             
         return self._cyclotomic_shield.cyclotomic_quantization(phi)
+
     
     def update_pressure_history(self, k: int, pressure: float):
         """Track pressure for saturation detection."""
