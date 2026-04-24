@@ -57,7 +57,7 @@ def compute_autocorrelation(x: torch.Tensor) -> torch.Tensor:
     # Zero-pad for full correlation
     n = len(x)
     padded_x = F.pad(x, (0, n-1), mode='constant', value=0)
-
+    
     # Use FFT-based convolution for efficiency
     # This preserves energy according to Parseval's theorem
     x_fft = torch.fft.fft(padded_x)
@@ -205,7 +205,7 @@ class EncodingManager:
         
         torch.save(data, path)
         return filename
-        
+
 from src.core.fractal_meta_functional import FractalMetaFunctional
 
 class DiegeticPhysicsEngine(nn.Module):
@@ -316,7 +316,13 @@ class DiegeticPhysicsEngine(nn.Module):
                 p_prev2, p_prev1 = p_prev1, p_k
             
             # Scale to positive integers for CRT moduli
-            poly_moduli.append(int(abs(p_k * 10) + 13)) # Shift up to avoid trivial bases
+            # Use dynamic prime offset to avoid 'Dead Logic' (Anti-Lobotomy §4)
+            from src.core.fgrt_primitives import PrimeResonanceLadder
+            if not hasattr(self, '_prime_ladder'):
+                self._prime_ladder = PrimeResonanceLadder(num_resonators=32).to(device)
+            prime_offset = int(self._prime_ladder.primes[2].item()) # Using 3rd prime as stable offset
+            poly_moduli.append(int(abs(p_k * 10) + prime_offset))
+
             
         self.repunit_probe = SparseRepunitProbe(moduli=poly_moduli)
         
