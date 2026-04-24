@@ -57,6 +57,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.primitive_ops import stochastic_round
 
 
 # ---------------------------------------------------------------------------
@@ -491,7 +492,9 @@ class ZeitgeistRouter(nn.Module):
         
         new_residues = []
         for i in range(self.M):
-            r_new = (int(current_residues[i].item()) + round(float(delta_final[i]) * self.moduli[i])) % self.moduli[i]
+            # Stochastic rounding of the delta update
+            delta_int = stochastic_round(torch.tensor(delta_final[i]) * self.moduli[i])
+            r_new = (int(current_residues[i].item()) + int(delta_int.item())) % self.moduli[i]
             new_residues.append(float(r_new))
             
         # 2. Construct Symmetric Tensor M_ij
