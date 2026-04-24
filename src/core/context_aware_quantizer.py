@@ -25,7 +25,7 @@ References:
 
 import torch
 import torch.nn as nn
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Any
 
 from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka, BoundaryState
 from src.core.false_negative_subsystem import get_mischief_dependent_shell_depth
@@ -145,7 +145,10 @@ class ContextAwareQuantizer(nn.Module):
         """Round x to the nearest multiple of step (per-axis)."""
         # Avoid division by near-zero
         safe_step = step.clamp(min=1e-6)
-        return torch.round(x / safe_step) * safe_step
+        
+        from src.core.primitive_ops import stochastic_round
+        # Stochastic rounding on the normalized value
+        return stochastic_round(x / safe_step, 1.0) * safe_step
 
     def forward(
         self,
@@ -153,20 +156,17 @@ class ContextAwareQuantizer(nn.Module):
         pas_scores: Optional[torch.Tensor] = None,
         trust_scores: Optional[torch.Tensor] = None,
         mischief_entropy: float = 0.0,
+        voynich_token: Optional[Any] = None
     ) -> Tuple[torch.Tensor, Optional[BoundaryState]]:
         """
         Apply context-aware quantization.
-
+        
         Args:
             x:            [batch, dim] state vector.
             pas_scores:   Optional [dim] per-axis Phase Alignment Scores in [0,1].
-                          If None, uniform (no anisotropy) is assumed.
             trust_scores: Optional [dim] per-axis temporal trust scores in [0,1].
-                          Hardened/fossilized axes (high trust) get finer granularity.
-
-        Returns:
-            q_out:          [batch, dim] quantised state.
-            boundary_state: BoundaryState if a shell crossing occurred, else None.
+            mischief_entropy: float mischief-dependent entropy bias.
+            voynich_token: Optional VoynichExemptionToken for opaque signatures.
         """
         device = x.device
         prev_level = self._level
@@ -195,7 +195,8 @@ class ContextAwareQuantizer(nn.Module):
         #    quantisation result — we only want the shell transition logic.
         with torch.no_grad():
             result = self.matrioshka(
-                q, alpha=self._alpha, start_level=self._level
+                q, alpha=self._alpha, start_level=self._level,
+                voynich_token=voynich_token
             )
             if isinstance(result, tuple):
                 _, self._alpha, self._level = result
