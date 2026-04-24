@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from typing import Dict, List, Tuple, Optional, Any
 import numpy as np
+from src.core.honest_jitter import harvest_honest_jitter
 from pathlib import Path
 import json
 import time
@@ -51,7 +52,8 @@ class TemporalAssociationDataset:
         self.device = device
         
         # Generate concept embeddings
-        self.concept_embeddings = torch.randn(num_concepts, 768, device=device)
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.concept_embeddings = harvest_honest_jitter((num_concepts, 768), device=device)
         
         # Create association graph (concepts that appear together)
         self.association_graph = self._create_association_graph()
@@ -61,6 +63,20 @@ class TemporalAssociationDataset:
         
         # Contextual modifiers (how context changes meaning)
         self.contextual_modifiers = self._create_contextual_modifiers()
+    
+    def _honest_randint(self, low: int, high: Optional[int] = None) -> int:
+        """Derive an integer from hardware-anchored jitter."""
+        if high is None:
+            low, high = 0, low
+        jitter = harvest_honest_jitter((1,), device=self.device, scaled=True).item()
+        return int(jitter * (high - low)) % (high - low) + low
+
+    def _honest_choice(self, choices: Any) -> Any:
+        """Select an item from choices using hardware-anchored jitter."""
+        if not choices:
+            return None
+        idx = self._honest_randint(len(choices))
+        return list(choices)[idx]
     
     def _create_association_graph(self) -> Dict[int, List[int]]:
         """Create graph of concept associations."""
@@ -83,11 +99,11 @@ class TemporalAssociationDataset:
                 
                 # Weak associations with other clusters
                 if cluster_id > 0:
-                    prev_cluster_concept = (cluster_id - 1) * cluster_size + np.random.randint(cluster_size)
+                    prev_cluster_concept = (cluster_id - 1) * cluster_size + self._honest_randint(cluster_size)
                     graph[concept].append(prev_cluster_concept)
                 
                 if cluster_id < num_clusters - 1:
-                    next_cluster_concept = (cluster_id + 1) * cluster_size + np.random.randint(cluster_size)
+                    next_cluster_concept = (cluster_id + 1) * cluster_size + self._honest_randint(cluster_size)
                     graph[concept].append(next_cluster_concept)
         
         return graph
@@ -98,39 +114,39 @@ class TemporalAssociationDataset:
         
         # Create various types of patterns
         for _ in range(100):
-            pattern_type = np.random.choice(['linear', 'branching', 'cyclic'])
+            pattern_type = self._honest_choice(['linear', 'branching', 'cyclic'])
             
             if pattern_type == 'linear':
                 # A → B → C → D
-                start_concept = np.random.randint(self.num_concepts)
+                start_concept = self._honest_randint(self.num_concepts)
                 pattern = [start_concept]
-                for _ in range(np.random.randint(3, 8)):
+                for _ in range(self._honest_randint(3, 8)):
                     if pattern[-1] in self.association_graph:
-                        next_concept = np.random.choice(self.association_graph[pattern[-1]])
+                        next_concept = self._honest_choice(self.association_graph[pattern[-1]])
                         pattern.append(next_concept)
                 patterns.append(pattern)
             
             elif pattern_type == 'branching':
                 # A → B → C, A → B → D
-                root = np.random.randint(self.num_concepts)
-                branch_point = np.random.choice(self.association_graph.get(root, [root]))
+                root = self._honest_randint(self.num_concepts)
+                branch_point = self._honest_choice(self.association_graph.get(root, [root]))
                 
                 for _ in range(2):  # Two branches
                     pattern = [root, branch_point]
                     if branch_point in self.association_graph:
-                        branch_end = np.random.choice(self.association_graph[branch_point])
+                        branch_end = self._honest_choice(self.association_graph[branch_point])
                         pattern.append(branch_end)
                     patterns.append(pattern)
             
             elif pattern_type == 'cyclic':
                 # A → B → C → A
-                start_concept = np.random.randint(self.num_concepts)
+                start_concept = self._honest_randint(self.num_concepts)
                 pattern = [start_concept]
                 current = start_concept
                 
-                for _ in range(np.random.randint(2, 5)):
+                for _ in range(self._honest_randint(2, 5)):
                     if current in self.association_graph:
-                        current = np.random.choice(self.association_graph[current])
+                        current = self._honest_choice(self.association_graph[current])
                         pattern.append(current)
                 
                 pattern.append(start_concept)  # Close the cycle
@@ -145,7 +161,8 @@ class TemporalAssociationDataset:
         
         for context in contexts:
             # Each context has a transformation matrix
-            modifiers[context] = torch.randn(768, 768, device=self.device) * 0.1
+            # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+            modifiers[context] = harvest_honest_jitter((768, 768), device=self.device) * 0.1
         
         return modifiers
     
@@ -157,7 +174,7 @@ class TemporalAssociationDataset:
         
         for _ in range(batch_size):
             # Choose a temporal pattern
-            pattern = np.random.choice(self.temporal_patterns)
+            pattern = self._honest_choice(self.temporal_patterns)
             
             # Extend or truncate to sequence_length
             if len(pattern) < self.sequence_length:
@@ -165,10 +182,10 @@ class TemporalAssociationDataset:
                 while len(pattern) < self.sequence_length:
                     last_concept = pattern[-1]
                     if last_concept in self.association_graph:
-                        next_concept = np.random.choice(self.association_graph[last_concept])
+                        next_concept = self._honest_choice(self.association_graph[last_concept])
                         pattern.append(next_concept)
                     else:
-                        pattern.append(np.random.randint(self.num_concepts))
+                        pattern.append(self._honest_randint(self.num_concepts))
             else:
                 pattern = pattern[:self.sequence_length]
             
@@ -176,7 +193,7 @@ class TemporalAssociationDataset:
             sequence_embeddings = self.concept_embeddings[pattern]
             
             # Apply contextual modification
-            context_type = np.random.choice(list(self.contextual_modifiers.keys()))
+            context_type = self._honest_choice(list(self.contextual_modifiers.keys()))
             context_modifier = self.contextual_modifiers[context_type]
             modified_embeddings = torch.matmul(sequence_embeddings, context_modifier)
             
@@ -200,7 +217,7 @@ class TemporalAssociationDataset:
             'sequences': torch.stack(sequences),  # [batch, seq_len, 768]
             'associations': torch.stack(associations),  # [batch, seq_len * assoc_window]
             'contexts': contexts,  # List of context types
-            'concept_ids': torch.tensor([pattern for pattern in [np.random.choice(self.temporal_patterns) for _ in range(batch_size)]])
+            'concept_ids': torch.tensor([pattern for pattern in [self._honest_choice(self.temporal_patterns) for _ in range(batch_size)]])
         }
 
 
