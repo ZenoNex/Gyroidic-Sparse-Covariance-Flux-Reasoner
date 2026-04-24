@@ -23,7 +23,7 @@ class KnowledgeDyad:
     Acts as a 'Topological Obstruction' in the manifold.
     """
     linguistic_description: str
-    image_fingerprint: Optional[torch.Tensor] = None # [137] vector
+    image_fingerprint: Optional[torch.Tensor] = None # [96] vector
     audio_harmonics: Optional[torch.Tensor] = None
     video_breather: Optional[Dict] = None
     gyroid_residue: Optional[torch.Tensor] = None # [n, n] irreducible entanglement
@@ -39,13 +39,13 @@ class KnowledgeDyad:
 class ResidueFusion(nn.Module):
     """
     Computes the 'Cross-Modality Torsion' between image and text features.
-    Handles dynamic fingerprint dimensions (137 legacy, 96 Chebyshev un-lobotomized).
+    Handles dynamic fingerprint dimensions (96 legacy, 96 Chebyshev un-lobotomized).
     """
     def __init__(self, feature_dim: int = 512):
         super().__init__()
         # Dynamic projectors to handle different input standards
-        self.image_proj_137 = nn.Linear(137, feature_dim)
-        self.image_proj_96 = nn.Linear(96, feature_dim)
+        # Aligned to non-prime dimension 96 (32*3) as per Silicon Sovereignty.
+        self.image_proj = nn.Linear(96, feature_dim)
         self.text_proj = nn.Linear(feature_dim, feature_dim)
         
         # Torsion operator: computes the 'twist' between the two vectors
@@ -61,16 +61,14 @@ class ResidueFusion(nn.Module):
         """
         # Handle input dimension drift (Anti-Lobotomy alignment)
         in_dim = image_fingerprint.size(-1)
-        if in_dim == 137:
-            img_proj = self.image_proj_137(image_fingerprint)
-        elif in_dim == 96:
-            img_proj = self.image_proj_96(image_fingerprint)
+        if in_dim == 96:
+            img_proj = self.image_proj(image_fingerprint)
         else:
-            # Fallback zero-pad or trim to 137
-            padded = torch.zeros(*image_fingerprint.shape[:-1], 137, device=image_fingerprint.device)
-            min_dim = min(in_dim, 137)
+            # Fallback zero-pad or trim to 96
+            padded = torch.zeros(*image_fingerprint.shape[:-1], 96, device=image_fingerprint.device)
+            min_dim = min(in_dim, 96)
             padded[..., :min_dim] = image_fingerprint[..., :min_dim]
-            img_proj = self.image_proj_137(padded)
+            img_proj = self.image_proj(padded)
 
         txt_proj = self.text_proj(text_embedding)
         
@@ -174,7 +172,7 @@ class DyadFossilizer:
         # Ensure inputs are tensors and align devices
         device = text_embedding.device
         if dyad.image_fingerprint is None:
-             img_tensor = torch.zeros(137, device=device)
+             img_tensor = torch.zeros(96, device=device)
         elif not isinstance(dyad.image_fingerprint, torch.Tensor):
              img_tensor = torch.tensor(dyad.image_fingerprint, dtype=torch.float32, device=device)
         else:
@@ -378,7 +376,7 @@ class DyadFossilizer:
             json.dump(payload, f, indent=2)
         return filepath
 
-    def inject_agent_smith(self, filepath: str, unraveling_closure=None, expected_dim: int = 137, hardware_trfc_ms: float = 160.0) -> Dict:
+    def inject_agent_smith(self, filepath: str, unraveling_closure=None, expected_dim: int = 96, hardware_trfc_ms: float = 160.0) -> Dict:
         """
         Loads the mathematical identity of an agent (Agent Smith) back into the system,
         allowing the local hardware to 'breathe' its own unique life into the configuration.
