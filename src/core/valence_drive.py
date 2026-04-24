@@ -67,12 +67,17 @@ class ValenceFunctional(nn.Module):
         # 4. Total Hunger
         hunger = (surprise + dissonance) * self.hunger_scale
         
+        # 5. Persistent tracking for diagnostics
+        self._last_hunger = hunger.mean().detach()
+        
         return hunger
 
 
     def get_metrics(self) -> Dict[str, float]:
+        """Return metrics for the diegetic terminal."""
         return {
             'asymptotic_satisfaction': self.satisfaction.item(),
-            'current_hunger_drive': self.hunger_scale * self.satisfaction.item() # Approximation
+            'current_hunger_drive': getattr(self, '_last_hunger', torch.tensor(0.0)).item()
         }
+
 
