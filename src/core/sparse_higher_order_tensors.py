@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import itertools
 from typing import Dict, List, Optional
+from src.core.honest_jitter import harvest_honest_jitter
 
 class SparseHigherOrderTensorDynamics(nn.Module):
     """
@@ -15,8 +16,9 @@ class SparseHigherOrderTensorDynamics(nn.Module):
         self.base_dim = base_dim
         
         # Simulate tensor weights for different orders
+        # SILICON SOVEREIGNTY: Initialized with Honest Jitter
         self.tensor_weights = nn.ParameterDict({
-            str(order): nn.Parameter(torch.randn(base_dim, base_dim) * 0.1)
+            str(order): nn.Parameter(harvest_honest_jitter((base_dim, base_dim), scaled=True) * 0.2)
             for order in range(1, max_order + 1)
         })
         
