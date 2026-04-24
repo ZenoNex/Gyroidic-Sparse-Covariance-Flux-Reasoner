@@ -72,7 +72,8 @@ class FractalMetaFunctional(nn.Module):
         # 4. Autoscillatory Dynamics
         # Learned dampening and coupling parameters
         self.osc_mu = nn.Parameter(torch.tensor(0.5))
-        self.osc_beta = nn.Parameter(torch.randn(dim, dim) * 0.1)
+        # SILICON SOVEREIGNTY: Coupling matrix anchored to hardware jitter
+        self.osc_beta = nn.Parameter(harvest_honest_jitter((dim, dim), scaled=True) * 0.1)
         
         # 5. Meta-Feedback Projections
         # Projects S_meta(t-1) into various domain spaces
