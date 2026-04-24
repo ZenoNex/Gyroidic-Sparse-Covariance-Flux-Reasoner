@@ -10,6 +10,8 @@ def harvest_honest_jitter(shape: torch.Size, device: torch.device = None, scaled
     """
     if device is None:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    elif isinstance(device, str):
+        device = torch.device(device)
         
     jitter_tensor = torch.zeros(shape, device=device)
     flat = jitter_tensor.flatten()
