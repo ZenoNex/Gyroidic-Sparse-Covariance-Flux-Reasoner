@@ -426,7 +426,7 @@ class ZeitgeistRouter(nn.Module):
 
     def braid_reduce(self, word: List[int]) -> List[int]:
         """
-        Peform greedy reduction of a braid word using B_n relations.
+        Perform greedy reduction of a braid word using B_n relations.
         1. Inverse Law: sigma_i * sigma_i^-1 = e
         2. Far Commutativity: sigma_i * sigma_j = sigma_j * sigma_i if |i-j| > 1
         3. Braid Relation: sigma_i * sigma_{i+1} * sigma_i = sigma_{i+1} * sigma_i * sigma_{i+1}
@@ -456,8 +456,11 @@ class ZeitgeistRouter(nn.Module):
                 # 3. Braid Relation (B3-like triple swap)
                 if i < len(current) - 2:
                     a, b, c = current[i], current[i+1], current[i+2]
-                    if a == c and abs(a - b) == 1:
+                    # Check for sigma_i * sigma_{i+1} * sigma_i
+                    if a == c and abs(a - b) == 1 and a != 0:
+                        # Found the relation!
                         # sigma_i * sigma_{i+1} * sigma_i -> sigma_{i+1} * sigma_i * sigma_{i+1}
+                        print(f" [BRAID] \u2693 Braid Relation Detected: \u03c3{a}\u03c3{b}\u03c3{a} \u2192 \u03c3{b}\u03c3{a}\u03c3{b} (Type-II Reidemeister Trace)")
                         current[i], current[i+1], current[i+2] = b, a, b
                         reduced = False
                 i += 1
@@ -466,6 +469,33 @@ class ZeitgeistRouter(nn.Module):
                 break
                 
         return current
+
+    def temporal_inverse_kinematics(self, state: ZeitgeistState, x: torch.Tensor) -> torch.Tensor:
+        """
+        Modulates state steering based on non-Abelian Braid word and Chern-Simons phase.
+        Enforces path-dependent geometry on the manifold transition.
+        """
+        # Calculate steering force from Braid Word length
+        word_pressure = len(state.braid_word) / (self.M * 2.0 + 1e-8)
+        
+        # Chern-Simons Phase rotation (Topological shift)
+        phase = state.cs_phase
+        rotation = torch.tensor([
+            [math.cos(phase), -math.sin(phase)],
+            [math.sin(phase), math.cos(phase)]
+        ], device=x.device)
+        
+        # Apply non-Abelian IK steering
+        # We only apply rotation to the first two dimensions as a 'compass' signal
+        if x.shape[-1] >= 2:
+            x_steer = x.clone()
+            x_steer[..., :2] = torch.matmul(x[..., :2], rotation)
+            
+            # Apply word pressure as a damping factor
+            damping = 1.0 - 0.2 * torch.tanh(torch.tensor(word_pressure))
+            return x_steer * damping
+            
+        return x
 
     def chern_simons_increment(self, generator: int) -> float:
         """Calculate Chern-Simons phase shift based on the generator index."""
