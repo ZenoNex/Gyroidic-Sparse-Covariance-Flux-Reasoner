@@ -31,6 +31,7 @@ from src.core.yield_criteria import MohrCoulombProjection, DruckerPragerProjecti
 from src.core.love_vector import LoveVector
 from src.topology.gyroid_differentiation import GyroidFlowConstraint
 from src.core.bulletin_board import BulletinBoard
+from src.core.primitive_ops import stochastic_round
 
 class ChiralDriftStabilizer:
     """
@@ -381,7 +382,8 @@ class OperationalAdmmPrimitive(autograd.Function):
         # Repair Trace Compression:
         # Store symbolic delta
             delta = c_phys - c_sym
-            symbolic_delta = torch.round(delta * 10.0) / 10.0 
+            # Use stochastic rounding instead of deterministic round
+            symbolic_delta = stochastic_round(delta, 10.0) 
             c_raw = c_sym + symbolic_delta
             
             # Apply Global Yield (Drucker-Prager) as smooth envelope
