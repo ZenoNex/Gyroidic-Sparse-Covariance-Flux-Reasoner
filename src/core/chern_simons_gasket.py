@@ -11,6 +11,48 @@ from typing import Dict, Tuple, Optional
 import math
 from src.core.honest_jitter import harvest_honest_jitter
 
+class SurgicalSeamVisualizer(nn.Module):
+    """
+    Diagnostic monitoring for hyperbolic "slender seam" tension (kappa).
+    
+    The slender side of a rotating hyperbolic triangle marks the surgical seam
+    where incommensurate logical manifolds are stitched.
+    
+    Sovereign Trace: 
+        kappa = sum(abs(curvature_i)) / L_seam
+    """
+    def __init__(self, seam_threshold: float = 0.85):
+        super().__init__()
+        self.seam_threshold = seam_threshold
+        self.register_buffer('current_tension', torch.tensor(0.0))
+        self.register_buffer('seam_status', torch.tensor(0)) # 0: stable, 1: tension, 2: rupture
+
+    def update_seam_tension(self, hyperbolic_metric: torch.Tensor, residues: torch.Tensor):
+        """
+        Derive tension from the hyperbolic triangle boundary.
+        """
+        # Calculate curvature kappa along the slender side
+        # For simulation, we use the variance of residues at the boundary
+        tension = torch.std(residues) / (torch.norm(hyperbolic_metric) + 1e-8)
+        self.current_tension.copy_(tension)
+        
+        if tension > self.seam_threshold * 1.2:
+            self.seam_status.copy_(torch.tensor(2)) # Rupture
+        elif tension > self.seam_threshold:
+            self.seam_status.copy_(torch.tensor(1)) # High Tension
+        else:
+            self.seam_status.copy_(torch.tensor(0)) # Stable
+            
+        return self.current_tension
+
+    def get_seam_report(self) -> Dict:
+        return {
+            'seam_tension': self.current_tension.item(),
+            'seam_status': ['stable', 'tension', 'rupture'][int(self.seam_status.item())],
+            'is_critical': bool(self.seam_status.item() >= 1)
+        }
+
+
 
 class ChernSimonsGasket(nn.Module):
     """
@@ -39,6 +81,9 @@ class ChernSimonsGasket(nn.Module):
         
         # Twist detection
         self.register_buffer('twist_energy', torch.tensor(0.0, device=device))
+        
+        # Surgical Seam Visualizer
+        self.seam_visualizer = SurgicalSeamVisualizer()
     
     def initialize_gauge_field(self, polynomial_coeffs: torch.Tensor, winding_numbers: torch.Tensor):
         """
@@ -249,11 +294,13 @@ class ChernSimonsGasket(nn.Module):
     
     def get_diagnostics(self) -> Dict[str, float]:
         """Get Chern-Simons diagnostics."""
-        return {
+        diag = {
             'twist_energy': self.twist_energy.item(),
             'level_k': float(self.level_k),
             'gauge_field_norm': torch.norm(self.gauge_field).item()
         }
+        diag.update(self.seam_visualizer.get_seam_report())
+        return diag
 
 
 class SolitonStabilityHealer(nn.Module):
