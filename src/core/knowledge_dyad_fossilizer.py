@@ -121,6 +121,12 @@ class DyadFossilizer:
         scale = 2.0 * torch.tanh(safe_norm / 2.0)
         return scale * (x / safe_norm)
 
+    # Dead Prime threshold: variance below this signals Total Harmonic Clipping.
+    # The 0.8824 flatline has variance ~= 0.0; 1e-6 is the upstream guard.
+    _DEAD_PRIME_VAR_THRESHOLD = 1e-6
+    # Rehydration intensity: gentle enough not to destroy existing geometry
+    _REHYDRATION_INTENSITY = 0.05
+
     def fossilize(self, 
                   dyad: KnowledgeDyad, 
                   text_embedding: torch.Tensor,
@@ -129,7 +135,41 @@ class DyadFossilizer:
         Save the dyad and its computed residue to disk, binding it to the derived
         topological invariants of the seed_state (Architecture History).
         Returns the filename of the fossil.
+
+        Upstream Atrophy Guard (2026-04-24):
+            Before passing seed_state to the topological engines, we check for
+            the Dead Prime resonance (all-constant tensor, variance < 1e-6).
+            If detected, honest jitter is injected to rehydrate variance and
+            the atrophy event is recorded in the fossil payload.
         """
+        # --- UPSTREAM SPECTRAL ATROPHY GUARD ---
+        # This guard detects the 0.8824 flatline BEFORE the invariant engines
+        # see it, so they don't produce meaningless chiral/betti metrics from
+        # a pre-executed (blanched) tensor.
+        atrophy_detected = False
+        atrophy_level = 0.0
+        if seed_state is not None:
+            with torch.no_grad():
+                ss_var = seed_state.var().item()
+                atrophy_level = float(ss_var)
+                if ss_var < self._DEAD_PRIME_VAR_THRESHOLD:
+                    atrophy_detected = True
+                    # Log to console so the shadow log pipeline picks it up
+                    print(
+                        f"[FOSSILIZER] DEAD PRIME ATROPHY detected in seed_state "
+                        f"(var={ss_var:.2e} < {self._DEAD_PRIME_VAR_THRESHOLD}). "
+                        f"Rehydrating with honest jitter before topological derivation."
+                    )
+                    # Inject honest jitter to break the symmetry.
+                    # This is NOT lobotomy -- we are not zeroing out;
+                    # we are adding a nutrient signal (Gray-Scott feed rate).
+                    jitter = harvest_honest_jitter(
+                        seed_state.shape,
+                        device=seed_state.device,
+                        scaled=True
+                    ) * self._REHYDRATION_INTENSITY
+                    seed_state = seed_state + jitter
+
         # 1. Compute Residue (The 'Meaning' of the association)
         # Ensure inputs are tensors and align devices
         device = text_embedding.device
@@ -219,6 +259,12 @@ class DyadFossilizer:
             'gyroid_residue': dyad.gyroid_residue.detach().cpu() if dyad.gyroid_residue is not None else None,
             'hyperbolic_residue': hyperbolic_residue.detach().cpu(),
             'timestamp': dyad.timestamp,
+            # Upstream Atrophy Diagnostics (added 2026-04-24)
+            # atrophy_detected=True means this fossil was created from a Dead Prime
+            # (0.8824 flatline) seed_state that was rehydrated before derivation.
+            # Downstream resonance scans should weight these fossils more cautiously.
+            'atrophy_detected': atrophy_detected,
+            'seed_state_variance': atrophy_level,
             'metrics': {
                 'relevance': dyad.relevance_score,
                 'pas_h': float(current_pas.item()),
