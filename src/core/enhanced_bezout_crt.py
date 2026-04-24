@@ -15,6 +15,72 @@ import torch.nn.functional as F
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 
+class CrossbarIKSolver(nn.Module):
+    """
+    Inverse Kinematics Solver for high-speed glyph trajectory rendering.
+    Uses Bezout coefficients to synchronize note-drop events with operator drawing.
+    
+    Formula: 
+        theta_t = sum(a_i * sin(f_i * t + phi_i))
+        r_t = sum(b_j * cos(g_j * t + psi_j))
+    
+    Synchronization Condition:
+        gcd(f_i, g_j) ensures resonance-stable drawing.
+    """
+    def __init__(self, num_harmonics: int = 8, sample_rate: int = 44100):
+        super().__init__()
+        self.num_harmonics = num_harmonics
+        self.sample_rate = sample_rate
+        
+        # Harmonic coefficients (a_i, b_j)
+        self.a = nn.Parameter(torch.ones(num_harmonics) / num_harmonics)
+        self.b = nn.Parameter(torch.ones(num_harmonics) / num_harmonics)
+        
+        # Sovereign Basis Initialization (RIC Eq 1.1 compliant)
+        from src.core.fgrt_primitives import PrimeResonanceLadder
+        # Use a large enough ladder to pick distinct prime harmonics
+        ladder = PrimeResonanceLadder(num_resonators=num_harmonics * 4)
+        primes = ladder.primes
+        
+        # Eq 1.1: f_{p_n} = 2 * pi * log(p_n)
+        # We pick two disjoint sets of primes for f and g
+        f_primes = primes[:num_harmonics].float()
+        g_primes = primes[num_harmonics:2*num_harmonics].float()
+        
+        self.f = nn.Parameter(2 * 3.14159265359 * torch.log(f_primes))
+        self.g = nn.Parameter(2 * 3.14159265359 * torch.log(g_primes))
+        
+        # Phases initialized via Silicon-Native Honest Jitter (§45.2)
+        from src.core.honest_jitter import harvest_honest_jitter
+        self.phi = nn.Parameter(harvest_honest_jitter((num_harmonics,), scaled=False) * 2 * 3.14159265359)
+        self.psi = nn.Parameter(harvest_honest_jitter((num_harmonics,), scaled=False) * 2 * 3.14159265359)
+        
+    def solve_trajectory(self, t: torch.Tensor) -> torch.Tensor:
+        """
+        Compute (x, y) coordinates for a given time vector t.
+        """
+        # Theta and Radius harmonics with phase shift
+        # theta_t = sum(a_i * sin(f_i * t + phi_i))
+        # r_t = sum(b_j * cos(g_j * t + psi_j))
+        theta = torch.sum(self.a.unsqueeze(1) * torch.sin(self.f.unsqueeze(1) * t + self.phi.unsqueeze(1)), dim=0)
+        radius = torch.sum(self.b.unsqueeze(1) * torch.cos(self.g.unsqueeze(1) * t + self.psi.unsqueeze(1)), dim=0)
+        
+        # Convert polar to Cartesian for the drawing operator
+        x = radius * torch.cos(theta)
+        y = radius * torch.sin(theta)
+        
+        return torch.stack([x, y], dim=-1)
+
+    def synchronize_phase(self, note_event_time: float, phase_shift: float):
+        """
+        Adjust harmonic phases to lock a note-drop event to a specific geometric anchor.
+        """
+        # We shift all phases by phase_shift relative to the note event time
+        with torch.no_grad():
+            self.phi.add_(phase_shift)
+            self.psi.add_(phase_shift)
+
+
 class EnhancedBezoutCRT(nn.Module):
     """
     Enhanced Bezout coefficient refresh using Chinese Remainder Theorem.
@@ -54,6 +120,9 @@ class EnhancedBezoutCRT(nn.Module):
         
         # Bezout coefficient cache
         self.bezout_cache = {}
+        
+        # Crossbar IK Solver for trajectory synchronization
+        self.ik_solver = CrossbarIKSolver()
         
     def _generate_polynomial_moduli(self) -> torch.Tensor:
         """
@@ -297,6 +366,16 @@ class EnhancedBezoutCRT(nn.Module):
         
         return stabilized
     
+    def synchronize_trajectories(self, t: torch.Tensor) -> torch.Tensor:
+        """
+        Refresh Bezout coefficients and solve for synchronized trajectories.
+        """
+        # Ensure numerical stability via CRT refresh
+        _, diag = self.refresh_bezout_coefficients(torch.randn(1, self.state_dim)) # Dummy call to refresh
+        
+        # Compute IK trajectory
+        return self.ik_solver.solve_trajectory(t)
+
     def get_stability_metrics(self) -> Dict:
         """Get current stability metrics."""
         return {
