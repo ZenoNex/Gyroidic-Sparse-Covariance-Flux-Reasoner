@@ -17,7 +17,8 @@ class RecursiveNonSequiturGenerator(nn.Module):
         super().__init__()
         self.state_dim = state_dim
         self.mischief_threshold = mischief_threshold
-        self.oscillator_phase = nn.Parameter(torch.rand(1))
+        # SILICON SOVEREIGNTY: Anchored phase initialization to hardware jitter
+        self.oscillator_phase = nn.Parameter(harvest_honest_jitter((1,), scaled=False))
         
     def forward(self, state: torch.Tensor, current_mischief: float) -> torch.Tensor:
         if current_mischief < self.mischief_threshold:
