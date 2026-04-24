@@ -297,8 +297,12 @@ class RepunitHasher(nn.Module):
         # Scale and extract fractional phase mapped against the cyclic repunits
         scaled_state = state * repunits_expanded
         
+        # Stability Guard: Hardware-anchored jitter grounding to prevent diagnostic lock (0.4390 attractor)
+        # Follows §45.2 (Silicon Sovereignty).
+        jitter = harvest_honest_jitter(scaled_state.shape, device=state.device, scaled=True) * 0.001
+        
         # We derive a discrete cyclic marker:
-        cyclic_markers = torch.fmod(torch.abs(scaled_state), repunits_expanded)
+        cyclic_markers = torch.fmod(torch.abs(scaled_state + jitter), repunits_expanded)
         return cyclic_markers
 
 
