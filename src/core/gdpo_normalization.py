@@ -300,6 +300,6 @@ def compare_sovereignty_vs_standard(
     
     return {
         'standard': standard_sep,
-        'gdpo': gdpo_sep,
+        'gdpo': sov_sep,
         'improvement_pct': improvement
     }
