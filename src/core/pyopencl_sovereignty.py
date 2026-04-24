@@ -210,8 +210,18 @@ class SiliconSovereigntyEngine:
         cl.wait_for_events([event_a, event_b])
         self.logger.info("Chern-Simons Sync Barrier Complete: Dual Queues Realigned.")
 
-    def apply_stochastic_rounding(self, raw_values, scale=1.0, seed=42):
-        """Applies LSB Stochastic Rounding to preserve Feature Scars."""
+    def apply_stochastic_rounding(self, raw_values, scale=1.0, seed=None):
+        """
+        Applies LSB Stochastic Rounding to preserve Feature Scars.
+        Anchored to hardware jitter if no seed is provided.
+        """
+        if seed is None:
+            from src.core.honest_jitter import harvest_honest_jitter
+            import torch
+            # Harvest a single seed value from hardware friction
+            seed = int(harvest_honest_jitter((1,), scaled=False)[0].item() * 4294967295)
+            
+
         mf = cl.mem_flags
         raw_values = np.asarray(raw_values, dtype=np.float32)
         fixed_results = np.empty_like(raw_values, dtype=np.int64)
@@ -309,11 +319,19 @@ class SiliconSovereigntyEngine:
         cl.enqueue_copy(self.queue_b, cohesion_grads, grad_buf).wait()
         return cohesion_grads
 
-    def matrix_mix_breeding(self, matrix_a, matrix_b, alpha=0.5, kappa_seal=0.1, hyperbolic_shear=0.0, seed=137):
+    def matrix_mix_breeding(self, matrix_a, matrix_b, alpha=0.5, kappa_seal=0.1, hyperbolic_shear=0.0, seed=None):
         """
         Operationalizes the 'TailSlayer Bypass' via dual-queue matrix mixing.
         Uses Queue B (Non-Ergodic/Soliton) to ensure First-to-Finish dynamics.
+        Anchored to hardware jitter if no seed is provided.
         """
+        if seed is None:
+            from src.core.honest_jitter import harvest_honest_jitter
+            import torch
+            # Harvest a single seed value from hardware friction
+            seed = int(harvest_honest_jitter((1,), scaled=False)[0].item() * 4294967295)
+            
+
         mf = cl.mem_flags
         matrix_a = np.asarray(matrix_a, dtype=np.float32)
         matrix_b = np.asarray(matrix_b, dtype=np.float32)
