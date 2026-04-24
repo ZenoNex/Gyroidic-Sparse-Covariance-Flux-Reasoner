@@ -358,7 +358,10 @@ class TemporalAssociationTrainer:
             crt_pressure = model_output['crt_pressure'].value
             
             # Lower pressure = better performance = higher trust
-            performance_bonus = torch.exp(-crt_pressure)
+            # Stability Guard: Clamp crt_pressure to prevent exp overflow
+            safe_pressure = torch.clamp(crt_pressure, min=-10.0, max=10.0)
+            performance_bonus = torch.exp(-safe_pressure)
+
             
             # Update trust with association accuracy
             trust_update = self.trust_update_rate * (association_accuracy - 0.5) * performance_bonus
@@ -423,9 +426,13 @@ class TemporalAssociationTrainer:
         l_min = final_output.get('lambda_min', torch.tensor([0.0], device=self.device)).mean().item()
         tr_c = final_output.get('trace_c', torch.tensor([1.0], device=self.device)).mean().item()
         
-        # Approximate V_m directly
+        # Approximate V_m directly (Grounding for Manifold Hunger)
         tau_decay = 10.0
-        v_m = v_tensor + (h_mischief / tau_decay) - (l_min / (tr_c + 1e-6))
+        # Safe tr_c: ensure non-zero denominator to prevent 'Overflow Exceeded' (§6.2)
+        safe_tr_c = torch.clamp(torch.tensor(tr_c), min=1e-3).item()
+        v_m = v_tensor + (h_mischief / tau_decay) - (l_min / safe_tr_c)
+        v_m = torch.clamp(torch.tensor(v_m), min=-100.0, max=100.0).item()
+
         
         hyper_ring_status = final_output.get('hyper_ring_status', 'unknown')
         
@@ -505,7 +512,10 @@ class TemporalAssociationTrainer:
         
         # Approximate V_m directly
         tau_decay = 10.0
-        v_m = v_tensor + (h_mischief / tau_decay) - (l_min / (tr_c + 1e-6))
+        safe_tr_c = torch.clamp(torch.tensor(tr_c), min=1e-3).item()
+        v_m = v_tensor + (h_mischief / tau_decay) - (l_min / safe_tr_c)
+        v_m = torch.clamp(torch.tensor(v_m), min=-100.0, max=100.0).item()
+
         
         hyper_ring_status = final_output.get('hyper_ring_status', 'unknown')
         
