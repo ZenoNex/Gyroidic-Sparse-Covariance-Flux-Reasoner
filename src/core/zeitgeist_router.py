@@ -191,6 +191,52 @@ class ZeitgeistState:
 # ZeitgeistRouter  — The CRT switching engine
 # ---------------------------------------------------------------------------
 
+class BraidGroupMatrices(nn.Module):
+    """
+    Representation of the Braid Group B_n via Burkov expansion.
+    Generates non-Abelian matrices for each sigma_i generator.
+    """
+    def __init__(self, n: int):
+        super().__init__()
+        self.n = n
+        # Burkov expansion parameter q (t in some literature)
+        # We use a stable unit value for deterministic reasoning
+        self.q = 1.0 
+
+    def get_generator_matrix(self, i: int, sign: int = 1) -> torch.Tensor:
+        """
+        Returns the (n x n) matrix for generator sigma_i (1 <= i < n).
+        """
+        mat = torch.eye(self.n)
+        if not (1 <= i < self.n):
+            return mat
+            
+        idx = i - 1
+        if sign > 0:
+            # Burkov generator sigma_i
+            mat[idx, idx] = 1 - self.q
+            mat[idx, idx+1] = self.q
+            mat[idx+1, idx] = 1
+            mat[idx+1, idx+1] = 0
+        else:
+            # Inverse generator sigma_i^-1
+            mat[idx, idx] = 0
+            mat[idx, idx+1] = 1
+            mat[idx+1, idx] = 1/self.q
+            mat[idx+1, idx+1] = 1 - 1/self.q
+            
+        return mat
+
+    def compute_word_matrix(self, word: List[int]) -> torch.Tensor:
+        """
+        Compute the final non-Abelian matrix for a braid word.
+        """
+        res = torch.eye(self.n)
+        for gen in word:
+            sign = 1 if gen > 0 else -1
+            res = torch.matmul(res, self.get_generator_matrix(abs(gen), sign))
+        return res
+
 class ZeitgeistRouter(nn.Module):
     """
     CRT Polytope Switching Engine for multi-zeitgeist reasoning.
@@ -297,6 +343,7 @@ class ZeitgeistRouter(nn.Module):
         from .numerical_d_module import NumericalDModuleManager, RationalSnappingLayer
         self.d_module_manager = NumericalDModuleManager(state_dim=dim, num_functionals=self.M)
         self.snapper = RationalSnappingLayer()
+        self.braid_matrices = BraidGroupMatrices(n=self.M)
 
         self.register_buffer('gravity_well_bias', torch.zeros(self.M))
 
@@ -480,9 +527,9 @@ class ZeitgeistRouter(nn.Module):
             # self.fossilizer.scar_manifold(state, reason="braid_overflow")
 
         # Derive delta_braided from the current word state (The Suture Rhythm)
-        # Word length increases 'tension' / non-commutativity
-        gasket_tension = len(new_word) / self.M
-        delta_braided = delta_soft * (1.0 + 0.2 * gasket_tension)
+        # We apply the non-Abelian braid matrix to the switching pressure
+        braid_mat = self.braid_matrices.compute_word_matrix(new_word).to(delta_soft.device)
+        delta_braided = torch.matmul(braid_mat, delta_soft)
                 
         # 1. Update diagonal residues
         current_residues = torch.diagonal(state.alpha_tensor)
