@@ -435,16 +435,16 @@ class TemporalAssociationTrainer:
         # Reference: §45.2 (Silicon Sovereignty) - surfacing persistent dissonance.
         tau_decay = 10.0
         # Safe tr_c: ensure non-zero denominator to prevent 'Overflow Exceeded' (§6.2)
-        safe_tr_c = torch.clamp(torch.tensor(tr_c), min=1e-3).item()
+        safe_tr_c = torch.clamp(torch.tensor(tr_c), min=1e-6).item()
         
         # Surfacing Hunger: Dissonance between Symbolic and Physical state
         # Hunger = (Pressure + Mischief) - (Structural Integrity)
-        v_m = v_tensor + (h_mischief / tau_decay) - (l_min / safe_tr_c)
+        v_m = float(v_tensor) + (float(h_mischief) / tau_decay) - (float(l_min) / safe_tr_c)
         
         # Stability Guard: Hardware-anchored jitter grounding to prevent diagnostic lock
         # Prevents the 0.4390 / 0.8824 attractor traps
-        jitter_ground = harvest_honest_jitter((1,), device=self.device, scaled=True).item() * 0.01
-        v_m = torch.clamp(torch.tensor(v_m + jitter_ground), min=-100.0, max=100.0).item()
+        jitter_ground = harvest_honest_jitter((1,), device=self.device, scaled=True).item() * 0.05
+        v_m = torch.clamp(torch.tensor(v_m + jitter_ground), min=-50.0, max=50.0).item()
         
         # Post to Bulletin Board for System 2 asynchronous retrieval
         self.bulletin_board.post_residue(final_output.get('residue_distributions', torch.zeros(1, device=self.device)).mean(dim=0).mean(dim=0))
@@ -533,9 +533,12 @@ class TemporalAssociationTrainer:
         
         # Approximate V_m directly
         tau_decay = 10.0
-        safe_tr_c = torch.clamp(torch.tensor(tr_c), min=1e-3).item()
-        v_m = v_tensor + (h_mischief / tau_decay) - (l_min / safe_tr_c)
-        v_m = torch.clamp(torch.tensor(v_m), min=-100.0, max=100.0).item()
+        safe_tr_c = torch.clamp(torch.tensor(tr_c), min=1e-6).item()
+        v_m = float(v_tensor) + (float(h_mischief) / tau_decay) - (float(l_min) / safe_tr_c)
+        
+        # Inject honest jitter to break attractor traps
+        jitter_ground = harvest_honest_jitter((1,), device=self.device, scaled=True).item() * 0.05
+        v_m = torch.clamp(torch.tensor(v_m + jitter_ground), min=-50.0, max=50.0).item()
 
         
         hyper_ring_status = final_output.get('hyper_ring_status', 'unknown')
