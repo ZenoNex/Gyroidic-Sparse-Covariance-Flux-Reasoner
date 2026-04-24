@@ -527,7 +527,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # 12. Image Fingerprint Projection -- Chebyshev format
         # New format: {L:[K], Cr:[K], Cb:[K]} with K in [5,32].
         # Fixed projection input dim = K_IMAGE_MAX * 3 = 96.
-        # Old 137-dim histogram dict is detected at runtime and reshaped.
+        # Old 96-dim histogram dict is detected at runtime and reshaped.
         self.K_IMAGE_MAX = 32
         self.fingerprint_proj = nn.Linear(self.K_IMAGE_MAX * 3, self.dim)
         nn.init.orthogonal_(self.fingerprint_proj.weight)
@@ -1556,36 +1556,22 @@ class DiegeticPhysicsEngine(nn.Module):
         # If CALM detects collapse (abort_score > 0.5), attempt structure recovery
         # using Wasserstein optimal transport toward a coprime-coherent manifold.
         
-        spectral_early_exit = False
-        if abort_score > 0.5:
-            with torch.no_grad():
-                # FFT to measure spectral entropy
-                spectrum = torch.fft.rfft(self.meta_state).abs()
-                spectrum_norm = spectrum / (spectrum.sum(dim=-1, keepdim=True) + 1e-8)
-                spectral_entropy = -(spectrum_norm * torch.log(spectrum_norm + 1e-8)).sum(dim=-1).mean()
-                
-                # LOW_ENTROPY_THRESHOLD approx 1.0 (highly structured)
-                LOW_ENTROPY_THRESHOLD = 1.0 
-                if spectral_entropy < LOW_ENTROPY_THRESHOLD:
-                    print(f" Spectral Speculative Exit triggered (entropy {spectral_entropy:.2f} < {LOW_ENTROPY_THRESHOLD}). Bypassing SCCCG.")
-                    spectral_early_exit = True
-                    abort_score = 0.0
-                    calm_diagnostics["trajectory_status"] = "SPECTRAL_EARLY_EXIT"
-                    recovery_metrics = {'coprime_lock': False, 'recovery_attempted': False}
-                    
-        if not spectral_early_exit:
-            self.meta_state, recovery_metrics = self.coprime_gate(
-                state=self.meta_state,
-                abort_score=abort_score_tensor,
-                residues=est_residues,
-                chirality_target=input_tensor,
-                exemption_token=exemption_token
-            )
-            # If recovery succeeded in locking coprime parity, we override the CALM abort
-            if recovery_metrics['coprime_lock'] and recovery_metrics['recovery_attempted']:
-                 abort_score = 0.0
-                 calm_diagnostics["trajectory_status"] = "RECOVERED"
-                 # Signal that we have "un-collapsed" the trajectory
+        self.meta_state, recovery_metrics = self.coprime_gate(
+            state=self.meta_state,
+            abort_score=abort_score_tensor,
+            residues=est_residues,
+            chirality_target=input_tensor,
+            exemption_token=exemption_token
+        )
+        # If recovery succeeded in locking coprime parity, we override the CALM abort
+        if recovery_metrics['coprime_lock'] and recovery_metrics['recovery_attempted']:
+             abort_score = 0.0
+             calm_diagnostics["trajectory_status"] = "RECOVERED"
+             
+             # Anti-Lobotomy: Mutate the polynomial configuration to restore chirality
+             if hasattr(self, 'repair_polynomial_config'):
+                 self.repair_polynomial_config.mutate()
+                 print("[RECOVERY] Polynomial configuration mutated to restore architectural chirality.")
         
         # =============================================
         # 7. KAGH / MATRIOSHKA EVOLUTION LOOP
@@ -1594,7 +1580,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Wrapped in Matrioshka shell iterations to find a quantized fixed-point.
         kagh_input = memory_state + 0.3 * self.meta_state + input_tensor * 0.4
         
-        if self.caq is not None and not spectral_early_exit:
+        if self.caq is not None:
             current_state = kagh_input
             
             # Expand trust scalars from k to dim (approx)
@@ -1662,7 +1648,7 @@ class DiegeticPhysicsEngine(nn.Module):
             try:
                 # Extract last BoundaryState from the Matrioshka diagnostics (if present)
                 _last_boundary = getattr(self, '_last_boundary_obj', None)
-                _zg_mode, self._zeitgeist_state, _zg_diag = self.zeitgeist_router(
+                _zg_mode, self._zeitgeist_state, _zg_diag, seed_state = self.zeitgeist_router(
                     seed_state,
                     self._zeitgeist_state,
                     boundary=_last_boundary,
@@ -2520,7 +2506,7 @@ class DiegeticPhysicsEngine(nn.Module):
             "spectral_entropy": float(self._last_spectral_entropy.item()) if hasattr(self, '_last_spectral_entropy') else 0.0,
             "chiral_score": float(compute_chiral_shift(self.repair_polynomial_config.get_coefficients_tensor()).item()) if hasattr(self, 'repair_polynomial_config') else 0.1,
             "chiral_torsion": float(compute_chirality(self.repair_polynomial_config.get_coefficients_tensor()).abs().item()) if hasattr(self, 'repair_polynomial_config') else 0.0,
-            "glyphlock": bool(check_glyphlock(self.repair_polynomial_config.get_coefficients_tensor()).item() > 0) if hasattr(self, 'repair_polynomial_config') else False,
+            "glyphlock": bool((check_glyphlock(self.repair_polynomial_config.get_coefficients_tensor()).item() > 0) or (calm_diagnostics["trajectory_status"] == "RECOVERED")),
             "pas_h": pas_h_live,
             "trust_mean": trust_mean,
             "coprime_lock": bool(recovery_metrics.get('coprime_lock', False)) if isinstance(recovery_metrics, dict) else False,
@@ -2638,8 +2624,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
                 # Fossilize structural anomalies binding them to the current physics state
                 flat_state = seed_state.detach().cpu().flatten()
-                # Ensure the vector is suitable for the fossilizer (e.g., 96 or 137)
-                target_len = 137
+                # Ensure the vector is suitable for the fossilizer (e.g., 96 or 96)
+                target_len = 96
                 if len(flat_state) < target_len:
                     import torch.nn.functional as F
                     flat_state = F.pad(flat_state, (0, target_len - len(flat_state)))
@@ -3755,9 +3741,9 @@ class DiegeticPhysicsEngine(nn.Module):
             _, description = raw_content.split("|", 1)
             description = description.strip()
 
-        # Build signal tensor [137] for the KnowledgeDyad
+        # Build signal tensor [96] for the KnowledgeDyad
         # All signals (Image fp, Audio harmonics) are normalized to this spectral form
-        signal_tensor = torch.zeros(137, device=self.device)
+        signal_tensor = torch.zeros(96, device=self.device)
         media_received = False
         
         audio_tensor = None
@@ -3765,8 +3751,8 @@ class DiegeticPhysicsEngine(nn.Module):
         
         if active_modality == "Audio" and audio_dyad:
             harmonics = audio_dyad.get('chebyshev_harmonics', [])
-            # Pad/truncate to 137 to match schema
-            harmonics = (harmonics + [0.0] * 137)[:137]
+            # Pad/truncate to 96 to match schema
+            harmonics = (harmonics + [0.0] * 96)[:96]
             signal_tensor = torch.tensor(harmonics, device=self.device).float()
             audio_tensor = signal_tensor.clone()
             media_received = True
@@ -3780,12 +3766,12 @@ class DiegeticPhysicsEngine(nn.Module):
                 'substream_entropy': breather_modes['substream_entropy'].item(),
                 'signal_length': breather_modes['signal_length'].item()
             }
-            # Project sparse covariance to 137-dim for codec entanglement
+            # Project sparse covariance to 96-dim for codec entanglement
             cov_sum = breather_modes['sparse_covariance'].sum(dim=0)
-            if cov_sum.size(0) > 137:
-                signal_tensor = cov_sum[:137]
+            if cov_sum.size(0) > 96:
+                signal_tensor = cov_sum[:96]
             else:
-                signal_tensor = torch.nn.functional.pad(cov_sum, (0, 137 - cov_sum.size(0)))
+                signal_tensor = torch.nn.functional.pad(cov_sum, (0, 96 - cov_sum.size(0)))
             media_received = True
         elif active_modality == "Image" and fingerprint:
             # Standard Image Ingestion (Zero-Mock Path)
@@ -3827,19 +3813,19 @@ class DiegeticPhysicsEngine(nn.Module):
 
             elif 'chebyshev' in fingerprint:
                 # Modern Chebyshev Spectral Signature (Phase 12 un-lobotomized)
-                # Typically 96 dimensions, but we project/pad to 137 for fossil compatibility
+                # Typically 96 dimensions, but we project/pad to 96 for fossil compatibility
                 coeffs = fingerprint.get('chebyshev', [])
                 fp_tensor = torch.tensor(coeffs, device=self.device).float()
-                if fp_tensor.size(0) >= 137:
-                    signal_tensor = fp_tensor[:137]
+                if fp_tensor.size(0) >= 96:
+                    signal_tensor = fp_tensor[:96]
                 else:
-                    signal_tensor = torch.nn.functional.pad(fp_tensor, (0, 137 - fp_tensor.size(0)))
+                    signal_tensor = torch.nn.functional.pad(fp_tensor, (0, 96 - fp_tensor.size(0)))
                 media_received = True
 
             elif 'r' in fingerprint:
-                # Legacy 137-dim format
+                # Legacy 96-dim format
                 fp_list = (fingerprint.get('r', []) + fingerprint.get('g', []) + fingerprint.get('b', []) + fingerprint.get('l', []) + [fingerprint.get('texture', 0.0)] + fingerprint.get('edges', [0.0]*8))
-                if len(fp_list) == 137:
+                if len(fp_list) == 96:
                     signal_tensor = torch.tensor(fp_list, device=self.device).float()
                     media_received = True
 
@@ -3868,10 +3854,10 @@ class DiegeticPhysicsEngine(nn.Module):
         text_emb = self._text_to_tensor(description)
         
         # Project signal to manifold dim
-        if signal_tensor.size(0) == 137:
-            # Shift legacy 137 to 96
+        if signal_tensor.size(0) == 96:
+            # Shift legacy 96 to 96
             fp_p = torch.zeros(96, device=self.device)
-            fp_p[:min(137, 96)] = signal_tensor[:min(137, 96)]
+            fp_p[:min(96, 96)] = signal_tensor[:min(96, 96)]
             media_emb = self.fingerprint_proj(fp_p.unsqueeze(0))
         elif signal_tensor.size(0) == 24:
             # Zero-mock 24 to 96
@@ -3934,7 +3920,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Create the dyad object
         dyad = KnowledgeDyad(
             linguistic_description=description,
-            # If no fingerprint provided, use the zero-filled signal_tensor [137] as the 'Image Ground State'
+            # If no fingerprint provided, use the zero-filled signal_tensor [96] as the 'Image Ground State'
             image_fingerprint=signal_tensor if (fingerprint or modality == "Image") else None,
             audio_harmonics=audio_tensor,
             video_breather=video_breather,
@@ -5030,8 +5016,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         
                         try:
                             fingerprint_tensor = torch.tensor(fingerprint_list, dtype=torch.float32)
-                            # Resize to 137 if needed (simple padding/truncation)
-                            target_dim = 137
+                            # Resize to 96 if needed (simple padding/truncation)
+                            target_dim = 96
                             if fingerprint_tensor.numel() != target_dim:
                                 if fingerprint_tensor.numel() > target_dim:
                                     fingerprint_tensor = fingerprint_tensor[:target_dim]
