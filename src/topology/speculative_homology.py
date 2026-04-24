@@ -14,7 +14,7 @@ from typing import Tuple, Dict, Optional, List
 import time
 
 from src.core.invariants import PhaseAlignmentInvariant, APAS_Zeta
-from src.topology.persistence_obstruction import PersistentHomologyComputer
+from src.topology.persistence_obstruction import PersistentHomologyComputer, ResidueFiltration
 from src.tda.chebyshev_filtration import MinimaxPolynomialApproximation
 
 class SpeculativeHomologyEngine(nn.Module):
@@ -142,18 +142,24 @@ class SpeculativeHomologyEngine(nn.Module):
             # Reject -> Run Oracle (Expensive)
             self.draft_rejects += 1
             
-            # Build complex (simulation of expensive step)
-            # For this engine, we need an actual filtration, but let's assume
-            # we run the PH computer on a sample.
-            # (In real code, would build filtered complex from x)
+            # Build actual simplicial complex from point cloud x
+            # Adheres to Silicon Sovereignty: No placeholders in geometric verification.
             
-            # Since we don't have constraints passed here, we return a 'Corrected' draft
-            # In a full system, this calls self.oracle.compute_betti_numbers(...)
+            # Treat x as the point cloud for simplicial construction
+            # Reshape x [batch, dim] -> [points, dim] for cdist/homology
+            points = x.view(-1, x.shape[-1])
             
-            # Heuristic correction for testing:
-            # If unstable, assume +1 feature (rupture created hole)
-            corrected_betti = {k: v + 1 for k, v in draft_betti.items()}
+            # Build filtration object (manifold = points for internal simplicial construction)
+            filtration = ResidueFiltration(residue=x, constraint_manifold=points)
+            
+            # Build the complex at the current geometric scale (Vietoris-Rips)
+            simplicial_complex = filtration.build_simplicial_complex(points, max_dimension=self.oracle.max_dimension)
+            
+            # Compute actual Betti numbers via Oracle (Rank of boundary matrices / Connected components)
+            corrected_betti = self.oracle.compute_betti_numbers(simplicial_complex)
+            
             return corrected_betti, current_pas, False
+
 
     def get_stats(self):
         total = self.draft_accepts + self.draft_rejects + 1e-8
