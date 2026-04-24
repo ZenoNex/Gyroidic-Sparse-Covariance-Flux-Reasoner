@@ -16,6 +16,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from typing import Dict, Optional, Callable
 import numpy as np
+from src.core.honest_jitter import harvest_honest_jitter
 
 from src.core.pressure_typing import StructuralPressure
 from src.core.manifold_time import ManifoldClock
@@ -79,16 +80,19 @@ class ConstraintDataset(Dataset):
         
         # Valid samples: coherent embeddings → valid anchor
         for i in range(num_valid):
-            anchor = np.random.randint(0, self.max_anchor)
+            # SILICON SOVEREIGNTY: Replaced np.random.randint with Honest Jitter derivation
+            anchor = int(harvest_honest_jitter((1,), scaled=True).item() * self.max_anchor) % self.max_anchor
             
             # Embed anchor information in features
-            text_emb = np.random.randn(self.text_dim) * 0.1
+            # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+            # Convert torch tensor from harvest_honest_jitter to numpy
+            text_emb = harvest_honest_jitter((self.text_dim,), scaled=True).cpu().numpy()
             text_emb[0] = anchor / self.max_anchor  # Encode anchor
             
-            graph_emb = np.random.randn(self.graph_dim) * 0.1
+            graph_emb = harvest_honest_jitter((self.graph_dim,), scaled=True).cpu().numpy()
             graph_emb[0] = (anchor % 100) / 100.0
             
-            num_features = np.random.randn(self.num_dim) * 0.1
+            num_features = harvest_honest_jitter((self.num_dim,), scaled=True).cpu().numpy()
             num_features[0] = np.sin(anchor * 0.1)
             num_features[1] = np.cos(anchor * 0.1)
             
@@ -103,11 +107,13 @@ class ConstraintDataset(Dataset):
         # Invalid samples: incoherent embeddings → no valid reconstruction
         for i in range(num_invalid):
             # Random, uncorrelated features
-            text_emb = np.random.randn(self.text_dim).astype(np.float32)
-            graph_emb = np.random.randn(self.graph_dim).astype(np.float32)
-            num_features = np.random.randn(self.num_dim).astype(np.float32)
+            # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+            text_emb = harvest_honest_jitter((self.text_dim,), scaled=True).cpu().numpy().astype(np.float32)
+            graph_emb = harvest_honest_jitter((self.graph_dim,), scaled=True).cpu().numpy().astype(np.float32)
+            num_features = harvest_honest_jitter((self.num_dim,), scaled=True).cpu().numpy().astype(np.float32)
             
-            anchor = np.random.randint(0, self.max_anchor)
+            # SILICON SOVEREIGNTY: Replaced np.random.randint with Honest Jitter derivation
+            anchor = int(harvest_honest_jitter((1,), scaled=True).item() * self.max_anchor) % self.max_anchor
             
             data.append({
                 'text_emb': text_emb,
