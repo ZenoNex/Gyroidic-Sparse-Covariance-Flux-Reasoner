@@ -567,7 +567,10 @@ class SpeculativeCoprimeGate(nn.Module):
         # Project coprime manifold through learnable transform
         target_manifold = self.manifold_proj(self.coprime_manifold)
         
-        # --- Add fossils as gravity wells ---
+        # --- Add fossils as gravity wells (Goal 3: Weight Dead Primes) ---
+        fossil_weights = []
+        target_manifold_list = [target_manifold]
+        
         try:
             from src.core.knowledge_dyad_fossilizer import DyadFossilizer
             fossilizer = DyadFossilizer()
@@ -581,17 +584,35 @@ class SpeculativeCoprimeGate(nn.Module):
                         if res.shape[-1] == self.dim:
                             gravity_wells.append(res.view(1, -1))
                             
+                            # GOAL 3: Weight based on atrophy diagnostic tags
+                            # Dead Primes (atrophy_detected=True) get lower weight (0.1)
+                            # to prevent them from becoming strong attractors for collapse.
+                            is_atrophied = f.get('atrophy_detected', False)
+                            weight = 0.1 if is_atrophied else 1.0
+                            fossil_weights.append(weight)
+                            
                 if gravity_wells:
                     gravity_tensor = torch.cat(gravity_wells, dim=0)
-                    # Blend the math targets with the coprime manifold target space
-                    target_manifold = torch.cat([target_manifold, gravity_tensor], dim=0)
-                    print(f"[RECOVERY] Integrated {len(gravity_wells)} fossil gravity wells into Wasserstein target manifold.")
+                    target_manifold_list.append(gravity_tensor)
+                    print(f"[RECOVERY] Integrated {len(gravity_wells)} fossil gravity wells (Dead Prime weighting active).")
         except Exception as e:
             print(f"[RECOVERY] Failed to load fossil gravity wells: {e}")
+            
+        # Re-construct target manifold and compute weights
+        # Base manifold (target_manifold) gets weight 1.0 per entry
+        base_weights = torch.ones(target_manifold.shape[0], device=converged_state.device)
+        if fossil_weights:
+            all_weights = torch.cat([base_weights, torch.tensor(fossil_weights, device=converged_state.device)])
+        else:
+            all_weights = base_weights
+            
+        target_manifold = torch.cat(target_manifold_list, dim=0)
         
-        # If chirality target provided, bias manifold toward it
+        # If chirality target provided, bias manifold toward it with high weight
         if chirality_target is not None:
-            # Add chirality target as additional transport targets
+            # Add chirality target as additional transport targets with weight 2.0
+            ct_weight = torch.ones(4, device=converged_state.device) * 2.0
+            all_weights = torch.cat([all_weights, ct_weight])
             target_manifold = torch.cat([
                 target_manifold,
                 chirality_target.expand(4, -1)  # Repeat target
@@ -609,7 +630,12 @@ class SpeculativeCoprimeGate(nn.Module):
             wasserstein_dist = torch.tensor(0.0, device=source.device)
         else:
             # Compute optimal transport toward coprime manifold (Fallback)
-            transported, wasserstein_dist = self.wasserstein.transport(source, target_manifold)
+            # Use calculated weights to prioritize healthy structural fossils
+            transported, wasserstein_dist = self.wasserstein.transport(
+                source, 
+                target_manifold,
+                target_weights=all_weights
+            )
         
         # --- Near-Far Coupling ---
         # "far" component is a global manifold summary (mean of target)
