@@ -1,9 +1,15 @@
 import base64
 import torch
 import torch.nn as nn
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import time
 import math
+import subprocess
+import io
+import os
+import sys
+import tempfile
+from scipy.io import wavfile
 from src.core.honest_jitter import harvest_honest_jitter
 
 class VideoDyadParser(nn.Module):
@@ -18,12 +24,12 @@ class VideoDyadParser(nn.Module):
         self.max_chunks = max_chunks
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         
-        # Dirac Spectrum Constant (§45.2, ihc_paper3_field_body.tex)
+        # Dirac Spectrum Constant (45.2, ihc_paper3_field_body.tex)
         self.beta_coh = 6 * math.cos(math.pi / 23.0)  # ~5.944
 
     def _get_log_scales(self, length: int) -> List[int]:
         """
-        Dynamically generate scales using natural log to avoid discontinuities (§45).
+        Dynamically generate scales using natural log to avoid discontinuities (45).
         Scales: exp(i) clipped to signal volume.
         """
         max_power = max(2, int(math.log(float(length))))
@@ -117,7 +123,7 @@ class VideoDyadParser(nn.Module):
         
         # 2. Substream Entropy Scan (MP4 Atoms / Audio)
         substream_data = self._scan_substream_atoms(raw_bytes)
-        # Preserve independent substream residue vector (§31.7 compliance)
+        # Preserve independent substream residue vector (31.7 compliance)
         substream_residue = torch.tensor(substream_data['atom_array'], device=self.device)
         
         # 3. Integer Casting (Non-mantissa/exponent math constraint)
@@ -279,3 +285,96 @@ class VideoDyadParser(nn.Module):
         # Combine all components into the 96-dim signature
         signature = torch.cat([spectral_dominance, fractal_trace, meta_mix])
         return signature
+
+    def extract_audio_harmonics(self, video_b64: str) -> Optional[torch.Tensor]:
+        """
+        Surgically extracts audio from the video bitstream using ffmpeg
+        and projects it into the prime-resonance harmonic space.
+        """
+        if ',' in video_b64:
+            video_b64 = video_b64.split(',', 1)[1]
+            
+        video_bytes = base64.b64decode(video_b64)
+        
+        # 1. Use ffmpeg to extract audio to a WAV pipe
+        # We look specifically in the .venv scripts directory first
+        venv_bin = os.path.dirname(sys.executable)
+        ffmpeg_bin = os.path.join(venv_bin, 'ffmpeg.exe') if os.name == 'nt' else os.path.join(venv_bin, 'ffmpeg')
+        
+        # Fallback to system ffmpeg if not in venv
+        if not os.path.exists(ffmpeg_bin):
+            ffmpeg_bin = 'ffmpeg'
+
+        try:
+            # Create a temporary file for the video input
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_in:
+                tmp_in.write(video_bytes)
+                tmp_in_path = tmp_in.name
+
+            # Output to WAV on stdout
+            cmd = [
+                ffmpeg_bin, '-y', '-i', tmp_in_path,
+                '-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1',
+                '-f', 'wav', 'pipe:1'
+            ]
+            
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
+            
+            if os.path.exists(tmp_in_path):
+                os.remove(tmp_in_path)
+                
+            if process.returncode != 0:
+                print(f"[VIDEO_PARSER] ffmpeg error: {stderr.decode(errors='ignore')}")
+                return None
+                
+            # 2. Read WAV from stdout
+            sample_rate, data = wavfile.read(io.BytesIO(stdout))
+            
+            # 3. Compute Chebyshev Harmonics (K=32)
+            # Normalizing to [-1, 1]
+            pcm_data = data.astype(float)
+            if pcm_data.max() > 1.0 or pcm_data.min() < -1.0:
+                pcm_data = pcm_data / 32768.0
+            
+            # Use 32 harmonics (standard for Agent Smith Parity)
+            K = 32
+            N = len(pcm_data)
+            if N < K: return None
+            
+            # Project through Chebyshev basis
+            harmonics = []
+            x_range = torch.linspace(-1, 1, N, device=self.device)
+            signal_t = torch.tensor(pcm_data, device=self.device, dtype=torch.float32)
+            
+            for k in range(K):
+                if k == 0:
+                    t_k = torch.ones_like(x_range)
+                elif k == 1:
+                    t_k = x_range
+                else:
+                    t_p2, t_p1 = torch.ones_like(x_range), x_range
+                    for _ in range(2, k + 1):
+                        t_curr = 2 * x_range * t_p1 - t_p2
+                        t_p2, t_p1 = t_p1, t_curr
+                    t_k = t_p1
+                
+                # Inner product
+                coeff = torch.sum(signal_t * t_k) / N
+                harmonics.append(coeff)
+            
+            # Birkhoff Normalization (Ensure row stochasticity)
+            h_tensor = torch.stack(harmonics).abs()
+            h_sum = h_tensor.sum() + 1e-8
+            h_normalized = h_tensor / h_sum
+            
+            # LSB Stochastic Rounding (Feature Scar Preservation)
+            scale = 1024.0
+            jitter = harvest_honest_jitter(h_normalized.shape, device=self.device, scaled=True)
+            rounded = (torch.floor(h_normalized * scale) + (jitter < (h_normalized * scale % 1.0)).float()) / scale
+            
+            return rounded
+            
+        except Exception as e:
+            print(f"[VIDEO_PARSER] Audio extraction failed: {e}")
+            return None
