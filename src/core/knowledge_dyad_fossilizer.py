@@ -106,9 +106,9 @@ class DyadFossilizer:
         # Phase Alignment tracking
         self.prev_pas = torch.tensor(0.91) # Initial stability threshold
         
-    def compute_poincaré_embedding(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_poincar_embedding(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Map a Euclidean vector x to the Poincaré disk B^n (System 2 Speculative Recovery).
+        Map a Euclidean vector x to the Poincar disk B^n (System 2 Speculative Recovery).
         Formula: z = 2 * tanh(dist/2) * unit(x).
         This unfolding prevents NaN/INF collapse by providing non-Euclidean volume.
         """
@@ -194,7 +194,7 @@ class DyadFossilizer:
         
         # 2. System 2 Hyperbolic Unfolding (Speculative Recovery)
         # We only perform this 'expensive' magic during fossilization to save heuristic speed.
-        hyperbolic_residue = self.compute_poincaré_embedding(residue)
+        hyperbolic_residue = self.compute_poincar_embedding(residue)
         
         # 3. Real-time Topological Derivation (No Erasing of Implication)
         # We derive the 'Shadow' of the thought from the seed_state history.
@@ -234,9 +234,10 @@ class DyadFossilizer:
                 adj = torch.abs(norm_s.T @ norm_s)
                 adj = (adj > 0.1).float()
                 
-                betti_results = self.betti_approximator.estimate_betti_numbers(adj, max_dim=1)
-                b0 = betti_results.get(0, 1.0)
-                b1 = betti_results.get(1, 0.0)
+                # IHC Standard: Capture 8-threshold filtration signature to avoid scalar flattening
+                betti_results = self.betti_approximator.estimate_betti_numbers(adj, max_dim=1, num_thresholds=8)
+                b0_vec = betti_results.get(0, torch.ones(8, device=device))
+                b1_vec = betti_results.get(1, torch.zeros(8, device=device))
         else:
             # Fallback for headless ingestion (Lobotomy Warning)
             chiral_shift = 0.0
@@ -245,7 +246,8 @@ class DyadFossilizer:
             spectral_pressure = 0.0
             spectral_entropy = 0.0
             soliton_entropy = 0.0
-            b0, b1 = 1, 0
+            b0_vec = torch.ones(8, device=device)
+            b1_vec = torch.zeros(8, device=device)
             current_pas = torch.tensor(0.0)
 
         # 4. Prepare Payload (Aligned with System Schema)
@@ -259,8 +261,8 @@ class DyadFossilizer:
             'glyphlock': is_glyph_locked,
             'spectral_pressure': float(spectral_pressure),
             'spectral_entropy': float(spectral_entropy),
-            'betti_0': torch.tensor([float(b0)], device='cpu'),
-            'betti_1': torch.tensor([float(b1)], device='cpu'),
+            'betti_0': b0_vec.detach().cpu(),
+            'betti_1': b1_vec.detach().cpu(),
             'image_fingerprint': dyad.image_fingerprint.detach().cpu() if isinstance(dyad.image_fingerprint, torch.Tensor) else dyad.image_fingerprint,
             'audio_harmonics': dyad.audio_harmonics,
             'video_breather': dyad.video_breather,
