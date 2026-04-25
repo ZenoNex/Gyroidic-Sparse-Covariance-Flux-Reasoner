@@ -5,11 +5,11 @@ Replaces discrete prime-based modular arithmetic with continuous polynomial func
 that are mutually co-prime and have coefficients constrained to the Birkhoff polytope.
 
 Mathematical Foundation:
-    φ_k(x; θ_k) = Σ_i θ_k[i] · p_i(x)
+    _k(x; _k) = _i _k[i]  p_i(x)
     
     Where:
-        - θ_k ∈ Birkhoff polytope (doubly-stochastic matrix)
-        - gcd(φ_i, φ_j) = 1 for all i ≠ j (co-primality)
+        - _k  Birkhoff polytope (doubly-stochastic matrix)
+        - gcd(_i, _j) = 1 for all i  j (co-primality)
         - p_i(x) are orthogonal polynomial basis functions
 
 Author: William Matthew Bryant
@@ -86,7 +86,7 @@ class PolynomialBasis:
         """
         Chebyshev polynomials of the first kind: T_n(x).
         
-        Recurrence: T_0(x) = 1, T_1(x) = x, T_{n+1}(x) = 2x·T_n(x) - T_{n-1}(x)
+        Recurrence: T_0(x) = 1, T_1(x) = x, T_{n+1}(x) = 2xT_n(x) - T_{n-1}(x)
         """
         n = x.shape[0]
         T = torch.zeros(n, self.dim, device=x.device, dtype=x.dtype)
@@ -105,7 +105,7 @@ class PolynomialBasis:
         Legendre polynomials: P_n(x).
         
         Recurrence: P_0(x) = 1, P_1(x) = x, 
-                   (n+1)P_{n+1}(x) = (2n+1)x·P_n(x) - n·P_{n-1}(x)
+                   (n+1)P_{n+1}(x) = (2n+1)xP_n(x) - nP_{n-1}(x)
         """
         n = x.shape[0]
         P = torch.zeros(n, self.dim, device=x.device, dtype=x.dtype)
@@ -124,7 +124,7 @@ class PolynomialBasis:
         Probabilist's Hermite polynomials: He_n(x).
         
         Recurrence: He_0(x) = 1, He_1(x) = x,
-                   He_{n+1}(x) = x·He_n(x) - n·He_{n-1}(x)
+                   He_{n+1}(x) = xHe_n(x) - nHe_{n-1}(x)
         """
         n = x.shape[0]
         He = torch.zeros(n, self.dim, device=x.device, dtype=x.dtype)
@@ -271,7 +271,7 @@ class BirkhoffPolytopeSampler:
     Uses Sinkhorn-Knopp projection to ensure:
         - Row sums = 1
         - Column sums = 1
-        - All entries ≥ 0
+        - All entries  0
     """
     
     def __init__(
@@ -402,7 +402,7 @@ class PolynomialCoprimeConfig:
     
     def __init__(
         self,
-        k: int = 5,
+        k: int = 33,
         degree: int = 4,
         basis_type: str = 'chebyshev',
         learnable: bool = True,
@@ -412,10 +412,10 @@ class PolynomialCoprimeConfig:
     ):
         """
         Args:
-            k: Number of co-prime polynomial functionals
+            k: Number of co-prime polynomial functionals (IHC standard: k=33)
             degree: Polynomial degree
             basis_type: Type of polynomial basis
-            learnable: If True, θ_k are learnable parameters
+            learnable: If True, _k are learnable parameters
             use_saturation: If True, apply piecewise saturation
             device: Device for tensors
         """
@@ -635,7 +635,7 @@ class PolynomialCoprimeConfig:
             
             # Phase 17+18 Silicon Sovereignty:
             # All prime-like sequences now generated from polynomial evaluations or ladders.
-            # No hardcoded primes permitted (Implementation Integrity Guide §1).
+            # No hardcoded primes permitted (Implementation Integrity Guide 1).
             if not hasattr(self, '_prime_ladder'):
                 self._prime_ladder = PrimeResonanceLadder(num_resonators=32).to(self.device)
             
@@ -643,7 +643,7 @@ class PolynomialCoprimeConfig:
             primes = self._prime_ladder.primes
             
             # Select p using hardware-anchored entropy (honest jitter)
-            # Reference: §45.2 (Silicon Sovereignty)
+            # Reference: 45.2 (Silicon Sovereignty)
             jitter = harvest_honest_jitter((1,), device=self.device, scaled=False)
             p_idx = int(jitter[0].item() * len(primes)) % len(primes)
             p_selected = int(primes[p_idx].item())
@@ -688,7 +688,7 @@ class PolynomialCoprimeConfig:
             x: Input value(s) to evaluate at
             
         Returns:
-            phi_k: Evaluation of φ_k(x; θ_k)
+            phi_k: Evaluation of _k(x; _k)
         """
         if k < 0 or k >= self.k:
             raise ValueError(f"Polynomial index k={k} out of range [0, {self.k})")
@@ -707,12 +707,12 @@ class PolynomialCoprimeConfig:
         # Get coefficients for k-th polynomial: [D]
         theta_k = self.theta[k]
         
-        # Compute φ_k(x) = Σ_i θ_k[i] · p_i(x)
+        # Compute _k(x) = _i _k[i]  p_i(x)
         if basis_vals.dim() == 1:
             # Single point evaluation
             phi_k = torch.dot(basis_vals, theta_k)
         else:
-            # Batch evaluation: [batch, D] × [D] = [batch]
+            # Batch evaluation: [batch, D]  [D] = [batch]
             phi_k = torch.matmul(basis_vals, theta_k)
             
         # Apply saturation if enabled
@@ -732,7 +732,7 @@ class PolynomialCoprimeConfig:
     
     def evaluate(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Evaluate all φ_k(x; θ_k).
+        Evaluate all _k(x; _k).
         
         Args:
             x: [batch, ...] input values
@@ -743,7 +743,7 @@ class PolynomialCoprimeConfig:
         # Get basis evaluations: [batch, ..., D]
         basis_vals = self.basis.evaluate(x)
         
-        # Matrix multiply: [batch, ..., D] × [D, K] = [batch, ..., K]
+        # Matrix multiply: [batch, ..., D]  [D, K] = [batch, ..., K]
         phi = torch.matmul(basis_vals, self.theta.t())
         
         # Apply saturation
@@ -772,7 +772,7 @@ class PolynomialCoprimeConfig:
         # Evaluate all functionals
         phi = self.evaluate(x_test)  # [100, K]
         
-        # Check pairwise correlation (low correlation ≈ co-primality)
+        # Check pairwise correlation (low correlation  co-primality)
         phi_norm = phi / (torch.norm(phi, dim=0, keepdim=True) + 1e-8)
         correlation = torch.matmul(phi_norm.t(), phi_norm) / 100
         
