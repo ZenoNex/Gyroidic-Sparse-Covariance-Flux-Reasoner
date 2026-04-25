@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import math
+from typing import Dict, List, Optional
 from src.core.honest_jitter import harvest_honest_jitter
 
 # =========================================================================
@@ -28,6 +29,13 @@ class RecursiveNonSequiturGenerator(nn.Module):
             rupture_mask = harvest_honest_jitter(state.shape, device=state.device, scaled=False) > 0.8
             state[rupture_mask] = state[rupture_mask] * torch.sin(self.oscillator_phase * math.pi) + noise[rupture_mask]
         return state
+
+    def export_state(self) -> Dict:
+        return {"oscillator_phase": self.oscillator_phase.data.cpu()}
+        
+    def import_state(self, state_dict: Dict):
+        if "oscillator_phase" in state_dict:
+            self.oscillator_phase.data.copy_(state_dict["oscillator_phase"].to(self.oscillator_phase.device))
 
 class CynicismFilter(nn.Module):
     """
@@ -131,8 +139,14 @@ class PictureGalleryWarp(nn.Module):
         best_fit_idx = torch.argmax(similarities, dim=-1)
         
         # Conformal locking to the fixed archetype profile
-        snapped_state = self.archetype_embeddings[best_fit_idx]
-        return snapped_state
+        return self.archetype_embeddings[best_fit_idx]
+
+    def export_state(self) -> Dict:
+        return {"archetype_embeddings": self.archetype_embeddings.data.cpu()}
+        
+    def import_state(self, state_dict: Dict):
+        if "archetype_embeddings" in state_dict:
+            self.archetype_embeddings.data.copy_(state_dict["archetype_embeddings"].to(self.archetype_embeddings.device))
 
 class AbstractionThresholdMonitor(nn.Module):
     """
@@ -262,3 +276,30 @@ class ArchetypalSynthesisEngine(nn.Module):
             "abstraction_rate": r_a,
             "system_collapsed": r_a >= self.abstraction.abstraction_limit
         }
+
+    def export_governor_state(self) -> Dict:
+        """Packages the full archetypal ruleset state for Agent Smith protocols."""
+        return {
+            "billy": self.billy.export_state(),
+            "caine": self.caine_wrap.export_state(),
+            "thresholds": {
+                "mandy_pas": self.mandy.pas_threshold,
+                "mandy_harmonics": self.mandy.harmonics_requirement,
+                "grim_dilation": self.grim.max_dilation,
+                "abstraction_limit": self.abstraction.abstraction_limit
+            }
+        }
+
+    def import_governor_state(self, state_blob: Dict):
+        """Rehydrates the archetypal ruleset from an Agent Smith payload."""
+        if "billy" in state_blob:
+            self.billy.import_state(state_blob["billy"])
+        if "caine" in state_blob:
+            self.caine_wrap.import_state(state_blob["caine"])
+        if "thresholds" in state_blob:
+            t = state_blob["thresholds"]
+            self.mandy.pas_threshold = t.get("mandy_pas", self.mandy.pas_threshold)
+            self.mandy.harmonics_requirement = t.get("mandy_harmonics", self.mandy.harmonics_requirement)
+            self.grim.max_dilation = t.get("grim_dilation", self.grim.max_dilation)
+            self.abstraction.abstraction_limit = t.get("abstraction_limit", self.abstraction.abstraction_limit)
+
