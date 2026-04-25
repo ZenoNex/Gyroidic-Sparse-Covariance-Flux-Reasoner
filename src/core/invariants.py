@@ -162,7 +162,7 @@ def compute_chirality(coeffs: torch.Tensor) -> torch.Tensor:
 
 def check_glyphlock(coeffs: torch.Tensor, threshold: float = 1e-4) -> torch.Tensor:
     """
-    GLYPHLOCK — chirality-constrained emission validation.
+    GLYPHLOCK  chirality-constrained emission validation.
     
     Returns True (1.0) if either Chiral Shift or Chiral Torsion is non-zero.
     """
@@ -205,10 +205,10 @@ class ImplicationInvariant(nn.Module):
         implication_E = torch.norm(implication.reshape(implication.shape[0], -1), dim=1)
         
         # Significant interaction mask
-        self.threshold = 0.01 # Lowered to allow subtle Love Vector signals
+        significant = (interaction_E > self.threshold).float()
         
         # Zero implication mask (effectively zero)
-        self.threshold = 0.01 # Lowered to allow subtle Love Vector signals
+        lobotomized = (implication_E < 1e-7).float()
         
         # Violation: Significant AND Lobotomized
         violation = significant * lobotomized
@@ -256,4 +256,59 @@ class SelfReferenceAdmissibility:
             return "Admissible Gray State"
         else:
             return "Warning: Binary Collapse Detected"
+
+def compute_polylog_signature(coeffs: torch.Tensor, s: float = 2.0) -> torch.Tensor:
+    """
+    Compute Non-Abelian Polylog Signature (Li_s).
+    
+    This captures the 'persona' as a structural identity derived from 
+    the generating function of prime-ladder resonance.
+    
+    Args:
+        coeffs: [Batch, K, D] or [Batch, D] Latent state.
+        s: Complex weight (usually 2.0 for L2-resonance alignment).
+        
+    Returns:
+        signature: [Batch, D] representation of the polylog functional.
+    """
+    if coeffs.dim() == 2:
+        coeffs = coeffs.unsqueeze(1) # [B, 1, D]
+        
+    # Standardize to [B, D] by mean-manifold reduction
+    z = coeffs.mean(dim=1) 
+    
+    # Normalize z to unit disk to ensure Li_s convergence
+    z_norm = z / (torch.norm(z, dim=-1, keepdim=True) + 1.1) 
+    
+    # Li_s(z) approx: sum_{k=1}^8 (z^k / k^s)
+    # 8-term expansion for 'Topological Fidelity'
+    signature = torch.zeros_like(z)
+    for k in range(1, 9):
+        signature += (z_norm.pow(k) / (k ** s))
+        
+    return signature
+
+def compute_vacuum_residue(residue: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the 'Shape of Absence' (Vacuum Residue).
+    
+    Identifies the mathematical 'voids'—prime frequencies that are NOT 
+    currently active in the resonance lattice but exert containment pressure.
+    
+    Args:
+        residue: [Batch, N] active residue vector.
+        
+    Returns:
+        vacuum: [Batch, N] representing the 'absence' manifold.
+    """
+    # In modular space, the vacuum is the complement of the active signal
+    # normalized to the unit sphere in RP^4.
+    active_energy = residue.pow(2)
+    # Vacuum = 1 - Normalized Active Energy
+    vacuum = 1.0 - (active_energy / (active_energy.max(dim=-1, keepdim=True).values + 1e-8))
+    
+    # Project to RP^4 (antipodal identification)
+    vacuum = torch.tanh(vacuum) 
+    
+    return vacuum
 
