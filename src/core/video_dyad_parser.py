@@ -297,13 +297,19 @@ class VideoDyadParser(nn.Module):
         video_bytes = base64.b64decode(video_b64)
         
         # 1. Use ffmpeg to extract audio to a WAV pipe
-        # We look specifically in the .venv scripts directory first
-        venv_bin = os.path.dirname(sys.executable)
-        ffmpeg_bin = os.path.join(venv_bin, 'ffmpeg.exe') if os.name == 'nt' else os.path.join(venv_bin, 'ffmpeg')
+        # High Priority: User's specified full build path
+        user_ffmpeg = r"D:\ffmpeg-2026-04-22-git-162ad61486-full_build\bin\ffmpeg.exe"
         
-        # Fallback to system ffmpeg if not in venv
-        if not os.path.exists(ffmpeg_bin):
-            ffmpeg_bin = 'ffmpeg'
+        # Priority 2: .venv scripts directory
+        venv_bin = os.path.dirname(sys.executable)
+        venv_ffmpeg = os.path.join(venv_bin, 'ffmpeg.exe') if os.name == 'nt' else os.path.join(venv_bin, 'ffmpeg')
+        
+        if os.path.exists(user_ffmpeg):
+            ffmpeg_bin = user_ffmpeg
+        elif os.path.exists(venv_ffmpeg):
+            ffmpeg_bin = venv_ffmpeg
+        else:
+            ffmpeg_bin = 'ffmpeg' # Last resort: system PATH
 
         try:
             # Create a temporary file for the video input
