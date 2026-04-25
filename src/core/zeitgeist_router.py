@@ -58,6 +58,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.primitive_ops import stochastic_round
+from src.topology.betti_router import BettiRouter
 
 
 # ---------------------------------------------------------------------------
@@ -347,6 +348,9 @@ class ZeitgeistRouter(nn.Module):
 
         self.register_buffer('gravity_well_bias', torch.zeros(self.M))
 
+        # ── Betti-Aware Routing ── #
+        self.betti_router = BettiRouter(feature_dim=dim, num_sectors=self.M)
+
     # ------------------------------------------------------------------ #
     # Initialization helpers                                               #
     # ------------------------------------------------------------------ #
@@ -522,6 +526,11 @@ class ZeitgeistRouter(nn.Module):
         gate_out = torch.sigmoid(self.switch_gate(x_mapped))   # [batch, M]
         delta_soft = gate_out.mean(dim=0)                # [M]
         
+        # Apply Betti-Aware Bias
+        # prioritize high-density manifold sectors during inference
+        betti_bias = self.betti_router(x).mean(dim=0)  # [M]
+        delta_soft = delta_soft + 0.4 * betti_bias
+        
         if boundary is not None and hasattr(boundary, 'stress_tensor') and boundary.stress_tensor is not None:
             stress_flat = boundary.stress_tensor.flatten()
             if stress_flat.size(0) >= self.M:
@@ -550,7 +559,7 @@ class ZeitgeistRouter(nn.Module):
         # Fossilize Near-Misses: If word length is excessive, it's a 'Topological Refusal'
         # This acts as a NaN-guard/Suture rhythm regulator.
         if len(new_word) > self.M * 2:
-            print(f" [ROUTER] ☢️ Topological Refusal: Braid word length {len(new_word)} exceeds rank {self.M}.")
+            print(f" [ROUTER] [REFUSAL] Topological Refusal: Braid word length {len(new_word)} exceeds rank {self.M}.")
             # Reset word but preserve the 'scar' in the cs_phase
             new_word = [] 
             # In a real scenario, we would trigger a .fossil write here
@@ -627,7 +636,7 @@ class ZeitgeistRouter(nn.Module):
         state: ZeitgeistState,
         boundary=None,                 # Optional[BoundaryState]
         tadc_kwargs: Optional[Dict] = None  # Optional dict of TADC context values
-    ) -> Tuple[str, ZeitgeistState, Dict]:
+    ) -> Tuple[str, ZeitgeistState, Dict, torch.Tensor]:
         """
         Route state x through the three-mode dispatch.
 
@@ -795,12 +804,16 @@ class ZeitgeistRouter(nn.Module):
             except Exception:
                 pass
 
+        # ── 7. Non-Abelian Temporal Inverse Kinematics ───────────────── #
+        # Steering the trajectory based on the new Braid/CS state
+        x_steered = self.temporal_inverse_kinematics(new_state, x)
+
         diag = self._build_diagnostics(
             g, grazing_mask, mode, state, new_state,
             clock_dt=clock_dt, valence=valence, nc_curvature=nc_curvature,
             grazing_pressure=grazing_pressure,
         )
-        return mode, new_state, diag
+        return mode, new_state, diag, x_steered
 
     # ------------------------------------------------------------------ #
     # Diagnostics builder                                                  #
@@ -832,6 +845,7 @@ class ZeitgeistRouter(nn.Module):
             'grazing_dims': int(grazing_mask.sum().item()),
             'grazing_pressure': grazing_pressure,
             'facet_norms_mean': float(g.abs().mean().item()),
+            'betti_routing_bias': float(state.cs_phase), # Fallback for now or add explicit field
             # Optional enrichments
             'clock_dt': clock_dt,
             'valence': valence,
