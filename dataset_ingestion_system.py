@@ -34,6 +34,8 @@ from dataclasses import dataclass
 import time
 from urllib.parse import urlparse
 import subprocess
+import gzip
+import csv
 
 # Add src to path
 sys.path.append('src')
@@ -135,12 +137,14 @@ class DatasetIngestionSystem:
                 success = self._ingest_local_dataset(config)
             elif config.source_type == 'url':
                 success = self._ingest_url_dataset(config)
+            elif config.source_type == 'portal':
+                success = self._ingest_portal_dataset(config)
             else:
                 print(f"[FAIL] Failed to add dataset {config.name}")
                 return False
                 
         except Exception as e:
-            print(f"❌ Error adding dataset {config.name}: {e}")
+            print(f"[ERR] Error adding dataset {config.name}: {e}")
             return False
     
     def _ingest_huggingface_dataset(self, config: DatasetConfig) -> bool:
@@ -190,7 +194,7 @@ class DatasetIngestionSystem:
             return True
             
         except Exception as e:
-            print(f"❌ HuggingFace ingestion failed: {e}")
+            print(f"[ERR] HuggingFace ingestion failed: {e}")
             return False
     
     def _ingest_kaggle_dataset(self, config: DatasetConfig) -> bool:
@@ -229,11 +233,11 @@ class DatasetIngestionSystem:
                     zip_ref.extractall(dataset_path)
                 zip_files[0].unlink()  # Remove zip file
             
-            print(f"✅ Kaggle dataset downloaded to {dataset_path}")
+            print(f"[OK] Kaggle dataset downloaded to {dataset_path}")
             return True
-            
+        
         except Exception as e:
-            print(f"❌ Kaggle ingestion failed: {e}")
+            print(f"[ERR] Kaggle ingestion failed: {e}")
             return False
     
     def _ingest_wikipedia_dataset(self, config: DatasetConfig) -> bool:
@@ -289,7 +293,7 @@ class DatasetIngestionSystem:
                         samples.append(sample)
                     
                 except Exception as e:
-                    print(f"   ⚠️  Failed to process {url}: {e}")
+                    print(f"   [WARN] Failed to process {url}: {e}")
                     continue
             
             # Save dataset
@@ -301,7 +305,7 @@ class DatasetIngestionSystem:
             return True
             
         except Exception as e:
-            print(f"❌ Wikipedia ingestion failed: {e}")
+            print(f"[ERR] Wikipedia ingestion failed: {e}")
             return False
     
     def _ingest_local_dataset(self, config: DatasetConfig) -> bool:
@@ -311,7 +315,7 @@ class DatasetIngestionSystem:
             
             source_path = Path(config.source_path)
             if not source_path.exists():
-                print(f"❌ Path does not exist: {source_path}")
+                print(f"[ERR] Path does not exist: {source_path}")
                 return False
             
             total_samples = []
@@ -320,9 +324,9 @@ class DatasetIngestionSystem:
             if source_path.is_file():
                 files_to_process = [source_path]
             else:
-                file_patterns = ['*.txt', '*.json', '*.csv', '*.jsonl']
+                file_patterns = ['*.txt', '*.json', '*.csv', '*.jsonl', '*.py', '*.md', '*.jsonl.gz', '*.gz']
                 for pattern in file_patterns:
-                    files_to_process.extend(source_path.glob(pattern))
+                    files_to_process.extend(source_path.rglob(pattern))
             
             print(f"   Found {len(files_to_process)} files to process")
             
@@ -404,30 +408,88 @@ class DatasetIngestionSystem:
                 
                 file_path.unlink()  # Remove compressed file
             
-            print(f"✅ URL dataset downloaded to {dataset_path}")
+            print(f"[OK] URL dataset downloaded to {dataset_path}")
             return True
             
         except Exception as e:
             print(f"[FAIL] URL ingestion failed: {e}")
+            return False
+            
+    def _ingest_portal_dataset(self, config: DatasetConfig) -> bool:
+        """Ingest dataset from a portal file (list of URLs)."""
+        try:
+            print(f"[PORTAL] Loading portals from: {config.source_path}")
+            portal_path = Path(config.source_path)
+            if not portal_path.exists():
+                print(f"[ERR] Portal file not found: {portal_path}")
+                return False
+                
+            urls = []
+            with open(portal_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('http'):
+                        urls.append(line)
+            
+            print(f"   Found {len(urls)} URLs in portal")
+            
+            dataset_path = self.data_dir / config.name
+            dataset_path.mkdir(exist_ok=True)
+            
+            for i, url in enumerate(urls):
+                print(f"\n   [PORTAL] Processing URL {i+1}/{len(urls)}")
+                # Temporary config for single URL download
+                url_config = DatasetConfig(
+                    name=config.name,
+                    source_type='url',
+                    source_path=url
+                )
+                self._ingest_url_dataset(url_config)
+            
+            # Now process the downloaded files locally
+            print(f"\n   [PORTAL] Processing downloaded files locally...")
+            local_config = DatasetConfig(
+                name=config.name,
+                source_type='local',
+                source_path=str(dataset_path),
+                preprocessing=config.preprocessing,
+                max_samples=config.max_samples,
+                augmentation=config.augmentation,
+                mandelbulb_augmentation=config.mandelbulb_augmentation
+            )
+            return self._ingest_local_dataset(local_config)
+            
+        except Exception as e:
+            print(f"[ERR] Portal ingestion failed: {e}")
             return False
     
     def _process_local_file(self, file_path: Path, config: DatasetConfig, max_new_samples: Optional[int] = None) -> List[Dict]:
         """Process a single local file."""
         samples = []
         
+        # Determine if we need to use gzip
+        is_gz = file_path.suffix == '.gz'
+        open_func = gzip.open if is_gz else open
+        
+        # Get effective suffix for nested extensions like .jsonl.gz
+        if is_gz:
+            effective_suffix = Path(file_path.stem).suffix
+        else:
+            effective_suffix = file_path.suffix
+            
         try:
             file_size_mb = file_path.stat().st_size / (1024 * 1024)
             
-            if file_path.suffix == '.json':
+            if effective_suffix == '.json' or (is_gz and effective_suffix == '.json'):
                 # Check for large files
                 if file_size_mb > 100:
-                    print(f"      ⚠️  Large JSON file detected ({file_size_mb:.1f} MB): {file_path.name}")
+                    print(f"      [WARN] Large JSON file detected ({file_size_mb:.1f} MB): {file_path.name}")
                     
                     # Try to use ijson for streaming if available
                     try:
                         import ijson
-                        print(f"      🔄 streaming with ijson...")
-                        with open(file_path, 'r', encoding='utf-8') as f:
+                        print(f"      [STREAM] streaming with ijson...")
+                        with open_func(file_path, 'rt', encoding='utf-8') if is_gz else open(file_path, 'r', encoding='utf-8') as f:
                             # Assume it's a list of objects
                             objects = ijson.items(f, 'item')
                             for i, item in enumerate(objects):
@@ -456,7 +518,7 @@ class DatasetIngestionSystem:
 
                 # Standard load (with memory safety)
                 try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
+                    with open_func(file_path, 'rt', encoding='utf-8') if is_gz else open(file_path, 'r', encoding='utf-8') as f:
                         data = json.load(f)
                         if isinstance(data, list):
                             for item in data:
@@ -474,11 +536,11 @@ class DatasetIngestionSystem:
                     print("      [TIP] Please convert this dataset to JSONL format (line-delimited JSON) for efficient streaming.")
                     return []
             
-            elif file_path.suffix == '.jsonl':
+            elif effective_suffix == '.jsonl' or (is_gz and (effective_suffix == '.jsonl' or effective_suffix == '')):
                 if file_size_mb > 100:
                     print(f"      [WARN] Large JSONL file detected ({file_size_mb:.1f} MB): {file_path.name}")
                 
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open_func(file_path, 'rt', encoding='utf-8') if is_gz else open(file_path, 'r', encoding='utf-8') as f:
                     for i, line in enumerate(f):
                         if max_new_samples and len(samples) >= max_new_samples:
                             print(f"\n      [STOP] Reached limit in this file: {max_new_samples}")
@@ -499,8 +561,8 @@ class DatasetIngestionSystem:
                     if i + 1 >= 5000:
                         print(f"\n      [OK] File processing complete. Total collected: {len(samples)}")
             
-            elif file_path.suffix == '.txt':
-                with open(file_path, 'r', encoding='utf-8') as f:
+            elif effective_suffix in ['.txt', '.py', '.md']:
+                with open_func(file_path, 'rt', encoding='utf-8') if is_gz else open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                     # Split into chunks for large files
                     chunk_size = 1000
@@ -515,7 +577,7 @@ class DatasetIngestionSystem:
                             if processed:
                                 samples.append(processed)
             
-            elif file_path.suffix == '.csv':
+            elif effective_suffix == '.csv':
                 import pandas as pd
                 # Read in chunks to be memory efficient and allow early exit
                 chunk_iter = pd.read_csv(file_path, chunksize=1000)
@@ -530,12 +592,12 @@ class DatasetIngestionSystem:
                         if processed:
                             samples.append(processed)
                     
-                    print(f"      ⏳ Processed chunk... (Collected: {len(samples)})", end='\r')
+                    print(f"      [*] Processed chunk... (Collected: {len(samples)})", end='\r')
                 
-                print(f"\n      ✅ CSV processing complete. Total collected: {len(samples)}")
+                print(f"\n      [OK] CSV processing complete. Total collected: {len(samples)}")
         
         except Exception as e:
-            print(f"   ⚠️  Error processing {file_path}: {e}")
+            print(f"   [WARN] Error processing {file_path}: {e}")
         
         return samples
     
@@ -618,7 +680,7 @@ class DatasetIngestionSystem:
                 return sample
                 
         except Exception as e:
-            print(f"   ⚠️  Preprocessing error: {e}")
+            print(f"   [WARN] Preprocessing error: {e}")
             return None
     
     def _detect_modalities(self, sample: Dict) -> List[str]:
@@ -682,13 +744,12 @@ class DatasetIngestionSystem:
     def _verify_anti_lobotomy_compliance(self, model) -> bool:
         """Verify model follows anti-lobotomy principles."""
         try:
-            # Check 1: Has polynomial config (no hardcoded primes)
             if not hasattr(model, 'polynomial_config'):
-                print("   ❌ Missing polynomial_config")
+                print("   [ERR] Missing polynomial_config")
                 return False
             
             if not isinstance(model.polynomial_config, PolynomialCoprimeConfig):
-                print("   ❌ Invalid polynomial_config type")
+                print("   [ERR] Invalid polynomial_config type")
                 return False
             
             # Check 2: Trust scalars don't require gradients
@@ -700,30 +761,30 @@ class DatasetIngestionSystem:
             required_buffers = ['trust_scalars', 'bimodal_genome', 'is_fossilized']
             for buffer_name in required_buffers:
                 if not hasattr(model, buffer_name):
-                    print(f"   ❌ Missing evolutionary buffer: {buffer_name}")
+                    print(f"   [ERR] Missing evolutionary buffer: {buffer_name}")
                     return False
             
             # Check 4: Polynomial coefficients are proper
             try:
                 coeffs = model.polynomial_config.get_coefficients_tensor()
                 if torch.isnan(coeffs).any() or torch.isinf(coeffs).any():
-                    print("   ❌ Invalid polynomial coefficients")
+                    print("   [ERR] Invalid polynomial coefficients")
                     return False
             except Exception as e:
-                print(f"   ❌ Polynomial coefficient error: {e}")
+                print(f"   [ERR] Polynomial coefficient error: {e}")
                 return False
             
-            print("   ✅ Anti-lobotomy compliance verified")
+            print("   [OK] Anti-lobotomy compliance verified")
             return True
             
         except Exception as e:
-            print(f"   ❌ Compliance check error: {e}")
+            print(f"   [ERR] Compliance check error: {e}")
             return False
     
     def setup_training(self, model_name: str, dataset_name: str, training_config: TrainingConfig) -> bool:
         """Setup training for a model and dataset."""
         try:
-            print(f"\\n🎯 Setting up training: {model_name} on {dataset_name}")
+            print(f"\n[TRAIN] Setting up training: {model_name} on {dataset_name}")
             
             # Check model exists
             if model_name not in self.models:
@@ -871,13 +932,13 @@ class DatasetIngestionSystem:
             trainer_key = f"{model_name}_{dataset_name}"
             
             if trainer_key not in self.trainers:
-                print(f"❌ Training not setup for {trainer_key}")
+                print(f"[ERR] Training not setup for {trainer_key}")
                 return False
             
             trainer = self.trainers[trainer_key]
             config = self.training_history[trainer_key]['config']
             
-            print(f"\\n🚀 Starting training: {trainer_key}")
+            print(f"\n[START] Starting training: {trainer_key}")
             print(f"   Epochs: {config.num_epochs}")
             print(f"   Batch size: {config.batch_size}")
             print(f"   Learning rate: {config.learning_rate}")
@@ -889,7 +950,7 @@ class DatasetIngestionSystem:
             
             # Training loop
             for epoch in range(config.num_epochs):
-                print(f"\\n📚 Epoch {epoch + 1}/{config.num_epochs}")
+                print(f"\n[EPOCH] Epoch {epoch + 1}/{config.num_epochs}")
                 
                 try:
                     # Train epoch
@@ -903,7 +964,7 @@ class DatasetIngestionSystem:
                     print(f"   Survivorship Pressure: {epoch_metrics['survivorship_pressure']:.3f}")
                     print(f"   Association Accuracy: {epoch_metrics['association_accuracy']:.3f}")
                     print(f"   Temporal Coherence: {epoch_metrics['temporal_coherence']:.3f}")
-                    print(f"   Trust Mean: {epoch_metrics['trust_mean']:.3f} ± {epoch_metrics['trust_std']:.3f}")
+                    print(f"   Trust Mean: {epoch_metrics['trust_mean']:.3f} +/- {epoch_metrics['trust_std']:.3f}")
                     print(f"   Fossilized: {epoch_metrics['final_num_fossilized']}")
                     
                     # Show trust evolution
@@ -911,9 +972,8 @@ class DatasetIngestionSystem:
                     trust_scalars = model.trust_scalars
                     print(f"   Trust Scalars: {[f'{t:.3f}' for t in trust_scalars.tolist()]}")
                     
-                    # Apply Mandelbulb augmentation if configured
                     if config.use_mandelbulb_augmentation and f"{model_name}_{dataset_name}" in self.augmenters:
-                        print("   🌀 Applying Mandelbulb-Gyroidic augmentation...")
+                        print("   [AUG] Applying Mandelbulb-Gyroidic augmentation...")
                         augmenter = self.augmenters[f"{model_name}_{dataset_name}"]
                         
                         # Get sample data for augmentation
@@ -922,21 +982,21 @@ class DatasetIngestionSystem:
                         
                         # Apply augmentation
                         augmented_X, _ = augmenter(sample_X, augmentation_factor=config.augmentation_factor)
-                        print(f"   🌀 Augmented {sample_X.shape[0]} → {augmented_X.shape[0]} samples")
+                        print(f"   [AUG] Augmented {sample_X.shape[0]} → {augmented_X.shape[0]} samples")
                     
                     # Save checkpoint if configured
                     if config.save_checkpoints and (epoch + 1) % config.checkpoint_interval == 0:
                         checkpoint_path = f"checkpoint_{trainer_key}_epoch_{epoch + 1}.pt"
                         self._save_checkpoint(trainer_key, checkpoint_path)
-                        print(f"   💾 Checkpoint saved: {checkpoint_path}")
+                        print(f"   [SAVE] Checkpoint saved: {checkpoint_path}")
                 
                 except Exception as e:
-                    print(f"   ❌ Epoch {epoch + 1} failed: {e}")
+                    print(f"   [ERR] Epoch {epoch + 1} failed: {e}")
                     continue
             
             # Training complete
             total_time = time.time() - self.training_history[trainer_key]['start_time']
-            print(f"\\n🎯 Training Complete!")
+            print(f"\n[DONE] Training Complete!")
             print(f"   Total time: {total_time:.1f} seconds")
             print(f"   Epochs completed: {self.training_history[trainer_key]['epochs_completed']}")
             
@@ -949,12 +1009,12 @@ class DatasetIngestionSystem:
             # Save final state
             final_checkpoint = f"final_{trainer_key}.pt"
             self._save_checkpoint(trainer_key, final_checkpoint)
-            print(f"   💾 Final state saved: {final_checkpoint}")
+            print(f"   [SAVE] Final state saved: {final_checkpoint}")
             
             return True
             
         except Exception as e:
-            print(f"❌ Training failed: {e}")
+            print(f"[ERR] Training failed: {e}")
             return False
     
     def _save_checkpoint(self, trainer_key: str, filepath: str):
@@ -976,7 +1036,7 @@ class DatasetIngestionSystem:
     
     def list_datasets(self):
         """List all available datasets."""
-        print("\\n📊 Available Datasets:")
+        print("\nAvailable Datasets:")
         if not self.datasets:
             print("   No datasets loaded")
             return
@@ -989,7 +1049,7 @@ class DatasetIngestionSystem:
             else:
                 sample_count = "Unknown"
             
-            print(f"   • {name}")
+            print(f"   * {name}")
             print(f"     Source: {config.source_type} - {config.source_path}")
             print(f"     Preprocessing: {config.preprocessing}")
             print(f"     Samples: {sample_count}")
@@ -997,7 +1057,7 @@ class DatasetIngestionSystem:
     
     def list_models(self):
         """List all available models."""
-        print("\\n🏗️ Available Models:")
+        print("\nAvailable Models:")
         if not self.models:
             print("   No models created")
             return
@@ -1007,7 +1067,7 @@ class DatasetIngestionSystem:
             trust_mean = model.trust_scalars.mean().item()
             fossilized = (model.trust_scalars > 0.8).sum().item()
             
-            print(f"   • {name}")
+            print(f"   * {name}")
             print(f"     Parameters: {param_count:,}")
             print(f"     Functionals: {model.K}")
             print(f"     Trust mean: {trust_mean:.3f}")
@@ -1015,7 +1075,7 @@ class DatasetIngestionSystem:
     
     def list_training_sessions(self):
         """List all training sessions."""
-        print("\\n🎯 Training Sessions:")
+        print("\nTraining Sessions:")
         if not self.training_history:
             print("   No training sessions")
             return
@@ -1023,7 +1083,7 @@ class DatasetIngestionSystem:
         for key, history in self.training_history.items():
             status = "Complete" if history['epochs_completed'] == history['config'].num_epochs else "In Progress"
             
-            print(f"   • {key}")
+            print(f"   * {key}")
             print(f"     Status: {status}")
             print(f"     Epochs: {history['epochs_completed']}/{history['config'].num_epochs}")
             if history['start_time']:
@@ -1066,7 +1126,7 @@ Examples:
     # Add dataset command
     add_dataset_parser = subparsers.add_parser('add-dataset', help='Add a dataset source')
     add_dataset_parser.add_argument('--name', required=True, help='Dataset name')
-    add_dataset_parser.add_argument('--source', required=True, choices=['huggingface', 'kaggle', 'wikipedia', 'local', 'url'], help='Source type')
+    add_dataset_parser.add_argument('--source', required=True, choices=['huggingface', 'kaggle', 'wikipedia', 'local', 'url', 'portal'], help='Source type')
     add_dataset_parser.add_argument('--path', required=True, help='Source path/URL')
     add_dataset_parser.add_argument('--preprocessing', default='text', choices=['text', 'image', 'tabular', 'multimodal'], help='Preprocessing type')
     add_dataset_parser.add_argument('--max-samples', type=int, help='Maximum samples to load')
