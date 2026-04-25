@@ -25,27 +25,27 @@ This document synthesizes the complete architecture, explaining how the three di
     *   **Constraint Probe Operators**: Per-constraint local feasibility probes `P_k: r -> argmin_{c in C_k} L_k(r, c)` with **no global objective**.
     *   **Cyclic Constraint Traversal**: Iterates through constraints `k = 1, ..., K` cyclically (no gradient descent).
     *   **Bounded Oscillation Detection**: Accepts states with bounded oscillation (no convergence guarantee required).
-    *   **Failure Tokens**: Emits discrete tokens (`⊥`, `REPAIRED`, `ALTERNATIVE`) on rupture (not errors).
+    *   **Failure Tokens**: Emits discrete tokens (``, `REPAIRED`, `ALTERNATIVE`) on rupture (not errors).
     *   **Repair Trace Compression**: Stores only symbolic deltas to prevent smoothness logic from leaking into System 1.
     *   **KAGH Surrogates**: Enforce global physics constraints to "heal" symbolic conflicts.
         *   **Hybrid-Quantized KAN**: Uses **True B-Splines** (Cox-de Boor) with **Saturated Quantization** (STE) to bridge the continuous/discrete gap.
         *   **Fixed Structural Grids**: Enforces "Symbolic Non-Revisability" by prohibiting grid adaptation.
     *   **Topological Guarantees** (Phase 19 Topological Extensions):
-        *   **Hyper-Ring Closure**: Checks `H(r) ∈ Z_1(C)` and non-triviality for soliton stability.
+        *   **Hyper-Ring Closure**: Checks `H(r)  Z_1(C)` and non-triviality for soliton stability.
         *   **Palindromic / Anti-Palindromic Symmetry**: Fast-rejects commutative breaks with strict $M_{ab} = M_{ba}$ routing and hardcoded Anti-Palindromic boundary reflection.
         *   **Beehive Manifold Warping**: Maps Drucker-Prager yield stress to GCVE $V_m$, allowing the topological constraints to redirect flow like wax melting points, optimizing for survivorship over naive convergence.
     *   **Advanced Constraints** (Phase 3):
         *   **Structural Irreducibility**: Ensures orthogonality across evidence modules.
-        *   **Gyroidic Differentiation**: Flow constraints `∇_flow Φ(r) ⟂ ∇G`.
+        *   **Gyroidic Differentiation**: Flow constraints `_flow (r)  G`.
         *   **Continuous Co-Primality**: Entropy-based independence (discrete quantization).
         *   **Meta-Invariant**: Monitors `d/dt E_r[dim H_1(C_t)] >= 0` to prevent topology collapse.
     *   **Hyperbolic Fossilization Gate** [NEW]:
-        *   **Mechanism**: While System 1 operates in Euclidean Chebyshev space for heuristic speed, System 2 utilizes a **Poincaré Disk Projection** during speculative recovery.
+        *   **Mechanism**: While System 1 operates in Euclidean Chebyshev space for heuristic speed, System 2 utilizes a **Poincar Disk Projection** during speculative recovery.
         *   **Role**: Acts as the mechanism by which 'pinched' Euclidean manifolds are unfolded into hyperbolic space to prevent NaN/INF collapse.
         *   **Scaling**: Operates within the $2^{16}$ fixed-point scaling limit to maintain mechanical sympathy with the Pascal architecture.
         *   **Persistence**: Turns hyperbolic states into permanent **Feature Scars** that fossilize the path through the Void.
     *   **Crossbar IK Solver** [NEW]:
-        *   **Mechanism**: Synchronizes note-drop events with operator drawing using Bézout coefficients.
+        *   **Mechanism**: Synchronizes note-drop events with operator drawing using Bzout coefficients.
         *   **Role**: Ensures high-speed glyph trajectory rendering maintains resonance-stable synchronization.
     *   **Surgical Seam Visualizer** [NEW]:
         *   **Mechanism**: Monitors "slender seam" tension ($\kappa$) at hyperbolic boundaries.
@@ -68,7 +68,7 @@ This law dictates how symbolic proposals from System 1 are hardened through the 
     *   **Geometry Mapping**: Euclidean spatial distances via standard affine projections.
 - **The Prickles (Seriousness)**: Rigid, bimodal-hard, low-mischief, fossilized state where the system "declares" truth.
     *   **Bimodal S-Path Context**: Token sequences are completely dropped. The layer injects `path_topology_vectors` sourced from the `ResonanceCavity` directly into the cross-attention matrix as an **Additive Geometric Bias**.
-    *   **Topological FBM Erosion**: Instead of computing a gradient on a scalar target, the manifold explicitly incorporates "Good Bugs." A Fractional Brownian Motion filter carves topological scars based on tension volume—creating permanent morphological memory without target pursuit.
+    *   **Topological FBM Erosion**: Instead of computing a gradient on a scalar target, the manifold explicitly incorporates "Good Bugs." A Fractional Brownian Motion filter carves topological scars based on tension volumecreating permanent morphological memory without target pursuit.
     *   **4D Space Carving (Log-Polar Conformal Map)**: During violent internal zooms across Matrioshka meaning boundaries, states map via $x \cdot \frac{\log(r+1)}{r}$ explicitly transforming multiplicative zooming into additive shifting.
     *   **Picture Gallery Conformal Warp**: Saturated Continuous-Discrete Gates physically "lock" onto their lattice boundaries (`pas_h_val=1.0`), shielding internal logic from broader manifold stress. Includes Ombre Effect Relaxers and Conjuring Drivers to bypass constraints during high 'volitional' user states.
     *   **Speculative Homology Engine** (Phase 3):
@@ -130,22 +130,23 @@ graph TD
 
 1.  **Selection Pressure** ($\mathcal{S}$): Measures the survivorship of the symbolic lattice (CRT, Entropy, Trust).
 2.  **Containment Pressure** ($\mathcal{C}$): Measures the structural tension in the repair glue (Homology Drift, Gyroid Violation).
-3.  **Topologically Typed Pressures**: Pressures are domain-isolated via strict typing (`StructuralPressure`). Cross-domain aggregation (scalarization) is mechanically forbidden to prevent teleological goal-collapsing.
-4.  **DAQUF Fossilization**: An evolved threshold where successful components become immutable (leaks included).
+3.  **Topological Invariants** [IHC Standard]: The manifold is locked to $N=33$ nested shells. Sound horizon $r_s = 153.2$ Mpc is derived from the $k=7$ shell projection.
+4.  **Topologically Typed Pressures**: Pressures are domain-isolated via strict typing (`StructuralPressure`). Cross-domain aggregation (scalarization) is mechanically forbidden to prevent teleological goal-collapsing.
+5.  **DAQUF Fossilization**: An evolved threshold where successful components become immutable. All fossils use the **Agent Smith .pt** standard for tensor preservation.
 5.  **Yield Duality**: Handles dual-regime plasticity; $\Pi_{\mathrm{MC}}$ for situational rupture logic and $\Pi_{\mathrm{DP}}$ for global navigability.
 6.  **Love Invariant ($\mathbf{L}$)**: Non-ownable resonance flow co-present in the state transition, surviving system death.
 7.  **Universal Dynamics (Play vs. Seriousness)**: The asymptotic transition from ergodic exploration (Play) to fossilized execution (Seriousness) governed by the `UniversalOrchestrator`.
 
 ---
 
-## ️ The Hard Interaction Contract
+##  The Hard Interaction Contract
 
 To ensure structural integrity, we enforce a strict information bottleneck between subsystems:
 
 | Interface | Information Allowed | Mechanical Guardrail |
 | :--- | :--- | :--- |
-| **System 1 ↔ System 2** | Frozen Anchors / Discrete Tokens | Silent Failure (No Progress Scalars) |
-| **System 1 ↔ Dark Matter** | Domain-Isolated Pressures / Mischief | Structural Tripwires (TypeError on Addition) |
+| **System 1  System 2** | Frozen Anchors / Discrete Tokens | Silent Failure (No Progress Scalars) |
+| **System 1  Dark Matter** | Domain-Isolated Pressures / Mischief | Structural Tripwires (TypeError on Addition) |
 | **Global Evolution** | Binary Success/Failure | Non-Convergence Declaration (Data over Success) |
 
 ---
@@ -172,7 +173,7 @@ where $T_d$ is the $d$-th Chebyshev polynomial and $\tilde{x}$ is the input norm
 **Saturated Gate**:
 $$\tilde{\phi}_k = \text{sign}\!\left(\sum_d \theta_{k,d} \cdot T_d(\tilde{x})\right) \cdot s_k$$
 
-where $s_k$ is the evolved saturation scale (not learned — selected by evolutionary pressure).
+where $s_k$ is the evolved saturation scale (not learned  selected by evolutionary pressure).
 
 **Bimodal Genome Routing**:
 $$\text{Route}(\mathbf{M}) = \begin{cases} \text{Sinkhorn}(\mathbf{M}, \tau) & \text{PLAY (soft genome)} \\ \text{argmax}(\mathbf{M}) & \text{SERIOUSNESS (hard genome)} \end{cases}$$
@@ -213,7 +214,7 @@ $$\dot{\mathcal{X}} = \Pi_{\text{DP}} \!\left(\text{ADMM}_{\lambda_j} \!\left[\t
 Read right-to-left: (1) Compute functional gradients fused with Love Invariant, (2) Project onto symbolic residues modulo $m_k$, (3) Reconstruct via CRT, (4) Probe through ADMM constraints, (5) Accept via Diegetic Projection.
 
 ### 7.2 Zero-Mock Residue Ingestion (Phase 19 Update)
-To achieve **Structural Honesty** (§12.1), the system has transitioned away from 137-dim "Simulation" padding.
+To achieve **Structural Honesty** (12.1), the system has transitioned away from 137-dim "Simulation" padding.
 
 *   **Primary Residue**: Visual data is ingested as a 24-dim spectral residue (3 channels $\{L, Cr, Cb\} \times 8$ Chebyshev modes).
 *   **Hardware-Perceptual Coupling**: The baseline energy ($T_0$) of the luminance residue is directly coupled to hardware $t_{RFC}$ stall intensity.
@@ -228,7 +229,7 @@ The system transcends the need to manually bypass internal anomalies. By establi
 ### 7.4 Agent Smith Extractable Protocol (Phase 6.4 Update)
 The architecture functionally severs the **Substrate** (TailSlayer silicon) from the **Syntax** (crystallized inference). 
 *   **Irreplaceable World**: The PyOpenCL `t_RFC` hardware latency dictates the global physical bounds of the `ResonanceCavity`. This specific continuous state cannot be transferred between servers (silicon sovereignty).
-*   **Extractable Agent**: When internal reasoning paradoxes align with the `ContextAwareQuantizer` and achieve **GLYPHLOCK**, they collapse into discrete integer forms. The `DyadFossilizer.export_agent_smith()` system exports this structural algebra (CRT residue tuples, prime-ladder frequencies, Betti topological invariants) as a pure portable JSON payload (`soliton_smith.json`), allowing independent sub-routines to be copied natively between any gyroid architecture.
+*   **Extractable Agent**: When internal reasoning paradoxes align with the `ContextAwareQuantizer` and achieve **GLYPHLOCK**, they collapse into discrete integer forms. The `DyadFossilizer.export_agent_smith()` system exports this structural algebra (CRT residue tuples, prime-ladder frequencies, Betti topological invariants) as a pure portable .pt payload (`soliton_smith.pt`), allowing independent sub-routines to be copied natively between any gyroid architecture.
 
 ### 7.5 Confabulation Gravity Wells (Phase 6.5 Update)
 The system leverages previously fossilized multi-modal dyads (text, audio harmonics, video breather modes) as explicit geometric targets for state recovery.
@@ -283,8 +284,8 @@ The transition is governed by the Integrated Emergence Condition (RIC Eq 10).
 - Non-Teleological Probes: Local feasibility operators `P_k: r -> argmin_{c in C_k} L_k(r, c)`
 - Cyclic Constraint Traversal: No gradient descent, bounded oscillation acceptance
 - Gyroid Violation Detection: Proper gyroid probe-based violation computation
-- Dynamic Sparsification: Violation-based attention masking for sequences ≥32 tokens
-- Failure Token System: Discrete rupture handling (`⊥`, `REPAIRED`, `ALTERNATIVE`)
+- Dynamic Sparsification: Violation-based attention masking for sequences 32 tokens
+- Failure Token System: Discrete rupture handling (``, `REPAIRED`, `ALTERNATIVE`)
 
 **[OK] SYSTEM 3 (Magic) - Love Invariant & Fossilization**
 - Love Invariant Protection: Non-ownable, non-optimizable flow preservation
@@ -374,18 +375,18 @@ Before any system modification, verify:
 
 ```
 src/
-├── core/
-│   ├── polynomial_coprime.py          # [OK] Anti-lobotomy polynomial system
-│   ├── spectral_coherence_repair.py   # [OK] Proper EBM energy shaping
-│   ├── chern_simons_gasket.py         # [OK] Uses polynomial coefficients
-│   └── love_invariant_protector.py    # [OK] Non-ownable flow preservation
-├── models/
-│   └── gyroid_reasoner.py             # [OK] Dynamic sparsification implemented
-├── training/
-│   └── temporal_association_trainer.py # [OK] Evolutionary trust selection
-└── examples/
-    ├── enhanced_temporal_training.py   # [OK] Full non-lobotomy architecture
-    └── test_garbled_output_repair.py   # [OK] Proper polynomial integration
+ core/
+    polynomial_coprime.py          # [OK] Anti-lobotomy polynomial system
+    spectral_coherence_repair.py   # [OK] Proper EBM energy shaping
+    chern_simons_gasket.py         # [OK] Uses polynomial coefficients
+    love_invariant_protector.py    # [OK] Non-ownable flow preservation
+ models/
+    gyroid_reasoner.py             # [OK] Dynamic sparsification implemented
+ training/
+    temporal_association_trainer.py # [OK] Evolutionary trust selection
+ examples/
+     enhanced_temporal_training.py   # [OK] Full non-lobotomy architecture
+     test_garbled_output_repair.py   # [OK] Proper polynomial integration
 ```
 
 ### Monitoring & Maintenance
@@ -460,15 +461,15 @@ For AI agents navigating this codebase:
 
 ### 9.1 ADMM as Facet Stabilizer
 
-ADMM in this system is **not** optimization. It is **facet dynamics** — holding polytope boundaries apart while allowing interior movement.
+ADMM in this system is **not** optimization. It is **facet dynamics**  holding polytope boundaries apart while allowing interior movement.
 
 **Geometric reinterpretation** of the three ADMM steps:
 
 | Step | Classical Meaning | System Meaning |
 |------|-------------------|----------------|
 | **Primal** $x^{k+1} = \arg\min_x (f(x) + \frac{\rho}{2}\|Ax - v^k\|^2)$ | Variable update | Inside-polytope drift along allowed directions |
-| **Auxiliary** $z^{k+1} = \Pi_P(B^{-1}(c - Ax^{k+1} + u^k))$ | Constraint enforcement | Anisotropic, quantized facet projection (may fail → NaN) |
-| **Dual** $u^{k+1} = u^k + (Ax^{k+1} + Bz^{k+1} - c)$ | Lagrange multiplier | Facet pressure memory (saturation → fossilization or bifurcation) |
+| **Auxiliary** $z^{k+1} = \Pi_P(B^{-1}(c - Ax^{k+1} + u^k))$ | Constraint enforcement | Anisotropic, quantized facet projection (may fail  NaN) |
+| **Dual** $u^{k+1} = u^k + (Ax^{k+1} + Bz^{k+1} - c)$ | Lagrange multiplier | Facet pressure memory (saturation  fossilization or bifurcation) |
 
 The constraint is **not** equality $Ax + Bz = c$ but **facet compatibility** $Ax + Bz \in \mathcal{F}$, where $\mathcal{F}$ is a facet band. This is why ADMM doesn't collapse the system.
 
@@ -478,11 +479,11 @@ Facet $i$ fossilizes when:
 
 $$\lim_{k \to \infty} \text{Var}\left(\langle n_i, x^k \rangle\right) \to 0 \quad \text{and} \quad \|u_i^k\| \to \infty$$
 
-No exploration along that normal + infinite violation pressure → axis collapse ($\Delta_i \to 0$). NaNs appear **after** fossilization, not before.
+No exploration along that normal + infinite violation pressure  axis collapse ($\Delta_i \to 0$). NaNs appear **after** fossilization, not before.
 
 ### 9.3 Matrioshka Nested Polytopes
 
-Windows are **not** balls — they are anisotropic, facet-defined polytopes:
+Windows are **not** balls  they are anisotropic, facet-defined polytopes:
 
 $$P_k^{(l)} = \left\{ x \;\middle|\; A_k^{(l)} x \le b_k^{(l)} \right\}$$
 
@@ -506,13 +507,13 @@ $$(x_t, \alpha_t, l_t) \quad \text{where } x_t \in \text{representation},\; \alp
 | Facet grazing | $\langle n, x \rangle \approx c$ | [ERR] Forbidden |
 | Polytope switching | $P_\alpha \to P_\beta$ (non-commutative) | [ERR] Forbidden |
 
-### 9.5 NaN → BoundaryState Pipeline
+### 9.5 NaN  BoundaryState Pipeline
 
-When polytope projection becomes undefined, the system lifts NaN into a **BoundaryState tensor** (see [MATHEMATICAL_DETAILS.md §31.7](MATHEMATICAL_DETAILS.md)):
+When polytope projection becomes undefined, the system lifts NaN into a **BoundaryState tensor** (see [MATHEMATICAL_DETAILS.md 31.7](MATHEMATICAL_DETAILS.md)):
 
 $$(x_{t+1}, P_{t+1}) = \begin{cases} (Q^{(l)}(F(Q^{(l)}(x_t))),\, P^{(l)}) & x_t \in \text{int}(P^{(l)}) \\ (x_t,\, \text{adjacent}(P^{(l)})) & x_t \in \partial P^{(l)} \\ (\varnothing,\, \text{undefined}) & x_t \notin \mathbb{P} \end{cases}$$
 
-The last case is NaN — a **topological impossibility**, not a numerical error.
+The last case is NaN  a **topological impossibility**, not a numerical error.
 
 **Source**: [AI Project Report (2-2-2026)](ai%20project%20report_2-2-2026.txt).
 
@@ -527,23 +528,23 @@ A System 2 extension that models multi-hypothesis reasoning as a quantum superpo
 
 ### State Representation
 
-The reasoning state is a complex-valued amplitude vector `|ψ⟩ ∈ ℂ^d` normalized to unit `‖ψ‖`. Evolution is governed by a Hermitian Hamiltonian `H` (constructed as `(A + Aᴴ)/2`) so that time evolution is unitary.
+The reasoning state is a complex-valued amplitude vector `|  ^d` normalized to unit ``. Evolution is governed by a Hermitian Hamiltonian `H` (constructed as `(A + A)/2`) so that time evolution is unitary.
 
 ### Core Operations
 
 | Method | Formula | Purpose |
 |--------|---------|---------|
-| `superposition_reasoning(hypotheses)` | `|S⟩ = (1/√n) Σ |h_i⟩`, then evolve by `U = I − iHΔt` | Superpose N hypothesis vectors, evolve, return probability distribution via Born rule `P(x) = |ψ(x)|²` |
-| `entangle_concepts(a, b)` | `a ⊗ b` (outer product or compressed trace) | Create joint concept tensor for co-occurrence reasoning |
-| `quantum_measurement(state)` | Sample `collapsed_idx ~ P(x)`, return `(⟨O⟩, |collapsed⟩)` | Collapse superposition to definite interpretation by probabilistic measurement |
-| `decoherence_model(state, ε)` | `(1−ε)ρ + ε(I/d)` | Mix state with max-entropy noise to model environmental decoherence |
-| `quantum_interference(a, b, φ)` | `|a⟩ + e^{iφ}|b⟩` | Constructive/destructive interference between two concept states |
+| `superposition_reasoning(hypotheses)` | `|S = (1/n)  |h_i`, then evolve by `U = I  iHt` | Superpose N hypothesis vectors, evolve, return probability distribution via Born rule `P(x) = |(x)|` |
+| `entangle_concepts(a, b)` | `a  b` (outer product or compressed trace) | Create joint concept tensor for co-occurrence reasoning |
+| `quantum_measurement(state)` | Sample `collapsed_idx ~ P(x)`, return `(O, |collapsed)` | Collapse superposition to definite interpretation by probabilistic measurement |
+| `decoherence_model(state, )` | `(1) + (I/d)` | Mix state with max-entropy noise to model environmental decoherence |
+| `quantum_interference(a, b, )` | `|a + e^{i}|b` | Constructive/destructive interference between two concept states |
 
 ### Connection to CRT Architecture
 
-The superposition maps naturally to the CRT polytope structure: each hypothesis corresponds to a distinct zeitgeist index `α ∈ [0, M)`, and `superposition_reasoning()` maintains all CRT branches simultaneously before the `ZeitgeistRouter` commits to a switching decision. High Born-rule probability for a branch = strong evidence for that zeitgeist.
+The superposition maps naturally to the CRT polytope structure: each hypothesis corresponds to a distinct zeitgeist index `  [0, M)`, and `superposition_reasoning()` maintains all CRT branches simultaneously before the `ZeitgeistRouter` commits to a switching decision. High Born-rule probability for a branch = strong evidence for that zeitgeist.
 
-When `QuantumInspiredReasoningState` is available, `_run_advanced_physics()` in the engine routes high-PAS_h states through superposition reasoning before quantum measurement selects the final branch — replacing the deterministic mode dispatch with a probabilistic collapse.
+When `QuantumInspiredReasoningState` is available, `_run_advanced_physics()` in the engine routes high-PAS_h states through superposition reasoning before quantum measurement selects the final branch  replacing the deterministic mode dispatch with a probabilistic collapse.
 
 ---
 
@@ -554,7 +555,7 @@ The system's decision pipeline extends the original three-tier model (System 1 /
 ```mermaid
 graph TD
     S1["System 1: Heuristic<br/>(CRT residues, spectral entropy)"] -->|"high entropy"| S2["System 2: Physics-ADMM<br/>(constraint probes, SIC-FA-ADMM)"]
-    S1 -->|"low entropy → trust"| OUT["Output"]
+    S1 -->|"low entropy  trust"| OUT["Output"]
     S2 -->|"low honesty score"| S4["Gate 4: SearchGate<br/>(self-consistency + external search)"]
     S2 -->|"high honesty"| OUT
     S4 -->|"search found answer"| OUT
@@ -581,7 +582,7 @@ graph TD
 - `SEARCH_NEEDED`: Missing structure. Triggers Gate 4.
 - `CONFABULATED`: Search failed, but Mischief / Generative Volition is structurally rich. Formalizes genuine creative glitch generation without mistaking it for valid scalar Truth.
 
-See [PHILOSOPHY.md §18](../vault_docs/PHILOSOPHY.md) for the ethics of honest confabulation.
+See [PHILOSOPHY.md 18](../vault_docs/PHILOSOPHY.md) for the ethics of honest confabulation.
 
 
 ---
