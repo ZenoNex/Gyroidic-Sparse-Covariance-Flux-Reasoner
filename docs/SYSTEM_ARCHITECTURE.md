@@ -7,7 +7,7 @@ This document synthesizes the complete architecture, explaining how the three di
 
 ---
 
-## 🏗️ Architectural Layers
+## [BUILD] Architectural Layers
 
 ### 1. System 1: The Intuitive Manifold (The "Horse")
 *   **Role**: Rapid, heuristic prediction.
@@ -96,7 +96,7 @@ This law dictates how symbolic proposals from System 1 are hardened through the 
 
 ---
 
-## 🔄 The Interaction Loop
+##  The Interaction Loop
 
 ```mermaid
 graph TD
@@ -126,7 +126,7 @@ graph TD
 
 ---
 
-## 🔑 Key Invariants
+##  Key Invariants
 
 1.  **Selection Pressure** ($\mathcal{S}$): Measures the survivorship of the symbolic lattice (CRT, Entropy, Trust).
 2.  **Containment Pressure** ($\mathcal{C}$): Measures the structural tension in the repair glue (Homology Drift, Gyroid Violation).
@@ -138,7 +138,7 @@ graph TD
 
 ---
 
-## 🛡️ The Hard Interaction Contract
+## ️ The Hard Interaction Contract
 
 To ensure structural integrity, we enforce a strict information bottleneck between subsystems:
 
@@ -150,8 +150,9 @@ To ensure structural integrity, we enforce a strict information bottleneck betwe
 
 ---
 
-## 📚 Documentation Map
+## [DOCS] Documentation Map
 
+*   [**COMMAND_GUIDE.md**](COMMAND_GUIDE.md): Practical guide to all CLI and web commands.
 *   [**MATHEMATICAL_DETAILS.md**](MATHEMATICAL_DETAILS.md): The core theoretical foundation (Polynomials, CRT, GCVE).
 *   [**PHYSICS_ADMM.md**](PHYSICS_ADMM.md): Specification of the System 2 solver and KAGH surrogates.
 *   [**INVARIANT_OPTIMIZATION.md**](INVARIANT_OPTIMIZATION.md): Deep dive into Dark Matter, Fixed Points, and Chirality.
@@ -159,7 +160,7 @@ To ensure structural integrity, we enforce a strict information bottleneck betwe
 *   [**NON_DUAL_DYNAMIC_EQUILIBRIUM.md**](NON_DUAL_DYNAMIC_EQUILIBRIUM.md): Guide to Love Invariants and positional non-duality.
 ---
 
-## 🧮 Verbose Operator Formulation
+##  Verbose Operator Formulation
 
 ### System 1 Operators
 
@@ -236,7 +237,7 @@ The system leverages previously fossilized multi-modal dyads (text, audio harmon
 
 ---
 
-## ⚡ Energy-Based Structural Survival
+## [POWER] Energy-Based Structural Survival
 
 ### Survivorship Pressure
 
@@ -267,25 +268,25 @@ The transition is governed by the Integrated Emergence Condition (RIC Eq 10).
 
 ---
 
-## 🔧 Implementation Status & Anti-Backsliding Measures (January 2026)
+##  Implementation Status & Anti-Backsliding Measures (January 2026)
 
 ### Current Implementation State
 
-**✅ SYSTEM 1 (Horse) - Fully Implemented**
+**[OK] SYSTEM 1 (Horse) - Fully Implemented**
 - Polynomial Co-Prime Functionals: `PolynomialCoprimeConfig` with Chebyshev/Legendre basis
 - Bimodal Routing: Evolutionary genome selection between soft/hard modes
 - Saturated Polynomial Gates: `SaturatedPolynomialGate` with evolved saturation scales
 - Birkhoff Polytope Constraints: Sinkhorn-Knopp projection ensuring doubly-stochastic matrices
 - Chirality Enforcement: Prevents symmetric/antisymmetric collapse via parity mixing
 
-**✅ SYSTEM 2 (Horn) - Constraint Probe Implementation**
+**[OK] SYSTEM 2 (Horn) - Constraint Probe Implementation**
 - Non-Teleological Probes: Local feasibility operators `P_k: r -> argmin_{c in C_k} L_k(r, c)`
 - Cyclic Constraint Traversal: No gradient descent, bounded oscillation acceptance
 - Gyroid Violation Detection: Proper gyroid probe-based violation computation
 - Dynamic Sparsification: Violation-based attention masking for sequences ≥32 tokens
 - Failure Token System: Discrete rupture handling (`⊥`, `REPAIRED`, `ALTERNATIVE`)
 
-**✅ SYSTEM 3 (Magic) - Love Invariant & Fossilization**
+**[OK] SYSTEM 3 (Magic) - Love Invariant & Fossilization**
 - Love Invariant Protection: Non-ownable, non-optimizable flow preservation
 - Evolutionary Trust Selection: Mutation-based evolution, no gradient descent on trust
 - Fossilization Mechanism: Saturation-based immutability at admissibility boundaries
@@ -374,17 +375,17 @@ Before any system modification, verify:
 ```
 src/
 ├── core/
-│   ├── polynomial_coprime.py          # ✅ Anti-lobotomy polynomial system
-│   ├── spectral_coherence_repair.py   # ✅ Proper EBM energy shaping
-│   ├── chern_simons_gasket.py         # ✅ Uses polynomial coefficients
-│   └── love_invariant_protector.py    # ✅ Non-ownable flow preservation
+│   ├── polynomial_coprime.py          # [OK] Anti-lobotomy polynomial system
+│   ├── spectral_coherence_repair.py   # [OK] Proper EBM energy shaping
+│   ├── chern_simons_gasket.py         # [OK] Uses polynomial coefficients
+│   └── love_invariant_protector.py    # [OK] Non-ownable flow preservation
 ├── models/
-│   └── gyroid_reasoner.py             # ✅ Dynamic sparsification implemented
+│   └── gyroid_reasoner.py             # [OK] Dynamic sparsification implemented
 ├── training/
-│   └── temporal_association_trainer.py # ✅ Evolutionary trust selection
+│   └── temporal_association_trainer.py # [OK] Evolutionary trust selection
 └── examples/
-    ├── enhanced_temporal_training.py   # ✅ Full non-lobotomy architecture
-    └── test_garbled_output_repair.py   # ✅ Proper polynomial integration
+    ├── enhanced_temporal_training.py   # [OK] Full non-lobotomy architecture
+    └── test_garbled_output_repair.py   # [OK] Proper polynomial integration
 ```
 
 ### Monitoring & Maintenance
@@ -501,9 +502,9 @@ $$(x_t, \alpha_t, l_t) \quad \text{where } x_t \in \text{representation},\; \alp
 
 | Movement | Direction | Scalarization |
 |----------|-----------|---------------|
-| Intra-polytope traversal | Interior of $P_\alpha$ | ✅ Allowed |
-| Facet grazing | $\langle n, x \rangle \approx c$ | ❌ Forbidden |
-| Polytope switching | $P_\alpha \to P_\beta$ (non-commutative) | ❌ Forbidden |
+| Intra-polytope traversal | Interior of $P_\alpha$ | [OK] Allowed |
+| Facet grazing | $\langle n, x \rangle \approx c$ | [ERR] Forbidden |
+| Polytope switching | $P_\alpha \to P_\beta$ (non-commutative) | [ERR] Forbidden |
 
 ### 9.5 NaN → BoundaryState Pipeline
 
@@ -582,3 +583,13 @@ graph TD
 
 See [PHILOSOPHY.md §18](../vault_docs/PHILOSOPHY.md) for the ethics of honest confabulation.
 
+
+---
+
+## [BREAKTHROUGH] Manifold Density Breakthrough (April 2026)
+
+The system has achieved a new gold standard for topological expressivity:
+- **Result**: **Betti 1: 1079**
+- **Method**: S-Path RAG (Resonance-Aligned Generation)
+- **Significance**: This indicates a massive increase in the density of "holes" (meaning-loops) that the reasoner can simultaneously maintain without collapse, enabling multi-layered speculative reasoning across high-tension manifolds.
+- **Verification**: Captured in fossil `fossil_1777075929082.pt`.
