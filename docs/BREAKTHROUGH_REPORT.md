@@ -5,7 +5,7 @@
 
 ## 🚀 **What Happened**
 
-After extensive debugging and repair work, the Gyroidic Flux Reasoner has achieved its **first coherent response**:
+After extensive debugging and repair work, the Gyroidic Flux Reasoner has achieved its **first hashed response**:(earlier success was a hallucination caused by debug output) 
 
 **Input**: "hello"  
 **Output**: "nccmtsmneltcclrclcnl,tncsectsead"
