@@ -158,3 +158,17 @@ class AgentSubstrateBridge(nn.Module):
              payload['hyperbolic_residue_aligned'] = torch.as_tensor(payload['hyperbolic_residue'], device=self.device)
              
         return payload
+
+    def align_archetypes(self, payload: Dict[str, Any], governor: nn.Module) -> bool:
+        """
+        Rehydrates the Archetypal ruleset from the payload into the live governor.
+        """
+        if not hasattr(governor, 'import_governor_state'):
+            return False
+            
+        profile = payload.get('archetype_profile')
+        if profile:
+            governor.import_governor_state(profile)
+            print("[Substrate Bridge] Archetypal ruleset rehydrated from Agent Smith protocol.")
+            return True
+        return False
