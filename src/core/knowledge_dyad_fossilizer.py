@@ -167,6 +167,17 @@ class DyadFossilizer:
                         scaled=True
                     ) * self._REHYDRATION_INTENSITY
                     seed_state = seed_state + jitter
+                    
+                    # Anti-Lobotomy: Also rehydrate the dyad's image fingerprint 
+                    # so that the residue vector exhibits diversity.
+                    if dyad.image_fingerprint is not None and isinstance(dyad.image_fingerprint, torch.Tensor):
+                        fp_jitter = harvest_honest_jitter(
+                            dyad.image_fingerprint.shape,
+                            device=dyad.image_fingerprint.device,
+                            scaled=True
+                        ) * self._REHYDRATION_INTENSITY
+                        dyad.image_fingerprint = dyad.image_fingerprint + fp_jitter
+                        print(f"[FOSSILIZER] Image fingerprint rehydrated (diversity restored).")
 
         # 1. Compute Residue (The 'Meaning' of the association)
         # Ensure inputs are tensors and align devices
@@ -248,8 +259,8 @@ class DyadFossilizer:
             'glyphlock': is_glyph_locked,
             'spectral_pressure': float(spectral_pressure),
             'spectral_entropy': float(spectral_entropy),
-            'betti_0': int(b0),
-            'betti_1': int(b1),
+            'betti_0': torch.tensor([float(b0)], device='cpu'),
+            'betti_1': torch.tensor([float(b1)], device='cpu'),
             'image_fingerprint': dyad.image_fingerprint.detach().cpu() if isinstance(dyad.image_fingerprint, torch.Tensor) else dyad.image_fingerprint,
             'audio_harmonics': dyad.audio_harmonics,
             'video_breather': dyad.video_breather,
@@ -320,9 +331,9 @@ class DyadFossilizer:
         and topological invariant shapes (Betti numbers), achieving extraction free of 
         local hardware/latent representations.
         """
-        # Ensure we have a valid json filename
-        if not filename.endswith(".json"):
-             filename += ".json"
+        # Ensure we have a valid pt filename
+        if not filename.endswith(".pt"):
+             filename += ".pt"
              
         # Extract Chiral Invariants for the Mathematical Identity
         # (Using seed_state as the source of truth for the Agent's 'Shape')
@@ -337,8 +348,8 @@ class DyadFossilizer:
              c_shift, c_torsion, g_lock = 0.0, 0.0, False
              
         # Extract Tensors for hashing and math
-        gyroid_val = dyad.gyroid_residue.tolist() if dyad.gyroid_residue is not None else None
-        prime_val = prime_frequencies.tolist() if isinstance(prime_frequencies, torch.Tensor) else prime_frequencies
+        gyroid_val = dyad.gyroid_residue if dyad.gyroid_residue is not None else None
+        prime_val = prime_frequencies
         
         # Calculate Pestov-Ionin Growth via Braid
         bridge = AgentSubstrateBridge()
@@ -367,13 +378,12 @@ class DyadFossilizer:
             "gyroid_residue": gyroid_val,
             "prime_frequencies": prime_val,
             "betti_numbers": betti_numbers,
-            "audio_harmonics": dyad.audio_harmonics.tolist() if dyad.audio_harmonics is not None else None,
+            "audio_harmonics": dyad.audio_harmonics,
             "video_breather": dyad.video_breather,
             "timestamp": dyad.timestamp
         }
         filepath = os.path.join(self.storage_dir, filename)
-        with open(filepath, 'w') as f:
-            json.dump(payload, f, indent=2)
+        torch.save(payload, filepath)
         return filepath
 
     def inject_agent_smith(self, filepath: str, unraveling_closure=None, expected_dim: int = 96, hardware_trfc_ms: float = 160.0) -> Dict:
@@ -384,12 +394,11 @@ class DyadFossilizer:
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Agent Smith file not found: {filepath}")
             
-        with open(filepath, 'r') as f:
-            payload = json.load(f)
+        payload = torch.load(filepath, map_location='cpu')
              
         # Minimal validation
         if payload.get("type") != "soliton_smith":
-             raise ValueError("File is not a valid Agent Smith (soliton_smith) JSON payload.")
+             raise ValueError("File is not a valid Agent Smith (soliton_smith) .pt payload.")
              
         # Ontological Import Gates & Substrate Bridges
         bridge = AgentSubstrateBridge()
