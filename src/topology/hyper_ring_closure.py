@@ -104,64 +104,68 @@ class HyperRingOperator(nn.Module):
         """
         batch_size = gradient.shape[0]
         dim = gradient.shape[-1]
+        device = gradient.device
         
         if boundary_points is None:
             # Generate boundary points on a hypersphere around constraint manifold
-            # Sample points on unit sphere
-            angles = torch.linspace(0, 2 * np.pi, self.num_integration_points, 
-                                  device=gradient.device)
+            angles = torch.linspace(0, 2 * np.pi, self.num_integration_points, device=device)
             
-            # For each batch element, create boundary path
-            hyper_rings = []
-            for b in range(batch_size):
-                center = constraint_manifold[b]  # [dim]
+            # center: [batch, dim]
+            center = constraint_manifold
+            
+            if dim >= 2:
+                # path_points: [batch, num_points, dim]
+                path_points = center.unsqueeze(1).repeat(1, self.num_integration_points, 1)
                 
-                # Create circular path in 2D projection (if dim >= 2)
-                if dim >= 2:
-                    # Use first two dimensions for circular path
-                    path_points = torch.zeros(self.num_integration_points, dim, 
-                                            device=gradient.device)
-                    radius = torch.norm(gradient[b, :2]) + 1e-6
-                    path_points[:, 0] = center[0] + radius * torch.cos(angles)
-                    path_points[:, 1] = center[1] + radius * torch.sin(angles)
-                    # Fill remaining dimensions with center values
-                    if dim > 2:
-                        path_points[:, 2:] = center[2:].unsqueeze(0)
-                else:
-                    # 1D: use linear path
-                    path_points = center.unsqueeze(0) + torch.linspace(
-                        -1, 1, self.num_integration_points, device=gradient.device
-                    ).unsqueeze(-1) * gradient[b].unsqueeze(0)
+                # radius: [batch]
+                radius = torch.norm(gradient[:, :2], dim=-1) + 1e-6
                 
-                # Compute line integral: sum of gradient dot tangent along path
-                # Approximate tangent as difference between consecutive points
-                tangents = path_points[1:] - path_points[:-1]
-                tangents = torch.cat([tangents, path_points[0:1] - path_points[-1:]], dim=0)
-                
-                # Evaluate gradient at path points (simplified: use constant gradient)
-                grad_at_points = gradient[b:b+1].expand(self.num_integration_points, -1)
-                
-                # Dot product: grad · tangent
-                integrand = torch.sum(grad_at_points * tangents, dim=-1)
-                
-                # Integrate (trapezoidal rule)
-                hyper_ring = torch.sum(integrand) / self.num_integration_points
-                hyper_rings.append(hyper_ring)
+                # Broadcast radius and angles to [batch, num_points]
+                # angles: [num_points] -> [1, num_points]
+                # radius: [batch] -> [batch, 1]
+                path_points[:, :, 0] += radius.unsqueeze(1) * torch.cos(angles).unsqueeze(0)
+                path_points[:, :, 1] += radius.unsqueeze(1) * torch.sin(angles).unsqueeze(0)
+            else:
+                # 1D: [batch, num_points, 1]
+                # center: [batch, 1]
+                # linspace: [num_points] -> [1, num_points, 1]
+                # gradient: [batch, 1] -> [batch, 1, 1]
+                path_points = center.unsqueeze(1) + torch.linspace(
+                    -1, 1, self.num_integration_points, device=device
+                ).unsqueeze(0).unsqueeze(-1) * gradient.unsqueeze(1)
+            
+            # Compute tangents: [batch, num_points, dim]
+            # tangents = p[1:] - p[:-1]
+            tangents = path_points[:, 1:] - path_points[:, :-1]
+            # closing the loop: [batch, 1, dim]
+            closing_tangent = path_points[:, 0:1] - path_points[:, -1:]
+            tangents = torch.cat([tangents, closing_tangent], dim=1)
+            
+            # Evaluate gradient at path points (simplified: use constant gradient)
+            # gradient: [batch, dim] -> [batch, num_points, dim]
+            grad_at_points = gradient.unsqueeze(1).expand(-1, self.num_integration_points, -1)
+            
+            # Dot product: grad · tangent -> [batch, num_points]
+            integrand = torch.sum(grad_at_points * tangents, dim=-1)
+            
+            # Integrate: [batch]
+            hyper_rings = torch.sum(integrand, dim=-1) / self.num_integration_points
         else:
-            # Use provided boundary points
-            # Similar computation but with explicit boundary
-            hyper_rings = []
-            for b in range(batch_size):
-                # Compute tangents
-                tangents = boundary_points[1:] - boundary_points[:-1]
-                tangents = torch.cat([tangents, boundary_points[0:1] - boundary_points[-1:]], dim=0)
-                
-                grad_at_points = gradient[b:b+1].expand(len(boundary_points), -1)
-                integrand = torch.sum(grad_at_points * tangents, dim=-1)
-                hyper_ring = torch.sum(integrand) / len(boundary_points)
-                hyper_rings.append(hyper_ring)
+            # boundary_points: [num_points, dim]
+            # Compute tangents: [num_points, dim]
+            tangents = boundary_points[1:] - boundary_points[:-1]
+            closing_tangent = boundary_points[0:1] - boundary_points[-1:]
+            tangents = torch.cat([tangents, closing_tangent], dim=0)
+            
+            # gradient: [batch, dim]
+            # tangents: [num_points, dim]
+            # dot: [batch, num_points]
+            integrand = torch.matmul(gradient, tangents.t())
+            
+            # Integrate: [batch]
+            hyper_rings = torch.sum(integrand, dim=-1) / len(boundary_points)
         
-        return torch.stack(hyper_rings)
+        return hyper_rings
     
     def forward(
         self,
