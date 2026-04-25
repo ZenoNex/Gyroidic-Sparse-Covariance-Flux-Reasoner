@@ -328,7 +328,8 @@ class DyadFossilizer:
                            dyad: KnowledgeDyad, 
                            prime_frequencies: torch.Tensor, 
                            betti_numbers: Dict[int, float], 
-                           filename: str = "soliton_smith") -> str:
+                           filename: str = "soliton_smith",
+                           archetype_profile: Optional[Dict] = None) -> str:
         """
         Exports the 'Smith' Algebraic Identity: A hardware-independent soliton.
         
@@ -394,6 +395,7 @@ class DyadFossilizer:
             "audio_harmonics": dyad.audio_harmonics,
             "video_breather": dyad.video_breather,
             "timestamp": dyad.timestamp,
+            "archetype_profile": archetype_profile, # Captured psychological governing state
             "dyad_metadata": dyad.metadata # Preserve ShadowLog tags
         }
         filepath = os.path.join(self.storage_dir, filename)
@@ -424,4 +426,3 @@ class DyadFossilizer:
         payload = bridge.align_substrate(payload, expected_dim=expected_dim, hardware_trfc_ms=hardware_trfc_ms)
              
         return payload
-
