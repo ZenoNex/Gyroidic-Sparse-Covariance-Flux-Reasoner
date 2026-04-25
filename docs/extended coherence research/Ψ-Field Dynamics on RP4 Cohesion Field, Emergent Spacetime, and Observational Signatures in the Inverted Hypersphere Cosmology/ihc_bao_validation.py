@@ -16,6 +16,13 @@ Published results (Peacock & Hall 2026, IJT):
 Samuel Peacock / Lauren Hall  March 2026
 """
 
+import sys
+import io
+
+# Standardize console encoding for math symbols
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
