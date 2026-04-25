@@ -37,8 +37,14 @@ import subprocess
 import gzip
 import csv
 
-# Add src to path
-sys.path.append('src')
+# Robust path management
+import os
+import sys
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+if os.path.join(PROJECT_ROOT, 'src') not in sys.path:
+    sys.path.insert(0, os.path.join(PROJECT_ROOT, 'src'))
 
 # Core system imports (anti-lobotomy compliant)
 from core.polynomial_coprime import PolynomialCoprimeConfig
@@ -713,7 +719,7 @@ class DatasetIngestionSystem:
                 model = NonLobotomyTemporalModel(
                     input_dim=model_config.get('input_dim', 768),
                     hidden_dim=model_config.get('hidden_dim', 256),
-                    num_functionals=model_config.get('num_functionals', 5),
+                    num_functionals=model_config.get('num_functionals', 33),
                     poly_degree=model_config.get('poly_degree', 4),
                     device=self.device
                 )
@@ -1108,7 +1114,7 @@ Examples:
   python dataset_ingestion_system.py add-dataset --name "my_texts" --source local --path "./my_data/" --preprocessing text
   
   # Create model
-  python dataset_ingestion_system.py create-model --name "temporal_model" --type temporal --functionals 5
+  python dataset_ingestion_system.py create-model --name "temporal_model" --type temporal --functionals 33
   
   # Setup training
   python dataset_ingestion_system.py setup-training --model "temporal_model" --dataset "imdb" --epochs 10 --mandelbulb
@@ -1139,7 +1145,7 @@ Examples:
     create_model_parser.add_argument('--type', default='temporal', choices=['temporal'], help='Model type')
     create_model_parser.add_argument('--input-dim', type=int, default=768, help='Input dimension')
     create_model_parser.add_argument('--hidden-dim', type=int, default=256, help='Hidden dimension')
-    create_model_parser.add_argument('--functionals', type=int, default=5, help='Number of polynomial functionals')
+    create_model_parser.add_argument('--functionals', type=int, default=33, help='Number of polynomial functionals (IHC standard: 33)')
     create_model_parser.add_argument('--poly-degree', type=int, default=4, help='Polynomial degree')
     
     # Setup training command
