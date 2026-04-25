@@ -5034,7 +5034,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                             text_tensor = ENGINE._text_to_tensor(description)
                             
                             # Fossilize
-                            fossil_path = ENGINE.fossilizer.fossilize(dyad, text_tensor)
+                            fossil_path = ENGINE.fossilizer.fossilize(dyad, text_tensor, seed_state=ENGINE.meta_state)
                             print(f" Dyad fossilized at: {fossil_path}")
                             
                         except Exception as e:
