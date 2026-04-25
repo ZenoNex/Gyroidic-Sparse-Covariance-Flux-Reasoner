@@ -857,6 +857,7 @@ class DiegeticPhysicsEngine(nn.Module):
         fingerprint: Optional[Dict] = None,
         audio_dyad: Optional[Dict] = None,
         video_dyad_b64: Optional[str] = None,
+        audio_b64: Optional[str] = None,
         media_chain: Optional[List[Dict]] = None,
         commutativity: str = 'symmetric',
         generate_response: bool = True,
@@ -880,6 +881,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 fingerprint=fingerprint,
                 audio_dyad=audio_dyad,
                 video_dyad_b64=video_dyad_b64,
+                audio_b64=audio_b64,
                 media_chain=media_chain,
                 commutativity=commutativity,
                 generate_response=generate_response,
@@ -936,6 +938,7 @@ class DiegeticPhysicsEngine(nn.Module):
                                      affordance_gradients: Dict[str, float],
                                      audio_dyad: Optional[Dict] = None,
                                      video_dyad_b64: Optional[str] = None,
+                                     audio_b64: Optional[str] = None,
                                      voynich_token: Optional[Any] = None) -> str:
         """
         Restored physics-optimized generation loop.
@@ -1028,6 +1031,7 @@ class DiegeticPhysicsEngine(nn.Module):
         fingerprint: Optional[Dict] = None,
         audio_dyad: Optional[Dict] = None,
         video_dyad_b64: Optional[str] = None,
+        audio_b64: Optional[str] = None,
         media_chain: Optional[List[Dict]] = None,
         commutativity: str = 'symmetric',
         generate_response: bool = True,
@@ -1115,6 +1119,7 @@ class DiegeticPhysicsEngine(nn.Module):
                  fingerprint=fingerprint,
                  audio_dyad=audio_dyad,
                  video_dyad_b64=video_dyad_b64,
+                 audio_b64=audio_b64,
                  media_chain=media_chain,
                  commutativity=commutativity
              )
@@ -1165,6 +1170,7 @@ class DiegeticPhysicsEngine(nn.Module):
                         affordance_gradients=affordance_gradients,
                         audio_dyad=audio_dyad, 
                         video_dyad_b64=video_dyad_b64,
+                        audio_b64=audio_b64,
                         voynich_token=voynich_token
                     )
              
@@ -1420,6 +1426,7 @@ class DiegeticPhysicsEngine(nn.Module):
             fingerprint=fingerprint,
             audio_dyad=audio_dyad,
             video_dyad_b64=video_dyad_b64,
+            audio_b64=audio_b64,
             media_chain=media_chain,
             commutativity=commutativity
         )
@@ -1442,7 +1449,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Trigger Ingestion if expandability is critical
         if affordance_gradients.get('runtime_expandability', 0.0) > 0.4:
             print("[TRIGGER] Agentic Ingestion Triggered by Affordance Gradient")
-            dyad_override_response = self._handle_dyad_ingestion(f"AGENTIC_INGEST: {text_input}", fingerprint, seed_state)
+            dyad_override_response = self._handle_dyad_ingestion(f"AGENTIC_INGEST: {text_input}", fingerprint, seed_state, audio_b64=audio_b64)
             
         # Trigger Association if knowledge seeking is critical
         elif affordance_gradients.get('knowledge_seeking', 0.0) > 0.4:
@@ -3589,6 +3596,7 @@ class DiegeticPhysicsEngine(nn.Module):
         fingerprint: Optional[Dict] = None,
         audio_dyad: Optional[Dict] = None,
         video_dyad_b64: Optional[str] = None,
+        audio_b64: Optional[str] = None,
         media_chain: Optional[List[Dict]] = None,
         commutativity: str = 'symmetric'
     ) -> Tuple[Optional[torch.Tensor], Dict[str, Any]]:
@@ -3609,8 +3617,8 @@ class DiegeticPhysicsEngine(nn.Module):
         elif fingerprint:
             primary_item = fingerprint
             pmt_type = 'image'
-        elif audio_dyad:
-            primary_item = audio_dyad
+        elif audio_dyad or audio_b64:
+            primary_item = audio_b64 if audio_b64 else audio_dyad
             pmt_type = 'audio'
         elif video_dyad_b64:
             primary_item = video_dyad_b64
@@ -3640,9 +3648,21 @@ class DiegeticPhysicsEngine(nn.Module):
                 media_emb = self.fingerprint_proj(fp_tensor.unsqueeze(0))
                 
             elif pmt_type == 'audio':
-                harmonics = primary_item.get('chebyshev_harmonics', []) if isinstance(primary_item, dict) else primary_item
-                if harmonics:
+                if isinstance(primary_item, str) and (primary_item.startswith('data:audio') or len(primary_item) > 1000):
+                    # Raw Audio B64 (Taking advantage of ffmpeg 1.4)
+                    if not hasattr(self, 'video_parser'):
+                        from src.core.video_dyad_parser import VideoDyadParser
+                        self.video_parser = VideoDyadParser(device=self.device)
+                    v_audio_harmonics = self.video_parser.extract_audio_harmonics(primary_item)
+                    if v_audio_harmonics is not None:
+                        t = v_audio_harmonics
+                    else:
+                        t = torch.zeros(self.K_AUDIO_MAX, device=self.device)
+                else:
+                    harmonics = primary_item.get('chebyshev_harmonics', []) if isinstance(primary_item, dict) else primary_item
                     t = torch.tensor(harmonics, dtype=torch.float32, device=self.device)
+                
+                if t.numel() > 0:
                     # Pad to K_AUDIO_MAX for projection
                     if t.numel() < self.K_AUDIO_MAX: t = F.pad(t, (0, self.K_AUDIO_MAX - t.numel()))
                     else: t = t[:self.K_AUDIO_MAX]
@@ -3714,7 +3734,7 @@ class DiegeticPhysicsEngine(nn.Module):
         return collision_residues, codec_metrics
 
     
-    def _handle_dyad_ingestion(self, input_text: str, fingerprint: Optional[Dict], seed_state: torch.Tensor, audio_dyad: Optional[Dict] = None, video_dyad_b64: Optional[str] = None) -> str:
+    def _handle_dyad_ingestion(self, input_text: str, fingerprint: Optional[Dict], seed_state: torch.Tensor, audio_dyad: Optional[Dict] = None, video_dyad_b64: Optional[str] = None, audio_b64: Optional[str] = None) -> str:
         """Handle multi-modal dyad ingestion (Image, Audio, Video) using DyadFossilizer and GyroidicCodec."""
         # Determine modality from command prefix
         modality = "Image"
@@ -3749,13 +3769,30 @@ class DiegeticPhysicsEngine(nn.Module):
         audio_tensor = None
         video_breather = None
         
-        if active_modality == "Audio" and audio_dyad:
-            harmonics = audio_dyad.get('chebyshev_harmonics', [])
-            # Pad/truncate to 96 to match schema
-            harmonics = (harmonics + [0.0] * 96)[:96]
-            signal_tensor = torch.tensor(harmonics, device=self.device).float()
-            audio_tensor = signal_tensor.clone()
-            media_received = True
+        if active_modality == "Audio" and (audio_dyad or audio_b64):
+            if audio_b64:
+                if not hasattr(self, 'video_parser'):
+                    from src.core.video_dyad_parser import VideoDyadParser
+                    self.video_parser = VideoDyadParser(device=self.device)
+                v_audio_harmonics = self.video_parser.extract_audio_harmonics(audio_b64)
+                if v_audio_harmonics is not None:
+                    # Pad/truncate to 96
+                    signal_tensor = torch.zeros(96, device=self.device)
+                    min_sz = min(v_audio_harmonics.size(0), 96)
+                    signal_tensor[:min_sz] = v_audio_harmonics[:min_sz]
+                    audio_tensor = signal_tensor.clone()
+                    media_received = True
+                    print("[VIDEO_PARSER] Raw Audio stream isolated and projected via ffmpeg.")
+                else:
+                    print("[VIDEO_PARSER] Failed to extract harmonics from raw audio b64.")
+            
+            if not media_received and audio_dyad:
+                harmonics = audio_dyad.get('chebyshev_harmonics', [])
+                # Pad/truncate to 96 to match schema
+                harmonics = (harmonics + [0.0] * 96)[:96]
+                signal_tensor = torch.tensor(harmonics, device=self.device).float()
+                audio_tensor = signal_tensor.clone()
+                media_received = True
         elif active_modality == "Video" and video_dyad_b64:
             if not hasattr(self, 'video_parser'):
                 from src.core.video_dyad_parser import VideoDyadParser
@@ -4922,6 +4959,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         fingerprint=fingerprint,
                         audio_dyad=audio_dyad,
                         video_dyad_b64=video_dyad_b64,
+                        audio_b64=data.get('audio_b64', None),
                         media_chain=data.get('media_chain', None),
                         commutativity=commutativity,
                     )
