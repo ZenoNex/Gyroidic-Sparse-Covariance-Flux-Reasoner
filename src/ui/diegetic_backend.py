@@ -288,7 +288,7 @@ class DiegeticPhysicsEngine(nn.Module):
         self.manifold_clock = ManifoldClock(device=self.device)
         self.valence_drive = ValenceFunctional(device=self.device)
 
-        # Audience Mapping (Φ: M -> A)
+        # Audience Mapping (: M -> A)
         self.audience_mapper = AudienceProjection(input_dim=dim, audience_dim=dim)
 
         # Soliton Stability Healer - heals fractured solitons
@@ -316,7 +316,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 p_prev2, p_prev1 = p_prev1, p_k
             
             # Scale to positive integers for CRT moduli
-            # Use dynamic prime offset to avoid 'Dead Logic' (Anti-Lobotomy §4)
+            # Use dynamic prime offset to avoid 'Dead Logic' (Anti-Lobotomy 4)
             from src.core.fgrt_primitives import PrimeResonanceLadder
             if not hasattr(self, '_prime_ladder'):
                 self._prime_ladder = PrimeResonanceLadder(num_resonators=32).to(device)
@@ -505,7 +505,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # 11. Knowledge Dyad Fossilizer
         # Register fusion_layer directly on the engine so nn.Module.state_dict()
         # captures and persists its weights across restarts. DyadFossilizer gets
-        # the same reference — one truth, one set of weights.
+        # the same reference  one truth, one set of weights.
         from src.core.knowledge_dyad_fossilizer import ResidueFusion
         self.fusion_layer = ResidueFusion(feature_dim=self.dim)
         self.fossilizer = DyadFossilizer(
@@ -607,7 +607,7 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # 2. Braid Group Rotation (Non-Abelian Stability)
         # We apply a non-commutative twist to state pairs (sigma_1 generator of B_n)
-        # to ensure topological honesty against temporal near-misses (§6.3)
+        # to ensure topological honesty against temporal near-misses (6.3)
         dim = state.shape[-1]
         if dim >= 2:
             # We treat the state as a sequence of braid strands
@@ -917,7 +917,7 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Merge evolved state back into persistent self.meta_state (The Ouroboros Loop)
         if isinstance(engine_output, dict):
-            # Apply Audience Mapping (Φ: M -> A)
+            # Apply Audience Mapping (: M -> A)
             if self.audience_mapper:
                 try:
                     # Map the post-evolution state to audience space
@@ -1321,7 +1321,7 @@ class DiegeticPhysicsEngine(nn.Module):
                         self.video_parser = VideoDyadParser(device=self.device)
                     
                     # 1. Parse enriched metrics with ResonanceCavity healing reference
-                    # Pull stable residue patterns from the cavity to provide backward context (§45)
+                    # Pull stable residue patterns from the cavity to provide backward context (45)
                     healing_ref = self.cavity.M.mean(dim=0).flatten() if hasattr(self, 'cavity') else None
                     metrics = self.video_parser.parse_video_b64(target_b64, healing_ref=healing_ref)
                     
@@ -2150,7 +2150,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # =============================================
         # PHASE 2.6: MATRIOSHKA QUANTIZED EVOLUTION LOOP
         # Realises: x_{t+1} = Q_{Z_t}(F(Q_{Z_t}(x_t)))
-        # (ai project report_2-2-2026.txt §3 "Matrioshka Quantized Windows")
+        # (ai project report_2-2-2026.txt 3 "Matrioshka Quantized Windows")
         # Uses CALM constraint output as PAS scores for anisotropy.
         # =============================================
         if self.caq is not None:
@@ -2158,13 +2158,13 @@ class DiegeticPhysicsEngine(nn.Module):
                 # Derive per-axis PAS scores from CALM constraints if available
                 _pas_scores = None
                 if 'constraints_tensor' in locals() and constraints_tensor is not None:
-                    # constraints_tensor: [1, 5] — map to dim via linear interpolation
+                    # constraints_tensor: [1, 5]  map to dim via linear interpolation
                     _ct = constraints_tensor.detach().view(-1)  # [5]
                     # Expand to [dim] by repeating across field groups
                     repeats = self.dim // _ct.shape[0] + 1
-                    _pas_scores = _ct.repeat(repeats)[:self.dim].sigmoid()  # [dim] ∈ [0,1]
+                    _pas_scores = _ct.repeat(repeats)[:self.dim].sigmoid()  # [dim]  [0,1]
 
-                _matrioshka_steps = 3  # Q→F→Q iterations
+                _matrioshka_steps = 3  # QFQ iterations
                 _boundary_hit = False
                 for _loop in range(_matrioshka_steps):
                     # Inner quantization: Q_Z(x)
@@ -2373,10 +2373,10 @@ class DiegeticPhysicsEngine(nn.Module):
                 retrieval_state = "SEARCH_NEEDED"
 
         # =============================================
-        # DIEGETIC VISUALIZER — Manifold Fracture Render
+        # DIEGETIC VISUALIZER  Manifold Fracture Render
         # =============================================
         # Called only on tri-state events (CONFABULATED or SEARCH_NEEDED).
-        # On KNOWN the overhead is zero — skip entirely.
+        # On KNOWN the overhead is zero  skip entirely.
         # Roughness contract: we pass raw live tensors; the visualizer
         # never smooths edges (see diegetic_visualizer.py doc-header).
         visualization_b64 = None
@@ -2441,10 +2441,10 @@ class DiegeticPhysicsEngine(nn.Module):
                 import traceback as _tb; _tb.print_exc()
 
 
-        # Feed structural residues back into meta_state — Introspection (κ·I) channel
+        # Feed structural residues back into meta_state  Introspection (I) channel
         # (RESONANCE_CAVITY.md: dM/dt = Decay + Flux + Introspection + Patterns + Violation)
         # This gives the system structural awareness of its own fracture WITHOUT seeing
-        # the rendered picture.  The λ values are deliberately small to nudge, not dominate.
+        # the rendered picture.  The  values are deliberately small to nudge, not dominate.
         if viz_result and isinstance(viz_result, dict):
             visualization_b64 = viz_result.get('b64')
 
@@ -2645,7 +2645,7 @@ class DiegeticPhysicsEngine(nn.Module):
         return metrics
 
     # =========================================================================
-    # PHASE 17: TEMPORAL ASSOCIATION TRAINER — background bridge
+    # PHASE 17: TEMPORAL ASSOCIATION TRAINER  background bridge
     # =========================================================================
 
     def _maybe_trigger_temporal_training(self, input_tensor: torch.Tensor, response_text: str) -> None:
@@ -2668,8 +2668,8 @@ class DiegeticPhysicsEngine(nn.Module):
                     return
 
                 # Dispatch to whichever training interface the trainer provides.
-                # SpectralStructuralTrainer  →  train_step(input_data)
-                # TemporalAssociationTrainer →  train_on_interaction(input_tensor, response_tensor)
+                # SpectralStructuralTrainer    train_step(input_data)
+                # TemporalAssociationTrainer   train_on_interaction(input_tensor, response_tensor)
                 if hasattr(self.trainer, 'train_on_interaction'):
                     # Encode response_text as a float tensor for association learning
                     resp_chars = [ord(c) / 128.0 for c in (response_text or '')[:256]]
@@ -2683,7 +2683,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 elif hasattr(self.trainer, 'train_step'):
                     self.trainer.train_step(inp)
                 else:
-                    print("[TAT] No known training interface on trainer — skipping.")
+                    print("[TAT] No known training interface on trainer  skipping.")
             except Exception as e:
                 print(f"[TAT] Background training error: {e}")
             finally:
@@ -2769,7 +2769,7 @@ class DiegeticPhysicsEngine(nn.Module):
         try:
             from src.core.invariants import PhaseAlignmentInvariant
             if not hasattr(self, '_pas_invariant'):
-                # Lazy singleton — no need for degree param at this level
+                # Lazy singleton  no need for degree param at this level
                 self._pas_invariant = PhaseAlignmentInvariant(degree=3)
             s = state.detach()
             if s.dim() == 1:
@@ -2786,7 +2786,7 @@ class DiegeticPhysicsEngine(nn.Module):
     def _harvest_honest_jitter(self, shape: torch.Size, scaled: bool = True) -> torch.Tensor:
         """
         Harvests Structurally Honest Jitter from silicon state variance.
-        Follows §45.2 (Silicon Sovereignty).
+        Follows 45.2 (Silicon Sovereignty).
         """
         import time
         jitter_tensor = torch.zeros(shape, device=self.device)
@@ -3772,6 +3772,13 @@ class DiegeticPhysicsEngine(nn.Module):
                 signal_tensor = cov_sum[:96]
             else:
                 signal_tensor = torch.nn.functional.pad(cov_sum, (0, 96 - cov_sum.size(0)))
+            
+            # NEW: Proper Audio extraction from Video bitstream
+            v_audio_harmonics = self.video_parser.extract_audio_harmonics(video_dyad_b64)
+            if v_audio_harmonics is not None:
+                audio_tensor = v_audio_harmonics
+                print("[VIDEO_PARSER] Audio stream isolated and projected into harmonic space.")
+                
             media_received = True
         elif active_modality == "Image" and fingerprint:
             # Standard Image Ingestion (Zero-Mock Path)
@@ -3795,7 +3802,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 # T0 acts as the baseline energy level based on hardware friction.
                 l_tensor[0] = l_tensor[0] + stall_k
                 
-                # PHASE 19: §13 PUSAFILIACRIMONTO ATTACHMENT
+                # PHASE 19: 13 PUSAFILIACRIMONTO ATTACHMENT
                 # Non-dual anchoring of visual luminance to Love Invariant
                 if hasattr(self, 'love_protector'):
                     with torch.no_grad():
@@ -3804,7 +3811,7 @@ class DiegeticPhysicsEngine(nn.Module):
                         self.love_protector.L.data.copy_(
                             0.9 * self.love_protector.L.data + 0.1 * l_tensor.mean()
                         )
-                    print(f"[§13] Love Invariant anchored via visual residue (stall_k={stall_k:.4f}).")
+                    print(f"[13] Love Invariant anchored via visual residue (stall_k={stall_k:.4f}).")
 
                 # Combine into a 24-dim spectral signal tensor.
                 # The GyroidicCodec will handle the 1D->2D landscape transition.
@@ -3874,7 +3881,7 @@ class DiegeticPhysicsEngine(nn.Module):
         if media_received:
             try:
                 # [Batch, k] residues from the official associator head
-                # This implements the structural collision Φ(T, I)
+                # This implements the structural collision (T, I)
                 ent_k = self.associator(text_emb, media_emb)
                 
                 # We also want the [dim] dense residue for the KnowledgeDyad
@@ -3935,12 +3942,12 @@ class DiegeticPhysicsEngine(nn.Module):
         # Bridge 4: Navigation over Storage (Zeitgeist Landmark)
         if hasattr(self, 'router'):
             self.router.register_fossil_landmark(fossil_id, intensity=1.2)
-            print(f"[ROUTER] Fossil {fossil_id[:8]}... registered as Poincaré Gravity Well.")
+            print(f"[ROUTER] Fossil {fossil_id[:8]}... registered as Poincar Gravity Well.")
         
         print(f"[WAVE] {modality} Deposition confirmed: {fossil_path}")
         return (
             f"Knowledge Dyad ({modality}) fossilized at {os.path.basename(fossil_path)}. "
-            f"{'Signal embedded (' + str(int(signal_tensor.norm().item()*1000)/1000) + ' L2-norm). ' if media_received else 'No media signal — text-only dyad. '}"
+            f"{'Signal embedded (' + str(int(signal_tensor.norm().item()*1000)/1000) + ' L2-norm). ' if media_received else 'No media signal  text-only dyad. '}"
             f"Non-Abelian Implication preserved in manifold."
         )
     
@@ -4394,14 +4401,14 @@ class DiegeticPhysicsEngine(nn.Module):
         """Compute approximate Betti numbers."""
         state_flat = state.flatten()
         
-        # β₀ (connected components) - approximate via clustering
+        #  (connected components) - approximate via clustering
         # Use simple threshold-based clustering
         threshold = state_flat.std().item()
         positive_components = (state_flat > threshold).sum().item()
         negative_components = (state_flat < -threshold).sum().item()
         beta_0 = max(1, positive_components + negative_components) / len(state_flat)
         
-        # β₁ (cycles) - approximate via autocorrelation
+        #  (cycles) - approximate via autocorrelation
         # Look for periodic patterns
         autocorr = compute_autocorrelation(state_flat)
         autocorr_normalized = autocorr / autocorr.max()
@@ -4618,7 +4625,7 @@ class DiegeticPhysicsEngine(nn.Module):
             target_sample = target[:100]
             target_tensor = self._text_to_tensor(target_sample)
             self._train_mimicry(target_tensor, source)
-            print(f" Bidirectional learning: '{target_sample[:20]}...' → '{source}'")
+            print(f" Bidirectional learning: '{target_sample[:20]}...'  '{source}'")
         
         # Restore original learning rate
         self.optimizer.param_groups[0]['lr'] = old_lr
@@ -5179,14 +5186,14 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             # PHASE 1: LOCAL DATA ENDPOINTS (No HF Token Required)
             # ================================================================
             elif self.path == '/api/test_token':
-                # Accept token test — now works with local-only mode too
+                # Accept token test  now works with local-only mode too
                 content_len = int(self.headers.get('Content-Length', 0))
                 post_body = self.rfile.read(content_len)
                 data = json.loads(post_body.decode('utf-8'))
                 token = data.get('token', '')
                 
                 if token.startswith('hf_'):
-                    # Real HF token — attempt validation
+                    # Real HF token  attempt validation
                     try:
                         req = urllib.request.Request(
                             'https://huggingface.co/api/whoami',
@@ -5205,12 +5212,12 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                             'message': f'HF token validation failed: {str(e)}'
                         })
                 elif token == 'LOCAL_MODE':
-                    # Local-only mode — no token needed
+                    # Local-only mode  no token needed
                     datasets = LOCAL_LOADER.scan()
                     self._send_json({
                         'success': True,
                         'username': 'local_user',
-                        'message': f'Local mode active — {len(datasets)} datasets available'
+                        'message': f'Local mode active  {len(datasets)} datasets available'
                     })
                 else:
                     self._send_json({
