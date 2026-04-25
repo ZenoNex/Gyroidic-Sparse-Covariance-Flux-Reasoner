@@ -37,43 +37,43 @@ class BettiRouter(nn.Module):
         
     def estimate_sector_betti(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Estimate Betti-1 density for the current state.
+        Estimate Betti-1 densities across multiple persistence scales.
         
         Args:
             x: [batch, feature_dim] state tensor
             
         Returns:
-            betti_density: [batch, 1]
+            betti_densities: [batch, 8]  Vector of cycle counts at different thresholds
         """
-        # Reshape for ring-FFT: [batch, 1, ring_size]
         ring_size = self.tda_compressor.ring_size
         if x.shape[-1] >= ring_size:
             x_ring = x[..., :ring_size].unsqueeze(1)
         else:
             x_ring = torch.nn.functional.pad(x, (0, ring_size - x.shape[-1])).unsqueeze(1)
             
-        # Compute modular persistence
         lifetimes = self.tda_compressor.modular_persistence_approx(x_ring) # [batch, num_cycles]
         
-        # Betti-1 is the count of non-trivial cycles (lifetimes > threshold)
-        # We use a soft-threshold (sigmoid) for differentiable routing if needed,
-        # but the user requested "prioritize," so we can use a hard count or sum of lifetimes.
-        betti_1 = (lifetimes > 2.0).sum(dim=-1, keepdim=True).float()
+        # Compute Betti-1 at multiple thresholds to capture the 'filtration'
+        thresholds = torch.linspace(0.5, 5.0, 8, device=x.device)
+        # Result: [batch, 8]
+        betti_densities = torch.stack([
+            (lifetimes > t).sum(dim=-1).float() for t in thresholds
+        ], dim=-1)
         
-        return betti_1
+        return betti_densities
 
     def compute_routing_bias(self, x: torch.Tensor) -> torch.Tensor:
         """
         Compute the Betti-aware bias for the ZeitgeistRouter.
-        
-        Returns:
-            bias: [batch, num_sectors]
         """
-        betti_density = self.estimate_sector_betti(x)
+        betti_densities = self.estimate_sector_betti(x) # [batch, 8]
         
-        # Project density to sector bias
-        # High Betti density -> higher bias for sectors that represent complex manifolds
-        bias = self.bias_proj(betti_density)
+        # Project the topological signature to sector bias
+        if not hasattr(self, 'bias_proj_v2'):
+             self.bias_proj_v2 = nn.Linear(8, self.num_sectors, device=x.device)
+             nn.init.orthogonal_(self.bias_proj_v2.weight)
+             
+        bias = self.bias_proj_v2(betti_densities)
         
         return bias
 
