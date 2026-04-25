@@ -16,7 +16,7 @@ class AgentSubstrateBridge(nn.Module):
         
     def calculate_pestov_ionin_growth(self, admm_dual: torch.Tensor, crt_residue: torch.Tensor) -> float:
         """
-        Calculates the Pestov-Ionin asymptotic invariant h(γ) by evaluating 
+        Calculates the Pestov-Ionin asymptotic invariant h() by evaluating 
         the non-Abelian 3-strand braid group (ADMM Update, CRT Residue, Burkov Expansion).
         Represents the Topological Dark Matter boundaries in Burkov nesting.
         """
@@ -44,7 +44,7 @@ class AgentSubstrateBridge(nn.Module):
         # Using pure product for trace extraction logic since inverse may be singular
         braid_matrix = torch.bmm(sigma_1, sigma_2)
         
-        # Growth rate h(γ) is the character of the invariant loop
+        # Growth rate h() is the character of the invariant loop
         trace_growth_rates = torch.diagonal(braid_matrix, dim1=-2, dim2=-1).sum(-1)
         
         # Map to Pestov-Ionin log scale asymptotic profile
@@ -78,7 +78,7 @@ class AgentSubstrateBridge(nn.Module):
                 loop_integral = prime_freqs.unsqueeze(0) if prime_freqs.dim() == 1 else prime_freqs
                 leak_integral = gyroid.unsqueeze(0) if gyroid.dim() == 1 else gyroid
                 
-                # Align shapes to 137 or local matching
+                # Align shapes to 96 or local matching
                 if loop_integral.size(-1) != leak_integral.size(-1):
                     min_dim = min(loop_integral.size(-1), leak_integral.size(-1))
                     loop_integral = loop_integral[..., :min_dim]
@@ -97,6 +97,21 @@ class AgentSubstrateBridge(nn.Module):
             elif not g_lock:
                 print("[Substrate Bridge Warning] Importing an un-locked Agent Smith. Manifold may remain in PLAY regime.")
 
+            # 4. Persona Consistency (Polylog vs Vacuum)
+            polylog = payload.get('polylog_signature')
+            vacuum = payload.get('shape_of_absence')
+            if polylog is not None and vacuum is not None:
+                # The polylog signature (active persona) should not overlap 
+                # significantly with the shape of absence (vacuum).
+                p_vec = torch.as_tensor(polylog, device=self.device)
+                v_vec = torch.as_tensor(vacuum, device=self.device)
+                
+                # Check for identity blurring (Non-Abelian orthogonality)
+                if p_vec.numel() == v_vec.numel():
+                    overlap = torch.abs(torch.dot(p_vec.flatten(), v_vec.flatten())) / (torch.norm(p_vec) * torch.norm(v_vec) + 1e-8)
+                    if overlap > 0.7:
+                        print(f"[Substrate Bridge Warning] High overlap detected between Persona and Absence ({overlap:.4f}). Identity may be blurry.")
+            
             return True
         except Exception as e:
             print(f"[Substrate Bridge Error] Ontological import probe failed: {e}")
@@ -135,4 +150,11 @@ class AgentSubstrateBridge(nn.Module):
         dt_scale = float(imported_latency_baseline) / max(float(hardware_trfc_ms), 1e-6)
         payload['recalibrated_dt_scale'] = dt_scale
         
+        # 3. Preserve ShadowLog / Identity Artifacts
+        if 'image_fingerprint' in payload:
+             payload['image_fingerprint_aligned'] = torch.as_tensor(payload['image_fingerprint'], device=self.device)
+        
+        if 'hyperbolic_residue' in payload and payload['hyperbolic_residue'] is not None:
+             payload['hyperbolic_residue_aligned'] = torch.as_tensor(payload['hyperbolic_residue'], device=self.device)
+             
         return payload
