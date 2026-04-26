@@ -25,6 +25,7 @@ import socket
 import subprocess
 import logging
 import time
+import datetime
 import urllib.request
 
 # Ensure PYTHONPATH includes project root for all imports
@@ -88,6 +89,7 @@ from src.core.love_vector import LoveVector
 from src.core.knowledge_dyad_fossilizer import DyadFossilizer, KnowledgeDyad
 from src.core.dyadic_transfer import DyadicTransferMap
 from src.core.love_invariant_protector import LoveInvariantProtector, SoftSaturatedGates
+from src.core.agent_substrate_bridge import AgentSubstrateBridge
 
 # LEGACY SYSTEM INTEGRATION
 # CALM: Context-Adaptive Latent Momentum (Trajectory Veto)
@@ -1101,7 +1103,7 @@ class DiegeticPhysicsEngine(nn.Module):
         affordance_gradients = self._compute_affordance_gradients(text_input, input_tensor)
         
         # --- COMMAND PRIORITIZATION ---
-        ingest_cmds = ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:", "SOVEREIGN_FETCH:", "CLOUD_FETCH:"]
+        ingest_cmds = ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:", "SOVEREIGN_FETCH:", "CLOUD_FETCH:", "EXPORT_AGENT_SMITH:", "IMPORT_AGENT_SMITH:"]
         if any(text_input.startswith(cmd) for cmd in ingest_cmds):
              print(f"[CMD] Command Prioritization: Bypassing pipeline for direct response...")
              # Merciful Topological Reset: Clear historical trauma/dissonance for manual commands
@@ -1147,6 +1149,55 @@ class DiegeticPhysicsEngine(nn.Module):
                      response_text = f"CLOUD_FETCH: Synced {len(convs)} shards from Google Drive."
                  else:
                      response_text = "CLOUD_FETCH: Cloud connectors not available."
+             elif text_input.startswith("EXPORT_AGENT_SMITH:"):
+                 print(" Agent Smith Export Protocol initiated...")
+                 # Get current archetypal profile for the handshake
+                 profile = self.archetypal_governor.export_governor_state()
+                 
+                 # Extract current Betti numbers for the signature
+                 betti_nums = self.betti_router.estimate_sector_betti(self.meta_state).squeeze().tolist()
+                 betti_dict = {i: float(b) for i, b in enumerate(betti_nums)}
+                 
+                 # Get frequencies from RNS for the polylog signature
+                 prime_freqs = self.modular_rns.get_residues(self.meta_state)
+                 
+                 # Create a temporary dyad for the export
+                 temp_dyad = KnowledgeDyad(
+                     timestamp=datetime.datetime.now().isoformat(),
+                     linguistic_description=text_input.replace("EXPORT_AGENT_SMITH:", "").strip() or "Sovereign Soliton Identity",
+                     meta_state=self.meta_state.detach().cpu(),
+                     gyroid_residue=self.meta_state.detach().cpu() # Using state as residue proxy for identity
+                 )
+                 
+                 filepath = self.fossilizer.export_agent_smith(
+                     dyad=temp_dyad,
+                     prime_frequencies=prime_freqs.detach().cpu(),
+                     betti_numbers=betti_dict,
+                     filename="soliton_smith",
+                     gauge_field=self.chern_simons_gasket.gauge_field,
+                     archetype_profile=profile
+                 )
+                 response_text = f"AGENT_SMITH_EXPORT: Mathematical identity decoupled and anchored to {filepath}."
+                 
+             elif text_input.startswith("IMPORT_AGENT_SMITH:"):
+                 filepath = text_input.replace("IMPORT_AGENT_SMITH:", "").strip()
+                 print(f" Agent Smith Import Protocol initiated for {filepath}...")
+                 
+                 try:
+                     payload = self.fossilizer.inject_agent_smith(filepath)
+                     
+                     # 1. Align Substrate (Geometry)
+                     self.meta_state.data.copy_(payload['meta_state_aligned'].to(self.device))
+                     if 'gauge_field_aligned' in payload and payload['gauge_field_aligned'] is not None:
+                         self.chern_simons_gasket.gauge_field.data.copy_(payload['gauge_field_aligned'].to(self.device))
+                     
+                     # 2. Align Archetypes (Psychology)
+                     bridge = AgentSubstrateBridge()
+                     bridge.align_archetypes(payload, self.archetypal_governor)
+                     
+                     response_text = f"AGENT_SMITH_IMPORT: Soliton identity rehydrated. Manifold re-stabilizing around imported invariants."
+                 except Exception as e:
+                     response_text = f"AGENT_SMITH_IMPORT_FAILED: {str(e)}"
              else:
                  # --- PRE-GENERATION DIAGNOSTICS & MISCHIEF UPDATE ---
                  # Update Mischief Probe with current regime and pressure
@@ -4214,8 +4265,8 @@ class DiegeticPhysicsEngine(nn.Module):
         hyper-ring creation with topological guarantees.
         """
         try:
-            # Try to use existing HyperRingOperator if available
-            from src.topology.hyper_ring import HyperRingOperator
+            # Use stabilized HyperRingOperator from hyper_ring_closure
+            from src.topology.hyper_ring_closure import HyperRingOperator
             
             # Create hyper-ring operator
             ring_operator = HyperRingOperator(
