@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, List, Optional, Tuple
 from src.core.chern_simons_gasket import ChernSimonsGasket
+from src.core.honest_jitter import harvest_honest_jitter
 
 # Fix import paths
 import sys
@@ -72,7 +73,8 @@ class AutoeclecticResponderHead(nn.Module):
         self.output_dim = output_dim
         
         # Diegetic modulation layers
-        self.modulation_basis = nn.Parameter(torch.randn(num_modes, hidden_dim, output_dim))
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.modulation_basis = nn.Parameter(harvest_honest_jitter((num_modes, hidden_dim, output_dim), scaled=True))
         self.entropy_gate = nn.Linear(1, num_modes)
         
         # Final output projection
@@ -149,10 +151,14 @@ class ResonanceLarynx(nn.Module):
         """
         # Apply logic leak protection via Chern-Simons gasket
         safe_state = state.unsqueeze(1) # [batch, 1, dim]
-        safe_state = self.chern_simons.plug_logic_leak(safe_state, torch.ones(1, state.shape[-1], device=state.device))
+        # Polynomial coeffs placeholder or derived from state
+        poly_placeholder = torch.ones(state.shape[0], state.shape[-1], device=state.device)
+        safe_state = self.chern_simons.plug_logic_leak(safe_state, poly_placeholder)
         safe_state = safe_state.squeeze(1)
         
-        logits = self.proj(safe_state) / temperature
+        # Hazard Protection: Ensure temperature is never zero
+        safe_temp = max(temperature, 1e-6)
+        logits = self.proj(safe_state) / safe_temp
         conf = self.confidence(safe_state)
         return logits, conf
         
@@ -211,7 +217,8 @@ class ResonanceLarynx(nn.Module):
             # context is list of [dim] tensors
             seed = torch.stack(context[-min(len(context), 5):]).mean(dim=0).unsqueeze(0) # [1, dim]
         else:
-            seed = torch.randn(1, self.hidden_dim, device=self.proj.weight.device)
+            # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+            seed = harvest_honest_jitter((1, self.hidden_dim), device=self.proj.weight.device, scaled=True)
             
         # 3. Generation Loop
         # We simulate a "Singer" - the state evolves via self-resonance
@@ -254,12 +261,13 @@ class ResonanceLarynx(nn.Module):
             # State rotates slightly based on emitted symbol (Reaction)
             # Non-linear feedback
             feedback = torch.tanh(self.proj.weight[char_idx].unsqueeze(0)) # [1, dim]
-            current_state = 0.9 * current_state + 0.1 * feedback + 0.05 * torch.randn_like(current_state)
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            current_state = 0.9 * current_state + 0.1 * feedback + 0.05 * harvest_honest_jitter(current_state.shape, device=current_state.device, scaled=True)
             
         final_text = "".join(generated_chars)
         
         metrics = {
-            "avg_confidence": confidence_sum / len(generated_chars) if generated_chars else 0.0,
+            "avg_confidence": confidence_sum / max(len(generated_chars), 1),
             "length": len(generated_chars),
             "temperature_used": temperature,
             "mode": "CONSTRAINT" if constraint_mode else ("QUANTUM" if quantum_state else "STANDARD")
