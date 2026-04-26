@@ -40,6 +40,7 @@ from src.core.bulletin_board import BulletinBoard
 from src.core.noncommutativity_curvature import NonCommutativityCurvature
 from src.core.manifold_time import TwoCopsSchedule
 from src.core.archetype_engines import ArchetypalSynthesisEngine
+from src.models.diegetic_heads import ResonanceLarynx
 
 class UniversalOrchestrator(nn.Module):
     """
@@ -113,6 +114,9 @@ class UniversalOrchestrator(nn.Module):
         self.topological_refusal = TopologicalRefusalFilter(value_gap_threshold=0.5)
         self.quantum_betti = QuantumBettiApproximator()
         self.audience_projector = AudienceProjection(input_dim=dim, audience_dim=dim)
+        
+        # 7. Diegetic Responder (The "Larynx" & "Scars")
+        self.larynx = ResonanceLarynx(dim)
         
         self.prev_pas = 0.0 # Temporal anchor for drift check
 
@@ -457,20 +461,29 @@ class UniversalOrchestrator(nn.Module):
             print(f"[ORCHESTRATOR] {e}")
             state_shielded = state_governed
             
+        # 6. DIEGETIC RESPONSE (The "Larynx" & "Scars")
+        # -----------------------------------------------
+        # Generate diegetic logits and check logic leaks via Chern-Simons Gasket
+        larynx_logits, larynx_conf = self.larynx(state_shielded)
+        gasket_diags = self.larynx.chern_simons.get_diagnostics()
+        
         # Audience Mapping: Final human-readable projection
         ui_readout = self.audience_projector(state_shielded)
         
-        # Post Diagnostic Payload to Bulletin Board
+        # Post Diagnostic Payload to Bulletin Board (including Scars/Tension)
         self.bulletin_board.post_metrics({
             "b0": b0,
             "b1": b1,
             "mischief": mischief_metrics['H_mischief'],
             "atrophy": atrophy,
             "pas_h": pas_h,
-            "is_red_zone": is_red_zone
+            "is_red_zone": is_red_zone,
+            "larynx_confidence": larynx_conf.mean().item(),
+            "scar_tension": gasket_diags['seam_tension'],
+            "gasket_level_k": gasket_diags['level_k']
         })
 
-        # 6. Final Routing & Metrics
+        # 7. Final Routing & Metrics
         regime = self.determine_regime(pas_h, abs(pas_h - self.prev_pas), state=state_shielded, atrophy=atrophy)
         self.prev_pas = pas_h
         routing = self.get_bimodal_routing(regime)
