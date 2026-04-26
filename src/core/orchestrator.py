@@ -112,7 +112,7 @@ class UniversalOrchestrator(nn.Module):
         self.red_team_projector = RedTeamProjection(hidden_dim=dim)
         self.topological_refusal = TopologicalRefusalFilter(value_gap_threshold=0.5)
         self.quantum_betti = QuantumBettiApproximator()
-        self.audience_mapper = AudienceProjection(input_dim=dim, audience_dim=dim)
+        self.audience_projector = AudienceProjection(input_dim=dim, audience_dim=dim)
         
         self.prev_pas = 0.0 # Temporal anchor for drift check
 
@@ -357,26 +357,40 @@ class UniversalOrchestrator(nn.Module):
             
             # Apply Love Invariant (The Structural Anchor)
             state_with_love = self.love(current_state)
+            state_sync = state_with_love
             
             # Apply 600-Cell Quantization (Lattice Gating)
-            if state_with_love.shape[-1] >= 4:
-                quantized_4d = self.quantizer(state_with_love[..., :4])
-                state_sync = state_with_love.clone()
-                state_sync[..., :4] = quantized_4d
+            if state_sync.shape[-1] >= 4:
+                quantized_4d = self.quantizer(state_sync[..., :4])
+                state_quant = state_sync.clone()
+                state_quant[..., :4] = quantized_4d
             else:
-                padded = F.pad(state_with_love, (0, 4 - state_with_love.shape[-1]))
+                padded = F.pad(state_sync, (0, 4 - state_sync.shape[-1]))
                 quantized_4d = self.quantizer(padded)
-                state_sync = quantized_4d[..., :state_with_love.shape[-1]]
+                state_quant = quantized_4d[..., :state_sync.shape[-1]]
             
             # Apply Topological Twist (Gluing Operator Psi)
             target_dim = self.gluer.dim if hasattr(self.gluer, 'dim') else 4
-            if state_sync.shape[-1] != target_dim:
-                state_padded = F.pad(state_sync, (0, max(0, target_dim - state_sync.shape[-1])))
+            if state_quant.shape[-1] != target_dim:
+                state_padded = F.pad(state_quant, (0, max(0, target_dim - state_quant.shape[-1])))
                 state_to_glue = state_padded[..., :target_dim]
             else:
-                state_to_glue = state_sync
+                state_to_glue = state_quant
                 
-            state_final = self.gluer(state_to_glue)
+            state_glued = self.gluer(state_to_glue)
+            
+            # 5. Non-Teleological Flow Guidance (Hyper-Ring)
+            # We simulate a flow step across the hyper-ring if K > 1
+            if state_glued.dim() == 2:
+                 batch_size = state_glued.shape[0]
+                 # Project state to 5 polytopes by repeating mean stat
+                 poly_stats = state_glued.mean(dim=-1).unsqueeze(-1).expand(batch_size, 5)
+                 connectivity = self.hyper_ring(poly_stats)
+                 # Apply flow to state (broadcasted)
+                 flow = self.hyper_ring.flow_step(state_glued.unsqueeze(1).expand(-1, 5, -1), connectivity).mean(dim=1)
+                 state_final = state_glued + 0.01 * flow
+            else:
+                 state_final = state_glued
             
             # Post the corrected geometric force to the board for the next micro-round
             self.bulletin_board.post_force(state_final - state)
@@ -444,7 +458,7 @@ class UniversalOrchestrator(nn.Module):
             state_shielded = state_governed
             
         # Audience Mapping: Final human-readable projection
-        ui_readout = self.audience_mapper(state_shielded)
+        ui_readout = self.audience_projector(state_shielded)
         
         # Post Diagnostic Payload to Bulletin Board
         self.bulletin_board.post_metrics({
