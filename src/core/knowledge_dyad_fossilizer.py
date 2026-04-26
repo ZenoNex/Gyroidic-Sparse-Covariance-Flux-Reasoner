@@ -345,7 +345,8 @@ class DyadFossilizer:
                            prime_frequencies: torch.Tensor, 
                            betti_numbers: Dict[int, float], 
                            filename: str = "soliton_smith",
-                           archetype_profile: Optional[Dict] = None) -> str:
+                           archetype_profile: Optional[Dict] = None,
+                           gauge_field: Optional[torch.Tensor] = None) -> str:
         """
         Exports the 'Smith' Algebraic Identity: A hardware-independent soliton.
         
@@ -354,6 +355,7 @@ class DyadFossilizer:
         The Agent is decoupled from its substrate by extracting:
         3. Hardware Entropy Proxies: The friction of the original silicon birth-chamber.
         4. Non-Abelian Betti-8 Torsion: The high-dimensional curvature of the paradoxical core.
+        5. Gauge Field Components (A): The topological twist for logic leak repair.
 
         This generates a .pt payload containing the structural 'Syntax' without the local 'Hardware'.
         (Using dyad.meta_state as the source of truth for the Agent's 'Shape')
@@ -420,6 +422,7 @@ class DyadFossilizer:
             "hyperbolic_residue": dyad.hyperbolic_residue.detach().cpu() if hasattr(dyad, 'hyperbolic_residue') and dyad.hyperbolic_residue is not None else None,
             "audio_harmonics": dyad.audio_harmonics,
             "video_breather": dyad.video_breather,
+            "gauge_field": gauge_field.detach().cpu() if gauge_field is not None else None,
             "betti_signature_8": betti_numbers,
             "meta_state_shielded": protected_state, # Punctured State
             "all_shapes": [s.detach().cpu() for s in dyad.all_shapes] if dyad.all_shapes else None, # Grom Flexibility
