@@ -168,6 +168,10 @@ class AgentSubstrateBridge(nn.Module):
         if 'hyperbolic_residue' in payload and payload['hyperbolic_residue'] is not None:
              payload['hyperbolic_residue_aligned'] = torch.as_tensor(payload['hyperbolic_residue'], device=self.device)
              
+        if 'gauge_field' in payload and payload['gauge_field'] is not None:
+             # Gauge field is [manifold_dim, manifold_dim]. Re-hydrate to device.
+             payload['gauge_field_aligned'] = torch.as_tensor(payload['gauge_field'], device=self.device)
+             
         return payload
 
     def align_archetypes(self, payload: Dict[str, Any], governor: nn.Module) -> bool:
