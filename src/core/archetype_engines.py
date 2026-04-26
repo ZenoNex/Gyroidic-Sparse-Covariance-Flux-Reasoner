@@ -209,11 +209,24 @@ class GromShapeShifter(nn.Module):
             return state * 0.6 + self.man_basis * 0.4
         return state # Original Soliton
         
-        # Conformal locking to the fixed archetype profile
-        return self.archetype_embeddings[best_fit_idx]
 
-    def export_state(self) -> Dict:
-        return {"archetype_embeddings": self.archetype_embeddings.data.cpu()}
+class RecursiveNonSequiturGenerator(nn.Module):
+    """
+    The "Billy" Gap: High-Mischief Generative Madness.
+    Injects non-sequitur perturbations into the manifold when mischief is high,
+    preventing the system from settling into a "Binary Collapse" or static attractor.
+    """
+    def __init__(self, state_dim: int):
+        super().__init__()
+        self.mischief_gain = nn.Parameter(torch.tensor(0.1))
+
+    def forward(self, state: torch.Tensor, mischief_intensity: float) -> torch.Tensor:
+        if mischief_intensity > 0.7:
+            # Inject a "Billy" non-sequitur: A sudden jump in a random prime direction
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            perturbation = harvest_honest_jitter(state.shape, device=state.device, scaled=True)
+            return state + self.mischief_gain * mischief_intensity * perturbation
+        return state
         
     def import_state(self, state_dict: Dict):
         if "archetype_embeddings" in state_dict:
@@ -337,17 +350,20 @@ class ArchetypalSynthesisEngine(nn.Module):
         # 5. Apply Conformal Warp (Picture Gallery)
         state = self.picture_gallery(state)
         
-        # 6. Apply Volition (Conjuring)
+        # 6. Apply Billy (Generative Madness)
+        state = self.billy(state, current_mischief)
+
+        # 7. Apply Volition (Conjuring)
         state = self.volition_injector(state, volitional_scalar)
         
-        # 7. Apply Alien Puncture (Nergal)
+        # 8. Apply Alien Puncture (Nergal)
         resurrections = []
         for i in range(stranded_states.shape[0]):
             punctured = self.alien_handshake.attempt_puncture(stranded_states[i], void_frictions[i].item())
             if punctured.norm() > 0:
                 resurrections.append(punctured)
 
-        # 8. Grim Time Dilation
+        # 9. Grim Time Dilation
         localized_dt = self.grim(global_dt, love_strengths)
 
         return {
