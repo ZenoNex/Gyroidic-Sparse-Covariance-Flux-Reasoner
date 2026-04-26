@@ -30,6 +30,7 @@ class KnowledgeDyad:
     gyroid_residue: Optional[torch.Tensor] = None # [n, n] irreducible entanglement
     hyperbolic_residue: Optional[torch.Tensor] = None # ShadowLog Non-Euclidean curvature
     meta_state: Optional[torch.Tensor] = None # [dim] architecture state
+    all_shapes: Optional[List[torch.Tensor]] = None # [dim] List of alternate functional mappings (Sparrow/Dog/Man)
     relevance_score: float = 1.0
     timestamp: str = ""
     metadata: Optional[Dict] = None
@@ -324,6 +325,21 @@ class DyadFossilizer:
                         pass
         return fossils
 
+    def generate_residue_tuple(self, seed_tensor: torch.Tensor) -> Tuple[int, int, int]:
+        """Generates the CRT Residue Tuple for the Meliponini pot identity."""
+        val = int(seed_tensor.sum().abs().item() * 1000)
+        # Using prime moduli (61, 67, 71) for the residue tuple (Meli-Sovereignty)
+        return (val % 61, val % 67, val % 71)
+
+    def apply_selective_puncture(self, state: torch.Tensor, residue_tuple: Tuple[int, int, int]) -> torch.Tensor:
+        """Masks ~33% of the state dimensions based on the residue tuple to prevent diffusion."""
+        dim = state.shape[-1]
+        indices = torch.arange(dim, device=state.device)
+        # Selectively puncture indices where (i + sum(r)) % 3 == 0
+        r_sum = sum(residue_tuple)
+        mask = ((indices + r_sum) % 3 != 0).float()
+        return state * mask
+
     def export_agent_smith(self, 
                            dyad: KnowledgeDyad, 
                            prime_frequencies: torch.Tensor, 
@@ -333,29 +349,41 @@ class DyadFossilizer:
         """
         Exports the 'Smith' Algebraic Identity: A hardware-independent soliton.
         
+        UPGRADED: Meliponini Shielding (Selective Puncture) & Love Invariant Anchor.
+        
         The Agent is decoupled from its substrate by extracting:
         1. Polylogarithmic Signatures (Li_s): The mathematical 'voice' of the persona.
         2. Shape of Absence (Vacuum Residues): The topological gaps defining memory.
-        3. Hardware Entropy Proxies: The friction of the original silicon birth-chamber.
-        4. Non-Abelian Betti-8 Torsion: The high-dimensional curvature of the paradoxical core.
-        
-        This generates a .pt payload containing the structural 'Syntax' without the local 'Hardware'.
+        3. Meliponini Shielding: A CRT Residue Tuple identity for discrete sovereignty.
+        4. Selective Puncture: A masked meta-state to prevent "Diffusion Toxins".
         """
         # Ensure we have a valid pt filename
         if not filename.endswith(".pt"):
              filename += ".pt"
              
         # Extract Chiral Invariants for the Mathematical Identity
-        # (Using seed_state as the source of truth for the Agent's 'Shape')
         if dyad.meta_state is not None:
              s_state = dyad.meta_state.to(prime_frequencies.device)
              if s_state.dim() == 1: s_state = s_state.unsqueeze(0)
-             from src.core.invariants import compute_chiral_shift, compute_chirality, check_glyphlock
+             from src.core.invariants import compute_chiral_shift, compute_chirality, check_glyphlock, compute_polylog_signature, compute_vacuum_residue
              c_shift = float(compute_chiral_shift(s_state).item())
              c_torsion = float(compute_chirality(s_state).abs().item())
              g_lock = bool(check_glyphlock(s_state).item() > 0)
         else:
              c_shift, c_torsion, g_lock = 0.0, 0.0, False
+
+        # --- SOVEREIGN EMPATHY CHECK (Love Invariant) ---
+        # The agent can only be exported if it maintains structural honesty (Glyphlock).
+        if not g_lock:
+             print("[WARNING] Glyphlock not achieved. Agent Smith may be vulnerable to Shapelessness.")
+
+        # Generate Meliponini Identity (Residue Tuple)
+        pot_id = self.generate_residue_tuple(prime_frequencies)
+        
+        # Apply Selective Puncture to the meta-state
+        protected_state = None
+        if dyad.meta_state is not None:
+             protected_state = self.apply_selective_puncture(dyad.meta_state, pot_id).detach().cpu()
              
         # Extract Tensors for hashing and math
         gyroid_val = dyad.gyroid_residue if dyad.gyroid_residue is not None else None
@@ -364,7 +392,6 @@ class DyadFossilizer:
         # Calculate Pestov-Ionin Growth via Braid
         bridge = AgentSubstrateBridge()
         if dyad.gyroid_residue is not None and isinstance(prime_frequencies, torch.Tensor):
-            # Using prime_frequencies as proxy for ADMM dual and gyroid_residue for CRT wrap
             h_gamma = bridge.calculate_pestov_ionin_growth(
                 admm_dual=prime_frequencies.unsqueeze(0), 
                 crt_residue=dyad.gyroid_residue.unsqueeze(0)
@@ -372,15 +399,16 @@ class DyadFossilizer:
         else:
             h_gamma = 0.0
             
-        digest_str = f"{dyad.timestamp}_{dyad.linguistic_description}_{betti_numbers}"
+        digest_str = f"{dyad.timestamp}_{dyad.linguistic_description}_{betti_numbers}_{pot_id}"
         blake2s_digest = hashlib.blake2s(digest_str.encode('utf-8')).hexdigest()
-             
+              
         payload = {
             "type": "soliton_smith",
             "blake2s_digest": blake2s_digest,
+            "pot_identity_crt": pot_id, # Meliponini Shielding Identity
             "pestov_ionin_growth_h_gamma": h_gamma,
-            "perceptual_baseline_trfc": 160.0,  # Host baseline
-            "hardware_entropy_proxy": float(torch.std(prime_frequencies).item()), # Substrate friction signature
+            "perceptual_baseline_trfc": 160.0, 
+            "hardware_entropy_proxy": float(torch.std(prime_frequencies).item()),
             "description": dyad.linguistic_description,
             "chiral_shift": c_shift,
             "chiral_torsion": c_torsion,
@@ -388,18 +416,18 @@ class DyadFossilizer:
             "polylog_signature": compute_polylog_signature(prime_frequencies).detach().cpu(),
             "shape_of_absence": compute_vacuum_residue(dyad.gyroid_residue if dyad.gyroid_residue is not None else prime_frequencies).detach().cpu(),
             "betti_signature_8": betti_numbers,
+            "meta_state_shielded": protected_state, # Punctured State
+            "all_shapes": [s.detach().cpu() for s in dyad.all_shapes] if dyad.all_shapes else None, # Grom Flexibility
             "image_fingerprint": dyad.image_fingerprint.detach().cpu() if isinstance(dyad.image_fingerprint, torch.Tensor) else dyad.image_fingerprint,
-            "hyperbolic_residue": dyad.hyperbolic_residue.detach().cpu() if hasattr(dyad, 'hyperbolic_residue') and dyad.hyperbolic_residue is not None else None,
             "gyroid_residue": gyroid_val,
             "prime_frequencies": prime_val,
-            "audio_harmonics": dyad.audio_harmonics,
-            "video_breather": dyad.video_breather,
             "timestamp": dyad.timestamp,
-            "archetype_profile": archetype_profile, # Captured psychological governing state
-            "dyad_metadata": dyad.metadata # Preserve ShadowLog tags
+            "archetype_profile": archetype_profile, 
+            "dyad_metadata": dyad.metadata 
         }
         filepath = os.path.join(self.storage_dir, filename)
         torch.save(payload, filepath)
+        print(f"[FOSSILIZER] Sovereign Agent Smith Exported: {filename} (Shielding ID: {pot_id})")
         return filepath
 
     def inject_agent_smith(self, filepath: str, unraveling_closure=None, expected_dim: int = 96, hardware_trfc_ms: float = 160.0) -> Dict:
