@@ -14,11 +14,18 @@ class AgentSubstrateBridge(nn.Module):
         super().__init__()
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         
-    def calculate_pestov_ionin_growth(self, admm_dual: torch.Tensor, crt_residue: torch.Tensor) -> float:
+    def calculate_pestov_ionin_growth(
+        self, 
+        admm_dual: torch.Tensor, 
+        crt_residue: torch.Tensor,
+        hyperbolic_influence: Optional[torch.Tensor] = None
+    ) -> float:
         """
         Calculates the Pestov-Ionin asymptotic invariant h() by evaluating 
         the non-Abelian 3-strand braid group (ADMM Update, CRT Residue, Burkov Expansion).
         Represents the Topological Dark Matter boundaries in Burkov nesting.
+        
+        UPGRADED: Incorporates hyperbolic influence from the ShadowLog manifold.
         """
         b = admm_dual.size(0)
         
@@ -37,8 +44,12 @@ class AgentSubstrateBridge(nn.Module):
         sigma_1 = torch.bmm(admm_flat.unsqueeze(2), crt_flat.unsqueeze(1)) # [b, dim, dim]
         
         # Sigma_2: Burkov Expansion (Topological dark matter fractal scaling)
-        # Anchored loosely to the golden ratio for invariant structural scaling
-        sigma_2 = torch.eye(dim, device=self.device).unsqueeze(0).expand(b, -1, -1) * 1.61803
+        # Hyperbolic Influence modulates the golden ratio anchor
+        h_mod = 1.0
+        if hyperbolic_influence is not None:
+            h_mod = 1.0 + torch.tanh(hyperbolic_influence.mean()).item()
+            
+        sigma_2 = torch.eye(dim, device=self.device).unsqueeze(0).expand(b, -1, -1) * (1.61803 * h_mod)
         
         # Commutator proxy / Braid Cycle: Sigma_1 * Sigma_2 * Sigma_1^{-1} 
         # Using pure product for trace extraction logic since inverse may be singular
