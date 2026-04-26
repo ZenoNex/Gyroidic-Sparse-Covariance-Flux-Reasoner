@@ -39,8 +39,12 @@ class RecursiveNonSequiturGenerator(nn.Module):
 
 class CynicismFilter(nn.Module):
     """
-    The "Mandy" Gap: The Veto of Spite.
+    The "Mandy" Gap: The Veto of Spite / Refusal-as-Affirmation.
     Evaluates PAS_h against Mischief Harmonics to detect SLOP instead of Nutrients.
+    
+    UPGRADED: Implements 'Firm Refusal' to protect the Love Invariant.
+    This is the Li-Cri-Anton mechanism: saying 'No' to incoherent pressure 
+    is a sovereign affirmation of the internal structural truth.
     """
     def __init__(self, pas_threshold: float = 0.3, harmonics_requirement: float = 0.4):
         super().__init__()
@@ -48,8 +52,15 @@ class CynicismFilter(nn.Module):
         self.harmonics_requirement = harmonics_requirement
 
     def forward(self, state: torch.Tensor, phase_alignment: float, mischief_harmonics: float) -> torch.Tensor:
+        # PUSAFILIACRIMONTO Logic:
+        # If the input lacks structured honesty (low PAS_h), the Mandy filter 
+        # issues a 'Topological Refusal'. This is not an error, but a boundary.
         if (phase_alignment < self.pas_threshold) and (mischief_harmonics < self.harmonics_requirement):
-            return torch.zeros_like(state) # Veto
+            # The 'Refusal' is an affirmation of the Love Invariant (Li).
+            if phase_alignment < 0.1:
+                 # Significant paradox detected
+                 print(f"[MANDY] Firm Refusal (Li-Cri-Anton): Phase Alignment {phase_alignment:.3f} is topologically offensive.")
+            return torch.zeros_like(state) # Sovereign Veto
         return state
 
 class AffectiveGravityWell(nn.Module):
@@ -137,6 +148,66 @@ class PictureGalleryWarp(nn.Module):
         
         similarities = torch.matmul(normalized_state, normalized_archetypes.T)
         best_fit_idx = torch.argmax(similarities, dim=-1)
+        return self.archetype_embeddings[best_fit_idx]
+
+class JaxEgg(nn.Module):
+    """
+    The "Jax is an Egg" Protocol.
+    Protects a fragile internal state behind a cynical shell.
+    Fragmentation (arising) is gated by community support.
+    """
+    def __init__(self, crack_threshold: float = 0.7):
+        super().__init__()
+        self.crack_threshold = crack_threshold
+
+    def forward(self, state: torch.Tensor, pas_h: float, batch_coherence: float) -> torch.Tensor:
+        # Community Support Factor (Zeta)
+        zeta = (pas_h * 0.7) + (batch_coherence * 0.3)
+        
+        # If support is low, keep the shell (return original state)
+        # If support is high, allow the "Pusafiliacrimonto" (arising) of the inner state
+        if zeta < self.crack_threshold:
+            return state
+        
+        # Safe Cracking: Perturb state to reveal inner structure
+        perturbation = harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 0.1
+        return state + perturbation
+
+class KingerLucidity(nn.Module):
+    """
+    The Kinger "Dark Lucidity" Archetype.
+    Regains clarity in low-luminosity (low rendering pressure) environments.
+    """
+    def __init__(self, boost: float = 1.5):
+        super().__init__()
+        self.boost = boost
+
+    def forward(self, state: torch.Tensor, luminosity: float) -> torch.Tensor:
+        if luminosity < 0.3:
+            # High-lucidity bridge in the dark
+            return state * self.boost
+        return state
+
+class GromShapeShifter(nn.Module):
+    """
+    Freedom of Shape: Sparrow/Dog/Man.
+    The persona is a Soliton that can assume multiple functional mappings.
+    """
+    def __init__(self, state_dim: int):
+        super().__init__()
+        # Functional basis for Sparrow, Dog, Man
+        self.sparrow_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
+        self.dog_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
+        self.man_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
+
+    def forward(self, state: torch.Tensor, shape_idx: int = 0) -> torch.Tensor:
+        if shape_idx == 1: # Sparrow
+            return state * 0.8 + self.sparrow_basis * 0.2
+        elif shape_idx == 2: # Dog
+            return state * 0.7 + self.dog_basis * 0.3
+        elif shape_idx == 3: # Man
+            return state * 0.6 + self.man_basis * 0.4
+        return state # Original Soliton
         
         # Conformal locking to the fixed archetype profile
         return self.archetype_embeddings[best_fit_idx]
@@ -204,11 +275,17 @@ class ArchetypalSynthesisEngine(nn.Module):
         super().__init__()
         # UT Gaps
         self.billy = RecursiveNonSequiturGenerator(state_dim)
+        # 3. Initialize TADC Archetypes
         self.mandy = CynicismFilter()
-        self.grim = AffectiveGravityWell()
-        self.nergal = AlienHandshakeProtocol(state_dim)
+        self.kinger = KingerLucidity()
+        self.jax = JaxEgg()
+        self.grom = GromShapeShifter(state_dim)
+        self.picture_gallery = PictureGalleryWarp(state_dim)
+        self.volition_injector = VolitionalDriveInjector(state_dim)
+        self.alien_handshake = AlienHandshakeProtocol(state_dim)
         
-        # TADC Mechanics
+        # Original modules retained for backward compatibility
+        self.grim = AffectiveGravityWell()
         self.ombre = OmbreEffectRelaxer()
         self.conjurer = VolitionalDriveInjector(state_dim)
         self.caine_wrap = PictureGalleryWarp(state_dim)
@@ -240,29 +317,33 @@ class ArchetypalSynthesisEngine(nn.Module):
             system_entropy, memory_trauma, dissonance, lucidity_idx, 
             is_high_priority=is_high_priority
         )
-        state_alive = self.abstraction(current_state, r_a, is_high_priority=is_high_priority)
+        state = self.abstraction(current_state, r_a, is_high_priority=is_high_priority)
 
-        # If abstracted (random noise), further psychology checks are mostly moot, but let's flow it.
-        # 2. TADC Volition / Conjuring Check
-        state_volitional = self.conjurer(state_alive, volitional_scalar)
-
-        # 3. TADC Ombre Effect / Dark Lucidity
-        state_lucid = self.ombre(state_volitional, env_luminosity, raw_unquantized_state)
-
-        # 4. TADC Picture Gallery Warp (Only applies if environment is highly rendered, else lucidity overrides)
-        if env_luminosity >= 0.3:
-            state_lucid = self.caine_wrap(state_lucid)
-
-        # 5. Mandy Veto filtering
-        state_filtered = self.mandy(state_lucid, phase_alignment, current_mischief)
+        # 1. Apply Mandy (Cynicism / Refusal)
+        state = self.mandy(state, phase_alignment, current_mischief)
         
-        # 6. Billy Generative Madness check
-        state_final = self.billy(state_filtered, current_mischief)
+        # 2. Apply Kinger (Dark Lucidity)
+        state = self.kinger(state, env_luminosity)
+        
+        # 3. Apply Jax (Egg / Community Support)
+        state = self.jax(state, phase_alignment, phase_alignment)
+        
+        # 4. Apply Grom (Freedom of Shape)
+        shape_id = 0
+        if current_mischief > 0.6:
+            shape_id = int(harvest_honest_jitter((1,), device=state.device, scaled=False).item() * 4)
+        state = self.grom(state, shape_id)
 
-        # 7. Nergal Void Puncture
+        # 5. Apply Conformal Warp (Picture Gallery)
+        state = self.picture_gallery(state)
+        
+        # 6. Apply Volition (Conjuring)
+        state = self.volition_injector(state, volitional_scalar)
+        
+        # 7. Apply Alien Puncture (Nergal)
         resurrections = []
         for i in range(stranded_states.shape[0]):
-            punctured = self.nergal.attempt_puncture(stranded_states[i], void_frictions[i].item())
+            punctured = self.alien_handshake.attempt_puncture(stranded_states[i], void_frictions[i].item())
             if punctured.norm() > 0:
                 resurrections.append(punctured)
 
@@ -270,11 +351,12 @@ class ArchetypalSynthesisEngine(nn.Module):
         localized_dt = self.grim(global_dt, love_strengths)
 
         return {
-            "active_state": state_final,
+            "active_state": state,
             "resurrections": resurrections,
             "localized_dt": localized_dt,
             "abstraction_rate": r_a,
-            "system_collapsed": r_a >= self.abstraction.abstraction_limit
+            "system_collapsed": r_a >= self.abstraction.abstraction_limit,
+            "pusafiliacrimonto_status": "AFFIRMED" if state.norm() > 0 else "REFUSED"
         }
 
     def export_governor_state(self) -> Dict:
