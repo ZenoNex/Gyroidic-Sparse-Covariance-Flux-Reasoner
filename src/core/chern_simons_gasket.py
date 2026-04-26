@@ -58,7 +58,7 @@ class ChernSimonsGasket(nn.Module):
     """
     Implements the Chern-Simons gasket to prevent logic leaks.
     
-    The Problem: Data leaks through holes in the manifold at the boundary Σ
+    The Problem: Data leaks through holes in the manifold at the boundary 
     The Solution: Chern-Simons term provides topological twist (chirality)
     """
     
@@ -107,7 +107,9 @@ class ChernSimonsGasket(nn.Module):
         
         # Initialize gauge field with holonomy condition
         for i in range(min(self.manifold_dim, K)):
-            holonomy_value = 2 * math.pi * gcd_values[i] / self.level_k
+            # Hazard Protection: level_k must not be zero
+            safe_k = max(self.level_k, 1)
+            holonomy_value = 2 * math.pi * gcd_values[i] / safe_k
             
             # Set gauge field components (antisymmetric)
             if i + 1 < self.manifold_dim:
@@ -116,7 +118,7 @@ class ChernSimonsGasket(nn.Module):
     
     def compute_field_strength(self) -> torch.Tensor:
         """
-        Compute field strength F = dA + A ∧ A.
+        Compute field strength F = dA + A  A.
         
         Returns:
             Field strength tensor [dim, dim]
@@ -124,7 +126,7 @@ class ChernSimonsGasket(nn.Module):
         A = self.gauge_field
         
         # Curvature F = dA + [A, A] (simplified for discrete case)
-        # Using commutator [A, A] = AA - AA = 0, so F ≈ dA
+        # Using commutator [A, A] = AA - AA = 0, so F  dA
         # In discrete setting, approximate dA as finite differences
         
         F = torch.zeros_like(A)
@@ -142,7 +144,7 @@ class ChernSimonsGasket(nn.Module):
         """
         Compute Chern-Simons action along a loop path.
         
-        S_CS = (k/4π) ∫_Σ Tr(A ∧ dA + (2/3) A ∧ A ∧ A)
+        S_CS = (k/4) _ Tr(A  dA + (2/3) A  A  A)
         
         Args:
             loop_path: Path coordinates [path_length, dim]
@@ -216,7 +218,7 @@ class ChernSimonsGasket(nn.Module):
     
     def apply_chiral_torsion_shift(self, residues: torch.Tensor) -> torch.Tensor:
         """
-        Apply 90° chiral torsion shift to rotate consonants out of collapsed state.
+        Apply 90 chiral torsion shift to rotate consonants out of collapsed state.
         
         Args:
             residues: Input residues [batch, K, D]
@@ -226,9 +228,9 @@ class ChernSimonsGasket(nn.Module):
         """
         batch_size, K, D = residues.shape
         
-        # Create rotation matrix for 90° twist
+        # Create rotation matrix for 90 twist
         if D >= 2:
-            # 2D rotation matrix for 90° (π/2)
+            # 2D rotation matrix for 90 (/2)
             cos_theta = torch.cos(torch.tensor(math.pi / 2, device=self.device))
             sin_theta = torch.sin(torch.tensor(math.pi / 2, device=self.device))
             
@@ -367,11 +369,12 @@ class SolitonStabilityHealer(nn.Module):
             return False
         
         # Fractured if very low vowel ratio and high repetition
-        vowel_ratio = vowel_count / (vowel_count + consonant_count)
+        total_chars = vowel_count + consonant_count
+        vowel_ratio = vowel_count / max(total_chars, 1)
         
         # Check for repetitive patterns (sign of collapse)
         unique_chars = len(set(output_text))
-        repetition_ratio = unique_chars / len(output_text)
+        repetition_ratio = unique_chars / max(len(output_text), 1)
         
         # Check for known garbled patterns
         garbled_patterns = ['nccmts', 'mnelt', 'clrcl', 'tncsec']
@@ -381,7 +384,7 @@ class SolitonStabilityHealer(nn.Module):
     
     def apply_ranging_signal(self, residues: torch.Tensor) -> torch.Tensor:
         """
-        Apply ranging signal: α → α₀ + γ for manifold heating.
+        Apply ranging signal:    +  for manifold heating.
         
         Args:
             residues: Input residues [batch, K, D]
@@ -432,7 +435,7 @@ class SolitonStabilityHealer(nn.Module):
         deviatoric = residues - residue_mean  # [batch, K, D]
         J2 = 0.5 * (deviatoric ** 2).sum(dim=-1)  # [batch, K]
         
-        # Drucker-Prager yield criterion: α*I1 + sqrt(J2) - k = 0
+        # Drucker-Prager yield criterion: *I1 + sqrt(J2) - k = 0
         # We use this to identify regions needing healing
         dp_stress = self.alpha * I1 + torch.sqrt(J2 + 1e-8)
         
@@ -442,7 +445,8 @@ class SolitonStabilityHealer(nn.Module):
         if gcve_pressure is not None:
             # Biological Manifold Warping (Beehive Topology): 
             # High GCVE stress lowers the yield threshold, allowing adaptive flow
-            stress_threshold = stress_threshold / (1.0 + gcve_pressure)
+            # Hazard Protection: 1 + pressure must not be zero
+            stress_threshold = stress_threshold / max(1.0 + gcve_pressure, 1e-4)
             
         healing_mask = (dp_stress > stress_threshold).float().unsqueeze(-1)  # [batch, K, 1]
         
