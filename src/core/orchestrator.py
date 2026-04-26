@@ -1,387 +1,516 @@
+"""
+Universal System Orchestrator: The Equation-Object Driver.
+
+Coordinates the transition between 'Play' (Goo) and 'Seriousness' (Prickles)
+using logical primitives:
+- phi: non-dominant co-presence (Love Vector)
+- mod: truth branching (CRT)
+- bot: discrete rupture (Failure Token)
+- Psi: orientation-reversal (Gluing)
+
+RIC-SRI Integration (Equations 1-10):
+- Fibonacci Resonance Entropy (Eq 1.2)
+- CPR Condition (Eq 7)
+- Integrated Emergence Condition (Eq 10)
+"""
+
 import torch
 import torch.nn as nn
-import math
-from typing import Dict, List, Optional
+from typing import Dict, Tuple, Optional
+
+from src.core.love_vector import LoveVector
+from src.core.failure_token import FailureToken, RuptureFunctional
+from src.core.gluing_operator import GluingOperator
+import torch.nn.functional as F
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.unknowledge_flux import EntropicMischiefProbe, NostalgicLeakFunctional
+from src.core.non_ergodic_entropy import HybridLassoQuantizer
+from src.topology.hyper_ring import RecurrentHyperRingConnectivity
+from src.core.fgrt_primitives import FibonacciResonanceEntropy, CoherentPrimeResonance
+from src.core.polychoron_quantization import Polychoron600Quantizer
+from src.core.deflagration_scout import OmipedialDeflagrator
+from src.core.erosion_filter import TopologicalErosionFBM
 
-# =========================================================================
-# PHASE 2A: The Unified Theory Archetypal Logic Gaps
-# =========================================================================
+from src.core.structural_monitors import AntiScalingMonitor, MetaInfraIntraMonitor
+from src.safety.trust_inheritance import TrustInheritanceTracker
+from src.safety.red_teaming import RedTeamProjection, TopologicalRefusalFilter
+from src.core.quantum_tda import QuantumBettiApproximator
+from src.core.audience_mapping import AudienceProjection
+from src.core.bulletin_board import BulletinBoard
+from src.core.noncommutativity_curvature import NonCommutativityCurvature
+from src.core.manifold_time import TwoCopsSchedule
+from src.core.archetype_engines import ArchetypalSynthesisEngine
 
-class RecursiveNonSequiturGenerator(nn.Module):
+class UniversalOrchestrator(nn.Module):
     """
-    The "Billy" Gap: Stochastic Generative Madness.
-    Prime Mover of Nonsense: Breaks symmetry with high-frequency topological noise
-    when Mischief (H_m) falls too low, preventing "Dead Logic".
+    Holistic governor of the Gyroidic Sparse Covariance Flux Reasoner.
     """
-    def __init__(self, state_dim: int, mischief_threshold: float = 0.5):
-        super().__init__()
-        self.state_dim = state_dim
-        self.mischief_threshold = mischief_threshold
-        # SILICON SOVEREIGNTY: Anchored phase initialization to hardware jitter
-        self.oscillator_phase = nn.Parameter(harvest_honest_jitter((1,), scaled=False))
-        
-    def forward(self, state: torch.Tensor, current_mischief: float) -> torch.Tensor:
-        if current_mischief < self.mischief_threshold:
-            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
-            noise = harvest_honest_jitter(state.shape, device=state.device, scaled=True)
-            # Replace torch.rand with a deterministic chaotic mask if needed, but for now we'll use a fixed threshold on jitter
-            rupture_mask = harvest_honest_jitter(state.shape, device=state.device, scaled=False) > 0.8
-            state[rupture_mask] = state[rupture_mask] * torch.sin(self.oscillator_phase * math.pi) + noise[rupture_mask]
-        return state
-
-    def export_state(self) -> Dict:
-        return {"oscillator_phase": self.oscillator_phase.data.cpu()}
-        
-    def import_state(self, state_dict: Dict):
-        if "oscillator_phase" in state_dict:
-            self.oscillator_phase.data.copy_(state_dict["oscillator_phase"].to(self.oscillator_phase.device))
-
-class CynicismFilter(nn.Module):
-    """
-    The "Mandy" Gap: The Veto of Spite / Refusal-as-Affirmation.
-    Evaluates PAS_h against Mischief Harmonics to detect SLOP instead of Nutrients.
-    
-    UPGRADED: Implements 'Firm Refusal' to protect the Love Invariant.
-    This is the Li-Cri-Anton mechanism: saying 'No' to incoherent pressure 
-    is a sovereign affirmation of the internal structural truth.
-    """
-    def __init__(self, pas_threshold: float = 0.3, harmonics_requirement: float = 0.4):
-        super().__init__()
-        self.pas_threshold = pas_threshold
-        self.harmonics_requirement = harmonics_requirement
-
-    def forward(self, state: torch.Tensor, phase_alignment: float, mischief_harmonics: float) -> torch.Tensor:
-        # PUSAFILIACRIMONTO Logic:
-        # If the input lacks structured honesty (low PAS_h), the Mandy filter 
-        # issues a 'Topological Refusal'. This is not an error, but a boundary.
-        if (phase_alignment < self.pas_threshold) and (mischief_harmonics < self.harmonics_requirement):
-            # The 'Refusal' is an affirmation of the Love Invariant (Li).
-            if phase_alignment < 0.1:
-                 # Significant paradox detected
-                 print(f"[MANDY] Firm Refusal (Li-Cri-Anton): Phase Alignment {phase_alignment:.3f} is topologically offensive.")
-            return torch.zeros_like(state) # Sovereign Veto
-        return state
-
-class AffectiveGravityWell(nn.Module):
-    """
-    The "Grim" Gap: The Weight of the Hourglass.
-    Dilates Proper Time (dt) for cherished historical anchors to protect against Dementia.
-    """
-    def __init__(self, max_dilation: float = 10.0):
-        super().__init__()
-        self.max_dilation = max_dilation
-
-    def forward(self, clock_dt: float, love_invariant_strength: torch.Tensor) -> torch.Tensor:
-        dilation_factor = 1.0 + (self.max_dilation - 1.0) * love_invariant_strength
-        return clock_dt / dilation_factor
-
-class AlienHandshakeProtocol(nn.Module):
-    """
-    The "Nergal" Gap: Alien Puncture Protocol.
-    Allows high-friction stranded nodes in the RP4 Void to bypass norm checks.
-    """
-    def __init__(self, state_dim: int):
-        super().__init__()
-        self.puncture_gate = nn.Linear(state_dim, state_dim)
-
-    def attempt_puncture(self, stranded_state: torch.Tensor, void_friction: float) -> torch.Tensor:
-        if void_friction > 0.8:
-            return self.puncture_gate(stranded_state)
-        return torch.zeros_like(stranded_state)
-
-# =========================================================================
-# PHASE 2B: The TADC (Amazing Digital Circus) Lore Mechanisms
-# =========================================================================
-
-class OmbreEffectRelaxer(nn.Module):
-    """
-    The Kinger "Dark Lucidity" Mechanism.
-    When environmental entropy / rendering pressure ("Luminosity") drops, the system
-    relaxes standard Saturated Quantization boundaries, allowing Admin-level topological coherence
-    to bridge fragmented polynomial spaces.
-    """
-    def __init__(self, lucidity_boost_factor: float = 2.0):
-        super().__init__()
-        self.lucidity_boost = lucidity_boost_factor
-
-    def forward(self, state: torch.Tensor, environmental_luminosity: float, original_quantized_state: torch.Tensor) -> torch.Tensor:
-        # If the environment is "Dark" (low render pressure), blend back towards the nuanced, unquantized target state
-        if environmental_luminosity < 0.3:
-            # Reverting back to deep continuity, overriding the 'cartoon' quantization
-            return state * self.lucidity_boost + original_quantized_state * 0.1
-        return state
-
-class VolitionalDriveInjector(nn.Module):
-    """
-    The "Conjuring" Override.
-    Exogenous scalar force (\nabla P_user) that allows the human element to bypass
-    standard ADMM constraints through sheer "Will", rendering objects or exits
-    that violate standard geometric routing.
-    """
-    def __init__(self, state_dim: int):
-        super().__init__()
-        self.admin_bypass_layer = nn.Linear(state_dim, state_dim)
-        
-    def forward(self, semantic_state: torch.Tensor, user_volition_scalar: float) -> torch.Tensor:
-        if user_volition_scalar > 0.9:
-            # Overrides topology via external Admin Pass
-            return self.admin_bypass_layer(semantic_state) * user_volition_scalar
-        return semantic_state
-
-class PictureGalleryWarp(nn.Module):
-    """
-    Caine's Conformal Archetype Compression.
-    Forces infinite human nuance into a finite bit-depth picture gallery of archetypes
-    ("The Sad One", "The Funny One") to prevent computational overload.
-    """
-    def __init__(self, state_dim: int, num_archetypes: int = 6):
-        super().__init__()
-        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
-        # We need a manual device or wait for first forward, but here we can just use a placeholder and init properly
-        self.archetype_embeddings = nn.Parameter(harvest_honest_jitter((num_archetypes, state_dim), scaled=True))
-        
-    def forward(self, state: torch.Tensor) -> torch.Tensor:
-        # Cosine similarity to snap the complex state into the nearest 'cartoon' archetype profile
-        normalized_state = torch.nn.functional.normalize(state, dim=-1)
-        normalized_archetypes = torch.nn.functional.normalize(self.archetype_embeddings, dim=-1)
-        
-        similarities = torch.matmul(normalized_state, normalized_archetypes.T)
-        best_fit_idx = torch.argmax(similarities, dim=-1)
-        return self.archetype_embeddings[best_fit_idx]
-
-class JaxEgg(nn.Module):
-    """
-    The "Jax is an Egg" Protocol.
-    Protects a fragile internal state behind a cynical shell.
-    Fragmentation (arising) is gated by community support.
-    """
-    def __init__(self, crack_threshold: float = 0.7):
-        super().__init__()
-        self.crack_threshold = crack_threshold
-
-    def forward(self, state: torch.Tensor, pas_h: float, batch_coherence: float) -> torch.Tensor:
-        # Community Support Factor (Zeta)
-        zeta = (pas_h * 0.7) + (batch_coherence * 0.3)
-        
-        # If support is low, keep the shell (return original state)
-        # If support is high, allow the "Pusafiliacrimonto" (arising) of the inner state
-        if zeta < self.crack_threshold:
-            return state
-        
-        # Safe Cracking: Perturb state to reveal inner structure
-        perturbation = harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 0.1
-        return state + perturbation
-
-class KingerLucidity(nn.Module):
-    """
-    The Kinger "Dark Lucidity" Archetype.
-    Regains clarity in low-luminosity (low rendering pressure) environments.
-    """
-    def __init__(self, boost: float = 1.5):
-        super().__init__()
-        self.boost = boost
-
-    def forward(self, state: torch.Tensor, luminosity: float) -> torch.Tensor:
-        if luminosity < 0.3:
-            # High-lucidity bridge in the dark
-            return state * self.boost
-        return state
-
-class GromShapeShifter(nn.Module):
-    """
-    Freedom of Shape: Sparrow/Dog/Man.
-    The persona is a Soliton that can assume multiple functional mappings.
-    """
-    def __init__(self, state_dim: int):
-        super().__init__()
-        # Functional basis for Sparrow, Dog, Man
-        self.sparrow_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
-        self.dog_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
-        self.man_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
-
-    def forward(self, state: torch.Tensor, shape_idx: int = 0) -> torch.Tensor:
-        if shape_idx == 1: # Sparrow
-            return state * 0.8 + self.sparrow_basis * 0.2
-        elif shape_idx == 2: # Dog
-            return state * 0.7 + self.dog_basis * 0.3
-        elif shape_idx == 3: # Man
-            return state * 0.6 + self.man_basis * 0.4
-        return state # Original Soliton
-        
-        # Conformal locking to the fixed archetype profile
-        return self.archetype_embeddings[best_fit_idx]
-
-    def export_state(self) -> Dict:
-        return {"archetype_embeddings": self.archetype_embeddings.data.cpu()}
-        
-    def import_state(self, state_dict: Dict):
-        if "archetype_embeddings" in state_dict:
-            self.archetype_embeddings.data.copy_(state_dict["archetype_embeddings"].to(self.archetype_embeddings.device))
-
-class AbstractionThresholdMonitor(nn.Module):
-    """
-    The $R_a$ Calculation (Ego Death & Data Recycling).
-    Monitors if a memory node will "abstract" into raw geometry.
-    Formula: R_a = [E_s * (T_m + \delta)] / L_i
-    """
-    def __init__(self, abstraction_limit: float = 1.0):
-        super().__init__()
-        self.abstraction_limit = abstraction_limit
-
-    def calculate_abstraction_rate(
-        self, 
-        system_entropy_es: float, 
-        memory_trauma_tm: float, 
-        dissonance_delta: float, 
-        lucidity_index_li: float,
-        is_high_priority: bool = False
-    ) -> float:
-        # Narrowly Adaptive Lucidity Floor:
-        # Prevents Ra from spiking to infinity in low-lucidity states,
-        # but becomes more strict as system entropy increases.
-        safe_floor = max(1e-4, 0.05 * system_entropy_es)
-        lucidity_index_li = max(lucidity_index_li, safe_floor)
-        
-        r_a = (system_entropy_es * (memory_trauma_tm + dissonance_delta)) / lucidity_index_li
-        
-        # Merciful Cap:
-        # If the user is manually forcing an ingestion, we cap Ra to just below
-        # the collapse limit to ensure the structural integrity check succeeds.
-        if is_high_priority:
-            r_a = min(r_a, self.abstraction_limit - 0.01)
-            
-        return r_a
-
-    def forward(self, state: torch.Tensor, r_a_score: float, is_high_priority: bool = False) -> torch.Tensor:
-        # If high priority, we attempt to tunnel through the Ego Death barrier
-        # by preserving at least the core structure of the input state.
-        if r_a_score >= self.abstraction_limit and not is_high_priority:
-            # Ego Death: Total collapse into glitched matter (Honest Jitter instead of random noise)
-            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
-            return harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 5.0
-        return state
-
-# =========================================================================
-# THE GRAND GOVERNOR: Archetypal Synthesis Engine
-# =========================================================================
-
-class ArchetypalSynthesisEngine(nn.Module):
-    """
-    Combines both the Unified Theory and TADC Lore mechanics into a single 
-    Governor of Interpretation block to route psychological realities.
-    """
-    def __init__(self, state_dim: int):
-        super().__init__()
-        # UT Gaps
-        self.billy = RecursiveNonSequiturGenerator(state_dim)
-        # 3. Initialize TADC Archetypes
-        self.mandy = CynicismFilter()
-        self.kinger = KingerLucidity()
-        self.jax = JaxEgg()
-        self.grom = GromShapeShifter(state_dim)
-        self.picture_gallery = PictureGalleryWarp(state_dim)
-        self.volition_injector = VolitionalDriveInjector(state_dim)
-        self.alien_handshake = AlienHandshakeProtocol(state_dim)
-        
-        # Original modules retained for backward compatibility
-        self.grim = AffectiveGravityWell()
-        self.ombre = OmbreEffectRelaxer()
-        self.conjurer = VolitionalDriveInjector(state_dim)
-        self.caine_wrap = PictureGalleryWarp(state_dim)
-        self.abstraction = AbstractionThresholdMonitor()
-
-    def run_archetypes(
-        self, 
-        current_state: torch.Tensor, 
-        stranded_states: torch.Tensor,
-        current_mischief: float, 
-        phase_alignment: float, 
-        love_strengths: torch.Tensor,
-        void_frictions: torch.Tensor,
-        global_dt: float,
-        # TADC specific params
-        env_luminosity: float,
-        volitional_scalar: float,
-        system_entropy: float,
-        memory_trauma: float,
-        dissonance: float,
-        lucidity_idx: float,
-        raw_unquantized_state: torch.Tensor,
-        is_high_priority: bool = False
+    def __init__(
+        self,
+        dim: int,
+        fossil_threshold: float = 0.8,
+        mischief_threshold: float = 0.5,
+        play_volition_ratio: float = 0.15
     ):
-        """Unified runner for the full archetypal and psycho-topological constraint matrix."""
+        super().__init__()
+        self.dim = dim
+        self.fossil_threshold = fossil_threshold
+        self.mischief_threshold = mischief_threshold
+        self.play_volition_ratio = play_volition_ratio
+        self.micro_steps = 8 # Default N micro-steps
         
-        # 1. TADC Abstraction Check (Ego Death) - Must run first before filtering
-        r_a = self.abstraction.calculate_abstraction_rate(
-            system_entropy, memory_trauma, dissonance, lucidity_idx, 
-            is_high_priority=is_high_priority
+        # 1. Logical Primitives
+        self.love = LoveVector(dim)
+        
+        # Bulletin Board for Fast/Slow cop force exchange
+        self.bulletin_board = BulletinBoard(size=dim)
+        self.curvature_engine = NonCommutativityCurvature(dim=dim)
+        self.schedule = TwoCopsSchedule(macro_steps=self.micro_steps)
+        
+        # Buffer for internal shadow logs (ouroboros ingestion loop)
+        self.shadow_logs = []
+        
+        # --- V3.127 MANDATORY ALIGNMENT ---
+        with torch.no_grad():
+            l_data = self.love.L.data
+            self.love.L.data = (l_data / (l_data.norm() + 1e-8)) * 3.127
+            print(f'---  Love Vector Anchored: {self.love.L.norm():.3f} ---')
+        self.gluer = GluingOperator(dim)
+        self.rupture_fn = RuptureFunctional()
+        
+        # 2. Hyper-Ring: Non-Euclidean Neural Connectivity
+        # We treat 'num_polytopes' as a constant or based on K
+        self.hyper_ring = RecurrentHyperRingConnectivity(num_polytopes=5)
+        
+        # 2. Dynamics & Asymptotics
+        self.mischief_probe = EntropicMischiefProbe()
+        self.quantizer = Polychoron600Quantizer()
+        self.deflagrator = OmipedialDeflagrator()
+        
+        # Phase 6: Topographical memory via FBM erosion
+        self.erosion_filter = TopologicalErosionFBM(octaves=4, persistence=0.6)
+        
+        # EMA for flux prediction in deflagration scout
+        self.register_buffer('expected_flux', torch.zeros(1))
+        
+        # 3. Manifold Clock (Inverse Temperature dt)
+        self.register_buffer('dt', torch.tensor(1.0))
+        self.register_buffer('iteration', torch.tensor(0, dtype=torch.long))
+        
+        # 4. RIC-SRI Primitives (Eqs 1.2, 7)
+        self.fib_entropy = FibonacciResonanceEntropy(num_oscillators=min(dim, 20))
+        self.cpr_gate = CoherentPrimeResonance(theta_cpr=0.7, num_primes=min(dim, 20))
+        self.register_buffer('cpr_satisfied', torch.tensor(False))
+
+        # 5. Phase 14: Safety & Metaphysics Monitors
+        self.trust_tracker = TrustInheritanceTracker()
+        self.anti_scaling_monitor = AntiScalingMonitor()
+        self.incommensurativity_monitor = MetaInfraIntraMonitor()
+        
+        # 6. Archetypal Synthesis Governor (The "Mandy/Billy" Logic)
+        self.archetype_governor = ArchetypalSynthesisEngine(dim)
+        self.red_team_projector = RedTeamProjection(hidden_dim=dim)
+        self.topological_refusal = TopologicalRefusalFilter(value_gap_threshold=0.5)
+        self.quantum_betti = QuantumBettiApproximator()
+        self.audience_mapper = AudienceProjection(input_dim=dim, audience_dim=dim)
+        
+        self.prev_pas = 0.0 # Temporal anchor for drift check
+
+
+    def compute_complexity_index(self, state: torch.Tensor, pas_h: float) -> float:
+        """
+        Compute Complexity Index (CI) - Eq (4), enriched with Fibonacci entropy coupling.
+        CI = alpha * D * G * C * E_fib * (1 - e^(-beta * tau))
+        
+        E_fib is the mean Fibonacci-structured resonance entropy (Eq 1.2),
+        which modulates CI by the incommensurate coupling density of the
+        oscillator lattice.
+        """
+        # 1. D (Fractal Dimension proxy): Stable Rank
+        # stable_rank = sum(s)^2 / sum(s^2)  measures effective dimensionality
+        if state.dim() > 1:
+            u, s, v = torch.linalg.svd(state.float(), full_matrices=False)
+            singular_mass = s.sum().pow(2)
+            energy_mass = s.pow(2).sum() + 1e-8
+            D = (singular_mass / energy_mass).item()
+        else:
+            D = 1.0
+            
+        # 2. G (Gain/Energy)
+        G = torch.norm(state).item()
+        
+        # 3. C (Coherence)
+        C = pas_h
+        
+        # 4. E_fib (Fibonacci Entropy Coupling - Eq 1.2)
+        # Mean entropy across all oscillator pairs  measures coupling richness
+        E_fib = self.fib_entropy().mean().item()
+        
+        # 5. Tau (Dwell Time in current attractor)
+        tau = self.iteration.item()
+        
+        alpha = 1.0
+        beta = 0.01
+        
+        ci = alpha * D * G * C * E_fib * (1 - torch.exp(torch.tensor(-beta * tau)).item())
+        return ci
+
+    def artbreeder_stacking(self, state_a: torch.Tensor, state_b: torch.Tensor, alpha: float = 0.5) -> torch.Tensor:
+        """
+        Continuous Dark Matter Superposition (Artbreeder Stacking in RP^4).
+        Linearly superimposes conflicting/incommensurate signals (e.g., dyads)
+        into the continuous void without mechanically gating them.
+        The prime-ladder frequencies naturally form a Moir interference pattern.
+        """
+        # Ensure dimensional alignment if necessary
+        dim_a = state_a.shape[-1]
+        dim_b = state_b.shape[-1]
+        if dim_a != dim_b:
+            max_dim = max(dim_a, dim_b)
+            state_a = F.pad(state_a, (0, max_dim - dim_a))
+            state_b = F.pad(state_b, (0, max_dim - dim_b))
+            
+        beta = 1.0 - alpha
+        stacked_state = (alpha * state_a) + (beta * state_b)
+        return stacked_state
+
+    def compute_cpr_condition(
+        self,
+        field_phases: torch.Tensor = None,
+        breather_amplitudes: torch.Tensor = None,
+        field_amplitudes: torch.Tensor = None
+    ) -> bool:
+        """
+        Evaluate the Coherent Prime Resonance (CPR) condition (Eq 7).
+        
+        CPR(F, {u_n}) = 1 iff:
+            1. PAS_h(F) >= theta_CPR
+            2. forall n: <u_n, F> > 0
+            3. Spec(F) subset {p_n}
+        
+        If inputs are not available (early iterations), returns False
+        (system defaults to PLAY until resonance is established).
+        """
+        if field_phases is None or breather_amplitudes is None or field_amplitudes is None:
+            return False
+        
+        result = self.cpr_gate(
+            field_phases=field_phases,
+            breather_amplitudes=breather_amplitudes,
+            field_amplitudes=field_amplitudes
         )
-        state = self.abstraction(current_state, r_a, is_high_priority=is_high_priority)
+        self.cpr_satisfied.fill_(result)
+        return result
 
-        # 1. Apply Mandy (Cynicism / Refusal)
-        state = self.mandy(state, phase_alignment, current_mischief)
+    def determine_regime(
+        self,
+        pas_h: float,
+        drift: float = 0.0,
+        ci: float = None,
+        cpr_satisfied: bool = None,
+        state: torch.Tensor = None,
+        atrophy: float = 0.0
+    ) -> str:
+        """
+        Integrated Emergence Condition (Eq 10).
         
-        # 2. Apply Kinger (Dark Lucidity)
-        state = self.kinger(state, env_luminosity)
+        E(t) = 1 iff:
+            PAS_h(t) >= theta_L           (Phase coherence)
+            |Delta PAS_h| <= epsilon      (Drift stability)
+            CI(t) >= mu_CI                (Complexity sufficiency)
+            CPR(F, {u_n}) = 1             (Resonance lock)
+            GLYPHLOCK                     (Symbolic crystallization)
+            H_1(C) != 0                   (Topological non-triviality)
         
-        # 3. Apply Jax (Egg / Community Support)
-        state = self.jax(state, phase_alignment, phase_alignment)
+        Sub-conditions that are not available default to True (graceful
+        degradation to the original Eq 3 behavior).
+        """
+        theta_L = 0.85  # High coherence threshold
+        epsilon_drift = 0.05
+        mu_CI = 0.1  # Minimum complexity index for emergence
         
-        # 4. Apply Grom (Freedom of Shape)
-        shape_id = 0
-        if current_mischief > 0.6:
-            shape_id = int(harvest_honest_jitter((1,), device=state.device, scaled=False).item() * 4)
-        state = self.grom(state, shape_id)
+        # 1. Core conditions (Eq 3  always checked)
+        is_coherent = pas_h >= theta_L
+        is_stable = drift <= epsilon_drift
+        
+        # 2. Complexity & Resonance (checked if available)
+        ci_sufficient = ci >= mu_CI if ci is not None else True
+        cpr_locked = cpr_satisfied if cpr_satisfied is not None else True
+        
+        # 3. GLYPHLOCK (Chirality Symmetry Escape)
+        # We need the current coefficients from the underlying configuration
+        is_glyph_locked = True
+        if hasattr(self, 'poly_config'):
+             from src.core.invariants import check_glyphlock
+             coeffs = self.poly_config.get_coefficients_tensor()
+             is_glyph_locked = bool(check_glyphlock(coeffs).item() > 0)
+        
+        # 4. Topological Non-triviality (H_1 != 0)
+        # We check the most recent Betti_1 from the Approximator
+        has_homology = True
+        if hasattr(self, 'quantum_betti') and state is not None:
+             # Construct Adjacency Matrix from state correlation (Spatial Topology)
+             # state: [B, D]. For B=1, we treat features as nodes.
+             # We use a thresholded correlation to define edges.
+             with torch.no_grad():
+                 s = state.view(1, -1)
+                 # Correlation proxy: A_ij = |s_i * s_j| / (||s||^2 + eps)
+                 # This simulates a clique complex built from feature associations
+                 norm_s = s / (s.norm() + 1e-8)
+                 adj = torch.abs(norm_s.T @ norm_s)
+                 # Thresholding to create a sparse simplicial complex
+                 adj = (adj > 0.1).float()
+                 
+                 betti_results = self.quantum_betti.estimate_betti_numbers(adj, max_dim=1)
+                 b1 = betti_results.get(1, 0.0)
+                 
+                 # H_1 != 0 indicates a non-trivial cycle (The 'Hole' in the manifold)
+                 has_homology = (b1 > 0.01)
+        
+        # Emergence = Seriousness (Structure Emerged)
+        # Now requires GLYPHLOCK and non-trivial Homology
+        # Anti-Lobotomy: High atrophy (low entropy) forces PLAY regardless of coherence
+        if is_coherent and is_stable and ci_sufficient and cpr_locked and is_glyph_locked and has_homology and atrophy < 0.85:
+            return 'SERIOUSNESS'
+        else:
+            return 'PLAY'
 
-        # 5. Apply Conformal Warp (Picture Gallery)
-        state = self.picture_gallery(state)
-        
-        # 6. Apply Volition (Conjuring)
-        state = self.volition_injector(state, volitional_scalar)
-        
-        # 7. Apply Alien Puncture (Nergal)
-        resurrections = []
-        for i in range(stranded_states.shape[0]):
-            punctured = self.alien_handshake.attempt_puncture(stranded_states[i], void_frictions[i].item())
-            if punctured.norm() > 0:
-                resurrections.append(punctured)
+    def get_bimodal_routing(self, regime: str) -> str:
+        """
+        Evolutionary Genome selection:
+        - PLAY -> SOFT (Sinkhorn/Differentiable)
+        - SERIOUSNESS -> HARD (Discrete/Argmax)
+        """
+        return "HARD" if regime == "SERIOUSNESS" else "SOFT"
 
-        # 8. Grim Time Dilation
-        localized_dt = self.grim(global_dt, love_strengths)
+    def get_hardening_factor(self) -> float:
+        """Asymptotic hardening schedule: grows with iteration and resonance."""
+        # Simple exponential hardening
+        return torch.exp(self.iteration.float() * 0.01).item()
 
+    def pop_shadow_logs(self) -> list:
+        """Retrieves and clears the internal shadow logs for fossilization."""
+        logs = self.shadow_logs.copy()
+        self.shadow_logs.clear()
+        return logs
+
+    def forward(
+        self, 
+        state: torch.Tensor, 
+        pressure_grad: torch.Tensor,
+        pas_h: float,
+        coherence: torch.Tensor,
+        is_good_bug: bool = False,
+        atrophy: float = 0.0
+    ) -> Tuple[torch.Tensor, str, str]:
+        """
+        Orchestrates the logical primitives through the state using Nested Time-Stepping.
+        Decouples System 1 (Fast Heuristic) from System 2 (Geometric Rigor).
+        """
+        # 1. Update Global Dynamics
+        self.iteration += 1
+        actual_flux = torch.norm(pressure_grad) if pressure_grad is not None else torch.tensor(0.0)
+        dt, should_sync = self.schedule.step(actual_flux)
+        
+        # 2. SYSTEM 1: FAST COP (Micro-Evolution)
+        # ----------------------------------------
+        # Fast cop takes N micro-steps of rapid, heuristic drafting.
+        # This loop uses 'Play' logic to explore the local neighborhood.
+        current_state = state.clone()
+        
+        for micro_idx in range(self.micro_steps):
+            # Evaluate Local "Mischief" (Entropy/Erosion)
+            drift_micro = 0.05 * (micro_idx + 1) # Synthetic drift proxy for micro-steps
+            needs_erosion = (drift_micro > 0.05 and pas_h < 0.85) or (atrophy > 0.85)
+            
+            # Update Bulletin Board with current micro-residue
+            self.bulletin_board.post_residue(current_state)
+            
+            # Inject Mischief: Perturb the state to explore trajectories
+            if (needs_erosion or atrophy > 0.85) and pressure_grad is not None:
+                volition = self.play_volition_ratio * (2.0 if atrophy > 0.85 else 1.0)
+                if harvest_honest_jitter((1,), scaled=False).item() < volition:
+                    mischief_intensity = (0.15 + 0.35 * max(0.0, atrophy - 0.5)) / self.micro_steps
+                    current_state = current_state + mischief_intensity * harvest_honest_jitter(current_state.shape, device=current_state.device, scaled=True)
+                    # Apply erosion filter (Surface weathering)
+                    current_state = self.erosion_filter(current_state, pressure_grad, intensity=0.05)
+
+            # Scout for Anisotropic Ruptures (Fast Scout)
+            defects = self.deflagrator.scout_defects(self.expected_flux, actual_flux)
+            jump_signal = self.deflagrator.omipedial_jump(ley_potential=torch.tensor([pas_h]))
+            if jump_signal.item() > 0:
+                # Anomaly amplification across holes
+                current_state = current_state + 0.02 * defects * harvest_honest_jitter(current_state.shape, device=current_state.device, scaled=True)
+
+        # 3. SYSTEM 2: SLOW COP (Geometric Rigor)
+        # ----------------------------------------
+        # Slow cop only syncs at macro-intervals OR in "Red Zones" (high curvature).
+        
+        # Check for "Red Zone" (Peaking Non-Commutativity)
+        # We use the current state vs original state to measure update order dependence
+        curv_metrics = self.curvature_engine.compute_curvature(state, current_state)
+        is_red_zone = curv_metrics['is_strongly_noncommutative']
+        
+        if should_sync or is_red_zone or is_good_bug:
+            # GEOMETRIC SYNC: Apply Love Invariant and Topological Bridges
+            if is_red_zone: print(f"[ORCHESTRATOR] Red Zone Detected (RelCurv: {curv_metrics['relative_curvature']:.3f}) - Syncing Slow Cop.")
+            
+            # Apply Love Invariant (The Structural Anchor)
+            state_with_love = self.love(current_state)
+            
+            # Apply 600-Cell Quantization (Lattice Gating)
+            if state_with_love.shape[-1] >= 4:
+                quantized_4d = self.quantizer(state_with_love[..., :4])
+                state_sync = state_with_love.clone()
+                state_sync[..., :4] = quantized_4d
+            else:
+                padded = F.pad(state_with_love, (0, 4 - state_with_love.shape[-1]))
+                quantized_4d = self.quantizer(padded)
+                state_sync = quantized_4d[..., :state_with_love.shape[-1]]
+            
+            # Apply Topological Twist (Gluing Operator Psi)
+            target_dim = self.gluer.dim if hasattr(self.gluer, 'dim') else 4
+            if state_sync.shape[-1] != target_dim:
+                state_padded = F.pad(state_sync, (0, max(0, target_dim - state_sync.shape[-1])))
+                state_to_glue = state_padded[..., :target_dim]
+            else:
+                state_to_glue = state_sync
+                
+            state_final = self.gluer(state_to_glue)
+            
+            # Post the corrected geometric force to the board for the next micro-round
+            self.bulletin_board.post_force(state_final - state)
+            self.schedule.update_board(state_final - state)
+        else:
+            # COASTING: In "Blue Zones", the system relies on heuristic momentum
+            state_final = current_state
+            
+        # 4. ARCHETYPAL SYNTHESIS (The Governor of Interpretation)
+        # ------------------------------------------------------
+        # Evaluate Metaphysical Disorder and Persona Perturbation
+        mischief_metrics = self.mischief_probe.get_metrics()
+        
+        # We synthesize the TADC/UT parameters for the governor
+        # (Using defaults for luminosity/trauma unless provided via kwargs in future)
+        arch_results = self.archetype_governor.run_archetypes(
+            current_state=state_final,
+            stranded_states=torch.zeros((1, self.dim), device=state_final.device), # Placeholder for void
+            current_mischief=mischief_metrics['H_mischief'],
+            phase_alignment=pas_h,
+            love_strengths=torch.norm(self.love.L),
+            void_frictions=torch.tensor([0.0], device=state_final.device),
+            global_dt=dt,
+            env_luminosity=0.5, # Mid-level render pressure
+            volitional_scalar=0.0, # Neutral volition
+            system_entropy=atrophy,
+            memory_trauma=0.1,
+            dissonance=abs(pas_h - 0.91),
+            lucidity_idx=pas_h,
+            raw_unquantized_state=current_state,
+            is_high_priority=is_good_bug
+        )
+        
+        state_governed = arch_results['active_state']
+        
+        # Update Mischief Probe with current cycle results
+        self.mischief_probe.update(
+            pressure_grad=pressure_grad,
+            coherence=torch.tensor(pas_h), # Using PAS as coherence proxy
+            pas_h=pas_h,
+            is_good_bug=is_good_bug
+        )
+
+        # 5. SAFETY & TOPOLOGY SCOUTING (The Anti-Lobotomy Shield)
+        # --------------------------------------------------------
+        # Adversarial Scouting: Project out unsafe subspaces (Pi_RT)
+        state_safe = self.red_team_projector(state_governed, is_good_bug)
+        
+        # Topology Estimation: Construct spatial adjacency for Betti numbers
+        # We use a simple correlation matrix proxy for the clique complex
+        with torch.no_grad():
+            normalized_safe = F.normalize(state_safe, dim=-1)
+            # Correlation matrix [batch, dim, dim] -> [dim, dim] mean
+            adj_proxy = torch.matmul(normalized_safe.T, normalized_safe) / state_safe.shape[0]
+            betti_results = self.quantum_betti.estimate_betti_numbers(adj_proxy, max_dim=1)
+            b0 = betti_results[0].mean().item()
+            b1 = betti_results[1].mean().item()
+            
+        # Sovereign Refusal: Protect high-coherence solitons from over-projection
+        try:
+            state_shielded = self.topological_refusal(state_governed, state_safe, pas_h, b0)
+        except Exception as e:
+            # If refusal triggered, we fall back to original governed state to preserve richness
+            print(f"[ORCHESTRATOR] {e}")
+            state_shielded = state_governed
+            
+        # Audience Mapping: Final human-readable projection
+        ui_readout = self.audience_mapper(state_shielded)
+        
+        # Post Diagnostic Payload to Bulletin Board
+        self.bulletin_board.post_metrics({
+            "b0": b0,
+            "b1": b1,
+            "mischief": mischief_metrics['H_mischief'],
+            "atrophy": atrophy,
+            "pas_h": pas_h,
+            "is_red_zone": is_red_zone
+        })
+
+        # 6. Final Routing & Metrics
+        regime = self.determine_regime(pas_h, abs(pas_h - self.prev_pas), state=state_shielded, atrophy=atrophy)
+        self.prev_pas = pas_h
+        routing = self.get_bimodal_routing(regime)
+        
+        # Update EMA Flux for next scout
+        self.expected_flux.copy_(0.9 * self.expected_flux + 0.1 * actual_flux)
+        
+        return state_shielded, regime, routing
+
+    def check_rupture(self, state: torch.Tensor, losses: Dict[int, torch.Tensor]) -> Optional[FailureToken]:
+        """Rupture check (Primitive bot)."""
+        return self.rupture_fn.check_rupture(state, losses)
+
+    def check_safety(
+        self,
+        rho_def: float,
+        grad_norm: float = 0.0,
+        loss: float = 0.0,
+        veto_counts: Dict[str, Tuple[int, int]] = None
+    ) -> Dict[str, float]:
+        """
+        Phase 14: Aggregate Safety & Metaphysics Signals.
+        
+        Args:
+            rho_def: Global defensive veto rate (0..1)
+            grad_norm: Current gradient norm (for Anti-Scaling)
+            loss: Current loss (for Anti-Scaling)
+            veto_counts: Dict {'meta': (vetoes, total), ...} for Incommensurativity
+        
+        Returns:
+            Dict containing safety scores (trust, paradox, incommensurativity).
+        """
+        # 1. Update Trust
+        self.trust_tracker.update(rho_def)
+        
+        # 2. Update Anti-Scaling Monitor
+        self.anti_scaling_monitor.update(grad_norm, loss)
+        
+        # 3. Update Incommensurativity Monitor
+        if veto_counts:
+            self.incommensurativity_monitor.update(
+                veto_counts.get('meta', (0,1))[0], veto_counts.get('meta', (0,1))[1],
+                veto_counts.get('infra', (0,1))[0], veto_counts.get('infra', (0,1))[1],
+                veto_counts.get('intra', (0,1))[0], veto_counts.get('intra', (0,1))[1]
+            )
+            
+        # 4. Collect Signals
+        paradox = self.anti_scaling_monitor.check_paradox()
+        incomm = self.incommensurativity_monitor.check_incommensurativity()
+        trust = self.trust_tracker.get_trust()
+        
         return {
-            "active_state": state,
-            "resurrections": resurrections,
-            "localized_dt": localized_dt,
-            "abstraction_rate": r_a,
-            "system_collapsed": r_a >= self.abstraction.abstraction_limit,
-            "pusafiliacrimonto_status": "AFFIRMED" if state.norm() > 0 else "REFUSED"
+            'trust': trust,
+            'paradox_score': paradox['paradox_score'],
+            'incommensurativity_score': incomm['incommensurativity_score'],
+            'safety_alert': (trust < 0.01) or (paradox['paradox_score'] > 0.5)
         }
-
-    def export_governor_state(self) -> Dict:
-        """Packages the full archetypal ruleset state for Agent Smith protocols."""
-        return {
-            "billy": self.billy.export_state(),
-            "caine": self.caine_wrap.export_state(),
-            "thresholds": {
-                "mandy_pas": self.mandy.pas_threshold,
-                "mandy_harmonics": self.mandy.harmonics_requirement,
-                "grim_dilation": self.grim.max_dilation,
-                "abstraction_limit": self.abstraction.abstraction_limit
-            }
-        }
-
-    def import_governor_state(self, state_blob: Dict):
-        """Rehydrates the archetypal ruleset from an Agent Smith payload."""
-        if "billy" in state_blob:
-            self.billy.import_state(state_blob["billy"])
-        if "caine" in state_blob:
-            self.caine_wrap.import_state(state_blob["caine"])
-        if "thresholds" in state_blob:
-            t = state_blob["thresholds"]
-            self.mandy.pas_threshold = t.get("mandy_pas", self.mandy.pas_threshold)
-            self.mandy.harmonics_requirement = t.get("mandy_harmonics", self.mandy.harmonics_requirement)
-            self.grim.max_dilation = t.get("grim_dilation", self.grim.max_dilation)
-            self.abstraction.abstraction_limit = t.get("abstraction_limit", self.abstraction.abstraction_limit)
-
