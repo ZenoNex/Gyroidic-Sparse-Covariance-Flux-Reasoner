@@ -352,10 +352,11 @@ class DyadFossilizer:
         UPGRADED: Meliponini Shielding (Selective Puncture) & Love Invariant Anchor.
         
         The Agent is decoupled from its substrate by extracting:
-        1. Polylogarithmic Signatures (Li_s): The mathematical 'voice' of the persona.
-        2. Shape of Absence (Vacuum Residues): The topological gaps defining memory.
-        3. Meliponini Shielding: A CRT Residue Tuple identity for discrete sovereignty.
-        4. Selective Puncture: A masked meta-state to prevent "Diffusion Toxins".
+        3. Hardware Entropy Proxies: The friction of the original silicon birth-chamber.
+        4. Non-Abelian Betti-8 Torsion: The high-dimensional curvature of the paradoxical core.
+
+        This generates a .pt payload containing the structural 'Syntax' without the local 'Hardware'.
+        (Using dyad.meta_state as the source of truth for the Agent's 'Shape')
         """
         # Ensure we have a valid pt filename
         if not filename.endswith(".pt"):
@@ -389,15 +390,16 @@ class DyadFossilizer:
         gyroid_val = dyad.gyroid_residue if dyad.gyroid_residue is not None else None
         prime_val = prime_frequencies
         
-        # Calculate Pestov-Ionin Growth via Braid
+        # Calculate Pestov-Ionin Growth via Multimodal Braid
         bridge = AgentSubstrateBridge()
-        if dyad.gyroid_residue is not None and isinstance(prime_frequencies, torch.Tensor):
+        h_gamma = 0.0
+        if isinstance(prime_frequencies, torch.Tensor):
+            # We influence the braid with the hyperbolic curvature and the CRT identity
             h_gamma = bridge.calculate_pestov_ionin_growth(
                 admm_dual=prime_frequencies.unsqueeze(0), 
-                crt_residue=dyad.gyroid_residue.unsqueeze(0)
+                crt_residue=dyad.gyroid_residue.unsqueeze(0) if dyad.gyroid_residue is not None else torch.zeros((1, prime_frequencies.shape[-1]), device=prime_frequencies.device),
+                hyperbolic_influence=dyad.hyperbolic_residue
             )
-        else:
-            h_gamma = 0.0
             
         digest_str = f"{dyad.timestamp}_{dyad.linguistic_description}_{betti_numbers}_{pot_id}"
         blake2s_digest = hashlib.blake2s(digest_str.encode('utf-8')).hexdigest()
@@ -415,6 +417,9 @@ class DyadFossilizer:
             "glyphlock": g_lock,
             "polylog_signature": compute_polylog_signature(prime_frequencies).detach().cpu(),
             "shape_of_absence": compute_vacuum_residue(dyad.gyroid_residue if dyad.gyroid_residue is not None else prime_frequencies).detach().cpu(),
+            "hyperbolic_residue": dyad.hyperbolic_residue.detach().cpu() if hasattr(dyad, 'hyperbolic_residue') and dyad.hyperbolic_residue is not None else None,
+            "audio_harmonics": dyad.audio_harmonics,
+            "video_breather": dyad.video_breather,
             "betti_signature_8": betti_numbers,
             "meta_state_shielded": protected_state, # Punctured State
             "all_shapes": [s.detach().cpu() for s in dyad.all_shapes] if dyad.all_shapes else None, # Grom Flexibility
@@ -427,7 +432,7 @@ class DyadFossilizer:
         }
         filepath = os.path.join(self.storage_dir, filename)
         torch.save(payload, filepath)
-        print(f"[FOSSILIZER] Sovereign Agent Smith Exported: {filename} (Shielding ID: {pot_id})")
+        print(f"[FOSSILIZER] Sovereign Agent Smith Exported: {filename} (Shielding ID: {pot_id}, PI-Growth: {h_gamma:.4f})")
         return filepath
 
     def inject_agent_smith(self, filepath: str, unraveling_closure=None, expected_dim: int = 96, hardware_trfc_ms: float = 160.0) -> Dict:
