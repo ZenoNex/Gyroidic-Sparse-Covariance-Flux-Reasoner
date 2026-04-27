@@ -148,6 +148,11 @@ class DatasetIngestionSystem:
             else:
                 print(f"[FAIL] Failed to add dataset {config.name}")
                 return False
+            
+            if success:
+                self.datasets[config.name] = config
+            
+            return success
                 
         except Exception as e:
             print(f"[ERR] Error adding dataset {config.name}: {e}")
@@ -279,7 +284,8 @@ class DatasetIngestionSystem:
                     
                     # Extract content
                     title = wikipedia_integration.extract_title_from_url(url)
-                    content = wikipedia_integration.extract_content_from_url(url)
+                    wiki_result = wikipedia_integration.fetch_wikipedia_content(title)
+                    content = wiki_result.get('full_content', '') if wiki_result else None
                     
                     if content:
                         # Clean content
@@ -399,9 +405,9 @@ class DatasetIngestionSystem:
                         downloaded += len(chunk)
                         if total_size > 0:
                             progress = (downloaded / total_size) * 100
-                            print(f"   Downloaded: {progress:.1f}%", end='\\r')
+                            print(f"   Downloaded: {progress:.1f}%", end='\r')
             
-            print(f"\\n   Download complete: {file_path}")
+            print(f"\n   Download complete: {file_path}")
             
             # Extract if compressed
             if file_path.suffix in ['.zip', '.tar', '.tar.gz', '.tgz']:
@@ -754,7 +760,8 @@ class DatasetIngestionSystem:
                 print("   [ERR] Missing polynomial_config")
                 return False
             
-            if not isinstance(model.polynomial_config, PolynomialCoprimeConfig):
+            # Check class name only to avoid module path issues
+            if model.polynomial_config.__class__.__name__ != 'PolynomialCoprimeConfig':
                 print("   [ERR] Invalid polynomial_config type")
                 return False
             
@@ -784,7 +791,7 @@ class DatasetIngestionSystem:
             return True
             
         except Exception as e:
-            print(f"   [ERR] Compliance check error: {e}")
+            print(f"[ERR] Compliance check error: {e}")
             return False
     
     def setup_training(self, model_name: str, dataset_name: str, training_config: TrainingConfig) -> bool:
