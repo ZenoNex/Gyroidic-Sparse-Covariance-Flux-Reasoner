@@ -77,7 +77,7 @@ class DatasetConfig:
         """Sanitized name safe for Windows directory creation."""
         s = self.name.replace(':', '_').replace(',', '_').replace('/', '_').replace('\\', '_')
         if len(s) > 50:
-            s = s[:47] + "..."
+            s = s[:50]
         return s
 
 @dataclass
@@ -319,15 +319,27 @@ class DatasetIngestionSystem:
                         # Extract concepts
                         concepts = wikipedia_integration.extract_key_concepts(title, cleaned_content)
                         
-                        sample = {
-                            'title': title,
-                            'content': cleaned_content,
-                            'concepts': concepts,
-                            'url': url,
-                            'length': len(cleaned_content)
-                        }
-                        
-                        samples.append(sample)
+                        # Chunk into paragraphs so we get multiple samples per article
+                        paragraphs = [p.strip() for p in cleaned_content.split('\n\n') if len(p.strip()) > 50]
+                        if not paragraphs:
+                            # Fallback if no double newlines
+                            paragraphs = [cleaned_content]
+                            
+                        for p_idx, paragraph in enumerate(paragraphs):
+                            if config.max_samples and len(samples) >= config.max_samples:
+                                break
+                                
+                            sample = {
+                                'title': f"{title} (Part {p_idx+1})",
+                                'content': paragraph,
+                                'concepts': concepts,
+                                'url': url,
+                                'length': len(paragraph)
+                            }
+                            samples.append(sample)
+                            
+                        if config.max_samples and len(samples) >= config.max_samples:
+                            break
                     
                 except Exception as e:
                     print(f"   [WARN] Failed to process {url}: {e}")
@@ -500,8 +512,12 @@ class DatasetIngestionSystem:
                     # Auto-mapping popular datasets to HF
                     sources.append({'type': 'huggingface', 'path': line.lower()})
                 else:
-                    # Assume local path or unknown
-                    sources.append({'type': 'local', 'path': line})
+                    # Check if it's actually a local path
+                    if Path(line).exists():
+                        sources.append({'type': 'local', 'path': line})
+                    else:
+                        # If it doesn't exist locally and has no prefix, assume Wikipedia topic!
+                        sources.append({'type': 'wikipedia', 'path': line})
             
             print(f"   Found {len(sources)} sources in portal")
             
@@ -532,8 +548,8 @@ class DatasetIngestionSystem:
                     res = self._ingest_wikipedia_dataset(sub_config, return_samples=True)
                     if isinstance(res, list): combined_samples.extend(res)
                 elif source['type'] == 'local':
-                    # We'll handle local at the end to include downloaded URL files
-                    pass
+                    res = self._ingest_local_dataset(sub_config, return_samples=True)
+                    if isinstance(res, list): combined_samples.extend(res)
             
             # Step 2: Ingest local files (including those downloaded via URL)
             print(f"\n   [PORTAL] Finalizing with local file ingestion...")
@@ -1112,7 +1128,9 @@ class DatasetIngestionSystem:
                     
                     # Save checkpoint if configured
                     if config.save_checkpoints and (epoch + 1) % config.checkpoint_interval == 0:
-                        checkpoint_path = f"checkpoint_{trainer_key}_epoch_{epoch + 1}.pt"
+                        safe_trainer_key = trainer_key.replace(':', '_').replace(',', '_').replace('/', '_').replace('\\', '_')
+                        if len(safe_trainer_key) > 50: safe_trainer_key = safe_trainer_key[:50]
+                        checkpoint_path = f"checkpoint_{safe_trainer_key}_epoch_{epoch + 1}.pt"
                         self._save_checkpoint(trainer_key, checkpoint_path)
                         print(f"   [SAVE] Checkpoint saved: {checkpoint_path}")
                 
@@ -1133,7 +1151,9 @@ class DatasetIngestionSystem:
             print(f"   Fossilized functionals: {(final_trust > config.fossilization_threshold).sum().item()}")
             
             # Save final state
-            final_checkpoint = f"final_{trainer_key}.pt"
+            safe_trainer_key = trainer_key.replace(':', '_').replace(',', '_').replace('/', '_').replace('\\', '_')
+            if len(safe_trainer_key) > 50: safe_trainer_key = safe_trainer_key[:50]
+            final_checkpoint = f"final_{safe_trainer_key}.pt"
             self._save_checkpoint(trainer_key, final_checkpoint)
             print(f"   [SAVE] Final state saved: {final_checkpoint}")
             
