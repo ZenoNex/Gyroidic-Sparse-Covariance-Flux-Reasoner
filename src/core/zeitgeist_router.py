@@ -7,21 +7,21 @@ Formal basis:
     The true system state is the stratified quadruple:
         S_t = (x_t, alpha_t, l_t, u_t)
 
-    where alpha_t ∈ Z = ∏_{i=1}^m Z_{p_i} is the CRT index (Zeitgeist):
+    where alpha_t  Z = _{i=1}^m Z_{p_i} is the CRT index (Zeitgeist):
     which meaning system / polytope the state currently inhabits.
 
     The Chinese Remainder Theorem guarantees that any configuration of
     m independent modular residues (r_1, ..., r_m) maps bijectively to a
-    unique alpha in Z / M·Z, where M = ∏ p_i.  This means multiple
+    unique alpha in Z / MZ, where M =  p_i.  This means multiple
     culturally non-commensurable meaning systems can coexist without
     forced scalar reconciliation.
 
-Three modes of learning movement (from ai project report_2-2-2026.txt §II-VI):
-    1. interior   — intra-polytope traversal          (scalar metrics allowed)
-    2. grazing    — ⟨n_i, x⟩ ≈ c_i facet tension     (no scalar, pure pressure)
-    3. switching  — P_α → P_β non-commutative switch  (order of application matters)
+Three modes of learning movement (from ai project report_2-2-2026.txt II-VI):
+    1. interior    intra-polytope traversal          (scalar metrics allowed)
+    2. grazing     n_i, x  c_i facet tension     (no scalar, pure pressure)
+    3. switching   P_  P_ non-commutative switch  (order of application matters)
 
-The exterior case (x_t ∉ P) emits an 'undefined' state — not a numeric error
+The exterior case (x_t  P) emits an 'undefined' state  not a numeric error
 but a topological impossibility (NaN as correct refusal to emit).
 
 Design decisions:
@@ -37,12 +37,12 @@ Design decisions:
       exterior NaN guard.
 
 References:
-    - ai project report_2-2-2026.txt §III-VI
-    - BIOMIMETIC_SYNTHESIS_REPORT.md §4.4
-    - SYSTEM_ARCHITECTURE.md §9.4-9.5
+    - ai project report_2-2-2026.txt III-VI
+    - BIOMIMETIC_SYNTHESIS_REPORT.md 4.4
+    - SYSTEM_ARCHITECTURE.md 9.4-9.5
     - src/core/meta_polytope_matrioshka.py (BoundaryState)
     - src/core/noncommutativity_curvature.py (NonCommutativityCurvature)
-    - src/core/manifold_time.py (ManifoldClock — breathing time modulation)
+    - src/core/manifold_time.py (ManifoldClock  breathing time modulation)
 
 Author: Phase 18 implementation 2026-02-22
 """
@@ -62,7 +62,7 @@ from src.topology.betti_router import BettiRouter
 
 
 # ---------------------------------------------------------------------------
-# ZeitgeistState  — Persistent CRT index for the running session
+# ZeitgeistState   Persistent CRT index for the running session
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -70,16 +70,16 @@ class ZeitgeistState:
     """
     Persistent CRT Zeitgeist index for the DiegeticPhysicsEngine.
 
-    Represents α_t ∈ Z = ∏_{i=1}^m Z_{p_i}.
+    Represents _t  Z = _{i=1}^m Z_{p_i}.
 
     Fields:
-        alpha   : Tuple of residues (r_1, ..., r_m) where r_i ∈ {0, ..., p_i-1}.
-                  Together they identify the active meaning polytope P_α uniquely.
-        level   : Matrioshka shell depth ℓ_t (which nested shell is active).
-        moduli  : The coprime primes (p_1, ..., p_m) — invariant across the session.
+        alpha   : Tuple of residues (r_1, ..., r_m) where r_i  {0, ..., p_i-1}.
+                  Together they identify the active meaning polytope P_ uniquely.
+        level   : Matrioshka shell depth _t (which nested shell is active).
+        moduli  : The coprime primes (p_1, ..., p_m)  invariant across the session.
         boundary: Last BoundaryState from the Matrioshka loop, if any.
         mode    : Current classification: 'interior', 'grazing', 'switching', 'undefined'.
-        step    : Monotonic counter — how many times the state has been updated.
+        step    : Monotonic counter  how many times the state has been updated.
         braid_word : List of generators [sigma_1, ..., sigma_n] in the group B_n.
         cs_phase: Accumulated Chern-Simons phase (topological shift).
     """
@@ -106,7 +106,7 @@ class ZeitgeistState:
     @property
     def crt_index(self) -> int:
         """
-        Reconstruct the unique integer index α ∈ [0, M) from the diagonal of the 
+        Reconstruct the unique integer index   [0, M) from the diagonal of the 
         Symmetric Tensor alpha_tensor via CRT.
         """
         moduli = self.moduli
@@ -189,7 +189,7 @@ class ZeitgeistState:
 
 
 # ---------------------------------------------------------------------------
-# ZeitgeistRouter  — The CRT switching engine
+# ZeitgeistRouter   The CRT switching engine
 # ---------------------------------------------------------------------------
 
 class BraidGroupMatrices(nn.Module):
@@ -242,32 +242,32 @@ class ZeitgeistRouter(nn.Module):
     """
     CRT Polytope Switching Engine for multi-zeitgeist reasoning.
 
-    Implements the three-mode dispatch from ai project report §II:
+    Implements the three-mode dispatch from ai project report II:
 
-        if x_t ∈ int(P^(ℓ)):
-            mode = 'interior'          # Stay — scalar metrics OK
-        elif x_t ∈ ∂P^(ℓ):
-            mode = 'grazing'           # Tension — no scalar
-            P_α → P_β  (non-commutative switch if pressure is high)
-        elif x_t ∉ P:
-            mode = 'undefined'         # Topological refusal — NaN guard
+        if x_t  int(P^()):
+            mode = 'interior'          # Stay  scalar metrics OK
+        elif x_t  P^():
+            mode = 'grazing'           # Tension  no scalar
+            P_  P_  (non-commutative switch if pressure is high)
+        elif x_t  P:
+            mode = 'undefined'         # Topological refusal  NaN guard
 
     The key invariant enforced by this module:
-        route(x, route(y, s0)) ≠ route(y, route(x, s0))  for distinct x, y
-    i.e. polytope switching is NON-COMMUTATIVE — the order of meaning-system
+        route(x, route(y, s0))  route(y, route(x, s0))  for distinct x, y
+    i.e. polytope switching is NON-COMMUTATIVE  the order of meaning-system
     traversal changes where you end up.
 
     Parameters:
         dim    : State embedding dimension.
-        moduli : Coprime primes (p_1, ..., p_m) — same as MetaPolytopeMatrioshka.
+        moduli : Coprime primes (p_1, ..., p_m)  same as MetaPolytopeMatrioshka.
         grazing_eps : Half-bandwidth of the facet grazing zone.
         critical_boundary_threshold : BoundaryState.is_critical() threshold.
         use_noncommutativity_check  : If True, track curvature for diagnostics.
 
     Learned parameters:
-        facet_normals      : [M, dim]  — one outward normal per modulus
-        facet_thresholds   : [M]       — one scalar threshold c_i per modulus
-        switch_gate        : Linear(dim → M) — switching pressure network
+        facet_normals      : [M, dim]   one outward normal per modulus
+        facet_thresholds   : [M]        one scalar threshold c_i per modulus
+        switch_gate        : Linear(dim  M)  switching pressure network
     """
 
     def __init__(
@@ -287,7 +287,7 @@ class ZeitgeistRouter(nn.Module):
         self.critical_boundary_threshold = critical_boundary_threshold
         self.use_noncommutativity_check = use_noncommutativity_check
 
-        # ── Learnable facet geometry ──────────────────────────────────── #
+        #  Learnable facet geometry  #
         # One normal per modulus.  Initialise close to orthonormal basis
         # to ensure initial diversity of meaning-system directions.
         self.facet_normals = nn.Parameter(self._init_normals(self.M, dim))
@@ -296,16 +296,16 @@ class ZeitgeistRouter(nn.Module):
         # zone initially covers a small hypersphere shell.
         self.facet_thresholds = nn.Parameter(torch.zeros(self.M))
 
-        # ── Switching pressure gate ───────────────────────────────────── #
-        # Projects state → per-modulus switching pressure ∈ (0,1).
-        # The gate output δ_i is used to compute Δα_i.
+        #  Switching pressure gate  #
+        # Projects state  per-modulus switching pressure  (0,1).
+        # The gate output _i is used to compute _i.
         self.switch_gate = nn.Linear(dim, self.M, bias=True)
 
-        # Initialise gate weights small — zero initial switching pressure.
+        # Initialise gate weights small  zero initial switching pressure.
         nn.init.xavier_uniform_(self.switch_gate.weight, gain=0.1)
         nn.init.zeros_(self.switch_gate.bias)
 
-        # ── NonCommutativity Curvature (optional diagnostics) ─────────── #
+        #  NonCommutativity Curvature (optional diagnostics)  #
         if use_noncommutativity_check:
             try:
                 from src.core.noncommutativity_curvature import NonCommutativityCurvature
@@ -315,32 +315,32 @@ class ZeitgeistRouter(nn.Module):
         else:
             self._nc_curvature = None
 
-        # ── ManifoldClock (breathing time — orphaned module wiring) ───── #
+        #  ManifoldClock (breathing time  orphaned module wiring)  #
         try:
             from src.core.manifold_time import ManifoldClock
             self._clock = ManifoldClock(dt_base=1.0)
         except Exception:
             self._clock = None
 
-        # ── ValenceFunctional (orphaned module wiring) ────────────────── #
+        #  ValenceFunctional (orphaned module wiring)  #
         try:
             from src.core.valence_drive import ValenceFunctional
             self._valence = ValenceFunctional()
         except Exception:
             self._valence = None
 
-        # ── Archetypal Synthesis Engine (Phase 2 & TADC Lore) ─────────── #
+        #  Archetypal Synthesis Engine (Phase 2 & TADC Lore)  #
         try:
             from src.core.archetype_engines import ArchetypalSynthesisEngine
             self._archetype = ArchetypalSynthesisEngine(state_dim=dim)
         except Exception:
             self._archetype = None
 
-        # ── Nostalgic Leak Buffer (Mathematical Digimon) ───────────── #
+        #  Nostalgic Leak Buffer (Mathematical Digimon)  #
         # Persistent buffer tracking historical non-commutative illusions
         self.register_buffer('digimon_buffer', torch.zeros(self.M, self.M))
 
-        # ── Unicorn Synthesis Upgrade: Exact Algebraic Geometry ────── #
+        #  Unicorn Synthesis Upgrade: Exact Algebraic Geometry  #
         from .numerical_d_module import NumericalDModuleManager, RationalSnappingLayer
         self.d_module_manager = NumericalDModuleManager(state_dim=dim, num_functionals=self.M)
         self.snapper = RationalSnappingLayer()
@@ -348,7 +348,7 @@ class ZeitgeistRouter(nn.Module):
 
         self.register_buffer('gravity_well_bias', torch.zeros(self.M))
 
-        # ── Betti-Aware Routing ── #
+        #  Betti-Aware Routing  #
         self.betti_router = BettiRouter(feature_dim=dim, num_sectors=self.M)
 
     # ------------------------------------------------------------------ #
@@ -395,7 +395,7 @@ class ZeitgeistRouter(nn.Module):
 
     def _facet_projections(self, x_norm: torch.Tensor) -> torch.Tensor:
         """
-        Compute ⟨n_i, x̂⟩ for i = 1..M.
+        Compute n_i, x for i = 1..M.
 
         Args:
             x_norm: [batch, dim] L2-normalised state.
@@ -409,7 +409,7 @@ class ZeitgeistRouter(nn.Module):
         """
         Return boolean mask [batch, M] where dimension i is in the grazing zone.
 
-        Grazing zone:  |⟨n_i, x̂⟩ - c_i| < ε
+        Grazing zone:  |n_i, x - c_i| < 
         """
         return (g - self.facet_thresholds).abs() < self.grazing_eps
 
@@ -518,7 +518,7 @@ class ZeitgeistRouter(nn.Module):
         """
         Compute new Symmetric Tensor CRT index M_ij.
         
-        M_ii = (r_i + Δr_i) mod p_i
+        M_ii = (r_i + r_i) mod p_i
         M_ij = symmetry interaction term (palindromic routing)
         """
         x_mapped = self._apply_log_polar_projection(x)
@@ -611,7 +611,7 @@ class ZeitgeistRouter(nn.Module):
 
     def register_fossil_landmark(self, blake2s_id: str, intensity: float = 1.0):
         """
-        Bridge 4: Maps a Fossil ID to a Poincaré Gravity Well.
+        Bridge 4: Maps a Fossil ID to a Poincar Gravity Well.
         The ID is hashed to a stable displacement in the CRT Polytope space.
         """
         # Deterministic mapping from ID to M-dimensional bias
@@ -648,10 +648,10 @@ class ZeitgeistRouter(nn.Module):
 
         Returns:
             mode        : 'interior' | 'grazing' | 'switching' | 'undefined'
-            new_state   : Updated ZeitgeistState (immutable — new object).
+            new_state   : Updated ZeitgeistState (immutable  new object).
             diagnostics : Dict of scalar metrics for the metrics payload.
         """
-        # ── 0. Archetypal Synthesis Engine (Data Transformation) ────── #
+        #  0. Archetypal Synthesis Engine (Data Transformation)  #
         if self._archetype is not None and tadc_kwargs is not None:
              # Route through the Grand Governor
              arch_results = self._archetype.run_archetypes(
@@ -684,13 +684,13 @@ class ZeitgeistRouter(nn.Module):
                  diag["abstraction_event"] = True
                  return mode, new_state, diag
 
-        # ── Batch normalise ─────────────────────────────────────────── #
+        #  Batch normalise  #
         if x.dim() == 1:
             x = x.unsqueeze(0)          # [1, dim]
         x_norm = F.normalize(x, dim=-1) # [batch, dim]
 
-        # ── 1. Facet grazing check ───────────────────────────────────── #
-        # ── 1. Algebraic State Classification (Unicorn Synthesis) ────── #
+        #  1. Facet grazing check  #
+        #  1. Algebraic State Classification (Unicorn Synthesis)  #
         # Snap and compute rank
         x_snapped = self.snapper(x_norm)
         # Use entropy from tadc_kwargs if available, else 0.5 default
@@ -708,13 +708,13 @@ class ZeitgeistRouter(nn.Module):
         any_grazing = grazing_mask.any().item()
         grazing_pressure = (g - self.facet_thresholds).abs().mean().item()
 
-        # ── 2. BoundaryState critical check (exterior / NaN guard) ───── #
+        #  2. BoundaryState critical check (exterior / NaN guard)  #
         is_critical = False
         if boundary is not None and hasattr(boundary, 'is_critical'):
             is_critical = boundary.is_critical(self.critical_boundary_threshold)
 
         # Exterior case: D-module rank indicates rupture or boundary is critical
-        # → topological impossibility: refuse to emit (NaN-equivalent)
+        #  topological impossibility: refuse to emit (NaN-equivalent)
         # Lazaraus Void (cohom_dim > dim/2) signifies entry into undefined territory
         if is_critical or is_lazarus_void:
             new_state = state.switched(
@@ -728,9 +728,9 @@ class ZeitgeistRouter(nn.Module):
             diag["cohomological_dimension"] = cohom_dim
             return mode, new_state, diag
 
-        # ── 3. Mode dispatch ─────────────────────────────────────────── #
+        #  3. Mode dispatch  #
         if not any_grazing:
-            # Interior: x is safely inside P_α — no switch, no pressure
+            # Interior: x is safely inside P_  no switch, no pressure
             mode = 'interior'
             new_state = state.switched(
                 new_alpha_tensor=state.alpha_tensor,
@@ -739,7 +739,7 @@ class ZeitgeistRouter(nn.Module):
                 boundary=boundary,
             )
         else:
-            # Grazing or crossing — execute non-commutative CRT switch
+            # Grazing or crossing  execute non-commutative CRT switch
             new_alpha_tensor, new_level, new_word, new_cs_phase = self._compute_switch(x, state, boundary=boundary)
             # If the alpha residues (diagonal) actually changed, this is a full switch
             if not torch.equal(new_alpha_tensor, state.alpha_tensor):
@@ -755,9 +755,9 @@ class ZeitgeistRouter(nn.Module):
                 new_cs_phase=new_cs_phase,
             )
 
-        # ── 4. ManifoldClock tick (breathing time) ───────────────────── #
-        # High switching pressure → smaller dt (seriousness)
-        # Interior / low pressure → larger dt (play)
+        #  4. ManifoldClock tick (breathing time)  #
+        # High switching pressure  smaller dt (seriousness)
+        # Interior / low pressure  larger dt (play)
         clock_dt = None
         if self._clock is not None:
             pressure_tensor = torch.tensor(grazing_pressure)
@@ -766,7 +766,7 @@ class ZeitgeistRouter(nn.Module):
             except Exception:
                 pass
 
-        # ── 5. ValenceFunctional — hunger for resolution ─────────────── #
+        #  5. ValenceFunctional  hunger for resolution  #
         valence = None
         if self._valence is not None:
             try:
@@ -775,7 +775,7 @@ class ZeitgeistRouter(nn.Module):
             except Exception:
                 pass
 
-        # ── 6. NonCommutativity curvature diagnostics & Shortcut ────── #
+        #  6. NonCommutativity curvature diagnostics & Shortcut  #
         nc_curvature = None
         curvature_threshold = 0.35 # Boundary between Palindromic and Non-Commutative logic
         
@@ -804,7 +804,7 @@ class ZeitgeistRouter(nn.Module):
             except Exception:
                 pass
 
-        # ── 7. Non-Abelian Temporal Inverse Kinematics ───────────────── #
+        #  7. Non-Abelian Temporal Inverse Kinematics  #
         # Steering the trajectory based on the new Braid/CS state
         x_steered = self.temporal_inverse_kinematics(new_state, x)
 
@@ -845,7 +845,7 @@ class ZeitgeistRouter(nn.Module):
             'grazing_dims': int(grazing_mask.sum().item()),
             'grazing_pressure': grazing_pressure,
             'facet_norms_mean': float(g.abs().mean().item()),
-            'betti_routing_bias': float(state.cs_phase), # Fallback for now or add explicit field
+            'betti_routing_bias': float(new_state.cs_phase), 
             # Optional enrichments
             'clock_dt': clock_dt,
             'valence': valence,
@@ -856,6 +856,6 @@ class ZeitgeistRouter(nn.Module):
             'word_length': len(new_state.braid_word),
             'gasket_tension': len(new_state.braid_word) / self.M,
             # Serialised state for payload
-            'state': new_state.to_dict(),
         }
+        d['state'] = new_state.to_dict()
         return d
