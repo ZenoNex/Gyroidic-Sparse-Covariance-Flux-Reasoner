@@ -10,13 +10,13 @@ allows a cycle to survive tension safely.
 
 This module consolidates:
     - UnknowledgeDomain: The shield / logic gate
-    - NostalgicLeakFunctional: ψ_l: H -> R^{D+1} (archetype concealment)
+    - NostalgicLeakFunctional: _l: H -> R^{D+1} (archetype concealment)
     - EntropicMischiefProbe: H_meta = H_dementia + H_schizo + H_mischief
 
 References:
-    - Gyroidic Unknowledge Flux Reasoner §24 (Mischief Violation Score / Computable Flux)
-    - PHILOSOPHY.md §15 (Kappa Overloading) §16 (Posthuman Identity)
-    - MATHEMATICAL_DETAILS.md §24 (Computable Flux) §26 (Kappa Taxonomy)
+    - Gyroidic Unknowledge Flux Reasoner 24 (Mischief Violation Score / Computable Flux)
+    - PHILOSOPHY.md 15 (Kappa Overloading) 16 (Posthuman Identity)
+    - MATHEMATICAL_DETAILS.md 24 (Computable Flux) 26 (Kappa Taxonomy)
 """
 
 import torch
@@ -31,7 +31,7 @@ from src.core.honest_jitter import harvest_honest_jitter
 
 class NostalgicLeakFunctional(nn.Module):
     """
-    Implements the Nostalgic Leak ψ_l: H -> R^{D+1}.
+    Implements the Nostalgic Leak _l: H -> R^{D+1}.
 
     Models internet archetype concealment using sigmoid visibility masks
     (e.g. apple-obscured faces).
@@ -48,7 +48,7 @@ class NostalgicLeakFunctional(nn.Module):
         self.alpha = alpha
         self.device = device
 
-        # Archetype coefficients μ_l (Obscured)
+        # Archetype coefficients _l (Obscured)
         # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
         self.register_buffer('mu_l', harvest_honest_jitter((fossil_dim,), device=device, scaled=True))
 
@@ -57,13 +57,13 @@ class NostalgicLeakFunctional(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        ψ_l(x) = sum(μ_l * P(x)) * (1 - Vis(x))
+        _l(x) = sum(_l * P(x)) * (1 - Vis(x))
 
         Args:
             x: Input state [batch, fossil_dim]
         """
         # Visibility mask around obstruction o
-        # Vis(x) = σ(α * |x - o|)
+        # Vis(x) = ( * |x - o|)
         dist = torch.norm(x - self.o, dim=1, keepdim=True)
         vis = torch.sigmoid(self.alpha * dist)
 
@@ -167,6 +167,16 @@ class EntropicMischiefProbe(nn.Module):
             'H_meta': self.H_meta.item()
         }
 
+    def inject_pressure(self, pressure: float):
+        """
+        Inject external pressure directly into the mischief band.
+        Allows isolated toolchains (like augmentation) to affect the engine.
+        """
+        # Scale to match expected mischief dynamics (high-frequency play)
+        # Pressure typically arrives in [0, 2] range, we scale for H_mischief impact
+        scaled_mischief = self.eta_mischief * pressure * 0.1
+        self.H_mischief.add_(torch.tensor(scaled_mischief, device=self.device))
+
 
 # ---------------------------------------------------------------------------
 # Unknowledge Domain  (The $\mathcal{U}$ Substrate)
@@ -185,7 +195,7 @@ class UnknowledgeDomain(nn.Module):
         3. Monitoring Elipsodistrophy (spectral atrophy) as a lobotomy
            early-warning system
 
-    All computations are O(1) or O(k) — no global homology.
+    All computations are O(1) or O(k)  no global homology.
     """
 
     def __init__(
@@ -337,7 +347,7 @@ class UnknowledgeDomain(nn.Module):
         """
         Measures the spectral envelope as Hyperbolic Shear (System 2 Driver).
 
-        ECCENTRICITY = log(max(λ) / min(λ))
+        ECCENTRICITY = log(max() / min())
         SHEAR = 2 * tanh(ECCENTRICITY / 2)
 
         This provides the non-Euclidean volume required to resolve 'cubed cube'
