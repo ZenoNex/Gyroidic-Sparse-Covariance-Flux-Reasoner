@@ -6,7 +6,7 @@ This manual covers all the ways you can interact with the AI system, from simple
 
 ---
 
-## 📋 Table of Contents
+##  Table of Contents
 
 1. [Getting Started](#getting-started)
 2. [Web Chat Interface](#web-chat-interface)
@@ -20,7 +20,7 @@ This manual covers all the ways you can interact with the AI system, from simple
 
 ---
 
-## 🚀 Getting Started
+## [START] Getting Started
 
 ### Installation
 ```bash
@@ -42,7 +42,7 @@ python src/ui/diegetic_terminal.py
 
 ---
 
-## 💬 Web Chat Interface
+##  Web Chat Interface
 
 ### Starting the Chat
 ```bash
@@ -79,7 +79,7 @@ While chatting, you can use these special commands:
 
 ---
 
-## 🎯 Dataset Training Commands
+## [GOAL] Dataset Training Commands
 
 ### Main Command Interface
 **File**: `dataset_command_interface.py`
@@ -111,6 +111,7 @@ python dataset_command_interface.py quick-start --dataset codeparrot --samples 1
 - `--samples`: How many examples to learn from (more = better but slower)
 - `--epochs`: How many times to go through the data (more = deeper learning)
 - `--augment`: Use advanced data expansion techniques
+- `--manifold-aware`: **[NEW]** Enable Thick Ingestion (attaches live manifold state to each sample)
 
 ### Wikipedia Learning
 ```bash
@@ -168,7 +169,7 @@ python dataset_command_interface.py status
 
 ---
 
-## 📚 Wikipedia Learning System
+## [DOCS] Wikipedia Learning System
 
 ### Web Interface
 ```bash
@@ -209,7 +210,7 @@ python dataset_command_interface.py add-wikipedia --topics "Machine_learning,Neu
 
 ---
 
-## 🖼️ Image Processing
+## ️ Image Processing
 
 ### Image Analysis in Chat
 1. Start the chat interface: `python src/ui/diegetic_terminal.py`
@@ -245,7 +246,7 @@ python image_extension.py
 
 ---
 
-## 🧪 Testing and Verification
+## [TEST] Testing and Verification
 
 ### Core System Tests
 ```bash
@@ -293,7 +294,7 @@ python dataset_command_interface.py status
 
 ---
 
-## ⚙️ System Management
+## [INIT] System Management
 
 ### Checking System Status
 ```bash
@@ -347,7 +348,7 @@ python src/ui/diegetic_backend.py
 
 ---
 
-## 🚨 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues and Solutions
 
@@ -448,7 +449,7 @@ python dataset_command_interface.py list-datasets
 
 ---
 
-## 🔬 Advanced Features
+##  Advanced Features
 
 <details>
 <summary>Click to expand advanced technical features</summary>
@@ -533,7 +534,7 @@ python dataset_ingestion_system.py setup-training \
 
 ---
 
-## 📊 Understanding the System
+## [METRICS] Understanding the System
 
 ### What Makes This AI Different
 
