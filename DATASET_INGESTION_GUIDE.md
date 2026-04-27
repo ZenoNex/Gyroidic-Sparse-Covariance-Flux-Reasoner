@@ -1,542 +1,944 @@
-#!/usr/bin/env python3
-"""
-Gyroidic Dataset Command Interface
+# Complete Guide to Dataset Training
 
-A comprehensive command-line interface for dataset ingestion, training, and management.
-Provides easy access to multiple dataset sources and training configurations.
+**Learn how to train the Gyroidic AI System on any dataset**
 
-Usage Examples:
-    # Quick start with HuggingFace dataset
-    python dataset_command_interface.py quick-start --dataset imdb --samples 1000
-    
-    # Add Wikipedia knowledge
-    python dataset_command_interface.py add-wikipedia --topics "quantum_mechanics,relativity" --samples 500
-    
-    # Train on local files
-    python dataset_command_interface.py train-local --path "./documents/" --epochs 10
-    
-    # Full pipeline with Mandelbulb augmentation
-    python dataset_command_interface.py full-pipeline --source huggingface --dataset "squad" --augment
+This guide shows you how to train the AI system on different types of data, from movie reviews to Wikipedia articles to your own documents.
 
-Author: System Architecture Team
-Date: January 2026
-"""
+---
 
-import sys
-import os
-import argparse
-import json
-import requests
-import zipfile
-import tarfile
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Any, Union
-import torch
-import subprocess
-import time
-from urllib.parse import urlparse
+## [PHILOSOPHY] The IR Seesaw Law & System Architecture
 
-# Add src to path and set up package structure
-current_dir = os.path.dirname(os.path.abspath(__file__))
-src_dir = os.path.join(current_dir, 'src')
-if src_dir not in sys.path:
-    sys.path.insert(0, src_dir)
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
+> [!NOTE]
+> **Philosophical Difference in System Design**
+> A previous design paradigm assumed we would individually select and name discrete models for training. However, the Gyroidic AI System is conceptually different: it is an **integrated self-saturating constraint-finding manifold** with isolated pockets. It takes advantage of timing problems using the **IR Seesaw Law** (intuited by Devin Bostick, which inspired our CODES systems). 
+>
+> Therefore, tools like `dataset_command_interface.py` abstract away manual model naming, automatically generating integrated topological projections that fit directly into the manifold. You do not need to name models individually; the system organically grows constraint pockets as new datasets are ingested.
 
-# Also add examples directory
-examples_dir = os.path.join(current_dir, 'examples')
-if examples_dir not in sys.path:
-    sys.path.insert(0, examples_dir)
+---
 
-# Import our systems
-from dataset_ingestion_system import DatasetIngestionSystem, DatasetConfig, TrainingConfig
+## [START] Quick Start Examples
 
-class DatasetCommandInterface:
-    """
-    Command-line interface for the Gyroidic Dataset Ingestion System.
-    
-    Provides easy access to:
-    - Popular dataset sources (HuggingFace, Kaggle, Wikipedia)
-    - Pre-configured training pipelines
-    - Storage-optimized workflows for 100GB constraint
-    - Anti-lobotomy compliant training
-    """
-    
-    def __init__(self):
-        self.system = DatasetIngestionSystem()
-        self.popular_datasets = {
-            # Text datasets
-            'imdb': {'source': 'huggingface', 'path': 'imdb', 'type': 'text'},
-            'squad': {'source': 'huggingface', 'path': 'squad', 'type': 'text'},
-            'wikitext': {'source': 'huggingface', 'path': 'wikitext-2-raw-v1', 'type': 'text'},
-            'openwebtext': {'source': 'huggingface', 'path': 'openwebtext', 'type': 'text'},
-            
-            # Code datasets
-            'codeparrot': {'source': 'huggingface', 'path': 'codeparrot/codeparrot-clean', 'type': 'text'},
-            'github_code': {'source': 'huggingface', 'path': 'github-code', 'type': 'text'},
-            
-            # Scientific datasets
-            'arxiv': {'source': 'huggingface', 'path': 'arxiv_dataset', 'type': 'text'},
-            'pubmed': {'source': 'huggingface', 'path': 'pubmed_qa', 'type': 'text'},
-            
-            # Multimodal datasets
-            'coco': {'source': 'huggingface', 'path': 'coco', 'type': 'multimodal'},
-            'flickr30k': {'source': 'huggingface', 'path': 'flickr30k', 'type': 'multimodal'},
-        }
-        
-        self.wikipedia_topics = {
-            'physics': ['Quantum_mechanics', 'General_relativity', 'Thermodynamics', 'Statistical_mechanics', 'Particle_physics'],
-            'mathematics': ['Linear_algebra', 'Calculus', 'Topology', 'Abstract_algebra', 'Number_theory'],
-            'computer_science': ['Machine_learning', 'Algorithms', 'Data_structures', 'Computer_graphics', 'Cryptography'],
-            'philosophy': ['Philosophy_of_mind', 'Epistemology', 'Logic', 'Ethics', 'Metaphysics'],
-            'biology': ['Molecular_biology', 'Evolution', 'Genetics', 'Neuroscience', 'Ecology'],
-        }
-    
-    def quick_start(self, args):
-        """Quick start with a popular dataset."""
-        print(f"[START] Quick Start: {args.dataset}")
-        print("=" * 50)
-        
-        if args.dataset not in self.popular_datasets:
-            print(f"[ERR] Unknown dataset: {args.dataset}")
-            print(f"Available datasets: {list(self.popular_datasets.keys())}")
-            return False
-        
-        dataset_info = self.popular_datasets[args.dataset]
-        
-        # Create dataset config
-        config = DatasetConfig(
-            name=args.dataset,
-            source_type=dataset_info['source'],
-            source_path=dataset_info['path'],
-            preprocessing=dataset_info['type'],
-            max_samples=args.samples,
-            augmentation=True,
-            mandelbulb_augmentation=args.augment
-        )
-        
-        # Add dataset
-        print(f" Adding dataset: {args.dataset}")
-        success = self.system.add_dataset_source(config)
-        
-        if success:
-            # Create model
-            print(f"[BRAIN] Creating temporal model...")
-            model_config = {
-                'name': f"{args.dataset}_model",
-                'type': 'temporal',
-                'functionals': 5,
-                'hidden_dim': 256
-            }
-            self.system.create_model(model_config['name'], model_config)
-            
-            # Setup training
-            print(f"[INIT] Setting up training...")
-            training_config = TrainingConfig(
-                num_epochs=args.epochs,
-                batch_size=4,
-                use_mandelbulb_augmentation=args.augment,
-                augmentation_factor=2
-            )
-            self.system.setup_training(f"{args.dataset}_model", args.dataset, training_config)
-            
-            # Start training
-            print(f"️ Starting training...")
-            self.system.run_training(f"{args.dataset}_model", args.dataset)
-            
-            print(f"[OK] Quick start completed for {args.dataset}")
-            return True
-        else:
-            print(f"[ERR] Failed to add dataset {args.dataset}")
-            return False
-    
-    def add_wikipedia(self, args):
-        """Add Wikipedia articles on specific topics."""
-        print(f"[DOCS] Adding Wikipedia Knowledge")
-        print("=" * 40)
-        
-        # Parse topics
-        if args.topics in self.wikipedia_topics:
-            # Use predefined topic collection
-            topics = self.wikipedia_topics[args.topics]
-            dataset_name = f"wikipedia_{args.topics}"
-        else:
-            # Use custom topics
-            topics = args.topics.split(',')
-            dataset_name = f"wikipedia_custom"
-        
-        print(f"Topics: {topics}")
-        
-        # Create dataset config
-        config = DatasetConfig(
-            name=dataset_name,
-            source_type='wikipedia',
-            source_path=','.join(topics),
-            preprocessing='text',
-            max_samples=args.samples,
-            augmentation=True,
-            temporal_associations=True
-        )
-        
-        # Add dataset
-        success = self.system.add_dataset_source(config)
-        
-        if success:
-            print(f"[OK] Added Wikipedia dataset: {dataset_name}")
-            print(f"   Topics: {len(topics)}")
-            print(f"   Max samples: {args.samples}")
-            
-            if args.train:
-                # Auto-create model and train
-                model_name = f"{dataset_name}_model"
-                print(f"[BRAIN] Creating model: {model_name}")
-                
-                model_config = {
-                    'name': model_name,
-                    'type': 'temporal',
-                    'functionals': 7,  # More functionals for knowledge
-                    'hidden_dim': 512
-                }
-                self.system.create_model(model_config['name'], model_config)
-                
-                # Setup and run training
-                training_config = TrainingConfig(
-                    num_epochs=15,
-                    batch_size=2,  # Smaller batch for memory efficiency
-                    learning_rate=5e-5,
-                    use_mandelbulb_augmentation=True
-                )
-                
-                self.system.setup_training(model_name, dataset_name, training_config)
-                self.system.run_training(model_name, dataset_name)
-            
-            return True
-        else:
-            print(f"[ERR] Failed to add Wikipedia dataset")
-            return False
-    
-    def train_local(self, args):
-        """Train on local files."""
-        print(f" Training on Local Files")
-        print("=" * 40)
-        
-        local_path = Path(args.path)
-        if not local_path.exists():
-            print(f"[ERR] Path not found: {local_path}")
-            return False
-        
-        # Create dataset config
-        dataset_name = f"local_{local_path.name}"
-        config = DatasetConfig(
-            name=dataset_name,
-            source_type='local',
-            source_path=str(local_path),
-            preprocessing='text',
-            max_samples=args.samples,
-            augmentation=True,
-            mandelbulb_augmentation=args.augment
-        )
-        
-        # Add dataset
-        success = self.system.add_dataset_source(config)
-        
-        if success:
-            # Create model
-            model_name = f"{dataset_name}_model"
-            model_config = {
-                'name': model_name,
-                'type': 'temporal',
-                'functionals': 6,
-                'hidden_dim': 384
-            }
-            self.system.create_model(model_config['name'], model_config)
-            
-            # Setup training
-            training_config = TrainingConfig(
-                num_epochs=args.epochs,
-                batch_size=4,
-                use_mandelbulb_augmentation=args.augment,
-                augmentation_factor=2
-            )
-            
-            self.system.setup_training(model_name, dataset_name, training_config)
-            
-            # Train
-            print(f"️ Training on {local_path}")
-            self.system.run_training(model_name, dataset_name)
-            
-            print(f"[OK] Local training completed")
-            return True
-        else:
-            print(f"[ERR] Failed to process local files")
-            return False
-    
-    def full_pipeline(self, args):
-        """Run full pipeline with all features."""
-        print(f" Full Gyroidic Pipeline")
-        print("=" * 50)
-        
-        # Determine dataset source
-        if args.source == 'huggingface' and args.dataset in self.popular_datasets:
-            dataset_info = self.popular_datasets[args.dataset]
-            config = DatasetConfig(
-                name=args.dataset,
-                source_type='huggingface',
-                source_path=dataset_info['path'],
-                preprocessing=dataset_info['type'],
-                max_samples=args.samples,
-                augmentation=True,
-                mandelbulb_augmentation=args.augment,
-                temporal_associations=True
-            )
-        elif args.source == 'wikipedia':
-            topics = args.dataset.split(',')
-            config = DatasetConfig(
-                name=f"wikipedia_{args.dataset.replace(',', '_')}",
-                source_type='wikipedia',
-                source_path=args.dataset,
-                preprocessing='text',
-                max_samples=args.samples,
-                augmentation=True,
-                mandelbulb_augmentation=args.augment,
-                temporal_associations=True
-            )
-        elif args.source == 'local':
-            config = DatasetConfig(
-                name=f"local_{Path(args.dataset).name}",
-                source_type='local',
-                source_path=args.dataset,
-                preprocessing='text',
-                max_samples=args.samples,
-                augmentation=True,
-                mandelbulb_augmentation=args.augment,
-                temporal_associations=True
-            )
-        else:
-            print(f"[ERR] Invalid source/dataset combination")
-            return False
-        
-        # Execute full pipeline
-        print(f" Step 1: Adding dataset...")
-        success = self.system.add_dataset_source(config)
-        
-        if not success:
-            print(f"[ERR] Failed to add dataset")
-            return False
-        
-        print(f"[BRAIN] Step 2: Creating advanced model...")
-        model_name = f"{config.name}_advanced"
-        model_config = {
-            'name': model_name,
-            'type': 'temporal',
-            'functionals': 8,  # Maximum functionals
-            'poly_degree': 5,
-            'hidden_dim': 768,  # Large model
-            'num_heads': 12
-        }
-        self.system.create_model(model_config['name'], model_config)
-        
-        print(f"[INIT] Step 3: Advanced training setup...")
-        training_config = TrainingConfig(
-            num_epochs=args.epochs,
-            batch_size=2,  # Small batch for large model
-            learning_rate=1e-5,  # Conservative learning rate
-            evolution_rate=0.01,
-            use_mandelbulb_augmentation=args.augment,
-            augmentation_factor=3,  # Aggressive augmentation
-            save_checkpoints=True,
-            checkpoint_interval=2
-        )
-        
-        self.system.setup_training(model_name, config.name, training_config)
-        
-        print(f"️ Step 4: Full training with all features...")
-        self.system.run_training(model_name, config.name)
-        
-        print(f"[GOAL] Step 5: Evaluation and analysis...")
-        # TODO: Add evaluation metrics
-        
-        print(f"[OK] Full pipeline completed!")
-        print(f"   Model: {model_name}")
-        print(f"   Dataset: {config.name}")
-        print(f"   Augmentation: {'[OK]' if args.augment else '[ERR]'}")
-        print(f"   Temporal Associations: [OK]")
-        
-        return True
-    
-    def list_datasets(self, args):
-        """List available datasets and sources."""
-        print(f"[METRICS] Available Datasets and Sources")
-        print("=" * 50)
-        
-        print(f"\n Popular HuggingFace Datasets:")
-        for name, info in self.popular_datasets.items():
-            print(f"   {name:15} - {info['type']:10} - {info['path']}")
-        
-        print(f"\n[DOCS] Wikipedia Topic Collections:")
-        for topic, articles in self.wikipedia_topics.items():
-            print(f"   {topic:15} - {len(articles)} articles")
-        
-        print(f"\n[SAVE] Storage Estimates (per 1000 samples):")
-        print(f"   Text dataset:     ~50-100 MB")
-        print(f"   + Fingerprints:   ~5 MB")
-        print(f"   + Embeddings:     ~15 MB")
-        print(f"   + Augmentation:   ~20-40 MB")
-        print(f"   Total per 1k:     ~90-160 MB")
-        
-        print(f"\n[GOAL] Recommended for 100GB constraint:")
-        print(f"   Small datasets:   1,000-5,000 samples")
-        print(f"   Medium datasets:  500-2,000 samples")
-        print(f"   Large datasets:   100-1,000 samples")
-        
-        return True
-    
-    def status(self, args):
-        """Show system status and storage usage."""
-        print(f"[METRICS] Gyroidic System Status")
-        print("=" * 40)
-        
-        # Check storage usage
-        data_dir = Path("datasets")
-        if data_dir.exists():
-            total_size = sum(f.stat().st_size for f in data_dir.rglob('*') if f.is_file())
-            print(f"[SAVE] Storage Usage:")
-            print(f"   Data directory: {total_size / 1024 / 1024:.1f} MB")
-            print(f"   Available: ~{100 * 1024 - total_size / 1024 / 1024:.1f} MB (assuming 100GB limit)")
-        
-        # Check for existing datasets
-        if hasattr(self.system, 'datasets') and self.system.datasets:
-            print(f"\n[DOCS] Loaded Datasets:")
-            for name, dataset in self.system.datasets.items():
-                print(f"   {name}: {len(dataset)} samples")
-        else:
-            print(f"\n[DOCS] No datasets loaded")
-        
-        # Check for models
-        if hasattr(self.system, 'models') and self.system.models:
-            print(f"\n[BRAIN] Available Models:")
-            for name, model in self.system.models.items():
-                param_count = sum(p.numel() for p in model.parameters())
-                print(f"   {name}: {param_count:,} parameters")
-        else:
-            print(f"\n[BRAIN] No models created")
-        
-        # System health
-        print(f"\n System Health:")
-        print(f"   Device: {self.system.device}")
-        print(f"   PyTorch: {torch.__version__}")
-        print(f"   CUDA available: {torch.cuda.is_available()}")
-        
-        return True
+### Train on Movie Reviews (5 minutes)
+```bash
+# This will download movie reviews and train the AI to understand sentiment
+python dataset_command_interface.py quick-start --dataset imdb --samples 500 --epochs 3
+```
 
-def create_parser():
-    """Create command-line argument parser."""
-    parser = argparse.ArgumentParser(
-        description="Gyroidic Dataset Command Interface",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Quick start with IMDB dataset
-  python dataset_command_interface.py quick-start --dataset imdb --samples 1000 --epochs 5
+### Learn Physics from Wikipedia (10 minutes)
+```bash
+# This downloads physics articles and teaches the AI about physics
+python dataset_command_interface.py add-wikipedia --topics physics --samples 300 --train
+```
 
-  # Add Wikipedia physics knowledge
-  python dataset_command_interface.py add-wikipedia --topics physics --samples 500 --train
+### Train on Your Documents (varies)
+```bash
+# This trains the AI on your own files
+python dataset_command_interface.py train-local --path ./my_documents/ --epochs 5
+```
 
-  # Train on local documents
-  python dataset_command_interface.py train-local --path ./documents/ --epochs 10 --augment
+---
 
-  # Full pipeline with HuggingFace dataset
-  python dataset_command_interface.py full-pipeline --source huggingface --dataset squad --augment --epochs 15
+## [DOCS] Understanding Datasets
 
-  # List available datasets
-  python dataset_command_interface.py list-datasets
+### What is a Dataset?
+A dataset is a collection of examples that the AI learns from. Think of it like a textbook - the more examples the AI sees, the better it gets at understanding and generating similar content.
 
-  # Check system status
-  python dataset_command_interface.py status
-        """
-    )
-    
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
-    
-    # Quick start command
-    quick_parser = subparsers.add_parser('quick-start', help='Quick start with popular dataset')
-    quick_parser.add_argument('--dataset', required=True, help='Dataset name (imdb, squad, wikitext, etc.)')
-    quick_parser.add_argument('--samples', type=int, default=1000, help='Max samples to use')
-    quick_parser.add_argument('--epochs', type=int, default=10, help='Training epochs')
-    quick_parser.add_argument('--augment', action='store_true', help='Use Mandelbulb augmentation')
-    
-    # Wikipedia command
-    wiki_parser = subparsers.add_parser('add-wikipedia', help='Add Wikipedia knowledge')
-    wiki_parser.add_argument('--topics', required=True, help='Topics (physics, math, cs) or custom list')
-    wiki_parser.add_argument('--samples', type=int, default=500, help='Max samples per topic')
-    wiki_parser.add_argument('--train', action='store_true', help='Auto-train after adding')
-    
-    # Local training command
-    local_parser = subparsers.add_parser('train-local', help='Train on local files')
-    local_parser.add_argument('--path', required=True, help='Path to local files/directory')
-    local_parser.add_argument('--samples', type=int, default=None, help='Max samples to use')
-    local_parser.add_argument('--epochs', type=int, default=10, help='Training epochs')
-    local_parser.add_argument('--augment', action='store_true', help='Use Mandelbulb augmentation')
-    
-    # Full pipeline command
-    full_parser = subparsers.add_parser('full-pipeline', help='Run full pipeline with all features')
-    full_parser.add_argument('--source', required=True, choices=['huggingface', 'wikipedia', 'local'], help='Data source')
-    full_parser.add_argument('--dataset', required=True, help='Dataset name/path/topics')
-    full_parser.add_argument('--samples', type=int, default=1000, help='Max samples to use')
-    full_parser.add_argument('--epochs', type=int, default=20, help='Training epochs')
-    full_parser.add_argument('--augment', action='store_true', help='Use Mandelbulb augmentation')
-    
-    # List datasets command
-    subparsers.add_parser('list-datasets', help='List available datasets and sources')
-    
-    # Status command
-    subparsers.add_parser('status', help='Show system status and storage usage')
-    
-    return parser
+### Types of Datasets
 
-def main():
-    """Main entry point."""
-    parser = create_parser()
-    args = parser.parse_args()
-    
-    if not args.command:
-        parser.print_help()
-        return
-    
-    # Initialize interface
-    interface = DatasetCommandInterface()
-    
-    # Execute command
-    try:
-        if args.command == 'quick-start':
-            success = interface.quick_start(args)
-        elif args.command == 'add-wikipedia':
-            success = interface.add_wikipedia(args)
-        elif args.command == 'train-local':
-            success = interface.train_local(args)
-        elif args.command == 'full-pipeline':
-            success = interface.full_pipeline(args)
-        elif args.command == 'list-datasets':
-            success = interface.list_datasets(args)
-        elif args.command == 'status':
-            success = interface.status(args)
-        else:
-            print(f"[ERR] Unknown command: {args.command}")
-            success = False
-        
-        if success:
-            print(f"\n[OK] Command completed successfully!")
-        else:
-            print(f"\n[ERR] Command failed!")
-            sys.exit(1)
-            
-    except KeyboardInterrupt:
-        print(f"\n[WARN] Interrupted by user")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\n[ERR] Error: {e}")
-        sys.exit(1)
+#### Text Datasets
+- **Movie Reviews (IMDB)**: Teaches the AI about opinions and sentiment
+- **Question-Answer Pairs (Squad)**: Teaches the AI to answer questions
+- **Wikipedia Articles**: Teaches the AI factual knowledge
+- **Code Repositories**: Teaches the AI about programming
+- **Scientific Papers**: Teaches the AI about research and technical topics
 
-if __name__ == "__main__":
-    main()
+#### Image Datasets
+- **Photo Captions (COCO)**: Teaches the AI to describe images
+- **Flickr Photos**: More image-text associations
+
+#### Your Own Data
+- **Documents**: PDFs, Word files, text files
+- **Books**: Any text content you want the AI to learn from
+- **Conversations**: Chat logs or transcripts
+
+---
+
+## [GOAL] Command Reference
+
+### Main Command: `dataset_command_interface.py`
+
+This is your main tool for training the AI. All commands follow this pattern:
+```bash
+python dataset_command_interface.py [command] [options]
+```
+
+### Available Commands
+
+#### `quick-start` - Easiest Way to Begin
+Automatically downloads a popular dataset and starts training.
+
+```bash
+python dataset_command_interface.py quick-start --dataset [name] --samples [number] --epochs [number]
+```
+
+**Options:**
+- `--dataset`: Which dataset to use (see list below)
+- `--samples`: How many examples to use (more = better but slower)
+- `--epochs`: How many times to go through the data (more = better but slower)
+- `--augment`: Use advanced data expansion (optional)
+
+**Examples:**
+```bash
+# Small, fast training (good for testing)
+python dataset_command_interface.py quick-start --dataset imdb --samples 500 --epochs 3
+
+# Medium training (good balance)
+python dataset_command_interface.py quick-start --dataset squad --samples 1000 --epochs 5
+
+# Large training (best results but slower)
+python dataset_command_interface.py quick-start --dataset wikitext --samples 2000 --epochs 10
+```
+
+#### `add-wikipedia` - Learn from Wikipedia
+Downloads and trains on Wikipedia articles about specific topics.
+
+```bash
+python dataset_command_interface.py add-wikipedia --topics [topic] --samples [number] --train
+```
+
+**Options:**
+- `--topics`: What to learn about (see topic list below)
+- `--samples`: How many articles per topic
+- `--train`: Start training immediately after downloading
+
+**Examples:**
+```bash
+# Learn physics
+python dataset_command_interface.py add-wikipedia --topics physics --samples 500 --train
+
+# Learn multiple topics
+python dataset_command_interface.py add-wikipedia --topics "Quantum_mechanics,Relativity" --samples 300 --train
+
+# Just download without training
+python dataset_command_interface.py add-wikipedia --topics mathematics --samples 400
+```
+
+#### `train-local` - Use Your Own Files
+Trains the AI on your own documents and files.
+
+```bash
+python dataset_command_interface.py train-local --path [folder/file] --epochs [number]
+```
+
+**Options:**
+- `--path`: Path to your files or folder
+- `--epochs`: How many training rounds
+- `--samples`: Limit number of files (optional)
+- `--augment`: Use data expansion (optional)
+
+**Examples:**
+```bash
+# Train on a folder of documents
+python dataset_command_interface.py train-local --path ./documents/ --epochs 10
+
+# Train on a single file
+python dataset_command_interface.py train-local --path ./my_book.txt --epochs 5
+
+# Train with data expansion
+python dataset_command_interface.py train-local --path ./data/ --epochs 8 --augment
+```
+
+#### `full-pipeline` - Advanced Training
+Uses all advanced features for the best results.
+
+```bash
+python dataset_command_interface.py full-pipeline --source [type] --dataset [name] --augment --epochs [number]
+```
+
+**Options:**
+- `--source`: Where the data comes from (huggingface, wikipedia, local)
+- `--dataset`: Dataset name or path
+- `--augment`: Use advanced data expansion
+- `--epochs`: Training rounds
+- `--samples`: Limit data size
+
+**Examples:**
+```bash
+# Advanced HuggingFace training
+python dataset_command_interface.py full-pipeline --source huggingface --dataset squad --augment --epochs 20
+
+# Advanced Wikipedia training
+python dataset_command_interface.py full-pipeline --source wikipedia --dataset "physics,math" --augment --epochs 25
+
+# Advanced local file training
+python dataset_command_interface.py full-pipeline --source local --dataset ./my_data/ --augment --epochs 15
+```
+
+#### `list-datasets` - See What's Available
+Shows all available datasets and their details.
+
+```bash
+python dataset_command_interface.py list-datasets
+```
+
+#### `status` - Check System Health
+Shows storage usage, loaded datasets, and system status.
+
+```bash
+python dataset_command_interface.py status
+```
+
+---
+
+##  Available Datasets
+
+### Popular Text Datasets
+
+| Name | Description | Good For | Size (1k samples) |
+|------|-------------|----------|-------------------|
+| `imdb` | Movie reviews | Learning opinions, sentiment | ~100 MB |
+| `squad` | Question-answer pairs | Teaching Q&A skills | ~120 MB |
+| `wikitext` | Wikipedia articles | General knowledge | ~90 MB |
+| `openwebtext` | Web content | Diverse writing styles | ~150 MB |
+| `codeparrot` | Programming code | Code understanding | ~110 MB |
+| `github_code` | Code repositories | Software development | ~130 MB |
+| `arxiv` | Scientific papers | Research, technical topics | ~140 MB |
+| `pubmed` | Medical research | Healthcare, biology | ~120 MB |
+
+### Wikipedia Topic Collections
+
+| Topic | Articles Included | Good For |
+|-------|------------------|----------|
+| `physics` | Quantum mechanics, relativity, thermodynamics, particle physics | Science education |
+| `mathematics` | Linear algebra, calculus, topology, number theory | Math tutoring |
+| `computer_science` | Machine learning, algorithms, data structures | Programming help |
+| `philosophy` | Philosophy of mind, logic, ethics | Critical thinking |
+| `biology` | Molecular biology, evolution, genetics | Life sciences |
+
+### Multimodal Datasets
+
+| Name | Description | Features |
+|------|-------------|----------|
+| `coco` | Images with captions | Image understanding |
+| `flickr30k` | Photo descriptions | Visual-text connections |
+
+---
+
+## [INIT] Configuration Guide
+
+### Understanding the Options
+
+#### `--samples` (Number of Examples)
+- **Small (500-1000)**: Fast training, good for testing
+- **Medium (1000-3000)**: Good balance of speed and quality
+- **Large (3000+)**: Best results but slower
+
+#### `--epochs` (Training Rounds)
+- **Few (3-5)**: Quick training, basic learning
+- **Medium (5-10)**: Good learning, reasonable time
+- **Many (10+)**: Deep learning, takes longer
+
+#### `--augment` (Data Expansion)
+- Automatically creates more training examples from your data
+- Uses mathematical techniques to expand small datasets
+- Recommended for datasets under 1000 samples
+
+### Storage Planning
+
+The system is designed to work within 100GB of storage. Here's how to plan:
+
+#### Storage per Dataset (approximate)
+- **Text + Processing**: ~90-160 MB per 1000 samples
+- **Images + Processing**: ~200-400 MB per 1000 samples
+- **Augmented Data**: +50% storage usage
+
+#### Recommended Limits
+- **Small datasets**: 500-1000 samples
+- **Medium datasets**: 1000-3000 samples  
+- **Large datasets**: 3000-5000 samples
+
+#### Check Your Usage
+```bash
+python dataset_command_interface.py status
+```
+
+---
+
+##  Training Workflow
+
+### Step 1: Choose Your Data
+Decide what you want the AI to learn:
+- **General knowledge**: Use Wikipedia topics
+- **Specific skills**: Use targeted datasets (like code or Q&A)
+- **Personal assistant**: Use your own documents
+
+### Step 2: Start Small
+Begin with a small dataset to test:
+```bash
+python dataset_command_interface.py quick-start --dataset imdb --samples 500 --epochs 3
+```
+
+### Step 3: Check Results
+After training, test the AI:
+```bash
+python src/ui/diegetic_terminal.py
+# Open http://localhost:8000 and chat with it
+```
+
+### Step 4: Scale Up
+If results are good, train on more data:
+```bash
+python dataset_command_interface.py quick-start --dataset imdb --samples 2000 --epochs 8 --augment
+```
+
+### Step 5: Add More Topics
+Expand the AI's knowledge:
+```bash
+python dataset_command_interface.py add-wikipedia --topics physics --samples 500 --train
+python dataset_command_interface.py add-wikipedia --topics mathematics --samples 300 --train
+```
+
+---
+
+##  Troubleshooting
+
+### Common Issues
+
+#### "Dataset not found"
+Make sure you're using the exact dataset name from the list above.
+```bash
+# Check available datasets
+python dataset_command_interface.py list-datasets
+```
+
+#### "Out of storage space"
+Check your usage and use smaller datasets:
+```bash
+python dataset_command_interface.py status
+# Use fewer samples
+python dataset_command_interface.py quick-start --dataset imdb --samples 500
+```
+
+#### "Training too slow"
+Reduce samples and epochs:
+```bash
+python dataset_command_interface.py quick-start --dataset imdb --samples 500 --epochs 3
+```
+
+#### "Connection failed" or "Backend error"
+Make sure the backend is running:
+```bash
+python src/ui/diegetic_backend.py
+```
+
+### Getting Better Results
+
+#### For Better Text Generation
+1. Use larger datasets (2000+ samples)
+2. Train for more epochs (8-12)
+3. Use augmentation (`--augment`)
+4. Combine multiple datasets
+
+#### For Faster Training
+1. Use fewer samples (500-1000)
+2. Use fewer epochs (3-5)
+3. Skip augmentation initially
+4. Use smaller models
+
+#### For Specific Domains
+1. Use domain-specific datasets (arxiv for science, codeparrot for programming)
+2. Add relevant Wikipedia topics
+3. Include your own domain documents
+4. Use full pipeline for best results
+
+---
+
+## [METRICS] Monitoring Training
+
+### Check System Status
+```bash
+python dataset_command_interface.py status
+```
+
+This shows:
+- Storage usage
+- Loaded datasets
+- Available models
+- System health
+
+### Watch Training Progress
+Training will show progress like:
+```
+Epoch 1/5: Loss = 0.234
+Epoch 2/5: Loss = 0.198
+Epoch 3/5: Loss = 0.167
+...
+```
+
+Lower loss numbers mean better learning.
+
+### Test Your AI
+After training, test it:
+```bash
+python src/ui/diegetic_terminal.py
+# Open http://localhost:8000
+# Type messages and see responses
+```
+
+---
+
+## [GOAL] Best Practices
+
+### For Beginners
+1. Start with `quick-start` and small datasets
+2. Use 500 samples and 3 epochs initially
+3. Test results before scaling up
+4. Check storage usage regularly
+
+### For Better Results
+1. Use multiple related datasets
+2. Include Wikipedia knowledge
+3. Use augmentation for small datasets
+4. Train for more epochs (8-12)
+
+### For Efficiency
+1. Monitor storage usage
+2. Use appropriate sample sizes
+3. Don't over-train (diminishing returns after 15 epochs)
+4. Clean up old datasets you don't need
+
+---
+
+##  Advanced Features
+
+<details>
+<summary>Click for advanced technical options</summary>
+
+### Advanced Configuration
+
+#### Model Architecture Options
+```bash
+--functionals N     # Number of reasoning components (3-8)
+--hidden-dim N      # Model size (256, 512, 768)
+--poly-degree N     # Mathematical complexity (3-7)
+--num-heads N       # Attention mechanisms (8, 12, 16)
+```
+
+#### Training Parameters
+```bash
+--batch-size N      # Training batch size (2-8)
+--learning-rate F   # Learning speed (1e-5 to 1e-3)
+--evolution-rate F  # Evolution speed (0.01-0.05)
+--checkpoint        # Save training progress
+```
+
+#### Data Augmentation
+The system uses "Mandelbulb-Gyroidic Augmentation" - a mathematical technique that:
+- Expands small datasets intelligently
+- Preserves data structure and meaning
+- Uses fractal and topological principles
+- Maintains training efficiency
+
+</details>
+
+---
+
+This guide covers everything you need to train the Gyroidic AI System on any dataset. Start with the quick examples and gradually explore more advanced features as you become comfortable with the system.
+
+python dataset_ingestion_system.py setup-training \
+  --model "document_reasoner" \
+  --dataset "my_documents" \
+  --epochs 8 \
+  --mandelbulb \
+  --augmentation-factor 2
+
+python dataset_ingestion_system.py train \
+  --model "document_reasoner" \
+  --dataset "my_documents"
+```
+
+---
+
+## [METRICS] Dataset Sources
+
+### HuggingFace Hub
+Access thousands of datasets from the HuggingFace ecosystem:
+
+```bash
+# Popular text datasets
+python dataset_ingestion_system.py add-dataset --name "squad" --source huggingface --path "squad" --preprocessing text
+python dataset_ingestion_system.py add-dataset --name "wikitext" --source huggingface --path "wikitext" --preprocessing text
+python dataset_ingestion_system.py add-dataset --name "openwebtext" --source huggingface --path "openwebtext" --preprocessing text --max-samples 5000
+
+# Conversation datasets
+python dataset_ingestion_system.py add-dataset --name "persona_chat" --source huggingface --path "persona_chat" --preprocessing text
+python dataset_ingestion_system.py add-dataset --name "empathetic_dialogues" --source huggingface --path "empathetic_dialogues" --preprocessing text
+
+# Code datasets
+python dataset_ingestion_system.py add-dataset --name "code_search" --source huggingface --path "code_search_net" --preprocessing text
+```
+
+### Kaggle Datasets
+Access Kaggle's vast dataset collection:
+
+```bash
+# Requires Kaggle API setup: pip install kaggle
+# Configure with your API key from https://www.kaggle.com/account
+
+# Text datasets
+python dataset_ingestion_system.py add-dataset --name "news_articles" --source kaggle --path "rmisra/news-category-dataset" --preprocessing text
+python dataset_ingestion_system.py add-dataset --name "amazon_reviews" --source kaggle --path "bittlingmayer/amazonreviews" --preprocessing text --max-samples 10000
+
+# Scientific datasets
+python dataset_ingestion_system.py add-dataset --name "arxiv_papers" --source kaggle --path "Cornell-University/arxiv" --preprocessing text --max-samples 1000
+```
+
+### Wikipedia Articles
+Curated knowledge extraction:
+
+```bash
+# Single topic
+python dataset_ingestion_system.py add-dataset --name "ai_articles" --source wikipedia --path "Artificial_intelligence" --preprocessing text
+
+# Multiple topics
+python dataset_ingestion_system.py add-dataset --name "science_topics" --source wikipedia --path "Physics,Chemistry,Biology,Mathematics" --preprocessing text
+
+# From file (one topic per line)
+echo -e "Machine_learning\nDeep_learning\nNeural_network\nArtificial_intelligence" > topics.txt
+python dataset_ingestion_system.py add-dataset --name "ml_knowledge" --source wikipedia --path "topics.txt" --preprocessing text
+```
+
+### Local Files
+Process your own data:
+
+```bash
+# Text files
+python dataset_ingestion_system.py add-dataset --name "my_texts" --source local --path "./text_data/" --preprocessing text
+
+# JSON/JSONL files
+python dataset_ingestion_system.py add-dataset --name "structured_data" --source local --path "./data.jsonl" --preprocessing text
+
+# CSV files
+python dataset_ingestion_system.py add-dataset --name "tabular_data" --source local --path "./data.csv" --preprocessing tabular
+```
+
+### URL Downloads
+Direct dataset downloads:
+
+```bash
+# Download and process
+python dataset_ingestion_system.py add-dataset --name "web_dataset" --source url --path "https://example.com/dataset.zip" --preprocessing text
+```
+
+---
+
+## [BUILD] Model Configuration
+
+### Temporal Models
+The primary model type for sequential reasoning:
+
+```bash
+# Basic temporal model
+python dataset_ingestion_system.py create-model \
+  --name "basic_temporal" \
+  --type temporal \
+  --functionals 5 \
+  --hidden-dim 256
+
+# Advanced temporal model
+python dataset_ingestion_system.py create-model \
+  --name "advanced_temporal" \
+  --type temporal \
+  --functionals 8 \
+  --poly-degree 6 \
+  --hidden-dim 512 \
+  --input-dim 768
+
+# Specialized models for different domains
+python dataset_ingestion_system.py create-model \
+  --name "code_reasoner" \
+  --type temporal \
+  --functionals 6 \
+  --poly-degree 4 \
+  --hidden-dim 384
+
+python dataset_ingestion_system.py create-model \
+  --name "science_reasoner" \
+  --type temporal \
+  --functionals 10 \
+  --poly-degree 7 \
+  --hidden-dim 768
+```
+
+### Model Parameters
+
+- **`--functionals`**: Number of polynomial co-prime functionals (K)
+  - More functionals = higher capacity but slower training
+  - Recommended: 5-8 for most tasks, 10+ for complex domains
+
+- **`--poly-degree`**: Degree of polynomial basis functions
+  - Higher degree = more expressive but risk of overfitting
+  - Recommended: 4-6 for most tasks
+
+- **`--hidden-dim`**: Hidden layer dimension
+  - Larger = more capacity but more parameters
+  - Recommended: 256-512 for most tasks
+
+- **`--input-dim`**: Input embedding dimension
+  - Should match your embedding system (768 for many transformers)
+
+---
+
+## [GOAL] Training Configuration
+
+### Basic Training Setup
+
+```bash
+python dataset_ingestion_system.py setup-training \
+  --model "my_model" \
+  --dataset "my_dataset" \
+  --epochs 10 \
+  --batch-size 4 \
+  --learning-rate 1e-4 \
+  --evolution-rate 0.02
+```
+
+### Advanced Training with Mandelbulb Augmentation
+
+```bash
+python dataset_ingestion_system.py setup-training \
+  --model "advanced_model" \
+  --dataset "complex_dataset" \
+  --epochs 20 \
+  --batch-size 8 \
+  --learning-rate 5e-5 \
+  --evolution-rate 0.01 \
+  --mandelbulb \
+  --augmentation-factor 3
+```
+
+### Training Parameters
+
+- **`--epochs`**: Number of training epochs
+  - More epochs = better learning but longer training
+  - Recommended: 10-20 for most datasets
+
+- **`--batch-size`**: Training batch size
+  - Larger batches = more stable gradients but more memory
+  - Recommended: 4-8 for most systems
+
+- **`--learning-rate`**: Neural network learning rate
+  - Standard Adam learning rate for neural components
+  - Recommended: 1e-4 to 1e-5
+
+- **`--evolution-rate`**: Trust scalar evolution rate
+  - Rate of evolutionary trust selection (not gradient descent)
+  - Recommended: 0.01-0.02
+
+- **`--mandelbulb`**: Enable Mandelbulb-Gyroidic augmentation
+  - Geometric dataset expansion using fractal principles
+  - Increases training data while preserving topological structure
+
+- **`--augmentation-factor`**: Mandelbulb augmentation multiplier
+  - How many augmented samples per original sample
+  - Recommended: 2-3 (higher values increase training time)
+
+---
+
+## [GYROID] Mandelbulb-Gyroidic Augmentation
+
+The system includes a novel geometric augmentation method that combines:
+- **Mandelbulb fractals** for self-similar recursive structures
+- **Gyroidic minimal surfaces** for energy-minimizing constraints
+- **Sparse covariance preservation** for maintaining data relationships
+
+### When to Use Mandelbulb Augmentation
+
+[OK] **Recommended for:**
+- Small datasets that need expansion
+- Complex domains requiring topological coherence
+- Training that benefits from geometric variations
+- Systems needing robust generalization
+
+[ERR] **Not recommended for:**
+- Very large datasets (>100k samples)
+- Simple classification tasks
+- Time-critical training scenarios
+- Memory-constrained environments
+
+### Augmentation Configuration
+
+The system automatically configures augmentation parameters, but you can understand what's happening:
+
+```python
+# Internal configuration (automatic)
+AugmentationConfig(
+    mandelbulb_power=8,        # Fractal complexity
+    max_iterations=50,         # Convergence iterations
+    gyroid_tolerance=1e-3,     # Surface projection accuracy
+    sparsity_threshold=0.1,    # Covariance preservation
+    pressure_adaptation=True   # Dynamic parameter adjustment
+)
+```
+
+---
+
+##  Monitoring and Management
+
+### List System State
+
+```bash
+# List all datasets
+python dataset_ingestion_system.py list-datasets
+
+# List all models
+python dataset_ingestion_system.py list-models
+
+# List training sessions
+python dataset_ingestion_system.py list-training
+
+# List everything
+python dataset_ingestion_system.py list-all
+```
+
+### Example Output
+
+```
+[METRICS] Available Datasets:
+   • imdb_reviews
+     Source: huggingface - imdb
+     Preprocessing: text
+     Samples: 1000
+     Augmentation: True
+
+[BUILD] Available Models:
+   • text_reasoner
+     Parameters: 1,234,567
+     Functionals: 5
+     Trust mean: 0.856
+     Fossilized: 2/5
+
+[GOAL] Training Sessions:
+   • text_reasoner_imdb_reviews
+     Status: Complete
+     Epochs: 10/10
+     Runtime: 1234.5s
+```
+
+---
+
+##  Anti-Lobotomy Compliance
+
+The system automatically enforces anti-lobotomy principles:
+
+### [OK] Compliance Checks
+
+1. **No Hardcoded Primes**: Uses polynomial co-prime functionals
+2. **Evolutionary Trust**: Trust scalars evolve via selection, not gradients
+3. **Structural Honesty**: No placeholder implementations
+4. **Non-Teleological Flow**: Survivorship pressure, not loss minimization
+5. **Mathematical Integrity**: Proper polynomial basis functions
+
+###  Violation Detection
+
+The system automatically detects and prevents:
+- Hardcoded prime sequences `[2, 3, 5, 7, 11, ...]`
+- Placeholder implementations `torch.randn()` for mathematical systems
+- Gradient descent on trust scalars (teleological violation)
+- Missing polynomial configurations
+- Invalid evolutionary components
+
+---
+
+##  Advanced Usage Patterns
+
+### 1. Multi-Domain Knowledge Integration
+
+```bash
+# Create specialized models for different domains
+python dataset_ingestion_system.py create-model --name "science_model" --functionals 8 --hidden-dim 512
+python dataset_ingestion_system.py create-model --name "literature_model" --functionals 6 --hidden-dim 384
+python dataset_ingestion_system.py create-model --name "code_model" --functionals 7 --hidden-dim 448
+
+# Add domain-specific datasets
+python dataset_ingestion_system.py add-dataset --name "physics" --source wikipedia --path "Physics,Quantum_mechanics,Relativity"
+python dataset_ingestion_system.py add-dataset --name "literature" --source huggingface --path "bookcorpus" --max-samples 5000
+python dataset_ingestion_system.py add-dataset --name "code" --source huggingface --path "code_search_net" --max-samples 3000
+
+# Train each model on its domain
+for model in science_model literature_model code_model; do
+  for dataset in physics literature code; do
+    if [[ "$model" == *"${dataset%s}"* ]]; then
+      python dataset_ingestion_system.py setup-training --model "$model" --dataset "$dataset" --epochs 15 --mandelbulb
+      python dataset_ingestion_system.py train --model "$model" --dataset "$dataset"
+    fi
+  done
+done
+```
+
+### 2. Progressive Training Pipeline
+
+```bash
+# Stage 1: Basic training
+python dataset_ingestion_system.py setup-training --model "progressive_model" --dataset "basic_data" --epochs 5
+python dataset_ingestion_system.py train --model "progressive_model" --dataset "basic_data"
+
+# Stage 2: Advanced training with augmentation
+python dataset_ingestion_system.py setup-training --model "progressive_model" --dataset "advanced_data" --epochs 10 --mandelbulb --augmentation-factor 2
+python dataset_ingestion_system.py train --model "progressive_model" --dataset "advanced_data"
+
+# Stage 3: Fine-tuning with complex data
+python dataset_ingestion_system.py setup-training --model "progressive_model" --dataset "complex_data" --epochs 15 --mandelbulb --augmentation-factor 3 --evolution-rate 0.005
+python dataset_ingestion_system.py train --model "progressive_model" --dataset "complex_data"
+```
+
+### 3. Comparative Model Training
+
+```bash
+# Create multiple model variants
+python dataset_ingestion_system.py create-model --name "model_5f" --functionals 5 --hidden-dim 256
+python dataset_ingestion_system.py create-model --name "model_8f" --functionals 8 --hidden-dim 256
+python dataset_ingestion_system.py create-model --name "model_5f_large" --functionals 5 --hidden-dim 512
+
+# Train all on same dataset
+for model in model_5f model_8f model_5f_large; do
+  python dataset_ingestion_system.py setup-training --model "$model" --dataset "comparison_data" --epochs 10 --mandelbulb
+  python dataset_ingestion_system.py train --model "$model" --dataset "comparison_data"
+done
+
+# Compare results
+python dataset_ingestion_system.py list-models
+```
+
+---
+
+##  Troubleshooting
+
+### Common Issues
+
+**1. Dataset Loading Fails**
+```bash
+# Check dataset path and permissions
+ls -la /path/to/dataset
+# Verify preprocessing type matches data
+python dataset_ingestion_system.py add-dataset --name "test" --source local --path "./sample.txt" --preprocessing text
+```
+
+**2. Model Creation Fails**
+```bash
+# Check device availability
+python -c "import torch; print(torch.cuda.is_available())"
+# Reduce model size if memory issues
+python dataset_ingestion_system.py create-model --name "small_model" --functionals 3 --hidden-dim 128
+```
+
+**3. Training Fails**
+```bash
+# Check model and dataset exist
+python dataset_ingestion_system.py list-all
+# Reduce batch size if memory issues
+python dataset_ingestion_system.py setup-training --model "my_model" --dataset "my_data" --batch-size 2
+```
+
+**4. Anti-Lobotomy Violations**
+```bash
+# System automatically prevents violations, but if you see errors:
+# - Check that you're using the official system (no manual modifications)
+# - Verify all dependencies are properly installed
+# - Report any violations as they indicate system corruption
+```
+
+### Performance Optimization
+
+**Memory Usage:**
+- Reduce `--batch-size` for memory-constrained systems
+- Use `--max-samples` to limit dataset size
+- Reduce `--hidden-dim` for smaller models
+
+**Training Speed:**
+- Disable `--mandelbulb` for faster training
+- Reduce `--augmentation-factor`
+- Use fewer `--epochs` for initial testing
+- Reduce `--functionals` for simpler models
+
+**Quality vs Speed:**
+- More `--functionals` = better quality, slower training
+- Higher `--poly-degree` = more expressive, risk of overfitting
+- `--mandelbulb` = better generalization, longer training
+
+---
+
+## [DOCS] Dataset Recommendations
+
+### Text Understanding
+- **HuggingFace**: `imdb`, `squad`, `wikitext`, `openwebtext`
+- **Wikipedia**: Core topics in your domain of interest
+- **Local**: Your own text corpus, documentation, books
+
+### Conversational AI
+- **HuggingFace**: `persona_chat`, `empathetic_dialogues`, `blended_skill_talk`
+- **Wikipedia**: Conversational topics, social sciences
+
+### Code Understanding
+- **HuggingFace**: `code_search_net`, `github_code`
+- **Kaggle**: Programming contest datasets
+- **Local**: Your codebase, documentation
+
+### Scientific Reasoning
+- **Wikipedia**: Scientific topics, mathematical concepts
+- **Kaggle**: Scientific datasets, research papers
+- **ArXiv**: Research paper abstracts and content
+
+### Creative Writing
+- **HuggingFace**: `bookcorpus`, `writingprompts`
+- **Local**: Literature, creative writing samples
+- **Wikipedia**: Literary topics, creative writing techniques
+
+---
+
+## [GOAL] Best Practices
+
+### Dataset Preparation
+1. **Start Small**: Use `--max-samples 1000` for initial testing
+2. **Clean Data**: Ensure text is properly encoded and formatted
+3. **Domain Focus**: Use domain-specific datasets for specialized models
+4. **Progressive Scaling**: Start with small datasets, then scale up
+
+### Model Configuration
+1. **Conservative Start**: Begin with 5 functionals, degree 4
+2. **Scale Gradually**: Increase complexity based on results
+3. **Monitor Trust**: Watch trust scalar evolution during training
+4. **Fossilization**: Allow natural fossilization, don't force it
+
+### Training Strategy
+1. **Baseline First**: Train without Mandelbulb augmentation initially
+2. **Add Augmentation**: Use Mandelbulb for improved generalization
+3. **Monitor Metrics**: Watch survivorship pressure and coherence
+4. **Save Checkpoints**: Enable checkpointing for long training runs
+
+### System Maintenance
+1. **Regular Monitoring**: Check anti-lobotomy compliance
+2. **Clean Datasets**: Remove corrupted or low-quality data
+3. **Model Comparison**: Train multiple variants for comparison
+4. **Documentation**: Keep track of successful configurations
+
+---
+
+## [START] Getting Started Checklist
+
+- [ ] Install dependencies: `torch`, `numpy`, `requests`
+- [ ] Optional: Install `datasets` for HuggingFace support
+- [ ] Optional: Install `kaggle` CLI for Kaggle datasets
+- [ ] Choose your first dataset source
+- [ ] Add dataset with appropriate preprocessing
+- [ ] Create a model with conservative parameters
+- [ ] Setup training without Mandelbulb initially
+- [ ] Run training and monitor progress
+- [ ] Experiment with Mandelbulb augmentation
+- [ ] Scale up to larger datasets and models
+
+---
+
+**The Gyroidic Dataset Ingestion System embodies the principles of structural honesty, mathematical integrity, and non-teleological learning. It provides a principled approach to dataset ingestion and training that respects the anti-lobotomy constraints while enabling powerful geometric augmentation and evolutionary learning.**
+
+*"We do not optimize toward a target. We create conditions for survivorship and let structure emerge through pressure and selection."*
