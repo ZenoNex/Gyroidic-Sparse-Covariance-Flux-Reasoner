@@ -152,13 +152,14 @@ python dataset_command_interface.py train-local --path ./data/ --epochs 8 --augm
 Uses all advanced features for the best results.
 
 ```bash
-python dataset_command_interface.py full-pipeline --source [type] --dataset [name] --augment --epochs [number]
+python dataset_command_interface.py full-pipeline --source [type] --dataset [name] --augment --epochs [number] --manifold-aware
 ```
 
 **Options:**
 - `--source`: Where the data comes from (huggingface, wikipedia, local)
 - `--dataset`: Dataset name or path
 - `--augment`: Use advanced data expansion
+- `--manifold-aware`: **[NEW]** Enable Thick Ingestion (attach manifold residues)
 - `--epochs`: Training rounds
 - `--samples`: Limit data size
 
@@ -171,8 +172,26 @@ python dataset_command_interface.py full-pipeline --source huggingface --dataset
 python dataset_command_interface.py full-pipeline --source wikipedia --dataset "physics,math" --augment --epochs 25
 
 # Advanced local file training
-python dataset_command_interface.py full-pipeline --source local --dataset ./my_data/ --augment --epochs 15
+python dataset_command_interface.py full-pipeline --source local --dataset ./my_data/ --augment --epochs 15 --manifold-aware
 ```
+
+---
+
+## [GYROID] Manifold-Aware Training (Thick Ingestion)
+
+> [!TIP]
+> **What is Thick Ingestion?**
+> Standard ingestion just saves raw text. **Thick Ingestion** runs each sample through the `DiegeticPhysicsEngine` during preprocessing. It captures the unique "residue vector" (the manifold's reaction to the text) and saves it alongside the sample.
+
+### Why use --manifold-aware?
+- **Topological Memory**: The model remembers how the manifold "felt" when it first saw the data.
+- **Logic Bridge**: Connects the ingestion pipeline to the live reasoning engine.
+- **Improved Coherence**: Samples with residues provide stronger anchors for temporal association learning.
+
+### Performance Note
+Thick Ingestion is significantly slower (~10-20x) because it requires a forward pass of the physics engine for every sample. Use it for high-quality specialized datasets where topological precision is more important than bulk volume.
+
+---
 
 #### `list-datasets` - See What's Available
 Shows all available datasets and their details.
