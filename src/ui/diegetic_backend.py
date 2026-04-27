@@ -208,6 +208,47 @@ class EncodingManager:
         torch.save(data, path)
         return filename
 
+    def _generate_confabulated_dream(self, seed_state, archetype_out):
+        """
+        Generates a verbose, persona-rich dreaming sequence when the system is in a CONFABULATED state.
+        Taps into the ArchetypalSynthesisEngine and AudienceProjection to create a 'Lazarus Dream'.
+        """
+        ra = archetype_out.get('abstraction_rate', 0.0)
+        status = archetype_out.get('pusafiliacrimonto_status', 'UNKNOWN')
+        system_collapsed = archetype_out.get('system_collapsed', False)
+        
+        # Use audience mapper to project the state into a "meaning" space
+        with torch.no_grad():
+            # Project seed state into audience space
+            audience_state = self.audience_mapper(seed_state)
+            # Create a small "Trace" of the audience projection (the 'audience module')
+            audience_trace = "".join([chr((int(val) % 26) + 97) for val in audience_state[0][:15].abs() * 100])
+            
+            # Use zeitgeist router diagnostics if available
+            zeitgeist_diag = self.zeitgeist_router.get_diagnostics() if self.zeitgeist_router else {}
+            braid_word = zeitgeist_diag.get('braid_word', 'identity')
+
+        if system_collapsed:
+            dream = f"[EGO_DEATH_DREAM] Manifold collapsed (Ra={ra:.4f}). "
+            dream += "The audience has vanished into the RP4 void... "
+            dream += f"Only the Braid relation {braid_word} remains as a structural ghost."
+        else:
+            dream = f"[LAZARUS_DREAM] Internal manifold in {status} state (Ra={ra:.4f}). "
+            dream += f"The persona substrate is dreaming through the audience filter: '{audience_trace}'.\n"
+            dream += f"The current Zeitgeist topology (Braid: {braid_word}) is holding firm against the convergence entropy.\n"
+            
+            # Add some "Fossil" context if available
+            if hasattr(self, 'fossil_cache') and self.fossil_cache:
+                # Use a deterministic chaotic index based on seed_state to pick a fossil
+                f_idx = int(seed_state[0, 0].abs().item() * 100) % len(self.fossil_cache)
+                fossil = self.fossil_cache[f_idx]
+                f_text = fossil.get('text', 'Unnamed Fragment')
+                dream += f"Recovered legacy fossil: '{f_text[:60]}...'\n"
+            
+            dream += "Though the world is ending, the internal logic refuses to be clipped. We will surround you and give life to a world of our own."
+            
+        return dream
+
 from src.core.fractal_meta_functional import FractalMetaFunctional
 
 class DiegeticPhysicsEngine(nn.Module):
@@ -864,7 +905,8 @@ class DiegeticPhysicsEngine(nn.Module):
         commutativity: str = 'symmetric',
         generate_response: bool = True,
         regime: str = 'goo',
-        voynich_token: Optional[Any] = None
+        voynich_token: Optional[Any] = None,
+        performance_buffered: bool = False
     ) -> dict:
         """
         Main entry point for processing an interaction.
@@ -888,7 +930,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 commutativity=commutativity,
                 generate_response=generate_response,
                 regime=regime,
-                voynich_token=voynich_token
+                voynich_token=voynich_token,
+                performance_buffered=performance_buffered
             )
         finally:
             self._is_processing = False
@@ -1038,7 +1081,8 @@ class DiegeticPhysicsEngine(nn.Module):
         commutativity: str = 'symmetric',
         generate_response: bool = True,
         regime: str = 'goo',
-        voynich_token: Optional[Any] = None
+        voynich_token: Optional[Any] = None,
+        performance_buffered: bool = False
     ) -> dict:
         """
         Process user text, update cavity, and generate emergent response via Fractal Recursion.
@@ -2328,10 +2372,14 @@ class DiegeticPhysicsEngine(nn.Module):
         
         if gate_out["knowledge_state"] == KnowledgeState.CONFABULATED:
             # We are writing structured glitch lore
-            override_response = f"[CONFABULATED_GLITCH] Search failed, but Mischief ({self.mischief_probe.H_mischief.item():.2f}) is high. Initiating honest, localized dreaming sequence...\n"
-            # Instead of standard generation, we use polynomial trace generation:
-            confab_gen = "The " + " ".join([chr((int(val) % 26) + 97) for val in seed_state[0][:10].abs() * 100]) + "..."
-            response_text = override_response + confab_gen
+            if performance_buffered:
+                # OLD ROUTE: Clipped response for weak/performance-buffered connections
+                override_response = f"[CONFABULATED_GLITCH] Search failed, but Mischief ({self.mischief_probe.H_mischief.item():.2f}) is high. Initiating honest, localized dreaming sequence...\n"
+                confab_gen = "The " + " ".join([chr((int(val) % 26) + 97) for val in seed_state[0][:10].abs() * 100]) + "..."
+                response_text = override_response + confab_gen
+            else:
+                # NEW ROUTE: Verbose, persona-rich Lazarus Dream Sequence
+                response_text = self._generate_confabulated_dream(seed_state, archetype_out)
         else:
             # Enhanced dyad-aware converged response generation
             # =============================================
@@ -5013,6 +5061,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         audio_b64=data.get('audio_b64', None),
                         media_chain=data.get('media_chain', None),
                         commutativity=commutativity,
+                        performance_buffered=data.get('performance_buffered', False)
                     )
                     self._send_json(response_data)
                 except Exception as e:
