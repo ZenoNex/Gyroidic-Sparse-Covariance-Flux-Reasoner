@@ -4,7 +4,7 @@
 
 ---
 
-## 🚀 Essential Commands
+## [START] Essential Commands
 
 ### Start the System
 ```bash
@@ -40,7 +40,7 @@ python dataset_command_interface.py status
 
 ---
 
-## 📚 Dataset Training Commands
+## [DOCS] Dataset Training Commands
 
 ### Main Interface: `dataset_command_interface.py`
 
@@ -115,7 +115,7 @@ python dataset_command_interface.py status
 
 ---
 
-## 🌐 Web Interfaces
+##  Web Interfaces
 
 ### Chat Interface
 ```bash
@@ -147,7 +147,7 @@ python src/ui/diegetic_backend.py
 
 ---
 
-## 🧪 Testing Commands
+## [TEST] Testing Commands
 
 ### Core Tests
 ```bash
@@ -188,13 +188,14 @@ python test_enhanced_fingerprint.py
 
 ---
 
-## ⚙️ Configuration Options
+## [INIT] Configuration Options
 
 ### Common Options
 ```bash
 --samples N          # Number of examples (500-5000)
 --epochs N           # Training rounds (3-20)
 --augment           # Use data expansion
+--manifold-aware    # Enable Thick Ingestion (attach manifold residues)
 --train             # Auto-start training
 ```
 
@@ -209,7 +210,7 @@ python test_enhanced_fingerprint.py
 
 ---
 
-## 📊 Quick Reference Tables
+## [METRICS] Quick Reference Tables
 
 ### Dataset Sizes (Storage per 1000 samples)
 | Type | Size | Good For |
@@ -235,7 +236,7 @@ python test_enhanced_fingerprint.py
 
 ---
 
-## 🚨 Troubleshooting Quick Fixes
+##  Troubleshooting Quick Fixes
 
 ### Common Errors
 ```bash
@@ -268,7 +269,7 @@ python dataset_command_interface.py status
 
 ---
 
-## 📁 File Locations
+##  File Locations
 
 ### Main Scripts
 - `dataset_command_interface.py` - Main dataset training
@@ -288,7 +289,7 @@ python dataset_command_interface.py status
 
 ---
 
-## 🎯 Workflow Examples
+## [GOAL] Workflow Examples
 
 ### Beginner Workflow
 ```bash
