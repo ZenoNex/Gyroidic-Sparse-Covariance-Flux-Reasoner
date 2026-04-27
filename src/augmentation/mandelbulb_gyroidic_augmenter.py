@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import math
-from typing import Tuple, Dict, Optional, List
+from typing import Tuple, Dict, Optional, List, Any
 from dataclasses import dataclass
 from src.core.honest_jitter import harvest_honest_jitter
 
@@ -70,7 +70,7 @@ class MandelbulbEmbedder(nn.Module):
         # Map features to spherical coordinates, then to Cartesian
         # This preserves the topological structure of the original features
         
-        # Normalize features to [0, 2π] for angular coordinates
+        # Normalize features to [0, 2] for angular coordinates
         normalized = torch.sigmoid(features) * 2 * math.pi
         
         # Create 3D coordinates using spherical mapping
@@ -479,7 +479,8 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                 X: torch.Tensor, 
                 y: torch.Tensor = None,
                 augmentation_factor: int = 2,
-                chromatic_mode: str = 'pink') -> Tuple[torch.Tensor, torch.Tensor]:
+                chromatic_mode: str = 'pink',
+                engine: Optional[Any] = None) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Generate augmented dataset using Mandelbulb-Gyroidic framework.
         
@@ -488,6 +489,7 @@ class MandelbulbGyroidicAugmenter(nn.Module):
             y: Labels [batch_size] (optional)
             augmentation_factor: Number of augmentations per sample
             chromatic_mode: 'pink' (Subjective/Interior) or 'atomic' (Objective/Grazing)
+            engine: Optional DiegeticPhysicsEngine for pressure feedback
             
         Returns:
             Tuple of (augmented_X, augmented_y)
@@ -502,7 +504,7 @@ class MandelbulbGyroidicAugmenter(nn.Module):
         
         # Check for NaN/inf in input
         if torch.isnan(X_processed).any() or torch.isinf(X_processed).any():
-            print("⚠️  Input contains NaN/inf values, applying preprocessing...")
+            print("[WARN]  Input contains NaN/inf values, applying preprocessing...")
             nan_mask = torch.isnan(X_processed) | torch.isinf(X_processed)
             # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
             X_processed = torch.where(nan_mask, harvest_honest_jitter(X_processed.shape, device=X_processed.device, scaled=True) * 0.2, X_processed)
@@ -597,7 +599,12 @@ class MandelbulbGyroidicAugmenter(nn.Module):
         if self.config.pressure_adaptation and hasattr(self, 'pressure_monitor'):
             try:
                 pressure_metrics = self.pressure_monitor.compute_pressure(X_processed, augmented_X[:batch_size])
-                # Could adapt config for next iteration based on pressure
+                
+                # [FULL BRIDGE] Inject pressure into engine if provided
+                if engine is not None and hasattr(engine, 'mischief_probe'):
+                    total_pressure = pressure_metrics.get('total_pressure', 0.0)
+                    engine.mischief_probe.inject_pressure(total_pressure)
+                
             except Exception as e:
                 print(f"  Pressure monitoring failed: {e}")
         
@@ -771,16 +778,16 @@ def demo_mandelbulb_gyroidic_augmentation():
     
     for check, passed in validation_results.items():
         status = " PASS" if passed else " FAIL"
-        print(f"• {check}: {status}")
+        print(f" {check}: {status}")
     
     # Compute pressure metrics
     if hasattr(augmenter, 'pressure_monitor'):
         pressure_metrics = augmenter.pressure_monitor.compute_pressure(X, augmented_X[:X.shape[0]])
         print(f"\n Pressure Metrics:")
         for metric, value in pressure_metrics.items():
-            print(f"• {metric}: {value:.3f}")
+            print(f" {metric}: {value:.3f}")
     
-    print("\n🎉 Mandelbulb-Gyroidic augmentation complete!")
+    print("\n[SUCCESS] Mandelbulb-Gyroidic augmentation complete!")
     
     return augmented_X, augmented_y
 
