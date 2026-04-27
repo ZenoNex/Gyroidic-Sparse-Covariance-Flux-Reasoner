@@ -113,7 +113,8 @@ class DatasetCommandInterface:
             preprocessing=dataset_info['type'],
             max_samples=args.samples,
             augmentation=True,
-            mandelbulb_augmentation=args.augment
+            mandelbulb_augmentation=args.augment,
+            manifold_aware=args.manifold_aware
         )
         
         # Add dataset
@@ -176,7 +177,8 @@ class DatasetCommandInterface:
             preprocessing='text',
             max_samples=args.samples,
             augmentation=True,
-            temporal_associations=True
+            temporal_associations=True,
+            manifold_aware=args.manifold_aware
         )
         
         # Add dataset
@@ -235,7 +237,8 @@ class DatasetCommandInterface:
             preprocessing='text',
             max_samples=args.samples,
             augmentation=True,
-            mandelbulb_augmentation=args.augment
+            mandelbulb_augmentation=args.augment,
+            manifold_aware=args.manifold_aware
         )
         
         # Add dataset
@@ -288,7 +291,8 @@ class DatasetCommandInterface:
                 max_samples=args.samples,
                 augmentation=True,
                 mandelbulb_augmentation=args.augment,
-                temporal_associations=True
+                temporal_associations=True,
+                manifold_aware=args.manifold_aware
             )
         elif args.source == 'wikipedia':
             topics = args.dataset.split(',')
@@ -300,7 +304,8 @@ class DatasetCommandInterface:
                 max_samples=args.samples,
                 augmentation=True,
                 mandelbulb_augmentation=args.augment,
-                temporal_associations=True
+                temporal_associations=True,
+                manifold_aware=args.manifold_aware
             )
         elif args.source == 'local':
             config = DatasetConfig(
@@ -311,7 +316,8 @@ class DatasetCommandInterface:
                 max_samples=args.samples,
                 augmentation=True,
                 mandelbulb_augmentation=args.augment,
-                temporal_associations=True
+                temporal_associations=True,
+                manifold_aware=args.manifold_aware
             )
         else:
             print(f"[ERR] Invalid source/dataset combination")
@@ -465,12 +471,14 @@ Examples:
     quick_parser.add_argument('--samples', type=int, default=1000, help='Max samples to use')
     quick_parser.add_argument('--epochs', type=int, default=10, help='Training epochs')
     quick_parser.add_argument('--augment', action='store_true', help='Use Mandelbulb augmentation')
+    quick_parser.add_argument('--manifold-aware', action='store_true', help='Enable Thick Ingestion (attach manifold residues)')
     
     # Wikipedia command
     wiki_parser = subparsers.add_parser('add-wikipedia', help='Add Wikipedia knowledge')
     wiki_parser.add_argument('--topics', required=True, help='Topics (physics, math, cs) or custom list')
     wiki_parser.add_argument('--samples', type=int, default=500, help='Max samples per topic')
     wiki_parser.add_argument('--train', action='store_true', help='Auto-train after adding')
+    wiki_parser.add_argument('--manifold-aware', action='store_true', help='Enable Thick Ingestion (attach manifold residues)')
     
     # Local training command
     local_parser = subparsers.add_parser('train-local', help='Train on local files')
@@ -478,6 +486,7 @@ Examples:
     local_parser.add_argument('--samples', type=int, default=None, help='Max samples to use')
     local_parser.add_argument('--epochs', type=int, default=10, help='Training epochs')
     local_parser.add_argument('--augment', action='store_true', help='Use Mandelbulb augmentation')
+    local_parser.add_argument('--manifold-aware', action='store_true', help='Enable Thick Ingestion (attach manifold residues)')
     
     # Full pipeline command
     full_parser = subparsers.add_parser('full-pipeline', help='Run full pipeline with all features')
@@ -486,6 +495,7 @@ Examples:
     full_parser.add_argument('--samples', type=int, default=1000, help='Max samples to use')
     full_parser.add_argument('--epochs', type=int, default=20, help='Training epochs')
     full_parser.add_argument('--augment', action='store_true', help='Use Mandelbulb augmentation')
+    full_parser.add_argument('--manifold-aware', action='store_true', help='Enable Thick Ingestion (attach manifold residues)')
     
     # List datasets command
     subparsers.add_parser('list-datasets', help='List available datasets and sources')
