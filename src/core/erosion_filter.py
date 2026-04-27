@@ -66,11 +66,38 @@ class TopologicalErosionFBM(nn.Module):
         if pressure_grad is None or not float(intensity):
             return state
             
+        normalized_pressure = F.normalize(pressure_grad, dim=-1)
+        
+        # PyOpenCL Hardware Offload Attempt
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            if not hasattr(self, 'silicon_engine'):
+                self.silicon_engine = SiliconSovereigntyEngine()
+                
+            device = state.device
+            state_np = state.detach().cpu().numpy()
+            pgrad_np = normalized_pressure.detach().cpu().numpy()
+            
+            result_np = self.silicon_engine.apply_erosion_fbm(
+                state=state_np,
+                pressure_grad_normalized=pgrad_np,
+                octaves=self.octaves,
+                persistence=self.persistence,
+                lacunarity=self.lacunarity,
+                intensity=intensity
+            )
+            
+            return torch.from_numpy(result_np).to(device)
+            
+        except Exception as e:
+            # Fallback to PyTorch
+            pass
+            
         # The noise amplitude is maximized where the gradient is steepest
         # We carve "down" the gradient.
         noise_field = self.fbm(state)
         
         # Erosion pushes the state along the negative gradient, scaled by the chaotic FBM terrain
-        erosion_vector = -F.normalize(pressure_grad, dim=-1) * torch.abs(noise_field)
+        erosion_vector = -normalized_pressure * torch.abs(noise_field)
         
         return state + intensity * erosion_vector
