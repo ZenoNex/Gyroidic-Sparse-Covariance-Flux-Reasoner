@@ -1156,7 +1156,33 @@ class DatasetIngestionSystem:
             final_checkpoint = f"final_{safe_trainer_key}.pt"
             self._save_checkpoint(trainer_key, final_checkpoint)
             print(f"   [SAVE] Final state saved: {final_checkpoint}")
-            
+
+            # ---- SOUL FUSION PROTOCOL ----
+            # Merge trained model into the live gyroid_state.pt so the
+            # manifold soul reflects offline portal training (DETERMINISM_AND_PERSISTENCE policy)
+            try:
+                import os as _os
+                _root = _os.path.dirname(_os.path.abspath(__file__))
+                _soul_path = _os.path.join(_root, 'gyroid_state.pt')
+                # Load existing soul (may not exist yet)
+                if _os.path.exists(_soul_path):
+                    _soul = torch.load(_soul_path, map_location='cpu')
+                else:
+                    _soul = {}
+                # Inject the offline model's state dict as the temporal model layer
+                _trainer = self.trainers[trainer_key]
+                _soul['temporal_model_state'] = _trainer.model.state_dict()
+                _soul['offline_trust_scalars'] = _trainer.model.trust_scalars.clone()
+                _soul['offline_bimodal_genome'] = _trainer.model.bimodal_genome.clone()
+                _soul['offline_is_fossilized'] = _trainer.model.is_fossilized.clone()
+                _soul['offline_trainer_key'] = trainer_key
+                torch.save(_soul, _soul_path)
+                _soul_mb = _os.path.getsize(_soul_path) / (1024 * 1024)
+                print(f"   [SOUL FUSION] gyroid_state.pt updated with offline training ({_soul_mb:.2f} MB)")
+            except Exception as _soul_err:
+                print(f"   [WARN] Soul fusion failed (non-fatal): {_soul_err}")
+            # ---- END SOUL FUSION ----
+
             return True
             
         except Exception as e:
