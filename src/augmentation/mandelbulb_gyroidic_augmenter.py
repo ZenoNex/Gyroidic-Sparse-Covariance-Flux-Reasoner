@@ -98,6 +98,29 @@ class MandelbulbEmbedder(nn.Module):
         """Apply Mandelbulb iteration to 3D coordinates with numerical stability."""
         batch_size, feature_dim, _ = coords.shape
         
+        # PyOpenCL Hardware Offload Attempt
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            # Initialize engine if not passed (though typically we want to reuse it)
+            if not hasattr(self, 'silicon_engine'):
+                self.silicon_engine = SiliconSovereigntyEngine()
+                
+            device = coords.device
+            coords_np = coords.detach().cpu().numpy()
+            
+            result_np = self.silicon_engine.apply_mandelbulb_iteration(
+                coords=coords_np,
+                max_iterations=self.max_iterations,
+                escape_radius=self.escape_radius,
+                power=self.power
+            )
+            
+            return torch.from_numpy(result_np).to(device)
+            
+        except Exception as e:
+            # Fallback to PyTorch
+            pass
+            
         z = coords.clone()
         c = coords.clone()  # Use original coordinates as the constant
         
@@ -143,16 +166,17 @@ class MandelbulbEmbedder(nn.Module):
             z_new[:, :, 2] = r_new.squeeze(2) * cos_theta
             
             # Add constant term with clamping
-            z = z_new + c * 0.5  # Reduce constant influence for stability
-            
-            # Clamp to prevent explosion
-            z = torch.clamp(z, min=-10.0, max=10.0)
+            z = torch.clamp(z_new + c, min=-10.0, max=10.0)
             
             # Check for NaN/inf and reset if needed
             nan_mask = torch.isnan(z) | torch.isinf(z)
             if nan_mask.any():
-                # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
-                z = torch.where(nan_mask, harvest_honest_jitter(z.shape, device=z.device, scaled=True) * 0.2, z)
+                z = torch.where(
+                    nan_mask, 
+                    # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+                    harvest_honest_jitter(z.shape, device=z.device, scaled=True) * 0.1, 
+                    z
+                )
         
         return z
 
@@ -195,6 +219,28 @@ class GyroidicConstraintProjector(nn.Module):
     
     def _project_to_gyroid_surface(self, coords: torch.Tensor) -> torch.Tensor:
         """Project 3D coordinates onto Gyroid minimal surface with improved convergence."""
+        
+        # PyOpenCL Hardware Offload Attempt
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            if not hasattr(self, 'silicon_engine'):
+                self.silicon_engine = SiliconSovereigntyEngine()
+                
+            device = coords.device
+            coords_np = coords.detach().cpu().numpy()
+            
+            result_np = self.silicon_engine.apply_gyroid_projection(
+                coords=coords_np,
+                max_steps=self.max_projection_steps,
+                tolerance=self.surface_tolerance
+            )
+            
+            return torch.from_numpy(result_np).to(device)
+            
+        except Exception as e:
+            # Fallback to PyTorch
+            pass
+            
         projected_coords = coords.clone()
         
         # Clamp initial coordinates to reasonable range
