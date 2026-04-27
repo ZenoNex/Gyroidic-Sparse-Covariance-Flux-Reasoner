@@ -156,6 +156,9 @@ python dataset_command_interface.py full-pipeline --source wikipedia --dataset "
 
 # Full pipeline with local files
 python dataset_command_interface.py full-pipeline --source local --dataset ./my_data/ --augment --epochs 15
+
+# Full pipeline with portal (URL list)
+python dataset_command_interface.py full-pipeline --source portal --dataset ./my_links.txt --samples 1000
 ```
 
 ### System Management Commands
