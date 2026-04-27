@@ -904,6 +904,7 @@ class DiegeticPhysicsEngine(nn.Module):
         media_chain: Optional[List[Dict]] = None,
         commutativity: str = 'symmetric',
         generate_response: bool = True,
+        ingestion_mode: bool = False,
         regime: str = 'goo',
         voynich_token: Optional[Any] = None,
         performance_buffered: bool = False
@@ -929,6 +930,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 media_chain=media_chain,
                 commutativity=commutativity,
                 generate_response=generate_response,
+                ingestion_mode=ingestion_mode,
                 regime=regime,
                 voynich_token=voynich_token,
                 performance_buffered=performance_buffered
@@ -1080,6 +1082,7 @@ class DiegeticPhysicsEngine(nn.Module):
         media_chain: Optional[List[Dict]] = None,
         commutativity: str = 'symmetric',
         generate_response: bool = True,
+        ingestion_mode: bool = False,
         regime: str = 'goo',
         voynich_token: Optional[Any] = None,
         performance_buffered: bool = False
@@ -1635,13 +1638,19 @@ class DiegeticPhysicsEngine(nn.Module):
         # 6. EARLY EXIT FOR NON-GENERATIVE TASKS
         # =============================================
         if not generate_response:
-            print("Skipping generation pipeline (Association/Ingestion Mode)")
+            msg = "Skipping generation pipeline (Association Mode)" if not ingestion_mode else "High-Throughput Ingestion Mode ACTIVE"
+            print(f"[ENGINE] {msg}")
+            
+            # Extract residue vector (The manifold's unique topological response)
+            residue_vector = self.meta_state.clone().detach().cpu().flatten().tolist()
+            
             return {
                 "status": "processed_no_generation",
                 "iteration": self.iteration,
                 "affordance_gradients": affordance_gradients,
                 "conversational_results": conversational_results,
                 "calm_diagnostics": calm_diagnostics,
+                "residue_vector": residue_vector,
                 "memory_state_updated": True,
                 "mimicry_trained": True,
                 "payload": {
