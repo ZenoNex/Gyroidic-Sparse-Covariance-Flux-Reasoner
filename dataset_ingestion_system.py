@@ -72,6 +72,14 @@ class DatasetConfig:
     validation_split: float = 0.2
     manifold_aware: bool = False
 
+    @property
+    def safe_name(self) -> str:
+        """Sanitized name safe for Windows directory creation."""
+        s = self.name.replace(':', '_').replace(',', '_').replace('/', '_').replace('\\', '_')
+        if len(s) > 50:
+            s = s[:47] + "..."
+        return s
+
 @dataclass
 class TrainingConfig:
     """Configuration for training process."""
@@ -196,7 +204,7 @@ class DatasetIngestionSystem:
                 dataset = load_dataset(config.source_path)
             
             # Save to local directory
-            dataset_path = self.data_dir / config.name
+            dataset_path = self.data_dir / config.safe_name
             dataset_path.mkdir(exist_ok=True)
             
             # Process and save samples
@@ -243,7 +251,7 @@ class DatasetIngestionSystem:
                 return False
             
             # Download dataset
-            dataset_path = self.data_dir / config.name
+            dataset_path = self.data_dir / config.safe_name
             dataset_path.mkdir(exist_ok=True)
             
             # Use kaggle CLI to download
@@ -329,7 +337,7 @@ class DatasetIngestionSystem:
                 return samples
             
             # Save dataset
-            dataset_path = self.data_dir / config.name
+            dataset_path = self.data_dir / config.safe_name
             dataset_path.mkdir(exist_ok=True)
             torch.save(samples, dataset_path / "processed_data.pt")
             
@@ -382,7 +390,7 @@ class DatasetIngestionSystem:
                 return total_samples
             
             # Save processed dataset
-            dataset_path = self.data_dir / config.name
+            dataset_path = self.data_dir / config.safe_name
             dataset_path.mkdir(exist_ok=True)
             
             save_path = dataset_path / "processed_data.pt"
@@ -412,7 +420,7 @@ class DatasetIngestionSystem:
             parsed_url = urlparse(config.source_path)
             filename = Path(parsed_url.path).name or "dataset"
             
-            dataset_path = self.data_dir / config.name
+            dataset_path = self.data_dir / config.safe_name
             dataset_path.mkdir(exist_ok=True)
             
             file_path = dataset_path / filename
@@ -454,14 +462,26 @@ class DatasetIngestionSystem:
         """Ingest dataset from a portal file (mixed URLs and identifiers)."""
         try:
             print(f"[PORTAL] Loading portals from: {config.source_path}")
-            portal_path = Path(config.source_path)
             
             lines = []
-            if portal_path.exists() and portal_path.is_file():
-                with open(portal_path, 'r', encoding='utf-8') as f:
-                    lines = f.readlines()
-            else:
-                print(f"   [PORTAL] File not found. Treating input as inline comma-separated portal.")
+            is_inline = False
+            
+            if ',' in config.source_path:
+                is_inline = True
+                
+            if not is_inline:
+                try:
+                    portal_path = Path(config.source_path)
+                    if portal_path.exists() and portal_path.is_file():
+                        with open(portal_path, 'r', encoding='utf-8') as f:
+                            lines = f.readlines()
+                    else:
+                        is_inline = True
+                except Exception:
+                    is_inline = True
+                    
+            if is_inline:
+                print(f"   [PORTAL] Treating input as inline comma-separated portal.")
                 lines = config.source_path.split(',')
                 
             sources = []
@@ -486,7 +506,7 @@ class DatasetIngestionSystem:
             print(f"   Found {len(sources)} sources in portal")
             
             combined_samples = []
-            dataset_path = self.data_dir / config.name
+            dataset_path = self.data_dir / config.safe_name
             dataset_path.mkdir(exist_ok=True)
             
             for i, source in enumerate(sources):
@@ -906,7 +926,7 @@ class DatasetIngestionSystem:
             dataset_config = self.datasets[dataset_name]
             
             # Load processed dataset
-            dataset_path = self.data_dir / dataset_name / "processed_data.pt"
+            dataset_path = self.data_dir / dataset_config.safe_name / "processed_data.pt"
             if not dataset_path.exists():
                 print(f"[FAIL] Processed dataset not found: {dataset_path}")
                 return False
@@ -1148,7 +1168,7 @@ class DatasetIngestionSystem:
             return
         
         for name, config in self.datasets.items():
-            dataset_path = self.data_dir / name / "processed_data.pt"
+            dataset_path = self.data_dir / config.safe_name / "processed_data.pt"
             if dataset_path.exists():
                 data = torch.load(dataset_path)
                 sample_count = len(data)
