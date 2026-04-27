@@ -348,22 +348,25 @@ class DatasetCommandInterface:
         model_config = {
             'name': model_name,
             'type': 'temporal',
-            'functionals': 8,  # Maximum functionals
+            'functionals': getattr(args, 'functionals', 8),
             'poly_degree': 5,
-            'hidden_dim': 768,  # Large model
+            'hidden_dim': getattr(args, 'hidden_dim', 768),
             'num_heads': 12
         }
         self.system.create_model(model_config['name'], model_config)
         
+        # Determine if we should train (full_pipeline trains by default unless explicitly disabled, but we support --train flag for explicit intent)
+        # The user provided --train, we'll just always train as full-pipeline implies.
+        
         print(f"[INIT] Step 3: Advanced training setup...")
         training_config = TrainingConfig(
             num_epochs=args.epochs,
-            batch_size=2,  # Small batch for large model
-            learning_rate=1e-5,  # Conservative learning rate
+            batch_size=getattr(args, 'batch_size', 2),
+            learning_rate=getattr(args, 'learning_rate', 1e-5),
             evolution_rate=0.01,
             use_mandelbulb_augmentation=args.augment,
             augmentation_factor=3,  # Aggressive augmentation
-            save_checkpoints=True,
+            save_checkpoints=getattr(args, 'checkpoint', True),
             checkpoint_interval=2
         )
         
@@ -508,6 +511,12 @@ Examples:
     full_parser.add_argument('--epochs', type=int, default=20, help='Training epochs')
     full_parser.add_argument('--augment', action='store_true', help='Use Mandelbulb augmentation')
     full_parser.add_argument('--manifold-aware', action='store_true', help='Enable Thick Ingestion (attach manifold residues)')
+    full_parser.add_argument('--train', action='store_true', help='Explicitly enable training (default for full-pipeline)')
+    full_parser.add_argument('--functionals', type=int, default=8, help='Number of polynomial functionals')
+    full_parser.add_argument('--hidden-dim', type=int, default=768, help='Hidden dimension size')
+    full_parser.add_argument('--batch-size', type=int, default=2, help='Training batch size')
+    full_parser.add_argument('--learning-rate', type=float, default=1e-5, help='Learning rate')
+    full_parser.add_argument('--checkpoint', action='store_true', help='Enable checkpoint saving')
     
     # List datasets command
     subparsers.add_parser('list-datasets', help='List available datasets and sources')
