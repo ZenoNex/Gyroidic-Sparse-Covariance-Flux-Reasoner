@@ -70,6 +70,7 @@ class DatasetConfig:
     temporal_associations: bool = True
     max_samples: Optional[int] = None
     validation_split: float = 0.2
+    manifold_aware: bool = False
 
 @dataclass
 class TrainingConfig:
@@ -99,6 +100,19 @@ class DatasetIngestionSystem:
     
     def __init__(self, device: str = 'auto'):
         self.device = device if device != 'auto' else ('cuda' if torch.cuda.is_available() else 'cpu')
+        
+        # [FULL BRIDGE] Initialize DiegeticPhysicsEngine for Manifold-Aware (Thick) Ingestion
+        try:
+            from src.ui.diegetic_backend import DiegeticPhysicsEngine
+            self.engine = DiegeticPhysicsEngine(device=self.device)
+            print(f"[INGEST] Manifold Bridge ACTIVE on {self.device}")
+        except ImportError:
+            self.engine = None
+            print("[INGEST] Warning: DiegeticPhysicsEngine not found. Manifold-aware ingestion disabled.")
+        except Exception as e:
+            self.engine = None
+            print(f"[INGEST] Warning: Failed to initialize Manifold Bridge: {e}")
+        
         self.datasets = {}
         self.models = {}
         self.trainers = {}
@@ -646,11 +660,30 @@ class DatasetIngestionSystem:
                 if not text_content.strip():
                     return None
                 
+                # [FULL BRIDGE] Manifold-Aware (Thick) Ingestion
+                residue = None
+                if getattr(self, 'config', None) and getattr(self.config, 'manifold_aware', False) and self.engine:
+                    try:
+                        # Extract residue vector from the manifold
+                        result = self.engine.process_input(
+                            text_input=text_content.strip(), 
+                            generate_response=False, 
+                            ingestion_mode=True
+                        )
+                        residue = result.get('residue_vector')
+                    except Exception as e:
+                        print(f"   [WARN] Manifold-Aware ingestion failed for sample: {e}")
+                
+                metadata = {k: v for k, v in sample.items() if k not in text_fields and k != 'conversations'}
+                if residue:
+                    metadata['residue_vector'] = residue
+                    metadata['manifold_step'] = self.engine.iteration
+                
                 return {
                     'text': text_content.strip(),
                     'length': len(text_content),
                     'source': sample.get('source', 'unknown'),
-                    'metadata': {k: v for k, v in sample.items() if k not in text_fields and k != 'conversations'}
+                    'metadata': metadata
                 }
             
             elif preprocessing_type == 'image':
