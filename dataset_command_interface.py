@@ -319,6 +319,18 @@ class DatasetCommandInterface:
                 temporal_associations=True,
                 manifold_aware=args.manifold_aware
             )
+        elif args.source == 'portal':
+            config = DatasetConfig(
+                name=f"portal_{Path(args.dataset).name}",
+                source_type='portal',
+                source_path=args.dataset,
+                preprocessing='text',
+                max_samples=args.samples,
+                augmentation=True,
+                mandelbulb_augmentation=args.augment,
+                temporal_associations=True,
+                manifold_aware=args.manifold_aware
+            )
         else:
             print(f"[ERR] Invalid source/dataset combination")
             return False
@@ -490,7 +502,7 @@ Examples:
     
     # Full pipeline command
     full_parser = subparsers.add_parser('full-pipeline', help='Run full pipeline with all features')
-    full_parser.add_argument('--source', required=True, choices=['huggingface', 'wikipedia', 'local'], help='Data source')
+    full_parser.add_argument('--source', required=True, choices=['huggingface', 'wikipedia', 'local', 'portal'], help='Data source')
     full_parser.add_argument('--dataset', required=True, help='Dataset name/path/topics')
     full_parser.add_argument('--samples', type=int, default=1000, help='Max samples to use')
     full_parser.add_argument('--epochs', type=int, default=20, help='Training epochs')
