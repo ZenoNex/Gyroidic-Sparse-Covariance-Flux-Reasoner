@@ -52,7 +52,7 @@ class MandelbulbAugmentedDataset(Dataset):
             for i in range(aug_X.shape[0]):
                 self.precomputed_data.append((aug_X[i], aug_y[i]))
                 
-        print(f"✅ Pre-computation complete. Total samples: {len(self.precomputed_data)}")
+        print(f" Pre-computation complete. Total samples: {len(self.precomputed_data)}")
 
     def __len__(self):
         if self.apply_online:
