@@ -172,7 +172,7 @@ class DatasetIngestionSystem:
             print(f"[ERR] Error adding dataset {config.name}: {e}")
             return False
     
-    def _ingest_huggingface_dataset(self, config: DatasetConfig) -> bool:
+    def _ingest_huggingface_dataset(self, config: DatasetConfig, return_samples: bool = False) -> Union[bool, List[Dict]]:
         """Ingest dataset from HuggingFace Hub."""
         try:
             # Try to import datasets library
@@ -211,6 +211,9 @@ class DatasetIngestionSystem:
                 
                 if i % 1000 == 0:
                     print(f"   Processed {i} samples...")
+            
+            if return_samples:
+                return samples
             
             # Save processed dataset
             torch.save(samples, dataset_path / "processed_data.pt")
@@ -265,7 +268,7 @@ class DatasetIngestionSystem:
             print(f"[ERR] Kaggle ingestion failed: {e}")
             return False
     
-    def _ingest_wikipedia_dataset(self, config: DatasetConfig) -> bool:
+    def _ingest_wikipedia_dataset(self, config: DatasetConfig, return_samples: bool = False) -> Union[bool, List[Dict]]:
         """Ingest dataset from Wikipedia articles."""
         try:
             print(f"[WIKI] Loading Wikipedia dataset: {config.source_path}")
@@ -322,6 +325,9 @@ class DatasetIngestionSystem:
                     print(f"   [WARN] Failed to process {url}: {e}")
                     continue
             
+            if return_samples:
+                return samples
+            
             # Save dataset
             dataset_path = self.data_dir / config.name
             dataset_path.mkdir(exist_ok=True)
@@ -334,7 +340,7 @@ class DatasetIngestionSystem:
             print(f"[ERR] Wikipedia ingestion failed: {e}")
             return False
     
-    def _ingest_local_dataset(self, config: DatasetConfig) -> bool:
+    def _ingest_local_dataset(self, config: DatasetConfig, return_samples: bool = False) -> Union[bool, List[Dict]]:
         """Ingest dataset from local files."""
         try:
             print(f"[DISK] Loading local dataset: {config.source_path}")
@@ -371,6 +377,9 @@ class DatasetIngestionSystem:
                 if file_samples:
                     total_samples.extend(file_samples)
                     print(f"   [DATA] Current total samples collected: {len(total_samples)}")
+            
+            if return_samples:
+                return total_samples
             
             # Save processed dataset
             dataset_path = self.data_dir / config.name
@@ -442,7 +451,7 @@ class DatasetIngestionSystem:
             return False
             
     def _ingest_portal_dataset(self, config: DatasetConfig) -> bool:
-        """Ingest dataset from a portal file (list of URLs)."""
+        """Ingest dataset from a portal file (mixed URLs and identifiers)."""
         try:
             print(f"[PORTAL] Loading portals from: {config.source_path}")
             portal_path = Path(config.source_path)
@@ -450,30 +459,60 @@ class DatasetIngestionSystem:
                 print(f"[ERR] Portal file not found: {portal_path}")
                 return False
                 
-            urls = []
+            sources = []
             with open(portal_path, 'r', encoding='utf-8') as f:
                 for line in f:
                     line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    
                     if line.startswith('http'):
-                        urls.append(line)
+                        sources.append({'type': 'url', 'path': line})
+                    elif line.startswith('hf:'):
+                        sources.append({'type': 'huggingface', 'path': line[3:]})
+                    elif line.startswith('wiki:'):
+                        sources.append({'type': 'wikipedia', 'path': line[5:]})
+                    elif line.lower() in ['imdb', 'squad', 'wikitext', 'arxiv', 'pubmed']:
+                        # Auto-mapping popular datasets to HF
+                        sources.append({'type': 'huggingface', 'path': line.lower()})
+                    else:
+                        # Assume local path or unknown
+                        sources.append({'type': 'local', 'path': line})
             
-            print(f"   Found {len(urls)} URLs in portal")
+            print(f"   Found {len(sources)} sources in portal")
             
+            combined_samples = []
             dataset_path = self.data_dir / config.name
             dataset_path.mkdir(exist_ok=True)
             
-            for i, url in enumerate(urls):
-                print(f"\n   [PORTAL] Processing URL {i+1}/{len(urls)}")
-                # Temporary config for single URL download
-                url_config = DatasetConfig(
+            for i, source in enumerate(sources):
+                print(f"\n   [PORTAL] Processing source {i+1}/{len(sources)}: {source['path']} ({source['type']})")
+                
+                sub_config = DatasetConfig(
                     name=config.name,
-                    source_type='url',
-                    source_path=url
+                    source_type=source['type'],
+                    source_path=source['path'],
+                    preprocessing=config.preprocessing,
+                    max_samples=config.max_samples,
+                    augmentation=config.augmentation,
+                    mandelbulb_augmentation=config.mandelbulb_augmentation,
+                    manifold_aware=getattr(config, 'manifold_aware', False)
                 )
-                self._ingest_url_dataset(url_config)
+                
+                if source['type'] == 'url':
+                    self._ingest_url_dataset(sub_config)
+                elif source['type'] == 'huggingface':
+                    res = self._ingest_huggingface_dataset(sub_config, return_samples=True)
+                    if isinstance(res, list): combined_samples.extend(res)
+                elif source['type'] == 'wikipedia':
+                    res = self._ingest_wikipedia_dataset(sub_config, return_samples=True)
+                    if isinstance(res, list): combined_samples.extend(res)
+                elif source['type'] == 'local':
+                    # We'll handle local at the end to include downloaded URL files
+                    pass
             
-            # Now process the downloaded files locally
-            print(f"\n   [PORTAL] Processing downloaded files locally...")
+            # Step 2: Ingest local files (including those downloaded via URL)
+            print(f"\n   [PORTAL] Finalizing with local file ingestion...")
             local_config = DatasetConfig(
                 name=config.name,
                 source_type='local',
@@ -481,12 +520,29 @@ class DatasetIngestionSystem:
                 preprocessing=config.preprocessing,
                 max_samples=config.max_samples,
                 augmentation=config.augmentation,
-                mandelbulb_augmentation=config.mandelbulb_augmentation
+                mandelbulb_augmentation=config.mandelbulb_augmentation,
+                manifold_aware=getattr(config, 'manifold_aware', False)
             )
-            return self._ingest_local_dataset(local_config)
+            
+            # We need to reach into the local ingest without it overwriting everything immediately
+            # Actually, local ingest already returns samples in its internal methods
+            local_samples = self._ingest_local_dataset(local_config, return_samples=True)
+            if isinstance(local_samples, list):
+                combined_samples.extend(local_samples)
+            
+            if not combined_samples:
+                print(f"[WARN] Portal ingestion resulted in 0 samples")
+                return False
+                
+            # Final save of combined data
+            torch.save(combined_samples, dataset_path / "processed_data.pt")
+            print(f"[OK] Portal ingestion complete: {len(combined_samples)} total samples saved to {dataset_path}")
+            return True
             
         except Exception as e:
             print(f"[ERR] Portal ingestion failed: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def _process_local_file(self, file_path: Path, config: DatasetConfig, max_new_samples: Optional[int] = None) -> List[Dict]:
