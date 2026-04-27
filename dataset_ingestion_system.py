@@ -455,29 +455,33 @@ class DatasetIngestionSystem:
         try:
             print(f"[PORTAL] Loading portals from: {config.source_path}")
             portal_path = Path(config.source_path)
-            if not portal_path.exists():
-                print(f"[ERR] Portal file not found: {portal_path}")
-                return False
+            
+            lines = []
+            if portal_path.exists() and portal_path.is_file():
+                with open(portal_path, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+            else:
+                print(f"   [PORTAL] File not found. Treating input as inline comma-separated portal.")
+                lines = config.source_path.split(',')
                 
             sources = []
-            with open(portal_path, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or line.startswith('#'):
-                        continue
-                    
-                    if line.startswith('http'):
-                        sources.append({'type': 'url', 'path': line})
-                    elif line.startswith('hf:'):
-                        sources.append({'type': 'huggingface', 'path': line[3:]})
-                    elif line.startswith('wiki:'):
-                        sources.append({'type': 'wikipedia', 'path': line[5:]})
-                    elif line.lower() in ['imdb', 'squad', 'wikitext', 'arxiv', 'pubmed']:
-                        # Auto-mapping popular datasets to HF
-                        sources.append({'type': 'huggingface', 'path': line.lower()})
-                    else:
-                        # Assume local path or unknown
-                        sources.append({'type': 'local', 'path': line})
+            for line in lines:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                
+                if line.startswith('http'):
+                    sources.append({'type': 'url', 'path': line})
+                elif line.startswith('hf:'):
+                    sources.append({'type': 'huggingface', 'path': line[3:]})
+                elif line.startswith('wiki:'):
+                    sources.append({'type': 'wikipedia', 'path': line[5:]})
+                elif line.lower() in ['imdb', 'squad', 'wikitext', 'arxiv', 'pubmed']:
+                    # Auto-mapping popular datasets to HF
+                    sources.append({'type': 'huggingface', 'path': line.lower()})
+                else:
+                    # Assume local path or unknown
+                    sources.append({'type': 'local', 'path': line})
             
             print(f"   Found {len(sources)} sources in portal")
             
