@@ -1,7 +1,7 @@
 """
 Spectral Coherence Repair: Fixes the consonant clustering issue.
 
-Implements the spectral coherence correction (γ) to merge Soliton Band 
+Implements the spectral coherence correction () to merge Soliton Band 
 with Ergodic Band and prevent vowel starvation.
 """
 
@@ -61,7 +61,7 @@ class SpectralCoherenceCorrector(nn.Module):
     """
     Fixes spectral fragmentation by dynamically adjusting coherence threshold.
     
-    The Problem: θ_coherence too high → Soliton Band isolation → consonant clustering
+    The Problem: _coherence too high  Soliton Band isolation  consonant clustering
     The Solution: Adaptive threshold that allows vowel resonance to merge back
     """
     
@@ -213,7 +213,7 @@ class SpectralCoherenceCorrector(nn.Module):
     def project_to_acoustic_resonance(self, facet_activations: torch.Tensor, time_steps: torch.Tensor) -> torch.Tensor:
         """
         Project manifold facet activations to acoustic resonant frequencies:
-        s(t) = Σ <v_i, x_i(t)> cos(ω_i t + φ_i)
+        s(t) =  <v_i, x_i(t)> cos(_i t + _i)
         
         Args:
             facet_activations: [batch, num_facets] result of config.evaluate()
@@ -227,7 +227,7 @@ class SpectralCoherenceCorrector(nn.Module):
         omega = self.omega[:num_facets]
         phi = self.phi[:num_facets]
         
-        # Resonant carrier: cos(ω_i t + φ_i)
+        # Resonant carrier: cos(_i t + _i)
         # time_steps: [T] -> omega * t: [num_facets, T]
         t_mesh = time_steps.unsqueeze(0) * omega.unsqueeze(1) # [num_facets, T]
         carriers = torch.cos(t_mesh + phi.unsqueeze(1)) # [num_facets, T]
@@ -274,6 +274,16 @@ class BezoutCoefficientRefresh(nn.Module):
         # Drift detection
         self.register_buffer('last_residues', torch.zeros(self.K, self.D, device=self.device))
         self.drift_threshold = 0.5
+
+    def update_moduli(self, residues: torch.Tensor):
+        """
+        Adaptive update for moduli based on residue flux.
+        m_j(t+1) = m_j(t) + eta * Delta H_j
+        """
+        # Delta H_j is the mean magnitude of residues in that channel
+        delta_h = residues.abs().mean(dim=(0, 2)) if residues.dim() == 3 else residues.abs().mean(dim=0)
+        # Scale update to maintain stability (eta = 0.01)
+        self.moduli.data = self.moduli.data + 0.01 * delta_h
     
     def detect_modulus_drift(self, current_residues: torch.Tensor) -> bool:
         """
@@ -346,6 +356,9 @@ class BezoutCoefficientRefresh(nn.Module):
         Returns:
             Corrected residues with proper modulus alignment
         """
+        # Update moduli based on residue flux
+        self.update_moduli(residues)
+        
         # Check for drift
         if self.detect_modulus_drift(residues):
             self.refresh_bezout_coefficients(residues)
