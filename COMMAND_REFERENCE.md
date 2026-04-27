@@ -96,7 +96,7 @@ python dataset_command_interface.py train-local --path ./my_book.txt --epochs 5 
 python dataset_command_interface.py full-pipeline --source [type] --dataset [name] --epochs [N] [--augment]
 ```
 
-**Sources:** `huggingface`, `wikipedia`, `local`
+**Sources:** `huggingface`, `wikipedia`, `local`, `portal`
 
 **Examples:**
 ```bash
