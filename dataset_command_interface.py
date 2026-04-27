@@ -142,7 +142,7 @@ class DatasetCommandInterface:
             self.system.setup_training(f"{args.dataset}_model", args.dataset, training_config)
             
             # Start training
-            print(f"️ Starting training...")
+            print(f" Starting training...")
             self.system.run_training(f"{args.dataset}_model", args.dataset)
             
             print(f"[OK] Quick start completed for {args.dataset}")
@@ -263,7 +263,7 @@ class DatasetCommandInterface:
             self.system.setup_training(model_name, dataset_name, training_config)
             
             # Train
-            print(f"️ Training on {local_path}")
+            print(f" Training on {local_path}")
             self.system.run_training(model_name, dataset_name)
             
             print(f"[OK] Local training completed")
@@ -351,7 +351,7 @@ class DatasetCommandInterface:
         
         self.system.setup_training(model_name, config.name, training_config)
         
-        print(f"️ Step 4: Full training with all features...")
+        print(f" Step 4: Full training with all features...")
         self.system.run_training(model_name, config.name)
         
         print(f"[GOAL] Step 5: Evaluation and analysis...")
