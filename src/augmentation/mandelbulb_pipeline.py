@@ -41,7 +41,7 @@ class MandelbulbAugmentedDataset(Dataset):
             
     def _precompute_dataset(self):
         """Pre-generates augmented samples for the entire dataset."""
-        print(f"🌀 Pre-computing Mandelbulb augmentations for {len(self.base_dataset)} samples...")
+        print(f" Pre-computing Mandelbulb augmentations for {len(self.base_dataset)} samples...")
         loader = DataLoader(self.base_dataset, batch_size=32, shuffle=False)
         
         for batch_idx, (X, y) in enumerate(loader):
