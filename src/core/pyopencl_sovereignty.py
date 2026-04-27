@@ -225,11 +225,161 @@ class SiliconSovereigntyEngine:
             // Final Integration
             state[gid] = (val + analytic_drift + comp_correction + geometric_twist) * cat_scale;
         }
+
+        // 8. Mandelbulb Fractal Iteration
+        __kernel void mandelbulb_iteration(
+            __global float *coords,
+            int max_iterations,
+            float escape_radius,
+            float power,
+            int total_elements
+        ) {
+            int gid = get_global_id(0);
+            if (gid >= total_elements) return;
+
+            int offset = gid * 3;
+            float z0 = coords[offset];
+            float z1 = coords[offset + 1];
+            float z2 = coords[offset + 2];
+            
+            z0 = clamp(z0, -5.0f, 5.0f);
+            z1 = clamp(z1, -5.0f, 5.0f);
+            z2 = clamp(z2, -5.0f, 5.0f);
+            
+            float c0 = z0, c1 = z1, c2 = z2;
+            float eps = 1e-8f;
+            float p = min(power, 8.0f);
+
+            for (int i = 0; i < max_iterations; i++) {
+                float r2 = z0*z0 + z1*z1 + z2*z2;
+                float r = sqrt(r2);
+                
+                if (r > escape_radius) {
+                    break;
+                }
+                
+                float r_eps = r + eps;
+                float xy_norm = sqrt(z0*z0 + z1*z1 + eps);
+                float theta = atan2(xy_norm, z2);
+                float phi = atan2(z1, z0 + eps);
+                
+                float r_new = pow(clamp(r_eps, eps, 10.0f), p);
+                float theta_new = theta * power;
+                float phi_new = phi * power;
+                
+                float sin_theta = sin(theta_new);
+                float cos_theta = cos(theta_new);
+                float sin_phi = sin(phi_new);
+                float cos_phi = cos(phi_new);
+                
+                z0 = r_new * sin_theta * cos_phi + c0;
+                z1 = r_new * sin_theta * sin_phi + c1;
+                z2 = r_new * cos_theta + c2;
+            }
+            
+            coords[offset] = z0;
+            coords[offset + 1] = z1;
+            coords[offset + 2] = z2;
+        }
+
+        // 9. Gyroid Minimal Surface Projection
+        __kernel void gyroid_projection(
+            __global float *coords,
+            int max_steps,
+            float tolerance,
+            uint base_seed,
+            int total_elements
+        ) {
+            int gid = get_global_id(0);
+            if (gid >= total_elements) return;
+
+            int offset = gid * 3;
+            float x = coords[offset];
+            float y = coords[offset + 1];
+            float z = coords[offset + 2];
+            
+            x = clamp(x, -3.0f, 3.0f);
+            y = clamp(y, -3.0f, 3.0f);
+            z = clamp(z, -3.0f, 3.0f);
+            
+            float eps = 1e-8f;
+
+            for (int step = 0; step < max_steps; step++) {
+                float sx = sin(x), cx = cos(x);
+                float sy = sin(y), cy = cos(y);
+                float sz = sin(z), cz = cos(z);
+                
+                float violation = sx*cy + sy*cz + sz*cx;
+                if (fabs(violation) < tolerance * 10.0f) {
+                    break;
+                }
+                
+                float gx = cx*cy - sz*sx;
+                float gy = -sx*sy + cy*cz;
+                float gz = -sy*sz + cz*cx;
+                
+                float g_norm = sqrt(gx*gx + gy*gy + gz*gz) + eps;
+                gx /= g_norm; gy /= g_norm; gz /= g_norm;
+                
+                float step_size = clamp(0.1f * violation, -0.5f, 0.5f);
+                
+                x = clamp(x - step_size * gx, -5.0f, 5.0f);
+                y = clamp(y - step_size * gy, -5.0f, 5.0f);
+                z = clamp(z - step_size * gz, -5.0f, 5.0f);
+                
+                if (isnan(x) || isinf(x) || isnan(y) || isinf(y) || isnan(z) || isinf(z)) {
+                    uint seed = base_seed + gid + step;
+                    seed = xorshift32(seed);
+                    x = ((float)(seed % 1000) / 1000.0f) * 0.2f;
+                    seed = xorshift32(seed);
+                    y = ((float)(seed % 1000) / 1000.0f) * 0.2f;
+                    seed = xorshift32(seed);
+                    z = ((float)(seed % 1000) / 1000.0f) * 0.2f;
+                }
+            }
+            
+            coords[offset] = x;
+            coords[offset + 1] = y;
+            coords[offset + 2] = z;
+        }
+
+        // 10. Topological Erosion FBM
+        __kernel void topological_erosion_fbm(
+            __global float *state,
+            __global const float *pressure_grad,
+            int octaves,
+            float persistence,
+            float lacunarity,
+            float intensity,
+            int total_elements
+        ) {
+            int gid = get_global_id(0);
+            if (gid >= total_elements) return;
+
+            float x = state[gid];
+            float p_grad = pressure_grad[gid];
+            
+            float total = 0.0f;
+            float freq = 1.0f;
+            float amp = 1.0f;
+            float max_val = 0.0f;
+            
+            for (int i = 0; i < octaves; i++) {
+                float v = x * freq;
+                total += sin(v * 3.14159265f) * cos(v * 2.718281828f) * amp;
+                max_val += amp;
+                amp *= persistence;
+                freq *= lacunarity;
+            }
+            
+            float noise_field = total / max_val;
+            state[gid] = x + intensity * (-p_grad * fabs(noise_field));
+        }
         """
         
         import warnings
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore")  # NVIDIA PTX driver warns about kernel inlining — benign
+            warnings.simplefilter("ignore")  # NVIDIA PTX driver warns about kernel inlining  benign
             self.program = cl.Program(self.ctx, kernel_src).build()
 
 
@@ -410,7 +560,7 @@ class SiliconSovereigntyEngine:
         event.wait()
         
         cl.enqueue_copy(self.queue_b, output, out_buf).wait()
-        self.logger.info(f"Matrix Mix Breeding Complete on Queue B (α={alpha}, κ={kappa_seal}, shear={hyperbolic_shear})")
+        self.logger.info(f"Matrix Mix Breeding Complete on Queue B (={alpha}, ={kappa_seal}, shear={hyperbolic_shear})")
         return output
 
     def apply_surgical_integration(self, state, residues, braid_word, cs_phase, manifold_kappa=1.0, seed=None):
@@ -442,6 +592,76 @@ class SiliconSovereigntyEngine:
         cl.enqueue_copy(self.queue_a, state, state_buf).wait()
         self.logger.info("Surgical Manifold Integration Complete (Analytic, Computational, Geometric, Categorical).")
         return state
+
+    def apply_mandelbulb_iteration(self, coords, max_iterations=50, escape_radius=2.0, power=8.0):
+        """Execute Mandelbulb fractal iteration entirely on PyOpenCL hardware."""
+        mf = cl.mem_flags
+        coords_np = np.asarray(coords, dtype=np.float32)
+        total_elements = coords_np.size // 3
+        
+        coords_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=coords_np)
+        
+        event = self.program.mandelbulb_iteration(
+            self.queue_a, (total_elements,), None,
+            coords_buf,
+            np.int32(max_iterations),
+            np.float32(escape_radius),
+            np.float32(power),
+            np.int32(total_elements)
+        )
+        event.wait()
+        
+        cl.enqueue_copy(self.queue_a, coords_np, coords_buf).wait()
+        return coords_np
+
+    def apply_gyroid_projection(self, coords, max_steps=20, tolerance=1e-3, seed=None):
+        """Execute Gyroid minimal surface projection on PyOpenCL hardware."""
+        if seed is None:
+            from src.core.honest_jitter import harvest_honest_jitter
+            seed = int(harvest_honest_jitter((1,), scaled=False)[0].item() * 4294967295)
+
+        mf = cl.mem_flags
+        coords_np = np.asarray(coords, dtype=np.float32)
+        total_elements = coords_np.size // 3
+        
+        coords_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=coords_np)
+        
+        event = self.program.gyroid_projection(
+            self.queue_a, (total_elements,), None,
+            coords_buf,
+            np.int32(max_steps),
+            np.float32(tolerance),
+            np.uint32(seed),
+            np.int32(total_elements)
+        )
+        event.wait()
+        
+        cl.enqueue_copy(self.queue_a, coords_np, coords_buf).wait()
+        return coords_np
+
+    def apply_erosion_fbm(self, state, pressure_grad_normalized, octaves=4, persistence=0.5, lacunarity=2.0, intensity=0.1):
+        """Execute Topological Erosion FBM on PyOpenCL hardware."""
+        mf = cl.mem_flags
+        state_np = np.asarray(state, dtype=np.float32)
+        pgrad_np = np.asarray(pressure_grad_normalized, dtype=np.float32)
+        total_elements = state_np.size
+        
+        state_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=state_np)
+        pgrad_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=pgrad_np)
+        
+        event = self.program.topological_erosion_fbm(
+            self.queue_a, (total_elements,), None,
+            state_buf, pgrad_buf,
+            np.int32(octaves),
+            np.float32(persistence),
+            np.float32(lacunarity),
+            np.float32(intensity),
+            np.int32(total_elements)
+        )
+        event.wait()
+        
+        cl.enqueue_copy(self.queue_a, state_np, state_buf).wait()
+        return state_np
 
 # Expose standard execution hook
 def create_engine():
