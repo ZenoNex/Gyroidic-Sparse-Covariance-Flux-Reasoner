@@ -15,6 +15,8 @@ from src.optimization.fractional_operators import frac_apply
 from src.surrogates.kagh_networks import KAGHBlock
 from src.surrogates.calm_predictor import CALM
 
+from src.core.device_utils import DEVICE
+
 class SicFaAdmmSolver:
     """
     Stabilizes: min_c 1/2 ||W(B A_alpha^-1 c - A)||^2 + lambda ||c||_1
@@ -29,7 +31,7 @@ class SicFaAdmmSolver:
         max_iters: int = 100,
         tol: float = 1e-4,
         admissibility_threshold: float = 0.75,
-        device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
+        device: str = str(DEVICE)
     ):
         self.dim = dim
         self.rho = rho
