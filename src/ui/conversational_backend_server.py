@@ -46,6 +46,7 @@ from examples.conversational_api_training import ConversationalTemporalModel, Co
 from examples.diegetic_conversational_integration import DiegeticConversationalBackend
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+from src.core.device_utils import DEVICE
 
 app = Flask(__name__)
 CORS(app)
@@ -71,33 +72,16 @@ class ServerState:
     
     def _detect_sovereign_device(self):
         """
-        Detects the best hardware target following Tailslayer Architecture.
-        Prioritizes OpenCL (Silicon Sovereignty) then CUDA.
+        Detects the best hardware target following Silicon Sovereignty.
         """
-        try:
-            import pyopencl as cl
-            platforms = cl.get_platforms()
-            if platforms:
-                print(f" [TAILSLAYER] Silicon Sovereignty Detected: {platforms[0].name}")
-                # Instantiate Sovereign Engine (Tailslayer §1.1)
-                try:
-                    self.sovereign_engine = SiliconSovereigntyEngine(use_gpu=torch.cuda.is_available())
-                    print(f" [TAILSLAYER] Dual Command Queues Initialized.")
-                except Exception as e:
-                    print(f" [WARNING] Could not initialize Sovereign Engine: {e}")
-                
-                return 'cuda' if torch.cuda.is_available() else 'cpu'
-        except ImportError:
-            pass
-            
-        return 'cuda' if torch.cuda.is_available() else 'cpu'
+        return str(DEVICE)
     
     def _initialize_honest_entropy(self):
         """Warm up the silicon and harvest honest jitter for the server session."""
         print(" [TAILSLAYER] Harvesting initial honest jitter...")
         try:
             # Generate a small entropy seed tensor
-            seed = harvest_honest_jitter((1, 128), device=torch.device(self.device if self.device != 'cuda' else 'cuda'))
+            seed = harvest_honest_jitter((1, 128), device=DEVICE)
             print(f" [TAILSLAYER] Entropy pool initialized: mean_variance={seed.var().item():.6f}")
         except Exception as e:
             print(f" [WARNING] Honest jitter harvest failed: {e}")
@@ -148,14 +132,14 @@ def test_token():
             
             return jsonify({
                 'success': True, 
-                'message': f'✅ Token valid! User: {username}',
+                'message': f'[OK] Token valid! User: {username}',
                 'username': username
             })
         else:
-            return jsonify({'success': False, 'message': '❌ Invalid token'})
+            return jsonify({'success': False, 'message': '[ERR] Invalid token'})
             
     except Exception as e:
-        return jsonify({'success': False, 'message': f'❌ Connection error: {str(e)}'})
+        return jsonify({'success': False, 'message': f'[ERR] Connection error: {str(e)}'})
 
 @app.route('/api/check_datasets', methods=['POST'])
 def check_datasets():
@@ -284,7 +268,7 @@ def start_training():
                     state.model, state.api_ingestor, learning_rate=learning_rate
                 )
                 
-                state.training_log.append(f"🚀 Starting training: {epochs} epochs, lr={learning_rate}")
+                state.training_log.append(f"[START] Starting training: {epochs} epochs, lr={learning_rate}")
                 state.training_log.append(f"Device: {state.device}")
                 state.training_log.append(f"Conversations: {len(state.conversations)}")
                 
@@ -295,7 +279,7 @@ def start_training():
                         
                         for epoch in range(num_epochs):
                             state.training_progress = (epoch / num_epochs) * 100
-                            state.training_log.append(f"\n📚 Epoch {epoch + 1}/{num_epochs}")
+                            state.training_log.append(f"\n[DOCS] Epoch {epoch + 1}/{num_epochs}")
                             
                             # Simulate epoch training (replace with real training)
                             epoch_metrics = []
@@ -312,7 +296,7 @@ def start_training():
                                         state.training_log.append(f"  Batch {i+1}: PAS_h={avg_pas_h:.3f}")
                                         
                                 except Exception as e:
-                                    state.training_log.append(f"  ⚠️ Batch {i+1} error: {e}")
+                                    state.training_log.append(f"  [WARN] Batch {i+1} error: {e}")
                                     continue
                             
                             if not state.training_active:
@@ -329,7 +313,7 @@ def start_training():
                                 }
                                 results['epoch_results'].append(epoch_summary)
                                 
-                                state.training_log.append(f"📊 Epoch {epoch + 1} Summary:")
+                                state.training_log.append(f"[METRICS] Epoch {epoch + 1} Summary:")
                                 state.training_log.append(f"   PAS_h: {avg_pas_h:.3f}")
                                 state.training_log.append(f"   Loss: {avg_loss:.3f}")
                                 state.training_log.append(f"   Trust: {self.model.trust_scalars.mean():.3f}")
@@ -342,7 +326,7 @@ def start_training():
                 
                 if state.training_active:  # Only if not stopped
                     state.training_progress = 100
-                    state.training_log.append("✅ Training completed successfully!")
+                    state.training_log.append("[OK] Training completed successfully!")
                     
                     # Initialize diegetic backend with trained model
                     state.diegetic_backend = DiegeticConversationalBackend(device=state.device)
@@ -354,14 +338,14 @@ def start_training():
                         'final_trust': state.model.trust_scalars.tolist()
                     }
                 else:
-                    state.training_log.append("⏹️ Training stopped by user")
+                    state.training_log.append(" Training stopped by user")
                     state.training_results = {
                         'success': False,
                         'message': 'Training stopped'
                     }
                 
             except Exception as e:
-                state.training_log.append(f"❌ Training failed: {str(e)}")
+                state.training_log.append(f"[ERR] Training failed: {str(e)}")
                 state.training_results = {
                     'success': False,
                     'message': f'Training failed: {str(e)}'
@@ -542,7 +526,7 @@ def system_status():
 
 def run_server(host='localhost', port=5000, debug=False):
     """Run the Flask server."""
-    print(f"🚀 Starting Conversational Backend Server")
+    print(f"[START] Starting Conversational Backend Server")
     print(f"   Host: {host}")
     print(f"   Port: {port}")
     print(f"   Device: {state.device}")
@@ -552,7 +536,7 @@ def run_server(host='localhost', port=5000, debug=False):
     try:
         app.run(host=host, port=port, debug=debug, threaded=True)
     except Exception as e:
-        print(f"❌ Server failed to start: {e}")
+        print(f"[ERR] Server failed to start: {e}")
 
 if __name__ == "__main__":
     import argparse
