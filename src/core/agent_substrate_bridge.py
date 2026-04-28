@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 from typing import Dict, Any, Optional
+from src.core.device_utils import DEVICE
 
 class AgentSubstrateBridge(nn.Module):
     """
@@ -12,7 +13,7 @@ class AgentSubstrateBridge(nn.Module):
     """
     def __init__(self, device: str = None):
         super().__init__()
-        self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = device or str(DEVICE)
         
     def calculate_pestov_ionin_growth(
         self, 
