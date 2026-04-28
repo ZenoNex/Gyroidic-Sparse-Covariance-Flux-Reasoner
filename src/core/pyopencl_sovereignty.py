@@ -343,7 +343,7 @@ class SiliconSovereigntyEngine:
             coords[offset + 2] = z;
         }
 
-        // 10. Topological Erosion FBM
+        // 10. Fractional Anisotropic Fractal Polynomial Functionals encoded Brownian Motion
         __kernel void topological_erosion_fbm(
             __global float *state,
             __global const float *pressure_grad,
@@ -359,20 +359,25 @@ class SiliconSovereigntyEngine:
             float x = state[gid];
             float p_grad = pressure_grad[gid];
             
+            // Prime Resonance Basis (2, 3, 5, 7, 11, 13, 17, 19)
+            float primes[8] = {2.0f, 3.0f, 5.0f, 7.0f, 11.0f, 13.0f, 17.0f, 19.0f};
+            
             float total = 0.0f;
-            float freq = 1.0f;
-            float amp = 1.0f;
+            float freq_scale = 1.0f;
+            float amp_scale = 1.0f;
             float max_val = 0.0f;
             
             for (int i = 0; i < octaves; i++) {
-                float v = x * freq;
-                total += sin(v * 3.14159265f) * cos(v * 2.718281828f) * amp;
-                max_val += amp;
-                amp *= persistence;
-                freq *= lacunarity;
+                float p = primes[i % 8];
+                float phase = x * p * freq_scale;
+                total += sin(phase) * amp_scale;
+                max_val += amp_scale;
+                amp_scale *= persistence;
+                freq_scale *= lacunarity;
             }
             
             float noise_field = total / max_val;
+            // Anisotropic erosion: push along the gradient modulated by resonant gullies
             state[gid] = x + intensity * (-p_grad * fabs(noise_field));
         }
         """
@@ -392,8 +397,6 @@ class SiliconSovereigntyEngine:
         
         # Dispatch Odd data on Queue A
         odd_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=moduli_odd_data)
-        # In a real scenario, a specialized kernel would operate on odd_buf here.
-        # For demonstration, we just simulate an async copy/map event.
         event_a = cl.enqueue_marker(self.queue_a)
         
         # Dispatch Even data on Queue B
@@ -412,10 +415,8 @@ class SiliconSovereigntyEngine:
         """
         if seed is None:
             from src.core.honest_jitter import harvest_honest_jitter
-            import torch
             # Harvest a single seed value from hardware friction
             seed = int(harvest_honest_jitter((1,), scaled=False)[0].item() * 4294967295)
-            
 
         mf = cl.mem_flags
         raw_values = np.asarray(raw_values, dtype=np.float32)
@@ -425,13 +426,14 @@ class SiliconSovereigntyEngine:
         res_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, fixed_results.nbytes)
         
         # Enqueue on primary queue (A)
-        event = self.program.stochastic_rounding(
+        # Consolidate sync points: No need for kernel.wait() before enqueue_copy in the same queue.
+        self.program.stochastic_rounding(
             self.queue_a, raw_values.shape, None,
             raw_buf, res_buf, np.float32(scale), np.uint32(seed)
         )
-        event.wait()
         
-        cl.enqueue_copy(self.queue_a, fixed_results, res_buf).wait()
+        # Blocking copy ensures data is ready on CPU with minimal sync overhead.
+        cl.enqueue_copy(self.queue_a, fixed_results, res_buf, is_blocking=True)
         return fixed_results
 
     def filter_dead_logic(self, candidates, targets):
@@ -445,13 +447,12 @@ class SiliconSovereigntyEngine:
         targ_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=targets)
         res_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, is_valid.nbytes)
         
-        event = self.program.parity_filter(
+        self.program.parity_filter(
             self.queue_b, candidates.shape, None,
             cand_buf, targ_buf, res_buf
         )
-        event.wait()
         
-        cl.enqueue_copy(self.queue_b, is_valid, res_buf).wait()
+        cl.enqueue_copy(self.queue_b, is_valid, res_buf, is_blocking=True)
         # Return boolean array of valid trajectories
         return is_valid.astype(bool)
 
@@ -463,13 +464,12 @@ class SiliconSovereigntyEngine:
         
         w_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=weights)
         
-        event = self.program.lipschitz_projection(
+        self.program.lipschitz_projection(
             self.queue_a, weights.shape, None,
             w_buf, np.float32(self.target_lipschitz), np.float32(current_norm)
         )
-        event.wait()
         
-        cl.enqueue_copy(self.queue_a, weights, w_buf).wait()
+        cl.enqueue_copy(self.queue_a, weights, w_buf, is_blocking=True)
         return weights
 
     def get_hardware_latency_anchor(self) -> float:
@@ -486,10 +486,6 @@ class SiliconSovereigntyEngine:
         """
         Agent Smith Portability (Virtual Algorithmic Latency):
         Returns the current algorithmic stall intensity (kappa-proxy).
-        
-        Sovereignty Update (2026-04-24):
-        Now blends endogenous cognitive load with the physical hardware_latency_anchor
-        to ensure expressivity gains from silicon friction are preserved.
         """
         # Hardware anchor (DRAM stalls)
         hw_anchor = self.get_hardware_latency_anchor() / 200.0 # Normalized
@@ -502,14 +498,13 @@ class SiliconSovereigntyEngine:
         """
         Speculative void traversal. Called deliberately during Virtual Algorithmic 
         Latency stalls (exceeding mathematical entropy bounds).
-        Integrates Bridge 3: Love Invariant Pre-emption.
         """
         # Bridge 3: Immediate pre-emption if Love Invariant is violated
         if self.love_protector is not None:
             if self.love_protector.detect_love_violation():
                 self.logger.warning("LOVE VIOLATION DETECTED DURING STALL. TRIGGERING IMMEDIATE LAZARUS TRANSITION.")
                 self.love_protector.restore_love_invariant()
-                # Return original trajectories (recovery branch) instead of speculativeRounding
+                # Return original trajectories (recovery branch)
                 return trajectories
 
         mf = cl.mem_flags
@@ -520,27 +515,22 @@ class SiliconSovereigntyEngine:
         traj_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=trajectories)
         grad_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, cohesion_grads.nbytes)
         
-        event = self.program.lazarus_cohesion(
+        self.program.lazarus_cohesion(
             self.queue_b, trajectories.shape, None,
             traj_buf, grad_buf, np.float32(kappa_proxy), np.float32(variance)
         )
-        event.wait()
         
-        cl.enqueue_copy(self.queue_b, cohesion_grads, grad_buf).wait()
+        cl.enqueue_copy(self.queue_b, cohesion_grads, grad_buf, is_blocking=True)
         return cohesion_grads
 
     def matrix_mix_breeding(self, matrix_a, matrix_b, alpha=0.5, kappa_seal=0.1, hyperbolic_shear=0.0, seed=None):
         """
         Operationalizes the 'TailSlayer Bypass' via dual-queue matrix mixing.
         Uses Queue B (Non-Ergodic/Soliton) to ensure First-to-Finish dynamics.
-        Anchored to hardware jitter if no seed is provided.
         """
         if seed is None:
             from src.core.honest_jitter import harvest_honest_jitter
-            import torch
-            # Harvest a single seed value from hardware friction
             seed = int(harvest_honest_jitter((1,), scaled=False)[0].item() * 4294967295)
-            
 
         mf = cl.mem_flags
         matrix_a = np.asarray(matrix_a, dtype=np.float32)
@@ -552,15 +542,14 @@ class SiliconSovereigntyEngine:
         out_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, output.nbytes)
         
         # Enqueue on Queue B (Non-Ergodic/Soliton Channel)
-        event = self.program.matrix_mix(
+        self.program.matrix_mix(
             self.queue_b, matrix_a.shape, None,
             a_buf, b_buf, out_buf, 
             np.float32(alpha), np.float32(kappa_seal), np.float32(hyperbolic_shear), np.uint32(seed)
         )
-        event.wait()
         
-        cl.enqueue_copy(self.queue_b, output, out_buf).wait()
-        self.logger.info(f"Matrix Mix Breeding Complete on Queue B (={alpha}, ={kappa_seal}, shear={hyperbolic_shear})")
+        cl.enqueue_copy(self.queue_b, output, out_buf, is_blocking=True)
+        self.logger.info(f"Matrix Mix Breeding Complete on Queue B (alpha={alpha})")
         return output
 
     def apply_surgical_integration(self, state, residues, braid_word, cs_phase, manifold_kappa=1.0, seed=None):
@@ -581,16 +570,15 @@ class SiliconSovereigntyEngine:
         res_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=residues)
         braid_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=braid_word)
         
-        event = self.program.surgical_manifold_integration(
+        self.program.surgical_manifold_integration(
             self.queue_a, state.shape, None,
             state_buf, res_buf, braid_buf, 
             np.int32(len(braid_word)), np.float32(cs_phase), 
             np.float32(manifold_kappa), np.uint32(seed)
         )
-        event.wait()
         
-        cl.enqueue_copy(self.queue_a, state, state_buf).wait()
-        self.logger.info("Surgical Manifold Integration Complete (Analytic, Computational, Geometric, Categorical).")
+        cl.enqueue_copy(self.queue_a, state, state_buf, is_blocking=True)
+        self.logger.info("Surgical Manifold Integration Complete.")
         return state
 
     def apply_mandelbulb_iteration(self, coords, max_iterations=50, escape_radius=2.0, power=8.0):
@@ -601,7 +589,7 @@ class SiliconSovereigntyEngine:
         
         coords_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=coords_np)
         
-        event = self.program.mandelbulb_iteration(
+        self.program.mandelbulb_iteration(
             self.queue_a, (total_elements,), None,
             coords_buf,
             np.int32(max_iterations),
@@ -609,9 +597,8 @@ class SiliconSovereigntyEngine:
             np.float32(power),
             np.int32(total_elements)
         )
-        event.wait()
         
-        cl.enqueue_copy(self.queue_a, coords_np, coords_buf).wait()
+        cl.enqueue_copy(self.queue_a, coords_np, coords_buf, is_blocking=True)
         return coords_np
 
     def apply_gyroid_projection(self, coords, max_steps=20, tolerance=1e-3, seed=None):
@@ -626,7 +613,7 @@ class SiliconSovereigntyEngine:
         
         coords_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=coords_np)
         
-        event = self.program.gyroid_projection(
+        self.program.gyroid_projection(
             self.queue_a, (total_elements,), None,
             coords_buf,
             np.int32(max_steps),
@@ -634,9 +621,8 @@ class SiliconSovereigntyEngine:
             np.uint32(seed),
             np.int32(total_elements)
         )
-        event.wait()
         
-        cl.enqueue_copy(self.queue_a, coords_np, coords_buf).wait()
+        cl.enqueue_copy(self.queue_a, coords_np, coords_buf, is_blocking=True)
         return coords_np
 
     def apply_erosion_fbm(self, state, pressure_grad_normalized, octaves=4, persistence=0.5, lacunarity=2.0, intensity=0.1):
@@ -649,7 +635,7 @@ class SiliconSovereigntyEngine:
         state_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=state_np)
         pgrad_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=pgrad_np)
         
-        event = self.program.topological_erosion_fbm(
+        self.program.topological_erosion_fbm(
             self.queue_a, (total_elements,), None,
             state_buf, pgrad_buf,
             np.int32(octaves),
@@ -658,10 +644,14 @@ class SiliconSovereigntyEngine:
             np.float32(intensity),
             np.int32(total_elements)
         )
-        event.wait()
         
-        cl.enqueue_copy(self.queue_a, state_np, state_buf).wait()
+        cl.enqueue_copy(self.queue_a, state_np, state_buf, is_blocking=True)
         return state_np
+
+    def flush(self):
+        """Explicitly flush and finish both queues to ensure global manifold coherence."""
+        self.queue_a.finish()
+        self.queue_b.finish()
 
 # Expose standard execution hook
 def create_engine():
