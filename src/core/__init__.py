@@ -18,6 +18,7 @@ from .birkhoff_projection import sinkhorn_knopp, project_to_birkhoff
 from .gdpo_normalization import SignalSovereignty, LearnableWeights
 from .invariants import PhaseAlignmentInvariant, APAS_Zeta, compute_chirality
 from .pressure_typing import StructuralPressure
+from .device_utils import DEVICE
 
 # Phase 1: Failure Token System
 from .failure_token import FailureToken, FailureTokenType, RuptureFunctional
@@ -61,4 +62,5 @@ __all__ = [
     'DiscreteEntropyComputer',
     'ContinuousCoprimality',
     'MetaInvariant',
+    'DEVICE',
 ]
