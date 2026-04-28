@@ -99,6 +99,13 @@ class UniversalOrchestrator(nn.Module):
         # Phase 6: Topographical memory via FBM erosion
         self.erosion_filter = TopologicalErosionFBM(octaves=4, persistence=0.6)
         
+        # Agent Smith Protocol: Learnable entropy expansion
+        from src.core.honest_jitter import AgentSmithEngine, _AGENT_SMITH_ENGINE
+        if _AGENT_SMITH_ENGINE is not None:
+            self.agent_smith = _AGENT_SMITH_ENGINE
+        else:
+            self.agent_smith = AgentSmithEngine(device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+        
         # EMA for flux prediction in deflagration scout
         self.register_buffer('expected_flux', torch.zeros(1))
         
