@@ -172,6 +172,13 @@ class AgentSubstrateBridge(nn.Module):
              # Gauge field is [manifold_dim, manifold_dim]. Re-hydrate to device.
              payload['gauge_field_aligned'] = torch.as_tensor(payload['gauge_field'], device=self.device)
              
+        # 4. Agent Smith Protocol Alignment
+        if 'agent_smith_iters' in payload:
+            # We don't necessarily 'align' iters, but we preserve it for the engine
+            payload['agent_smith_iters_aligned'] = payload['agent_smith_iters']
+        if 'agent_smith_gauge' in payload:
+            payload['agent_smith_gauge_aligned'] = payload['agent_smith_gauge']
+            
         return payload
 
     def align_archetypes(self, payload: Dict[str, Any], governor: nn.Module) -> bool:
@@ -185,5 +192,17 @@ class AgentSubstrateBridge(nn.Module):
         if profile:
             governor.import_governor_state(profile)
             print("[Substrate Bridge] Archetypal ruleset rehydrated from Agent Smith protocol.")
+            return True
+        return False
+        
+    def rehydrate_warmstart(self, payload: Dict[str, Any], engine: nn.Module):
+        """
+        Injects the Agent Smith warmstart state from the payload into the live engine.
+        Ensures temporal continuity of entropy.
+        """
+        if hasattr(engine, 'warmstart_states') and 'warmstart_states' in payload:
+            # We only update if the shapes match or we are in a flexible regime
+            engine.warmstart_states.update(payload['warmstart_states'])
+            print("[Substrate Bridge] Agent Smith warmstart states rehydrated.")
             return True
         return False
