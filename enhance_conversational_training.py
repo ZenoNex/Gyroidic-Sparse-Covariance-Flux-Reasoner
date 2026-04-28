@@ -31,6 +31,7 @@ def enhance_conversational_training():
         ]
         
         from src.core import DEVICE
+        from src.data.conversational_api_ingestor import ConversationalAPIIngestor
         
         api_ingestor = ConversationalAPIIngestor(device = DEVICE)
         all_conversations = []
