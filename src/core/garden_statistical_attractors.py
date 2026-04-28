@@ -52,7 +52,7 @@ class InfluenceAttractor(nn.Module):
     in the meta-polytope lattice. Influence flows along resonance streamlines.
     
     Extended with Bostick-style resonance intelligence:
-    - Chiral gating function Γ_χ(x) = σ(⟨x,χ⟩)
+    - Chiral gating function _(x) = (x,)
     - Phase-aligned traversal for deterministic basin escapes
     - Anisotropic asymptotic convergence with direction-dependent rates
     """
@@ -116,7 +116,7 @@ class InfluenceAttractor(nn.Module):
     
     def compute_chiral_gating(self, concept_vector: torch.Tensor) -> torch.Tensor:
         """
-        Compute chiral gating function Γ_χ(x) = σ(⟨x,χ⟩).
+        Compute chiral gating function _(x) = (x,).
         
         Chiral gating modulates traversal probabilities based on orientation
         relative to chiral vectors, enabling direction-dependent exploration.
@@ -137,7 +137,7 @@ class InfluenceAttractor(nn.Module):
     
     def compute_phase_alignment(self, concept_vector: torch.Tensor) -> torch.Tensor:
         """
-        Compute phase alignment modulation cos(φ_y - φ*_y).
+        Compute phase alignment modulation cos(_y - *_y).
         
         Phase alignment enables deterministic basin escapes when local phase
         aligns with preferred harmonic frequencies.
@@ -179,9 +179,9 @@ class InfluenceAttractor(nn.Module):
         """
         Apply anisotropic asymptotic convergence with direction-dependent rates.
         
-        x(t + dt) = x(t) + dt Σ_k λ_k (ê_k · F(x(t))) ê_k
+        x(t + dt) = x(t) + dt _k _k (_k  F(x(t))) _k
         
-        Where λ_k are convergence rates along axis k, enabling the system to
+        Where _k are convergence rates along axis k, enabling the system to
         tighten along some dimensions while remaining free along others.
         """
         batch_size = concept_vector.shape[0]
@@ -198,7 +198,7 @@ class InfluenceAttractor(nn.Module):
             basis_k = basis_vectors[k].unsqueeze(0)  # [1, feature_dim]
             force_projection = torch.sum(base_forces * basis_k, dim=-1, keepdim=True)  # [batch, 1]
             
-            # Apply convergence rate λ_k
+            # Apply convergence rate _k
             rate_k = torch.abs(self.convergence_rates[k]) + 1e-8  # Ensure positive
             anisotropic_component = rate_k * force_projection * basis_k
             
@@ -210,12 +210,12 @@ class InfluenceAttractor(nn.Module):
         Compute gravitational pull toward statistical attractors with Bostick extensions.
         
         Enhanced formula:
-        Influence_new(x) = ∫_M K(x,y) · T(y) · R(y) · Γ_χ(y) · cos(φ_y - φ*_y) dμ(y)
+        Influence_new(x) = _M K(x,y)  T(y)  R(y)  _(y)  cos(_y - *_y) d(y)
         
         Combines:
         - Trust/fossilization (T)
         - Resonance (R) 
-        - Chiral gating (Γ_χ)
+        - Chiral gating (_)
         - Phase alignment modulation (cos)
         """
         batch_size = concept_vector.shape[0]
@@ -235,7 +235,7 @@ class InfluenceAttractor(nn.Module):
         pulls_with_torsion = base_pulls * chiral_sign
         
         # Bostick extensions
-        # 1. Chiral gating Γ_χ(x)
+        # 1. Chiral gating _(x)
         gamma_chi = self.compute_chiral_gating(concept_vector)  # [batch, num_attractors]
         
         # 2. Phase alignment modulation
@@ -250,13 +250,13 @@ class InfluenceAttractor(nn.Module):
         """
         Compute Phase-Aligned Traversal (PAT) for deterministic basin escapes.
         
-        x(t+dt) = x(t) + η Σ_i Γ_χ^i(x) cos(φ_i(t) - φ*_i) v̂_i
+        x(t+dt) = x(t) +  _i _^i(x) cos(_i(t) - *_i) v_i
         
         Where:
-        - φ_i(t): instantaneous phase of attractor i
-        - φ*_i: preferred harmonic/phase-lock
-        - v̂_i: escape direction along resonance eigenvector
-        - η: step size
+        - _i(t): instantaneous phase of attractor i
+        - *_i: preferred harmonic/phase-lock
+        - v_i: escape direction along resonance eigenvector
+        - : step size
         """
         batch_size = concept_vector.shape[0]
         
@@ -461,7 +461,7 @@ class DefectAttractor(nn.Module):
         # Compute stress magnitude
         stress_magnitude = torch.norm(stress, dim=-1)
         
-        # Mohr-Coulomb criterion: τ = c + σ * tan(φ)
+        # Mohr-Coulomb criterion:  = c +  * tan()
         # Simplified: yield when stress > cohesion + friction * normal_stress
         normal_stress = torch.abs(torch.sum(location * stress, dim=-1)) / (torch.norm(location, dim=-1) + 1e-8)
         yield_threshold = self.cohesion + normal_stress * torch.tan(self.friction_angle)
@@ -873,7 +873,7 @@ class GardenOrchestrator(nn.Module):
         Compute Escape Capacity - the new invariant that distinguishes
         healthy resonance from dead fossilization.
         
-        EC = E_x[Σ_i Γ_χ^i(x) · |sin(φ_i - φ_i*)| · |∇d(x, A_i)|]
+        EC = E_x[_i _^i(x)  |sin(_i - _i*)|  |d(x, A_i)|]
         
         Measures latent ability to leave, even if not currently moving.
         """
@@ -886,7 +886,7 @@ class GardenOrchestrator(nn.Module):
             # Compute phase alignment
             phase_alignment = self.influence_attractors.compute_phase_alignment(concepts)  # [batch, num_attractors]
             
-            # Compute phase pressure: |sin(φ_i - φ_i*)|
+            # Compute phase pressure: |sin(_i - _i*)|
             # High when phases are misaligned (escape pressure)
             phase_pressure = torch.abs(torch.sin(torch.acos(torch.clamp(phase_alignment, -1, 1))))
             
@@ -1019,32 +1019,33 @@ class GardenOrchestrator(nn.Module):
 def test_garden_statistical_attractors():
     """Test the garden statistical attractor system."""
     
-    print("🏞️ Testing Garden Statistical Attractors")
+    print(" Testing Garden Statistical Attractors")
     print("=" * 60)
     
     # Initialize garden orchestrator
     num_attractors = 8
     feature_dim = 32
-    garden = GardenOrchestrator(num_attractors, feature_dim, device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu')
+    from src.core.device_utils import DEVICE
+    garden = GardenOrchestrator(num_attractors, feature_dim, device = str(DEVICE))
     
     # Create test concept distribution
     batch_size = 16
     # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter in test
     concepts = harvest_honest_jitter((batch_size, feature_dim), scaled=True) * 1.0
     
-    print(f"🌱 Initial Garden State:")
-    print(f"   • Concepts shape: {concepts.shape}")
-    print(f"   • Number of attractors: {num_attractors}")
-    print(f"   • Feature dimension: {feature_dim}")
+    print(f" Initial Garden State:")
+    print(f"    Concepts shape: {concepts.shape}")
+    print(f"    Number of attractors: {num_attractors}")
+    print(f"    Feature dimension: {feature_dim}")
     
     # Compute initial health metrics
     initial_metrics = garden.compute_garden_health_metrics(concepts)
-    print(f"\n📊 Initial Health Metrics:")
+    print(f"\n[METRICS] Initial Health Metrics:")
     for key, metric in initial_metrics.items():
-        print(f"   • {key}: {metric}")
+        print(f"    {key}: {metric}")
     
     # Evolve garden over time
-    print(f"\n🌊 Evolving Garden Dynamics with Bostick Extensions...")
+    print(f"\n Evolving Garden Dynamics with Bostick Extensions...")
     
     evolution_steps = 10
     dt = 0.1
@@ -1059,29 +1060,29 @@ def test_garden_statistical_attractors():
             traversal_magnitude = torch.norm(result['traversal_forces']).item()
             
             print(f"   Step {step:2d}: Entropy={result['entropy'].mean():.3f}, "
-                  f"Resonance Lock={'✅' if result['resonance_lock'] else '❌'}, "
+                  f"Resonance Lock={'[OK]' if result['resonance_lock'] else '[ERR]'}, "
                   f"Chiral={chiral_strength:.3f}, Phase={phase_coherence:.3f}, "
                   f"Traversal={traversal_magnitude:.3f}")
             print(f"            Coupling=[{result['coupling'][0]:.2f}, {result['coupling'][1]:.2f}, {result['coupling'][2]:.2f}]")
     
     # Compute final health metrics
     final_metrics = garden.compute_garden_health_metrics(concepts)
-    print(f"\n📊 Final Health Metrics:")
+    print(f"\n[METRICS] Final Health Metrics:")
     for key, metric in final_metrics.items():
-        print(f"   • {key}: {metric}")
+        print(f"    {key}: {metric}")
     
     # Analyze fossilization states
     fossilization_analysis = garden.analyze_fossilization_states(concepts)
-    print(f"\n🔬 Fossilization Analysis:")
-    print(f"   • System State: {fossilization_analysis['system_state']}")
-    print(f"   • Fossilized Attractors: {fossilization_analysis['num_fossilized']}/{garden.num_attractors}")
-    print(f"   • Phase-Locked Attractors: {fossilization_analysis['phase_locked_attractors']}")
-    print(f"   • Converged Axes: {fossilization_analysis['converged_axes']}/{concepts.shape[1]}")
-    print(f"   • Anisotropy Ratio: {fossilization_analysis['anisotropy_ratio']:.3f}")
-    print(f"   • Phase Coherence: {fossilization_analysis['phase_coherence']:.3f}")
+    print(f"\n Fossilization Analysis:")
+    print(f"    System State: {fossilization_analysis['system_state']}")
+    print(f"    Fossilized Attractors: {fossilization_analysis['num_fossilized']}/{garden.num_attractors}")
+    print(f"    Phase-Locked Attractors: {fossilization_analysis['phase_locked_attractors']}")
+    print(f"    Converged Axes: {fossilization_analysis['converged_axes']}/{concepts.shape[1]}")
+    print(f"    Anisotropy Ratio: {fossilization_analysis['anisotropy_ratio']:.3f}")
+    print(f"    Phase Coherence: {fossilization_analysis['phase_coherence']:.3f}")
     
     # Compare improvement with typed metrics
-    print(f"\n📈 Garden Evolution Summary:")
+    print(f"\n Garden Evolution Summary:")
     for key in initial_metrics:
         if key in final_metrics:
             initial = initial_metrics[key]
@@ -1090,24 +1091,24 @@ def test_garden_statistical_attractors():
             # Handle typed metrics properly
             if initial.type == HealthMetricType.SCALAR and final.type == HealthMetricType.SCALAR:
                 change = final.value - initial.value
-                direction = "↗️" if change > 0 else "↘️" if change < 0 else "➡️"
-                print(f"   {direction} {key}: {initial.value:.4f} → {final.value:.4f} (Δ{change:+.4f})")
+                direction = "" if change > 0 else "" if change < 0 else ""
+                print(f"   {direction} {key}: {initial.value:.4f}  {final.value:.4f} ({change:+.4f})")
             else:
                 # Typed state transition
-                print(f"   🔄 {key}: {initial.type.value} → {final.type.value}")
+                print(f"    {key}: {initial.type.value}  {final.type.value}")
     
     # Show escape capacity analysis
     try:
         escape_capacity = garden.compute_escape_capacity(concepts)
         if escape_capacity < 1e-6:
-            print(f"   🚀 escape_capacity: FOSSILIZED (0.000) - No escape capacity detected")
+            print(f"   [START] escape_capacity: FOSSILIZED (0.000) - No escape capacity detected")
         else:
-            print(f"   🚀 escape_capacity: {escape_capacity:.4f} (NEW - Bostick invariant)")
+            print(f"   [START] escape_capacity: {escape_capacity:.4f} (NEW - Bostick invariant)")
     except:
-        print(f"   🚀 escape_capacity: ERROR (NEW - Bostick invariant)")
+        print(f"   [START] escape_capacity: ERROR (NEW - Bostick invariant)")
     
     # Test individual attractor systems
-    print(f"\n🔍 Testing Individual Attractor Systems with Bostick Extensions:")
+    print(f"\n Testing Individual Attractor Systems with Bostick Extensions:")
     
     # Test influence attractors with Bostick extensions
     influence_pulls = garden.influence_attractors.compute_statistical_pull(concepts)
@@ -1128,33 +1129,33 @@ def test_garden_statistical_attractors():
             pull_max = influence_pulls[:, i].max().item()
             pull_ranges.append(f"[{pull_min:.3f}, {pull_max:.3f}]")
     
-    print(f"   🌀 Influence Attractors: {fossilized_count} fossilized, {garden.num_attractors - fossilized_count} active")
-    print(f"   🧬 Chiral Gating: Range [{chiral_gating.min():.3f}, {chiral_gating.max():.3f}], Mean={chiral_gating.mean():.3f}")
-    print(f"   🌊 Phase Alignment: Range [{phase_alignment.min():.3f}, {phase_alignment.max():.3f}], Mean={phase_alignment.mean():.3f}")
-    print(f"   🚀 Traversal Forces: Magnitude={torch.norm(traversal_forces).item():.3f}")
+    print(f"   [GYROID] Influence Attractors: {fossilized_count} fossilized, {garden.num_attractors - fossilized_count} active")
+    print(f"    Chiral Gating: Range [{chiral_gating.min():.3f}, {chiral_gating.max():.3f}], Mean={chiral_gating.mean():.3f}")
+    print(f"    Phase Alignment: Range [{phase_alignment.min():.3f}, {phase_alignment.max():.3f}], Mean={phase_alignment.mean():.3f}")
+    print(f"   [START] Traversal Forces: Magnitude={torch.norm(traversal_forces).item():.3f}")
     
     # Test resonance attractors
     lock_status, resonance_strength = garden.resonance_attractors.lock_in_resonance(concepts)
     resonance_max = resonance_strength.max().item() if torch.isfinite(resonance_strength.max()) else 0.0
-    print(f"   🎵 Resonance Attractors: Lock={lock_status}, Max Strength={resonance_max:.3f}")
+    print(f"    Resonance Attractors: Lock={lock_status}, Max Strength={resonance_max:.3f}")
     
     # Test defect attractors
     defect_propagation = garden.defect_attractors.propagate_defect(concepts[:3])  # Test subset
     defect_magnitude = torch.norm(defect_propagation).item() if torch.isfinite(torch.norm(defect_propagation)) else 0.0
-    print(f"   ⚡ Defect Attractors: Propagation magnitude={defect_magnitude:.3f}")
+    print(f"   [POWER] Defect Attractors: Propagation magnitude={defect_magnitude:.3f}")
     
     print(f"\n" + "=" * 60)
-    print("✅ Garden Statistical Attractors Test Complete!")
-    print("✅ Rich feature distinctions maintained")
-    print("✅ Anti-lobotomy architecture verified")
-    print("✅ Dynamic equilibrium achieved")
-    print("✅ Bostick-style resonance intelligence integrated:")
-    print("   • Chiral gating Γ_χ(x) = σ(⟨x,χ⟩)")
-    print("   • Phase-aligned traversal (PAT) for basin escapes")
-    print("   • Anisotropic asymptotic convergence")
-    print("   • Enhanced influence attractors with phase modulation")
-    print("   • Geometry-aware metrics respecting anisotropy")
-    print("   • Semantic fossilization detection (NaN → meaning)")
+    print("[OK] Garden Statistical Attractors Test Complete!")
+    print("[OK] Rich feature distinctions maintained")
+    print("[OK] Anti-lobotomy architecture verified")
+    print("[OK] Dynamic equilibrium achieved")
+    print("[OK] Bostick-style resonance intelligence integrated:")
+    print("    Chiral gating _(x) = (x,)")
+    print("    Phase-aligned traversal (PAT) for basin escapes")
+    print("    Anisotropic asymptotic convergence")
+    print("    Enhanced influence attractors with phase modulation")
+    print("    Geometry-aware metrics respecting anisotropy")
+    print("    Semantic fossilization detection (NaN  meaning)")
     print("=" * 60)
 
 class CerumenPotIsolation(nn.Module):
