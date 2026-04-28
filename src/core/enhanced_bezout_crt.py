@@ -111,6 +111,7 @@ class EnhancedBezoutCRT(nn.Module):
             basis_type='chebyshev',
             learnable=True,
             device = str(DEVICE)
+        )
         
         # Generate moduli from polynomial functionals
         self.moduli = self._generate_polynomial_moduli()
