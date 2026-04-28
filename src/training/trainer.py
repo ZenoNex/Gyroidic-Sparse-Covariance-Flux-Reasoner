@@ -72,66 +72,41 @@ class ConstraintDataset(Dataset):
         self.data = self._generate_data()
     
     def _generate_data(self):
-        """Generate synthetic constraint satisfaction data."""
-        data = []
-        
+        """No longer pre-generates data. Handled dynamically in __getitem__."""
+        return None
+    
+    def __len__(self):
+        return self.num_samples
+    
+    def __getitem__(self, idx):
+        """Dynamically generate sample on request (Dynamic Loading)."""
+        # Determine if valid based on index/ratio
         num_valid = int(self.num_samples * self.valid_ratio)
-        num_invalid = self.num_samples - num_valid
+        is_valid = idx < num_valid
         
-        # Valid samples: coherent embeddings  valid anchor
-        for i in range(num_valid):
-            # SILICON SOVEREIGNTY: Replaced np.random.randint with Honest Jitter derivation
+        if is_valid:
             anchor = int(harvest_honest_jitter((1,), scaled=True).item() * self.max_anchor) % self.max_anchor
-            
-            # Embed anchor information in features
-            # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
-            # Convert torch tensor from harvest_honest_jitter to numpy
             text_emb = harvest_honest_jitter((self.text_dim,), scaled=True).cpu().numpy()
-            text_emb[0] = anchor / self.max_anchor  # Encode anchor
-            
+            text_emb[0] = anchor / self.max_anchor
             graph_emb = harvest_honest_jitter((self.graph_dim,), scaled=True).cpu().numpy()
             graph_emb[0] = (anchor % 100) / 100.0
-            
             num_features = harvest_honest_jitter((self.num_dim,), scaled=True).cpu().numpy()
             num_features[0] = np.sin(anchor * 0.1)
             num_features[1] = np.cos(anchor * 0.1)
-            
-            data.append({
-                'text_emb': text_emb.astype(np.float32),
-                'graph_emb': graph_emb.astype(np.float32),
-                'num_features': num_features.astype(np.float32),
-                'anchor': anchor,
-                'valid': True
-            })
-        
-        # Invalid samples: incoherent embeddings  no valid reconstruction
-        for i in range(num_invalid):
-            # Random, uncorrelated features
-            # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        else:
             text_emb = harvest_honest_jitter((self.text_dim,), scaled=True).cpu().numpy().astype(np.float32)
             graph_emb = harvest_honest_jitter((self.graph_dim,), scaled=True).cpu().numpy().astype(np.float32)
             num_features = harvest_honest_jitter((self.num_dim,), scaled=True).cpu().numpy().astype(np.float32)
-            
-            # SILICON SOVEREIGNTY: Replaced np.random.randint with Honest Jitter derivation
             anchor = int(harvest_honest_jitter((1,), scaled=True).item() * self.max_anchor) % self.max_anchor
             
-            data.append({
-                'text_emb': text_emb,
-                'graph_emb': graph_emb,
-                'num_features': num_features,
-                'anchor': anchor,
-                'valid': False
-            })
-        
-        return data
-    
-    def __len__(self):
-        return len(self.data)
-    
-    def __getitem__(self, idx):
-        sample = self.data[idx].copy()
-        sample['index'] = idx
-        return sample
+        return {
+            'text_emb': text_emb.astype(np.float32),
+            'graph_emb': graph_emb.astype(np.float32),
+            'num_features': num_features.astype(np.float32),
+            'anchor': anchor,
+            'valid': is_valid,
+            'index': idx
+        }
 
 
 def collate_fn(batch):
@@ -205,6 +180,10 @@ class StructuralAdaptor:
         # Energy & Unknowledge Monitoring
         self.energy_monitor = StructuralEnergyMonitor(device=device)
         self.mischief_probe = EntropicMischiefProbe(device=device)
+        self.nondual_probe = NonDualProbe(device=device)
+        # Restore Nostalgic Leak erased in previous edits
+        from src.topology.unknowledge_domain import NostalgicLeakFunctional
+        self.nostalgic_leak = NostalgicLeakFunctional(fossil_dim=64, device=device)
         
         # Non-Dual State Tensor S_i = [L_i, P_i, B_i]
         self.S_i: Optional[torch.Tensor] = None
@@ -284,7 +263,7 @@ class StructuralAdaptor:
                         metrics[k] = val.item()
                     else:
                         metrics[k] = float(val) if val is not None else 0.0
-            
+
             # Legacy compatibility
             metrics['pressure'] = metrics.get('selection_pressure', 0.0)
             
@@ -325,8 +304,28 @@ class StructuralAdaptor:
             
             # 2. MISCHIEF & LEAK PROBE (The Unknowledge Dilation)
             # --------------------------------------------------
-            # Archetype Leak (Concealment) is now managed by the Orchestrator
-            # We track its impact on the manifold drift.
+            # Hidden state retrieval for diagnostics
+            h = outputs.get('state', outputs.get('reconstruction', torch.zeros(1, device=self.device)))
+            
+            # Restore erased Nostalgic Leak logic and integrate NonDualProbe
+            if self.nostalgic_leak is not None:
+                # Project archetype leak into Unknowledge Substrate
+                leak_scalar = outputs.get('archetype_leak', 0.0)
+                leak_signal = self.nostalgic_leak(h.mean(dim=0).unsqueeze(0) if h.dim() > 1 else h)
+                metrics['nostalgic_leak'] = leak_signal.abs().mean().item()
+                metrics['archetype_leak'] = leak_scalar
+            
+            # Non-Dual State Tensor S_i = [L_i, P_i, B_i]
+            # Use NonDualProbe to refine the state if mischief is detected
+            if is_good_bug and self.nondual_probe is not None:
+                # We treat the hidden state as the residue to be refined
+                h_refined = self.nondual_probe(
+                    residues=h.squeeze(1) if h.dim() == 3 else h,
+                    constraints=h.squeeze(1) if h.dim() == 3 else h, # In selection mode, we probe local consistency
+                    h_mischief=torch.tensor([m_metrics['H_mischief']], device=self.device)
+                )
+                # Metrics for non-dual refinement
+                metrics['nondual_refinement'] = torch.norm(h_refined - h).item()
             
             # 3. Tick the clock based on V_m (Unknowledge Dilation)
             dt = self.clock.tick(v_m)
