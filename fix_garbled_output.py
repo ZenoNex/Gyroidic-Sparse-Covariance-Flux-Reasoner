@@ -15,13 +15,15 @@ import argparse
 import sys
 import os
 
-# Add src to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+# Add project root to path
+root_dir = os.path.dirname(os.path.abspath(__file__))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
 
 try:
-    from core.spectral_coherence_repair import SpectralCoherenceCorrector
-    from core.chern_simons_gasket import ChernSimonsGasket, SolitonStabilityHealer
-    from core.love_invariant_protector import SoftSaturatedGates
+    from src.core.spectral_coherence_repair import SpectralCoherenceCorrector
+    from src.core.chern_simons_gasket import ChernSimonsGasket, SolitonStabilityHealer
+    from src.core.love_invariant_protector import SoftSaturatedGates
 except ImportError as e:
     print(f"[ERR] Import error: {e}")
     print("Make sure you're running from the project root directory")
@@ -121,7 +123,7 @@ class GarbledOutputFixer:
         # Use proper polynomial co-prime functional system (anti-lobotomy)
         K, D = residues.shape[-2:]
         if not hasattr(self, 'polynomial_config'):
-            from core.polynomial_coprime import PolynomialCoprimeConfig
+            from src.core.polynomial_coprime import PolynomialCoprimeConfig
             self.polynomial_config = PolynomialCoprimeConfig(
                 k=K,
                 degree=D - 1,
