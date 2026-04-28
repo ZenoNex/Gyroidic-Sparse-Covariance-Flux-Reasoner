@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import Sampler
 from typing import List, Iterator, Optional, Dict
 import numpy as np
-from src.core.honest_jitter import harvest_honest_jitter
+from src.core.honest_jitter import harvest_honest_jitter, honest_multinomial
 
 from src.core.garden_statistical_attractors import CerumenPotIsolation
 
@@ -106,7 +106,7 @@ class SituationalBatchSampler(Sampler[List[int]]):
                 effective_probs = torch.softmax(coupling * 5.0, dim=0) * mask
                 if effective_probs.sum() > 0:
                     probs = effective_probs / effective_probs.sum()
-                    neighbors = torch.multinomial(probs, min(num_coupled, int(mask.sum().item())), replacement=False).tolist()
+                    neighbors = honest_multinomial(probs, min(num_coupled, int(mask.sum().item())), replacement=False).tolist()
                     batch.extend(neighbors)
                     for n in neighbors:
                         consumed.add(n)
