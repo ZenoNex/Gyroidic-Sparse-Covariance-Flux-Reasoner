@@ -20,8 +20,9 @@ def verify_orchestrator_flux():
         {"pas_h": 0.10, "desc": "Critical Coherence (Play/VOID?)"}
     ]
     
-    state = harvest_honest_jitter((1, dim), device=torch.device('cpu'), scaled=True)
-    pressure_grad = harvest_honest_jitter((1, dim), device=torch.device('cpu'), scaled=True)
+    from src.core import DEVICE
+    state = harvest_honest_jitter((1, dim), device=DEVICE, scaled=True)
+    pressure_grad = harvest_honest_jitter((1, dim), device=DEVICE, scaled=True)
     
     for case in test_cases:
         pas_h = case["pas_h"]
