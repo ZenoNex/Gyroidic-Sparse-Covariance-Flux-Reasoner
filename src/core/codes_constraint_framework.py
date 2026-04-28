@@ -61,15 +61,15 @@ class CODESConstraintFramework(nn.Module):
         self.dt = 0.01  # Time step
         self.damping = 0.1  # Damping coefficient
         
-        # Use existing polynomial co-prime system (anti-lobotomy compliance)
+        from src.core.device_utils import DEVICE
+        # Use polynomial co-prime system instead of hardcoded primes
         from src.core.polynomial_coprime import PolynomialCoprimeConfig
         self.polynomial_config = PolynomialCoprimeConfig(
             k=min(10, state_dim // 4),  # Dynamic based on state dimension
             degree=4,
             basis_type='chebyshev',
             learnable=True,
-            device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
-        )
+            device = str(DEVICE)
         
     def add_constraint(self, constraint_id: int, constraint_type: str = 'quadratic'):
         """Add a new constraint to the system."""
@@ -145,9 +145,9 @@ class CODESConstraintFramework(nn.Module):
         Evolve state using constraint-oriented differential equations.
         
         Implements damped gradient descent:
-        dx/dt = -∇E(x) - γ(dx/dt)
+        dx/dt = -E(x) - (dx/dt)
         
-        Where E(x) is total constraint energy and γ is damping.
+        Where E(x) is total constraint energy and  is damping.
         """
         original_shape = state.shape
         if state.dim() == 1:
