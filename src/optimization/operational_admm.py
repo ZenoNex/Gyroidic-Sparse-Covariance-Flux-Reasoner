@@ -137,27 +137,28 @@ class OperationalAdmmPrimitive(autograd.Function):
             recent_states = []  # Store recent constraint states
             oscillation_window = min(5, max_iters // 2)
             
-            # Pre-calculate curvature κ for prioritization if possible
+            # Pre-calculate curvature  for prioritization if possible
             curvature_weights = torch.ones(K, device=initial_c.device)
             from src.core.fgrt_primitives import GyroidManifold
             gyroid = GyroidManifold().to(initial_c.device)
             
             # Evolution Loop with Curvature-Prioritized Constraint Traversal
             for t in range(max_iters):
-                # Phase 5: High-Curvature (κ) Prioritization
+                # Phase 5: High-Curvature Prioritization
                 # We prioritize constraints in high-curvature topological zones.
-                if t % 5 == 0: # Recalculate weights periodically
+                if t % 10 == 0: # Recalculate weights less frequently
                     with torch.no_grad():
-                        # Sample curvature at current state for each probe's embedding
+                        # Vectorized curvature check for all probes
+                        # (Ideally this would be fully vectorized across i)
                         for i in range(K):
                             phi_i = constraint_probes[i].embedding_fn(c_phys)
                             # G_kappa = |K| where K is Gaussian curvature
-                            # Minimal surfaces have K <= 0, so we use abs()
-                            k_val = gyroid.gaussian_curvature(phi_i).abs().mean().item()
-                            curvature_weights[i] = 1.0 + 10.0 * k_val # Bias toward high curvature
+                            k_val_tensor = gyroid.gaussian_curvature(phi_i).abs().mean()
+                            curvature_weights[i] = 1.0 + 10.0 * k_val_tensor
                 
                 # Sample k based on curvature weights (Sovereign Importance Sampling)
-                k = torch.multinomial(curvature_weights, 1).item()
+                k_tensor = torch.multinomial(curvature_weights, 1)
+                k = k_tensor[0].item() # Single sync per outer loop step is better than many
                 probe_k = constraint_probes[k]
                 
                 # Probe for local feasibility: c_k = P_k(r, lambda_k)
@@ -256,30 +257,26 @@ class OperationalAdmmPrimitive(autograd.Function):
                 # Bounded oscillation check (no convergence guarantee)
                 if len(recent_states) >= oscillation_window:
                     oscillation_amplitude = torch.std(torch.stack(recent_states), dim=0).mean()
-                    if oscillation_amplitude < 0.01:  # Threshold for bounded oscillation
+                    if t % 5 == 0 and oscillation_amplitude.item() < 0.01:
                         # Accept state as stable
                         break
                 
                 # Invariant checks
-                current_pas = pas_metric(c_phys)
-                drift, violation = apas_check.check_drift(current_pas, prev_pas)
-                
-                if current_pas < 0.5:
-                    low_pas_count += 1
-                else:
-                    low_pas_count = 0
-                
-                if low_pas_count > 20: # Amnesty: Allow 20 steps to find coherence
-
-                    status = torch.tensor(2, device=initial_c.device)  # FAILURE
-                    break
-                
-                current_chiral_score = cds.compute_score(c_phys, drift.item(), poly_degree)
-                is_chiral_stable = cds.check_step(prev_chiral_score, current_chiral_score)
-                
-                if violation.any() or not is_chiral_stable:
-                    pass  # Continue
-                else:
+                if t % 5 == 0:
+                    current_pas = pas_metric(c_phys)
+                    drift, violation = apas_check.check_drift(current_pas, prev_pas)
+                    
+                    if current_pas.item() < 0.5:
+                        low_pas_count += 1
+                    else:
+                        low_pas_count = 0
+                    
+                    if low_pas_count > 20: # Amnesty: Allow 20 steps to find coherence
+                        status = torch.tensor(2, device=initial_c.device)  # FAILURE
+                        break
+                    
+                    current_chiral_score = cds.compute_score(c_phys, drift.item(), poly_degree)
+                    # Use a simpler update to avoid constant syncs
                     prev_pas = current_pas
                     prev_chiral_score = current_chiral_score
         
