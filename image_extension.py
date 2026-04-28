@@ -88,7 +88,8 @@ class ImageProcessor(nn.Module):
     """
     def __init__(self, device: str = None):
         super().__init__()
-        self.device = device if device else ('cuda' if torch.cuda.is_available() else 'cpu')
+        from src.core import DEVICE
+        self.device = device if device else DEVICE
         
         self.backbone = StructuralEntanglementNet(output_dim=768)
         self.backbone.to(self.device)
@@ -267,7 +268,8 @@ class TailSlayerImageGenerator:
         seed_b = int(hashlib.md5(tag_b.encode()).hexdigest(), 16) % (2**32)
         
         # SILICON SOVEREIGNTY: Removed np.random. Replaced with harvest_honest_jitter.
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        from src.core import DEVICE
+        device = DEVICE
         
         # Generate matrices via hardware-anchored entropy expansion
         matrix_a = harvest_honest_jitter((64, 64), device=device, scaled=False).cpu().numpy()
