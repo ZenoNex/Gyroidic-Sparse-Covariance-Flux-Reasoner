@@ -57,6 +57,9 @@ class ChiralDriftStabilizer:
 
     def check_step(self, prev_score: torch.Tensor, current_score: torch.Tensor) -> bool:
         # Reject if score drops significantly (Entropic collapse)
+        # Relationship to ADMM: The Chiral Score C = (Centroid - D/2) * exp(-Drift/Zeta)
+        # It acts as a scalar 'Speed of Thought' limit, not a vector field.
+        # It ensures the 'Arrow of Time' prioritizes structural (neg-entropic) flow.
         delta = current_score - prev_score
         # If delta < -tau, reject
         if (delta < -self.tau).any():
