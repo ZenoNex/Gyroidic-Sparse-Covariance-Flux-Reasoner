@@ -50,7 +50,7 @@ class CrossbarIKSolver(nn.Module):
         self.f = nn.Parameter(2 * 3.14159265359 * torch.log(f_primes))
         self.g = nn.Parameter(2 * 3.14159265359 * torch.log(g_primes))
         
-        # Phases initialized via Silicon-Native Honest Jitter (§45.2)
+        # Phases initialized via Silicon-Native Honest Jitter (45.2)
         from src.core.honest_jitter import harvest_honest_jitter
         self.phi = nn.Parameter(harvest_honest_jitter((num_harmonics,), scaled=False) * 2 * 3.14159265359)
         self.psi = nn.Parameter(harvest_honest_jitter((num_harmonics,), scaled=False) * 2 * 3.14159265359)
@@ -147,7 +147,7 @@ class EnhancedBezoutCRT(nn.Module):
         Compute Chinese Remainder Theorem coefficients.
         
         For moduli m1, m2, ..., mk, compute coefficients such that:
-        x ≡ a1 (mod m1), x ≡ a2 (mod m2), ..., x ≡ ak (mod mk)
+        x  a1 (mod m1), x  a2 (mod m2), ..., x  ak (mod mk)
         has unique solution modulo M = m1 * m2 * ... * mk
         """
         M = torch.prod(self.moduli)
@@ -165,7 +165,7 @@ class EnhancedBezoutCRT(nn.Module):
     def _mod_inverse(self, a: int, m: int) -> int:
         """
         Compute modular inverse of a modulo m using extended Euclidean algorithm.
-        Returns x such that (a * x) ≡ 1 (mod m)
+        Returns x such that (a * x)  1 (mod m)
         """
         def extended_gcd(a, b):
             if a == 0:
@@ -371,7 +371,8 @@ class EnhancedBezoutCRT(nn.Module):
         Refresh Bezout coefficients and solve for synchronized trajectories.
         """
         # Ensure numerical stability via CRT refresh
-        _, diag = self.refresh_bezout_coefficients(torch.randn(1, self.state_dim)) # Dummy call to refresh
+        from src.core.honest_jitter import harvest_honest_jitter
+        _, diag = self.refresh_bezout_coefficients(harvest_honest_jitter((1, self.state_dim), device=self.moduli.device, scaled=False)) # Dummy call to refresh
         
         # Compute IK trajectory
         return self.ik_solver.solve_trajectory(t)
