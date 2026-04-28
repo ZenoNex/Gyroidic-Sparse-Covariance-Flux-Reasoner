@@ -259,7 +259,8 @@ class BezoutCoefficientRefresh(nn.Module):
     """
     
     def __init__(self, num_functionals=5, poly_degree=12, device=None):
-        self.device = device if device is not None else ('cuda' if torch.cuda.is_available() else 'cpu')
+        from src.core.device_utils import DEVICE
+        self.device = device if device is not None else DEVICE
         super().__init__()
         self.K = num_functionals
         self.D = poly_degree + 1
