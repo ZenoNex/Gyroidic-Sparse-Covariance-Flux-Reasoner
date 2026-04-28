@@ -200,6 +200,10 @@ class StructuralAdaptor:
         self.deflagrator = OmipedialDeflagrator(device=device)
         self.ntm = NTMOperator(dim=64, degree=self.poly_config.degree, device=device)
         self.valence = ValenceFunctional(device=device)
+        
+        # Silicon Sovereignty: Substrate Bridge
+        from src.core.agent_substrate_bridge import AgentSubstrateBridge
+        self.substrate_bridge = AgentSubstrateBridge(device=device)
     
     def adaptation_step(self, batch: Dict[str, torch.Tensor]) -> Dict[str, float]:
         """
@@ -229,6 +233,21 @@ class StructuralAdaptor:
                 num_features=num_features,
                 anchors=anchors
             )
+
+            # Silicon Sovereignty: Verify Invariants before decision
+            payload = {
+                'text_emb': text_emb,
+                'graph_emb': graph_emb,
+                'num_features': num_features,
+                'anchors': anchors,
+                'residues': outputs.get('residues'),
+                'gyroid_residue': outputs.get('gyroid_pressure')
+            }
+            if not self.substrate_bridge.verify_invariants(payload):
+                return {
+                    "status": "REJECTED_BY_BRIDGE",
+                    "num_cycles": outputs.get('num_cycles', 0)
+                }
             
             # ADMISSIBILITY CHECK: Binary outcome only
             if hasattr(self.model, 'validate_structural_integrity'):
@@ -297,6 +316,21 @@ class StructuralAdaptor:
                 lambda_min=l_min.mean() if l_min.dim() > 0 else l_min,
                 trace=tr_c.mean() if tr_c.dim() > 0 else tr_c
             )
+            # 3. Non-Dual Probe Refinement
+            if 'residues' in outputs and m_metrics['H_mischief'] > 0.5:
+                # If mischief is high, we refine residues using the non-dual probe
+                # This allows 'Good Bugs' to persist as structural features
+                refined_residues = self.nondual_probe(
+                    residues=outputs['residues'],
+                    constraints=outputs.get('constraints', outputs['residues']),
+                    h_mischief=m_metrics['H_mischief']
+                )
+                metrics['nondual_refinement_delta'] = torch.norm(refined_residues - outputs['residues']).item()
+                
+            # 4. Apply Nostalgic Leak to metrics
+            if 'hidden_state' in outputs:
+                leak = self.nostalgic_leak(outputs['hidden_state'])
+                metrics['nostalgic_leak'] = leak.mean().item()
             v_m = v_m.view(-1)
             
             offending_p = v_m + self.energy_monitor.margin
