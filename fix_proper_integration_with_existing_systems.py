@@ -24,11 +24,11 @@ def integrate_with_existing_spectral_repair():
     Integrate fixes with the existing spectral coherence repair system
     that already uses ADMR, ADMM, and CRT properly.
     """
-    print("🔧 Integrating with existing spectral coherence repair...")
+    print(" Integrating with existing spectral coherence repair...")
     
     spectral_file = 'src/core/spectral_coherence_repair.py'
     if not os.path.exists(spectral_file):
-        print(f"❌ {spectral_file} not found")
+        print(f"[ERR] {spectral_file} not found")
         return
     
     with open(spectral_file, 'r', encoding='utf-8') as f:
@@ -53,36 +53,37 @@ from .polynomial_coprime import PolynomialCoprimeConfig
         try:
             self.soliton_healer = EnergyBasedSolitonHealer(state_dim=64)
         except Exception as e:
-            print(f"⚠️  Could not initialize energy-based soliton healer: {e}")
+            print(f"[WARN]  Could not initialize energy-based soliton healer: {e}")
             self.soliton_healer = None
             
         # CODES Constraint Framework
         try:
             self.codes_framework = CODESConstraintFramework(state_dim=64)
         except Exception as e:
-            print(f"⚠️  Could not initialize CODES framework: {e}")
+            print(f"[WARN]  Could not initialize CODES framework: {e}")
             self.codes_framework = None
             
         # Enhanced Bezout CRT
         try:
             self.enhanced_bezout = EnhancedBezoutCRT(state_dim=64)
         except Exception as e:
-            print(f"⚠️  Could not initialize enhanced Bezout CRT: {e}")
+            print(f"[WARN]  Could not initialize enhanced Bezout CRT: {e}")
             self.enhanced_bezout = None
             
         # Number-Theoretic Stabilizer
         try:
             self.nt_stabilizer = NumberTheoreticStabilizer(state_dim=64)
         except Exception as e:
-            print(f"⚠️  Could not initialize number-theoretic stabilizer: {e}")
+            print(f"[WARN]  Could not initialize number-theoretic stabilizer: {e}")
             self.nt_stabilizer = None'''
     
     new_init = '''        # Polynomial ADMR Solver (existing system)
         try:
+            from .device_utils import DEVICE
             poly_config = PolynomialCoprimeConfig(
                 num_functionals=5,
                 max_degree=3,
-                device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
+                device = DEVICE
             )
             self.admr_solver = PolynomialADMRSolver(
                 poly_config=poly_config,
@@ -90,7 +91,7 @@ from .polynomial_coprime import PolynomialCoprimeConfig
                 eta_scaffold=0.01
             )
         except Exception as e:
-            print(f"⚠️  Could not initialize ADMR solver: {e}")
+            print(f"[WARN]  Could not initialize ADMR solver: {e}")
             self.admr_solver = None
             
         # Operational ADMM (existing system with constraint probes)
@@ -105,7 +106,7 @@ from .polynomial_coprime import PolynomialCoprimeConfig
                 num_constraints=3
             )
         except Exception as e:
-            print(f"⚠️  Could not initialize operational ADMM: {e}")
+            print(f"[WARN]  Could not initialize operational ADMM: {e}")
             self.operational_admm = None
             
         # Polynomial CRT (existing system)
@@ -117,7 +118,7 @@ from .polynomial_coprime import PolynomialCoprimeConfig
             )
             self.crt_detector = PolynomialCRTKernelDetector()
         except Exception as e:
-            print(f"⚠️  Could not initialize polynomial CRT: {e}")
+            print(f"[WARN]  Could not initialize polynomial CRT: {e}")
             self.polynomial_crt = None
             self.crt_detector = None
             
@@ -129,7 +130,7 @@ from .polynomial_coprime import PolynomialCoprimeConfig
                 state_dim=64
             )
         except Exception as e:
-            print(f"⚠️  Could not initialize decoupled CRT: {e}")
+            print(f"[WARN]  Could not initialize decoupled CRT: {e}")
             self.decoupled_crt = None'''
     
     content = content.replace(old_init, new_init)
@@ -179,7 +180,7 @@ from .polynomial_coprime import PolynomialCoprimeConfig
             return reconstructed, diagnostics
             
         except Exception as e:
-            print(f"⚠️  Polynomial CRT refresh failed: {e}")
+            print(f"[WARN]  Polynomial CRT refresh failed: {e}")
             return self._apply_numerical_stabilization(state), {
                 'bezout_condition_number': 1.0,
                 'moduli_mean': 1.0,
@@ -191,7 +192,7 @@ from .polynomial_coprime import PolynomialCoprimeConfig
         """Apply basic numerical stabilization as fallback."""
         # Check for NaN/inf values
         if torch.isnan(state).any() or torch.isinf(state).any():
-            print("⚠️  Detected NaN/inf values, applying emergency stabilization")
+            print("[WARN]  Detected NaN/inf values, applying emergency stabilization")
             state = torch.where(torch.isnan(state) | torch.isinf(state), 
                               torch.randn_like(state) * 0.01, 
                               state)
@@ -218,17 +219,17 @@ from .polynomial_coprime import PolynomialCoprimeConfig
     with open(spectral_file, 'w', encoding='utf-8') as f:
         f.write(content)
     
-    print("✅ Integrated with existing spectral coherence repair system")
+    print("[OK] Integrated with existing spectral coherence repair system")
 
 def fix_tensor_dimension_issues_properly():
     """
     Fix tensor dimension issues by properly using existing systems.
     """
-    print("🔧 Fixing tensor dimension issues with existing systems...")
+    print(" Fixing tensor dimension issues with existing systems...")
     
     backend_file = 'src/ui/diegetic_backend.py'
     if not os.path.exists(backend_file):
-        print(f"❌ {backend_file} not found")
+        print(f"[ERR] {backend_file} not found")
         return
     
     with open(backend_file, 'r', encoding='utf-8') as f:
@@ -280,7 +281,7 @@ def fix_tensor_dimension_issues_properly():
                 manifold = self._decoupled_crt.create_constraint_manifold(state)
                 return manifold
             except Exception as e:
-                print(f"⚠️  Decoupled CRT manifold creation failed: {e}")
+                print(f"[WARN]  Decoupled CRT manifold creation failed: {e}")
         
         # Fallback: simple orthogonal projection with proper dimensions
         constraint_dim = min(dim, 8)  # Reasonable constraint dimension
@@ -389,13 +390,13 @@ def fix_tensor_dimension_issues_properly():
     with open(backend_file, 'w', encoding='utf-8') as f:
         f.write(content)
     
-    print("✅ Fixed tensor dimension issues using existing systems")
+    print("[OK] Fixed tensor dimension issues using existing systems")
 
 def create_proper_test_integration():
     """
     Create a test that properly integrates with existing systems.
     """
-    print("🔧 Creating proper integration test...")
+    print(" Creating proper integration test...")
     
     test_file = 'test_proper_system_integration.py'
     
@@ -415,17 +416,18 @@ sys.path.insert(0, 'src')
 
 def test_existing_admr_solver():
     """Test the existing ADMR solver."""
-    print("🧪 Testing Existing ADMR Solver...")
+    print("[TEST] Testing Existing ADMR Solver...")
     
     try:
         from core.admr_solver import PolynomialADMRSolver
         from core.polynomial_coprime import PolynomialCoprimeConfig
         
         # Create polynomial coprime config
+        from core.device_utils import DEVICE
         poly_config = PolynomialCoprimeConfig(
             num_functionals=5,
             max_degree=3,
-            device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
+            device = DEVICE
         )
         
         # Create ADMR solver
@@ -444,31 +446,31 @@ def test_existing_admr_solver():
         # Forward pass
         result = admr_solver(states, neighbor_states, adjacency_weight, valence)
         
-        print(f"  ✅ Input shape: {states.shape}")
-        print(f"  ✅ Output shape: {result.shape}")
-        print(f"  ✅ Output range: [{result.min().item():.4f}, {result.max().item():.4f}]")
+        print(f"  [OK] Input shape: {states.shape}")
+        print(f"  [OK] Output shape: {result.shape}")
+        print(f"  [OK] Output range: [{result.min().item():.4f}, {result.max().item():.4f}]")
         
         # Get coherence metrics
         metrics = admr_solver.get_coherence_metrics(result)
-        print(f"  ✅ Polynomial coherence: {metrics['polynomial_coherence']:.4f}")
-        print(f"  ✅ Local entropy: {metrics['local_functional_entropy']:.4f}")
+        print(f"  [OK] Polynomial coherence: {metrics['polynomial_coherence']:.4f}")
+        print(f"  [OK] Local entropy: {metrics['local_functional_entropy']:.4f}")
         
         assert result.shape == states.shape
         assert not torch.isnan(result).any()
         assert not torch.isinf(result).any()
         
-        print("  ✅ Existing ADMR solver test passed!")
+        print("  [OK] Existing ADMR solver test passed!")
         return True
         
     except Exception as e:
-        print(f"  ❌ Existing ADMR solver test failed: {e}")
+        print(f"  [ERR] Existing ADMR solver test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
 
 def test_existing_operational_admm():
     """Test the existing operational ADMM."""
-    print("🧪 Testing Existing Operational ADMM...")
+    print("[TEST] Testing Existing Operational ADMM...")
     
     try:
         from optimization.operational_admm import OperationalAdmm
@@ -494,28 +496,28 @@ def test_existing_operational_admm():
         # Forward pass
         result, status = admm(initial_c, simple_forward_op)
         
-        print(f"  ✅ Input shape: {initial_c.shape}")
-        print(f"  ✅ Output shape: {result.shape}")
-        print(f"  ✅ Status: {status.item()}")
-        print(f"  ✅ Output norm: {torch.norm(result).item():.4f}")
+        print(f"  [OK] Input shape: {initial_c.shape}")
+        print(f"  [OK] Output shape: {result.shape}")
+        print(f"  [OK] Status: {status.item()}")
+        print(f"  [OK] Output norm: {torch.norm(result).item():.4f}")
         
         assert result.shape == initial_c.shape
         assert not torch.isnan(result).any()
         assert not torch.isinf(result).any()
         assert status.item() in [0, 1, 2]  # Valid status codes
         
-        print("  ✅ Existing operational ADMM test passed!")
+        print("  [OK] Existing operational ADMM test passed!")
         return True
         
     except Exception as e:
-        print(f"  ❌ Existing operational ADMM test failed: {e}")
+        print(f"  [ERR] Existing operational ADMM test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
 
 def test_existing_polynomial_crt():
     """Test the existing polynomial CRT."""
-    print("🧪 Testing Existing Polynomial CRT...")
+    print("[TEST] Testing Existing Polynomial CRT...")
     
     try:
         from core.polynomial_crt import PolynomialCRT, PolynomialCRTKernelDetector
@@ -539,40 +541,40 @@ def test_existing_polynomial_crt():
         # Reconstruct
         reconstructed = crt.reconstruct_from_coefficients(coeffs)
         
-        print(f"  ✅ Input shape: {test_state.shape}")
-        print(f"  ✅ Coefficients shape: {coeffs.shape}")
-        print(f"  ✅ Reconstructed shape: {reconstructed.shape}")
+        print(f"  [OK] Input shape: {test_state.shape}")
+        print(f"  [OK] Coefficients shape: {coeffs.shape}")
+        print(f"  [OK] Reconstructed shape: {reconstructed.shape}")
         
         # Check reconstruction error
         reconstruction_error = torch.norm(reconstructed - test_state).item()
-        print(f"  ✅ Reconstruction error: {reconstruction_error:.6f}")
+        print(f"  [OK] Reconstruction error: {reconstruction_error:.6f}")
         
         # Detect violations
         violations = detector.detect_violations(test_state, reconstructed)
-        print(f"  ✅ Total violation: {violations.get('total_violation', 0.0):.6f}")
+        print(f"  [OK] Total violation: {violations.get('total_violation', 0.0):.6f}")
         
         # Get moduli stats
         stats = crt.get_moduli_stats()
-        print(f"  ✅ Moduli mean: {stats['mean']:.4f}")
-        print(f"  ✅ Moduli std: {stats['std']:.4f}")
+        print(f"  [OK] Moduli mean: {stats['mean']:.4f}")
+        print(f"  [OK] Moduli std: {stats['std']:.4f}")
         
         assert reconstructed.shape == test_state.shape
         assert not torch.isnan(reconstructed).any()
         assert not torch.isinf(reconstructed).any()
         assert reconstruction_error < 10.0  # Reasonable reconstruction
         
-        print("  ✅ Existing polynomial CRT test passed!")
+        print("  [OK] Existing polynomial CRT test passed!")
         return True
         
     except Exception as e:
-        print(f"  ❌ Existing polynomial CRT test failed: {e}")
+        print(f"  [ERR] Existing polynomial CRT test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
 
 def test_existing_decoupled_crt():
     """Test the existing decoupled polynomial CRT."""
-    print("🧪 Testing Existing Decoupled CRT...")
+    print("[TEST] Testing Existing Decoupled CRT...")
     
     try:
         from core.decoupled_polynomial_crt import DecoupledPolynomialCRT
@@ -590,14 +592,14 @@ def test_existing_decoupled_crt():
         # Create constraint manifold
         manifold = decoupled_crt.create_constraint_manifold(test_state)
         
-        print(f"  ✅ Input shape: {test_state.shape}")
-        print(f"  ✅ Manifold shape: {manifold.shape}")
-        print(f"  ✅ Manifold norm: {torch.norm(manifold).item():.4f}")
+        print(f"  [OK] Input shape: {test_state.shape}")
+        print(f"  [OK] Manifold shape: {manifold.shape}")
+        print(f"  [OK] Manifold norm: {torch.norm(manifold).item():.4f}")
         
         # Test decoupled reconstruction
         reconstructed = decoupled_crt.decoupled_reconstruct(manifold)
         
-        print(f"  ✅ Reconstructed shape: {reconstructed.shape}")
+        print(f"  [OK] Reconstructed shape: {reconstructed.shape}")
         
         # Check for reasonable output
         assert manifold.shape[0] == test_state.shape[0]  # Same batch size
@@ -606,18 +608,18 @@ def test_existing_decoupled_crt():
         assert not torch.isnan(reconstructed).any()
         assert not torch.isinf(reconstructed).any()
         
-        print("  ✅ Existing decoupled CRT test passed!")
+        print("  [OK] Existing decoupled CRT test passed!")
         return True
         
     except Exception as e:
-        print(f"  ❌ Existing decoupled CRT test failed: {e}")
+        print(f"  [ERR] Existing decoupled CRT test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
 
 def test_autocorrelation_fix():
     """Test the autocorrelation fix."""
-    print("🧪 Testing Autocorrelation Fix...")
+    print("[TEST] Testing Autocorrelation Fix...")
     
     try:
         # Test the autocorrelation function directly
@@ -640,24 +642,24 @@ def test_autocorrelation_fix():
         
         autocorr = compute_autocorrelation(test_signal)
         
-        print(f"  ✅ Autocorrelation shape: {autocorr.shape}")
-        print(f"  ✅ Max autocorrelation: {autocorr.max().item():.4f}")
-        print(f"  ✅ Autocorrelation at zero lag: {autocorr[63].item():.4f}")  # Should be maximum
+        print(f"  [OK] Autocorrelation shape: {autocorr.shape}")
+        print(f"  [OK] Max autocorrelation: {autocorr.max().item():.4f}")
+        print(f"  [OK] Autocorrelation at zero lag: {autocorr[63].item():.4f}")  # Should be maximum
         
         assert not torch.isnan(autocorr).any()
         assert not torch.isinf(autocorr).any()
         assert autocorr.shape[0] == 2 * len(test_signal) - 1
         
-        print("  ✅ Autocorrelation fix test passed!")
+        print("  [OK] Autocorrelation fix test passed!")
         return True
         
     except Exception as e:
-        print(f"  ❌ Autocorrelation fix test failed: {e}")
+        print(f"  [ERR] Autocorrelation fix test failed: {e}")
         return False
 
 def main():
     """Run all proper integration tests."""
-    print("🚀 Running Proper System Integration Tests")
+    print("[START] Running Proper System Integration Tests")
     print("=" * 60)
     print("Testing existing ADMR, ADMM, and CRT systems")
     print("=" * 60)
@@ -679,16 +681,16 @@ def main():
                 passed += 1
             print()
         except Exception as e:
-            print(f"  ❌ Test failed with exception: {e}")
+            print(f"  [ERR] Test failed with exception: {e}")
             print()
     
     print("=" * 60)
-    print(f"📊 Test Results: {passed}/{total} tests passed")
+    print(f"[METRICS] Test Results: {passed}/{total} tests passed")
     
     if passed == total:
-        print("🎉 ALL TESTS PASSED! Proper integration working correctly.")
+        print("[SUCCESS] ALL TESTS PASSED! Proper integration working correctly.")
         print()
-        print("🎯 Key achievements:")
+        print("[GOAL] Key achievements:")
         print("  • Existing ADMR solver operational")
         print("  • Existing operational ADMM working")
         print("  • Existing polynomial CRT functional")
@@ -696,7 +698,7 @@ def main():
         print("  • Autocorrelation fixes working")
         print("  • Proper integration with existing architecture")
         print()
-        print("🧠 System architecture respected:")
+        print("[BRAIN] System architecture respected:")
         print("  • PolynomialADMRSolver for multiplicative updates")
         print("  • OperationalAdmm for constraint satisfaction")
         print("  • PolynomialCRT for reconstruction")
@@ -704,7 +706,7 @@ def main():
         print("  • Existing topological systems preserved")
         return True
     else:
-        print(f"⚠️  {total - passed} tests failed. Please check the implementation.")
+        print(f"[WARN]  {total - passed} tests failed. Please check the implementation.")
         return False
 
 if __name__ == "__main__":
@@ -715,13 +717,13 @@ if __name__ == "__main__":
     with open(test_file, 'w', encoding='utf-8') as f:
         f.write(test_code)
     
-    print(f"✅ Created proper integration test: {test_file}")
+    print(f"[OK] Created proper integration test: {test_file}")
 
 def main():
     """Main function to apply proper integration fixes."""
-    print("🚀 Starting proper system integration...")
-    print("🏗️  Integrating with existing ADMR, ADMM, and CRT systems")
-    print("📚 Respecting the sophisticated existing architecture")
+    print("[START] Starting proper system integration...")
+    print("[BUILD]  Integrating with existing ADMR, ADMM, and CRT systems")
+    print("[DOCS] Respecting the sophisticated existing architecture")
     print()
     
     try:
@@ -737,9 +739,9 @@ def main():
         create_proper_test_integration()
         print()
         
-        print("✅ All proper integration fixes applied successfully!")
+        print("[OK] All proper integration fixes applied successfully!")
         print()
-        print("🎯 Proper integration improvements:")
+        print("[GOAL] Proper integration improvements:")
         print("  • Integrated with existing PolynomialADMRSolver")
         print("  • Used existing OperationalAdmm with constraint probes")
         print("  • Leveraged existing PolynomialCRT reconstruction")
@@ -748,7 +750,7 @@ def main():
         print("  • Preserved existing HyperRingOperator functionality")
         print("  • Maintained existing constraint probe architecture")
         print()
-        print("🧠 Architectural respect:")
+        print("[BRAIN] Architectural respect:")
         print("  • No redundant ADMR/ADMM implementations created")
         print("  • Existing polynomial CRT systems utilized")
         print("  • Proper integration with constraint probes")
@@ -756,7 +758,7 @@ def main():
         print("  • Sophisticated existing architecture maintained")
         
     except Exception as e:
-        print(f"❌ Error during proper integration: {e}")
+        print(f"[ERR] Error during proper integration: {e}")
         import traceback
         traceback.print_exc()
         return False
