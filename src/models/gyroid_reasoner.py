@@ -908,6 +908,7 @@ class GyroidicFluxReasoner(nn.Module):
         results = {
             'output': output.squeeze(-1),
             'reconstruction': reconstruction,
+            'state': h_orchestrated, # Orchestrated hidden state for diagnostics
             'selection_pressure': StructuralPressure(selection_pressure_total, 'selection'),
             'containment_pressure': StructuralPressure(containment_pressure_total, 'containment'),
             'crt_pressure': StructuralPressure(crt_pressure, 'symbolic'),
