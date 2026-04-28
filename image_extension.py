@@ -235,6 +235,75 @@ class ImageProcessor(nn.Module):
         """Allow optimizer to discover trainable parameters."""
         return self.backbone.parameters()
 
+    def fingerprint_to_image(self, fingerprint: torch.Tensor, size: Tuple[int, int] = (64, 64)) -> Image.Image:
+        """
+        Reconstruct a PIL image from a 137-dim fingerprint (Legacy support).
+        
+        Fingerprint Layout:
+        - 0-31: Red Histogram
+        - 32-63: Green Histogram
+        - 64-95: Blue Histogram
+        - 96-127: Luminance Histogram
+        - 128: Texture Intensity
+        - 129-136: Edge Features
+        """
+        if fingerprint.dim() > 1:
+            fingerprint = fingerprint.view(-1)
+            
+        # Ensure it's the correct dimension or pad/trim
+        if fingerprint.shape[0] < 137:
+            pad = torch.zeros(137 - fingerprint.shape[0], device=fingerprint.device)
+            fingerprint = torch.cat([fingerprint, pad])
+        elif fingerprint.shape[0] > 137:
+            fingerprint = fingerprint[:137]
+            
+        w, h = size
+        img = Image.new('RGB', (w, h))
+        pixels = img.load()
+        
+        # Extract components
+        r_hist = fingerprint[0:32]
+        g_hist = fingerprint[32:64]
+        b_hist = fingerprint[64:96]
+        l_hist = fingerprint[96:128]
+        texture = fingerprint[128].item()
+        edges = fingerprint[129:137].cpu().numpy()
+        
+        # Peak color values
+        r_val = torch.max(r_hist).item() * 255.0
+        g_val = torch.max(g_hist).item() * 255.0
+        b_val = torch.max(b_hist).item() * 255.0
+        
+        # Mean color to ensure non-blackness if histograms have values
+        r_mean = torch.mean(r_hist).item() * 512.0 # Scale up
+        g_mean = torch.mean(g_hist).item() * 512.0
+        b_mean = torch.mean(b_hist).item() * 512.0
+        
+        for i in range(w):
+            for j in range(h):
+                # Basic color from histograms
+                # Use i, j to pick from histograms for variation
+                idx = (i + j) % 32
+                r = r_mean + r_hist[idx].item() * 255.0
+                g = g_mean + g_hist[idx].item() * 255.0
+                b = b_mean + b_hist[idx].item() * 255.0
+                
+                # Add edge patterns
+                edge_idx = (i // (w // 8)) % 8
+                edge_val = edges[edge_idx] * 50.0
+                
+                # Apply texture jitter
+                jitter = (harvest_honest_jitter((1,), device=fingerprint.device).item()) * texture * 20.0
+                
+                # Final pixel (clamped)
+                r_final = int(np.clip(r + edge_val + jitter, 0, 255))
+                g_final = int(np.clip(g + edge_val + jitter, 0, 255))
+                b_final = int(np.clip(b + edge_val + jitter, 0, 255))
+                
+                pixels[i, j] = (r_final, g_final, b_final)
+                
+        return img
+
 import hashlib
 from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
 
