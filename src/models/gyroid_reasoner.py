@@ -20,6 +20,8 @@ Created: January 2026
 GDPO Reference: arXiv:2601.05242
 """
 
+from src.core.device_utils import DEVICE
+
 import torch
 import torch.nn as nn
 from typing import Dict, Optional, Tuple, List, Any
@@ -121,7 +123,7 @@ class GyroidicFluxReasoner(nn.Module):
         # Author: William Matthew Bryant
         super().__init__()
         # --- FORCED REPAIR INJECTION ---
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = DEVICE
         device = self.device
         poly_degree = 13 # Aligning with your gyroid_state.pt
         # -------------------------------
