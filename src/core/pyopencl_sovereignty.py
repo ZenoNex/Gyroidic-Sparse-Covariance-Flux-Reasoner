@@ -186,6 +186,7 @@ class SiliconSovereigntyEngine:
         __kernel void surgical_manifold_integration(
             __global float *state,
             __global const long *residues,
+            int num_residues,
             __global const int *braid_word,
             int word_len,
             float cs_phase,
@@ -203,8 +204,8 @@ class SiliconSovereigntyEngine:
             }
             
             // B. Computational: Chiral-aware CRT residue correction
-            // residues[gid % k] stores the CRT parity anchor
-            long res_anchor = residues[gid % 5]; // Assuming k=5
+            // residues[gid % num_residues] stores the CRT parity anchor
+            long res_anchor = residues[gid % num_residues];
             float comp_correction = ((res_anchor & 1) ? 0.01f : -0.01f) * manifold_kappa;
             
             // C. Geometric: Non-Abelian Braid word projection
@@ -347,6 +348,8 @@ class SiliconSovereigntyEngine:
         __kernel void topological_erosion_fbm(
             __global float *state,
             __global const float *pressure_grad,
+            __global const float *primes,
+            int num_primes,
             int octaves,
             float persistence,
             float lacunarity,
@@ -359,8 +362,7 @@ class SiliconSovereigntyEngine:
             float x = state[gid];
             float p_grad = pressure_grad[gid];
             
-            // Prime Resonance Basis (2, 3, 5, 7, 11, 13, 17, 19)
-            float primes[8] = {2.0f, 3.0f, 5.0f, 7.0f, 11.0f, 13.0f, 17.0f, 19.0f};
+            // Prime Resonance Basis (Dynamic)
             
             float total = 0.0f;
             float freq_scale = 1.0f;
@@ -368,7 +370,7 @@ class SiliconSovereigntyEngine:
             float max_val = 0.0f;
             
             for (int i = 0; i < octaves; i++) {
-                float p = primes[i % 8];
+                float p = primes[i % num_primes];
                 float phase = x * p * freq_scale;
                 total += sin(phase) * amp_scale;
                 max_val += amp_scale;
@@ -564,6 +566,7 @@ class SiliconSovereigntyEngine:
         mf = cl.mem_flags
         state = np.asarray(state, dtype=np.float32)
         residues = np.asarray(residues, dtype=np.int64)
+        num_residues = residues.shape[1] if residues.ndim > 1 else len(residues)
         braid_word = np.asarray(braid_word, dtype=np.int32)
         
         state_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=state)
@@ -572,7 +575,7 @@ class SiliconSovereigntyEngine:
         
         self.program.surgical_manifold_integration(
             self.queue_a, state.shape, None,
-            state_buf, res_buf, braid_buf, 
+            state_buf, res_buf, np.int32(num_residues), braid_buf, 
             np.int32(len(braid_word)), np.float32(cs_phase), 
             np.float32(manifold_kappa), np.uint32(seed)
         )
@@ -625,8 +628,14 @@ class SiliconSovereigntyEngine:
         cl.enqueue_copy(self.queue_a, coords_np, coords_buf, is_blocking=True)
         return coords_np
 
-    def apply_erosion_fbm(self, state, pressure_grad_normalized, octaves=4, persistence=0.5, lacunarity=2.0, intensity=0.1):
+    def apply_erosion_fbm(self, state, pressure_grad_normalized, octaves=4, persistence=0.5, lacunarity=2.0, intensity=0.1, primes=None):
         """Execute Topological Erosion FBM on PyOpenCL hardware."""
+        if primes is None:
+            # Default fossilized survival basis
+            primes = np.array([2.0, 3.0, 5.0, 7.0, 11.0, 13.0, 17.0, 19.0], dtype=np.float32)
+        else:
+            primes = np.asarray(primes, dtype=np.float32)
+
         mf = cl.mem_flags
         state_np = np.asarray(state, dtype=np.float32)
         pgrad_np = np.asarray(pressure_grad_normalized, dtype=np.float32)
@@ -634,10 +643,11 @@ class SiliconSovereigntyEngine:
         
         state_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=state_np)
         pgrad_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=pgrad_np)
+        prime_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=primes)
         
         self.program.topological_erosion_fbm(
             self.queue_a, (total_elements,), None,
-            state_buf, pgrad_buf,
+            state_buf, pgrad_buf, prime_buf, np.int32(len(primes)),
             np.int32(octaves),
             np.float32(persistence),
             np.float32(lacunarity),
