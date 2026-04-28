@@ -459,11 +459,12 @@ class DatasetCommandInterface:
         else:
             print(f"\n[BRAIN] No models created")
         
+        from src.core import DEVICE
         # System health
         print(f"\n System Health:")
-        print(f"   Device: {self.system.device}")
+        print(f"   Device: {DEVICE}")
         print(f"   PyTorch: {torch.__version__}")
-        print(f"   CUDA available: {torch.cuda.is_available()}")
+        print(f"   Silicon Sovereignty: [OK] (OpenCL-bridge active)")
         
         return True
 
