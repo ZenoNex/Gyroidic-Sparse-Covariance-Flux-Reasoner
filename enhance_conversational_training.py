@@ -15,7 +15,7 @@ from typing import Dict, List, Any
 def enhance_conversational_training():
     """Enhance the system with more conversational training data and better repair."""
     
-    print("🗣️ Enhanced Conversational Training System")
+    print("️ Enhanced Conversational Training System")
     print("=" * 60)
     
     # Step 1: Ingest more conversational data
@@ -30,24 +30,24 @@ def enhance_conversational_training():
             'facebook/blended_skill_talk'
         ]
         
-        from src.data.conversational_api_ingestor import ConversationalAPIIngestor
+        from src.core import DEVICE
         
-        api_ingestor = ConversationalAPIIngestor(device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu')
+        api_ingestor = ConversationalAPIIngestor(device = DEVICE)
         all_conversations = []
         
         for dataset_id in datasets_to_try:
-            print(f"   📥 Trying {dataset_id}...")
+            print(f"    Trying {dataset_id}...")
             try:
                 conversations = api_ingestor.ingest_huggingface_dataset(dataset_id, max_samples=1000)
                 if conversations:
                     all_conversations.extend(conversations)
-                    print(f"   ✅ Added {len(conversations)} conversations from {dataset_id}")
+                    print(f"   [OK] Added {len(conversations)} conversations from {dataset_id}")
                 else:
-                    print(f"   ⚠️ No data from {dataset_id}")
+                    print(f"   [WARN] No data from {dataset_id}")
             except Exception as e:
-                print(f"   ❌ Failed {dataset_id}: {e}")
+                print(f"   [ERR] Failed {dataset_id}: {e}")
         
-        print(f"\n   📊 Total conversations collected: {len(all_conversations)}")
+        print(f"\n   [METRICS] Total conversations collected: {len(all_conversations)}")
         
         if all_conversations:
             # Get enhanced summary
@@ -58,12 +58,12 @@ def enhance_conversational_training():
             
             # Show affordance gradient improvements
             if 'affordance_gradient_stats' in summary:
-                print(f"\n   🎯 Enhanced Affordance Gradients:")
+                print(f"\n   [GOAL] Enhanced Affordance Gradients:")
                 for gradient_type, stats in summary['affordance_gradient_stats'].items():
                     print(f"      {gradient_type}: mean={stats['mean']:.3f}, std={stats['std']:.3f}")
         
     except Exception as e:
-        print(f"   ❌ Conversational ingestion failed: {e}")
+        print(f"   [ERR] Conversational ingestion failed: {e}")
     
     # Step 2: Test current system with simple conversational input
     print("\n2. Testing current system response...")
@@ -92,27 +92,27 @@ def enhance_conversational_training():
                 
                 # Check if response is garbled
                 if is_garbled_output(ai_response):
-                    print(f"   ❌ GARBLED: {ai_response[:50]}...")
+                    print(f"   [ERR] GARBLED: {ai_response[:50]}...")
                     
                     # Check repair diagnostics
                     if 'spectral_diagnostics' in result:
                         diag = result['spectral_diagnostics']
-                        print(f"   🔧 Spectral coherence: {diag.get('theta_coherence', 'N/A')}")
-                        print(f"   🔧 Energy ratio: {diag.get('energy_ratio', 'N/A')}")
+                        print(f"    Spectral coherence: {diag.get('theta_coherence', 'N/A')}")
+                        print(f"    Energy ratio: {diag.get('energy_ratio', 'N/A')}")
                 else:
-                    print(f"   ✅ GOOD: {ai_response[:50]}...")
+                    print(f"   [OK] GOOD: {ai_response[:50]}...")
                 
                 # Show affordance gradients
                 if 'affordance_gradients' in result:
                     gradients = result['affordance_gradients']
                     conv_pressure = gradients.get('conversational_embedding_pressure', 0)
-                    print(f"   📊 Conversational pressure: {conv_pressure:.3f}")
+                    print(f"   [METRICS] Conversational pressure: {conv_pressure:.3f}")
             
             else:
-                print(f"   ❌ HTTP {response.status_code}")
+                print(f"   [ERR] HTTP {response.status_code}")
                 
         except Exception as e:
-            print(f"   ❌ Error: {e}")
+            print(f"   [ERR] Error: {e}")
     
     # Step 3: Create conversational training associations
     print("\n3. Creating conversational training associations...")
@@ -147,14 +147,14 @@ def enhance_conversational_training():
             
             if response.status_code == 200:
                 associations_created += 1
-                print(f"   ✅ Associated: '{input_text}' → '{response_text[:30]}...'")
+                print(f"   [OK] Associated: '{input_text}' → '{response_text[:30]}...'")
             else:
-                print(f"   ❌ Failed association: {response.status_code}")
+                print(f"   [ERR] Failed association: {response.status_code}")
                 
         except Exception as e:
-            print(f"   ❌ Association error: {e}")
+            print(f"   [ERR] Association error: {e}")
     
-    print(f"\n   📊 Created {associations_created} conversational associations")
+    print(f"\n   [METRICS] Created {associations_created} conversational associations")
     
     # Step 4: Test improved responses
     print("\n4. Testing improved responses after training...")
@@ -172,23 +172,23 @@ def enhance_conversational_training():
                 ai_response = result.get('response', 'No response')
                 
                 if is_garbled_output(ai_response):
-                    print(f"   ❌ STILL GARBLED: {ai_response[:50]}...")
+                    print(f"   [ERR] STILL GARBLED: {ai_response[:50]}...")
                 else:
-                    print(f"   ✅ IMPROVED: {ai_response[:50]}...")
+                    print(f"   [OK] IMPROVED: {ai_response[:50]}...")
                     
         except Exception as e:
-            print(f"   ❌ Error: {e}")
+            print(f"   [ERR] Error: {e}")
     
     # Step 5: Recommendations for further improvement
     print("\n5. Recommendations for further improvement:")
-    print("   🔧 Increase conversational dataset size (try 5000+ samples)")
-    print("   🔧 Adjust spectral coherence thresholds for better linguistic flow")
-    print("   🔧 Train temporal associations on conversational patterns")
-    print("   🔧 Use Wikipedia integration for knowledge-grounded responses")
-    print("   🔧 Implement conversation state tracking for multi-turn dialogue")
+    print("    Increase conversational dataset size (try 5000+ samples)")
+    print("    Adjust spectral coherence thresholds for better linguistic flow")
+    print("    Train temporal associations on conversational patterns")
+    print("    Use Wikipedia integration for knowledge-grounded responses")
+    print("    Implement conversation state tracking for multi-turn dialogue")
     
     print(f"\n" + "=" * 60)
-    print("🎉 Enhanced Conversational Training Complete!")
+    print("[SUCCESS] Enhanced Conversational Training Complete!")
     print("The system should now handle basic conversational inputs better.")
     print("=" * 60)
 
