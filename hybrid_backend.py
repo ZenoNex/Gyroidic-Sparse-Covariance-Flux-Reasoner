@@ -31,9 +31,9 @@ from src.core.audience_mapping import AudienceProjection
 # Add project root to path
 root_dir = os.path.dirname(os.path.abspath(__file__))
 if root_dir not in sys.path:
-    sys.path.append(root_dir)
+    sys.path.insert(0, root_dir)
 if os.path.join(root_dir, 'examples') not in sys.path:
-    sys.path.append(os.path.join(root_dir, 'examples'))
+    sys.path.insert(0, os.path.join(root_dir, 'examples'))
 
 # Import working components
 
