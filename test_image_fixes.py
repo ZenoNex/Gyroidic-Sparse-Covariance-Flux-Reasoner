@@ -14,7 +14,7 @@ sys.path.append('src')
 
 def test_image_reconstruction():
     """Test the improved image reconstruction."""
-    print("🖼️ Testing Image Reconstruction Fix")
+    print("️ Testing Image Reconstruction Fix")
     print("=" * 40)
     
     # Create a synthetic fingerprint with meaningful values
@@ -52,7 +52,7 @@ def test_image_reconstruction():
         mean_green = np.mean(img_array[:, :, 1])
         mean_blue = np.mean(img_array[:, :, 2])
         
-        print(f"✅ Image reconstructed successfully")
+        print(f"[OK] Image reconstructed successfully")
         print(f"   Size: {img_array.shape}")
         print(f"   Mean brightness: {mean_brightness:.1f}")
         print(f"   Brightness variance: {brightness_variance:.1f}")
@@ -60,25 +60,25 @@ def test_image_reconstruction():
         
         # Check if it's not all black
         if mean_brightness > 20:
-            print(f"   ✅ Image has good brightness (not black)")
+            print(f"   [OK] Image has good brightness (not black)")
         else:
-            print(f"   ❌ Image is too dark")
+            print(f"   [ERR] Image is too dark")
             
         # Check if red is dominant
         if mean_red > mean_green and mean_red > mean_blue:
-            print(f"   ✅ Red channel is dominant as expected")
+            print(f"   [OK] Red channel is dominant as expected")
         else:
-            print(f"   ⚠️  Red channel not dominant")
+            print(f"   [WARN]  Red channel not dominant")
             
         return True
         
     except Exception as e:
-        print(f"❌ Image reconstruction failed: {e}")
+        print(f"[ERR] Image reconstruction failed: {e}")
         return False
 
 def test_meaningful_text_embeddings():
     """Test the improved text embedding generation."""
-    print("\n📝 Testing Meaningful Text Embeddings")
+    print("\n Testing Meaningful Text Embeddings")
     print("=" * 40)
     
     descriptions = [
@@ -88,7 +88,8 @@ def test_meaningful_text_embeddings():
         "Abstract colorful pattern"
     ]
     
-    device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
+    from src.core import DEVICE
+    device = DEVICE
     
     for desc in descriptions:
         # Create meaningful text embedding based on description content
@@ -116,15 +117,15 @@ def test_meaningful_text_embeddings():
         print(f"   '{desc}': feature sum = {feature_sum:.3f}")
         
         if feature_sum > 0.1:
-            print(f"     ✅ Meaningful features detected")
+            print(f"     [OK] Meaningful features detected")
         else:
-            print(f"     ⚠️  No meaningful features")
+            print(f"     [WARN]  No meaningful features")
     
     return True
 
 def test_color_reconstruction():
     """Test reconstruction of different colors."""
-    print("\n🎨 Testing Color Reconstruction")
+    print("\n Testing Color Reconstruction")
     print("=" * 30)
     
     try:
@@ -159,22 +160,22 @@ def test_color_reconstruction():
             
             # Check if the expected color is dominant
             if color_name == "red" and mean_r > max(mean_g, mean_b):
-                print(f"     ✅ Red is dominant")
+                print(f"     [OK] Red is dominant")
             elif color_name == "green" and mean_g > max(mean_r, mean_b):
-                print(f"     ✅ Green is dominant")
+                print(f"     [OK] Green is dominant")
             elif color_name == "blue" and mean_b > max(mean_r, mean_g):
-                print(f"     ✅ Blue is dominant")
+                print(f"     [OK] Blue is dominant")
             else:
-                print(f"     ⚠️  Expected color not dominant")
+                print(f"     [WARN]  Expected color not dominant")
         
         return True
         
     except Exception as e:
-        print(f"❌ Color reconstruction test failed: {e}")
+        print(f"[ERR] Color reconstruction test failed: {e}")
         return False
 
 if __name__ == "__main__":
-    print("🧪 Image Processing Fixes Verification")
+    print("[TEST] Image Processing Fixes Verification")
     print("Testing improved image reconstruction and text embeddings")
     print("=" * 60)
     
@@ -187,14 +188,14 @@ if __name__ == "__main__":
     # Test color reconstruction
     color_success = test_color_reconstruction()
     
-    print(f"\n🎯 Overall Results:")
-    print(f"  Image reconstruction: {'✅ PASS' if reconstruction_success else '❌ FAIL'}")
-    print(f"  Text embeddings: {'✅ PASS' if text_success else '❌ FAIL'}")
-    print(f"  Color reconstruction: {'✅ PASS' if color_success else '❌ FAIL'}")
+    print(f"\n[GOAL] Overall Results:")
+    print(f"  Image reconstruction: {'[OK] PASS' if reconstruction_success else '[ERR] FAIL'}")
+    print(f"  Text embeddings: {'[OK] PASS' if text_success else '[ERR] FAIL'}")
+    print(f"  Color reconstruction: {'[OK] PASS' if color_success else '[ERR] FAIL'}")
     
     if reconstruction_success and text_success and color_success:
-        print(f"\n🚀 All fixes verified! Images should no longer be black.")
+        print(f"\n[START] All fixes verified! Images should no longer be black.")
         print(f"   Cross-modal similarities should be more meaningful.")
         print(f"   Ready to run test_image_simple.py")
     else:
-        print(f"\n⚠️  Some fixes need more work. Check the error messages above.")
+        print(f"\n[WARN]  Some fixes need more work. Check the error messages above.")
