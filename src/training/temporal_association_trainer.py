@@ -35,9 +35,9 @@ class TemporalAssociationDataset:
     Dataset that provides temporal sequences and associative patterns.
     
     This feeds the system with:
-    1. Sequential patterns (A → B → C)
+    1. Sequential patterns (A  B  C)
     2. Associative clusters (related concepts)
-    3. Temporal dependencies (cause → effect)
+    3. Temporal dependencies (cause  effect)
     4. Contextual embeddings (meaning in context)
     """
     
@@ -119,7 +119,7 @@ class TemporalAssociationDataset:
             pattern_type = self._honest_choice(['linear', 'branching', 'cyclic'])
             
             if pattern_type == 'linear':
-                # A → B → C → D
+                # A  B  C  D
                 start_concept = self._honest_randint(self.num_concepts)
                 pattern = [start_concept]
                 for _ in range(self._honest_randint(3, 8)):
@@ -129,7 +129,7 @@ class TemporalAssociationDataset:
                 patterns.append(pattern)
             
             elif pattern_type == 'branching':
-                # A → B → C, A → B → D
+                # A  B  C, A  B  D
                 root = self._honest_randint(self.num_concepts)
                 branch_point = self._honest_choice(self.association_graph.get(root, [root]))
                 
@@ -141,7 +141,7 @@ class TemporalAssociationDataset:
                     patterns.append(pattern)
             
             elif pattern_type == 'cyclic':
-                # A → B → C → A
+                # A  B  C  A
                 start_concept = self._honest_randint(self.num_concepts)
                 pattern = [start_concept]
                 current = start_concept
@@ -284,7 +284,7 @@ class TemporalAssociationTrainer:
             return self.model.forward_text_emb(
                 text_emb, return_analysis=return_analysis
             )
-        # Legacy fallback — original model interface
+        # Legacy fallback  original model interface
         return self.model(text_emb=text_emb, return_analysis=return_analysis)
 
     def compute_association_loss(
@@ -432,9 +432,9 @@ class TemporalAssociationTrainer:
         tr_c = final_output.get('trace_c', torch.tensor([1.0], device=self.device)).mean().item()
         
         # Approximate V_m directly (Grounding for Manifold Hunger)
-        # Reference: §45.2 (Silicon Sovereignty) - surfacing persistent dissonance.
+        # Reference: 45.2 (Silicon Sovereignty) - surfacing persistent dissonance.
         tau_decay = 10.0
-        # Safe tr_c: ensure non-zero denominator to prevent 'Overflow Exceeded' (§6.2)
+        # Safe tr_c: ensure non-zero denominator to prevent 'Overflow Exceeded' (6.2)
         safe_tr_c = torch.clamp(torch.tensor(tr_c), min=1e-6).item()
         
         # Surfacing Hunger: Dissonance between Symbolic and Physical state
@@ -484,7 +484,9 @@ class TemporalAssociationTrainer:
             'chern_simons': final_output.get('chern_simons_diagnostics', {}),
             'soliton_healing': final_output.get('soliton_healing_diagnostics', {}),
             'love': final_output.get('love_diagnostics', {}),
-            'soft_gates': final_output.get('soft_gates_diagnostics', {})
+            'soft_gates': final_output.get('soft_gates_diagnostics', {}),
+            'archetype_leak': final_output.get('archetype_leak', 0.0),
+            'nav_mode': final_output.get('nav_mode', 'UNKNOWN')
         }
         
         return {
@@ -602,7 +604,9 @@ class TemporalAssociationTrainer:
                 print(f"Batch {batch_idx:3d}: "
                       f"Assoc={step_metrics['association_accuracy']:.3f}, "
                       f"Coherence={step_metrics['temporal_coherence']:.3f}, "
-                      f"Trust={step_metrics['trust_mean']:.3f}±{step_metrics['trust_std']:.3f}, "
+                      f"Trust={step_metrics['trust_mean']:.3f} (+-{step_metrics['trust_std']:.4f}), "
+                      f"Mode={step_metrics['repair_diagnostics'].get('nav_mode', '???')}, "
+                      f"Leak={step_metrics['repair_diagnostics'].get('archetype_leak', 0.0):.4f}, "
                       f"Fossilized={step_metrics['num_fossilized']}")
         
         # Compute epoch averages
