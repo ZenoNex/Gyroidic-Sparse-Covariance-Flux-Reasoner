@@ -14,7 +14,7 @@ sys.path.append('src')
 
 def test_image_reconstruction():
     """Test the improved image reconstruction."""
-    print("️ Testing Image Reconstruction Fix")
+    print("[INFO] Testing Image Reconstruction Fix")
     print("=" * 40)
     
     # Create a synthetic fingerprint with meaningful values
@@ -78,7 +78,7 @@ def test_image_reconstruction():
 
 def test_meaningful_text_embeddings():
     """Test the improved text embedding generation."""
-    print("\n Testing Meaningful Text Embeddings")
+    print("\n [INFO] Testing Meaningful Text Embeddings")
     print("=" * 40)
     
     descriptions = [
@@ -125,7 +125,7 @@ def test_meaningful_text_embeddings():
 
 def test_color_reconstruction():
     """Test reconstruction of different colors."""
-    print("\n Testing Color Reconstruction")
+    print("\n [INFO] Testing Color Reconstruction")
     print("=" * 30)
     
     try:
@@ -194,7 +194,7 @@ if __name__ == "__main__":
     print(f"  Color reconstruction: {'[OK] PASS' if color_success else '[ERR] FAIL'}")
     
     if reconstruction_success and text_success and color_success:
-        print(f"\n[START] All fixes verified! Images should no longer be black.")
+        print("\n[INFO] All fixes verified! Images should no longer be black.")
         print(f"   Cross-modal similarities should be more meaningful.")
         print(f"   Ready to run test_image_simple.py")
     else:
