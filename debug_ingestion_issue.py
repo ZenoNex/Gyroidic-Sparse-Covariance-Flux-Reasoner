@@ -67,7 +67,7 @@ def debug_step_by_step():
             print(f"   Private: {dataset_info.get('private', False)}")
             print(f"   Gated: {dataset_info.get('gated', False)}")
         elif dataset_response.status_code == 403:
-            print("   ⚠ Dataset gated - need to accept agreement")
+            print("    Dataset gated - need to accept agreement")
             print("   Go to: https://huggingface.co/datasets/lmsys/lmsys-chat-1m")
             return
         else:
@@ -117,8 +117,9 @@ def debug_step_by_step():
     # Step 5: Test our ingestor
     print("\n5. Our Ingestor Test:")
     try:
+        from src.core import DEVICE
         print("   Creating ConversationalAPIIngestor...")
-        api_ingestor = ConversationalAPIIngestor(device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu')
+        api_ingestor = ConversationalAPIIngestor(device = DEVICE)
         print("   ✓ Ingestor created")
         
         print("   Testing ingest_huggingface_dataset method...")
