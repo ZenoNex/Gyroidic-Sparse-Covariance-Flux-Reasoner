@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import time
 import os
+from src.core.device_utils import DEVICE
 
 # Global cache for jitter to avoid excessive DRAM harvesting which can freeze Pascal GPUs
 _HONEST_JITTER_CACHE = {}
@@ -74,7 +75,7 @@ def harvest_honest_jitter(shape, device=None, scaled=True):
     global _LAST_HARVEST_TIME, _AGENT_SMITH_ENGINE
     
     if device is None:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = DEVICE
     
     # Lazy initialization of the expansion engine
     if _AGENT_SMITH_ENGINE is None:
