@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from typing import Dict, List, Tuple, Optional, Any
 import math
-from src.core.honest_jitter import harvest_honest_jitter
+from src.core.honest_jitter import harvest_honest_jitter, honest_multinomial
 from src.core.false_negative_subsystem import VoynichExemptionToken
 
 
@@ -168,10 +168,10 @@ class SparseGyroidCovarianceProbe(nn.Module):
         
         Returns:
             - eigenvalues: Top k eigenvalues
-            - spectral_gap: λ_k - λ_{k+1}
-            - decay_rate: (λ_1 - λ_m) / m
+            - spectral_gap: _k - _{k+1}
+            - decay_rate: (_1 - _m) / m
             - trace: Trace of covariance
-            - condition_number: λ_max / λ_min
+            - condition_number: _max / _min
         """
         # Compute eigenvalues (top k + 1 for gap computation)
         try:
@@ -214,7 +214,7 @@ class SparseGyroidCovarianceProbe(nn.Module):
         Compute gyroid pressure metric.
         
         GCVE Metric:
-        pressure = max(0, gap(λ) / decay_rate) + λ_min / trace(C_loc)
+        pressure = max(0, gap() / decay_rate) + _min / trace(C_loc)
         
         High pressure indicates:
         - Sharp spectral gaps (disconnected components)
@@ -393,7 +393,7 @@ class SparseGyroidCovarianceProbe(nn.Module):
                 spec = self.compute_spectral_signature(C_loc)
                 
                 # GYROID EXPECTATION: For minimal surface, eigenvalue decay should be smooth
-                # Expected decay: λ_i ≈ λ_1 * exp(-i/τ) for some time constant τ
+                # Expected decay: _i  _1 * exp(-i/) for some time constant 
                 eigenvalues = spec['eigenvalues']
                 num_eigs = len(eigenvalues)
                 expected_decay = eigenvalues[0] * torch.exp(
@@ -622,7 +622,7 @@ class SparseExplorerRouting(nn.Module):
                     
                     for attempt in range(3):
                         # Sample next step
-                        next_idx_local = torch.multinomial(probs, 1).item()
+                        next_idx_local = honest_multinomial(probs, 1).item()
                         candidate_node = window_start + next_idx_local
                         
                         # Triadic Reciprocity Check
@@ -689,7 +689,7 @@ class GyroidCovarianceEstimator(nn.Module):
     
     Uses the spectral properties of the covariance matrix:
     - Trace(C) = sum of eigenvalues = total variance
-    - Spectral Entropy = -sum(p_i * log(p_i)) where p_i = λ_i / Σλ
+    - Spectral Entropy = -sum(p_i * log(p_i)) where p_i = _i / 
     """
     def __init__(self, dim: int, sample_size: int = 16, ema_decay: float = 0.9):
         super().__init__()
@@ -745,7 +745,7 @@ class GyroidCovarianceEstimator(nn.Module):
         """
         Estimate spectral entropy from the covariance matrix.
         
-        Spectral Entropy = -Σ (p_i * log(p_i)) where p_i = λ_i / Σλ
+        Spectral Entropy = - (p_i * log(p_i)) where p_i = _i / 
         Higher entropy = more spread across eigenvalues = higher uncertainty.
         
         Args:
@@ -768,7 +768,7 @@ class GyroidCovarianceEstimator(nn.Module):
             eigenvalues = torch.linalg.eigvalsh(cov_sanitized)
         except Exception as e:
             # Fallback to simpler trace-based entropy
-            print(f"⚠️ Eigendecomposition stability failure: {e}")
+            print(f"[WARN] Eigendecomposition stability failure: {e}")
             return torch.log(torch.trace(cov).clamp(min=1e-6))
         
         # Ensure positive (numerical stability)
@@ -803,10 +803,10 @@ class GyroidCovarianceEstimator(nn.Module):
         """
         Measures the spectral envelope as Hyperbolic Shear (System 2 Driver).
 
-        ECCENTRICITY = log(max(λ) / min(λ))
+        ECCENTRICITY = log(max() / min())
         SHEAR = 2 * tanh(ECCENTRICITY / 2)
 
-        NOTE: No additional O(N³) cost — it rides the existing spectral decomposition.
+        NOTE: No additional O(N) cost  it rides the existing spectral decomposition.
         """
         if sample is not None:
             self.update_buffer(sample)
@@ -833,7 +833,7 @@ class GyroidCovarianceEstimator(nn.Module):
         # Hyperbolic Eccentricity
         eccentricity = torch.log(lambda_max / (lambda_min + 1e-9)).item()
 
-        # Hyperbolic Shear (Poincaré Projection)
+        # Hyperbolic Shear (Poincar Projection)
         shear = 2.0 * torch.tanh(torch.tensor(eccentricity / 2.0)).item()
         
         # Diffusion Coefficient for SDEs
@@ -896,8 +896,8 @@ class MoebiusFiberBundle(nn.Module):
     """
     Orientation-twisted recursive fiber bundle.
     
-    Implements a transition function g satisfying g ∈ O(n) \ SO(n),
-    causing orientation reversal on traversal (Möbius holonomy).
+    Implements a transition function g satisfying g  O(n) \ SO(n),
+    causing orientation reversal on traversal (Mbius holonomy).
     """
     def __init__(self, dim: int, fiber_dim: int):
         super().__init__()
@@ -962,7 +962,7 @@ class ChernSimonsGasket(nn.Module):
             state_a: Tensor from Modality A
             state_b: Tensor from Modality B mapped to A's space
         """
-        # Calculate Non-Commutativity Curvature (κ)
+        # Calculate Non-Commutativity Curvature ()
         # Represents the "tailings" left over from forcing state_b into state_a's mold.
         kappa = torch.norm(state_a - state_b, p=2, dim=-1)
         
