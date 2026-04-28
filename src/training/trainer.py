@@ -23,7 +23,7 @@ from src.core.manifold_time import ManifoldClock
 from src.core.situational_batching import SituationalBatchSampler
 from src.core.daqf_operator import DAQUFOperator
 from src.core.energy_monitor import StructuralEnergyMonitor
-from src.core.unknowledge_flux import NostalgicLeakFunctional, EntropicMischiefProbe
+from src.core.unknowledge_flux import EntropicMischiefProbe
 from src.core.nondual_admm import NonDualProbe, UnravelingClosure
 from src.core.admr_solver import PolynomialADMRSolver
 from src.core.polynomial_scaffold import PolynomialCoefficientFunctional
@@ -78,7 +78,7 @@ class ConstraintDataset(Dataset):
         num_valid = int(self.num_samples * self.valid_ratio)
         num_invalid = self.num_samples - num_valid
         
-        # Valid samples: coherent embeddings → valid anchor
+        # Valid samples: coherent embeddings  valid anchor
         for i in range(num_valid):
             # SILICON SOVEREIGNTY: Replaced np.random.randint with Honest Jitter derivation
             anchor = int(harvest_honest_jitter((1,), scaled=True).item() * self.max_anchor) % self.max_anchor
@@ -104,7 +104,7 @@ class ConstraintDataset(Dataset):
                 'valid': True
             })
         
-        # Invalid samples: incoherent embeddings → no valid reconstruction
+        # Invalid samples: incoherent embeddings  no valid reconstruction
         for i in range(num_invalid):
             # Random, uncorrelated features
             # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
@@ -205,8 +205,6 @@ class StructuralAdaptor:
         # Energy & Unknowledge Monitoring
         self.energy_monitor = StructuralEnergyMonitor(device=device)
         self.mischief_probe = EntropicMischiefProbe(device=device)
-        self.nostalgic_leak = NostalgicLeakFunctional(fossil_dim=64, device=device)
-        self.nondual_probe = NonDualProbe(device=device)
         
         # Non-Dual State Tensor S_i = [L_i, P_i, B_i]
         self.S_i: Optional[torch.Tensor] = None
@@ -228,7 +226,7 @@ class StructuralAdaptor:
         """
         Single adaptation step with REJECTION-ONLY selection.
         
-        Pointer #1: Decision ≠ Neutral Transition
+        Pointer #1: Decision  Neutral Transition
         - If admissible: SURVIVE (no modification, return metrics)
         - If inadmissible: REJECT (no repair attempt)
         
@@ -324,6 +322,11 @@ class StructuralAdaptor:
             
             offending_p = v_m + self.energy_monitor.margin
             self.energy_monitor.update(v_m, alternative_pressures=offending_p.unsqueeze(0))
+            
+            # 2. MISCHIEF & LEAK PROBE (The Unknowledge Dilation)
+            # --------------------------------------------------
+            # Archetype Leak (Concealment) is now managed by the Orchestrator
+            # We track its impact on the manifold drift.
             
             # 3. Tick the clock based on V_m (Unknowledge Dilation)
             dt = self.clock.tick(v_m)
@@ -446,7 +449,7 @@ class StructuralAdaptor:
         This method is preserved for backwards compatibility. Use legacy_mode=True
         in __init__ to enable this behavior, but note it is deprecated.
         
-        This violates Pointer #1 (Decision ≠ Neutral Transition) by using gradients
+        This violates Pointer #1 (Decision  Neutral Transition) by using gradients
         to "improve" configurations instead of binary rejection.
         """
         import warnings
