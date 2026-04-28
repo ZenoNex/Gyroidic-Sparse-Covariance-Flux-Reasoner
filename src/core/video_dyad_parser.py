@@ -20,9 +20,10 @@ class VideoDyadParser(nn.Module):
     """
     def __init__(self, chunk_size: int = 1024, max_chunks: int = 128, device: str = None):
         super().__init__()
+        from src.core.device_utils import DEVICE
         self.chunk_size = chunk_size
         self.max_chunks = max_chunks
-        self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = device or DEVICE
         
         # Dirac Spectrum Constant (45.2, ihc_paper3_field_body.tex)
         self.beta_coh = 6 * math.cos(math.pi / 23.0)  # ~5.944
