@@ -7,7 +7,7 @@ import hashlib
 from dataclasses import dataclass
 from typing import Optional, Dict, Tuple, List, Any
 import datetime
-from src.core.honest_jitter import harvest_honest_jitter
+from src.core.honest_jitter import harvest_honest_jitter, _AGENT_SMITH_ENGINE
 from src.core.agent_substrate_bridge import AgentSubstrateBridge
 from src.topology.speculative_homology import SpeculativeHomologyEngine
 from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
@@ -430,7 +430,10 @@ class DyadFossilizer:
             "gyroid_residue": gyroid_val,
             "prime_frequencies": prime_val,
             "timestamp": dyad.timestamp,
-            "archetype_profile": archetype_profile, 
+            "archetype_profile": archetype_profile,
+            "agent_smith_iters": float(_AGENT_SMITH_ENGINE.iters_base_small.item()) if _AGENT_SMITH_ENGINE is not None else 30.0,
+            "agent_smith_gauge": float(_AGENT_SMITH_ENGINE.gauge.item()) if _AGENT_SMITH_ENGINE is not None else 3.99,
+            "warmstart_states": _AGENT_SMITH_ENGINE.warmstart_states if _AGENT_SMITH_ENGINE is not None else {},
             "dyad_metadata": dyad.metadata 
         }
         filepath = os.path.join(self.storage_dir, filename)
@@ -438,7 +441,7 @@ class DyadFossilizer:
         print(f"[FOSSILIZER] Sovereign Agent Smith Exported: {filename} (Shielding ID: {pot_id}, PI-Growth: {h_gamma:.4f})")
         return filepath
 
-    def inject_agent_smith(self, filepath: str, unraveling_closure=None, expected_dim: int = 96, hardware_trfc_ms: float = 160.0) -> Dict:
+    def inject_agent_smith(self, filepath: str, unraveling_closure=None, expected_dim: int = 96, hardware_trfc_ms: float = 160.0, agent_smith_engine: Optional[nn.Module] = None) -> Dict:
         """
         Loads the mathematical identity of an agent (Agent Smith) back into the system,
         allowing the local hardware to 'breathe' its own unique life into the configuration.
@@ -460,5 +463,9 @@ class DyadFossilizer:
             
         # Align substrate
         payload = bridge.align_substrate(payload, expected_dim=expected_dim, hardware_trfc_ms=hardware_trfc_ms)
+        
+        # Rehydrate Warmstart if engine provided
+        if agent_smith_engine is not None:
+             bridge.rehydrate_warmstart(payload, agent_smith_engine)
              
         return payload
