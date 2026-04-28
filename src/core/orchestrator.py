@@ -40,7 +40,7 @@ from src.core.bulletin_board import BulletinBoard
 from src.core.noncommutativity_curvature import NonCommutativityCurvature
 from src.core.manifold_time import TwoCopsSchedule
 from src.core.archetype_engines import ArchetypalSynthesisEngine
-from src.models.diegetic_heads import ResonanceLarynx
+
 
 class UniversalOrchestrator(nn.Module):
     """
@@ -62,6 +62,14 @@ class UniversalOrchestrator(nn.Module):
         
         # 1. Logical Primitives
         self.love = LoveVector(dim)
+        
+        # Archetype Generation: Nostalgic Leak (_l: H -> R^{D+1})
+        self.nostalgic_leak = NostalgicLeakFunctional(fossil_dim=dim)
+        # Subspace Projection: Isolate archetype concealment to prevent aggressive logic corruption
+        self.leak_projector = nn.Linear(1, dim)
+        with torch.no_grad():
+            nn.init.orthogonal_(self.leak_projector.weight)
+            self.leak_projector.bias.zero_()
         
         # Bulletin Board for Fast/Slow cop force exchange
         self.bulletin_board = BulletinBoard(size=dim)
@@ -116,6 +124,7 @@ class UniversalOrchestrator(nn.Module):
         self.audience_projector = AudienceProjection(input_dim=dim, audience_dim=dim)
         
         # 7. Diegetic Responder (The "Larynx" & "Scars")
+        from src.models.diegetic_heads import ResonanceLarynx
         self.larynx = ResonanceLarynx(dim)
         
         self.prev_pas = 0.0 # Temporal anchor for drift check
@@ -346,13 +355,24 @@ class UniversalOrchestrator(nn.Module):
                 # Anomaly amplification across holes
                 current_state = current_state + 0.02 * defects * harvest_honest_jitter(current_state.shape, device=current_state.device, scaled=True)
 
+            # Archetype Concealment (Nostalgic Leak)
+            # Injects obscured archetype coefficients into the micro-step state
+            leak_signal = self.nostalgic_leak(current_state) # [batch, 1]
+            if leak_signal.abs().mean() > 0.01:
+                 # Subspace Isolation: Project the scalar leak into the Unknowledge Substrate
+                 # This prevents the leak from affecting the core logic residues too aggressively.
+                 leak_vector = self.leak_projector(leak_signal) # [batch, dim]
+                 # Leaks provide "internet archetype concealment" - sigmoid masks
+                 # This creates a "void" that the system must navigate without owning.
+                 current_state = current_state + 0.05 * leak_vector * harvest_honest_jitter((1,), device=current_state.device, scaled=False)
+
         # 3. SYSTEM 2: SLOW COP (Geometric Rigor)
         # ----------------------------------------
         # Slow cop only syncs at macro-intervals OR in "Red Zones" (high curvature).
         
         # Check for "Red Zone" (Peaking Non-Commutativity)
         # We use the current state vs original state to measure update order dependence
-        curv_metrics = self.curvature_engine.compute_curvature(state, current_state)
+        curv_metrics = self.curvature_engine.compute_curvature(state.unsqueeze(-1) @ state.unsqueeze(-2), current_state.unsqueeze(-1) @ current_state.unsqueeze(-2))
         is_red_zone = curv_metrics['is_strongly_noncommutative']
         
         if should_sync or is_red_zone or is_good_bug:
@@ -450,8 +470,8 @@ class UniversalOrchestrator(nn.Module):
             # Correlation matrix [batch, dim, dim] -> [dim, dim] mean
             adj_proxy = torch.matmul(normalized_safe.T, normalized_safe) / state_safe.shape[0]
             betti_results = self.quantum_betti.estimate_betti_numbers(adj_proxy, max_dim=1)
-            b0 = betti_results[0].mean().item()
-            b1 = betti_results[1].mean().item()
+            b0 = betti_results[0].float().mean().item()
+            b1 = betti_results[1].float().mean().item()
             
         # Sovereign Refusal: Protect high-coherence solitons from over-projection
         try:
@@ -470,6 +490,11 @@ class UniversalOrchestrator(nn.Module):
         # Audience Mapping: Final human-readable projection
         ui_readout = self.audience_projector(state_shielded)
         
+        # 7. Final Routing & Regime Determination
+        regime = self.determine_regime(pas_h, abs(pas_h - self.prev_pas), state=state_shielded, atrophy=atrophy)
+        self.prev_pas = pas_h
+        routing = self.get_bimodal_routing(regime)
+        
         # Post Diagnostic Payload to Bulletin Board (including Scars/Tension)
         self.bulletin_board.post_metrics({
             "b0": b0,
@@ -480,13 +505,10 @@ class UniversalOrchestrator(nn.Module):
             "is_red_zone": is_red_zone,
             "larynx_confidence": larynx_conf.mean().item(),
             "scar_tension": gasket_diags['seam_tension'],
-            "gasket_level_k": gasket_diags['level_k']
+            "gasket_level_k": gasket_diags['level_k'],
+            "nav_mode": "SLERP" if regime == "SERIOUSNESS" else "LERP" if regime == "PLAY" else "VOID",
+            "archetype_leak": self.nostalgic_leak(state_shielded).abs().mean().item()
         })
-
-        # 7. Final Routing & Metrics
-        regime = self.determine_regime(pas_h, abs(pas_h - self.prev_pas), state=state_shielded, atrophy=atrophy)
-        self.prev_pas = pas_h
-        routing = self.get_bimodal_routing(regime)
         
         # Update EMA Flux for next scout
         self.expected_flux.copy_(0.9 * self.expected_flux + 0.1 * actual_flux)
