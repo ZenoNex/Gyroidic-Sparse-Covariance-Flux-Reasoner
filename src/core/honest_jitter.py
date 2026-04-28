@@ -106,5 +106,46 @@ def harvest_honest_jitter(shape, device=None, scaled=True):
     # Update cache for frequently used shapes
     if shape in [(64, 64), (1,)]:
         _HONEST_JITTER_CACHE[shape] = jitter_tensor.clone().detach()
-        
+
     return jitter_tensor
+        
+def honest_multinomial(probs, num_samples, replacement=False):
+    """
+    Selects indices from 'probs' using harvest_honest_jitter entropy.
+    
+    This replaces topologically semisimple PRNGs like torch.multinomial
+    with hardware-anchored selection.
+    
+    Args:
+        probs: [N] probability distribution (tensor)
+        num_samples: Number of indices to sample
+        replacement: Whether to sample with replacement
+        
+    Returns:
+        indices: [num_samples] sampled indices
+    """
+    device = probs.device
+    n = probs.size(0)
+    
+    if replacement:
+        # Sample with replacement: cumulative sum + jitter comparison
+        jitter = harvest_honest_jitter((num_samples,), device=device, scaled=False) # [0, 1] range
+        jitter = (jitter + 1.0) / 2.0 # Force to [0, 1]
+        
+        cum_probs = torch.cumsum(probs, dim=0)
+        # Find indices where jitter < cum_probs
+        indices = torch.searchsorted(cum_probs, jitter)
+        return torch.clamp(indices, 0, n - 1)
+    else:
+        # Sample without replacement: perturbation + sort
+        # E_i = log(P_i) - log(-log(U_i)) where U_i is uniform jitter
+        # But we can just use jitter to perturb the probabilities
+        jitter = harvest_honest_jitter((n,), device=device, scaled=False)
+        jitter = (jitter + 1.0) / 2.0 # [0, 1]
+        
+        # Gumbel-Max trick replacement: log(probs) + noise
+        noise = -torch.log(-torch.log(jitter.clamp(min=1e-8)))
+        scores = torch.log(probs.clamp(min=1e-8)) + noise
+        
+        _, indices = torch.topk(scores, min(num_samples, n))
+        return indices
