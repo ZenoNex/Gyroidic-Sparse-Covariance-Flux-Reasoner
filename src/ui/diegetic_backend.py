@@ -98,6 +98,8 @@ from src.surrogates.calm_predictor import CALM
 from src.surrogates.kagh_networks import KAGHBlock, HarmonicWaveDecomposition, HuxleyRD
 # Gyroid Covariance for tensor-based momentum instead of scalar averages
 from src.topology.gyroid_covariance import GyroidCovarianceEstimator
+from src.codec.vision_utilities import get_russian_doll_projection
+from image_extension import ImageProcessor
 # Speculative Coprime Chiral Gating (Legacy Recovery)
 from src.core.speculative_coprime_gate import SpeculativeCoprimeGate
 from src.core.invariants import compute_chirality, check_glyphlock, compute_chiral_shift
@@ -446,6 +448,10 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # trust_scalars: per-field trust scores evolved by TemporalAssociationTrainer.
         # Shape [k] -- one scalar per polynomial coprime field.
+        self.register_buffer('trust_scalars', torch.ones(k, device=device))
+
+        # --- SOVEREIGN VISION INGESTION ---
+        self.image_processor = ImageProcessor(device=self.device)
         self.register_buffer('trust_scalars', torch.ones(k))
 
         # Temporal Association Trainer state (lazy-init on first interaction)
@@ -1377,32 +1383,22 @@ class DiegeticPhysicsEngine(nn.Module):
                     flat = item_data if isinstance(item_data, list) else []
                 
                 if flat:
-                    # --- Nested Chebyshev Projections (Russian Doll) ---
-                    # Projecting at multiple degrees (8, 16, 32) to capture recursive self-similarity
+                    # --- TOPOLOGICAL VISION SURGERY ---
                     coeffs = torch.tensor(flat, dtype=torch.float32, device=self.device)
                     
-                    # Target 96 (32 per channel)
-                    target = self.K_IMAGE_MAX * 3
-                    if coeffs.numel() < target: coeffs = F.pad(coeffs, (0, target - coeffs.numel()))
-                    else: coeffs = coeffs[:target]
+                    # 1. Extract Structural Bone (Russian Doll Residues)
+                    residue = get_russian_doll_projection(coeffs, k_image_max=32) # [96]
                     
-                    # Degree 8 projection (Outer Shell)
-                    deg8_mask = torch.zeros_like(coeffs)
-                    deg8_indices = [i for i in range(target) if (i % 32) < 8]
-                    deg8_mask[deg8_indices] = 1.0
-                    p8 = self.fingerprint_proj((coeffs * deg8_mask).unsqueeze(0))
+                    # 2. Extract Semantic Flesh (CNN Features) if image data is available
+                    # We check for base64 or file path in item_data
+                    img_src = item_data.get('b64') or item_data.get('path')
                     
-                    # Degree 16 projection (Middle Shell)
-                    deg16_mask = torch.zeros_like(coeffs)
-                    deg16_indices = [i for i in range(target) if (i % 32) < 16]
-                    deg16_mask[deg16_indices] = 1.0
-                    p16 = self.fingerprint_proj((coeffs * deg16_mask).unsqueeze(0))
-                    
-                    # Degree 32 projection (Inner Shell)
-                    p32 = self.fingerprint_proj(coeffs.unsqueeze(0))
-                    
-                    # Composite Russian Doll residue
-                    return (p8 + p16 + p32) / 3.0
+                    if img_src:
+                         # Perform Surgery: Flesh + Bone = Interlaced Manifold
+                         return self.image_processor(img_src, gyroid_residue=residue)
+                    else:
+                         # Fallback: Project residue directly into embedding space
+                         return self.fingerprint_proj(residue.unsqueeze(0))
                     
             elif item_type == 'audio':
                 harmonics = item_data.get('chebyshev_harmonics', []) if isinstance(item_data, dict) else item_data
