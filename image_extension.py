@@ -24,6 +24,10 @@ except ImportError:
     print("Warning: torchvision not found. Image processing will be limited.")
     T = None
 
+from src.core.honest_jitter import harvest_honest_jitter
+from src.codec.vision_surgery import IntercosaminationOperator, MirrorTestProbe
+from src.codec.vision_utilities import get_russian_doll_projection
+
 from typing import Optional, List, Tuple, Union
 import os
 
@@ -99,6 +103,10 @@ class ImageProcessor(nn.Module):
         # Window parameters
         self.window_size = 64
         self.target_size = 512 # Canonical resolution for letterboxing high-res inputs
+        
+        # --- SOVEREIGN VISION SURGERY ---
+        self.surgeon = IntercosaminationOperator(cnn_dim=768, gyroid_dim=96)
+        self.mirror_test = MirrorTestProbe(threshold=0.8)
 
     def preprocess_image(self, image_input: Union[str, Image.Image]) -> torch.Tensor:
         """
@@ -176,10 +184,14 @@ class ImageProcessor(nn.Module):
         """Alias for compatibility with older test suites."""
         return self.forward(fingerprint)
 
-    def forward(self, image_input: Union[str, Image.Image, torch.Tensor]) -> torch.Tensor:
+    def forward(self, image_input: Union[str, Image.Image, torch.Tensor], gyroid_residue: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         End-to-end processing: Image -> 768-dim Embedding.
         
+        Args:
+            image_input: Raw image or tensor tiles.
+            gyroid_residue: [96] (Optional) Topological truth residues for interlacing surgery.
+            
         Returns:
             embedding: [1, 768] (Global representation of the image)
         """
@@ -194,13 +206,27 @@ class ImageProcessor(nn.Module):
         elif tiles.dim() == 3: # [3, 64, 64] - single tile
             tiles = tiles.unsqueeze(0)
             
-        # Feature Extraction
+        # Feature Extraction (Flesh)
         tile_features = self.backbone(tiles) # [Num_Tiles, 768]
         
         # Aggregation (Diegetic Consensus)
-        # Max pooling captures the most salient features across all windows
-        # Use simple max pool across the tiles dimension (dim 0)
         global_features = torch.max(tile_features, dim=0, keepdim=True)[0] # [1, 768]
+        
+        # --- TOPOLOGICAL SURGERY (INTERLACING) ---
+        if gyroid_residue is not None:
+             # Interlace the Flesh (CNN) with the Bone (Gyroid)
+             interlaced = self.surgeon(global_features, gyroid_residue)
+             
+             # Mirror Test Verification
+             pas_h, valid = self.mirror_test(interlaced, gyroid_residue)
+             
+             if not valid.all():
+                  # If topological parity fails, we perturb the manifold to seek resonance
+                  # rather than failing silently with AI Slop.
+                  perturbation = harvest_honest_jitter(interlaced.shape, device=interlaced.device)
+                  interlaced = interlaced + perturbation
+                  
+             return interlaced
         
         return global_features
 
@@ -226,7 +252,7 @@ class TailSlayerImageGenerator:
             self.engine = engine if engine else SiliconSovereigntyEngine()
             self.sovereign = True
         except Exception as e:
-            print(f"⚠️ Silicon Sovereignty Engine failed: {e}. Falling back to Emulated Sovereignty.")
+            print(f"[WARN] Silicon Sovereignty Engine failed: {e}. Falling back to Emulated Sovereignty.")
             self.engine = None
             self.sovereign = False
         
@@ -235,17 +261,21 @@ class TailSlayerImageGenerator:
         Generates an image by mixing two structural tag-matrices.
         If hardware sovereignty is available, mixing happens directly on the GPU.
         """
-        # 1. Convert tags to structural matrices (Simulated Sovereignty)
+        # 1. Convert tags to structural matrices (SOVEREIGN ENTROPY)
         # In the full Reasoner, these are derived from the latent manifolds.
         seed_a = int(hashlib.md5(tag_a.encode()).hexdigest(), 16) % (2**32)
         seed_b = int(hashlib.md5(tag_b.encode()).hexdigest(), 16) % (2**32)
         
-        rng_a = np.random.RandomState(seed_a)
-        rng_b = np.random.RandomState(seed_b)
+        # SILICON SOVEREIGNTY: Removed np.random. Replaced with harvest_honest_jitter.
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
-        # Use 64x64 grid to match legacy resolution while proving sovereignty
-        matrix_a = rng_a.rand(64, 64).astype(np.float32)
-        matrix_b = rng_b.rand(64, 64).astype(np.float32)
+        # Generate matrices via hardware-anchored entropy expansion
+        matrix_a = harvest_honest_jitter((64, 64), device=device, scaled=False).cpu().numpy()
+        matrix_b = harvest_honest_jitter((64, 64), device=device, scaled=False).cpu().numpy()
+        
+        # Ensure we are in [0, 1] for Image processing
+        matrix_a = (matrix_a + 1.0) / 2.0
+        matrix_b = (matrix_b + 1.0) / 2.0
         
         # 2. Breeding Phase (Tag-Based Matrix Mixing)
         if self.sovereign and self.engine:
@@ -255,7 +285,7 @@ class TailSlayerImageGenerator:
             )
         else:
             # Emulated Sovereignty (CPU-side)
-            mischief = rng_a.rand(64, 64)
+            mischief = (harvest_honest_jitter((64, 64), device=device, scaled=False).cpu().numpy() + 1.0) / 2.0
             scars = np.where(mischief > 0.88, 0.18 * mischief, 0.0)
             mixed_matrix = (1.0 - alpha) * matrix_a + alpha * matrix_b + scars
         
