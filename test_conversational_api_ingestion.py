@@ -351,7 +351,7 @@ def test_caching_system():
 
 def run_comprehensive_test():
     """Run comprehensive test of the conversational API ingestion system."""
-    print("️ Conversational API Ingestion System - Comprehensive Test")
+    print("[INFO] Conversational API Ingestion System - Comprehensive Test")
     print("=" * 65)
     
     try:
@@ -399,10 +399,10 @@ def run_comprehensive_test():
         
         print(f"\n[OK] All tests completed successfully!")
         print(f"\nNext steps:")
-        print(f"• Set up API credentials for Reddit/Hugging Face")
-        print(f"• Test with real conversational datasets")
-        print(f"• Integrate with diegetic terminal backend")
-        print(f"• Connect to temporal association training")
+        print(f"- Set up API credentials for Reddit/Hugging Face")
+        print(f"- Test with real conversational datasets")
+        print(f"- Integrate with diegetic terminal backend")
+        print(f"- Connect to temporal association training")
         
         return True
         
