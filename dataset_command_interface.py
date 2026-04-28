@@ -279,7 +279,17 @@ class DatasetCommandInterface:
         """Run full pipeline with all features."""
         print(f" Full Gyroidic Pipeline")
         print("=" * 50)
-        
+
+        # Validate argument combinations up front
+        path_val = getattr(args, 'path', None)
+        dataset_val = getattr(args, 'dataset', None)
+        if args.source in ('huggingface', 'wikipedia') and not dataset_val:
+            print(f"[ERR] --dataset is required when --source is '{args.source}'")
+            return False
+        if args.source in ('local', 'portal') and not path_val and not dataset_val:
+            print(f"[ERR] Provide --path (or --dataset) when --source is '{args.source}'")
+            return False
+
         # Determine dataset source
         if args.source == 'huggingface' and args.dataset in self.popular_datasets:
             dataset_info = self.popular_datasets[args.dataset]
@@ -308,10 +318,14 @@ class DatasetCommandInterface:
                 manifold_aware=args.manifold_aware
             )
         elif args.source == 'local':
+            # Resolve source path: --path takes priority over --dataset for file system paths
+            local_source = getattr(args, 'path', None) or args.dataset
+            # Derive a clean dataset name: prefer --dataset when it doesn't look like a file path
+            local_name_raw = args.dataset if (args.dataset and not Path(args.dataset).suffix) else Path(local_source).stem
             config = DatasetConfig(
-                name=f"local_{Path(args.dataset).name}",
+                name=f"local_{local_name_raw}",
                 source_type='local',
-                source_path=args.dataset,
+                source_path=local_source,
                 preprocessing='text',
                 max_samples=args.samples,
                 augmentation=True,
@@ -320,10 +334,12 @@ class DatasetCommandInterface:
                 manifold_aware=args.manifold_aware
             )
         elif args.source == 'portal':
+            portal_source = getattr(args, 'path', None) or args.dataset
+            portal_name_raw = args.dataset if (args.dataset and not Path(args.dataset).suffix) else Path(portal_source).stem
             config = DatasetConfig(
-                name=f"portal_{Path(args.dataset).name}",
+                name=f"portal_{portal_name_raw}",
                 source_type='portal',
-                source_path=args.dataset,
+                source_path=portal_source,
                 preprocessing='text',
                 max_samples=args.samples,
                 augmentation=True,
@@ -506,7 +522,8 @@ Examples:
     # Full pipeline command
     full_parser = subparsers.add_parser('full-pipeline', help='Run full pipeline with all features')
     full_parser.add_argument('--source', required=True, choices=['huggingface', 'wikipedia', 'local', 'portal'], help='Data source')
-    full_parser.add_argument('--dataset', required=True, help='Dataset name/path/topics')
+    full_parser.add_argument('--dataset', default=None, help='Dataset logical name or HuggingFace/Wikipedia path/topics')
+    full_parser.add_argument('--path', default=None, help='Filesystem path for local/portal sources (alternative to --dataset for file paths)')
     full_parser.add_argument('--samples', type=int, default=1000, help='Max samples to use')
     full_parser.add_argument('--epochs', type=int, default=20, help='Training epochs')
     full_parser.add_argument('--augment', action='store_true', help='Use Mandelbulb augmentation')
