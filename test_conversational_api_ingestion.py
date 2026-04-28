@@ -30,19 +30,20 @@ from src.data.conversational_api_ingestor import (
 
 def test_basic_functionality():
     """Test basic functionality of the conversational ingestor."""
-    print("🧪 Testing Basic Functionality")
+    print("[TEST] Testing Basic Functionality")
     print("=" * 40)
     
-    device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
+    from src.core import DEVICE
+    device = DEVICE
     print(f"Device: {device}")
     
     # Create ingestor
     ingestor = ConversationalAPIIngestor(device=device)
-    print("✅ Created conversational API ingestor")
+    print("[OK] Created conversational API ingestor")
     
     # Test processor
     processor = ConversationalDataProcessor(device=device)
-    print("✅ Created conversational data processor")
+    print("[OK] Created conversational data processor")
     
     # Test affordance gradient computation
     test_texts = [
@@ -53,7 +54,7 @@ def test_basic_functionality():
         "Can you explain the difference between supervised and unsupervised learning?"
     ]
     
-    print(f"\n🔍 Testing Affordance Gradient Computation:")
+    print(f"\n Testing Affordance Gradient Computation:")
     for i, text in enumerate(test_texts):
         gradients = processor.compute_affordance_gradients(text)
         print(f"   Text {i+1}: '{text[:50]}...'")
@@ -67,10 +68,11 @@ def test_basic_functionality():
 
 def test_synthetic_conversation_processing():
     """Test processing of synthetic conversations."""
-    print("\n🧪 Testing Synthetic Conversation Processing")
+    print("\n[TEST] Testing Synthetic Conversation Processing")
     print("=" * 45)
     
-    device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
+    from src.core import DEVICE
+    device = DEVICE
     processor = ConversationalDataProcessor(device=device)
     
     # Create synthetic conversations
@@ -128,11 +130,11 @@ def test_synthetic_conversation_processing():
     # Process conversations
     processed = processor.process_conversations(synthetic_conversations)
     
-    print(f"✅ Processed {len(processed)} synthetic conversations")
+    print(f"[OK] Processed {len(processed)} synthetic conversations")
     
     # Analyze results
     for i, conv in enumerate(processed):
-        print(f"\n📊 Conversation {i+1} Analysis:")
+        print(f"\n[METRICS] Conversation {i+1} Analysis:")
         print(f"   ID: {conv.conversation_id}")
         print(f"   Turns: {len(conv.turns)}")
         print(f"   Source: {conv.source}")
@@ -151,15 +153,16 @@ def test_synthetic_conversation_processing():
 
 def test_huggingface_integration():
     """Test Hugging Face dataset integration (if available)."""
-    print("\n🧪 Testing Hugging Face Integration")
+    print("\n[TEST] Testing Hugging Face Integration")
     print("=" * 35)
     
-    device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
+    from src.core import DEVICE
+    device = DEVICE
     
     try:
         # Try to import datasets library
         import datasets
-        print("✅ Datasets library available")
+        print("[OK] Datasets library available")
         
         # Create HF ingestor
         hf_ingestor = HuggingFaceConversationalIngestor(device=device)
@@ -167,38 +170,39 @@ def test_huggingface_integration():
         # List some conversational datasets (this might fail without internet)
         try:
             datasets_list = hf_ingestor.list_conversational_datasets()
-            print(f"✅ Found {len(datasets_list)} conversational datasets")
+            print(f"[OK] Found {len(datasets_list)} conversational datasets")
             
             # Show first few
             for i, dataset in enumerate(datasets_list[:3]):
                 print(f"   {i+1}. {dataset.get('id', 'Unknown')}")
                 
         except Exception as e:
-            print(f"⚠️ Could not list datasets (offline?): {e}")
+            print(f"[WARN] Could not list datasets (offline?): {e}")
         
         # Test dataset info retrieval
         try:
             info = hf_ingestor.get_dataset_info('lmsys/lmsys-chat-1m')
             if info:
-                print(f"✅ Retrieved info for lmsys/lmsys-chat-1m")
+                print(f"[OK] Retrieved info for lmsys/lmsys-chat-1m")
                 print(f"   Downloads: {info.get('downloads', 'Unknown')}")
             else:
-                print("⚠️ No info retrieved (might be offline)")
+                print("[WARN] No info retrieved (might be offline)")
                 
         except Exception as e:
-            print(f"⚠️ Could not get dataset info: {e}")
+            print(f"[WARN] Could not get dataset info: {e}")
         
     except ImportError:
-        print("⚠️ Datasets library not available. Install with: pip install datasets")
+        print("[WARN] Datasets library not available. Install with: pip install datasets")
         print("   Skipping Hugging Face integration test")
 
 
 def test_affordance_integration():
     """Test integration with affordance gradient system."""
-    print("\n🧪 Testing Affordance Integration")
+    print("\n[TEST] Testing Affordance Integration")
     print("=" * 32)
     
-    device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
+    from src.core import DEVICE
+    device = DEVICE
     
     # Create test conversations with different affordance patterns
     test_conversations = [
@@ -237,7 +241,7 @@ def test_affordance_integration():
     processor = ConversationalDataProcessor(device=device)
     processed = processor.process_conversations(test_conversations)
     
-    print("📊 Affordance Analysis Results:")
+    print("[METRICS] Affordance Analysis Results:")
     for conv in processed:
         print(f"\n   Conversation: {conv.conversation_id}")
         for turn in conv.turns:
@@ -255,10 +259,11 @@ def test_affordance_integration():
 
 def test_pressure_signature_generation():
     """Test pressure signature generation."""
-    print("\n🧪 Testing Pressure Signature Generation")
+    print("\n[TEST] Testing Pressure Signature Generation")
     print("=" * 37)
     
-    device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
+    from src.core import DEVICE
+    device = DEVICE
     processor = ConversationalDataProcessor(device=device)
     
     # Create conversations with different characteristics
@@ -280,7 +285,7 @@ def test_pressure_signature_generation():
         ])
     ]
     
-    print("📊 Pressure Signature Analysis:")
+    print("[METRICS] Pressure Signature Analysis:")
     for case_name, turns in test_cases:
         conv = Conversation(
             conversation_id=case_name,
@@ -301,10 +306,11 @@ def test_pressure_signature_generation():
 
 def test_caching_system():
     """Test the caching system."""
-    print("\n🧪 Testing Caching System")
+    print("\n[TEST] Testing Caching System")
     print("=" * 25)
     
-    device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
+    from src.core import DEVICE
+    device = DEVICE
     cache_dir = "./test_cache"
     
     # Create ingestor with test cache directory
@@ -328,7 +334,7 @@ def test_caching_system():
     conv_dict = ingestor._conversation_to_dict(processed[0])
     restored_conv = ingestor._dict_to_conversation(conv_dict)
     
-    print(f"✅ Conversation serialization test:")
+    print(f"[OK] Conversation serialization test:")
     print(f"   Original ID: {processed[0].conversation_id}")
     print(f"   Restored ID: {restored_conv.conversation_id}")
     print(f"   Original turns: {len(processed[0].turns)}")
@@ -340,12 +346,12 @@ def test_caching_system():
     import shutil
     if Path(cache_dir).exists():
         shutil.rmtree(cache_dir)
-        print(f"🧹 Cleaned up test cache directory")
+        print(f" Cleaned up test cache directory")
 
 
 def run_comprehensive_test():
     """Run comprehensive test of the conversational API ingestion system."""
-    print("🗣️ Conversational API Ingestion System - Comprehensive Test")
+    print("️ Conversational API Ingestion System - Comprehensive Test")
     print("=" * 65)
     
     try:
@@ -368,30 +374,30 @@ def run_comprehensive_test():
         test_caching_system()
         
         # Summary
-        print(f"\n🎯 Test Summary")
+        print(f"\n[GOAL] Test Summary")
         print("=" * 15)
-        print(f"✅ Basic functionality: PASSED")
-        print(f"✅ Synthetic processing: PASSED ({len(synthetic_processed)} conversations)")
-        print(f"✅ Affordance integration: PASSED ({len(affordance_processed)} conversations)")
-        print(f"✅ Pressure signatures: PASSED")
-        print(f"✅ Caching system: PASSED")
+        print(f"[OK] Basic functionality: PASSED")
+        print(f"[OK] Synthetic processing: PASSED ({len(synthetic_processed)} conversations)")
+        print(f"[OK] Affordance integration: PASSED ({len(affordance_processed)} conversations)")
+        print(f"[OK] Pressure signatures: PASSED")
+        print(f"[OK] Caching system: PASSED")
         
         # Get summary of all processed conversations
         all_conversations = synthetic_processed + affordance_processed
         summary = ingestor.get_ingestion_summary(all_conversations)
         
-        print(f"\n📊 Overall Statistics:")
+        print(f"\n[METRICS] Overall Statistics:")
         print(f"   Total conversations processed: {summary['total_conversations']}")
         print(f"   Total turns: {summary['total_turns']}")
         print(f"   Average turns per conversation: {summary['avg_turns_per_conversation']:.2f}")
         print(f"   Average text length per turn: {summary['avg_text_length_per_turn']:.1f}")
         
         if 'affordance_gradient_stats' in summary:
-            print(f"\n🎯 Affordance Gradient Statistics:")
+            print(f"\n[GOAL] Affordance Gradient Statistics:")
             for gradient_type, stats in summary['affordance_gradient_stats'].items():
                 print(f"   {gradient_type}: mean={stats['mean']:.3f}, std={stats['std']:.3f}")
         
-        print(f"\n✅ All tests completed successfully!")
+        print(f"\n[OK] All tests completed successfully!")
         print(f"\nNext steps:")
         print(f"• Set up API credentials for Reddit/Hugging Face")
         print(f"• Test with real conversational datasets")
@@ -401,7 +407,7 @@ def run_comprehensive_test():
         return True
         
     except Exception as e:
-        print(f"\n❌ Test failed with error: {e}")
+        print(f"\n[ERR] Test failed with error: {e}")
         import traceback
         traceback.print_exc()
         return False
