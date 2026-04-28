@@ -72,10 +72,10 @@ class ProperConversationalCoherenceFix:
             Learning metrics
         """
         
-        print(f"🧠 Learning conversational patterns from {len(conversations)} conversations...")
+        print(f"[BRAIN] Learning conversational patterns from {len(conversations)} conversations...")
         
         if not conversations:
-            print("❌ No conversational data provided for learning")
+            print("[ERR] No conversational data provided for learning")
             return {'patterns_learned': 0}
         
         # Extract conversational patterns using polynomial evaluation
@@ -93,7 +93,7 @@ class ProperConversationalCoherenceFix:
                     conversational_signals.append(text_signal)
         
         if not conversational_signals:
-            print("❌ No affordance gradients found in conversational data")
+            print("[ERR] No affordance gradients found in conversational data")
             return {'patterns_learned': 0}
         
         # Learn polynomial weights from actual conversational patterns
@@ -105,7 +105,7 @@ class ProperConversationalCoherenceFix:
         
         self.conversational_training_count = len(conversational_signals)
         
-        print(f"✅ Learned patterns from {self.conversational_training_count} conversational turns")
+        print(f"[OK] Learned patterns from {self.conversational_training_count} conversational turns")
         
         return {
             'patterns_learned': self.conversational_training_count,
@@ -166,7 +166,7 @@ class ProperConversationalCoherenceFix:
                     'min': np.min(values)
                 }
         
-        print(f"📊 Learned affordance patterns: {list(self.learned_affordance_patterns.keys())}")
+        print(f"[METRICS] Learned affordance patterns: {list(self.learned_affordance_patterns.keys())}")
     
     def detect_conversational_input_proper(self, affordance_gradients: Dict[str, float]) -> float:
         """
@@ -244,7 +244,7 @@ class ProperConversationalCoherenceFix:
             # Not conversational, use standard spectral correction
             return self.spectral_corrector.adaptive_coherence_correction(signal)
         
-        print(f"🗣️ Conversational input detected (likelihood: {conversational_likelihood:.3f})")
+        print(f"️ Conversational input detected (likelihood: {conversational_likelihood:.3f})")
         
         # Apply conversational-specific fixes using learned polynomial patterns
         fixed_signal = signal.clone()
@@ -366,18 +366,19 @@ class ProperConversationalCoherenceFix:
 def test_proper_conversational_fix():
     """Test the proper conversational fix system."""
     
-    print("🧪 Testing Proper Conversational Coherence Fix")
+    print("[TEST] Testing Proper Conversational Coherence Fix")
     print("=" * 60)
     
     # Initialize proper fix system
-    fix_system = ProperConversationalCoherenceFix(device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu')
+    from src.core import DEVICE
+    fix_system = ProperConversationalCoherenceFix(device = DEVICE)
     
     # Test 1: Check polynomial system initialization
     print("\n1. Checking polynomial system initialization...")
     
     poly_coeffs = fix_system.polynomial_config.get_coefficients_tensor()
-    print(f"   ✅ Polynomial coefficients shape: {poly_coeffs.shape}")
-    print(f"   ✅ Using {fix_system.polynomial_config.basis_type} basis")
+    print(f"   [OK] Polynomial coefficients shape: {poly_coeffs.shape}")
+    print(f"   [OK] Using {fix_system.polynomial_config.basis_type} basis")
     
     # Test 2: Simulate learning from conversational data
     print("\n2. Simulating learning from conversational data...")
@@ -400,7 +401,7 @@ def test_proper_conversational_fix():
     
     # Learn from mock data
     learning_metrics = fix_system.learn_from_conversational_data(mock_conversations)
-    print(f"   ✅ Learning metrics: {learning_metrics}")
+    print(f"   [OK] Learning metrics: {learning_metrics}")
     
     # Test 3: Test conversational detection
     print("\n3. Testing conversational detection...")
@@ -448,15 +449,15 @@ def test_proper_conversational_fix():
     print("\n5. System diagnostics...")
     
     diagnostics = fix_system.get_learning_diagnostics()
-    print(f"   📊 Diagnostics:")
+    print(f"   [METRICS] Diagnostics:")
     for key, value in diagnostics.items():
         print(f"      {key}: {value}")
     
     print(f"\n" + "=" * 60)
-    print("✅ Proper Conversational Fix Test Complete!")
-    print("✅ NO HARDCODED TEMPLATES - Uses polynomial co-prime system")
-    print("✅ Learns from actual conversational data")
-    print("✅ Follows anti-lobotomy principles")
+    print("[OK] Proper Conversational Fix Test Complete!")
+    print("[OK] NO HARDCODED TEMPLATES - Uses polynomial co-prime system")
+    print("[OK] Learns from actual conversational data")
+    print("[OK] Follows anti-lobotomy principles")
     print("=" * 60)
 
 if __name__ == "__main__":
