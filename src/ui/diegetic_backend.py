@@ -90,6 +90,7 @@ from src.core.knowledge_dyad_fossilizer import DyadFossilizer, KnowledgeDyad
 from src.core.dyadic_transfer import DyadicTransferMap
 from src.core.love_invariant_protector import LoveInvariantProtector, SoftSaturatedGates
 from src.core.agent_substrate_bridge import AgentSubstrateBridge
+from src.core.device_utils import DEVICE
 
 # LEGACY SYSTEM INTEGRATION
 # CALM: Context-Adaptive Latent Momentum (Trajectory Veto)
@@ -261,7 +262,7 @@ class DiegeticPhysicsEngine(nn.Module):
     def __init__(self, dim=256, k=5, calm_history_len=8, device=None):
         super().__init__()
         if device is None:
-            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            self.device = DEVICE
         else:
             self.device = device
 
@@ -288,7 +289,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # GARBLED OUTPUT REPAIR SYSTEM
         # =============================================
         print("[CONFIG] Initializing Garbled Output Repair System...")
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = DEVICE
         # Spectral Coherence Corrector - fixes consonant clustering
         self.spectral_corrector = SpectralCoherenceCorrector(
             initial_threshold=0.7,
@@ -386,7 +387,7 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Silicon Sovereignty - PyOpenCL Hardware bridge (Bridge 3)
         self.sovereignty_engine = SiliconSovereigntyEngine(
-            use_gpu=(device == 'cuda' or device is None),
+            use_gpu=True,
             love_protector=self.love_protector
         )
         
@@ -508,7 +509,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # =============================================
         
         # Initialize pressure ingestor for constraint forcing when code is detected
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        device = DEVICE
         
         # Affordance gradient trackers (soft signals, not gates)
         self.affordance_trackers = {
