@@ -44,7 +44,6 @@ from src.core.structural_irreducibility import StructuralIrreducibilityChecker, 
 from src.topology.gyroid_differentiation import GyroidFlowConstraint, ForbiddenSmoothingChecker
 from src.core.continuous_coprimality import ContinuousCoprimality
 from src.core.meta_invariant import MetaInvariant
-from src.core.orchestrator import UniversalOrchestrator
 # Phase 1: Garbled Output Repair Components
 from src.core.spectral_coherence_repair import SpectralCoherenceCorrector, BezoutCoefficientRefresh
 from src.core.chern_simons_gasket import ChernSimonsGasket, SolitonStabilityHealer
@@ -306,6 +305,7 @@ class GyroidicFluxReasoner(nn.Module):
         )
         
         # Phase 4: Universal Orchestration (Deep Dynamics)
+        from src.core.orchestrator import UniversalOrchestrator
         self.orchestrator = UniversalOrchestrator(dim=hidden_dim)
 
         # Phase 1: Garbled Output Repair System
@@ -479,7 +479,7 @@ class GyroidicFluxReasoner(nn.Module):
             if self.sparse_explorer is not None:
                 # 1. Scout violations
                 scout_results = self.gyroid_probe.scout_violations(h, return_indices=True)
-                mean_violation = scout_results['deviation_magnitudes']
+                mean_violation = scout_results['deviation_magnitudes'].mean()
                 violation_indices = scout_results.get('violation_indices', [])
                 
                 if len(violation_indices) > 0:
@@ -610,9 +610,64 @@ class GyroidicFluxReasoner(nn.Module):
         expected_symbols = self.embedder.compute_expected_residues(residue_distributions) 
         symbolic_pressure = self.selection_pressure_fn(expected_symbols.mean(dim=-1))
         
-        selection_pressure = reconstruction_pressure_pre.mean() + symbolic_pressure
+        selection_pressure_val = reconstruction_pressure_pre.mean() + symbolic_pressure
+
+        # 3c. CRT Violation Detection & Graph Construction
+        # Measures symbolic reconstruction fidelity
+        violations, pressures = self.crt_kernel.detect_violations(
+            self.crt, residue_distributions, anchors
+        )
         
-        # 3b. Universal Orchestration Check
+        # Build constraint graph and find cycles
+        constraint_graph = self.crt_kernel.build_constraint_graph(
+            residue_distributions, violations
+        )
+        cycles = self.crt_kernel.find_cycles(constraint_graph)
+        
+        # 3d. Introspection (for Coherence)
+        introspection_results = {}
+        introspection_coherence = None
+        if self.use_introspection:
+            h_pooled = h.squeeze(1) if h.shape[1] == 1 else h.mean(dim=1)
+            introspection_results = self.introspection(h_pooled, gcve_pressure=total_topological_pressure)
+            if 'moral' in introspection_results:
+                moral_directions = introspection_results['moral']
+                introspection_coherence = self.introspection.probe_head.compute_coherence(
+                    moral_directions
+                )
+
+        # 3e. Pressure Calculations
+        # CRT Consistency Pressure
+        if self.learnable_weights:
+            crt_pressure = self.crt.compute_decoupled_normalization(residue_distributions, anchors)
+        else:
+            crt_pressure = reconstruction_pressure_pre.mean()
+            
+        # Homology Pressure: Detects obstructive cycles in the residue kernel
+        homology_pressure = self.homology_pressure_fn(
+            cycles=cycles,
+            errors=pressures,
+            introspection_coherence=introspection_coherence
+        )
+        
+        # Invariant Pressure: Maximizes functional diversity/orthogonality
+        invariant_pressure = self.poly_config.orthogonality_pressure()
+        
+        # Gyroid Violation Pressure: Detects local manifold defects
+        gyroid_pressure = mean_violation.mean() if 'mean_violation' in locals() else torch.tensor(0.0, device=h.device)
+        
+        # Selection Pressure (S_Symbolic): Survival of the symbolic configuration
+        # Note: KL Pressure computed later if resonance active, using placeholder here if needed
+        selection_pressure_total = crt_pressure + 0.1 * invariant_pressure
+        
+        # Containment Pressure (C_Repair): Structural tension in the physical embedding
+        h_drift, h_trigger = self.homology_drift_tracker(constraint_graph)
+        containment_pressure_total = 0.1 * homology_pressure + 0.01 * gyroid_pressure + 0.5 * h_drift
+
+        # Real Pressure Gradient: Gradient of the containment pressure w.r.t the state
+        pressure_grad = torch.autograd.grad(containment_pressure_total.sum(), h, retain_graph=True)[0]
+        
+        # 3f. Universal Orchestration Check
         # Orchestrate logic based on current topological pressure and PAS_h
         # Calculate real PAS_h from symbolic residues
         with torch.no_grad():
@@ -620,9 +675,6 @@ class GyroidicFluxReasoner(nn.Module):
              # Calculate real coherence across functionals
              norm_symbols = raw_residues / (torch.norm(raw_residues, dim=-1, keepdim=True) + 1e-8)
              coherence_val = torch.norm(norm_symbols.mean(dim=1), dim=-1)
-
-        # Real Pressure Gradient: Gradient of the containment pressure w.r.t the state
-        pressure_grad = torch.autograd.grad(containment_pressure_total, h, retain_graph=True)[0]
         
         # Anti-Lobotomy: Calculate Manifold Atrophy (Spectral Collapse)
         atrophy_val = 0.0
@@ -642,6 +694,11 @@ class GyroidicFluxReasoner(nn.Module):
             atrophy=atrophy_val
         )
         h = h_orchestrated # Apply logical primitives
+        
+        # Collect orchestrator diagnostics
+        metrics_from_board = self.orchestrator.bulletin_board.read_metrics()
+        nav_mode = metrics_from_board.get('nav_mode', 'VOID')
+        archetype_leak = metrics_from_board.get('archetype_leak', 0.0)
         
         # 3e. Quantization & Shell Tracking
         # Use CAQ to track Matrioshka shell depth and apply per-axis step sizes
@@ -736,35 +793,11 @@ class GyroidicFluxReasoner(nn.Module):
             )
             crt_diagnostics = {}
         
-        reconstruction_pressure = self.crt.compute_reconstruction_pressure(
-            residue_distributions, anchors, group_ids
-        )
-        
-        # 5. Detect CRT kernel violations
-        violations, pressures = self.crt_kernel.detect_violations(
-            self.crt, residue_distributions, anchors
-        )
-        
-        # Build constraint graph and find cycles
-        constraint_graph = self.crt_kernel.build_constraint_graph(
-            residue_distributions, violations
-        )
-        cycles = self.crt_kernel.find_cycles(constraint_graph)
         
         # 6. Geometric introspection (optional)
         introspection_results = {}
         introspection_coherence = None
         
-        if self.use_introspection:
-            h_pooled = h.squeeze(1) if h.shape[1] == 1 else h.mean(dim=1)
-            introspection_results = self.introspection(h_pooled, gcve_pressure=total_topological_pressure)
-            
-            # Compute coherence for moral probe (example)
-            if 'moral' in introspection_results:
-                moral_directions = introspection_results['moral']
-                introspection_coherence = self.introspection.probe_head.compute_coherence(
-                    moral_directions
-                )
         
         # 7. Resonance cavity update (optional, GDPO-enhanced + GCVE)
         cavity_outputs = {}
@@ -798,34 +831,17 @@ class GyroidicFluxReasoner(nn.Module):
             cavity_outputs = self.resonance_cavity(
                 h,
                 introspection_directions=introspection_dir,
+                nav_mode=nav_mode,
+                archetype_leak=archetype_leak,
                 expected_residues=expected_residues,
-                gcve_pressures=gcve_pressures, # Feed GCVE scores here
-                reconstruction_pressure=reconstruction_pressure,
-                refined_residues=refined_residues, # System 2 Ground Truth
+                gcve_pressures=gcve_pressures,
+                reconstruction_pressure=reconstruction_pressure_pre,
+                refined_residues=refined_residues,
                 instability_severity=instability_severity
             )
             memory_state = cavity_outputs['memory_state']
         
-        # 8. Pressure Calculations (Replacing legacy teleological 'Loss')
-        
-        # CRT Consistency Pressure: Measures symbolic reconstruction fidelity
-        if self.learnable_weights:
-            crt_pressure = self.crt.compute_decoupled_normalization(residue_distributions, anchors)
-        else:
-            crt_pressure = reconstruction_pressure.mean()
-            
-        # Homology Pressure: Detects obstructive cycles in the residue kernel
-        homology_pressure = self.homology_pressure_fn(
-            cycles=cycles,
-            errors=pressures,
-            introspection_coherence=introspection_coherence
-        )
-        
-        # Invariant Pressure: Maximizes functional diversity/orthogonality
-        invariant_pressure = self.poly_config.orthogonality_pressure()
-        
-        # Gyroid Violation Pressure: Detects local manifold defects
-        gyroid_pressure = mean_violation.mean()
+        # 8. Pressure Finalization
         
         # KL Pressure: Measures drift from the Resonance Cavity's heritable trust
         kl_pressure = torch.tensor(0.0, device=h.device)
@@ -838,12 +854,8 @@ class GyroidicFluxReasoner(nn.Module):
             else:
                 kl_pressure = torch.norm(expected_residues - expected_residues.mean(dim=0), p=2).mean()
 
-        # Selection Pressure (S_Symbolic): Survival of the symbolic configuration
-        selection_pressure_total = crt_pressure + self.kl_weight * kl_pressure + 0.1 * invariant_pressure
-        
-        # Containment Pressure (C_Repair): Structural tension in the physical embedding
-        h_drift, h_trigger = self.homology_drift_tracker(constraint_graph)
-        containment_pressure_total = 0.1 * homology_pressure + 0.01 * gyroid_pressure + 0.5 * h_drift
+        # Update Selection Pressure with KL term
+        selection_pressure_total = selection_pressure_total + self.kl_weight * kl_pressure
         
         # NOTE: total_pressure REMOVED to prevent teleological scalarization.
         # Pressures must remain independent domain tripwires.
@@ -912,7 +924,9 @@ class GyroidicFluxReasoner(nn.Module):
             'soliton_healing_diagnostics': self.soliton_healer.get_diagnostics(),
             'love_diagnostics': love_diagnostics,
             'soft_gates_diagnostics': self.soft_gates.get_diagnostics(),
-            'shadow_logs': self.orchestrator.pop_shadow_logs() if hasattr(self.orchestrator, 'pop_shadow_logs') else []
+            'shadow_logs': self.orchestrator.pop_shadow_logs() if hasattr(self.orchestrator, 'pop_shadow_logs') else [],
+            'nav_mode': nav_mode,
+            'archetype_leak': archetype_leak
         }
         
         if return_analysis:
