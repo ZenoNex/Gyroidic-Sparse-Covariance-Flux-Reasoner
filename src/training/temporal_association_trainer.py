@@ -258,6 +258,13 @@ class TemporalAssociationTrainer:
         
         self.unknowledge_domain = UnknowledgeDomain(tau_m=0.5)
         
+        # Restore architectural probes erased in previous iterations
+        from src.topology.unknowledge_domain import NostalgicLeakFunctional, EntropicMischiefProbe
+        from src.core.nondual_admm import NonDualProbe
+        self.mischief_probe = EntropicMischiefProbe(device=device)
+        self.nondual_probe = NonDualProbe(device=device)
+        self.nostalgic_leak = NostalgicLeakFunctional(fossil_dim=64, device=device)
+
         # Asynchronous Bulletin Board
         self.bulletin_board = BulletinBoard(size=model.dim, device=device)
         
@@ -446,6 +453,25 @@ class TemporalAssociationTrainer:
         jitter_ground = harvest_honest_jitter((1,), device=self.device, scaled=True).item() * 0.05
         v_m = torch.clamp(torch.tensor(v_m + jitter_ground), min=-50.0, max=50.0).item()
         
+        # --- NON-DUAL REFINEMENT & LEAK MONITORING ---
+        if self.nostalgic_leak is not None:
+            # Monitor archetype leaks across the sequence
+            # Use orchestrated 'state' if available for more honest monitoring
+            leak_signals = [self.nostalgic_leak(out.get('state', out.get('reconstruction', torch.zeros(1, device=self.device))).mean(dim=0).unsqueeze(0)) for out in sequence_outputs]
+            avg_leak = torch.stack(leak_signals).mean().item()
+            final_output['archetype_leak'] = avg_leak
+
+        if self.nondual_probe is not None and v_m < 0:
+            # System 2 refinement via Non-Dual Probe
+            # We refine the final state based on mischief energy
+            h_final = final_output.get('state', final_output.get('reconstruction', torch.zeros(1, device=self.device)))
+            h_refined = self.nondual_probe(
+                residues=h_final,
+                constraints=h_final, # Self-consistency probe
+                h_mischief=torch.tensor([h_mischief], device=self.device)
+            )
+            final_output['nondual_refinement'] = torch.norm(h_refined - h_final).item()
+
         # Post to Bulletin Board for System 2 asynchronous retrieval
         self.bulletin_board.post_residue(final_output.get('residue_distributions', torch.zeros(1, device=self.device)).mean(dim=0).mean(dim=0))
         
