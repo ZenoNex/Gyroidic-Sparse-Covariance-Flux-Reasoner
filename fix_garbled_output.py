@@ -23,7 +23,7 @@ try:
     from core.chern_simons_gasket import ChernSimonsGasket, SolitonStabilityHealer
     from core.love_invariant_protector import SoftSaturatedGates
 except ImportError as e:
-    print(f"❌ Import error: {e}")
+    print(f"[ERR] Import error: {e}")
     print("Make sure you're running from the project root directory")
     sys.exit(1)
 
@@ -31,8 +31,9 @@ except ImportError as e:
 class GarbledOutputFixer:
     """Quick fixer for garbled outputs."""
     
-    def __init__(self, device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'):
-        self.device = device
+    def __init__(self, device = None):
+        from src.core import DEVICE
+        self.device = device if device else DEVICE
         
         # Initialize repair components
         self.spectral_corrector = SpectralCoherenceCorrector(device=device)
@@ -40,7 +41,7 @@ class GarbledOutputFixer:
         self.healer = SolitonStabilityHealer(device=device)
         self.soft_gates = SoftSaturatedGates(5, 3, device=device)  # Default sizes
         
-        print(f"🔧 Garbled Output Fixer initialized on {device}")
+        print(f" Garbled Output Fixer initialized on {device}")
     
     def analyze_garbled_text(self, text):
         """Analyze garbled text to identify issues."""
@@ -99,7 +100,7 @@ class GarbledOutputFixer:
     
     def apply_spectral_fix(self, text, residues):
         """Apply spectral coherence fix."""
-        print("  🔍 Applying spectral coherence correction...")
+        print("   Applying spectral coherence correction...")
         
         # Check for consonant clustering
         clustering = self.spectral_corrector.detect_consonant_clustering(text)
@@ -115,7 +116,7 @@ class GarbledOutputFixer:
     
     def apply_chern_simons_fix(self, residues):
         """Apply Chern-Simons gasket fix."""
-        print("  🌀 Applying Chern-Simons gasket...")
+        print("  [GYROID] Applying Chern-Simons gasket...")
         
         # Use proper polynomial co-prime functional system (anti-lobotomy)
         K, D = residues.shape[-2:]
@@ -163,7 +164,7 @@ class GarbledOutputFixer:
     
     def apply_soft_gates(self, residues):
         """Apply soft saturated gates."""
-        print("  🚪 Applying soft saturated gates...")
+        print("   Applying soft saturated gates...")
         
         # Use low PAS_h to indicate incoherent state
         pas_h = 0.2
@@ -199,22 +200,22 @@ class GarbledOutputFixer:
     
     def fix_garbled_output(self, garbled_text):
         """Main method to fix garbled output."""
-        print(f"\n🔧 Fixing garbled output: '{garbled_text}'")
+        print(f"\n Fixing garbled output: '{garbled_text}'")
         print("=" * 60)
         
         # Analyze the problem
         analysis = self.analyze_garbled_text(garbled_text)
-        print(f"📊 Analysis: {analysis}")
+        print(f"[METRICS] Analysis: {analysis}")
         
         if 'error' in analysis:
             return garbled_text
         
         # Convert to residues for processing
         residues = self.simulate_residues_from_text(garbled_text)
-        print(f"📐 Simulated residues shape: {residues.shape}")
+        print(f" Simulated residues shape: {residues.shape}")
         
         # Apply fixes in sequence
-        print("\n🔄 Applying repair sequence:")
+        print("\n Applying repair sequence:")
         
         # 1. Spectral coherence fix
         residues = self.apply_spectral_fix(garbled_text, residues)
@@ -231,7 +232,7 @@ class GarbledOutputFixer:
         # Convert back to text hint
         repaired_hint = self.residues_to_text_hint(residues)
         
-        print(f"\n✅ Repair complete!")
+        print(f"\n[OK] Repair complete!")
         print(f"Original: {garbled_text}")
         print(f"Repaired hint: {repaired_hint}")
         
@@ -258,7 +259,7 @@ def main():
             "qwrtypsdfghjklzxcvbnm"
         ]
         
-        print("🧪 Running test repair sequence")
+        print("[TEST] Running test repair sequence")
         print("=" * 60)
         
         for i, test_case in enumerate(test_cases, 1):
@@ -271,7 +272,7 @@ def main():
     
     else:
         # Interactive mode
-        print("🔧 Garbled Output Fixer - Interactive Mode")
+        print(" Garbled Output Fixer - Interactive Mode")
         print("Enter garbled text to fix (or 'quit' to exit):")
         
         while True:
@@ -282,7 +283,7 @@ def main():
                 if user_input:
                     fixer.fix_garbled_output(user_input)
             except KeyboardInterrupt:
-                print("\n👋 Goodbye!")
+                print("\n Goodbye!")
                 break
 
 
