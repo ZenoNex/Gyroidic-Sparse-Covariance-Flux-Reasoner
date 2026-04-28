@@ -70,6 +70,7 @@ class CODESConstraintFramework(nn.Module):
             basis_type='chebyshev',
             learnable=True,
             device = str(DEVICE)
+        )
         
     def add_constraint(self, constraint_id: int, constraint_type: str = 'quadratic'):
         """Add a new constraint to the system."""
