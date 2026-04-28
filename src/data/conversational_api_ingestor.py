@@ -42,6 +42,7 @@ from src.data.google_client_manager import GoogleClientManager
 from src.data.google_drive_ingestor import GoogleDriveIngestor
 from src.data.google_cloud_ingestor import GoogleCloudIngestor
 from src.data.local_dataset_ingestor import LocalDatasetIngestor
+from src.core import DEVICE
 
 
 # Type definitions and utilities
@@ -91,9 +92,9 @@ class HuggingFaceConversationalIngestor:
     - UltraChat collections
     """
     
-    def __init__(self, hf_token: Optional[str] = None, device: str = 'cpu'):
+    def __init__(self, hf_token: Optional[str] = None, device: Any = None):
         self.hf_token = hf_token or os.getenv('HF_TOKEN')
-        self.device = device
+        self.device = device if device is not None else DEVICE
         self.base_url = "https://huggingface.co/api"
         
         # Headers for API requests
@@ -316,11 +317,11 @@ class RedditConversationalIngestor:
     Extracts threaded comment structures as multi-turn conversations.
     """
     
-    def __init__(self, client_id: str, client_secret: str, user_agent: str, device: str = 'cpu'):
+    def __init__(self, client_id: str, client_secret: str, user_agent: str, device: Any = None):
         self.client_id = client_id
         self.client_secret = client_secret
         self.user_agent = user_agent
-        self.device = device
+        self.device = device if device is not None else DEVICE
         self.access_token = None
         self.base_url = "https://oauth.reddit.com"
     
@@ -556,8 +557,8 @@ class ConvoKitIngestor:
     Provides access to multiple labeled conversational corpora.
     """
     
-    def __init__(self, device: str = 'cpu'):
-        self.device = device
+    def __init__(self, device: Any = None):
+        self.device = device if device is not None else DEVICE
         self.available_corpora = [
             'conversations-gone-awry-corpus',
             'persuasionforgood-corpus',
@@ -648,8 +649,8 @@ class ConversationalDataProcessor:
     - Constraint geometry creation
     """
     
-    def __init__(self, device: str = 'cpu'):
-        self.device = device
+    def __init__(self, device: Any = None):
+        self.device = device if device is not None else DEVICE
         
         # Initialize pressure ingestor for constraint generation
         self.pressure_ingestor = PressureIngestor(device=device)
@@ -790,8 +791,8 @@ class ConversationalAPIIngestor:
     Coordinates different ingestors and provides unified interface.
     """
     
-    def __init__(self, device: str = 'cpu', cache_dir: str = './data/conversational_cache'):
-        self.device = device
+    def __init__(self, device: Any = None, cache_dir: str = './data/conversational_cache'):
+        self.device = device if device is not None else DEVICE
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         
@@ -1000,7 +1001,7 @@ class ConversationalAPIIngestor:
         }
 
 
-def create_conversational_ingestor(device: str = 'cpu') -> ConversationalAPIIngestor:
+def create_conversational_ingestor(device: Any = None) -> ConversationalAPIIngestor:
     """Create and configure conversational API ingestor."""
     return ConversationalAPIIngestor(device=device)
 
@@ -1059,9 +1060,9 @@ class SovereignConversationalIngestor:
         google_secrets_path: Optional[str] = None,
         fossilizer: Optional[Any] = None,
         router: Optional[Any] = None,
-        device: str = 'cpu'
+        device: Any = None
     ):
-        self.device = device
+        self.device = device if device is not None else DEVICE
         self.fossilizer = fossilizer
         self.router = router # Access to ZeitgeistRouter for Valence checks
         
@@ -1168,7 +1169,7 @@ class SovereignConversationalIngestor:
                 # Create Dyad for fossilization
                 from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
                 dyad = KnowledgeDyad(
-                    image_fingerprint=torch.zeros(137, device=self.device), # Placeholder
+                    image_fingerprint=torch.zeros(96, device=self.device), # Placeholder
                     linguistic_description=desc,
                     relevance_score=0.8,
                     metadata=convo.context
