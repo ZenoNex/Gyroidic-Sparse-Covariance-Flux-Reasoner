@@ -95,6 +95,76 @@ class TrainingConfig:
     save_checkpoints: bool = True
     checkpoint_interval: int = 5
 
+class SovereignDynamicDataset(torch.utils.data.Dataset):
+    """
+    Sovereign Dynamic Dataset: Loads samples on-demand from disk.
+    
+    Architecture:
+    - manifest.json: Metadata and chunk index
+    - chunks/: Subdirectory containing .pt chunk files (e.g., 1000 samples each)
+    
+    This prevents VRAM/RAM pressure by avoiding loading the entire dataset at once.
+    """
+    def __init__(self, dataset_path: Path):
+        self.dataset_path = Path(dataset_path)
+        manifest_path = self.dataset_path / "manifest.json"
+        
+        if not manifest_path.exists():
+            # Legacy support: if manifest doesn't exist, we might have a single .pt file
+            legacy_path = self.dataset_path / "processed_data.pt"
+            if legacy_path.exists():
+                print(f"   [WARN] Legacy dataset detected at {legacy_path}. Loading into memory (one last time).")
+                self.data = torch.load(legacy_path)
+                self.num_samples = len(self.data)
+                self.is_legacy = True
+            else:
+                # Check for synthetic datasets (might not have files)
+                self.data = []
+                self.num_samples = 0
+                self.is_legacy = True
+        else:
+            with open(manifest_path, 'r') as f:
+                self.manifest = json.load(f)
+            self.num_samples = self.manifest['num_samples']
+            self.samples_per_chunk = self.manifest['samples_per_chunk']
+            self.num_chunks = self.manifest['num_chunks']
+            self._current_chunk_idx = -1
+            self._current_chunk_data = None
+            self.is_legacy = False
+            self.data = None
+
+    def __len__(self):
+        return self.num_samples
+
+    def __getitem__(self, idx):
+        if self.is_legacy:
+            if idx < len(self.data):
+                return self.data[idx]
+            return {}
+            
+        chunk_idx = idx // self.samples_per_chunk
+        intra_idx = idx % self.samples_per_chunk
+        
+        # Security check
+        if chunk_idx >= self.num_chunks:
+            return {}
+
+        if chunk_idx != self._current_chunk_idx:
+            chunk_path = self.dataset_path / "chunks" / f"chunk_{chunk_idx}.pt"
+            if chunk_path.exists():
+                self._current_chunk_data = torch.load(chunk_path)
+                self._current_chunk_idx = chunk_idx
+            else:
+                return {}
+            
+        if self._current_chunk_data and intra_idx < len(self._current_chunk_data):
+            return self._current_chunk_data[intra_idx]
+        return {}
+
+    def __iter__(self):
+        for i in range(self.num_samples):
+            yield self.__getitem__(i)
+
 class DatasetIngestionSystem:
     """
     Main system for dataset ingestion and training.
@@ -146,6 +216,41 @@ class DatasetIngestionSystem:
         print(f"   Data directory: {self.data_dir}")
         print(f"   Anti-lobotomy compliance: [OK] ACTIVE")
     
+    def _save_dynamic_dataset(self, samples: List[Dict], dataset_path: Path, config: DatasetConfig, samples_per_chunk: int = 1000):
+        """Save dataset in chunks with a manifest for dynamic loading."""
+        chunks_dir = dataset_path / "chunks"
+        chunks_dir.mkdir(exist_ok=True, parents=True)
+        
+        num_samples = len(samples)
+        num_chunks = (num_samples + samples_per_chunk - 1) // samples_per_chunk
+        
+        print(f"   [DISK] Saving {num_samples} samples into {num_chunks} chunks (dynamic loading enabled)...")
+        
+        for i in range(num_chunks):
+            chunk = samples[i*samples_per_chunk : (i+1)*samples_per_chunk]
+            chunk_path = chunks_dir / f"chunk_{i}.pt"
+            torch.save(chunk, chunk_path)
+            if (i+1) % 10 == 0 or i == num_chunks - 1:
+                print(f"   [DISK] Progress: {i+1}/{num_chunks} chunks saved")
+                
+        # Save manifest
+        manifest = {
+            'num_samples': num_samples,
+            'num_chunks': num_chunks,
+            'samples_per_chunk': samples_per_chunk,
+            'timestamp': time.time(),
+            'config': {
+                'name': config.name,
+                'source_type': config.source_type,
+                'preprocessing': config.preprocessing
+            }
+        }
+        
+        with open(dataset_path / "manifest.json", 'w') as f:
+            json.dump(manifest, f, indent=4)
+            
+        print(f"   [OK] Dataset manifest saved to {dataset_path / 'manifest.json'}")
+
     def add_dataset_source(self, config: DatasetConfig) -> bool:
         """Add a dataset source for ingestion."""
         print(f"\n[DATA] Adding dataset: {config.name}")
@@ -224,9 +329,9 @@ class DatasetIngestionSystem:
                 return samples
             
             # Save processed dataset
-            torch.save(samples, dataset_path / "processed_data.pt")
+            self._save_dynamic_dataset(samples, dataset_path, config)
             
-            print(f"[OK] HuggingFace dataset loaded: {len(samples)} samples")
+            print(f"[OK] HuggingFace dataset loaded and chunked: {len(samples)} samples")
             return True
             
         except Exception as e:
@@ -270,7 +375,19 @@ class DatasetIngestionSystem:
                 zip_files[0].unlink()  # Remove zip file
             
             print(f"[OK] Kaggle dataset downloaded to {dataset_path}")
-            return True
+            
+            # Now process the downloaded files locally
+            local_config = DatasetConfig(
+                name=config.name,
+                source_type='local',
+                source_path=str(dataset_path),
+                preprocessing=config.preprocessing,
+                max_samples=config.max_samples,
+                augmentation=config.augmentation,
+                mandelbulb_augmentation=config.mandelbulb_augmentation,
+                manifold_aware=getattr(config, 'manifold_aware', False)
+            )
+            return self._ingest_local_dataset(local_config)
         
         except Exception as e:
             print(f"[ERR] Kaggle ingestion failed: {e}")
@@ -350,10 +467,10 @@ class DatasetIngestionSystem:
             
             # Save dataset
             dataset_path = self.data_dir / config.safe_name
-            dataset_path.mkdir(exist_ok=True)
-            torch.save(samples, dataset_path / "processed_data.pt")
+            dataset_path.mkdir(exist_ok=True, parents=True)
+            self._save_dynamic_dataset(samples, dataset_path, config)
             
-            print(f"[OK] Wikipedia dataset created: {len(samples)} articles")
+            print(f"[OK] Wikipedia dataset created and chunked: {len(samples)} articles")
             return True
             
         except Exception as e:
@@ -403,16 +520,11 @@ class DatasetIngestionSystem:
             
             # Save processed dataset
             dataset_path = self.data_dir / config.safe_name
-            dataset_path.mkdir(exist_ok=True)
+            dataset_path.mkdir(exist_ok=True, parents=True)
             
-            save_path = dataset_path / "processed_data.pt"
-            print(f"   [DISK] Saving {len(total_samples)} samples to {save_path} (this may take a moment)...")
-            start_save = time.time()
-            torch.save(total_samples, save_path)
-            end_save = time.time()
-            print(f"   [OK] Saved in {end_save - start_save:.2f} seconds.")
+            self._save_dynamic_dataset(total_samples, dataset_path, config)
             
-            print(f"[OK] Local dataset loaded: {len(total_samples)} samples")
+            print(f"[OK] Local dataset loaded and chunked: {len(total_samples)} samples")
             return True
             
         except Exception as e:
@@ -464,7 +576,19 @@ class DatasetIngestionSystem:
                 file_path.unlink()  # Remove compressed file
             
             print(f"[OK] URL dataset downloaded to {dataset_path}")
-            return True
+            
+            # Now process the downloaded files locally
+            local_config = DatasetConfig(
+                name=config.name,
+                source_type='local',
+                source_path=str(dataset_path),
+                preprocessing=config.preprocessing,
+                max_samples=config.max_samples,
+                augmentation=config.augmentation,
+                mandelbulb_augmentation=config.mandelbulb_augmentation,
+                manifold_aware=getattr(config, 'manifold_aware', False)
+            )
+            return self._ingest_local_dataset(local_config)
             
         except Exception as e:
             print(f"[FAIL] URL ingestion failed: {e}")
@@ -574,9 +698,9 @@ class DatasetIngestionSystem:
                 print(f"[WARN] Portal ingestion resulted in 0 samples")
                 return False
                 
-            # Final save of combined data
-            torch.save(combined_samples, dataset_path / "processed_data.pt")
-            print(f"[OK] Portal ingestion complete: {len(combined_samples)} total samples saved to {dataset_path}")
+            # Final save of combined data dynamically
+            self._save_dynamic_dataset(combined_samples, dataset_path, config)
+            print(f"[OK] Portal ingestion complete and chunked: {len(combined_samples)} total samples saved to {dataset_path}")
             return True
             
         except Exception as e:
@@ -941,14 +1065,9 @@ class DatasetIngestionSystem:
             model = self.models[model_name]
             dataset_config = self.datasets[dataset_name]
             
-            # Load processed dataset
-            dataset_path = self.data_dir / dataset_config.safe_name / "processed_data.pt"
-            if not dataset_path.exists():
-                print(f"[FAIL] Processed dataset not found: {dataset_path}")
-                return False
-            
-            processed_data = torch.load(dataset_path)
-            print(f"   Loaded {len(processed_data)} samples")
+            # Load dataset dynamically to reduce VRAM pressure
+            processed_data = SovereignDynamicDataset(self.data_dir / dataset_config.safe_name)
+            print(f"   [DYNAMIC] Loaded dataset with {len(processed_data)} samples (On-demand loading active)")
             
             # Create dataset wrapper
             if training_config.model_type == 'temporal':
