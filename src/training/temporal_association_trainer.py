@@ -263,7 +263,7 @@ class TemporalAssociationTrainer:
         from src.core.nondual_admm import NonDualProbe
         self.mischief_probe = EntropicMischiefProbe(device=device)
         self.nondual_probe = NonDualProbe(device=device)
-        self.nostalgic_leak = NostalgicLeakFunctional(fossil_dim=64, device=device)
+        self.nostalgic_leak = NostalgicLeakFunctional(fossil_dim=model.dim, device=device)
 
         # Asynchronous Bulletin Board
         self.bulletin_board = BulletinBoard(size=model.dim, device=device)
