@@ -32,6 +32,7 @@ from datetime import datetime
 import requests
 
 # Core imports
+from src.core.device_utils import DEVICE
 from src.data.conversational_api_ingestor import ConversationalAPIIngestor
 from examples.conversational_api_training import ConversationalTemporalModel, ConversationalAPITrainer
 
@@ -234,24 +235,24 @@ class ConversationalGUI:
         
         instructions_text = """
 1. Get your Hugging Face token:
-   • Go to https://huggingface.co/settings/tokens
-   • Create a new token with 'Read' permissions
-   • Copy the token (starts with 'hf_')
+    Go to https://huggingface.co/settings/tokens
+    Create a new token with 'Read' permissions
+    Copy the token (starts with 'hf_')
 
 2. Accept dataset agreements:
-   • Visit each dataset page in the 'Dataset Access' tab
-   • Click 'Accept' on the dataset agreement
-   • This is required for restricted datasets
+    Visit each dataset page in the 'Dataset Access' tab
+    Click 'Accept' on the dataset agreement
+    This is required for restricted datasets
 
 3. Test your setup:
-   • Enter your token above and click 'Test Token'
-   • Check dataset access in the next tab
-   • Start data ingestion when ready
+    Enter your token above and click 'Test Token'
+    Check dataset access in the next tab
+    Start data ingestion when ready
 
 4. Security:
-   • Tokens are never stored in code
-   • Optional local storage with file permissions
-   • Clear token when done for security
+    Tokens are never stored in code
+    Optional local storage with file permissions
+    Clear token when done for security
         """
         
         instructions_label = ttk.Label(instructions_frame, text=instructions_text, justify=tk.LEFT)
@@ -520,20 +521,20 @@ class ConversationalGUI:
 Dataset Agreement Guide:
 
 1. LMSYS Chat 1M:
-   • Go to: https://huggingface.co/datasets/lmsys/lmsys-chat-1m
-   • Click "Agree and access repository"
-   • Accept the terms of use
-   • Required for conversational data
+    Go to: https://huggingface.co/datasets/lmsys/lmsys-chat-1m
+    Click "Agree and access repository"
+    Accept the terms of use
+    Required for conversational data
 
 2. OpenAssistant Conversations:
-   • Go to: https://huggingface.co/datasets/OpenAssistant/oasst2
-   • Click "Agree and access repository" if prompted
-   • Usually publicly accessible
+    Go to: https://huggingface.co/datasets/OpenAssistant/oasst2
+    Click "Agree and access repository" if prompted
+    Usually publicly accessible
 
 3. After accepting agreements:
-   • Return to this application
-   • Click "Refresh Status" to verify access
-   • Green status means ready for ingestion
+    Return to this application
+    Click "Refresh Status" to verify access
+    Green status means ready for ingestion
 
 Note: You must be logged into Hugging Face in your browser
 with the same account that created your API token.
@@ -561,16 +562,16 @@ with the same account that created your API token.
             try:
                 self.message_queue.put(('ingestion_log', f"Starting ingestion of {dataset_id}..."))
                 
-                # Create API ingestor - Force CPU usage
-                device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
+                # Create API ingestor - Respect Silicon Sovereignty
+                device = DEVICE
                 self.api_ingestor = ConversationalAPIIngestor(device=device)
                 
                 # Check if datasets library is available (but don't require it)
                 try:
                     import datasets
-                    self.message_queue.put(('ingestion_log', "✓ datasets library available - using optimized streaming"))
+                    self.message_queue.put(('ingestion_log', " datasets library available - using optimized streaming"))
                 except ImportError:
-                    self.message_queue.put(('ingestion_log', "⚠ datasets library not available - using direct HF API (still real data)"))
+                    self.message_queue.put(('ingestion_log', " datasets library not available - using direct HF API (still real data)"))
                 
                 # Ingest data (will use fallback if datasets library not available)
                 self.message_queue.put(('ingestion_log', f"Downloading {sample_size} samples..."))
@@ -622,7 +623,7 @@ Affordance Gradient Statistics:
         
         def training_thread():
             try:
-                device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'  # Force CPU usage
+                device = DEVICE
                 
                 # Create model
                 self.model = ConversationalTemporalModel(device=device)
@@ -679,7 +680,7 @@ Affordance Gradient Statistics:
         if filename:
             try:
                 import torch
-                device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'  # Force CPU usage
+                device = DEVICE
                 
                 checkpoint = torch.load(filename, map_location=device)
                 self.model = ConversationalTemporalModel(device=device)
