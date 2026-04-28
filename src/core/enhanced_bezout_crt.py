@@ -102,6 +102,7 @@ class EnhancedBezoutCRT(nn.Module):
         self.num_moduli = num_moduli
         self.stability_threshold = stability_threshold
         
+        from src.core.device_utils import DEVICE
         # Use polynomial co-prime system instead of hardcoded primes
         from src.core.polynomial_coprime import PolynomialCoprimeConfig
         self.polynomial_config = PolynomialCoprimeConfig(
@@ -109,8 +110,7 @@ class EnhancedBezoutCRT(nn.Module):
             degree=4,
             basis_type='chebyshev',
             learnable=True,
-            device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
-        )
+            device = str(DEVICE)
         
         # Generate moduli from polynomial functionals
         self.moduli = self._generate_polynomial_moduli()
