@@ -187,7 +187,7 @@ class EncodingManager:
     def get_latest_iteration(self) -> int:
         """Scans ENCODING_DIR to find the last saved iteration."""
         files = os.listdir(self.base_dir)
-        iterations = [int(f.split('_')[1]) for f in files if f.startswith('enc_') and f.endswith('.pt')]
+        iterations = [int(f.split('_')[1]) for f in files if f.startswith('encoding_') and f.endswith('.pt')]
         return max(iterations) if iterations else 0
         
     def save_encoding(self, iteration: int, text: str, input_tensor: torch.Tensor, memory_state: torch.Tensor, response: str, metrics: Dict[str, Any], multimodal_context: Optional[Dict[str, Any]] = None):
