@@ -241,10 +241,26 @@ class SparseGyroidCovarianceProbe(nn.Module):
         # Small values -> degenerate, flat; Large -> healthy hyperbolic
         geo_term = lambda_min / trace
         
-        # Combined pressure
-        pressure = topo_term + geo_term
+        # Combined score
+        return topo_term + geo_term
         
-        return pressure
+    def violation_fn(self, phi_eval: torch.Tensor) -> torch.Tensor:
+        """
+        Compute violation score from functional evaluation.
+        
+        Args:
+            phi_eval: [batch, K] functional evaluations at residue coordinates
+            
+        Returns:
+            violation: [batch] violation scores
+        """
+        # Minimal surface constraint: G(x) should be 0.
+        # Deviation from 0 indicates topological violation.
+        # We use mean absolute deviation across functionals.
+        if phi_eval.dim() > 1:
+            return torch.abs(phi_eval).mean(dim=-1)
+        else:
+            return torch.abs(phi_eval)
 
     def forward(
         self, 
