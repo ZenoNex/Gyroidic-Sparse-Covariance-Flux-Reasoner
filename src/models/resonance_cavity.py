@@ -264,7 +264,7 @@ class ResonanceCavity(nn.Module):
     Extra-cavity resonator for Heritable Trust and residue pattern memory.
     
     Update rule (Signal Sovereignty-enhanced):
-        dM/dt = -γM + Σ A_ij^H · R_ij + κ · introspection_direction + η · residue_patterns
+        dM/dt = -M +  A_ij^H  R_ij +   introspection_direction +   residue_patterns
         
     Stores:
         - Validated introspective directions (moral, creative, metacognitive)
@@ -289,10 +289,10 @@ class ResonanceCavity(nn.Module):
             hidden_dim: Dimension of hidden states
             num_modes: Number of resonant modes
             poly_config: Polynomial co-prime configuration (replaces primes)
-            decay_rate: γ, decay rate for memory
-            introspection_weight: κ, weight for introspection feedback
-            residue_weight: η, weight for residue pattern feedback
-            violation_weight: λ_v, weight for topological violation feedback
+            decay_rate: , decay rate for memory
+            introspection_weight: , weight for introspection feedback
+            residue_weight: , weight for residue pattern feedback
+            violation_weight: _v, weight for topological violation feedback
             modular: If True, maintain separate cavity per prime field
             track_residues: If True, store residue patterns for the KL prior
         """
@@ -404,10 +404,10 @@ class ResonanceCavity(nn.Module):
         # "System 2 trains System 1's memory"
         target_residues_for_storage = refined_residues if refined_residues is not None else expected_residues
         
-        # Decay term: -γM
+        # Decay term: -M
         decay_term = -self.decay_rate * self.M[field_idx]  # [num_modes, hidden_dim]
         
-        # Attention-driven excitation: Σ A_ij^H · R_ij
+        # Attention-driven excitation:  A_ij^H  R_ij
         # Compute coupling between attention states and modes
         coupling_weights = self.coupling[field_idx](
             attention_states.mean(dim=1)  # [batch, hidden_dim]
@@ -421,7 +421,7 @@ class ResonanceCavity(nn.Module):
         )  # [num_modes, hidden_dim]
         excitation = excitation / (batch_size + 1e-8)
         
-        # Introspection feedback: κ · introspection_direction
+        # Introspection feedback:   introspection_direction
         introspection_term = torch.zeros_like(self.M[field_idx])
         if introspection_directions is not None:
             # Broadcast introspection direction to all modes
@@ -430,7 +430,7 @@ class ResonanceCavity(nn.Module):
             # [1, hidden_dim] -> broadcast to [num_modes, hidden_dim]
             introspection_term = introspection_term.expand(self.num_modes, -1)
             
-        # GCVE Violation feedback: λ_v · gcve_pressures
+        # GCVE Violation feedback: _v  gcve_pressures
         # High violation -> amplify "defect modes" to force attention to resolve topology
         violation_term = torch.zeros_like(self.M[field_idx])
         if gcve_pressures is not None:
@@ -447,7 +447,7 @@ class ResonanceCavity(nn.Module):
              # (In a full version, this would be mode-specific, but isotropic is a good start)
              violation_term = self.violation_weight * mean_violation * torch.ones_like(self.M[field_idx])
         
-        # Residue pattern feedback: η · residue_patterns (Symbolic Hashing)
+        # Residue pattern feedback:   residue_patterns (Symbolic Hashing)
         # INSTABILITY GATING: Do not memorize patterns if system is in topological panic!
         if self.track_residues and target_residues_for_storage is not None and instability_severity < 0.5:
             # Store high-quality residue patterns (low reconstruction pressure)
@@ -537,12 +537,12 @@ class ResonanceCavity(nn.Module):
         """
         Prime-Anchored Harmonic Field (RIC Eq 5).
         
-        F(t) = Σ_{n=1}^{N} a_n · sin(2π · p_n · t + φ_n)
+        F(t) = _{n=1}^{N} a_n  sin(2  p_n  t + _n)
         
         where:
             a_n: Amplitude derived from cavity mode energy (evolved, not learned)
             p_n: n-th prime number (via PrimeResonanceLadder)
-            φ_n: Phase offset (derived from memory state, accumulates like Berry phase)
+            _n: Phase offset (derived from memory state, accumulates like Berry phase)
         
         This field is the "carrier wave" of the system's cognitive state.
         Peaks at certain prime harmonics correspond to activated concept clusters.
@@ -560,7 +560,7 @@ class ResonanceCavity(nn.Module):
         if field_idx >= self.K:
             field_idx = 0
         
-        # Get prime frequencies: f_{p_n} = 2π·ln(p_n)
+        # Get prime frequencies: f_{p_n} = 2ln(p_n)
         ladder = PrimeResonanceLadder(num_resonators=num_harmonics)
         freqs, rep_mirrors, status = ladder.forward()
         freqs = freqs.to(self.M.device)  # [num_harmonics]
@@ -570,7 +570,7 @@ class ResonanceCavity(nn.Module):
         M_field = self.M[field_idx]  # [num_modes, hidden_dim]
         mode_energies = torch.norm(M_field, dim=-1)  # [num_modes]
         
-        # Map num_modes → num_harmonics via adaptive pooling or truncation
+        # Map num_modes  num_harmonics via adaptive pooling or truncation
         if mode_energies.shape[0] >= num_harmonics:
             amplitudes = mode_energies[:num_harmonics]
         else:
@@ -582,7 +582,7 @@ class ResonanceCavity(nn.Module):
             amplitudes = torch.cat([mode_energies, padding])
         
         # Derive phase offsets from memory state structure
-        # φ_n = angle of mean of n-th mode vector (Berry-like accumulated phase)
+        # _n = angle of mean of n-th mode vector (Berry-like accumulated phase)
         phases = torch.zeros(num_harmonics, device=self.M.device)
         for n in range(min(num_harmonics, self.num_modes)):
             mode_vec = M_field[n]  # [hidden_dim]
@@ -590,7 +590,7 @@ class ResonanceCavity(nn.Module):
             if mode_vec.shape[0] >= 2:
                 phases[n] = torch.atan2(mode_vec[1], mode_vec[0])
         
-        # Evaluate harmonic field: F(t) = Σ a_n · sin(f_n · t + φ_n)
+        # Evaluate harmonic field: F(t) =  a_n  sin(f_n  t + _n)
         field_value = torch.sum(amplitudes * torch.sin(freqs * t + phases))
         
         return field_value
@@ -704,7 +704,9 @@ class ResonanceCavity(nn.Module):
         multimodal_excitation: Optional[torch.Tensor] = None,
         reconstruction_pressure: Optional[torch.Tensor] = None,
         refined_residues: Optional[torch.Tensor] = None,
-        instability_severity: float = 0.0
+        instability_severity: float = 0.0,
+        nav_mode: str = 'VOID',
+        archetype_leak: float = 0.0
     ) -> Dict[str, torch.Tensor]:
         """
         Update all field cavities and return aggregated memory state.
