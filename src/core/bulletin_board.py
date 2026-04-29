@@ -52,7 +52,7 @@ class BulletinBoard(nn.Module):
         residue_flat = residue.detach().view(-1)
         self.residue_mailbox.copy_(residue_flat)
         # Store in history for micro-stepping
-        self.residue_history[self.history_idx].copy_(residue.detach())
+        self.residue_history[self.history_idx].copy_(residue_flat)
         self.history_idx = (self.history_idx + 1) % 8
         
     def read_residue(self) -> torch.Tensor:
