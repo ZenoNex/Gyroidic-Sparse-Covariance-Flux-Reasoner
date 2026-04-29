@@ -1831,44 +1831,53 @@
                 `COMMITTING AUDIO DYAD [${displayOrder}]: ${dyad.filename}` +
                 (description ? ` | "${description.substring(0, 50)}..."` : ''));
 
-            try {
-                const payload = {
-                    text: `INGEST_AUDIO_DYAD: ${dyad.filename}${description ? ' | ' + description : ''}`,
-                    audio_dyad: dyad,
-                    audio_b64: state.active_audio_b64,
-                    commutativity: commutativity
-                };
+            // UI Feedback
+            commitAudioBtn.disabled = true;
+            commitAudioBtn.innerText = 'PROCESSING...';
+            document.getElementById('audio-status').innerText = 'COMMITTING';
 
-                const response = await fetch(`${state.backend_url}/interact`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+            setTimeout(async () => {
+                try {
+                    const payload = {
+                        text: `INGEST_AUDIO_DYAD: ${dyad.filename}${description ? ' | ' + description : ''}`,
+                        audio_dyad: dyad,
+                        audio_b64: state.active_audio_b64,
+                        commutativity: commutativity
+                    };
 
-                const data = await response.json();
-                handleResponse(data);
+                    const response = await fetch(`${state.backend_url}/interact`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
 
-                const logEntry = document.createElement('div');
-                logEntry.innerText =
-                    `[${new Date().toLocaleTimeString()}] [${displayOrder}] ${dyad.filename}`;
-                audioLog.prepend(logEntry);
+                    const data = await response.json();
+                    handleResponse(data);
 
-                // Reset
-                document.getElementById('audio-description-buffer').value = '';
-                document.getElementById('audio-status').innerText = 'IDLE';
-                document.getElementById('audio-status').style.color = '#555';
-                audioDropzone.classList.remove('loaded');
-                audioDropHint.innerHTML = `DRAG AUDIO DYAD<br><span style="color:#444;">mp3 &bull; m4a &bull; wav &bull; ogg</span>`;
-                audioWaveform.style.display = 'none';
-                audioPlayerWrapper.style.display = 'none';
-                commitAudioBtn.disabled = true;
-                state.active_audio_dyad = null;
-                state.active_audio_b64 = null;
+                    const logEntry = document.createElement('div');
+                    logEntry.innerText =
+                        `[${new Date().toLocaleTimeString()}] [${displayOrder}] ${dyad.filename}`;
+                    audioLog.prepend(logEntry);
 
-            } catch (err) {
-                appendMessage('system', 'AUDIO COMMIT RUPTURE. BACKEND DISSOCIATED.');
-                console.error('Audio commit error:', err);
-            }
+                    // Reset
+                    document.getElementById('audio-description-buffer').value = '';
+                    document.getElementById('audio-status').innerText = 'IDLE';
+                    document.getElementById('audio-status').style.color = '#555';
+                    audioDropzone.classList.remove('loaded');
+                    audioDropHint.innerHTML = `DRAG AUDIO DYAD<br><span style="color:#444;">mp3 &bull; m4a &bull; wav &bull; ogg</span>`;
+                    audioWaveform.style.display = 'none';
+                    audioPlayerWrapper.style.display = 'none';
+                    state.active_audio_dyad = null;
+                    state.active_audio_b64 = null;
+
+                } catch (err) {
+                    appendMessage('system', 'AUDIO COMMIT RUPTURE. BACKEND DISSOCIATED.');
+                    console.error('Audio commit error:', err);
+                } finally {
+                    commitAudioBtn.innerText = 'COMMIT AUDIO DYAD';
+                    commitAudioBtn.disabled = !state.active_audio_dyad;
+                }
+            }, 100);
         }
 
         // Audio drop zone events
@@ -1935,29 +1944,45 @@
             
             appendMessage('user', `COMMITTING VIDEO DYAD: ${commutativity}`);
             
-            try {
-                const response = await fetch(`${state.backend_url}/interact`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                handleResponse(data);
-                
-                const logEntry = document.createElement('div');
-                logEntry.innerText = `[${new Date().toLocaleTimeString()}] Video Dyad Parsed`;
-                videoLog.prepend(logEntry);
-                
-                // Reset
-                state.active_video_dyad = null;
-                document.getElementById('video-description-buffer').value = '';
-                document.getElementById('video-status').innerText = 'IDLE';
-                document.getElementById('video-status').style.color = '#555';
-                document.querySelector('#video-dropzone div:nth-child(2)').innerHTML = `DRAG BINARY VIDEO<br><span style="color:#444;">mp4 &bull; avi</span>`;
-                commitVideoBtn.disabled = true;
-            } catch (err) {
-                appendMessage('system', 'VIDEO COMMIT RUPTURE. BACKEND DISSOCIATED.');
-            }
+            // UI Feedback: disable button and show status
+            commitVideoBtn.disabled = true;
+            commitVideoBtn.innerText = 'PROCESSING...';
+            document.getElementById('video-status').innerText = 'COMMITTING';
+            document.getElementById('video-status').style.color = 'var(--terminal-cyan)';
+
+            // Wrap in setTimeout to ensure UI paints the "COMMITTING" status before the heavy JSON.stringify
+            setTimeout(async () => {
+                try {
+                    console.log("[VIDEO_COMMIT] Initializing payload serialization...");
+                    const body = JSON.stringify(payload);
+                    console.log("[VIDEO_COMMIT] Payload ready, dispatching fetch...");
+                    
+                    const response = await fetch(`${state.backend_url}/interact`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: body
+                    });
+                    const data = await response.json();
+                    handleResponse(data);
+                    
+                    const logEntry = document.createElement('div');
+                    logEntry.innerText = `[${new Date().toLocaleTimeString()}] Video Dyad Parsed`;
+                    videoLog.prepend(logEntry);
+                    
+                    // Reset
+                    state.active_video_dyad = null;
+                    document.getElementById('video-description-buffer').value = '';
+                    document.getElementById('video-status').innerText = 'IDLE';
+                    document.getElementById('video-status').style.color = '#555';
+                    document.querySelector('#video-dropzone div:nth-child(2)').innerHTML = `DRAG BINARY VIDEO<br><span style="color:#444;">mp4 &bull; avi</span>`;
+                } catch (err) {
+                    console.error("[VIDEO_COMMIT] Rupture:", err);
+                    appendMessage('system', 'VIDEO COMMIT RUPTURE. BACKEND DISSOCIATED.');
+                } finally {
+                    commitVideoBtn.innerText = 'COMMIT VIDEO DYAD';
+                    commitVideoBtn.disabled = !state.active_video_dyad;
+                }
+            }, 100);
         }
         
         videoDropzone.onclick = () => videoFileInput.click();
