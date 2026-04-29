@@ -8,7 +8,7 @@ with Ergodic Band and prevent vowel starvation.
 import torch
 import torch.nn as nn
 from typing import Dict, Tuple, Optional
-from src.core.honest_jitter import harvest_honest_jitter
+from src.core.honest_jitter import harvest_honest_jitter, fractal_pad
 
 
 from .energy_based_soliton_healer import EnergyBasedSolitonHealer
@@ -89,6 +89,18 @@ class SpectralCoherenceCorrector(nn.Module):
         # These are learned/adapted during spectral repair
         self.omega = nn.Parameter(torch.linspace(200, 4000, 256, device=device)) # Standard speech range (Hz)
         self.phi = nn.Parameter(torch.zeros(256, device=device)) # Phase offsets
+
+    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
+        """Handle shape mismatches for spectral buffers via fractal alignment."""
+        for name in ['omega', 'phi']:
+            key = prefix + name
+            if key in state_dict:
+                val = state_dict[key]
+                target_shape = getattr(self, name).shape
+                if val.shape != target_shape:
+                    print(f" [ADAPTIVE] Aligning {name}: {val.shape} -> {target_shape}")
+                    state_dict[key] = fractal_pad(val, target_shape[-1])
+        super()._load_from_state_dict(state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs)
     
     def detect_consonant_clustering(self, output_text: str) -> bool:
         """
@@ -149,10 +161,17 @@ class SpectralCoherenceCorrector(nn.Module):
         
         # Separate bands
         soliton_fft = fft_signal.clone()
-        soliton_fft[..., low_freq_mask] = 0 if fft_dim == -1 else soliton_fft[:, low_freq_mask, :].zero_()
-        
         ergodic_fft = fft_signal.clone()
-        ergodic_fft[..., high_freq_mask] = 0 if fft_dim == -1 else ergodic_fft[:, high_freq_mask, :].zero_()
+        
+        if fft_dim == -1:
+            soliton_fft[..., low_freq_mask] = 0
+            ergodic_fft[..., high_freq_mask] = 0
+        else:
+            # Use unsqueezed masks for proper broadcasting if needed, 
+            # or use explicit dimension indexing.
+            # For [batch, seq, dim], low_freq_mask aligns with seq (dim 1)
+            soliton_fft[:, low_freq_mask, :] = 0
+            ergodic_fft[:, high_freq_mask, :] = 0
         
         soliton_band = torch.fft.ifft(soliton_fft, dim=fft_dim).real
         ergodic_band = torch.fft.ifft(ergodic_fft, dim=fft_dim).real
@@ -275,6 +294,30 @@ class BezoutCoefficientRefresh(nn.Module):
         # Drift detection
         self.register_buffer('last_residues', torch.zeros(self.K, self.D, device=self.device))
         self.drift_threshold = 0.5
+
+    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
+        """Handle shape mismatches for Bezout buffers via fractal alignment."""
+        for name in ['bezout_matrix', 'moduli', 'last_residues']:
+            key = prefix + name
+            if key in state_dict:
+                val = state_dict[key]
+                target_param = getattr(self, name, None)
+                if target_param is not None and val.shape != target_param.shape:
+                    print(f" [ADAPTIVE] Aligning {name}: {val.shape} -> {target_param.shape}")
+                    new_val = val
+                    for i in range(len(target_param.shape)):
+                        if i < len(new_val.shape) and new_val.shape[i] != target_param.shape[i]:
+                            # Transpose dimension to last, pad, transpose back
+                            if i != len(target_param.shape) - 1:
+                                dims = list(range(len(target_param.shape)))
+                                dims[i], dims[-1] = dims[-1], dims[i]
+                                new_val = new_val.permute(*dims)
+                                new_val = fractal_pad(new_val, target_param.shape[i])
+                                new_val = new_val.permute(*dims)
+                            else:
+                                new_val = fractal_pad(new_val, target_param.shape[i])
+                    state_dict[key] = new_val
+        super()._load_from_state_dict(state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs)
 
     def update_moduli(self, residues: torch.Tensor):
         """
