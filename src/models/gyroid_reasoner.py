@@ -677,7 +677,8 @@ class GyroidicFluxReasoner(nn.Module):
         )
         
         # Invariant Pressure: Maximizes functional diversity/orthogonality
-        invariant_pressure = self.poly_config.orthogonality_pressure()
+        invariant_pressure_dict = self.poly_config.orthogonality_pressure()
+        invariant_pressure = invariant_pressure_dict.get('global_entropy', torch.tensor(0.0, device=h.device)).mean()
         
         # Gyroid Violation Pressure: Detects local manifold defects
         gyroid_pressure = mean_violation.mean() if 'mean_violation' in locals() else torch.tensor(0.0, device=h.device)
@@ -691,7 +692,10 @@ class GyroidicFluxReasoner(nn.Module):
         containment_pressure_total = 0.1 * homology_pressure + 0.01 * gyroid_pressure + 0.5 * h_drift
 
         # Real Pressure Gradient: Gradient of the containment pressure w.r.t the state
-        pressure_grad = torch.autograd.grad(containment_pressure_total.sum(), h, retain_graph=True)[0]
+        if containment_pressure_total.requires_grad:
+            pressure_grad = torch.autograd.grad(containment_pressure_total.sum(), h, retain_graph=True)[0]
+        else:
+            pressure_grad = torch.zeros_like(h)
         
         # 3f. Universal Orchestration Check
         # Orchestrate logic based on current topological pressure and PAS_h
