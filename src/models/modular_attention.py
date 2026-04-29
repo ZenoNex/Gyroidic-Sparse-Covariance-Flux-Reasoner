@@ -14,6 +14,7 @@ import math
 
 from src.core.birkhoff_projection import BirkhoffProjection
 from src.core.primitive_ops import FixedPointField
+from src.core.honest_jitter import fractal_pad
 
 # Fix import paths
 import sys
@@ -96,6 +97,7 @@ class ModularAttention(nn.Module):
         mask: Optional[torch.Tensor] = None,
         trust_scalars: Optional[torch.Tensor] = None,
         return_field_outputs: bool = False,
+        load: float = 0.0,
         **kwargs
     ) -> torch.Tensor:
         """
@@ -111,6 +113,10 @@ class ModularAttention(nn.Module):
         Returns:
             output: [batch, seq_len, hidden_dim] attended representation
         """
+        # Dimensional Reconciliation via Fractal Padding
+        if x.shape[-1] != self.hidden_dim:
+            x = fractal_pad(x, self.hidden_dim)
+            
         batch_size, seq_len, _ = x.shape
         
         # Operational Integration: Dequantize if primitive
@@ -119,10 +125,18 @@ class ModularAttention(nn.Module):
              # Ideally we'd have a FixedPointAttention, but for integration we unpack here
              x = x.forward()
         
+        # Adaptive Functional Sparsification: Drop outer shells under high load
+        # Matryoshka nesting: k=0 (inner/stable), k=K-1 (outer/complex)
+        active_k = self.K
+        if load > 0.0:
+            # Linear reduction of functionals based on load
+            # Ensures at least 1 functional (the inner shell) remains active
+            active_k = max(1, int(self.K * (1.0 - torch.clamp(torch.tensor(load), 0.0, 0.9).item())))
+            
+        # Process each active field separately
         field_outputs = []
-        
-        # Process each field separately
-        for k, proj in enumerate(self.field_projections):
+        for k in range(active_k):
+            proj = self.field_projections[k]
             # Compute Q, K, V for this field
             Q_k = proj['Q'](x)  # [batch, seq_len, hidden_dim]
             K_k = proj['K'](x)
@@ -179,7 +193,13 @@ class ModularAttention(nn.Module):
             field_outputs.append(A_k)
         
         # Fuse field outputs (simple concatenation + projection)
-        # In a full CRT implementation, this would use residue reconstruction
+        # Pad with zeros if some functionals were sparsified to maintain output_proj shape
+        if len(field_outputs) < self.K:
+            # "Backwards compatibility: Pad sparse channels to maintain projection geometry"
+            dummy = torch.zeros_like(field_outputs[0])
+            while len(field_outputs) < self.K:
+                field_outputs.append(dummy)
+                
         fused = torch.cat(field_outputs, dim=-1)  # [batch, seq_len, K * hidden_dim]
         output = self.output_proj(fused)  # [batch, seq_len, hidden_dim]
         
@@ -224,10 +244,11 @@ class ModularTransformerLayer(nn.Module):
         x: torch.Tensor, 
         mask: Optional[torch.Tensor] = None,
         trust_scalars: Optional[torch.Tensor] = None,
+        load: float = 0.0,
         **kwargs
     ) -> torch.Tensor:
         # Attention with residual (passes S-Path topology vectors if present via kwargs)
-        attn_out = self.attention(x, mask, trust_scalars=trust_scalars, **kwargs)
+        attn_out = self.attention(x, mask, trust_scalars=trust_scalars, load=load, **kwargs)
         x = self.norm1(x + attn_out)
         
         # Feed-forward with residual
