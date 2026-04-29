@@ -799,3 +799,34 @@ class ResonanceCavity(nn.Module):
             'residue_prior': residue_prior if self.track_residues else None,
             'prior_confidence': prior_confidence if self.track_residues else None
         }
+    def get_topology_vectors(self, seq_len: int, device: torch.device) -> torch.Tensor:
+        """
+        Generate distance embeddings representing chronological and topological proximity.
+        
+        Args:
+            seq_len: Sequence length to generate vectors for
+            device: Target device
+            
+        Returns:
+            topology_vectors: [seq_len, hidden_dim] topological proximity vectors
+        """
+        # Time-based proximity (chronological)
+        t = torch.linspace(0, 1, seq_len, device=device).unsqueeze(1)
+        
+        # Space-based proximity (topological)
+        # Use mean of memory state as a representative "anchor" for current manifold position
+        anchor = self.M.mean(dim=(0, 1)).unsqueeze(0) # [1, hidden_dim]
+        
+        # Combine using a sinusoidal embedding for spectral richness
+        # This creates a "sliding window" of topological relevance
+        indices = torch.arange(seq_len, device=device).float().unsqueeze(1)
+        freqs = torch.exp(torch.linspace(0, math.log(10.0), self.hidden_dim, device=device))
+        
+        # [seq_len, hidden_dim]
+        topology_vectors = torch.sin(indices * freqs / 10.0)
+        
+        # Mix with memory anchor to ground the embeddings in current cavity state
+        topology_vectors = 0.8 * topology_vectors + 0.2 * anchor
+        
+        return topology_vectors
+
