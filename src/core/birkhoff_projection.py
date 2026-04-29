@@ -14,7 +14,13 @@ Refactored: January 2026 (Anti-Lobotomy)
 
 import torch
 import torch.nn as nn
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict, Any
+import threading
+from src.core.device_utils import DEVICE
+
+# Global cache for pre-computed Birkhoff projectors to avoid redundant $O(N^4)$ re-init
+_BIRKHOFF_PROJECTOR_CACHE: Dict[int, 'DirectBirkhoffProjection'] = {}
+_BIRKHOFF_CACHE_LOCK = threading.Lock()
 
 
 class SparseRepunitProbe(nn.Module):
@@ -98,12 +104,20 @@ class DirectBirkhoffProjection(nn.Module):
         # P = I - A^T (A A^T)^-1 A
         # This projects any vector onto the nullspace of A (the subspace where sums are zero)
         # To project onto Ax=b, we use x_proj = Px + A^T(AA^T)^-1 b
+        # Skillful De-allocation: Clear intermediate large matrices after computing P and p_offset
+        # A_inv is pinverse of [2n-1, n*n]. For n=256, this is ~256M elements (1GB).
         A_inv = torch.pinverse(A)
         self.register_buffer('P', torch.eye(n*n, device=device) - torch.matmul(A_inv, A))
         
         # b is the target sums (all 1.0)
         b = torch.ones(2 * n - 1, 1, device=device)
         self.register_buffer('p_offset', torch.matmul(A_inv, b).squeeze())
+        
+        # Explicitly free memory
+        del A
+        del A_inv
+        if device is not None and device.type == 'cuda':
+            torch.cuda.empty_cache()
 
     def forward(self, T: torch.Tensor) -> torch.Tensor:
         """
@@ -137,14 +151,18 @@ class ObscuredBirkhoffManifold(nn.Module):
     ):
         super().__init__()
         self.n = n
-        self.temperature = nn.Parameter(torch.tensor(temperature))
+        # Clamp initial temperature to stable range
+        self.temperature = nn.Parameter(torch.tensor(max(0.1, min(10.0, temperature))))
         self.register_buffer('delta_o', torch.tensor(delta_o))
         self.max_iterations = max_iterations
         
         # Unicorn Synthesis: Use Direct Projection only for small dimensions to avoid OOM
         # A 256x256 matrix requires a 65536x65536 projection matrix (16GB).
         if n <= 32:
-            self.direct_projector = DirectBirkhoffProjection(n, device=device)
+            with _BIRKHOFF_CACHE_LOCK:
+                if n not in _BIRKHOFF_PROJECTOR_CACHE:
+                    _BIRKHOFF_PROJECTOR_CACHE[n] = DirectBirkhoffProjection(n, device=device).to(DEVICE)
+                self.direct_projector = _BIRKHOFF_PROJECTOR_CACHE[n]
         else:
             self.direct_projector = None
             print(f" [CONFIG] Birkhoff dimension {n} too large for direct projection. Using iterative fallback.")
@@ -157,7 +175,10 @@ class ObscuredBirkhoffManifold(nn.Module):
     def project(self, T: torch.Tensor, max_iterations: Optional[int] = None) -> torch.Tensor:
         """Project matrix T onto Birkhoff subspace with obstruction."""
         # 1. Softmax/Exp to ensure positivity
-        T_soft = torch.exp(T / self.temperature)
+        # Clamp temperature to prevent division by zero or exp blow-up
+        temp = torch.clamp(self.temperature, min=0.01, max=10.0)
+        T_clipped = torch.clamp(T, min=-15.0, max=15.0)
+        T_soft = torch.exp(T_clipped / temp)
         
         # 2. Check if Direct Projection is possible (dimension match)
         # T: [..., n, n]
@@ -230,8 +251,17 @@ def sinkhorn_knopp(
     return manifold.project(T, max_iterations=max_iterations)
 
 def project_to_birkhoff(T: torch.Tensor, max_iterations: int = 50) -> torch.Tensor:
-    """Alternative name for sinkhorn_knopp."""
-    return sinkhorn_knopp(T, max_iterations=max_iterations)
+    """Alternative name for sinkhorn_knopp with 2D shape fix."""
+    # Ensure T is at least 3D for the manifold logic [batch, n, n]
+    is_2d = T.dim() == 2
+    if is_2d:
+        T = T.unsqueeze(0)
+        
+    res = sinkhorn_knopp(T, max_iterations=max_iterations)
+    
+    if is_2d:
+        return res.squeeze(0)
+    return res
 
 # Post-import to avoid circular dependency, exposing the hybrid probe to System 2 Constraint Operator
 from .cayley_cubic_probe import CayleyCubicProbe
