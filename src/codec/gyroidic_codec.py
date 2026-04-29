@@ -1,19 +1,19 @@
 """
 Non-Abelian Gyroidic Image Codec.
 
-Encodes text↔image pairs into a topologically structured CRT residue space,
+Encodes textimage pairs into a topologically structured CRT residue space,
 where the encoding path matters (non-commutative) and the residue captures
 irreducible text-image entanglement.
 
 Mathematical Formulation:
-    E(T, I) = CRT({R_k(T) · G_k(I)}_{k=1..K})
+    E(T, I) = CRT({R_k(T)  G_k(I)}_{k=1..K})
 
     where:
         R_k = text residue projections (polynomial CRT decomposition)
         G_k = gyroidic image projections (gyroid surface sampling at polynomial frequencies)
-        R_k · G_k is non-commutative (matrix multiplication in GL(n))
+        R_k  G_k is non-commutative (matrix multiplication in GL(n))
 
-    Residue = E(T, I) - CRT_inv({R_k(T)}) ⊗ CRT_inv({G_k(I)})
+    Residue = E(T, I) - CRT_inv({R_k(T)})  CRT_inv({G_k(I)})
     Non-zero residue = irreducible entanglement between text and image.
 
 Uses only PyTorch (no Pillow, no OpenCL). Integrates with:
@@ -25,7 +25,7 @@ Compliance:
     - No hardcoded primes (Governance Rule 13, SYSTEM_ARCHITECTURE Rule 1)
     - PolynomialCoprimeConfig mandatory (Governance Rule 14)
     - Uses existing PolynomialCRT (no reimplementation)
-    - Chinese Room doctrine: structural entanglement only, no comprehension claims (PHILOSOPHY §6)
+    - Chinese Room doctrine: structural entanglement only, no comprehension claims (PHILOSOPHY 6)
 
 Author: William Matthew Bryant
 Created: February 2026
@@ -43,6 +43,7 @@ from src.core.polynomial_crt import PolynomialCRT
 from src.codec.conformal_log_polar import ConformalLogPolarProjector
 from src.core.modular_virtualization import ModularVirtualizationLayer
 from src.core.context_aware_quantizer import ContextAwareQuantizer
+from src.core.honest_jitter import fractal_pad
 
 
 # =============================================================================
@@ -67,10 +68,10 @@ class CodecConfig:
 @dataclass
 class EncodingResult:
     """Result of encoding a text-image pair."""
-    encoded: torch.Tensor          # [K, n, n] — the combined CRT encoding
-    text_residues: torch.Tensor    # [K, n, n] — R_k(T) per channel
-    image_residues: torch.Tensor   # [K, n, n] — G_k(I) per channel
-    residue: torch.Tensor          # [n, n] — irreducible entanglement
+    encoded: torch.Tensor          # [K, n, n]  the combined CRT encoding
+    text_residues: torch.Tensor    # [K, n, n]  R_k(T) per channel
+    image_residues: torch.Tensor   # [K, n, n]  G_k(I) per channel
+    residue: torch.Tensor          # [n, n]  irreducible entanglement
     commutativity_gap: float       # ||AB - BA|| for the encoding
     modular_congruence: float = 0.0 # RNS-based symmetry score
     berry_phases: Optional[torch.Tensor] = None # chiral groupoid tracking for visual twist
@@ -90,7 +91,7 @@ class GyroidSurface:
 
     Zero level set G = 0 defines the minimal surface. We sample at
     polynomial-derived frequencies (via PolynomialCoprimeConfig) to create
-    K independent channels. No hardcoded primes — frequencies emerge from
+    K independent channels. No hardcoded primes  frequencies emerge from
     polynomial basis evaluation.
     """
 
@@ -120,11 +121,11 @@ class GyroidSurface:
         emerge from the Birkhoff-constrained polynomial basis.
         """
         if self.poly_config is not None:
-            # Evaluate φ_k at canonical point x=0.5 (center of normalized domain)
+            # Evaluate _k at canonical point x=0.5 (center of normalized domain)
             x_canonical = torch.tensor([0.5], device=self.device)
             with torch.no_grad():
                 phi_k = self.poly_config.evaluate_polynomial(k, x_canonical)
-            # Map to positive frequency: |φ_k| + 1.5 to ensure > 1 and distinct
+            # Map to positive frequency: |_k| + 1.5 to ensure > 1 and distinct
             freq = abs(phi_k.item()) + 1.5 + k * 0.7
         else:
             # Fallback: irrational frequency spacing (still not hardcoded primes)
@@ -137,7 +138,7 @@ class GyroidSurface:
         """
         Evaluate gyroid at polynomial-derived frequency for channel k.
 
-        G_k(x,y,z) = sin(f_k·x)cos(f_k·y) + sin(f_k·y)cos(f_k·z) + sin(f_k·z)cos(f_k·x)
+        G_k(x,y,z) = sin(f_kx)cos(f_ky) + sin(f_ky)cos(f_kz) + sin(f_kz)cos(f_kx)
 
         Args:
             k: Channel index (0..K-1), frequency derived from PolynomialCoprimeConfig
@@ -178,7 +179,7 @@ class GyroidSurface:
         Estimate mean curvature of the gyroid at channel k.
 
         Uses finite differences on the level-set function:
-            H ≈ -div(∇G / |∇G|)
+            H  -div(G / |G|)
 
         Returns:
             curvature: [resolution, resolution, resolution]
@@ -209,10 +210,10 @@ class TextResidueProjector(nn.Module):
     """
     Project text into K residue matrices in GL(n).
 
-    T → {R_k(T)}_{k=1..K}, where each R_k ∈ GL(n).
+    T  {R_k(T)}_{k=1..K}, where each R_k  GL(n).
 
     Process:
-        1. Character-level embedding → [len, embed_dim]
+        1. Character-level embedding  [len, embed_dim]
         2. Polynomial CRT decomposition into K channels via PolynomialCoprimeConfig
         3. Each channel reshaped to [n, n] matrix
         4. Projected to GL(n) via matrix exponential
@@ -228,7 +229,7 @@ class TextResidueProjector(nn.Module):
         # Character embedding (ASCII 0-127 + padding)
         self.char_embed = nn.Embedding(128, config.text_embed_dim, padding_idx=0)
 
-        # Per-channel projectors: embed_dim → n*n
+        # Per-channel projectors: embed_dim  n*n
         self.channel_projectors = nn.ModuleList([
             nn.Sequential(
                 nn.Linear(config.text_embed_dim, config.n * config.n),
@@ -247,7 +248,7 @@ class TextResidueProjector(nn.Module):
             text: Input string
 
         Returns:
-            residues: [K, n, n] — each R_k ∈ GL(n)
+            residues: [K, n, n]  each R_k  GL(n)
         """
         device = self.config.device
 
@@ -258,7 +259,7 @@ class TextResidueProjector(nn.Module):
         if len(char_ids) == 0:
             char_ids = torch.tensor([0], dtype=torch.long, device=device)
 
-        # 2. Character embeddings → pooled representation
+        # 2. Character embeddings  pooled representation
         embeddings = self.char_embed(char_ids)  # [len, embed_dim]
         pooled = embeddings.mean(dim=0)          # [embed_dim]
 
@@ -270,7 +271,7 @@ class TextResidueProjector(nn.Module):
             phi_k = self.poly_config.evaluate_polynomial(k, t_norm)
             modulated = pooled * (1.0 + 0.1 * phi_k)
 
-            # Project to n×n matrix
+            # Project to nn matrix
             flat_matrix = self.channel_projectors[k](modulated)  # [n*n]
             
             # Apply Context-Aware Quantization (CAQ)
@@ -293,7 +294,7 @@ class GyroidImageProjector(nn.Module):
     Project an image (or image-like tensor) into K residue matrices via
     gyroid surface sampling at polynomial-derived frequencies.
 
-    I → {G_k(I)}_{k=1..K}, where each G_k ∈ GL(n).
+    I  {G_k(I)}_{k=1..K}, where each G_k  GL(n).
 
     Process:
         1. Evaluate gyroid surface at polynomial frequency k
@@ -339,8 +340,8 @@ class GyroidImageProjector(nn.Module):
                    (self-referential encoding).
 
         Returns:
-            residues: [K, n, n] — each G_k ∈ GL(n)
-            berry_phases: [K] — accumulated chiral twist
+            residues: [K, n, n]  each G_k  GL(n)
+            berry_phases: [K]  accumulated chiral twist
         """
         residues = []
         berry_phases = []
@@ -371,7 +372,7 @@ class GyroidImageProjector(nn.Module):
                 modulated = gyroid_slice
                 berry_phases.append(torch.tensor(0.0, device=self.config.device))
 
-            # 3. Downsample to n×n via adaptive average
+            # 3. Downsample to nn via adaptive average
             downsampled = self._adaptive_pool(modulated, self.n)  # [n, n]
 
             # 4. Project through learned layer
@@ -392,14 +393,14 @@ class GyroidImageProjector(nn.Module):
         """Resize/reshape image to match gyroid resolution."""
         # Handle 1D Spectral Residues (Zero-Mock Path)
         if image.dim() == 1:
-            # Reshape 1D [24] or [137] into a square Spectral Landscape
+            # Reshape 1D [24] or [96] into a square Spectral Landscape
             n_in = image.size(0)
             res_side = int(math.ceil(math.sqrt(n_in)))
             
-            # Pad to square
-            pad_size = (res_side ** 2) - n_in
-            if pad_size > 0:
-                image = F.pad(image, (0, pad_size))
+            # Pad to square using Fractal (Reflective) Padding
+            target_size = res_side ** 2
+            if n_in < target_size:
+                image = fractal_pad(image, target_size)
             
             image = image.view(res_side, res_side)
             # Bilinear upsample to gyroid resolution
@@ -410,7 +411,7 @@ class GyroidImageProjector(nn.Module):
 
         # Handle channel dimension
         if image.dim() == 3:
-            image = image.mean(dim=0)  # Average over channels → [H, W]
+            image = image.mean(dim=0)  # Average over channels  [H, W]
 
         # Apply Conformal Escher Mapping if enabled
         if self.conformal_wrap is not None:
@@ -431,7 +432,7 @@ class GyroidImageProjector(nn.Module):
         return image
 
     def _adaptive_pool(self, tensor: torch.Tensor, target_size: int) -> torch.Tensor:
-        """Downsample 2D tensor to target_size × target_size."""
+        """Downsample 2D tensor to target_size  target_size."""
         return nn.functional.adaptive_avg_pool2d(
             tensor.unsqueeze(0).unsqueeze(0),
             (target_size, target_size)
@@ -446,13 +447,13 @@ class NonAbelianCombiner:
     """
     Combine text and image residues via non-commutative matrix multiplication.
 
-    E(T, I) = CRT({R_k(T) · G_k(I)}_{k=1..K})
+    E(T, I) = CRT({R_k(T)  G_k(I)}_{k=1..K})
 
-    The product R_k · G_k is matrix multiplication in GL(n), which is
-    NON-COMMUTATIVE: R_k · G_k ≠ G_k · R_k in general.
+    The product R_k  G_k is matrix multiplication in GL(n), which is
+    NON-COMMUTATIVE: R_k  G_k  G_k  R_k in general.
 
     This means:
-        encode(text, image) ≠ encode(image, text)
+        encode(text, image)  encode(image, text)
         The encoding path MATTERS.
     """
 
@@ -460,7 +461,7 @@ class NonAbelianCombiner:
     def _bch_approx(X: torch.Tensor, Y: torch.Tensor) -> torch.Tensor:
         """
         Baker-Campbell-Hausdorff (BCH) Formula approximation for Lie Algebra diagnostic.
-        Z = log(exp(X)exp(Y)) ≈ X + Y + 0.5[X, Y]
+        Z = log(exp(X)exp(Y))  X + Y + 0.5[X, Y]
         """
         # Commutator [X, Y] = XY - YX
         commutator = torch.matmul(X, Y) - torch.matmul(Y, X)
@@ -482,7 +483,7 @@ class NonAbelianCombiner:
         image_residues: torch.Tensor
     ) -> torch.Tensor:
         """
-        Reversed combination: G_k(I) · R_k(T).
+        Reversed combination: G_k(I)  R_k(T).
         """
         return torch.bmm(image_residues, text_residues)
 
@@ -492,7 +493,7 @@ class NonAbelianCombiner:
         image_residues: torch.Tensor
     ) -> float:
         """
-        Measure non-commutativity: ||R·G - G·R||_F / ||R·G||_F
+        Measure non-commutativity: ||RG - GR||_F / ||RG||_F
 
         Returns 0 if commutative (abelian), >0 if non-commutative.
         """
@@ -535,7 +536,7 @@ class CodecCRTBridge:
         """
         K, n, _ = channel_matrices.shape
 
-        # Reshape [K, n, n] → [n, K, n] to treat each row as a "batch" sample
+        # Reshape [K, n, n]  [n, K, n] to treat each row as a "batch" sample
         # with K residue channels of dimension n
         reshaped = channel_matrices.permute(1, 0, 2)  # [n, K, n]
 
@@ -582,13 +583,13 @@ class ResidueExtractor:
     """
     Extract the irreducible text-image residue.
 
-    Residue = E(T,I) - CRT_inv({R_k(T)}) ⊗ CRT_inv({G_k(I)})
+    Residue = E(T,I) - CRT_inv({R_k(T)})  CRT_inv({G_k(I)})
 
-    Non-zero residue means text and image are ENTANGLED — there is
+    Non-zero residue means text and image are ENTANGLED  there is
     structure in the joint encoding that cannot be decomposed into
     independent "text part" and "image part."
 
-    The ⊗ is outer product of the two independently-reconstructed
+    The  is outer product of the two independently-reconstructed
     matrices, projected back to [n, n].
     """
 
@@ -603,20 +604,20 @@ class ResidueExtractor:
         Compute the irreducible residue.
 
         Args:
-            combined_encoding: [n, n] — E(T, I) 
+            combined_encoding: [n, n]  E(T, I) 
             text_residues:  [K, n, n]
             image_residues: [K, n, n]
             reconstructor: CRT bridge instance
 
         Returns:
-            residue: [n, n] — the irreducible entanglement
+            residue: [n, n]  the irreducible entanglement
             diagnostics: dict with residue metrics
         """
         # Reconstruct text-only and image-only
         text_only = reconstructor.reconstruct_inverse(text_residues)    # [n, n]
         image_only = reconstructor.reconstruct_inverse(image_residues)  # [n, n]
 
-        # Separable component: text ⊗ image (matrix multiplication as outer product proxy)
+        # Separable component: text  image (matrix multiplication as outer product proxy)
         separable = torch.mm(text_only, image_only)  # [n, n]
 
         # Residue: what CANNOT be separated
@@ -657,8 +658,8 @@ class StructuralEntanglementGate:
     """
     Structural Entanglement Gate: measures cross-modal residue structure.
 
-    Per the Chinese Room Doctrine (PHILOSOPHY.md §6), this gate does NOT
-    claim to assess "understanding." It measures structural entanglement —
+    Per the Chinese Room Doctrine (PHILOSOPHY.md 6), this gate does NOT
+    claim to assess "understanding." It measures structural entanglement 
     the irreducible topological residue between modalities. Whether this
     constitutes comprehension is a category error; we only report
     admissibility of the encoding's structural coherence.
@@ -725,11 +726,11 @@ class GyroidicCodec(nn.Module):
     Non-Abelian Gyroidic Image Codec.
 
     Full pipeline:
-        1. Text → R_k(T) via polynomial CRT decomposition
-        2. Image → G_k(I) via gyroid surface sampling
-        3. Combine: E_k = R_k · G_k (non-commutative)
+        1. Text  R_k(T) via polynomial CRT decomposition
+        2. Image  G_k(I) via gyroid surface sampling
+        3. Combine: E_k = R_k  G_k (non-commutative)
         4. Reconstruct: E = CRT({E_k}) via PolynomialCRT
-        5. Extract residue: Res = E - CRT_inv(R) ⊗ CRT_inv(G)
+        5. Extract residue: Res = E - CRT_inv(R)  CRT_inv(G)
         6. Structural Entanglement Gate: admissibility of cross-modal structure
 
     Usage:
@@ -743,7 +744,7 @@ class GyroidicCodec(nn.Module):
         super().__init__()
         self.config = config or CodecConfig()
 
-        # Create PolynomialCoprimeConfig — mandatory, no silent fallback
+        # Create PolynomialCoprimeConfig  mandatory, no silent fallback
         self.poly_config = PolynomialCoprimeConfig(
             k=self.config.K,
             degree=self.config.degree,
@@ -782,10 +783,10 @@ class GyroidicCodec(nn.Module):
         Returns:
             EncodingResult with full encoding diagnostics
         """
-        # 1. Text → residues
+        # 1. Text  residues
         text_residues = self.text_projector(text)      # [K, n, n]
 
-        # 2. Image → residues and berry phases
+        # 2. Image  residues and berry phases
         image_residues, berry_phases = self.image_projector(image)    # [K, n, n], [K]
 
         # 3. Non-abelian combination
@@ -861,11 +862,11 @@ class GyroidicCodec(nn.Module):
         text_residues = self.text_projector(text)
         image_residues, _ = self.image_projector(image)
 
-        # Forward: R · G
+        # Forward: R  G
         forward = self.combiner.combine(text_residues, image_residues)
         forward_recon = self.crt_bridge.reconstruct(forward)
 
-        # Reverse: G · R
+        # Reverse: G  R
         reverse = self.combiner.combine_reverse(text_residues, image_residues)
         reverse_recon = self.crt_bridge.reconstruct(reverse)
 
@@ -903,9 +904,9 @@ class GyroidicCodec(nn.Module):
         Estimate mutual information between text and image modalities
         via the residue structure.
 
-        MI ∝ log(1 + entanglement_ratio) × spectral_entropy(residue)
+        MI  log(1 + entanglement_ratio)  spectral_entropy(residue)
 
-        This is a structural proxy, not true MI — but correlates with
+        This is a structural proxy, not true MI  but correlates with
         cross-modal structure that cannot be factored.
         """
         ent = result.diagnostics.get('entanglement_ratio', 0.0)
