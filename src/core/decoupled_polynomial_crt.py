@@ -235,3 +235,26 @@ class DecoupledPolynomialCRT(nn.Module):
             pressure = torch.std(reconstruction, dim=-1)
         
         return pressure
+    
+    def compute_decoupled_normalization(
+        self,
+        residue_distributions: torch.Tensor,
+        anchors: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """
+        Compute decoupled normalization pressure for GDPO-enhanced reconstruction.
+        Used for symbolic reconstruction fidelity monitoring.
+        
+        Args:
+            residue_distributions: [batch, K, D]
+            anchors: Optional [batch, D] ground truth coefficients
+            
+        Returns:
+            mean_pressure: Scalar mean reconstruction pressure
+        """
+        pressure = self.compute_reconstruction_pressure(
+            residue_distributions,
+            anchor=anchors,
+            return_reconstruction=False
+        )
+        return pressure.mean()
