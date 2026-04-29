@@ -1281,24 +1281,34 @@ class DiegeticPhysicsEngine(nn.Module):
                  response_text = f"AGENT_SMITH_EXPORT: Mathematical identity decoupled and anchored to {filepath}."
                  
              elif text_input.startswith("IMPORT_AGENT_SMITH:"):
-                 filepath = text_input.replace("IMPORT_AGENT_SMITH:", "").strip()
-                 print(f" Agent Smith Import Protocol initiated for {filepath}...")
-                 
-                 try:
-                     payload = self.fossilizer.inject_agent_smith(filepath)
-                     
-                     # 1. Align Substrate (Geometry)
-                     self.meta_state.data.copy_(payload['meta_state_aligned'].to(self.device))
-                     if 'gauge_field_aligned' in payload and payload['gauge_field_aligned'] is not None:
-                         self.chern_simons_gasket.gauge_field.data.copy_(payload['gauge_field_aligned'].to(self.device))
-                     
-                     # 2. Align Archetypes (Psychology)
-                     bridge = AgentSubstrateBridge()
-                     bridge.align_archetypes(payload, self.archetypal_governor)
-                     
-                     response_text = f"AGENT_SMITH_IMPORT: Soliton identity rehydrated. Manifold re-stabilizing around imported invariants."
-                 except Exception as e:
-                     response_text = f"AGENT_SMITH_IMPORT_FAILED: {str(e)}"
+                filepath = text_input.replace("IMPORT_AGENT_SMITH:", "").strip()
+                print(f" Agent Smith Import Protocol initiated for {filepath}...")
+                
+                try:
+                    payload = self.fossilizer.inject_agent_smith(filepath)
+                    
+                    # 1. Align Substrate (Geometry)
+                    self.meta_state.data.copy_(payload['meta_state_aligned'].to(self.device))
+                    if 'gauge_field_aligned' in payload and payload['gauge_field_aligned'] is not None:
+                        self.chern_simons_gasket.gauge_field.data.copy_(payload['gauge_field_aligned'].to(self.device))
+                    
+                    # 2. Align Archetypes (Psychology)
+                    bridge = AgentSubstrateBridge()
+                    bridge.align_archetypes(payload, self.archetypal_governor)
+                    
+                    response_text = f"AGENT_SMITH_IMPORT: Soliton identity rehydrated. Manifold re-stabilizing around imported invariants."
+                except Exception as e:
+                    response_text = f"AGENT_SMITH_IMPORT_FAILED: {str(e)}"
+             elif any(text_input.startswith(cmd) for cmd in ["INGEST_DYAD:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:", "ASSOCIATE:"]):
+                print(f" Multimodal Dyad Ingestion Protocol initiated: {text_input[:50]}...")
+                response_text = self._handle_dyad_ingestion(
+                    input_text=text_input,
+                    fingerprint=fingerprint,
+                    seed_state=seed_state,
+                    audio_dyad=audio_dyad,
+                    video_dyad_b64=video_dyad_b64,
+                    audio_b64=audio_b64
+                )
              else:
                  # --- PRE-GENERATION DIAGNOSTICS & MISCHIEF UPDATE ---
                  # Update Mischief Probe with current regime and pressure
@@ -3994,21 +4004,22 @@ class DiegeticPhysicsEngine(nn.Module):
             if not hasattr(self, 'video_parser'):
                 from src.core.video_dyad_parser import VideoDyadParser
                 self.video_parser = VideoDyadParser(device=self.device)
-            breather_modes = self.video_parser.parse_video_b64(video_dyad_b64, healing_ref=seed_state)
+            
+            # parse_video_b64 now handles audio extraction internally for a unified signature
+            breather_modes = self.video_parser.parse_video_b64(video_dyad_b64, healing_ref=seed_state, extract_audio=True)
+            
             video_breather = {
                 'fractal_entropy': breather_modes['fractal_entropy'].item(),
                 'substream_entropy': breather_modes['substream_entropy'].item(),
-                'signal_length': breather_modes['signal_length'].item()
+                'signal_length': breather_modes['signal_length'].item(),
+                'audio_detected': breather_modes.get('audio_harmonics') is not None
             }
-            # Project sparse covariance to 96-dim for codec entanglement
-            cov_sum = breather_modes['sparse_covariance'].sum(dim=0)
-            if cov_sum.size(0) > 96:
-                signal_tensor = cov_sum[:96]
-            else:
-                signal_tensor = torch.nn.functional.pad(cov_sum, (0, 96 - cov_sum.size(0)))
             
-            # NEW: Proper Audio extraction from Video bitstream
-            v_audio_harmonics = self.video_parser.extract_audio_harmonics(video_dyad_b64)
+            # Unified Spectral Signature: Covariance + Entropy + Audio
+            signal_tensor = self.video_parser.extract_96_spectral_signature(breather_modes)
+            
+            # Isolated Audio for fossilization
+            v_audio_harmonics = breather_modes.get('audio_harmonics')
             if v_audio_harmonics is not None:
                 audio_tensor = v_audio_harmonics
                 print("[VIDEO_PARSER] Audio stream isolated and projected into harmonic space.")
@@ -4140,6 +4151,8 @@ class DiegeticPhysicsEngine(nn.Module):
             dyad = KnowledgeDyad(
                 linguistic_description=description,
                 image_fingerprint=signal_tensor,
+                audio_harmonics=audio_tensor,
+                video_breather=video_breather,
                 gyroid_residue=codec_result.residue, # Irreducible cross-modal state
                 metadata={
                     "entanglement": entanglement,
