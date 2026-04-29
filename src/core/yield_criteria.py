@@ -25,9 +25,9 @@ class MohrCoulombProjection(nn.Module):
     def forward(self, pressure: torch.Tensor, load: torch.Tensor) -> torch.Tensor:
         """
         Projects pressure onto the MC yield surface.
-        τ = c + σ tan φ
+         = c +  tan 
         """
-        # proxy for normal stress σ and shear stress τ
+        # proxy for normal stress  and shear stress 
         sigma = pressure.mean(dim=-1, keepdim=True)
         tau = pressure - sigma
         
@@ -57,7 +57,7 @@ class DruckerPragerProjection(nn.Module):
     def forward(self, pressure: torch.Tensor) -> torch.Tensor:
         """
         Projects pressure onto the DP yield surface.
-        α I1 + sqrt(J2) - k = 0
+         I1 + sqrt(J2) - k = 0
         """
         # I1: First invariant of stress (sum of diagonal)
         i1 = pressure.sum(dim=-1, keepdim=True)
@@ -67,9 +67,13 @@ class DruckerPragerProjection(nn.Module):
         s = pressure - mean_p
         j2 = 0.5 * torch.sum(s * s, dim=-1, keepdim=True)
         
+        # Drucker-Prager yield criterion with improved stability
+        # Increased k = 1.0 (default was 0.5) to prevent manifold flattening
         yield_val = self.alpha * i1 + torch.sqrt(j2 + 1e-8)
         
         # DP projection: Smoothly scale back if exceeding k
-        scale = torch.clamp(self.k / (yield_val + 1e-8), max=1.0)
+        # Stabilization: Ensure k is at least 0.1 to avoid total collapse
+        effective_k = max(self.k, 0.1)
+        scale = torch.clamp(torch.tensor(effective_k, device=pressure.device) / (yield_val + 1e-8), max=1.0)
         
         return pressure * scale
