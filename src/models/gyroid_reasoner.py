@@ -51,7 +51,7 @@ from src.core.spectral_coherence_repair import SpectralCoherenceCorrector, Bezou
 from src.core.chern_simons_gasket import ChernSimonsGasket, SolitonStabilityHealer
 from src.core.love_invariant_protector import LoveInvariantProtector, SoftSaturatedGates
 from src.core.veto_subspace import VetoSubspace, VetoResult
-from src.core.honest_jitter import harvest_honest_jitter
+from src.core.honest_jitter import harvest_honest_jitter, fractal_pad
 from src.surrogates.kagh_networks import KAGHBlock
 from src.surrogates.calm_predictor import CALM
 
@@ -439,7 +439,8 @@ class GyroidicFluxReasoner(nn.Module):
                 violation_scores = torch.zeros(batch_size, seq_len, device=h.device)
                 for i in range(seq_len):
                     pos_state = h[:, i, :]  # [batch, hidden_dim]
-                    violation_score = self.gyroid_probe.compute_violation_score(pos_state)
+                    # Respect historical GCVE violation interface
+                    violation_score = self.gyroid_probe.violation_fn(self.poly_config.evaluate(pos_state))
                     violation_scores[:, i] = violation_score
                 
                 # Create attention mask based on violations
@@ -462,15 +463,23 @@ class GyroidicFluxReasoner(nn.Module):
                         attention_mask[batch_idx, :, pos] = 1.0  # Dense attention to high violation
                 
                 # Low violation positions get sparsified long-range attention
+                # Adaptive Sparsity: stride increases with topological load
+                avg_pressure = total_topological_pressure.mean().item()
+                # Stride 2 (low load) to 16 (extreme load)
+                adaptive_stride = max(2, min(16, int(2 + 14 * avg_pressure)))
+                
                 low_violation_threshold = 0.1
                 low_violation_mask = violation_scores < low_violation_threshold
                 for batch_idx in range(batch_size):
                     low_viol_positions = torch.where(low_violation_mask[batch_idx])[0]
                     for pos in low_viol_positions:
-                        # Sparsify long-range connections (keep only every 4th position beyond local window)
+                        # Sparsify long-range connections with dynamic palindromic pattern
                         for target_pos in range(seq_len):
                             if abs(target_pos - pos) > local_window // 2:
-                                if (target_pos - pos) % 4 != 0:  # Sparsification pattern
+                                # Check relative offset against adaptive stride
+                                offset = abs(target_pos - pos)
+                                # Palindromic/Symmetric Sparsity: keep only every 'adaptive_stride'-th connection
+                                if offset % adaptive_stride != 0:
                                     attention_mask[batch_idx, pos, target_pos] = 0.0
                 
                 # Store mask for use in attention layers
@@ -520,12 +529,16 @@ class GyroidicFluxReasoner(nn.Module):
             # instead of typical textual queries
             path_topology = self.resonance_cavity.get_topology_vectors(h.shape[1], device=h.device)
             
-        # 3a. Transformer processing (Modular multi-field)
+        # Compute global system load for Matryoshka-aware truncation
+        system_load = total_topological_pressure.mean().item()
+        
+        # 3a. Transformer processing (Modular multi-field with adaptive load)
         for layer in self.layers:
             h = layer(
                 h, 
                 mask=attention_mask, 
                 trust_scalars=self.trust_scalars,
+                load=system_load,
                 path_topology_vectors=path_topology
             )  # [batch, seq_len, hidden_dim]
         
@@ -611,7 +624,8 @@ class GyroidicFluxReasoner(nn.Module):
         
         # Hypergraph Entropy (Symbolic Orthogonality)
         expected_symbols = self.embedder.compute_expected_residues(residue_distributions) 
-        symbolic_pressure = self.selection_pressure_fn(expected_symbols.mean(dim=-1))
+        symbolic_pressure_dict = self.selection_pressure_fn(expected_symbols.mean(dim=-1))
+        symbolic_pressure = symbolic_pressure_dict.get('global_entropy', torch.tensor(0.0, device=h.device)).mean()
         
         selection_pressure_val = reconstruction_pressure_pre.mean() + symbolic_pressure
 
