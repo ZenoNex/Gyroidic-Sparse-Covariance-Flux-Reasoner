@@ -52,6 +52,28 @@ class CALM(nn.Module):
         self.gauge_head = nn.Linear(dim, 1)            # Predict scalar gauge pressure P
         self.constraint_head = nn.Linear(dim, 5)       # Attention weights over 5 primary constraints
         
+    def _fractal_pad(self, x: torch.Tensor, target_dim: int) -> torch.Tensor:
+        """
+        Applies fractal (reflective/palindromic) padding to handle dimensional mismatch.
+        
+        This respects the 'Russian Doll' Matryoshka nesting by filling missing dimensions
+        with self-similar projections of the existing state, rather than null-energy zeros.
+        """
+        current_dim = x.size(-1)
+        if current_dim >= target_dim:
+            return x[..., :target_dim]
+            
+        pad_size = target_dim - current_dim
+        
+        # Reflective padding is the preferred 'fractal' mode (palindromic efficiency)
+        # However, F.pad reflect requires input_dim > pad_size
+        if current_dim > pad_size:
+            return F.pad(x, (0, pad_size), mode='reflect')
+        else:
+            # Fallback to replicated padding for deep fractal expansion
+            # This maintains the 'soliton' signature across the padding boundary
+            return F.pad(x, (0, pad_size), mode='replicate')
+
     def forward(self, history: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Args:
@@ -65,6 +87,12 @@ class CALM(nn.Module):
             gauge: [batch, 1] (Scalar pressure/confidence to apply forcing)
             constraints: [batch, 5] (Attention weights)
         """
+        # Adapt dimensionality for older fossils and shadow tokens
+        current_dim = history.shape[-1]
+        if current_dim != self.dim:
+            # Fractal expansion or Matryoshka-aware truncation
+            history = self._fractal_pad(history, self.dim)
+
         # Encode trajectory
         latent = self.transformer(history)
         
@@ -82,6 +110,16 @@ class CALM(nn.Module):
         
         # Agentic Forcing (New)
         forcing = torch.tanh(self.forcing_head(last_latent)) # Bounded correction [-1, 1]
+        
+        # Adapt forcing vector back to original dimension to avoid tensor mismatches downstream
+        if current_dim != self.dim:
+            if current_dim < self.dim:
+                # Matryoshka-aware truncation back to smaller original size
+                forcing = forcing[:, :current_dim]
+            else:
+                # Fractal expansion back to larger original size (recovering lost momentum)
+                forcing = self._fractal_pad(forcing.unsqueeze(1), current_dim).squeeze(1)
+                
         gauge = torch.sigmoid(self.gauge_head(last_latent))  # Pressure [0, 1]
         constraints = torch.softmax(self.constraint_head(last_latent), dim=-1) # Distribution
         
@@ -93,6 +131,13 @@ class CALM(nn.Module):
         buffer: [batch, history_len, dim]
         new_state: [batch, dim]
         """
+        # Adapt new_state to the buffer's dimensionality via fractal padding/truncation
+        buf_dim = buffer.shape[-1]
+        state_dim = new_state.shape[-1]
+        
+        if state_dim != buf_dim:
+            new_state = self._fractal_pad(new_state.unsqueeze(1), buf_dim).squeeze(1)
+                
         # Shift left
         buffer = torch.roll(buffer, shifts=-1, dims=1)
         # Update last
