@@ -16,6 +16,7 @@ from src.core.love_invariant_protector import LoveInvariantProtector
 from src.core.quantum_tda import QuantumBettiApproximator
 from src.core.invariants import (compute_chirality, compute_chiral_shift, check_glyphlock, 
                                compute_polylog_signature, compute_vacuum_residue)
+from src.core.chern_simons_gasket import ChernSimonsGasket
 
 @dataclass
 class KnowledgeDyad:
@@ -106,6 +107,7 @@ class DyadFossilizer:
         self.entropy_estimator = NonErgodicEntropyEstimator()
         self.love_protector = LoveInvariantProtector(love_dim=feature_dim)
         self.betti_approximator = QuantumBettiApproximator()
+        self.gasket = ChernSimonsGasket()
         
         # Phase Alignment tracking
         self.prev_pas = torch.tensor(0.91) # Initial stability threshold
@@ -255,6 +257,17 @@ class DyadFossilizer:
                 betti_results = self.betti_approximator.estimate_betti_numbers(adj, max_dim=1, num_thresholds=8)
                 b0_vec = betti_results.get(0, torch.ones(8, device=device))
                 b1_vec = betti_results.get(1, torch.zeros(8, device=device))
+
+            # E. Chern-Simons Gasket (Topological Twist)
+            # We treat the residue as a local manifold patch to check for leaks
+            # We need a [batch, K, D] shape for the gasket - we use [1, 1, feature_dim]
+            r_patch = residue.view(1, 1, -1)
+            # We use a dummy polynomial tensor for the gasket check if real one not provided
+            dummy_poly = torch.eye(1, r_patch.shape[-1], device=device)
+            self.gasket.plug_logic_leak(r_patch, dummy_poly)
+            gasket_diag = self.gasket.get_diagnostics()
+            twist_energy = gasket_diag.get('twist_energy', 0.0)
+            seam_tension = gasket_diag.get('seam_tension', 0.0)
         else:
             # Fallback for headless ingestion (Lobotomy Warning)
             chiral_shift = 0.0
@@ -266,6 +279,8 @@ class DyadFossilizer:
             b0_vec = torch.ones(8, device=device)
             b1_vec = torch.zeros(8, device=device)
             current_pas = torch.tensor(0.0)
+            twist_energy = 0.0
+            seam_tension = 0.0
 
         # 4. Prepare Payload (Aligned with System Schema)
         payload = {
@@ -278,6 +293,8 @@ class DyadFossilizer:
             'glyphlock': is_glyph_locked,
             'spectral_pressure': float(spectral_pressure),
             'spectral_entropy': float(spectral_entropy),
+            'twist_energy': float(twist_energy),
+            'seam_tension': float(seam_tension),
             'betti_0': b0_vec.detach().cpu(),
             'betti_1': b1_vec.detach().cpu(),
             'unified_spectral_signature': dyad.unified_spectral_signature.detach().cpu() if dyad.unified_spectral_signature is not None else None,
