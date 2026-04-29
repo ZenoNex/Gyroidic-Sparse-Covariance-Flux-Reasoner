@@ -688,7 +688,13 @@ class DiegeticPhysicsEngine(nn.Module):
             dream += f"Only the Braid relation {braid_word} remains as a structural ghost."
         else:
             dream = f"[LAZARUS_DREAM] Internal manifold in {status} state (Ra={ra:.4f}). "
-            # Removed 'audience trace' phonetic sabotage to ensure output integrity.
+            
+            # Create a small "Trace" of the audience projection (the 'audience module')
+            # This is a diegetic representation of the 'meaning' space
+            with torch.no_grad():
+                audience_trace = "".join([chr((int(val) % 26) + 97) for val in audience_state[0][:15].abs() * 100])
+            
+            dream += f"The persona substrate is dreaming through the audience filter: '{audience_trace}'.\n"
             dream += f"The current Zeitgeist topology (Braid: {braid_word}) is holding firm against the convergence entropy.\n"
             
             # Add some "Fossil" context if available
@@ -2078,9 +2084,16 @@ class DiegeticPhysicsEngine(nn.Module):
                         seed_state = seed_state * (1.0 + yield_p) # Amplify residue energy
                     
                     # 6. Evaluate Matryoshka shell from collision
-                    if hasattr(self, 'meta_polytope'):
-                        shell_level = self.meta_polytope.evaluate_matryoshka(collision_residues)
-                        codec_metrics['matryoshka_depth'] = shell_level
+                    if hasattr(self, 'meta_polytope') and self.meta_polytope is not None:
+                        # evaluate the post-fusion manifold state against the polytope
+                        # ensuring boundary crossings are tracked relative to the text context
+                        poly_res = self.meta_polytope(collision_residues)
+                        if hasattr(poly_res, 'level'): # BoundaryState case
+                            codec_metrics['matryoshka_level'] = int(poly_res.level)
+                        else: # Tuple case (yq, new_alpha, new_level)
+                            _, _, shell_level = poly_res
+                            codec_metrics['matryoshka_level'] = int(shell_level)
+                        codec_metrics['matryoshka_depth'] = codec_metrics['matryoshka_level']
                 
                 self._last_codec_diagnostics = codec_metrics
             except Exception as collision_err:
@@ -2771,11 +2784,8 @@ class DiegeticPhysicsEngine(nn.Module):
         # Trigger one background temporal association train_step on live interaction
         self._maybe_trigger_temporal_training(input_tensor, response_text)
 
-        # ==========================================
-        # PHASE 20: INTERACTION FOSSILIZATION
-        # ==========================================
         # Captures the full multi-sensory context to prevent 'erasing of implication'.
-        self.iteration += 1
+        # self.iteration already incremented at start of _process_input_internal
         multimodal_context = {
             "fingerprint": fingerprint,
             "audio_dyad": audio_dyad,
