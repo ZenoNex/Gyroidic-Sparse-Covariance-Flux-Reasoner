@@ -27,6 +27,7 @@ class KnowledgeDyad:
     image_fingerprint: Optional[torch.Tensor] = None # [96] vector
     audio_harmonics: Optional[torch.Tensor] = None
     video_breather: Optional[Dict] = None
+    unified_spectral_signature: Optional[torch.Tensor] = None # [96] vector
     gyroid_residue: Optional[torch.Tensor] = None # [n, n] irreducible entanglement
     hyperbolic_residue: Optional[torch.Tensor] = None # ShadowLog Non-Euclidean curvature
     meta_state: Optional[torch.Tensor] = None # [dim] architecture state
@@ -185,12 +186,25 @@ class DyadFossilizer:
         # 1. Compute Residue (The 'Meaning' of the association)
         # Ensure inputs are tensors and align devices
         device = text_embedding.device
-        if dyad.image_fingerprint is None:
-             img_tensor = torch.zeros(96, device=device)
-        elif not isinstance(dyad.image_fingerprint, torch.Tensor):
-             img_tensor = torch.tensor(dyad.image_fingerprint, dtype=torch.float32, device=device)
+        
+        # Prioritize Unified Spectral Signature for the fusion layer
+        if dyad.unified_spectral_signature is not None:
+             img_tensor = dyad.unified_spectral_signature.to(device)
+        elif dyad.image_fingerprint is not None:
+             if not isinstance(dyad.image_fingerprint, torch.Tensor):
+                  img_tensor = torch.tensor(dyad.image_fingerprint, dtype=torch.float32, device=device)
+             else:
+                  img_tensor = dyad.image_fingerprint.to(device)
         else:
-             img_tensor = dyad.image_fingerprint.to(device)
+             img_tensor = torch.zeros(96, device=device)
+             
+        # Ensure img_tensor is exactly 96-dim for the fusion layer
+        if img_tensor.numel() != 96:
+            if img_tensor.numel() > 96:
+                img_tensor = img_tensor[:96]
+            else:
+                img_tensor = torch.nn.functional.pad(img_tensor, (0, 96 - img_tensor.numel()))
+        img_tensor = img_tensor.view(96) # Final safety check on shape
              
         # 2. Compute Modality Residue (Shear/Torsion)
         residue = self.fusion_layer(img_tensor, text_embedding)
@@ -266,6 +280,7 @@ class DyadFossilizer:
             'spectral_entropy': float(spectral_entropy),
             'betti_0': b0_vec.detach().cpu(),
             'betti_1': b1_vec.detach().cpu(),
+            'unified_spectral_signature': dyad.unified_spectral_signature.detach().cpu() if dyad.unified_spectral_signature is not None else None,
             'image_fingerprint': dyad.image_fingerprint.detach().cpu() if isinstance(dyad.image_fingerprint, torch.Tensor) else dyad.image_fingerprint,
             'audio_harmonics': dyad.audio_harmonics,
             'video_breather': dyad.video_breather,
