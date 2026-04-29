@@ -1,4 +1,5 @@
 import base64
+import numpy as np
 import torch
 import torch.nn as nn
 from typing import Dict, List, Optional, Tuple
@@ -128,7 +129,8 @@ class VideoDyadParser(nn.Module):
         substream_residue = torch.tensor(substream_data['atom_array'], device=self.device)
         
         # 3. Integer Casting (Non-mantissa/exponent math constraint)
-        byte_tensor = torch.tensor(list(raw_bytes), dtype=torch.uint8, device=self.device)
+        # Performance optimization: Use frombuffer instead of list() for large files
+        byte_tensor = torch.from_numpy(np.frombuffer(raw_bytes, dtype=np.uint8)).to(self.device).clone()
         
         n_elements = byte_tensor.size(0)
         usable_elements = (n_elements // self.chunk_size) * self.chunk_size
