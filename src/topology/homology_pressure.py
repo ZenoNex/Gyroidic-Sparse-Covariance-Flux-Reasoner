@@ -18,9 +18,9 @@ except ImportError:
 
 
 class HomologyPressure(nn.Module):
-    """Computes pressure on Ker(ℛ) obstruction cycles.
+    """Computes pressure on Ker() obstruction cycles.
     
-    Pressure_homology = Σ f(cycle)
+    Pressure_homology =  f(cycle)
     
     where f pressurizes cycles that persist under perturbation.
     """
@@ -52,7 +52,7 @@ class HomologyPressure(nn.Module):
         """
         Compute pressure for a single cycle.
         
-        f(cycle) = Σ_{r ∈ cycle} σ(ε(r) - τ) · |cycle|^α
+        f(cycle) = _{r  cycle} ((r) - )  |cycle|^
         
         Args:
             cycle: List of node indices in the cycle
@@ -73,10 +73,10 @@ class HomologyPressure(nn.Module):
             # instead of simple flat aggregation or lobotomizing mean.
             cycle_pressures = cycle_pressures.view(len(cycle), -1).max(dim=-1)[0]
         
-        # σ(ε - τ) = sigmoid-smoothed indicator
+        # ( - ) = sigmoid-smoothed indicator
         indicators = torch.sigmoid(10.0 * (cycle_pressures - tau))
         
-        # Pressure with length weighting (α = 0.5 for sublinear growth)
+        # Pressure with length weighting ( = 0.5 for sublinear growth)
         alpha = 0.5
         pressure = indicators.sum() * (len(cycle) ** alpha)
         
@@ -88,7 +88,7 @@ class HomologyPressure(nn.Module):
         pressures: torch.Tensor
     ) -> torch.Tensor:
         """
-        Compute cycle persistence: max(ε) - min(ε) over cycle.
+        Compute cycle persistence: max() - min() over cycle.
         
         High persistence = cycle survives across pressure range.
         
@@ -155,7 +155,7 @@ class HomologyPressure(nn.Module):
         Args:
             cycles: List of cycles (each is list of node indices)
             pressures: [batch] reconstruction pressures
-            tau: Threshold for Ker(ℛ) membership
+            tau: Threshold for Ker() membership
             
         Returns:
             total_pressure: scalar homology pressure
@@ -198,7 +198,7 @@ class WeightedBettiNumber(nn.Module):
     """
     Computes weighted Betti numbers with introspective coherence.
     
-    β_k^H = Σ pers(f) · 2^{-dim_H(f)} · coherence_self(f)
+    _k^H =  pers(f)  2^{-dim_H(f)}  coherence_self(f)
     
     Downweights features lacking introspective coherence.
     """
@@ -236,7 +236,7 @@ class WeightedBettiNumber(nn.Module):
         """
         weighted_betti = {}
         
-        # β_0: connected components
+        # _0: connected components
         components = list(nx.connected_components(graph))
         beta_0 = 0.0
         
@@ -256,7 +256,7 @@ class WeightedBettiNumber(nn.Module):
         
         weighted_betti[0] = beta_0
         
-        # β_1: cycles (simplified - use cycle basis)
+        # _1: cycles (simplified - use cycle basis)
         try:
             cycles = nx.cycle_basis(graph)
             beta_1 = 0.0
@@ -303,7 +303,7 @@ class WeightedBettiNumber(nn.Module):
         Compute total weighted Betti pressure.
         
         Returns:
-            pressure: Σ_k β_k^H
+            pressure: _k _k^H
         """
         weighted_betti = self.compute_weighted_betti(graph, node_coherence, node_violations)
         
@@ -328,6 +328,7 @@ class ResidueHomologyDrift(nn.Module):
         self.register_buffer('prev_betti_avg', torch.zeros(1))
         self.register_buffer('h_drift', torch.zeros(1))
         self.register_buffer('step_count', torch.tensor(0, dtype=torch.long))
+        self.use_persistence_graph = False
         
     def forward(
         self,
