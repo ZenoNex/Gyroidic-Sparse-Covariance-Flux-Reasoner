@@ -19,6 +19,7 @@ from src.core.orchestrator import UniversalOrchestrator
 from src.core.unknowledge_flux import NostalgicLeakFunctional
 from src.core.invariants import PhaseAlignmentInvariant, ImplicationInvariant
 from src.topology.gyroid_differentiation import GyroidFlowConstraint, ForbiddenSmoothingChecker
+from src.core.birkhoff_projection import project_to_birkhoff
 
 # Fix import paths
 import sys
@@ -115,7 +116,7 @@ class FGRTStructuralTrainer:
         # We use it to 'see' chirality and calculate invariants.
         output = orchestrated_state
         
-        # 3. Apply Nostalgic Leak (ψ_l)
+        # 3. Apply Nostalgic Leak (_l)
         # Preserves 'unknowledge' as high-frequency solitons
         leak_signal = self.leak(output)
         output = output + 0.1 * leak_signal
@@ -169,14 +170,8 @@ class FGRTStructuralTrainer:
 
         # --- MANDATORY BIRKHOFF MANIFOLD PROJECTION ---
         with torch.no_grad():
-            from src.core.birkhoff_projection import project_to_birkhoff
             for p in self.model.parameters():
                 if p.dim() == 2 and p.shape[0] == p.shape[1]:
                     p.copy_(project_to_birkhoff(p.data))
         # --- END BIRKHOFF PROJECTION ---
-        with torch.no_grad():
-            from src.core.birkhoff_projection import project_to_birkhoff
-            for p in self.model.parameters():
-                if p.dim() == 2 and p.shape[0] == p.shape[1]:
-                    p.copy_(project_to_birkhoff(p.data))
 
