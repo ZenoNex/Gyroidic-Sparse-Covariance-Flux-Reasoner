@@ -18,16 +18,25 @@ class CALM(nn.Module):
     """
     Context-Adaptive Latent Momentum Veto (Meta-Control).
     """
-    def __init__(self, dim: int, history_len: int = 8, hidden_dim: int = 128):
+    def __init__(self, dim: int, history_len: int = 8, hidden_dim: int = 128, nhead: int = 4):
         super().__init__()
         self.dim = dim
         self.history_len = history_len
+        
+        if dim % nhead != 0:
+            # Find a suitable nhead that divides dim
+            for h in range(nhead, 0, -1):
+                if dim % h == 0:
+                    nhead = h
+                    break
+            else:
+                nhead = 1
         
         # Transformer-based sequencemodel for trajectory monitoring
         # Input: [batch, history_len, dim]
         self.encoder_layer = nn.TransformerEncoderLayer(
             d_model=dim, 
-            nhead=4, 
+            nhead=nhead, 
             dim_feedforward=hidden_dim, 
             batch_first=True
         )
