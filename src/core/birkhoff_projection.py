@@ -141,8 +141,13 @@ class ObscuredBirkhoffManifold(nn.Module):
         self.register_buffer('delta_o', torch.tensor(delta_o))
         self.max_iterations = max_iterations
         
-        # Unicorn Synthesis: Use Direct Projection by default
-        self.direct_projector = DirectBirkhoffProjection(n, device=device)
+        # Unicorn Synthesis: Use Direct Projection only for small dimensions to avoid OOM
+        # A 256x256 matrix requires a 65536x65536 projection matrix (16GB).
+        if n <= 32:
+            self.direct_projector = DirectBirkhoffProjection(n, device=device)
+        else:
+            self.direct_projector = None
+            print(f" [CONFIG] Birkhoff dimension {n} too large for direct projection. Using iterative fallback.")
     
     def evolve_obstruction(self, genome: torch.Tensor, decay: float = 0.99):
         """delta_o = Obsc(g)"""
@@ -158,11 +163,11 @@ class ObscuredBirkhoffManifold(nn.Module):
         # T: [..., n, n]
         n_in = T.shape[-1]
         
-        if n_in == self.n:
+        if n_in == self.n and self.direct_projector is not None:
             # Linear Projection (Direct)
             T_ds = self.direct_projector(T_soft)
         else:
-            # Iterative Fallback: Sinkhorn-Knopp for dynamic sequence lengths
+            # Iterative Fallback: Sinkhorn-Knopp for dynamic sequence lengths or large dimensions
             # "When geometry shifts, we return to the process"
             iters = max_iterations if max_iterations is not None else self.max_iterations
             T_ds = self._sinkhorn_knopp_internal(T_soft, iters)
@@ -171,6 +176,23 @@ class ObscuredBirkhoffManifold(nn.Module):
         # sum_j T_ij = 1 - delta_o
         target_sum = 1.0 - self.delta_o
         return T_ds * target_sum
+
+    def validate_stochasticity(self, T: torch.Tensor, tolerance: float = 1e-3) -> torch.Tensor:
+        """
+        Check if matrix T is on the Birkhoff polytope (doubly stochastic).
+        
+        Returns a boolean tensor of shape [batch, ...] indicating validity per sample.
+        """
+        row_sums = T.sum(dim=-1)
+        col_sums = T.sum(dim=-2)
+        
+        target = 1.0 - self.delta_o
+        
+        # Compute max deviation from target sum
+        row_err = (row_sums - target).abs().max(dim=-1)[0]
+        col_err = (col_sums - target).abs().max(dim=-1)[0]
+        
+        return (row_err < tolerance) & (col_err < tolerance)
 
     def _sinkhorn_knopp_internal(self, T: torch.Tensor, iters: int) -> torch.Tensor:
         """Iterative Sinkhorn-Knopp algorithm for non-standard dimensions."""
