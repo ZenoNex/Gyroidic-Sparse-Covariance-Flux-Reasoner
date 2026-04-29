@@ -139,6 +139,7 @@ class GyroidicFluxReasoner(nn.Module):
         )
         self.K = self.poly_config.k
         self.D = self.poly_config.degree + 1
+        self.dim = hidden_dim
         
         # Multi-modal embedder (polynomial-based)
         self.embedder = PolynomialFunctionalEmbedder(
@@ -163,7 +164,15 @@ class GyroidicFluxReasoner(nn.Module):
         
         # Polynomial CRT reconstruction (GDPO-enhanced or standard)
         self.use_gdpo = use_gdpo
+        self.learnable_weights = learnable_weights
         self.kl_weight = kl_weight
+        self.containment_budget = 10.0 # Default budget
+        
+        # Internal state for Phase 3 components
+        self.use_structural_irreducibility = False
+        self.use_continuous_coprimality = False
+        self.use_meta_invariant = False
+        self.evidence_modules = None
         
         if use_gdpo:
             self.crt = DecoupledPolynomialCRT(
@@ -663,7 +672,7 @@ class GyroidicFluxReasoner(nn.Module):
         # Homology Pressure: Detects obstructive cycles in the residue kernel
         homology_pressure = self.homology_pressure_fn(
             cycles=cycles,
-            errors=pressures,
+            pressures=pressures,
             introspection_coherence=introspection_coherence
         )
         
