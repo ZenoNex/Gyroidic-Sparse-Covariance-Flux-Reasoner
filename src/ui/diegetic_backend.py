@@ -1830,8 +1830,8 @@ class DiegeticPhysicsEngine(nn.Module):
         
         length_modifier = 1.0 + min(gyroid_entropy.item(), 2.0) * calm_length_factor
         max_output_length = int(base_length * length_modifier * 1.5)
-        max_output_length = min(max_output_length, 500)
-        min_output_length = max(len(text_input) // 2, 20)
+        max_output_length = min(max_output_length, 2000) # Increased for supertask
+        min_output_length = max(len(text_input) // 2, 50) # Slightly increased min
         
         # =============================================
         # 8.5. GARBLED OUTPUT REPAIR PIPELINE (PHASE 2.1: SPECTRAL COHERENCE CORRECTOR)
@@ -1850,11 +1850,11 @@ class DiegeticPhysicsEngine(nn.Module):
                 output_text=None  # We don't have output text yet, but corrector can work without it
             )
             # Apply additional vowel-bias correction to combat consonant clustering
-            # This is a temporary enhancement while we tune the spectral corrector
+            # Toned down to be more 'honest' and less disruptive to manifold
             with torch.no_grad():
                 # Boost dimensions that correspond to vowel-like patterns
-                vowel_boost = self._harvest_honest_jitter(seed_state_corrected.shape) * 1.0
-                vowel_mask = self._harvest_honest_jitter(seed_state_corrected.shape, scaled=False) > 0.7  # 30% of dimensions get vowel boost
+                vowel_boost = self._harvest_honest_jitter(seed_state_corrected.shape) * 0.4 # Reduced from 1.0
+                vowel_mask = self._harvest_honest_jitter(seed_state_corrected.shape, scaled=False) > 0.85 # Tighter mask
                 seed_state_corrected = seed_state_corrected + vowel_boost * vowel_mask.float()
             
             print(f" Corrected state shape: {seed_state_corrected.shape}")
@@ -2774,7 +2774,8 @@ class DiegeticPhysicsEngine(nn.Module):
             "video_dyad_b64": video_dyad_b64,
             "media_chain": media_chain,
             "commutativity": commutativity,
-            "final_seed_state": seed_state.detach().cpu()
+            "final_seed_state": seed_state.detach().cpu(),
+            "unified_spectral_signature": metrics.get("unified_spectral_signature")
         }
         
         self.encoding_manager.save_encoding(
@@ -3878,6 +3879,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 codec_metrics.update({
                     "entanglement_ratio": codec_result.diagnostics.get('entanglement_ratio', 0.0),
                     "commutativity_gap": codec_result.commutativity_gap,
+                    "unified_spectral_signature": fp_tensor.detach().cpu(),
                     "modular_congruence": codec_result.modular_congruence,
                     "is_admissible": codec_result.diagnostics.get('is_admissible', False),
                     "structural_state": codec_result.diagnostics.get('structural_state', "Unknown")
