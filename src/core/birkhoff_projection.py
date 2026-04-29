@@ -132,12 +132,14 @@ class ObscuredBirkhoffManifold(nn.Module):
         n: int = 16, # Default manifold dimension
         temperature: float = 1.0,
         delta_o: float = 0.0,
+        max_iterations: int = 50, # Added for compatibility
         device: str = None
     ):
         super().__init__()
         self.n = n
         self.temperature = nn.Parameter(torch.tensor(temperature))
         self.register_buffer('delta_o', torch.tensor(delta_o))
+        self.max_iterations = max_iterations
         
         # Unicorn Synthesis: Use Direct Projection by default
         self.direct_projector = DirectBirkhoffProjection(n, device=device)
@@ -147,20 +149,44 @@ class ObscuredBirkhoffManifold(nn.Module):
         target_obsc = torch.sigmoid(torch.mean(genome)) * 0.5
         self.delta_o = decay * self.delta_o + (1 - decay) * target_obsc
         
-    def project(self, T: torch.Tensor) -> torch.Tensor:
+    def project(self, T: torch.Tensor, max_iterations: Optional[int] = None) -> torch.Tensor:
         """Project matrix T onto Birkhoff subspace with obstruction."""
         # 1. Softmax/Exp to ensure positivity
         T_soft = torch.exp(T / self.temperature)
         
-        # 2. Linear Projection
-        T_ds = self.direct_projector(T_soft)
+        # 2. Check if Direct Projection is possible (dimension match)
+        # T: [..., n, n]
+        n_in = T.shape[-1]
+        
+        if n_in == self.n:
+            # Linear Projection (Direct)
+            T_ds = self.direct_projector(T_soft)
+        else:
+            # Iterative Fallback: Sinkhorn-Knopp for dynamic sequence lengths
+            # "When geometry shifts, we return to the process"
+            iters = max_iterations if max_iterations is not None else self.max_iterations
+            T_ds = self._sinkhorn_knopp_internal(T_soft, iters)
         
         # 3. Apply Obstruction (delta_o)
         # sum_j T_ij = 1 - delta_o
         target_sum = 1.0 - self.delta_o
         return T_ds * target_sum
+
+    def _sinkhorn_knopp_internal(self, T: torch.Tensor, iters: int) -> torch.Tensor:
+        """Iterative Sinkhorn-Knopp algorithm for non-standard dimensions."""
+        T_it = T.clone()
+        for _ in range(iters):
+            # Row normalization
+            T_it = T_it / (T_it.sum(dim=-1, keepdim=True) + 1e-8)
+            # Column normalization
+            T_it = T_it / (T_it.sum(dim=-2, keepdim=True) + 1e-8)
+        return T_it
     
-    def forward(self, T: torch.Tensor) -> torch.Tensor:
+    def forward(self, T: torch.Tensor, anneal: bool = False) -> torch.Tensor:
+        """
+        Forward pass with optional annealing.
+        anneal is currently a placeholder for temperature scheduling.
+        """
         return self.project(T)
 
 BirkhoffProjection = ObscuredBirkhoffManifold
@@ -172,12 +198,14 @@ def sinkhorn_knopp(
     delta_o: float = 0.0
 ) -> torch.Tensor:
     """Functional wrapper for Sinkhorn-Knopp projection."""
+    # Corrected constructor call
     manifold = ObscuredBirkhoffManifold(
+        n=T.shape[-1], 
         max_iterations=max_iterations, 
         temperature=temperature,
         delta_o=delta_o
     )
-    return manifold.project(T)
+    return manifold.project(T, max_iterations=max_iterations)
 
 def project_to_birkhoff(T: torch.Tensor, max_iterations: int = 50) -> torch.Tensor:
     """Alternative name for sinkhorn_knopp."""
