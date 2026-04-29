@@ -34,7 +34,8 @@ class BulletinBoard(nn.Module):
             
         # Use exponential moving average to avoid sudden rupture
         alpha = 0.3
-        self.force_register.copy_((1.0 - alpha) * self.force_register + alpha * force.detach())
+        force_flat = force.detach().view(-1)
+        self.force_register.copy_((1.0 - alpha) * self.force_register + alpha * force_flat)
         self.update_count += 1
         
     def read_force(self) -> torch.Tensor:
@@ -47,7 +48,9 @@ class BulletinBoard(nn.Module):
         if residue.dim() > 1:
             residue = residue.mean(dim=0)
             
-        self.residue_mailbox.copy_(residue.detach())
+        # Ensure it is 1D to match buffer shape [size]
+        residue_flat = residue.detach().view(-1)
+        self.residue_mailbox.copy_(residue_flat)
         # Store in history for micro-stepping
         self.residue_history[self.history_idx].copy_(residue.detach())
         self.history_idx = (self.history_idx + 1) % 8
