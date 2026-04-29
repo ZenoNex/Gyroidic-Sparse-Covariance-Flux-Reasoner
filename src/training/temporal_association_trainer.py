@@ -318,14 +318,25 @@ class TemporalAssociationTrainer:
         # Target associations (flattened)
         target_flat = target_associations.float()
         
-        # Ensure same size
-        min_size = min(flat_residues.shape[1], target_flat.shape[1])
-        flat_residues = flat_residues[:, :min_size]
-        target_flat = target_flat[:, :min_size]
+        # Ensure same size via Adaptive Pooling if dimensions mismatch
+        if flat_residues.shape[1] != target_flat.shape[1]:
+            # Reshape to [batch, 1, dim] for pooling
+            if flat_residues.shape[1] > target_flat.shape[1]:
+                flat_residues = torch.nn.functional.adaptive_avg_pool1d(
+                    flat_residues.unsqueeze(1), target_flat.shape[1]
+                ).squeeze(1)
+            else:
+                target_flat = torch.nn.functional.adaptive_avg_pool1d(
+                    target_flat.unsqueeze(1), flat_residues.shape[1]
+                ).squeeze(1)
         
         # Association pressure: how well residues correlate with expected associations
         correlation_loss = 1.0 - torch.cosine_similarity(flat_residues, target_flat, dim=1).mean()
         
+        # Manifold Flattening Guard: if loss is too low (total alignment), add small entropy penalty
+        if correlation_loss < 0.1:
+            correlation_loss = correlation_loss + 0.01 * torch.norm(flat_residues, p=2).mean()
+            
         return correlation_loss
     
     def compute_temporal_coherence(
