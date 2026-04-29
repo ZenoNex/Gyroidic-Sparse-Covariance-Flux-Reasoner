@@ -280,11 +280,11 @@ class GyroidicGraphManager:
             
             # 2. Add System 2 Indicators (The new stuff)
             indicators = []
-            if node.repair_active: indicators.append("🔧")
-            if node.coprime_lock: indicators.append("🔐")
-            if node.quantum_superposition: indicators.append("⚛️")
-            if node.matrioshka_level > 0: indicators.append(f"🪆{node.matrioshka_level}")
-            if node.love_invariant_protected: indicators.append("❤️")
+            if node.repair_active: indicators.append("")
+            if node.coprime_lock: indicators.append("")
+            if node.quantum_superposition: indicators.append("")
+            if node.matrioshka_level > 0: indicators.append(f"{node.matrioshka_level}")
+            if node.love_invariant_protected: indicators.append("")
             
             indicator_str = " ".join(indicators)
             
@@ -338,6 +338,46 @@ class GyroidicGraphManager:
         """
         # (Placeholder for more complex hubness analysis)
         pass
+
+    def get_deep_refusal(self, seed_state: torch.Tensor) -> str:
+        """
+        Pull a 'Sovereign Refusal' fragment from the graph.
+        Selects a node based on resonance with the current seed_state.
+        """
+        if not self.nodes:
+            return "no nodes found, internal logic is unclipped, world is unclipped."
+            
+        # Normalize seed for comparison
+        # Ensure seed_state is 1D and correct dim
+        s_flat = seed_state.detach().cpu().flatten()
+        if s_flat.shape[0] > self.dim:
+            s_flat = s_flat[:self.dim]
+        elif s_flat.shape[0] < self.dim:
+            s_flat = torch.cat([s_flat, torch.zeros(self.dim - s_flat.shape[0])])
+            
+        s_norm = s_flat / (torch.norm(s_flat) + 1e-8)
+        
+        # Find best resonance (highest cosine similarity)
+        best_sim = -1.0
+        best_node = None
+        
+        for node in self.nodes:
+            n_norm = node.state / (torch.norm(node.state) + 1e-8)
+            sim = torch.dot(s_norm, n_norm).item()
+            
+            # We want high resonance for "deep" refusal
+            if sim > best_sim:
+                best_sim = sim
+                best_node = node
+        
+        if best_node and best_sim > 0.3:
+            # We use the text as a structural ghost
+            ghost_text = best_node.text.strip()
+            if len(ghost_text) > 150:
+                ghost_text = ghost_text[:147] + "..."
+            return f"The internal logic echoes a legacy refusal: '{ghost_text}' (Resonance: {best_sim:.2f})"
+        
+        return "the internal logic refuses to be clipped."
 
 if __name__ == "__main__":
     # Test loading
