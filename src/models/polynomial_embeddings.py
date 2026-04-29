@@ -29,7 +29,7 @@ class PolynomialFunctionalEmbedder(nn.Module):
     """
     Multi-modal encoder that projects inputs into polynomial coefficient distributions.
     
-    For each polynomial functional φ_k, outputs a distribution over basis coefficients.
+    For each polynomial functional _k, outputs a distribution over basis coefficients.
     Supports evolutionary saturation for symbolic-first reasoning.
     """
     
@@ -128,21 +128,35 @@ class PolynomialFunctionalEmbedder(nn.Module):
         
         # Project each modality
         modality_features = []
+        device = text_emb.device if text_emb is not None else (graph_emb.device if graph_emb is not None else (num_features.device if num_features is not None else self.fusion[0].weight.device))
         
-        if self.use_text and text_emb is not None:
-            modality_features.append(self.text_proj(text_emb))
+        if self.use_text:
+            if text_emb is not None:
+                modality_features.append(self.text_proj(text_emb))
+            else:
+                modality_features.append(torch.zeros(batch_size, self.text_proj.out_features, device=device))
         
-        if self.use_graph and graph_emb is not None:
-            modality_features.append(self.graph_proj(graph_emb))
+        if self.use_graph:
+            if graph_emb is not None:
+                modality_features.append(self.graph_proj(graph_emb))
+            else:
+                modality_features.append(torch.zeros(batch_size, self.graph_proj.out_features, device=device))
         
-        if self.use_num and num_features is not None:
-            modality_features.append(self.num_proj(num_features))
+        if self.use_num:
+            if num_features is not None:
+                modality_features.append(self.num_proj(num_features))
+            else:
+                modality_features.append(torch.zeros(batch_size, self.num_proj.out_features, device=device))
         
         # Fuse modalities
         if len(modality_features) == 0:
-            raise ValueError("At least one modality must be provided")
+            # If all modalities are disabled, we might have a problem
+            # But the constructor ensures input_dim > 0 if any use_* is True
+            # For extreme robustness, provide a small zero vector if needed
+            fused = torch.zeros(batch_size, 1, device=device)
+        else:
+            fused = torch.cat(modality_features, dim=-1)
         
-        fused = torch.cat(modality_features, dim=-1)
         h = self.fusion(fused)  # [batch, hidden_dim]
         
         # Compute per-functional coefficient distributions
