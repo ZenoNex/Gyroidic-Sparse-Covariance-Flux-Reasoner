@@ -125,7 +125,7 @@ class GyroidicFluxReasoner(nn.Module):
         # --- FORCED REPAIR INJECTION ---
         self.device = DEVICE
         device = self.device
-        poly_degree = 13 # Aligning with your gyroid_state.pt
+        poly_degree = 4 # Match historical state
         # -------------------------------
 
         # Polynomial functional configuration
@@ -236,7 +236,8 @@ class GyroidicFluxReasoner(nn.Module):
             self.calm_predictor = CALM(
                 dim=self.coeff_dim,
                 history_len=8,
-                hidden_dim=256
+                hidden_dim=256,
+                nhead=5
             )
             
             # Solver Config
