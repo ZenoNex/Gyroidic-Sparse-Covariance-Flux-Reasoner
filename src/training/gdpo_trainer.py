@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple, Callable
 import numpy as np
 
 from src.core.gdpo_normalization import SignalSovereignty
+from src.core.birkhoff_projection import project_to_birkhoff
 
 # Fix import paths
 import sys
@@ -28,8 +29,8 @@ class GDPOSovereigntyPressureComputer:
     Computes GDPO-style decoupled sovereignty pressures from multi-pressure rollouts.
     
     Key difference from standard GRPO:
-        - GRPO: Normalize sum of pressures → collapse
-        - GDPO: Normalize each pressure separately, then aggregate → sovereignty preserved
+        - GRPO: Normalize sum of pressures  collapse
+        - GDPO: Normalize each pressure separately, then aggregate  sovereignty preserved
     """
     
     def __init__(
@@ -131,9 +132,9 @@ class GDPOSovereigntyAdaptor:
     PPO-style structural adaptor with GDPO sovereignty pressures.
     
     Total objective:
-        J(θ) = E[min(ρ·Â^GDPO, clip(ρ)·Â^GDPO)] - β·KL(π_θ || π_ref)
+        J() = E[min(^GDPO, clip()^GDPO)] - KL(_ || _ref)
     
-    Where Â^GDPO uses decoupled multi-pressure normalization.
+    Where ^GDPO uses decoupled multi-pressure normalization.
     """
     
     def __init__(
@@ -162,7 +163,7 @@ class GDPOSovereigntyAdaptor:
             optimizer: Optimizer for configuration
             device: Device to adapt on
             clip_epsilon: Clipping parameter
-            kl_coef: KL penalty coefficient β
+            kl_coef: KL penalty coefficient 
             value_coef: Value pressure coefficient
             entropy_coef: Entropy bonus coefficient
             max_grad_norm: Gradient clipping norm
@@ -206,7 +207,7 @@ class GDPOSovereigntyAdaptor:
         """
         Compute clipped structural adaptation pressure.
         
-        L_adaptation = -E[min(ρ·Â, clip(ρ,1-ε,1+ε)·Â)]
+        L_adaptation = -E[min(, clip(,1-,1+))]
         
         Args:
             log_probs: [batch, steps] current configuration log probs
@@ -217,7 +218,7 @@ class GDPOSovereigntyAdaptor:
             pressures: [num_pressures] Scalar adaptation pressures
             metrics: Dictionary with statistics
         """
-        # Importance ratio: ρ = π_θ / π_old
+        # Importance ratio:  = _ / _old
         ratio = torch.exp(log_probs - old_log_probs)
         
         adaptation_pressures = []
@@ -304,7 +305,6 @@ class GDPOSovereigntyAdaptor:
         self.optimizer.step()
         # --- GDPO BIRKHOFF ALIGNMENT ---
         with torch.no_grad():
-            from src.core.birkhoff_projection import project_to_birkhoff
             for p in self.configuration.parameters():
                 if p.dim() == 2 and p.shape[0] == p.shape[1]:
                     p.copy_(project_to_birkhoff(p.data))
