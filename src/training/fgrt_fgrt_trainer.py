@@ -22,6 +22,7 @@ from src.core.admr_solver import PolynomialADMRSolver
 from src.core.codes_constraint_framework import CODESConstraintFramework
 from src.models.resonance_cavity import ResonanceCavity
 from src.core.invariants import PhaseAlignmentInvariant
+from src.core.birkhoff_projection import project_to_birkhoff
 
 # Fix import paths
 import sys
@@ -72,7 +73,7 @@ class SpectralStructuralTrainer:
         )
         
         # 3. Formal System 2 Constraints (RIC/CODES)
-        # These are used for calculating the formal Survivorship Pressure (§6.3)
+        # These are used for calculating the formal Survivorship Pressure (6.3)
         self.ric = ResonanceCavity(hidden_dim=256, num_modes=64, poly_config=poly_config)
         self.codes = CODESConstraintFramework(state_dim=256)
         
@@ -125,11 +126,11 @@ class SpectralStructuralTrainer:
         # 4. Compute Invariants
         pas_h = self.pas_metric(output.unsqueeze(1) if output.dim() == 2 else output).mean().item()
         
-        # 5. Compute formal Survivorship Pressure (§6.3 TAT Unified)
-        # Survivorship_Pressure = Association_Inaccuracy + α × (1.0 - Coherence) - β × Mischief
+        # 5. Compute formal Survivorship Pressure (6.3 TAT Unified)
+        # Survivorship_Pressure = Association_Inaccuracy +   (1.0 - Coherence) -   Mischief
         # - Association_Inaccuracy (recon_loss): Pressure to find the correct manifold.
         # - Coherence Penalty (1.0 - coherence): Pressure to maintain temporal stability.
-        # - Mischief Reward (mischief): Reward for novel topological exploration (§15.2).
+        # - Mischief Reward (mischief): Reward for novel topological exploration (15.2).
         
         alpha_coh = 0.1
         beta_mischief = 0.05
@@ -139,7 +140,7 @@ class SpectralStructuralTrainer:
         resonance_data = self.ric.query(proposal)
         coherence = resonance_data['resonance_scores'].mean()
         
-        # Formal Mischief via High-Order Resonance (§15.2)
+        # Formal Mischief via High-Order Resonance (15.2)
         # Mischief is the measure of novelty relative to the resonant baseline.
         # It's high when the proposal is structurally valid but 'surprising' to the RIC.
         mischief = (1.0 - coherence) * spectral_entropy
@@ -175,7 +176,6 @@ class SpectralStructuralTrainer:
 
         # --- MANDATORY BIRKHOFF MANIFOLD PROJECTION ---
         with torch.no_grad():
-            from src.core.birkhoff_projection import project_to_birkhoff
             for p in self.model.parameters():
                 if p.dim() == 2 and p.shape[0] == p.shape[1]:
                     p.copy_(project_to_birkhoff(p.data))
