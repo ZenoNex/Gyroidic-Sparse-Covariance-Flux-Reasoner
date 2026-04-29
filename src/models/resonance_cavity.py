@@ -17,10 +17,8 @@ import struct
 import sys
 import os
 from typing import Dict, List, Optional, Tuple, Any
-from src.core.honest_jitter import harvest_honest_jitter
-
-sys.path.append(os.getcwd())
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
+from src.core.honest_jitter import harvest_honest_jitter, fractal_pad
 
 
 class GyroidicFluxAlignment(nn.Module):
@@ -366,6 +364,31 @@ class ResonanceCavity(nn.Module):
         # 6. Flux Alignment
         self.flux_alignment = GyroidicFluxAlignment(dim=hidden_dim)
         
+    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
+        """Handle shape mismatches for resonance buffers via fractal alignment."""
+        for name in ['M', 'D_dark', 'residue_memory', 'pattern_confidence', 'mutation_bias']:
+            key = prefix + name
+            if key in state_dict:
+                val = state_dict[key]
+                target_param = getattr(self, name, None)
+                if target_param is not None and val.shape != target_param.shape:
+                    print(f" [ADAPTIVE] Aligning {name}: {val.shape} -> {target_param.shape}")
+                    new_val = val
+                    # Align each dimension via fractal padding
+                    for i in range(len(target_param.shape)):
+                        if i < len(new_val.shape) and new_val.shape[i] != target_param.shape[i]:
+                            # Transpose dimension to last, pad, transpose back
+                            if i != len(target_param.shape) - 1:
+                                dims = list(range(len(target_param.shape)))
+                                dims[i], dims[-1] = dims[-1], dims[i]
+                                new_val = new_val.permute(*dims)
+                                new_val = fractal_pad(new_val, target_param.shape[i])
+                                new_val = new_val.permute(*dims)
+                            else:
+                                new_val = fractal_pad(new_val, target_param.shape[i])
+                    state_dict[key] = new_val
+        super()._load_from_state_dict(state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs)
+        
     @torch.no_grad()
     def update(
         self,
@@ -398,6 +421,10 @@ class ResonanceCavity(nn.Module):
         if field_idx >= self.K:
             field_idx = 0
         
+        # Fractal (Reflective) Padding for dimensional alignment
+        if attention_states.shape[-1] != self.hidden_dim:
+            attention_states = fractal_pad(attention_states, self.hidden_dim)
+
         batch_size, seq_len, _ = attention_states.shape
         
         # Decide which residues to store: Physics (Refined) > Intuition (Expected)
@@ -599,7 +626,8 @@ class ResonanceCavity(nn.Module):
         self,
         query_vector: torch.Tensor,
         field_idx: int = 0,
-        top_k: int = 5
+        top_k: int = 5,
+        load: float = 0.0
     ) -> Dict[str, torch.Tensor]:
         """
         Query resonance cavity for relevant modes.
@@ -628,6 +656,11 @@ class ResonanceCavity(nn.Module):
         # Cosine similarity
         resonance = torch.mm(query_norm, modes.t())  # [batch, num_modes]
         
+        # ADAPTIVE MODE PRUNING:
+        # Under high load, we reduce the number of active modes to retrieve.
+        if load > 0.5:
+            top_k = max(1, int(top_k * (1.0 - (load - 0.5) * 1.5)))
+
         # Get top-k
         top_scores, top_indices = torch.topk(resonance, k=min(top_k, self.num_modes), dim=-1)
         
