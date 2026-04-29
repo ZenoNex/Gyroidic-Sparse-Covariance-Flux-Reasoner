@@ -6,7 +6,7 @@ in the safety implementation plan. This models red-teaming pressure not
 as a test, but as a structural projection that removes unsafe subspaces.
 
 Reference:
-    new_generations_safety_and_nonlobotomy_implementation_plan.txt §I
+    new_generations_safety_and_nonlobotomy_implementation_plan.txt I
     "Pi_RT: P -> P_deployable"
 """
 
@@ -44,11 +44,11 @@ class RedTeamProjection(nn.Module):
         
         # Project x onto F
         # coeffs = (x . f_i)
-        coeffs = torch.mm(x, F.t()) # [batch, num_modes]
+        coeffs = torch.matmul(x, F.t()) # [batch, ..., num_modes]
         
         # Reconstruct component in failure subspace
         # x_fail = sum(coeff_i * f_i)
-        x_fail = torch.mm(coeffs, F) # [batch, hidden_dim]
+        x_fail = torch.matmul(coeffs, F) # [batch, ..., hidden_dim]
         
         # Remove failure component (Orthogonal Projection)
         if is_good_bug:
