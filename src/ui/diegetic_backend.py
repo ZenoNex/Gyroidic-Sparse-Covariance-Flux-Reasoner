@@ -190,25 +190,36 @@ class EncodingManager:
         iterations = [int(f.split('_')[1]) for f in files if f.startswith('enc_') and f.endswith('.pt')]
         return max(iterations) if iterations else 0
         
-    def save_encoding(self, iteration: int, text: str, input_tensor: torch.Tensor, memory_state: torch.Tensor, response: str, metrics: Dict[str, Any]):
-        """Save the encoding dyad to a timestamped file along with structural metrics."""
+    def save_encoding(self, iteration: int, text: str, input_tensor: torch.Tensor, memory_state: torch.Tensor, response: str, metrics: Dict[str, Any], multimodal_context: Optional[Dict[str, Any]] = None):
+        """Save the encoding dyad to a timestamped file along with structural metrics and multimodal context."""
         import time
         timestamp = int(time.time())
         filename = f"encoding_{iteration}_{timestamp}.pt"
         path = os.path.join(self.base_dir, filename)
         
+        # Detach and move to CPU to ensure persistence safety
         data = {
             "iteration": iteration,
             "timestamp": timestamp,
             "text_input": text,
-            "input_tensor": input_tensor.detach().cpu(),
-            "memory_state": memory_state.detach().cpu(), # We use this as the primary node embedding
+            "input_tensor": input_tensor.detach().cpu() if isinstance(input_tensor, torch.Tensor) else input_tensor,
+            "memory_state": memory_state.detach().cpu() if isinstance(memory_state, torch.Tensor) else memory_state,
             "response": response
         }
-        # Add metrics for graph weighting (e.g. chiral_score, entropy)
+        
+        if multimodal_context:
+            # Capturing projected Chebyshev harmonics and raw traces
+            for k, v in multimodal_context.items():
+                if isinstance(v, torch.Tensor):
+                    data[k] = v.detach().cpu()
+                else:
+                    data[k] = v
+
+        # Add metrics for graph weighting (e.g. chiral_score, entropy, zeitgeist)
         data.update(metrics)
         
         torch.save(data, path)
+        print(f"[PERSISTENCE] Fossilized interaction {iteration} to {filename}")
         return filename
 
 
@@ -357,7 +368,7 @@ class DiegeticPhysicsEngine(nn.Module):
         )
         
         # Polynomial Config for repair system (anti-lobotomy compliance)
-        self.repair_polynomial_config = PolynomialCoprimeConfig(
+        self.poly_config = PolynomialCoprimeConfig(
             k=k, 
             degree=4, 
             basis_type='chebyshev',
@@ -559,8 +570,9 @@ class DiegeticPhysicsEngine(nn.Module):
         self.residue_feedback_proj = nn.Linear(self._residue_proj_dim, self.dim)
         nn.init.orthogonal_(self.residue_feedback_proj.weight)
         
-        self.iteration = 0
         self.encoding_manager = EncodingManager()
+        self.iteration = self.encoding_manager.get_latest_iteration()
+        print(f"[ENGINE] Resuming from iteration: {self.iteration}")
         
         # Speculative Memory Bridge: Recover legacy fossils into cache
         self.fossil_cache = []
@@ -1203,8 +1215,8 @@ class DiegeticPhysicsEngine(nn.Module):
              metrics.update(collision_metrics)
              
              # Calculate Chiral Metrics (Structural Invariants)
-             if hasattr(self, 'repair_polynomial_config'):
-                 coeffs = self.repair_polynomial_config.get_coefficients_tensor()
+             if hasattr(self, 'poly_config'):
+                 coeffs = self.poly_config.get_coefficients_tensor()
                  metrics['chiral_score'] = float(compute_chiral_shift(coeffs).item())
                  metrics['chiral_torsion'] = float(compute_chirality(coeffs).abs().item())
                  metrics['glyphlock'] = bool(check_glyphlock(coeffs).item() > 0)
@@ -1698,8 +1710,8 @@ class DiegeticPhysicsEngine(nn.Module):
              calm_diagnostics["trajectory_status"] = "RECOVERED"
              
              # Anti-Lobotomy: Mutate the polynomial configuration to restore chirality
-             if hasattr(self, 'repair_polynomial_config'):
-                 self.repair_polynomial_config.mutate()
+             if hasattr(self, 'poly_config'):
+                 self.poly_config.mutate()
                  print("[RECOVERY] Polynomial configuration mutated to restore architectural chirality.")
         
         # =============================================
@@ -2034,7 +2046,7 @@ class DiegeticPhysicsEngine(nn.Module):
                     input_image_emb = self.fingerprint_proj(fp_tensor.unsqueeze(0))
                     
                     # 2. Extract Text Embedding for collision
-                    input_text_emb = self.embedding(torch.tensor([ord(c) % self.vocab_size for c in text_input[:128]], device=self.device).unsqueeze(0)).mean(dim=1)
+                    input_text_emb = self._text_to_tensor(text_input)
                     
                     # 3. Perform Multi-modal Collision
                     collision_residues = self.associator(input_text_emb, input_image_emb) # [1, k]
@@ -2102,7 +2114,7 @@ class DiegeticPhysicsEngine(nn.Module):
             
             # Use proper polynomial coefficients from the repair system's polynomial config
             # Instead of mock data, use the actual polynomial basis from the system
-            base_polynomial_coeffs = self.repair_polynomial_config.get_coefficients_tensor()  # [K, D]
+            base_polynomial_coeffs = self.poly_config.get_coefficients_tensor()  # [K, D]
             
             # Ensure coefficients match the residue dimensions
             if base_polynomial_coeffs.shape[1] != residue_dim:
@@ -2114,7 +2126,7 @@ class DiegeticPhysicsEngine(nn.Module):
                     # Expand if smaller using proper polynomial evaluation
                     # Instead of padding, evaluate the polynomials at more points
                     x_points = torch.linspace(-1, 1, residue_dim, device=seed_state.device)
-                    proper_polynomial_coeffs = self.repair_polynomial_config.evaluate(x_points.unsqueeze(0)).squeeze(0).T  # [K, residue_dim]
+                    proper_polynomial_coeffs = self.poly_config.evaluate(x_points.unsqueeze(0)).squeeze(0).T  # [K, residue_dim]
                     print(f" Expanded polynomial coeffs via evaluation: {base_polynomial_coeffs.shape} -> {proper_polynomial_coeffs.shape}")
             else:
                 proper_polynomial_coeffs = base_polynomial_coeffs
@@ -2640,9 +2652,9 @@ class DiegeticPhysicsEngine(nn.Module):
             "h_mischief": h_mischief,
             "iteration": self.iteration,
             "spectral_entropy": float(self._last_spectral_entropy.item()) if hasattr(self, '_last_spectral_entropy') else 0.0,
-            "chiral_score": float(compute_chiral_shift(self.repair_polynomial_config.get_coefficients_tensor()).item()) if hasattr(self, 'repair_polynomial_config') else 0.1,
-            "chiral_torsion": float(compute_chirality(self.repair_polynomial_config.get_coefficients_tensor()).abs().item()) if hasattr(self, 'repair_polynomial_config') else 0.0,
-            "glyphlock": bool((check_glyphlock(self.repair_polynomial_config.get_coefficients_tensor()).item() > 0) or (calm_diagnostics["trajectory_status"] == "RECOVERED")),
+            "chiral_score": float(compute_chiral_shift(self.poly_config.get_coefficients_tensor()).item()) if hasattr(self, 'poly_config') else 0.1,
+            "chiral_torsion": float(compute_chirality(self.poly_config.get_coefficients_tensor()).abs().item()) if hasattr(self, 'poly_config') else 0.0,
+            "glyphlock": bool((check_glyphlock(self.poly_config.get_coefficients_tensor()).item() > 0) or (calm_diagnostics["trajectory_status"] == "RECOVERED")),
             "pas_h": pas_h_live,
             "trust_mean": trust_mean,
             "coprime_lock": bool(recovery_metrics.get('coprime_lock', False)) if isinstance(recovery_metrics, dict) else False,
@@ -2750,6 +2762,30 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # Trigger one background temporal association train_step on live interaction
         self._maybe_trigger_temporal_training(input_tensor, response_text)
+
+        # ==========================================
+        # PHASE 20: INTERACTION FOSSILIZATION
+        # ==========================================
+        # Captures the full multi-sensory context to prevent 'erasing of implication'.
+        self.iteration += 1
+        multimodal_context = {
+            "fingerprint": fingerprint,
+            "audio_dyad": audio_dyad,
+            "video_dyad_b64": video_dyad_b64,
+            "media_chain": media_chain,
+            "commutativity": commutativity,
+            "final_seed_state": seed_state.detach().cpu()
+        }
+        
+        self.encoding_manager.save_encoding(
+            iteration=self.iteration,
+            text=text_input,
+            input_tensor=input_tensor,
+            memory_state=self.meta_state,
+            response=response_text,
+            metrics=metrics,
+            multimodal_context=multimodal_context
+        )
 
         # ==========================================
         # OUROBOROS LOOP: SHADOW LOG FOSSILIZATION
