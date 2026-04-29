@@ -150,11 +150,21 @@ class ResonanceLarynx(nn.Module):
            confidence: [batch, 1]
         """
         # Apply logic leak protection via Chern-Simons gasket
-        safe_state = state.unsqueeze(1) # [batch, 1, dim]
+        # Ensure state is 3D [batch, K, D] for the gasket
+        if state.dim() == 2:
+            safe_state = state.unsqueeze(1)
+        else:
+            safe_state = state
+            
         # Polynomial coeffs placeholder or derived from state
+        # Use only the last dimension for D, and treat K as 1 if not explicit
         poly_placeholder = torch.ones(state.shape[0], state.shape[-1], device=state.device)
         safe_state = self.chern_simons.plug_logic_leak(safe_state, poly_placeholder)
-        safe_state = safe_state.squeeze(1)
+        
+        if state.dim() == 2:
+            safe_state = safe_state.squeeze(1)
+        else:
+            safe_state = safe_state
         
         # Hazard Protection: Ensure temperature is never zero
         safe_temp = max(temperature, 1e-6)
