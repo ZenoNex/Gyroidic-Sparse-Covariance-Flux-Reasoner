@@ -72,6 +72,9 @@ class SparseGyroidCovarianceProbe(nn.Module):
         
         if use_saturation_detection:
             self.fracture_detector = SaturationFractureDetector()
+            
+        # Global Manifold Estimator (System 2 Driver)
+        self.gyroid_cov = GyroidCovarianceEstimator(dim=hidden_dim)
     
     def compute_local_covariance(
         self,
