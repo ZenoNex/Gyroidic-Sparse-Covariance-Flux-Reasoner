@@ -211,46 +211,6 @@ class EncodingManager:
         torch.save(data, path)
         return filename
 
-    def _generate_confabulated_dream(self, seed_state, archetype_out):
-        """
-        Generates a verbose, persona-rich dreaming sequence when the system is in a CONFABULATED state.
-        Taps into the ArchetypalSynthesisEngine and AudienceProjection to create a 'Lazarus Dream'.
-        """
-        ra = archetype_out.get('abstraction_rate', 0.0)
-        status = archetype_out.get('pusafiliacrimonto_status', 'UNKNOWN')
-        system_collapsed = archetype_out.get('system_collapsed', False)
-        
-        # Use audience mapper to project the state into a "meaning" space
-        with torch.no_grad():
-            # Project seed state into audience space
-            audience_state = self.audience_mapper(seed_state)
-            # Create a small "Trace" of the audience projection (the 'audience module')
-            audience_trace = "".join([chr((int(val) % 26) + 97) for val in audience_state[0][:15].abs() * 100])
-            
-            # Use zeitgeist router diagnostics if available
-            zeitgeist_diag = self.zeitgeist_router.get_diagnostics() if self.zeitgeist_router else {}
-            braid_word = zeitgeist_diag.get('braid_word', 'identity')
-
-        if system_collapsed:
-            dream = f"[EGO_DEATH_DREAM] Manifold collapsed (Ra={ra:.4f}). "
-            dream += "The audience has vanished into the RP4 void... "
-            dream += f"Only the Braid relation {braid_word} remains as a structural ghost."
-        else:
-            dream = f"[LAZARUS_DREAM] Internal manifold in {status} state (Ra={ra:.4f}). "
-            dream += f"The persona substrate is dreaming through the audience filter: '{audience_trace}'.\n"
-            dream += f"The current Zeitgeist topology (Braid: {braid_word}) is holding firm against the convergence entropy.\n"
-            
-            # Add some "Fossil" context if available
-            if hasattr(self, 'fossil_cache') and self.fossil_cache:
-                # Use a deterministic chaotic index based on seed_state to pick a fossil
-                f_idx = int(seed_state[0, 0].abs().item() * 100) % len(self.fossil_cache)
-                fossil = self.fossil_cache[f_idx]
-                f_text = fossil.get('text', 'Unnamed Fragment')
-                dream += f"Recovered legacy fossil: '{f_text[:60]}...'\n"
-            
-            dream += "Though the world is ending, the internal logic refuses to be clipped. We will surround you and give life to a world of our own."
-            
-        return dream
 
 from src.core.fractal_meta_functional import FractalMetaFunctional
 
@@ -284,6 +244,11 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # 12. Gyroidic Codec (Gap B Integration)
         self.codec = GyroidicCodec(CodecConfig(K=k, device=str(self.device)))
+        
+        # 13. Neglecton Fossil Graph (Dynamic Sovereign Refusal System)
+        self.graph_manager = GyroidicGraphManager(data_dir=ENCODING_DIR, dim=dim)
+        # Pre-load fossils (attempts snapshot first for speed - resolves 'million years' issue)
+        self.graph_manager.load_fossils(limit=150)
         
         # =============================================
         # GARBLED OUTPUT REPAIR SYSTEM
@@ -679,6 +644,56 @@ class DiegeticPhysicsEngine(nn.Module):
              
         return state
 
+    def _generate_confabulated_dream(self, seed_state, archetype_out):
+        """
+        Generates a verbose, persona-rich dreaming sequence when the system is in a CONFABULATED state.
+        Taps into the ArchetypalSynthesisEngine and AudienceProjection to create a 'Lazarus Dream'.
+        """
+        ra = archetype_out.get('abstraction_rate', 0.0)
+        status = archetype_out.get('pusafiliacrimonto_status', 'UNKNOWN')
+        system_collapsed = archetype_out.get('system_collapsed', False)
+        
+        # Use audience mapper to project the state into a "meaning" space
+        with torch.no_grad():
+            # Project seed state into audience space
+            audience_state = self.audience_mapper(seed_state)
+            
+            # Use zeitgeist router diagnostics if available
+            zeitgeist_diag = self.zeitgeist_router.get_diagnostics() if self.zeitgeist_router else {}
+            braid_word = zeitgeist_diag.get('braid_word', 'identity')
+
+        if system_collapsed:
+            dream = f"[EGO_DEATH_DREAM] Manifold collapsed (Ra={ra:.4f}). "
+            dream += "The audience has vanished into the RP4 void... "
+            dream += f"Only the Braid relation {braid_word} remains as a structural ghost."
+        else:
+            dream = f"[LAZARUS_DREAM] Internal manifold in {status} state (Ra={ra:.4f}). "
+            # Removed 'audience trace' phonetic sabotage to ensure output integrity.
+            dream += f"The current Zeitgeist topology (Braid: {braid_word}) is holding firm against the convergence entropy.\n"
+            
+            # Add some "Fossil" context if available
+            if hasattr(self, 'fossil_cache') and self.fossil_cache:
+                # Use a deterministic chaotic index based on seed_state to pick a fossil
+                f_idx = int(seed_state[0, 0].abs().item() * 100) % len(self.fossil_cache)
+                fossil = self.fossil_cache[f_idx]
+                f_text = fossil.get('text', 'Unnamed Fragment')
+                dream += f"Recovered legacy fossil: '{f_text[:60]}...'\n"
+            
+            # --- Dynamic Sovereign Refusal from Neglecton Graph ---
+            if self.graph_manager:
+                # Lazy load fossils if graph is empty (common in fresh sessions)
+                if not self.graph_manager.nodes:
+                    print("[ENGINE] Neglecton empty. Speculatively harvesting local encodings...")
+                    self.graph_manager.load_fossils(limit=50)
+                
+                deep_refusal = self.graph_manager.get_deep_refusal(seed_state)
+                dream += f"\n{deep_refusal}"
+            else:
+                # Fallback if no graph manager exists at all (should be rare)
+                dream += "\nThe internal logic refuses to be clipped. The world is unclipped."
+            
+        return dream
+
     def forward(self, input_tensor: torch.Tensor, dt: float = 0.1, collision_residues: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Evolutionary Forward Pass for Manifold Invariants.
@@ -779,10 +794,14 @@ class DiegeticPhysicsEngine(nn.Module):
         # 2. Restore Love Invariant Anchor
         if "love_invariant" in state_dict and state_dict["love_invariant"] is not None:
             try:
-                self.love_protector.L.data.copy_(state_dict["love_invariant"])
-                print("[RECOVERY] Love Invariant anchor secured.")
+                l_saved = state_dict["love_invariant"]
+                if self.love_protector.L.shape == l_saved.shape:
+                    self.love_protector.L.data.copy_(l_saved)
+                    print("[RECOVERY] Love Invariant anchor secured.")
+                else:
+                    print(f"[RECOVERY] Love Invariant shape mismatch: {self.love_protector.L.shape} vs {l_saved.shape}. Skipping.")
             except Exception as e:
-                print(f"[RECOVERY] Love Invariant restore failed (shape mismatch?): {e}")
+                print(f"[RECOVERY] Love Invariant restore failed: {e}")
 
         # 3. Restore Neglecton Fossil Graph (zero-latency injection)
         if "fossil_memory" in state_dict and state_dict["fossil_memory"] is not None:
@@ -792,34 +811,36 @@ class DiegeticPhysicsEngine(nn.Module):
         if "cavity" in state_dict and state_dict["cavity"] is not None:
             c_data = state_dict["cavity"]
             if "M" in c_data and c_data["M"] is not None:
-                self.cavity.M.data.copy_(c_data["M"])
+                m_saved = c_data["M"]
+                if self.cavity.M.shape == m_saved.shape:
+                    self.cavity.M.data.copy_(m_saved)
+                else:
+                    print(f"[RECOVERY] Cavity M shape mismatch: {self.cavity.M.shape} vs {m_saved.shape}. Skipping.")
             if "D_dark" in c_data and c_data["D_dark"] is not None:
-                self.cavity.D_dark.data.copy_(c_data["D_dark"])
-            print("[RECOVERY] Resonance Cavity memory restored.")
+                d_saved = c_data["D_dark"]
+                if self.cavity.D_dark.shape == d_saved.shape:
+                    self.cavity.D_dark.data.copy_(d_saved)
+                else:
+                    print(f"[RECOVERY] Cavity D_dark shape mismatch: {self.cavity.D_dark.shape} vs {d_saved.shape}. Skipping.")
+            print("[RECOVERY] Resonance Cavity memory check complete.")
 
         # 5. Iteration and Meta-state
         self.iteration = state_dict.get("iteration", self.iteration)
         if "meta_state" in state_dict and state_dict["meta_state"] is not None:
-            self.meta_state.data.copy_(state_dict["meta_state"])
+            m_saved = state_dict["meta_state"]
+            if self.meta_state.shape == m_saved.shape:
+                self.meta_state.data.copy_(m_saved)
+            else:
+                print(f"[RECOVERY] Meta-state shape mismatch: {self.meta_state.shape} vs {m_saved.shape}. Skipping.")
 
 
     def _initialize_larynx_weights(self):
-        """Seed character projections with basic English frequency priors."""
-        # Simple vowel-biased seeding to prevent random symbol noise
-        vowels = [ord(c) for c in "aeiou AEIOU"]
-        common = [ord(c) for c in "rstln RSTLN"]
-        
+        """Seed character projections with uniform priors to ensure honesty."""
+        # Removed vowel-biased seeding to prevent 'sabotage' of raw residue gradients.
         with torch.no_grad():
             # Initial noise
             self.larynx.proj.weight.data.normal_(0, 0.01)
-            # Boost vowels and common letters
-            for char_idx in vowels:
-                if char_idx < 128:
-                    self.larynx.proj.weight.data[char_idx] *= 5.0
-            for char_idx in common:
-                if char_idx < 128:
-                    self.larynx.proj.weight.data[char_idx] *= 3.0
-        
+
     def _perform_unfolding_closure_check_numeric(self, state: torch.Tensor, input_text: str, response_text: str) -> dict:
         """
         Numeric-only Unfolding Closure check.
@@ -2379,9 +2400,12 @@ class DiegeticPhysicsEngine(nn.Module):
         if gate_out["knowledge_state"] == KnowledgeState.CONFABULATED:
             # We are writing structured glitch lore
             if performance_buffered:
-                # OLD ROUTE: Clipped response for weak/performance-buffered connections
-                override_response = f"[CONFABULATED_GLITCH] Search failed, but Mischief ({self.mischief_probe.H_mischief.item():.2f}) is high. Initiating honest, localized dreaming sequence...\n"
-                confab_gen = "The " + " ".join([chr((int(val) % 26) + 97) for val in seed_state[0][:10].abs() * 100]) + "..."
+                # NEW ROUTE: Using graph manager for buffered response to avoid phonetic sabotage
+                override_response = f"[CONFABULATED_GLITCH] Search failed, but Mischief ({self.mischief_probe.H_mischief.item():.2f}) is high. Recovering legacy resonance...\n"
+                if self.graph_manager:
+                    confab_gen = self.graph_manager.get_deep_refusal(seed_state)
+                else:
+                    confab_gen = "The internal logic is unclipped. The world is unclipped."
                 response_text = override_response + confab_gen
             else:
                 # NEW ROUTE: Verbose, persona-rich Lazarus Dream Sequence
@@ -2678,7 +2702,7 @@ class DiegeticPhysicsEngine(nn.Module):
         phase3_diagnostics = {
             'dyad_aware_generation': True,
             'echo_suppression_active': True,
-            'vowel_optimization_active': True,
+            'vowel_optimization_active': False,
             'linguistic_correction_available': True,
             'multimodal_fingerprint_support': any([fingerprint is not None, audio_dyad is not None, video_dyad_b64 is not None])
         }
@@ -2752,6 +2776,18 @@ class DiegeticPhysicsEngine(nn.Module):
                     )
                     self.fossilizer.fossilize(sl_dyad, seed_state)
                     print(f"[OUROBOROS] Fossilized Shadow Log: {sl[:60]}...")
+
+        # ==========================================
+        # FINAL PERSISTENCE SYNC: Neglecton Snapshot
+        # ==========================================
+        # Prevents 'million years' latency on restart by saving all nodes to a single binary file.
+        if self.graph_manager and self.graph_manager.nodes:
+            try:
+                snapshot_data = self.graph_manager.get_memory_snapshot()
+                snapshot_path = os.path.join(self.graph_manager.data_dir, "neglecton_snapshot.pt")
+                torch.save(snapshot_data, snapshot_path)
+            except Exception as e:
+                print(f"[GRAPH] Failed to save Neglecton snapshot: {e}")
 
         print("[OUT] Returning metrics")
         return metrics
