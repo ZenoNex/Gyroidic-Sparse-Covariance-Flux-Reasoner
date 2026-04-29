@@ -56,7 +56,7 @@ from typing import Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from src.core.honest_jitter import harvest_honest_jitter
+from src.core.honest_jitter import harvest_honest_jitter, fractal_pad
 from src.core.primitive_ops import stochastic_round
 from src.topology.betti_router import BettiRouter
 
@@ -379,9 +379,32 @@ class ZeitgeistRouter(nn.Module):
         #  Betti-Aware Routing  #
         self.betti_router = BettiRouter(feature_dim=dim, num_sectors=self.M)
         
-        # Fossil landmarks cache
         self.fossil_landmarks = {}
         self._last_diag = {}
+
+    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
+        """Handle shape mismatches for Zeitgeist buffers via fractal alignment."""
+        for name in ['facet_normals', 'facet_thresholds', 'digimon_buffer', 'gravity_well_bias']:
+            key = prefix + name
+            if key in state_dict:
+                val = state_dict[key]
+                target_param = getattr(self, name, None)
+                if target_param is not None and val.shape != target_param.shape:
+                    print(f" [ADAPTIVE] Aligning {name}: {val.shape} -> {target_param.shape}")
+                    new_val = val
+                    for i in range(len(target_param.shape)):
+                        if i < len(new_val.shape) and new_val.shape[i] != target_param.shape[i]:
+                            # Transpose dimension to last, pad, transpose back
+                            if i != len(target_param.shape) - 1:
+                                dims = list(range(len(target_param.shape)))
+                                dims[i], dims[-1] = dims[-1], dims[i]
+                                new_val = new_val.permute(*dims)
+                                new_val = fractal_pad(new_val, target_param.shape[i])
+                                new_val = new_val.permute(*dims)
+                            else:
+                                new_val = fractal_pad(new_val, target_param.shape[i])
+                    state_dict[key] = new_val
+        super()._load_from_state_dict(state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs)
 
     # ------------------------------------------------------------------ #
     # Initialization helpers                                               #
@@ -549,9 +572,6 @@ class ZeitgeistRouter(nn.Module):
     ) -> Tuple[torch.Tensor, int, List[int], float]:
         """
         Compute new Symmetric Tensor CRT index M_ij.
-        
-        M_ii = (r_i + r_i) mod p_i
-        M_ij = symmetry interaction term (palindromic routing)
         """
         x_mapped = self._apply_log_polar_projection(x)
         
@@ -559,7 +579,6 @@ class ZeitgeistRouter(nn.Module):
         delta_soft = gate_out.mean(dim=0)                # [M]
         
         # Apply Betti-Aware Bias
-        # prioritize high-density manifold sectors during inference
         betti_bias = self.betti_router(x).mean(dim=0)  # [M]
         delta_soft = delta_soft + 0.4 * betti_bias
         
@@ -572,67 +591,42 @@ class ZeitgeistRouter(nn.Module):
                 stress_bias[:stress_flat.size(0)] = torch.abs(stress_flat)
             delta_soft = delta_soft + 0.5 * stress_bias / (torch.max(stress_bias) + 1e-8)
 
-        # Braid Group Automaton Integration (n=M Dynamic Rank)
-        # We replace hardcoded swaps with generator applications based on pressure.
         new_word = list(state.braid_word)
         new_cs_phase = state.cs_phase
         
-        # Threshold-based generator application
-        # If switching pressure delta_i is high, it triggers a sigma_i operation.
         for i in range(1, self.M):
-            # Use delta_soft components as 'Braiding Pressure'
-            # We map even/odd indices to positive/negative generators for chiral diversity
             pressure = delta_soft[i-1]
             if pressure > 0.5:
                 sign = 1 if i % 2 == 0 else -1
                 new_word = self.apply_generator(new_word, i, sign=sign)
                 new_cs_phase += self.chern_simons_increment(i * sign)
 
-        # Fossilize Near-Misses: If word length is excessive, it's a 'Topological Refusal'
-        # This acts as a NaN-guard/Suture rhythm regulator.
         if len(new_word) > self.M * 2:
             print(f" [ROUTER] [REFUSAL] Topological Refusal: Braid word length {len(new_word)} exceeds rank {self.M}.")
-            # Reset word but preserve the 'scar' in the cs_phase
             new_word = [] 
-            # In a real scenario, we would trigger a .fossil write here
-            # self.fossilizer.scar_manifold(state, reason="braid_overflow")
 
-        # Derive delta_braided from the current word state (The Suture Rhythm)
-        # We apply the non-Abelian braid matrix to the switching pressure
         braid_mat = self.braid_matrices.compute_word_matrix(new_word).to(delta_soft.device)
         delta_braided = torch.matmul(braid_mat, delta_soft)
                 
-        # 1. Update diagonal residues
         current_residues = torch.diagonal(state.alpha_tensor)
-        
-        # Bridge 4: Inject Gravity Well influence from Fossil Landmarks
         delta_final = delta_braided + 0.3 * self.gravity_well_bias
         
         new_residues = []
         for i in range(self.M):
-            # Stochastic rounding of the delta update
             delta_int = stochastic_round(torch.tensor(delta_final[i]) * self.moduli[i])
             r_new = (int(current_residues[i].item()) + int(delta_int.item())) % self.moduli[i]
             new_residues.append(float(r_new))
             
-        # 2. Construct Symmetric Tensor M_ij
         new_diag = torch.tensor(new_residues, device=x.device)
-        # Off-diagonal: outer interaction of residues (palindromic mirror)
-        # M_ij = (r_i + r_j) / 2 as a simple symmetric basis (Love Invariant)
         r_col = new_diag.unsqueeze(1)
         r_row = new_diag.unsqueeze(0)
         new_alpha_tensor = 0.5 * (r_col + r_row)
         
-        # 3. Nostalgic Leak (Nutrient Warp)
-        # Inject historical Digimon traces into the off-diagonals
         mischief = 0.1
         psi_l = self.digimon_buffer * mischief
         new_alpha_tensor = new_alpha_tensor + psi_l
         
-        # Update digimon buffer (EMA of current state to fossilize illusions)
         self.digimon_buffer = 0.95 * self.digimon_buffer + 0.05 * new_alpha_tensor.detach()
-
-        # Preserve the exact integer residues on diagonal
         new_alpha_tensor.view(-1)[::self.M + 1] = new_diag
 
         new_level = state.level
@@ -644,9 +638,7 @@ class ZeitgeistRouter(nn.Module):
     def register_fossil_landmark(self, blake2s_id: str, intensity: float = 1.0):
         """
         Bridge 4: Maps a Fossil ID to a Poincar Gravity Well.
-        The ID is hashed to a stable displacement in the CRT Polytope space.
         """
-        # Deterministic mapping from ID to M-dimensional bias
         hash_bytes = bytes.fromhex(blake2s_id[:16]) if len(blake2s_id) >= 16 else b'\x00'*8
         bias_list = []
         for i in range(self.M):
@@ -655,8 +647,6 @@ class ZeitgeistRouter(nn.Module):
         
         bias_tensor = torch.tensor(bias_list, device=self.gravity_well_bias.device)
         self.fossil_landmarks[blake2s_id] = bias_tensor
-        
-        # Accumulate into global gravity well (defining future curvature)
         self.gravity_well_bias.data = 0.9 * self.gravity_well_bias.data + 0.1 * bias_tensor
 
     # ------------------------------------------------------------------ #
@@ -721,6 +711,10 @@ class ZeitgeistRouter(nn.Module):
         if x.dim() == 1:
             x = x.unsqueeze(0)          # [1, dim]
         x_norm = F.normalize(x, dim=-1) # [batch, dim]
+
+        #  Fractal (Reflective) Padding  #
+        if x.shape[-1] != self.dim:
+            x = fractal_pad(x, self.dim)
 
         #  1. Facet grazing check  #
         #  1. Algebraic State Classification (Unicorn Synthesis)  #
@@ -811,31 +805,36 @@ class ZeitgeistRouter(nn.Module):
         #  6. NonCommutativity curvature diagnostics & Shortcut  #
         nc_curvature = None
         curvature_threshold = 0.35 # Boundary between Palindromic and Non-Commutative logic
+        load = tadc_kwargs.get('load', 0.0) if tadc_kwargs else 0.0
         
         if self._nc_curvature is not None and mode in ('switching', 'grazing'):
-            try:
-                # Compute relative curvature between state and itself (temporal drift)
-                nc_res = self._nc_curvature.compute_curvature(x.T @ x, x.T @ x)
-                nc_curvature = float(nc_res['curvature_norm'].item())
-                
-                # Symmetric Tensor Shortcut (Love Invariant)
-                # If curvature is low, enforce exact palindromic symmetry
-                if nc_res['relative_curvature'] < curvature_threshold:
-                    # Collapse to pure symmetric trace-stable state
-                    diag_residues = torch.diagonal(new_state.alpha_tensor)
-                    r_col = diag_residues.unsqueeze(1)
-                    r_row = diag_residues.unsqueeze(0)
-                    collapsed_tensor = 0.5 * (r_col + r_row)
-                    collapsed_tensor.view(-1)[::self.M + 1] = diag_residues
+            # HIGH PRESSURE BYPASS: If system is under extreme load, skip expensive curvature
+            if load > 0.8 or grazing_pressure > 0.9:
+                nc_curvature = 0.0 # Bypassed
+            else:
+                try:
+                    # Compute relative curvature between state and itself (temporal drift)
+                    nc_res = self._nc_curvature.compute_curvature(x.T @ x, x.T @ x)
+                    nc_curvature = float(nc_res['curvature_norm'].item())
                     
-                    new_state = new_state.switched(
-                        new_alpha_tensor=collapsed_tensor,
-                        new_level=new_state.level,
-                        mode=mode,
-                        boundary=boundary
-                    )
-            except Exception:
-                pass
+                    # Symmetric Tensor Shortcut (Love Invariant)
+                    # If curvature is low, enforce exact palindromic symmetry
+                    if nc_res['relative_curvature'] < curvature_threshold:
+                        # Collapse to pure symmetric trace-stable state
+                        diag_residues = torch.diagonal(new_state.alpha_tensor)
+                        r_col = diag_residues.unsqueeze(1)
+                        r_row = diag_residues.unsqueeze(0)
+                        collapsed_tensor = 0.5 * (r_col + r_row)
+                        collapsed_tensor.view(-1)[::self.M + 1] = diag_residues
+                        
+                        new_state = new_state.switched(
+                            new_alpha_tensor=collapsed_tensor,
+                            new_level=new_state.level,
+                            mode=mode,
+                            boundary=boundary
+                        )
+                except Exception:
+                    pass
 
         #  7. Non-Abelian Temporal Inverse Kinematics  #
         # Steering the trajectory based on the new Braid/CS state
