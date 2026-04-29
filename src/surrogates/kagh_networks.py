@@ -1,11 +1,11 @@
 """
-KAGH-Boltzmann Networks: Kolmogorov-Arnold-Gödel-Huxley-Boltzmann.
+KAGH-Boltzmann Networks: Kolmogorov-Arnold-Gdel-Huxley-Boltzmann.
 
 Hybrid geometric architecture for Physics-ADMM surrogates.
 Components:
     - KAN: Kolmogorov-Arnold Networks (B-spline basis)
     - HuxleyRD: Reaction-Diffusion dynamics for biological sparsity
-    - Gödel: Adaptive soft-logic gates
+    - Gdel: Adaptive soft-logic gates
     - Boltzmann: Stochastic admissibility sampling
 """
 
@@ -337,13 +337,13 @@ class HuxleyRD(nn.Module):
         # Recombine
         # "Ergodic Soliton Fusion Gate" (Speculative Primitive)
         # Fusion Gate
-        fusion = F.sigmoid(u_ergodic_next + u_ne_unfolded)
+        fusion = torch.sigmoid(u_ergodic_next + u_ne_unfolded)
         
         return fusion * (u_ergodic_next + u_ne_unfolded)
 
 def goedel_positivity(x: torch.Tensor, epsilon: float = 1e-6, active: bool = True) -> torch.Tensor:
     """
-    Gödel Logic Gate: Soft differentiable constraint satisfaction.
+    Gdel Logic Gate: Soft differentiable constraint satisfaction.
     Enforces x >= 0 via: x <- x * sigmoid(k * (x - epsilon))
     
     If active=False (Symbolic regime or inference), this is a no-op to allow signed residues.
@@ -404,8 +404,8 @@ class KAGHBlock(nn.Module):
         # 2. Huxley Reaction-Diffusion (Sparsity/Pattern Formation) + Unfolding
         x = self.diffusion(x, gcve_pressure=gcve_pressure, chirality=chirality)
         
-        # 3. Gödel Gate (Control)
-        # Disable Gödel gates during repair/inference to prevent bias
+        # 3. Gdel Gate (Control)
+        # Disable Gdel gates during repair/inference to prevent bias
         is_inferring = (gcve_pressure is not None) 
         x = goedel_positivity(x, active=(not is_inferring and self.training)) 
         
