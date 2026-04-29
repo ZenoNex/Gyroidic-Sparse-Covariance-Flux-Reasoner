@@ -334,7 +334,7 @@ class ResonanceCavity(nn.Module):
         if track_residues:
             self.trust_vault = HeritableTrustVault(
                 table_size=num_modes * self.K,
-                k_dim=self.poly_config.k
+                k_dim=self.poly_config.k * (self.poly_config.degree + 1)
             )
         
         # Mutation bias based on trust (heritability)
@@ -482,9 +482,9 @@ class ResonanceCavity(nn.Module):
                 # Survivorship index based on inverse pressure
                 survivorship = 1.0 / (reconstruction_pressure + 1e-4)
                 
-                # Update trust vault with symbolic residue vectors
+                # Update trust vault with symbolic residue vectors (flattened)
                 self.trust_vault.update(
-                    target_residues_for_storage,
+                    target_residues_for_storage.flatten(1),
                     survivorship
                 )
         
@@ -524,7 +524,10 @@ class ResonanceCavity(nn.Module):
         
         # dC/dt = Gamma + lambda + eta + mischief + breather
         dC_dt = Gamma_term + lambda_term + eta_term + mischief_noise
-        dC_dt = dC_dt + 0.05 * breather_excitation.expand_as(dC_dt)
+        
+        # Average over batch for global mode update
+        breather_avg = breather_excitation.mean(dim=0, keepdim=True) # [1, hidden_dim]
+        dC_dt = dC_dt + 0.05 * breather_avg.expand_as(dC_dt)
         
         # Update Memory for Non-Teleological Flow
         # dt represents the "Manifold Clock"
