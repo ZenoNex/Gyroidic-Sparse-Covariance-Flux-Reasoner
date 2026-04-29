@@ -32,6 +32,7 @@ class AgentSmithEngine(nn.Module):
         self.warmstart_states = {}
 
     def forward(self, shape, seed_val, scaled=True):
+        shape = tuple(shape) # Normalize to tuple for consistent dict keys
         device = self.gauge.device
         num_elements = torch.Size(shape).numel()
         
