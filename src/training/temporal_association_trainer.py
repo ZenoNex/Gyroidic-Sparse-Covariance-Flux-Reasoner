@@ -1,22 +1,17 @@
 """
-Temporal Association Trainer: Feeds the repaired system with ordered data and associations.
+Diegetic Responder Heads and Data Association Layers.
 
-This trainer provides the Gyroidic Flux Reasoner with temporal sequences and 
-associative patterns to build up its resonance cavity memory and trust scalars.
+Provides the system with "Autoeclectic" output heads that warp latent states
+into human-readable resonance, and "Data Association" input layers for
+ingesting knowledge dyads (text/image pairs).
 """
 
 import torch
 import torch.nn as nn
-from typing import Dict, List, Tuple, Optional, Any
-import numpy as np
+import torch.nn.functional as F
+from typing import Dict, List, Optional, Tuple
+from src.core.chern_simons_gasket import ChernSimonsGasket
 from src.core.honest_jitter import harvest_honest_jitter
-from pathlib import Path
-import json
-import time
-
-from src.models.gyroid_reasoner import GyroidicFluxReasoner
-from src.models.resonance_cavity import ResonanceCavity
-from src.topology.unknowledge_domain import UnknowledgeDomain
 
 # Fix import paths
 import sys
@@ -27,693 +22,265 @@ if os.path.join(os.path.dirname(os.path.abspath(__file__)), "..") not in sys.pat
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 
-
-from src.core.bulletin_board import BulletinBoard
-
-class TemporalAssociationDataset:
+class DataAssociationLayer(nn.Module):
     """
-    Dataset that provides temporal sequences and associative patterns.
+    Ingestion layer for Knowledge Dyads.
     
-    This feeds the system with:
-    1. Sequential patterns (A  B  C)
-    2. Associative clusters (related concepts)
-    3. Temporal dependencies (cause  effect)
-    4. Contextual embeddings (meaning in context)
+    Fuses multi-modal inputs (e.g., Image semantics + Textual descriptions)
+    into a unified polynomial residue representation.
     """
-    
-    def __init__(
-        self,
-        sequence_length: int = 32,
-        association_window: int = 8,
-        num_concepts: int = 1000,
-        device: str = None
-    ):
-        self.sequence_length = sequence_length
-        self.association_window = association_window
-        self.num_concepts = num_concepts
-        self.device = device
+    def __init__(self, input_dim: int, hidden_dim: int, k: int = 5):
+        super().__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.k = k
         
-        # Generate concept embeddings
+        # Cross-modal projection
+        self.text_prj = nn.Linear(input_dim, hidden_dim)
+        self.img_prj = nn.Linear(input_dim, hidden_dim)
+        
+        # Fusion gate
+        self.fusion_gate = nn.Linear(hidden_dim * 2, hidden_dim)
+        
+        # Residue projection
+        self.residue_map = nn.Linear(hidden_dim, k)
+        
+    def forward(self, text_emb: torch.Tensor, image_emb: torch.Tensor) -> torch.Tensor:
+        """
+        Produce a co-prime residue vector from a knowledge dyad.
+        """
+        t = F.silu(self.text_prj(text_emb))
+        i = F.silu(self.img_prj(image_emb))
+        
+        fused = torch.cat([t, i], dim=-1)
+        latent = F.silu(self.fusion_gate(fused))
+        
+        # Map to co-prime field residues [batch, k]
+        residues = torch.tanh(self.residue_map(latent))
+        
+        return residues
+
+class AutoeclecticResponderHead(nn.Module):
+    """
+    Autoeclectic Diegetic Responder Head.
+    
+    Warps latent states through the topological "roughness" of the manifold
+    to produce responses that reflect the system's current entropy/coherence.
+    """
+    def __init__(self, hidden_dim: int, output_dim: int, num_modes: int = 4):
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.output_dim = output_dim
+        
+        # Diegetic modulation layers
         # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
-        self.concept_embeddings = harvest_honest_jitter((num_concepts, 768), device=device)
+        self.modulation_basis = nn.Parameter(harvest_honest_jitter((num_modes, hidden_dim, output_dim), scaled=True))
+        self.entropy_gate = nn.Linear(1, num_modes)
         
-        # Create association graph (concepts that appear together)
-        self.association_graph = self._create_association_graph()
+        # Final output projection
+        self.out_prj = nn.Linear(hidden_dim, output_dim)
         
-        # Temporal patterns (sequences that commonly occur)
-        self.temporal_patterns = self._create_temporal_patterns()
+    def forward(
+        self, 
+        state: torch.Tensor, 
+        spectral_entropy: torch.Tensor,
+        curvature: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """
+        Args:
+           state: [batch, hidden_dim]
+           spectral_entropy: [batch, 1] System logic health
+           curvature: [batch, 1] Topological roughness
+        """
+        # 1. Compute diegetic modulation weights based on entropy
+        # High entropy -> activate "chaotic" output modes
+        # Low entropy -> converge to "stable" output modes
+        mod_weights = torch.softmax(self.entropy_gate(spectral_entropy), dim=-1) # [batch, num_modes]
         
-        # Contextual modifiers (how context changes meaning)
-        self.contextual_modifiers = self._create_contextual_modifiers()
-    
-    def _honest_randint(self, low: int, high: Optional[int] = None) -> int:
-        """Derive an integer from hardware-anchored jitter."""
-        if high is None:
-            low, high = 0, low
-        jitter = harvest_honest_jitter((1,), device=self.device, scaled=True).item()
-        return int(jitter * (high - low)) % (high - low) + low
+        # 2. Blend modulation basis
+        # B = [batch, hidden_dim, output_dim]
+        blended_basis = torch.einsum('bm,mho->bho', mod_weights, self.modulation_basis)
+        
+        # 3. Apply state transformation
+        mischief_output = torch.einsum('bh,bho->bo', state, blended_basis)
+        
+        # 4. Standard residua
+        base_output = self.out_prj(state)
+        
+        # 5. Non-linear fusion
+        # If curvature is high (roughness), amplify the mischief
+        mix = torch.sigmoid(curvature if curvature is not None else torch.zeros_like(spectral_entropy))
+        
+        final_output = (1 - mix) * base_output + mix * mischief_output
+        
+        return final_output
 
-    def _honest_choice(self, choices: Any) -> Any:
-        """Select an item from choices using hardware-anchored jitter."""
-        if not choices:
-            return None
-        idx = self._honest_randint(len(choices))
-        return list(choices)[idx]
-    
-    def _create_association_graph(self) -> Dict[int, List[int]]:
-        """Create graph of concept associations."""
-        graph = {}
+class ResonanceLarynx(nn.Module):
+    """
+    Project topological states to symbolic sequences (Characters/Tokens).
+    Uses Hebbian learning to reinforce valid communication pathways.
+    """
+    def __init__(self, hidden_dim: int, vocab_size: int = 128):
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.vocab_size = vocab_size
         
-        # Create clusters of related concepts
-        cluster_size = 20
-        num_clusters = self.num_concepts // cluster_size
+        # Learnable projection: Topology -> Symbols
+        # initialized with high variance to promote "babbling"
+        self.proj = nn.Linear(hidden_dim, vocab_size, bias=False)
+        nn.init.normal_(self.proj.weight, std=0.1)
         
-        for cluster_id in range(num_clusters):
-            cluster_concepts = list(range(
-                cluster_id * cluster_size, 
-                (cluster_id + 1) * cluster_size
-            ))
+        # Confidence gate (how loud to speak)
+        self.confidence = nn.Sequential(
+            nn.Linear(hidden_dim, 1),
+            nn.Sigmoid()
+        )
+        
+        # Chern-Simons Gasket to repair logic leaks at linguistic boundary
+        self.chern_simons = ChernSimonsGasket(manifold_dim=3)
+        
+    def forward(self, state: torch.Tensor, temperature: float = 1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Args:
+           state: [batch, hidden_dim]
+           temperature: scalar
+           
+        Returns:
+           logits: [batch, vocab_size]
+           confidence: [batch, 1]
+        """
+        # Apply logic leak protection via Chern-Simons gasket
+        # Ensure state is 3D [batch, K, D] for the gasket
+        if state.dim() == 2:
+            safe_state = state.unsqueeze(1)
+        else:
+            safe_state = state
             
-            # Each concept in cluster is associated with others
-            for concept in cluster_concepts:
-                # Strong associations within cluster
-                graph[concept] = [c for c in cluster_concepts if c != concept]
-                
-                # Weak associations with other clusters
-                if cluster_id > 0:
-                    prev_cluster_concept = (cluster_id - 1) * cluster_size + self._honest_randint(cluster_size)
-                    graph[concept].append(prev_cluster_concept)
-                
-                if cluster_id < num_clusters - 1:
-                    next_cluster_concept = (cluster_id + 1) * cluster_size + self._honest_randint(cluster_size)
-                    graph[concept].append(next_cluster_concept)
+        # Polynomial coeffs placeholder or derived from state
+        # Use only the last dimension for D, and treat K as 1 if not explicit
+        poly_placeholder = torch.ones(state.shape[0], state.shape[-1], device=state.device)
+        safe_state = self.chern_simons.plug_logic_leak(safe_state, poly_placeholder)
         
-        return graph
-    
-    def _create_temporal_patterns(self) -> List[List[int]]:
-        """Create common temporal sequences."""
-        patterns = []
+        if state.dim() == 2:
+            safe_state = safe_state.squeeze(1)
+        else:
+            safe_state = safe_state
         
-        # Create various types of patterns
-        for _ in range(100):
-            pattern_type = self._honest_choice(['linear', 'branching', 'cyclic'])
+        # Hazard Protection: Ensure temperature is never zero
+        safe_temp = max(temperature, 1e-6)
+        logits = self.proj(safe_state) / safe_temp
+        conf = self.confidence(safe_state)
+        return logits, conf
+        
+    def hebbian_update(self, state_trace: torch.Tensor, symbol_trace: torch.Tensor, rate: float = 0.01):
+        """
+        Reinforce the path from state -> symbol.
+        delta_W = rate * (symbol * state^T)
+        
+        Args:
+            state_trace: [batch, hidden_dim] (The topological context)
+            symbol_trace: [batch, vocab_size] (The one-hot symbol produced)
+            rate: Learning rate (Reward)
+        """
+        with torch.no_grad():
+            # Batch Hebbian update
+            # sum over batch of O * I^T
+            # symbol_trace: [B, V], state_trace: [B, H]
+            # update: [V, H]
+            update = torch.einsum('bv,bh->vh', symbol_trace, state_trace)
             
-            if pattern_type == 'linear':
-                # A  B  C  D
-                start_concept = self._honest_randint(self.num_concepts)
-                pattern = [start_concept]
-                for _ in range(self._honest_randint(3, 8)):
-                    if pattern[-1] in self.association_graph:
-                        next_concept = self._honest_choice(self.association_graph[pattern[-1]])
-                        pattern.append(next_concept)
-                patterns.append(pattern)
+            # Normalize update by batch size
+            update = update / (state_trace.shape[0] + 1e-8)
             
-            elif pattern_type == 'branching':
-                # A  B  C, A  B  D
-                root = self._honest_randint(self.num_concepts)
-                branch_point = self._honest_choice(self.association_graph.get(root, [root]))
-                
-                for _ in range(2):  # Two branches
-                    pattern = [root, branch_point]
-                    if branch_point in self.association_graph:
-                        branch_end = self._honest_choice(self.association_graph[branch_point])
-                        pattern.append(branch_end)
-                    patterns.append(pattern)
+            # Apply to weights
+            self.proj.weight += rate * update
             
-            elif pattern_type == 'cyclic':
-                # A  B  C  A
-                start_concept = self._honest_randint(self.num_concepts)
-                pattern = [start_concept]
-                current = start_concept
-                
-                for _ in range(self._honest_randint(2, 5)):
-                    if current in self.association_graph:
-                        current = self._honest_choice(self.association_graph[current])
-                        pattern.append(current)
-                
-                pattern.append(start_concept)  # Close the cycle
-                patterns.append(pattern)
+            # Normalization to prevent blowup (Oja's rule style damping)
+            # W = W / norm(W)
+            self.proj.weight.div_(torch.norm(self.proj.weight, dim=1, keepdim=True) + 1e-8)
+
+    def generate_response(self, 
+                          text_input: str, 
+                          context: List[torch.Tensor], 
+                          affordance_gradients: Dict[str, float],
+                          quantum_state: bool = False,
+                          matrioshka_level: int = 0) -> Tuple[str, Dict]:
+        """
+        Autoregressive generation of diegetic response.
+        Modulated by advanced physics states (System 2).
+        """
+        # 1. Modulate Dynamics based on Physics
+        temperature = 1.0
+        if quantum_state:
+            # High temp for superposition (creative/chaotic)
+            temperature = 1.5 
         
-        return patterns
-    
-    def _create_contextual_modifiers(self) -> Dict[str, torch.Tensor]:
-        """Create context-dependent meaning modifiers."""
-        contexts = ['positive', 'negative', 'temporal', 'spatial', 'causal']
-        modifiers = {}
-        
-        for context in contexts:
-            # Each context has a transformation matrix
+        constraint_mode = False
+        if matrioshka_level >= 3:
+            # Deep quantization -> Logic/Rigid mode
+            temperature = 0.5
+            constraint_mode = True
+            
+        # 2. Seed State from Context
+        if context:
+            # Average recent context for seed
+            # context is list of [dim] tensors
+            seed = torch.stack(context[-min(len(context), 5):]).mean(dim=0).unsqueeze(0) # [1, dim]
+        else:
             # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
-            modifiers[context] = harvest_honest_jitter((768, 768), device=self.device) * 0.1
-        
-        return modifiers
-    
-    def get_temporal_sequence(self, batch_size: int = 4) -> Dict[str, torch.Tensor]:
-        """Generate a batch of temporal sequences."""
-        sequences = []
-        associations = []
-        contexts = []
-        
-        for _ in range(batch_size):
-            # Choose a temporal pattern
-            pattern = self._honest_choice(self.temporal_patterns)
+            seed = harvest_honest_jitter((1, self.hidden_dim), device=self.proj.weight.device, scaled=True)
             
-            # Extend or truncate to sequence_length
-            if len(pattern) < self.sequence_length:
-                # Extend with associations
-                while len(pattern) < self.sequence_length:
-                    last_concept = pattern[-1]
-                    if last_concept in self.association_graph:
-                        next_concept = self._honest_choice(self.association_graph[last_concept])
-                        pattern.append(next_concept)
-                    else:
-                        pattern.append(self._honest_randint(self.num_concepts))
+        # 3. Generation Loop
+        # We simulate a "Singer" - the state evolves via self-resonance
+        current_state = seed
+        generated_chars = []
+        confidence_sum = 0.0
+        
+        max_len = 150
+        min_len = 20
+        
+        for i in range(max_len):
+            logits, conf = self.forward(current_state, temperature=temperature)
+            confidence_sum += conf.item()
+            
+            # Sampling
+            probs = torch.softmax(logits, dim=-1)
+            
+            if constraint_mode:
+                # Greedy decoding for rigid logic
+                char_idx = torch.argmax(probs, dim=-1).item()
             else:
-                pattern = pattern[:self.sequence_length]
+                # Stochastic sampling
+                try:
+                    char_idx = torch.multinomial(probs, 1).item()
+                except:
+                    char_idx = torch.argmax(probs, dim=-1).item() # Fallback
             
-            # Get embeddings for sequence
-            sequence_embeddings = self.concept_embeddings[pattern]
+            # ASCII decoding (safe range)
+            char_code = max(32, min(126, char_idx))
+            char = chr(char_code)
+            generated_chars.append(char)
             
-            # Apply contextual modification
-            context_type = self._honest_choice(list(self.contextual_modifiers.keys()))
-            context_modifier = self.contextual_modifiers[context_type]
-            modified_embeddings = torch.matmul(sequence_embeddings, context_modifier)
+            # Stop token logic (heuristic)
+            if len(generated_chars) > min_len and char in ['.', '!', '?']:
+                # Higher prob of stopping if confident
+                if conf.item() > 0.8:
+                    break
+                    
+            # 4. Diegetic State Evolution (Singing)
+            # State rotates slightly based on emitted symbol (Reaction)
+            # Non-linear feedback
+            feedback = torch.tanh(self.proj.weight[char_idx].unsqueeze(0)) # [1, dim]
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            current_state = 0.9 * current_state + 0.1 * feedback + 0.05 * harvest_honest_jitter(current_state.shape, device=current_state.device, scaled=True)
             
-            sequences.append(modified_embeddings)
-            
-            # Create association targets (concepts that should be associated)
-            association_targets = []
-            for concept in pattern:
-                if concept in self.association_graph:
-                    targets = self.association_graph[concept][:self.association_window]
-                    while len(targets) < self.association_window:
-                        targets.append(concept)  # Self-association
-                    association_targets.extend(targets)
-                else:
-                    association_targets.extend([concept] * self.association_window)
-            
-            associations.append(torch.tensor(association_targets[:self.sequence_length * self.association_window]))
-            contexts.append(context_type)
+        final_text = "".join(generated_chars)
         
-        return {
-            'sequences': torch.stack(sequences),  # [batch, seq_len, 768]
-            'associations': torch.stack(associations),  # [batch, seq_len * assoc_window]
-            'contexts': contexts,  # List of context types
-            'concept_ids': torch.tensor([pattern for pattern in [self._honest_choice(self.temporal_patterns) for _ in range(batch_size)]])
-        }
-
-
-class TemporalAssociationTrainer:
-    """
-    Trainer that feeds temporal associations to the Gyroidic Flux Reasoner.
-    
-    This trainer:
-    1. Provides sequential data to build up resonance cavity memory
-    2. Trains trust scalars through successful associations
-    3. Builds up fossilized patterns through repetition
-    4. Creates temporal dependencies in the system
-    """
-    
-    def __init__(
-        self,
-        model: GyroidicFluxReasoner,
-        dataset: TemporalAssociationDataset,
-        learning_rate: float = 1e-4,
-        trust_update_rate: float = 0.01,
-        fossilization_threshold: float = 0.8,
-        device: str = None
-    ):
-        self.model = model
-        self.dataset = dataset
-        self.learning_rate = learning_rate
-        self.trust_update_rate = trust_update_rate
-        self.fossilization_threshold = fossilization_threshold
-        self.device = device
-        
-        # Optimizer for model parameters (excluding fossilized ones)
-        self.optimizer = torch.optim.Adam(
-            [p for p in model.parameters() if p.requires_grad], 
-            lr=learning_rate
-        )
-        
-        self.unknowledge_domain = UnknowledgeDomain(tau_m=0.5)
-        
-        # Restore architectural probes erased in previous iterations
-        from src.topology.unknowledge_domain import NostalgicLeakFunctional, EntropicMischiefProbe
-        from src.core.nondual_admm import NonDualProbe
-        self.mischief_probe = EntropicMischiefProbe(device=device)
-        self.nondual_probe = NonDualProbe(device=device)
-        self.nostalgic_leak = NostalgicLeakFunctional(fossil_dim=model.dim, device=device)
-
-        # Asynchronous Bulletin Board
-        self.bulletin_board = BulletinBoard(size=model.dim, device=device)
-        
-        # Training history
-        self.training_history = {
-            'trust_evolution': [],
-            'fossilization_events': [],
-            'association_accuracy': [],
-            'temporal_coherence': [],
-            'repair_diagnostics': []
-        }
-
-    def _call_model(
-        self,
-        text_emb: 'torch.Tensor',
-        return_analysis: bool = True,
-    ) -> dict:
-        """
-        Dispatch helper so the trainer works both with:
-          - DiegeticPhysicsEngine  (has forward_text_emb adapter)
-          - Original GyroidicFluxReasoner  (responds to __call__(text_emb=...))
-        """
-        if hasattr(self.model, 'forward_text_emb'):
-            return self.model.forward_text_emb(
-                text_emb, return_analysis=return_analysis
-            )
-        # Legacy fallback  original model interface
-        return self.model(text_emb=text_emb, return_analysis=return_analysis)
-
-    def compute_association_loss(
-        self, 
-        model_output: Dict[str, torch.Tensor], 
-        target_associations: torch.Tensor
-    ) -> torch.Tensor:
-        """
-        Compute loss based on association accuracy.
-        
-        This is NOT a teleological loss - it's a survivorship pressure.
-        The system survives if it can maintain associations.
-        """
-        # Get residue distributions from model
-        residue_distributions = model_output.get('residue_distributions')
-        if residue_distributions is None:
-            return torch.tensor(0.0, device=self.device)
-        
-        batch_size, K, D = residue_distributions.shape
-        
-        # Flatten residues to compare with associations
-        flat_residues = residue_distributions.view(batch_size, -1)
-        
-        # Target associations (flattened)
-        target_flat = target_associations.float()
-        
-        # Ensure same size via Adaptive Pooling if dimensions mismatch
-        if flat_residues.shape[1] != target_flat.shape[1]:
-            # Reshape to [batch, 1, dim] for pooling
-            if flat_residues.shape[1] > target_flat.shape[1]:
-                flat_residues = torch.nn.functional.adaptive_avg_pool1d(
-                    flat_residues.unsqueeze(1), target_flat.shape[1]
-                ).squeeze(1)
-            else:
-                target_flat = torch.nn.functional.adaptive_avg_pool1d(
-                    target_flat.unsqueeze(1), flat_residues.shape[1]
-                ).squeeze(1)
-        
-        # Association pressure: how well residues correlate with expected associations
-        correlation_loss = 1.0 - torch.cosine_similarity(flat_residues, target_flat, dim=1).mean()
-        
-        # Manifold Flattening Guard: if loss is too low (total alignment), add small entropy penalty
-        if correlation_loss < 0.1:
-            correlation_loss = correlation_loss + 0.01 * torch.norm(flat_residues, p=2).mean()
-            
-        return correlation_loss
-    
-    def compute_temporal_coherence(
-        self, 
-        sequence_outputs: List[Dict[str, torch.Tensor]]
-    ) -> torch.Tensor:
-        """
-        Compute temporal coherence across sequence.
-        
-        Measures how well the system maintains coherent state transitions.
-        """
-        if len(sequence_outputs) < 2:
-            return torch.tensor(0.0, device=self.device)
-        
-        coherence_scores = []
-        
-        for i in range(len(sequence_outputs) - 1):
-            current_state = sequence_outputs[i].get('reconstruction', torch.zeros(1, device=self.device))
-            next_state = sequence_outputs[i + 1].get('reconstruction', torch.zeros(1, device=self.device))
-            
-            # Coherence = smooth transition (not too abrupt)
-            transition_smoothness = 1.0 / (1.0 + torch.norm(next_state - current_state))
-            coherence_scores.append(transition_smoothness)
-        
-        return torch.stack(coherence_scores).mean()
-    
-    def update_trust_scalars(
-        self, 
-        model_output: Dict[str, torch.Tensor], 
-        association_accuracy: float
-    ):
-        """
-        Update trust scalars based on association performance.
-        
-        Successful functionals get higher trust, unsuccessful ones get lower trust.
-        """
-        # Get current trust scalars
-        current_trust = self.model.trust_scalars.clone()
-        
-        # Get functional performance from model diagnostics
-        if 'crt_pressure' in model_output:
-            crt_pressure = model_output['crt_pressure'].value
-            
-            # Lower pressure = better performance = higher trust
-            # Stability Guard: Clamp crt_pressure to prevent exp overflow
-            safe_pressure = torch.clamp(crt_pressure, min=-10.0, max=10.0)
-            performance_bonus = torch.exp(-safe_pressure)
-
-            
-            # Update trust with association accuracy
-            trust_update = self.trust_update_rate * (association_accuracy - 0.5) * performance_bonus
-            
-            # Apply update
-            new_trust = torch.clamp(current_trust + trust_update, 0.0, 1.0)
-            self.model.trust_scalars.copy_(new_trust)
-            
-            # Check for fossilization
-            fossilized_mask = new_trust > self.fossilization_threshold
-            if fossilized_mask.any():
-                fossilized_indices = torch.where(fossilized_mask)[0]
-                self.training_history['fossilization_events'].append({
-                    'step': len(self.training_history['trust_evolution']),
-                    'fossilized_functionals': fossilized_indices.tolist(),
-                    'trust_values': new_trust[fossilized_indices].tolist()
-                })
-    
-    def train_step(self, batch_data: Dict[str, torch.Tensor]) -> Dict[str, float]:
-        """Single training step with temporal associations."""
-        
-        sequences = batch_data['sequences']  # [batch, seq_len, 768]
-        associations = batch_data['associations']  # [batch, seq_len * assoc_window]
-        contexts = batch_data['contexts']
-        
-        batch_size, seq_len, embed_dim = sequences.shape
-        
-        # Process sequence step by step to build temporal dependencies
-        sequence_outputs = []
-        total_association_loss = 0.0
-        
-        for t in range(seq_len):
-            # Get current step input
-            current_input = sequences[:, t, :]  # [batch, 768]
-            
-            # Run model via adapter
-            model_output = self._call_model(
-                text_emb=current_input,
-                return_analysis=True,
-            )
-            
-            sequence_outputs.append(model_output)
-            
-            # Compute association loss for this step
-            step_associations = associations[:, t * self.dataset.association_window:(t + 1) * self.dataset.association_window]
-            association_loss = self.compute_association_loss(model_output, step_associations)
-            total_association_loss += association_loss
-        
-        # Average association loss
-        avg_association_loss = total_association_loss / seq_len
-        
-        # Compute temporal coherence
-        temporal_coherence = self.compute_temporal_coherence(sequence_outputs)
-        
-        # Total survivorship pressure (not teleological loss)
-        survivorship_pressure = avg_association_loss - 0.1 * temporal_coherence
-        
-        # --- THE UNKNOWLEDGE DOMAIN SHIELDING ---
-        final_output = sequence_outputs[-1]
-        v_tensor = final_output.get('gyroid_pressure').value if 'gyroid_pressure' in final_output else torch.tensor(0.0, device=self.device)
-        h_mischief = final_output.get('h_drift', 0.0)
-        l_min = final_output.get('lambda_min', torch.tensor([0.0], device=self.device)).mean().item()
-        tr_c = final_output.get('trace_c', torch.tensor([1.0], device=self.device)).mean().item()
-        
-        # Approximate V_m directly (Grounding for Manifold Hunger)
-        # Reference: 45.2 (Silicon Sovereignty) - surfacing persistent dissonance.
-        tau_decay = 10.0
-        # Safe tr_c: ensure non-zero denominator to prevent 'Overflow Exceeded' (6.2)
-        safe_tr_c = torch.clamp(torch.tensor(tr_c), min=1e-6).item()
-        
-        # Surfacing Hunger: Dissonance between Symbolic and Physical state
-        # Hunger = (Pressure + Mischief) - (Structural Integrity)
-        v_m = float(v_tensor) + (float(h_mischief) / tau_decay) - (float(l_min) / safe_tr_c)
-        
-        # Stability Guard: Hardware-anchored jitter grounding to prevent diagnostic lock
-        # Prevents the 0.4390 / 0.8824 attractor traps
-        jitter_ground = harvest_honest_jitter((1,), device=self.device, scaled=True).item() * 0.05
-        v_m = torch.clamp(torch.tensor(v_m + jitter_ground), min=-50.0, max=50.0).item()
-        
-        # --- NON-DUAL REFINEMENT & LEAK MONITORING ---
-        if self.nostalgic_leak is not None:
-            # Monitor archetype leaks across the sequence
-            # Use orchestrated 'state' if available for more honest monitoring
-            leak_signals = [self.nostalgic_leak(out.get('state', out.get('reconstruction', torch.zeros(1, device=self.device))).mean(dim=0).unsqueeze(0)) for out in sequence_outputs]
-            avg_leak = torch.stack(leak_signals).mean().item()
-            final_output['archetype_leak'] = avg_leak
-
-        if self.nondual_probe is not None and v_m < 0:
-            # System 2 refinement via Non-Dual Probe
-            # We refine the final state based on mischief energy
-            h_final = final_output.get('state', final_output.get('reconstruction', torch.zeros(1, device=self.device)))
-            h_refined = self.nondual_probe(
-                residues=h_final,
-                constraints=h_final, # Self-consistency probe
-                h_mischief=torch.tensor([h_mischief], device=self.device)
-            )
-            final_output['nondual_refinement'] = torch.norm(h_refined - h_final).item()
-
-        # Post to Bulletin Board for System 2 asynchronous retrieval
-        self.bulletin_board.post_residue(final_output.get('residue_distributions', torch.zeros(1, device=self.device)).mean(dim=0).mean(dim=0))
-        
-        # Read forces from Bulletin Board (System 2 feedback)
-        posted_force = self.bulletin_board.read_force()
-        if posted_force.abs().sum() > 0:
-            # Inject System 2 forces back into the survivorship pressure
-            survivorship_pressure = survivorship_pressure + 0.05 * posted_force.norm()
-        
-        hyper_ring_status = final_output.get('hyper_ring_status', 'unknown')
-        
-        survivorship_pressure = self.unknowledge_domain.apply_shielding(
-            survivorship_pressure.unsqueeze(0),
-            torch.tensor([float(v_m)], device=self.device),
-            float(h_mischief),
-            hyper_ring_status
-        ).squeeze(0)
-        
-        # Backward pass
-        self.optimizer.zero_grad()
-        survivorship_pressure.backward()
-        
-        # Gradient clipping for stability
-        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-        
-        self.optimizer.step()
-        
-        # Update trust scalars
-        association_accuracy = 1.0 - avg_association_loss.item()
-        self.update_trust_scalars(sequence_outputs[-1], association_accuracy)
-        
-        # Collect diagnostics
-        final_output = sequence_outputs[-1]
-        repair_diagnostics = {
-            'spectral': final_output.get('spectral_diagnostics', {}),
-            'chern_simons': final_output.get('chern_simons_diagnostics', {}),
-            'soliton_healing': final_output.get('soliton_healing_diagnostics', {}),
-            'love': final_output.get('love_diagnostics', {}),
-            'soft_gates': final_output.get('soft_gates_diagnostics', {}),
-            'archetype_leak': final_output.get('archetype_leak', 0.0),
-            'nav_mode': final_output.get('nav_mode', 'UNKNOWN')
+        metrics = {
+            "avg_confidence": confidence_sum / max(len(generated_chars), 1),
+            "length": len(generated_chars),
+            "temperature_used": temperature,
+            "mode": "CONSTRAINT" if constraint_mode else ("QUANTUM" if quantum_state else "STANDARD")
         }
         
-        return {
-            'survivorship_pressure': survivorship_pressure.item(),
-            'association_accuracy': association_accuracy,
-            'temporal_coherence': temporal_coherence.item(),
-            'trust_mean': self.model.trust_scalars.mean().item(),
-            'trust_std': self.model.trust_scalars.std().item(),
-            'num_fossilized': (self.model.trust_scalars > self.fossilization_threshold).sum().item(),
-            'repair_diagnostics': repair_diagnostics
-        }
-    
-    def train_on_interaction(self, input_tensor: torch.Tensor, response_tensor: torch.Tensor) -> Dict[str, float]:
-        """Train directly on a live interaction from the diegetic backend."""
-        # Expand dims to batch=1 if needed
-        if input_tensor.dim() == 1:
-            input_tensor = input_tensor.unsqueeze(0)
-        if response_tensor.dim() == 1:
-            response_tensor = response_tensor.unsqueeze(0)
-            
-        # Run model via adapter to get internal state
-        model_output = self._call_model(
-            text_emb=input_tensor,
-            return_analysis=True,
-        )
-        
-        # Create target associations from response tensor
-        # Compute correlation between internal residue structure and the final response
-        association_loss = self.compute_association_loss(model_output, response_tensor)
-        
-        # Temporal coherence: compare input to output
-        seq_outs = [
-            {'reconstruction': input_tensor},
-            {'reconstruction': response_tensor}
-        ]
-        temporal_coherence = self.compute_temporal_coherence(seq_outs)
-        
-        survivorship_pressure = association_loss - 0.1 * temporal_coherence
-        
-        # --- THE UNKNOWLEDGE DOMAIN SHIELDING ---
-        final_output = model_output
-        v_tensor = final_output.get('gyroid_pressure').value if 'gyroid_pressure' in final_output else torch.tensor(0.0, device=self.device)
-        h_mischief = final_output.get('h_drift', 0.0)
-        l_min = final_output.get('lambda_min', torch.tensor([0.0], device=self.device)).mean().item()
-        tr_c = final_output.get('trace_c', torch.tensor([1.0], device=self.device)).mean().item()
-        
-        # Approximate V_m directly
-        tau_decay = 10.0
-        safe_tr_c = torch.clamp(torch.tensor(tr_c), min=1e-6).item()
-        v_m = float(v_tensor) + (float(h_mischief) / tau_decay) - (float(l_min) / safe_tr_c)
-        
-        # Inject honest jitter to break attractor traps
-        jitter_ground = harvest_honest_jitter((1,), device=self.device, scaled=True).item() * 0.05
-        v_m = torch.clamp(torch.tensor(v_m + jitter_ground), min=-50.0, max=50.0).item()
-
-        
-        hyper_ring_status = final_output.get('hyper_ring_status', 'unknown')
-        
-        survivorship_pressure = self.unknowledge_domain.apply_shielding(
-            survivorship_pressure.unsqueeze(0),
-            torch.tensor([float(v_m)], device=self.device),
-            float(h_mischief),
-            hyper_ring_status
-        ).squeeze(0)
-        
-        self.optimizer.zero_grad()
-        survivorship_pressure.backward()
-        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-        self.optimizer.step()
-            
-        association_accuracy = 1.0 - association_loss.item()
-        self.update_trust_scalars(model_output, association_accuracy)
-        
-        return {
-            'survivorship_pressure': survivorship_pressure.item(),
-            'association_accuracy': association_accuracy,
-            'temporal_coherence': temporal_coherence.item(),
-            'trust_mean': self.model.trust_scalars.mean().item(),
-            'num_fossilized': (self.model.trust_scalars > self.fossilization_threshold).sum().item(),
-            'live_update': True
-        }
-    
-    def train_epoch(self, num_batches: int = 100) -> Dict[str, float]:
-        """Train for one epoch."""
-        
-        epoch_metrics = {
-            'survivorship_pressure': [],
-            'association_accuracy': [],
-            'temporal_coherence': [],
-            'trust_evolution': [],
-            'repair_metrics': []
-        }
-        
-        for batch_idx in range(num_batches):
-            # Generate batch
-            batch_data = self.dataset.get_temporal_sequence(batch_size=4)
-            
-            # Train step
-            step_metrics = self.train_step(batch_data)
-            
-            # Collect metrics
-            for key in ['survivorship_pressure', 'association_accuracy', 'temporal_coherence']:
-                epoch_metrics[key].append(step_metrics[key])
-            
-            epoch_metrics['trust_evolution'].append({
-                'mean': step_metrics['trust_mean'],
-                'std': step_metrics['trust_std'],
-                'num_fossilized': step_metrics['num_fossilized']
-            })
-            
-            epoch_metrics['repair_metrics'].append(step_metrics['repair_diagnostics'])
-            
-            # Print progress
-            if batch_idx % 20 == 0:
-                print(f"Batch {batch_idx:3d}: "
-                      f"Assoc={step_metrics['association_accuracy']:.3f}, "
-                      f"Coherence={step_metrics['temporal_coherence']:.3f}, "
-                      f"Trust={step_metrics['trust_mean']:.3f} (+-{step_metrics['trust_std']:.4f}), "
-                      f"Mode={step_metrics['repair_diagnostics'].get('nav_mode', '???')}, "
-                      f"Leak={step_metrics['repair_diagnostics'].get('archetype_leak', 0.0):.4f}, "
-                      f"Fossilized={step_metrics['num_fossilized']}")
-        
-        # Compute epoch averages
-        epoch_summary = {}
-        for key in ['survivorship_pressure', 'association_accuracy', 'temporal_coherence']:
-            epoch_summary[key] = np.mean(epoch_metrics[key])
-        
-        epoch_summary['final_trust_mean'] = epoch_metrics['trust_evolution'][-1]['mean']
-        epoch_summary['final_num_fossilized'] = epoch_metrics['trust_evolution'][-1]['num_fossilized']
-        
-        # Update training history
-        self.training_history['association_accuracy'].append(epoch_summary['association_accuracy'])
-        self.training_history['temporal_coherence'].append(epoch_summary['temporal_coherence'])
-        self.training_history['trust_evolution'].append(epoch_metrics['trust_evolution'])
-        self.training_history['repair_diagnostics'].append(epoch_metrics['repair_metrics'])
-        
-        return epoch_summary
-    
-    def save_training_state(self, filepath: str):
-        """Save training state and history."""
-        state = {
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'training_history': self.training_history,
-            'trust_scalars': self.model.trust_scalars.clone(),
-            'dataset_config': {
-                'num_concepts': self.dataset.num_concepts,
-                'sequence_length': self.dataset.sequence_length,
-                'association_window': self.dataset.association_window
-            }
-        }
-        
-        torch.save(state, filepath)
-        print(f"Training state saved to {filepath}")
-    
-    def load_training_state(self, filepath: str):
-        """Load training state and history."""
-        state = torch.load(filepath, map_location=self.device)
-        
-        self.model.load_state_dict(state['model_state_dict'])
-        self.optimizer.load_state_dict(state['optimizer_state_dict'])
-        self.training_history = state['training_history']
-        self.model.trust_scalars.copy_(state['trust_scalars'])
-        
-        print(f"Training state loaded from {filepath}")
-        print(f"Resumed with {state['trust_scalars'].sum().item():.2f} total trust, "
-              f"{(state['trust_scalars'] > self.fossilization_threshold).sum().item()} fossilized functionals")
-
-
-def create_training_session(
-    model_config: Dict[str, Any],
-    dataset_config: Dict[str, Any],
-    training_config: Dict[str, Any],
-    device: str = None
-) -> TemporalAssociationTrainer:
-    """Create a complete training session."""
-    
-    # Create model
-    model = GyroidicFluxReasoner(**model_config).to(device, non_blocking=True)
-    
-    # Create dataset
-    dataset = TemporalAssociationDataset(**dataset_config, device=device)
-    
-    # Create trainer
-    trainer = TemporalAssociationTrainer(
-        model=model,
-        dataset=dataset,
-        **training_config,
-        device=device
-    )
-    
-    return trainer
-
+        return final_text, metrics
