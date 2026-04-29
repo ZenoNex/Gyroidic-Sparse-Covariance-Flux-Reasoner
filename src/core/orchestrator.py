@@ -473,9 +473,11 @@ class UniversalOrchestrator(nn.Module):
         # Topology Estimation: Construct spatial adjacency for Betti numbers
         # We use a simple correlation matrix proxy for the clique complex
         with torch.no_grad():
-            normalized_safe = F.normalize(state_safe, dim=-1)
-            # Correlation matrix [batch, dim, dim] -> [dim, dim] mean
-            adj_proxy = torch.matmul(normalized_safe.T, normalized_safe) / state_safe.shape[0]
+            # Flatten to [N, dim] to compute feature-wise correlation
+            samples = state_safe.reshape(-1, self.dim)
+            normalized_samples = F.normalize(samples, dim=-1)
+            # Correlation matrix [dim, dim]
+            adj_proxy = torch.matmul(normalized_samples.T, normalized_samples) / max(1, samples.shape[0])
             betti_results = self.quantum_betti.estimate_betti_numbers(adj_proxy, max_dim=1)
             b0 = betti_results[0].float().mean().item()
             b1 = betti_results[1].float().mean().item()
