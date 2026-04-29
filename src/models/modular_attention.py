@@ -30,9 +30,9 @@ class ModularAttention(nn.Module):
     Multi-field modular attention.
     
     For each functional phi_k:
-        A_k = Birkhoff(Q_k K_k^T / √d) ⊙ V_k
+        A_k = Birkhoff(Q_k K_k^T / d)  V_k
         
-    Then fuse via Saturated CRT: L̂' = SaturatedCRT_Fuse({A_k, r_k})
+    Then fuse via Saturated CRT: L' = SaturatedCRT_Fuse({A_k, r_k})
     """
     
     def __init__(
@@ -73,7 +73,7 @@ class ModularAttention(nn.Module):
         
         # Birkhoff projector
         if use_birkhoff:
-            self.birkhoff = BirkhoffProjection(max_iterations=20)
+            self.birkhoff = BirkhoffProjection()
         
         # Output projection
         self.output_proj = nn.Linear(hidden_dim * self.K, hidden_dim)
