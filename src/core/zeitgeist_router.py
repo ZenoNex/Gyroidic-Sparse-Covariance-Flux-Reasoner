@@ -92,6 +92,34 @@ class ZeitgeistState:
     braid_word: List[int] = field(default_factory=list)
     cs_phase: float = 0.0
 
+    def __post_init__(self):
+        """Handle backwards compatibility and tensor initialization."""
+        # Check if we were loaded from a legacy state that had 'alpha' as a list/tuple
+        # but is missing 'alpha_tensor'.
+        if not hasattr(self, 'alpha_tensor') or self.alpha_tensor is None:
+            # Look for legacy 'alpha' in __dict__ to avoid property conflict
+            legacy_alpha = self.__dict__.get('alpha')
+            if legacy_alpha is not None:
+                M = len(self.moduli)
+                residues = torch.tensor(legacy_alpha, dtype=torch.float32)
+                r_col = residues.unsqueeze(1)
+                r_row = residues.unsqueeze(0)
+                self.alpha_tensor = 0.5 * (r_col + r_row)
+                self.alpha_tensor.view(-1)[::M + 1] = residues
+            else:
+                # Default to zero residues if nothing found
+                M = len(self.moduli)
+                self.alpha_tensor = torch.zeros((M, M))
+        
+        # Ensure alpha_tensor is a tensor (in case it was passed as a list to the constructor)
+        if isinstance(self.alpha_tensor, (list, tuple)):
+            residues = torch.tensor(self.alpha_tensor, dtype=torch.float32)
+            M = len(self.moduli)
+            r_col = residues.unsqueeze(1)
+            r_row = residues.unsqueeze(0)
+            self.alpha_tensor = 0.5 * (r_col + r_row)
+            self.alpha_tensor.view(-1)[::M + 1] = residues
+
     @property
     def alpha(self) -> List[int]:
         """
@@ -350,6 +378,10 @@ class ZeitgeistRouter(nn.Module):
 
         #  Betti-Aware Routing  #
         self.betti_router = BettiRouter(feature_dim=dim, num_sectors=self.M)
+        
+        # Fossil landmarks cache
+        self.fossil_landmarks = {}
+        self._last_diag = {}
 
     # ------------------------------------------------------------------ #
     # Initialization helpers                                               #
@@ -514,7 +546,7 @@ class ZeitgeistRouter(nn.Module):
         x: torch.Tensor,
         state: ZeitgeistState,
         boundary=None
-    ) -> Tuple[torch.Tensor, int]:
+    ) -> Tuple[torch.Tensor, int, List[int], float]:
         """
         Compute new Symmetric Tensor CRT index M_ij.
         
@@ -650,6 +682,7 @@ class ZeitgeistRouter(nn.Module):
             mode        : 'interior' | 'grazing' | 'switching' | 'undefined'
             new_state   : Updated ZeitgeistState (immutable  new object).
             diagnostics : Dict of scalar metrics for the metrics payload.
+            x_steered   : The steered state tensor.
         """
         #  0. Archetypal Synthesis Engine (Data Transformation)  #
         if self._archetype is not None and tadc_kwargs is not None:
@@ -675,14 +708,14 @@ class ZeitgeistRouter(nn.Module):
              if arch_results["system_collapsed"]:
                  # Direct fast-track to void
                  mode = 'undefined'
-                 new_state = state.switched(state.alpha, state.level, mode, boundary)
+                 new_state = state.switched(state.alpha_tensor, state.level, mode, boundary)
                  diag = self._build_diagnostics(
                     torch.zeros((1, self.M), device=x.device),
                     torch.zeros((1, self.M), dtype=torch.bool, device=x.device),
                     mode, state, new_state,
                  )
                  diag["abstraction_event"] = True
-                 return mode, new_state, diag
+                 return mode, new_state, diag, x
 
         #  Batch normalise  #
         if x.dim() == 1:
@@ -726,7 +759,7 @@ class ZeitgeistRouter(nn.Module):
             mode = 'undefined'
             diag = self._build_diagnostics(g, grazing_mask, mode, state, new_state)
             diag["cohomological_dimension"] = cohom_dim
-            return mode, new_state, diag
+            return mode, new_state, diag, x
 
         #  3. Mode dispatch  #
         if not any_grazing:
@@ -858,4 +891,9 @@ class ZeitgeistRouter(nn.Module):
             # Serialised state for payload
         }
         d['state'] = new_state.to_dict()
+        self._last_diag = d
         return d
+
+    def get_diagnostics(self) -> Dict:
+        """Returns the last computed diagnostics dictionary."""
+        return self._last_diag
