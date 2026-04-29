@@ -1,57 +1,49 @@
+import torch
 import sys
 import os
-import torch
 
-# Set UTF-8 encoding for stdout to handle emojis if possible, but better to just remove them
-# sys.stdout.reconfigure(encoding='utf-8') 
+# Set PYTHONPATH
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-# Add src to path
-sys.path.append(os.getcwd())
+from src.models.gyroid_reasoner import GyroidicFluxReasoner
+from src.training.temporal_association_trainer import TemporalAssociationDataset, TemporalAssociationTrainer
+from src.core.device_utils import DEVICE
 
 def test_stabilization():
-    print("[START] Starting Gyroidic Manifold Stabilization Verification...")
+    print(f"Testing stabilization on {DEVICE}...")
     
-    try:
-        from src.core.enhanced_bezout_crt import EnhancedBezoutCRT, CrossbarIKSolver
-        ik = CrossbarIKSolver()
-        print("[OK] CrossbarIKSolver initialized.")
-        crt = EnhancedBezoutCRT(state_dim=64, num_moduli=5)
-        print("[OK] EnhancedBezoutCRT with IK initialized.")
-    except Exception as e:
-        print(f"[FAIL] Crossbar IK / CRT failure: {e}")
-
-    try:
-        from src.core.chern_simons_gasket import ChernSimonsGasket, SurgicalSeamVisualizer
-        gasket = ChernSimonsGasket(manifold_dim=3)
-        print("[OK] ChernSimonsGasket with Seam Visualizer initialized.")
-    except Exception as e:
-        print(f"[FAIL] Surgical Seam / Gasket failure: {e}")
-
-    try:
-        from src.core.bulletin_board import BulletinBoard
-        bb = BulletinBoard(size=64)
-        bb.micro_step()
-        print("[OK] BulletinBoard micro-stepping verified.")
-    except Exception as e:
-        print(f"[FAIL] BulletinBoard failure: {e}")
-
-    try:
-        from src.core.zeitgeist_router import ZeitgeistRouter, BraidGroupMatrices
-        router = ZeitgeistRouter(dim=64, moduli=(2, 3, 5))
-        print("[OK] ZeitgeistRouter with Braid Matrices initialized.")
-    except Exception as e:
-        print(f"[FAIL] ZeitgeistRouter failure: {e}")
-
-    try:
-        from src.models.resonance_cavity import HeritableTrustVault
-        vault = HeritableTrustVault(table_size=1024, k_dim=5)
-        res = torch.randn(2, 5)
-        indices = vault._hash(res)
-        print("[OK] HeritableTrustVault sha256 hashing verified.")
-    except Exception as e:
-        print(f"[FAIL] Resonance Cavity hashing failure: {e}")
-
-    print("\n[SUCCESS] All core stabilization modules verified.")
+    # 1. Model Configuration
+    model_config = {
+        'hidden_dim': 256,
+        'num_layers': 2,
+        'num_functionals': 5,
+        'poly_degree': 5,
+        'use_resonance': True,
+        'use_admm': True
+    }
+    
+    model = GyroidicFluxReasoner(**model_config).to(DEVICE)
+    print("Model initialized.")
+    
+    # 2. Dataset Configuration
+    dataset = TemporalAssociationDataset(sequence_length=8, device=DEVICE)
+    print("Dataset initialized.")
+    
+    # 3. Trainer Configuration
+    trainer = TemporalAssociationTrainer(
+        model=model,
+        dataset=dataset,
+        device=DEVICE
+    )
+    print("Trainer initialized.")
+    
+    # 4. Run a single train step
+    print("Running training step...")
+    batch_data = dataset.get_temporal_sequence(batch_size=2)
+    metrics = trainer.train_step(batch_data)
+    
+    print(f"Step Metrics: {metrics}")
+    print("Stabilization test PASSED.")
 
 if __name__ == "__main__":
     test_stabilization()
