@@ -151,3 +151,35 @@ def honest_multinomial(probs, num_samples, replacement=False):
         
         _, indices = torch.topk(scores, min(num_samples, n))
         return indices
+
+def fractal_pad(x: torch.Tensor, target_dim: int, mode: str = 'reflect') -> torch.Tensor:
+    """
+    Perform Fractal (Reflective) Padding to align heterogeneous dimensions.
+    
+    Args:
+        x: [..., dim] Input tensor
+        target_dim: Desired dimension
+        mode: Padding mode ('reflect', 'replicate', 'constant')
+        
+    Returns:
+        padded: [..., target_dim] Padded or truncated tensor
+    """
+    current_dim = x.shape[-1]
+    if current_dim == target_dim:
+        return x
+        
+    if current_dim > target_dim:
+        # Matryoshka Truncation: Shell-pop inward
+        return x[..., :target_dim]
+        
+    # Fractal Expansion: Pad to target
+    diff = target_dim - current_dim
+    
+    # torch.nn.functional.pad expects padding as (padding_left, padding_right) for last dim
+    # For reflection, we can only pad up to current_dim - 1
+    if mode == 'reflect' and diff >= current_dim:
+        # Fallback to replicate if reflection is mathematically impossible
+        # (Fractal depth limit reached)
+        mode = 'replicate'
+        
+    return torch.nn.functional.pad(x, (0, diff), mode=mode)
