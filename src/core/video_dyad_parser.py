@@ -354,7 +354,7 @@ class VideoDyadParser(nn.Module):
                 os.remove(tmp_in_path)
                 
             if process.returncode != 0:
-                print(f"[VIDEO_PARSER] ffmpeg error: {stderr.decode(errors='ignore')}")
+                print(f"[VIDEO_PARSER] ffmpeg error: {stderr.decode(errors='ignore')}", flush=True)
                 return None
                 
             # 2. Read WAV from stdout
@@ -405,5 +405,5 @@ class VideoDyadParser(nn.Module):
             return rounded
             
         except Exception as e:
-            print(f"[VIDEO_PARSER] Audio extraction failed: {e}")
+            print(f"[VIDEO_PARSER] Audio extraction failed: {e}", flush=True)
             return None
