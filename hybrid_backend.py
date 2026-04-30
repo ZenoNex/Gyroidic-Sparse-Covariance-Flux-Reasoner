@@ -148,6 +148,9 @@ class GovernanceManager:
     @staticmethod
     def startup_menu():
         """Interactive console menu for lifecycle control."""
+        if os.environ.get('NON_INTERACTIVE') == '1':
+            return [8000, 8080]
+            
         print("\n" + "="*50)
         print("      GYROIDIC GOVERNANCE INTERFACE ")
         print("="*50)
@@ -1363,18 +1366,27 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 clean_text = clean_text[7:].strip()
                 
             # Detect commands
-            if not clean_text.startswith("INGEST_DYAD:") and not clean_text.startswith("ASSOCIATE:"):
+            ingest_prefixes = ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:"]
+            if not any(clean_text.startswith(prefix) for prefix in ingest_prefixes):
                 text = f"PROMPT: {clean_text}"
             else:
                 text = clean_text
                 
             video_dyad_b64 = data.get('video_dyad_b64')
+            audio_dyad = data.get('audio_dyad') or data.get('audio_b64') # Handle both naming conventions
             commutativity = data.get('commutativity', 'non_commutative')
             regime = data.get('regime', 'goo')
             
             # Process through AI system
             if AI_SYSTEM:
-                result = AI_SYSTEM.process_text(text, video_dyad_b64, commutativity, fingerprint, regime=regime)
+                result = AI_SYSTEM.process_text(
+                    text=text, 
+                    video_dyad_b64=video_dyad_b64, 
+                    commutativity=commutativity, 
+                    fingerprint=fingerprint, 
+                    audio_dyad=audio_dyad,
+                    regime=regime
+                )
             else:
                 result = {
                     'response': f"AI system not initialized. Received: {user_text}",
