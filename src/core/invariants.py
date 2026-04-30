@@ -16,6 +16,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Tuple
+import math
 
 class PhaseAlignmentInvariant(nn.Module):
     """
@@ -109,8 +110,10 @@ def compute_chiral_shift(coeffs: torch.Tensor) -> torch.Tensor:
     This is the original 'Chiral Score' calculation: measuring the displacement
     of the energy distribution from the spectral midpoint.
     """
-    if coeffs.dim() == 2:
-        coeffs = coeffs.unsqueeze(0)
+    if coeffs.dim() == 1:
+        coeffs = coeffs.unsqueeze(0).unsqueeze(0)
+    elif coeffs.dim() == 2:
+        coeffs = coeffs.unsqueeze(1)
     B, K, D = coeffs.shape
 
     # 1. Energy extraction (Summing across the K-manifold)
@@ -141,10 +144,12 @@ def compute_chirality(coeffs: torch.Tensor) -> torch.Tensor:
        delta_chi: [batch] raw energy asymmetry between even and odd modes.
     """
     # 1. Force to 3D: [Batch, K-Manifold, D-Degree]
-    if coeffs.dim() == 2:
+    if coeffs.dim() == 1:
+        coeffs = coeffs.unsqueeze(0).unsqueeze(0)
+    elif coeffs.dim() == 2:
         coeffs = coeffs.unsqueeze(0)
     elif coeffs.dim() != 3:
-        raise ValueError(f"Expected 2D or 3D tensor, got {coeffs.dim()}D")
+        raise ValueError(f"Expected 1D, 2D or 3D tensor, got {coeffs.dim()}D")
 
     B, K, D = coeffs.shape
 
@@ -313,3 +318,98 @@ def compute_vacuum_residue(residue: torch.Tensor) -> torch.Tensor:
     
     return vacuum
 
+def get_prime_ladder(n: int, device: torch.device = None) -> torch.Tensor:
+    """
+    Generate the first n primes as a resonance ladder.
+    
+    RIC core: each prime defines a preferred resonance frequency.
+    """
+    primes = []
+    num = 2
+    while len(primes) < n:
+        for i in range(2, int(num**0.5) + 1):
+            if num % i == 0:
+                break
+        else:
+            primes.append(num)
+        num += 1
+    return torch.tensor(primes, device=device, dtype=torch.float32)
+
+def apply_chirality_redistribution(coeffs: torch.Tensor, alpha: float = 0.1) -> torch.Tensor:
+    """
+    Redistribute energy based on chirality-driven resonance alignment.
+    
+    "Initial and final states show chirality-driven redistribution, where 
+    asymmetry seeds lawful resonance alignment beyond stochastic diffusion."
+    
+    Args:
+        coeffs: [Batch, K, D] or [Batch, D] latent state.
+        alpha: Redistribution strength.
+        
+    Returns:
+        aligned_coeffs: State redistributed along the prime-indexed ladder.
+    """
+    original_dim = coeffs.dim()
+    if coeffs.dim() == 2:
+        coeffs = coeffs.unsqueeze(1)
+    B, K, D = coeffs.shape
+    
+    # 1. Generate Prime-Indexed Asymmetric Potential V_asym
+    primes = get_prime_ladder(D, device=coeffs.device)
+    # V(n) = log(p_n) * sin(n * pi / 4) -> Asymmetric twist
+    indices = torch.arange(D, device=coeffs.device).float()
+    v_asym = torch.log(primes + 1.0) * torch.sin(indices * math.pi / 4.0)
+    
+    # 2. Apply redistribution: S' = S * exp(-alpha * V_asym)
+    # This seeds the 'directional bias' (handedness) of the manifold
+    redistribution_mask = torch.exp(-alpha * v_asym).unsqueeze(0).unsqueeze(0)
+    aligned_coeffs = coeffs * redistribution_mask
+    
+    # 3. Restore energy (Norm preservation)
+    orig_norm = torch.norm(coeffs, dim=-1, keepdim=True) + 1e-8
+    new_norm = torch.norm(aligned_coeffs, dim=-1, keepdim=True) + 1e-8
+    aligned_coeffs = aligned_coeffs * (orig_norm / new_norm)
+    
+    # Return same dimensionality as input
+    if original_dim == 1:
+        return aligned_coeffs.squeeze()
+    if original_dim == 2:
+        return aligned_coeffs.squeeze(1)
+    return aligned_coeffs
+
+def apply_asymmetry_preserving_reshape(state: torch.Tensor, target_dim: int) -> torch.Tensor:
+    """
+    Reshape state while preserving chiral asymmetry.
+    
+    Instead of symmetric padding (reflect), we use 'Prime-Seeded Asymmetric Padding'
+    to ensure the boundary contains the structural seeds for resonance.
+    """
+    if state.dim() == 1:
+        state = state.unsqueeze(0)
+    B, D = state.shape
+    
+    if D == target_dim:
+        return state
+        
+    if D > target_dim:
+        # Truncation: must be done carefully to preserve parity
+        # (Already handled in diegetic_backend, but centralized here)
+        return state[:, :target_dim]
+        
+    # Expansion: Prime-Seeded Asymmetric Padding
+    pad_size = target_dim - D
+    primes = get_prime_ladder(target_dim, device=state.device)
+    
+    # Generate the 'Chiral Tail' from the prime ladder
+    # tail(n) = sin(2 * log(p_n)) as per RIC core formula
+    indices_tail = torch.arange(D, target_dim, device=state.device).float()
+    # Parity-breaking bias: favor odd modes to seed non-zero torsion
+    parity_bias = 1.0 + 0.1 * (indices_tail % 2 != 0).float()
+    chiral_tail = torch.sin(2.0 * torch.log(primes[D:] + 1.0)) * parity_bias
+    chiral_tail = chiral_tail.unsqueeze(0).expand(B, -1)
+    
+    # Scale tail to match state energy density
+    state_energy = torch.mean(torch.abs(state), dim=-1, keepdim=True)
+    chiral_tail = chiral_tail * state_energy
+    
+    return torch.cat([state, chiral_tail], dim=-1)
