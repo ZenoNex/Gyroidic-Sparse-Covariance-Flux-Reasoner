@@ -1001,6 +1001,7 @@
             active_fingerprint: null,
             active_audio_dyad: null,
             active_video_dyad: null,
+            active_video_file: null,
             media_chain: [] // Array of {type, data, filename, icon}
         };
 
@@ -1065,7 +1066,7 @@
                     text: finalInput,
                     fingerprint: state.active_fingerprint,
                     audio_dyad: state.active_audio_dyad,
-                    video_dyad_b64: state.active_video_dyad,
+                    video_dyad_b64: state.active_video_file ? "[FILE_POINTER]" : state.active_video_dyad,
                     media_chain: state.media_chain.map(item => ({ type: item.type, data: item.data })),
                     commutativity: _calculateContextualCommutativity(),
                     regime: state.regime,
@@ -1961,8 +1962,19 @@
         const commitVideoBtn = document.getElementById('commit-video');
         const videoLog = document.getElementById('video-log');
 
+        // Immediate assignment to avoid script execution hazards
+        commitVideoBtn.onclick = commitVideoDyad;
+        videoDropzone.onclick = () => videoFileInput.click();
+        videoFileInput.onchange = (e) => { if (e.target.files.length > 0) processVideoFile(e.target.files[0]); };
+        videoDropzone.ondragover = (e) => { e.preventDefault(); videoDropzone.style.borderColor = 'var(--terminal-blue)'; };
+        videoDropzone.ondragleave = (e) => { e.preventDefault(); videoDropzone.style.borderColor = 'rgba(0, 242, 255, 0.3)'; };
+        videoDropzone.ondrop = (e) => {
+            e.preventDefault();
+            videoDropzone.style.borderColor = 'rgba(0, 242, 255, 0.3)';
+            if (e.dataTransfer.files.length > 0) processVideoFile(e.dataTransfer.files[0]);
+        };
+
         async function processVideoFile(file) {
-            const validTypes = ['video/mp4', 'video/avi', 'video/x-matroska', 'video/webm', 'image/gif', ''];
             const validExts = ['.mp4', '.avi', '.mkv', '.webm', '.gif'];
             const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
             if (!validExts.includes(ext)) {
@@ -1973,17 +1985,15 @@
             document.getElementById('video-status').innerText = 'READING';
             document.getElementById('video-status').style.color = 'var(--terminal-warn)';
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const b64 = e.target.result; // "data:video/mp4;base64,..."
-                state.active_video_dyad = b64;
-                document.getElementById('video-status').innerText = 'ARMED';
-                document.getElementById('video-status').style.color = 'var(--terminal-green)';
-                document.querySelector('#video-dropzone div:nth-child(2)').innerHTML = `DYAD CAPTURED:<br/>${file.name}`;
-                commitVideoBtn.disabled = false;
-                appendMessage('system', `VIDEO DYAD INGESTED: ${file.name} | ${(file.size / 1024 / 1024).toFixed(2)} MB`);
-            };
-            reader.readAsDataURL(file);
+            // Optimization: Store the File object directly instead of converting to huge Base64 string
+            state.active_video_file = file;
+            state.active_video_dyad = "[FILE_POINTER]"; // Placeholder for UI logic
+            
+            document.getElementById('video-status').innerText = 'ARMED';
+            document.getElementById('video-status').style.color = 'var(--terminal-green)';
+            document.querySelector('#video-dropzone div:nth-child(2)').innerHTML = `DYAD CAPTURED:<br/>${file.name}`;
+            commitVideoBtn.disabled = false;
+            appendMessage('system', `VIDEO DYAD INGESTED: ${file.name} | ${(file.size / 1024 / 1024).toFixed(2)} MB`);
         }
 
         async function commitVideoDyad() {
@@ -2023,7 +2033,13 @@
 
                     const formData = new FormData();
                     formData.append('text', `INGEST_VIDEO_DYAD: [CRYPTOGRAPHIC_PARSE]${description ? ' | ' + description : ''}`);
-                    formData.append('video_dyad_b64', b64);
+                    
+                    // If we have a file pointer, append the actual file blob
+                    if (state.active_video_file) {
+                        formData.append('video_dyad_file', state.active_video_file);
+                    } else {
+                        formData.append('video_dyad_b64', b64);
+                    }
                     formData.append('commutativity', commutativity);
                     formData.append('regime', state.regime);
 
@@ -2067,16 +2083,7 @@
             }, 100);
         }
 
-        videoDropzone.onclick = () => videoFileInput.click();
-        videoFileInput.onchange = (e) => { if (e.target.files.length > 0) processVideoFile(e.target.files[0]); };
-        videoDropzone.ondragover = (e) => { e.preventDefault(); videoDropzone.style.borderColor = 'var(--terminal-blue)'; };
-        videoDropzone.ondragleave = (e) => { e.preventDefault(); videoDropzone.style.borderColor = 'rgba(0, 242, 255, 0.3)'; };
-        videoDropzone.ondrop = (e) => {
-            e.preventDefault();
-            videoDropzone.style.borderColor = 'rgba(0, 242, 255, 0.3)';
-            if (e.dataTransfer.files.length > 0) processVideoFile(e.dataTransfer.files[0]);
-        };
-        commitVideoBtn.onclick = commitVideoDyad;
+        // --- Event Listeners ---
 
         // --- Event Listeners ---
         userInput.addEventListener('keypress', (e) => {
