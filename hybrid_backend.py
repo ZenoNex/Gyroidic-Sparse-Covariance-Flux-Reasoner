@@ -22,6 +22,7 @@ import time
 import subprocess
 import csv
 import io
+import cgi
 from urllib.parse import urlparse, parse_qs
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib.request
@@ -1347,13 +1348,50 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
     def _handle_chat(self):
         """Handle chat interactions with AI processing."""
         try:
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            data = json.loads(post_data.decode('utf-8'))
+            content_type = self.headers.get('Content-Type', '')
+            data = {}
             
+            if 'application/json' in content_type:
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                data = json.loads(post_data.decode('utf-8'))
+            elif 'multipart/form-data' in content_type:
+                form = cgi.FieldStorage(
+                    fp=self.rfile,
+                    headers=self.headers,
+                    environ={'REQUEST_METHOD': 'POST'}
+                )
+                for key in form.keys():
+                    # FieldStorage returns values as strings or bytes
+                    val = form.getvalue(key)
+                    if isinstance(val, bytes):
+                        # For base64 strings, we decode. For real binary, we'd handle differently.
+                        data[key] = val.decode('utf-8', errors='ignore')
+                    else:
+                        data[key] = val
+            else:
+                # Fallback
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                try:
+                    data = json.loads(post_data.decode('utf-8'))
+                except:
+                    data = {}
+
             user_text = data.get('text', '').strip()
-            print(f"[POST] /interact | Text: {user_text[:50]}... | Video: {'YES' if data.get('video_dyad_b64') else 'NO'}", flush=True)
+            video_dyad_b64 = data.get('video_dyad_b64')
+            
+            # Enhanced Diagnostic Log
+            video_size_mb = len(video_dyad_b64)//1024//1024 if video_dyad_b64 else 0
+            print(f"[POST] /interact | Text: {user_text[:50]}... | Video: {'YES (' + str(video_size_mb) + ' MB)' if video_size_mb else 'NO'}", flush=True)
+            
             fingerprint = data.get('fingerprint')  # Chebyshev image fingerprint {L, Cr, Cb}
+            # Handle potential stringified JSON from FormData
+            if isinstance(fingerprint, str):
+                try:
+                    fingerprint = json.loads(fingerprint)
+                except:
+                    pass
 
             # =============================================
             # STRUCTURAL INTEGRITY CHECK (§12.1)
@@ -1378,7 +1416,6 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 text = clean_text
                 
-            video_dyad_b64 = data.get('video_dyad_b64')
             audio_dyad = data.get('audio_dyad') or data.get('audio_b64') # Handle both naming conventions
             commutativity = data.get('commutativity', 'non_commutative')
             regime = data.get('regime', 'goo')
