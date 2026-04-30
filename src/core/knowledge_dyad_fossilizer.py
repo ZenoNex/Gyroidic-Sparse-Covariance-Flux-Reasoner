@@ -246,6 +246,9 @@ class DyadFossilizer:
             spectral_entropy = (entropy_results['ergodic_entropy'] + entropy_results['soliton_entropy']).item()
             soliton_entropy = entropy_results['soliton_entropy'].item()
             
+            # Anti-Lobotomy: Log the derived metrics for verification
+            print(f"[FOSSILIZER] Derived Invariants: Chiral={chiral_shift:.4f}, Torsion={chiral_torsion:.4f}, Entropy={spectral_entropy:.4f}", flush=True)
+            
             # D. Topological Invariants (Quantum Betti numbers)
             with torch.no_grad():
                 s = s_state.view(1, -1)
