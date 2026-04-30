@@ -177,9 +177,9 @@ def fractal_pad(x: torch.Tensor, target_dim: int, mode: str = 'reflect') -> torc
     
     # torch.nn.functional.pad expects padding as (padding_left, padding_right) for last dim
     # For reflection, we can only pad up to current_dim - 1
-    if mode == 'reflect' and diff >= current_dim:
-        # Fallback to replicate if reflection is mathematically impossible
-        # (Fractal depth limit reached)
-        mode = 'replicate'
+    # ANTI-LOBOTOMY: Torch only supports reflect/replicate for 2D+ tensors.
+    # For 1D tensors (Spectral Residues), we force 'constant' to prevent crash.
+    if x.dim() <= 2 and mode in ['reflect', 'replicate']:
+        mode = 'constant'
         
     return torch.nn.functional.pad(x, (0, diff), mode=mode)
