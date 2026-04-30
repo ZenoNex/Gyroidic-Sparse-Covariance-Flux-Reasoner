@@ -110,10 +110,13 @@ class VideoDyadParser(nn.Module):
             'atom_array': [float(v != -1) for v in atoms.values()]
         }
 
-    def parse_video_b64(self, video_b64: str, healing_ref: Optional[torch.Tensor] = None) -> Dict[str, torch.Tensor]:
+    def parse_video_b64(self, video_b64: str, healing_ref: Optional[torch.Tensor] = None, extract_audio: bool = True) -> Dict[str, torch.Tensor]:
         """
         Ingests a Base64 encoded video (mp4, avi) as a pure 1D byte sequence.
         Restores Natural Log Topological Rotation and Anisotropic Comparison.
+        
+        If extract_audio is True, it also attempts to surgically isolate the 
+        audio stream via ffmpeg for harmonic projection.
         """
         # Strip potential data URI prefix if passed directly from Javascript
         if ',' in video_b64:
@@ -167,13 +170,19 @@ class VideoDyadParser(nn.Module):
         # 6. Fractal Fractional Anisotropic Recursive Entropy
         entropy_metrics = self._compute_fractal_anisotropic_entropy(signal, honest_jitter, healing_ref)
         
+        # 7. Optional Audio Extraction
+        audio_harmonics = None
+        if extract_audio:
+            audio_harmonics = self.extract_audio_harmonics(video_b64)
+
         return {
             'sparse_covariance': sparse_cov,
             'fractal_entropy': entropy_metrics,
             'substream_residue': substream_residue,
             'signal_length': torch.tensor(n_elements, dtype=torch.float32),
             'substream_entropy': torch.tensor(substream_data['atom_entropy'], device=self.device),
-            'honest_jitter': torch.tensor(honest_jitter, device=self.device)
+            'honest_jitter': torch.tensor(honest_jitter, device=self.device),
+            'audio_harmonics': audio_harmonics if audio_harmonics is not None else torch.zeros(32, device=self.device)
         }
 
     def _compute_fractal_anisotropic_entropy(self, 
@@ -276,8 +285,19 @@ class VideoDyadParser(nn.Module):
         length = v_metrics['signal_length'].log().view(1) # log length for scale honesty
         sub_ent = v_metrics['substream_entropy'].view(1)
         
-        # Pad this mix to 32
-        meta_mix = torch.cat([sub_res, jitter, length, sub_ent])
+        # NEW: Inject Audio Harmonics if available to unify the signature
+        audio_h = v_metrics.get('audio_harmonics', torch.zeros(32, device=self.device))
+        
+        # Combine into a 32-dim meta block
+        meta_mix = torch.cat([sub_res, jitter, length, sub_ent]) # 9 dims
+        
+        # Add audio harmonics (weighted by substream presence)
+        audio_presence = v_metrics.get('audio_detected', torch.tensor(1.0, device=self.device)).view(1)
+        weighted_audio = audio_h * audio_presence
+        
+        # Final meta_mix: 9 dims + 23 harmonics = 32 dims
+        meta_mix = torch.cat([meta_mix, weighted_audio[:23]])
+        
         if meta_mix.numel() < 32:
             # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
             padding = harvest_honest_jitter((32 - meta_mix.numel(),), device=self.device, scaled=True) * 0.01
