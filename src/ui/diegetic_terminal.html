@@ -1838,6 +1838,7 @@
 
             setTimeout(async () => {
                 try {
+                    console.log("[AUDIO_COMMIT] Initializing payload serialization...");
                     const payload = {
                         text: `INGEST_AUDIO_DYAD: ${dyad.filename}${description ? ' | ' + description : ''}`,
                         audio_dyad: dyad,
@@ -1850,14 +1851,21 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
+                    
+                    if (!response.ok) throw new Error(`Server responded with ${response.status}`);
 
                     const data = await response.json();
+                    console.log("[AUDIO_COMMIT] Response received:", data);
                     handleResponse(data);
 
-                    const logEntry = document.createElement('div');
-                    logEntry.innerText =
-                        `[${new Date().toLocaleTimeString()}] [${displayOrder}] ${dyad.filename}`;
-                    audioLog.prepend(logEntry);
+                    if (audioLog) {
+                        const logEntry = document.createElement('div');
+                        logEntry.innerText =
+                            `[${new Date().toLocaleTimeString()}] [${displayOrder}] ${dyad.filename}`;
+                        audioLog.prepend(logEntry);
+                    } else {
+                        console.warn("[AUDIO_COMMIT] audioLog element not found.");
+                    }
 
                     // Reset
                     document.getElementById('audio-description-buffer').value = '';
@@ -1953,21 +1961,32 @@
             // Wrap in setTimeout to ensure UI paints the "COMMITTING" status before the heavy JSON.stringify
             setTimeout(async () => {
                 try {
-                    console.log("[VIDEO_COMMIT] Initializing payload serialization...");
+                    console.log("[VIDEO_COMMIT] Initializing payload serialization...", { 
+                        description_length: description.length, 
+                        b64_preview: b64.substring(0, 50) + "..." 
+                    });
                     const body = JSON.stringify(payload);
-                    console.log("[VIDEO_COMMIT] Payload ready, dispatching fetch...");
+                    console.log(`[VIDEO_COMMIT] Payload ready (${(body.length/1024/1024).toFixed(2)} MB), dispatching fetch...`);
                     
                     const response = await fetch(`${state.backend_url}/interact`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: body
                     });
+                    
+                    if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+                    
                     const data = await response.json();
+                    console.log("[VIDEO_COMMIT] Response received:", data);
                     handleResponse(data);
                     
-                    const logEntry = document.createElement('div');
-                    logEntry.innerText = `[${new Date().toLocaleTimeString()}] Video Dyad Parsed`;
-                    videoLog.prepend(logEntry);
+                    if (videoLog) {
+                        const logEntry = document.createElement('div');
+                        logEntry.innerText = `[${new Date().toLocaleTimeString()}] Video Dyad Parsed`;
+                        videoLog.prepend(logEntry);
+                    } else {
+                        console.warn("[VIDEO_COMMIT] videoLog element not found, skipping UI log update.");
+                    }
                     
                     // Reset
                     state.active_video_dyad = null;
@@ -1977,7 +1996,7 @@
                     document.querySelector('#video-dropzone div:nth-child(2)').innerHTML = `DRAG BINARY VIDEO<br><span style="color:#444;">mp4 &bull; avi</span>`;
                 } catch (err) {
                     console.error("[VIDEO_COMMIT] Rupture:", err);
-                    appendMessage('system', 'VIDEO COMMIT RUPTURE. BACKEND DISSOCIATED.');
+                    appendMessage('system', `VIDEO COMMIT RUPTURE: ${err.message || 'BACKEND DISSOCIATED'}`);
                 } finally {
                     commitVideoBtn.innerText = 'COMMIT VIDEO DYAD';
                     commitVideoBtn.disabled = !state.active_video_dyad;
