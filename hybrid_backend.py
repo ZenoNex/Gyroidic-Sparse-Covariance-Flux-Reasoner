@@ -12,6 +12,8 @@ import torch
 import threading
 import socketserver
 import numpy as np
+import base64
+import cgi
 from src.core.invariants import compute_chirality, check_glyphlock, compute_chiral_shift
 try:
     import psutil
@@ -1356,19 +1358,26 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 post_data = self.rfile.read(content_length)
                 data = json.loads(post_data.decode('utf-8'))
             elif 'multipart/form-data' in content_type:
+                # Use a larger buffer for large video files
                 form = cgi.FieldStorage(
                     fp=self.rfile,
                     headers=self.headers,
                     environ={'REQUEST_METHOD': 'POST'}
                 )
                 for key in form.keys():
-                    # FieldStorage returns values as strings or bytes
-                    val = form.getvalue(key)
-                    if isinstance(val, bytes):
-                        # For base64 strings, we decode. For real binary, we'd handle differently.
-                        data[key] = val.decode('utf-8', errors='ignore')
+                    field_item = form[key]
+                    if field_item.filename:
+                        # It's a file upload
+                        file_data = field_item.file.read()
+                        if key == 'video_dyad_file':
+                            print(f"[BINARY] Received video file: {field_item.filename} ({len(file_data)} bytes)", flush=True)
+                            # Convert to Base64 for the engine which currently expects B64 string
+                            b64_data = base64.b64encode(file_data).decode('utf-8')
+                            data['video_dyad_b64'] = f"data:video/mp4;base64,{b64_data}"
+                        else:
+                            data[key] = file_data.decode('utf-8', errors='ignore')
                     else:
-                        data[key] = val
+                        data[key] = field_item.value
             else:
                 # Fallback
                 content_length = int(self.headers['Content-Length'])
