@@ -4154,10 +4154,12 @@ class DiegeticPhysicsEngine(nn.Module):
                 audio_harmonics=audio_tensor,
                 video_breather=video_breather,
                 gyroid_residue=codec_result.residue, # Irreducible cross-modal state
+                meta_state=seed_state.detach().cpu() if seed_state is not None else None,
                 metadata={
                     "entanglement": entanglement,
                     "ingestion_iteration": self.iteration,
-                    "spectral_entropy": codec_result.diagnostics.get('spectral_entropy', 0.0)
+                    "spectral_entropy": codec_result.diagnostics.get('spectral_entropy', 0.0),
+                    "commutativity": commutativity
                 }
             )
             
