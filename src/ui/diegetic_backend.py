@@ -103,7 +103,13 @@ from src.codec.vision_utilities import get_russian_doll_projection
 from image_extension import ImageProcessor
 # Speculative Coprime Chiral Gating (Legacy Recovery)
 from src.core.speculative_coprime_gate import SpeculativeCoprimeGate
-from src.core.invariants import compute_chirality, check_glyphlock, compute_chiral_shift
+from src.core.invariants import (
+    compute_chirality, 
+    check_glyphlock, 
+    compute_chiral_shift,
+    apply_chirality_redistribution,
+    apply_asymmetry_preserving_reshape
+)
 
 # Sovereign Ingestion Integration
 from src.data.conversational_api_ingestor import SovereignConversationalIngestor
@@ -1906,11 +1912,12 @@ class DiegeticPhysicsEngine(nn.Module):
                 batch_size = seed_state_corrected.shape[0]
                 state_dim = seed_state_corrected.shape[1]
                 
-                # Apply Symmetry-Preserving Reshape for Bezout compatibility
+                # Apply Asymmetry-Preserving Reshape for Bezout compatibility
                 if state_dim % self.k != 0:
                     pad_size = self.k - (state_dim % self.k)
-                    seed_state_padded = torch.nn.functional.pad(seed_state_corrected, (0, pad_size), mode='reflect')
-                    print(f" Applied Symmetry-Preserving padding for Bezout: {state_dim} -> {seed_state_padded.shape[1]}")
+                    target_dim = state_dim + pad_size
+                    seed_state_padded = apply_asymmetry_preserving_reshape(seed_state_corrected, target_dim)
+                    print(f" Applied Asymmetry-Preserving padding for Bezout: {state_dim} -> {seed_state_padded.shape[1]}")
                 else:
                     seed_state_padded = seed_state_corrected
                 
@@ -2129,13 +2136,13 @@ class DiegeticPhysicsEngine(nn.Module):
             batch_size = seed_state.shape[0]
             state_dim = seed_state.shape[1]
             
-            # Create proper residues and polynomial coefficients for the gasket
-            # Apply Symmetry-Preserving Reshape for Chern-Simons compatibility
+            # Apply Asymmetry-Preserving Reshape for Chern-Simons compatibility
             if state_dim % self.k != 0:
-                # Apply reflective padding to reach nearest multiple of k
+                # Replace reflective padding with Prime-Seeded Asymmetric Padding
                 pad_size = self.k - (state_dim % self.k)
-                seed_state_padded = torch.nn.functional.pad(seed_state, (0, pad_size), mode='reflect')
-                print(f" Applied Symmetry-Preserving padding for Chern-Simons: {state_dim} -> {seed_state_padded.shape[1]}")
+                target_dim = state_dim + pad_size
+                seed_state_padded = apply_asymmetry_preserving_reshape(seed_state, target_dim)
+                print(f" Applied Asymmetry-Preserving padding for Chern-Simons: {state_dim} -> {seed_state_padded.shape[1]}")
             else:
                 seed_state_padded = seed_state
             
@@ -2212,11 +2219,12 @@ class DiegeticPhysicsEngine(nn.Module):
             batch_size = seed_state.shape[0]
             state_dim = seed_state.shape[1]
             
-            # Apply Symmetry-Preserving Reshape for Soliton compatibility
+            # Apply Asymmetry-Preserving Reshape for Soliton compatibility
             if state_dim % self.k != 0:
                 pad_size = self.k - (state_dim % self.k)
-                seed_state_padded = torch.nn.functional.pad(seed_state, (0, pad_size), mode='reflect')
-                print(f" Applied Symmetry-Preserving padding for Soliton: {state_dim} -> {seed_state_padded.shape[1]}")
+                target_dim = state_dim + pad_size
+                seed_state_padded = apply_asymmetry_preserving_reshape(seed_state, target_dim)
+                print(f" Applied Asymmetry-Preserving padding for Soliton: {state_dim} -> {seed_state_padded.shape[1]}")
             else:
                 seed_state_padded = seed_state
             
