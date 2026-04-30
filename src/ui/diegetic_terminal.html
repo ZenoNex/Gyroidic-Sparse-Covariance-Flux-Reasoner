@@ -43,10 +43,11 @@
         /* --- Rupture Mode (Black-Body Radiation Palette) --- */
         body.rupture-mode {
             background: #000;
-            background-image: 
+            background-image:
                 radial-gradient(circle at 50% 50%, rgba(138, 43, 226, 0.15) 0%, transparent 70%),
                 linear-gradient(45deg, #000 25%, #050505 25%, #050505 50%, #000 50%, #000 75%, #050505 75%, #050505 100%);
-            background-size: 100% 100%, 4px 4px; /* Tiny grid scanlines */
+            background-size: 100% 100%, 4px 4px;
+            /* Tiny grid scanlines */
             filter: contrast(1.2) saturate(1.5) hue-rotate(-10deg);
         }
 
@@ -62,17 +63,37 @@
         }
 
         @keyframes screen-shake {
-            0% { transform: translate(0,0); }
-            10% { transform: translate(-2px,-2px); }
-            20% { transform: translate(2px,1px); }
-            30% { transform: translate(-3px,2px); }
-            40% { transform: translate(3px,-1px); }
-            50% { transform: translate(-1px,1px); }
-            100% { transform: translate(0,0); }
+            0% {
+                transform: translate(0, 0);
+            }
+
+            10% {
+                transform: translate(-2px, -2px);
+            }
+
+            20% {
+                transform: translate(2px, 1px);
+            }
+
+            30% {
+                transform: translate(-3px, 2px);
+            }
+
+            40% {
+                transform: translate(3px, -1px);
+            }
+
+            50% {
+                transform: translate(-1px, 1px);
+            }
+
+            100% {
+                transform: translate(0, 0);
+            }
         }
 
         .shake {
-            animation: screen-shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+            animation: screen-shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
         }
 
         /* --- Header --- */
@@ -203,8 +224,13 @@
         }
 
         @keyframes pulse {
-            from { opacity: 0.4; }
-            to { opacity: 1; }
+            from {
+                opacity: 0.4;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .small-log {
@@ -516,7 +542,7 @@
         #audio-waveform {
             width: 100%;
             height: 40px;
-            background: rgba(0,0,0,0.3);
+            background: rgba(0, 0, 0, 0.3);
             border: 1px solid var(--glass-border);
             border-radius: 4px;
             margin-bottom: 0.75rem;
@@ -641,8 +667,13 @@
             margin: -2px 0;
         }
 
-        .panel-e-title { color: var(--terminal-magenta); }
-        .panel-f-title { color: #8a2be2; }
+        .panel-e-title {
+            color: var(--terminal-magenta);
+        }
+
+        .panel-f-title {
+            color: #8a2be2;
+        }
     </style>
 </head>
 
@@ -669,9 +700,11 @@
              Controls the global A→B ordering for ALL dyad types simultaneously.
              Per-panel selectors remain for within-panel ordering only.
              Sends 'commutativity' field with every /interact payload. -->
-        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.35rem 1.25rem;background:rgba(0,0,0,0.4);border-top:1px solid var(--glass-border);font-family:var(--font-mono);font-size:0.65rem;letter-spacing:1px;">
+        <div
+            style="display:flex;align-items:center;gap:0.75rem;padding:0.35rem 1.25rem;background:rgba(0,0,0,0.4);border-top:1px solid var(--glass-border);font-family:var(--font-mono);font-size:0.65rem;letter-spacing:1px;">
             <span style="color:#555;">DYAD ORDER:</span>
-            <select id="commute-master" style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-blue);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;border-radius:3px;outline:none;cursor:pointer;">
+            <select id="commute-master"
+                style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-blue);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;border-radius:3px;outline:none;cursor:pointer;">
                 <option value="symmetric" selected>&#x2297; Symmetric</option>
                 <option value="media_first">Media &#x2192; Text</option>
                 <option value="text_first">Text &#x2192; Media</option>
@@ -838,8 +871,10 @@
                 <!-- Drop zone -->
                 <div id="audio-dropzone">
                     <div class="audio-drop-icon">&#9836;</div>
-                    <div class="audio-drop-hint" id="audio-drop-hint">DRAG AUDIO DYAD<br><span style="color:#444;">mp3 &bull; m4a &bull; wav &bull; ogg</span></div>
-                    <input type="file" id="audio-file-input" style="display:none;" accept="audio/mpeg,audio/mp4,audio/wav,audio/ogg,.mp3,.m4a,.wav,.ogg">
+                    <div class="audio-drop-hint" id="audio-drop-hint">DRAG AUDIO DYAD<br><span style="color:#444;">mp3
+                            &bull; m4a &bull; wav &bull; ogg</span></div>
+                    <input type="file" id="audio-file-input" style="display:none;"
+                        accept="audio/mpeg,audio/mp4,audio/wav,audio/ogg,.mp3,.m4a,.wav,.ogg">
                 </div>
 
                 <!-- Mini waveform canvas -->
@@ -880,10 +915,15 @@
                 </div>
 
                 <!-- Drop zone -->
-                <div id="video-dropzone" style="width: 100%; height: 90px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 0.75rem;">
+                <div id="video-dropzone"
+                    style="width: 100%; height: 90px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 0.75rem;">
                     <div style="font-size: 1.4rem; line-height: 1; color: var(--terminal-blue);">&#128249;</div>
-                    <div style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">DRAG BINARY MEDIA<br><span style="color:#444;">mp4 &bull; avi &bull; gif &bull; webm</span></div>
-                    <input type="file" id="video-file-input" style="display:none;" accept="video/mp4,video/avi,video/webm,image/gif,.mp4,.avi,.webm,.gif">
+                    <div
+                        style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">
+                        DRAG BINARY MEDIA<br><span style="color:#444;">mp4 &bull; avi &bull; gif &bull; webm</span>
+                    </div>
+                    <input type="file" id="video-file-input" style="display:none;"
+                        accept="video/mp4,video/avi,video/webm,image/gif,.mp4,.avi,.webm,.gif">
                 </div>
 
                 <!-- Description buffer -->
@@ -892,7 +932,9 @@
                     style="width:100%;height:80px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:var(--terminal-green);font-family:var(--font-mono);font-size:0.7rem;padding:0.5rem;resize:none;outline:none;margin-bottom:0.75rem;border-radius:4px;"
                     placeholder="Semantic annotation for cryptographic video parsing..."></textarea>
 
-                <button id="commit-video" style="width: 100%; background: rgba(0, 242, 255, 0.08); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;" disabled>COMMIT VIDEO DYAD</button>
+                <button id="commit-video"
+                    style="width: 100%; background: rgba(0, 242, 255, 0.08); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;"
+                    disabled>COMMIT VIDEO DYAD</button>
                 <div id="video-log" class="small-log"></div>
             </div>
 
@@ -901,7 +943,7 @@
             <!-- PANEL E: IMAGE-MUSIC BRAID -->
             <div class="chain-panel" id="panel-e">
                 <div class="section-title panel-e-title">Panel E: Image-Music Braid</div>
-                
+
                 <div class="commutativity-row">
                     <label>BRAID PATH</label>
                     <select class="commute-select" id="commute-e">
@@ -912,8 +954,10 @@
                 </div>
 
                 <div id="chain-e-visualizer" class="chain-visualizer"></div>
-                
-                <button id="commit-e" style="width: 100%; background: rgba(255, 0, 242, 0.08); border: 1px solid var(--terminal-magenta); color: var(--terminal-magenta); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">COMMIT BI-MODAL BRAID</button>
+
+                <button id="commit-e"
+                    style="width: 100%; background: rgba(255, 0, 242, 0.08); border: 1px solid var(--terminal-magenta); color: var(--terminal-magenta); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">COMMIT
+                    BI-MODAL BRAID</button>
                 <div id="log-e" class="small-log"></div>
             </div>
 
@@ -922,7 +966,7 @@
             <!-- PANEL F: HETEROGENEOUS CHAIN -->
             <div class="chain-panel" id="panel-f">
                 <div class="section-title panel-f-title">Panel F: Heterogeneous Chain</div>
-                
+
                 <div class="commutativity-row">
                     <label>EXECUTION</label>
                     <select class="commute-select" id="commute-f">
@@ -932,12 +976,16 @@
                 </div>
 
                 <div id="chain-f-visualizer" class="chain-visualizer"></div>
-                
+
                 <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
-                    <button id="clear-chain-f" style="flex:1; background:rgba(255,255,255,0.05); border:1px solid #444; color:#888; padding:4px; border-radius:4px; font-size:0.6rem; cursor:pointer;">CLEAR CHAIN</button>
+                    <button id="clear-chain-f"
+                        style="flex:1; background:rgba(255,255,255,0.05); border:1px solid #444; color:#888; padding:4px; border-radius:4px; font-size:0.6rem; cursor:pointer;">CLEAR
+                        CHAIN</button>
                 </div>
 
-                <button id="commit-f" style="width: 100%; background: rgba(138, 43, 226, 0.08); border: 1px solid #8a2be2; color: #8a2be2; padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">EXECUTE MANIFOLD BRAID</button>
+                <button id="commit-f"
+                    style="width: 100%; background: rgba(138, 43, 226, 0.08); border: 1px solid #8a2be2; color: #8a2be2; padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">EXECUTE
+                    MANIFOLD BRAID</button>
                 <div id="log-f" class="small-log"></div>
             </div>
         </aside>
@@ -1003,8 +1051,8 @@
             const hasVideo = !!state.active_video_dyad;
             const finalInput = text.trim() ||
                 (hasFingerprint ? 'INGEST_DYAD: [RADIANCE]' : '') ||
-                (hasAudio       ? 'INGEST_AUDIO_DYAD: [ACOUSTIC]' : '') ||
-                (hasVideo       ? 'INGEST_VIDEO_DYAD: [CHRONOTOPE]' : '');
+                (hasAudio ? 'INGEST_AUDIO_DYAD: [ACOUSTIC]' : '') ||
+                (hasVideo ? 'INGEST_VIDEO_DYAD: [CHRONOTOPE]' : '');
 
             if (!finalInput) return;
 
@@ -1069,7 +1117,7 @@
             // Handle Rupture / Lazarus Events
             const body = document.body;
             const surgeryInd = document.getElementById('surgery-indicator');
-            
+
             if (payload.topological_rupture) {
                 body.classList.add('rupture-mode');
                 body.classList.add('shake');
@@ -1147,7 +1195,7 @@
             // Update Metrics (safely)
             if (data.iteration !== undefined) document.getElementById('stat-iteration').innerText = data.iteration;
             if (data.resonance_score !== undefined) document.getElementById('resonance-score').innerText = data.resonance_score.toFixed(4);
-            
+
             // Update Tri-State Meta State
             if (data.retrieval_state) {
                 const rs = document.getElementById('stat-retrieval');
@@ -1244,7 +1292,7 @@
             const msg = document.createElement('div');
             msg.className = `message ${type}`;
             msg.innerText = text || "[VOID CONTENT]";
-            
+
             // Apply Curvature Twist (Non-Abelian Curvature)
             if (curvature > 0) {
                 const skew = Math.min(5, curvature * 20);
@@ -1265,7 +1313,7 @@
 
             const msg = document.createElement('div');
             msg.className = `message ${type}`;
-            
+
             // Apply Curvature Twist
             if (curvature > 0) {
                 const skew = Math.min(5, curvature * 20);
@@ -1334,7 +1382,7 @@
                         `(K=${fingerprint.chebyshev_degree}, ${fingerprint.px_width}\u00d7${fingerprint.px_height}px).\n` +
                         `\u25b6 PROMPT: Type a description and press Enter to INGEST.\n` +
                         `\u25b6 ADVANCED: Type 'ASSOCIATE: source <-> target' to link a new dyad manually.`);
-                    
+
                     // Visual signal: arm the input box
                     userInput.placeholder = 'Describe or use ASSOCIATE: source <-> target...';
                     userInput.style.borderColor = 'var(--terminal-cyan, #00e5ff)';
@@ -1359,16 +1407,16 @@
             // Convert to L, Cr, Cb (BT.601 coefficients — no hardcoded constants
             // per se; these are the standard color science definition)
             const N = SIDE * SIDE;
-            const lumArr  = new Float64Array(N);
-            const crArr   = new Float64Array(N);
-            const cbArr   = new Float64Array(N);
+            const lumArr = new Float64Array(N);
+            const crArr = new Float64Array(N);
+            const cbArr = new Float64Array(N);
             for (let i = 0; i < N; i++) {
                 const r = px[i * 4] / 255.0;
                 const g = px[i * 4 + 1] / 255.0;
                 const b = px[i * 4 + 2] / 255.0;
-                lumArr[i]  =  0.299 * r + 0.587 * g + 0.114 * b;
-                crArr[i]   =  0.500 * r - 0.419 * g - 0.081 * b + 0.5;
-                cbArr[i]   = -0.169 * r - 0.331 * g + 0.500 * b + 0.5;
+                lumArr[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+                crArr[i] = 0.500 * r - 0.419 * g - 0.081 * b + 0.5;
+                cbArr[i] = -0.169 * r - 0.331 * g + 0.500 * b + 0.5;
             }
 
             // ── Step 2: K — derived from pixel count, never hardcoded ────────
@@ -1425,7 +1473,7 @@
                         else if (k === 1) { T_curr = x; }
                         else {
                             let T_p = 1.0, T_c = x;
-                            for (let n = 2; n <= k; n++) { const T_n = 2*x*T_c - T_p; T_p = T_c; T_c = T_n; }
+                            for (let n = 2; n <= k; n++) { const T_n = 2 * x * T_c - T_p; T_p = T_c; T_c = T_n; }
                             T_curr = T_c;
                         }
                         acc += T_curr;
@@ -1457,16 +1505,16 @@
                 return rounded;
             }
 
-            const L_coeffs  = chebyshevProject(lumArr);
+            const L_coeffs = chebyshevProject(lumArr);
             const Cr_coeffs = chebyshevProject(crArr);
             const Cb_coeffs = chebyshevProject(cbArr);
 
             return {
                 chebyshev_degree: K,
-                L:  L_coeffs,
+                L: L_coeffs,
                 Cr: Cr_coeffs,
                 Cb: Cb_coeffs,
-                px_width:  img.naturalWidth,
+                px_width: img.naturalWidth,
                 px_height: img.naturalHeight,
             };
         }
@@ -1500,7 +1548,7 @@
                 const response = await fetch(`${state.backend_url}/interact`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         text: command,
                         fingerprint: state.active_fingerprint,
                         commutativity: document.getElementById('commute-header')?.value || 'symmetric'
@@ -1539,7 +1587,7 @@
                 const response = await fetch(`${state.backend_url}/interact`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         text: command,
                         fingerprint: state.active_fingerprint,
                         commutativity: document.getElementById('commute-header')?.value || 'symmetric'
@@ -1851,7 +1899,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    
+
                     if (!response.ok) throw new Error(`Server responded with ${response.status}`);
 
                     const data = await response.json();
@@ -1924,7 +1972,7 @@
 
             document.getElementById('video-status').innerText = 'READING';
             document.getElementById('video-status').style.color = 'var(--terminal-warn)';
-            
+
             const reader = new FileReader();
             reader.onload = (e) => {
                 const b64 = e.target.result; // "data:video/mp4;base64,..."
@@ -1933,53 +1981,68 @@
                 document.getElementById('video-status').style.color = 'var(--terminal-green)';
                 document.querySelector('#video-dropzone div:nth-child(2)').innerHTML = `DYAD CAPTURED:<br/>${file.name}`;
                 commitVideoBtn.disabled = false;
-                appendMessage('system', `VIDEO DYAD INGESTED: ${file.name} | ${(file.size/1024/1024).toFixed(2)} MB`);
+                appendMessage('system', `VIDEO DYAD INGESTED: ${file.name} | ${(file.size / 1024 / 1024).toFixed(2)} MB`);
             };
             reader.readAsDataURL(file);
         }
 
         async function commitVideoDyad() {
+            console.log("[VIDEO_COMMIT] Button clicked.");
             const description = document.getElementById('video-description-buffer').value.trim();
             const b64 = state.active_video_dyad;
-            if (!b64) return;
-            
+            if (!b64) {
+                console.warn("[VIDEO_COMMIT] No active video dyad found in state.");
+                return;
+            }
+
             const commutativity = document.getElementById('commute-video').value;
-            const payload = {
-                text: `INGEST_VIDEO_DYAD: [CRYPTOGRAPHIC_PARSE]${description ? ' | ' + description : ''}`,
-                video_dyad_b64: b64,
-                commutativity: commutativity
-            };
-            
-            appendMessage('user', `COMMITTING VIDEO DYAD: ${commutativity}`);
-            
+
+            const displayOrder = commutativity === 'media_first'
+                ? 'Video → Text'
+                : commutativity === 'text_first'
+                    ? 'Text → Video'
+                    : '≅ Symmetric';
+
+            appendMessage('user',
+                `COMMITTING VIDEO DYAD [${displayOrder}]` +
+                (description ? ` | "${description.substring(0, 50)}..."` : ''));
+
             // UI Feedback: disable button and show status
             commitVideoBtn.disabled = true;
             commitVideoBtn.innerText = 'PROCESSING...';
             document.getElementById('video-status').innerText = 'COMMITTING';
             document.getElementById('video-status').style.color = 'var(--terminal-cyan)';
 
-            // Wrap in setTimeout to ensure UI paints the "COMMITTING" status before the heavy JSON.stringify
+            // Use FormData for large video payloads (avoiding JSON.stringify memory spikes)
             setTimeout(async () => {
                 try {
-                    console.log("[VIDEO_COMMIT] Initializing payload serialization...", { 
-                        description_length: description.length, 
-                        b64_preview: b64.substring(0, 50) + "..." 
+                    console.log("[VIDEO_COMMIT] Initializing FormData dispatch...", {
+                        description_length: description.length,
+                        b64_preview: b64.substring(0, 50) + "..."
                     });
-                    const body = JSON.stringify(payload);
-                    console.log(`[VIDEO_COMMIT] Payload ready (${(body.length/1024/1024).toFixed(2)} MB), dispatching fetch...`);
-                    
+
+                    const formData = new FormData();
+                    formData.append('text', `INGEST_VIDEO_DYAD: [CRYPTOGRAPHIC_PARSE]${description ? ' | ' + description : ''}`);
+                    formData.append('video_dyad_b64', b64);
+                    formData.append('commutativity', commutativity);
+                    formData.append('regime', state.regime);
+
+                    console.log(`[VIDEO_COMMIT] FormData ready (~${(b64.length / 1024 / 1024).toFixed(2)} MB), dispatching fetch...`);
+
                     const response = await fetch(`${state.backend_url}/interact`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: body
+                        body: formData // Note: We let the browser set the Content-Type with boundary
                     });
-                    
-                    if (!response.ok) throw new Error(`Server responded with ${response.status}`);
-                    
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Server responded with ${response.status}: ${errorText}`);
+                    }
+
                     const data = await response.json();
                     console.log("[VIDEO_COMMIT] Response received:", data);
                     handleResponse(data);
-                    
+
                     if (videoLog) {
                         const logEntry = document.createElement('div');
                         logEntry.innerText = `[${new Date().toLocaleTimeString()}] Video Dyad Parsed`;
@@ -1987,7 +2050,7 @@
                     } else {
                         console.warn("[VIDEO_COMMIT] videoLog element not found, skipping UI log update.");
                     }
-                    
+
                     // Reset
                     state.active_video_dyad = null;
                     document.getElementById('video-description-buffer').value = '';
@@ -2003,7 +2066,7 @@
                 }
             }, 100);
         }
-        
+
         videoDropzone.onclick = () => videoFileInput.click();
         videoFileInput.onchange = (e) => { if (e.target.files.length > 0) processVideoFile(e.target.files[0]); };
         videoDropzone.ondragover = (e) => { e.preventDefault(); videoDropzone.style.borderColor = 'var(--terminal-blue)'; };
@@ -2078,7 +2141,7 @@
             const viz = document.getElementById(`chain-${panelId}-visualizer`);
             if (!viz) return;
             viz.innerHTML = '';
-            
+
             state.media_chain.forEach((item, index) => {
                 const el = document.createElement('div');
                 el.className = 'media-chain-item';
@@ -2088,7 +2151,7 @@
                     <span class="remove" onclick="removeFromChain(${index}, '${panelId}')">&times;</span>
                 `;
                 viz.appendChild(el);
-                
+
                 if (index < state.media_chain.length - 1) {
                     const arrow = document.createElement('div');
                     arrow.className = 'braid-arrow';
@@ -2098,7 +2161,7 @@
             });
         }
 
-        window.removeFromChain = function(index, panelId) {
+        window.removeFromChain = function (index, panelId) {
             state.media_chain.splice(index, 1);
             updateChainVisualizer(panelId);
         };
@@ -2115,12 +2178,12 @@
             const chain = [];
             const hasImg = !!state.active_fingerprint;
             const hasAud = !!state.active_audio_dyad;
-            
+
             if (!hasImg || !hasAud) {
                 appendMessage('system', "PANEL E RUPTURE: BOTH IMAGE AND AUDIO MUST BE ARMED.");
                 return;
             }
-            
+
             if (mode === 'image_to_audio') {
                 chain.push({ type: 'image', data: state.active_fingerprint, filename: 'Image Residue', icon: '+' });
                 chain.push({ type: 'audio', data: state.active_audio_dyad, filename: state.active_audio_dyad.filename, icon: '&#9836;' });
@@ -2132,7 +2195,7 @@
                 chain.push({ type: 'image', data: state.active_fingerprint, filename: 'Image Residue', icon: '+' });
                 chain.push({ type: 'audio', data: state.active_audio_dyad, filename: state.active_audio_dyad.filename, icon: '&#9836;' });
             }
-            
+
             state.media_chain = chain;
             state.forced_commutativity = (mode === 'symmetric') ? 'symmetric' : 'media_first';
             await sendMessage(`INGEST_BRAID: [PANEL_E] ${mode}`);
