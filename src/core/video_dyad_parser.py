@@ -12,6 +12,7 @@ import sys
 import tempfile
 from scipy.io import wavfile
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.invariants import compute_chirality, apply_chirality_redistribution, get_prime_ladder
 
 class VideoDyadParser(nn.Module):
     """
@@ -219,19 +220,25 @@ class VideoDyadParser(nn.Module):
                     # Pad to match forward shape if necessary (simplified proxy)
                     d_backward = torch.nn.functional.pad(d_backward, (0, 0, 0, 1))
 
-                # Preference for Anisotropic Difference (Forward - Backward)
-                # "Honesty" of the rupture is how much it differs from expected healing
-                diff_anisotropic = d_forward.mean() - (d_backward.mean() if healing_ref is not None else 0.0)
+                # Chirality-Driven Bias (CODES v40: "asymmetry seeds lawful resonance")
+                # We compute the chiral torsion of the pooled signal to detect structural bias
+                chiral_bias = compute_chirality(pooled).abs().mean()
                 
                 # Probability distribution of structural changes + Honest Restlessness
                 p = (d_forward + jitter_perturbation) / (d_forward.sum(dim=1, keepdim=True) + jitter_perturbation + 1e-8)
                 ent = -(p * torch.log(p + 1e-8)).sum(dim=1).mean()
                 
-                # Bias the entropy by the anisotropic rupture magnitude
-                entropies.append(ent * (1.0 + torch.tanh(torch.tensor(diff_anisotropic))))
+                # Bias the entropy by BOTH anisotropic rupture and chiral torsion
+                # This ensures low-motion videos with structural chirality don't atrophy
+                total_bias = torch.tanh(torch.tensor(diff_anisotropic)) + torch.tanh(chiral_bias)
+                entropies.append(ent * (1.0 + total_bias))
             
         if not entropies:
-            return torch.tensor(0.0, device=self.device)
+            # Emergency: Pull a prime-seeded entropy trace if all scales are null
+            # This is the 'Lazarus' restoration path
+            primes = get_prime_ladder(32, device=self.device)
+            emergency_ent = torch.sin(torch.log(primes)).abs().mean()
+            return emergency_ent
         return torch.stack(entropies).mean()
 
     def extract_96_spectral_signature(self, v_metrics: Dict[str, torch.Tensor]) -> torch.Tensor:
