@@ -107,10 +107,15 @@ class GovernanceManager:
                 # Note: tasklist /v /fo csv is slower but reliable on Windows
                 output = subprocess.check_output(['tasklist', '/v', '/fo', 'csv'], text=True, encoding='utf-8', errors='ignore')
                 reader = csv.reader(io.StringIO(output))
+                # Skip the header row (Image Name, PID, Session Name, Session#, Mem Usage, Status, User Name, CPU Time, Window Title)
+                header = next(reader, None)
                 for row in reader:
                     if not row or len(row) < 9: continue
                     process_name = row[0]
-                    pid = int(row[1])
+                    try:
+                        pid = int(row[1])
+                    except ValueError:
+                        continue # Skip if PID is not an integer (header or corrupt row)
                     window_title = row[8] # Often contains the script name if running in a window
                     
                     if 'python' in process_name.lower():
@@ -531,7 +536,7 @@ class HybridAI:
         if self.engine:
             try:
                 # Process via Diegetic Engine
-                print(f"[ENGINE] Processing: '{text}' (Video Dyad: {'YES' if video_dyad_b64 else 'NO'}) (Image Fingerprint: {'YES' if fingerprint else 'NO'})")
+                print(f"[ENGINE] Processing: '{text}' (Video Dyad: {'YES' if video_dyad_b64 else 'NO'}) (Image Fingerprint: {'YES' if fingerprint else 'NO'})", flush=True)
                 engine_output = self.engine.process_input(
                     text_input=text, 
                     fingerprint=fingerprint,
@@ -1347,6 +1352,7 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             data = json.loads(post_data.decode('utf-8'))
             
             user_text = data.get('text', '').strip()
+            print(f"[POST] /interact | Text: {user_text[:50]}... | Video: {'YES' if data.get('video_dyad_b64') else 'NO'}", flush=True)
             fingerprint = data.get('fingerprint')  # Chebyshev image fingerprint {L, Cr, Cb}
 
             # =============================================
@@ -1398,6 +1404,8 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             self._send_json(result)
             
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             self._send_json({
                 'response': f'Error processing request: {str(e)}',
                 'diagnostics': {'error': str(e)},
@@ -1867,17 +1875,25 @@ def main():
         print("\n" + "!" * 50)
         print("       KEYBOARD INTERRUPT DETECTED  ")
         print("!" * 50)
+        
+        # Prevent double-interrupt from corrupting the save
+        import signal
+        original_sigint = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        
         if AI_SYSTEM:
             print("[FOSSIL] Triggering emergency Fossilization Protocol...")
+            print("[INFO]  Ignoring further interrupts to ensure manifold integrity.", flush=True)
             try:
                 message = AI_SYSTEM.save_model_state()
-                print(f"[OK] {message}")
+                print(f"[OK] {message}", flush=True)
             except Exception as e:
-                print(f"[FAIL] Emergency save failed: {e}")
+                print(f"[FAIL] Emergency save failed: {e}", flush=True)
         else:
-            print("[WARN] AI_SYSTEM not initialized; bypassing fossilization.")
+            print("[WARN] AI_SYSTEM not initialized; bypassing fossilization.", flush=True)
         
-        print("[STOP]  Shutting down manifolds. Goodbye.")
+        print("[STOP]  Shutting down manifolds. Goodbye.", flush=True)
+        # Restore signal handler before exit if needed (though os._exit is coming)
         os._exit(0)
 
 if __name__ == "__main__":
