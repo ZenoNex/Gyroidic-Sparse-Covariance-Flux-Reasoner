@@ -1206,7 +1206,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # --- COMMAND PRIORITIZATION ---
         ingest_cmds = ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:", "SOVEREIGN_FETCH:", "CLOUD_FETCH:", "EXPORT_AGENT_SMITH:", "IMPORT_AGENT_SMITH:"]
         if any(text_input.startswith(cmd) for cmd in ingest_cmds):
-             print(f"[CMD] Command Prioritization: Bypassing pipeline for direct response...")
+             print(f"[CMD] Command Prioritization: Bypassing pipeline for direct response...", flush=True)
              # Merciful Topological Reset: Clear historical trauma/dissonance for manual commands
              # to ensure the Braid Governor (Archetypes) has a fresh start.
              self.calm_history.zero_() 
@@ -1300,14 +1300,15 @@ class DiegeticPhysicsEngine(nn.Module):
                 except Exception as e:
                     response_text = f"AGENT_SMITH_IMPORT_FAILED: {str(e)}"
              elif any(text_input.startswith(cmd) for cmd in ["INGEST_DYAD:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:", "ASSOCIATE:"]):
-                print(f" Multimodal Dyad Ingestion Protocol initiated: {text_input[:50]}...")
+                print(f" Multimodal Dyad Ingestion Protocol initiated: {text_input[:50]}...", flush=True)
                 response_text = self._handle_dyad_ingestion(
                     input_text=text_input,
                     fingerprint=fingerprint,
                     seed_state=seed_state,
                     audio_dyad=audio_dyad,
                     video_dyad_b64=video_dyad_b64,
-                    audio_b64=audio_b64
+                    audio_b64=audio_b64,
+                    commutativity=commutativity
                 )
              else:
                  # --- PRE-GENERATION DIAGNOSTICS & MISCHIEF UPDATE ---
@@ -3941,7 +3942,7 @@ class DiegeticPhysicsEngine(nn.Module):
         return collision_residues, codec_metrics
 
     
-    def _handle_dyad_ingestion(self, input_text: str, fingerprint: Optional[Dict], seed_state: torch.Tensor, audio_dyad: Optional[Dict] = None, video_dyad_b64: Optional[str] = None, audio_b64: Optional[str] = None) -> str:
+    def _handle_dyad_ingestion(self, input_text: str, fingerprint: Optional[Dict], seed_state: torch.Tensor, audio_dyad: Optional[Dict] = None, video_dyad_b64: Optional[str] = None, audio_b64: Optional[str] = None, commutativity: str = 'symmetric') -> str:
         """Handle multi-modal dyad ingestion (Image, Audio, Video) using DyadFossilizer and GyroidicCodec."""
         # Determine modality from command prefix
         modality = "Image"
@@ -3989,9 +3990,9 @@ class DiegeticPhysicsEngine(nn.Module):
                     signal_tensor[:min_sz] = v_audio_harmonics[:min_sz]
                     audio_tensor = signal_tensor.clone()
                     media_received = True
-                    print("[VIDEO_PARSER] Raw Audio stream isolated and projected via ffmpeg.")
+                    print("[VIDEO_PARSER] Raw Audio stream isolated and projected via ffmpeg.", flush=True)
                 else:
-                    print("[VIDEO_PARSER] Failed to extract harmonics from raw audio b64.")
+                    print("[VIDEO_PARSER] Failed to extract harmonics from raw audio b64.", flush=True)
             
             if not media_received and audio_dyad:
                 harmonics = audio_dyad.get('chebyshev_harmonics', [])
@@ -4022,7 +4023,7 @@ class DiegeticPhysicsEngine(nn.Module):
             v_audio_harmonics = breather_modes.get('audio_harmonics')
             if v_audio_harmonics is not None:
                 audio_tensor = v_audio_harmonics
-                print("[VIDEO_PARSER] Audio stream isolated and projected into harmonic space.")
+                print("[VIDEO_PARSER] Audio stream isolated and projected into harmonic space.", flush=True)
                 
             media_received = True
         elif active_modality == "Image" and fingerprint:
@@ -4142,7 +4143,7 @@ class DiegeticPhysicsEngine(nn.Module):
             # Restore non-Abelian check
             codec_result = self.codec.encode(description, signal_tensor)
             entanglement = codec_result.diagnostics.get('entanglement_ratio', 0.0)
-            print(f" [CODEC] Non-Abelian Entanglement: {entanglement:.4f}")
+            print(f" [CODEC] Non-Abelian Entanglement: {entanglement:.4f}", flush=True)
             
             # Mandatory check: if low entanglement, we label as 'Stale' or 'Separable'
             if entanglement < 0.1:
@@ -4170,6 +4171,7 @@ class DiegeticPhysicsEngine(nn.Module):
             # Self-Correction via Ingestion Trace
             self.iteration += 1
             response_text = f"[INGESTION_SUCCESS] Dyad fossilized. Entanglement: {entanglement:.4f}. Iteration: {self.iteration}."
+            print(f"[SUCCESS] {response_text}", flush=True)
             
             return response_text
         
@@ -4177,7 +4179,8 @@ class DiegeticPhysicsEngine(nn.Module):
         dyad = KnowledgeDyad(
             linguistic_description=description,
             # If no fingerprint provided, use the zero-filled signal_tensor [96] as the 'Image Ground State'
-            image_fingerprint=signal_tensor if (fingerprint or modality == "Image") else None,
+            # FIX: Preserve signal_tensor for both Image and Video modalities
+            image_fingerprint=signal_tensor if (fingerprint or modality in ["Image", "Video"]) else None,
             audio_harmonics=audio_tensor,
             video_breather=video_breather,
             gyroid_residue=entanglement_residue
@@ -4191,9 +4194,9 @@ class DiegeticPhysicsEngine(nn.Module):
         # Bridge 4: Navigation over Storage (Zeitgeist Landmark)
         if hasattr(self, 'router'):
             self.router.register_fossil_landmark(fossil_id, intensity=1.2)
-            print(f"[ROUTER] Fossil {fossil_id[:8]}... registered as Poincar Gravity Well.")
+            print(f"[ROUTER] Fossil {fossil_id[:8]}... registered as Poincar Gravity Well.", flush=True)
         
-        print(f"[WAVE] {modality} Deposition confirmed: {fossil_path}")
+        print(f"[WAVE] {modality} Deposition confirmed: {fossil_path}", flush=True)
         return (
             f"Knowledge Dyad ({modality}) fossilized at {os.path.basename(fossil_path)}. "
             f"{'Signal embedded (' + str(int(signal_tensor.norm().item()*1000)/1000) + ' L2-norm). ' if media_received else 'No media signal  text-only dyad. '}"
