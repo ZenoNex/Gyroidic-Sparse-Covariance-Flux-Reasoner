@@ -14,8 +14,14 @@ from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
 from src.core.non_ergodic_entropy import NonErgodicEntropyEstimator
 from src.core.love_invariant_protector import LoveInvariantProtector
 from src.core.quantum_tda import QuantumBettiApproximator
-from src.core.invariants import (compute_chirality, compute_chiral_shift, check_glyphlock, 
-                               compute_polylog_signature, compute_vacuum_residue)
+from src.core.invariants import (
+    compute_chirality, 
+    compute_chiral_shift, 
+    check_glyphlock, 
+    compute_polylog_signature, 
+    compute_vacuum_residue,
+    apply_chirality_redistribution
+)
 from src.core.chern_simons_gasket import ChernSimonsGasket
 
 @dataclass
@@ -227,27 +233,27 @@ class DyadFossilizer:
             betti_results, current_pas, _ = self.homology_engine(s_state, self.prev_pas.to(device))
             self.prev_pas = current_pas.detach().cpu()
             
-            # B. Chiral Metrics & Spectral Pressure
-            # Probe expects [B, Seq, Dim] or [B, C, R, T] - we provide [1, 1, Dim]
-            probe_results = self.covariance_probe(s_state.unsqueeze(1))
+            # B. Chirality-Driven Redistribution (CODES v40 alignment)
+            # "asymmetry seeds lawful resonance alignment beyond stochastic diffusion"
+            s_state_redistributed = apply_chirality_redistribution(s_state, alpha=0.15)
             
-            # Extract both centroid shift and parity torsion
-            # (Architecture alignment: chiral_score is the shift, torsion is the invariant)
-            chiral_shift = compute_chiral_shift(s_state).item()
-            chiral_torsion = compute_chirality(s_state).abs().item()
-            is_glyph_locked = bool(check_glyphlock(s_state).item() > 0)
+            # Extract both centroid shift and parity torsion from redistributed state
+            chiral_shift = compute_chiral_shift(s_state_redistributed).item()
+            chiral_torsion = compute_chirality(s_state_redistributed).abs().item()
+            is_glyph_locked = bool(check_glyphlock(s_state_redistributed).item() > 0)
             
-            # total_pressure as scalar energy proxy
+            # Probe expects [B, Seq, Dim] or [B, C, R, T]
+            probe_results = self.covariance_probe(s_state_redistributed.unsqueeze(1))
             spectral_pressure = probe_results['total_pressure'].mean().item()
             
             # C. Spectral Entropy (Non-Ergodic decomposition)
-            entropy_results = self.entropy_estimator(s_state)
+            entropy_results = self.entropy_estimator(s_state_redistributed)
             # Combine ergodic and soliton entropy for the total spectral signature
             spectral_entropy = (entropy_results['ergodic_entropy'] + entropy_results['soliton_entropy']).item()
             soliton_entropy = entropy_results['soliton_entropy'].item()
             
-            # Anti-Lobotomy: Log the derived metrics for verification
-            print(f"[FOSSILIZER] Derived Invariants: Chiral={chiral_shift:.4f}, Torsion={chiral_torsion:.4f}, Entropy={spectral_entropy:.4f}", flush=True)
+            # Anti-Lobotomy: Log the redistributed metrics for verification
+            print(f"[FOSSILIZER] Redistributed Invariants: Chiral={chiral_shift:.4f}, Torsion={chiral_torsion:.4f}, Entropy={spectral_entropy:.4f}", flush=True)
             
             # D. Topological Invariants (Quantum Betti numbers)
             with torch.no_grad():
@@ -304,7 +310,7 @@ class DyadFossilizer:
             'image_fingerprint': dyad.image_fingerprint.detach().cpu() if isinstance(dyad.image_fingerprint, torch.Tensor) else dyad.image_fingerprint,
             'audio_harmonics': dyad.audio_harmonics,
             'video_breather': dyad.video_breather,
-            'residue_vector': residue.detach().cpu(),
+            'residue_vector': s_state_redistributed.detach().cpu(),
             'gyroid_residue': dyad.gyroid_residue.detach().cpu() if dyad.gyroid_residue is not None else None,
             'hyperbolic_residue': hyperbolic_residue.detach().cpu(),
             'timestamp': dyad.timestamp,
