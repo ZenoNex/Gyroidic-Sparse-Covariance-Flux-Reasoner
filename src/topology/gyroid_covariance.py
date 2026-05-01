@@ -34,15 +34,17 @@ class SparseGyroidCovarianceProbe(nn.Module):
         percentile: float = 95.0
     ):
         """
+        Initialize the Sparse Gyroid Covariance Probe.
+        
         Args:
-            hidden_dim: Dimension of hidden states
-            window_size: Size of local covariance window
-            k_hop: Neighborhood hop distance
-            num_eigenvalues: Number of top eigenvalues to track
-            violation_threshold: Fixed threshold for violations
-            use_saturation_detection: Enable Saturation Fracture Detector
-            adaptive_threshold: Use adaptive percentile-based threshold
-            percentile: Percentile for adaptive threshold (e.g., 95th)
+            hidden_dim: Dimension of the hidden state vectors.
+            window_size: Size of the sliding window for local covariance.
+            k_hop: Neighborhood hop distance for graph connectivity.
+            num_eigenvalues: Number of top eigenvalues to analyze.
+            violation_threshold: Fixed threshold for violation detection.
+            use_saturation_detection: Enable the Saturation Fracture Detector.
+            adaptive_threshold: Use percentile-based scaling for thresholds.
+            percentile: Target percentile for the adaptive threshold.
         """
         super().__init__()
         
@@ -84,12 +86,16 @@ class SparseGyroidCovarianceProbe(nn.Module):
         """
         Compute local windowed covariance matrix.
         
+        Extracts a temporal window of hidden states and computes the 
+        local Gram matrix to identify the spectral structure of the 
+        manifold at that position.
+        
         Args:
-            hidden_states: [seq_len, hidden_dim]
-            start_idx: Starting position for window
+            hidden_states: The full sequence of hidden states [seq_len, hidden_dim].
+            start_idx: The starting position for the local window.
             
         Returns:
-            C_loc: [window_size, window_size] local covariance
+            C_loc: The local covariance matrix [window_size, window_size].
         """
         seq_len = hidden_states.shape[0]
         end_idx = min(start_idx + self.window_size, seq_len)
@@ -125,16 +131,24 @@ class SparseGyroidCovarianceProbe(nn.Module):
     ) -> float:
         """
         Compute Gyroidic Covariance Violation Energy (GCVE).
-        
-        V_m = V + H_mischief/tau - lambda_min/tr(C)
+        (legacy) V_m = V + H_mischief/tau - lambda_min/tr(C)
+        (current) V_m = (V + Flatness_Penalty) * (1 - H_mischief / tau)
+        The GCVE (V_m) measures the deviation from minimal-surface 
+        expectations, weighted by the 'Mischief' entropy to allow for 
+        admissible playful violations.
         
         Args:
-            C_loc: Local covariance matrix [window, window]
-            h_mischief: Current mischief entropy value
-            tau_decay: Decay constant for mischief reward
+            C_loc: The local covariance matrix [window, window].
+            h_mischief: The current mischief entropy (H_m).
+            tau_decay: Decay constant for structural pressure.
+            lambda_min_epsilon: Small constant for numerical stability.
         
         Returns:
-            V_m: GCVE score (higher = more playful/structured violation)
+            V_m: The GCVE score. High scores indicate topological fracture.
+            
+        CODES v40 Invariant: 
+            Non-Teleological Repair: 10.3. GCVE provides the 'containment 
+            pressure' signal without requiring a target state.
         """
         # Eigenvalues for V calculation
         # Note: eigh is for symmetric matrices (covariance is symmetric)
@@ -169,12 +183,19 @@ class SparseGyroidCovarianceProbe(nn.Module):
         """
         Compute spectral properties of local covariance.
         
+        Extracts top eigenvalues, spectral gaps, and condition numbers to 
+        form a 'Spectral Signature' of the manifold.
+        
+        Args:
+            C_loc: Local covariance matrix.
+            
         Returns:
-            - eigenvalues: Top k eigenvalues
-            - spectral_gap: _k - _{k+1}
-            - decay_rate: (_1 - _m) / m
-            - trace: Trace of covariance
-            - condition_number: _max / _min
+            A dictionary containing:
+            - eigenvalues: Top tracked eigenvalues.
+            - spectral_gap: Difference between top eigenvalues.
+            - decay_rate: Average rate of eigenvalue attenuation.
+            - trace: Total variance.
+            - condition_number: Ratio of max to min eigenvalues.
         """
         # Compute eigenvalues (top k + 1 for gap computation)
         try:
@@ -214,21 +235,17 @@ class SparseGyroidCovarianceProbe(nn.Module):
         spectral_signature: Dict[str, torch.Tensor]
     ) -> torch.Tensor:
         """
-        Compute gyroid pressure metric.
+        Compute the Gyroid Pressure Metric.
         
-        GCVE Metric:
-        pressure = max(0, gap() / decay_rate) + _min / trace(C_loc)
-        
-        High pressure indicates:
-        - Sharp spectral gaps (disconnected components)
-        - Poor spectral decay (not minimal surface-like)
-        - Low minimum eigenvalue relative to trace (degenerate directions)
+        Calculates the combined pressure score derived from the spectral gap 
+        and geometric flatness of the local manifold.
         
         Args:
-            spectral_signature: Output from compute_spectral_signature
+            spectral_signature: The signature generated by 
+                                `compute_spectral_signature`.
             
         Returns:
-            pressure_score: scalar
+            pressure_score: Scalar score indicating structural tension.
         """
         gap = spectral_signature['spectral_gap']
         decay = spectral_signature['decay_rate'] + 1e-8
@@ -251,11 +268,13 @@ class SparseGyroidCovarianceProbe(nn.Module):
         """
         Compute violation score from functional evaluation.
         
+        Measures the deviation from the minimal surface constraint (G(x) = 0).
+        
         Args:
-            phi_eval: [batch, K] functional evaluations at residue coordinates
+            phi_eval: [batch, K] evaluations of the co-prime functionals.
             
         Returns:
-            violation: [batch] violation scores
+            violation: [batch] scalar violation scores.
         """
         # Minimal surface constraint: G(x) should be 0.
         # Deviation from 0 indicates topological violation.
@@ -343,13 +362,24 @@ class SparseGyroidCovarianceProbe(nn.Module):
         """
         Compute pairwise interference between batch elements.
         
-        Equation: [partial_t Phi_i \circ \Phi_j]_{i \neq j}
+        Measures how much the spectral signatures of different elements 
+        overlap, indicating whether they are 'touching' the same 
+        topological artifacts.
         
+        Note that the eigenvalues themselves are non-local artifacts of the
+        manifold geometry; if two different temporal sequences produce the 
+        same eigenvalues, they are momentarily occupying the same 'hole' in 
+        the gyroid's potential landscape.
+        (legacyEquation: [partial_t Phi_i \circ \Phi_j]_{i \neq j} > Threshold)
+        
+        (current)  Interference = || \Phi_i(h) - \Phi_j(h) ||_2^2
+        (where Phi_i \neq Phi_j, and the norm is computed over the sequence length)
+
         Args:
-            h: [batch, seq_len, hidden_dim]
+            h: The hidden states [batch, seq_len, hidden_dim].
             
         Returns:
-            inter_matrix: [batch, batch] pairwise interference scores
+            inter_matrix: [batch, batch] pairwise interference scores.
         """
         batch_size = h.shape[0]
         # We use a condensed representation: the spectral signature of each element
@@ -377,12 +407,13 @@ class SparseGyroidCovarianceProbe(nn.Module):
         """
         Hunt for VIOLATIONS, not smoothness.
         
-        Pointer #8: Semantics appear where covariance breaks minimal-surface expectations.
-        GCVE-style scouts must hunt violations, not smoothness.
+        Pointer #8: Semantics appear where covariance breaks minimal-surface 
+        expectations. This method identifies locations in the sequence where 
+        the manifold deviates significantly from its harmonic baseline.
         
         Args:
-            hidden_states: [batch, seq_len, hidden_dim]
-            return_indices: If True, return indices of violation locations
+            hidden_states: [batch, seq_len, hidden_dim].
+            return_indices: If True, return the sparse indices of the violations.
             
         Returns:
             Dict with:
@@ -472,16 +503,26 @@ class SaturationFractureDetector(nn.Module):
         delta: float = 0.01
     ) -> torch.Tensor:
         """
-        Compute Saturation Fracture Score:
-        V_sat = E_deltax [ |phi(x+deltax) - phi(x)|_0 ]
+        Compute the Saturation Fracture Score (V_sat).
+        
+        (Legacy) V_sat = (||Phi(x + d) - Phi(x)||_2^2) / (||d||_2^2)
+        (Current) V_sat = min(1, ||Phi(x + d) - Phi(x)||_2 / ||d||_2)
+
+        V_sat measures the input sensitivity. If small perturbations (Honest 
+        Jitter) cause large flips in the symbolic output, the manifold is 
+        considered 'Brittle' or 'Fractured' at that point.
         
         Args:
-            phi: Functional block (must be saturated/symbolic)
-            x: Input tensor [batch, ...]
-            delta: Perturbation scale
+            phi: The functional block (saturated/symbolic).
+            x: The input tensor.
+            delta: The perturbation scale for the jitter.
             
         Returns:
-            V_sat: [batch] fracture score
+            V_sat: [batch] fracture score.
+            
+        CODES v40 Invariant: 
+            Symbolic Non-Revisability: 1.0. This score identifies when 
+            symbols are unstable and require re-anchoring.
         """
         # Original output
         phi_x = phi(x) # [batch, K]
@@ -576,9 +617,9 @@ class SparseExplorerRouting(nn.Module):
         """
         Perform sparse random walk exploration around high-violation tokens.
         
-        Implements Abort Recovery:
-        - "Walk Back": Retry sampling if reciprocity check fails.
-        - "Jump Mental Tracks": Teleport to new violation node if stuck.
+        Samples the local neighborhood of high-violation tokens to 
+        approximate local persistent homology. Implements 'Walk Back' 
+        recovery and 'Track Jumping' to handle non-commutative cul-de-sacs.
         
         Args:
             hidden_states: [seq_len, hidden_dim]
@@ -590,6 +631,11 @@ class SparseExplorerRouting(nn.Module):
             - 'instability_detected': [num_violations] bools
             - 'total_aborts': int (count of reciprocity failures)
             - 'restarts': int (count of track jumps)
+            A dictionary containing instability flags, abort counts, and restarts.
+            
+        CODES v40 Invariant: 
+            Abortability Supremacy: 104. The ability to abort a walk and 
+            restart from a new track is critical for manifold survival.
         """
         instability_detected = []
         total_aborts = 0
@@ -767,11 +813,19 @@ class GyroidCovarianceEstimator(nn.Module):
         Spectral Entropy = - (p_i * log(p_i)) where p_i = _i / 
         Higher entropy = more spread across eigenvalues = higher uncertainty.
         
+        Higher entropy indicates that the variance is spread across many 
+        eigenvalues, suggesting a high-dimensional, uncertain state. Low 
+        entropy suggests a collapsed, more certain state.
+
         Args:
-            sample: Optional new sample to add to buffer first
+            sample: Optional new sample to add to the buffer.
             
         Returns:
-            entropy: Scalar tensor representing spectral entropy
+            entropy: Scalar tensor representing spectral entropy.
+            
+        CODES v40 Invariant: 
+            Manifold Dimension Invariance: 31.0. Entropy tracking prevents 
+            the manifold from collapsing toward a single basis (Lobotomy).
         """
         if sample is not None:
             self.update_buffer(sample)
