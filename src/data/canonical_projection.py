@@ -20,6 +20,7 @@ import math
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.models.diegetic_heads import DataAssociationLayer
 from src.topology.gyroid_covariance import GyroidCovarianceEstimator
+from src.core.invariants import apply_asymmetry_preserving_reshape
 
 
 class CanonicalProjector:
@@ -186,8 +187,8 @@ class CanonicalProjector:
         bsz = base.shape[0]
         state_dim = base.shape[1]
         if state_dim % self.k != 0:
-            pad_sz = self.k - (state_dim % self.k)
-            base = F.pad(base, (0, pad_sz), mode='reflect')
+            target_dim = state_dim + (self.k - (state_dim % self.k))
+            base = apply_asymmetry_preserving_reshape(base, target_dim)
         padded_dim = base.shape[1]
         residue_dim = padded_dim // self.k
         residues = base.view(bsz, self.k, residue_dim)
@@ -340,8 +341,8 @@ class CanonicalProjector:
         state_dim = state.shape[1]
         base = state
         if state_dim % self.k != 0:
-            pad_sz = self.k - (state_dim % self.k)
-            base = F.pad(base, (0, pad_sz), mode='reflect')
+            target_dim = state_dim + (self.k - (state_dim % self.k))
+            base = apply_asymmetry_preserving_reshape(base, target_dim)
         padded_dim = base.shape[1]
         residue_dim = padded_dim // self.k
         residues = base.view(bsz, self.k, residue_dim)
