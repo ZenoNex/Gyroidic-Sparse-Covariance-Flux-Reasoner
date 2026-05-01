@@ -152,14 +152,15 @@ def honest_multinomial(probs, num_samples, replacement=False):
         _, indices = torch.topk(scores, min(num_samples, n))
         return indices
 
-def fractal_pad(x: torch.Tensor, target_dim: int, mode: str = 'reflect') -> torch.Tensor:
+def fractal_pad(x: torch.Tensor, target_dim: int, mode: str = 'asymmetry_preserving') -> torch.Tensor:
     """
-    Perform Fractal (Reflective) Padding to align heterogeneous dimensions.
+    Perform Fractal (Asymmetry-Preserving) Padding to align heterogeneous dimensions.
     
     Args:
         x: [..., dim] Input tensor
         target_dim: Desired dimension
-        mode: Padding mode ('reflect', 'replicate', 'constant')
+        mode: Padding mode ('asymmetry_preserving', 'replicate', 'constant')
+              'reflect' is deprecated and redirected to 'asymmetry_preserving'.
         
     Returns:
         padded: [..., target_dim] Padded or truncated tensor
@@ -172,14 +173,28 @@ def fractal_pad(x: torch.Tensor, target_dim: int, mode: str = 'reflect') -> torc
         # Matryoshka Truncation: Shell-pop inward
         return x[..., :target_dim]
         
+    # Redirect reflect to asymmetry_preserving to enforce chirality
+    if mode == 'reflect':
+        mode = 'asymmetry_preserving'
+
+    if mode == 'asymmetry_preserving':
+        from src.core.invariants import apply_asymmetry_preserving_reshape
+        # Handle high-dimensional tensors by flattening to [B, D] and reshaping back
+        orig_shape = x.shape
+        if x.dim() > 1:
+            x_flat = x.reshape(-1, current_dim)
+            padded_flat = apply_asymmetry_preserving_reshape(x_flat, target_dim)
+            new_shape = list(orig_shape[:-1]) + [target_dim]
+            return padded_flat.reshape(*new_shape)
+        else:
+            return apply_asymmetry_preserving_reshape(x.unsqueeze(0), target_dim).squeeze(0)
+
     # Fractal Expansion: Pad to target
     diff = target_dim - current_dim
     
     # torch.nn.functional.pad expects padding as (padding_left, padding_right) for last dim
-    # For reflection, we can only pad up to current_dim - 1
-    # ANTI-LOBOTOMY: Torch only supports reflect/replicate for 2D+ tensors.
     # For 1D tensors (Spectral Residues), we force 'constant' to prevent crash.
-    if x.dim() <= 2 and mode in ['reflect', 'replicate']:
+    if x.dim() <= 2 and mode in ['replicate']:
         mode = 'constant'
         
     return torch.nn.functional.pad(x, (0, diff), mode=mode)
