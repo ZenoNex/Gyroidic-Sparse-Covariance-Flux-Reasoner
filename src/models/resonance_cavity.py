@@ -262,12 +262,13 @@ class ResonanceCavity(nn.Module):
     Extra-cavity resonator for Heritable Trust and residue pattern memory.
     
     Update rule (Signal Sovereignty-enhanced):
-        dM/dt = -M +  A_ij^H  R_ij +   introspection_direction +   residue_patterns
+        dC/dt = -Gamma * C^n - lambda * C + eta * (Grad_S . Grad_Omega) + xi * (B . C)
         
     Stores:
         - Validated introspective directions (moral, creative, metacognitive)
         - Stable residue patterns from SignalSovereignty-reconstructed samples
         - Per-prime field importance weights (Heritable Trust)
+        - Braid Group steering matrix for non-commutative path dependence
     """
     
     def __init__(
@@ -364,6 +365,11 @@ class ResonanceCavity(nn.Module):
         # 6. Flux Alignment
         self.flux_alignment = GyroidicFluxAlignment(dim=hidden_dim)
         
+        # 7. Braid Group Steering (Non-commutative path dependency)
+        from src.core.zeitgeist_router import BraidGroupMatrices
+        self.braid_matrices = BraidGroupMatrices(n=self.K)
+        self.braid_steering_weight = nn.Parameter(torch.tensor(0.15)) # xi
+        
     def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
         """Handle shape mismatches for resonance buffers via fractal alignment."""
         for name in ['M', 'D_dark', 'residue_memory', 'pattern_confidence', 'mutation_bias']:
@@ -401,7 +407,8 @@ class ResonanceCavity(nn.Module):
         dt: float = 0.1,
         reconstruction_pressure: Optional[torch.Tensor] = None,
         refined_residues: Optional[torch.Tensor] = None,
-        instability_severity: float = 0.0
+        instability_severity: float = 0.0,
+        braid_word: Optional[List[int]] = None
     ):
         """
         Update resonance cavity memory (GDPO-enhanced + GCVE + System 2 Feedback).
@@ -528,6 +535,19 @@ class ResonanceCavity(nn.Module):
         # Average over batch for global mode update
         breather_avg = breather_excitation.mean(dim=0, keepdim=True) # [1, hidden_dim]
         dC_dt = dC_dt + 0.05 * breather_avg.expand_as(dC_dt)
+        
+        # --- BRAID GROUP STEERING (Phase 18 Sovereign Invariant) ---
+        # Matrix B braids the prime fields, forcing path-dependent memory updates.
+        if braid_word:
+            # Word matrix B is [K, K]
+            with torch.no_grad():
+                B = self.braid_matrices.compute_word_matrix(braid_word).to(self.M.device)
+            # Apply to M [K, modes, dim] along the K-axis
+            # We treat steering as a differential nudge: xi * (B . M - M)
+            # This ensures that an identity braid (e) has zero steering effect.
+            braid_target = torch.einsum('ij,jmd->imd', B, self.M)
+            steering_term = self.braid_steering_weight * (braid_target - self.M)
+            dC_dt = dC_dt + steering_term[field_idx] # Update for current field
         
         # Update Memory for Non-Teleological Flow
         # dt represents the "Manifold Clock"
@@ -741,6 +761,7 @@ class ResonanceCavity(nn.Module):
         reconstruction_pressure: Optional[torch.Tensor] = None,
         refined_residues: Optional[torch.Tensor] = None,
         instability_severity: float = 0.0,
+        braid_word: Optional[List[int]] = None,
         nav_mode: str = 'VOID',
         archetype_leak: float = 0.0
     ) -> Dict[str, torch.Tensor]:
@@ -774,7 +795,8 @@ class ResonanceCavity(nn.Module):
                 field_idx=k,
                 reconstruction_pressure=reconstruction_pressure,
                 refined_residues=refined_residues,
-                instability_severity=instability_severity
+                instability_severity=instability_severity,
+                braid_word=braid_word
             )
         
         # Return current memory state (flattened across fields)
