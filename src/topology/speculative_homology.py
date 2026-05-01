@@ -20,8 +20,21 @@ from src.tda.chebyshev_filtration import MinimaxPolynomialApproximation
 class SpeculativeHomologyEngine(nn.Module):
     """
     Predicts topological features (Betti numbers) cheaply, verifies with Invariants.
+    
+    This engine implements a 'Predict-then-Verify' loop where a fast proxy model 
+    (Draft) predicts topological invariants, which are then verified against 
+    harmonic stability scores (PAS_h). If stability is maintained, the draft 
+    is accepted; otherwise, the expensive Oracle (Persistent Homology) is triggered.
     """
     def __init__(self, feature_dim: int, max_homology_dim: int = 1, zeta: float = 0.05):
+        """
+        Initialize the Speculative Homology Engine.
+        
+        Args:
+            feature_dim: The dimensionality of the input features.
+            max_homology_dim: The maximum dimension of homology groups to compute.
+            zeta: The drift tolerance threshold for PAS_h verification.
+        """
         super().__init__()
         
         # 1. Draft Model: Chebyshev Approximation of Filtration
@@ -40,14 +53,22 @@ class SpeculativeHomologyEngine(nn.Module):
         
     def predict_draft_betti(self, x: torch.Tensor) -> Dict[int, int]:
         """
-        Generate 'Draft' Betti numbers using the polynomial approximation.
+        Generate 'Draft' Betti numbers using fast polynomial proxies.
         
-        Instead of building the full complex, we use the polynomial roots/extrema
-        to estimate topology count (Conceptual heuristic for 'Draft').
-        
-        For a real draft, we might use a small neural net (KAGH) predicting counts.
-        Here, we simulate a 'fast geometric proxy':
-        Count peaks in the Chebyshev approximation as proxy for Betti_0/1.
+        Instead of building a full simplicial complex, we use the roots and 
+        extrema of the Chebyshev approximation as a heuristic proxy for 
+        Betti_0 (peaks) and Betti_1 (spectral lifetimes).
+        ( For a real draft, we might use a small neural net (KAGH) predicting counts.)
+
+        Args:
+            x: The input latent coefficients [batch, K, D].
+            
+        Returns:
+            A dictionary mapping homology dimensions to predicted Betti counts.
+            
+        CODES v40 Invariant: 
+            Computational Efficiency: 22.1. Speculative decoding allows 
+            manifold reasoning at $O(N \log N)$ instead of $O(N^3)$ when stable.
         """
         # Evaluate polynomial on grid
         grid = torch.linspace(-1, 1, 100, device=x.device)
@@ -66,7 +87,7 @@ class SpeculativeHomologyEngine(nn.Module):
             from src.core.honest_jitter import harvest_honest_jitter
             
             # Phase 17+18 Silicon Sovereignty: Deriving p from hardware jitter
-            # Adheres to §1.1 of Implementation Integrity Guide.
+            # Adheres to 1.1 of Implementation Integrity Guide.
             ladder = PrimeResonanceLadder(num_resonators=32).to(x.device)
             primes = ladder.primes
             jitter = harvest_honest_jitter((1,), device=x.device, scaled=False)
@@ -95,11 +116,18 @@ class SpeculativeHomologyEngine(nn.Module):
         """
         Verify the draft using PAS_h stability.
         
-        Rules:
-        1. Compute current PAS_h(x).
-        2. Check drift |PAS_t - PAS_{t-1}| against zeta.
-        3. If drift < zeta (Stable), VALIDATE draft (Assume no new topological rupture).
-        4. If drift > zeta (Rupture), REJECT draft (Topology changed, strictly compute).
+        If the harmonic alignment drift since the last step is below the zeta 
+        threshold, we assume the underlying topology has not undergone a 
+        catastrophic rupture, making the draft prediction valid.
+        
+        Args:
+            x: Current state tensor.
+            draft_betti: The predicted Betti numbers from the Draft model.
+            prev_pas: The PAS_h score of the previous state.
+            
+        Returns:
+            is_stable: True if the draft is accepted (drift <= zeta).
+            mean_pas: The new mean PAS_h score for the current state.
         """
         # Compute current PAS
         # x is [batch, features] or [batch, K, D]? 
@@ -121,12 +149,20 @@ class SpeculativeHomologyEngine(nn.Module):
 
     def forward(self, x: torch.Tensor, prev_pas: torch.Tensor) -> Tuple[Dict[int, int], torch.Tensor, bool]:
         """
-        Speculative Decoding Step.
+        Execute a Speculative Decoding Step.
         
+        Attempts to use the fast Draft model for topological feature extraction. 
+        If the verification fails, it falls back to the expensive but exact 
+        Persistent Homology Oracle.
+        
+        Args:
+            x: Input state coefficients [batch, K, D].
+            prev_pas: Previous harmonic stability score.
+            
         Returns:
-            betti_numbers: Dict[dim, count]
-            current_pas: scalar
-            used_draft: bool (True if speculative, False if oracle)
+            betti_numbers: The confirmed Betti numbers (Draft or Oracle).
+            current_pas: The new harmonic stability score.
+            used_draft: Flag indicating whether the speculative draft was accepted.
         """
         # 1. Draft
         draft_betti = self.predict_draft_betti(x)
@@ -161,7 +197,14 @@ class SpeculativeHomologyEngine(nn.Module):
             return corrected_betti, current_pas, False
 
 
-    def get_stats(self):
+    def get_stats(self) -> Dict[str, float]:
+        """
+        Calculate engine performance statistics.
+        
+        Returns:
+            A dictionary containing the draft acceptance rate and the 
+            effective speedup proxy relative to pure oracle execution.
+        """
         total = self.draft_accepts + self.draft_rejects + 1e-8
         return {
             "accept_rate": self.draft_accepts / total,
