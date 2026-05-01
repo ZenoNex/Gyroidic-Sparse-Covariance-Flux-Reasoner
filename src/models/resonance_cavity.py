@@ -29,6 +29,13 @@ class GyroidicFluxAlignment(nn.Module):
     w_hat = w * exp( - Violation / Flux_Integral )
     """
     def __init__(self, dim: int, diffusivity_init: float = 0.5):
+        """
+        Initialize the Flux Alignment Operator.
+        
+        Args:
+            dim: The dimensionality of the hidden states.
+            diffusivity_init: Initial diffusivity constant (kappa) for flux.
+        """
         super().__init__()
         self.dim = dim
         self.diffusivity = nn.Parameter(torch.tensor(diffusivity_init)) # kappa
@@ -66,6 +73,13 @@ class HeritableTrustVault(nn.Module):
     Allows contradictory trusted patterns to coexist until selection.
     """
     def __init__(self, table_size: int = 1024, k_dim: int = 5):
+        """
+        Initialize the Heritable Trust Vault.
+        
+        Args:
+            table_size: Number of slots in the symbolic trust table.
+            k_dim: Dimensionality of the residue patterns to be cached.
+        """
         super().__init__()
         self.table_size = table_size
         self.k_dim = k_dim
@@ -146,6 +160,13 @@ class BreatherMode(nn.Module):
         - Survives collisions intact (concept packets don't destroy each other)
     """
     def __init__(self, num_breathers: int = 10, dim: int = 64):
+        """
+        Initialize Breather Modes.
+        
+        Args:
+            num_breathers: Number of sine-Gordon solitons to maintain.
+            dim: Output dimensionality for projection.
+        """
         super().__init__()
         self.num_breathers = num_breathers
         self.dim = dim
@@ -263,7 +284,18 @@ class ResonanceCavity(nn.Module):
     
     Update rule (Signal Sovereignty-enhanced):
         dC/dt = -Gamma * C^n - lambda * C + eta * (Grad_S . Grad_Omega) + xi * (B . C)
-        
+        Where:
+            C: Cavity mode state
+            Gamma: Decay rate
+            n: Signal Sovereignty exponent
+            lambda: Damping
+            Grad_S: Gradient from introspective directions (Validation)
+            Grad_Omega: Gradient from System 1 predictions (Intention)
+            B: Braid Group steering matrix
+            xi: Braid influence
+
+            (legacy: dM/dt = -M +  A_ij^H  R_ij +   introspection_direction +   residue_patterns)
+            
     Stores:
         - Validated introspective directions (moral, creative, metacognitive)
         - Stable residue patterns from SignalSovereignty-reconstructed samples
@@ -284,16 +316,18 @@ class ResonanceCavity(nn.Module):
         track_residues: bool = True
     ):
         """
+        Initialize the Resonance Cavity.
+        
         Args:
-            hidden_dim: Dimension of hidden states
-            num_modes: Number of resonant modes
-            poly_config: Polynomial co-prime configuration (replaces primes)
-            decay_rate: , decay rate for memory
-            introspection_weight: , weight for introspection feedback
-            residue_weight: , weight for residue pattern feedback
-            violation_weight: _v, weight for topological violation feedback
-            modular: If True, maintain separate cavity per prime field
-            track_residues: If True, store residue patterns for the KL prior
+            hidden_dim: The dimensionality of the hidden states.
+            num_modes: Number of resonant modes to track per prime field.
+            poly_config: Configuration for the co-prime polynomial basis.
+            decay_rate: Temporal decay constant for memory preservation.
+            introspection_weight: Gain for the introspection feedback loop.
+            residue_weight: Weight for symbolic residue pattern updates.
+            violation_weight: Gain for GCVE topological pressure feedback.
+            modular: If True, maintains separate cavities for each prime field.
+            track_residues: If True, enables symbolic trust caching.
         """
         
         super().__init__()
@@ -424,6 +458,11 @@ class ResonanceCavity(nn.Module):
             reconstruction_pressure: Optional [batch] CRT reconstruction errors
             refined_residues: Optional [batch, K] System 2 (Physics) ground truth
             instability_severity: Normalized [0, 1] indicator of topological panic (aborts)
+            braid_word: Optional [List[int]] word for Braid Group Steering
+        
+        CODES v40 Invariant: 
+            Manifold Stability: 7.6. Memory updates are gated by instability 
+            severity to prevent the 'fossilization' of fractured states.
         """
         if field_idx >= self.K:
             field_idx = 0
@@ -604,6 +643,10 @@ class ResonanceCavity(nn.Module):
             
         Returns:
             field_value: Scalar field evaluation F(t)
+            
+        CODES v40 Invariant: 
+            Asymmetry Seeds Resonance: 10.1. The harmonic field is the 
+            macroscopic projection of the cavity's chiral asymmetric state.
         """
         from src.core.fgrt_primitives import PrimeResonanceLadder
         
@@ -659,11 +702,16 @@ class ResonanceCavity(nn.Module):
             query_vector: [batch, hidden_dim] query
             field_idx: Which prime field to query
             top_k: Number of top resonant modes to return
+            load: Current system load proxy for adaptive pruning
             
         Returns:
             Dictionary with:
                 - 'modes': [batch, top_k, hidden_dim]
                 - 'resonance_scores': [batch, top_k]
+        
+        CODES v40 Invariant: 
+            Non-Teleological Retrieval: 44.2. Querying is a resonance matching 
+            process, not a semantic look-up.
         """
         if field_idx >= self.K:
             field_idx = 0
@@ -777,12 +825,19 @@ class ResonanceCavity(nn.Module):
             reconstruction_pressure: Optional [batch] for quality filtering
             refined_residues: Optional [batch, K] System 2 feedback
             instability_severity: [0, 1] topological panic indicator
+            braid_word: Optional [List[int]] word for Braid Group Steering
+            nav_mode: Navigation mode (VOID, etc)
+            archetype_leak: Archetypal resonance leakage gain
             
         Returns:
             Dictionary with:
                 - 'memory_state': [batch, K * num_modes, hidden_dim]
                 - 'residue_prior': [K] or None
                 - 'prior_confidence': [K] or None
+        
+        CODES v40 Invariant: 
+            Evolution Owns Time: 105. The forward pass is an evolutionary 
+            step where the cavity state adapts to input pressure.
         """
         # Update each field
         for k in range(self.K):
