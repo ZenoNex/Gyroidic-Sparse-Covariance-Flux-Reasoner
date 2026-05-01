@@ -7,7 +7,7 @@ where discrete symbolic data transitions to continuous geometric reasoning.
 
 import torch
 import torch.nn as nn
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, Any
 import math
 from src.core.honest_jitter import harvest_honest_jitter
 
@@ -22,14 +22,37 @@ class SurgicalSeamVisualizer(nn.Module):
         kappa = sum(abs(curvature_i)) / L_seam
     """
     def __init__(self, seam_threshold: float = 0.85):
+        """
+        Initialize the seam visualizer with a stability threshold.
+        
+        Args:
+            seam_threshold: The tension threshold above which the manifold is 
+                            considered at risk of 'Rupture' (topological fracture).
+        """
         super().__init__()
         self.seam_threshold = seam_threshold
         self.register_buffer('current_tension', torch.tensor(0.0))
         self.register_buffer('seam_status', torch.tensor(0)) # 0: stable, 1: tension, 2: rupture
 
-    def update_seam_tension(self, hyperbolic_metric: torch.Tensor, residues: torch.Tensor):
+    def update_seam_tension(self, hyperbolic_metric: torch.Tensor, residues: torch.Tensor) -> torch.Tensor:
         """
-        Derive tension from the hyperbolic triangle boundary.
+        Update Hyperbolic Seam Tension (Kappa)
+        
+        Derives tension from the hyperbolic triangle boundary. High tension 
+        indicates that the symbolic and geometric manifolds are diverging 
+        beyond the capacity of the surgical stitch to reconcile them.
+        
+        Args:
+            hyperbolic_metric: The metric tensor representing the local 
+                               non-Euclidean geometry [dim, dim].
+            residues: The current topological residues [batch, K, D].
+            
+        Returns:
+            The calculated tension scalar (kappa).
+            
+        CODES v40 Invariant: 
+            Manifold Stability: 7.6. Prevents 'Logic Leaks' by monitoring the 
+            structural integrity of the symbolic-geometric interface.
         """
         # Calculate curvature kappa along the slender side
         # For simulation, we use the variance of residues at the boundary
@@ -45,7 +68,14 @@ class SurgicalSeamVisualizer(nn.Module):
             
         return self.current_tension
 
-    def get_seam_report(self) -> Dict:
+    def get_seam_report(self) -> Dict[str, Any]:
+        """
+        Generate a diagnostic report on the current surgical seam status.
+        
+        Returns:
+            A dictionary containing tension magnitude, status string, 
+            and a criticality flag for the Ouroboros shadow log.
+        """
         return {
             'seam_tension': self.current_tension.item(),
             'seam_status': ['stable', 'tension', 'rupture'][int(self.seam_status.item())],
@@ -68,6 +98,15 @@ class ChernSimonsGasket(nn.Module):
         level_k: int = 1,
         device: str = None
     ):
+        """
+        Initialize the Chern-Simons Gasket.
+        
+        Args:
+            manifold_dim: The dimensionality of the hidden manifold (default: 3).
+            level_k: The Chern-Simons level, governing the strength of the 
+                     topological twist (chirality).
+            device: Hardware target (CPU/GPU/OpenCL).
+        """
         super().__init__()
         self.manifold_dim = manifold_dim
         self.level_k = level_k
@@ -89,9 +128,18 @@ class ChernSimonsGasket(nn.Module):
         """
         Initialize gauge field based on polynomial coefficients and winding numbers.
         
+        The gauge field A is a non-Abelian connection that tracks the topological 
+        twist around the gyroid throat, ensuring that symbolic residues remain 
+        locked to the geometric manifold.
+        
         Args:
-            polynomial_coeffs: Polynomial coefficients [K, D] from PolynomialCoprimeConfig
-            winding_numbers: Winding numbers around gyroid throat [K]
+            polynomial_coeffs: Coefficients from the co-prime functional basis [K, D].
+            winding_numbers: Discrete winding numbers around the topological 
+                             obstruction [K].
+                             
+        CODES v40 Invariant: 
+            Symbolic Non-Revisability: 1.0. Anchors the gauge field to the 
+            frozen polynomial basis.
         """
         K, D = polynomial_coeffs.shape
         
@@ -118,10 +166,13 @@ class ChernSimonsGasket(nn.Module):
     
     def compute_field_strength(self) -> torch.Tensor:
         """
-        Compute field strength F = dA + A  A.
+        Compute field strength F = dA + A ^ A.
+        
+        In the non-Abelian context, the field strength represents the 
+        topological curvature that prevents logic leaks.
         
         Returns:
-            Field strength tensor [dim, dim]
+            The field strength tensor F [dim, dim].
         """
         A = self.gauge_field
         
@@ -142,15 +193,21 @@ class ChernSimonsGasket(nn.Module):
     
     def chern_simons_action(self, loop_path: torch.Tensor) -> torch.Tensor:
         """
-        Compute Chern-Simons action along a loop path.
+        Compute Chern-Simons action along a closed loop path.
         
-        S_CS = (k/4) _ Tr(A  dA + (2/3) A  A  A)
+        The action measures the topological "charge" of the loop, used to 
+        detect whether a symbolic transition has "leaked" (lost its 
+        topological identity).
         
         Args:
-            loop_path: Path coordinates [path_length, dim]
+            loop_path: Coordinates of the loop in residue space [path_length, dim].
             
         Returns:
-            Chern-Simons action value
+            The scalar Chern-Simons action value.
+            
+        CODES v40 Invariant: 
+            Non-Teleological Repair: 10.3. The action provides the pressure 
+            signal required to trigger repairs without a target.
         """
         path_length = loop_path.shape[0]
         
@@ -176,14 +233,18 @@ class ChernSimonsGasket(nn.Module):
     
     def detect_logic_leak(self, residues: torch.Tensor, threshold: float = 1e-6) -> bool:
         """
-        Detect if there's a logic leak (non-trivial topology).
+        Detect if there's a logic leak (non-trivial topology or high variance).
+        
+        A logic leak occurs when the symbolic residue fails to maintain a 
+        stable topological cycle, leading to 'Phase Flattening' or garbled 
+        output.
         
         Args:
-            residues: Current residues [batch, K, D]
-            threshold: Threshold for non-triviality
+            residues: The current topological residues [batch, K, D].
+            threshold: The minimal action required for a 'Stable' cycle.
             
         Returns:
-            True if logic leak detected
+            bool: True if a leak is detected, triggering remediation.
         """
         batch_size, K, D = residues.shape
         
@@ -218,13 +279,17 @@ class ChernSimonsGasket(nn.Module):
     
     def apply_chiral_torsion_shift(self, residues: torch.Tensor) -> torch.Tensor:
         """
-        Apply 90 chiral torsion shift to rotate consonants out of collapsed state.
+        Apply 90-degree chiral torsion shift to rotate consonants out of 
+        collapsed states.
+        
+        This operator performs a hard rotation on the residue manifold to 
+        break symmetric stagnation (The '0.8824' flatline).
         
         Args:
-            residues: Input residues [batch, K, D]
+            residues: The input residues to be shifted [batch, K, D].
             
         Returns:
-            Residues with chiral torsion applied
+            Residues with seeded chirality and non-zero torsion.
         """
         batch_size, K, D = residues.shape
         
@@ -258,14 +323,19 @@ class ChernSimonsGasket(nn.Module):
     
     def plug_logic_leak(self, residues: torch.Tensor, polynomial_coeffs: torch.Tensor) -> torch.Tensor:
         """
-        Main method to plug logic leaks using Chern-Simons gasket.
+        Main method to plug logic leaks using the Chern-Simons gasket.
+        
+        Detects topological fractures at the boundary and applies chiral 
+        remediation. If the initial repair fails, the Chern-Simons level 
+        is incremented for stronger restoration pressure.
         
         Args:
-            residues: Input residues [batch, K, D]
-            polynomial_coeffs: Polynomial coefficients [K, D] from PolynomialCoprimeConfig
+            residues: The input residues requiring stabilization [batch, K, D].
+            polynomial_coeffs: The frozen co-prime basis used for gauge 
+                               initialization [K, D].
             
         Returns:
-            Repaired residues with plugged leaks
+            Repaired residues with restored topological integrity.
         """
         K = residues.shape[1]
         
@@ -320,6 +390,15 @@ class SolitonStabilityHealer(nn.Module):
         healing_iterations: int = 400,
         device: str = None
     ):
+        """
+        Initialize the Soliton Healer.
+        
+        Args:
+            alpha_0: Initial alpha value for the Drucker-Prager yield criterion.
+            gamma: Adaptive range multiplier for manifold heating.
+            healing_iterations: Number of iterations to apply the ranging signal.
+            device: Hardware target.
+        """
         super().__init__()
         self.alpha_0 = alpha_0
         self.gamma = gamma
@@ -345,11 +424,14 @@ class SolitonStabilityHealer(nn.Module):
         """
         Detect if output represents a fractured soliton (garbled text).
         
+        Fractured solitons manifest as high-consonant 'Phase Flattening' events 
+        where the manifold has lost its vowel-rich structural overtone.
+        
         Args:
-            output_text: Generated text to analyze
+            output_text: The generated text to be audited for fractures.
             
         Returns:
-            True if fractured soliton detected
+            bool: True if the text is identified as garbled/fractured.
         """
         if not output_text or len(output_text) < 5:
             return False
@@ -384,13 +466,17 @@ class SolitonStabilityHealer(nn.Module):
     
     def apply_ranging_signal(self, residues: torch.Tensor) -> torch.Tensor:
         """
-        Apply ranging signal:    +  for manifold heating.
+        Apply ranging signal: alpha_t = alpha_0 + gamma * (t / T) for 
+        manifold heating.
+        
+        "Heats" the manifold to allow residues to escape local MC-rupture 
+        traps by introducing controlled anisotropic variance.
         
         Args:
-            residues: Input residues [batch, K, D]
+            residues: The input residues to be heated [batch, K, D].
             
         Returns:
-            Heated residues with ranging applied
+            Heated residues with increased exploratory flux.
         """
         # Update alpha with ranging
         self.alpha = self.alpha_0 + self.gamma * (self.iteration_count / self.healing_iterations)
@@ -415,14 +501,21 @@ class SolitonStabilityHealer(nn.Module):
         """
         Apply Drucker-Prager global plastic flow for healing.
         
+        The DP flow acts as a 'wax melting' mechanism that allows the manifold 
+        to heal local fractures (MC sites) by providing a smooth global 
+        restoration envelope.
+        
         Args:
-            residues: Input residues [batch, K, D]
-            gcve_pressure: Gyroidic Covariance Violation Energy (V_m). High pressure 
-                           reduces the yield threshold, mimicking biological
-                           Beehive Manifold wax melting under colony stress.
+            residues: The input residues [batch, K, D].
+            gcve_pressure: The topological pressure (V_m). High pressure 
+                           lowers the yield threshold, increasing flow.
             
         Returns:
-            Healed residues with DP global envelope
+            Healed residues with restored global continuity.
+            
+        CODES v40 Invariant: 
+            Evolution Owns Time: 105. Adaptation is the mechanism for survival, 
+            allowing the system to 'melt' and re-form under pressure.
         """
         batch_size, K, D = residues.shape
         
@@ -467,13 +560,16 @@ class SolitonStabilityHealer(nn.Module):
         """
         Main healing method for fractured solitons.
         
+        Combined fracture detection, ranging (heating), and DP-flow (healing) 
+        to restore structural stability to garbled outputs.
+        
         Args:
-            residues: Input residues [batch, K, D]
-            output_text: Optional output text for fracture detection
-            gcve_pressure: Optional topological pressure to warp the manifold
+            residues: The input residues [batch, K, D].
+            output_text: The text string to audit for fractures.
+            gcve_pressure: Local topological pressure signal.
             
         Returns:
-            Healed residues
+            Healed residues with restored structural overtone.
         """
         # Check if healing is needed
         fracture_detected = False
