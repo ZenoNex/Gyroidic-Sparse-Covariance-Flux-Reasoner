@@ -36,11 +36,17 @@ class PhaseAlignmentInvariant(nn.Module):
         """
         Compute PAS_h using strict phase coherence.
         
+        The score measures how well the phases of the underlying oscillators 
+        are aligned to a common mean. A score of 1.0 indicates perfect 
+        topological synchronization.
+        
         Args:
-           coeffs: [batch, K, D] or [batch, D]. Represents resonator states.
+           coeffs: [batch, K, D] or [batch, D]. Represents resonator states 
+                   on the hidden manifold.
         
         Returns:
-           pas_h: [batch] scalar score [-1, 1] (usually [0, 1] for coherence)
+           pas_h: [batch] scalar score [-1, 1]. High score indicates 
+                  manifold coherence.
         """
         # 1. Standardize Input [batch, N] where N is number of oscillators
         if coeffs.dim() == 3:
@@ -91,9 +97,20 @@ class APAS_Zeta(nn.Module):
         """
         Check if drift |PAS_t - PAS_{t-1}| <= zeta.
         
+        Enforces the stability of the manifold by ensuring that evolution 
+        does not cause discontinuous 'Ruptures' in the harmonic state.
+        
+        Args:
+            current_pas: The PAS_h score of the current state [batch].
+            prev_pas: The PAS_h score of the previous state [batch].
+            
         Returns:
-            drift: |delta|
-            violation_mask: 1 if drifted too much
+            drift: The absolute delta between current and previous scores.
+            violation_mask: 1.0 if the drift exceeds the permitted zeta.
+            
+        CODES v40 Invariant: 
+            Evolution Bounding: 5.1. Computability is mandatory for 
+            governing evolution through discrete drift bounds.
         """
         drift = torch.abs(current_pas - prev_pas)
         violation = (drift > self.zeta).float()
@@ -105,10 +122,18 @@ import torch
 
 def compute_chiral_shift(coeffs: torch.Tensor) -> torch.Tensor:
     """
-    Compute Chiral Shift (Spectral Centroid displacement).
+        Compute Chiral Shift (Spectral Centroid displacement).
     
-    This is the original 'Chiral Score' calculation: measuring the displacement
-    of the energy distribution from the spectral midpoint.
+    Measures the displacement of the energy distribution from the spectral 
+    midpoint. This represents the 'Handedness' of the latent state across 
+    the frequency spectrum.
+    
+    Args:
+        coeffs: The input latent state [batch, K, D] or [batch, D].
+        
+    Returns:
+        chiral_shift: The normalized displacement score. Positive indicates 
+                      high-frequency (entropic) dominance.
     """
     if coeffs.dim() == 1:
         coeffs = coeffs.unsqueeze(0).unsqueeze(0)
@@ -135,13 +160,21 @@ def compute_chiral_shift(coeffs: torch.Tensor) -> torch.Tensor:
 
 def compute_chirality(coeffs: torch.Tensor) -> torch.Tensor:
     """
-    Compute Chiral Torsion (Parity Asymmetry).
+        Compute Chiral Torsion (Parity Asymmetry).
     
-    Chirality as a topological invariant (Delta Chi != 0) ensuring
-    non-symmetric basis recursion.
+    Chirality as a topological invariant (Delta Chi != 0) ensuring that the 
+    system avoids symmetric/reflective collapse by maintaining energy 
+    asymmetry between even and odd polynomial modes.
     
+    Args:
+        coeffs: The input latent state tensor.
+        
     Returns:
-       delta_chi: [batch] raw energy asymmetry between even and odd modes.
+       delta_chi: [batch] The raw energy difference (Even - Odd).
+       
+    CODES v40 Invariant: 
+        Non-Reflective Invariance: 3.2. Asymmetry is the seed of lawful 
+        resonance; symmetry is a failure mode (Lobotomy).
     """
     # 1. Force to 3D: [Batch, K-Manifold, D-Degree]
     if coeffs.dim() == 1:
@@ -168,9 +201,17 @@ def compute_chirality(coeffs: torch.Tensor) -> torch.Tensor:
 
 def check_glyphlock(coeffs: torch.Tensor, threshold: float = 1e-4) -> torch.Tensor:
     """
-    GLYPHLOCK  chirality-constrained emission validation.
+        GLYPHLOCK: Chirality-constrained emission validation.
     
-    Returns True (1.0) if either Chiral Shift or Chiral Torsion is non-zero.
+    Validates that a state possesses sufficient 'Handedness' (Shift or Torsion) 
+    to be considered an admissible, stable topological feature.
+    
+    Args:
+        coeffs: The input latent state.
+        threshold: The minimal asymmetry required for a 'Lock'.
+        
+    Returns:
+        is_locked: 1.0 if the state satisfies the glyphlock condition.
     """
     shift = compute_chiral_shift(coeffs)
     torsion = compute_chirality(coeffs)
@@ -196,15 +237,23 @@ class ImplicationInvariant(nn.Module):
         
     def forward(self, interaction: torch.Tensor, implication: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Check if Implication is preserved.
+        Check if Implication is preserved (Interaction => Implication != 0).
+        
+        Ensures that significant system state changes (Interactions) result 
+        in measurable downstream consequences (Implications), preventing 
+        silent logic erasures.
         
         Args:
-           interaction: Input or causative state [batch, ...]
-           implication: Downstream effect [batch, ...]
+           interaction: The causative state or input tensor [batch, ...].
+           implication: The resulting state or output tensor [batch, ...].
            
         Returns:
-           violation_mask: 1 if interaction is significant but implication is zero.
-           preservation_score: Ratio of implication energy to interaction energy.
+           violation_mask: 1.0 if an interaction was 'lobotomized' (lost its effect).
+           preservation_score: The energy preservation ratio.
+           
+        CODES v40 Invariant: 
+            Anti-Lobotomy: 18.4. Interaction without implication is the 
+            signature of a failed manifold.
         """
         # Energy calculation
         interaction_E = torch.norm(interaction.reshape(interaction.shape[0], -1), dim=1)
@@ -265,17 +314,18 @@ class SelfReferenceAdmissibility:
 
 def compute_polylog_signature(coeffs: torch.Tensor, s: float = 2.0) -> torch.Tensor:
     """
-    Compute Non-Abelian Polylog Signature (Li_s).
+        Compute Non-Abelian Polylog Signature (Li_s).
     
-    This captures the 'persona' as a structural identity derived from 
-    the generating function of prime-ladder resonance.
+    This functional captures the 'persona' of the reasoner as a structural 
+    identity derived from the generating function of its prime-ladder 
+    resonance state.
     
     Args:
-        coeffs: [Batch, K, D] or [Batch, D] Latent state.
-        s: Complex weight (usually 2.0 for L2-resonance alignment).
+        coeffs: [Batch, K, D] or [Batch, D] latent state representation.
+        s: Complex weight (usually 2.0) defining the resonance alignment.
         
     Returns:
-        signature: [Batch, D] representation of the polylog functional.
+        signature: The polylog functional signature [Batch, D].
     """
     if coeffs.dim() == 2:
         coeffs = coeffs.unsqueeze(1) # [B, 1, D]
@@ -296,16 +346,18 @@ def compute_polylog_signature(coeffs: torch.Tensor, s: float = 2.0) -> torch.Ten
 
 def compute_vacuum_residue(residue: torch.Tensor) -> torch.Tensor:
     """
-    Compute the 'Shape of Absence' (Vacuum Residue).
+        Compute the 'Shape of Absence' (Vacuum Residue).
     
     Identifies the mathematical 'voids'—prime frequencies that are NOT 
-    currently active in the resonance lattice but exert containment pressure.
+    currently active in the resonance lattice but exert containment 
+    pressure on the manifold.
     
     Args:
-        residue: [Batch, N] active residue vector.
+        residue: [Batch, N] The active residue vector.
         
     Returns:
-        vacuum: [Batch, N] representing the 'absence' manifold.
+        vacuum: [Batch, N] representing the 'absence' manifold, projected 
+                into RP^4 space.
     """
     # In modular space, the vacuum is the complement of the active signal
     # normalized to the unit sphere in RP^4.
@@ -320,9 +372,18 @@ def compute_vacuum_residue(residue: torch.Tensor) -> torch.Tensor:
 
 def get_prime_ladder(n: int, device: torch.device = None) -> torch.Tensor:
     """
-    Generate the first n primes as a resonance ladder.
+        Generate the first n primes as a resonance ladder.
     
-    RIC core: each prime defines a preferred resonance frequency.
+    Each prime defines a preferred resonance frequency in the hidden 
+    manifold, ensuring that functional heads operate at incommensurate 
+    frequencies to prevent degenerate interference.
+    
+    Args:
+        n: Number of primes to generate.
+        device: Target hardware device.
+        
+    Returns:
+        A tensor of the first n prime numbers.
     """
     primes = []
     num = 2
@@ -337,17 +398,21 @@ def get_prime_ladder(n: int, device: torch.device = None) -> torch.Tensor:
 
 def apply_chirality_redistribution(coeffs: torch.Tensor, alpha: float = 0.1) -> torch.Tensor:
     """
-    Redistribute energy based on chirality-driven resonance alignment.
+        Redistribute energy based on chirality-driven resonance alignment.
     
     "Initial and final states show chirality-driven redistribution, where 
     asymmetry seeds lawful resonance alignment beyond stochastic diffusion."
     
     Args:
-        coeffs: [Batch, K, D] or [Batch, D] latent state.
-        alpha: Redistribution strength.
+        coeffs: The input latent state [Batch, K, D] or [Batch, D].
+        alpha: Redistribution strength (scaling of the asymmetric potential).
         
     Returns:
-        aligned_coeffs: State redistributed along the prime-indexed ladder.
+        aligned_coeffs: The state redistributed along the prime-indexed ladder.
+        
+    CODES v40 Invariant: 
+        Directional Evolution: 3.42. Asymmetry seeds the 'handedness' 
+        of the manifold, ensuring deterministic evolution pathing.
     """
     original_dim = coeffs.dim()
     if coeffs.dim() == 2:
@@ -379,10 +444,18 @@ def apply_chirality_redistribution(coeffs: torch.Tensor, alpha: float = 0.1) -> 
 
 def apply_asymmetry_preserving_reshape(state: torch.Tensor, target_dim: int) -> torch.Tensor:
     """
-    Reshape state while preserving chiral asymmetry.
+        Reshape state while preserving chiral asymmetry.
     
-    Instead of symmetric padding (reflect), we use 'Prime-Seeded Asymmetric Padding'
-    to ensure the boundary contains the structural seeds for resonance.
+    Instead of symmetric padding (reflect), which risks phase cancellation, 
+    this operator uses 'Prime-Seeded Asymmetric Padding' to ensure the 
+    boundary contains the structural seeds required for lawful resonance.
+    
+    Args:
+        state: The input tensor to be reshaped.
+        target_dim: The desired output dimensionality.
+        
+    Returns:
+        The reshaped tensor with preserved (or seeded) asymmetry.
     """
     if state.dim() == 1:
         state = state.unsqueeze(0)
