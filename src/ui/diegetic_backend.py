@@ -726,7 +726,7 @@ class DiegeticPhysicsEngine(nn.Module):
             
         return dream
 
-    def forward(self, input_tensor: torch.Tensor, dt: float = 0.1, collision_residues: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, input_tensor: torch.Tensor, dt: float = 0.1, collision_residues: Optional[torch.Tensor] = None, braid_word: Optional[List[int]] = None) -> torch.Tensor:
         """
         Evolutionary Forward Pass for Manifold Invariants.
         Used by SpectralStructuralTrainer for Ricci Flow and ADMM repairs.
@@ -745,7 +745,8 @@ class DiegeticPhysicsEngine(nn.Module):
         cavity_out = self.cavity(
             input_tensor.unsqueeze(1),
             expected_residues=expected_residues,
-            multimodal_excitation=collision_residues
+            multimodal_excitation=collision_residues,
+            braid_word=braid_word
         )
         memory_state = cavity_out['memory_state'].mean(dim=1) # [1, dim]
         self._last_memory_state = memory_state
@@ -1593,7 +1594,9 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # 3. Evolutionary Pass (Cavity + Meta-Functional)
         # Now passes collision_residues to Gap A internal path
-        manifold_state = self.forward(input_tensor, dt=dt, collision_residues=collision_residues)
+        # Extract Braid word from current Zeitgeist state for steering
+        braid_word = self._zeitgeist_state.braid_word if self._zeitgeist_state else None
+        manifold_state = self.forward(input_tensor, dt=dt, collision_residues=collision_residues, braid_word=braid_word)
         seed_state = manifold_state.detach() # Explicit seed for response
 
         memory_state = getattr(self, '_last_memory_state', self.meta_state)
@@ -2842,6 +2845,11 @@ class DiegeticPhysicsEngine(nn.Module):
                 else:
                     flat_state = flat_state[:target_len]
                 
+                # Append shadow logs to response for diegetic visibility
+                response_text += "\n\n[SHADOW_LOGS_RECOVERED]\n" + "\n".join([f"  ! {sl}" for sl in shadow_logs])
+                metrics['response'] = response_text
+                metrics['shadow_logs'] = shadow_logs
+
                 for sl in shadow_logs:
                     sl_dyad = KnowledgeDyad(
                         image_fingerprint=flat_state,
