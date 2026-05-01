@@ -31,7 +31,29 @@ class AgentSmithEngine(nn.Module):
         # Warmstart state tracking (persistent across calls)
         self.warmstart_states = {}
 
-    def forward(self, shape, seed_val, scaled=True):
+    def forward(self, shape: torch.Size, seed_val: float, scaled: bool = True) -> torch.Tensor:
+        """
+        Execute the Agent Smith Entropy Expansion.
+        
+        Using the Logistic Map (x_{n+1} = gauge * x_n * (1 - x_n)), this method 
+        takes a physical seed value and expands it into a high-dimensional 
+        entropy field that is deterministic for a given seed but has high 
+        structural complexity.
+        
+        Args:
+            shape: The desired output shape for the jitter tensor.
+            seed_val: The physical seed value [0, 1] harvested from 
+                      substrate friction.
+            scaled: If True, scales the jitter to [-0.01, 0.01] to minimize 
+                    invariant disruption.
+                    
+        Returns:
+            A tensor of the specified shape containing 'Honest Jitter'.
+            
+        CODES v40 Invariant: 
+            Substrate Sovereignty: 1.1. Entropy must be grounded in physical 
+            timing variance, not pseudorandom algorithms.
+        """
         shape = tuple(shape) # Normalize to tuple for consistent dict keys
         device = self.gauge.device
         num_elements = torch.Size(shape).numel()
@@ -68,10 +90,22 @@ class AgentSmithEngine(nn.Module):
 # Global singleton for Agent Smith Engine (initialized on first call)
 _AGENT_SMITH_ENGINE = None
 
-def harvest_honest_jitter(shape, device=None, scaled=True):
+def harvest_honest_jitter(shape: torch.Size, device: torch.device = None, scaled: bool = True) -> torch.Tensor:
     """
-    Harvests entropy from the physical substrate and expands it via the 
-    Agent Smith Engine (Logistic Map).
+    Harvest entropy from the physical substrate and expand it via the 
+    Agent Smith Engine.
+    
+    This is the primary source of 'Honest Jitter'—entropy derived from 
+    nanosecond latency variance in memory stalls, ensuring that the 
+    reasoner's exploratory flux is anchored to hardware reality.
+    
+    Args:
+        shape: The desired output shape.
+        device: The target hardware device.
+        scaled: Whether to scale the entropy for minor jitter usage.
+        
+    Returns:
+        A tensor of 'Honest Jitter' grounded in physical substrate friction.
     """
     global _LAST_HARVEST_TIME, _AGENT_SMITH_ENGINE
     
@@ -110,21 +144,22 @@ def harvest_honest_jitter(shape, device=None, scaled=True):
         _HONEST_JITTER_CACHE[shape] = jitter_tensor.clone().detach()
 
     return jitter_tensor
-        
-def honest_multinomial(probs, num_samples, replacement=False):
+
+def honest_multinomial(probs: torch.Tensor, num_samples: int, replacement: bool = False) -> torch.Tensor:
     """
-    Selects indices from 'probs' using harvest_honest_jitter entropy.
+    Select indices from a probability distribution using 'Honest' entropy.
     
-    This replaces topologically semisimple PRNGs like torch.multinomial
-    with hardware-anchored selection.
+    Replaces topologically semisimple PRNGs with hardware-anchored selection, 
+    preventing the 'stochastic trap' where software-generated randomness 
+    introduces unwanted symmetries or biases.
     
     Args:
-        probs: [N] probability distribution (tensor)
-        num_samples: Number of indices to sample
-        replacement: Whether to sample with replacement
+        probs: The input probability distribution [N].
+        num_samples: The number of indices to sample.
+        replacement: Whether to sample with replacement.
         
     Returns:
-        indices: [num_samples] sampled indices
+        A tensor of sampled indices [num_samples].
     """
     device = probs.device
     n = probs.size(0)
@@ -154,16 +189,21 @@ def honest_multinomial(probs, num_samples, replacement=False):
 
 def fractal_pad(x: torch.Tensor, target_dim: int, mode: str = 'asymmetry_preserving') -> torch.Tensor:
     """
-    Perform Fractal (Asymmetry-Preserving) Padding to align heterogeneous dimensions.
+    Perform Fractal (Asymmetry-Preserving) Padding to align dimensions.
+    
+    Aligns heterogeneous tensors while ensuring that boundary conditions 
+    preserve the chiral asymmetry required for lawful resonance. 'Reflect' 
+    mode is explicitly deprecated in favor of 'Asymmetry Preserving' 
+    to prevent phase-cancellation lobotomy.
     
     Args:
-        x: [..., dim] Input tensor
-        target_dim: Desired dimension
-        mode: Padding mode ('asymmetry_preserving', 'replicate', 'constant')
-              'reflect' is deprecated and redirected to 'asymmetry_preserving'.
-        
+        x: The input tensor [..., current_dim].
+        target_dim: The desired output dimensionality.
+        mode: The padding mode. 'asymmetry_preserving' uses prime-seeded 
+              padding for non-teleological stability.
+              
     Returns:
-        padded: [..., target_dim] Padded or truncated tensor
+        The padded or truncated tensor [..., target_dim].
     """
     current_dim = x.shape[-1]
     if current_dim == target_dim:
