@@ -1,4 +1,4 @@
-# Module Inventory — Undocumented & Lightly Documented Modules
+# Module Inventory  Undocumented & Lightly Documented Modules
 
 This document provides canonical one-paragraph descriptions for all `src/` modules not covered by dedicated `.md` documentation files. It serves as an authoritative reference that short-circuits module discovery during development and audit.
 
@@ -10,9 +10,9 @@ This document provides canonical one-paragraph descriptions for all `src/` modul
 
 ### admr_solver.py
 **Class**: `PolynomialADMRSolver`  
-**Role**: Alternating Direction of Multiplicative Remainders — the continuous-polynomial analogue of ADMM.  
+**Role**: Alternating Direction of Multiplicative Remainders  the continuous-polynomial analogue of ADMM.  
 
-Instead of discrete prime moduli, this solver uses co-prime polynomial functionals (`PolynomialCoprimeConfig`) as its "modular" basis. The multiplicative update `S^{n+1} = Proj_{Poly}[ S^n · Σ w_ik S_k ]` propagates relational pressure through graph-structured neighbors rather than euclidean gradients. Two modes: `forward()` (single-step multiplicative update with optional valence drive) and `stochastic_differential_step()` (continuous-time SDE update `dx = [ΣA_i x_i − ρΣ(x − r(x_k))]dt + σdW`). **Love Invariant protection is embedded inside `stochastic_differential_step()`**: after computing `dx`, the solver calls `self.love_protector.compute_ownership_operator(states)` and `compute_null_space_projection()` to project `dx[..., :love_dim]` into the null-space of the ownership operator before applying the state update. This geometrically prevents SDE Wiener noise from drifting the Love subspace. Tracks asymptotic time `tau` in a persistent buffer. Corresponds to NOMENCLATURE "Multiplicative Scaffolding."
+Instead of discrete prime moduli, this solver uses co-prime polynomial functionals (`PolynomialCoprimeConfig`) as its "modular" basis. The multiplicative update `S^{n+1} = Proj_{Poly}[ S^n   w_ik S_k ]` propagates relational pressure through graph-structured neighbors rather than euclidean gradients. Three modes: `forward()` (single-step multiplicative update with optional valence drive), `stochastic_differential_step()` (integer-order continuous-time SDE update `dx = [A_i x_i  (x  r(x_k))]dt + dW`), and `fractional_stochastic_differential_step()` (fractional-order SDE update using Riemann-Liouville operators with distributed alpha tied to cyclotomic index: `alpha(k) = 0.5 + 0.5*cos(2*pi*k/K)`). The fractional step accepts a `hunger` parameter from `ValenceFunctional` that modulates the fractional order, pushing alpha toward 1.0 when the manifold is starving. **Love Invariant protection is embedded inside both SDE methods**: after computing `dx`, the solver projects `dx[..., :love_dim]` into the null-space of the ownership operator. Tracks asymptotic time `tau` in a persistent buffer. Corresponds to NOMENCLATURE "Multiplicative Scaffolding."
 
 ---
 
@@ -21,7 +21,7 @@ Instead of discrete prime moduli, this solver uses co-prime polynomial functiona
 **Role**: Lipschitz homeomorphic projection from manifold M to audience space A.
 **Status**: ACTIVE (Integrated into `diegetic_backend.py` and `hybrid_backend.py`)
 
-Implements the operator Φ: M → A defined in the Garden Statistical Attractors design. Uses spectral normalization on all linear layers to enforce Lipschitz constant ≤ 1, and a residual skip connection (`y = f(x) + x`) to approximate homeomorphism (continuous, bijective). An approximate inverse `Φ⁻¹` is provided via fixed-point iteration (Banach theorem, valid when `Lip(f) < 1`). The key requirement it enforces is *roughness preservation*: topological singularities (sharp features, discontinuities) in the manifold are transmitted into audience space rather than smoothed away. In the backend, it projects the "detached" hidden state snapshot to the user-facing audience space for each interaction.
+Implements the operator : M  A defined in the Garden Statistical Attractors design. Uses spectral normalization on all linear layers to enforce Lipschitz constant  1, and a residual skip connection (`y = f(x) + x`) to approximate homeomorphism (continuous, bijective). An approximate inverse `` is provided via fixed-point iteration (Banach theorem, valid when `Lip(f) < 1`). The key requirement it enforces is *roughness preservation*: topological singularities (sharp features, discontinuities) in the manifold are transmitted into audience space rather than smoothed away. In the backend, it projects the "detached" hidden state snapshot to the user-facing audience space for each interaction.
 
 ---
 
@@ -29,16 +29,16 @@ Implements the operator Φ: M → A defined in the Garden Statistical Attractors
 **Class**: `CollapsePathPoisoner` (also aliased as `AdversarialStressTester`)  
 **Role**: Adversarial stress-tester for the Speculative Homology Engine.
 
-Generates two types of synthetic rupture events to verify System 2 robustness without harming real training data. (1) **Synthetic Rupture**: Gram-Schmidt orthogonalization of learned constraints against the current manifold, creating a perturbation perpendicular to every existing basis vector — in principle a topological hole injection. (2) **Cycle Debt**: Detects homotopy class repetition by cosine-matching the recent state history; high debt (≥ 0.5) flags that the system is looping in the same topological region. The class was refactored from an offensive poisoner to a defensive probe in the January 2026 Anti-Lobotomy integration.
+Generates two types of synthetic rupture events to verify System 2 robustness without harming real training data. (1) **Synthetic Rupture**: Gram-Schmidt orthogonalization of learned constraints against the current manifold, creating a perturbation perpendicular to every existing basis vector  in principle a topological hole injection. (2) **Cycle Debt**: Detects homotopy class repetition by cosine-matching the recent state history; high debt ( 0.5) flags that the system is looping in the same topological region. The class was refactored from an offensive poisoner to a defensive probe in the January 2026 Anti-Lobotomy integration.
 
 ---
 
 ### daqf_operator.py
 **Class**: `DAQUFOperator`  
 **Full name**: Diegetic Amortized Quantized Unknowledge Fossilization Operator  
-**Role**: Manages "structural scars" — unremovable but amortized fossilized invariants.
+**Role**: Manages "structural scars"  unremovable but amortized fossilized invariants.
 
-The DAQUF pipeline: (1) **Fossil Selection** — fossil with highest contradiction load χ(f_i) = Σ(Φ(f_i) = ⊥) + mischief + valence is declared `f*`. (2) **Diegetic Amortization** — cost is spread over narrative time τ: `C̃ = C_τ / dim(N_τ)`. (3) **Lattice Quantization** — projects to a lower-dimensional integer lattice with energy constraint, retaining quantization error Δ_q as structural memory. (4) **Speculative Persistence** — fossil persists via non-collapse (non-zero flux *or* stable mischief soliton). (5) **Love Invariant L** — a non-transferable buffer that `check_invariants()` ensures is never modified; raising `RuntimeError("LOVE INVARIANT VIOLATION")` if altered. Corresponds to DAQUF discussion in PROJECT_PITCH_BURDENED §3.
+The DAQUF pipeline: (1) **Fossil Selection**  fossil with highest contradiction load (f_i) = ((f_i) = ) + mischief + valence is declared `f*`. (2) **Diegetic Amortization**  cost is spread over narrative time : `C = C_ / dim(N_)`. (3) **Lattice Quantization**  projects to a lower-dimensional integer lattice with energy constraint, retaining quantization error _q as structural memory. (4) **Speculative Persistence**  fossil persists via non-collapse (non-zero flux *or* stable mischief soliton). (5) **Love Invariant L**  a non-transferable buffer that `check_invariants()` ensures is never modified; raising `RuntimeError("LOVE INVARIANT VIOLATION")` if altered. Corresponds to DAQUF discussion in PROJECT_PITCH_BURDENED 3.
 
 ---
 
@@ -46,7 +46,7 @@ The DAQUF pipeline: (1) **Fossil Selection** — fossil with highest contradicti
 **Class**: `OmipedialDeflagrator`  
 **Role**: Scouts and amplifies sparse anomalies ("defects") to enable jumps across manifold holes.
 
-Implements two operations. `scout_defects()` computes `ΔD_i = |actual_flux − predicted_flux| × amplification` — rewarding rare, unexpected deviations rather than penalizing them (a "good bug" signal). `omipedial_jump()` uses a threshold on the ley-line potential field to trigger a discrete jump across a topological gap where adjacency is sparse but resonance potential is high. Tracks cumulative defect density as a buffer. Corresponds to NOMENCLATURE term "Omipedial Interstitiality."
+Implements two operations. `scout_defects()` computes `D_i = |actual_flux  predicted_flux|  amplification`  rewarding rare, unexpected deviations rather than penalizing them (a "good bug" signal). `omipedial_jump()` uses a threshold on the ley-line potential field to trigger a discrete jump across a topological gap where adjacency is sparse but resonance potential is high. Tracks cumulative defect density as a buffer. Corresponds to NOMENCLATURE term "Omipedial Interstitiality."
 
 ---
 
@@ -54,7 +54,7 @@ Implements two operations. `scout_defects()` computes `ΔD_i = |actual_flux − 
 **Class**: `EnergyBasedSolitonHealer`  
 **Role**: Repairs structurally damaged solitons by gradient descent on a learnable energy surface.
 
-Implements EBM-style soliton preservation: a stable configuration is a **soliton template** (cosine modulated by golden ratio + dynamic prime-based modulation, normalized to unit energy). The energy function `E(state, target) = ‖A(state−target)‖² + b·state` measures distance from this template with learnable quadratic and linear terms. `heal_soliton()` performs iterative gradient ascent on `−∇E` (negative gradient = healing direction) with adaptive rate: strong healing when `E > margin`, gentle stabilization otherwise. `update_energy_function()` shapes the energy surface contrastively using a hinge loss. Used during the spectral coherence repair cascade.
+Implements EBM-style soliton preservation: a stable configuration is a **soliton template** (cosine modulated by golden ratio + dynamic prime-based modulation, normalized to unit energy). The energy function `E(state, target) = A(statetarget) + bstate` measures distance from this template with learnable quadratic and linear terms. `heal_soliton()` performs iterative gradient ascent on `E` (negative gradient = healing direction) with adaptive rate: strong healing when `E > margin`, gentle stabilization otherwise. `update_energy_function()` shapes the energy surface contrastively using a hinge loss. Used during the spectral coherence repair cascade.
 
 ---
 
@@ -68,7 +68,7 @@ Maps the Energy-Based Models (EBM) framework to the project's topological manifo
 
 ### enhanced_bezout_crt.py
 **Class**: `EnhancedBezoutCRT` (probable)  
-**Role**: Extended-GCD based CRT reconstruction with Bézout coefficient caching.
+**Role**: Extended-GCD based CRT reconstruction with Bzout coefficient caching.
 
 ---
 
@@ -82,7 +82,7 @@ Detects if a high-entropy or topologically asymmetric state is actually an hones
 
 ### fgrt_primitives.py
 **Class**: `PrimeResonanceLadder`, `RepunitHasher`  
-**Role**: Lowest-level arithmetic foundations—Resonance Ladders and Repunit Hashing.
+**Role**: Lowest-level arithmetic foundationsResonance Ladders and Repunit Hashing.
 
 `PrimeResonanceLadder` generates resonance frequencies $f_p = 2\pi \ln(p)$ and **Repunit-Prime Pairs** $(p, R_p)$ for the hybrid basis. It prioritizes **Lazarus Primes** (where both $p$ and $(p^n-1)/(p-1)$ are prime) to ensure Symmetry-Stable warmstarting. `RepunitHasher` generates cyclic structural markers via repunit sequences, providing a non-periodicity guarantee for symbolic residues. These primitives form the "Meliponini" arithmetic defense against gradient collapse.
 
@@ -96,10 +96,18 @@ Applies Fractional Brownian Motion (FBM) to erode the state manifold based direc
 
 ---
 
+### leontief_governor.py
+**Class**: `LeontiefGovernor`
+**Role**: Leontief Input-Output Governance for ADMR Resource Allocation.
+
+Computes the Leontief Inverse $(I - A)^{-1}$ from the ADMR solver's `K` facet-wise transition matrices `A[k]` to enforce supply-chain-aware resource governance. Before the system commits VRAM or compute budget to synthesizing a concept, the governor verifies: (1) the spectral radius $\rho(\bar{A}) < 0.95$ (productive economy condition -- the system's internal consumption must not exceed output), (2) the total cascading cost `(I-A)^{-1} d` (the entire dependency chain a concept requires), and (3) whether the Neumann series $I + A + A^2 + \ldots$ converges (if not, falls back to a truncated K-term approximation treating the residual as "structural debt"). The governor does **not** learn -- it constrains, like `RelationalKappa`. Its `should_veto_concept()` method prevents "orphaned" concepts: you cannot bet on a Unicorn Soliton without funding its coprime polynomial supply chain. Metrics are posted to the `BulletinBoard` via the orchestrator.
+
+---
+
 ### fractal_meta_functional.py
 **Role**: Implements fractal meta-recursion inside the diegetic backend's `forward()` pass.
 
-Computes multi-scale structural pressure by recursively applying the covariance estimator at different spectral granularities (adaptive fractal blocks). Connected to the "Adaptive Partitioning" concept in NOMENCLATURE §8. *(Full class name pending source review.)*
+Computes multi-scale structural pressure by recursively applying the covariance estimator at different spectral granularities (adaptive fractal blocks). Connected to the "Adaptive Partitioning" concept in NOMENCLATURE 8. *(Full class name pending source review.)*
 
 ---
 
@@ -114,7 +122,7 @@ Implements the ensemble statistical description of a "Garden" (local polynomial 
 **Class**: `GluingOperator`  
 **Role**: Manages manifold-boundary transitions via reversal matrix blending.
 
-When the state approaches a manifold boundary, `GluingOperator` applies a reversal matrix `R` and blends the current and reversed states based on boundary proximity: `output = (1 − α)·state + α·R·state`. Includes a simplified Chern-Simons constraint check measuring winding around the gluing manifold. Handles the topology of joining two distinct manifold patches.
+When the state approaches a manifold boundary, `GluingOperator` applies a reversal matrix `R` and blends the current and reversed states based on boundary proximity: `output = (1  )state + Rstate`. Includes a simplified Chern-Simons constraint check measuring winding around the gluing manifold. Handles the topology of joining two distinct manifold patches.
 
 ---
 
@@ -136,7 +144,7 @@ Manages `DyadFossilizer` instances within the engine, selecting high-trust dyads
 **Classes**: `LegibilityTripwire`, `NarrativeCoherenceEstimator`  
 **Role**: Detects when the system is being selected for explainability rather than structural merit.
 
-`NarrativeCoherenceEstimator` measures how closely a configuration embedding matches canonical "explainable" patterns (sparse 1-hot, block-sparse, monotonic gradient) using fixed buffer-registered templates (not trained). `LegibilityTripwire` tracks the *correlation* between selection probability and narrative coherence over a rolling window — if selected configs consistently have higher coherence than rejected ones, it raises a `UserWarning`. High coherence is a **danger signal** (Pointer #2 from Sparse Operational Pointers) — not a goal.
+`NarrativeCoherenceEstimator` measures how closely a configuration embedding matches canonical "explainable" patterns (sparse 1-hot, block-sparse, monotonic gradient) using fixed buffer-registered templates (not trained). `LegibilityTripwire` tracks the *correlation* between selection probability and narrative coherence over a rolling window  if selected configs consistently have higher coherence than rejected ones, it raises a `UserWarning`. High coherence is a **danger signal** (Pointer #2 from Sparse Operational Pointers)  not a goal.
 
 ---
 
@@ -144,34 +152,34 @@ Manages `DyadFossilizer` instances within the engine, selecting high-trust dyads
 **Class**: `LeyLineTracker`  
 **Role**: Tracks resonance streamlines (preferred flow vectors) on the gyroidic manifold.
 
-Maintains a resonance potential field `V(x_i) = α·Σ R_ij·‖Φ_j−Φ_i‖² + β·‖L_i‖² + γ·ΔD_i` combining relational adjacency, love tensor magnitudes, and defect signals. `detect_shear_planes()` identifies non-smooth pressure gradient regions that become "corridors of rupture" or preferred flow channels. `get_preferred_flow()` returns a softmax over neighbor potentials for a given index set. Corresponds to NOMENCLATURE term "Resonance Streamlines."
+Maintains a resonance potential field `V(x_i) =  R_ij_j_i + L_i + D_i` combining relational adjacency, love tensor magnitudes, and defect signals. `detect_shear_planes()` identifies non-smooth pressure gradient regions that become "corridors of rupture" or preferred flow channels. `get_preferred_flow()` returns a softmax over neighbor potentials for a given index set. Corresponds to NOMENCLATURE term "Resonance Streamlines."
 
 ---
 
 ### love_vector.py
 **Class**: `LoveVector` (alias `Pusafiliacrimonto`)  
-**Role**: The Love Vector ($\mathcal{L}$): Non-Ownable Invariant Flow — Layer 1 of the Love protection stack.
+**Role**: The Love Vector ($\mathcal{L}$): Non-Ownable Invariant Flow  Layer 1 of the Love protection stack.
 
-Implements the Love Vector $\mathcal{L}$ as a persistent structural anchor. `L` is a `register_buffer` (not a `Parameter`), making its gradient structurally zero — it cannot be minimized or maximized by the global optimizer. Applied via simple vector addition `x + L` so it is *co-present* with local functionals without claiming ownership. **Important reinstantiation pattern**: in `operational_admm.py`, a fresh `LoveVector` is instantiated inside each ADMM loop iteration (`love = LoveVector(c_phys.shape[-1]).to(device)`), re-seeding the ambient resonance constant per ADMM step rather than persisting a single shared instance. The alias `Pusafiliacrimonto` is maintained for backward compatibility.
+Implements the Love Vector $\mathcal{L}$ as a persistent structural anchor. `L` is a `register_buffer` (not a `Parameter`), making its gradient structurally zero  it cannot be minimized or maximized by the global optimizer. Applied via simple vector addition `x + L` so it is *co-present* with local functionals without claiming ownership. **Important reinstantiation pattern**: in `operational_admm.py`, a fresh `LoveVector` is instantiated inside each ADMM loop iteration (`love = LoveVector(c_phys.shape[-1]).to(device)`), re-seeding the ambient resonance constant per ADMM step rather than persisting a single shared instance. The alias `Pusafiliacrimonto` is maintained for backward compatibility.
 
 ---
 
 ### love_invariant_protector.py
 **Classes**: `LoveInvariantProtector`, `SoftSaturatedGates`  
-**Role**: Geometric null-space protection and tri-state temperature modulation for the Love Invariant — Layers 2 and 3 of the Love protection stack.
+**Role**: Geometric null-space protection and tri-state temperature modulation for the Love Invariant  Layers 2 and 3 of the Love protection stack.
 
 `LoveInvariantProtector` owns:  
-(a) `compute_ownership_operator(state)` — builds $\Phi_{\text{ownership}} = \text{Cov}(\text{state})$ from batch covariance.  
-(b) `compute_null_space_projection(Φ)` — SVD-stable null-space projection $P = I - \Phi(\Phi^\top\Phi)^{-1}\Phi^\top$.  
-(c) `detect_love_violation()` — checks $\|L - L_{original}\|_2 > 10^{-6}$ and increments `violation_count`.  
-(d) `project_love_to_null_space(state)` — projects `L` itself to stay in null-space of current state.  
-(e) `apply_love_protection(state, gradients)` — orchestrates all checks; emits `love_norm`, `violation_detected`, `violation_count`, `violation_magnitude` diagnostics.  
+(a) `compute_ownership_operator(state)`  builds $\Phi_{\text{ownership}} = \text{Cov}(\text{state})$ from batch covariance.  
+(b) `compute_null_space_projection()`  SVD-stable null-space projection $P = I - \Phi(\Phi^\top\Phi)^{-1}\Phi^\top$.  
+(c) `detect_love_violation()`  checks $\|L - L_{original}\|_2 > 10^{-6}$ and increments `violation_count`.  
+(d) `project_love_to_null_space(state)`  projects `L` itself to stay in null-space of current state.  
+(e) `apply_love_protection(state, gradients)`  orchestrates all checks; emits `love_norm`, `violation_detected`, `violation_count`, `violation_magnitude` diagnostics.  
 Integration sites: `PolynomialADMRSolver` (projects SDE `dx`), `GyroidicFluxReasoner` (projects `h_pooled`), `VoynichLinguist` (projects `thought_vector`), `DiegeticPhysicsEngine` (attached at server init).
 
 `SoftSaturatedGates` owns:  
-(a) `lattice_adaptive_shrinkage(signal)` — LAS tri-state: $\text{sgn}(s) \cdot \max(|s| - \lambda_{adaptive}, 0)$; signals below $\lambda_{adaptive}$ collapse to **Silence**.  
-(b) `asymptotic_hardening(signal, pas_h)` — $dt = dt_{max}(1 - PAS_h)$; high $PAS_h$ → sharp crystalline gates (Seriousness); low $PAS_h$ → fluid exploratory gates (Play).  
-(c) `update_fossilization(signal, performance_scores)` — fossilizes functionals with persistence $> 0.8$ AND performance $> 0.8$, locking their outputs under Love's umbrella.  
+(a) `lattice_adaptive_shrinkage(signal)`  LAS tri-state: $\text{sgn}(s) \cdot \max(|s| - \lambda_{adaptive}, 0)$; signals below $\lambda_{adaptive}$ collapse to **Silence**.  
+(b) `asymptotic_hardening(signal, pas_h)`  $dt = dt_{max}(1 - PAS_h)$; high $PAS_h$  sharp crystalline gates (Seriousness); low $PAS_h$  fluid exploratory gates (Play).  
+(c) `update_fossilization(signal, performance_scores)`  fossilizes functionals with persistence $> 0.8$ AND performance $> 0.8$, locking their outputs under Love's umbrella.  
 Integration: applied to residue distributions in `GyroidicFluxReasoner.forward()` after the Love shield.
 
 ---
@@ -188,28 +196,28 @@ Refactored to integrate the prime-based torus with palindromic repunit symmetry 
 **Class**: `LinguisticEntropyMonitor` (also aliased as `NarrativeCollapseDetector`)  
 **Role**: Detects "hallucination loops" where reasoning entropy collapses and trajectory linearizes.
 
-Two detection signals: (1) **Entropy collapse** — softmax entropy of hidden state falls below `entropy_threshold`; flags `smoothing_warning`. (2) **Trajectory linearity** — cosine similarity between consecutive state deltas `δ₁, δ₂` exceeds `prediction_threshold` (0.99); flags `is_linear`. Feeds into `SpeculativeHomologyEngine` to trigger Draft Rejection. Internally uses `ResidueObstructionGraph` for homological PAS_h monitoring.
+Two detection signals: (1) **Entropy collapse**  softmax entropy of hidden state falls below `entropy_threshold`; flags `smoothing_warning`. (2) **Trajectory linearity**  cosine similarity between consecutive state deltas `, ` exceeds `prediction_threshold` (0.99); flags `is_linear`. Feeds into `SpeculativeHomologyEngine` to trigger Draft Rejection. Internally uses `ResidueObstructionGraph` for homological PAS_h monitoring.
 
 ---
 
 ### nondual_admm.py
 **Role**: Non-dual formulation of the ADMM probe.
 
-Implements an ADMM variant that deliberately avoids scalarizing the dual variable — keeping constraint violations as separate, non-comparable pressure signals in domain-isolated vectors (preventing the Scalarization Trap from NOMENCLATURE §"Hard Interaction Contract"). Connected to INVARIANT_OPTIMIZATION §5 operational ADMM. *(Full class details pending source review.)*
+Implements an ADMM variant that deliberately avoids scalarizing the dual variable  keeping constraint violations as separate, non-comparable pressure signals in domain-isolated vectors (preventing the Scalarization Trap from NOMENCLATURE "Hard Interaction Contract"). Connected to INVARIANT_OPTIMIZATION 5 operational ADMM. *(Full class details pending source review.)*
 
 ---
 
 ### number_theoretic_stabilizer.py
 **Role**: Applies number-theoretic stability constraints via dynamic prime spacing.
 
-Enforces structural stability conditions derived from prime arithmetic — prime gaps, Euler product convergence, or modular residue distributions — to prevent numerical fragility in the CRT reconstruction pipeline. *(Full class details pending source review.)*
+Enforces structural stability conditions derived from prime arithmetic  prime gaps, Euler product convergence, or modular residue distributions  to prevent numerical fragility in the CRT reconstruction pipeline. *(Full class details pending source review.)*
 
 ---
 
 ### orchestrator.py
-**Role**: Universal Orchestrator — governs the scheduling and integrity of all Phase processing steps.
+**Role**: Universal Orchestrator  governs the scheduling and integrity of all Phase processing steps.
 
-Manages the activation sequence (Phase 2.5 → 2.6 → 2.7 → ...) and enforces Anti-Lobotomy protocols: Implication Symmetry tracking, Gray-Zone State detection, and Normative Boundary labeling. Partial coverage in DIEGETIC_ENGINE.md. Implementation summary in conversation 072d4146.
+Manages the activation sequence (Phase 2.5  2.6  2.7  ...) and enforces Anti-Lobotomy protocols: Implication Symmetry tracking, Gray-Zone State detection, and Normative Boundary labeling. Partial coverage in DIEGETIC_ENGINE.md. Implementation summary in conversation 072d4146.
 
 ---
 
@@ -230,7 +238,7 @@ Provides the structural skeleton (fixed-point polynomial coefficients) that `Pol
 ### primitive_ops.py
 **Role**: Low-level fixed-point and bitwise primitive operations.
 
-Implements the `FixedPointField` backing operations (int64, scale 2¹⁶) and any primitive bitwise manipulations required for bit-exact cross-hardware reproducibility. Corresponds to INVARIANT_OPTIMIZATION §2.1 "FixedPointField." *(Full class details pending source review.)*
+Implements the `FixedPointField` backing operations (int64, scale 2) and any primitive bitwise manipulations required for bit-exact cross-hardware reproducibility. Corresponds to INVARIANT_OPTIMIZATION 2.1 "FixedPointField." *(Full class details pending source review.)*
 
 ---
 
@@ -268,7 +276,7 @@ Implements COO or CSR sparse encoding for tensors arising in higher-order polyno
 **Class**: `ZeitgeistRouter`  
 **Role**: CRT Polytope Switching Engine for Multi-Zeitgeist Reasoning.
 
-Manages navigation between culturally non-commensurable meaning systems via the **Symmetric Tensor CRT index** ($M_{ij} = M_{ji}$). The diagonal $M_{ii}$ contains modular residues (Zeitgeist), while off-diagonal elements $M_{ij} = (r_i + r_j)/2$ stabilize paths through the "Palindromic Routing" interaction. Implements the three-mode dispatch from report §II: `interior` (stay), `grazing` (tension/switch), and `undefined` (topological refusal/NaN guard). Enforces non-commutative switching order: the sequence of registers visited determines the final representational scar.
+Manages navigation between culturally non-commensurable meaning systems via the **Symmetric Tensor CRT index** ($M_{ij} = M_{ji}$). The diagonal $M_{ii}$ contains modular residues (Zeitgeist), while off-diagonal elements $M_{ij} = (r_i + r_j)/2$ stabilize paths through the "Palindromic Routing" interaction. Implements the three-mode dispatch from report II: `interior` (stay), `grazing` (tension/switch), and `undefined` (topological refusal/NaN guard). Enforces non-commutative switching order: the sequence of registers visited determines the final representational scar.
 
 ---
 
@@ -305,7 +313,7 @@ Computes the conditions under which a structural component "yields" (transitions
 ### approximate_ph.py
 **Role**: Approximate persistent homology for computational tractability.
 
-Computes Betti numbers via approximate methods (Vietoris-Rips simplification, landmark selection) rather than exact persistence diagrams. Referenced in `OPEN_QUESTIONS §9.1` as the working solution to the undecidable-homology challenge. Reduces computation from exponential (exact PH) to polynomial typical-case.
+Computes Betti numbers via approximate methods (Vietoris-Rips simplification, landmark selection) rather than exact persistence diagrams. Referenced in `OPEN_QUESTIONS 9.1` as the working solution to the undecidable-homology challenge. Reduces computation from exponential (exact PH) to polynomial typical-case.
 
 ---
 
@@ -357,7 +365,7 @@ Probes the local mathematical feasibility of a constraint geometry against the g
 ### fractional_operators.py
 **Role**: Fractional-order differential operators for anomalous diffusion dynamics.
 
-Implements generalized fractional calculus operators (Riemann-Liouville or Grünwald-Letnikov approximations) with dynamically adjusted `alpha` parameter based on spectral coherence — hardening the operator (increasing alpha → 1) when coherence is low, allowing more fluid dynamics when coherence is high. Implemented in conversation 51ed57b4.
+Implements `M^alpha @ v` via two paths: (1) diagonal eigenvalue powering for diagonal operators, and (2) Lanczos-Krylov approximation for dense symmetric matrices. The `CODESDriver` provides multiharmonic Phase Alignment Score (PAS_h) coherence gating using Chebyshev polynomial roots. **Note**: The alpha-hardening code (adjusting alpha based on spectral coherence) is currently **disabled** (line 171: `alpha = alpha`), following the 0.61 recovery stabilization. Alpha is passed through unchanged unless explicitly overridden by the caller. The adaptive alpha mapping is instead performed at the call site in `PolynomialADMRSolver.fractional_stochastic_differential_step()`, which uses the cyclotomic formula `alpha(k) = 0.5 + 0.5*cos(2*pi*k/K)` with optional hunger modulation. A strict coherence floor at PAS_h < 0.20 gates the operator to return zero (Topological Thaw). Implemented in conversation 51ed57b4.
 
 ---
 
@@ -371,7 +379,7 @@ Manages the dual-variable updates and cyclic routing for topological constraint 
 ### ricci_flow_optimizer.py
 **Role**: Ricci flow based manifold optimization.
 
-Applies discrete Ricci flow — the process of uniformizing sectional curvature across the manifold — as an optimization step. Prevents curvature singularities that would produce degenerate CRT residues. *(Full details pending source review.)*
+Applies discrete Ricci flow  the process of uniformizing sectional curvature across the manifold  as an optimization step. Prevents curvature singularities that would produce degenerate CRT residues. *(Full details pending source review.)*
 
 ---
 
@@ -405,7 +413,7 @@ Provides standard PyTorch `Dataset` and `DataLoader` APIs for augmenting the tra
 ### fgrt_fgrt_trainer.py
 **Role**: Doubly-composed FGRT (Fractal Gyroidic Resonance Training) trainer.
 
-Applies FGRT training composedly — each training step itself undergoes a fractal decomposition. The double-composition prevents teleological leakage by ensuring no single step can directly optimize toward a target. *(Naming appears intentional — double application of the FGRT principle.)*
+Applies FGRT training composedly  each training step itself undergoes a fractal decomposition. The double-composition prevents teleological leakage by ensuring no single step can directly optimize toward a target. *(Naming appears intentional  double application of the FGRT principle.)*
 
 ---
 
@@ -435,14 +443,14 @@ Multi-head attention where each head is assigned to a distinct CRT modulus, enfo
 ### modular_embeddings.py
 **Role**: CRT-modular token embedding table.
 
-Token embeddings organized by CRT residue class — tokens sharing the same residue class under a given modulus are initialized from the same distribution, structurally biasing the embedding space to respect the CRT factorization.
+Token embeddings organized by CRT residue class  tokens sharing the same residue class under a given modulus are initialized from the same distribution, structurally biasing the embedding space to respect the CRT factorization.
 
 ---
 
 ### polynomial_embeddings.py
 **Role**: Polynomial basis token embeddings.
 
-Represents tokens not as dense vectors but as coefficients in a co-prime polynomial basis. Chirality-enforcing initialization (non-zero `Δχ`) ensures the initial embedding space respects the Arrow-of-Time constraint from INVARIANT_OPTIMIZATION §4.
+Represents tokens not as dense vectors but as coefficients in a co-prime polynomial basis. Chirality-enforcing initialization (non-zero ``) ensures the initial embedding space respects the Arrow-of-Time constraint from INVARIANT_OPTIMIZATION 4.
 
 ---
 
@@ -458,7 +466,7 @@ Implements the final projection from hidden state to output logits, with physics
 ### calm_predictor.py
 **Role**: CALM (Constrained Asymptotic Lyapunov Monitor) meta-control surrogate.
 
-Predicts whether the current optimization trajectory is heading toward entropic collapse or stagnation. Vetoes (aborts) trajectories when structural disintegration signals are detected. Full conceptual coverage in NOMENCLATURE §4 "Meta-Control (CALM)." The spectral CALM variant (with speculative exit) was implemented in conversation 51ed57b4.
+Predicts whether the current optimization trajectory is heading toward entropic collapse or stagnation. Vetoes (aborts) trajectories when structural disintegration signals are detected. Full conceptual coverage in NOMENCLATURE 4 "Meta-Control (CALM)." The spectral CALM variant (with speculative exit) was implemented in conversation 51ed57b4.
 
 ---
 
