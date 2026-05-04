@@ -255,7 +255,7 @@ class PrimeResonanceLadder(nn.Module):
         Returns:
             Dictionary with:
                 - 'frequencies': [N] prime resonance frequencies
-                - 'entropy_matrix': [N, N] Fibonacci×Prime entropy coupling
+                - 'entropy_matrix': [N, N] FibonacciPrime entropy coupling
         """
         entropy = FibonacciResonanceEntropy(
             num_oscillators=self.num_resonators,
@@ -298,7 +298,7 @@ class RepunitHasher(nn.Module):
         scaled_state = state * repunits_expanded
         
         # Stability Guard: Hardware-anchored jitter grounding to prevent diagnostic lock (0.4390 attractor)
-        # Follows §45.2 (Silicon Sovereignty).
+        # Follows 45.2 (Silicon Sovereignty).
         jitter = harvest_honest_jitter(scaled_state.shape, device=state.device, scaled=True) * 0.001
         
         # We derive a discrete cyclic marker:
@@ -375,6 +375,38 @@ class FibonacciResonanceEntropy(nn.Module):
             return self.entropy_matrix[i, j]
         return self.entropy_matrix
 
+    def hunger_modulated_entropy(self, hunger: float = 0.0) -> torch.Tensor:
+        """
+        Recomputes the entropy matrix with Manifold Hunger (H) expanding
+        the Fermi envelope.
+
+        S_resonance(i,j) = alpha / (exp(pi / (F_i * P_j * (1 + H))) + 1)
+
+        When H = 0: standard tight coupling (strict legibility).
+        When H rises: the denominator's exponential argument shrinks,
+        the Fermi envelope expands, and more oscillator pairs decouple.
+        This organically widens the allowable resonance entropy.
+
+        The CALM predictor monitors spectral entropy. By routing hunger
+        through the coprime Fibonacci-Prime basis rather than injecting
+        random noise, the widened entropy retains prime-harmonic structure.
+        CALM reads this as "Generative Rupture" (valid starvation search)
+        rather than "Terminal Degeneration" (random drift).
+
+        Args:
+            hunger: Scalar Manifold Hunger in [0, inf).
+                    Typically from ValenceFunctional.forward().
+
+        Returns:
+            [N, N] hunger-modulated entropy matrix.
+        """
+        F_i = self.fibonacci.float().unsqueeze(1)  # [N, 1]
+        P_j = self.primes.float().unsqueeze(0)     # [1, N]
+        product = F_i * P_j * (1.0 + hunger)       # Hunger widens the lattice
+        product = torch.clamp(product, min=1.0)
+        modulated = self.alpha / (torch.exp(torch.tensor(3.14159265359) / product) + 1.0)
+        return modulated
+
 
 class CoherentPrimeResonance(nn.Module):
     """
@@ -386,7 +418,7 @@ class CoherentPrimeResonance(nn.Module):
         3. Spec(F) subset {p_n}           (spectral support on primes)
     
     When CPR is satisfied, the harmonic field and its breather modes are
-    mutually phase-locked — cognition as standing-wave interference.
+    mutually phase-locked  cognition as standing-wave interference.
     """
     def __init__(
         self,
