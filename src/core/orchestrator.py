@@ -30,6 +30,9 @@ from src.core.fgrt_primitives import FibonacciResonanceEntropy, CoherentPrimeRes
 from src.core.polychoron_quantization import Polychoron600Quantizer
 from src.core.deflagration_scout import OmipedialDeflagrator
 from src.core.erosion_filter import TopologicalErosionFBM
+from src.core.valence_drive import ValenceFunctional
+from src.core.leontief_governor import LeontiefGovernor
+from src.core.collapse_poisoner import CollapsePathPoisoner
 
 from src.core.structural_monitors import AntiScalingMonitor, MetaInfraIntraMonitor
 from src.safety.trust_inheritance import TrustInheritanceTracker
@@ -96,6 +99,18 @@ class UniversalOrchestrator(nn.Module):
         self.quantizer = Polychoron600Quantizer()
         self.deflagrator = OmipedialDeflagrator()
         
+        # 2b. Valence Drive (Manifold Hunger)
+        # Closes the severed nerve: DeflagrationScout -> ValenceFunctional -> ADMR
+        self.valence = ValenceFunctional(decay=0.99, hunger_scale=1.0)
+        
+        # 2c. Leontief Governance (Cascading Cost Check)
+        # Computes (I-A)^{-1} from ADMR transition matrices to verify
+        # supply-chain feasibility before committing resources.
+        self.leontief = LeontiefGovernor(state_dim=dim, neumann_terms=12)
+        
+        # 2d. Cycle Debt Tracker (Topological Boredom)
+        self.stress_tester = CollapsePathPoisoner(hidden_dim=dim, cycle_history_size=100)
+        
         # Phase 6: Topographical memory via FBM erosion
         self.erosion_filter = TopologicalErosionFBM(octaves=4, persistence=0.6)
         
@@ -116,6 +131,9 @@ class UniversalOrchestrator(nn.Module):
         # 4. RIC-SRI Primitives (Eqs 1.2, 7)
         self.fib_entropy = FibonacciResonanceEntropy(num_oscillators=min(dim, 20))
         self.cpr_gate = CoherentPrimeResonance(theta_cpr=0.7, num_primes=min(dim, 20))
+        
+        # Hunger state: tracks the most recent manifold hunger for downstream use
+        self.register_buffer('current_hunger', torch.tensor(0.0))
         self.register_buffer('cpr_satisfied', torch.tensor(False))
 
         # 5. Phase 14: Safety & Metaphysics Monitors
@@ -373,6 +391,28 @@ class UniversalOrchestrator(nn.Module):
                  # This creates a "void" that the system must navigate without owning.
                  current_state = current_state + 0.05 * leak_vector * harvest_honest_jitter((1,), device=current_state.device, scaled=False)
 
+        # 2.5. MANIFOLD HUNGER (Closing the Severed Nerve)
+        # ------------------------------------------------
+        # Compute hunger from: defect signal + cycle debt + mischief
+        # This is the bridge the research identified as missing.
+        cycle_debt = self.stress_tester.compute_cycle_debt(current_state)
+        mischief_metrics = self.mischief_probe.get_metrics()
+        
+        hunger = self.valence(
+            current_pressure=defects.mean() if isinstance(defects, torch.Tensor) else torch.tensor(0.0),
+            mischief=torch.tensor([mischief_metrics['H_mischief']]),
+            entropy=torch.tensor([atrophy])
+        )
+        self.current_hunger.fill_(hunger.mean().item())
+        
+        # Hunger-modulated Fibonacci entropy: widens the Fermi envelope
+        # so CALM natively understands starvation search as prime-harmonic
+        # exploration rather than entropic collapse.
+        modulated_entropy = self.fib_entropy.hunger_modulated_entropy(
+            hunger=self.current_hunger.item()
+        )
+
+
         # 3. SYSTEM 2: SLOW COP (Geometric Rigor)
         # ----------------------------------------
         # Slow cop only syncs at macro-intervals OR in "Red Zones" (high curvature).
@@ -504,7 +544,7 @@ class UniversalOrchestrator(nn.Module):
         self.prev_pas = pas_h
         routing = self.get_bimodal_routing(regime)
         
-        # Post Diagnostic Payload to Bulletin Board (including Scars/Tension)
+        # Post Diagnostic Payload to Bulletin Board (including Scars/Tension/Hunger)
         self.bulletin_board.post_metrics({
             "b0": b0,
             "b1": b1,
@@ -516,7 +556,11 @@ class UniversalOrchestrator(nn.Module):
             "scar_tension": gasket_diags['seam_tension'],
             "gasket_level_k": gasket_diags['level_k'],
             "nav_mode": "SLERP" if regime == "SERIOUSNESS" else "LERP" if regime == "PLAY" else "VOID",
-            "archetype_leak": self.nostalgic_leak(state_shielded).abs().mean().item()
+            "archetype_leak": self.nostalgic_leak(state_shielded).abs().mean().item(),
+            "manifold_hunger": self.current_hunger.item(),
+            "cycle_debt": cycle_debt.item() if isinstance(cycle_debt, torch.Tensor) else cycle_debt,
+            "hunger_entropy_mean": modulated_entropy.mean().item(),
+            "leontief_spectral_radius": self.leontief.cached_spectral_radius.item()
         })
         
         # Update EMA Flux for next scout
