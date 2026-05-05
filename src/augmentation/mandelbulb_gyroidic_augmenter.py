@@ -70,7 +70,10 @@ class MandelbulbEmbedder(nn.Module):
         # Map features to spherical coordinates, then to Cartesian
         # This preserves the topological structure of the original features
         
-        # Normalize features to [0, 2] for angular coordinates
+        # Normalize features to [0, 2pi] for angular coordinates.
+        # The 2*math.pi scaling is a strict geometric boundary condition 
+        # required to phase-lock the features into a complete hyperspherical mapping,
+        # preventing phase-cancellation lobotomy.
         normalized = torch.sigmoid(features) * 2 * math.pi
         
         # Create 3D coordinates using spherical mapping
@@ -81,7 +84,7 @@ class MandelbulbEmbedder(nn.Module):
                 # Use consecutive features for spherical coordinates
                 theta = normalized[:, i]      # Azimuthal angle
                 phi = normalized[:, i + 1]    # Polar angle
-                r = torch.abs(features[:, i]) + 1e-6  # Radius (avoid zero)
+                r = torch.abs(features[:, i]) + torch.finfo(features.dtype).eps  # Radius (avoid zero)
                 
                 coords[:, i, 0] = r * torch.sin(phi) * torch.cos(theta)  # x
                 coords[:, i, 1] = r * torch.sin(phi) * torch.sin(theta)  # y
@@ -141,7 +144,7 @@ class MandelbulbEmbedder(nn.Module):
             
             # Mandelbulb transformation with numerical stability
             # Convert to spherical coordinates with epsilon for stability
-            eps = 1e-8
+            eps = torch.finfo(z.dtype).eps
             r = z_magnitude + eps
             
             # Stable spherical coordinate conversion
@@ -261,7 +264,7 @@ class GyroidicConstraintProjector(nn.Module):
                 break
             
             # Compute gradient of constraint with numerical stability
-            eps = 1e-8
+            eps = torch.finfo(x.dtype).eps
             grad_x = torch.cos(x) * torch.cos(y) - torch.sin(z) * torch.sin(x)
             grad_y = -torch.sin(x) * torch.sin(y) + torch.cos(y) * torch.cos(z)
             grad_z = -torch.sin(y) * torch.sin(z) + torch.cos(z) * torch.cos(x)
@@ -367,7 +370,7 @@ class SparseCovariantOptimizer(nn.Module):
         
         # Add small regularization for numerical stability
         n_samples = features.shape[0]
-        regularization = 1e-6
+        regularization = torch.finfo(features.dtype).eps
         
         # Compute covariance matrix with regularization
         cov_matrix = torch.mm(centered_features.T, centered_features) / (n_samples - 1)
@@ -723,12 +726,14 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                 # 2. Frobenius norm ratio (should be reasonable)
                 orig_norm = torch.norm(original_cov, 'fro').item()
                 aug_norm = torch.norm(augmented_cov, 'fro').item()
-                norm_ratio = min(orig_norm, aug_norm) / (max(orig_norm, aug_norm) + 1e-8)
+                norm_ratio = min(orig_norm, aug_norm) / (max(orig_norm, aug_norm) + torch.finfo(original_cov.dtype).eps)
                 
                 # 3. Eigenvalue spectrum preservation (top eigenvalues)
                 try:
-                    orig_eigs = torch.linalg.eigvals(original_cov + 1e-6 * torch.eye(original_cov.shape[0])).real
-                    aug_eigs = torch.linalg.eigvals(augmented_cov + 1e-6 * torch.eye(augmented_cov.shape[0])).real
+                    eps_orig = torch.finfo(original_cov.dtype).eps
+                    orig_eigs = torch.linalg.eigvals(original_cov + eps_orig * torch.eye(original_cov.shape[0])).real
+                    eps_aug = torch.finfo(augmented_cov.dtype).eps
+                    aug_eigs = torch.linalg.eigvals(augmented_cov + eps_aug * torch.eye(augmented_cov.shape[0])).real
                     
                     # Sort eigenvalues in descending order
                     orig_eigs_sorted = torch.sort(orig_eigs, descending=True)[0]
