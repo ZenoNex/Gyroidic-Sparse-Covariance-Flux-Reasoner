@@ -27,7 +27,7 @@ def stochastic_round(x: torch.Tensor, scale: float = 1.0) -> torch.Tensor:
     Apply Stochastic Rounding (SR) to prevent quantization bias.
     Formula: floor(x * scale + harvest_honest_jitter()) / scale
     
-    Reference: §45.2 (Silicon Sovereignty) - "No Deterministic Rounding".
+    Reference: 45.2 (Silicon Sovereignty) - "No Deterministic Rounding".
     """
     # Scale and add honest jitter [0, 1)
     # harvest_honest_jitter with scaled=False returns [0, 1]
@@ -104,7 +104,7 @@ class LearnedPrimitivePerturbation(nn.Module):
         shift_int = (self.shift * self.scale_mod).round().to(torch.int64)
         
         out_data = scaled_data + shift_int
-        return FixedPointField(out_data.float(), field.scale) # Re-wrap (hacky float cast for init)
+        return FixedPointField(out_data, field.scale) # Re-wrap securely without mantissa loss
 
 def to_fixed_point(x: torch.Tensor) -> torch.Tensor:
     """Helper to quantize a tensor using stochastic rounding."""
