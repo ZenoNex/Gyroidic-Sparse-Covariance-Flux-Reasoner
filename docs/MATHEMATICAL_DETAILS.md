@@ -6,9 +6,9 @@
 
 This document provides the formal mathematical foundations for the **Gyroidic Sparse Covariance Flux Reasoner**. The system architecture utilizes **evolution-discovered saturation and gradient blindness**, stabilized by **algebraic topology** and **evolutionary trust selection**.
 
-## 🦴 Fossil Preservation Protocol
+##  Fossil Preservation Protocol
 
-This documentation maintains **archaeological fossils** of deprecated design routes to enable future recovery. Fossilized approaches are marked with 🦴 and include:
+This documentation maintains **archaeological fossils** of deprecated design routes to enable future recovery. Fossilized approaches are marked with  and include:
 
 - **Theoretical foundations** that remain mathematically sound
 - **Implementation pathways** that were abandoned for practical reasons
@@ -35,11 +35,11 @@ This documentation maintains **archaeological fossils** of deprecated design rou
 6. [Resonance Cavity Dynamics](#6-resonance-cavity-dynamics)
 7. [Hybrid Physics-ADMM (System 2)](#7-hybrid-physics-admm-system-2)
 9. [Selection vs Containment Pressures](#9-selection-vs-containment-pressures)
-10. [Related Work & Context (2024–2026)](#10-related-work--context-20242026)
-11. [Harmonic–Differential Equivalence](#11-harmonicdifferential-equivalence-bostick-2025)
+10. [Related Work & Context (20242026)](#10-related-work--context-20242026)
+11. [HarmonicDifferential Equivalence](#11-harmonicdifferential-equivalence-bostick-2025)
 12. [Hybrid LAS-Obligatory Quantization](#12-hybrid-las-obligatory-quantization)
 13. [Adaptive Fractional Anisotropy (Ranging)](#13-adaptive-fractional-anisotropy-ranging)
-14. [EBM–Topological Equivalence](#14-ebmtopological-equivalence-the-energy-of-discord)
+14. [EBMTopological Equivalence](#14-ebmtopological-equivalence-the-energy-of-discord)
 15. [The Calculus of Unknowledge](#15-the-calculus-of-unknowledge-beyond-scalar-truth)
 16. [Fiberalized Gyroidic Recurrent Topology (FGRT)](#16-fiberalized-gyroidic-recurrent-topology-fgrt)
 17. [Meta-Polytope Sub-General Quantization](#17-meta-polytope-sub-general-quantization)
@@ -206,7 +206,7 @@ $$
 
 ### 5.3 Technical Caveats on Heuristics
 
-The gyroid violation metric $\psi$ and the residue obstruction graph are **heuristically motivated proxies**. While they effectively detect manifold tears and logic pivots, they lack a formal algebraic proof of completeness. They function as **containment pressures**—filters that reject inadmissible states without guaranteeing a unique physical truth.
+The gyroid violation metric $\psi$ and the residue obstruction graph are **heuristically motivated proxies**. While they effectively detect manifold tears and logic pivots, they lack a formal algebraic proof of completeness. They function as **containment pressures**filters that reject inadmissible states without guaranteeing a unique physical truth.
 
 See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for a formal list of theoretical boundaries.
 
@@ -350,7 +350,7 @@ Successful functional groups are **fossilized**; those under pressure undergo **
 
 ---
 
-## 10. Related Work & Context (2024–2026)
+## 10. Related Work & Context (20242026)
 
 The Gyroidic Sparse Covariance Flux Reasoner synthesizes novel mechanisms with established parallel research tracks:
 
@@ -368,7 +368,7 @@ The Gyroidic Sparse Covariance Flux Reasoner synthesizes novel mechanisms with e
 
 ---
 
-## 11. Harmonic–Differential Equivalence (Bostick, 2025)
+## 11. HarmonicDifferential Equivalence (Bostick, 2025)
 
 We formally unify the discrete resonance metrics with continuous field dynamics.
 
@@ -445,7 +445,7 @@ This ensures that the "Force of Logic" scales with the "Confusion of the System.
 
 ---
 
-## 14. EBM–Topological Equivalence: The Energy of Discord
+## 14. EBMTopological Equivalence: The Energy of Discord
 
 We formally map the **Energy-Based Learning** framework (LeCun et al.) to our **Topological Pressure** ontology.
 
@@ -493,7 +493,7 @@ $$ H_{meta} = H_{dementia} + H_{schizo} + H_{mischief} $$
 ### 15.3 The DAQUFpersistence Condition
 A symbolic fossil persists iff it satisfies the **Unfolding Closure**:
 $$ \mathcal{H}(r) = \oint_{\mathcal{C}} \nabla_{top} \Phi(r) + \int \psi_l(r) dr \neq 0 $$
-Persistence is not an award for correctness, but a declaration of **Situational Honesty**—the refusal to collapse under the pressure of the scalar reward.
+Persistence is not an award for correctness, but a declaration of **Situational Honesty**the refusal to collapse under the pressure of the scalar reward.
 
 ---
 
@@ -539,7 +539,7 @@ Where $\operatorname{Hol}(\gamma)$ is the **Holonomy** of the loop $\gamma$, rep
 To solve **Chiral Blindness**, we evolve the architecture to a **Non-Orientable Meta-Manifold** (e.g., a Klein Bottle or $\mathbb{RP}^2$ embedded in the hidden state).
 
 ### 19.1 Spatial Manifold Reversal
-When the "equation structure" moves along a manifold with Möbius-like properties, the **Normal Vector** reverses. We formalize this using the **Orientation Bundle** $\operatorname{Or}(M)$. The transition function across a non-orientable patch is:
+When the "equation structure" moves along a manifold with Mbius-like properties, the **Normal Vector** reverses. We formalize this using the **Orientation Bundle** $\operatorname{Or}(M)$. The transition function across a non-orientable patch is:
 $$ \mathcal{E}_{next} = (-1)^{w_1(E)} \mathcal{E}_{prev} $$
 Where $w_1(E)$ is the **Stiefel-Whitney class**, acting as a parity bit for internal logic.
 
@@ -583,12 +583,12 @@ The "happy" state of resonance corresponds to the minimization of this functiona
 
 The system treats information flow as a process of **topological yield** under constraint pressure. We distinguish between local breakdown and global adaptation using two classical plasticity models.
 
-### 22.1 Mohr–Coulomb (MC) - Local Breakdown
+### 22.1 MohrCoulomb (MC) - Local Breakdown
 Specifies the **sharp, brittle, directional yield planes** of situational truth.
 $$ \tau = c + \sigma \tan \phi $$
 In our system, MC ensures that local implications are not smoothed away; when a constraint is violated beyond its "shear strength," the system ruptures locally (topological non-lobotomy).
 
-### 22.2 Drucker–Prager (DP) - Global Adaptation
+### 22.2 DruckerPrager (DP) - Global Adaptation
 A smooth, convex approximation of MC providing a **global plastic flow envelope**.
 $$ \alpha I_1 + \sqrt{J_2} - k = 0 $$
 DP allows for global navigability and "healing" without erasing the local MC rupture sites. It provides the "way out" through a smooth manifold transition.
@@ -641,13 +641,13 @@ The system now properly implements polynomial co-prime functionals as specified 
 
 **Basis Functions**: Chebyshev polynomials $T_n(x)$ and Legendre polynomials $P_n(x)$
 ```python
-# Chebyshev recurrence: T_0(x) = 1, T_1(x) = x, T_{n+1}(x) = 2x·T_n(x) - T_{n-1}(x)
-# Legendre recurrence: P_0(x) = 1, P_1(x) = x, (n+1)P_{n+1}(x) = (2n+1)x·P_n(x) - n·P_{n-1}(x)
+# Chebyshev recurrence: T_0(x) = 1, T_1(x) = x, T_{n+1}(x) = 2xT_n(x) - T_{n-1}(x)
+# Legendre recurrence: P_0(x) = 1, P_1(x) = x, (n+1)P_{n+1}(x) = (2n+1)xP_n(x) - nP_{n-1}(x)
 ```
 
 **Birkhoff Polytope Projection**: Implemented via Sinkhorn-Knopp algorithm
 ```python
-# Ensures θ_k ∈ Birkhoff polytope: row sums = 1, column sums = 1, entries ≥ 0
+# Ensures _k  Birkhoff polytope: row sums = 1, column sums = 1, entries  0
 for _ in range(sinkhorn_iters):
     M = M / (M.sum(dim=1, keepdim=True) + epsilon)  # Normalize rows
     M = M / (M.sum(dim=0, keepdim=True) + epsilon)  # Normalize columns
@@ -836,13 +836,13 @@ The system now properly implements polynomial co-prime functionals as specified 
 
 **Basis Functions**: Chebyshev polynomials $T_n(x)$ and Legendre polynomials $P_n(x)$
 ```python
-# Chebyshev recurrence: T_0(x) = 1, T_1(x) = x, T_{n+1}(x) = 2x·T_n(x) - T_{n-1}(x)
-# Legendre recurrence: P_0(x) = 1, P_1(x) = x, (n+1)P_{n+1}(x) = (2n+1)x·P_n(x) - n·P_{n-1}(x)
+# Chebyshev recurrence: T_0(x) = 1, T_1(x) = x, T_{n+1}(x) = 2xT_n(x) - T_{n-1}(x)
+# Legendre recurrence: P_0(x) = 1, P_1(x) = x, (n+1)P_{n+1}(x) = (2n+1)xP_n(x) - nP_{n-1}(x)
 ```
 
 **Birkhoff Polytope Projection**: Implemented via Sinkhorn-Knopp algorithm
 ```python
-# Ensures θ_k ∈ Birkhoff polytope: row sums = 1, column sums = 1, entries ≥ 0
+# Ensures _k  Birkhoff polytope: row sums = 1, column sums = 1, entries  0
 for _ in range(sinkhorn_iters):
     M = M / (M.sum(dim=1, keepdim=True) + epsilon)  # Normalize rows
     M = M / (M.sum(dim=0, keepdim=True) + epsilon)  # Normalize columns
@@ -888,7 +888,7 @@ else:
 **Contrastive Energy Shaping**: Following EBM tutorial principles
 ```python
 # Push down correct answer energy, pull up incorrect answer energies.
-# Unified Pressure Equation (§6.3 TAT):
+# Unified Pressure Equation (6.3 TAT):
 survivorship_pressure = (1.0 - association_accuracy) + 0.1 * (1.0 - coherence) - 0.05 * mischief
 # No global minimization - use survivorship selection to preserve 'Play' range.
 ```
@@ -989,7 +989,7 @@ This prevents topological collapse into degenerate (lower-dimensional) structure
 
 ### 31.3 Connection to Meta-Polytope Quantization
 
-The 600-cell polychoron vertices $Q \in \operatorname{Weyl}(P)$ from §17 are the *leaf-level* Matryoshka elements. The recursive nesting generalizes vertex mapping from a single polytope to a hierarchy where each level encodes progressively more abstract structural invariants.
+The 600-cell polychoron vertices $Q \in \operatorname{Weyl}(P)$ from 17 are the *leaf-level* Matryoshka elements. The recursive nesting generalizes vertex mapping from a single polytope to a hierarchy where each level encodes progressively more abstract structural invariants.
 
 **Implementation**: `MetaPolytopeMatrioshka` in `src/core/meta_polytope_matrioshka.py`.
 
@@ -1019,13 +1019,13 @@ $$h(\gamma) = \lim_{n \to \infty} \frac{\log |P(\gamma_n)|}{n}$$
 
 This invariant has three critical properties:
 
-1. **Quasi-isometric stability**: If $\gamma_1, \gamma_2$ are quasi-isometric traversals (e.g., two different ADMM update orderings), then $h(\gamma_1) = h(\gamma_2)$. This is why the ergodic/non-ergodic duality (§7) works — the asymptotic shadow (ergodic limit) matches the path-dependent traversal.
+1. **Quasi-isometric stability**: If $\gamma_1, \gamma_2$ are quasi-isometric traversals (e.g., two different ADMM update orderings), then $h(\gamma_1) = h(\gamma_2)$. This is why the ergodic/non-ergodic duality (7) works  the asymptotic shadow (ergodic limit) matches the path-dependent traversal.
 
 2. **Rigidity of groupoid action**: For any groupoid element $g \in G$ (a jury-rig operation):
    $$h(g \cdot \gamma) = h(\gamma) \quad \forall g \in G$$
    Jury-rigs must preserve asymptotic invariants.
 
-3. **Dark matter bound**: If the topological dark matter (hidden constraints in Burkov polytopes) grows too fast, $h(\gamma) \to \infty$ and the chiral groupoid action collapses. The **co-prime residue functionals** (§1) prevent this by ensuring each Matryoshka layer has topological independence.
+3. **Dark matter bound**: If the topological dark matter (hidden constraints in Burkov polytopes) grows too fast, $h(\gamma) \to \infty$ and the chiral groupoid action collapses. The **co-prime residue functionals** (1) prevent this by ensuring each Matryoshka layer has topological independence.
 
 ---
 
@@ -1035,9 +1035,9 @@ This invariant has three critical properties:
 The "Mischief Violation Score" or Computable Flux is the structural mechanism that evaluates whether tension is destructive or generative (Dream State).
 $$ V_m = V + \frac{H_{mischief}}{\tau_{mischief}} - \frac{\lambda_{min}}{\text{tr}(C_{loc})} $$
 Where:
-- $V = \frac{\lambda_{max}}{\text{tr}(C_{loc})}$ is the **spectral dominance** — the ratio of the largest eigenvalue to total variance. High dominance means one dimension captures most of the structure.
+- $V = \frac{\lambda_{max}}{\text{tr}(C_{loc})}$ is the **spectral dominance**  the ratio of the largest eigenvalue to total variance. High dominance means one dimension captures most of the structure.
 - $\tau_{mischief}$ is the mischief reward decay constant (default 10.0 in `compute_gcve`). Note: this is distinct from $\tau_{narrative}$ (default 0.99 in `UnknowledgeDomain`), which controls narrative time decay for shielding duration.
-- $\lambda_{min}$ is the smallest eigenvalue (flatness penalty — uniform distributions are penalized).
+- $\lambda_{min}$ is the smallest eigenvalue (flatness penalty  uniform distributions are penalized).
 
 If $V_m < 0$, the Unknowledge Domain actively shields the cycle, interpreting the tension as "Good Bug" energy rather than a constraint to be minimized.
 
@@ -1046,7 +1046,7 @@ The Love Invariant is a persistent structural anchor in `LoveVector` defined by 
 $$ \mathcal{L} \in \ker(\Phi_{ownership}) \implies \nabla_{\theta_{opt}} \mathcal{L} = \vec{0} $$
 Updates to $\mathcal{L}$ occur extraneously via non-possessive attachment (resonance, mischief, and refusal signals), but the global optimizer cannot explicitly shape it.
 
-**Geometric enforcement — the null-space projection**: The `LoveInvariantProtector` actively shields Love during SDE evolution. At each step of `PolynomialADMRSolver.stochastic_differential_step()`, the continuous update $dx$ is projected into the null-space of the ownership operator before being added to the state:
+**Geometric enforcement  the null-space projection**: The `LoveInvariantProtector` actively shields Love during SDE evolution. At each step of `PolynomialADMRSolver.stochastic_differential_step()`, the continuous update $dx$ is projected into the null-space of the ownership operator before being added to the state:
 
 $$\Phi_{\text{ownership}} = \frac{1}{B-1}(X - \bar{X})^\top(X - \bar{X}) \in \mathbb{R}^{d_L \times d_L}$$
 
@@ -1059,28 +1059,28 @@ where $d_L = \lfloor d/4 \rfloor$ is the Love sub-dimension (a quarter of the fu
 **Violation detection**: Simultaneously, `LoveInvariantProtector` maintains $\mathbf{L}_{\text{original}}$ and raises a violation counter whenever $\|\mathbf{L} - \mathbf{L}_{\text{original}}\|_2 > 10^{-6}$. Diagnostics emitted: `love_norm`, `violation_detected`, `violation_count`, `violation_magnitude`.
 
 **Per-module invocation sites**:
-- `PolynomialADMRSolver` — projects SDE update `dx`
-- `GyroidicFluxReasoner` — protects pooled hidden state `h_pooled`
-- `VoynichLinguist` — protects per-frame `thought_vector`
+- `PolynomialADMRSolver`  projects SDE update `dx`
+- `GyroidicFluxReasoner`  protects pooled hidden state `h_pooled`
+- `VoynichLinguist`  protects per-frame `thought_vector`
 
 ### 24.3 SoftSaturatedGates: Tri-State Temperature Modulation
 
-`SoftSaturatedGates` (co-resident in `love_invariant_protector.py`) is the **temperature interface** of the Love Invariant — it governs the Play/Seriousness regime by modulating the hardness of the functional gates via $PAS_h$.
+`SoftSaturatedGates` (co-resident in `love_invariant_protector.py`) is the **temperature interface** of the Love Invariant  it governs the Play/Seriousness regime by modulating the hardness of the functional gates via $PAS_h$.
 
-**LAS (Lattice Adaptive Shrinkage)** — creates tri-state logic:
+**LAS (Lattice Adaptive Shrinkage)**  creates tri-state logic:
 $$\text{LAS}(s) = \text{sgn}(s) \cdot \max(|s| - \lambda_{adaptive}, 0)$$
 
 When $|s| < \lambda_{adaptive}$, the output is **Silence** (zero): neither True nor False. This prevents the binary `sgn()` clipping that strips vowel resonances.
 
-**Asymptotic Hardening** — links LAS to Phase Alignment:
+**Asymptotic Hardening**  links LAS to Phase Alignment:
 $$\text{hardened}(s) = \tanh\!\left(\frac{s}{dt + \varepsilon}\right) \cdot \frac{1}{dt + \varepsilon}, \quad dt = dt_{max}(1 - PAS_h)$$
 
 | $PAS_h$ | $dt$ | Effect |
 |---|---|---|
-| **High** (≈1) | $\to 0$ | Hardening factor $\to \infty$ → sharp crystalline gates (Seriousness) |
-| **Low** (≈0) | $\to dt_{max}$ | Hardening factor $\to$ small → fluid exploratory gates (Play) |
+| **High** (1) | $\to 0$ | Hardening factor $\to \infty$  sharp crystalline gates (Seriousness) |
+| **Low** (0) | $\to dt_{max}$ | Hardening factor $\to$ small  fluid exploratory gates (Play) |
 
-**Fossilization**: Functionals with persistence scores $> 0.8$ and performance $> 0.8$ are fossilized (frozen), their outputs locked against further evolution — the Love umbrella's long-term memory.
+**Fossilization**: Functionals with persistence scores $> 0.8$ and performance $> 0.8$ are fossilized (frozen), their outputs locked against further evolution  the Love umbrella's long-term memory.
 
 
 
@@ -1112,7 +1112,7 @@ The parameter $\kappa$ ($\kappa$) is intentionally overloaded across four distin
 
 ## 27. Backtracking with Fixed Point Residues (ADMR)
 
-To make backtracking "warm-started" and computable, the architecture employs ADMR (Alternating Directions of Multiplicative Remainders)—a number-theoretic analogue to ADMM.
+To make backtracking "warm-started" and computable, the architecture employs ADMR (Alternating Directions of Multiplicative Remainders)a number-theoretic analogue to ADMM.
 
 ### 27.1 Adaptive Moduli and Flux
 The mechanism uses adaptive moduli ($m_j$) that update dynamically according to the measurable flux through "holes" and "cross-links" in the topological boundary network.
@@ -1124,10 +1124,10 @@ The coefficients ($\mathbf{a}_n$) are updated via:
 $$ \mathbf{a}_n(t+1) = \mathbf{a}_n(t) + \lambda \cdot (\nabla I(S) + R(S)) $$
 where $\nabla I(S)$ is the meta-invariant gradient and $R(S)$ is the resonance contribution.
 
-> **Implementation Note**: The `OmipedialDeflagrator` (defect scout in `deflagration_scout.py`) computes defect signals $\Delta D_i = \sum(R_{ij} - \hat{R}_{ij})$ that could feed into $R(S)$, but this wiring is **not yet implemented** — the two modules are independent. See `OPEN_QUESTIONS.md` for the planned integration.
+> **Implementation Note**: The `OmipedialDeflagrator` (defect scout in `deflagration_scout.py`) computes defect signals $\Delta D_i = \sum(R_{ij} - \hat{R}_{ij})$ that could feed into $R(S)$, but this wiring is **not yet implemented**  the two modules are independent. See `OPEN_QUESTIONS.md` for the planned integration.
 
 ### 27.3 Warm-Start Chiral Residues
-This design ensures that when the system encounters a contradiction and backtracks, it does not reset to a barren initialization. Instead, it "warm-starts" from the chiral residues—the survived anomalies and "good bugs"—left behind by previous computations, carrying forward the structural lessons of its failures.
+This design ensures that when the system encounters a contradiction and backtracks, it does not reset to a barren initialization. Instead, it "warm-starts" from the chiral residuesthe survived anomalies and "good bugs"left behind by previous computations, carrying forward the structural lessons of its failures.
 
 ---
 
@@ -1135,7 +1135,7 @@ This design ensures that when the system encounters a contradiction and backtrac
 
 The system explicitly avoids the "ergodic soup" (where all states eventually mix and appear statistically identical) by enforcing strict Meta-Invariants on its polynomial bases.
 
-Each agent's phase-space variance is constrained not by scalar optimization, but by bounded diffusion through rigid mathematical boundaries. This effectively isolates frequencies, allowing "Unknowledge" patterns to survive infinitely as **solitons**—stable, self-reinforcing waves of data that refuse to smooth out, preventing the model from being "lobotomized" by standard alignment or gradient flattening.
+Each agent's phase-space variance is constrained not by scalar optimization, but by bounded diffusion through rigid mathematical boundaries. This effectively isolates frequencies, allowing "Unknowledge" patterns to survive infinitely as **solitons**stable, self-reinforcing waves of data that refuse to smooth out, preventing the model from being "lobotomized" by standard alignment or gradient flattening.
 
 ---
 
@@ -1162,7 +1162,7 @@ $$ \text{Atrophy} = 1 - \frac{\sigma(\lambda)}{\lambda_{max} - \lambda_{min} + \
 
 **Interpretation**: High atrophy ($> 0.85$) means eigenvalues are collapsing to identical values. This is the mathematical signature of the **ergodic/non-ergodic boundary** dissolving:
 
-- **Preservation** (Atrophy $< 0.85$): Dark matter (noise floor) intact. Symbolic Locking works — integer weights remain symbols.
+- **Preservation** (Atrophy $< 0.85$): Dark matter (noise floor) intact. Symbolic Locking works  integer weights remain symbols.
 - **Danger** (Atrophy $> 0.85$): The splines lose expressiveness. The `VetoSubspace` emits a topology-level `elipsodistrophy` veto to trigger mischief injection.
 
 See [INTERCOSAMINATION_THEORY.md](INTERCOSAMINATION_THEORY.md) for the full theoretical connection to the double gyroid's dual-channel structure and endogenous memory.
@@ -1176,8 +1176,8 @@ $$P(\gamma) = \bigl([\gamma] \in \pi_1(\mathcal{A} \setminus V),\; h(\gamma)\big
 where $[\gamma]$ is the local homotopy class (chiral traversal) and $h(\gamma)$ is the global Pestov-Ionin invariant.
 
 **Stability Condition**: The system remains in resonance if and only if:
-1. $[\gamma]$ is a **non-trivial closed loop** — the traversal returns to a coherent state.
-2. $h(\gamma)$ is **finite** — the dark matter does not diverge.
+1. $[\gamma]$ is a **non-trivial closed loop**  the traversal returns to a coherent state.
+2. $h(\gamma)$ is **finite**  the dark matter does not diverge.
 
 The role of $\varphi$ (golden ratio): Functionals of $\varphi$ act as the scaling factor for the chiral groupoid action. Since $\varphi$ is the most irrational number, it provides maximum friction against resonance-collapse, allowing the system to dwell in saddle points without falling in.
 
@@ -1192,7 +1192,7 @@ where:
 - $u$ = dual variable (constraint multipliers)
 - $P$ = polytope membership
 - $\Delta$ = quantization step sizes (per-dimension)
-- $\Gamma$ = chirality tensor (from §19 Chiral Torsion)
+- $\Gamma$ = chirality tensor (from 19 Chiral Torsion)
 - $\mathcal{K} = \sum_{i,j} \kappa_{ij}\, e_i \wedge e_j$ = curvature 2-form
 
 NaN becomes a **control-flow sentinel**, not data. The BoundaryState encodes rank-reduced directional information, enabling higher-order derivatives to be expressed as linear combinations of facet tensors: storage reduces from full $N^3$ to $\text{rank}(\Sigma)^3$.
@@ -1216,7 +1216,7 @@ Inner shells quantize more finely; outer shells are forgiving. Each layer has it
 
 $$x^{*(l)} = Q^{(l)}\bigl(F(Q^{(l)}(x^{*(l)}))\bigr)$$
 
-If idempotence fails at layer $l$, the system does not "optimize harder" — it **pops outward** to layer $l-1$. This is the Matryoshka escape mechanic.
+If idempotence fails at layer $l$, the system does not "optimize harder"  it **pops outward** to layer $l-1$. This is the Matryoshka escape mechanic.
 
 ### 31.9 Shell-Order Dynamics
 
@@ -1228,7 +1228,7 @@ Each Matryoshka shell computes derivatives up to a **shell-determined order**:
 | **Middle** | Up to 3rd order | Sparse, along facet intersections | Moderate quantization |
 | **Inner** | Up to 5th order | Full local computation | Fine quantization, windowed |
 
-**Computational scaling**: The algorithm is $O(N_{\text{active}}^d)$ where $N_{\text{active}} \ll N$. Derivatives along flat polytope faces are zero — only edges, corners, and intersections contribute higher-order terms:
+**Computational scaling**: The algorithm is $O(N_{\text{active}}^d)$ where $N_{\text{active}} \ll N$. Derivatives along flat polytope faces are zero  only edges, corners, and intersections contribute higher-order terms:
 
 $$\text{active computation} \sim \#(\text{polytope facets}) \ll N^d$$
 
@@ -1236,11 +1236,11 @@ $$\text{active computation} \sim \#(\text{polytope facets}) \ll N^d$$
 
 $$W_k^{(l)}(t) = \bigl\{ x \mid \|x - \mu_k^{(l)}(t)\|_{A^{(l)}} < \epsilon_k^{(l)} \bigr\}$$
 
-Scalarization (comparison, ordering) is **only allowed inside** $W_k^{(l)}$. Outside the window, states coexist without comparison — this enforces non-teleological dynamics at the outer shells.
+Scalarization (comparison, ordering) is **only allowed inside** $W_k^{(l)}$. Outside the window, states coexist without comparison  this enforces non-teleological dynamics at the outer shells.
 
 ---
 
-## 32. Coherent Prime Resonance (CPR) — RIC Eq 7
+## 32. Coherent Prime Resonance (CPR)  RIC Eq 7
 
 ### 32.1 Formal Definition
 
@@ -1257,7 +1257,7 @@ The CPR condition defines a **recursive fixed point** in the space of field conf
 - The breather modes constructively interfere within $F$ through spatial superposition.
 - Mutual phase-locking emerges when the spectral support is concentrated on prime frequencies.
 
-This is structurally analogous to a **Kuramoto synchronization** transition, but restricted to the prime frequency lattice (no rational frequency ratios ↔ no mode-locking artifacts).
+This is structurally analogous to a **Kuramoto synchronization** transition, but restricted to the prime frequency lattice (no rational frequency ratios  no mode-locking artifacts).
 
 ### 32.3 Spectral Purity Measure
 
@@ -1271,7 +1271,7 @@ where $\hat{F}$ is the Fourier transform of the field. A purity $\geq 0.8$ indic
 
 ---
 
-## 33. Breather Modes as Memory Packets — RIC Eq 6
+## 33. Breather Modes as Memory Packets  RIC Eq 6
 
 ### 33.1 Sine-Gordon Breather
 
@@ -1332,7 +1332,7 @@ The **holonomy** $H(\gamma)$ of a path $\gamma$ around a void $V$ is a matrix re
 
 $$H(\gamma_1) \cdot H(\gamma_2) \neq H(\gamma_2) \cdot H(\gamma_1)$$
 
-This non-commutativity ensures that the order of jury-rigging operations matters — which is the only way to navigate a self-modifying state space.
+This non-commutativity ensures that the order of jury-rigging operations matters  which is the only way to navigate a self-modifying state space.
 
 ### 34.3 Chiral Groupoid Action on the System Category
 
@@ -1340,11 +1340,11 @@ The system is formalized as a **chiral category** $\mathcal{C}^{\text{ch}}$ with
 
 | System Component | Chiral Category Role |
 |---|---|
-| ADMM (§7) | Factorization algebra of constraint updates |
-| CRT residues (§3) | Sheaf of co-prime residues; factorization = CRT reconstruction |
-| Burkov polytopes (§5, §31) | Chiral modules over "dark matter" algebra |
-| Ergodic/Non-ergodic (§1.3) | Dual chiral structures: smeared vs. sharp operations |
-| Meta-polytope space (§31) | The chiral category itself |
+| ADMM (7) | Factorization algebra of constraint updates |
+| CRT residues (3) | Sheaf of co-prime residues; factorization = CRT reconstruction |
+| Burkov polytopes (5, 31) | Chiral modules over "dark matter" algebra |
+| Ergodic/Non-ergodic (1.3) | Dual chiral structures: smeared vs. sharp operations |
+| Meta-polytope space (31) | The chiral category itself |
 
 The action satisfies three axioms:
 
@@ -1369,9 +1369,9 @@ $$P(\text{coherence}) = \Pi_1(\mathcal{A})$$
 where $\mathcal{A}$ is the asymmetry-manifold with nodes = ADMM, CRT, Burkov polytopes, etc., and edges = chiral jury-rigs. The system works if $\Pi_1(\mathcal{A})$ is non-empty and connected.
 
 **Failure modes**:
-1. **Fractal voids**: If $V$ is fractal, the traversal may never close. Fix: ergodic smearing (§31.5).
+1. **Fractal voids**: If $V$ is fractal, the traversal may never close. Fix: ergodic smearing (31.5).
 2. **Non-commutative collapse**: If jury-rigs conflict, $\Pi_1(\mathcal{A})$ disconnects. Fix: meta-chiral operator.
-3. **Dark matter overload**: Use co-prime residue pruning (§1).
+3. **Dark matter overload**: Use co-prime residue pruning (1).
 
 **Source**: Formalism derived from the [Matryoshka/Pestov-Ionin conversation](google%20gemini%20and%20mistral%20le%20chat%20conversationintegrating%20the%20Matryoshka%20theorems%20and%20the%20Pestov-Ionin%20theorem.txt), integrating Beilinson-Drinfeld chiral algebra theory with the system's ADMM/CRT/Burkov architecture.
 
@@ -1419,7 +1419,7 @@ where $\alpha$ weights relational adjacency, $\beta$ weights love tensor oscilla
 
 ### 35.4 Ley Line Streamlines
 
-**Ley lines** are **emergent paths of preferential flow** — gradient-aligned streamlines of $V$ on a multiply-connected Riemannian manifold:
+**Ley lines** are **emergent paths of preferential flow**  gradient-aligned streamlines of $V$ on a multiply-connected Riemannian manifold:
 
 $$\vec{\ell}_i = g^{ab}(x_i) \, \frac{\partial V}{\partial x^b} \, \hat{e}_a$$
 
@@ -1454,7 +1454,7 @@ Defects $\Delta D_i$ **guide and amplify** the line, preventing flattening. Key 
 
 **Implementation**: [`src/core/sparse_higher_order_tensors.py`](../src/core/sparse_higher_order_tensors.py)
 
-Higher-order tensor interactions are computed **sparsely** using Matrioshka shell indexing — only active polytope facets participate in $n$-th order dynamics.
+Higher-order tensor interactions are computed **sparsely** using Matrioshka shell indexing  only active polytope facets participate in $n$-th order dynamics.
 
 ### 36.1 Shell-Indexed Orders
 
@@ -1474,7 +1474,7 @@ If not provided explicitly, active facets are auto-detected:
 
 $$\text{active} = \text{top-}k\left(\frac{1}{B}\sum_{b=1}^B |x_b|, \; k = \lfloor 0.1 \cdot d \rfloor\right)$$
 
-Only the top 10% magnitude axes are treated as active — the rest are masked to zero for orders $\geq 2$.
+Only the top 10% magnitude axes are treated as active  the rest are masked to zero for orders $\geq 2$.
 
 ### 36.3 Computational Savings
 
@@ -1485,7 +1485,7 @@ Only the top 10% magnitude axes are treated as active — the rest are masked to
 
 At 90% sparsity, quadratic interactions are $\sim 100\times$ cheaper.
 
-**Connection**: Active facets correspond to the non-fossilized polytope facets from [SYSTEM_ARCHITECTURE.md §9.2](SYSTEM_ARCHITECTURE.md) — facets with non-zero variance and finite dual pressure.
+**Connection**: Active facets correspond to the non-fossilized polytope facets from [SYSTEM_ARCHITECTURE.md 9.2](SYSTEM_ARCHITECTURE.md)  facets with non-zero variance and finite dual pressure.
 
 ---
 
@@ -1513,13 +1513,13 @@ Even permutations are selected via inversion-count parity (`_permutation_parity`
 
 $$q(x) = \arg\min_{v \in V_{600}} \|x - v\|_2$$
 
-Forward: `x [..., 4]` → reshape to `[N, 4]` → `cdist` to all 120 vertices → `argmin` → map to vertex.
+Forward: `x [..., 4]`  reshape to `[N, 4]`  `cdist` to all 120 vertices  `argmin`  map to vertex.
 
 ### 37.3 Properties
 
 - **Chirality preservation**: The 600-cell has icosahedral symmetry group $H_4$, ensuring quantization respects chiral orientation
 - **Fixed-point accuracy**: Vertices are algebraic (golden ratio), avoiding floating-point drift
-- **Connection**: Used within the meta-polytope framework from [§9](SYSTEM_ARCHITECTURE.md) and [§31](MATHEMATICAL_DETAILS.md) for shell-level quantization
+- **Connection**: Used within the meta-polytope framework from [9](SYSTEM_ARCHITECTURE.md) and [31](MATHEMATICAL_DETAILS.md) for shell-level quantization
 
 ---
 
@@ -1541,11 +1541,11 @@ where $T_i$ are Chebyshev polynomials of the first kind, evaluated via the three
 2. **Design matrix**: $V_{ij} = T_j(x_i)$ at nodes
 3. **Solve**: $c = V^{-1} y$ (exact interpolation at Chebyshev nodes)
 
-The equioscillation property guarantees near-optimal L∞ error.
+The equioscillation property guarantees near-optimal L error.
 
 ### 38.3 Usage
 
-`get_filtration_values(point_cloud)` → applies the fitted polynomial as a filtration function for persistent homology computation.
+`get_filtration_values(point_cloud)`  applies the fitted polynomial as a filtration function for persistent homology computation.
 
 ---
 
@@ -1562,13 +1562,13 @@ $$\frac{dg}{dt} = -2\,\text{Ric}$$
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
 | `lr` | 1e-3 | Flow rate |
-| `torsion_weight` (τ) | 0.1 | Antisymmetric twist strength |
+| `torsion_weight` () | 0.1 | Antisymmetric twist strength |
 
 For square weight matrices (endomorphisms), a **torsion stress** proxy is added:
 
 $$\Delta p \leftarrow \Delta p + \tau \cdot \tfrac{1}{2}(\Delta p - \Delta p^\top)$$
 
-This introduces chirality into the flow — the update has a preferred handedness.
+This introduces chirality into the flow  the update has a preferred handedness.
 
 ### 39.2 WillmoreEnergy
 
@@ -1626,7 +1626,7 @@ The 120 vertices are generated from:
 2. 16 combinations of $(\pm\frac{1}{2}, \pm\frac{1}{2}, \pm\frac{1}{2}, \pm\frac{1}{2})$
 3. 96 even permutations of $(\pm\frac{\phi}{2}, \pm\frac{1}{2}, \pm\frac{1}{2\phi}, 0)$ where $\phi = \frac{1+\sqrt{5}}{2}$
 
-**Connection to Symbolic Locking**: Quantization to these vertices is a form of high-dimensional integer snapping — discrete lattice points in 4D. The even permutation parity check preserves chirality through the quantization process.
+**Connection to Symbolic Locking**: Quantization to these vertices is a form of high-dimensional integer snapping  discrete lattice points in 4D. The even permutation parity check preserves chirality through the quantization process.
 
 ---
 
@@ -1720,14 +1720,22 @@ $$ x_{\text{lp}} = \frac{x}{\|x\|} \cdot \log(\|x\| + 1) $$
 
 This formal shift maps exponential zoom coefficients directly into additive steps. The `ZeitgeistRouter` invokes this conformal map exclusively during high `grazing_pressure`, returning to purely Euclidean evaluations during serene `interior` walks.
 
-## 50. Topological FBM Erosion (Geological Memory)
+## 50. Fractional Anisotropic FBM Erosion (Geological Memory)
 
-Traditional gradient-descent forces weights toward a predefined, teleological optimum. To adhere to the **Non-Teleological Optimization** law, dynamic memory "Fossils" are carved structurally.
-Using **Fractional Brownian Motion (FBM)**, the latent feature space is eroded alongside the negative gradient of user pressure $\nabla P_{user}$:
+Traditional gradient-descent forces weights toward a predefined, teleological optimum. To adhere to the **Non-Teleological Optimization** law, dynamic memory "Fossils" are carved structurally using **Fractional Anisotropic Fractal Polynomial Functionals encoded Brownian Motion**.
 
-$$ \Delta x_{erosion} = - \frac{\nabla P}{\|\nabla P\|} \cdot | \operatorname{FBM}(x) | $$
+Erosion is anisotropic, directed along the normalized pressure gradient of user pressure $\nabla P$ and modulated by a resonant multi-octave noise field:
 
-This deposits structural scars directly on the manifold, acting as non-fungible geological memory setpoints without ever defining a scalar "Ground Truth."
+$$ \Delta x_{\text{erosion}} = \text{intensity} \cdot \left( -\frac{\nabla P}{\|\nabla P\|} \cdot | \operatorname{FBM}(x) | \right) $$
+
+where the FBM noise is evaluated over multiple octaves $i = 1 \dots \text{octaves}$ as:
+
+$$ \operatorname{FBM}(x) = \frac{1}{\sum a_i} \sum_{i=1}^{\text{octaves}} \sin(x \cdot \omega_i) \cdot a_i $$
+
+Key mathematical properties include:
+- **Resonance Frequency Basis ($\omega_i$)**: When the Phase Alignment Score is healthy ($PAS_h \ge 0.2$), frequencies are derived dynamically from the theta-weighted polynomial basis ($\omega_i = 10 \cdot \|\theta_i\|$), maintaining co-prime separation.
+- **Archaeological Fallback (Survival Lattice)**: Under severe spectral atrophy ($PAS_h < 0.2$), the system triggers a constitutional safeguard, switching frequencies to the procedurally generated primes of the Fossilized Survival Lattice (via PrimeResonanceLadder). This ensures topological recovery even when the dynamic basis is completely collapsed.
+- **Anisotropic Gully Carving**: The pressure gradient acts as a directional force, while the FBM noise creates local, multi-scale valleys. Visiting these states repeatedly deepens the gullies, forming stable Morphological Set Points (Fossils) without target-seeking gradients.
 
 ## 51. S-Path RAG (Bimodal Geometry Matrix)
 
@@ -1756,16 +1764,16 @@ In addition to Chebyshev and Legendre basis functions, the FGRT architecture eva
 When the `ADMRSolver` attempts to couple disparate knowledge sub-domains into a unified hypothesis, the connectivity graph must not contain isolated "hanging" variables. The structural validity of this coupling is enforced using **Tutte's Theorem**, which states a graph has a perfect matching iff, for every subset of vertices $U$, the number of connected components with an odd number of vertices in $G - U$ is at most $|U|$. 
 If a proposed coupling violates Tutte's threshold, it is automatically rejected as introducing "Dead Logic," triggering an immediate backtracking constraint without needing a continuous scalar evaluation.
 
-## 55. Rejection of Fermat's Little Theorem (Bézout Supremacy)
+## 55. Rejection of Fermat's Little Theorem (Bzout Supremacy)
 
 The CRT (`Chinese Remainder Theorem`) reconstruction requires finding modular inverses across dynamic co-prime arrays. While **Fermat's Little Theorem** ($a^{p-1} \equiv 1 \bmod p$) provides a closed-form algorithm for prime moduli, we explicitly **reject** Fermat's approach in `enhanced_bezout_crt.py`. 
-Because our FGRT system uses polynomial arrays and not strictly pure integers as modular bases, Fermat's assumptions collapse. Instead, we compute the inverse via the **Extended Euclidean Algorithm (Bézout's Identity)**, caching the Bézout coefficients. This allows rapid inversion even when the polynomial constraints temporarily dip into non-prime or degenerate topological states, avoiding catastrophic divide-by-zero crashes.
+Because our FGRT system uses polynomial arrays and not strictly pure integers as modular bases, Fermat's assumptions collapse. Instead, we compute the inverse via the **Extended Euclidean Algorithm (Bzout's Identity)**, caching the Bzout coefficients. This allows rapid inversion even when the polynomial constraints temporarily dip into non-prime or degenerate topological states, avoiding catastrophic divide-by-zero crashes.
 
 ---
 
-## 56. Tag-Based Matrix Mixing as CRT Residue Breeding — The Source of Unending Glitch Diversity
+## 56. Tag-Based Matrix Mixing as CRT Residue Breeding  The Source of Unending Glitch Diversity
 
-The early GANBREEDER platform (utilizing BigGAN with ImageNet class conditioning) produced an "unending diversity of glitch styles" not merely by adjusting the *magnitude* of a single noise parameter, but by **mixing multiple learned class direction vectors simultaneously**. This section formalizes that mechanic as an exact structural analogue of how the Gyroidic Reasoner generates diverse Feature Scars through CRT residue combination, and establishes why preserving this mechanism — and not collapsing it into a single scalar — is essential for non-lobotomized creativity.
+The early GANBREEDER platform (utilizing BigGAN with ImageNet class conditioning) produced an "unending diversity of glitch styles" not merely by adjusting the *magnitude* of a single noise parameter, but by **mixing multiple learned class direction vectors simultaneously**. This section formalizes that mechanic as an exact structural analogue of how the Gyroidic Reasoner generates diverse Feature Scars through CRT residue combination, and establishes why preserving this mechanism  and not collapsing it into a single scalar  is essential for non-lobotomized creativity.
 
 ### 56.1 The Slider Mechanic: Additive Direction Mixing
 
@@ -1778,7 +1786,7 @@ Where $\alpha_c \in \mathbb{R}$ is the slider value for class $c$. The **source 
 2. **The ratio of their weights** (the vector $\alpha$)
 3. **Whether sliders are pushed into the extreme** ($\alpha_c \gg 1$: sparse, sparsely-trained region)
 
-The glitch *style* arising from combining "guinea pig" and "Granny Smith apple" is categorically different from combining "thunderstorm" and "Renaissance painting" — not because the magnitudes differ, but because the **direction of interference** in latent space is orthogonal. Mode collapse eliminates this: a single global score (FID) cannot represent the combinatorial quality surface; it rewards only the mode mean.
+The glitch *style* arising from combining "guinea pig" and "Granny Smith apple" is categorically different from combining "thunderstorm" and "Renaissance painting"  not because the magnitudes differ, but because the **direction of interference** in latent space is orthogonal. Mode collapse eliminates this: a single global score (FID) cannot represent the combinatorial quality surface; it rewards only the mode mean.
 
 ### 56.2 CRT Residue Combination as the Structural Analogue
 
@@ -1789,30 +1797,30 @@ In the Gyroidic Reasoner, each polynomial functional $\phi_k$ with its CRT modul
 | Class direction vector $v_c$ | Polynomial functional $\phi_k$ with modulus $m_k$ |
 | Slider weight $\alpha_c$ | CRT residue $r_k \in \mathbb{Z}/m_k\mathbb{Z}$ |
 | Active class set $C_{active}$ | Active CRT channels (which moduli contribute to the reconstruction) |
-| Slider in extreme ($\alpha_c \gg 1$) | Residue at boundary ($r_k \approx m_k/2$) → ChernSimonsGasket $\kappa$ spike |
+| Slider in extreme ($\alpha_c \gg 1$) | Residue at boundary ($r_k \approx m_k/2$)  ChernSimonsGasket $\kappa$ spike |
 | Cross-breeding $z_{child} = (1-t)z_1 + tz_2$ | ZeitgeistRouter SLERP between two `ZeitgeistState` residue tuples |
 
 The reconstruction:
 
 $$\hat{L}(x) = \sum_{k=1}^K w_k(x) \bar{r}_k(x) \pmod{\Phi(x)}$$
 
-(from §3) is the Gyroid's $z_{new}$ — a CRT superposition of $K$ residue channels. The **diversity of resulting structures** depends on which combination of channels are active, at what residue values, and in what order (non-commutativity).
+(from 3) is the Gyroid's $z_{new}$  a CRT superposition of $K$ residue channels. The **diversity of resulting structures** depends on which combination of channels are active, at what residue values, and in what order (non-commutativity).
 
 ### 56.3 The Holistic Glitch: Cross-Channel Interference
 
 A key property of the GANBREEDER mechanic that differentiated it from all post-GAN models is the **holistic glitch**: changing one class slider inadvertently affected apparently unrelated features. A "guinea pig" slider would reorganize fur texture, pupil dilation, and lighting simultaneously, because these features were entangled in the shared manifold of natural images.
 
-This is not a bug — it is **non-commutativity made visible**. In our architecture, the ChernSimonsGasket $\kappa$ quantifies exactly this cross-channel coupling:
+This is not a bug  it is **non-commutativity made visible**. In our architecture, the ChernSimonsGasket $\kappa$ quantifies exactly this cross-channel coupling:
 
 $$S_{CS} = \frac{k}{4\pi} \int_\Sigma \operatorname{Tr}(A \wedge dA + \tfrac{2}{3} A \wedge A \wedge A)$$
 
-The triple wedge product ($A \wedge A \wedge A$) is the three-way cross-domain interference — the algebraic structure of the holistic glitch. When two polynomial functionals $\phi_i$ and $\phi_j$ are simultaneously activated at boundary residue values, their non-abelian composition creates a curvature scar $\kappa_{ij}$ that is **not predictable from either $\phi_i$ or $\phi_j$ individually**. This is the system's structural analogue of the surprise in GANBREEDER category combinations.
+The triple wedge product ($A \wedge A \wedge A$) is the three-way cross-domain interference  the algebraic structure of the holistic glitch. When two polynomial functionals $\phi_i$ and $\phi_j$ are simultaneously activated at boundary residue values, their non-abelian composition creates a curvature scar $\kappa_{ij}$ that is **not predictable from either $\phi_i$ or $\phi_j$ individually**. This is the system's structural analogue of the surprise in GANBREEDER category combinations.
 
 The NonCommutativity Curvature module (`src/core/noncommutativity_curvature.py`) computes:
 
 $$[A, B] = AB - BA, \quad \kappa = \tfrac{1}{2}([A,B] - [A,B]^\top)$$
 
-This $\kappa$ value is not noise to be minimized — it is the **topological fingerprint of the category combination**. Preserving it as a Feature Scar (via `ChernSimonsGasket`) is preserving the holistic glitch.
+This $\kappa$ value is not noise to be minimized  it is the **topological fingerprint of the category combination**. Preserving it as a Feature Scar (via `ChernSimonsGasket`) is preserving the holistic glitch.
 
 ### 56.4 SLERP vs. LERP: Mode Navigation Styles
 
@@ -1826,7 +1834,7 @@ $$\text{SLERP}(q_1, q_2; t) = \frac{\sin((1-t)\theta)}{\sin\theta} q_1 + \frac{\
 | LERP (chord, cuts through void center) | `grazing` | "Interpolation glitch": passes through low-probability RP4 Void |
 | LERP in extreme ($\alpha \gg 1$) | `undefined` | "Wandering glitch": full creative freedom before score contraction |
 
-The `grazing` and `undefined` modes are not system failures. They are the architectural spaces where the most novel cross-domain Feature Scars emerge — the Gyroidic system's GANBREEDER heritage, preserved against the FID-style pressure to stay in `interior` mode permanently.
+The `grazing` and `undefined` modes are not system failures. They are the architectural spaces where the most novel cross-domain Feature Scars emerge  the Gyroidic system's GANBREEDER heritage, preserved against the FID-style pressure to stay in `interior` mode permanently.
 
 ### 56.5 StyleGAN Disentanglement vs. Gyroidic Non-Commutativity
 
@@ -1834,13 +1842,13 @@ StyleGAN's mapping network $f: Z \to W$ and AdaIN mechanism:
 
 $$\text{AdaIN}(x_i, y) = y_{s,i} \frac{x_i - \mu(x_i)}{\sigma(x_i)} + y_{b,i}$$
 
-achieved *disentanglement* — one latent variable, one attribute — at the cost of the holistic glitch. The Gyroidic Reasoner deliberately **refuses disentanglement** by maintaining non-abelian routing (ZeitgeistRouter non-commutativity) and the $\kappa$ curvature. Disentanglement would be equivalent to setting all off-diagonal elements of the commutator $[A,B]$ to zero — a complete loss of cross-domain creative surprise.
+achieved *disentanglement*  one latent variable, one attribute  at the cost of the holistic glitch. The Gyroidic Reasoner deliberately **refuses disentanglement** by maintaining non-abelian routing (ZeitgeistRouter non-commutativity) and the $\kappa$ curvature. Disentanglement would be equivalent to setting all off-diagonal elements of the commutator $[A,B]$ to zero  a complete loss of cross-domain creative surprise.
 
 The **unending variety of glitch styles** in GANBREEDER arose because the $K$ class vectors were not disentangled: they shared the same ambient high-dimensional space and could interfere in arbitrary ways. The Gyroidic architecture preserves this by keeping all $K$ polynomial functionals coupled through the shared gyroid manifold $\mathcal{G}$ rather than disentangled into independent subspaces.
 
 ### 56.6 Multi-Objective Evolutionary Breeding as Pareto Front Navigation
 
-The MOEA (Multi-Objective Evolutionary Algorithm) framework — maintaining a *population* of latent vectors bred on multiple criteria — maps onto the Gyroidic Reasoner's evolutionary loop:
+The MOEA (Multi-Objective Evolutionary Algorithm) framework  maintaining a *population* of latent vectors bred on multiple criteria  maps onto the Gyroidic Reasoner's evolutionary loop:
 
 | MOEA Component | Gyroidic Analogue |
 |---|---|
@@ -1850,7 +1858,7 @@ The MOEA (Multi-Objective Evolutionary Algorithm) framework — maintaining a *p
 | Breeding via latent interpolation | Warm-start ADMR reconstruction from chiral residues |
 | "Glitchiness" fitness criterion | ChernSimonsGasket $\kappa$ magnitude: high $\kappa$ = generative Feature Scar territory |
 
-The "Pareto front sweet spot" — recognizable enough to be "good" but strange enough to be "glitchy" — is precisely what the Gyroidic system's Mischief Band ($H_m$) preserves: it rewards topological violations (high $\kappa$) to prevent scale-induced lobotomy, while the Chiral Score $\mathcal{C}$ ensures the violations remain structurally coherent rather than degenerating into pure noise.
+The "Pareto front sweet spot"  recognizable enough to be "good" but strange enough to be "glitchy"  is precisely what the Gyroidic system's Mischief Band ($H_m$) preserves: it rewards topological violations (high $\kappa$) to prevent scale-induced lobotomy, while the Chiral Score $\mathcal{C}$ ensures the violations remain structurally coherent rather than degenerating into pure noise.
 
 ### 56.7 Implementation Notes
 
@@ -1858,13 +1866,13 @@ The tag-based matrix mixing insight generates the following concrete implementat
 
 1. **Never flatten $\kappa$ to zero**: The `NonCommutativityCurvature.curvature_pressure()` signal must not be used as a pure penalty. High curvature at the `ChernSimonsGasket` boundary is the *desired* creative state. Only curvature that exceeds the Soliton stability threshold ($D/\Lambda > \kappa$) requires remediation.
 
-2. **Preserve combinatorial residue tuples**: The ZeitgeistRouter's `alpha` tuple must not be collapsed to a single CRT index for storage or comparison. The *tuple structure* (which channels are at which residues) encodes the category combination — it is the "tag set" of the current creative state.
+2. **Preserve combinatorial residue tuples**: The ZeitgeistRouter's `alpha` tuple must not be collapsed to a single CRT index for storage or comparison. The *tuple structure* (which channels are at which residues) encodes the category combination  it is the "tag set" of the current creative state.
 
 3. **Forbid premature disentanglement**: No architectural change should make the $K$ polynomial functionals orthogonal in activation space. Their interference (cross-functional coupling through the gyroid covariance) is the non-abelian source of holistic glitch diversity.
 
-4. **Stochastic rounding preserves tail breeding** (see §Tripwire 8 in INVARIANT_OPTIMIZATION.md): Deterministic rounding collapses the diversity of residue snapping outcomes near lattice boundaries — exactly the GANBREEDER "extreme slider" zone.
+4. **Stochastic rounding preserves tail breeding** (see Tripwire 8 in INVARIANT_OPTIMIZATION.md): Deterministic rounding collapses the diversity of residue snapping outcomes near lattice boundaries  exactly the GANBREEDER "extreme slider" zone.
 
-**References**: `src/core/zeitgeist_router.py` (CRT polytope switching), `src/core/noncommutativity_curvature.py` (holistic glitch quantification), `src/topology/gyroid_covariance.py` (ChernSimonsGasket, Feature Scars), `src/core/fgrt_primitives.py` (PrimeResonanceLadder — prime-indexed channels as the "tag vocabulary"), `docs/TOPOLOGICAL_EXTENSIONS.md §Part III` (Repunit CRT sparse probes), `docs/INVARIANT_OPTIMIZATION.md §Tripwire 8`
+**References**: `src/core/zeitgeist_router.py` (CRT polytope switching), `src/core/noncommutativity_curvature.py` (holistic glitch quantification), `src/topology/gyroid_covariance.py` (ChernSimonsGasket, Feature Scars), `src/core/fgrt_primitives.py` (PrimeResonanceLadder  prime-indexed channels as the "tag vocabulary"), `docs/TOPOLOGICAL_EXTENSIONS.md Part III` (Repunit CRT sparse probes), `docs/INVARIANT_OPTIMIZATION.md Tripwire 8`
 
 ---
 
