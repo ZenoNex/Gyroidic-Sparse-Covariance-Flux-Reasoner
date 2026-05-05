@@ -67,10 +67,13 @@ class MinimaxPolynomialApproximation(nn.Module):
 
     def _evaluate_naive(self, x_sym: torch.Tensor) -> torch.Tensor:
         """Naive evaluation sum c_i T_i(x)."""
+        from src.core.honest_jitter import harvest_honest_jitter
+        dc_shift = harvest_honest_jitter((1,), scaled=True)[0].item() * 0.01  # Phase 25 DC Shift
+        
         T_prev = torch.ones_like(x_sym)
         T_curr = x_sym
         
-        result = self.coefficients[0] * T_prev
+        result = (self.coefficients[0] + dc_shift) * T_prev
         if self.degree >= 1:
             result += self.coefficients[1] * T_curr
             
