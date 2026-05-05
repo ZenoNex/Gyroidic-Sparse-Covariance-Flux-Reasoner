@@ -30,7 +30,7 @@ class PolynomialADMRSolver(nn.Module):
         self,
         poly_config: PolynomialCoprimeConfig,
         state_dim: int,
-        eta_scaffold: float = 0.01,
+        eta_scaffold: Optional[float] = None,
         device: str = None,
         use_opencl: bool = False
     ):
@@ -45,8 +45,13 @@ class PolynomialADMRSolver(nn.Module):
         super().__init__()
         self.config = poly_config
         self.state_dim = state_dim
-        self.eta_scaffold = eta_scaffold
         self.device = device
+        
+        if eta_scaffold is None:
+            # Derive dynamically from honest jitter to ground in hardware latency
+            self.eta_scaffold = harvest_honest_jitter((1,), device=device, scaled=False).mean().item() * 0.05
+        else:
+            self.eta_scaffold = eta_scaffold
         
         if use_opencl:
             try:
@@ -207,7 +212,7 @@ class PolynomialADMRSolver(nn.Module):
         neighbor_states: torch.Tensor, 
         adjacency_weight: torch.Tensor,
         dt: float = 0.1,
-        sigma: float = 0.01,
+        sigma: Optional[float] = None,
         v_m: Optional[torch.Tensor] = None,
         elipsodistrophy_metrics: Optional[Dict[str, Any]] = None,
         palindromic_hash: Optional[torch.Tensor] = None,
@@ -231,6 +236,10 @@ class PolynomialADMRSolver(nn.Module):
 
         # 0.5. SDE Scaling (Poincar Eccentricity Driver)
         # We scale noise by the diffusion coefficient derived from spectral shear.
+        if sigma is None:
+            # Anchor sigma directly to hardware latency variance
+            sigma = harvest_honest_jitter((1,), device=states.device, scaled=False).mean().item() * 0.05
+            
         diff_coeff = elipsodistrophy_metrics.get('diffusion_coefficient', 1.0) if elipsodistrophy_metrics else 1.0
         effective_sigma = sigma * diff_coeff
         
@@ -242,6 +251,11 @@ class PolynomialADMRSolver(nn.Module):
         # We sum over facets
         drift = torch.zeros_like(states)
         for i in range(self.config.k):
+            # Facet-wise Dual Update Loop:
+            # Propagates the state through K independent non-selfadjoint transition operators (A_i).
+            # This ensures that each coprime functional channel evolves its own local flow,
+            # maintaining topological separation before global reconstruction.
+            
             # facet_i: [batch, state_dim]
             facet_i = facets[..., i]
             # A_i: [state_dim, state_dim]
@@ -256,7 +270,15 @@ class PolynomialADMRSolver(nn.Module):
         # Resolves "cubed cube" paradoxes by minimizing surface tension in the RP^4 Void.
         # The tension is fossilized as a Chiral Breathera persistent topological soliton.
         shear = elipsodistrophy_metrics.get('hyperbolic_shear', 0.0) if elipsodistrophy_metrics else 0.0
-        gamma = 0.02 * shear # Surface tension coefficient
+        
+        if getattr(self, 'silicon_engine', None) is not None:
+            # Anchor tension to hardware-latency proxy rather than arbitrary human 0.02 magic number
+            gamma = (self.silicon_engine.get_hardware_latency_anchor() / 1000.0) * shear
+        else:
+            gamma = (math.pi / 137.0) * shear # Fine-structure constant topological proxy
+            
+        # Chiral Breather: A persistent topological soliton that fossilizes tension
+        # to resolve "cubed cube" paradoxes in the RP^4 Void.
         breather = torch.cos(self.tau * 7.7) * gamma # Chiral Breather component
         tension_drift = -gamma * negotiation * (1.0 + breather)
         
@@ -280,7 +302,7 @@ class PolynomialADMRSolver(nn.Module):
         # Tripsodic Negentropy Oscillation:
         # As negentropy (information density) increases, the system phase-locks
         # via a tripartite rhapsodic oscillation rather than freezing.
-        # This creates expansion at singularities instead of stasis.
+        # This prevents "Dead Logic" singularities by converting stasis into expansion.
         negentropy_flux = torch.norm(drift, dim=-1, keepdim=True)
         tripsody_scale = torch.cos(negentropy_flux * math.pi)
         effective_dt = effective_dt * (1.0 / (1.0 + negentropy_flux)) * (1.0 + 0.5 * tripsody_scale)
@@ -343,7 +365,7 @@ class PolynomialADMRSolver(nn.Module):
         neighbor_states: torch.Tensor,
         adjacency_weight: torch.Tensor,
         dt: float = 0.1,
-        sigma: float = 0.01,
+        sigma: Optional[float] = None,
         hunger: Optional[torch.Tensor] = None,
         v_m: Optional[torch.Tensor] = None,
         elipsodistrophy_metrics: Optional[Dict[str, Any]] = None,
@@ -389,6 +411,9 @@ class PolynomialADMRSolver(nn.Module):
             states = states + 0.1 * (palindromic_hash.expand_as(states) - states)
 
         # 0.5. SDE Scaling
+        if sigma is None:
+            sigma = harvest_honest_jitter((1,), device=states.device, scaled=False).mean().item() * 0.05
+            
         diff_coeff = elipsodistrophy_metrics.get('diffusion_coefficient', 1.0) if elipsodistrophy_metrics else 1.0
         effective_sigma = sigma * diff_coeff
 
@@ -431,7 +456,11 @@ class PolynomialADMRSolver(nn.Module):
 
         # 3. Tension
         shear = elipsodistrophy_metrics.get('hyperbolic_shear', 0.0) if elipsodistrophy_metrics else 0.0
-        gamma = 0.02 * shear
+        if getattr(self, 'silicon_engine', None) is not None:
+            gamma = (self.silicon_engine.get_hardware_latency_anchor() / 1000.0) * shear
+        else:
+            gamma = (math.pi / 137.0) * shear
+            
         breather = torch.cos(self.tau * 7.7) * gamma
         tension_drift = -gamma * negotiation * (1.0 + breather)
 
