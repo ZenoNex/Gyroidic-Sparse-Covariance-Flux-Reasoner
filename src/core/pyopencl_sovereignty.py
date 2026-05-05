@@ -410,6 +410,39 @@ class SiliconSovereigntyEngine:
         cl.wait_for_events([event_a, event_b])
         self.logger.info("Chern-Simons Sync Barrier Complete: Dual Queues Realigned.")
 
+    def execute_braid_race(self, state_a, state_b) -> float:
+        """
+        Executes a First-to-Finish hardware race between Queue A and Queue B.
+        Returns the delta in hardware latency (ns). Positive means A won, Negative means B won.
+        Used to trigger topological braid word permutations in Phase 25.
+        """
+        import time
+        import torch
+        mf = cl.mem_flags
+        
+        # Ensure states are numpy arrays without grads
+        arr_a = state_a.detach().cpu().numpy() if isinstance(state_a, torch.Tensor) else np.asarray(state_a)
+        arr_b = state_b.detach().cpu().numpy() if isinstance(state_b, torch.Tensor) else np.asarray(state_b)
+        
+        # Warmup and enqueue A
+        a_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=np.asarray(arr_a, dtype=np.float32))
+        t0_a = time.perf_counter_ns()
+        event_a = cl.enqueue_marker(self.queue_a)
+        
+        # Warmup and enqueue B
+        b_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=np.asarray(arr_b, dtype=np.float32))
+        t0_b = time.perf_counter_ns()
+        event_b = cl.enqueue_marker(self.queue_b)
+        
+        cl.wait_for_events([event_a, event_b])
+        t1 = time.perf_counter_ns()
+        
+        latency_a = (event_a.profile.end - event_a.profile.start) if hasattr(event_a, 'profile') else (t1 - t0_a)
+        latency_b = (event_b.profile.end - event_b.profile.start) if hasattr(event_b, 'profile') else (t1 - t0_b)
+        
+        return float(latency_b - latency_a) # Positive -> A is faster
+
+
     def apply_stochastic_rounding(self, raw_values, scale=1.0, seed=None):
         """
         Applies LSB Stochastic Rounding to preserve Feature Scars.
