@@ -190,7 +190,9 @@ class GyroidSurface:
         dy = torch.roll(G, -1, 1) - torch.roll(G, 1, 1)
         dz = torch.roll(G, -1, 2) - torch.roll(G, 1, 2)
 
-        grad_norm = torch.sqrt(dx**2 + dy**2 + dz**2 + 1e-8)
+        # Avoid division by zero using the precise float epsilon of the gradient's substrate
+        eps = torch.finfo(dx.dtype).eps
+        grad_norm = torch.sqrt(dx**2 + dy**2 + dz**2 + eps)
         nx, ny, nz = dx / grad_norm, dy / grad_norm, dz / grad_norm
 
         # Divergence of unit normal
@@ -500,7 +502,8 @@ class NonAbelianCombiner:
         forward = torch.bmm(text_residues, image_residues)
         reverse = torch.bmm(image_residues, text_residues)
         gap = torch.norm(forward - reverse).item()
-        scale = torch.norm(forward).item() + 1e-8
+        eps = torch.finfo(forward.dtype).eps
+        scale = torch.norm(forward).item() + eps
         return gap / scale
 
 
@@ -628,14 +631,20 @@ class ResidueExtractor:
         encoding_norm = torch.norm(combined_encoding).item()
         separable_norm = torch.norm(separable).item()
 
-        # Entanglement ratio: how much of the encoding is irreducible
-        entanglement_ratio = residue_norm / (encoding_norm + 1e-8)
+        # Entanglement ratio: measures how much of the combined cross-modal encoding
+        # cannot be separated into independent media components.
+        # R_entangle = ||Residue|| / ||Combined||
+        eps = torch.finfo(combined_encoding.dtype).eps
+        entanglement_ratio = residue_norm / (encoding_norm + eps)
 
-        # Spectral analysis of residue
+        # Spectral analysis of residue using von Neumann entropy
+        # Calculated directly on the normalized singular values (SVD) of the residue matrix.
+        # Measures the entropic complexity of the cross-modal entanglement.
         svd_vals = torch.linalg.svdvals(residue)
+        eps = torch.finfo(svd_vals.dtype).eps
         spectral_entropy = -(
-            (svd_vals / (svd_vals.sum() + 1e-8)) *
-            torch.log(svd_vals / (svd_vals.sum() + 1e-8) + 1e-8)
+            (svd_vals / (svd_vals.sum() + eps)) *
+            torch.log(svd_vals / (svd_vals.sum() + eps) + eps)
         ).sum().item()
 
         diagnostics = {
@@ -644,7 +653,7 @@ class ResidueExtractor:
             'separable_norm': separable_norm,
             'entanglement_ratio': entanglement_ratio,
             'spectral_entropy': spectral_entropy,
-            'rank_estimate': (svd_vals > 1e-6).sum().item(),
+            'rank_estimate': (svd_vals > torch.finfo(svd_vals.dtype).eps * 100).sum().item(),
         }
 
         return residue, diagnostics
@@ -881,9 +890,9 @@ class GyroidicCodec(nn.Module):
             'channel_gap': gap,
             'reconstruction_gap': recon_gap,
             'determinant_diff': determinant_diff,
-            'is_non_abelian': gap > 1e-6,
+            'is_non_abelian': gap > torch.finfo(torch.tensor(gap).dtype).eps * 100,
         }
-
+    
     def encode_batch(
         self,
         texts: List[str],
