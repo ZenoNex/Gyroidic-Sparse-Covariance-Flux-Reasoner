@@ -132,25 +132,18 @@ class VideoDyadParser(nn.Module):
         # Preserve independent substream residue vector (31.7 compliance)
         substream_residue = torch.tensor(substream_data['atom_array'], device=self.device)
         
-        # 3. Integer Casting (Non-mantissa/exponent math constraint)
-        # Performance optimization: Use frombuffer instead of list() for large files
-        # SILICON SOVEREIGNTY: Chunk and subsample on CPU to avoid VRAM fragmentation
-        byte_tensor_cpu = torch.from_numpy(np.frombuffer(raw_bytes, dtype=np.uint8))
-        
-        n_elements = byte_tensor_cpu.size(0)
-        usable_elements = (n_elements // self.chunk_size) * self.chunk_size
-        if usable_elements == 0:
-            byte_tensor_cpu = torch.nn.functional.pad(byte_tensor_cpu, (0, self.chunk_size - n_elements))
-            usable_elements = self.chunk_size
+        # 3. Silicon Sovereignty: PyOpenCL Chunking
+        # Bypasses PyTorch CUDA fragmentation by performing byte extraction natively on GPU buffers
+        if not hasattr(self, 'silicon_engine'):
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            self.silicon_engine = SiliconSovereigntyEngine()
             
-        byte_tensor_cpu = byte_tensor_cpu[:usable_elements].view(-1, self.chunk_size)
+        raw_np = np.frombuffer(raw_bytes, dtype=np.uint8)
+        n_elements = len(raw_bytes)
+        chunked_np = self.silicon_engine.apply_video_dyad_chunking(raw_np, self.chunk_size, self.max_chunks)
         
-        if byte_tensor_cpu.size(0) > self.max_chunks:
-            indices = torch.linspace(0, byte_tensor_cpu.size(0)-1, self.max_chunks).long()
-            byte_tensor_cpu = byte_tensor_cpu[indices]
-            
         # Final topological signal (float for manifold operations)
-        signal = byte_tensor_cpu.to(self.device, dtype=torch.float32)
+        signal = torch.from_numpy(chunked_np).to(self.device)
         
         # 4. Natural Log Topological Rotation (Dirac Effect)
         # Sparsify based on natural log threshold
