@@ -134,22 +134,23 @@ class VideoDyadParser(nn.Module):
         
         # 3. Integer Casting (Non-mantissa/exponent math constraint)
         # Performance optimization: Use frombuffer instead of list() for large files
-        byte_tensor = torch.from_numpy(np.frombuffer(raw_bytes, dtype=np.uint8)).to(self.device).clone()
+        # SILICON SOVEREIGNTY: Chunk and subsample on CPU to avoid VRAM fragmentation
+        byte_tensor_cpu = torch.from_numpy(np.frombuffer(raw_bytes, dtype=np.uint8))
         
-        n_elements = byte_tensor.size(0)
+        n_elements = byte_tensor_cpu.size(0)
         usable_elements = (n_elements // self.chunk_size) * self.chunk_size
         if usable_elements == 0:
-            byte_tensor = torch.nn.functional.pad(byte_tensor, (0, self.chunk_size - n_elements))
+            byte_tensor_cpu = torch.nn.functional.pad(byte_tensor_cpu, (0, self.chunk_size - n_elements))
             usable_elements = self.chunk_size
             
-        byte_tensor = byte_tensor[:usable_elements].view(-1, self.chunk_size)
+        byte_tensor_cpu = byte_tensor_cpu[:usable_elements].view(-1, self.chunk_size)
         
-        if byte_tensor.size(0) > self.max_chunks:
-            indices = torch.linspace(0, byte_tensor.size(0)-1, self.max_chunks).long()
-            byte_tensor = byte_tensor[indices]
+        if byte_tensor_cpu.size(0) > self.max_chunks:
+            indices = torch.linspace(0, byte_tensor_cpu.size(0)-1, self.max_chunks).long()
+            byte_tensor_cpu = byte_tensor_cpu[indices]
             
         # Final topological signal (float for manifold operations)
-        signal = byte_tensor.float()
+        signal = byte_tensor_cpu.to(self.device, dtype=torch.float32)
         
         # 4. Natural Log Topological Rotation (Dirac Effect)
         # Sparsify based on natural log threshold
@@ -230,7 +231,8 @@ class VideoDyadParser(nn.Module):
                 
                 # Bias the entropy by BOTH anisotropic rupture and chiral torsion
                 # This ensures low-motion videos with structural chirality don't atrophy
-                total_bias = torch.tanh(torch.tensor(diff_anisotropic)) + torch.tanh(chiral_bias)
+                diff_anisotropic = torch.abs(d_forward.mean() - d_backward.mean())
+                total_bias = torch.tanh(diff_anisotropic) + torch.tanh(chiral_bias)
                 entropies.append(ent * (1.0 + total_bias))
             
         if not entropies:
