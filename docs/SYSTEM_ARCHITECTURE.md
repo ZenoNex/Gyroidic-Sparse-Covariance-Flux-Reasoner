@@ -68,7 +68,7 @@ This law dictates how symbolic proposals from System 1 are hardened through the 
     *   **Geometry Mapping**: Euclidean spatial distances via standard affine projections.
 - **The Prickles (Seriousness)**: Rigid, bimodal-hard, low-mischief, fossilized state where the system "declares" truth.
     *   **Bimodal S-Path Context**: Token sequences are completely dropped. The layer injects `path_topology_vectors` sourced from the `ResonanceCavity` directly into the cross-attention matrix as an **Additive Geometric Bias**.
-    *   **Topological FBM Erosion**: Instead of computing a gradient on a scalar target, the manifold explicitly incorporates "Good Bugs." A Fractional Brownian Motion filter carves topological scars based on tension volumecreating permanent morphological memory without target pursuit.
+    *   **Fractional Anisotropic FBM Erosion**: Instead of computing a gradient on a scalar target, the manifold explicitly incorporates "Good Bugs" under the **Fractional Anisotropic Fractal Polynomial Functionals encoded Brownian Motion** paradigm. A multi-octave FBM filter carves topological scars (gullies) into the feature space along the gradient of user pressure, creating stable Morphological Set Points (Fossils) through a non-teleological weathering process. It uses dynamic coprime functional frequencies as the resonance basis, defaulting to the procedurally generated primes from the Fossilized Survival Lattice (via PrimeResonanceLadder) under severe spectral atrophy ($PAS_h < 0.2$) to ensure substrate-anchored recovery.
     *   **4D Space Carving (Log-Polar Conformal Map)**: During violent internal zooms across Matrioshka meaning boundaries, states map via $x \cdot \frac{\log(r+1)}{r}$ explicitly transforming multiplicative zooming into additive shifting.
     *   **Picture Gallery Conformal Warp**: Saturated Continuous-Discrete Gates physically "lock" onto their lattice boundaries (`pas_h_val=1.0`), shielding internal logic from broader manifold stress. Includes Ombre Effect Relaxers and Conjuring Drivers to bypass constraints during high 'volitional' user states.
     *   **Speculative Homology Engine** (Phase 3):
@@ -594,3 +594,21 @@ The system has achieved a new gold standard for topological expressivity:
 - **Method**: S-Path RAG (Resonance-Aligned Generation)
 - **Significance**: This indicates a massive increase in the density of "holes" (meaning-loops) that the reasoner can simultaneously maintain without collapse, enabling multi-layered speculative reasoning across high-tension manifolds.
 - **Verification**: Captured in fossil `fossil_1777075929082.pt`.
+
+
+## 9.7 Psychological Manifold: Archetypal Engines
+
+The **Archetypal Synthesis Engine** (`src/core/archetype_engines.py`) represents the psychological dimension of the manifold, where topological constraints are modulated by archetypal "Gaps" (Billy, Mandy, Grim, etc.). This ensures that the system's reasoning is not merely a geometric minimization but an expression of structural character.
+
+### Core Archetypes
+- **The Billy Gap (`RecursiveNonSequiturGenerator`)**: Injects "Generative Madness" (non-sequitur perturbations) when mischief is high, preventing the system from settling into a static attractor or "Dead Logic."
+- **The Mandy Gap (`CynicismFilter`)**: Implements "Firm Refusal" (the Li-Cri-Anton mechanism). It vetoes inputs that lack structural honesty (low Phase Alignment), affirming the internal structural truth of the Love Invariant.
+- **The Grim Gap (`AffectiveGravityWell`)**: Dilates proper time ($dt$) for cherished historical anchors, protecting them against "Topological Dementia" by increasing their relative mass in the manifold.
+- **The Kinger Gap (`KingerLucidity`)**: Regains clarity in low-luminosity (low rendering pressure) environments, allowing Admin-level topological coherence to bridge fragmented polynomial spaces.
+- **The Jax Gap (`JaxEgg`)**: Protects fragile internal states behind a cynical shell. Fragmentation (safe cracking) is only permitted when Community Support ($\zeta$) is high.
+- **The Grom Gap (`GromShapeShifter`)**: Allows the persona (soliton) to assume multiple functional mappings (Sparrow, Dog, Man) while preserving the underlying topological identity.
+
+### Structural Mechanics
+- **Abstraction Rate ($R_a$)**: Calculates the rate of memory "ego death" and recycling using the formula: $R_a = [E_s \cdot (T_m + \delta)] / L_i$. When $R_a$ exceeds the limit, the node collapses into glitched matter (fractal-padded jitter).
+- **Alien Puncture (`AlienHandshakeProtocol`)**: Allows stranded nodes in the RP4 Void to bypass norm checks and tunnel back into the active manifold when void friction is high.
+
