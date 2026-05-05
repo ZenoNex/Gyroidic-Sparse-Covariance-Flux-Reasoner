@@ -1,7 +1,7 @@
 # Fiberalized Gyroidic Recurrent Topology (FGRT)
 
 ## 1. Introduction
-FGRT represents a shift from Euclidean vector-space modeling to **Topological Manifold sections**. By embedding recurrent neural states into a **Klein-Gyroid Slip-Space**, we enable the system to learn from its own **Chiral Symmetry Breaking**. Furthermore, we transition the memory tracking from Standard CFT to **Logarithmic Conformal Field Theory (LCFT)**. Under LCFT, the system employs **Logarithmic Correlation Functions** to encode "Scars as Memory," ensuring that past anomalies—topological violations and internal friction—are physically fossilized as non-decaying traces within the Neglecton, rather than fading away smoothly.
+FGRT represents a shift from Euclidean vector-space modeling to **Topological Manifold sections**. By embedding recurrent neural states into a **Klein-Gyroid Slip-Space**, we enable the system to learn from its own **Chiral Symmetry Breaking**. Furthermore, we transition the memory tracking from Standard CFT to **Logarithmic Conformal Field Theory (LCFT)**. Under LCFT, the system employs **Logarithmic Correlation Functions** to encode "Scars as Memory," ensuring that past anomaliestopological violations and internal frictionare physically fossilized as non-decaying traces within the Neglecton, rather than fading away smoothly.
 
 ## 2. The Base Manifold ($\mathcal{G} \cup \mathcal{K}$)
 The manifold is a hybrid of:
@@ -23,11 +23,11 @@ $$ \frac{\partial g_{\mu\nu}}{\partial t} = -2R_{\mu\nu} $$
 The system "learns" by relaxing into a **minimal Willmore energy** state:
 $$ \mathcal{W} = \int (H^2 - K) dA $$
 
-### 4.1 Topological FBM Erosion (Geological Memory)
-In tandem with Ricci Flow, "Good Bugs" and high-pressure topological events carve permanent structures using **Fractional Brownian Motion (FBM)**. 
-Erosion follows the pressure gradient $\nabla P$ without targeting a ground truth:
-$$ \Delta x_{erosion} = - \frac{\nabla P}{\|\nabla P\|} \cdot | \operatorname{FBM}(x) | $$
-This geological carving acts as physical memory accumulation (depositing "Fossils").
+### 4.1 Fractional Anisotropic FBM Erosion (Geological Memory)
+In tandem with Ricci Flow, "Good Bugs" and high-pressure topological events carve permanent structures using **Fractional Anisotropic Fractal Polynomial Functionals encoded Brownian Motion**.
+Erosion is anisotropic, directed along the normalized pressure gradient and modulated by a resonant multi-octave noise field:
+$$ \Delta x_{\text{erosion}} = \text{intensity} \cdot \left( -\frac{\nabla P}{\|\nabla P\|} \cdot | \operatorname{FBM}(x) | \right) $$
+This multi-scale geological carving uses dynamic coprime functional frequencies as the resonance basis, defaulting to the procedurally generated primes from the Fossilized Survival Lattice (via PrimeResonanceLadder) under severe spectral atrophy ($PAS_h < 0.2$), physically accumulating morphological memory ("Fossils").
 
 ## 5. Meta-Polytope Quantization
 Signals are projected onto the **600-cell (Tetraplex)** polychoron. This ensures:
@@ -46,7 +46,7 @@ Define the **chiral category** $\mathcal{C}^{ch}$ with objects = constraint stat
 
 $$P_I^{ch}: \bigotimes_{i \in I} \mathcal{C}^{ch}_{x_i} \to \mathcal{C}^{ch}_{M_I}$$
 
-where $M_I$ is the merged constraint manifold over index set $I$. This product is **not commutative**, reflecting the non-Abelian nature of constraint interactions (rounding order matters, per §19 Chiral Torsion).
+where $M_I$ is the merged constraint manifold over index set $I$. This product is **not commutative**, reflecting the non-Abelian nature of constraint interactions (rounding order matters, per 19 Chiral Torsion).
 
 ### 6.2 Groupoid Action
 
@@ -55,7 +55,7 @@ A **groupoid** $G \rightrightarrows X$ acts on $\mathcal{C}^{ch}$, where:
 - **Morphisms** $g: x \to y$ = chiral jury-rigs (constraint transports between nodes)
 - **Functorial isomorphisms**: $F_g: \mathcal{C}^{ch}_x \to \mathcal{C}^{ch}_y$ for each morphism $g$
 
-Each morphism carries a **Berry phase** from manifold traversal (cf. §19):
+Each morphism carries a **Berry phase** from manifold traversal (cf. 19):
 
 $$\Delta\phi_g = \oint_{\gamma(g)} \langle \psi | \nabla_\gamma \psi \rangle \, d\gamma$$
 
@@ -74,13 +74,13 @@ System coherence is classified by the **fundamental groupoid** $\Pi_1(\mathcal{A
 **System works** $\iff$ $\Pi_1(\mathcal{A})$ is non-empty and connected.
 
 **Failure modes**:
-1. **Fractal voids**: Traversal never closes → ergodic smearing (cf. [MATHEMATICAL_DETAILS.md §31.5](MATHEMATICAL_DETAILS.md))
-2. **Non-commutative collapse**: Jury-rigs conflict → meta-chiral operator needed
-3. **Dark matter overload**: Use co-prime residue pruning (§1)
+1. **Fractal voids**: Traversal never closes  ergodic smearing (cf. [MATHEMATICAL_DETAILS.md 31.5](MATHEMATICAL_DETAILS.md))
+2. **Non-commutative collapse**: Jury-rigs conflict  meta-chiral operator needed
+3. **Dark matter overload**: Use co-prime residue pruning (1)
 
-**Connection to FGRT Torsion**: The contorsion tensor $K^\lambda_{\mu\nu}$ from §3 is the **local data** of the groupoid action — it encodes how constraint transport differs from parallel transport along the base manifold $\mathcal{G} \cup \mathcal{K}$.
+**Connection to FGRT Torsion**: The contorsion tensor $K^\lambda_{\mu\nu}$ from 3 is the **local data** of the groupoid action  it encodes how constraint transport differs from parallel transport along the base manifold $\mathcal{G} \cup \mathcal{K}$.
 
-**Source**: Beilinson-Drinfeld chiral algebra theory, integrated via the [Matryoshka/Pestov-Ionin conversation](google%20gemini%20and%20mistral%20le%20chat%20conversationintegrating%20the%20Matryoshka%20theorems%20and%20the%20Pestov-Ionin%20theorem.txt) §7.3.
+**Source**: Beilinson-Drinfeld chiral algebra theory, integrated via the [Matryoshka/Pestov-Ionin conversation](google%20gemini%20and%20mistral%20le%20chat%20conversationintegrating%20the%20Matryoshka%20theorems%20and%20the%20Pestov-Ionin%20theorem.txt) 7.3.
 
 ## 7. Implementation Context (AI Hints)
 For agents analyzing the codebase, this formalization maps to:
@@ -98,9 +98,9 @@ For agents analyzing the codebase, this formalization maps to:
 
 | Topic | Document |
 |-------|----------|
-| Full chiral groupoid formalism | [MATHEMATICAL_DETAILS.md §34](MATHEMATICAL_DETAILS.md) |
-| Berry phase / torsion field | [MATHEMATICAL_DETAILS.md §19](MATHEMATICAL_DETAILS.md) |
-| ADMM as facet stabilizer | [SYSTEM_ARCHITECTURE.md §9.1](SYSTEM_ARCHITECTURE.md) |
-| Matryoshka nesting | [MATHEMATICAL_DETAILS.md §31](MATHEMATICAL_DETAILS.md) |
+| Full chiral groupoid formalism | [MATHEMATICAL_DETAILS.md 34](MATHEMATICAL_DETAILS.md) |
+| Berry phase / torsion field | [MATHEMATICAL_DETAILS.md 19](MATHEMATICAL_DETAILS.md) |
+| ADMM as facet stabilizer | [SYSTEM_ARCHITECTURE.md 9.1](SYSTEM_ARCHITECTURE.md) |
+| Matryoshka nesting | [MATHEMATICAL_DETAILS.md 31](MATHEMATICAL_DETAILS.md) |
 | Anti-lobotomy constraints | [GOVERNANCE_ANTI_LOBOTOMY.md](../vault_docs/GOVERNANCE_ANTI_LOBOTOMY.md) |
 
