@@ -199,7 +199,8 @@ class EncodingManager:
                 parts = f.split('_')
                 if len(parts) >= 2:
                     try:
-                        iterations.append(int(parts[1]))
+                        iter_str = parts[1].replace('.pt', '')
+                        iterations.append(int(iter_str))
                     except (ValueError, IndexError):
                         continue # Skip shadow logs or malformed files
         return max(iterations) if iterations else 0
