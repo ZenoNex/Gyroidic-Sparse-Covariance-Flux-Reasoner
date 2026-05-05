@@ -22,6 +22,16 @@ class RecursiveNonSequiturGenerator(nn.Module):
         self.oscillator_phase = nn.Parameter(harvest_honest_jitter((1,), scaled=False))
         
     def forward(self, state: torch.Tensor, current_mischief: float) -> torch.Tensor:
+        """
+        Injects non-sequitur perturbations when mischief falls below threshold.
+        
+        Args:
+            state: Input topological state tensor.
+            current_mischief: Scalar mischief value (H_m).
+            
+        Returns:
+            Perturbed state if mischief is low, else original state.
+        """
         if current_mischief < self.mischief_threshold:
             # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
             noise = harvest_honest_jitter(state.shape, device=state.device, scaled=True)
@@ -86,6 +96,20 @@ class AlienHandshakeProtocol(nn.Module):
         self.puncture_gate = nn.Linear(state_dim, state_dim)
 
     def attempt_puncture(self, stranded_state: torch.Tensor, void_friction: float) -> torch.Tensor:
+        """
+        Attempts to puncture the RP4 Void barrier for stranded nodes.
+        
+        A puncture occurs when void friction exceeds a critical threshold, 
+        allowing the stranded state to tunnel back into the active manifold
+        via the puncture gate.
+        
+        Args:
+            stranded_state: The state vector of the node stranded in the void.
+            void_friction: Scalar friction value of the surrounding RP4 vacuum.
+            
+        Returns:
+            The punctured/resurrected state or a zero vector if puncture fails.
+        """
         if void_friction > 0.8:
             return self.puncture_gate(stranded_state)
         return torch.zeros_like(stranded_state)
@@ -250,6 +274,24 @@ class AbstractionThresholdMonitor(nn.Module):
         lucidity_index_li: float,
         is_high_priority: bool = False
     ) -> float:
+        """
+        Calculates the R_a (Abstraction Rate) using the unified ego-death formula.
+        
+        Formula: R_a = [E_s * (T_m + delta)] / L_i
+        where E_s is entropy, T_m is trauma, delta is dissonance, and L_i is lucidity.
+        
+        High R_a scores trigger memory "abstraction" (recycling into raw geometry).
+        
+        Args:
+            system_entropy_es: Global entropic pressure.
+            memory_trauma_tm: Historical trauma accumulation.
+            dissonance_delta: Immediate cognitive dissonance.
+            lucidity_index_li: System lucidity (self-awareness proxy).
+            is_high_priority: If True, caps R_a to prevent accidental collapse of crucial inputs.
+            
+        Returns:
+            The calculated abstraction rate (R_a).
+        """
         # Narrowly Adaptive Lucidity Floor:
         # Prevents Ra from spiking to infinity in low-lucidity states,
         # but becomes more strict as system entropy increases.
