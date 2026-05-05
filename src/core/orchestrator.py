@@ -313,14 +313,6 @@ class UniversalOrchestrator(nn.Module):
         else:
             return 'PLAY'
 
-    def get_bimodal_routing(self, regime: str) -> str:
-        """
-        Evolutionary Genome selection:
-        - PLAY -> SOFT (Sinkhorn/Differentiable)
-        - SERIOUSNESS -> HARD (Discrete/Argmax)
-        """
-        return "HARD" if regime == "SERIOUSNESS" else "SOFT"
-
     def get_hardening_factor(self) -> float:
         """Asymptotic hardening schedule: grows with iteration and resonance."""
         # Simple exponential hardening
@@ -539,10 +531,19 @@ class UniversalOrchestrator(nn.Module):
         # Audience Mapping: Final human-readable projection
         ui_readout = self.audience_projector(state_shielded)
         
-        # 7. Final Routing & Regime Determination
+        # 7. Final Routing & Regime Determination (Phase 25 Braid Automata)
         regime = self.determine_regime(pas_h, abs(pas_h - self.prev_pas), state=state_shielded, atrophy=atrophy)
         self.prev_pas = pas_h
-        routing = self.get_bimodal_routing(regime)
+        
+        if not hasattr(self, 'silicon_engine'):
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            self.silicon_engine = SiliconSovereigntyEngine()
+            
+        braid_race_delta = self.silicon_engine.execute_braid_race(state_governed, state_shielded)
+        routing = braid_race_delta
+        
+        # Modulate Leontief Governor based on hardware race
+        self.leontief.spectral_safety_margin = max(0.8, min(0.99, 0.95 + (braid_race_delta / 1000000.0)))
         
         # Post Diagnostic Payload to Bulletin Board (including Scars/Tension/Hunger)
         self.bulletin_board.post_metrics({
