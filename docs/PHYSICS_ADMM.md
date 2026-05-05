@@ -386,3 +386,20 @@ During periods where the Orchestrator identifies `SERIOUSNESS` mode, the system 
 
 In direct obedience to Law 2 (Non-Teleological Repair), the system replaces canonical gradient-descent with **Topological FBM Erosion** when a constraint mismatch is explicitly permitted as a "Good Bug" ($\text{is\_good\_bug} = \text{True}$). 
 Because the global loss objective is non-existent, "learning" effectively happens by weathering the surface: FBM (Fractional Brownian Motion) carves gullies along the pressure gradients. Re-visiting states physically lowers their energy requirement mechanically, preventing "catastrophic forgetting" via true morphogenetic memory.
+
+
+#### 10.1 Fractional Anisotropic FBM Erosion Mechanics
+
+The **Fractional Anisotropic Fractal Polynomial Functionals encoded Brownian Motion** paradigm is implemented natively via the `TopologicalErosionFBM` module and offloaded to the PyOpenCL `topological_erosion_fbm` kernel. Rather than standard isotropic diffusion, the erosion is anisotropic, directed along the normalized pressure gradient and modulated by a resonant multi-octave noise field:
+
+$$ \Delta x_{\text{erosion}} = \text{intensity} \cdot \left( -\frac{\nabla P}{\|\nabla P\|} \cdot | \operatorname{FBM}(x) | \right) $$
+
+where the FBM noise is evaluated over multiple octaves $i = 1 \dots \text{octaves}$ as:
+
+$$ \operatorname{FBM}(x) = \frac{1}{\sum a_i} \sum_{i=1}^{\text{octaves}} \sin(x \cdot \omega_i) \cdot a_i $$
+
+Key architectural properties include:
+- **Resonance Frequency Basis ($\omega_i$)**: When the Phase Alignment Score is healthy ($PAS_h \ge 0.2$), frequencies are derived dynamically from the theta-weighted polynomial basis ($\omega_i = 10 \cdot \|\theta_i\|$), maintaining co-prime separation.
+- **Archaeological Fallback (Survival Lattice)**: Under severe spectral atrophy ($PAS_h < 0.2$), the system triggers a constitutional safeguard, switching frequencies to the procedurally generated primes of the Fossilized Survival Lattice (via PrimeResonanceLadder). This ensures topological recovery even when the dynamic basis is completely collapsed.
+- **Anisotropic Gully Carving**: The pressure gradient acts as a directional force, while the FBM noise creates local, multi-scale valleys. Visiting these states repeatedly deepens the gullies, forming stable Morphological Set Points (Fossils) without target-seeking gradients.
+
