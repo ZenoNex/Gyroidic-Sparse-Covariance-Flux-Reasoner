@@ -21,12 +21,13 @@ class FossilizedSurvivalLattice:
     """
     Archaeological Survival Lattice (The 'Cheat' Basis).
     
-    Contains the legacy hardcoded primes [2, 3, 5, 7, 11, 13, 17, 19].
+    Generates prime resonance frequencies dynamically using PrimeResonanceLadder.
     Used ONLY as an emergency fallback when spectral atrophy (PAS_h collapse) 
     is detected in the dynamic polynomial functionals.
     """
     def __init__(self, device: str = 'cpu'):
-        self.primes = torch.tensor([2.0, 3.0, 5.0, 7.0, 11.0, 13.0, 17.0, 19.0], device=device)
+        from src.core.fgrt_primitives import PrimeResonanceLadder
+        self.ladder = PrimeResonanceLadder(num_resonators=8).to(device)
         self.survival_event_logged = False
 
     def get_primes(self):
@@ -34,7 +35,7 @@ class FossilizedSurvivalLattice:
             import logging
             logging.warning("CONSTITUTIONAL VIOLATION: Spectral Atrophy detected. Triggering Archaeological Survival Lattice.")
             self.survival_event_logged = True
-        return self.primes
+        return self.ladder.primes.float()
 
 class TopologicalErosionFBM(nn.Module):
     def __init__(self, octaves: int = 4, persistence: float = 0.5, lacunarity: float = 2.0, poly_config=None):
