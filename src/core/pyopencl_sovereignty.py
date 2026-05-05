@@ -382,6 +382,34 @@ class SiliconSovereigntyEngine:
             // Anisotropic erosion: push along the gradient modulated by resonant gullies
             state[gid] = x + intensity * (-p_grad * fabs(noise_field));
         }
+
+        // 11. Video Dyad Byte Chunking and Subsampling
+        __kernel void video_dyad_chunking(
+            __global const uchar *raw_bytes,
+            __global float *output_signal,
+            int total_elements,
+            int chunk_size,
+            int max_chunks,
+            float step_size
+        ) {
+            int gid = get_global_id(0);
+            int total_output_elements = max_chunks * chunk_size;
+            if (gid >= total_output_elements) return;
+            
+            int chunk_idx = gid / chunk_size;
+            int elem_idx = gid % chunk_size;
+            
+            // Calculate source index based on linspace sampling
+            int source_chunk = (max_chunks == 1) ? 0 : (int)round((float)chunk_idx * step_size);
+            int source_idx = source_chunk * chunk_size + elem_idx;
+            
+            // Read and cast to float
+            float val = 0.0f;
+            if (source_idx < total_elements) {
+                val = (float)raw_bytes[source_idx];
+            }
+            output_signal[gid] = val;
+        }
         """
         
         import warnings
@@ -690,6 +718,46 @@ class SiliconSovereigntyEngine:
         
         cl.enqueue_copy(self.queue_a, state_np, state_buf, is_blocking=True)
         return state_np
+
+    def apply_video_dyad_chunking(self, raw_bytes: np.ndarray, chunk_size: int, max_chunks: int) -> np.ndarray:
+        """
+        Executes Video Dyad chunking and subsampling natively on OpenCL.
+        Bypasses PyTorch CUDA VRAM fragmentation by parsing the raw bytestream directly
+        into a float32 tensor of shape (output_chunks, chunk_size).
+        """
+        mf = cl.mem_flags
+        total_elements = raw_bytes.size
+        
+        # Calculate how many chunks we can form
+        total_possible_chunks = total_elements // chunk_size
+        if total_possible_chunks == 0:
+            total_possible_chunks = 1 # We will pad inside the kernel or it handles bounds
+
+        output_chunks = min(total_possible_chunks, max_chunks)
+        
+        # Step size for linspace subsampling
+        step_size = 0.0
+        if total_possible_chunks > max_chunks and max_chunks > 1:
+            step_size = float(total_possible_chunks - 1) / float(max_chunks - 1)
+            
+        output_signal = np.zeros((output_chunks, chunk_size), dtype=np.float32)
+        total_output_elements = output_chunks * chunk_size
+        
+        # Create buffers
+        raw_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=raw_bytes)
+        out_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, output_signal.nbytes)
+        
+        self.program.video_dyad_chunking(
+            self.queue_a, (total_output_elements,), None,
+            raw_buf, out_buf,
+            np.int32(total_elements),
+            np.int32(chunk_size),
+            np.int32(output_chunks),
+            np.float32(step_size)
+        )
+        
+        cl.enqueue_copy(self.queue_a, output_signal, out_buf, is_blocking=True)
+        return output_signal
 
     def flush(self):
         """Explicitly flush and finish both queues to ensure global manifold coherence."""
