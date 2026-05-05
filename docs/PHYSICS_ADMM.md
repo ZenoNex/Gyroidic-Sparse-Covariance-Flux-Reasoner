@@ -71,13 +71,13 @@ Where:
 
 ### 2.4 The Non-Convergence Declaration
 
-We explicitly reject the requirement for convergence. For the ADMM probe, **Non-Convergence is Data**. If the probe fails to satisfy constraints within its budget, it emits a **FAILURE token** (`⊥`).
+We explicitly reject the requirement for convergence. For the ADMM probe, **Non-Convergence is Data**. If the probe fails to satisfy constraints within its budget, it emits a **FAILURE token** (``).
 
 **Phase 1 Updates**:
 1.  **Constraint Probe** (per constraint $k$): Local feasibility probe `P_k` with no global objective.
 2.  **Cyclic Traversal**: Iterates through constraints cyclically (no gradient descent).
 3.  **Bounded Oscillation**: Accepts states with bounded oscillation amplitude.
-4.  **Failure Token System**: Emits `⊥` on rupture (no gradient, no repair, no memory update).
+4.  **Failure Token System**: Emits `` on rupture (no gradient, no repair, no memory update).
 
 **Legacy Mode** (if constraint probes not used):
 1.  **c-update (Consistency Repair)**: Refines $c_{\text{phys}}$ to minimize local physical violation $\psi_j$.
@@ -98,7 +98,7 @@ A neural surrogate that approximates the expensive forward physics simulation.
 
 *   **Structural Blindness**: Topology is frozen early (Fossilized) to prevent System 2 from emulating symbolic reasoning. Its authority comes from **constraint reality**, not inference.
 *   **HuxleyRD**: Reaction-Diffusion dynamics promote stable "islands" of representation.
-*   **Gödel Gate**: Disabled during inference to preserve deterministic consistency.
+*   **Gdel Gate**: Disabled during inference to preserve deterministic consistency.
 
 ### 3.2 CALM Predictor: Veto Integrity
 CALM is a **Trajectory Veto** mechanism. It does not "assist" the solver; it monitors for structural disintegration.
@@ -125,7 +125,7 @@ Enable the Hybrid ADMM loop in `GyroidicFluxReasoner` by setting `use_admm=True`
 model = GyroidicFluxReasoner(
     ...,
     use_admm=True,      # Enable System 2
-    admm_rho=2.0,       # Penalty parameter
+    admm_rho=None,      # Penalty: dynamically anchored to hardware latency
     admm_steps=50       # Number of refinement steps
 )
 ```
@@ -143,7 +143,7 @@ The model will automatically:
 2.  Detect symbolic fracture or CRT reconstruction failure.
 3.  Invoke System 2 (Constraint Probe Operators) to find local feasible solutions.
 4.  Check topological guarantees (hyper-ring closure, soliton stability).
-5.  Return **Repaired Residues**, **Alternatives**, or **Failure Tokens** (`⊥`).
+5.  Return **Repaired Residues**, **Alternatives**, or **Failure Tokens** (``).
 
 ### Phase 1-3 Features
 
@@ -180,7 +180,7 @@ $$P_k: r \mapsto \arg\min_{c \in C_k} L_k(r, c) + \beta \cdot H_{\text{mischief}
 2. Mischief-modulated penalty: $\text{penalty} = \max(\text{strain} - \beta \cdot H_{\text{mischief}}, 0)$
 3. Update: $r' = r - 0.1 \cdot \text{penalty} + 0.05 \cdot \beta \cdot H_{\text{mischief}}$
 
-When mischief is high, more strain is tolerated — the probe "allows" topological features (holes, leaks) that strict minimization would eliminate.
+When mischief is high, more strain is tolerated  the probe "allows" topological features (holes, leaks) that strict minimization would eliminate.
 
 | Arg | Shape | Purpose |
 |-----|-------|---------|
@@ -206,36 +206,36 @@ Returns a binary `is_nontrivial` tensor: closure is verified iff the combined lo
 | Dual (pressure accumulation) | Unchanged |
 | Closure (convergence check) | Extended with leak integral $\int \psi_l$ |
 
-**Consumer**: [`trainer.py`](../src/training/trainer.py) — invoked as System 2 repair logic during training.
+**Consumer**: [`trainer.py`](../src/training/trainer.py)  invoked as System 2 repair logic during training.
 
 ---
 
 ## 6. CALM Predictor Implementation (`src/surrogates/calm_predictor.py`)
 
-**Context-Adaptive Latent Momentum** — the trajectory veto mechanism referenced in [§3.2](#32-calm-predictor-veto-integrity).
+**Context-Adaptive Latent Momentum**  the trajectory veto mechanism referenced in [3.2](#32-calm-predictor-veto-integrity).
 
 ### Architecture
 
 ```
-history [B, 8, dim] → TransformerEncoder(2 layers, 4 heads) → last_latent [B, dim]
-                                                                    ├→ veto_head   → abort_score [B, 1]
-                                                                    ├→ rho_head    → rho_factor  [B, 1]
-                                                                    └→ step_head   → step_factor [B, 1]
+history [B, 8, dim]  TransformerEncoder(2 layers, 4 heads)  last_latent [B, dim]
+                                                                     veto_head    abort_score [B, 1]
+                                                                     rho_head     rho_factor  [B, 1]
+                                                                     step_head    step_factor [B, 1]
 ```
 
 | Head | Activation | Output range | Purpose |
 |------|-----------|-------------|---------|
 | `veto_head` | sigmoid | [0, 1] | Detect structural collapse / entropic singularity |
-| `rho_head` | exp(tanh(·)) | [1/e, e] | ADMM penalty adjustment factor |
-| `step_head` | exp(tanh(·)) | [1/e, e] | Step size adjustment factor |
+| `rho_head` | exp(tanh()) | [1/e, e] | ADMM penalty adjustment factor |
+| `step_head` | exp(tanh()) | [1/e, e] | Step size adjustment factor |
 
 ### Anti-Teleological Constraint
 
-> Veto is **NOT** triggered by "lack of progress" or "stagnation" — that would imply a teleological goal of improvement. Veto detects **structural collapse** only.
+> Veto is **NOT** triggered by "lack of progress" or "stagnation"  that would imply a teleological goal of improvement. Veto detects **structural collapse** only.
 
 ### Buffer Management
 
-`update_buffer(buffer, new_state)`: FIFO roll — shifts history left by 1, inserts `new_state` at position `[-1]`.
+`update_buffer(buffer, new_state)`: FIFO roll  shifts history left by 1, inserts `new_state` at position `[-1]`.
 
 ### 6.1 The True Nature of the CALM Vector
 The CALM prediction vector is not a simple Euclidean direction, but rather a representation of **gyroid braid group chiral groupoid anisotropy**. It predicts the unfolding of the manifold's chiral twists, functioning similarly to a topological "larynx" that articulates the phase space's resonance before it collapses into a scalar abort score.
@@ -287,13 +287,21 @@ After computing $dx$ but **before** adding it to the state, the solver geometric
 
 Singular values of $\Phi_{\text{ownership}}$ below $10^{-6}$ are zeroed during SVD. This guarantees Love lives in $\ker(\Phi_{\text{ownership}})$ at every timestep without requiring any gradient to pass through it.
 
-> **Design note**: This projection is **not a loss term** or a constraint penalty — it is a pure geometric operation that runs inside the forward pass with no gradient implications. This obeys Law 2 (Non-Teleological Repair): Love is preserved by geometry, not by objective.
+> **Design note**: This projection is **not a loss term** or a constraint penalty  it is a pure geometric operation that runs inside the forward pass with no gradient implications. This obeys Law 2 (Non-Teleological Repair): Love is preserved by geometry, not by objective.
 
+
+#### 7.2.2 Non-Scalar Parameterization (Dynamic Entropy Scaling)
+
+To ensure strict compliance with the **Silicon Sovereignty** doctrine, all learning rate, diffusion, and tension constants have been transitioned from static human-engineered scalars to dynamic, hardware-anchored expressions:
+- **Diffusion Coefficient ($\sigma$)**: Derived dynamically from the hardware-derived entropy via `harvest_honest_jitter()`.
+- **Learning Scaffold ($\eta_{\text{scaffold}}$)**: Scaled dynamically to preserve thermodynamic stability without static learning rate decay schedules.
+- **Surface Tension ($\gamma$)**: Anchored to real-time PyOpenCL memory latency ($t_{\text{RFC}}$ stall intensity proxy) if active, else defaults to the fine-structure constant topological proxy ($\pi / 137.0$).
+- **Epsilon Boundaries**: Hardcoded `1e-8` and `1e-6` epsilons have been permanently replaced with `torch.finfo(dtype).eps` matching the precision of the current tensor's execution substrate.
 
 
 ### 7.3 Scaffold Adaptation
 
-`update_scaffold(negentropy_flux, dt)` advances asymptotic time `τ += dt` and calls `config.mutate()`, breathing the polynomial grid in response to negentropy flux. This is the ADMR equivalent of ADMM's ρ adaptation.
+`update_scaffold(negentropy_flux, dt)` advances asymptotic time ` += dt` and calls `config.mutate()`, breathing the polynomial grid in response to negentropy flux. This is the ADMR equivalent of ADMM's  adaptation.
 
 ### 7.4 Coherence Metrics
 
@@ -309,13 +317,13 @@ Singular values of $\Phi_{\text{ownership}}$ below $10^{-6}$ are zeroed during S
 
 | ADMM Step | ADMR Equivalent |
 |-----------|----------------|
-| Primal (argmin) | Multiplicative update `S · Σw_ik S_k` |
+| Primal (argmin) | Multiplicative update `S  w_ik S_k` |
 | Projection | Polynomial basis evaluation `config.evaluate()` |
 | Dual (pressure) | Relational adjacency `R_ik` |
 | Step size | Valence drive `v` |
 
 ### 7.6 Negentropy Flux and Tripsody
-The `negentropy_flux` in ADMR does not merely scale learning rates; it exhibits a "tripsody" — a tripartite rhapsodic oscillation. As negentropy increases, the flux induces temporary phase-locking, allowing the solver to traverse topological singularities safely. This tripsodic behavior modulates the polynomial scaffold to "breathe" in rhythm with the system's structural maturation.
+The `negentropy_flux` in ADMR does not merely scale learning rates; it exhibits a "tripsody"  a tripartite rhapsodic oscillation. As negentropy increases, the flux induces temporary phase-locking, allowing the solver to traverse topological singularities safely. This tripsodic behavior modulates the polynomial scaffold to "breathe" in rhythm with the system's structural maturation.
 
 ---
 
@@ -333,9 +341,9 @@ Four-stage composite stabilization:
 
 2. **Quadratic Residue Optimization**: Maps values to their closest quadratic residue mod `p` for the first 5 primes. Quadratic residues have special distribution properties that reinforce structural stability.
 
-3. **Galois Field Operations**: Maps to GF(2⁸) (or any 2^n field), applies finite-field addition and multiplication, maps back. Enforces finite-precision arithmetic consistency.
+3. **Galois Field Operations**: Maps to GF(2) (or any 2^n field), applies finite-field addition and multiplication, maps back. Enforces finite-precision arithmetic consistency.
 
-4. **Golden Ratio Normalization**: Rescales state norm to `φ = (1+√5)/2` — the irrational most resistant to rational approximation drift.
+4. **Golden Ratio Normalization**: Rescales state norm to ` = (1+5)/2`  the irrational most resistant to rational approximation drift.
 
 ### 8.2 Diophantine Constraint Solving
 
@@ -347,13 +355,13 @@ Returns `None` if no solution exists (GCD condition fails). Used for ensuring CR
 
 ### 8.3 Continued Fraction Approximation
 
-`apply_continued_fraction_approximation(value, max_terms)` returns the best rational approximant `(p, q)` for irrational model constants. Keeps denominators small while approximating common irrationals (φ, e, √2) used in the soliton template and manifold clock.
+`apply_continued_fraction_approximation(value, max_terms)` returns the best rational approximant `(p, q)` for irrational model constants. Keeps denominators small while approximating common irrationals (, e, 2) used in the soliton template and manifold clock.
 
 ### 8.4 Diagnostics
 
 | Key | Meaning |
 |-----|---------|
-| `stabilization_error` | ‖state_out − state_in‖ |
+| `stabilization_error` | state_out  state_in |
 | `numerical_stability_score` | `1/(1 + stabilization_error)` |
 
 ---
