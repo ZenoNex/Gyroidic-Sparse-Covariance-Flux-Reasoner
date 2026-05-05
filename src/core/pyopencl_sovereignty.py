@@ -692,8 +692,10 @@ class SiliconSovereigntyEngine:
     def apply_erosion_fbm(self, state, pressure_grad_normalized, octaves=4, persistence=0.5, lacunarity=2.0, intensity=0.1, primes=None):
         """Execute Topological Erosion FBM on PyOpenCL hardware."""
         if primes is None:
-            # Default fossilized survival basis
-            primes = np.array([2.0, 3.0, 5.0, 7.0, 11.0, 13.0, 17.0, 19.0], dtype=np.float32)
+            # Default fossilized survival basis generated dynamically via PrimeResonanceLadder
+            from src.core.fgrt_primitives import PrimeResonanceLadder
+            ladder = PrimeResonanceLadder(num_resonators=8)
+            primes = ladder.primes.detach().cpu().numpy().astype(np.float32)
         else:
             primes = np.asarray(primes, dtype=np.float32)
 
