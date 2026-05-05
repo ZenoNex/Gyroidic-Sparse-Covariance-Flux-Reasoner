@@ -602,11 +602,17 @@ class ResonanceCavity(nn.Module):
              r_exp = (expected_residues[:, field_idx].mean() if expected_residues.dim() > 1 else expected_residues.mean()) if expected_residues is not None else 0.0
              
              residue_gap = torch.abs(r_ref - r_exp)
-             if residue_gap > 0.05:
-                  # Inject gap into dark matter as a "speculative trace"
-                  # Scaled by the refined residue itself to ensure multimodal collision 'seeds' it
-                  dD_dt = (excitation - self.M[field_idx]) * residue_gap * torch.abs(r_ref)
-                  self.D_dark[field_idx] += dt * 0.1 * dD_dt
+             gap_scale = torch.abs(r_ref)
+        else:
+             # TEXT/STANDARD MODE: Unreconciled topological holes
+             residue_gap = torch.norm(excitation - self.M[field_idx]) / (self.hidden_dim ** 0.5)
+             gap_scale = 1.0
+             
+        if residue_gap > 0.05:
+             # Inject gap into dark matter as a "speculative trace"
+             # Scaled by the gap size to ensure collision 'seeds' it
+             dD_dt = (excitation - self.M[field_idx]) * residue_gap * gap_scale
+             self.D_dark[field_idx] += dt * 0.1 * dD_dt
         
         # Normalize to prevent blow-up (Lipschitz Bound enforcement)
         # But allow small violations to preserve resonance vibrancy
