@@ -26,27 +26,49 @@ class SiliconSovereigntyEngine:
         if not platforms:
             raise RuntimeError("No OpenCL platforms found.")
             
-        devices = []
+        gpu_devices = []
+        other_devices = []
         for platform in platforms:
-            if use_gpu:
-                devs = platform.get_devices(device_type=cl.device_type.GPU)
-                if devs:
-                    devices.extend(devs)
+            try:
+                gpus = platform.get_devices(device_type=cl.device_type.GPU)
+                gpu_devices.extend(gpus)
+            except Exception:
+                pass
+            try:
+                all_devs = platform.get_devices()
+                other_devices.extend(all_devs)
+            except Exception:
+                pass
+
+        # Favor discrete GPU (e.g. GTX 1050 Ti, NVIDIA) over integrated GPU (e.g. Intel HD Graphics)
+        selected_device = None
+        if use_gpu and gpu_devices:
+            # Look for NVIDIA/discrete GPU first (GPU 1)
+            for dev in gpu_devices:
+                name_lower = dev.name.lower()
+                if "nvidia" in name_lower or "geforce" in name_lower or "gtx" in name_lower or "discrete" in name_lower:
+                    selected_device = dev
+                    self.logger.info(f"Targeting Discrete GPU (GPU 1): {dev.name}")
                     break
+            # Fallback to any other GPU (e.g. Intel iGPU / GPU 0) if no discrete GPU is found
+            if selected_device is None:
+                for dev in gpu_devices:
+                    selected_device = dev
+                    self.logger.info(f"Targeting Integrated/Available GPU (GPU 0): {dev.name}")
+                    break
+        
+        # Absolute fallback to first available device (e.g. CPU)
+        if selected_device is None:
+            if other_devices:
+                selected_device = other_devices[0]
+                self.logger.info(f"Targeting Fallback Device: {selected_device.name}")
             else:
-                devs = platform.get_devices()
-                if devs:
-                    devices.extend(devs)
-                    break
-                    
-        if not devices:
-            # Fallback to whatever is available
-            devices = platforms[0].get_devices()
+                raise RuntimeError("No OpenCL devices found.")
             
-        self.device = devices[0]
+        self.device = selected_device
         self.ctx = cl.Context([self.device])
         
-        self.logger.info(f"Silicon Sovereignty Intialized on: {self.device.name}")
+        self.logger.info(f"Silicon Sovereignty Initialized on: {self.device.name}")
         
         # Dual-Command Queue Architecture
         # We need two queues to process Odd/Even CRT moduli in parallel without serial friction.
