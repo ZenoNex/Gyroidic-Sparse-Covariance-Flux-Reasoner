@@ -601,7 +601,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 google_secrets_path="google secret/client_secret_1073144391592-6r5kcdj84sag4eau5rspd0k60ii1vpd2.apps.googleusercontent.com.json",
                 fossilizer=self.fossilizer,
                 router=self.zeitgeist_router,
-                device=self.device
+                device=self.device,
+                engine=self
             )
             # Re-enable the background slow-drip learning (Valence Modulated)
             self.ingestor.start_background_learning()
