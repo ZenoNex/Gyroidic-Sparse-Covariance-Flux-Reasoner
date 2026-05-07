@@ -4332,7 +4332,7 @@ class DiegeticPhysicsEngine(nn.Module):
             if hasattr(self, 'sovereignty_engine') and self.sovereignty_engine is not None:
                 try:
                     import numpy as np
-                    coords_np = state.detach().cpu().numpy()
+                    coords_np = state.detach().cpu().numpy().astype(np.float32)
                     if coords_np.size >= 3:
                         # Reshape flat state elements into coordinate triples [N, 3]
                         num_triples = coords_np.size // 3
@@ -4342,6 +4342,18 @@ class DiegeticPhysicsEngine(nn.Module):
                         projected_3d = self.sovereignty_engine.apply_gyroid_projection(coords_np_3d, max_steps=10)
                         hw_deviation = float(np.abs(coords_np_3d - projected_3d).mean())
                         print(f" [HYBRID] OpenCL hardware Gyroid TPMS projection deviation: {hw_deviation:.6f}")
+                        
+                        # Proactive garbage collection for constrained 8GB RAM / 4GB VRAM hardware
+                        import gc
+                        gc.collect()
+                        # Flush PyOpenCL queues to immediately reclaim device VRAM on non-CUDA setups
+                        if hasattr(self, 'sovereignty_engine') and self.sovereignty_engine is not None:
+                            if hasattr(self.sovereignty_engine, 'queue_a'):
+                                self.sovereignty_engine.queue_a.finish()
+                            if hasattr(self.sovereignty_engine, 'queue_b'):
+                                self.sovereignty_engine.queue_b.finish()
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
                         
                         # Blend the PyTorch spectral violation and the real physical projection deviation
                         base_violation = 0.5 * base_violation + 0.5 * hw_deviation
