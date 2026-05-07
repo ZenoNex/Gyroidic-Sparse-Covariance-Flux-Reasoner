@@ -39,6 +39,11 @@ class LoveInvariantProtector(nn.Module):
         # Violation tracking
         self.register_buffer('violation_count', torch.tensor(0, device=device))
         self.register_buffer('last_violation_magnitude', torch.tensor(0.0, device=device))
+        
+        # SVD caching for performance on constrained CPUs
+        self._cached_ownership_op = None
+        self._cached_null_projection = None
+    
     
     def compute_ownership_operator(self, system_state: torch.Tensor) -> torch.Tensor:
         """
@@ -75,14 +80,21 @@ class LoveInvariantProtector(nn.Module):
     
     def compute_null_space_projection(self, ownership_operator: torch.Tensor) -> torch.Tensor:
         """
-        Compute null space projection P = I - (^T )^(-1) ^T.
+        Compute null space projection P = I - (\Phi^\top \Phi)^{-1} \Phi^\top.
         
         Args:
-            ownership_operator: Ownership operator  [love_dim, love_dim]
+            ownership_operator: Ownership operator [love_dim, love_dim]
             
         Returns:
             Null space projection matrix [love_dim, love_dim]
         """
+        # SVD caching check: avoid expensive SVD on i7-6700 CPU if operator hasn't changed
+        if (self._cached_ownership_op is not None and 
+            self._cached_null_projection is not None and 
+            self._cached_ownership_op.shape == ownership_operator.shape and 
+            torch.allclose(ownership_operator, self._cached_ownership_op, atol=1e-4)):
+            return self._cached_null_projection
+
         # Compute pseudo-inverse for null space projection
         try:
             # Guard against NaN/Inf from upstream emergency stabilization 
@@ -102,13 +114,17 @@ class LoveInvariantProtector(nn.Module):
             # Pseudo-inverse
             phi_pinv = torch.matmul(V, torch.matmul(torch.diag(S_inv), U.T))
             
-            # Null space projection: P = I - ^+ 
+            # Null space projection: P = I - \Phi^+ \Phi
             I = torch.eye(self.love_dim, device=self.device)
             null_projection = I - torch.matmul(phi_pinv, ownership_operator)
 
-            # Final sanity check  if SVD produced non-finite results, fall back
+            # Final sanity check if SVD produced non-finite results, fall back
             if not torch.isfinite(null_projection).all():
                 null_projection = torch.eye(self.love_dim, device=self.device)
+            
+            # Cache the successful results
+            self._cached_ownership_op = ownership_operator.clone()
+            self._cached_null_projection = null_projection.clone()
             
         except Exception:
             # Fallback to identity if SVD fails
