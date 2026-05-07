@@ -65,8 +65,8 @@ class CyclotomicTDACompressor(nn.Module):
             # If cancellation goes to 0, cycle dies here.
             died_here = (cancellation == 0).float()
             
-            # Update lifetime if it hasn't died yet
-            lifetime += (1.0 - died_here)
+            # Update lifetime if it hasn't died yet, averaging over the ring dimension
+            lifetime += (1.0 - died_here).mean(dim=-1)
             
         return lifetime
     def get_phi_n(self, n: int) -> torch.Tensor:
@@ -94,7 +94,7 @@ class CyclotomicTDACompressor(nn.Module):
         Prevents "Gradient Washout" by snapping the manifold to a cyclotomic lattice.
         """
         # Snap to residue ring using the prime basis p
-        # Adheres to §1.1 of Implementation Integrity Guide.
+        # Adheres to 1.1 of Implementation Integrity Guide.
         res = torch.remainder((x * 100).long(), self.p)
         
         # Proper Residue Tuple Stabilization:
