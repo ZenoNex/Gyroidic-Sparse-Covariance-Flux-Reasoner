@@ -4327,6 +4327,27 @@ class DiegeticPhysicsEngine(nn.Module):
             base_violation = total_pressure.mean().item()
             response_correlation_violation = response_violation
             
+            # Hybridization: Integrate real hardware-level Gyroid TPMS projection
+            hw_deviation = 0.0
+            if hasattr(self, 'sovereignty_engine') and self.sovereignty_engine is not None:
+                try:
+                    import numpy as np
+                    coords_np = state.detach().cpu().numpy()
+                    if coords_np.size >= 3:
+                        # Reshape flat state elements into coordinate triples [N, 3]
+                        num_triples = coords_np.size // 3
+                        coords_np_3d = coords_np.flatten()[:num_triples * 3].reshape(num_triples, 3)
+                        
+                        # Project onto the Gyroid TPMS using the compiled OpenCL kernel
+                        projected_3d = self.sovereignty_engine.apply_gyroid_projection(coords_np_3d, max_steps=10)
+                        hw_deviation = float(np.abs(coords_np_3d - projected_3d).mean())
+                        print(f" [HYBRID] OpenCL hardware Gyroid TPMS projection deviation: {hw_deviation:.6f}")
+                        
+                        # Blend the PyTorch spectral violation and the real physical projection deviation
+                        base_violation = 0.5 * base_violation + 0.5 * hw_deviation
+                except Exception as ex:
+                    print(f" [HYBRID] OpenCL projection fallback skipped: {ex}")
+            
             # Weighted combination
             full_violation_score = (
                 0.6 * base_violation +
