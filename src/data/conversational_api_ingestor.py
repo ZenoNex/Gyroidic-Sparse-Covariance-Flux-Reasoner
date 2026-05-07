@@ -1060,11 +1060,13 @@ class SovereignConversationalIngestor:
         google_secrets_path: Optional[str] = None,
         fossilizer: Optional[Any] = None,
         router: Optional[Any] = None,
-        device: Any = None
+        device: Any = None,
+        engine: Optional[Any] = None
     ):
         self.device = device if device is not None else DEVICE
         self.fossilizer = fossilizer
         self.router = router # Access to ZeitgeistRouter for Valence checks
+        self.engine = engine # Access to DiegeticPhysicsEngine for proper ingestion
         
         self.sovereign = SovereignIngestor(repository_root=repository_root)
         self.local_images = LocalDatasetIngestor(
@@ -1109,10 +1111,13 @@ class SovereignConversationalIngestor:
         # Generator for local image drip-feed
         cifar_drip = self.local_images.cifar10_generator(limit=5000)
         
+        # Exponential backoff for fetch failures
+        backoff_interval = 60
+        
         while True:
             try:
                 # 1. Check Valence (Hunger for new nutrients)
-                sleep_interval = 60 # Default 1 minute
+                sleep_interval = backoff_interval if backoff_interval > 60 else 60
                 if self.router and hasattr(self.router, '_valence'):
                     metrics = self.router._valence.get_metrics()
                     hunger = metrics.get('current_hunger_drive', 1.0)
@@ -1129,7 +1134,9 @@ class SovereignConversationalIngestor:
                 # 2. logical Drip (Hacker News / Stack Exchange)
                 print(" Extracting Sovereign Logic drip...")
                 logic_convs = self.ingest_sovereign_logic(limit=5)
-                self._fossilize_batch(logic_convs)
+                if logic_convs:
+                    self._fossilize_batch(logic_convs)
+                    backoff_interval = 60 # Reset backoff on success
                 
                 # 3. Visual Drip (CIFAR-10)
                 print(" Projecting Local Image drip...")
@@ -1145,38 +1152,77 @@ class SovereignConversationalIngestor:
                 time.sleep(sleep_interval)
                 
             except Exception as e:
-                print(f" Background Loop Error: {e}")
-                time.sleep(60)
+                print(f" Background Loop Error (Fetch Failed): {e}")
+                # Exponential backoff on failure (max 1 hour)
+                backoff_interval = min(backoff_interval * 2, 3600)
+                print(f" Backing off for {backoff_interval} seconds...")
+                time.sleep(backoff_interval)
 
     def _fossilize_batch(self, conversations: List[Conversation]):
-        """Integrates conversations into the manifold residues."""
-        if not self.fossilizer:
+        """Integrates conversations into the manifold residues via the Engine and Fossilizer."""
+        if not self.engine:
+            print("[INGESTOR] Engine not linked. Cannot fossilize batch properly.")
             return
             
         for convo in conversations:
             try:
-                # Use the first turn's text as the primary description
-                desc = convo.turns[0].text[:100]
+                # Combine turns into a single narrative for the engine to digest
+                full_text = " ".join([t.text for t in convo.turns])
                 
-                # Generate residue from embeddings if present (for images)
-                # else use text_to_tensor via projector
-                if any(t.embedding is not None for t in convo.turns):
-                    residue = next(t.embedding for t in convo.turns if t.embedding is not None)
-                else:
-                    proj = self.sovereign.projector.project_text_to_state(convo.turns[0].text)
-                    residue = proj['state']
-                
-                # Create Dyad for fossilization
-                from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
-                dyad = KnowledgeDyad(
-                    image_fingerprint=torch.zeros(96, device=self.device), # Placeholder
-                    linguistic_description=desc,
-                    relevance_score=0.8,
-                    metadata=convo.context
+                # Check if this is a multi-modal conversation with visual embeddings
+                fingerprint = None
+                signal_tensor = None
+                for turn in convo.turns:
+                    if turn.embedding is not None:
+                        emb = turn.embedding
+                        if emb.dim() == 1:
+                            emb = emb.unsqueeze(0)
+                        flat_emb = emb[0]
+                        if flat_emb.numel() >= 96:
+                            # 1. Structure Chebyshev fingerprint inputs (L, Cr, Cb) for the engine
+                            fingerprint = {
+                                'L': flat_emb[:32].detach().cpu().tolist(),
+                                'Cr': flat_emb[32:64].detach().cpu().tolist(),
+                                'Cb': flat_emb[64:96].detach().cpu().tolist()
+                            }
+                            if turn.metadata and 'source' in turn.metadata:
+                                fingerprint['path'] = turn.metadata['source']
+                            
+                            # 2. Build 96-dim signal tensor for persistent KnowledgeDyad fossilization
+                            signal_tensor = torch.zeros(96, device=self.device)
+                            signal_tensor[:96] = flat_emb[:96]
+                        break
+
+                # Route data properly through the Diegetic Physics Engine
+                # This ensures the Zeitgeist Router and Resonance Cavity process the input,
+                # actually learning the mapping between concepts and the topological manifold.
+                self.engine.process_input(
+                    text_input=full_text,
+                    fingerprint=fingerprint,
+                    generate_response=False,  # High-throughput ingestion mode
+                    ingestion_mode=True
                 )
-                
-                self.fossilizer.fossilize(dyad, residue)
+
+                # Persistently fossilize the KnowledgeDyad to disk, binding it to the derived 
+                # topological coordinates and invariants of the updated meta_state
+                if self.fossilizer:
+                    from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
+                    # Extract text embedding for the fossilizer
+                    text_emb = self.engine._text_to_tensor(full_text)
+                    
+                    dyad = KnowledgeDyad(
+                        linguistic_description=full_text,
+                        image_fingerprint=signal_tensor, # None if purely logical
+                        metadata=convo.context
+                    )
+                    self.fossilizer.fossilize(
+                        dyad=dyad,
+                        text_embedding=text_emb,
+                        seed_state=self.engine.meta_state
+                    )
+                    
             except Exception as e:
+                print(f"[INGESTOR] Engine or Fossilizer failed to process nutrient dyad: {e}")
                 continue
 
     def ingest_local_mirrors(self) -> List[Conversation]:
