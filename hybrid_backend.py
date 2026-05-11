@@ -764,7 +764,8 @@ class HybridAI:
                 self.damage_residue += distortion * 0.001
 
             # Generate Response (Larynx Decoding D)
-            response_text = self._generate_response_from_state(text, self.hidden_state_scarred)
+            if not response_text:
+                response_text = self._generate_response_from_state(text, self.hidden_state_scarred)
 
             # Update Narration Field (Phi_C)
             # A crude projection of the speech back into the state
@@ -793,7 +794,8 @@ class HybridAI:
             # Fallback to topological hash explicitly
             self.hidden_state_scarred = text_embedding.clone()[:256]
             self.hidden_state = text_embedding.clone()[:256]
-            response_text = self._generate_simple_response(text)
+            if not response_text:
+                response_text = self._generate_simple_response(text)
         
         # Apply spectral correction if available
         if self.spectral_corrector and response_text:
