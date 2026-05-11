@@ -18,6 +18,7 @@ import torch
 import torch.nn as nn
 from typing import Dict, Optional, Tuple
 import math
+from src.core.fgrt_primitives import PrimeResonanceLadder
 
 
 class ManifoldClock(nn.Module):
@@ -130,13 +131,20 @@ class TwoCopsSchedule(nn.Module):
     
     They communicate via a 'Shared Bulletin Board' (EMA of force/state).
     """
-    def __init__(self, macro_steps: int = 10, device: str = None):
+    def __init__(self, macro_steps: int = 10, use_tempolock: bool = True, device: str = None):
         super().__init__()
-        self.macro_steps = macro_steps # How many micro-steps per macro-sync
+        self.macro_steps = macro_steps # Fallback fallback step sync
+        self.use_tempolock = use_tempolock
         self.clock = ManifoldClock(device=device)
         
         self.register_buffer('step_counter', torch.tensor(0, dtype=torch.long, device=device))
         self.register_buffer('bulletin_board', torch.zeros(1, device=device)) # Force agreement summary
+        
+        if self.use_tempolock:
+            # Acquire prime resonance anchors for emission gating
+            self.resonance_ladder = PrimeResonanceLadder(num_resonators=20)
+            # We extract primes and map them as legal sync frequencies
+            self.register_buffer('prime_frequencies', self.resonance_ladder.primes)
 
     def step(self, pressure: torch.Tensor) -> Tuple[float, bool]:
         """
@@ -149,7 +157,15 @@ class TwoCopsSchedule(nn.Module):
         dt = self.clock.tick(pressure)
         self.step_counter += 1
         
-        should_sync = (self.step_counter % self.macro_steps == 0)
+        if self.use_tempolock:
+            # TEMPOLOCK Law: Emission sync occurs iff step_counter shares a divisor 
+            # with the current active resonance primes, or is explicitly coprime.
+            # Simplified execution: Sync iff current step overlaps with prime lattice interval
+            matches = (self.step_counter % self.prime_frequencies == 0)
+            should_sync = bool(matches.any().item())
+        else:
+            should_sync = (self.step_counter % self.macro_steps == 0)
+            
         return dt, should_sync
 
     def update_board(self, system_2_forces: torch.Tensor):
