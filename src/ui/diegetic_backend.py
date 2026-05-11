@@ -610,6 +610,19 @@ class DiegeticPhysicsEngine(nn.Module):
         except Exception as e:
             print(f"[INGEST] Failed to start sovereign ingestor: {e}")
             self.ingestor = None
+
+        # ArXiv Sovereign Ingestor: Specialized Physics/Math Drip
+        try:
+            self.arxiv_ingestor = ArXivSovereignIngestor(
+                fossilizer=self.fossilizer,
+                engine_dim=self.dim,
+                device=self.device
+            )
+            self.arxiv_ingestor.start_sovereign_loop()
+            print(" ArXiv Sovereign Ingestor ACTIVE. Realtime lore ingestion enabled.")
+        except Exception as e:
+            print(f"[INGEST] ArXiv Sovereign Ingestor failed: {e}")
+            self.arxiv_ingestor = None
         
         # Stabilization and Visibility Flags
         self._is_training_temporal = False
@@ -5016,10 +5029,16 @@ class DiegeticPhysicsEngine(nn.Module):
         try:
             # 1. Load Neural Weights (Non-Strict for flexibility)
             checkpoint = torch.load(STATE_PATH, map_location=self.device)
-            self.load_state_dict(checkpoint, strict=False)
+            load_result = self.load_state_dict(checkpoint, strict=False)
+            
+            # Log counts of missing/unexpected keys
+            missing = len(load_result.missing_keys)
+            unexpected = len(load_result.unexpected_keys)
+            print(f" Neural load complete. Missing keys: {missing}, Unexpected: {unexpected}")
 
             # 2. Repair non-finite values (NaN/Inf)
-            self._repair_tensors()
+            repair_count = self._repair_tensors()
+            print(f" Deterministic non-finite repair complete. Repaired Tensors: {repair_count}")
 
             # 3. Synchronize Encoding Context
             # Update the engine's iteration count from the manager's findings
@@ -5031,12 +5050,15 @@ class DiegeticPhysicsEngine(nn.Module):
             print(f" Critical Load Failure: {e}")
             return False
 
-    def _repair_tensors(self):
-        """Surgical repair of non-finite parameters."""
+    def _repair_tensors(self) -> int:
+        """Surgical repair of non-finite parameters. Returns count of repaired tensors."""
+        repair_count = 0
         with torch.no_grad():
             for name, tensor in self.state_dict().items():
                 if isinstance(tensor, torch.Tensor) and not torch.isfinite(tensor).all():
                     tensor.nan_to_num_(nan=0.0, posinf=0.0, neginf=0.0)
+                    repair_count += 1
+        return repair_count
 
 # Initialize Engine (only when running as the server entry point, not when imported by tests)
 _running_as_server = (__name__ == '__main__') or os.environ.get('GYROID_SERVER_MODE', '0') == '1'
