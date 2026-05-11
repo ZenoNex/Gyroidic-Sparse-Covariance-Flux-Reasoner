@@ -4,7 +4,7 @@
 
 ---
 
-## 🏛️ The Efficiency Thesis
+##  The Efficiency Thesis
 Traditional Deep Learning seeks efficiency through **Hardware Acceleration** (faster FLOPs) and **Sparse Attention** (fewer FLOPs effectively). 
 The **Gyroidic Sparse Covariance Flux Reasoner** finds efficiency through **Admissibility Rejection**: refusing to compute nonsense.
 
@@ -12,7 +12,7 @@ The **Gyroidic Sparse Covariance Flux Reasoner** finds efficiency through **Admi
 
 ---
 
-## 💰 The Efficiency Wagers (Computational Bets)
+##  The Efficiency Wagers (Computational Bets)
 
 We explicitly wager our computational budget on **Structure** rather than **Parameters**. We bet that finding the "Correct Shape" is exponentially cheaper than finding the "Correct Weights" via gradient descent.
 
@@ -50,18 +50,18 @@ By focusing mutation pressure on the **Topology (Graph Connectivity)** via `Adap
 We wager that **Future Structure is visible in the Frequency Domain before the Time Domain**.
 *   Standard Decoding: Autoregressive $O(N)$ prediction of tokens.
 *   Spectral Decoding: Predict the *spectrum* of the next thought block. If the spectrum is "clean" (low entropy, clear dominant modes), valid structure exists.
-*   **Speculative Exit**: If Spectral Entropy $H_{spec} < \epsilon$, we accept the block without expensive System 2 repair. We assume "Beauty = Truth" in the limit of asymptotic hardening.
+*   **Speculative Exit [PROPOSED PHASE 6.5]**: If Spectral Entropy $H_{spec} < \epsilon$, the system can potentially accept the block without expensive System 2 (CALM/ADMM) repair. **Current Status**: Active monitoring enabled; gated bypass is deferred to preserve full trajectory history buffers.
 
 
 
 ---
 
-## 📉 The "Non-Scalar" Advantage: Formalized
+##  The "Non-Scalar" Advantage: Formalized
 
 Why does "Non-Scalar" mean "Efficient"? It's not just about arithmetic; it's about **Vector Field Dynamics**.
 
 **Scalar Reward (The Curse of Dimensionality)**:
-To minimize $L(x)$, you must compute gradients $\nabla L$ with respect to *all* parameters. The error signal must propagate from the output all the way back to the input. This is **O(Depth × Width)**.
+To minimize $L(x)$, you must compute gradients $\nabla L$ with respect to *all* parameters. The error signal must propagate from the output all the way back to the input. This is **O(Depth  Width)**.
 *   *Formalism*: $\exists U \implies \oint \nabla U = 0$ (Conservative Field). The system merely slides down a hill. It has no internal "life" (circulation).
 
 **Non-Scalar Admissibility (The Power of Circulation)**:
@@ -75,7 +75,7 @@ To satisfy Constraints $\{C_1, C_2, ..., C_n\}$, you only need to satisfy them *
 
 ---
 
-## 🎲 The Kelly Wager for AI: A Non-Ergodic Defense
+##  The Kelly Wager for AI: A Non-Ergodic Defense
 
 Conventional efficiency metrics assume the environment is **Ergodic** (time average = ensemble average).
 History teaches us that life is **Non-Ergodic** (one ruin event kills you).
@@ -94,7 +94,7 @@ History teaches us that life is **Non-Ergodic** (one ruin event kills you).
 **Efficiency is Survival.**
 A lobotomized model is efficient at being useless. A topological model is efficient at **surviving complexity**.
 
-## 🔮 The Singularity Prediction
+##  The Singularity Prediction
 
 As model size scales:
 1.  **Scalar Models**: Training cost grows super-linearly ($N \log N$ or $N^2$).
