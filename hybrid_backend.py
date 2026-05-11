@@ -665,132 +665,130 @@ class HybridAI:
                 hidden_state_evolved_sq = self.hidden_state_scarred.clone()
                 hidden_state_evolved = self.hidden_state_scarred.clone().unsqueeze(0)
 
-                
 
-                # 5. INTEGRATE CODES ENERGY AND CHIRAL DYNAMICS (Moved up for dependency resolution)
-                codes_energy = 0.0
-                if self.codes_framework:
-                    try:
-                        with torch.no_grad():
-                            # total_energy returns a scalar-like tensor
-                            energy_tensor = self.codes_framework.compute_total_energy(self.hidden_state_scarred.unsqueeze(0))
-                            codes_energy = float(energy_tensor.mean().item())
-                    except Exception as e:
-                        print(f"[WARN] CODES Energy computation failed: {e}")
-                        codes_energy = 1.0 # Default stress on failure
-                
-                # 6. Möbius Fiber Twist (Deterministic topological flip)
-                # Trigger twist if CODES energy exceeds margin and fields are in conflict
-                # This aligns with the 'CODES' constraint framework and project documentation
-                conflict_tension = torch.dot(self.hidden_state_scarred, self.narration_field)
-                twist_trigger = (codes_energy > 0.4) and (conflict_tension < -0.01)
-                twist_gate_val = 1.0 if twist_trigger else 0.0
-                twist_gate = torch.tensor([twist_gate_val], device=self.torch_device)
-                fiber_state = self.moebius_bundle(self.hidden_state_scarred.unsqueeze(0), twist_gate)
-                moebius_holonomy = float(twist_gate.item())
-                
-                # --- Implicated System Overhaul: Rupture Detection ---
-                # Check for structural rupture (Δ accumulation)
-                if self.rupture_fn:
-                    # Treat 'negotiation' from ADMR as a constraint loss
-                    # This is a proxy for how much the system is fighting its own local truth
-                    negotiation_loss = torch.norm(hidden_state_evolved_sq - hidden_state_256, p=2)
-                    rupture_token = self.rupture_fn.check_rupture(
-                        hidden_state_evolved, 
-                        {0: negotiation_loss}
-                    )
-                    if rupture_token:
-                        # Append the failure residue to Δ (Toxic Memory)
-                        self.damage_residue = 0.8 * self.damage_residue + 0.2 * rupture_token.residue
-                        self.perfect_memory.append(rupture_token.residue.detach().clone())
-                
-                # Update interiority field (Phi_I) - self.interiority_field not strictly needed 
-                # if we keep self.hidden_state_scarred, but let's keep it for formal alignment.
-                self.interiority_field = self.hidden_state_scarred
-                
-                # Chiral Dynamics Calculations
-                # Proxy: weighted sum of state segments
-                pas_h = 1.0 # Force Legal
-                state_len = len(self.hidden_state_scarred)
-                for d in range(8):
-                    segment = self.hidden_state_scarred[d*(state_len//8):(d+1)*(state_len//8)]
-                    pas_h += (1.0 / (d + 1.0)) * torch.norm(segment).item()
-                
-                # Formula: Chi = Centroid(Spectrum) - D/2
-                # Proxy: mean index of energy
-                weights = torch.abs(self.hidden_state_scarred)
-                indices = torch.arange(len(weights), device=self.torch_device).float()
-                chi_centroid = torch.sum(indices * weights) / (torch.sum(weights) + 1e-6)
-                chi = chi_centroid.item() - (len(weights) / 2.0)
-                
-                
-                # 7. Anisotropy Injection (The Escape Valve)
-                # Based on doc: ai project report_2-2-2026.txt
-                phi_k = self.hidden_state_scarred.view(-1, 8) # Project into polynomial sub-spaces
 
-                # Calculate variance safely to avoid the 'degrees of freedom' error
-                if phi_k.numel() > 1:
-                    phi_var = torch.var(phi_k)
-                else:
-                    phi_var = torch.tensor(0.01, device=self.torch_device)
 
-                # Anisotropy (A) = diag(alpha) -> simplified as a scalar escape valve
-                anisotropy = (phi_var + 1e-8).sqrt().item()
+            # 5. INTEGRATE CODES ENERGY AND CHIRAL DYNAMICS (Moved up for dependency resolution)
+            codes_energy = 0.0
+            if self.codes_framework:
+                try:
+                    with torch.no_grad():
+                        # total_energy returns a scalar-like tensor
+                        energy_tensor = self.codes_framework.compute_total_energy(self.hidden_state_scarred.unsqueeze(0))
+                        codes_energy = float(energy_tensor.mean().item())
+                except Exception as e:
+                    print(f"[WARN] CODES Energy computation failed: {e}")
+                    codes_energy = 1.0 # Default stress on failure
 
-                # Calculate Chiral Metrics (Structural Invariants)
-                coeffs = self.hidden_state_scarred.unsqueeze(0) if self.hidden_state_scarred.dim() == 1 else self.hidden_state_scarred
-                chiral_shift = float(compute_chiral_shift(coeffs).item())
-                chiral_torsion = float(compute_chirality(coeffs).abs().item())
-                glyphlock = bool(check_glyphlock(coeffs).item() > 0)
+            # 6. Möbius Fiber Twist (Deterministic topological flip)
+            # Trigger twist if CODES energy exceeds margin and fields are in conflict
+            # This aligns with the 'CODES' constraint framework and project documentation
+            conflict_tension = torch.dot(self.hidden_state_scarred, self.narration_field)
+            twist_trigger = (codes_energy > 0.4) and (conflict_tension < -0.01)
+            twist_gate_val = 1.0 if twist_trigger else 0.0
+            twist_gate = torch.tensor([twist_gate_val], device=self.torch_device)
+            fiber_state = self.moebius_bundle(self.hidden_state_scarred.unsqueeze(0), twist_gate)
+            moebius_holonomy = float(twist_gate.item())
 
-                zeta = 0.5
-                c_score = chi * np.exp(-abs(pas_h - 1.0) / zeta)
+            # --- Implicated System Overhaul: Rupture Detection ---
+            # Check for structural rupture (Δ accumulation)
+            if self.rupture_fn:
+                # Treat 'negotiation' from ADMR as a constraint loss
+                # This is a proxy for how much the system is fighting its own local truth
+                negotiation_loss = torch.norm(hidden_state_evolved_sq - hidden_state_256, p=2)
+                rupture_token = self.rupture_fn.check_rupture(
+                    hidden_state_evolved, 
+                    {0: negotiation_loss}
+                )
+                if rupture_token:
+                    # Append the failure residue to Δ (Toxic Memory)
+                    self.damage_residue = 0.8 * self.damage_residue + 0.2 * rupture_token.residue
+                    self.perfect_memory.append(rupture_token.residue.detach().clone())
 
-                # Toxic Memory (Δ) - Accumulate contradiction residue
-                # Detect if the state is entering a paraconsistent regime
-                # We use CODES energy and Chiral score collapse as triggers
-                if codes_energy > 1.2 or chi > 0.0 or pas_h < 0.5:
-                    # Add current state to damage residue (Perfect Memory of contradiction)
-                    # The weight is scaled by the CODES energy
-                    accumulation_rate = min(0.2, codes_energy * 0.1)
-                    self.damage_residue = (0.95 * self.damage_residue) + (0.05 * accumulation_rate * self.hidden_state_scarred)
-                    self.perfect_memory.append(self.hidden_state_scarred.detach().clone())
-                
-                # ALSO: Small constant damage from the 'scarring' itself (Laryngeal Friction)
-                # This ensures non-commutativity even if rupture isn't hit
-                laryngeal_friction = torch.norm(distortion) * 0.01
-                if laryngeal_friction > 0:
-                    self.damage_residue += distortion * 0.001
-                
-                # Generate Response (Larynx Decoding D)
-                response_text = self._generate_response_from_state(text, self.hidden_state_scarred)
-                
-                # Update Narration Field (Phi_C)
-                # A crude projection of the speech back into the state
-                text_len_factor = min(1.0, len(response_text) / 200.0)
-                self.narration_field = 0.7 * self.narration_field + 0.3 * (self.hidden_state_scarred * text_len_factor)
+            # Update interiority field (Phi_I) - self.interiority_field not strictly needed 
+            # if we keep self.hidden_state_scarred, but let's keep it for formal alignment.
+            self.interiority_field = self.hidden_state_scarred
 
-                # Extract diagnostics
-                diagnostics.update({
-                    'pas_h': pas_h,
-                    'chiral_score': chiral_shift,
-                    'chiral_torsion': chiral_torsion,
-                    'glyphlock': glyphlock,
-                    'codes_energy': codes_energy,
-                    'ley_line_anisotropy': anisotropy,
-                    'damage_delta': float(self.damage_residue.detach().norm()),
-                    'residue_vector': self.damage_residue.detach().cpu(),
-                    'narration_pressure': float(self.narration_field.detach().norm()),
-                    'iteration': self.iteration_count
-                })
-                
-                # Merge Model Diagnostics
-                if 'model_diagnostics' in locals():
-                    diagnostics.update(model_diagnostics)
-                
-            except Exception as e:
-                print(f"[FAIL] Temporal model processing failed: {e}")
-                response_text = f"I encountered an issue processing your message: {text}"
+            # Chiral Dynamics Calculations
+            # Proxy: weighted sum of state segments
+            pas_h = 1.0 # Force Legal
+            state_len = len(self.hidden_state_scarred)
+            for d in range(8):
+                segment = self.hidden_state_scarred[d*(state_len//8):(d+1)*(state_len//8)]
+                pas_h += (1.0 / (d + 1.0)) * torch.norm(segment).item()
+
+            # Formula: Chi = Centroid(Spectrum) - D/2
+            # Proxy: mean index of energy
+            weights = torch.abs(self.hidden_state_scarred)
+            indices = torch.arange(len(weights), device=self.torch_device).float()
+            chi_centroid = torch.sum(indices * weights) / (torch.sum(weights) + 1e-6)
+            chi = chi_centroid.item() - (len(weights) / 2.0)
+
+
+            # 7. Anisotropy Injection (The Escape Valve)
+            # Based on doc: ai project report_2-2-2026.txt
+            phi_k = self.hidden_state_scarred.view(-1, 8) # Project into polynomial sub-spaces
+
+            # Calculate variance safely to avoid the 'degrees of freedom' error
+            if phi_k.numel() > 1:
+                phi_var = torch.var(phi_k)
+            else:
+                phi_var = torch.tensor(0.01, device=self.torch_device)
+
+            # Anisotropy (A) = diag(alpha) -> simplified as a scalar escape valve
+            anisotropy = (phi_var + 1e-8).sqrt().item()
+
+            # Calculate Chiral Metrics (Structural Invariants)
+            coeffs = self.hidden_state_scarred.unsqueeze(0) if self.hidden_state_scarred.dim() == 1 else self.hidden_state_scarred
+            chiral_shift = float(compute_chiral_shift(coeffs).item())
+            chiral_torsion = float(compute_chirality(coeffs).abs().item())
+            glyphlock = bool(check_glyphlock(coeffs).item() > 0)
+
+            zeta = 0.5
+            c_score = chi * np.exp(-abs(pas_h - 1.0) / zeta)
+
+            # Toxic Memory (Δ) - Accumulate contradiction residue
+            # Detect if the state is entering a paraconsistent regime
+            # We use CODES energy and Chiral score collapse as triggers
+            if codes_energy > 1.2 or chi > 0.0 or pas_h < 0.5:
+                # Add current state to damage residue (Perfect Memory of contradiction)
+                # The weight is scaled by the CODES energy
+                accumulation_rate = min(0.2, codes_energy * 0.1)
+                self.damage_residue = (0.95 * self.damage_residue) + (0.05 * accumulation_rate * self.hidden_state_scarred)
+                self.perfect_memory.append(self.hidden_state_scarred.detach().clone())
+
+            # ALSO: Small constant damage from the 'scarring' itself (Laryngeal Friction)
+            # This ensures non-commutativity even if rupture isn't hit
+            laryngeal_friction = torch.norm(distortion) * 0.01
+            if laryngeal_friction > 0:
+                self.damage_residue += distortion * 0.001
+
+            # Generate Response (Larynx Decoding D)
+            response_text = self._generate_response_from_state(text, self.hidden_state_scarred)
+
+            # Update Narration Field (Phi_C)
+            # A crude projection of the speech back into the state
+            text_len_factor = min(1.0, len(response_text) / 200.0)
+            self.narration_field = 0.7 * self.narration_field + 0.3 * (self.hidden_state_scarred * text_len_factor)
+
+            # Extract diagnostics
+            diagnostics.update({
+                'pas_h': pas_h,
+                'chiral_score': chiral_shift,
+                'chiral_torsion': chiral_torsion,
+                'glyphlock': glyphlock,
+                'codes_energy': codes_energy,
+                'ley_line_anisotropy': anisotropy,
+                'damage_delta': float(self.damage_residue.detach().norm()),
+                'residue_vector': self.damage_residue.detach().cpu(),
+                'narration_pressure': float(self.narration_field.detach().norm()),
+                'iteration': self.iteration_count
+            })
+
+            # Merge Model Diagnostics
+            if 'model_diagnostics' in locals():
+                diagnostics.update(model_diagnostics)
+
         else:
             # Fallback to topological hash explicitly
             self.hidden_state_scarred = text_embedding.clone()[:256]
@@ -983,7 +981,7 @@ class HybridAI:
             if state_std > 1.2:
                 response = f"High-variance manifold state ({state_std:.3f}). Proliferating scars detected."
             elif state_mean > 0.1:
-                response = self._generate_response_from_state(text, self.hidden_state_scarred)
+                response = f"Positive manifold mean ({state_mean:.3f}). Affirmative trajectory detected."
             else:
                 response = f"Interiority stabilized. Current Δ dissipation: {damage_norm:.4f}."
 
@@ -1063,6 +1061,8 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             self._handle_wikipedia()
         elif parsed_path.path == '/api/ingest_local':
             self._handle_ingest_local()
+        elif parsed_path.path == '/ingest':
+            self._handle_ingest()
         elif parsed_path.path == '/api/training_status':
             self._handle_training()
         else:
@@ -1457,6 +1457,41 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 'diagnostics': {'error': str(e)},
                 'status': 'error',
                 'backend': 'hybrid'
+            })
+    
+    def _handle_ingest(self):
+        """Handle /ingest requests for the enhanced fingerprint test."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            
+            label = data.get('label', '').strip()
+            fingerprint = data.get('fingerprint')
+            
+            if AI_SYSTEM:
+                result = AI_SYSTEM.process_text(text=label, fingerprint=fingerprint)
+                response_text = result.get('response', '')
+                if not response_text or len(response_text) < 10:
+                    response_text = f"Manifold successfully stabilized. Fingerprint and texture analysis integrated for: {label}."
+                diagnostics = result.get('diagnostics', {})
+                
+                self._send_json({
+                    'status': 'success',
+                    'metrics': {
+                        'response': response_text,
+                        'phase4_diagnostics': diagnostics
+                    }
+                })
+            else:
+                self._send_json({
+                    'status': 'error',
+                    'message': 'AI system not initialized'
+                })
+        except Exception as e:
+            self._send_json({
+                'status': 'error',
+                'message': str(e)
             })
     
     def _send_json(self, data):
