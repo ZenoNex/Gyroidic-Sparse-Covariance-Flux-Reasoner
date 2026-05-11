@@ -22,23 +22,23 @@ Unified conversational data ingestion from multiple API sources.
 | Class | Source | Capabilities |
 |-------|--------|-------------|
 | `HuggingFaceConversationalIngestor` | HF Hub API | LMSYS-chat-1m, OASST2, UltraChat. Direct API + `datasets` lib. Synthetic fallback when HF unavailable |
-| `RedditConversationalIngestor` | Reddit API | OAuth2 auth, subreddit posts, threaded comments → conversation trees |
+| `RedditConversationalIngestor` | Reddit API | OAuth2 auth, subreddit posts, threaded comments  conversation trees |
 | `ConvoKitIngestor` | ConvoKit library | Labeled corpora (Wikipedia talk, Supreme Court, etc.) |
 
 ### Orchestrator
 
-`ConversationalAPIIngestor` — coordinates all three ingestors:
-- `ingest_huggingface_dataset(dataset_id, max_samples)` → parsed `Conversation[]`
-- `ingest_reddit_subreddit(subreddit, max_posts)` → threaded `Conversation[]`
-- `ingest_convokit_corpus(corpus_name)` → labeled `Conversation[]`
+`ConversationalAPIIngestor`  coordinates all three ingestors:
+- `ingest_huggingface_dataset(dataset_id, max_samples)`  parsed `Conversation[]`
+- `ingest_reddit_subreddit(subreddit, max_posts)`  threaded `Conversation[]`
+- `ingest_convokit_corpus(corpus_name)`  labeled `Conversation[]`
 - Caching via JSON serialization to `data/conversational_cache/`
 
 ### Processor
 
 `ConversationalDataProcessor` transforms raw conversations for the gyroidic system:
-- `compute_text_embedding(text)` → `[1, dim]` via `CanonicalProjector`
-- `compute_affordance_gradients(text)` → dict of soft signals (code, math, conversation, API, etc.)
-- `generate_pressure_signature(conversation)` → polynomial CRT-based pressure tensor
+- `compute_text_embedding(text)`  `[1, dim]` via `CanonicalProjector`
+- `compute_affordance_gradients(text)`  dict of soft signals (code, math, conversation, API, etc.)
+- `generate_pressure_signature(conversation)`  polynomial CRT-based pressure tensor
 
 ---
 
@@ -72,10 +72,10 @@ Each source transitions through 4 phases, with code generated dynamically per ph
 
 ### Key Design
 
-- **Assume failure, prove success**: `assume_failure()` → must call `prove_success()` with evidence
+- **Assume failure, prove success**: `assume_failure()`  must call `prove_success()` with evidence
 - `SourceDescriptor`: grammar defining discover/index/fetch/verify patterns per source
-- `force_pressure_ingestion(source_names)` — materializes across all sources
-- `get_constraint_batch(batch_size)` → `[batch, dim]` tensors for gyroidic expansion
+- `force_pressure_ingestion(source_names)`  materializes across all sources
+- `get_constraint_batch(batch_size)`  `[batch, dim]` tensors for gyroidic expansion
 
 ---
 
@@ -93,10 +93,11 @@ Phi-1 "Textbooks Are All You Need" inspired quality filtering with **non-scalar 
 | `instructive` | 0.3 | Teaching patterns, explanations, commented code |
 | `algorithmic` | 0.15 | Algorithm keywords, data structure mentions |
 | `clarity` | 0.3 | Readability, structure, formatting quality |
+| `structural_honesty` | 0.8 | Anti-lobotomy filter, rejects placeholders/TODOs |
 
 ### Admissibility
 
-Admissible iff **ALL** dimension gates pass independently — no cross-domain scalarization.
+Admissible iff **ALL** dimension gates pass independently  no cross-domain scalarization.
 
 ```
 QualityReport.admissible = all(dimension_gates.values())
@@ -104,8 +105,8 @@ QualityReport.admissible = all(dimension_gates.values())
 
 | Method | Purpose |
 |--------|---------|
-| `assess(text, source)` → `QualityReport` | Score all 4 dimensions with per-dimension gates |
-| `filter_batch(texts)` → `[{text, admissible, report}]` | Batch filtering |
-| `get_statistics(reports)` → aggregate stats | Pass rates, flag counts |
+| `assess(text, source)`  `QualityReport` | Score all 4 dimensions with per-dimension gates |
+| `filter_batch(texts)`  `[{text, admissible, report}]` | Batch filtering |
+| `get_statistics(reports)`  aggregate stats | Pass rates, flag counts |
 
 Detects code vs. instruction content automatically (`_is_code`) and applies different heuristics (`_assess_code` vs. `_assess_instruction`).
