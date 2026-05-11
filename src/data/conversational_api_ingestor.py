@@ -1087,6 +1087,20 @@ class SovereignConversationalIngestor:
             except Exception as e:
                 print(f" Failed to initialize Google services: {e}")
 
+        # Initialize persistent tracking to block background duplication (Silicon Sovereignty)
+        self.processed_ids = set()
+        try:
+            self.processed_log_path = self.sovereign.root / "processed_nutrients.log"
+            self.sovereign.root.mkdir(parents=True, exist_ok=True)
+            if self.processed_log_path.exists():
+                with open(self.processed_log_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        c_id = line.strip()
+                        if c_id: self.processed_ids.add(c_id)
+                print(f" Loaded {len(self.processed_ids)} previously ingested nutrient IDs from log.")
+        except Exception as e:
+            print(f" Warning: Failed to initialize persistent duplicate tracker: {e}")
+
     def ingest_sovereign_logic(self, limit: int = 50) -> List[Conversation]:
         """Fetch high-entropy logic from SE and HN."""
         convs = self.sovereign.ingest_stack_exchange(limit=limit)
@@ -1165,6 +1179,10 @@ class SovereignConversationalIngestor:
             return
             
         for convo in conversations:
+            # De-duplication Guard: Halt recurring background re-fossilization of identical front-page entries
+            if convo.conversation_id and convo.conversation_id in self.processed_ids:
+                continue
+
             try:
                 # Combine turns into a single narrative for the engine to digest
                 full_text = " ".join([t.text for t in convo.turns])
@@ -1220,6 +1238,16 @@ class SovereignConversationalIngestor:
                         text_embedding=text_emb,
                         seed_state=self.engine.meta_state
                     )
+                    
+                    # Record successful integration to suppress future duplicate drip
+                    if convo.conversation_id:
+                        self.processed_ids.add(convo.conversation_id)
+                        try:
+                            if hasattr(self, 'processed_log_path'):
+                                with open(self.processed_log_path, 'a', encoding='utf-8') as f:
+                                    f.write(f"{convo.conversation_id}\n")
+                        except:
+                            pass # Silently log non-critical logging failures
                     
             except Exception as e:
                 print(f"[INGESTOR] Engine or Fossilizer failed to process nutrient dyad: {e}")
