@@ -616,7 +616,8 @@ class DiegeticPhysicsEngine(nn.Module):
             self.arxiv_ingestor = ArXivSovereignIngestor(
                 fossilizer=self.fossilizer,
                 engine_dim=self.dim,
-                device=self.device
+                device=self.device,
+                state_callback=lambda: self.meta_state
             )
             self.arxiv_ingestor.start_sovereign_loop()
             print(" ArXiv Sovereign Ingestor ACTIVE. Realtime lore ingestion enabled.")
