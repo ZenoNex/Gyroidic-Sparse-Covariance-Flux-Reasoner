@@ -110,3 +110,41 @@ QualityReport.admissible = all(dimension_gates.values())
 | `get_statistics(reports)`  aggregate stats | Pass rates, flag counts |
 
 Detects code vs. instruction content automatically (`_is_code`) and applies different heuristics (`_assess_code` vs. `_assess_instruction`).
+
+---
+
+## 4. ArXiv Sovereign Lore Ingestor
+
+**Source**: [`src/data/knowledge_ingestor.py`](../src/data/knowledge_ingestor.py) (190+ lines)
+
+Background slow-drip ingestion pipeline fetching high-density lore residues from ArXiv OAI-PMH.
+
+### Dynamic Meta-State Steering
+
+Rather than cycling hardcoded topics uniformly, the ingestor dynamically samples categories based on the reasoner's live `meta_state` trajectory:
+
+1. **Archetypal Vector Signatures**: Every category maps deterministically to an orthogonal signature vector in engine space:
+   ```python
+   v = _get_category_signature(category_name)
+   ```
+2. **Cosine Alignment**: Computes similarities between live `meta_state` and category vectors.
+3. **Softmax Sampling**: Feeds similarities into Softmax ($T=0.2$) to construct a steerable probability distribution, drawing the next ingest query.
+
+### Active Category Corpus (Science & Humanities)
+
+Specifically includes hard-to-find humanities and societal overlaps to maintain philosophical depth:
+
+| Domain | ArXiv Set Identifier | Description |
+|---|---|---|
+| **Mathematics** | `math`, `math.LO` | General Math and Mathematical Logic |
+| **Quantum Physics** | `physics:quant-ph` | Quantum Physics / Topology |
+| **AI & ML** | `cs:AI` | Artificial Intelligence |
+| **History of Math** | `math.HO` | History and Overview of Mathematics |
+| **History of Physics** | `physics:hist-ph` | **Deep Humanities**: History/Philosophy of Physics |
+| **Computers & Society** | `cs:CY` | Digital Humanities, Ethics, and Social Regulation |
+| **Sociophysics** | `physics:physics.soc-ph` | Physics-based social/economic modeling |
+| **Computational Linguistics** | `cs:CL` | Language and Computational Philosophy |
+| **Cognitive Science** | `q-bio.NC` | Neurons, Cognition, and Emergence |
+| **HCI** | `cs:HC` | Human-Computer / Sociotechnical Interaction |
+| **Theoretical Econ** | `econ:TH` | Mathematical Economics |
+| **Quantitative Finance** | `q-fin:GN` | General Finance / Socio-economic dynamics |
