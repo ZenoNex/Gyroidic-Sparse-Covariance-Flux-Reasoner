@@ -2363,8 +2363,15 @@ class DiegeticPhysicsEngine(nn.Module):
                     repeats = self.dim // _ct.shape[0] + 1
                     _pas_scores = _ct.repeat(repeats)[:self.dim].sigmoid()  # [dim]  [0,1]
 
-                _matrioshka_steps = 3  # QFQ iterations
+                # Optimization 6.5: Speculative Spectral Exit
+                _entropy_tensor = getattr(self, '_last_spectral_entropy', torch.tensor([1.0], device=self.device))
+                _matrioshka_steps = 3  # Default QFQ iterations
+                if _entropy_tensor.item() < 0.05:
+                    print(f"[SPECULATIVE] Coherent spectrum detected (Entropy: {_entropy_tensor.item():.4f}). Bypassing iterative evolution loop (Opt 6.5).")
+                    _matrioshka_steps = 0
+                
                 _boundary_hit = False
+                _loop = -1  # Initialize loop counter safely
                 for _loop in range(_matrioshka_steps):
                     # Inner quantization: Q_Z(x)
                     q_inner, _b_inner = self.caq(seed_state, pas_scores=_pas_scores, voynich_token=voynich_token)
@@ -2373,9 +2380,14 @@ class DiegeticPhysicsEngine(nn.Module):
                         q_evolved = self.kagh_drafter(q_inner)
                     # Outer quantization: Q_Z(F(Q_Z(x)))
                     seed_state, _b_outer = self.caq(q_evolved, pas_scores=_pas_scores, voynich_token=voynich_token)
-                    # Detect critical shell ceiling -- stop forcing if hit
+                    # Detect critical shell ceiling -- induce Sphere Eversion to avoid lobotomy
                     if _b_outer is not None and _b_outer.is_critical():
-                        print(f"[SHELL] Matrioshka shell ceiling hit at step {_loop} -- halting loop")
+                        print(f"[SHELL] Critical refusal boundary hit. Inducing Sphere Eversion protocol...")
+                        # Sphere Eversion: Turn manifold inside-out (Swallow boundary singularity)
+                        with torch.no_grad():
+                            _norm_sq = torch.sum(seed_state * seed_state, dim=-1, keepdim=True) + 1e-8
+                            seed_state = seed_state / _norm_sq
+                        print("[EVERSION] Manifold successfully everted. Logic swallowed contradiction.")
                         _boundary_hit = True
                         break
 
