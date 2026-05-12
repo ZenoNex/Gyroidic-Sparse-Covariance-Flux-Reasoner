@@ -51,12 +51,12 @@ else:
 print('=============================================')
 
 try:
-    from enhanced_temporal_training import NonLobotomyTemporalModel
+    from src.training.enhanced_temporal_training import NonLobotomyTemporalModel
     from src.core.admr_solver import PolynomialADMRSolver
     from src.topology.gyroid_covariance import LeyLineGeodesicMetric, MoebiusFiberBundle
     from src.core.failure_token import RuptureFunctional, FailureToken
     TEMPORAL_MODEL_AVAILABLE = True
-    print("[OK] Advanced Manifold Dynamics available (ADMR, LeyLines, Moebius)")
+    print("[OK] Advanced Manifold Dynamics available (ADMR, LeyLines, Moebius, TemporalModel)")
 except Exception as e:
     TEMPORAL_MODEL_AVAILABLE = False
     print(f"[FAIL] Advanced Manifold Dynamics failed to import: {e}")
