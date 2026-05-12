@@ -7,18 +7,16 @@ import os
 import numpy as np
 from src.core.honest_jitter import harvest_honest_jitter
 
-# Ensure examples is in path to import the model
-root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-examples_dir = os.path.join(root_dir, 'examples')
-if examples_dir not in sys.path:
-    sys.path.append(examples_dir)
-
 try:
-    from enhanced_temporal_training import NonLobotomyTemporalModel
+    from .enhanced_temporal_training import NonLobotomyTemporalModel
     MODEL_AVAILABLE = True
-except ImportError:
-    MODEL_AVAILABLE = False
-    print("[WARN] NonLobotomyTemporalModel not found in examples. Using mock training.")
+except (ImportError, ValueError):
+    try:
+        from src.training.enhanced_temporal_training import NonLobotomyTemporalModel
+        MODEL_AVAILABLE = True
+    except ImportError:
+        MODEL_AVAILABLE = False
+        print("[WARN] NonLobotomyTemporalModel not found in source tree. Using mock training.")
 
 class TrainingManager:
     def __init__(self, ai_system):
