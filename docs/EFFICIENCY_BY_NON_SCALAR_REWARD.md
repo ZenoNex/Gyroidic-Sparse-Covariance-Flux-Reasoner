@@ -50,7 +50,7 @@ By focusing mutation pressure on the **Topology (Graph Connectivity)** via `Adap
 We wager that **Future Structure is visible in the Frequency Domain before the Time Domain**.
 *   Standard Decoding: Autoregressive $O(N)$ prediction of tokens.
 *   Spectral Decoding: Predict the *spectrum* of the next thought block. If the spectrum is "clean" (low entropy, clear dominant modes), valid structure exists.
-*   **Speculative Exit [PROPOSED PHASE 6.5]**: If Spectral Entropy $H_{spec} < \epsilon$, the system can potentially accept the block without expensive System 2 (CALM/ADMM) repair. **Current Status**: Active monitoring enabled; gated bypass is deferred to preserve full trajectory history buffers.
+*   **Speculative Exit [ACTIVE PHASE 6.5]**: If Spectral Entropy $H_{spec} < \epsilon$, the system bypasses expensive System 2 (CALM/ADMM) repair loops via a single-step evolutionary fastpass. **Current Status**: Active and operational. This accelerates stable inference blocks with guaranteed high coherence, conserving compute dynamically.
 
 
 
