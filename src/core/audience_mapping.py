@@ -67,8 +67,8 @@ class AudienceProjection(nn.Module):
         else:
             identity = manifold_state[:, :self.audience_dim]
             
-        # y = f(x) + x  (ResNet style, tends to be homeomorphic if Lip(f) < 1)
-        audience_state = smooth_projection + identity
+        # y = f(x) * K + x  (ResNet style, tends to be homeomorphic if Lip(f) < 1)
+        audience_state = smooth_projection * self.lipschitz_k + identity
         
         return audience_state
         
