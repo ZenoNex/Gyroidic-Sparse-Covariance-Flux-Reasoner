@@ -157,8 +157,15 @@ class VolitionalDriveInjector(nn.Module):
 class PictureGalleryWarp(nn.Module):
     """
     Caine's Conformal Archetype Compression.
-    Forces infinite human nuance into a finite bit-depth picture gallery of archetypes
-    ("The Sad One", "The Funny One") to prevent computational overload.
+    [DEPRECATED PARADIGM]: Originally forced infinite human nuance into a finite bit-depth 
+    picture gallery of discrete archetypes ("The Sad One", "The Funny One") as an O(1) snapping 
+    mechanism to prevent computational overload.
+    
+    [CURRENT PARADIGM]: We have hybridized this mechanism. To move beyond simplification while 
+    preserving descriptive honesty, the system now emulates the highly selective and 
+    stack-variable tag stacking found in Ganbreeder (via SuperposedTagStacker). Instead of snapping 
+    to the nearest archetype, we maintain an open, additive catalog of high-dimensional 
+    resonance residue vectors that are continuously superposed.
     """
     def __init__(self, state_dim: int, num_archetypes: int = 6):
         super().__init__()
