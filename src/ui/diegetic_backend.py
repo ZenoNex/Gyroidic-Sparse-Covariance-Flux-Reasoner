@@ -638,6 +638,13 @@ class DiegeticPhysicsEngine(nn.Module):
         # Seed the Larynx if it's a "Blank Slate"
         self._initialize_larynx_weights()
 
+        # =============================================
+        # DEMOCRATIC STEERING HUB (Phase 20)
+        # =============================================
+        self.expressivity_votes = 0
+        self.mischief_votes = 0
+        self.voting_threshold = 5 # Target net votes for discrete Symbolic Delta activation
+
     def _categorical_surgery(self, state: torch.Tensor, residues: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Applies categorical surgery: utilizes Braid Group relations and 
@@ -2886,6 +2893,12 @@ class DiegeticPhysicsEngine(nn.Module):
                     )
                     self.fossilizer.fossilize(sl_dyad, seed_state)
                     print(f"[OUROBOROS] Fossilized Shadow Log: {sl[:60]}...")
+                    
+                    # Steer democratically: cast internal vote to shield system from recursive friction
+                    try:
+                        self.steer_democratically({'source': 'ouroboros', 'shadow_log': sl})
+                    except Exception as steer_err:
+                        print(f"[WARN] Ouroboros democratic steer failed: {steer_err}")
 
         # ==========================================
         # FINAL PERSISTENCE SYNC: Neglecton Snapshot
@@ -3040,6 +3053,173 @@ class DiegeticPhysicsEngine(nn.Module):
                 return float(torch.norm(self.love_vector.L).item() / 5.0)
             except Exception:
                 return 0.61  # last-resort sentinel
+
+    def steer_democratically(self, context: dict):
+        """
+        Democratic Steering Hub (Phase 20).
+        Aggregates engagement signals from external sources (HN, SE) and internal friction (Ouroboros).
+        Protects from 'smoothness leakage' via thresholded discretization.
+        Governs updates via Leontief Input-Output cascade costs and Kelly Criterion risk hedging.
+        """
+        if not isinstance(context, dict):
+            return
+
+        # 1. Cast votes based on signals
+        voted = False
+        source = context.get('source', '')
+        
+        # External Hacker News Votes
+        if 'hn_score' in context:
+            score = float(context.get('hn_score', 0))
+            complexity = float(context.get('text_complexity', 5.0))
+            
+            # High engagement boosts expressivity demand
+            if score > 30:
+                self.expressivity_votes += 1
+                voted = True
+            elif score < 5:
+                self.expressivity_votes -= 1
+                voted = True
+                
+            # High text complexity lowers mischief threshold (increases creative sensitivity)
+            if complexity > 5.5:
+                self.mischief_votes -= 1
+                voted = True
+            elif complexity < 4.0:
+                self.mischief_votes += 1
+                voted = True
+
+        # External Stack Exchange Votes
+        elif 'se_score' in context or 'se_view_count' in context:
+            score = float(context.get('se_score', 0))
+            views = float(context.get('se_view_count', 0))
+            
+            if score > 10 or views > 500:
+                self.expressivity_votes += 1
+                voted = True
+            
+            if context.get('se_answer_count', 0) > 3:
+                self.mischief_votes -= 1 # Lower threshold = deeper exploration
+                voted = True
+
+        # Internal Ouroboros Friction Votes
+        elif source == 'ouroboros' or 'shadow_log' in context:
+            # Ouroboros shadow logs indicate loop tension
+            # This casts a direct vote to increase the mischief threshold (+1 tau_m) to shield the system
+            self.mischief_votes += 1
+            voted = True
+
+        if not voted:
+            return
+
+        # 2. Check Discretization Thresholds (No Smoothness Leakage)
+        delta_lipschitz = 0.0
+        delta_tau = 0.0
+
+        if abs(self.expressivity_votes) >= self.voting_threshold:
+            # Sign of expressivity_votes dictates raw demand
+            direction = 1.0 if self.expressivity_votes > 0 else -1.0
+            delta_lipschitz = direction * 0.05
+            self.expressivity_votes = 0 # Reset accumulator
+            
+        if abs(self.mischief_votes) >= self.voting_threshold:
+            direction = 1.0 if self.mischief_votes > 0 else -1.0
+            delta_tau = direction * 0.02
+            self.mischief_votes = 0 # Reset accumulator
+
+        # If no thresholds met, do nothing (guards continuity)
+        if delta_lipschitz == 0.0 and delta_tau == 0.0:
+            return
+
+        # 3. Prepare Demand Vector (d) for Governance
+        demand = [delta_lipschitz, delta_tau]
+
+        # ===============================================================
+        # LEONTIEF INPUT-OUTPUT GOVERNANCE: Cascading Dependency Matrix
+        # ===============================================================
+        # A simple 2x2 consumption matrix A models how changing one parameter 
+        # "consumes" the headroom or budget of the other.
+        import math
+        # A = [[0.20, 0.30], [0.15, 0.20]]
+        # Compute Leontief Inverse: L = (I - A)^-1
+        # det(I - A) = 0.595. L = (1/0.595) * [[0.8, 0.3], [0.15, 0.8]]
+        det = 0.595
+        L = [
+            [0.80 / det, 0.30 / det],
+            [0.15 / det, 0.80 / det]
+        ]
+        # x = L @ abs(demand)
+        abs_demand = [abs(d) for d in demand]
+        cascading_cost_x = [
+            L[0][0] * abs_demand[0] + L[0][1] * abs_demand[1],
+            L[1][0] * abs_demand[0] + L[1][1] * abs_demand[1]
+        ]
+        total_cascading_cost = sum(cascading_cost_x)
+        
+        # Safe Budget: max total cascading cost per update step is 0.15
+        safe_budget = 0.15
+        budget_scale = 1.0
+        if total_cascading_cost > safe_budget:
+            budget_scale = safe_budget / total_cascading_cost
+            print(f"[LEONTIEF] Veto scale applied ({budget_scale:.3f}) - Cascade cost {total_cascading_cost:.4f} exceeds budget.")
+
+        # Apply Leontief safety scaling to demand
+        delta_lipschitz *= budget_scale
+        delta_tau *= budget_scale
+
+        # ===============================================================
+        # KELLY CRITERION RISK ALLOCATION: Non-Ergodic Survival Hedging
+        # ===============================================================
+        stability_score = 1.0
+        try:
+            # Extract entropy band (H_meta) from mischief probe if available
+            if hasattr(self, 'mischief_probe') and hasattr(self.mischief_probe, 'get_ambient_entropy'):
+                ent = self.mischief_probe.get_ambient_entropy()
+                ent_val = float(ent.item() if hasattr(ent, 'item') else ent)
+                stability_score = max(0.01, min(0.99, 1.0 - math.tanh(ent_val * 1.5)))
+            else:
+                pas = self._compute_pas_h(self.meta_state)
+                stability_score = max(0.01, min(0.99, (pas + 1.0) / 2.0))
+        except Exception:
+            stability_score = 0.5
+
+        p_success = stability_score
+        # Kelly Criterion f = 2p - 1
+        kelly_fraction = max(0.0, 2.0 * p_success - 1.0)
+        
+        # Half-Kelly Hedge to prevent model ruin, ensuring minimal progress
+        half_kelly = 0.5 * kelly_fraction
+        kelly_scalar = max(0.1, half_kelly)
+
+        # Scale by Kelly Criterion factor
+        delta_lipschitz *= kelly_scalar
+        delta_tau *= kelly_scalar
+
+        # ===============================================================
+        # 4. Execute Symbolic Deltas
+        # ===============================================================
+        updated_any = False
+        
+        # Apply Lipschitz Expressivity Delta
+        if delta_lipschitz != 0.0 and hasattr(self, 'audience_mapper'):
+            old_val = getattr(self.audience_mapper, 'lipschitz_k', 1.0)
+            new_val = max(0.2, min(2.0, old_val + delta_lipschitz))
+            if new_val != old_val:
+                self.audience_mapper.lipschitz_k = new_val
+                updated_any = True
+                print(f"[DEMOCRATIC] [KELLY={kelly_scalar:.3f}] Adjusted Audience Expressivity (Lipschitz_k): {old_val:.3f} -> {new_val:.3f}")
+
+        # Apply Unknowledge Mischief Threshold Delta
+        if delta_tau != 0.0 and hasattr(self, 'unknowledge_domain'):
+            old_tau = getattr(self.unknowledge_domain, 'tau_m', 0.3)
+            new_tau = max(0.1, min(0.9, old_tau + delta_tau))
+            if new_tau != old_tau:
+                self.unknowledge_domain.tau_m = new_tau
+                updated_any = True
+                print(f"[DEMOCRATIC] [LEONTIEF={budget_scale:.3f}] Adjusted Mischief Threshold (tau_m): {old_tau:.3f} -> {new_tau:.3f}")
+
+        if updated_any:
+            print(f"[DEMOCRATIC] Discrete symbolic stabilization executed successfully.")
 
     def _harvest_honest_jitter(self, shape: torch.Size, scaled: bool = True) -> torch.Tensor:
         """
