@@ -1221,6 +1221,13 @@ class SovereignConversationalIngestor:
                     ingestion_mode=True
                 )
 
+                # Inject programmatic democratic votes derived from lore engagement signals
+                if hasattr(self.engine, 'steer_democratically') and convo.context:
+                    try:
+                        self.engine.steer_democratically(convo.context)
+                    except Exception as steer_err:
+                        print(f"[INGESTOR] Democratic steering hook failed: {steer_err}")
+
                 # Persistently fossilize the KnowledgeDyad to disk, binding it to the derived 
                 # topological coordinates and invariants of the updated meta_state
                 if self.fossilizer:
