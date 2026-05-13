@@ -331,8 +331,9 @@ class UniversalOrchestrator(nn.Module):
         pas_h: float,
         coherence: torch.Tensor,
         is_good_bug: bool = False,
-        atrophy: float = 0.0
-    ) -> Tuple[torch.Tensor, str, str]:
+        atrophy: float = 0.0,
+        tag_weights: Optional[Dict[str, float]] = None
+    ) -> Tuple[torch.Tensor, str, str, Optional[torch.Tensor]]:
         """
         Orchestrates the logical primitives through the state using Nested Time-Stepping.
         Decouples System 1 (Fast Heuristic) from System 2 (Geometric Rigor).
@@ -484,10 +485,12 @@ class UniversalOrchestrator(nn.Module):
             dissonance=abs(pas_h - 0.91),
             lucidity_idx=pas_h,
             raw_unquantized_state=current_state,
-            is_high_priority=is_good_bug
+            is_high_priority=is_good_bug,
+            tag_weights=tag_weights
         )
         
         state_governed = arch_results['active_state']
+        stacked_target = arch_results.get('stacked_target', None)
         
         # Update Mischief Probe with current cycle results
         self.mischief_probe.update(
@@ -567,7 +570,7 @@ class UniversalOrchestrator(nn.Module):
         # Update EMA Flux for next scout
         self.expected_flux.copy_(0.9 * self.expected_flux + 0.1 * actual_flux)
         
-        return state_shielded, regime, routing
+        return state_shielded, regime, routing, stacked_target
 
     def check_rupture(self, state: torch.Tensor, losses: Dict[int, torch.Tensor]) -> Optional[FailureToken]:
         """Rupture check (Primitive bot)."""
