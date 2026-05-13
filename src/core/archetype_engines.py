@@ -3,6 +3,7 @@ import torch.nn as nn
 import math
 from typing import Dict, List, Optional
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.superposed_tag_stacker import SuperposedTagStacker
 
 # =========================================================================
 # PHASE 2A: The Unified Theory Archetypal Logic Gaps
@@ -345,6 +346,22 @@ class ArchetypalSynthesisEngine(nn.Module):
         self.conjurer = VolitionalDriveInjector(state_dim)
         self.caine_wrap = PictureGalleryWarp(state_dim)
         self.abstraction = AbstractionThresholdMonitor()
+        
+        # Superposed Vector Stacker (Ganbreeder-style)
+        self.tag_stacker = SuperposedTagStacker(state_dim)
+
+    def harvest_named_coordinate(self, tag_name: str, vector: torch.Tensor, context_text: str) -> Dict:
+        """Register a new human-legible named coordinate via the TextbookFilter."""
+        success, report = self.tag_stacker.add_tag(tag_name, vector, context_text)
+        return {
+            "success": success,
+            "admissible": report.is_admissible,
+            "flags": report.flags
+        }
+
+    def compute_stacked_target(self, tag_weights: Dict[str, float]) -> torch.Tensor:
+        """Generate a composite multi-scalar superposition target."""
+        return self.tag_stacker.compute_composite_target(tag_weights)
 
     def run_archetypes(
         self, 
@@ -363,9 +380,17 @@ class ArchetypalSynthesisEngine(nn.Module):
         dissonance: float,
         lucidity_idx: float,
         raw_unquantized_state: torch.Tensor,
-        is_high_priority: bool = False
+        is_high_priority: bool = False,
+        tag_weights: Optional[Dict[str, float]] = None
     ):
         """Unified runner for the full archetypal and psycho-topological constraint matrix."""
+        
+        # 0. Apply Ganbreeder Tag Stacking Superposition
+        stacked_target = None
+        if tag_weights is not None and len(tag_weights) > 0:
+            stacked_target = self.compute_stacked_target(tag_weights)
+            # Softly shift current state towards stacked target (acting as a primer)
+            current_state = current_state + 0.1 * stacked_target
         
         # 1. TADC Abstraction Check (Ego Death) - Must run first before filtering
         r_a = self.abstraction.calculate_abstraction_rate(
@@ -414,7 +439,8 @@ class ArchetypalSynthesisEngine(nn.Module):
             "localized_dt": localized_dt,
             "abstraction_rate": r_a,
             "system_collapsed": r_a >= self.abstraction.abstraction_limit,
-            "pusafiliacrimonto_status": "AFFIRMED" if state.norm() > 0 else "REFUSED"
+            "pusafiliacrimonto_status": "AFFIRMED" if state.norm() > 0 else "REFUSED",
+            "stacked_target": stacked_target
         }
 
     def export_governor_state(self) -> Dict:
