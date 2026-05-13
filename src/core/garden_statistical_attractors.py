@@ -381,27 +381,34 @@ class ResonanceAttractor(nn.Module):
         """
         batch_size, signal_dim = signals.shape
         
-        # Compute pairwise phase relationships
-        sync_forces = torch.zeros_like(signals)
+        # 1. Fourier transform all signals: [batch_size, signal_dim]
+        S = torch.fft.fft(signals, dim=-1)
         
-        for i in range(batch_size):
-            for j in range(i + 1, batch_size):
-                # Cross-correlation to find phase relationship
-                cross_corr = torch.fft.ifft(
-                    torch.fft.fft(signals[i]) * torch.conj(torch.fft.fft(signals[j]))
-                ).real
-                
-                # Find peak correlation (phase offset)
-                peak_idx = torch.argmax(cross_corr)
-                phase_offset = 2 * math.pi * peak_idx / signal_dim
-                
-                # Synchronization force proportional to phase mismatch
-                sync_strength = torch.abs(cross_corr[peak_idx])
-                force_magnitude = sync_strength * torch.sin(phase_offset)
-                
-                # Apply force to both signals (Newton's third law)
-                sync_forces[i] += force_magnitude * (signals[j] - signals[i]) / batch_size
-                sync_forces[j] += force_magnitude * (signals[i] - signals[j]) / batch_size
+        # 2. Pairwise cross-spectral density: S_i * conj(S_j) -> [batch_size, batch_size, signal_dim]
+        cross_spectral = S.unsqueeze(1) * torch.conj(S.unsqueeze(0))
+        
+        # 3. Cross-correlation via IFFT -> [batch_size, batch_size, signal_dim]
+        # This fully vectorizes the O(N^2) inner loops over batch pairs into a single tensor operation
+        cross_corr = torch.fft.ifft(cross_spectral, dim=-1).real
+        
+        # 4. Peak correlation phase offset -> [batch_size, batch_size]
+        peak_idx = torch.argmax(cross_corr, dim=-1)
+        phase_offset = 2 * math.pi * peak_idx.float() / signal_dim
+        
+        # 5. Sync strength = peak correlation value
+        sync_strength = torch.abs(torch.gather(cross_corr, -1, peak_idx.unsqueeze(-1)).squeeze(-1))
+        
+        # 6. Force magnitude: [batch_size, batch_size]
+        force_magnitude = sync_strength * torch.sin(phase_offset)
+        force_magnitude.fill_diagonal_(0.0)
+        
+        # 7. Apply forces (vectorized Newton's third law)
+        # pull_j = sum_j (force_magnitude[i,j] * signals[j])
+        pull_j = torch.matmul(force_magnitude, signals)
+        # pull_i = sum_j (force_magnitude[i,j]) * signals[i]
+        pull_i = force_magnitude.sum(dim=1, keepdim=True) * signals
+        
+        sync_forces = (pull_j - pull_i) / batch_size
         
         return sync_forces
 
