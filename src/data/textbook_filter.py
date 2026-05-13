@@ -246,6 +246,11 @@ class TextbookFilter:
             report.algorithmic = min(report.algorithmic + 0.2, 1.0)
         if class_count >= 1:
             report.algorithmic = min(report.algorithmic + 0.1, 1.0)
+            
+        # Mathematical rigor check
+        math_hits = sum(1 for p in [r'\$\$', r'\\\[', r'\\begin\{', r'O\(n', r'O\(N', r'O\(log'] if re.search(p, text))
+        if math_hits > 0:
+            report.algorithmic = min(report.algorithmic + 0.3 + 0.1 * math_hits, 1.0)
         
         # --- Clarity ---
         # Reasonable line length
@@ -316,10 +321,26 @@ class TextbookFilter:
         algo_hits = sum(1 for kw in ALGORITHMIC_KEYWORDS if kw in text.lower())
         report.algorithmic = min(algo_hits * 0.12, 1.0)
         
-        # Code blocks in instruction text are high-quality signal
+        # Code blocks in instruction text are high-quality signal if accompanied by prose
         code_blocks = text.count('```')
-        if code_blocks >= 2:
-            report.algorithmic = min(report.algorithmic + 0.3, 1.0)
+        if code_blocks > 0:
+            code_len = sum(len(c) for c in re.findall(r'```.*?```', text, re.DOTALL))
+            prose_len = len(text) - code_len
+            
+            # Structural composition check: textbook samples shouldn't be bare code
+            if prose_len < code_len * 0.2:
+                report.instructive *= 0.5
+                report.clarity *= 0.5
+                report.flags.append('low_prose_ratio')
+            else:
+                report.instructive = min(report.instructive + 0.2, 1.0)
+                if code_blocks >= 2:
+                    report.algorithmic = min(report.algorithmic + 0.3, 1.0)
+                    
+        # Mathematical rigor check
+        math_hits = sum(1 for p in [r'\$\$', r'\\\[', r'\\begin\{', r'O\(n', r'O\(N', r'O\(log'] if re.search(p, text))
+        if math_hits > 0:
+            report.algorithmic = min(report.algorithmic + 0.3 + 0.1 * math_hits, 1.0)
         
         # --- Clarity ---
         # Check for coherent sentence structure
