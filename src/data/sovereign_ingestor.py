@@ -89,10 +89,13 @@ class SovereignIngestor:
                     continue
                     
                 turns = []
-                # First turn is the story itself
+                text_content = story.get('title', '') + "\n" + story.get('text', '')
+                words = text_content.split()
+                avg_word_len = sum(len(w) for w in words) / max(1, len(words))
+                
                 turns.append(ConversationTurn(
                     speaker_id=story.get('by', 'anon'),
-                    text=story.get('title', '') + "\n" + story.get('text', ''),
+                    text=text_content,
                     timestamp=datetime.fromtimestamp(story.get('time', 0)),
                     metadata={'hn_id': story_id, 'type': story.get('type')}
                 ))
@@ -113,7 +116,12 @@ class SovereignIngestor:
                 conversations.append(Conversation(
                     conversation_id=f"hn_{story_id}",
                     turns=turns,
-                    context={'hn_url': f"https://news.ycombinator.com/item?id={story_id}"},
+                    context={
+                        'hn_url': f"https://news.ycombinator.com/item?id={story_id}",
+                        'hn_score': story.get('score', 0),
+                        'hn_descendants': story.get('descendants', 0),
+                        'text_complexity': avg_word_len
+                    },
                     source='hacker_news'
                 ))
                 
@@ -163,7 +171,13 @@ class SovereignIngestor:
                 conversations.append(Conversation(
                     conversation_id=f"se_{item['question_id']}",
                     turns=turns,
-                    context={'site': site, 'link': item['link']},
+                    context={
+                        'site': site,
+                        'link': item['link'],
+                        'se_score': item.get('score', 0),
+                        'se_answer_count': item.get('answer_count', 0),
+                        'se_view_count': item.get('view_count', 0)
+                    },
                     source=f'stack_exchange/{site}'
                 ))
             except Exception:
