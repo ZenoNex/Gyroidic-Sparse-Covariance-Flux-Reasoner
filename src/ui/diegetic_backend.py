@@ -991,7 +991,8 @@ class DiegeticPhysicsEngine(nn.Module):
         ingestion_mode: bool = False,
         regime: str = 'goo',
         voynich_token: Optional[Any] = None,
-        performance_buffered: bool = False
+        performance_buffered: bool = False,
+        tag_weights: Optional[Dict[str, float]] = None
     ) -> dict:
         """
         Main entry point for processing an interaction.
@@ -1017,7 +1018,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 ingestion_mode=ingestion_mode,
                 regime=regime,
                 voynich_token=voynich_token,
-                performance_buffered=performance_buffered
+                performance_buffered=performance_buffered,
+                tag_weights=tag_weights
             )
         finally:
             self._is_processing = False
@@ -1028,7 +1030,8 @@ class DiegeticPhysicsEngine(nn.Module):
         video_dyad_b64: Optional[str] = None,
         commutativity: str = 'symmetric',
         fingerprint: Optional[Dict] = None,
-        audio_dyad: Optional[Dict] = None
+        audio_dyad: Optional[Dict] = None,
+        tag_weights: Optional[Dict[str, float]] = None
     ) -> dict:
         """
         Canonical entry point for text interaction.
@@ -1045,7 +1048,8 @@ class DiegeticPhysicsEngine(nn.Module):
             video_dyad_b64=video_dyad_b64,
             commutativity=commutativity,
             generate_response=True,
-            regime=fingerprint.get('regime', 'goo') if fingerprint else 'goo'
+            regime=fingerprint.get('regime', 'goo') if fingerprint else 'goo',
+            tag_weights=tag_weights
         )
         
         # Merge evolved state back into persistent self.meta_state (The Ouroboros Loop)
@@ -1169,7 +1173,8 @@ class DiegeticPhysicsEngine(nn.Module):
         ingestion_mode: bool = False,
         regime: str = 'goo',
         voynich_token: Optional[Any] = None,
-        performance_buffered: bool = False
+        performance_buffered: bool = False,
+        tag_weights: Optional[Dict[str, float]] = None
     ) -> dict:
         """
         Process user text, update cavity, and generate emergent response via Fractal Recursion.
@@ -1754,11 +1759,16 @@ class DiegeticPhysicsEngine(nn.Module):
         # If CALM detects collapse (abort_score > 0.5), attempt structure recovery
         # using Wasserstein optimal transport toward a coprime-coherent manifold.
         
+        # Route user-supplied scalar stack-weights to chirality_target
+        stacked_target = None
+        if tag_weights is not None and hasattr(self, 'archetypal_governor'):
+            stacked_target = self.archetypal_governor.compute_stacked_target(tag_weights)
+
         self.meta_state, recovery_metrics = self.coprime_gate(
             state=self.meta_state,
             abort_score=abort_score_tensor,
             residues=est_residues,
-            chirality_target=input_tensor,
+            chirality_target=stacked_target if stacked_target is not None and stacked_target.norm() > 0 else input_tensor,
             exemption_token=exemption_token
         )
         # If recovery succeeded in locking coprime parity, we override the CALM abort
@@ -2447,7 +2457,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 dissonance=abort_score,
                 lucidity_idx=pas_h_live,
                 raw_unquantized_state=self.meta_state,
-                is_high_priority=is_cmd
+                is_high_priority=is_cmd,
+                tag_weights=tag_weights
             )
         except Exception as arch_err:
             print(f"[FAIL] Diegetic Engine processing failed: {arch_err}")
