@@ -836,158 +836,196 @@
             <!-- PANEL B: TEXT-TO-TEXT ASSOCIATION -->
             <div class="association-panel">
                 <div class="section-title">Panel B: Semantic Linker</div>
-                <textarea id="semantic-buffer" placeholder="Semantic target (Target Text)..."
-                    style="height: 120px;"></textarea>
-                <div class="metric-card">
-                    <div class="metric-label">Source Concept</div>
-                    <input type="text" id="semantic-source" placeholder="e.g. Betti Numbers"
-                        style="width: 100%; background: transparent; border: none; color: #fff; border-bottom: 1px solid var(--glass-border); padding: 4px 0; outline: none; font-size: 0.8rem;">
-                    <button id="commit-semantic"
-                        style="width: 100%; margin-top: 1rem; background: rgba(255, 0, 242, 0.1); border: 1px solid var(--terminal-magenta); color: var(--terminal-magenta); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">
-                        COMMIT SEMANTIC LINK
-                    </button>
-                </div>
-                <div id="semantic-log" class="small-log"></div>
-            </div>
-
-            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
-
-            <!-- PANEL C: AUDIO DYAD INGESTOR -->
-            <div class="audio-panel" id="audio-panel">
-                <div class="section-title panel-c-title">Panel C: Audio Dyad
-                    <small id="audio-status" style="color:#555;">IDLE</small>
-                </div>
 
                 <!-- Commutativity Selector -->
                 <div class="commutativity-row">
                     <label>ORDER</label>
-                    <select class="commute-select" id="commute-audio">
-                        <option value="audio_first">Audio &#8594; Text</option>
-                        <option value="text_first">Text &#8594; Audio</option>
-                        <option value="symmetric">&#8771; Symmetric Entanglement</option>
-                    </select>
-                </div>
-
-                <!-- Drop zone -->
-                <div id="audio-dropzone">
-                    <div class="audio-drop-icon">&#9836;</div>
-                    <div class="audio-drop-hint" id="audio-drop-hint">DRAG AUDIO DYAD<br><span style="color:#444;">mp3
-                            &bull; m4a &bull; wav &bull; ogg</span></div>
-                    <input type="file" id="audio-file-input" style="display:none;"
-                        accept="audio/mpeg,audio/mp4,audio/wav,audio/ogg,.mp3,.m4a,.wav,.ogg">
-                </div>
-
-                <!-- Mini waveform canvas -->
-                <canvas id="audio-waveform"></canvas>
-
-                <!-- Playback controls -->
-                <div id="audio-player-wrapper">
-                    <div class="audio-meta" id="audio-meta">--</div>
-                    <audio id="audio-player" controls></audio>
-                </div>
-
-                <!-- Description buffer -->
-                <div class="section-title" style="margin-top:0.75rem;">Description Buffer (C)</div>
-                <textarea id="audio-description-buffer"
-                    style="width:100%;height:80px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:var(--terminal-green);font-family:var(--font-mono);font-size:0.7rem;padding:0.5rem;resize:none;outline:none;margin-bottom:0.75rem;border-radius:4px;"
-                    placeholder="Semantic annotation for audio dyad..."></textarea>
-
-                <button id="commit-audio" disabled>COMMIT AUDIO DYAD</button>
-                <div id="audio-log" class="small-log"></div>
-            </div>
-
-            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
-
-            <!-- PANEL D: VIDEO DYAD INGESTOR -->
-            <div class="video-panel" id="video-panel">
-                <div class="section-title">Panel D: Video Dyad
-                    <small id="video-status" style="color:#555;">IDLE</small>
-                </div>
-
-                <!-- Commutativity Selector -->
-                <div class="commutativity-row">
-                    <label>ORDER</label>
-                    <select class="commute-select" id="commute-video">
-                        <option value="media_first">Video &#8594; Text</option>
-                        <option value="text_first">Text &#8594; Video</option>
+                    <select class="commute-select" id="commute-text">
+                        <option value="source_first">Source &#8594; Target</option>
+                        <option value="target_first">Target &#8594; Source</option>
                         <option value="symmetric" selected>&#8771; Symmetric Entanglement</option>
                     </select>
                 </div>
 
-                <!-- Drop zone -->
-                <div id="video-dropzone"
-                    style="width: 100%; height: 90px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 0.75rem;">
-                    <div style="font-size: 1.4rem; line-height: 1; color: var(--terminal-blue);">&#128249;</div>
+                <div id="semantic-buffer-dropzone"
+                    style="border: 1px dashed var(--terminal-magenta); border-radius: 4px; padding: 10px; text-align: center; margin-bottom: 8px; cursor: pointer; background: rgba(255, 0, 242, 0.05); transition: border-color 0.2s;">
                     <div
-                        style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">
-                        DRAG BINARY MEDIA<br><span style="color:#444;">mp4 &bull; avi &bull; gif &bull; webm</span>
+                        style="font-size: 0.7rem; color: var(--terminal-magenta); pointer-events: none; margin-bottom: 2px;">
+                        DRAG TARGET BUFFER TEXT FILE HERE</div>
+                    <div style="font-size: 0.5rem; color: #888; pointer-events: none;">.txt &bull; .md &bull; .py</div>
+                    <input type="file" id="semantic-buffer-file" style="display:none;" accept=".txt,.md,.py">
+                </div>
+
+                <div style="display:flex; justify-content:space-between; margin-bottom: 4px; align-items:center;">
+                    <span style="font-size:0.6rem; color:#888;">TARGET BUFFER (B) (MANUAL INPUT)</span>
+                </div>
+                <textarea id="semantic-buffer" placeholder="Semantic target (Target Text)..."
+                    style="height: 120px; width: 100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); color:var(--terminal-green); font-family:var(--font-mono); font-size:0.7rem; padding:0.5rem; resize:none; outline:none; margin-bottom:0.75rem; border-radius:4px;"></textarea>
+
+                <div class="metric-card">
+                    <div id="semantic-source-dropzone"
+                        style="border: 1px dashed var(--terminal-magenta); border-radius: 4px; padding: 10px; text-align: center; margin-bottom: 8px; cursor: pointer; background: rgba(255, 0, 242, 0.05); transition: border-color 0.2s;">
+                        <div
+                            style="font-size: 0.7rem; color: var(--terminal-magenta); pointer-events: none; margin-bottom: 2px;">
+                            DRAG SOURCE CONCEPT TEXT FILE HERE</div>
+                        <div style="font-size: 0.5rem; color: #888; pointer-events: none;">.txt &bull; .md &bull; .py
+                        </div>
+                        <input type="file" id="semantic-source-file" style="display:none;" accept=".txt,.md,.py">
                     </div>
-                    <input type="file" id="video-file-input" style="display:none;"
-                        accept="video/mp4,video/avi,video/webm,image/gif,.mp4,.avi,.webm,.gif">
+                    <div class="metric-card">
+                        <div
+                            style="display:flex; justify-content:space-between; margin-bottom: 4px; align-items:center;">
+                            <div class="metric-label">Source Concept (Manual Input)</div>
+                        </div>
+                        <input type="text" id="semantic-source" placeholder="e.g. Betti Numbers"
+                            style="width: 100%; background: transparent; border: none; color: #fff; border-bottom: 1px solid var(--glass-border); padding: 4px 0; outline: none; font-size: 0.8rem;">
+                        <button id="commit-semantic"
+                            style="width: 100%; margin-top: 1rem; background: rgba(255, 0, 242, 0.1); border: 1px solid var(--terminal-magenta); color: var(--terminal-magenta); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">
+                            COMMIT SEMANTIC LINK
+                        </button>
+                    </div>
+                    <div id="semantic-log" class="small-log"></div>
                 </div>
 
-                <!-- Description buffer -->
-                <div class="section-title" style="margin-top:0.75rem;">Description Buffer (D)</div>
-                <textarea id="video-description-buffer"
-                    style="width:100%;height:80px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:var(--terminal-green);font-family:var(--font-mono);font-size:0.7rem;padding:0.5rem;resize:none;outline:none;margin-bottom:0.75rem;border-radius:4px;"
-                    placeholder="Semantic annotation for cryptographic video parsing..."></textarea>
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
 
-                <button id="commit-video"
-                    style="width: 100%; background: rgba(0, 242, 255, 0.08); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;"
-                    disabled>COMMIT VIDEO DYAD</button>
-                <div id="video-log" class="small-log"></div>
-            </div>
+                <!-- PANEL C: AUDIO DYAD INGESTOR -->
+                <div class="audio-panel" id="audio-panel">
+                    <div class="section-title panel-c-title">Panel C: Audio Dyad
+                        <small id="audio-status" style="color:#555;">IDLE</small>
+                    </div>
 
-            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+                    <!-- Commutativity Selector -->
+                    <div class="commutativity-row">
+                        <label>ORDER</label>
+                        <select class="commute-select" id="commute-audio">
+                            <option value="audio_first">Audio &#8594; Text</option>
+                            <option value="text_first">Text &#8594; Audio</option>
+                            <option value="symmetric">&#8771; Symmetric Entanglement</option>
+                        </select>
+                    </div>
 
-            <!-- PANEL E: IMAGE-MUSIC BRAID -->
-            <div class="chain-panel" id="panel-e">
-                <div class="section-title panel-e-title">Panel E: Image-Music Braid</div>
+                    <!-- Drop zone -->
+                    <div id="audio-dropzone">
+                        <div class="audio-drop-icon">&#9836;</div>
+                        <div class="audio-drop-hint" id="audio-drop-hint">DRAG AUDIO DYAD<br><span
+                                style="color:#444;">mp3
+                                &bull; m4a &bull; wav &bull; ogg</span></div>
+                        <input type="file" id="audio-file-input" style="display:none;"
+                            accept="audio/mpeg,audio/mp4,audio/wav,audio/ogg,.mp3,.m4a,.wav,.ogg">
+                    </div>
 
-                <div class="commutativity-row">
-                    <label>BRAID PATH</label>
-                    <select class="commute-select" id="commute-e">
-                        <option value="image_to_audio">Image &#x2192; Audio</option>
-                        <option value="audio_to_image">Audio &#x2192; Image</option>
-                        <option value="symmetric" selected>Symmetric Collapse</option>
-                    </select>
+                    <!-- Mini waveform canvas -->
+                    <canvas id="audio-waveform"></canvas>
+
+                    <!-- Playback controls -->
+                    <div id="audio-player-wrapper">
+                        <div class="audio-meta" id="audio-meta">--</div>
+                        <audio id="audio-player" controls></audio>
+                    </div>
+
+                    <!-- Description buffer -->
+                    <div class="section-title" style="margin-top:0.75rem;">Description Buffer (C)</div>
+                    <textarea id="audio-description-buffer"
+                        style="width:100%;height:80px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:var(--terminal-green);font-family:var(--font-mono);font-size:0.7rem;padding:0.5rem;resize:none;outline:none;margin-bottom:0.75rem;border-radius:4px;"
+                        placeholder="Semantic annotation for audio dyad..."></textarea>
+
+                    <button id="commit-audio" disabled>COMMIT AUDIO DYAD</button>
+                    <div id="audio-log" class="small-log"></div>
                 </div>
 
-                <div id="chain-e-visualizer" class="chain-visualizer"></div>
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
 
-                <button id="commit-e"
-                    style="width: 100%; background: rgba(255, 0, 242, 0.08); border: 1px solid var(--terminal-magenta); color: var(--terminal-magenta); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">COMMIT
-                    BI-MODAL BRAID</button>
-                <div id="log-e" class="small-log"></div>
-            </div>
+                <!-- PANEL D: VIDEO DYAD INGESTOR -->
+                <div class="video-panel" id="video-panel">
+                    <div class="section-title">Panel D: Video Dyad
+                        <small id="video-status" style="color:#555;">IDLE</small>
+                    </div>
 
-            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+                    <!-- Commutativity Selector -->
+                    <div class="commutativity-row">
+                        <label>ORDER</label>
+                        <select class="commute-select" id="commute-video">
+                            <option value="media_first">Video &#8594; Text</option>
+                            <option value="text_first">Text &#8594; Video</option>
+                            <option value="symmetric" selected>&#8771; Symmetric Entanglement</option>
+                        </select>
+                    </div>
 
-            <!-- PANEL F: HETEROGENEOUS CHAIN -->
-            <div class="chain-panel" id="panel-f">
-                <div class="section-title panel-f-title">Panel F: Heterogeneous Chain</div>
+                    <!-- Drop zone -->
+                    <div id="video-dropzone"
+                        style="width: 100%; height: 90px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 0.75rem;">
+                        <div style="font-size: 1.4rem; line-height: 1; color: var(--terminal-blue);">&#128249;</div>
+                        <div
+                            style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">
+                            DRAG BINARY MEDIA<br><span style="color:#444;">mp4 &bull; avi &bull; gif &bull; webm</span>
+                        </div>
+                        <input type="file" id="video-file-input" style="display:none;"
+                            accept="video/mp4,video/avi,video/webm,image/gif,.mp4,.avi,.webm,.gif">
+                    </div>
 
-                <div class="commutativity-row">
-                    <label>EXECUTION</label>
-                    <select class="commute-select" id="commute-f">
-                        <option value="sequential" selected>Sequential Evolution</option>
-                        <option value="symmetric">Simultaneous Injection</option>
-                    </select>
+                    <!-- Description buffer -->
+                    <div class="section-title" style="margin-top:0.75rem;">Description Buffer (D)</div>
+                    <textarea id="video-description-buffer"
+                        style="width:100%;height:80px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:var(--terminal-green);font-family:var(--font-mono);font-size:0.7rem;padding:0.5rem;resize:none;outline:none;margin-bottom:0.75rem;border-radius:4px;"
+                        placeholder="Semantic annotation for cryptographic video parsing..."></textarea>
+
+                    <button id="commit-video"
+                        style="width: 100%; background: rgba(0, 242, 255, 0.08); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;"
+                        disabled>COMMIT VIDEO DYAD</button>
+                    <div id="video-log" class="small-log"></div>
                 </div>
 
-                <div id="chain-f-visualizer" class="chain-visualizer"></div>
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
 
-                <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
-                    <button id="clear-chain-f"
-                        style="flex:1; background:rgba(255,255,255,0.05); border:1px solid #444; color:#888; padding:4px; border-radius:4px; font-size:0.6rem; cursor:pointer;">CLEAR
-                        CHAIN</button>
+                <!-- PANEL E: IMAGE-MUSIC BRAID -->
+                <div class="chain-panel" id="panel-e">
+                    <div class="section-title panel-e-title">Panel E: Image-Music Braid</div>
+
+                    <div class="commutativity-row">
+                        <label>BRAID PATH</label>
+                        <select class="commute-select" id="commute-e">
+                            <option value="image_to_audio">Image &#x2192; Audio</option>
+                            <option value="audio_to_image">Audio &#x2192; Image</option>
+                            <option value="symmetric" selected>Symmetric Collapse</option>
+                        </select>
+                    </div>
+
+                    <div id="chain-e-visualizer" class="chain-visualizer"></div>
+
+                    <button id="commit-e"
+                        style="width: 100%; background: rgba(255, 0, 242, 0.08); border: 1px solid var(--terminal-magenta); color: var(--terminal-magenta); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">COMMIT
+                        BI-MODAL BRAID</button>
+                    <div id="log-e" class="small-log"></div>
                 </div>
 
-                <button id="commit-f"
-                    style="width: 100%; background: rgba(138, 43, 226, 0.08); border: 1px solid #8a2be2; color: #8a2be2; padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">EXECUTE
-                    MANIFOLD BRAID</button>
-                <div id="log-f" class="small-log"></div>
-            </div>
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+                <!-- PANEL F: HETEROGENEOUS CHAIN -->
+                <div class="chain-panel" id="panel-f">
+                    <div class="section-title panel-f-title">Panel F: Heterogeneous Chain</div>
+
+                    <div class="commutativity-row">
+                        <label>EXECUTION</label>
+                        <select class="commute-select" id="commute-f">
+                            <option value="sequential" selected>Sequential Evolution</option>
+                            <option value="symmetric">Simultaneous Injection</option>
+                        </select>
+                    </div>
+
+                    <div id="chain-f-visualizer" class="chain-visualizer"></div>
+
+                    <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+                        <button id="clear-chain-f"
+                            style="flex:1; background:rgba(255,255,255,0.05); border:1px solid #444; color:#888; padding:4px; border-radius:4px; font-size:0.6rem; cursor:pointer;">CLEAR
+                            CHAIN</button>
+                    </div>
+
+                    <button id="commit-f"
+                        style="width: 100%; background: rgba(138, 43, 226, 0.08); border: 1px solid #8a2be2; color: #8a2be2; padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">EXECUTE
+                        MANIFOLD BRAID</button>
+                    <div id="log-f" class="small-log"></div>
+                </div>
         </aside>
     </main>
 
@@ -1572,9 +1610,55 @@
         }
 
         // --- Association Logic (Panel B: Semantic) ---
+        // File Upload Listeners & Drag-and-Drop Zones
+        function setupSemanticDropzone(dropzoneId, fileInputId, targetInputId, isTextarea) {
+            const dropzone = document.getElementById(dropzoneId);
+            const fileInput = document.getElementById(fileInputId);
+            const targetInput = document.getElementById(targetInputId);
+
+            dropzone.onclick = () => fileInput.click();
+
+            dropzone.ondragover = (e) => {
+                e.preventDefault();
+                dropzone.style.borderColor = '#fff';
+            };
+
+            dropzone.ondragleave = (e) => {
+                e.preventDefault();
+                dropzone.style.borderColor = 'var(--terminal-magenta)';
+            };
+
+            dropzone.ondrop = (e) => {
+                e.preventDefault();
+                dropzone.style.borderColor = 'var(--terminal-magenta)';
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    fileInput.dispatchEvent(new Event('change'));
+                }
+            };
+
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    if (isTextarea) {
+                        targetInput.value = e.target.result;
+                    } else {
+                        targetInput.value = e.target.result.substring(0, 100);
+                    }
+                };
+                reader.readAsText(file);
+            };
+        }
+
+        setupSemanticDropzone('semantic-buffer-dropzone', 'semantic-buffer-file', 'semantic-buffer', true);
+        setupSemanticDropzone('semantic-source-dropzone', 'semantic-source-file', 'semantic-source', false);
+
         async function commitSemanticLink() {
             const source = document.getElementById('semantic-source').value.trim();
             const target = document.getElementById('semantic-buffer').value.trim();
+            const commute = document.getElementById('commute-text').value;
 
             if (!source || !target) {
                 appendMessage('system', "ASSOCIATION FAILED: BUFFER OR SOURCE EMPTY.");
@@ -1582,7 +1666,8 @@
             }
 
             const command = `ASSOCIATE: ${source} <-> ${target}`;
-            appendMessage('user', `LINKING: ${source} TO SEMANTIC BUFFER...`);
+            const displayOrder = commute === 'source_first' ? 'Source → Target' : commute === 'target_first' ? 'Target → Source' : '≅ Symmetric';
+            appendMessage('user', `LINKING [${displayOrder}]: ${source} TO SEMANTIC BUFFER...`);
 
             try {
                 const response = await fetch(`${state.backend_url}/interact`, {
@@ -1591,7 +1676,7 @@
                     body: JSON.stringify({
                         text: command,
                         fingerprint: state.active_fingerprint,
-                        commutativity: document.getElementById('commute-header')?.value || 'symmetric'
+                        commutativity: commute
                     })
                 });
 
@@ -1599,7 +1684,7 @@
                 handleResponse(data);
 
                 const logEntry = document.createElement('div');
-                logEntry.innerText = `[${new Date().toLocaleTimeString()}] ${source} -> ${target.substring(0, 20)}...`;
+                logEntry.innerText = `[${new Date().toLocaleTimeString()}] [${displayOrder}] ${source} -> ${target.substring(0, 20)}...`;
                 document.getElementById('semantic-log').prepend(logEntry);
 
                 // Clear inputs
@@ -1988,7 +2073,7 @@
             // Optimization: Store the File object directly instead of converting to huge Base64 string
             state.active_video_file = file;
             state.active_video_dyad = "[FILE_POINTER]"; // Placeholder for UI logic
-            
+
             document.getElementById('video-status').innerText = 'ARMED';
             document.getElementById('video-status').style.color = 'var(--terminal-green)';
             document.querySelector('#video-dropzone div:nth-child(2)').innerHTML = `DYAD CAPTURED:<br/>${file.name}`;
@@ -2033,7 +2118,7 @@
 
                     const formData = new FormData();
                     formData.append('text', `INGEST_VIDEO_DYAD: [CRYPTOGRAPHIC_PARSE]${description ? ' | ' + description : ''}`);
-                    
+
                     // If we have a file pointer, append the actual file blob
                     if (state.active_video_file) {
                         formData.append('video_dyad_file', state.active_video_file);
