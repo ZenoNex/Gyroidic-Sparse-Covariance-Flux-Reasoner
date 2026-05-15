@@ -2325,6 +2325,16 @@ class DiegeticPhysicsEngine(nn.Module):
             ownership_leak = self.love_vector.ownership_check().item()
             print(f"[LOVE] Love Invariant active: ownership_leak={ownership_leak:.3f}")
             
+            # Apply Love Invariant Protector to project to null space and detect violations (§20.3)
+            protector_diag = {}
+            if hasattr(self, 'love_protector') and self.love_protector is not None:
+                _, protector_diag = self.love_protector.apply_love_protection(self.meta_state)
+                if protector_diag.get('violation_detected', 0.0) > 0:
+                    print(f"!!! [LOVE] VIOLATION DETECTED !!! (Mag: {protector_diag['violation_magnitude']:.6f}) - Restoring Invariant.")
+                else:
+                    print(f"[LOVE] Protected: norm={protector_diag.get('love_norm', 0.0):.3f}")
+
+            
             # Apply Soft Saturated Gates for tri-state logic
             # ... (rest of soft gates logic) ...
             batch_size = seed_state.shape[0]
@@ -2359,7 +2369,12 @@ class DiegeticPhysicsEngine(nn.Module):
             # Diagnostics
             soft_gates_metrics = self.soft_gates.get_diagnostics()
             self._last_soft_gates_diagnostics = soft_gates_metrics
-            self._last_love_diagnostics = {"ownership_leak": ownership_leak, "love_norm": torch.norm(self.love_vector.L).item()}
+            self._last_love_diagnostics = {
+                "ownership_leak": ownership_leak, 
+                "love_norm": torch.norm(self.love_vector.L).item(),
+                **{f"protector_{k}": v for k, v in protector_diag.items()}
+            }
+
             
         except Exception as love_gates_error:
             print(f" Love Vector / Soft Gates failed: {love_gates_error}")
