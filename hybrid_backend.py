@@ -30,6 +30,31 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib.request
 import urllib.error
 from src.core.audience_mapping import AudienceProjection
+from src.core.superposed_tag_stacker import SuperposedTagStacker
+
+class TensorEncoder(json.JSONEncoder):
+    """Custom JSON encoder that safely serializes PyTorch Tensors and NumPy types."""
+    def default(self, obj):
+        import torch
+        if isinstance(obj, torch.Tensor):
+            if obj.dim() == 0:
+                try:
+                    return float(obj.item())
+                except:
+                    return int(obj.item())
+            return obj.detach().cpu().tolist()
+        try:
+            import numpy as np
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            if isinstance(obj, (np.float32, np.float64, np.float16)):
+                return float(obj)
+            if isinstance(obj, (np.int32, np.int64, np.int16, np.int8)):
+                return int(obj)
+        except ImportError:
+            pass
+        return super().default(obj)
+
 
 # Add project root to path
 root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -341,6 +366,10 @@ class HybridAI:
         # Audience Mapping (Φ: M -> A)
         self.audience_mapper = AudienceProjection(input_dim=256, audience_dim=256)
 
+        # Superposed Tag Stacker (Ganbreeder fallback)
+        self.tag_stacker = SuperposedTagStacker(state_dim=256, device=self.torch_device)
+
+
         # SOVEREIGN WARMSTART: Restore manifold if fossil exists (Thorium Protocol)
         self.load_model_state()
 
@@ -503,7 +532,7 @@ class HybridAI:
             return (jitter_tensor - 0.5) * 0.1
         return jitter_tensor
 
-    def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None, audio_dyad: dict = None, regime: str = 'goo') -> dict:
+    def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None, audio_dyad: dict = None, regime: str = 'goo', tag_weights: dict = None) -> dict:
         # Ensure hidden_state is ready for cloning (isolation snapshot)
         if not hasattr(self, 'hidden_state') or self.hidden_state is None:
             self._initialize_manifold_state()
@@ -512,9 +541,46 @@ class HybridAI:
         diagnostics = {}
         response_text = ""
 
+        # Coordinate Harvesting Protocol (§3.A)
+        if text.strip().upper().startswith("SAVE_TAG:"):
+            # Extract tag_name and optional context
+            parts = text.strip()[9:].split(" ", 1)
+            tag_name = parts[0].strip()
+            context_text = parts[1].strip() if len(parts) > 1 else "Manual tag registration via stacker protocol."
+            
+            # If engine is available, register it there
+            if self.engine and hasattr(self.engine, 'archetypal_governor'):
+                result = self.engine.archetypal_governor.harvest_named_coordinate(
+                    tag_name=tag_name,
+                    vector=self.hidden_state.clone(),
+                    context_text=context_text
+                )
+                return {
+                    "status": "TAG_HARVESTED" if result["success"] else "TAG_REFUSED",
+                    "response": f"[STACKER] Successfully registered tag '{tag_name}'." if result["success"] else f"[STACKER] Refused registration of '{tag_name}'. Reason: Did not satisfy textbook-quality threshold.",
+                    "diagnostics": result,
+                    "iteration": self.iteration_count
+                }
+            elif hasattr(self, 'tag_stacker'):
+                # Local fallback harvest
+                success, report = self.tag_stacker.add_tag(tag_name, self.hidden_state.clone(), context_text)
+                return {
+                    "status": "TAG_HARVESTED" if success else "TAG_REFUSED",
+                    "response": f"[STACKER] Locally registered tag '{tag_name}'." if success else f"[STACKER] Locally refused '{tag_name}'.",
+                    "diagnostics": {"success": success, "admissible": report.is_admissible},
+                    "iteration": self.iteration_count
+                }
+
+        # Compute and apply tag stacking bias if provided
+        stacked_bias = torch.zeros(256, device=self.torch_device)
+        if tag_weights and hasattr(self, 'tag_stacker'):
+            stacked_bias = self.tag_stacker.compute_composite_target(tag_weights)
+            # Gently nudge baseline manifold toward user stacked vector
+            self.hidden_state = self.hidden_state + 0.1 * stacked_bias
         
         self.corrected_tensor = torch.zeros(256, device=self.torch_device)
         self.iteration_count += 1
+
         
         # Prevent heartbeat from showing up in main chat or triggering Ego Death
         if "IDLE_RESONANCE_HEARTBEAT" in text:
@@ -547,7 +613,8 @@ class HybridAI:
                     video_dyad_b64=video_dyad_b64,
                     commutativity=commutativity,
                     generate_response=True,
-                    regime=regime
+                    regime=regime,
+                    tag_weights=tag_weights
                 )
                 
                 # Fix: Handle case where engine_output might be a list (e.g. batch/bulk interaction)
@@ -1431,6 +1498,8 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             commutativity = data.get('commutativity', 'non_commutative')
             regime = data.get('regime', 'goo')
             
+            tag_weights = data.get('tag_weights')
+            
             # Process through AI system
             if AI_SYSTEM:
                 result = AI_SYSTEM.process_text(
@@ -1439,7 +1508,8 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                     commutativity=commutativity, 
                     fingerprint=fingerprint, 
                     audio_dyad=audio_dyad,
-                    regime=regime
+                    regime=regime,
+                    tag_weights=tag_weights
                 )
             else:
                 result = {
@@ -1501,7 +1571,7 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
-        self.wfile.write(json.dumps(data).encode())
+        self.wfile.write(json.dumps(data, cls=TensorEncoder).encode())
     
     def _handle_association(self):
         """Handle knowledge association requests."""
