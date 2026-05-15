@@ -75,7 +75,8 @@ import hashlib
 # Ensure PYTHONPATH is adequate or sys.path is used
 sys.path.append(os.getcwd())
 
-from src.core.polynomial_coprime import PolynomialCoprimeConfig
+from src.core.polynomial_coprime import PolynomialCoprimeConfig, PolynomialBasis
+from src.core.leontief_governor import LeontiefGovernor
 from src.training.fgrt_fgrt_trainer import SpectralStructuralTrainer
 from src.models.resonance_cavity import ResonanceCavity
 from src.models.diegetic_heads import ResonanceLarynx, DataAssociationLayer
@@ -324,6 +325,12 @@ class DiegeticPhysicsEngine(nn.Module):
         # Integrated Physics Modules 
         self.manifold_clock = ManifoldClock(device=self.device)
         self.valence_drive = ValenceFunctional(device=self.device)
+
+        # Democratic Leontief Governor for Symbolic Parameter Balancing
+        self.democratic_governor = LeontiefGovernor(state_dim=2, device=self.device)
+        # Democratic Dependency Matrix A_bar registered as buffer (shape [1, 2, 2] for Leontief)
+        democratic_matrix = torch.tensor([[[0.20, 0.30], [0.15, 0.20]]], device=self.device)
+        self.register_buffer('democratic_matrix', democratic_matrix)
 
         # Audience Mapping (: M -> A)
         self.audience_mapper = AudienceProjection(input_dim=dim, audience_dim=dim)
@@ -3163,24 +3170,10 @@ class DiegeticPhysicsEngine(nn.Module):
         # ===============================================================
         # LEONTIEF INPUT-OUTPUT GOVERNANCE: Cascading Dependency Matrix
         # ===============================================================
-        # A simple 2x2 consumption matrix A models how changing one parameter 
-        # "consumes" the headroom or budget of the other.
-        import math
-        # A = [[0.20, 0.30], [0.15, 0.20]]
-        # Compute Leontief Inverse: L = (I - A)^-1
-        # det(I - A) = 0.595. L = (1/0.595) * [[0.8, 0.3], [0.15, 0.8]]
-        det = 0.595
-        L = [
-            [0.80 / det, 0.30 / det],
-            [0.15 / det, 0.80 / det]
-        ]
-        # x = L @ abs(demand)
-        abs_demand = [abs(d) for d in demand]
-        cascading_cost_x = [
-            L[0][0] * abs_demand[0] + L[0][1] * abs_demand[1],
-            L[1][0] * abs_demand[0] + L[1][1] * abs_demand[1]
-        ]
-        total_cascading_cost = sum(cascading_cost_x)
+        # Compute cascading costs leveraging centralized LeontiefGovernor
+        demand_tensor = torch.tensor([abs(delta_lipschitz), abs(delta_tau)], device=self.device)
+        total_production, _ = self.democratic_governor.cascading_cost(demand_tensor, self.democratic_matrix)
+        total_cascading_cost = total_production.sum().item()
         
         # Safe Budget: max total cascading cost per update step is 0.15
         safe_budget = 0.15
@@ -3249,35 +3242,19 @@ class DiegeticPhysicsEngine(nn.Module):
 
     def _harvest_honest_jitter(self, shape: torch.Size, scaled: bool = True) -> torch.Tensor:
         """
-        Harvests Structurally Honest Jitter from silicon state variance.
+        Delegates harvesting to centralized harvest_honest_jitter, mapping scale intervals
+        to preserve downstream dynamic constants.
         Follows 45.2 (Silicon Sovereignty).
         """
-        import time
-        jitter_tensor = torch.zeros(shape, device=self.device)
-        flat = jitter_tensor.flatten()
-        
-        # Warm up cache and measure nano-variance friction
-        t0 = time.perf_counter_ns()
-        # SILICON SOVEREIGNTY: Generate hardware friction via deterministic ops
-        for _ in range(5):
-             a = torch.ones((8, 8), device=self.device) * 0.5
-             _ = torch.mm(a, a)
-        t1 = time.perf_counter_ns()
-        
-        # Harvest the 'least significant nanoseconds' as a seed val
-        seed_val = ((t1 - t0) % 1000) / 1000.0
-        if seed_val == 0: seed_val = 0.5
-        
-        # Deterministic chaotic expansion (Logistic map)
-        x = seed_val
-        for i in range(len(flat)):
-            # x_{n+1} = 3.99 * x_n * (1 - x_n) -- chaotic regime
-            x = 3.99 * x * (1.0 - x)
-            flat[i] = x
+        # Central harvest returns [-1.0, 1.0] when scaled=False
+        raw_jitter = harvest_honest_jitter(shape, device=self.device, scaled=False)
+        # Map [-1.0, 1.0] -> [0.0, 1.0] to match local logistic map range
+        jitter_0_1 = (raw_jitter + 1.0) / 2.0
         
         if scaled:
-            return (jitter_tensor - 0.5) * 0.1
-        return jitter_tensor
+            # Map [0.0, 1.0] -> [-0.05, 0.05] (exact parity: (jitter - 0.5) * 0.1)
+            return (jitter_0_1 - 0.5) * 0.1
+        return jitter_0_1
 
     def _train_mimicry(self, input_state: torch.Tensor, text_target: str):
         """Train Larynx to decrypt the input state back to text."""
@@ -3321,29 +3298,14 @@ class DiegeticPhysicsEngine(nn.Module):
         """
         vec = torch.zeros(1, self.dim)
         
-        # Generate polynomial coefficients instead of hardcoded primes
-        # Use Chebyshev polynomial basis for rotation
-        num_coeffs = 12
+        # Generate polynomial coefficients leveraging centralized PolynomialBasis
+        basis = PolynomialBasis(degree=11, basis_type='chebyshev')
+        x_eval = torch.tensor([0.5], device=self.device)
+        evals = basis.evaluate(x_eval).flatten() # Shape [12]
+        
         poly_coeffs = []
-        for n in range(num_coeffs):
-            # Chebyshev polynomial T_n evaluated at a fixed point
-            x = 0.5  # Fixed evaluation point
-            if n == 0:
-                coeff = 1.0
-            elif n == 1:
-                coeff = x
-            else:
-                # T_n(x) = 2*x*T_{n-1}(x) - T_{n-2}(x)
-                t_prev2 = 1.0
-                t_prev1 = x
-                for k in range(2, n + 1):
-                    t_curr = 2 * x * t_prev1 - t_prev2
-                    t_prev2 = t_prev1
-                    t_prev1 = t_curr
-                coeff = t_prev1
-            
-            # Scale and ensure positive for indexing
-            poly_coeffs.append(abs(coeff * 10) + 2)  # Ensure >= 2
+        for coeff in evals.cpu().tolist():
+            poly_coeffs.append(abs(coeff * 10) + 2)
         
         for i, char in enumerate(text):
             # Positional Polynomial Shift
