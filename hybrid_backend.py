@@ -31,6 +31,7 @@ import urllib.request
 import urllib.error
 from src.core.audience_mapping import AudienceProjection
 from src.core.superposed_tag_stacker import SuperposedTagStacker
+from src.terminal.udp_server_colonizer import OptionD_Colonizer
 
 class TensorEncoder(json.JSONEncoder):
     """Custom JSON encoder that safely serializes PyTorch Tensors and NumPy types."""
@@ -2018,6 +2019,13 @@ def main():
         t = threading.Thread(target=start_server, args=(port,), daemon=True, name=f"ServerThread-{port}")
         t.start()
         threads.append(t)
+        
+    # Option D: UDP Server Colonization
+    print("[UDP] Booting Option D Master Server Colonizer...")
+    udp_colonizer = OptionD_Colonizer(port=27015, app_id=320)
+    # Start with localhost, assuming Cloudflare tunnel points here
+    udp_colonizer.set_tunnel_url("http://localhost:8000")
+    udp_colonizer.start()
     
     # 4. Lifecycle Control (Ctrl+C Fossilization)
     try:
@@ -2044,6 +2052,9 @@ def main():
                 print(f"[FAIL] Emergency save failed: {e}", flush=True)
         else:
             print("[WARN] AI_SYSTEM not initialized; bypassing fossilization.", flush=True)
+            
+        print("[UDP] Stopping Option D Master Server Colonizer...", flush=True)
+        udp_colonizer.stop()
         
         print("[STOP]  Shutting down manifolds. Goodbye.", flush=True)
         # Restore signal handler before exit if needed (though os._exit is coming)
