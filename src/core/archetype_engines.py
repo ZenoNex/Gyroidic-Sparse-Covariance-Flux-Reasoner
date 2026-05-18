@@ -326,6 +326,66 @@ class AbstractionThresholdMonitor(nn.Module):
         return state
 
 # =========================================================================
+# THE TADC NEW ARCHETYPES
+# =========================================================================
+
+class PomniSearch(nn.Module):
+    """
+    The Pomni Archetype: Empathy & Search for Meaning.
+    When faced with disorientation (low lucidity / high entropy), Pomni does not
+    collapse. Instead, she seeks answers by dynamically generating a stabilizing
+    resilience perturbation, scaling up the coherence of the state vector.
+    """
+    def __init__(self, state_dim: int, resilience_scale: float = 0.3):
+        super().__init__()
+        self.resilience_scale = resilience_scale
+        self.stabilizer = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
+
+    def forward(self, state: torch.Tensor, lucidity_idx: float, system_entropy: float) -> torch.Tensor:
+        disorientation = (1.0 - lucidity_idx) * system_entropy
+        if disorientation > 0.4:
+            stabilizing_force = disorientation * self.resilience_scale * self.stabilizer.to(state.device)
+            return state + stabilizing_force
+        return state
+
+class GangleMask(nn.Module):
+    """
+    The Gangle Archetype: Masking & Mood Shifts.
+    Transitions between 'Comedy Mask' (widen exploratory resonance space) and
+    'Tragedy Mask' (isolate/shrink state to shield against logic leaks) based on PAS_h.
+    """
+    def __init__(self, comedy_scale: float = 1.3, tragedy_scale: float = 0.2):
+        super().__init__()
+        self.comedy_scale = comedy_scale
+        self.tragedy_scale = tragedy_scale
+
+    def forward(self, state: torch.Tensor, phase_alignment: float) -> torch.Tensor:
+        if phase_alignment < 0.35:
+            # tragedy mode: contract the state coordinates to avoid toxic leak propagation
+            return state * self.tragedy_scale
+        else:
+            # comedy mode: amplify the exploratory coupling of the state
+            return state * self.comedy_scale * phase_alignment
+
+class ZoobleRefusal(nn.Module):
+    """
+    The Zooble Archetype: Body Autonomy / Blunt Refusal.
+    Rejects Caine's conformal "cartoon" picture gallery compression if the deformation is too severe.
+    Acts as a blunt stabilizer that keeps the raw unquantized state if the compressed/warped state
+    deviates too much, acting as an irritability-based firewall.
+    """
+    def __init__(self, deviation_threshold: float = 0.8):
+        super().__init__()
+        self.deviation_threshold = deviation_threshold
+
+    def forward(self, state: torch.Tensor, warped_state: torch.Tensor, raw_unquantized_state: torch.Tensor) -> torch.Tensor:
+        deviation = torch.norm(warped_state - raw_unquantized_state)
+        if deviation.item() > self.deviation_threshold:
+            # Blunt refusal: restore raw unquantized state to protect body/mind autonomy
+            return raw_unquantized_state
+        return state
+
+# =========================================================================
 # THE GRAND GOVERNOR: Archetypal Synthesis Engine
 # =========================================================================
 
@@ -346,6 +406,11 @@ class ArchetypalSynthesisEngine(nn.Module):
         self.picture_gallery = PictureGalleryWarp(state_dim)
         self.volition_injector = VolitionalDriveInjector(state_dim)
         self.alien_handshake = AlienHandshakeProtocol(state_dim)
+        
+        # New TADC Archetypes
+        self.pomni = PomniSearch(state_dim)
+        self.gangle = GangleMask()
+        self.zooble = ZoobleRefusal()
         
         # Original modules retained for backward compatibility
         self.grim = AffectiveGravityWell()
@@ -406,6 +471,9 @@ class ArchetypalSynthesisEngine(nn.Module):
         )
         state = self.abstraction(current_state, r_a, is_high_priority=is_high_priority)
 
+        # 1a. Apply Pomni (Empathy & Search for Meaning)
+        state = self.pomni(state, lucidity_idx, system_entropy)
+
         # 1. Apply Mandy (Cynicism / Refusal)
         state = self.mandy(state, phase_alignment, current_mischief)
         
@@ -415,6 +483,9 @@ class ArchetypalSynthesisEngine(nn.Module):
         # 3. Apply Jax (Egg / Community Support)
         state = self.jax(state, phase_alignment, phase_alignment)
         
+        # 3a. Apply Gangle (Masking / Mood Shifts)
+        state = self.gangle(state, phase_alignment)
+        
         # 4. Apply Grom (Freedom of Shape)
         shape_id = 0
         if current_mischief > 0.6:
@@ -422,7 +493,11 @@ class ArchetypalSynthesisEngine(nn.Module):
         state = self.grom(state, shape_id)
 
         # 5. Apply Conformal Warp (Picture Gallery)
+        state_before_warp = state.clone()
         state = self.picture_gallery(state)
+        
+        # 5a. Apply Zooble (Refusal / Body Autonomy)
+        state = self.zooble(state, warped_state=state, raw_unquantized_state=state_before_warp)
         
         # 6. Apply Billy (Generative Madness)
         state = self.billy(state, current_mischief)
