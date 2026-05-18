@@ -27,7 +27,7 @@ Polynomial Coefficients Adaptation (Chern-Simons)
 Forward Commutativity Under Non-Strict Loads
 - Non-strict loading (strict=False) permits missing/unexpected keys in checkpoints (e.g., bezout_refresh.last_residues saved as [5,13] vs current [5,5]).
 - Since residues are constructed from the current state every run, and phases adapt to residue_dim dynamically, the phase transformations commute with respect to historical shape differences:
-  - T(pad(view(state))) ≈ pad(view(T(state))) after flatten/truncate to state_dim
+  - T(pad(view(state)))  pad(view(T(state))) after flatten/truncate to state_dim
   - Observable behavior at the working state_dim is preserved, even if a historical auxiliary parameter keyed to an older residue shape is skipped during load.
 
 Practical Implications
@@ -40,3 +40,9 @@ Verification
   - Expect informational logs for missing/unexpected keys
   - No runtime errors due to residue shape mismatches
   - Confirmed consistent metrics and persistence pass
+
+Conceptual Mapping: Inverse Kinematics & Retrocausal Scarring
+- The mechanism of adapting current operational shapes (padded_dim // K) to meet the requirements of historical checkpoints (or constraint boundaries) without requiring exact 1:1 parity is the topological equivalent of an Inverse Kinematics (IK) solver.
+- **The End-Effector**: The persistent "Fossil" or targeted resonance constraint (e.g., reaching a stable PAS_h threshold).
+- **The Joint Angles**: The dynamic polynomial coefficients and internal residue dimensions. 
+- **The Null Space Resolution**: Just as an underdetermined IK system uses pseudo-inverses or heuristics to select a joint configuration, the Gyroidic architecture uses Braid Group Holonomy (the path-dependent history of the system) to resolve the retrocausal topological scarring. The system computes backward from the persistent constraint, adjusting its flexible internal dimensions to securely "reach" the target without breaking the structural invariant.
