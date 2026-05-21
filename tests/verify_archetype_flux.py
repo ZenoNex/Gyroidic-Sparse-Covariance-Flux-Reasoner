@@ -30,7 +30,7 @@ def verify_orchestrator_flux():
         
         # We run multiple steps to allow the clock and EMA to settle
         for i in range(5):
-            out_state, regime, routing = orchestrator(
+            out_state, regime, routing, stacked_target = orchestrator(
                 state=state,
                 pressure_grad=pressure_grad,
                 pas_h=pas_h,
@@ -62,7 +62,7 @@ def verify_orchestrator_flux():
     
     pas_h = 0.95
     for i in range(20): # Accumulate iteration for CI and stabilize drift
-        out_state, regime, routing = orchestrator(
+        out_state, regime, routing, stacked_target = orchestrator(
             state=state,
             pressure_grad=pressure_grad,
             pas_h=pas_h,
