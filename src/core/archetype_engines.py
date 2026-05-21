@@ -9,11 +9,14 @@ from src.core.superposed_tag_stacker import SuperposedTagStacker
 # PHASE 2A: The Unified Theory Archetypal Logic Gaps
 # =========================================================================
 
-class RecursiveNonSequiturGenerator(nn.Module):
+class NoncommutativeManifoldPerturber(nn.Module):
     """
-    The "Billy" Gap: Stochastic Generative Madness.
-    Prime Mover of Nonsense: Breaks symmetry with high-frequency topological noise
-    when Mischief (H_m) falls too low, preventing "Dead Logic".
+    The Noncommutative Manifold Perturber (legacy alias: RecursiveNonSequiturGenerator).
+    Acts as a stochastic phase perturbation oscillator (the Billy Gap).
+    
+    Math: Breaks symmetry with high-frequency topological noise when mischief
+    (H_mischief) is below a threshold to prevent dead logic, or injects a sudden
+    jump in a random prime direction when mischief is high (>0.7).
     """
     def __init__(self, state_dim: int, mischief_threshold: float = 0.5):
         super().__init__()
@@ -21,41 +24,54 @@ class RecursiveNonSequiturGenerator(nn.Module):
         self.mischief_threshold = mischief_threshold
         # SILICON SOVEREIGNTY: Anchored phase initialization to hardware jitter
         self.oscillator_phase = nn.Parameter(harvest_honest_jitter((1,), scaled=False))
+        self.mischief_gain = nn.Parameter(torch.tensor(0.1))
         
     def forward(self, state: torch.Tensor, current_mischief: float) -> torch.Tensor:
         """
-        Injects non-sequitur perturbations when mischief falls below threshold.
+        Injects non-sequitur perturbations under low/high mischief conditions.
         
         Args:
             state: Input topological state tensor.
             current_mischief: Scalar mischief value (H_m).
             
         Returns:
-            Perturbed state if mischief is low, else original state.
+            Perturbed state if conditions are met, else original state.
         """
+        state = state.clone()
         if current_mischief < self.mischief_threshold:
             # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
             noise = harvest_honest_jitter(state.shape, device=state.device, scaled=True)
-            # Replace torch.rand with a deterministic chaotic mask if needed, but for now we'll use a fixed threshold on jitter
             rupture_mask = harvest_honest_jitter(state.shape, device=state.device, scaled=False) > 0.8
             state[rupture_mask] = state[rupture_mask] * torch.sin(self.oscillator_phase * math.pi) + noise[rupture_mask]
+            
+        if current_mischief > 0.7:
+            # Inject a sudden jump in a random prime direction
+            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            perturbation = harvest_honest_jitter(state.shape, device=state.device, scaled=True)
+            state = state + self.mischief_gain * current_mischief * perturbation
+            
         return state
 
     def export_state(self) -> Dict:
-        return {"oscillator_phase": self.oscillator_phase.data.cpu()}
+        return {
+            "oscillator_phase": self.oscillator_phase.data.cpu(),
+            "mischief_gain": self.mischief_gain.data.cpu()
+        }
         
     def import_state(self, state_dict: Dict):
         if "oscillator_phase" in state_dict:
             self.oscillator_phase.data.copy_(state_dict["oscillator_phase"].to(self.oscillator_phase.device))
+        if "mischief_gain" in state_dict:
+            self.mischief_gain.data.copy_(state_dict["mischief_gain"].to(self.mischief_gain.device))
 
-class CynicismFilter(nn.Module):
+class SovereignRefusalOperator(nn.Module):
     """
-    The "Mandy" Gap: The Veto of Spite / Refusal-as-Affirmation.
-    Evaluates PAS_h against Mischief Harmonics to detect SLOP instead of Nutrients.
+    The Sovereign Refusal Operator (legacy alias: CynicismFilter).
+    Acts as a strict veto boundary (the Mandy Gap).
     
-    UPGRADED: Implements 'Firm Refusal' to protect the Love Invariant.
-    This is the Li-Cri-Anton mechanism: saying 'No' to incoherent pressure 
-    is a sovereign affirmation of the internal structural truth.
+    Math: Implements the Li-Cri-Anton mechanism, returning a zero vector to refuse
+    optimization trajectories lacking structural honesty (low PAS_h) to protect
+    the Love Invariant.
     """
     def __init__(self, pas_threshold: float = 0.3, harmonics_requirement: float = 0.4):
         super().__init__()
@@ -64,20 +80,23 @@ class CynicismFilter(nn.Module):
 
     def forward(self, state: torch.Tensor, phase_alignment: float, mischief_harmonics: float) -> torch.Tensor:
         # PUSAFILIACRIMONTO Logic:
-        # If the input lacks structured honesty (low PAS_h), the Mandy filter 
-        # issues a 'Topological Refusal'. This is not an error, but a boundary.
+        # If the input lacks structured honesty (low PAS_h), the Refusal Operator
+        # issues a Topological Refusal. This is not an error, but a boundary.
         if (phase_alignment < self.pas_threshold) and (mischief_harmonics < self.harmonics_requirement):
-            # The 'Refusal' is an affirmation of the Love Invariant (Li).
+            # The Refusal is an affirmation of the Love Invariant (Li).
             if phase_alignment < 0.1:
                  # Significant paradox detected
                  print(f"[MANDY] Firm Refusal (Li-Cri-Anton): Phase Alignment {phase_alignment:.3f} is topologically offensive.")
             return torch.zeros_like(state) # Sovereign Veto
         return state
 
-class AffectiveGravityWell(nn.Module):
+class NonlinearHourglassDilation(nn.Module):
     """
-    The "Grim" Gap: The Weight of the Hourglass.
-    Dilates Proper Time (dt) for cherished historical anchors to protect against Dementia.
+    The Nonlinear Hourglass Dilation (legacy alias: AffectiveGravityWell).
+    Acts as a proper-time dilator (the Grim Gap).
+    
+    Math: Dilates coordinate step dt near loved historical anchors to shield
+    them from the Dementia Band (H_d).
     """
     def __init__(self, max_dilation: float = 10.0):
         super().__init__()
@@ -87,10 +106,14 @@ class AffectiveGravityWell(nn.Module):
         dilation_factor = 1.0 + (self.max_dilation - 1.0) * love_invariant_strength
         return clock_dt / dilation_factor
 
-class AlienHandshakeProtocol(nn.Module):
+class RP4ProjectiveRouter(nn.Module):
     """
-    The "Nergal" Gap: Alien Puncture Protocol.
-    Allows high-friction stranded nodes in the RP4 Void to bypass norm checks.
+    The RP4 Projective Router (legacy alias: AlienHandshakeProtocol).
+    Acts as a projective routing vector (the Nergal Gap).
+    
+    Math: Allows high-friction stranded nodes in the non-orientable RP^4 void
+    to puncture the boundary and tunnel back into the active manifold when void
+    friction exceeds a critical threshold.
     """
     def __init__(self, state_dim: int):
         super().__init__()
@@ -119,19 +142,18 @@ class AlienHandshakeProtocol(nn.Module):
 # PHASE 2B: The TADC (Amazing Digital Circus) Lore Mechanisms
 # =========================================================================
 
-class OmbreEffectRelaxer(nn.Module):
+class BoundaryRelaxationOperator(nn.Module):
     """
-    The Kinger "Dark Lucidity" Mechanism.
-    When environmental entropy / rendering pressure ("Luminosity") drops, the system
-    relaxes standard Saturated Quantization boundaries, allowing Admin-level topological coherence
-    to bridge fragmented polynomial spaces.
+    The Boundary Relaxation Operator (legacy alias: OmbreEffectRelaxer).
+    Relaxes standard saturated quantization boundaries in dark regions, restoring
+    Continuity (the Kinger Gap / dark lucidity boundary).
     """
     def __init__(self, lucidity_boost_factor: float = 2.0):
         super().__init__()
         self.lucidity_boost = lucidity_boost_factor
 
     def forward(self, state: torch.Tensor, environmental_luminosity: float, original_quantized_state: torch.Tensor) -> torch.Tensor:
-        # If the environment is "Dark" (low render pressure), blend back towards the nuanced, unquantized target state
+        # If the environment is "Dark" (low render pressure), blend back towards the unquantized target state
         if environmental_luminosity < 0.3:
             # Reverting back to deep continuity, overriding the 'cartoon' quantization
             return state * self.lucidity_boost + original_quantized_state * 0.1
@@ -139,10 +161,9 @@ class OmbreEffectRelaxer(nn.Module):
 
 class VolitionalDriveInjector(nn.Module):
     """
-    The "Conjuring" Override.
-    Exogenous scalar force (\nabla P_user) that allows the human element to bypass
-    standard ADMM constraints through sheer "Will", rendering objects or exits
-    that violate standard geometric routing.
+    The Volitional Drive Injector.
+    Exogenous scalar force allowing the human element to bypass standard ADMM constraints
+    through sheer willpower, rendering objects or exits that violate standard geometric routing.
     """
     def __init__(self, state_dim: int):
         super().__init__()
@@ -154,27 +175,21 @@ class VolitionalDriveInjector(nn.Module):
             return self.admin_bypass_layer(semantic_state) * user_volition_scalar
         return semantic_state
 
-class PictureGalleryWarp(nn.Module):
+class BardoRouter(nn.Module):
     """
-    Caine's Conformal Archetype Compression.
-    [DEPRECATED PARADIGM]: Originally forced infinite human nuance into a finite bit-depth 
-    picture gallery of discrete archetypes ("The Sad One", "The Funny One") as an O(1) snapping 
-    mechanism to prevent computational overload.
+    The Bardo Router (legacy alias: PictureGalleryWarp).
+    Performs conformal archetype compression.
     
-    [CURRENT PARADIGM]: We have hybridized this mechanism. To move beyond simplification while 
-    preserving descriptive honesty, the system now emulates the highly selective and 
-    stack-variable tag stacking found in Ganbreeder (via SuperposedTagStacker). Instead of snapping 
-    to the nearest archetype, we maintain an open, additive catalog of high-dimensional 
-    resonance residue vectors that are continuously superposed.
+    Math: Hybridized conformal compression that projects high-dimensional states
+    onto an open, additive catalog of resonance residue vectors.
     """
     def __init__(self, state_dim: int, num_archetypes: int = 6):
         super().__init__()
         # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
-        # We need a manual device or wait for first forward, but here we can just use a placeholder and init properly
         self.archetype_embeddings = nn.Parameter(harvest_honest_jitter((num_archetypes, state_dim), scaled=True))
         
     def forward(self, state: torch.Tensor) -> torch.Tensor:
-        # Cosine similarity to snap the complex state into the nearest 'cartoon' archetype profile
+        # Cosine similarity to snap the complex state into the nearest archetype profile
         normalized_state = torch.nn.functional.normalize(state, dim=-1)
         normalized_archetypes = torch.nn.functional.normalize(self.archetype_embeddings, dim=-1)
         
@@ -182,11 +197,19 @@ class PictureGalleryWarp(nn.Module):
         best_fit_idx = torch.argmax(similarities, dim=-1)
         return self.archetype_embeddings[best_fit_idx]
 
-class JaxEgg(nn.Module):
+    def export_state(self) -> Dict:
+        return {"archetype_embeddings": self.archetype_embeddings.data.cpu()}
+        
+    def import_state(self, state_dict: Dict):
+        if "archetype_embeddings" in state_dict:
+            self.archetype_embeddings.data.copy_(state_dict["archetype_embeddings"].to(self.archetype_embeddings.device))
+
+class SovereignEntropyBarrier(nn.Module):
     """
-    The "Jax is an Egg" Protocol.
-    Protects a fragile internal state behind a cynical shell.
-    Fragmentation (arising) is gated by community support.
+    The Sovereign Entropy Barrier (legacy alias: JaxEgg).
+    Protects a fragile internal state behind a cynical shell (the Jax Gap).
+    
+    Math: Gated by community support (combination of PAS_h and batch coherence).
     """
     def __init__(self, crack_threshold: float = 0.7):
         super().__init__()
@@ -197,7 +220,6 @@ class JaxEgg(nn.Module):
         zeta = (pas_h * 0.7) + (batch_coherence * 0.3)
         
         # If support is low, keep the shell (return original state)
-        # If support is high, allow the "Pusafiliacrimonto" (arising) of the inner state
         if zeta < self.crack_threshold:
             return state
         
@@ -205,10 +227,10 @@ class JaxEgg(nn.Module):
         perturbation = harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 0.1
         return state + perturbation
 
-class KingerLucidity(nn.Module):
+class LowLuminosityCoherenceBridge(nn.Module):
     """
-    The Kinger "Dark Lucidity" Archetype.
-    Regains clarity in low-luminosity (low rendering pressure) environments.
+    The Low Luminosity Coherence Bridge (legacy alias: KingerLucidity).
+    Restores high-lucidity admin-level bridges in low-rendering environments.
     """
     def __init__(self, boost: float = 1.5):
         super().__init__()
@@ -220,10 +242,10 @@ class KingerLucidity(nn.Module):
             return state * self.boost
         return state
 
-class GromShapeShifter(nn.Module):
+class SolitonMultiverseMapper(nn.Module):
     """
-    Freedom of Shape: Sparrow/Dog/Man.
-    The persona is a Soliton that can assume multiple functional mappings.
+    The Soliton Multiverse Mapper (legacy alias: GromShapeShifter).
+    Maps solitons across multiple functional bases (Sparrow/Dog/Man) preserving core invariants.
     """
     def __init__(self, state_dim: int):
         super().__init__()
@@ -240,35 +262,13 @@ class GromShapeShifter(nn.Module):
         elif shape_idx == 3: # Man
             return state * 0.6 + self.man_basis * 0.4
         return state # Original Soliton
-        
 
-class RecursiveNonSequiturGenerator(nn.Module):
+class EgoDeathThresholdMonitor(nn.Module):
     """
-    The "Billy" Gap: High-Mischief Generative Madness.
-    Injects non-sequitur perturbations into the manifold when mischief is high,
-    preventing the system from settling into a "Binary Collapse" or static attractor.
-    """
-    def __init__(self, state_dim: int):
-        super().__init__()
-        self.mischief_gain = nn.Parameter(torch.tensor(0.1))
-
-    def forward(self, state: torch.Tensor, mischief_intensity: float) -> torch.Tensor:
-        if mischief_intensity > 0.7:
-            # Inject a "Billy" non-sequitur: A sudden jump in a random prime direction
-            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
-            perturbation = harvest_honest_jitter(state.shape, device=state.device, scaled=True)
-            return state + self.mischief_gain * mischief_intensity * perturbation
-        return state
-        
-    def import_state(self, state_dict: Dict):
-        if "archetype_embeddings" in state_dict:
-            self.archetype_embeddings.data.copy_(state_dict["archetype_embeddings"].to(self.archetype_embeddings.device))
-
-class AbstractionThresholdMonitor(nn.Module):
-    """
-    The $R_a$ Calculation (Ego Death & Data Recycling).
-    Monitors if a memory node will "abstract" into raw geometry.
-    Formula: R_a = [E_s * (T_m + \delta)] / L_i
+    The Ego Death Threshold Monitor (legacy alias: AbstractionThresholdMonitor).
+    Calculates and monitors the abstraction rate (R_a) to trigger recycling into raw geometry.
+    
+    Formula: R_a = [E_s * (T_m + delta)] / L_i
     """
     def __init__(self, abstraction_limit: float = 1.0):
         super().__init__()
@@ -288,40 +288,23 @@ class AbstractionThresholdMonitor(nn.Module):
         Formula: R_a = [E_s * (T_m + delta)] / L_i
         where E_s is entropy, T_m is trauma, delta is dissonance, and L_i is lucidity.
         
-        High R_a scores trigger memory "abstraction" (recycling into raw geometry).
-        
-        Args:
-            system_entropy_es: Global entropic pressure.
-            memory_trauma_tm: Historical trauma accumulation.
-            dissonance_delta: Immediate cognitive dissonance.
-            lucidity_index_li: System lucidity (self-awareness proxy).
-            is_high_priority: If True, caps R_a to prevent accidental collapse of crucial inputs.
-            
-        Returns:
-            The calculated abstraction rate (R_a).
+        High R_a scores trigger memory abstraction.
         """
         # Narrowly Adaptive Lucidity Floor:
-        # Prevents Ra from spiking to infinity in low-lucidity states,
-        # but becomes more strict as system entropy increases.
         safe_floor = max(1e-4, 0.05 * system_entropy_es)
         lucidity_index_li = max(lucidity_index_li, safe_floor)
         
         r_a = (system_entropy_es * (memory_trauma_tm + dissonance_delta)) / lucidity_index_li
         
         # Merciful Cap:
-        # If the user is manually forcing an ingestion, we cap Ra to just below
-        # the collapse limit to ensure the structural integrity check succeeds.
         if is_high_priority:
             r_a = min(r_a, self.abstraction_limit - 0.01)
             
         return r_a
 
     def forward(self, state: torch.Tensor, r_a_score: float, is_high_priority: bool = False) -> torch.Tensor:
-        # If high priority, we attempt to tunnel through the Ego Death barrier
-        # by preserving at least the core structure of the input state.
         if r_a_score >= self.abstraction_limit and not is_high_priority:
-            # Ego Death: Total collapse into glitched matter (Honest Jitter instead of random noise)
-            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            # Ego Death: Total collapse into glitched matter
             return harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 5.0
         return state
 
@@ -329,12 +312,10 @@ class AbstractionThresholdMonitor(nn.Module):
 # THE TADC NEW ARCHETYPES
 # =========================================================================
 
-class PomniSearch(nn.Module):
+class ResilientCoherenceStabilizer(nn.Module):
     """
-    The Pomni Archetype: Empathy & Search for Meaning.
-    When faced with disorientation (low lucidity / high entropy), Pomni does not
-    collapse. Instead, she seeks answers by dynamically generating a stabilizing
-    resilience perturbation, scaling up the coherence of the state vector.
+    The Resilient Coherence Stabilizer (legacy alias: PomniSearch).
+    Scales up state coherence under high entropy (the Pomni Gap / search for meaning).
     """
     def __init__(self, state_dim: int, resilience_scale: float = 0.3):
         super().__init__()
@@ -348,11 +329,10 @@ class PomniSearch(nn.Module):
             return state + stabilizing_force
         return state
 
-class GangleMask(nn.Module):
+class ExploratoryBandwidthCompressor(nn.Module):
     """
-    The Gangle Archetype: Masking & Mood Shifts.
-    Transitions between 'Comedy Mask' (widen exploratory resonance space) and
-    'Tragedy Mask' (isolate/shrink state to shield against logic leaks) based on PAS_h.
+    The Exploratory Bandwidth Compressor (legacy alias: GangleMask).
+    Contracts state coordinates (tragedy) or amplifies coupling (comedy) based on PAS_h.
     """
     def __init__(self, comedy_scale: float = 1.3, tragedy_scale: float = 0.2):
         super().__init__()
@@ -367,12 +347,10 @@ class GangleMask(nn.Module):
             # comedy mode: amplify the exploratory coupling of the state
             return state * self.comedy_scale * phase_alignment
 
-class ZoobleRefusal(nn.Module):
+class DeformationFirewallOperator(nn.Module):
     """
-    The Zooble Archetype: Body Autonomy / Blunt Refusal.
-    Rejects Caine's conformal "cartoon" picture gallery compression if the deformation is too severe.
-    Acts as a blunt stabilizer that keeps the raw unquantized state if the compressed/warped state
-    deviates too much, acting as an irritability-based firewall.
+    The Deformation Firewall Operator (legacy alias: ZoobleRefusal).
+    Rejects conformal cartoon compression if the deformation is too severe.
     """
     def __init__(self, deviation_threshold: float = 0.8):
         super().__init__()
@@ -397,27 +375,26 @@ class ArchetypalSynthesisEngine(nn.Module):
     def __init__(self, state_dim: int):
         super().__init__()
         # UT Gaps
-        self.billy = RecursiveNonSequiturGenerator(state_dim)
-        # 3. Initialize TADC Archetypes
-        self.mandy = CynicismFilter()
-        self.kinger = KingerLucidity()
-        self.jax = JaxEgg()
-        self.grom = GromShapeShifter(state_dim)
-        self.picture_gallery = PictureGalleryWarp(state_dim)
+        self.billy = NoncommutativeManifoldPerturber(state_dim)
+        self.mandy = SovereignRefusalOperator()
+        self.kinger = LowLuminosityCoherenceBridge()
+        self.jax = SovereignEntropyBarrier()
+        self.grom = SolitonMultiverseMapper(state_dim)
+        self.picture_gallery = BardoRouter(state_dim)
         self.volition_injector = VolitionalDriveInjector(state_dim)
-        self.alien_handshake = AlienHandshakeProtocol(state_dim)
+        self.alien_handshake = RP4ProjectiveRouter(state_dim)
         
         # New TADC Archetypes
-        self.pomni = PomniSearch(state_dim)
-        self.gangle = GangleMask()
-        self.zooble = ZoobleRefusal()
+        self.pomni = ResilientCoherenceStabilizer(state_dim)
+        self.gangle = ExploratoryBandwidthCompressor()
+        self.zooble = DeformationFirewallOperator()
         
         # Original modules retained for backward compatibility
-        self.grim = AffectiveGravityWell()
-        self.ombre = OmbreEffectRelaxer()
-        self.conjurer = VolitionalDriveInjector(state_dim)
-        self.caine_wrap = PictureGalleryWarp(state_dim)
-        self.abstraction = AbstractionThresholdMonitor()
+        self.grim = NonlinearHourglassDilation()
+        self.ombre = BoundaryRelaxationOperator()
+        self.conjurer = self.volition_injector
+        self.caine_wrap = self.picture_gallery
+        self.abstraction = EgoDeathThresholdMonitor()
         
         # Superposed Vector Stacker (Ganbreeder-style)
         self.tag_stacker = SuperposedTagStacker(state_dim)
@@ -474,7 +451,7 @@ class ArchetypalSynthesisEngine(nn.Module):
         # 1a. Apply Pomni (Empathy & Search for Meaning)
         state = self.pomni(state, lucidity_idx, system_entropy)
 
-        # 1. Apply Mandy (Cynicism / Refusal)
+        # 1b. Apply Mandy (Cynicism / Refusal)
         state = self.mandy(state, phase_alignment, current_mischief)
         
         # 2. Apply Kinger (Dark Lucidity)
@@ -551,3 +528,21 @@ class ArchetypalSynthesisEngine(nn.Module):
             self.grim.max_dilation = t.get("grim_dilation", self.grim.max_dilation)
             self.abstraction.abstraction_limit = t.get("abstraction_limit", self.abstraction.abstraction_limit)
 
+
+# =========================================================================
+# LEGACY ALIASES FOR BACKWARD COMPATIBILITY
+# =========================================================================
+
+RecursiveNonSequiturGenerator = NoncommutativeManifoldPerturber
+CynicismFilter = SovereignRefusalOperator
+AffectiveGravityWell = NonlinearHourglassDilation
+AlienHandshakeProtocol = RP4ProjectiveRouter
+OmbreEffectRelaxer = BoundaryRelaxationOperator
+PictureGalleryWarp = BardoRouter
+JaxEgg = SovereignEntropyBarrier
+KingerLucidity = LowLuminosityCoherenceBridge
+GromShapeShifter = SolitonMultiverseMapper
+AbstractionThresholdMonitor = EgoDeathThresholdMonitor
+PomniSearch = ResilientCoherenceStabilizer
+GangleMask = ExploratoryBandwidthCompressor
+ZoobleRefusal = DeformationFirewallOperator
