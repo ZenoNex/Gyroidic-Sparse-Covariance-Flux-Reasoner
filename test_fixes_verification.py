@@ -15,7 +15,7 @@ sys.path.append('examples')
 
 def test_pil_compatibility():
     """Test PIL compatibility fix in image_extension.py"""
-    print("🖼️ Testing PIL Compatibility Fix")
+    print("Testing PIL Compatibility Fix")
     print("=" * 40)
     
     try:
@@ -32,7 +32,7 @@ def test_pil_compatibility():
         fingerprint = processor.extract_image_fingerprint('temp_test_image.png')
         
         if fingerprint is not None:
-            print("✅ PIL compatibility fix working")
+            print("[OK] PIL compatibility fix working")
             print(f"   Fingerprint shape: {fingerprint.shape}")
             print(f"   Fingerprint range: [{fingerprint.min():.3f}, {fingerprint.max():.3f}]")
             
@@ -44,16 +44,16 @@ def test_pil_compatibility():
             os.remove('temp_test_image.png')
             return True
         else:
-            print("❌ PIL compatibility fix failed")
+            print("[ERR] PIL compatibility fix failed")
             return False
             
     except Exception as e:
-        print(f"❌ PIL test failed: {e}")
+        print(f"[ERR] PIL test failed: {e}")
         return False
 
 def test_pas_h_type_handling():
     """Test pas_h type handling fix in love_invariant_protector.py"""
-    print("\n🔧 Testing pas_h Type Handling Fix")
+    print("\nTesting pas_h Type Handling Fix")
     print("=" * 40)
     
     try:
@@ -68,7 +68,7 @@ def test_pas_h_type_handling():
         performance_scores = torch.rand(5)  # [K]
         
         result1 = gates.apply_soft_saturation(test_signal, pas_h_tensor, performance_scores)
-        print("✅ Tensor pas_h handling working")
+        print("[OK] Tensor pas_h handling working")
         print(f"   Input shape: {test_signal.shape}")
         print(f"   Output shape: {result1.shape}")
         
@@ -76,21 +76,21 @@ def test_pas_h_type_handling():
         pas_h_float = 0.7
         
         result2 = gates.apply_soft_saturation(test_signal, pas_h_float, performance_scores)
-        print("✅ Float pas_h handling working")
+        print("[OK] Float pas_h handling working")
         print(f"   Float pas_h: {pas_h_float}")
         print(f"   Output shape: {result2.shape}")
         
         return True
         
     except Exception as e:
-        print(f"❌ pas_h type handling test failed: {e}")
+        print(f"[ERR] pas_h type handling test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
 
 def test_simple_integration():
     """Test simple integration without complex dependencies"""
-    print("\n🧠 Testing Simple Integration")
+    print("\nTesting Simple Integration")
     print("=" * 40)
     
     try:
@@ -99,35 +99,26 @@ def test_simple_integration():
         # Create processor
         processor = ImageProcessor()
         
-        # Create synthetic fingerprint data (avoiding complex model dependencies)
-        synthetic_fingerprint = torch.rand(137) * 0.5 + 0.25  # Range [0.25, 0.75]
+        # 1. Test legacy 137D fingerprint representation to image generation
+        synthetic_fingerprint_137 = torch.rand(137) * 0.5 + 0.25  # Range [0.25, 0.75]
+        print(f"[OK] Synthetic 137D fingerprint created: {synthetic_fingerprint_137.shape}")
         
-        print(f"✅ Synthetic fingerprint created: {synthetic_fingerprint.shape}")
+        test_image = processor.fingerprint_to_image(synthetic_fingerprint_137)
+        print(f"[OK] Legacy image generation: {test_image.size}")
         
-        # Test embedding projection
-        embedding = processor.fingerprint_to_embedding_space(synthetic_fingerprint)
-        print(f"✅ Embedding projection: {embedding.shape}")
-        
-        # Test reconstruction
-        reconstructed = processor.embedding_to_fingerprint_space(embedding)
-        print(f"✅ Fingerprint reconstruction: {reconstructed.shape}")
-        
-        # Test image generation
-        test_image = processor.fingerprint_to_image(synthetic_fingerprint)
-        print(f"✅ Image generation: {test_image.size}")
-        
-        # Calculate reconstruction error
-        error = torch.mean((synthetic_fingerprint - reconstructed.squeeze(0))**2).item()
-        print(f"✅ Reconstruction error: {error:.6f}")
+        # 2. Test modern CNN embedding projection using a batch of tiles
+        synthetic_tiles = torch.randn(1, 3, 64, 64)
+        embedding = processor.fingerprint_to_embedding_space(synthetic_tiles)
+        print(f"[OK] Modern CNN tile embedding projection: {embedding.shape}")
         
         return True
         
     except Exception as e:
-        print(f"❌ Simple integration test failed: {e}")
+        print(f"[ERR] Simple integration test failed: {e}")
         return False
 
 if __name__ == "__main__":
-    print("🔧 Verifying Bug Fixes")
+    print("Verifying Bug Fixes")
     print("Testing PIL compatibility and pas_h type handling")
     print("=" * 60)
     
@@ -142,13 +133,13 @@ if __name__ == "__main__":
     # Test simple integration
     results.append(test_simple_integration())
     
-    print(f"\n🎯 Test Results Summary")
+    print(f"\n[GOAL] Test Results Summary")
     print("=" * 30)
-    print(f"PIL Compatibility: {'✅ PASS' if results[0] else '❌ FAIL'}")
-    print(f"pas_h Type Handling: {'✅ PASS' if results[1] else '❌ FAIL'}")
-    print(f"Simple Integration: {'✅ PASS' if results[2] else '❌ FAIL'}")
+    print(f"PIL Compatibility: {'[OK] PASS' if results[0] else '[ERR] FAIL'}")
+    print(f"pas_h Type Handling: {'[OK] PASS' if results[1] else '[ERR] FAIL'}")
+    print(f"Simple Integration: {'[OK] PASS' if results[2] else '[ERR] FAIL'}")
     
     if all(results):
-        print(f"\n🚀 All fixes verified! Ready to proceed with image integration.")
+        print(f"\n[START] All fixes verified! Ready to proceed with image integration.")
     else:
-        print(f"\n⚠️  Some tests failed. Check the error messages above.")
+        print(f"\n[WARN] Some tests failed. Check the error messages above.")
