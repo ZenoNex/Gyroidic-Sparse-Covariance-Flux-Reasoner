@@ -2470,7 +2470,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 current_mischief=self.mischief_probe.H_mischief.item(),
                 phase_alignment=pas_h_live,
                 love_strengths=torch.cat([torch.tensor([0.1]), self.love_vector.L.flatten()]),
-                void_frictions=torch.tensor([abort_score]), # use CALM abort as tension
+                void_frictions=torch.tensor([abort_score], device=self.device).repeat(self.meta_state.shape[0]), # use CALM abort as tension
                 global_dt=dt,
                 env_luminosity=1.0,
                 volitional_scalar=affordance_gradients.get('executability_pressure', 0.5),
