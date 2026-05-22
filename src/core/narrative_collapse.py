@@ -16,7 +16,7 @@ Refactored: January 2026 (Anti-Lobotomy)
 """
 import torch
 import torch.nn as nn
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Dict, Optional, List
 import warnings
 
 from src.topology.persistence_obstruction import ResidueObstructionGraph
@@ -32,6 +32,7 @@ class LinguisticEntropyMonitor(nn.Module):
         alignment_threshold: float = 0.8,
         prediction_threshold: float = 0.99,
         entropy_threshold: float = 0.01,
+        lobotomy_threshold: float = 0.5,
         device: str = None
     ):
         super().__init__()
@@ -39,6 +40,7 @@ class LinguisticEntropyMonitor(nn.Module):
         self.alignment_threshold = alignment_threshold
         self.prediction_threshold = prediction_threshold
         self.entropy_threshold = entropy_threshold
+        self.lobotomy_threshold = lobotomy_threshold
         
         # Constitutional Alignment: Homological Monitor (PAS_h)
         self.pas_monitor = ResidueObstructionGraph(
@@ -46,6 +48,46 @@ class LinguisticEntropyMonitor(nn.Module):
             max_dimension=1
         )
         self.last_betti_count = 0.0
+
+    def detect_homological_collapse(
+        self, 
+        residues: List[torch.Tensor], 
+        manifold: torch.Tensor, 
+        current_gradient_norm: float
+    ) -> Tuple[bool, float]:
+        """
+        Constitutional Alignment: Detects if Betti complexity drops significantly
+        under low gradient pressure (indicating artificial smoothing or lobotomy).
+        """
+        import networkx as nx
+        # 1. Build graph using self.pas_monitor
+        G = self.pas_monitor.build_graph(residues, manifold)
+        
+        # 2. Calculate current Betti count
+        # Betti = E - V + C (for a graph)
+        num_nodes = G.number_of_nodes()
+        if num_nodes > 0:
+            try:
+                num_components = nx.number_connected_components(G)
+            except Exception:
+                num_components = 1
+            current_betti = float(G.number_of_edges() - num_nodes + num_components)
+        else:
+            current_betti = 0.0
+            
+        # 3. Calculate delta (complexity drop)
+        delta = float(self.last_betti_count - current_betti)
+        
+        # 4. Update last Betti count
+        self.last_betti_count = current_betti
+        
+        # 5. Check for lobotomy
+        is_lobotomized = False
+        if delta > 0.0 and current_gradient_norm < self.lobotomy_threshold:
+            is_lobotomized = True
+            warnings.warn("CONSTITUTIONAL ALARM: Homological Collapse (Lobotomy) detected!", UserWarning)
+            
+        return is_lobotomized, delta
 
     def calculate_entropy(self, hidden_state: torch.Tensor) -> float:
         """
