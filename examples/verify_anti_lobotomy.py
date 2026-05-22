@@ -37,7 +37,9 @@ def test_anti_lobotomy_detection():
     # We'll override the method momentarily for testing logic flow
     original_monitor = detector.pas_monitor
     
-    class MockMonitor:
+    class MockMonitor(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
         def build_graph(self, residues, manifold):
             return MockGraph(num_edges=5, num_nodes=5) # Betti = 5 - 5 + 1 = 1
             
@@ -66,9 +68,9 @@ def test_anti_lobotomy_detection():
         print(f"    Is Lobotomized: {is_lobotomized}")
         
         if is_lobotomized and "CONSTITUTIONAL ALARM" in str(w[-1].message):
-            print("    ✓ PASSED: Lobotomy detected (Low Gradient + Complexity Drop)")
+            print("    [OK] PASSED: Lobotomy detected (Low Gradient + Complexity Drop)")
         else:
-            print(f"    ✗ FAILED: Should detect lobotomy! Warnings: {[str(x.message) for x in w]}")
+            print(f"    [FAIL] FAILED: Should detect lobotomy! Warnings: {[str(x.message) for x in w]}")
 
     # 3. Valid Resolution: Complexity drops, Gradient is HIGH (Struggle)
     print("\n[3] Simulating Valid Resolution (Betti Drop + High Gradient)...")
@@ -86,9 +88,9 @@ def test_anti_lobotomy_detection():
         print(f"    Is Lobotomized: {is_lobotomized}")
         
         if not is_lobotomized:
-            print("    ✓ PASSED: Resolution accepted (High Gradient + Complexity Drop)")
+            print("    [OK] PASSED: Resolution accepted (High Gradient + Complexity Drop)")
         else:
-            print("    ✗ FAILED: Should allow resolution when gradient is high!")
+            print("    [FAIL] FAILED: Should allow resolution when gradient is high!")
 
     print("\n" + "=" * 60)
     
