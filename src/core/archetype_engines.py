@@ -485,7 +485,11 @@ class ArchetypalSynthesisEngine(nn.Module):
         # 8. Apply Alien Puncture (Nergal)
         resurrections = []
         for i in range(stranded_states.shape[0]):
-            punctured = self.alien_handshake.attempt_puncture(stranded_states[i], void_frictions[i].item())
+            if void_frictions.dim() == 0 or void_frictions.numel() == 1:
+                friction_val = void_frictions.item()
+            else:
+                friction_val = void_frictions[min(i, void_frictions.shape[0] - 1)].item()
+            punctured = self.alien_handshake.attempt_puncture(stranded_states[i], friction_val)
             if punctured.norm() > 0:
                 resurrections.append(punctured)
 
