@@ -272,6 +272,8 @@ class DatasetIngestionSystem:
                 success = self._ingest_url_dataset(config)
             elif config.source_type == 'portal':
                 success = self._ingest_portal_dataset(config)
+            elif config.source_type == 'minecraft':
+                success = self._ingest_minecraft_dataset(config)
             else:
                 print(f"[FAIL] Failed to add dataset {config.name}")
                 return False
@@ -283,6 +285,160 @@ class DatasetIngestionSystem:
                 
         except Exception as e:
             print(f"[ERR] Error adding dataset {config.name}: {e}")
+            return False
+
+    def _ingest_minecraft_dataset(self, config: DatasetConfig, return_samples: bool = False) -> Union[bool, List[Dict]]:
+        """Ingest dataset from Minecraft world saves and mod packages."""
+        try:
+            print(f"[MINECRAFT] Loading Minecraft dataset from: {config.source_path}")
+            
+            from src.data.minecraft_ingestor import MinecraftIngestionPipeline, JarModExtractor
+            from src.codec.gyroidic_codec import CodecConfig
+            
+            minecraft_dir = Path("datasets") / "minecraft"
+            world_path = minecraft_dir / config.source_path
+            
+            if not world_path.exists():
+                print(f"[ERR] Minecraft world save does not exist: {world_path}")
+                return False
+                
+            # Initialize pipeline (use default configuration sizes, e.g. K=5, n=256)
+            codec_config = CodecConfig(K=5, n=256, device=self.device)
+            poly_config = PolynomialCoprimeConfig(k=5, degree=4, device=self.device)
+            pipeline = MinecraftIngestionPipeline(codec_config, poly_config)
+            
+            max_chunks = config.max_samples if config.max_samples else 16
+            results = pipeline.ingest_minecraft_world(world_path, max_chunks=max_chunks)
+            
+            samples = []
+            voxel_res = results.get("combined_residue")
+            voxel_res_list = voxel_res.tolist() if isinstance(voxel_res, torch.Tensor) else None
+            
+            # 1. Mod Scripts ingestion
+            mods_dir = world_path.parent / "mods"
+            if mods_dir.exists():
+                extractor = JarModExtractor(mods_dir)
+                scripts = extractor.extract_mod_scripts()
+                for script in scripts:
+                    sample = {
+                        'text': f"Source: {script['source_mod']}\nFilename: {script['filename']}\nContent:\n{script['content']}",
+                        'length': len(script['content']),
+                        'source': f"minecraft:{config.source_path}/mods/{script['filename']}",
+                        'metadata': {
+                            'world_name': config.source_path,
+                            'type': 'mod_script',
+                            'filename': script['filename'],
+                            'source_mod': script['source_mod'],
+                            'noncommutativity_curvature': results.get('noncommutativity_curvature', 0.0),
+                            'commutativity_gap': results.get('commutativity_gap', 0.0),
+                        }
+                    }
+                    if voxel_res_list:
+                        sample['metadata']['voxel_residue'] = voxel_res_list
+                    samples.append(sample)
+
+            # 2. Config Files Ingestion
+            config_texts = []
+            
+            # World-specific configs
+            serverconfig_dir = world_path / "serverconfig"
+            if serverconfig_dir.exists():
+                for cfg_file in serverconfig_dir.rglob("*"):
+                    if cfg_file.is_file() and cfg_file.suffix in ['.toml', '.json', '.cfg', '.txt', '.conf', '.yaml', '.yml']:
+                        try:
+                            content = cfg_file.read_text(encoding='utf-8', errors='replace')
+                            if content.strip():
+                                config_texts.append({
+                                    'name': cfg_file.name,
+                                    'type': 'serverconfig',
+                                    'content': content
+                                })
+                        except Exception:
+                            pass
+            
+            # Global configs
+            globalconfig_dir = world_path.parent / "config"
+            if globalconfig_dir.exists():
+                for cfg_file in globalconfig_dir.rglob("*"):
+                    if cfg_file.is_file() and cfg_file.suffix in ['.toml', '.json', '.cfg', '.txt', '.conf', '.yaml', '.yml']:
+                        try:
+                            content = cfg_file.read_text(encoding='utf-8', errors='replace')
+                            if content.strip():
+                                config_texts.append({
+                                    'name': cfg_file.name,
+                                    'type': 'config',
+                                    'content': content
+                                })
+                        except Exception:
+                            pass
+                            
+            # defaultconfigs configs
+            defaultconfig_dir = world_path.parent / "defaultconfigs"
+            if defaultconfig_dir.exists():
+                for cfg_file in defaultconfig_dir.rglob("*"):
+                    if cfg_file.is_file() and cfg_file.suffix in ['.toml', '.json', '.cfg', '.txt', '.conf', '.yaml', '.yml']:
+                        try:
+                            content = cfg_file.read_text(encoding='utf-8', errors='replace')
+                            if content.strip():
+                                config_texts.append({
+                                    'name': cfg_file.name,
+                                    'type': 'defaultconfigs',
+                                    'content': content
+                                })
+                        except Exception:
+                            pass
+
+            for cfg in config_texts:
+                sample = {
+                    'text': f"Config Type: {cfg['type']}\nFilename: {cfg['name']}\nContent:\n{cfg['content']}",
+                    'length': len(cfg['content']),
+                    'source': f"minecraft:{config.source_path}/{cfg['type']}/{cfg['name']}",
+                    'metadata': {
+                        'world_name': config.source_path,
+                        'type': 'config_file',
+                        'config_type': cfg['type'],
+                        'filename': cfg['name'],
+                        'noncommutativity_curvature': results.get('noncommutativity_curvature', 0.0),
+                        'commutativity_gap': results.get('commutativity_gap', 0.0),
+                    }
+                }
+                if voxel_res_list:
+                    sample['metadata']['voxel_residue'] = voxel_res_list
+                samples.append(sample)
+                
+            # 3. Signs/Written Books (NBT text extractions)
+            nbt_texts = results.get("extracted_text", [])
+            for idx, text in enumerate(nbt_texts):
+                sample = {
+                    'text': text,
+                    'length': len(text),
+                    'source': f"minecraft:{config.source_path}/nbt_text_{idx}",
+                    'metadata': {
+                        'world_name': config.source_path,
+                        'type': 'nbt_text',
+                        'noncommutativity_curvature': results.get('noncommutativity_curvature', 0.0),
+                        'commutativity_gap': results.get('commutativity_gap', 0.0),
+                    }
+                }
+                if voxel_res_list:
+                    sample['metadata']['voxel_residue'] = voxel_res_list
+                samples.append(sample)
+                
+            if return_samples:
+                return samples
+                
+            # Save dataset
+            dataset_path = self.data_dir / config.safe_name
+            dataset_path.mkdir(exist_ok=True, parents=True)
+            self._save_dynamic_dataset(samples, dataset_path, config)
+            
+            print(f"[OK] Minecraft dataset created and chunked: {len(samples)} samples")
+            return True
+            
+        except Exception as e:
+            print(f"[ERR] Minecraft ingestion failed: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def _ingest_huggingface_dataset(self, config: DatasetConfig, return_samples: bool = False) -> Union[bool, List[Dict]]:
@@ -1417,7 +1573,7 @@ Examples:
     # Add dataset command
     add_dataset_parser = subparsers.add_parser('add-dataset', help='Add a dataset source')
     add_dataset_parser.add_argument('--name', required=True, help='Dataset name')
-    add_dataset_parser.add_argument('--source', required=True, choices=['huggingface', 'kaggle', 'wikipedia', 'local', 'url', 'portal'], help='Source type')
+    add_dataset_parser.add_argument('--source', required=True, choices=['huggingface', 'kaggle', 'wikipedia', 'local', 'url', 'portal', 'minecraft'], help='Source type')
     add_dataset_parser.add_argument('--path', required=True, help='Source path/URL')
     add_dataset_parser.add_argument('--preprocessing', default='text', choices=['text', 'image', 'tabular', 'multimodal'], help='Preprocessing type')
     add_dataset_parser.add_argument('--max-samples', type=int, help='Maximum samples to load')
