@@ -1026,6 +1026,43 @@
                         MANIFOLD BRAID</button>
                     <div id="log-f" class="small-log"></div>
                 </div>
+
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+                <!-- PANEL G: MINECRAFT INGESTOR -->
+                <div class="minecraft-panel" id="panel-g">
+                    <div class="section-title" style="color: #55ff55;">Panel G: Minecraft Ingestor
+                        <small id="minecraft-status" style="color:#555;">IDLE</small>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <button id="scan-minecraft-btn" style="width: 100%; background: rgba(85, 255, 85, 0.08); border: 1px solid #55ff55; color: #55ff55; padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;">
+                            SCAN DATASETS/MINECRAFT
+                        </button>
+
+                        <div class="metric-card" style="margin-bottom: 0px;">
+                            <div class="metric-label">Detected Worlds</div>
+                            <select id="minecraft-world-select" style="width: 100%; background: #0a0a0a; border: 1px solid var(--glass-border); color: #fff; padding: 4px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; margin-bottom: 0.5rem;">
+                                <option value="">-- No Worlds Detected --</option>
+                            </select>
+                            
+                            <div class="metric-label">Detected Mod Archives</div>
+                            <div id="minecraft-mods-list" style="max-height: 80px; overflow-y: auto; font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 4px; border-radius: 4px;">
+                                (No Mods Found)
+                            </div>
+                        </div>
+
+                        <div class="metric-card" style="margin-bottom: 0px;">
+                            <div class="metric-label">Max Chunks Ceiling</div>
+                            <input type="number" id="minecraft-max-chunks" value="16" min="1" max="256" style="width: 100%; background: #0a0a0a; border: 1px solid var(--glass-border); color: #fff; padding: 4px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none;">
+                        </div>
+
+                        <button id="commit-minecraft" style="width: 100%; background: rgba(85, 255, 85, 0.15); border: 1px solid #55ff55; color: #55ff55; padding: 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;" disabled>
+                            INGEST WORLD TO MANIFOLD
+                        </button>
+                    </div>
+                    <div id="minecraft-log" class="small-log" style="height: 120px;"></div>
+                </div>
         </aside>
     </main>
 
@@ -2329,6 +2366,147 @@
             state.media_chain = [];
             updateChainVisualizer('f');
         };
+
+        // =====================================================
+        // PANEL G: MINECRAFT INGESTOR LOGIC
+        // =====================================================
+        const scanMinecraftBtn = document.getElementById('scan-minecraft-btn');
+        const minecraftWorldSelect = document.getElementById('minecraft-world-select');
+        const minecraftModsList = document.getElementById('minecraft-mods-list');
+        const commitMinecraftBtn = document.getElementById('commit-minecraft');
+        const minecraftLog = document.getElementById('minecraft-log');
+        const minecraftMaxChunks = document.getElementById('minecraft-max-chunks');
+        const minecraftStatus = document.getElementById('minecraft-status');
+
+        function logMinecraft(msg, type = 'info') {
+            const entry = document.createElement('div');
+            entry.style.color = type === 'error' ? '#ff4444' : type === 'success' ? '#55ff55' : '#aaa';
+            entry.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            minecraftLog.prepend(entry);
+        }
+
+        async function scanMinecraft() {
+            minecraftStatus.innerText = 'SCANNING';
+            minecraftStatus.style.color = 'var(--terminal-warn)';
+            logMinecraft("Scanning datasets/minecraft/ folder...");
+            try {
+                const response = await fetch(`${state.backend_url}/api/minecraft/scan`);
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                const data = await response.json();
+                
+                // Update worlds select
+                minecraftWorldSelect.innerHTML = '';
+                if (data.worlds && data.worlds.length > 0) {
+                    data.worlds.forEach(w => {
+                        const opt = document.createElement('option');
+                        opt.value = w.name;
+                        opt.textContent = `${w.name} (level.dat: ${w.has_level_dat ? 'Y' : 'N'}, region: ${w.has_region ? 'Y' : 'N'})`;
+                        minecraftWorldSelect.appendChild(opt);
+                    });
+                    commitMinecraftBtn.disabled = false;
+                    logMinecraft(`Detected ${data.worlds.length} world save(s).`, 'success');
+                } else {
+                    const opt = document.createElement('option');
+                    opt.value = "";
+                    opt.textContent = "-- No Worlds Detected --";
+                    minecraftWorldSelect.appendChild(opt);
+                    commitMinecraftBtn.disabled = true;
+                    logMinecraft("No worlds found in datasets/minecraft/", 'warning');
+                }
+
+                // Update mods list
+                minecraftModsList.innerHTML = '';
+                if (data.mods && data.mods.length > 0) {
+                    data.mods.forEach(m => {
+                        const item = document.createElement('div');
+                        item.textContent = `• ${m.name} (${(m.size / 1024).toFixed(1)} KB)`;
+                        minecraftModsList.appendChild(item);
+                    });
+                    logMinecraft(`Detected ${data.mods.length} mod archive(s).`, 'success');
+                } else {
+                    minecraftModsList.textContent = "(No Mods Found)";
+                }
+
+                minecraftStatus.innerText = 'ARMED';
+                minecraftStatus.style.color = 'var(--terminal-green)';
+
+            } catch (err) {
+                logMinecraft(`Scan failed: ${err.message}`, 'error');
+                minecraftStatus.innerText = 'ERROR';
+                minecraftStatus.style.color = '#ff4444';
+            }
+        }
+
+        async function ingestMinecraft() {
+            const worldName = minecraftWorldSelect.value;
+            if (!worldName) {
+                logMinecraft("No world selected.", 'error');
+                return;
+            }
+
+            const maxChunks = parseInt(minecraftMaxChunks.value) || 16;
+            minecraftStatus.innerText = 'INGESTING';
+            minecraftStatus.style.color = 'var(--terminal-warn)';
+            logMinecraft(`Starting ingestion of world: ${worldName} (max chunks: ${maxChunks})...`);
+            commitMinecraftBtn.disabled = true;
+            scanMinecraftBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${state.backend_url}/api/minecraft/ingest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        world_name: worldName,
+                        max_chunks: maxChunks
+                    })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || `HTTP error ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                logMinecraft(`Ingested successfully!`, 'success');
+                logMinecraft(`Chunks processed: ${data.chunks_processed}`);
+                logMinecraft(`Scripts extracted: ${data.scripts_extracted}`);
+                logMinecraft(`Commutativity Gap: ${data.commutativity_gap.toFixed(6)}`);
+                logMinecraft(`Non-commutativity Curvature: ${data.noncommutativity_curvature.toFixed(6)}`);
+                
+                if (data.logs && data.logs.length > 0) {
+                    data.logs.forEach(logLine => logMinecraft(`> ${logLine}`));
+                }
+
+                // Append system notification to chat
+                appendMessage('system', `⬡ MINECRAFT INGESTION COMPLETED\n` +
+                    `World: ${data.world_name}\n` +
+                    `Chunks: ${data.chunks_processed}\n` +
+                    `Scripts: ${data.scripts_extracted}\n` +
+                    `Curvature: ${data.noncommutativity_curvature.toFixed(6)}\n` +
+                    `Gap: ${data.commutativity_gap.toFixed(6)}`);
+
+                // If visualizer returned visualization, it will update via standard handleResponse
+                handleResponse(data);
+
+                minecraftStatus.innerText = 'ARMED';
+                minecraftStatus.style.color = 'var(--terminal-green)';
+
+            } catch (err) {
+                logMinecraft(`Ingestion failed: ${err.message}`, 'error');
+                minecraftStatus.innerText = 'ERROR';
+                minecraftStatus.style.color = '#ff4444';
+            } finally {
+                commitMinecraftBtn.disabled = false;
+                scanMinecraftBtn.disabled = false;
+            }
+        }
+
+        scanMinecraftBtn.onclick = scanMinecraft;
+        commitMinecraftBtn.onclick = ingestMinecraft;
+
+        // Auto-scan on load
+        setTimeout(scanMinecraft, 1000);
 
     </script>
 </body>
