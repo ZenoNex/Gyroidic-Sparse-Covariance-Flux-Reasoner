@@ -137,6 +137,9 @@ from src.core.audience_mapping import AudienceProjection
 from src.data.local_data_loader import LocalDataLoader
 from src.data.textbook_filter import TextbookFilter
 
+# Minecraft Ingestion Pipeline
+from src.data.minecraft_ingestor import MinecraftIngestionPipeline
+
 # Tabby ML Integration (Phase 3)
 try:
     from src.integrations.tabby_client import TabbyClient, TabbyConfig
@@ -5321,6 +5324,54 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 })
                 return
             
+            elif self.path == '/api/minecraft/scan':
+                print("API REQUEST: /api/minecraft/scan")
+                try:
+                    minecraft_dir = os.path.join(os.getcwd(), 'datasets', 'minecraft')
+                    os.makedirs(minecraft_dir, exist_ok=True)
+                    
+                    worlds = []
+                    mods = []
+                    
+                    # Scan for worlds (subdirectories)
+                    for item in os.listdir(minecraft_dir):
+                        item_path = os.path.join(minecraft_dir, item)
+                        if os.path.isdir(item_path):
+                            if item in ['.venv', '__pycache__', 'data', 'datasets', 'mods']:
+                                continue
+                            
+                            has_level_dat = os.path.exists(os.path.join(item_path, 'level.dat'))
+                            has_region = os.path.exists(os.path.join(item_path, 'region'))
+                            
+                            worlds.append({
+                                'name': item,
+                                'path': os.path.relpath(item_path, os.getcwd()),
+                                'has_level_dat': has_level_dat,
+                                'has_region': has_region
+                            })
+                    
+                    # Scan for mods (JARs and ZIPs) in datasets/minecraft/mods/
+                    mods_dir = os.path.join(minecraft_dir, 'mods')
+                    os.makedirs(mods_dir, exist_ok=True)
+                    for item in os.listdir(mods_dir):
+                        item_path = os.path.join(mods_dir, item)
+                        if os.path.isfile(item_path) and item.endswith(('.jar', '.zip')):
+                            mods.append({
+                                'name': item,
+                                'path': os.path.relpath(item_path, os.getcwd()),
+                                'size': os.path.getsize(item_path)
+                            })
+                            
+                    self._send_json({
+                        'success': True,
+                        'worlds': worlds,
+                        'mods': mods,
+                        'directory': os.path.relpath(minecraft_dir, os.getcwd())
+                    })
+                except Exception as e:
+                    self._send_error_json(str(e))
+                return
+            
             # --- LOCAL DATA ENDPOINTS (Phase 1) ---
             elif self.path == '/api/local_datasets':
                 print("API REQUEST: /api/local_datasets")
@@ -5582,6 +5633,86 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     
                 except Exception as e:
                     print(f" Error processing ingestion: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    self._send_error_json(str(e))
+                return
+
+            elif self.path == '/api/minecraft/ingest':
+                print("API REQUEST: /api/minecraft/ingest")
+                try:
+                    content_len = int(self.headers.get('Content-Length', 0))
+                    post_body = self.rfile.read(content_len)
+                    data = json.loads(post_body.decode('utf-8'))
+                    
+                    world_name = data.get('world_name', '')
+                    max_chunks = int(data.get('max_chunks', 16))
+                    
+                    if not world_name:
+                        self._send_error_json("Missing world_name parameter")
+                        return
+                        
+                    minecraft_dir = os.path.join(os.getcwd(), 'datasets', 'minecraft')
+                    world_path = os.path.join(minecraft_dir, world_name)
+                    
+                    if not os.path.exists(world_path):
+                        self._send_error_json(f"World path not found: {world_path}")
+                        return
+                    
+                    pipeline = MinecraftIngestionPipeline(ENGINE.codec.config, ENGINE.poly_config)
+                    results = pipeline.ingest_minecraft_world(world_path, max_chunks=max_chunks)
+                    
+                    # Feed the spatial and script residues into the active engine state
+                    if results["combined_residue"] is not None:
+                        with torch.no_grad():
+                            # Project [K, n, n] residue to [1, dim]
+                            flat_res = results["combined_residue"].flatten()
+                            if flat_res.numel() > ENGINE.dim:
+                                res_projected = flat_res[:ENGINE.dim].unsqueeze(0).to(ENGINE.device)
+                            else:
+                                res_projected = F.pad(flat_res, (0, ENGINE.dim - flat_res.numel())).unsqueeze(0).to(ENGINE.device)
+                            
+                            ENGINE.meta_state.copy_(ENGINE.meta_state + 0.1 * res_projected)
+                            
+                            # Update Zeitgeist Router index if active to warp Mandelbulb visual parameters
+                            if ENGINE.zeitgeist_router is not None and ENGINE._zeitgeist_state is not None:
+                                M = len(ENGINE._zeitgeist_state.moduli)
+                                new_alpha_diag = torch.abs(results["combined_residue"].mean(dim=(-1, -2)))
+                                for i, p_i in enumerate(ENGINE._zeitgeist_state.moduli):
+                                    new_alpha_diag[i] = new_alpha_diag[i].item() % p_i
+                                
+                                alpha_tensor = torch.zeros((M, M), device=ENGINE.device)
+                                r_col = new_alpha_diag.unsqueeze(1)
+                                r_row = new_alpha_diag.unsqueeze(0)
+                                alpha_tensor = 0.5 * (r_col + r_row)
+                                alpha_tensor.view(-1)[::M + 1] = new_alpha_diag
+                                
+                                braid_word = []
+                                if results["noncommutativity_curvature"] > 0.4:
+                                    braid_word = [1, -2, 1]
+                                    
+                                ENGINE._zeitgeist_state = ENGINE._zeitgeist_state.switched(
+                                    new_alpha_tensor=alpha_tensor.cpu(),
+                                    new_level=min(5, int(results["noncommutativity_curvature"] * 5)),
+                                    mode='grazing' if results["noncommutativity_curvature"] > 0.2 else 'interior',
+                                    new_braid_word=braid_word,
+                                    new_cs_phase=float(results["commutativity_gap"])
+                                )
+                                
+                    ENGINE.save_state()
+                    
+                    # Convert Tensor in results to list for serialization
+                    if isinstance(results.get("combined_residue"), torch.Tensor):
+                        results["combined_residue"] = results["combined_residue"].tolist()
+                        
+                    if ENGINE._zeitgeist_state is not None:
+                        results["zeitgeist_state"] = ENGINE._zeitgeist_state.to_dict()
+                        
+                    results["success"] = True
+                    self._send_json(results)
+                    
+                except Exception as e:
+                    print(f"Error in Minecraft ingestion endpoint: {e}")
                     import traceback
                     traceback.print_exc()
                     self._send_error_json(str(e))
