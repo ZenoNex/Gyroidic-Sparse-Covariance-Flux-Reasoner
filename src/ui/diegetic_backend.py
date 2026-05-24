@@ -1041,6 +1041,7 @@ class DiegeticPhysicsEngine(nn.Module):
         commutativity: str = 'symmetric',
         fingerprint: Optional[Dict] = None,
         audio_dyad: Optional[Dict] = None,
+        regime: str = 'goo',
         tag_weights: Optional[Dict[str, float]] = None
     ) -> dict:
         """
@@ -1050,6 +1051,11 @@ class DiegeticPhysicsEngine(nn.Module):
         # Temporal Isolation Snapshot: Shield persistent state from in-place leaks
         detached_state = self.meta_state.clone()
         
+        # Resolve regime: prioritize explicitly passed regime, fall back to fingerprint regime
+        resolved_regime = regime
+        if regime == 'goo' and fingerprint and isinstance(fingerprint, dict) and 'regime' in fingerprint:
+            resolved_regime = fingerprint['regime']
+        
         # Process via internal method
         engine_output = self._process_input_internal(
             text_input=text,
@@ -1058,7 +1064,7 @@ class DiegeticPhysicsEngine(nn.Module):
             video_dyad_b64=video_dyad_b64,
             commutativity=commutativity,
             generate_response=True,
-            regime=fingerprint.get('regime', 'goo') if fingerprint else 'goo',
+            regime=resolved_regime,
             tag_weights=tag_weights
         )
         
@@ -2760,6 +2766,30 @@ class DiegeticPhysicsEngine(nn.Module):
 
         print("[VISUALIZER] Feedback pass complete")
 
+        # Calculate anisotropy based on self.meta_state variance
+        phi_k = self.meta_state.flatten().view(-1, 8) if hasattr(self, 'meta_state') else torch.zeros((32, 8), device=self.device)
+        if phi_k.numel() > 1:
+            phi_var = torch.var(phi_k)
+        else:
+            phi_var = torch.tensor(0.01, device=self.device)
+        anisotropy = float((phi_var + 1e-8).sqrt().item())
+
+        # Construct diagnostics dictionary to populate terminal UI
+        cs_diag = getattr(self, '_last_chern_simons_diagnostics', {})
+        diagnostics = {
+            "manifold_voice_resonance": float(self._last_resonance),
+            "ley_line_anisotropy": anisotropy,
+            "moebius_twist": float(cs_diag.get('twist_energy', 0.0)) if isinstance(cs_diag, dict) else 0.0,
+            "spectral_entropy": float(self._last_spectral_entropy.item()) if hasattr(self, '_last_spectral_entropy') else 0.0,
+            "honest_jitter": float(self._harvest_honest_jitter((1,)).item()) if hasattr(self, '_harvest_honest_jitter') else 0.1,
+            "substream_entropy": float(video_breather.get("substream_entropy", 0.02)) if 'video_breather' in locals() else 0.02,
+            "chiral_score": float(compute_chiral_shift(self.poly_config.get_coefficients_tensor()).mean().item()) if hasattr(self, 'poly_config') else 0.1,
+            "chiral_torsion": float(compute_chirality(self.poly_config.get_coefficients_tensor()).abs().mean().item()) if hasattr(self, 'poly_config') else 0.0,
+            "glyphlock": bool((check_glyphlock(self.poly_config.get_coefficients_tensor()).max().item() > 0) or (calm_diagnostics["trajectory_status"] == "RECOVERED")),
+            "pas_h": pas_h_live,
+            "retrieval_state": retrieval_state
+        }
+
         # Construct metrics now that all dependencies are available
 
         metrics = {
@@ -2783,6 +2813,7 @@ class DiegeticPhysicsEngine(nn.Module):
             "conversational_results": conversational_results,
             "calm_diagnostics": calm_diagnostics,
             "constraint_forcing_applied": constraint_forcing_needed,
+            "diagnostics": diagnostics,
             # Phase 18: CRT Zeitgeist index diagnostics
             "zeitgeist": {
                 "mode": _zg_mode,
@@ -6133,6 +6164,12 @@ def main():
         if os.path.exists(pid_file):
             os.remove(pid_file)
         httpd.server_close()
+        # Prevent PyArrow segfault by finalizing S3
+        try:
+            import pyarrow.fs
+            pyarrow.fs.finalize_s3()
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     main()
