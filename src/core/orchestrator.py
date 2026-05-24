@@ -281,7 +281,7 @@ class UniversalOrchestrator(nn.Module):
         if hasattr(self, 'poly_config'):
              from src.core.invariants import check_glyphlock
              coeffs = self.poly_config.get_coefficients_tensor()
-             is_glyph_locked = bool(check_glyphlock(coeffs).item() > 0)
+             is_glyph_locked = bool(check_glyphlock(coeffs).max().item() > 0)
         
         # 4. Topological Non-triviality (H_1 != 0)
         # We check the most recent Betti_1 from the Approximator
