@@ -176,20 +176,24 @@ class DatasetIngestionSystem:
     - Non-teleological flow (survivorship pressure, not loss minimization)
     """
     
-    def __init__(self, device: str = 'auto'):
+    def __init__(self, device: str = 'auto', engine: Optional[Any] = None):
         self.device = device if device != 'auto' else ('cuda' if torch.cuda.is_available() else 'cpu')
         
         # [FULL BRIDGE] Initialize DiegeticPhysicsEngine for Manifold-Aware (Thick) Ingestion
-        try:
-            from src.ui.diegetic_backend import DiegeticPhysicsEngine
-            self.engine = DiegeticPhysicsEngine(device=self.device)
-            print(f"[INGEST] Manifold Bridge ACTIVE on {self.device}")
-        except ImportError:
-            self.engine = None
-            print("[INGEST] Warning: DiegeticPhysicsEngine not found. Manifold-aware ingestion disabled.")
-        except Exception as e:
-            self.engine = None
-            print(f"[INGEST] Warning: Failed to initialize Manifold Bridge: {e}")
+        if engine is not None:
+            self.engine = engine
+            print(f"[INGEST] Manifold Bridge ACTIVE (reused existing engine) on {self.device}")
+        else:
+            try:
+                from src.ui.diegetic_backend import DiegeticPhysicsEngine
+                self.engine = DiegeticPhysicsEngine(device=self.device)
+                print(f"[INGEST] Manifold Bridge ACTIVE on {self.device}")
+            except ImportError:
+                self.engine = None
+                print("[INGEST] Warning: DiegeticPhysicsEngine not found. Manifold-aware ingestion disabled.")
+            except Exception as e:
+                self.engine = None
+                print(f"[INGEST] Warning: Failed to initialize Manifold Bridge: {e}")
         
         self.datasets = {}
         self.models = {}
