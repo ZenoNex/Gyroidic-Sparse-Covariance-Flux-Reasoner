@@ -1276,9 +1276,9 @@ class DiegeticPhysicsEngine(nn.Module):
              # Calculate Chiral Metrics (Structural Invariants)
              if hasattr(self, 'poly_config'):
                  coeffs = self.poly_config.get_coefficients_tensor()
-                 metrics['chiral_score'] = float(compute_chiral_shift(coeffs).item())
-                 metrics['chiral_torsion'] = float(compute_chirality(coeffs).abs().item())
-                 metrics['glyphlock'] = bool(check_glyphlock(coeffs).item() > 0)
+                 metrics['chiral_score'] = float(compute_chiral_shift(coeffs).mean().item())
+                 metrics['chiral_torsion'] = float(compute_chirality(coeffs).abs().mean().item())
+                 metrics['glyphlock'] = bool(check_glyphlock(coeffs).max().item() > 0)
              
              # Handle Sovereign/Cloud fetches
              if text_input.startswith("SOVEREIGN_FETCH:"):
@@ -2772,9 +2772,9 @@ class DiegeticPhysicsEngine(nn.Module):
             "h_mischief": h_mischief,
             "iteration": self.iteration,
             "spectral_entropy": float(self._last_spectral_entropy.item()) if hasattr(self, '_last_spectral_entropy') else 0.0,
-            "chiral_score": float(compute_chiral_shift(self.poly_config.get_coefficients_tensor()).item()) if hasattr(self, 'poly_config') else 0.1,
-            "chiral_torsion": float(compute_chirality(self.poly_config.get_coefficients_tensor()).abs().item()) if hasattr(self, 'poly_config') else 0.0,
-            "glyphlock": bool((check_glyphlock(self.poly_config.get_coefficients_tensor()).item() > 0) or (calm_diagnostics["trajectory_status"] == "RECOVERED")),
+            "chiral_score": float(compute_chiral_shift(self.poly_config.get_coefficients_tensor()).mean().item()) if hasattr(self, 'poly_config') else 0.1,
+            "chiral_torsion": float(compute_chirality(self.poly_config.get_coefficients_tensor()).abs().mean().item()) if hasattr(self, 'poly_config') else 0.0,
+            "glyphlock": bool((check_glyphlock(self.poly_config.get_coefficients_tensor()).max().item() > 0) or (calm_diagnostics["trajectory_status"] == "RECOVERED")),
             "pas_h": pas_h_live,
             "trust_mean": trust_mean,
             "coprime_lock": bool(recovery_metrics.get('coprime_lock', False)) if isinstance(recovery_metrics, dict) else False,
