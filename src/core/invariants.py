@@ -15,7 +15,7 @@ Created: January 2026
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple
+from typing import Tuple, Optional
 import math
 
 class PhaseAlignmentInvariant(nn.Module):
@@ -442,7 +442,7 @@ def apply_chirality_redistribution(coeffs: torch.Tensor, alpha: float = 0.1) -> 
         return aligned_coeffs.squeeze(1)
     return aligned_coeffs
 
-def apply_asymmetry_preserving_reshape(state: torch.Tensor, target_dim: int) -> torch.Tensor:
+def apply_asymmetry_preserving_reshape(state: torch.Tensor, target_dim: int, k: Optional[int] = None) -> torch.Tensor:
     """
         Reshape state while preserving chiral asymmetry.
     
@@ -453,6 +453,8 @@ def apply_asymmetry_preserving_reshape(state: torch.Tensor, target_dim: int) -> 
     Args:
         state: The input tensor to be reshaped.
         target_dim: The desired output dimensionality.
+        k: Optional modular factor. If provided and expansion is requested,
+           slices to the largest multiple of k less than state_dim to avoid allocation.
         
     Returns:
         The reshaped tensor with preserved (or seeded) asymmetry.
@@ -463,6 +465,11 @@ def apply_asymmetry_preserving_reshape(state: torch.Tensor, target_dim: int) -> 
     
     if D == target_dim:
         return state
+        
+    if k is not None and D < target_dim:
+        slice_dim = D - (D % k)
+        if slice_dim > 0:
+            return state[:, :slice_dim]
         
     if D > target_dim:
         # Truncation: must be done carefully to preserve parity
