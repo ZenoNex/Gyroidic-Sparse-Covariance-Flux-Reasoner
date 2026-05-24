@@ -238,9 +238,9 @@ class DyadFossilizer:
             s_state_redistributed = apply_chirality_redistribution(s_state, alpha=0.15)
             
             # Extract both centroid shift and parity torsion from redistributed state
-            chiral_shift = compute_chiral_shift(s_state_redistributed).item()
-            chiral_torsion = compute_chirality(s_state_redistributed).abs().item()
-            is_glyph_locked = bool(check_glyphlock(s_state_redistributed).item() > 0)
+            chiral_shift = compute_chiral_shift(s_state_redistributed).mean().item()
+            chiral_torsion = compute_chirality(s_state_redistributed).abs().mean().item()
+            is_glyph_locked = bool(check_glyphlock(s_state_redistributed).max().item() > 0)
             
             # Probe expects [B, Seq, Dim] or [B, C, R, T]
             probe_results = self.covariance_probe(s_state_redistributed.unsqueeze(1))
@@ -410,9 +410,9 @@ class DyadFossilizer:
              s_state = dyad.meta_state.to(prime_frequencies.device)
              if s_state.dim() == 1: s_state = s_state.unsqueeze(0)
              from src.core.invariants import compute_chiral_shift, compute_chirality, check_glyphlock, compute_polylog_signature, compute_vacuum_residue
-             c_shift = float(compute_chiral_shift(s_state).item())
-             c_torsion = float(compute_chirality(s_state).abs().item())
-             g_lock = bool(check_glyphlock(s_state).item() > 0)
+             c_shift = float(compute_chiral_shift(s_state).mean().item())
+             c_torsion = float(compute_chirality(s_state).abs().mean().item())
+             g_lock = bool(check_glyphlock(s_state).max().item() > 0)
         else:
              c_shift, c_torsion, g_lock = 0.0, 0.0, False
 
