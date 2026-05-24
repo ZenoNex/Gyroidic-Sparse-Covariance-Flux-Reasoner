@@ -65,6 +65,9 @@ def test_integration():
 
     print(f"Response: {result.get('response')[:50]}...")
     print("Integration Test Complete.")
+    return True
 
 if __name__ == "__main__":
-    test_integration()
+    success = test_integration()
+    import os
+    os._exit(0 if success else 1)
