@@ -1036,28 +1036,34 @@
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                        <button id="scan-minecraft-btn" style="width: 100%; background: rgba(85, 255, 85, 0.08); border: 1px solid #55ff55; color: #55ff55; padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;">
+                        <button id="scan-minecraft-btn"
+                            style="width: 100%; background: rgba(85, 255, 85, 0.08); border: 1px solid #55ff55; color: #55ff55; padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;">
                             SCAN DATASETS/MINECRAFT
                         </button>
 
                         <div class="metric-card" style="margin-bottom: 0px;">
                             <div class="metric-label">Detected Worlds</div>
-                            <select id="minecraft-world-select" style="width: 100%; background: #0a0a0a; border: 1px solid var(--glass-border); color: #fff; padding: 4px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; margin-bottom: 0.5rem;">
+                            <select id="minecraft-world-select"
+                                style="width: 100%; background: #0a0a0a; border: 1px solid var(--glass-border); color: #fff; padding: 4px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; margin-bottom: 0.5rem;">
                                 <option value="">-- No Worlds Detected --</option>
                             </select>
-                            
+
                             <div class="metric-label">Detected Mod Archives</div>
-                            <div id="minecraft-mods-list" style="max-height: 80px; overflow-y: auto; font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 4px; border-radius: 4px;">
+                            <div id="minecraft-mods-list"
+                                style="max-height: 80px; overflow-y: auto; font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 4px; border-radius: 4px;">
                                 (No Mods Found)
                             </div>
                         </div>
 
                         <div class="metric-card" style="margin-bottom: 0px;">
                             <div class="metric-label">Max Chunks Ceiling</div>
-                            <input type="number" id="minecraft-max-chunks" value="16" min="1" max="256" style="width: 100%; background: #0a0a0a; border: 1px solid var(--glass-border); color: #fff; padding: 4px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none;">
+                            <input type="number" id="minecraft-max-chunks" value="16" min="1" max="256"
+                                style="width: 100%; background: #0a0a0a; border: 1px solid var(--glass-border); color: #fff; padding: 4px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none;">
                         </div>
 
-                        <button id="commit-minecraft" style="width: 100%; background: rgba(85, 255, 85, 0.15); border: 1px solid #55ff55; color: #55ff55; padding: 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;" disabled>
+                        <button id="commit-minecraft"
+                            style="width: 100%; background: rgba(85, 255, 85, 0.15); border: 1px solid #55ff55; color: #55ff55; padding: 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;"
+                            disabled>
                             INGEST WORLD TO MANIFOLD
                         </button>
                     </div>
@@ -1175,17 +1181,20 @@
         }
 
         function handleResponse(data) {
-            if (data.diagnostics && data.diagnostics.suppress_ui) {
+            // Support both wrapped (hybrid_backend) and flat (diegetic_backend) formats
+            const normalizedData = (data.diagnostics && data.diagnostics.iteration !== undefined) ? data.diagnostics : data;
+            
+            if (normalizedData.diagnostics && normalizedData.diagnostics.suppress_ui) {
                 updateMetricsFromDiagnostics(data);
                 return;
             }
-            const payload = data.payload || {};
+            const payload = normalizedData.payload || {};
             const curvature = payload.curvature || 0;
 
-            if (data.error) {
-                appendMessage('system', `ERROR: ${data.error}`);
-            } else if (data.response) {
-                typewriterMessage('system', data.response, curvature);
+            if (normalizedData.error) {
+                appendMessage('system', `ERROR: ${normalizedData.error}`);
+            } else if (data.response || normalizedData.response) {
+                typewriterMessage('system', data.response || normalizedData.response, curvature);
             } else {
                 appendMessage('system', "MANIFOLD STATE UPDATED (NO RESPONSE GENERATED).", curvature);
             }
@@ -1214,8 +1223,9 @@
             // a base64 PNG of the live manifold geometry.  Render it inline in
             // the chat feed below the text response — structural honesty, not
             // decoration.
-            if (data.visualization_b64) {
-                const rs = data.retrieval_state || 'FRACTURE';
+            const vizB64 = data.visualization_b64 || normalizedData.visualization_b64;
+            if (vizB64) {
+                const rs = normalizedData.retrieval_state || 'FRACTURE';
                 const borderCol = rs === 'CONFABULATED'
                     ? 'var(--terminal-warn)'
                     : rs === 'SEARCH_NEEDED'
@@ -1246,7 +1256,7 @@
                 vizLabel.textContent = `⬡ MANIFOLD FRACTURE — ${rs}`;
 
                 const vizImg = document.createElement('img');
-                vizImg.src = `data:image/png;base64,${data.visualization_b64}`;
+                vizImg.src = `data:image/png;base64,${vizB64}`;
                 vizImg.alt = `Manifold fracture render — ${rs}`;
                 vizImg.style.cssText = 'width:100%;display:block;image-rendering:pixelated;';
 
@@ -1268,22 +1278,24 @@
 
 
         function updateMetricsFromDiagnostics(data) {
+            const normalizedData = (data.diagnostics && data.diagnostics.iteration !== undefined) ? data.diagnostics : data;
+            
             // Update Metrics (safely)
-            if (data.iteration !== undefined) document.getElementById('stat-iteration').innerText = data.iteration;
-            if (data.resonance_score !== undefined) document.getElementById('resonance-score').innerText = data.resonance_score.toFixed(4);
+            if (normalizedData.iteration !== undefined) document.getElementById('stat-iteration').innerText = normalizedData.iteration;
+            if (normalizedData.resonance_score !== undefined) document.getElementById('resonance-score').innerText = normalizedData.resonance_score.toFixed(4);
 
             // Update Tri-State Meta State
-            if (data.retrieval_state) {
+            if (normalizedData.retrieval_state) {
                 const rs = document.getElementById('stat-retrieval');
-                rs.innerText = data.retrieval_state;
-                if (data.retrieval_state === 'KNOWN') rs.style.color = 'var(--terminal-green)';
-                else if (data.retrieval_state === 'SEARCH_NEEDED') rs.style.color = 'var(--terminal-warn)';
-                else if (data.retrieval_state === 'CONFABULATED') rs.style.color = 'var(--terminal-magenta)';
+                rs.innerText = normalizedData.retrieval_state;
+                if (normalizedData.retrieval_state === 'KNOWN') rs.style.color = 'var(--terminal-green)';
+                else if (normalizedData.retrieval_state === 'SEARCH_NEEDED') rs.style.color = 'var(--terminal-warn)';
+                else if (normalizedData.retrieval_state === 'CONFABULATED') rs.style.color = 'var(--terminal-magenta)';
                 else rs.style.color = 'var(--terminal-blue)';
             }
 
             // Extract from topological_analysis if present
-            const topo = data.phase4_diagnostics?.topological_analysis;
+            const topo = normalizedData.phase4_diagnostics?.topological_analysis;
             if (topo) {
                 if (topo.topological_complexity !== undefined) {
                     document.getElementById('pressure').innerText = (topo.topological_complexity / 10).toFixed(4);
@@ -1298,17 +1310,17 @@
             }
 
             // Hardening and Coherence
-            if (data.affordance_gradients && typeof data.affordance_gradients.constraint_forcing_gradient === 'number') {
-                document.getElementById('stat-hardening').innerText = data.affordance_gradients.constraint_forcing_gradient.toFixed(4);
+            if (normalizedData.affordance_gradients && typeof normalizedData.affordance_gradients.constraint_forcing_gradient === 'number') {
+                document.getElementById('stat-hardening').innerText = normalizedData.affordance_gradients.constraint_forcing_gradient.toFixed(4);
             }
 
-            const repair = data.repair_diagnostics;
+            const repair = normalizedData.repair_diagnostics;
             if (repair?.spectral_coherence_corrector && typeof repair.spectral_coherence_corrector.coherence_score === 'number') {
                 document.getElementById('coherence').innerText = repair.spectral_coherence_corrector.coherence_score.toFixed(3);
             }
 
             // CALM Diagnostics
-            const calm = data.calm_diagnostics;
+            const calm = normalizedData.calm_diagnostics;
             if (calm) {
                 document.getElementById('calm-abort').innerText = calm.abort_score.toFixed(4);
                 document.getElementById('calm-rho').innerText = calm.rho_factor.toFixed(4);
@@ -1323,7 +1335,7 @@
             }
 
             // Advanced Manifold Diagnostics
-            const diag = data.diagnostics;
+            const diag = normalizedData.diagnostics || normalizedData;
             if (diag) {
                 if (diag.manifold_voice_resonance !== undefined) {
                     document.getElementById('voice-resonance').innerText = diag.manifold_voice_resonance.toFixed(4);
@@ -2393,7 +2405,7 @@
                 const response = await fetch(`${state.backend_url}/api/minecraft/scan`);
                 if (!response.ok) throw new Error(`HTTP error ${response.status}`);
                 const data = await response.json();
-                
+
                 // Update worlds select
                 minecraftWorldSelect.innerHTML = '';
                 if (data.worlds && data.worlds.length > 0) {
@@ -2467,13 +2479,13 @@
                 }
 
                 const data = await response.json();
-                
+
                 logMinecraft(`Ingested successfully!`, 'success');
                 logMinecraft(`Chunks processed: ${data.chunks_processed}`);
                 logMinecraft(`Scripts extracted: ${data.scripts_extracted}`);
                 logMinecraft(`Commutativity Gap: ${data.commutativity_gap.toFixed(6)}`);
                 logMinecraft(`Non-commutativity Curvature: ${data.noncommutativity_curvature.toFixed(6)}`);
-                
+
                 if (data.logs && data.logs.length > 0) {
                     data.logs.forEach(logLine => logMinecraft(`> ${logLine}`));
                 }
