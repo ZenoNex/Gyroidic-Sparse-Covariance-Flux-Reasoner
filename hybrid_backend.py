@@ -334,7 +334,7 @@ class HybridAI:
         # Initialize Dataset System
         if DATASET_SYSTEM_AVAILABLE:
             try:
-                self.dataset_system = DatasetIngestionSystem(device=self.torch_device)
+                self.dataset_system = DatasetIngestionSystem(device=self.torch_device, engine=getattr(self, 'engine', None))
                 print("[OK] Dataset Ingestion System initialized")
             except Exception as e:
                 print(f"[FAIL] Dataset Ingestion System init failed: {e}")
@@ -358,7 +358,7 @@ class HybridAI:
             os.makedirs(self.graph_dir, exist_ok=True)
             
             self.graph_manager = GyroidicGraphManager(data_dir=self.graph_dir, dim=256)
-            self.graph_manager.load_fossils()
+            self.graph_manager.load_fossils(limit=150)
             print(f"[OK] Gyroidic Graph Manager initialized with {len(self.graph_manager.nodes)} fossils")
         except Exception as e:
             print(f"[FAIL] Graph Manager init failed: {e}")
@@ -913,6 +913,80 @@ class HybridAI:
                 diagnostics['audience_coordinates'] = audience_coords.squeeze(0).cpu().tolist()
             except Exception as e:
                 print(f"[AUDIENCE] Projection failed: {e}")
+
+        # --- SYNCHRONIZE METRICS FOR RETRO TERMINAL UI ---
+        # Ensure nested 'diagnostics' exists for diegetic_terminal.html's nested lookup
+        if 'diagnostics' not in diagnostics or not isinstance(diagnostics['diagnostics'], dict):
+            diagnostics['diagnostics'] = {}
+            
+        inner_diag = diagnostics['diagnostics']
+        
+        # Calculate local spectral entropy
+        try:
+            with torch.no_grad():
+                spectrum = torch.fft.rfft(self.hidden_state_scarred).abs()
+                spectrum_norm = spectrum / (spectrum.sum() + 1e-8)
+                local_spec_entropy = float(-(spectrum_norm * torch.log(spectrum_norm + 1e-8)).sum().item())
+        except Exception:
+            local_spec_entropy = 0.05
+            
+        # Harvest honest jitter
+        try:
+            local_jitter = float(self._harvest_honest_jitter((1,)).item())
+        except Exception:
+            local_jitter = 0.1
+            
+        # Resolve voice resonance
+        local_resonance = diagnostics.get('manifold_voice_resonance')
+        if local_resonance is None:
+            local_resonance = inner_diag.get('manifold_voice_resonance')
+        if local_resonance is None:
+            local_resonance = locals().get('acoustic_val', 0.15)
+        if local_resonance is None:
+            local_resonance = 0.15
+            
+        # Resolve moebius twist
+        local_twist = locals().get('moebius_holonomy', 0.0)
+        
+        # Resolve anisotropy
+        if 'anisotropy' not in locals():
+            try:
+                phi_k = self.hidden_state_scarred.view(-1, 8)
+                if phi_k.numel() > 1:
+                    phi_var = torch.var(phi_k)
+                else:
+                    phi_var = torch.tensor(0.01, device=self.torch_device)
+                anisotropy = (phi_var + 1e-8).sqrt().item()
+            except Exception:
+                anisotropy = 0.1
+                
+        # Resolve chiral shift and torsion
+        if 'chiral_shift' not in locals() or 'chiral_torsion' not in locals() or 'glyphlock' not in locals():
+            try:
+                coeffs = self.hidden_state_scarred.unsqueeze(0) if self.hidden_state_scarred.dim() == 1 else self.hidden_state_scarred
+                chiral_shift = float(compute_chiral_shift(coeffs).item())
+                chiral_torsion = float(compute_chirality(coeffs).abs().item())
+                glyphlock = bool(check_glyphlock(coeffs).item() > 0)
+            except Exception:
+                chiral_shift = 0.1
+                chiral_torsion = 0.0
+                glyphlock = False
+        
+        # Sync to both inner and outer dicts to ensure the UI finds them
+        for target in [diagnostics, inner_diag]:
+            target['manifold_voice_resonance'] = float(local_resonance)
+            target['ley_line_anisotropy'] = float(anisotropy)
+            target['moebius_twist'] = float(local_twist)
+            target['spectral_entropy'] = float(local_spec_entropy)
+            target['honest_jitter'] = float(local_jitter)
+            target['substream_entropy'] = float(inner_diag.get('substream_entropy', 0.02))
+            target['chiral_score'] = float(chiral_shift)
+            target['chiral_torsion'] = float(chiral_torsion)
+            target['glyphlock'] = bool(glyphlock)
+            target['pas_h'] = float(pas_h) if 'pas_h' in locals() else 1.0
+            target['iteration'] = int(self.iteration_count)
+            if 'retrieval_state' not in target:
+                target['retrieval_state'] = diagnostics.get('retrieval_state', 'KNOWN')
 
         return {
             "response": response_text,
@@ -2057,6 +2131,12 @@ def main():
         udp_colonizer.stop()
         
         print("[STOP]  Shutting down manifolds. Goodbye.", flush=True)
+        # Prevent PyArrow segfault by finalizing S3
+        try:
+            import pyarrow.fs
+            pyarrow.fs.finalize_s3()
+        except Exception:
+            pass
         # Restore signal handler before exit if needed (though os._exit is coming)
         os._exit(0)
 
