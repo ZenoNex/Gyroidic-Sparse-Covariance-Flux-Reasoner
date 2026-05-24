@@ -4604,7 +4604,7 @@ class DiegeticPhysicsEngine(nn.Module):
         
         return violation
     
-    def _perform_unfolding_closure_check(self, state: torch.Tensor, input_text: str, response_text: str) -> dict:
+    def _perform_unfolding_closure_check(self, state: torch.Tensor, input_text: str, response_text: str, fractal_components: dict = None) -> dict:
         """
         Phase 4.2: Complete Unfolding Closure Check implementation.
         
@@ -4633,8 +4633,17 @@ class DiegeticPhysicsEngine(nn.Module):
             # Create hyper-ring representation from state
             hyper_ring = self._create_hyper_ring_from_state(state, input_text, response_text)
             
+            # Collapse hyper_ring to [batch] if it is [batch, dim] to match closure checker expectations
+            if hyper_ring.dim() > 1 and hyper_ring.shape[-1] > 1:
+                hyper_ring_input = torch.norm(hyper_ring, dim=-1)
+            else:
+                hyper_ring_input = hyper_ring.squeeze(-1) if hyper_ring.dim() > 1 else hyper_ring
+            
             # Create constraint manifold representation
-            constraint_manifold = self._create_constraint_manifold(state)
+            # We treat the first fractal component (crt) as the reference constraint manifold
+            constraint_manifold = state
+            if fractal_components and 'crt' in fractal_components:
+                constraint_manifold = fractal_components['crt']
             
             # Ensure dimensional compatibility for closure check
             # Energy-based dimension alignment
@@ -4653,12 +4662,16 @@ class DiegeticPhysicsEngine(nn.Module):
                     constraint_manifold = torch.mm(constraint_manifold, projection_matrix.t())
             
             # Perform closure check with aligned dimensions
-            closure_result = self._closure_checker(hyper_ring, constraint_manifold)
+            closure_result = self._closure_checker(hyper_ring_input, constraint_manifold)
             
             # Extract results
-            is_closed = closure_result.get('is_closed', torch.tensor([False])).item()
-            is_trivial = closure_result.get('is_trivial', torch.tensor([True])).item()
-            is_valid = closure_result.get('is_valid', torch.tensor([False])).item()
+            is_closed_val = closure_result.get('is_closed', torch.tensor([False]))
+            is_trivial_val = closure_result.get('is_trivial', torch.tensor([True]))
+            is_valid_val = closure_result.get('is_valid', torch.tensor([False]))
+            
+            is_closed = bool(is_closed_val.any().item()) if hasattr(is_closed_val, 'any') else bool(is_closed_val)
+            is_trivial = bool(is_trivial_val.any().item()) if hasattr(is_trivial_val, 'any') else bool(is_trivial_val)
+            is_valid = bool(is_valid_val.any().item()) if hasattr(is_valid_val, 'any') else bool(is_valid_val)
             
             # Compute unfolding branches
             unfolding_branches = self._compute_unfolding_branches(state, response_text)
