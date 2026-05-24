@@ -187,14 +187,17 @@ class CanonicalProjector:
         bsz = base.shape[0]
         state_dim = base.shape[1]
         if state_dim % self.k != 0:
-            target_dim = state_dim + (self.k - (state_dim % self.k))
-            base = apply_asymmetry_preserving_reshape(base, target_dim)
-        padded_dim = base.shape[1]
-        residue_dim = padded_dim // self.k
-        residues = base.view(bsz, self.k, residue_dim)
+            target_dim = state_dim - (state_dim % self.k)
+            base_sliced = base[:, :target_dim]
+        else:
+            target_dim = state_dim
+            base_sliced = base
+        residue_dim = target_dim // self.k
+        residues = base_sliced.view(bsz, self.k, residue_dim)
         flat = residues.view(bsz, -1)
-        if flat.shape[1] > state_dim:
-            flat = flat[:, :state_dim]
+        if flat.shape[1] < state_dim:
+            remainder = base[:, target_dim:]
+            flat = torch.cat([flat, remainder], dim=-1)
         flat = flat / (flat.norm() + 1e-8)
         return flat
 
