@@ -65,7 +65,14 @@ class OptionD_Colonizer:
                     logger.debug(f"Answered A2S_INFO query from {addr}")
             except socket.timeout:
                 continue
+            except (socket.error, OSError) as e:
+                # If we closed the socket intentionally during shutdown, suppress the error
+                if not self.running:
+                    break
+                logger.error(f"Error in UDP Colonizer listener: {e}")
             except Exception as e:
+                if not self.running:
+                    break
                 logger.error(f"Error in UDP Colonizer listener: {e}")
 
     def _heartbeat_loop(self):
@@ -120,7 +127,7 @@ class OptionD_Colonizer:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     colonizer = OptionD_Colonizer()
-    colonizer.set_tunnel_url("http://example.tunnel.com")
+    colonizer.set_tunnel_url("")
     colonizer.start()
     
     try:
