@@ -926,14 +926,14 @@ class DiegeticPhysicsEngine(nn.Module):
                     'closure_score': closure_score,
                     'closure_threshold': closure_threshold,
                     'closure_margin': closure_margin,
-                    'components': {'status': 'numeric_success'}
+                    'components': {}
                 }
         except Exception as e:
             return {
                 'closure_score': 1.0,
                 'closure_threshold': 0.5,
                 'closure_margin': -0.5,
-                'components': {'error': str(e)}
+                'components': {}
             }
 
     def _prime_manifold_with_fossils(self, input_tensor: torch.Tensor):
@@ -1958,19 +1958,18 @@ class DiegeticPhysicsEngine(nn.Module):
                 batch_size = seed_state_corrected.shape[0]
                 state_dim = seed_state_corrected.shape[1]
                 
-                # Apply Asymmetry-Preserving Reshape for Bezout compatibility
                 if state_dim % self.k != 0:
-                    pad_size = self.k - (state_dim % self.k)
-                    target_dim = state_dim + pad_size
-                    seed_state_padded = apply_asymmetry_preserving_reshape(seed_state_corrected, target_dim)
-                    print(f" Applied Asymmetry-Preserving padding for Bezout: {state_dim} -> {seed_state_padded.shape[1]}")
+                    target_dim = state_dim - (state_dim % self.k)
+                    seed_state_sliced = seed_state_corrected[:, :target_dim]
+                    remainder = seed_state_corrected[:, target_dim:]
                 else:
-                    seed_state_padded = seed_state_corrected
+                    target_dim = state_dim
+                    seed_state_sliced = seed_state_corrected
+                    remainder = None
                 
-                # Create proper residues for CRT correction
-                padded_dim = seed_state_padded.shape[1]
-                residue_dim = padded_dim // self.k
-                residues_for_crt = seed_state_padded.view(batch_size, self.k, residue_dim)
+                # Create proper residues for CRT correction (zero-copy view)
+                residue_dim = target_dim // self.k
+                residues_for_crt = seed_state_sliced.view(batch_size, self.k, residue_dim)
                 print(f" Created residues for Bezout: {residues_for_crt.shape}")
                 
                 # Apply CRT correction to fix modulus drift
@@ -1978,9 +1977,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 
                 # Reshape back to state format and restore original dimensions
                 seed_state_crt_flat = corrected_residues.view(batch_size, -1)
-                if seed_state_crt_flat.shape[1] > state_dim:
-                    seed_state_corrected = seed_state_crt_flat[:, :state_dim]  # Remove padding
-                    print(f" Restored original dimensions after Bezout: {seed_state_crt_flat.shape[1]} -> {state_dim}")
+                if remainder is not None:
+                    seed_state_corrected = torch.cat([seed_state_crt_flat, remainder], dim=-1)
                 else:
                     seed_state_corrected = seed_state_crt_flat
                 
@@ -2011,6 +2009,10 @@ class DiegeticPhysicsEngine(nn.Module):
             # Check for NaN/inf values and replace them
             if torch.isnan(seed_state_corrected).any() or torch.isinf(seed_state_corrected).any():
                 print("  Detected NaN/inf values, applying emergency stabilization")
+                import gc
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
                 nan_mask = torch.isnan(seed_state_corrected) | torch.isinf(seed_state_corrected)
                 seed_state_corrected = torch.where(nan_mask, self._harvest_honest_jitter(seed_state_corrected.shape) * 0.1, seed_state_corrected)
             
@@ -2058,6 +2060,10 @@ class DiegeticPhysicsEngine(nn.Module):
             # Fallback to basic stabilization if spectral correction fails
             if torch.isnan(seed_state).any() or torch.isinf(seed_state).any():
                 print("  Detected NaN/inf values, applying emergency stabilization")
+                import gc
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
                 nan_mask = torch.isnan(seed_state) | torch.isinf(seed_state)
                 seed_state = torch.where(nan_mask, self._harvest_honest_jitter(seed_state.shape) * 0.1, seed_state)
             
@@ -2182,20 +2188,18 @@ class DiegeticPhysicsEngine(nn.Module):
             batch_size = seed_state.shape[0]
             state_dim = seed_state.shape[1]
             
-            # Apply Asymmetry-Preserving Reshape for Chern-Simons compatibility
             if state_dim % self.k != 0:
-                # Replace reflective padding with Prime-Seeded Asymmetric Padding
-                pad_size = self.k - (state_dim % self.k)
-                target_dim = state_dim + pad_size
-                seed_state_padded = apply_asymmetry_preserving_reshape(seed_state, target_dim)
-                print(f" Applied Asymmetry-Preserving padding for Chern-Simons: {state_dim} -> {seed_state_padded.shape[1]}")
+                target_dim = state_dim - (state_dim % self.k)
+                seed_state_sliced = seed_state[:, :target_dim]
+                remainder = seed_state[:, target_dim:]
             else:
-                seed_state_padded = seed_state
+                target_dim = state_dim
+                seed_state_sliced = seed_state
+                remainder = None
             
             # Now create residues with proper dimensions
-            padded_dim = seed_state_padded.shape[1]
-            residue_dim = padded_dim // self.k
-            proper_residues = seed_state_padded.view(batch_size, self.k, residue_dim)  # [1, 5, 13]
+            residue_dim = target_dim // self.k
+            proper_residues = seed_state_sliced.view(batch_size, self.k, residue_dim)  # [1, 5, 13]
             
             # Use proper polynomial coefficients from the repair system's polynomial config
             # Instead of mock data, use the actual polynomial basis from the system
@@ -2227,8 +2231,8 @@ class DiegeticPhysicsEngine(nn.Module):
             gasket_residues_flat = gasket_residues.view(batch_size, -1)
             
             # Restore to original state dimensions (remove padding if applied)
-            if gasket_residues_flat.shape[1] > state_dim:
-                seed_state_gasket = gasket_residues_flat[:, :state_dim]  # Remove padding
+            if remainder is not None:
+                seed_state_gasket = torch.cat([gasket_residues_flat, remainder], dim=-1)
                 print(f" Restored original dimensions: {gasket_residues_flat.shape[1]} -> {state_dim}")
             else:
                 seed_state_gasket = gasket_residues_flat
@@ -2265,19 +2269,19 @@ class DiegeticPhysicsEngine(nn.Module):
             batch_size = seed_state.shape[0]
             state_dim = seed_state.shape[1]
             
-            # Apply Asymmetry-Preserving Reshape for Soliton compatibility
+            # Apply zero-copy slicing for Soliton compatibility
             if state_dim % self.k != 0:
-                pad_size = self.k - (state_dim % self.k)
-                target_dim = state_dim + pad_size
-                seed_state_padded = apply_asymmetry_preserving_reshape(seed_state, target_dim)
-                print(f" Applied Asymmetry-Preserving padding for Soliton: {state_dim} -> {seed_state_padded.shape[1]}")
+                target_dim = state_dim - (state_dim % self.k)
+                seed_state_sliced = seed_state[:, :target_dim]
+                remainder = seed_state[:, target_dim:]
             else:
-                seed_state_padded = seed_state
+                target_dim = state_dim
+                seed_state_sliced = seed_state
+                remainder = None
             
             # Create residues for soliton healing
-            padded_dim = seed_state_padded.shape[1]
-            residue_dim = padded_dim // self.k
-            residues_for_healing = seed_state_padded.view(batch_size, self.k, residue_dim)
+            residue_dim = target_dim // self.k
+            residues_for_healing = seed_state_sliced.view(batch_size, self.k, residue_dim)
             print(f" Created residues for Soliton healing: {residues_for_healing.shape}")
             
             # Use previously computed Gyroid Covariance Entropy (from step 8) as gcve_pressure
@@ -2291,8 +2295,8 @@ class DiegeticPhysicsEngine(nn.Module):
             )
             # Convert back to state format and restore original dimensions
             healed_state_flat = healed_residues.view(batch_size, -1)
-            if healed_state_flat.shape[1] > state_dim:
-                seed_state = healed_state_flat[:, :state_dim]  # Remove padding
+            if remainder is not None:
+                seed_state = torch.cat([healed_state_flat, remainder], dim=-1)
                 print(f" Restored original dimensions after Soliton healing: {healed_state_flat.shape[1]} -> {state_dim}")
             else:
                 seed_state = healed_state_flat
@@ -2350,14 +2354,16 @@ class DiegeticPhysicsEngine(nn.Module):
             batch_size = seed_state.shape[0]
             state_dim = seed_state.shape[1]
             if state_dim % self.k != 0:
-                pad_size = self.k - (state_dim % self.k)
-                seed_state_padded = torch.nn.functional.pad(seed_state, (0, pad_size), mode='reflect')
+                target_dim = state_dim - (state_dim % self.k)
+                seed_state_sliced = seed_state[:, :target_dim]
+                remainder = seed_state[:, target_dim:]
             else:
-                seed_state_padded = seed_state
+                target_dim = state_dim
+                seed_state_sliced = seed_state
+                remainder = None
             
-            padded_dim = seed_state_padded.shape[1]
-            residue_dim = padded_dim // self.k
-            residues_for_saturation = seed_state_padded.view(batch_size, self.k, residue_dim)
+            residue_dim = target_dim // self.k
+            residues_for_saturation = seed_state_sliced.view(batch_size, self.k, residue_dim)
             
             # Use live PAS_h computed from meta_state (PhaseAlignmentInvariant)
             pas_h = pas_h_live
@@ -2371,8 +2377,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 performance_scores=performance_scores
             )
             saturated_state_flat = saturated_residues.view(batch_size, -1)
-            if saturated_state_flat.shape[1] > state_dim:
-                seed_state = saturated_state_flat[:, :state_dim]
+            if remainder is not None:
+                seed_state = torch.cat([saturated_state_flat, remainder], dim=-1)
             else:
                 seed_state = saturated_state_flat
             
