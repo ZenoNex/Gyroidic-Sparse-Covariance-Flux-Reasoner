@@ -31,9 +31,38 @@ from src.codec.gyroidic_codec import CodecConfig, EncodingResult
 from src.core.voynich_architecture import VoynichLinguist
 
 
-# =============================================================================
-# 1. Pure-Python NBT Reader
-# =============================================================================
+# Pre-allocate a flat integer array REGISTRY_TABLE of size 1024
+REGISTRY_TABLE = [i * 37 % 1024 for i in range(1024)]
+
+def get_block_registry_code(name: str) -> int:
+    h = 0
+    for char in name:
+        h = (h * 31 + ord(char)) % 1024
+    return REGISTRY_TABLE[h]
+
+def _chebyshev_compress(text: str, target_len: int = 2048) -> str:
+    if len(text) <= target_len:
+        return text
+    num_modes = 128
+    coeffs = [0.0] * num_modes
+    n = len(text)
+    for i, char in enumerate(text):
+        val = ord(char) / 128.0
+        x = -1.0 + 2.0 * i / (n - 1) if n > 1 else 0.0
+        acos_x = math.acos(max(-1.0, min(1.0, x)))
+        for k in range(num_modes):
+            coeffs[k] += val * math.cos(k * acos_x)
+            
+    compressed_chars = []
+    for i in range(target_len):
+        x = -1.0 + 2.0 * i / (target_len - 1) if target_len > 1 else 0.0
+        acos_x = math.acos(max(-1.0, min(1.0, x)))
+        val = 0.0
+        for k in range(num_modes):
+            val += coeffs[k] * math.cos(k * acos_x)
+        char_code = 32 + int(abs(val * 100) % 95)
+        compressed_chars.append(chr(char_code))
+    return "".join(compressed_chars)
 
 class NBTReader:
     """
@@ -86,7 +115,10 @@ class NBTReader:
             return list(self.stream.read(length))
         elif tag_type == self.TAG_STRING:
             length = self._read(">H")
-            return self.stream.read(length).decode("utf-8", errors="replace")
+            text = self.stream.read(length).decode("utf-8", errors="replace")
+            if len(text) > 2048:
+                text = _chebyshev_compress(text)
+            return text
         elif tag_type == self.TAG_LIST:
             elem_type = self._read(">b")
             length = self._read(">i")
@@ -521,13 +553,14 @@ class MinecraftIngestionPipeline:
                     palette = section.get("Palette", [])
                     
                 if palette:
-                    # Read block palette names and hash them as float IDs
+                    # Read block palette names and map them to registry codes
                     hashed_palette = []
                     for b in palette:
                         name = b.get("Name", "minecraft:air")
-                        # Hash the namespaced ID to a simple deterministic value in [0, 1]
-                        h = float(int(struct.unpack(">I", struct.pack(">i", hash(name)))[0]) % 1000) / 1000.0
-                        hashed_palette.append(h)
+                        # Map name using registry table and modular offsets
+                        code = get_block_registry_code(name)
+                        # Normalize to [0, 1] for grid compatibility
+                        hashed_palette.append(float(code) / 1024.0)
                     
                     # Map state indices to the grid
                     data_array = block_states.get("data", block_states.get("Data", []))
