@@ -341,29 +341,39 @@ class DyadFossilizer:
         
         return filepath
         
-    def recover_fossils(self) -> List[Dict]:
+    def recover_fossils(self, limit: Optional[int] = 150) -> List[Dict]:
         """Load all fossilized dyads for 'Speculative Coprime Gating'."""
         fossils = []
         if not os.path.exists(self.storage_dir):
             return fossils
             
-        for f in os.listdir(self.storage_dir):
-            if f.endswith(".pt"):
-                filepath = os.path.join(self.storage_dir, f)
+        files = [f for f in os.listdir(self.storage_dir) if f.endswith(".pt")]
+        
+        # Sort files by modification time, newest first
+        try:
+            files.sort(key=lambda x: os.path.getmtime(os.path.join(self.storage_dir, x)), reverse=True)
+        except Exception as e:
+            print(f"[RECOVERY] Sorting files failed: {e}")
+            
+        if limit is not None:
+            files = files[:limit]
+            
+        for f in files:
+            filepath = os.path.join(self.storage_dir, f)
+            try:
+                data = torch.load(filepath)
+                # Check both 'text_input' (new) and 'description' (legacy)
+                if isinstance(data, dict) and ('residue_vector' in data or 'meta_state' in data):
+                    fossils.append(data)
+                else:
+                    print(f"[RECOVERY] Deleting invalid fossil (missing residue_vector): {f}")
+                    os.remove(filepath)
+            except Exception as e:
+                print(f"[RECOVERY] Deleting corrupted fossil {f}: {e}")
                 try:
-                    data = torch.load(filepath)
-                    # Check both 'text_input' (new) and 'description' (legacy)
-                    if isinstance(data, dict) and ('residue_vector' in data or 'meta_state' in data):
-                        fossils.append(data)
-                    else:
-                        print(f"[RECOVERY] Deleting invalid fossil (missing residue_vector): {f}")
-                        os.remove(filepath)
-                except Exception as e:
-                    print(f"[RECOVERY] Deleting corrupted fossil {f}: {e}")
-                    try:
-                        os.remove(filepath)
-                    except:
-                        pass
+                    os.remove(filepath)
+                except:
+                    pass
         return fossils
 
     def generate_residue_tuple(self, seed_tensor: torch.Tensor) -> Tuple[int, int, int]:
