@@ -10,7 +10,9 @@ import io
 import os
 import sys
 import tempfile
+import warnings
 from scipy.io import wavfile
+from scipy.io.wavfile import WavFileWarning
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.invariants import compute_chirality, apply_chirality_redistribution, get_prime_ladder
 
@@ -360,7 +362,13 @@ class VideoDyadParser(nn.Module):
                 return None
                 
             # 2. Read WAV from stdout
-            sample_rate, data = wavfile.read(io.BytesIO(stdout))
+            # Suppress WavFileWarning: ffmpeg writing to pipe:1 cannot know the total
+            # output size in advance, so it writes 0xFFFFFFFF in the WAV header's
+            # data_size field. scipy sees fewer actual bytes and warns -- but the
+            # audio data itself is fully intact and usable.
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=WavFileWarning)
+                sample_rate, data = wavfile.read(io.BytesIO(stdout))
             
             # 3. Compute Chebyshev Harmonics (K=32)
             # Normalizing to [-1, 1]
