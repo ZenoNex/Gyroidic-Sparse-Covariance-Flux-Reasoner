@@ -341,8 +341,8 @@ class TailSlayerImageGenerator:
         device = DEVICE
         
         # Generate matrices via hardware-anchored entropy expansion
-        matrix_a = harvest_honest_jitter((64, 64), device=device, scaled=False).cpu().numpy()
-        matrix_b = harvest_honest_jitter((64, 64), device=device, scaled=False).cpu().numpy()
+        matrix_a = harvest_honest_jitter((64, 64), device=device, scaled=False).detach().cpu().numpy()
+        matrix_b = harvest_honest_jitter((64, 64), device=device, scaled=False).detach().cpu().numpy()
         
         # Ensure we are in [0, 1] for Image processing
         matrix_a = (matrix_a + 1.0) / 2.0
@@ -356,7 +356,7 @@ class TailSlayerImageGenerator:
             )
         else:
             # Emulated Sovereignty (CPU-side)
-            mischief = (harvest_honest_jitter((64, 64), device=device, scaled=False).cpu().numpy() + 1.0) / 2.0
+            mischief = (harvest_honest_jitter((64, 64), device=device, scaled=False).detach().cpu().numpy() + 1.0) / 2.0
             scars = np.where(mischief > 0.88, 0.18 * mischief, 0.0)
             mixed_matrix = (1.0 - alpha) * matrix_a + alpha * matrix_b + scars
         
@@ -384,7 +384,8 @@ class TailSlayerImageGenerator:
 
 class SimpleImageGenerator(TailSlayerImageGenerator):
     """Legacy alias to ensure zero-friction integration with existing tests."""
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__()
 
 def create_minimal_image_demo():
     """Satisfy legacy demonstration entries."""
