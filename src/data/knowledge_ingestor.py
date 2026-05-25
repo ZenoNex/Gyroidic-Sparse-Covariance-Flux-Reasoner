@@ -3,7 +3,7 @@ import requests
 import xml.etree.ElementTree as ET
 import torch
 import torch.nn as nn
-from typing import List, Dict, Optional, Callable
+from typing import List, Dict, Optional, Callable, Any
 import datetime
 import threading
 import tarfile
@@ -21,7 +21,7 @@ from src.ui.diegetic_visualizer import _chebyshev_project_np
 
 class ArXivSovereignIngestor:
     """
-    Implements a 'Slow-Drip' non-teleological knowledge ingestor using ArXiv OAI-PMH.
+    Implements a 'Slow-Drip' non-teleological knowledge ingestor using ArXiv OAI-PMH and Search APIs.
     Complies with the 3-second rate limit to ensure non-invasive learning.
     
     Retrofitted with:
@@ -29,14 +29,16 @@ class ArXivSovereignIngestor:
     - CanonicalProjector: Topology-consistent manifold projection.
     - AffordanceGradients: Mapping lore to formal symbols and algorithmic density.
     """
-    def __init__(self, fossilizer: DyadFossilizer, engine_dim: int, device: str = 'cpu', state_callback: Optional[Callable] = None):
+    def __init__(self, fossilizer: DyadFossilizer, engine_dim: int, device: str = 'cpu', state_callback: Optional[Callable] = None, engine: Optional[Any] = None):
         self.fossilizer = fossilizer
         self.engine_dim = engine_dim
         self.device = device
         self.state_callback = state_callback
+        self.engine = engine
         self.base_url = "http://export.arxiv.org/oai2"
         self.last_request_time = 0
         self.rate_limit_seconds = 4.0 # Conservatively above the 3s requirement
+        self._engine_busy_fn = None
         
         # NS Map for ArXiv OAI-PMH
         self.ns = {
@@ -47,8 +49,8 @@ class ArXivSovereignIngestor:
         
         # Standardized Processing Pipeline
         self.filter = TextbookFilter()
-        self.projector = CanonicalProjector(dim=engine_dim, device=device)
-        self.processor = ConversationalDataProcessor(device=device)
+        self.projector = CanonicalProjector(dim=engine_dim, device=self.device)
+        self.processor = ConversationalDataProcessor(device=self.device)
 
     def _wait_for_rate_limit(self):
         """Ensures compliance with ArXiv's anti-crawling policies."""
@@ -229,6 +231,167 @@ class ArXivSovereignIngestor:
         v = torch.randn(self.engine_dim, device=self.device, generator=g)
         return v / (torch.norm(v) + 1e-8)
 
+    def ingest_arxiv_by_query(self, query_str: str, commutativity: str = 'symmetric'):
+        """Queries ArXiv search API with a larynx-generated query string and fossilizes matches."""
+        self._wait_for_rate_limit()
+        # Clean query: only alphanumeric and spaces
+        cleaned_query = "".join(c if c.isalnum() or c.isspace() else "" for c in query_str).strip()
+        if not cleaned_query:
+            print("[INGEST] Cleaned query is empty. Skipping search.")
+            return
+        
+        # Replace consecutive spaces with a single space
+        cleaned_query = " ".join(cleaned_query.split())
+        query_param = "+".join(cleaned_query.split())
+        
+        url = f"http://export.arxiv.org/api/query?search_query=all:{query_param}&max_results=5"
+        
+        try:
+            print(f"[INGEST] Performing character-level search on ArXiv for: '{cleaned_query}'...")
+            response = requests.get(url, timeout=20)
+            if response.status_code == 200:
+                self._parse_and_fossilize_atom(response.text, cleaned_query, commutativity)
+            else:
+                print(f"[INGEST] Search query failed (HTTP {response.status_code}).")
+        except Exception as e:
+            print(f"[INGEST] Search transport error: {e}. Ingestion suspended.")
+
+    def _parse_and_fossilize_atom(self, xml_text: str, query: str, commutativity: str):
+        """Parses ArXiv Atom search API XML and converts entries into permanent knowledge fossils."""
+        try:
+            root = ET.fromstring(xml_text)
+            ns = {'atom': 'http://www.w3.org/2005/Atom'}
+            entries = root.findall('.//atom:entry', ns)
+            
+            admitted_count = 0
+            rejected_count = 0
+            
+            for entry in entries[:5]:
+                title_elem = entry.find('atom:title', ns)
+                summary_elem = entry.find('atom:summary', ns)
+                id_elem = entry.find('atom:id', ns)
+                
+                title = title_elem.text.strip() if title_elem is not None and title_elem.text else "Unknown Title"
+                # Strip excessive whitespace/newlines from abstract
+                abstract = summary_elem.text.strip() if summary_elem is not None and summary_elem.text else "No Abstract"
+                abstract = " ".join(abstract.split())
+                
+                arxiv_url = id_elem.text.strip() if id_elem is not None and id_elem.text else "No ID"
+                # Extract arxiv_id from url
+                arxiv_id = arxiv_url.split('/abs/')[-1] if '/abs/' in arxiv_url else arxiv_url
+                
+                full_content = f"Title: {title}\nAbstract: {abstract}"
+                
+                # 1. Quality Gating (Structural Honesty & Textbook Standards)
+                report = self.filter.assess(full_content, source=f"arxiv_query_{arxiv_id}")
+                
+                if not report.is_admissible:
+                    rejected_count += 1
+                    print(f" [LORE] Rejected query match: {title[:40]}... (Flags: {', '.join(report.flags)})")
+                    continue
+                
+                # 2. Canonical Manifold Projection
+                proj = self.projector.project_text_to_state(full_content)
+                residue = proj['state']
+                entropy = proj['entropy']
+                
+                # 3. Affordance Gradient Computation
+                gradients = self.processor.compute_affordance_gradients(full_content)
+                
+                # 4. Multimodal Fingerprint Extraction
+                img_bytes_list = self._extract_media_from_eprint(arxiv_id)
+                multimodal_fingerprint = self._compute_multimodal_fingerprint(img_bytes_list)
+                
+                if len(img_bytes_list) > 0:
+                    print(f" [MULTIMODAL] Extracted {len(img_bytes_list)} images for {arxiv_id}. Fingerprint embedded.")
+                    
+                # 5. Fossilization with full metadata
+                dyad = KnowledgeDyad(
+                    image_fingerprint=multimodal_fingerprint,
+                    linguistic_description=title,
+                    relevance_score=float(report.instructive),
+                    metadata={
+                        'arxiv_id': arxiv_id,
+                        'abstract_preview': abstract[:200],
+                        'query_used': query,
+                        'quality': report.to_dict(),
+                        'affordance_gradients': gradients,
+                        'gyroid_entropy': entropy,
+                        'commutativity': commutativity,
+                        'media_count': len(img_bytes_list)
+                    }
+                )
+                
+                self.fossilizer.fossilize(dyad, residue)
+                admitted_count += 1
+                
+                media_str = f"| MEDIA: {len(img_bytes_list)}" if len(img_bytes_list) > 0 else ""
+                q_str = f"I:{report.instructive:.2f} A:{report.algorithmic:.2f} S:{report.structural_honesty:.2f} {media_str}"
+                print(f" [LORE] Fossilized search match for '{query}': {title[:50]}... ({q_str})")
+                
+            if admitted_count > 0:
+                print(f"[INGEST] Successfully anchored {admitted_count} query-based lore residues. Rejected {rejected_count} below threshold.")
+        except Exception as e:
+            print(f"[INGEST] Atom parsing error: {e}")
+
+    def _generate_larynx_query(self) -> str:
+        """Uses the engine's larynx autoregressively to generate a search query from the current meta_state."""
+        if self.engine is None or not hasattr(self.engine, 'larynx'):
+            fallbacks = ["topology", "quantum gravity", "homology", "reaction diffusion", "fractional admm"]
+            import random
+            return random.choice(fallbacks)
+            
+        try:
+            # Temporarily flag that engine is generating background search terms
+            old_processing = getattr(self.engine, '_is_processing', False)
+            self.engine._is_processing = True
+            
+            # Start with current meta_state clone
+            if self.state_callback is not None:
+                current_state = self.state_callback().clone().detach()
+            else:
+                current_state = torch.zeros((1, self.engine_dim), device=self.device)
+                
+            larynx = self.engine.larynx
+            larynx.eval()
+            
+            generated_chars = []
+            max_len = 30
+            temp = 1.2  # slightly higher temperature for query exploration
+            
+            with torch.no_grad():
+                for _ in range(max_len):
+                    logits, conf = larynx(current_state, temperature=temp)
+                    probs = torch.softmax(logits, dim=-1)
+                    char_idx = torch.multinomial(probs[0], 1).item()
+                    
+                    char = chr(max(32, min(126, char_idx)))
+                    if char in ('.', '!', '?', ';', '\n'):
+                        break
+                    generated_chars.append(char)
+                    
+                    # Update state
+                    feedback = torch.tanh(larynx.proj.weight[char_idx].unsqueeze(0))
+                    current_state = 0.9 * current_state + 0.1 * feedback
+                    
+            query = "".join(generated_chars).strip()
+            # Clean up the query to only alphanumeric characters and spaces
+            query = "".join(c for c in query if c.isalnum() or c.isspace())
+            query = " ".join(query.split())
+            
+            if len(query) < 3:
+                fallbacks = ["quantum topology", "fractional calculus", "soliton dynamics", "persistent homology"]
+                import random
+                query = random.choice(fallbacks)
+                
+            return query
+        except Exception as e:
+            print(f"[INGEST] Larynx query generation failed: {e}")
+            return "mathematics"
+        finally:
+            if self.engine is not None:
+                self.engine._is_processing = old_processing
+
     def start_sovereign_loop(self):
         """Starts the background ingestion thread with dynamic Meta-State Topic Steering."""
         def _loop():
@@ -247,58 +410,68 @@ class ArXivSovereignIngestor:
                 "q-fin:GN",                  # General Finance (Economic Humanities)
             ]
             
+            cycle = 0
             while True:
+                cycle += 1
                 selected_set = "math" # Default fallback
                 try:
-                    # 1. Check if we have meta-state steering active
-                    current_state = None
-                    if self.state_callback is not None:
-                        try:
-                            current_state = self.state_callback()
-                        except Exception as e:
-                            print(f"[INGEST] Meta-state callback failed: {e}. Reverting to uniform.")
-                    
-                    if current_state is not None and isinstance(current_state, torch.Tensor):
-                        # Standardize shape
-                        flat_state = current_state.flatten()
-                        if flat_state.shape[0] > self.engine_dim:
-                            flat_state = flat_state[:self.engine_dim]
-                        elif flat_state.shape[0] < self.engine_dim:
-                            padding = torch.zeros(self.engine_dim - flat_state.shape[0], device=self.device)
-                            flat_state = torch.cat([flat_state, padding])
-                        
-                        norm_state = flat_state / (torch.norm(flat_state) + 1e-8)
-                        
-                        # Compute similarities with deterministic category archetypes
-                        scores = []
-                        for s in sets:
-                            sig = self._get_category_signature(s)
-                            sim = torch.dot(norm_state, sig).item()
-                            scores.append(sim)
-                        
-                        # 2. Softmax with temperature=0.2 to sample next steering category
-                        scores_t = torch.tensor(scores, dtype=torch.float32, device=self.device) / 0.2
-                        probs = torch.softmax(scores_t, dim=0)
-                        
-                        # Sample category
-                        idx = torch.multinomial(probs, 1).item()
-                        selected_set = sets[idx]
-                        print(f" [INGEST] Meta-State Topic Steering selected topic: '{selected_set}' (prob: {probs[idx].item():.3f})")
+                    # Alternate between set list (OAI-PMH) and search query (Atom API)
+                    if cycle % 2 == 0:
+                        query = self._generate_larynx_query()
+                        print(f" [INGEST] Larynx generated search query: '{query}'")
+                        self.ingest_arxiv_by_query(query)
                     else:
-                        import random
-                        selected_set = random.choice(sets)
-                        print(f" [INGEST] Dynamic loop selected uniform topic: '{selected_set}'")
-                    
-                    # Run ingestion
-                    self.ingest_latest_math(selected_set)
-                    
+                        # Check if we have meta-state steering active
+                        current_state = None
+                        if self.state_callback is not None:
+                            try:
+                                current_state = self.state_callback()
+                            except Exception as e:
+                                print(f"[INGEST] Meta-state callback failed: {e}. Reverting to uniform.")
+                        
+                        if current_state is not None and isinstance(current_state, torch.Tensor):
+                            # Standardize shape
+                            flat_state = current_state.flatten()
+                            if flat_state.shape[0] > self.engine_dim:
+                                flat_state = flat_state[:self.engine_dim]
+                            elif flat_state.shape[0] < self.engine_dim:
+                                padding = torch.zeros(self.engine_dim - flat_state.shape[0], device=self.device)
+                                flat_state = torch.cat([flat_state, padding])
+                            
+                            norm_state = flat_state / (torch.norm(flat_state) + 1e-8)
+                            
+                            # Compute similarities with deterministic category archetypes
+                            scores = []
+                            for s in sets:
+                                sig = self._get_category_signature(s)
+                                sim = torch.dot(norm_state, sig).item()
+                                scores.append(sim)
+                            
+                            # Softmax with temperature=0.2 to sample next steering category
+                            scores_t = torch.tensor(scores, dtype=torch.float32, device=self.device) / 0.2
+                            probs = torch.softmax(scores_t, dim=0)
+                            
+                            # Sample category
+                            idx = torch.multinomial(probs, 1).item()
+                            selected_set = sets[idx]
+                            print(f" [INGEST] Meta-State Topic Steering selected topic: '{selected_set}' (prob: {probs[idx].item():.3f})")
+                        else:
+                            import random
+                            selected_set = random.choice(sets)
+                            print(f" [INGEST] Dynamic loop selected uniform topic: '{selected_set}'")
+                        
+                        # Run ingestion
+                        self.ingest_latest_math(selected_set)
+                        
                 except Exception as e:
-                    print(f"[INGEST] Loop steering error: {e}")
+                    print(f"[INGEST] Loop steering/search error: {e}")
                 
-                # Slow-drip timing between pulls
-                time.sleep(120)
+                # Slow-drip timing between pulls - adaptive sleep interval
+                is_busy = hasattr(self, '_engine_busy_fn') and self._engine_busy_fn is not None and self._engine_busy_fn()
+                sleep_sec = 300 if is_busy else 60
+                time.sleep(sleep_sec)
                 
         bg_thread = threading.Thread(target=_loop, daemon=True)
         bg_thread.start()
-        print(" [INGEST] ArXiv Sovereign Ingestor ACTIVE with Dynamic Meta-State Steering.")
+        print(" [INGEST] ArXiv Sovereign Ingestor ACTIVE with Dynamic Meta-State Steering and Larynx Search.")
         print(" [INGEST] Background monitoring active. Science and Humanities inclusion online.")
