@@ -1103,8 +1103,13 @@ class DiegeticPhysicsEngine(nn.Module):
         if matrioshka_level >= 3: temperature *= 0.7 # Focus under deep quantization
         
         # 2. Echo Suppression Setup
-        input_chars = set(text_input.lower())
-        suppression_factor = 0.4 # Penalty for repeating input
+        # Strip PROMPT: prefix so the command token letters (p, r, o, m, t, etc.)
+        # do not bleed into the echo suppression set and penalize common consonants.
+        echo_source = text_input
+        if echo_source.upper().startswith("PROMPT:"):
+            echo_source = echo_source[7:].strip()
+        input_chars = set(echo_source.lower())
+        suppression_factor = 0.15  # Reduced from 0.4: mild deterrent, not crippling
         
         # 3. Vowel Boost Setup
         vowels = set("aeiouAEIOU")
@@ -1131,8 +1136,8 @@ class DiegeticPhysicsEngine(nn.Module):
             current_state = current_state * 1.05 # 'Excited' state evolution for video context
 
         generated_chars = []
-        max_len = 150
-        min_len = 20
+        max_len = 300
+        min_len = 60
         
         # Autoregressive Loop
         for i in range(max_len):
@@ -1157,8 +1162,8 @@ class DiegeticPhysicsEngine(nn.Module):
             char = chr(max(32, min(126, char_idx)))
             generated_chars.append(char)
             
-            # Stop condition
-            if len(generated_chars) >= min_len and char in ('.', '!', '?') and conf.item() > 0.7:
+            # Stop condition: require min_len AND high confidence at punctuation
+            if len(generated_chars) >= min_len and char in ('.', '!', '?') and conf.item() > 0.85:
                 break
                 
             # State Evolution (Singing)
