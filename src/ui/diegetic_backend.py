@@ -67,6 +67,26 @@ def compute_autocorrelation(x: torch.Tensor) -> torch.Tensor:
     
     # Return only the positive lags (symmetric)
     return autocorr[:2*n-1]
+
+
+def _compute_fossil_budget() -> int:
+    """Dynamically computes the fossil load budget based on available RAM."""
+    try:
+        import psutil
+        available_mb = psutil.virtual_memory().available / (1024 * 1024)
+    except ImportError:
+        try:
+            import subprocess
+            out = subprocess.check_output(
+                ["wmic", "OS", "get", "FreePhysicalMemory"],
+                timeout=3
+            ).decode()
+            available_mb = int([x for x in out.split() if x.isdigit()][0]) / 1024
+        except Exception:
+            return 150  # safe fallback
+    # ~0.8 MB per fossil (dim=256 tensor + metadata dict)
+    estimated = int(available_mb / 0.8)
+    return max(50, min(2000, estimated))
 from urllib.parse import urlparse, parse_qs
 from typing import Dict, Any, List, Optional, Tuple, Union
 import hashlib
@@ -278,7 +298,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # 13. Neglecton Fossil Graph (Dynamic Sovereign Refusal System)
         self.graph_manager = GyroidicGraphManager(data_dir=ENCODING_DIR, dim=dim)
         # Pre-load fossils (attempts snapshot first for speed - resolves 'million years' issue)
-        self.graph_manager.load_fossils(limit=150)
+        self.graph_manager.load_fossils(limit=_compute_fossil_budget())
         
         # =============================================
         # GARBLED OUTPUT REPAIR SYSTEM
@@ -627,8 +647,10 @@ class DiegeticPhysicsEngine(nn.Module):
                 fossilizer=self.fossilizer,
                 engine_dim=self.dim,
                 device=self.device,
-                state_callback=lambda: self.meta_state
+                state_callback=lambda: self.meta_state,
+                engine=self
             )
+            self.arxiv_ingestor._engine_busy_fn = lambda: self._is_processing
             self.arxiv_ingestor.start_sovereign_loop()
             print(" ArXiv Sovereign Ingestor ACTIVE. Realtime lore ingestion enabled.")
         except Exception as e:
@@ -647,6 +669,11 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Seed the Larynx if it's a "Blank Slate"
         self._initialize_larynx_weights()
+        
+        # Initialize background Larynx coherence trainer and shadow replay queue
+        from collections import deque
+        self._shadow_replay_queue = deque(maxlen=50)
+        self._start_background_larynx_trainer()
 
         # =============================================
         # DEMOCRATIC STEERING HUB (Phase 20)
@@ -749,7 +776,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 # Lazy load fossils if graph is empty (common in fresh sessions)
                 if not self.graph_manager.nodes:
                     print("[ENGINE] Neglecton empty. Speculatively harvesting local encodings...")
-                    self.graph_manager.load_fossils(limit=50)
+                    self.graph_manager.load_fossils(limit=_compute_fossil_budget())
                 
                 deep_refusal = self.graph_manager.get_deep_refusal(seed_state)
                 dream += f"\n{deep_refusal}"
@@ -819,10 +846,98 @@ class DiegeticPhysicsEngine(nn.Module):
         """Speculatively recovers legacy fossils into the live session cache."""
         try:
             print("[MEMORY] Speculatively recovering legacy fossils...")
-            self.fossil_cache = self.fossilizer.recover_fossils()
+            self.fossil_cache = self.fossilizer.recover_fossils(limit=_compute_fossil_budget())
             print(f"[MEMORY] {len(self.fossil_cache)} fossils recovered into speculative cache.")
         except Exception as e:
             print(f"[MEMORY] Fossil recovery failed: {e}")
+
+    def _train_mimicry_step(self, text: str) -> Optional[float]:
+        """Gradient-enabled single Larynx training step on a text string."""
+        if len(text) < 2:
+            return None
+        try:
+            # Encode as ASCII char indices (clamped to 32-126)
+            chars = [max(32, min(126, ord(c))) for c in text[:128]]
+            if len(chars) < 2:
+                return None
+            # Build seed state from first char
+            seed = self._text_to_tensor(text[:1]).to(self.device)
+            self.larynx.train()
+            self.optimizer.zero_grad()
+            total_loss = torch.tensor(0.0, device=self.device)
+            current_state = seed
+            for i in range(len(chars) - 1):
+                logits, _ = self.larynx(current_state, temperature=1.0)
+                target = torch.tensor([chars[i + 1]], device=self.device, dtype=torch.long)
+                loss = self.criterion(logits, target)
+                total_loss = total_loss + loss
+                # Detach state to prevent gradient explosion across steps
+                with torch.no_grad():
+                    probs = torch.softmax(logits, dim=-1)
+                    idx = torch.multinomial(probs[0], 1).item()
+                    feedback = self.larynx.proj.weight[idx].detach().unsqueeze(0)
+                    current_state = 0.9 * current_state.detach() + 0.1 * feedback
+            avg_loss = total_loss / max(1, len(chars) - 1)
+            avg_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
+            self.optimizer.step()
+            self.larynx.eval()
+            return avg_loss.item()
+        except Exception:
+            self.larynx.eval()
+            return None
+
+    def _start_background_larynx_trainer(self):
+        """Daemon thread: continuously trains Larynx on fossil texts between interactions."""
+        import threading, random
+
+        def _loop():
+            # Wait for system startup to stabilize
+            time.sleep(10)
+            while True:
+                try:
+                    # Yield completely if engine is serving a user or in temporal training
+                    if getattr(self, '_is_processing', False) or getattr(self, '_is_training_temporal', False):
+                        time.sleep(5)
+                        continue
+
+                    # Drain shadow replay queue first (highest priority signal)
+                    replay_texts = []
+                    while hasattr(self, '_shadow_replay_queue') and self._shadow_replay_queue:
+                        replay_texts.append(self._shadow_replay_queue.popleft())
+
+                    # Supplement with fossil cache samples
+                    cache = getattr(self, 'fossil_cache', [])
+                    if not replay_texts and not cache:
+                        time.sleep(30)
+                        continue
+
+                    fossil_texts = []
+                    if cache:
+                        # recover text/description from fossils
+                        for f in random.sample(cache, min(8, len(cache))):
+                            t = f.get('text', '') or f.get('description', '') or f.get('text_input', '')
+                            if t and len(t) >= 4:
+                                fossil_texts.append(t)
+
+                    all_texts = replay_texts + fossil_texts
+                    total_loss, n = 0.0, 0
+                    for text in all_texts[:12]:  # cap per cycle
+                        loss = self._train_mimicry_step(text)
+                        if loss is not None:
+                            total_loss += loss
+                            n += 1
+
+                    if n > 0:
+                        src = f"{len(replay_texts)} shadow + {n - len(replay_texts)} fossil"
+                        print(f"[BGLEARN] step avg_loss={total_loss/n:.4f} ({src})")
+                except Exception as e:
+                    print(f"[BGLEARN] Error: {e}")
+                time.sleep(30)
+
+        t = threading.Thread(target=_loop, daemon=True, name="larynx-bglearn")
+        t.start()
+        print("[BGLEARN] Background Larynx coherence trainer ACTIVE (30s idle interval).")
 
     def get_manifold_state(self) -> Dict[str, Any]:
         """
@@ -2971,6 +3086,8 @@ class DiegeticPhysicsEngine(nn.Module):
                     )
                     self.fossilizer.fossilize(sl_dyad, seed_state)
                     print(f"[OUROBOROS] Fossilized Shadow Log: {sl[:60]}...")
+                    if hasattr(self, '_shadow_replay_queue'):
+                        self._shadow_replay_queue.append(sl)
                     
                     # Steer democratically: cast internal vote to shield system from recursive friction
                     try:
