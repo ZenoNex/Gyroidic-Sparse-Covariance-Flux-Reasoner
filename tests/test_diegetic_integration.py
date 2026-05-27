@@ -69,5 +69,5 @@ def test_integration():
 
 if __name__ == "__main__":
     success = test_integration()
-    import os
-    os._exit(0 if success else 1)
+    import sys
+    sys.exit(0 if success else 1)
