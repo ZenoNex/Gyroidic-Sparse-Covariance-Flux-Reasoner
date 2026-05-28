@@ -289,7 +289,11 @@ class DiegeticPhysicsEngine(nn.Module):
         self.extensions_enabled = EXTENSIONS_AVAILABLE
 
         self.cavity = ResonanceCavity(hidden_dim=dim, num_modes=16)
-        self.larynx = ResonanceLarynx(hidden_dim=dim, vocab_size=128) # ASCII
+        self.larynx = ResonanceLarynx(hidden_dim=dim, vocab_size=256) # ASCII + EMOJI
+        self.unicode_to_idx = {}
+        self.idx_to_unicode = []
+        # Centralized Allowed Characters list
+        self.allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,!?-'_()[]{}<>:=+/*;%#@$&|\\\"`~^")
         self.associator = DataAssociationLayer(input_dim=dim, hidden_dim=dim, k=k)
         
         # 12. Gyroidic Codec (Gap B Integration)
@@ -684,6 +688,38 @@ class DiegeticPhysicsEngine(nn.Module):
         self.mischief_votes = 0
         self.voting_threshold = 5 # Target net votes for discrete Symbolic Delta activation
 
+    def _idx_to_char(self, idx: int) -> str:
+        """Map vocabulary index to character string."""
+        if idx < 128:
+            return chr(idx)
+        else:
+            # Map index in [128, 255] back to unicode/emoji
+            emoji_idx = idx - 128
+            if emoji_idx < len(self.idx_to_unicode):
+                return self.idx_to_unicode[emoji_idx]
+            return " " # Fallback
+
+    def _char_to_idx(self, char: str) -> int:
+        """Map character string to vocabulary index."""
+        if len(char) == 0:
+            return 32 # space fallback
+        c = char[0]
+        o = ord(c)
+        if o < 128:
+            return o
+        else:
+            # Emojis/Unicode map dynamically to [128, 255]
+            if c in self.unicode_to_idx:
+                return self.unicode_to_idx[c]
+            # Try to register a new one if space is available
+            if len(self.unicode_to_idx) < 128:
+                new_idx = 128 + len(self.unicode_to_idx)
+                self.unicode_to_idx[c] = new_idx
+                self.idx_to_unicode.append(c)
+                print(f"[VOCAB] Registered new emoji/unicode character: '{c}' -> index {new_idx}")
+                return new_idx
+            return 32 # Fallback to space if out of space
+
     def _categorical_surgery(self, state: torch.Tensor, residues: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Applies categorical surgery: utilizes Braid Group relations and 
@@ -757,10 +793,45 @@ class DiegeticPhysicsEngine(nn.Module):
         else:
             dream = f"[LAZARUS_DREAM] Internal manifold in {status} state (Ra={ra:.4f}). "
             
-            # Create a small "Trace" of the audience projection (the 'audience module')
-            # This is a diegetic representation of the 'meaning' space
+            # Create a Larynx-decoded dream sequence from the audience state or seed state
+            # This is a diegetic representation of the 'meaning' space (roughness preserving)
             with torch.no_grad():
-                audience_trace = "".join([chr((int(val) % 26) + 97) for val in audience_state[0][:15].abs() * 100])
+                current_state = seed_state.clone()
+                dream_chars = []
+                # Autoregressive dream generation (up to 120 characters)
+                for i in range(120):
+                    logits, conf = self.larynx(current_state, temperature=1.2)
+                    
+                    # Clean Vocabulary Filtering: Mask out non-standard symbols to force human/Voynich readability
+                    for idx in range(logits.shape[-1]):
+                        char_from_idx = self._idx_to_char(idx)
+                        if idx < 128:
+                            if char_from_idx not in self.allowed_chars:
+                                logits[0, idx] = -1e9
+                        else:
+                            # Allow dynamically registered unicode/emojis
+                            if idx - 128 >= len(self.idx_to_unicode):
+                                logits[0, idx] = -1e9
+                            
+                    # Apply Vowel Boosting to make it sing
+                    vowels = set("aeiouAEIOU")
+                    for v in vowels:
+                        if ord(v) < logits.shape[-1]:
+                            logits[0, ord(v)] *= 1.3
+                    
+                    probs = torch.softmax(logits, dim=-1)
+                    char_idx = torch.multinomial(probs[0], 1).item()
+                    char = self._idx_to_char(char_idx)
+                    dream_chars.append(char)
+                    
+                    # Stop if a sentence ends and we have some length
+                    if len(dream_chars) >= 40 and char in ('.', '!', '?'):
+                        break
+                        
+                    feedback = torch.tanh(self.larynx.proj.weight[char_idx].unsqueeze(0))
+                    current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * self._harvest_honest_jitter(current_state.shape)
+                
+                audience_trace = "".join(dream_chars).strip()
             
             dream += f"The persona substrate is dreaming through the audience filter: '{audience_trace}'.\n"
             dream += f"The current Zeitgeist topology (Braid: {braid_word}) is holding firm against the convergence entropy.\n"
@@ -858,8 +929,8 @@ class DiegeticPhysicsEngine(nn.Module):
         if len(text) < 2:
             return None
         try:
-            # Encode as ASCII char indices (clamped to 32-126)
-            chars = [max(32, min(126, ord(c))) for c in text[:128]]
+            # Dynamic tokenization map
+            chars = [self._char_to_idx(c) for c in text[:128]]
             if len(chars) < 2:
                 return None
             # Build seed state from first char
@@ -875,9 +946,9 @@ class DiegeticPhysicsEngine(nn.Module):
                 total_loss = total_loss + loss
                 # Detach state to prevent gradient explosion across steps
                 with torch.no_grad():
-                    probs = torch.softmax(logits, dim=-1)
-                    idx = torch.multinomial(probs[0], 1).item()
-                    feedback = self.larynx.proj.weight[idx].detach().unsqueeze(0)
+                    # Teacher forcing: feed actual target character representation
+                    idx = chars[i + 1]
+                    feedback = torch.tanh(self.larynx.proj.weight[idx].detach().unsqueeze(0))
                     current_state = 0.9 * current_state.detach() + 0.1 * feedback
             avg_loss = total_loss / max(1, len(chars) - 1)
             avg_loss.backward()
@@ -955,7 +1026,9 @@ class DiegeticPhysicsEngine(nn.Module):
                 "D_dark": self.cavity.D_dark.detach().cpu()
             },
             "meta_state": self.meta_state.detach().cpu(),
-            "iteration": self.iteration
+            "iteration": self.iteration,
+            "unicode_to_idx": self.unicode_to_idx,
+            "idx_to_unicode": self.idx_to_unicode
         }
         return state
 
@@ -966,6 +1039,11 @@ class DiegeticPhysicsEngine(nn.Module):
         """
         if not state_dict:
             return
+
+        # Restore dynamic vocabulary
+        self.unicode_to_idx = state_dict.get("unicode_to_idx", {})
+        self.idx_to_unicode = state_dict.get("idx_to_unicode", [])
+        print(f"[RECOVERY] Dynamic vocabulary restored: {len(self.unicode_to_idx)} unicode/emoji characters mapped.")
 
         # 1. Restore Zeitgeist (with mode and step momentum)
         if "zeitgeist" in state_dict and state_dict["zeitgeist"] is not None:
@@ -1263,20 +1341,33 @@ class DiegeticPhysicsEngine(nn.Module):
             
             logits, conf = self.larynx(current_state, temperature=iter_temp)
             
+            # Clean Vocabulary Filtering: Mask out non-standard symbols to force human/Voynich readability
+            for idx in range(logits.shape[-1]):
+                char_from_idx = self._idx_to_char(idx)
+                if idx < 128:
+                    if char_from_idx not in self.allowed_chars:
+                        logits[0, idx] = -1e9
+                else:
+                    # Allow dynamically registered unicode/emojis
+                    if idx - 128 >= len(self.idx_to_unicode):
+                        logits[0, idx] = -1e9
+            
             # Apply Echo Suppression
             for char in input_chars:
-                if ord(char) < logits.shape[-1]:
-                    logits[0, ord(char)] -= suppression_factor
+                c_idx = self._char_to_idx(char)
+                if c_idx < logits.shape[-1]:
+                    logits[0, c_idx] -= suppression_factor
             
             # Apply Vowel Boosting
             for v in vowels:
-                if ord(v) < logits.shape[-1]:
-                    logits[0, ord(v)] *= vowel_boost_factor
+                v_idx = self._char_to_idx(v)
+                if v_idx < logits.shape[-1]:
+                    logits[0, v_idx] *= vowel_boost_factor
             
             probs = torch.softmax(logits, dim=-1)
             char_idx = torch.multinomial(probs[0], 1).item()
             
-            char = chr(max(32, min(126, char_idx)))
+            char = self._idx_to_char(char_idx)
             generated_chars.append(char)
             
             # Stop condition: require min_len AND high confidence at punctuation
@@ -3428,8 +3519,8 @@ class DiegeticPhysicsEngine(nn.Module):
         self.larynx.train()
         self.optimizer.zero_grad()
         
-        # Convert text to ASCII indices
-        chars = [max(32, min(126, ord(c))) for c in text_target]
+        # Dynamic tokenization map
+        chars = [self._char_to_idx(c) for c in text_target]
         
         total_loss = torch.tensor(0.0, device=self.device)
         current_state = input_state.clone().to(self.device)
@@ -3443,7 +3534,7 @@ class DiegeticPhysicsEngine(nn.Module):
             with torch.no_grad():
                 # Teacher forcing: feed actual target character embedding to next step state
                 idx = chars[i + 1]
-                feedback = self.larynx.proj.weight[idx].detach().unsqueeze(0)
+                feedback = torch.tanh(self.larynx.proj.weight[idx].detach().unsqueeze(0))
                 current_state = 0.9 * current_state.detach() + 0.1 * feedback
                 
         avg_loss = total_loss / max(1, len(chars) - 1)
@@ -3472,11 +3563,12 @@ class DiegeticPhysicsEngine(nn.Module):
         for i, char in enumerate(text):
             # Positional Polynomial Shift
             p = poly_coeffs[i % len(poly_coeffs)]
+            char_idx = self._char_to_idx(char)
             # Rotate target dimension based on position and polynomial coefficient
-            idx = int((i * p + ord(char)) % self.dim)
+            idx = int((i * p + char_idx) % self.dim)
             
             # Harmonic magnitude modulation
-            magnitude = (ord(char) / 128.0) * (1.0 / (math.log(i + 2)))
+            magnitude = (char_idx / 128.0) * (1.0 / (math.log(i + 2)))
             vec[0, idx] += magnitude
             
         # Add a global sentence variance 'salt'
