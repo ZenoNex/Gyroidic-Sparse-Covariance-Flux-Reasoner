@@ -144,6 +144,35 @@ class ArXivSovereignIngestor:
         mean_fp = np.mean(all_fingerprints, axis=0)
         return torch.tensor(mean_fp, dtype=torch.float32, device=self.device)
 
+    def _resolve_seed_state(self, content_key: str) -> Optional[torch.Tensor]:
+        """Resolves seed state dynamically or generates a deterministic pseudo-state for quasi-headless mode."""
+        seed_state = None
+        # 1. Try dynamic callback
+        if self.state_callback is not None:
+            try:
+                seed_state = self.state_callback()
+            except Exception:
+                pass
+        # 2. Try engine's live meta state
+        if seed_state is None and self.engine is not None:
+            try:
+                seed_state = getattr(self.engine, 'meta_state', None)
+            except Exception:
+                pass
+        # 3. Standalone/Headless Fallback: generate a deterministic category/content key signature
+        if seed_state is None:
+            try:
+                import hashlib
+                h = hashlib.sha256(content_key.encode('utf-8')).digest()
+                seed_val = int.from_bytes(h[:4], byteorder='big')
+                g = torch.Generator(device=self.device)
+                g.manual_seed(seed_val)
+                seed_state = torch.randn(self.engine_dim, device=self.device, generator=g)
+                seed_state = seed_state / (seed_state.norm() + 1e-8)
+            except Exception as e:
+                print(f"[INGEST] Failed to generate deterministic pseudo-seed: {e}")
+        return seed_state
+
     def _parse_and_fossilize(self, xml_text: str, commutativity: str):
         """Parses OAI-PMH XML and converts records into permanent knowledge fossils."""
         try:
@@ -208,7 +237,8 @@ class ArXivSovereignIngestor:
                         }
                     )
                     
-                    self.fossilizer.fossilize(dyad, residue)
+                    seed_state = self._resolve_seed_state(title)
+                    self.fossilizer.fossilize(dyad, residue, seed_state=seed_state)
                     admitted_count += 1
                     
                     # Descriptive status log
@@ -322,7 +352,8 @@ class ArXivSovereignIngestor:
                     }
                 )
                 
-                self.fossilizer.fossilize(dyad, residue)
+                seed_state = self._resolve_seed_state(title)
+                self.fossilizer.fossilize(dyad, residue, seed_state=seed_state)
                 admitted_count += 1
                 
                 media_str = f"| MEDIA: {len(img_bytes_list)}" if len(img_bytes_list) > 0 else ""
