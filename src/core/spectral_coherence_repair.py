@@ -279,17 +279,30 @@ class BezoutCoefficientRefresh(nn.Module):
     
     def __init__(self, num_functionals=5, poly_degree=12, device=None):
         from src.core.device_utils import DEVICE
-        self.device = device if device is not None else DEVICE
         super().__init__()
+        self.device = device if device is not None else DEVICE
         self.K = num_functionals
         self.D = poly_degree + 1
-        self.device = device
 
         # Bezout coefficient matrix [K, K]
         self.register_buffer('bezout_matrix', torch.eye(self.K, device=self.device))
 
-        # Modulus tracking
-        self.register_buffer('moduli', torch.ones(self.K, device=self.device))
+        # Modulus tracking - initialize with dynamically generated primes to avoid trivial 1.0 collapse
+        primes = []
+        candidate = 2
+        while len(primes) < self.K:
+            is_prime = True
+            for p in primes:
+                if candidate % p == 0:
+                    is_prime = False
+                    break
+                if p * p > candidate:
+                    break
+            if is_prime:
+                primes.append(candidate)
+            candidate += 1
+        
+        self.register_buffer('moduli', torch.tensor(primes, dtype=torch.float32, device=self.device))
 
         # Drift detection
         self.register_buffer('last_residues', torch.zeros(self.K, self.D, device=self.device))
@@ -302,6 +315,13 @@ class BezoutCoefficientRefresh(nn.Module):
             if key in state_dict:
                 val = state_dict[key]
                 target_param = getattr(self, name, None)
+                
+                # Intercept sterile moduli (all 1.0) loaded from checkpoint and replace with the correct prime moduli
+                if name == 'moduli' and (val == 1.0).all() and target_param is not None:
+                    print(f" [ADAPTIVE] Intercepted sterile moduli {val} from state dict, preserving prime moduli.")
+                    state_dict[key] = target_param.clone()
+                    val = state_dict[key]
+                
                 if target_param is not None and val.shape != target_param.shape:
                     print(f" [ADAPTIVE] Aligning {name}: {val.shape} -> {target_param.shape}")
                     new_val = val
