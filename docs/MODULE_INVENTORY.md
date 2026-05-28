@@ -134,9 +134,10 @@ Implements computable harmonic invariants. Contains `ImplicationInvariant` (Anti
 ---
 
 ### knowledge_dyad_fossilizer.py
-**Role**: Fossilizes knowledge dyads (paired concept structures) into the persistent fossil layer.
+**Classes**: `KnowledgeDyad`, `ResidueFusion`, `DyadFossilizer`  
+**Role**: Fossilizes knowledge dyads (paired visual/text concept structures) into the persistent fossil layer.
 
-Manages `DyadFossilizer` instances within the engine, selecting high-trust dyads for structural freezing and updating the fossilization index. Partial coverage in `KNOWLEDGE_DYAD_LIFECYCLE.md`. Connected to Signal Sovereignty foster logic in GDPO.
+Computes cross-modality torsion between image fingerprints and text embeddings using the `ResidueFusion` layer. During `fossilize()`, it maps the output to Poincar disk hyperbolic coordinates to avoid NaN collapse, and derives real-time topological invariants from the `seed_state` (including Betti numbers, chirality-driven redistribution centroid shift and parity torsion, spectral pressure, and Chern-Simons gasket diagnostics). Also exports/injects sovereign `Agent Smith` soliton payloads to decouple inference syntax from local hardware substrate.
 
 ---
 
