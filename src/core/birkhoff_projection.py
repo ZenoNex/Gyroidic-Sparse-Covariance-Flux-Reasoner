@@ -21,6 +21,7 @@ from src.core.device_utils import DEVICE
 # Global cache for pre-computed Birkhoff projectors to avoid redundant $O(N^4)$ re-init
 _BIRKHOFF_PROJECTOR_CACHE: Dict[int, 'DirectBirkhoffProjection'] = {}
 _BIRKHOFF_CACHE_LOCK = threading.Lock()
+_BIRKHOFF_WARNED_DIMENSIONS = set()
 
 
 class SparseRepunitProbe(nn.Module):
@@ -165,7 +166,10 @@ class ObscuredBirkhoffManifold(nn.Module):
                 self.direct_projector = _BIRKHOFF_PROJECTOR_CACHE[n]
         else:
             self.direct_projector = None
-            print(f" [CONFIG] Birkhoff dimension {n} too large for direct projection. Using iterative fallback.")
+            with _BIRKHOFF_CACHE_LOCK:
+                if n not in _BIRKHOFF_WARNED_DIMENSIONS:
+                    _BIRKHOFF_WARNED_DIMENSIONS.add(n)
+                    print(f" [CONFIG] Birkhoff dimension {n} too large for direct projection. Using iterative fallback.")
     
     def evolve_obstruction(self, genome: torch.Tensor, decay: float = 0.99):
         """delta_o = Obsc(g)"""
