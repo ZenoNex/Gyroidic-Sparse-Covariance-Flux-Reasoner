@@ -150,7 +150,7 @@ class UniversalOrchestrator(nn.Module):
         
         # 7. Diegetic Responder (The "Larynx" & "Scars")
         from src.models.diegetic_heads import ResonanceLarynx
-        self.larynx = ResonanceLarynx(dim)
+        self.larynx = ResonanceLarynx(dim, vocab_size=256)
         
         self.prev_pas = 0.0 # Temporal anchor for drift check
 
