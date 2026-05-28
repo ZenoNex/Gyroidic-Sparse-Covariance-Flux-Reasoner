@@ -3421,38 +3421,36 @@ class DiegeticPhysicsEngine(nn.Module):
         return jitter_0_1
 
     def _train_mimicry(self, input_state: torch.Tensor, text_target: str):
-        """Train Larynx to decrypt the input state back to text."""
+        """Train Larynx to decrypt the input state back to text autoregressively."""
+        if len(text_target) < 2:
+            return
+            
+        self.larynx.train()
         self.optimizer.zero_grad()
         
-        # We treat whole string reconstruction from single state as hard.
-        # So we train to predict the *distribution* of chars in the input (Bag of Words style)
-        # Or simply predict the *next* char?
-        # Let's train it to predict the *first* few chars or the dominant chars.
-        # Actually, let's just train it to map state -> chars in the string.
-        # "This state represents this sequence of characters".
+        # Convert text to ASCII indices
+        chars = [max(32, min(126, ord(c))) for c in text_target]
         
-        # Target distribution (Character counts)
-        target_dist = torch.zeros(1, 128)
-        for char in text_target:
-            idx = ord(char) % 128
-            target_dist[0, idx] += 1.0
-        target_dist = target_dist / (target_dist.sum() + 1e-8)
+        total_loss = torch.tensor(0.0, device=self.device)
+        current_state = input_state.clone().to(self.device)
         
-        # Forward pass
-        logits, _ = self.larynx(input_state)
-        # KL Divergence or Cross Entropy against distribution?
-        # Simple: Cross Entropy against *randomly sampled* char from text?
-        # Let's use BCEWithLogitsLoss for multi-label (bag of chars)
-        # or simplified: maximize logits for present chars.
-        
-        loss = 0
-        for char in text_target:
-            idx = ord(char) % 128
-            loss += self.criterion(logits, torch.tensor([idx]))
-        
-        loss = loss / (len(text_target) + 1e-8)
-        loss.backward()
+        for i in range(len(chars) - 1):
+            logits, _ = self.larynx(current_state, temperature=1.0)
+            target_idx = torch.tensor([chars[i + 1]], device=self.device, dtype=torch.long)
+            loss = self.criterion(logits, target_idx)
+            total_loss = total_loss + loss
+            
+            with torch.no_grad():
+                # Teacher forcing: feed actual target character embedding to next step state
+                idx = chars[i + 1]
+                feedback = self.larynx.proj.weight[idx].detach().unsqueeze(0)
+                current_state = 0.9 * current_state.detach() + 0.1 * feedback
+                
+        avg_loss = total_loss / max(1, len(chars) - 1)
+        avg_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
         self.optimizer.step()
+        self.larynx.eval()
 
     def _text_to_tensor(self, text: str) -> torch.Tensor:
         """
