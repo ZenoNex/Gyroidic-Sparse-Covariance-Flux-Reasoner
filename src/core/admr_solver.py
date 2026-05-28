@@ -206,6 +206,60 @@ class PolynomialADMRSolver(nn.Module):
                  
         return curr_states
 
+    def evaluate_ivst_sidechain(self, states: torch.Tensor, elipsodistrophy_metrics: Optional[Dict[str, Any]]) -> torch.Tensor:
+        """
+        Evaluate the IVST side-chain chaotic envelope.
+        """
+        level = 0.0
+        if elipsodistrophy_metrics is not None:
+            level = elipsodistrophy_metrics.get('matrioshka_level', elipsodistrophy_metrics.get('level', 0.0))
+            if level is None:
+                level = 0.0
+        
+        # Matrioshka fractal shell scale: Z_scale = 2.0 ** (-level)
+        Z_scale = 2.0 ** (-float(level))
+        
+        # High-frequency transient carrier: sin(30x) + 1
+        soliton_transient = torch.sin(30.0 * states) + 1.0
+        
+        # Slow macro-environmental envelope: cos(tau / Z)
+        tau_val = self.tau.to(states.device)
+        macro_envelope = torch.cos(tau_val / Z_scale)
+        
+        # Composite limit
+        y_threshold = macro_envelope * soliton_transient
+        return y_threshold
+
+    def apply_ivst_sidechain_dropout(self, states: torch.Tensor, elipsodistrophy_metrics: Optional[Dict[str, Any]]) -> torch.Tensor:
+        """
+        Apply instrument-modulated module dropout based on the chaotic boundary envelope
+        with Birkhoff mass conservation and Lazarus rehydration.
+        """
+        y_threshold = self.evaluate_ivst_sidechain(states, elipsodistrophy_metrics)
+        current_pressure = torch.abs(states)
+        
+        # Dropout mask: 1.0 for active, 0.0 for dropped out
+        mask = (current_pressure >= y_threshold).float()
+        
+        # Conserve mass: sum and redistribute energy
+        total_mass = torch.sum(current_pressure, dim=-1, keepdim=True)
+        active_mass = torch.sum(current_pressure * mask, dim=-1, keepdim=True)
+        
+        # Proportional scale factor
+        scale_factor = total_mass / (active_mass + 1e-8)
+        
+        # Redistribute mass
+        redistributed_states = states * scale_factor * mask
+        
+        # Topological refusal (emit NaN)
+        nan_states = torch.where(mask > 0.5, redistributed_states, torch.full_like(states, float('nan')))
+        
+        # Lazarus Rehydration: trigger apply_energy_based_stabilization
+        from src.core.spectral_coherence_repair import apply_energy_based_stabilization
+        rehydrated_states = apply_energy_based_stabilization(nan_states, stability_margin=1e-5)
+        
+        return rehydrated_states
+
     def stochastic_differential_step(
         self, 
         states: torch.Tensor, 
@@ -323,6 +377,9 @@ class PolynomialADMRSolver(nn.Module):
             dx[..., :love_dim] = torch.matmul(dx_subset, null_proj.T)
             
         new_state = states + dx
+        
+        # IVST Side-Chaining and Module Dropout
+        new_state = self.apply_ivst_sidechain_dropout(new_state, elipsodistrophy_metrics)
         
         # 5.8. Topological Refusal & Anchor Snap (Phase 18 Integration)
         # If curvature is high or elipsodistrophy is extreme, snap toward anchor
@@ -492,6 +549,9 @@ class PolynomialADMRSolver(nn.Module):
             dx[..., :love_dim] = torch.matmul(dx_subset, null_proj.T)
 
         new_state = states + dx
+
+        # IVST Side-Chaining and Module Dropout
+        new_state = self.apply_ivst_sidechain_dropout(new_state, elipsodistrophy_metrics)
 
         # 8. Anchor Snap
         if anchor_sym is not None:
