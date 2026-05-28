@@ -503,12 +503,14 @@ class DiegeticPhysicsEngine(nn.Module):
                 critical_boundary_threshold=0.5,
                 use_noncommutativity_check=True,
             )
+            self.router = self.zeitgeist_router
             # Persistent CRT index state -- survives across process_input calls
             self._zeitgeist_state: ZeitgeistState = ZeitgeistState.initial(
                 moduli=_mpm_moduli
             )
         else:
             self.zeitgeist_router = None
+            self.router = None
             self._zeitgeist_state = None
 
         # Harmonic Wave Decomposition: Separate signal (non-ergodic) from noise (ergodic)
