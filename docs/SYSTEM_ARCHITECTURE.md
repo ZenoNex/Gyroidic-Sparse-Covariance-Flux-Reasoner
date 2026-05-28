@@ -435,7 +435,7 @@ The system operates in two distinct modes to balance depth of reasoning with spe
     *   **Skip Generation**: Returns immediately after embedding update.
     *   **Skip Repair**: No Spectral Coherence or Bezout Correction performed.
     *   **Memory Update**: Manifold location is updated (`memory_state`), ensuring the extracted concept is "remembered" topologically.
-    *   **Mimicry Training**: Larynx still trains on input to learn `text -> embedding` mapping.
+    *   **Mimicry Training**: Larynx still trains on input to learn `embedding -> text` (state decryption) mapping.
 *   **Use Case**: Batch Wikipedia extraction, bulk association learning, rapid reading.
 
 ### 8.3 Contextual Hinting
