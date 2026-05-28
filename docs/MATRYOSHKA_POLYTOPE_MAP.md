@@ -11,7 +11,7 @@ flowchart TD
     classDef error fill:#f38ba8,stroke:#11111b,color:#11111b,stroke-width:2px,font-weight:bold
 
     %% P_space and State Initialization
-    State["Initial State (x, α, l)"]
+    State["Initial State (x, , l)"]
     Space["Meta-Polytope Space P_space(Context)"]
 
     State --> Space
@@ -20,7 +20,7 @@ flowchart TD
     subgraph IterLevels ["Matrioshka Layer Escalation (l_max down to 0)"]
         direction TB
         
-        GetP["Select P^(l)_α"]
+        GetP["Select P^(l)_"]
         CheckContains{"Does P^(l) contain x?"}
         
         GetP --> CheckContains
@@ -42,7 +42,7 @@ flowchart TD
         StableUpdate["Stable Update: Return (yq, P^(l))"]
         CheckFixedPoint -- Yes --> StableUpdate
         
-        CheckFacet{"Is yq on Facet ∂P?"}
+        CheckFacet{"Is yq on Facet P?"}
         CheckFixedPoint -- No --> CheckFacet
         
         FacetTransition["Facet Grazing / Switch: Return (yq, P_adjacent(yq))"]
@@ -69,6 +69,7 @@ flowchart TD
 
 ## Key Architectural Principles
 
-1. **Intra-polytope traversal (Interior):** Scalarization and traditional logic apply. The state is quantized to the layer's local resolution `Δ(l)`.
-2. **Facet Grazing (Boundary):** The state has reached an incompatibility boundary. A switch to an adjacent meaning system (via CRT index `α`) is initiated.
+1. **Intra-polytope traversal (Interior):** Scalarization and traditional logic apply. The state is quantized to the layer's local resolution `(l)`.
+2. **Facet Grazing (Boundary):** The state has reached an incompatibility boundary. A switch to an adjacent meaning system (via CRT index ``) is initiated.
 3. **Topological Refusal (NaN / BoundaryState):** If no layer's polytope can claim the state, the system correctly refuses to map the state, throwing a `BoundaryState` stress tensor (NaN). This represents an epistemic limit, preventing "lobotomized" hallucinations outside of valid reasoning polytopes.
+4. **IVST Side-Chaining and Lazarus Rehydration (Dropout):** When the state pressure drops below the chaotic envelope $y = \cos(\tau / Z)(\sin(30x) + 1)$, where $Z = 2^{-\text{level}}$ is the recursive Matrioshka shell scale, the corresponding dimensions are dropped out (`NaN`). To conserve mass, vanished energy is redistributed across the remaining active dimensions (Birkhoff constraint). The `NaN` values are then rehydrated using honest jitter via `apply_energy_based_stabilization`, breaking state collapse stasis.
