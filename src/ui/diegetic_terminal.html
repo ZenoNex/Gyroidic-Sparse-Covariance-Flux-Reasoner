@@ -1368,12 +1368,6 @@
             if (soliton && soliton.healing_progress > 0.1) {
                 triggerMischief(soliton.healing_progress);
             }
-            // Clear fingerprint + disarm visual state
-            state.active_fingerprint = null;
-            userInput.placeholder = 'Ingest symbolic residue...';
-            userInput.style.borderColor = '';
-            userInput.style.boxShadow = '';
-            document.querySelector('.drop-hint').innerText = "DRAG DYAD (IMAGE)";
         }
 
         function appendMessage(type, text, curvature = 0) {
