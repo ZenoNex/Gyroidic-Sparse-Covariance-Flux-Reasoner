@@ -125,7 +125,13 @@ class TextbookRegistry:
             # Gyroidic / Phase 6 terms
             'gyroid', 'manifold', 'topological', 'residue', 'coprime',
             'polynomial', 'invariant', 'ergodic', 'soliton', 'chirality',
-            'fixed-point', 'residue-alignment', 'structural honesty'
+            'fixed-point', 'residue-alignment', 'structural honesty',
+            # Advanced Math / Topology terms for ArXiv inclusion
+            'persistence', 'persistent', 'homology', 'cohomology', 'morphism', 'functor', 
+            'category', 'spectral', 'algebra', 'algebraic', 'geometry', 'geometric', 
+            'differential', 'bundle', 'sheaf', 'sheaves', 'isomorphism', 'homomorphism', 
+            'contact', 'foliation', 'symplectic', 'module', 'modules', 'group', 'groups', 
+            'structure', 'structures', 'space', 'spaces'
         }
         
         self.boilerplate_keywords = {
@@ -281,14 +287,26 @@ class TextbookFilter:
         # --- Structural Honesty (Shared) ---
         report = self._assess_structural_honesty(text, report)
         
+        # Determine thresholds to gate against (relax for arxiv articles)
+        active_thresholds = self.thresholds.copy()
+        if source and source.startswith("arxiv"):
+            active_thresholds['algorithmic'] = 0.05
+            active_thresholds['instructive'] = 0.2
+            
         # Per-dimension gating — each dimension must independently pass
         report.dimension_gates = {
             dim: getattr(report, dim) >= threshold
-            for dim, threshold in self.thresholds.items()
+            for dim, threshold in active_thresholds.items()
         }
         
         # Admissible only if ALL dimension gates pass
         report.is_admissible = all(report.dimension_gates.values())
+        
+        # Diagnostics: append failed dimensions to flags for better traceability
+        if not report.is_admissible:
+            for dim, passed in report.dimension_gates.items():
+                if not passed:
+                    report.flags.append(f"failed_{dim}")
         
         return report
     
