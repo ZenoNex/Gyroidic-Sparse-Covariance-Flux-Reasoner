@@ -1086,6 +1086,55 @@
             media_chain: [] // Array of {type, data, filename, icon}
         };
 
+        // Reset State Helpers
+        function resetVideoState() {
+            state.active_video_file = null;
+            state.active_video_dyad = null;
+            const statusEl = document.getElementById('video-status');
+            if (statusEl) {
+                statusEl.innerText = 'IDLE';
+                statusEl.style.color = '#555';
+            }
+            const dropzoneText = document.querySelector('#video-dropzone div:nth-child(2)');
+            if (dropzoneText) {
+                dropzoneText.innerHTML = `DRAG BINARY VIDEO<br><span style="color:#444;">mp4 &bull; avi</span>`;
+            }
+            const commitBtn = document.getElementById('commit-video');
+            if (commitBtn) {
+                commitBtn.disabled = true;
+            }
+        }
+
+        function resetAudioState() {
+            state.active_audio_dyad = null;
+            state.active_audio_b64 = null;
+            const statusEl = document.getElementById('audio-status');
+            if (statusEl) {
+                statusEl.innerText = 'IDLE';
+                statusEl.style.color = '#555';
+            }
+            const dropzone = document.getElementById('audio-dropzone');
+            if (dropzone) {
+                dropzone.classList.remove('loaded');
+            }
+            const dropHint = document.getElementById('audio-drop-hint');
+            if (dropHint) {
+                dropHint.innerHTML = `DRAG AUDIO DYAD<br><span style="color:#444;">mp3 &bull; m4a &bull; wav &bull; ogg</span>`;
+            }
+            const waveform = document.getElementById('audio-waveform');
+            if (waveform) {
+                waveform.style.display = 'none';
+            }
+            const playerWrapper = document.getElementById('audio-player-wrapper');
+            if (playerWrapper) {
+                playerWrapper.style.display = 'none';
+            }
+            const commitBtn = document.getElementById('commit-audio');
+            if (commitBtn) {
+                commitBtn.disabled = true;
+            }
+        }
+
         // UI References
         const chatFeed = document.getElementById('chat-feed');
         const userInput = document.getElementById('user-input');
@@ -1143,21 +1192,42 @@
             userInput.value = '';
 
             try {
-                const payload = {
-                    text: finalInput,
-                    fingerprint: state.active_fingerprint,
-                    audio_dyad: state.active_audio_dyad,
-                    video_dyad_b64: state.active_video_file ? "[FILE_POINTER]" : state.active_video_dyad,
-                    media_chain: state.media_chain.map(item => ({ type: item.type, data: item.data })),
-                    commutativity: _calculateContextualCommutativity(),
-                    regime: state.regime,
-                };
+                let response;
+                if (state.active_video_file) {
+                    const formData = new FormData();
+                    formData.append('text', finalInput);
+                    formData.append('video_dyad_file', state.active_video_file);
+                    if (state.active_fingerprint) {
+                        formData.append('fingerprint', JSON.stringify(state.active_fingerprint));
+                    }
+                    if (state.active_audio_dyad) {
+                        formData.append('audio_dyad', JSON.stringify(state.active_audio_dyad));
+                    }
+                    formData.append('media_chain', JSON.stringify(state.media_chain.map(item => ({ type: item.type, data: item.data }))));
+                    formData.append('commutativity', _calculateContextualCommutativity());
+                    formData.append('regime', state.regime);
 
-                const response = await fetch(`${state.backend_url}/interact`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                    response = await fetch(`${state.backend_url}/interact`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                } else {
+                    const payload = {
+                        text: finalInput,
+                        fingerprint: state.active_fingerprint,
+                        audio_dyad: state.active_audio_dyad,
+                        video_dyad_b64: state.active_video_dyad,
+                        media_chain: state.media_chain.map(item => ({ type: item.type, data: item.data })),
+                        commutativity: _calculateContextualCommutativity(),
+                        regime: state.regime,
+                    };
+
+                    response = await fetch(`${state.backend_url}/interact`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
 
                 if (response.status === 503) {
                     const data = await response.json();
@@ -1274,6 +1344,8 @@
             userInput.style.borderColor = '';
             userInput.style.boxShadow = '';
             document.querySelector('.drop-hint').innerText = "DRAG DYAD (IMAGE)";
+            resetVideoState();
+            resetAudioState();
         }
 
 
@@ -2045,15 +2117,8 @@
                     }
 
                     // Reset
+                    resetAudioState();
                     document.getElementById('audio-description-buffer').value = '';
-                    document.getElementById('audio-status').innerText = 'IDLE';
-                    document.getElementById('audio-status').style.color = '#555';
-                    audioDropzone.classList.remove('loaded');
-                    audioDropHint.innerHTML = `DRAG AUDIO DYAD<br><span style="color:#444;">mp3 &bull; m4a &bull; wav &bull; ogg</span>`;
-                    audioWaveform.style.display = 'none';
-                    audioPlayerWrapper.style.display = 'none';
-                    state.active_audio_dyad = null;
-                    state.active_audio_b64 = null;
 
                 } catch (err) {
                     appendMessage('system', 'AUDIO COMMIT RUPTURE. BACKEND DISSOCIATED.');
@@ -2196,11 +2261,8 @@
                     }
 
                     // Reset
-                    state.active_video_dyad = null;
+                    resetVideoState();
                     document.getElementById('video-description-buffer').value = '';
-                    document.getElementById('video-status').innerText = 'IDLE';
-                    document.getElementById('video-status').style.color = '#555';
-                    document.querySelector('#video-dropzone div:nth-child(2)').innerHTML = `DRAG BINARY VIDEO<br><span style="color:#444;">mp4 &bull; avi</span>`;
                 } catch (err) {
                     console.error("[VIDEO_COMMIT] Rupture:", err);
                     appendMessage('system', `VIDEO COMMIT RUPTURE: ${err.message || 'BACKEND DISSOCIATED'}`);
