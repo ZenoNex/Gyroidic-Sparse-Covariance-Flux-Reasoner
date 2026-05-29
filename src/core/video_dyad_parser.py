@@ -121,6 +121,19 @@ class VideoDyadParser(nn.Module):
         If extract_audio is True, it also attempts to surgically isolate the 
         audio stream via ffmpeg for harmonic projection.
         """
+        # Check for empty or placeholder strings
+        if not video_b64 or video_b64.strip() == "[FILE_POINTER]":
+            print("[VIDEO_PARSER] Warning: Received empty or placeholder '[FILE_POINTER]' video dyad. Bypassing.", flush=True)
+            return {
+                'sparse_covariance': torch.zeros((32, 32), device=self.device),
+                'fractal_entropy': torch.tensor(0.0, device=self.device),
+                'substream_residue': torch.zeros(6, device=self.device),
+                'signal_length': torch.tensor(0.0, device=self.device),
+                'substream_entropy': torch.tensor(0.0, device=self.device),
+                'honest_jitter': torch.tensor(0.0, device=self.device),
+                'audio_harmonics': torch.zeros(32, device=self.device)
+            }
+
         # Strip potential data URI prefix if passed directly from Javascript
         if ',' in video_b64:
             video_b64 = video_b64.split(',', 1)[1]
