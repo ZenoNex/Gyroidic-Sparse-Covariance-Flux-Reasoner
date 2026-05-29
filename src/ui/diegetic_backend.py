@@ -666,6 +666,8 @@ class DiegeticPhysicsEngine(nn.Module):
         # Stabilization and Visibility Flags
         self._is_training_temporal = False
         self._is_processing = False
+        import threading
+        self._processing_lock = threading.RLock()
         self._last_resonance = 0.0
         
         # Interaction Context Buffer (Last 10 interaction seed_states)
@@ -928,6 +930,9 @@ class DiegeticPhysicsEngine(nn.Module):
         """Gradient-enabled single Larynx training step on a text string."""
         if len(text) < 2:
             return None
+        acquired = self._processing_lock.acquire(timeout=5.0)
+        if not acquired:
+            return None
         try:
             # Dynamic tokenization map
             chars = [self._char_to_idx(c) for c in text[:128]]
@@ -959,6 +964,8 @@ class DiegeticPhysicsEngine(nn.Module):
         except Exception:
             self.larynx.eval()
             return None
+        finally:
+            self._processing_lock.release()
 
     def _start_background_larynx_trainer(self):
         """Daemon thread: continuously trains Larynx on fossil texts between interactions."""
@@ -1205,10 +1212,11 @@ class DiegeticPhysicsEngine(nn.Module):
         # Non-Teleological Re-entrancy Guard:
         # We allow processing if it's a training-driven call (to allow gradients),
         # but block external user calls if the engine is already occupied by a main process.
-        if self._is_processing:
-            print("[ENGINE] Warning: Re-entrant call detected. Returning placeholder.")
+        acquired = self._processing_lock.acquire(timeout=15.0)
+        if not acquired:
+            print("[ENGINE] Warning: Re-entrant call detected or lock timeout. Returning placeholder.")
             return {"response": "System busy: topological re-indexing in progress...", "status": "BUSY"}
-
+            
         try:
             self._is_processing = True
             return self._process_input_internal(
@@ -1228,6 +1236,7 @@ class DiegeticPhysicsEngine(nn.Module):
             )
         finally:
             self._is_processing = False
+            self._processing_lock.release()
 
     def process_text(
         self,
@@ -1243,39 +1252,49 @@ class DiegeticPhysicsEngine(nn.Module):
         Canonical entry point for text interaction.
         Bridges with Hybrid interface requirements and applies detached state management.
         """
-        # Temporal Isolation Snapshot: Shield persistent state from in-place leaks
-        detached_state = self.meta_state.clone()
-        
-        # Resolve regime: prioritize explicitly passed regime, fall back to fingerprint regime
-        resolved_regime = regime
-        if regime == 'goo' and fingerprint and isinstance(fingerprint, dict) and 'regime' in fingerprint:
-            resolved_regime = fingerprint['regime']
-        
-        # Process via internal method
-        engine_output = self._process_input_internal(
-            text_input=text,
-            fingerprint=fingerprint,
-            audio_dyad=audio_dyad,
-            video_dyad_b64=video_dyad_b64,
-            commutativity=commutativity,
-            generate_response=True,
-            regime=resolved_regime,
-            tag_weights=tag_weights
-        )
-        
-        # Merge evolved state back into persistent self.meta_state (The Ouroboros Loop)
-        if isinstance(engine_output, dict):
-            # Apply Audience Mapping (: M -> A)
-            if self.audience_mapper:
-                try:
-                    # Map the post-evolution state to audience space
-                    final_state = self.meta_state.detach()
-                    audience_coords = self.audience_mapper(final_state)
-                    engine_output['audience_coordinates'] = audience_coords.cpu().tolist()
-                except Exception as e:
-                    print(f"[AUDIENCE] Projection failed: {e}")
+        acquired = self._processing_lock.acquire(timeout=15.0)
+        if not acquired:
+            print("[ENGINE] Warning: Re-entrant call detected or lock timeout in process_text. Returning placeholder.")
+            return {"response": "System busy: topological re-indexing in progress...", "status": "BUSY"}
+            
+        try:
+            self._is_processing = True
+            # Temporal Isolation Snapshot: Shield persistent state from in-place leaks
+            detached_state = self.meta_state.clone()
+            
+            # Resolve regime: prioritize explicitly passed regime, fall back to fingerprint regime
+            resolved_regime = regime
+            if regime == 'goo' and fingerprint and isinstance(fingerprint, dict) and 'regime' in fingerprint:
+                resolved_regime = fingerprint['regime']
+            
+            # Process via internal method
+            engine_output = self._process_input_internal(
+                text_input=text,
+                fingerprint=fingerprint,
+                audio_dyad=audio_dyad,
+                video_dyad_b64=video_dyad_b64,
+                commutativity=commutativity,
+                generate_response=True,
+                regime=resolved_regime,
+                tag_weights=tag_weights
+            )
+            
+            # Merge evolved state back into persistent self.meta_state (The Ouroboros Loop)
+            if isinstance(engine_output, dict):
+                # Apply Audience Mapping (: M -> A)
+                if self.audience_mapper:
+                    try:
+                        # Map the post-evolution state to audience space
+                        final_state = self.meta_state.detach()
+                        audience_coords = self.audience_mapper(final_state)
+                        engine_output['audience_coordinates'] = audience_coords.cpu().tolist()
+                    except Exception as e:
+                        print(f"[AUDIENCE] Projection failed: {e}")
 
-        return engine_output
+            return engine_output
+        finally:
+            self._is_processing = False
+            self._processing_lock.release()
 
     def _generate_converged_response(self, 
                                      text_input: str, 
@@ -1974,6 +1993,12 @@ class DiegeticPhysicsEngine(nn.Module):
                 "residue_vector": residue_vector,
                 "memory_state_updated": True,
                 "mimicry_trained": True,
+                "diagnostics": {
+                    "suppress_ui": True,
+                    "iteration": self.iteration,
+                    "resonance_score": self._last_resonance,
+                    "retrieval_state": "KNOWN"
+                },
                 "payload": {
                     "type": "topological_shape_stalk",
                     "status": "asymptotic_ingestion",
@@ -2858,6 +2883,27 @@ class DiegeticPhysicsEngine(nn.Module):
                 retrieval_state = "CONFABULATED" # Gate 5 Honest Generation
             else:
                 retrieval_state = "SEARCH_NEEDED"
+
+        # Real-time ArXiv "Singing" Search Integration:
+        if retrieval_state == "SEARCH_NEEDED" and hasattr(self, 'arxiv_ingestor') and self.arxiv_ingestor is not None:
+            try:
+                # 1. Generate larynx-decoded query
+                query = self.arxiv_ingestor._generate_larynx_query()
+                print(f" [SEARCH_GATE] 'Singing' query to ArXiv: '{query}'")
+                
+                # 2. Perform synchronous search
+                self.arxiv_ingestor.ingest_arxiv_by_query(query)
+                
+                # 3. Reload live session fossil cache
+                self._refresh_fossil_cache()
+                
+                # 4. Nudge the meta_state to inject the new topological context
+                self._prime_manifold_with_fossils(input_tensor)
+                
+                # Update response text prefix
+                response_text = f"[SEARCH_HEALED] Manifold updated via ArXiv search for '{query}'. " + response_text
+            except Exception as e:
+                print(f" [SEARCH_GATE] Realtime search and nudge failed: {e}")
 
         # =============================================
         # DIEGETIC VISUALIZER  Manifold Fracture Render
@@ -5746,6 +5792,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         audio_b64=data.get('audio_b64', None),
                         media_chain=data.get('media_chain', None),
                         commutativity=commutativity,
+                        generate_response=data.get('generate_response', True),
+                        ingestion_mode=data.get('ingestion_mode', False),
                         performance_buffered=data.get('performance_buffered', False)
                     )
                     self._send_json(response_data)
