@@ -5560,7 +5560,47 @@ if _running_as_server:
     ENGINE = DiegeticPhysicsEngine()
     ENGINE.load_state()
 else:
-    ENGINE = None  # Tests and importers must instantiate their own engine
+    ENGINE = None
+def parse_multipart(body: bytes, boundary: bytes) -> dict:
+    """Parses multipart/form-data request body."""
+    parts = {}
+    boundary_marker = b'--' + boundary
+    raw_parts = body.split(boundary_marker)
+    for part in raw_parts:
+        if not part or part == b'--\r\n' or part == b'--':
+            continue
+        if part.startswith(b'\r\n'):
+            part = part[2:]
+        if part.endswith(b'\r\n'):
+            part = part[:-2]
+        
+        if b'\r\n\r\n' not in part:
+            continue
+        headers_part, content = part.split(b'\r\n\r\n', 1)
+        headers = headers_part.decode('utf-8', errors='ignore')
+        
+        name = None
+        filename = None
+        for line in headers.split('\r\n'):
+            if line.lower().startswith('content-disposition:'):
+                parts_disp = line.split(';')
+                for p in parts_disp:
+                    p = p.strip()
+                    if p.startswith('name='):
+                        name = p.split('=', 1)[1].strip('"\'')
+                    elif p.startswith('filename='):
+                        filename = p.split('=', 1)[1].strip('"\'')
+        
+        if name:
+            if filename:
+                parts[name] = {
+                    'filename': filename,
+                    'content': content
+                }
+            else:
+                parts[name] = content.decode('utf-8', errors='ignore')
+    return parts
+
 
 class RequestHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -5773,12 +5813,61 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 try:
                     content_len = int(self.headers.get('Content-Length', 0))
                     post_body = self.rfile.read(content_len)
-                    data = json.loads(post_body.decode('utf-8'))
+                    
+                    content_type = self.headers.get('Content-Type', '')
+                    if content_type.startswith('multipart/form-data'):
+                        boundary = b''
+                        parts_ct = content_type.split(';')
+                        for p in parts_ct:
+                            p = p.strip()
+                            if p.startswith('boundary='):
+                                boundary = p.split('=', 1)[1].encode('utf-8')
+                        
+                        if not boundary:
+                            raise ValueError("Multipart boundary not found in headers")
+                        
+                        form_fields = parse_multipart(post_body, boundary)
+                        
+                        data = {}
+                        data['text'] = form_fields.get('text', '')
+                        data['commutativity'] = form_fields.get('commutativity', 'symmetric')
+                        data['regime'] = form_fields.get('regime', 'goo')
+                        data['generate_response'] = form_fields.get('generate_response', 'true').lower() == 'true'
+                        data['ingestion_mode'] = form_fields.get('ingestion_mode', 'false').lower() == 'true'
+                        data['performance_buffered'] = form_fields.get('performance_buffered', 'false').lower() == 'true'
+                        data['audio_b64'] = form_fields.get('audio_b64', None)
+                        
+                        video_file = form_fields.get('video_dyad_file')
+                        if isinstance(video_file, dict) and 'content' in video_file:
+                            import base64
+                            b64_str = base64.b64encode(video_file['content']).decode('utf-8')
+                            data['video_dyad_b64'] = b64_str
+                            print(f"[BACKEND] Ingested video file from multipart upload ({len(video_file['content'])} bytes).", flush=True)
+                        else:
+                            data['video_dyad_b64'] = form_fields.get('video_dyad_b64', None)
+                        
+                        for field in ['fingerprint', 'audio_dyad', 'media_chain']:
+                            val = form_fields.get(field)
+                            if val:
+                                try:
+                                    data[field] = json.loads(val)
+                                except Exception as e:
+                                    print(f"[BACKEND] Warning: Failed to parse field {field} as JSON: {e}", flush=True)
+                                    data[field] = None
+                            else:
+                                data[field] = None
+                    else:
+                        data = json.loads(post_body.decode('utf-8'))
+                    
                     user_text     = data.get('text', '')
-                    fingerprint   = data.get('fingerprint', None)   # Chebyshev {L,Cr,Cb} or legacy {r,g,b,l,...}
-                    audio_dyad    = data.get('audio_dyad', None)    # {chebyshev_harmonics, commutativity, ...}
+                    fingerprint   = data.get('fingerprint', None)
+                    audio_dyad    = data.get('audio_dyad', None)
                     video_dyad_b64 = data.get('video_dyad_b64', None)
-                    commutativity = data.get('commutativity', 'symmetric')  # master selector value
+                    commutativity = data.get('commutativity', 'symmetric')
+                    
+                    if video_dyad_b64 == "[FILE_POINTER]":
+                        video_dyad_b64 = None
+                        
                     print(f" User input: '{user_text}' | commutativity={commutativity} | "
                           f"has_image={fingerprint is not None} | has_audio={audio_dyad is not None} | "
                           f"has_video={video_dyad_b64 is not None}")
@@ -5812,7 +5901,6 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     post_body = self.rfile.read(content_len)
                     data = json.loads(post_body.decode('utf-8'))
                     
-                    # Support both text1/text2 (original) and source/target (new/GUI) formats
                     text1 = data.get('text1', data.get('source', ''))
                     text2 = data.get('text2', data.get('target', ''))
                     
@@ -5823,6 +5911,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     fingerprint = data.get('fingerprint', None)
                     audio_dyad = data.get('audio_dyad', None)
                     video_dyad_b64 = data.get('video_dyad_b64', None)
+                    if video_dyad_b64 == "[FILE_POINTER]":
+                        video_dyad_b64 = None
                     media_chain = data.get('media_chain', None)
                     commutativity = data.get('commutativity', 'symmetric')
                     voynich_token = data.get('voynich_token', None)
