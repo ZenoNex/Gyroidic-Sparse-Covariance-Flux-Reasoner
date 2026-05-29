@@ -1007,6 +1007,7 @@ class DiegeticPhysicsEngine(nn.Module):
                         if loss is not None:
                             total_loss += loss
                             n += 1
+                        time.sleep(0.1)  # Yield lock and CPU time slice to prevent starving main thread
 
                     if n > 0:
                         src = f"{len(replay_texts)} shadow + {n - len(replay_texts)} fossil"
