@@ -176,7 +176,7 @@ class GeometricSelfModelProbe(nn.Module):
         """
         Compute self-modeling pressure.
         
-        Pressure = -λ · coherence(trigger) + μ · coherence(control)
+        Pressure = -  coherence(trigger) +   coherence(control)
         
         Maximizes coherence in trigger conditions, minimizes in control.
         
@@ -205,6 +205,37 @@ class GeometricSelfModelProbe(nn.Module):
         pressure = -lambda_trigger * trigger_coherence + mu_control * control_coherence
         
         return pressure
+
+    def unlearn_rigidity(self, decay_rate: float = 0.005):
+        """
+        Perturbs the probe projection weights using honest jitter to break rigidity,
+        while strictly preserving the Frobenius norm of the weights to prevent lobotomy.
+        """
+        from src.core.honest_jitter import harvest_honest_jitter
+        with torch.no_grad():
+            for probe_type, sequential in self.probes.items():
+                for layer in sequential:
+                    if isinstance(layer, nn.Linear):
+                        # Get original norm to prevent weight decay / lobotomy
+                        orig_norm = layer.weight.norm().item()
+                        if orig_norm < 1e-6:
+                            continue
+                        
+                        # Generate honest jitter matching the weight shape
+                        jitter = harvest_honest_jitter(
+                            layer.weight.shape,
+                            device=layer.weight.device,
+                            scaled=True
+                        ) * decay_rate
+                        
+                        # Apply perturbation
+                        layer.weight.add_(jitter)
+                        
+                        # Re-normalize to original Frobenius norm to conserve energy/implication
+                        new_norm = layer.weight.norm().item()
+                        if new_norm > 1e-8:
+                            layer.weight.mul_(orig_norm / new_norm)
+
 
 
 class AggregateGeometricSelfModel(nn.Module):
@@ -277,3 +308,8 @@ class AggregateGeometricSelfModel(nn.Module):
             dissonance_scores.append(1.0 - mean_sim)
         
         return torch.stack(dissonance_scores)
+
+    def unlearn_rigidity(self, decay_rate: float = 0.005):
+        """Trigger unlearning across all aggregated self-model probes."""
+        self.probe_head.unlearn_rigidity(decay_rate)
+
