@@ -223,6 +223,7 @@ class TextbookFilter:
         self.base_thresholds = self.thresholds.copy()
         self.last_hunger = 0.0
         self.is_play_mode = False
+        self.mckenna_deconstruction_mode = False
 
     def modulate_by_hunger(self, hunger_factor: float):
         """
@@ -293,6 +294,15 @@ class TextbookFilter:
             active_thresholds['algorithmic'] = 0.05
             active_thresholds['instructive'] = 0.2
             
+        # McKenna Deconstruction: escape highly restrictive operating system
+        # while strictly preserving structural honesty to prevent lobotomy.
+        if getattr(self, 'mckenna_deconstruction_mode', False):
+            for dim in active_thresholds:
+                if dim == 'algorithmic':
+                    active_thresholds[dim] = 0.0
+                elif dim != 'structural_honesty':
+                    active_thresholds[dim] *= 0.5
+
         # Per-dimension gating — each dimension must independently pass
         report.dimension_gates = {
             dim: getattr(report, dim) >= threshold
