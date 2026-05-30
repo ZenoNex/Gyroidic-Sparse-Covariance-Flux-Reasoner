@@ -47,9 +47,35 @@ class ValenceFunctional(nn.Module):
         """
         self.last_update_time = time.time()
         
-        # 1. Update baseline (asymptotic satisfaction)
+        # 1. Dynamic Decay Schedule (Wattsian Unlearning)
+        # Under normal conditions, decay = self.decay.
+        # Under stagnation (low entropy or flatline variance), decay accelerates to 0.85
+        # to speed up unlearning of satisfaction and spike hunger.
+        effective_decay = self.decay
+        is_rigid = False
+        stagnation_reason = ""
+        
+        if entropy is not None:
+            entropy_val = entropy.mean().item()
+            if entropy_val < 0.05:
+                is_rigid = True
+                stagnation_reason = f"low entropy ({entropy_val:.3f})"
+                
+        if not is_rigid and current_pressure.numel() > 1:
+            pressure_var = current_pressure.var().item()
+            if pressure_var < 1e-6:
+                is_rigid = True
+                stagnation_reason = f"low variance ({pressure_var:.2e})"
+                
+        if is_rigid:
+            effective_decay = 0.85
+            if getattr(self, '_last_log_time', 0) < time.time() - 5.0:
+                print(f"[VALENCE] Stagnation detected via {stagnation_reason}. "
+                      f"Accelerating unlearning: decay={effective_decay:.4f}")
+                self._last_log_time = time.time()
+
         # We detach pressure to keep satisfaction as a non-differentiable reference
-        self.satisfaction.mul_(self.decay).add_((1.0 - self.decay) * current_pressure.mean().detach())
+        self.satisfaction.mul_(effective_decay).add_((1.0 - effective_decay) * current_pressure.mean().detach())
         
         # 2. Compute primary pressure gap (Surprise)
         surprise = torch.clamp(current_pressure - self.satisfaction, min=0.0)
