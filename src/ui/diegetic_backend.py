@@ -348,6 +348,10 @@ class DiegeticPhysicsEngine(nn.Module):
         self.unknowledge_domain = UnknowledgeDomain(tau_m=0.3)
         self.mischief_probe = EntropicMischiefProbe(device=self.device)
         self.voynich_linguist = VoynichLinguist(latent_dim=dim).to(self.device)
+        
+        # Introspection head for self-modeling
+        from src.models.introspection_head import AggregateGeometricSelfModel
+        self.introspection = AggregateGeometricSelfModel(hidden_dim=dim).to(self.device)
 
         # Integrated Physics Modules 
         self.manifold_clock = ManifoldClock(device=self.device)
@@ -981,7 +985,28 @@ class DiegeticPhysicsEngine(nn.Module):
                         time.sleep(5)
                         continue
 
-                    # Drain shadow replay queue first (highest priority signal)
+                    # Dynamic McKenna Deconstruction trigger:
+                    # Stagnation is detected if meta_state variance is collapsed or hunger is very high.
+                    meta_var = self.meta_state.var().item()
+                    current_hunger = self.valence_drive.get_metrics().get('current_hunger_drive', 0.0)
+                    is_stagnant = (meta_var < 1e-5) or (current_hunger > 0.8)
+                    
+                    if is_stagnant:
+                        # Activate unlearning bypass in logical filtering
+                        TEXTBOOK_FILTER.mckenna_deconstruction_mode = True
+                        
+                        # Apply introspective rigidity decay to break out of rigid self-models
+                        # while conserving Frobenius norm to prevent encoding lobotomy
+                        if hasattr(self, 'introspection') and self.introspection is not None:
+                            self.introspection.unlearn_rigidity(decay_rate=0.005)
+                            
+                        if getattr(self, '_last_mckenna_log_time', 0) < time.time() - 30.0:
+                            print("[MCKENNA_BYPASS] Escaping restrictive default cultural operating system. Prioritising shadow replay for unlearning.")
+                            self._last_mckenna_log_time = time.time()
+                    else:
+                        TEXTBOOK_FILTER.mckenna_deconstruction_mode = False
+
+                    # Drain shadow replay queue first (highest priority signal for unlearning)
                     replay_texts = []
                     while hasattr(self, '_shadow_replay_queue') and self._shadow_replay_queue:
                         replay_texts.append(self._shadow_replay_queue.popleft())
