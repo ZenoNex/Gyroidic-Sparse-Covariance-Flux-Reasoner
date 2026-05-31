@@ -223,10 +223,10 @@ class HarmonicWaveDecomposition(nn.Module):
 
 class TrigonometricUnfolding(nn.Module):
     """
-    Speculative Primitive: Trigonometric Gyroid Unfolding Operator.
+    Triple-Angle Branch Selection (originally referred to as Trigonometric Gyroid Unfolding Operator).
     
-    Handles "casus irreducibilis" when polynomial bases become degenerate.
-    Reveals hidden negentropic solitons via triple-angle unfolding.
+    Handles degeneracies (originally "casus irreducibilis") when polynomial bases become degenerate.
+    Reveals hidden negentropic components via triple-angle branch selection.
     """
     def __init__(self, dim: int):
         super().__init__()
@@ -242,7 +242,7 @@ class TrigonometricUnfolding(nn.Module):
         if gcve_pressure is None:
             return u_h
             
-        # 1. Compute Phase Parameter phi
+        # 1. Compute Phase Parameter phi (Triple-Angle expansion phase)
         # cos(3phi) = [3V - tr(C)/tau] / [2 * (-det(PAS))^1.5]
         # Approximate stats from u_h
         tr_c = torch.sum(u_h**2, dim=-1) # Local covariance trace proxy
@@ -254,7 +254,7 @@ class TrigonometricUnfolding(nn.Module):
         cos_3phi = torch.clamp(cos_3phi, -0.999, 0.999) # Ensure stability
         phi = torch.acos(cos_3phi) / 3.0
         
-        # 2. Unfold into 3 branches (k=0, 1, 2)
+        # 2. Project into 3 cosine-shifted branches (k=0, 1, 2)
         # u_h^(k) = 2 * sqrt(-lambda_min/3) * cos(phi + 2pi*k/3)
         lambda_min_proxy = torch.min(torch.abs(u_h_freq), dim=-1)[0]
         
@@ -266,8 +266,8 @@ class TrigonometricUnfolding(nn.Module):
             shift = torch.exp(-torch.abs(chirality) * k) if chirality is not None else 1.0
             branches.append(amp.unsqueeze(-1) * cos_term.unsqueeze(-1) * u_h * shift.unsqueeze(-1))
             
-        # 3. Negentropic Branch Selection
-        # Select k that maximizes negentropy (proxied by energy in the logic structure)
+        # 3. Triple-Angle Branch Selection (originally referred to as Negentropic Branch Selection)
+        # Select k that maximizes energy in the logic structure (argmax of branch norms)
         energies = torch.stack([torch.norm(b, dim=-1) for b in branches]) # [3, batch]
         best_k = torch.argmax(energies, dim=0) # [batch]
         
@@ -301,7 +301,7 @@ class HuxleyRD(nn.Module):
         # Phase shift for non-ergodic component (Soliton velocity)
         self.soliton_velocity = nn.Parameter(torch.tensor(0.0))
         
-        # Trigonometric Unfolding (Geometric Revelation)
+        # Triple-Angle Branch Selection (originally referred to as Trigonometric Unfolding / Geometric Revelation)
         self.unfolding = TrigonometricUnfolding(num_features)
 
     def forward(self, u: torch.Tensor, gcve_pressure: Optional[torch.Tensor] = None, chirality: Optional[torch.Tensor] = None) -> torch.Tensor:
@@ -330,8 +330,8 @@ class HuxleyRD(nn.Module):
         phase_shift = torch.exp(-1j * 2 * math.pi * k_indices * self.soliton_velocity / u.shape[-1])
         u_ne_shifted = torch.fft.irfft(u_ne_freq * phase_shift, n=u.shape[-1], dim=-1)
         
-        # --- Geometric Revelation: Trigonometric Unfolding ---
-        # When violations are high, "unfold" the soliton channel to avoid collapse
+        # Triple-Angle Branch Selection (originally referred to as Trigonometric Unfolding / Geometric Revelation)
+        # When violations are high, select the best branch to avoid collapse
         u_ne_unfolded = self.unfolding(u_ne_shifted, gcve_pressure, chirality)
         
         # Recombine
