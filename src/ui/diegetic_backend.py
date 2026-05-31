@@ -2699,14 +2699,14 @@ class DiegeticPhysicsEngine(nn.Module):
                         q_evolved = self.kagh_drafter(q_inner)
                     # Outer quantization: Q_Z(F(Q_Z(x)))
                     seed_state, _b_outer = self.caq(q_evolved, pas_scores=_pas_scores, voynich_token=voynich_token)
-                    # Detect critical shell ceiling -- induce Sphere Eversion to avoid lobotomy
+                    # Detect critical shell ceiling -- induce Hyperspherical Inversion (originally Sphere Eversion) to avoid lobotomy
                     if _b_outer is not None and _b_outer.is_critical():
-                        print(f"[SHELL] Critical refusal boundary hit. Inducing Sphere Eversion protocol...")
-                        # Sphere Eversion: Turn manifold inside-out (Swallow boundary singularity)
+                        print(f"[SHELL] Critical refusal boundary hit. Inducing Hyperspherical Inversion protocol...")
+                        # Hyperspherical Inversion: Map coordinates via x -> x / ||x||^2 to project state outside the boundary obstruction
                         with torch.no_grad():
                             _norm_sq = torch.sum(seed_state * seed_state, dim=-1, keepdim=True) + 1e-8
                             seed_state = seed_state / _norm_sq
-                        print("[EVERSION] Manifold successfully everted. Logic swallowed contradiction.")
+                        print("[EVERSION] Manifold successfully inverted. Logic bypassed boundary obstruction.")
                         _boundary_hit = True
                         break
 
