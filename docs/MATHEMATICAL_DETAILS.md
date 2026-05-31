@@ -1678,7 +1678,7 @@ Where the threshold $\tau_{\ln}$ scales with the natural log of the signal lengt
 
 ### 45.2 The Dirac Effect
 
-The "Dirac Effect" occurs when a singular symbolic epiphany (the text component of the dyad) induces a delta-function spike in the video manifold. 
+The "Dirac Effect" (mathematically a **Gaussian Mollifier Projection**) occurs when a singular symbolic epiphany (the text component of the dyad) induces a delta-function spike in the video manifold, which is approximated in practice using a narrow Gaussian mollifier to prevent numerical instability.
 
 $$
 \delta(t - t_{\text{thought}}) = \lim_{a \to 0} \frac{1}{a\sqrt{\pi}} e^{-(t/a)^2}
@@ -1692,25 +1692,26 @@ In **Non-Commutative** mode, the order of ingestion (Text-then-Video vs Video-th
 
 ---
 
-## 46. Riemann-Critical Veto Superposition
+## 46. Weighted Linear Interpolation (originally Riemann-Critical Veto Superposition)
 
-The system replaces binary veto logic with a non-dual superposition modeled conceptually on the **Riemann Hypothesis**. Just as the non-trivial zeros of the Riemann zeta function lie precisely on the critical line $\operatorname{Re}(s) = 1/2$, the `CALM` predictor's gauge output acts as a continuous interpolation on a "critical line" between pure geometric/topological boundaries (algebraic) and scalar ML bounds (empirical).
+The system replaces binary veto logic with a continuous **Weighted Linear Interpolation**. Modeled conceptually as a fluctuation along a "critical line" (an aesthetic metaphor referencing the Riemann zeta function critical line $\operatorname{Re}(s) = 1/2$), the `CALM` predictor's gauge output acts as a continuous interpolation parameter between pure geometric/topological boundaries (algebraic) and scalar ML bounds (empirical).
 
 $$ \text{Total Veto} = (1 - \operatorname{gauge}) \cdot \text{geom\_veto} + \operatorname{gauge} \cdot \text{calm\_veto} $$
 
 This ensures the architecture can fluctuate along a threshold of metastability without forcing a scalar collapse until mathematically necessary.
 
-## 47. Topological Surgery & Earth Mover's Transition
+## 47. Sinkhorn-Knopp Optimal Transport (originally Topological Surgery & Earth Mover's Transition)
 
-When the state crosses from one meaning polytope $P_\alpha$ to another $P_\beta$ via the CRT residues in `ZeitgeistRouter`, the transition cost is mathematically modeled via the **Wasserstein Metric (Earth Mover's Distance)** representing optimal transport of the continuous probability density over the manifolds.
+When the state crosses from one meaning polytope $P_\alpha$ to another $P_\beta$ via the CRT residues in `ZeitgeistRouter`, the transition cost is mathematically modeled via the **Wasserstein Metric (historically Earth Mover's Distance)** representing optimal transport of the continuous probability density over the manifolds, computed efficiently using standard Sinkhorn-Knopp iterations.
 
 $$ W_1(\mu_\alpha, \mu_\beta) = \inf_{\gamma \in \Gamma(\mu_\alpha, \mu_\beta)} \int_{\mathcal{M} \times \mathcal{M}} d(x, y) \, d\gamma(x, y) $$
 
 This formalizes the switching step as a topological surgery where the "cost" is defined by the necessary re-gluing of the probability measure moving between structurally orthogonal co-prime bases.
 
-## 48. Sphere Eversion & Manifold Inside-Out Turning
+## 48. NaN Boundary State Sentinels & Hyperspherical Inversion (originally Sphere Eversion)
 
-When a `BoundaryState` stress tensor indicates an inescapable failure (e.g., maximum depth Matrioshka refusal), the system induces a topological **Sphere Eversion** (Smale's paradox). The manifold is turned inside-out, transforming a boundary obstruction into an interior space of a new inverted polytope without creating a singularity (cutting or tearing). This guarantees that the system's logic can "swallow" paradoxes by inverting its own geometry rather than crashing.
+When a `BoundaryState` stress tensor indicates an inescapable failure (e.g., maximum depth Matrioshka refusal), the system triggers a **NaN Boundary State Sentinel** to intercept numerical collapse. Instead of throwing an error or creating a singularity, it performs a **Hyperspherical Inversion** (originally referred to as Smale's sphere eversion paradox) by mapping coordinates via $x \mapsto x / \|x\|^2$. This projects the state outside the boundary obstruction into the interior of a new inverted polytope, guaranteeing that the system's logic can bypass paradoxes by inverting its own geometry rather than crashing.
+
 
 ## 49. Hybrid 4D Space Carving (Log-Polar Conformal Mapping)
 
