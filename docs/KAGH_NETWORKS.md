@@ -7,18 +7,18 @@
 
 ## 1. Overview
 
-**KAGH** = **K**olmogorov-**A**rnold + **G**ödel + **H**uxley + **B**oltzmann — a four-part hybrid architecture that bridges continuous physics dynamics and discrete symbolic constraints.
+**KAGH** = **K**olmogorov-**A**rnold + **G**del + **H**uxley + **B**oltzmann  a four-part hybrid architecture that bridges continuous physics dynamics and discrete symbolic constraints.
 
 ```mermaid
 graph LR
     Input["c [B, n_in]"] --> KAN["KAN Layers<br/>(B-spline + Quantization)"]
     KAN --> HRD["HuxleyRD<br/>(Reaction-Diffusion)"]
-    HRD --> GOD["Gödel Gate<br/>(Soft Logic)"]
+    HRD --> GOD["Gdel Gate<br/>(Soft Logic)"]
     GOD --> BOL["Boltzmann<br/>(Stochastic Sampling)"]
     BOL --> Output["x [B, n_out]"]
     
     HRD -.-> WAV["HarmonicWaveDecomp<br/>(FFT Split)"]
-    HRD -.-> TRI["TrigonometricUnfolding<br/>(Casus Irreducibilis)"]
+    HRD -.-> TRI["TrigonometricUnfolding<br/>(Triple-Angle Branch Selection)"]
 ```
 
 **Consumers**: [`gyroid_reasoner.py`](../src/models/gyroid_reasoner.py), [`sic_fa_admm.py`](../src/optimization/sic_fa_admm.py), [`diegetic_backend.py`](../src/ui/diegetic_backend.py)
@@ -32,7 +32,7 @@ graph LR
 | Direction | Operation |
 |-----------|-----------|
 | Forward | Snap to `levels` discrete steps: $\text{round}(x \cdot L/2) / (L/2)$ |
-| Backward | Straight-Through Estimator (STE) — gradient passes unchanged |
+| Backward | Straight-Through Estimator (STE)  gradient passes unchanged |
 
 **Implementation**: `torch.autograd.Function` subclass. Default `levels=64`.
 
@@ -43,7 +43,7 @@ graph LR
 True B-spline implementation with:
 - **Cox-de Boor recursion** for basis functions (order `k=3` default)
 - **Hybrid-quantized weights** via `SaturatedQuantizer`
-- **Fixed structural grids** (non-teleological — grid is immutable topology)
+- **Fixed structural grids** (non-teleological  grid is immutable topology)
 
 ### Forward Pass
 
@@ -76,15 +76,15 @@ where $g$ is a learnable spectral gate `[dim//2 + 1]`.
 
 ---
 
-## 5. TrigonometricUnfolding
+## 5. TrigonometricUnfolding (Triple-Angle Branch Selection)
 
-Handles **casus irreducibilis** — when polynomial bases degenerate, this operator unfolds hidden negentropic solitons via triple-angle decomposition.
+Handles degeneracies (originally "casus irreducibilis") when polynomial bases degenerate. This operator performs a triple-angle branch selection to resolve degeneracies.
 
 ### Algorithm
 
 1. **Phase computation**: $\cos(3\phi) = \frac{3V - \text{tr}(C)/\tau}{2(-\det(\text{PAS}))^{3/2}}$
-2. **Branch unfolding** (k = 0, 1, 2): $u_h^{(k)} = 2\sqrt{\lambda_{\min}/3} \cdot \cos(\phi + 2\pi k/3) \cdot e^{-|\chi|k}$
-3. **Negentropic selection**: Choose branch $k^* = \arg\max_k \|u_h^{(k)}\|$
+2. **Branch projection** (k = 0, 1, 2): $u_h^{(k)} = 2\sqrt{\lambda_{\min}/3} \cdot \cos(\phi + 2\pi k/3) \cdot e^{-|\chi|k}$
+3. **Branch selection**: Choose branch $k^* = \arg\max_k \|u_h^{(k)}\|$ (selecting the branch with the highest energy)
 
 ### Inputs
 
@@ -106,7 +106,7 @@ $$\frac{du}{dt} = \underbrace{u(u-a)(1-u)}_{\text{Huxley reaction}} + \gamma \un
 where $K = [0.1, -0.2, 0.1]$ is a learnable diffusion kernel and $a$ is a threshold parameter.
 
 ### Non-Ergodic Channel (Soliton Transport)
-Pure **phase shift** in frequency domain — soliton propagation without spreading:
+Pure **phase shift** in frequency domain  soliton propagation without spreading:
 
 $$\hat{u}_{\text{ne}}(\omega) \mapsto \hat{u}_{\text{ne}}(\omega) \cdot e^{-j 2\pi \omega v / N}$$
 
@@ -121,14 +121,14 @@ Internal submodules: `HarmonicWaveDecomposition` (step 0), `TrigonometricUnfoldi
 
 ---
 
-## 7. Gödel Logic Gate
+## 7. Gdel Logic Gate
 
 Standalone function `goedel_positivity(x, epsilon, active)`:
 
 $$x \leftarrow x \cdot \sigma(100 \cdot (x - \epsilon))$$
 
 - **Active** (training, no violations): Enforces soft $x \geq 0$
-- **Inactive** (inference or repair): No-op — allows signed residues
+- **Inactive** (inference or repair): No-op  allows signed residues
 
 ---
 
@@ -140,27 +140,27 @@ Composes all components into a single admissibility block.
 
 ```
 Input c [B, n_in]
-    │
-    ▼
-┌─────────────────┐
-│  KAN Layers ×d  │ ← B-spline + quantized weights
-│  (depth=3)      │
-└────────┬────────┘
-         ▼
-┌─────────────────┐
-│  HuxleyRD       │ ← Reaction-diffusion + soliton fusion
-│  + Unfolding    │    (receives gcve_pressure, chirality)
-└────────┬────────┘
-         ▼
-┌─────────────────┐
-│  Gödel Gate     │ ← Soft positivity (training only, no violations)
-└────────┬────────┘
-         ▼
-┌─────────────────┐
-│  Boltzmann      │ ← Gaussian noise scaled by learnable temperature
-│  Sampling       │    (training only, no violations)
-└────────┬────────┘
-         ▼
+    
+    
+
+  KAN Layers d    B-spline + quantized weights
+  (depth=3)      
+
+         
+
+  HuxleyRD         Reaction-diffusion + soliton fusion
+  + Unfolding        (receives gcve_pressure, chirality)
+
+         
+
+  Gdel Gate       Soft positivity (training only, no violations)
+
+         
+
+  Boltzmann        Gaussian noise scaled by learnable temperature
+  Sampling           (training only, no violations)
+
+         
 Output x [B, n_out]
 ```
 
@@ -168,15 +168,15 @@ Output x [B, n_out]
 
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
-| `n_in` | — | Input dimension |
-| `n_out` | — | Output dimension |
+| `n_in` |  | Input dimension |
+| `n_out` |  | Output dimension |
 | `width` | 64 | Hidden KAN layer width |
 | `depth` | 3 | Number of KAN layers |
 | `alpha` | 0.7 | Mixing coefficient |
 
 ### Fossilization
 
-`block.fossilize()` freezes all KAN skeletal layers — prevents gradient updates to structural topology. This is **facet lock-in** (see [SYSTEM_ARCHITECTURE.md §9.2](SYSTEM_ARCHITECTURE.md)).
+`block.fossilize()` freezes all KAN skeletal layers  prevents gradient updates to structural topology. This is **facet lock-in** (see [SYSTEM_ARCHITECTURE.md 9.2](SYSTEM_ARCHITECTURE.md)).
 
 ---
 
@@ -189,26 +189,26 @@ Output x [B, n_out]
 | `diegetic_backend.py` | Embedded in generation pipeline |
 
 **Related Documentation**:
-- [PHYSICS_ADMM.md](PHYSICS_ADMM.md) — ADMM constraint framework that KAGH approximates
-- [MATHEMATICAL_DETAILS.md §14](MATHEMATICAL_DETAILS.md) — Energy-based learning context (EBM–Topological Equivalence)
-- [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md) — Meta-invariant enforcement
+- [PHYSICS_ADMM.md](PHYSICS_ADMM.md)  ADMM constraint framework that KAGH approximates
+- [MATHEMATICAL_DETAILS.md 14](MATHEMATICAL_DETAILS.md)  Energy-based learning context (EBMTopological Equivalence)
+- [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md)  Meta-invariant enforcement
 
 ---
 
-## 10. SoftSaturatedGates — Love Temperature Co-Resident
+## 10. SoftSaturatedGates  Love Temperature Co-Resident
 
-Though defined in `love_invariant_protector.py`, `SoftSaturatedGates` operates on the **residue distributions produced by KAGH** (specifically the output of `KAGHBlock` after Gödel and Boltzmann stages). It is the interface between the KAGH discrete-continuous bridge and the Love Invariant protection umbrella:
+Though defined in `love_invariant_protector.py`, `SoftSaturatedGates` operates on the **residue distributions produced by KAGH** (specifically the output of `KAGHBlock` after Gdel and Boltzmann stages). It is the interface between the KAGH discrete-continuous bridge and the Love Invariant protection umbrella:
 
 ```
 KAGHBlock output [B, K, D]
-    │
-    ▼
+    
+    
 SoftSaturatedGates.apply_soft_saturation(signal, pas_h)
-    │  ├── lattice_adaptive_shrinkage()   → tri-state LAS (True/False/Silence)
-    │  ├── asymptotic_hardening(pas_h)    → temperature-controlled gate sharpness
-    │  └── update_fossilization()          → freezes high-persistence functionals
-    ▼
-Soft-saturated residues → downstream CRT / DAQUF
+       lattice_adaptive_shrinkage()    tri-state LAS (True/False/Silence)
+       asymptotic_hardening(pas_h)     temperature-controlled gate sharpness
+       update_fossilization()           freezes high-persistence functionals
+    
+Soft-saturated residues  downstream CRT / DAQUF
 ```
 
-The key design principle: `SoftSaturatedGates` replaces the binary `sgn()` at the KAGH output boundary. This prevents the **Linguistic Scalarization** failure mode (consonant-only output, vowel starvation) documented in `GARBLED_OUTPUT_REPAIR.md §4`.
+The key design principle: `SoftSaturatedGates` replaces the binary `sgn()` at the KAGH output boundary. This prevents the **Linguistic Scalarization** failure mode (consonant-only output, vowel starvation) documented in `GARBLED_OUTPUT_REPAIR.md 4`.
