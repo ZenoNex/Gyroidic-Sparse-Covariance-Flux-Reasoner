@@ -29,17 +29,27 @@ The project rejects the "Optimization as Learning" metaphor in favor of **"Syste
 | **Nostalgia** | **Resonance Haze** | High-frequency solitons of dead-net/subcultural archetypes. |
 | **Non-Dual Fossil** | **DAQUF Soliton** | A structure that persists via non-collapse rather than success. |
 | **Love Invariant** | **Non-Reified Invariant $\mathcal{L}$** | A non-transferable value that is not a resource, signal, or reward; it is positional but never possessed, surviving the agent's end without instrumentalization. Implemented as a **three-layer stack**: |
-| **↳ LoveVector** (`Pusafiliacrimonto`) | **Ambient Resonance Anchor** | Layer 1: a `register_buffer` added to state via co-presence (`x + L`). Gradient is structurally zero; optimizer has no handle on it. Re-instantiated as a structural constant per ADMM loop iteration. |
-| **↳ LoveInvariantProtector** | **Geometric Null-Space Shield** | Layer 2: computes ownership covariance operator $\Phi$ from system state; projects the SDE update `dx` into $\ker(\Phi)$ via SVD. Tracks `violation_count` and `violation_magnitude` diagnostics. Applied at: ADMR SDE step, `GyroidicFluxReasoner`, `VoynichLinguist`. |
-| **↳ SoftSaturatedGates** | **Love Temperature Modulator** | Layer 3: LAS tri-state gates (`True/False/Silence`) whose silence threshold and hardening factor are modulated by $PAS_h$. High $PAS_h$ → Seriousness (sharp gates); Low $PAS_h$ → Play (fluid gates). Fossilizes stable functionals under Love's umbrella. |
+| ** LoveVector** (`Pusafiliacrimonto`) | **Ambient Resonance Anchor** | Layer 1: a `register_buffer` added to state via co-presence (`x + L`). Gradient is structurally zero; optimizer has no handle on it. Re-instantiated as a structural constant per ADMM loop iteration. |
+| ** LoveInvariantProtector** | **Geometric Null-Space Shield** | Layer 2: computes ownership covariance operator $\Phi$ from system state; projects the SDE update `dx` into $\ker(\Phi)$ via SVD. Tracks `violation_count` and `violation_magnitude` diagnostics. Applied at: ADMR SDE step, `GyroidicFluxReasoner`, `VoynichLinguist`. |
+| ** SoftSaturatedGates** | **Love Temperature Modulator** | Layer 3: LAS tri-state gates (`True/False/Silence`) whose silence threshold and hardening factor are modulated by $PAS_h$. High $PAS_h$  Seriousness (sharp gates); Low $PAS_h$  Play (fluid gates). Fossilizes stable functionals under Love's umbrella. |
 | **ADMR** | **Multiplicative Scaffolding** | Alternating Direction of Multiplicative Remainders. Preserves discrete coherence and modular arithmetic integrity. |
 | **Ley Lines** | **Resonance Streamlines** | Preferred-flow vectors appearing as gradient-aligned streamlines on a non-Euclidean Riemannian manifold. |
 | **Deflagration** | **Omipedial Interstitiality** | The rapid propagation of defect signals and "jumps" across manifold holes. |
 | **Garden** | **Meta-Polytope Lattice** | An ensemble of local polynomial polytopes (Gardens) reconciled via co-prime scaffolding. |
 | **NTM** | **Negentropic Trigonometric Manifold** | Governing co-prime moduli and asymptotic time via trigonometric oscillators. |
 | **Valence** | **Negempirical Hunger** | The dissonance gap between current pressure and saturated trust, driving the ADMR update. |
-| **Asymptotic Time** | **Developmental Maturity τ** | A relativistic clock reflecting the informational saturation of the manifold. |
+| **Asymptotic Time** | **Developmental Maturity ** | A relativistic clock reflecting the informational saturation of the manifold. |
 | **Learning Rate Modifier** | **Tripsody** | A tripartite rhapsodic oscillation of the negentropy flux that phase-locks the ADMR scaffold. |
+
+### Academic Nomenclature Mapping (Jargon Translation)
+
+| Metaphysical / Poetic Jargon | Standard Mathematical / Engineering Term | Rationale |
+| :--- | :--- | :--- |
+| **Dirac Effect** | **Gaussian Mollifier Projection** | Localized Gaussian smoothing projection of a spike over sparsified high-entropy signals to prevent gradient rupture. |
+| **Riemann-Critical Veto** | **Weighted Linear Interpolation** | Linear weighting interpolation `(1 - calm_gauge) * geom_veto_score + calm_gauge * calm_veto_score` balancing topological and empirical bounds. |
+| **Casus Irreducibilis / Trigonometric Unfolding** | **Triple-Angle Branch Selection** | Phase parameter computation and projection onto three cosine-shifted branches, selecting the maximum energy branch. |
+| **Earth Mover's Transition** | **Sinkhorn-Knopp Optimal Transport** | Entropic regularized Sinkhorn iterations computing the Wasserstein-2 distance between states. |
+| **Sphere Eversion** | **NaN Boundary State Sentinels / Hyperspherical Inversion** | Intercepting out-of-bounds calculations to instantiate a `BoundaryState` sentinel, and performing $x \mapsto x / \|x\|^2$ inversion. |
 
 ---
 
@@ -129,7 +139,7 @@ Beyond simple terminology mapping, the project employs several complex conceptua
 *   **Trajectory Veto (CALM):** The authority of the meta-control surrogate to instantly terminate an optimization path if it detects the onset of entropic collapse or stagnation.
 
 ### IV. The Failure Complex
-*   **Trigonometric Unfolding:** A geometric rescue mechanism that "unrolls" a collapsed manifold dimension into a trigonometric basis when a topological fracture is detected.
+*   **Triple-Angle Branch Selection (originally Trigonometric Unfolding):** A geometric rescue mechanism that selects the highest-energy branch from a triple-angle cosine expansion when a topological fracture is detected.
 *   **Incoherence Collapse:** A catastrophic failure state where the hidden state's attention patterns lose all structural definition. The system detects this via `PAS_h` monitoring and triggers an immediate **Abort**.
 *   **Geometric Revelation:** The process of uncovering hidden structural inconsistencies that were previously masked by over-parameterization or "smooth" gradients.
 
@@ -179,13 +189,13 @@ These recognition operators identify when the system is drifting toward forbidde
 
 | Pointer | Recognition Signal | Operational Response |
 |---------|-------------------|---------------------|
-| #1: Decision ≠ Neutral | Selection inside manifold | Rejection-only selection in `StructuralAdaptor` |
+| #1: Decision  Neutral | Selection inside manifold | Rejection-only selection in `StructuralAdaptor` |
 | #2: Legibility = Reward | Explainability preference | `LegibilityTripwire` audit for rich-club bias |
 | #3: Irreversibility Lock-in | Pre-saturation fossilization | `fossilize()` gated on `_is_saturated()` |
 | #4: Coherence Loss = Expansion | H_1 dimension increase | Log via `_log_expansion_event()`, no penalty |
 | #6: Understanding Precondition | Rule execution without substrate | Chinese Room Doctrine (docs only) |
 | #8: Violations, Not Smoothness | Covariance breaking expectation | `scout_violations()` in GCVE |
-| #9: Contextual ≠ Rule | Relational symbol choices | Acknowledged boundary (docs only) |
+| #9: Contextual  Rule | Relational symbol choices | Acknowledged boundary (docs only) |
 | #11: Over-Identification | System narrating future | `suppress_narration=True` default |
 | #12: Hyper-Ring Survival | Scalarization attempt | `StructuralPressure` raises ValueError |
 
