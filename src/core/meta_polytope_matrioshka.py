@@ -8,15 +8,17 @@ import torch.nn.functional as F
 class BoundaryState:
     """
     Represents the boundary state of a polytope at a veto activation point.
+    Acts as a NaN Boundary State Sentinel.
     
-    The stress tensor Σ_ij = u_i · n_j captures the rank-2 anisotropic
+    The stress tensor _ij = u_i * n_j captures the rank-2 anisotropic
     relationship between the state direction (u) and the facet normal (n)
-    at the point where a boundary was crossed. This replaces NaN returns
-    with structured failure states that downstream systems can reason about.
+    at the point where a boundary was crossed. This replaces NaN returns and
+    division by zero or out-of-bounds errors with structured sentinel failure states 
+    that downstream systems can reason about (e.g., to trigger coordinates inversion).
     
     References:
-        - ai project report_2-2-2026.txt §"BoundaryState tensor"
-        - VETO_SUBSPACE_ARCHITECTURE.md §5
+        - ai project report_2-2-2026.txt "BoundaryState tensor"
+        - VETO_SUBSPACE_ARCHITECTURE.md 5
     """
     def __init__(self, alpha: int, level: int, max_level: int,
                  stress_tensor: Optional[torch.Tensor] = None,
@@ -24,7 +26,7 @@ class BoundaryState:
         self.alpha = alpha                  # Polytope face index where boundary was crossed
         self.level = level                  # Current Matrioshka shell depth
         self.max_level = max_level          # Maximum shell depth (escape ceiling)
-        self.stress_tensor = stress_tensor  # Rank-2 anisotropic: Σ_ij = u_i · n_j
+        self.stress_tensor = stress_tensor  # Rank-2 anisotropic: _ij = u_i  n_j
         self.crossing_energy = crossing_energy  # Energy at boundary crossing
     
     def is_critical(self, threshold: float = 0.5) -> bool:
@@ -48,7 +50,7 @@ class BoundaryState:
         """
         Construct a BoundaryState from a facet crossing event.
         
-        Σ_ij = u_i · n_j  (outer product)
+        _ij = u_i  n_j  (outer product)
         
         Args:
             state_direction: [dim] direction of state at crossing
@@ -81,7 +83,7 @@ class BoundaryState:
 class MetaPolytopeMatrioshka(nn.Module):
     """
     Advanced Meta-Polytope Matrioshka system for nested quantization.
-    Implements nested polytope families P_α^(ℓ) for fine-grained structure sensing.
+    Implements nested polytope families P_^() for fine-grained structure sensing.
     """
     @staticmethod
     def _generate_primes(n: int) -> List[int]:
@@ -141,8 +143,9 @@ class MetaPolytopeMatrioshka(nn.Module):
         """
         level = start_level if start_level is not None else self.max_depth
         
-        # Non-Dual Topo/CALM Veto Superposition
-        # "allow the architecture to fluctuate along a critical line"
+        # Weighted Linear Interpolation (originally referred to as Riemann-Critical Veto Superposition)
+        # Blends geometric and empirical veto bounds. The Riemann zeta critical line Re(s)=1/2 is an 
+        # aesthetic metaphor for maintaining metastability.
         total_veto = (1.0 - calm_gauge) * geom_veto_score + calm_gauge * calm_veto_score
         
         # Voynich Exemption (Phase 6.3): Soften boundary for opaque signatures
@@ -160,7 +163,7 @@ class MetaPolytopeMatrioshka(nn.Module):
             # Deeper level -> Finer granularity (smaller step size)
             delta = 1.0 / (2.0 ** (level + 1))
             
-            # 2. Check if P^(l)_α contains x
+            # 2. Check if P^(l)_ contains x
             # Pressure-Based Warp
             pressure_warp = torch.sigmoid(self.facet_pressure[alpha % len(self.crt_moduli)])
             effective_delta = delta * (1.0 + 0.5 * pressure_warp)
