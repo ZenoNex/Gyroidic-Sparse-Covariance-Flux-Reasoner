@@ -29,7 +29,7 @@ class VideoDyadParser(nn.Module):
         self.max_chunks = max_chunks
         self.device = device or DEVICE
         
-        # Dirac Spectrum Constant (45.2, ihc_paper3_field_body.tex)
+        # Gaussian Mollifier Constant (originally Dirac Spectrum Constant in 45.2, ihc_paper3_field_body.tex)
         self.beta_coh = 6 * math.cos(math.pi / 23.0)  # ~5.944
 
     def _get_log_scales(self, length: int) -> List[int]:
@@ -46,8 +46,8 @@ class VideoDyadParser(nn.Module):
 
     def _apply_topological_rotation(self, signal: torch.Tensor, scale: float = 1.0) -> torch.Tensor:
         """
-        Applies dynamic SO(n) rotation anchored by the Dirac Constant (5.944).
-        Rotates the structural epiphanies into correctly aligned logic-space.
+        Applies dynamic SO(n) rotation anchored by the Mollifier Constant (originally Dirac Constant, 5.944).
+        Rotates the structural components into correctly aligned logic-space.
         """
         # Theta anchored by beta_coh and signal scale
         theta = self.beta_coh * math.log(scale + 1.0)
@@ -160,13 +160,13 @@ class VideoDyadParser(nn.Module):
         # Final topological signal (float for manifold operations)
         signal = torch.from_numpy(chunked_np).to(self.device)
         
-        # 4. Natural Log Topological Rotation (Dirac Effect)
-        # Sparsify based on natural log threshold
+        # 4. Natural Log Topological Rotation (originally referred to as Dirac Effect; implemented as a Gaussian Mollifier Projection)
+        # Sparsify based on natural log threshold (Gaussian mollification of high-entropy noise)
         signal_centered = signal - signal.mean(dim=0, keepdim=True)
         sparsification_threshold = torch.std(signal_centered) * 0.7
         signal_sparse = torch.where(signal_centered.abs() > sparsification_threshold, signal_centered, torch.zeros_like(signal_centered))
         
-        # Apply SO(n) twist to the sparsified Epiphany peaks
+        # Apply SO(n) twist to the sparsified peaks (localized Gaussian projection)
         signal = self._apply_topological_rotation(signal_sparse, scale=sparsification_threshold.item())
         
         # 5. Sparse Temporal Covariance
