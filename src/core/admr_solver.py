@@ -270,7 +270,8 @@ class PolynomialADMRSolver(nn.Module):
         v_m: Optional[torch.Tensor] = None,
         elipsodistrophy_metrics: Optional[Dict[str, Any]] = None,
         palindromic_hash: Optional[torch.Tensor] = None,
-        anchor_sym: Optional[torch.Tensor] = None
+        anchor_sym: Optional[torch.Tensor] = None,
+        boundary_state: Optional[Any] = None
     ) -> torch.Tensor:
         """
         Continuous-time Stochastic Differential Update:
@@ -365,6 +366,24 @@ class PolynomialADMRSolver(nn.Module):
         # dx = (drift - negotiation + tension_drift + digimon_nutrient) * dt + noise
         dx = (drift - negotiation + tension_drift + digimon_nutrient) * effective_dt + noise
         
+        # 4.2 Project SDE update onto the Bouligand tangent cone if boundary state is active
+        if boundary_state is not None:
+            if hasattr(boundary_state, 'stress_tensor') and boundary_state.stress_tensor is not None:
+                device = dx.device
+                stress = boundary_state.stress_tensor.to(device)
+                normal = stress.mean(dim=0)
+                norm_val = torch.norm(normal)
+                if norm_val > 1e-8:
+                    normal_normalized = normal / norm_val
+                    if dx.dim() > 1:
+                        normal_normalized = normal_normalized.expand_as(dx)
+                    inner_product = torch.sum(dx * normal_normalized, dim=-1, keepdim=True)
+                    is_outward = inner_product > 0
+                    if is_outward.any():
+                        correction = inner_product * normal_normalized
+                        print(f"[BOULIGAND_SDE] SDE step projected onto contingent tangent cone (correction norm: {torch.norm(correction).item():.4f})", flush=True)
+                        dx = torch.where(is_outward, dx - correction, dx)
+
         # 4.5 Protect Love Vector mathematically by projecting update to null-space of ownership operator
         ownership_op = self.love_protector.compute_ownership_operator(states)
         null_proj = self.love_protector.compute_null_space_projection(ownership_op)
@@ -427,7 +446,8 @@ class PolynomialADMRSolver(nn.Module):
         v_m: Optional[torch.Tensor] = None,
         elipsodistrophy_metrics: Optional[Dict[str, Any]] = None,
         palindromic_hash: Optional[torch.Tensor] = None,
-        anchor_sym: Optional[torch.Tensor] = None
+        anchor_sym: Optional[torch.Tensor] = None,
+        boundary_state: Optional[Any] = None
     ) -> torch.Tensor:
         """
         Fractional-order Stochastic Differential Update with distributed alpha.
@@ -536,6 +556,24 @@ class PolynomialADMRSolver(nn.Module):
 
         # 6. Fractional Update Step
         dx = (fractional_drift - negotiation + tension_drift) * effective_dt + noise
+
+        # 6.8 Project SDE update onto the Bouligand tangent cone if boundary state is active
+        if boundary_state is not None:
+            if hasattr(boundary_state, 'stress_tensor') and boundary_state.stress_tensor is not None:
+                device = dx.device
+                stress = boundary_state.stress_tensor.to(device)
+                normal = stress.mean(dim=0)
+                norm_val = torch.norm(normal)
+                if norm_val > 1e-8:
+                    normal_normalized = normal / norm_val
+                    if dx.dim() > 1:
+                        normal_normalized = normal_normalized.expand_as(dx)
+                    inner_product = torch.sum(dx * normal_normalized, dim=-1, keepdim=True)
+                    is_outward = inner_product > 0
+                    if is_outward.any():
+                        correction = inner_product * normal_normalized
+                        print(f"[BOULIGAND_SDE] Fractional SDE step projected onto contingent tangent cone (correction norm: {torch.norm(correction).item():.4f})", flush=True)
+                        dx = torch.where(is_outward, dx - correction, dx)
 
         # 7. Love Invariant Protection (null-space projection)
         ownership_op = self.love_protector.compute_ownership_operator(states)
