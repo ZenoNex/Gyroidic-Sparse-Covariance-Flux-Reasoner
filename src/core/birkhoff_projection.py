@@ -267,5 +267,56 @@ def project_to_birkhoff(T: torch.Tensor, max_iterations: int = 50) -> torch.Tens
         return res.squeeze(0)
     return res
 
+class BouligandBirkhoffProjectionFunction(torch.autograd.Function):
+    """
+    Custom Autograd Function implementing the projection onto the Birkhoff polytope
+    with a Bouligand-correct gradient backpropagation.
+    """
+    @staticmethod
+    def forward(ctx, T, manifold):
+        ctx.manifold = manifold
+        T_ds = manifold.project(T)
+        ctx.save_for_backward(T_ds)
+        return T_ds
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        T_ds, = ctx.saved_tensors
+        manifold = ctx.manifold
+        
+        # T_ds_ij close to 0 indicates we are on the boundary
+        eps = torch.finfo(T_ds.dtype).eps * 100.0
+        boundary_mask = T_ds < max(eps, 1e-5)
+        
+        # Project incoming gradient onto the row/col sum zero-constraints
+        shape = grad_output.shape
+        grad_flat = grad_output.view(shape[0], -1)
+        
+        if getattr(manifold, 'direct_projector', None) is not None:
+            grad_proj = torch.matmul(grad_flat, manifold.direct_projector.P.T)
+            grad_proj = grad_proj.view(shape)
+        else:
+            grad_proj = grad_output - grad_output.mean(dim=-1, keepdim=True)
+            grad_proj = grad_proj - grad_proj.mean(dim=-2, keepdim=True)
+            
+        # Apply Bouligand contingent cone projection
+        grad_corrected = torch.where(boundary_mask & (grad_proj < 0), torch.zeros_like(grad_proj), grad_proj)
+        
+        num_corrected = (boundary_mask & (grad_proj < 0)).sum().item()
+        if num_corrected > 0:
+            print(f"[BOULIGAND_BIRKHOFF] Corrected backward gradients at {num_corrected} boundary constraints using B-derivative.", flush=True)
+            
+        return grad_corrected, None
+
+
+class BouligandBirkhoffManifold(ObscuredBirkhoffManifold):
+    """
+    Obscured Birkhoff Polytope with Bouligand-correct gradient backpropagation.
+    Inherits from ObscuredBirkhoffManifold for full backward compatibility.
+    """
+    def forward(self, T: torch.Tensor, anneal: bool = False) -> torch.Tensor:
+        return BouligandBirkhoffProjectionFunction.apply(T, self)
+
+
 # Post-import to avoid circular dependency, exposing the hybrid probe to System 2 Constraint Operator
 from .cayley_cubic_probe import CayleyCubicProbe
