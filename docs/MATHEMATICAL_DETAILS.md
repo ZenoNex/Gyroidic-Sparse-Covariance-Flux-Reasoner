@@ -1887,3 +1887,31 @@ The transition from catastrophic drift securely back to topological stability (L
 $$ \text{Launch Condition: } (\Delta \text{PAS}_h > \tau_{drift}) \land (\text{PAS}_h > \tau_{stable}) $$
 
 By anchoring the metric to the Phase Alignment factor, the system knows unequivocally whether it has passed through the $\mathbb{RP}^4$ void successfully or if it is merely hallucinating stability.
+
+## 58. Bouligand Tangent Cones & B-Differentiability
+
+To enforce absolute mathematical rigor at the non-smooth boundaries of polytopes, yield surfaces, and manifold constraints, the reasoner integrates **Bouligand contingent cones** and **B-differentiable projection operators**.
+
+### 58.1 The Bouligand Tangent Cone (Contingent Cone)
+
+For any closed set $S \subset \mathbb{R}^d$ and a boundary point $x \in S$, the Bouligand tangent cone $T_S(x)$ characterizes the set of all feasible directions of update that keep the trajectory within $S$:
+
+$$T_S(x) = \left\{ v \in \mathbb{R}^d \mid \exists t_k \downarrow 0, \, v_k \to v \text{ such that } x + t_k v_k \in S \ \forall k \right\}$$
+
+This contingent cone replaces classical tangent spaces at sharp edges, corners, and boundary facets (such as Mohr-Coulomb yield boundaries, Birkhoff polytope faces, or Matrioshka shell facets).
+
+### 58.2 Bouligand Differentiability (B-Differentiability)
+
+A nonsmooth mapping $F$ is B-differentiable at $x$ if its directional derivative is Lipschitz continuous in the direction vector. Applying Haraux's Theorem, the directional derivative of a projection operator $P_S$ onto a closed convex set $S$ is computed as the projection of the direction onto the Bouligand tangent cone of $S$ at the projected point:
+
+$$D_B P_S(x)(h) = \operatorname{Proj}_{T_S(P_S(x))} \left( h \right)$$
+
+This formal relation allows exact gradient backpropagation through nonsmooth projection operators (e.g. the Sinkhorn Birkhoff projection) without numerical instability when matrices hit zero-probability boundaries.
+
+### 58.3 Projection of SDE Drift Updates
+
+In continuous-time SDE steps, the drift update $dx$ is projected onto the Bouligand tangent cone of the crossed boundary facet:
+
+$$dx(t) = \operatorname{Proj}_{T_S(x(t))} \left( f(x(t)) \right) dt + \sigma\, dW$$
+
+This guarantees that the trajectory remains topologically contained in the feasible manifold $S$, preventing numerical runaway and NaN generation while obeying Law 2 (Non-Teleological Repair).
