@@ -50,6 +50,17 @@ This document synthesizes the complete architecture, explaining how the three di
     *   **Surgical Seam Visualizer** [NEW]:
         *   **Mechanism**: Monitors "slender seam" tension ($\kappa$) at hyperbolic boundaries.
         *   **Role**: Tracks manifold stress where incommensurate logical systems are stitched, preventing rupture via Drucker-Prager flow.
+    *   **Nonsmooth Boundaries & Bouligand Math** [NEW]:
+        *   **Mechanism**: Implements directional tangent cone projections and B-differentiable mapping functions at nonsmooth manifold limits.
+        *   **Role**: Resolves boundary singularities and prevents gradient ruptures when coordinates strike polytope facets or yield envelopes:
+            *   *Mohr-Coulomb Tangent Cone Projection* (`BouligandMohrCoulombProjection` in `src/core/yield_criteria.py`): Projects stress update vectors onto the contingent (tangent) cone of Mohr-Coulomb shear planes:
+                $$T_S(p) = \{ dp \in \mathbb{R}^d \mid f'(p; dp) \le 0 \}$$
+                This permits plastic flow along shear boundaries without brittle failure.
+            *   *B-Derivative Autograd Birkhoff Projection* (`BouligandBirkhoffProjectionFunction` and `BouligandBirkhoffManifold` in `src/core/birkhoff_projection.py`): Uses Haraux's Theorem to project backward gradients onto row/column sum zero-subspaces and clamps zero-boundary gradients during backward passes:
+                $$D_B P_S(x)(h) = \operatorname{Proj}_{T_S(P_S(x))}(h)$$
+                This secures backward pass autograd stability at doubly-stochastic zero-probability limits.
+            *   *Contingent Cone Projection for Matrioshka Polytopes* (`src/core/meta_polytope_matrioshka.py`): Projects update steps onto the half-space normal to crossed boundary facets ($\langle v, n \rangle \le 0$), enabling states to slide smoothly along boundaries.
+            *   *SDE Flow Projection* (`src/core/admr_solver.py`): Projects continuous and fractional SDE drift vectors onto the contingent cone of crossed boundaries under active `BoundaryState` sentinels to contain the SDE trajectory in the feasible manifold.
 
 ## 7. Interaction Flow: The Equation-Object
 
@@ -103,17 +114,28 @@ graph TD
     subgraph "System 1 (Intuition)"
         Input --> PolyEmbed[Polynomial Embedder]
         PolyEmbed --> Trans[Transformer]
-        Trans --> Anchors[Symbolic Residues C_sym]
+        Trans --> Birkhoff[BouligandBirkhoffManifold]
+        Birkhoff --> Anchors[Symbolic Residues C_sym]
+        Anchors -.->|"B-Derivative Backpropagation"| Birkhoff
     end
 
-    subgraph "System 2 (Physics)"
+    subgraph "System 2 (Physics Solver)"
         Anchors -- "Anchor" --> ADMM[Operational ADMM]
-        ADMM --> KAGH[KAGH Surrogate]
+        ADMM --> SDE[SDE / Fractional SDE Step]
+        SDE --> BCheck{Boundary Contact?}
+        BCheck -- "Yes (Out-of-Bounds)" --> BSent[BoundaryState Sentinel]
+        BSent --> Inversion[Hyperspherical Inversion]
+        Inversion --> SDE
+        BCheck -- "Yes (Facet Contact)" --> BouligandProj[Bouligand Tangent Cone Projection]
+        BouligandProj --> SDE
+        BCheck -- "No" --> LoveProj[Love Vector Null-space Projection]
+        LoveProj --> SDE
+        SDE --> KAGH[KAGH Surrogate]
         KAGH -- "Consistency" --> ADMM
     end
 
     subgraph "Dark Matter (Invariants)"
-        ADMM -- "Veto?" --> CDO[Chiral Drift Opt]
+        SDE -- "Veto?" --> CDO[Chiral Drift Opt]
         CDO -- "Accept/Abort" --> FinalState
         GCVE[Gyroid Probe] -- "Pressure" --> FluxAlign[Flux Warping]
         FluxAlign --> FGRT[FGRT Flow]
@@ -235,6 +257,19 @@ The architecture functionally severs the **Substrate** (TailSlayer silicon) from
 The system leverages previously fossilized multi-modal dyads (text, audio harmonics, video breather modes) as explicit geometric targets for state recovery.
 *   **Topological Lock**: When the `SpeculativeCoprimeGate` detects low chiral coherence or broken coprime parity, it attempts speculative recovery.
 *   **Wasserstein Target Merging**: Instead of exclusively using the live `coprime_manifold`, the system reads actual fossilized residues from `DyadFossilizer.recover_fossils()`. These physical "burn-marks" in the manifold are dynamically appended into the Wasserstein Optimal Transport equation as **Gravity Wells**, physically pulling the collapsed state back into a historically significant topological resonance.
+
+### 7.6 Terence McKenna Unlearning Loops (Wattsian Deconstruction) [NEW]
+
+The system implements active unlearning to escape the highly restrictive default cultural operating system, breaking cognitive rigidity through structured decay loops while preserving representational energy:
+*   **Stagnation Detection**: When pressure variance flatlines ($< 1\text{e-}6$) or spectral entropy collapses ($< 0.05$), the system triggers unlearning procedures to avoid stasis.
+*   **Deconstruction Mode** (`TextbookFilter`): Activating `mckenna_deconstruction_mode` sets the `algorithmic` validation gate to `0.0` to permit creative prose and relaxes other criteria (`clarity`, `instructive`, `self_contained`) by 50%. Crucially, the `structural_honesty` threshold is held constant to prevent representational lobotomy.
+*   **Rigidity Decay** (`IntrospectionHead`): Projected self-model weights are perturbed with honest jitter to break fixed categorization:
+    $$W_{\text{new}} = W + \text{jitter}$$
+    The perturbed matrix is then rescaled to conserve its Frobenius norm:
+    $$W_{\text{new}} \leftarrow W_{\text{new}} \times \frac{\|W\|_F}{\|W_{\text{new}}\|_F}$$
+    This rotates projection vectors without degrading the total functional energy of the model.
+*   **Satisfaction Baseline Decay** (`ValenceFunctional`): Under stagnation, satisfaction baseline decay accelerates from `0.99` down to `0.85`, raising structural hunger to drive the search for new topological features.
+*   **Shadow Replay Priority**: Bypasses routine training data to play back shadow logs (`[SHADOW LOG]`), allowing the system to ingest and learn from the shape of its own failures.
 
 ---
 
@@ -507,13 +542,17 @@ $$(x_t, \alpha_t, l_t) \quad \text{where } x_t \in \text{representation},\; \alp
 | Facet grazing | $\langle n, x \rangle \approx c$ | [ERR] Forbidden |
 | Polytope switching | $P_\alpha \to P_\beta$ (non-commutative) | [ERR] Forbidden |
 
-### 9.5 NaN  BoundaryState Pipeline
+### 9.5 NaN BoundaryState / Hyperspherical Inversion Pipeline
 
-When polytope projection becomes undefined, the system lifts NaN into a **BoundaryState tensor** (see [MATHEMATICAL_DETAILS.md 31.7](MATHEMATICAL_DETAILS.md)):
-
-$$(x_{t+1}, P_{t+1}) = \begin{cases} (Q^{(l)}(F(Q^{(l)}(x_t))),\, P^{(l)}) & x_t \in \text{int}(P^{(l)}) \\ (x_t,\, \text{adjacent}(P^{(l)})) & x_t \in \partial P^{(l)} \\ (\varnothing,\, \text{undefined}) & x_t \notin \mathbb{P} \end{cases}$$
-
-The last case is NaN  a **topological impossibility**, not a numerical error.
+When a state crosses a boundary and the standard projection operator becomes undefined, the system handles the transition through structured sentinels and coordinate mappings rather than collapsing:
+1. **Sentinel Instantiation**: The system lifts out-of-bounds states into a `BoundaryState` sentinel, which carries the facet normal $n$ via the stress tensor:
+   $$\sigma_{ij} = u_i n_j$$
+2. **Hyperspherical Inversion**: For critical boundary violations (`is_critical()`), the system triggers a hyperspherical inversion to map coordinates past the boundary obstruction:
+   $$x \mapsto \frac{x}{\|x\|^2 + \epsilon}$$
+   This mathematically inverts the representation to bypass the obstacle.
+3. **Bouligand Slide**: For non-critical facet contact, the update direction is projected onto the Bouligand tangent cone of the crossed facet:
+   $$\operatorname{Proj}_{T_S(x)}(v) = v - \max(0, \langle v, n \rangle) n$$
+   This allows the solver trajectory to slide along the polytope boundary without tearing the manifold.
 
 **Source**: [AI Project Report (2-2-2026)](ai%20project%20report_2-2-2026.txt).
 
@@ -555,14 +594,25 @@ The system's decision pipeline extends the original three-tier model (System 1 /
 ```mermaid
 graph TD
     S1["System 1: Heuristic<br/>(CRT residues, spectral entropy)"] -->|"high entropy"| S2["System 2: Physics-ADMM<br/>(constraint probes, SIC-FA-ADMM)"]
-    S1 -->|"low entropy  trust"| OUT["Output"]
+    S1 -->|"low entropy / trust"| OUT["Output"]
+    
+    subgraph "Terence McKenna Unlearning Loop (on Stagnation)"
+        Stagnation{Stagnation?<br/>low entropy / flatline var} -->|"Yes"| MMode[mckenna_deconstruction_mode = True<br/>relaxes logical filter gates]
+        Stagnation -->|"Yes"| FRigid[unlearn_rigidity<br/>Frobenius-preserving weight jitter]
+        Stagnation -->|"Yes"| VDecay[Accelerated Satisfaction Decay<br/>decay = 0.85 in Valence Drive]
+        Stagnation -->|"Yes"| SReplay[Prioritize Shadow Replay<br/>over textbook fossils]
+    end
+    
     S2 -->|"low honesty score"| S4["Gate 4: SearchGate<br/>(self-consistency + external search)"]
     S2 -->|"high honesty"| OUT
     S4 -->|"search found answer"| OUT
     S4 -->|"search empty"| S5["Gate 5: ConfabulationDetector<br/>(tri-state: KNOWN/SEARCH/CONFAB)"]
     S5 --> OUT
+    
     U["U Domain<br/>(Unknowledge Shield)"] -.->|"shields creative anomalies"| S2
     U -.->|"enables creative confab"| S5
+    
+    OUT --> Stagnation
 ```
 
 ### Gate 4: SearchGate (Implemented)
