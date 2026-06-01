@@ -77,3 +77,67 @@ class DruckerPragerProjection(nn.Module):
         scale = torch.clamp(torch.tensor(effective_k, device=pressure.device) / (yield_val + 1e-8), max=1.0)
         
         return pressure * scale
+
+
+class BouligandMohrCoulombProjection(MohrCoulombProjection):
+    """
+    Nonsmooth Bouligand Tangent Cone Projection for Mohr-Coulomb yield surfaces.
+    
+    Inherits from MohrCoulombProjection to maintain full backward compatibility.
+    Provides direction projection onto the contingent (tangent) cone of the yield surface
+    to allow plastic flow along the shear planes without structural rupture.
+    """
+    def project_direction(self, pressure: torch.Tensor, direction: torch.Tensor) -> torch.Tensor:
+        """
+        Projects an update direction vector onto the Bouligand tangent cone of the MC surface
+        at the current pressure state.
+        
+        Args:
+            pressure: [batch, dim] current pressure tensor state
+            direction: [batch, dim] proposed update direction tensor
+        """
+        device = pressure.device
+        sigma = pressure.mean(dim=-1, keepdim=True)
+        tau = pressure - sigma
+        tau_norm = torch.norm(tau, dim=-1, keepdim=True)
+        
+        strength = self.cohesion + sigma * torch.tan(self.phi.to(device))
+        yield_val = tau_norm - strength
+        
+        # Determine if state is on the yield boundary (epsilon guard matching precision)
+        eps = torch.finfo(pressure.dtype).eps * 1000.0  # safe scaling
+        on_boundary = yield_val.abs() < max(eps, 1e-4)
+        
+        if not on_boundary.any():
+            return direction
+            
+        # Outward normal vector components
+        # normal direction in normal stress space is -tan(phi), in shear space is tau / ||tau||
+        normal_sigma = -torch.tan(self.phi.to(device))
+        normal_tau = tau / (tau_norm + 1e-8)
+        
+        # Calculate normal component of direction
+        dir_sigma = direction.mean(dim=-1, keepdim=True)
+        dir_tau = direction - dir_sigma
+        
+        inner_product = dir_sigma * normal_sigma + torch.sum(dir_tau * normal_tau, dim=-1, keepdim=True)
+        
+        # Direction points outward if inner product is positive and state is on the boundary
+        is_outward = (inner_product > 0) & on_boundary
+        
+        projected_dir = direction.clone()
+        if is_outward.any():
+            # Project onto the tangent cone: v_proj = v - <v, n> * n / ||n||^2
+            n_norm_sq = normal_sigma**2 + torch.sum(normal_tau**2, dim=-1, keepdim=True)
+            scale = inner_product / (n_norm_sq + 1e-8)
+            
+            # Reconstruct normal vector direction
+            n_vector = normal_sigma + normal_tau
+            correction = scale * n_vector
+            
+            # Print console reporting for debugging and transparency
+            print(f"[BOULIGAND_MC] Outward update detected on yield surface. Projecting direction onto contingent cone (norm correction: {torch.norm(correction).item():.4f})", flush=True)
+            projected_dir = torch.where(is_outward, direction - correction, direction)
+            
+        return projected_dir
+
