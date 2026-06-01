@@ -1238,7 +1238,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Non-Teleological Re-entrancy Guard:
         # We allow processing if it's a training-driven call (to allow gradients),
         # but block external user calls if the engine is already occupied by a main process.
-        acquired = self._processing_lock.acquire(timeout=15.0)
+        acquired = self._processing_lock.acquire(timeout=180.0)
         if not acquired:
             print("[ENGINE] Warning: Re-entrant call detected or lock timeout. Returning placeholder.")
             return {"response": "System busy: topological re-indexing in progress...", "status": "BUSY"}
@@ -1278,7 +1278,7 @@ class DiegeticPhysicsEngine(nn.Module):
         Canonical entry point for text interaction.
         Bridges with Hybrid interface requirements and applies detached state management.
         """
-        acquired = self._processing_lock.acquire(timeout=15.0)
+        acquired = self._processing_lock.acquire(timeout=180.0)
         if not acquired:
             print("[ENGINE] Warning: Re-entrant call detected or lock timeout in process_text. Returning placeholder.")
             return {"response": "System busy: topological re-indexing in progress...", "status": "BUSY"}
