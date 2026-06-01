@@ -247,3 +247,52 @@ class MetaPolytopeMatrioshka(nn.Module):
             "max_depth": self.max_depth,
             "current_pressure_mean": self.facet_pressure.mean().item()
         }
+
+    def project_direction(
+        self, 
+        x: torch.Tensor, 
+        direction: torch.Tensor, 
+        boundary_state: BoundaryState
+    ) -> torch.Tensor:
+        """
+        Enforces Bouligand tangent cone constraints at boundary crossings.
+        Projects the update direction onto the tangent cone of the crossed facet
+        to prevent outward boundary tearing or NaN collapse.
+        
+        Args:
+            x: [batch, dim] or [dim] state tensor
+            direction: [batch, dim] or [dim] update direction
+            boundary_state: BoundaryState sentinel representing the crossed boundary
+        """
+        if boundary_state.stress_tensor is None:
+            return direction
+            
+        # Extract normal vector. The stress tensor is u_i * n_j (outer product).
+        device = direction.device
+        stress = boundary_state.stress_tensor.to(device)
+        
+        # Extract normal direction: sum over the state directions
+        normal = stress.mean(dim=0)
+        norm_val = torch.norm(normal)
+        if norm_val < 1e-8:
+            return direction
+            
+        normal_normalized = normal / norm_val
+        
+        # Expand normal to match direction dimensions if needed
+        if direction.dim() > 1:
+            normal_normalized = normal_normalized.expand_as(direction)
+            
+        # Inner product: <v, n>
+        inner_product = torch.sum(direction * normal_normalized, dim=-1, keepdim=True)
+        
+        # Outward directions (inner_product > 0) are projected onto the boundary facet
+        is_outward = inner_product > 0
+        
+        if is_outward.any():
+            correction = inner_product * normal_normalized
+            print(f"[BOULIGAND_MATRIOSHKA] Outward boundary crossing projected onto tangent cone (normal norm: {norm_val.item():.4f})", flush=True)
+            direction_proj = torch.where(is_outward, direction - correction, direction)
+            return direction_proj
+            
+        return direction
