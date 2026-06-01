@@ -50,6 +50,8 @@ The project rejects the "Optimization as Learning" metaphor in favor of **"Syste
 | **Casus Irreducibilis / Trigonometric Unfolding** | **Triple-Angle Branch Selection** | Phase parameter computation and projection onto three cosine-shifted branches, selecting the maximum energy branch. |
 | **Earth Mover's Transition** | **Sinkhorn-Knopp Optimal Transport** | Entropic regularized Sinkhorn iterations computing the Wasserstein-2 distance between states. |
 | **Sphere Eversion** | **NaN Boundary State Sentinels / Hyperspherical Inversion** | Intercepting out-of-bounds calculations to instantiate a `BoundaryState` sentinel, and performing $x \mapsto x / \|x\|^2$ inversion. |
+| **Contingent Cone** | **Bouligand Tangent Cone** | Mathematical representation of feasible update directions on non-smooth polytope or yield boundaries. |
+| **B-Derivative** | **Nonsmooth Directional Derivative** | Directional derivative of projection operators, computed as a projection onto the Bouligand tangent cone. |
 
 ---
 
