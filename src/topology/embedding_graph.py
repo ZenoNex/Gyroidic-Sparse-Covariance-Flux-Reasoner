@@ -347,13 +347,89 @@ class GyroidicGraphManager:
                 
         return "\n".join(lines)
 
-    def find_resonance_clusters(self):
+    def find_resonance_clusters(self) -> List[List[str]]:
         """
         Identify 'Hyper-Rings' - sets of nodes with high mutual resonance.
-        This is a simplified clique/cluster detection.
+        Uses depth-first search to find connected components of high-resonance edges.
         """
-        # (Placeholder for more complex hubness analysis)
-        pass
+        edges = self.get_adjacency_list()
+        resonance_edges = [e for e in edges if e['type'] == 'RESONANCE' or e['weight'] > 0.8]
+        
+        adj = {}
+        for node in self.nodes:
+            adj[node.node_id] = []
+            
+        for edge in resonance_edges:
+            s, t = edge['source'], edge['target']
+            if s in adj and t in adj:
+                adj[s].append(t)
+                adj[t].append(s)
+                
+        visited = set()
+        clusters = []
+        
+        for node in self.nodes:
+            nid = node.node_id
+            if nid not in visited:
+                cluster = []
+                queue = [nid]
+                visited.add(nid)
+                while queue:
+                    curr = queue.pop(0)
+                    cluster.append(curr)
+                    for neighbor in adj[curr]:
+                        if neighbor not in visited:
+                            visited.add(neighbor)
+                            queue.append(neighbor)
+                if len(cluster) > 1:
+                    clusters.append(cluster)
+        return clusters
+
+    def heal_resonance_clusters(self, healer: Any) -> Dict[str, Any]:
+        """
+        Heals resonance clusters (Hyper-Rings) to reduce internal topological dissonance.
+        Locks on to each cluster's centroid, applies the energy-based healer,
+        and pulls the cluster nodes' states toward the healed configuration.
+        """
+        clusters = self.find_resonance_clusters()
+        node_map = {n.node_id: n for n in self.nodes}
+        results = {}
+        
+        for idx, cluster in enumerate(clusters):
+            cluster_nodes = [node_map[nid] for nid in cluster if nid in node_map]
+            if not cluster_nodes:
+                continue
+                
+            states = torch.stack([node.state for node in cluster_nodes])
+            centroid = states.mean(dim=0)
+            
+            try:
+                if hasattr(healer, 'heal_soliton'):
+                    healed_centroid, diags = healer.heal_soliton(centroid)
+                elif hasattr(healer, 'heal_fractured_soliton'):
+                    healed_centroid = healer.heal_fractured_soliton(centroid.unsqueeze(0).unsqueeze(1)).squeeze(0).squeeze(0)
+                    diags = {}
+                else:
+                    healed_centroid = centroid
+                    diags = {}
+                
+                for node in cluster_nodes:
+                    node.state = 0.85 * node.state + 0.15 * healed_centroid.to(node.state.device)
+                    node.metrics['healed_in_cluster'] = True
+                    if 'final_energy' in diags:
+                        node.metrics['cluster_energy'] = diags['final_energy']
+                
+                results[f"cluster_{idx}"] = {
+                    "size": len(cluster),
+                    "initial_dissonance": float(torch.var(states).item()),
+                    "final_dissonance": float(torch.var(torch.stack([n.state for n in cluster_nodes])).item()),
+                    "diagnostics": diags
+                }
+            except Exception as e:
+                print(f"[GRAPH_HEAL] Failed to heal cluster {idx}: {e}")
+                
+        return results
+
 
     def get_deep_refusal(self, seed_state: torch.Tensor) -> str:
         """
