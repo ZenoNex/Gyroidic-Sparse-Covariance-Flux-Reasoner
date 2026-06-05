@@ -279,6 +279,7 @@ class DyadFossilizer:
             seam_tension = gasket_diag.get('seam_tension', 0.0)
         else:
             # Fallback for headless ingestion (Lobotomy Warning)
+            s_state_redistributed = residue.unsqueeze(0)
             chiral_shift = 0.0
             chiral_torsion = 0.0
             is_glyph_locked = False
@@ -329,6 +330,25 @@ class DyadFossilizer:
             },
             'dyad_metadata': dyad.metadata # Preserve original context
         }
+        
+        # Generate CRT residue tuple to enforce uniqueness and reflect structural identity (Meliponini pot identity)
+        ref_tensor = seed_state if seed_state is not None else text_embedding
+        r1, r2, r3 = self.generate_residue_tuple(ref_tensor)
+        
+        # Dynamic tag creation: prefer tags already present in the dyad's metadata,
+        # then fall back to tokenising the linguistic description itself.
+        # No hardcoded character roster -- associations live in the fossil files.
+        existing_tags = (dyad.metadata or {}).get('tags', [])
+        if existing_tags:
+            char_tags = list(existing_tags)
+        else:
+            # Use every non-empty word in the description as a candidate tag
+            char_tags = [w for w in dyad.linguistic_description.split() if len(w) >= 1]
+
+        tags = char_tags + [f"crt_{r1}_{r2}_{r3}"]
+        if atrophy_detected:
+            tags.append("atrophy_rehydrated")
+        payload['tags'] = tags
         
         # 5. Save to Disk (Safe, atomic-like write)
         # Use descriptive filename to prevent 'erasing of implication' visibility.
@@ -411,15 +431,10 @@ class DyadFossilizer:
         This generates a .pt payload containing the structural 'Syntax' without the local 'Hardware'.
         (Using dyad.meta_state as the source of truth for the Agent's 'Shape')
         """
-        # Ensure we have a valid pt filename
-        if not filename.endswith(".pt"):
-             filename += ".pt"
-             
         # Extract Chiral Invariants for the Mathematical Identity
         if dyad.meta_state is not None:
              s_state = dyad.meta_state.to(prime_frequencies.device)
              if s_state.dim() == 1: s_state = s_state.unsqueeze(0)
-             from src.core.invariants import compute_chiral_shift, compute_chirality, check_glyphlock, compute_polylog_signature, compute_vacuum_residue
              c_shift = float(compute_chiral_shift(s_state).mean().item())
              c_torsion = float(compute_chirality(s_state).abs().mean().item())
              g_lock = bool(check_glyphlock(s_state).max().item() > 0)
@@ -434,6 +449,10 @@ class DyadFossilizer:
         # Generate Meliponini Identity (Residue Tuple)
         pot_id = self.generate_residue_tuple(prime_frequencies)
         
+        # Ensure we have a valid pt filename
+        if not filename.endswith(".pt"):
+             filename += ".pt"
+
         # Apply Selective Puncture to the meta-state
         protected_state = None
         if dyad.meta_state is not None:
@@ -454,6 +473,16 @@ class DyadFossilizer:
                 hyperbolic_influence=dyad.hyperbolic_residue
             )
             
+        # Dynamic tag creation: prefer tags already present in the dyad's metadata,
+        # then fall back to tokenising the linguistic description itself.
+        # No hardcoded character roster -- associations live in the fossil files.
+        existing_tags = (dyad.metadata or {}).get('tags', [])
+        if existing_tags:
+            char_tags = list(existing_tags)
+        else:
+            char_tags = [w for w in dyad.linguistic_description.split() if len(w) > 1]
+        tags = char_tags + [f"crt_{pot_id[0]}_{pot_id[1]}_{pot_id[2]}", "agent_smith"]
+
         digest_str = f"{dyad.timestamp}_{dyad.linguistic_description}_{betti_numbers}_{pot_id}"
         blake2s_digest = hashlib.blake2s(digest_str.encode('utf-8')).hexdigest()
               
@@ -468,6 +497,7 @@ class DyadFossilizer:
             "chiral_shift": c_shift,
             "chiral_torsion": c_torsion,
             "glyphlock": g_lock,
+            "tags": tags,
             "polylog_signature": compute_polylog_signature(prime_frequencies).detach().cpu(),
             "shape_of_absence": compute_vacuum_residue(dyad.gyroid_residue if dyad.gyroid_residue is not None else prime_frequencies).detach().cpu(),
             "hyperbolic_residue": dyad.hyperbolic_residue.detach().cpu() if hasattr(dyad, 'hyperbolic_residue') and dyad.hyperbolic_residue is not None else None,
