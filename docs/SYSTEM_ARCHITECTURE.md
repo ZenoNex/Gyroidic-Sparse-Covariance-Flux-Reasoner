@@ -662,3 +662,22 @@ The **Archetypal Synthesis Engine** (`src/core/archetype_engines.py`) represents
 - **Abstraction Rate ($R_a$)**: Calculates the rate of memory "ego death" and recycling using the formula: $R_a = [E_s \cdot (T_m + \delta)] / L_i$. When $R_a$ exceeds the limit, the node collapses into glitched matter (fractal-padded jitter).
 - **Alien Puncture (`AlienHandshakeProtocol`)**: Allows stranded nodes in the RP4 Void to bypass norm checks and tunnel back into the active manifold when void friction is high.
 
+
+## 9.8 Model-Agnostic Meta-Learning (MAML) Online Inner-Loop Adaptation
+
+The system integrates native Model-Agnostic Meta-Learning (MAML) online inner-loop adaptation across three critical components:
+1. **Context-Adaptive Latent Momentum Veto (CALM)**: Adapts parameter weights online to predict and apply trajectory forcing corrections.
+2. **KAGH Speculative Drafter**: Adapts the drafting network to align with local context before generating response ghosts.
+3. **Polynomial ADMR Solver**: Meta-optimizes the transition operator $A$ using the L2 norm of the pre-projected constraint violation.
+
+### Inner-Loop Parameter Adaptation Mechanics
+*   **Zero-Dependency Implementation**: Employs recursive parameter cloning (`clone_module`) and gradient updates using native PyTorch autograd.
+*   **Dynamic Fast-Learning Rate ($\alpha$)**: Scaled dynamically by the local system's spectral entropy:
+    $$\alpha_{\text{effective}} = \alpha_0 \cdot (1.0 + |H|)$$
+    where $\alpha_0 = 0.01$ is the default fast-learning rate, and $H$ is the spectral entropy.
+*   **Loss Metrics**: 
+    *   For CALM and KAGH, MSE loss is minimized on the sliding support buffer.
+    *   For the ADMR solver, the L2 norm of the pre-projected constraint violation vector is minimized.
+*   **Straight-Through Estimators (STE)**: Used to propagate gradients through non-differentiable operations (like cyclotomic quantization and modular boundaries) to parameters.
+*   **Sliding Support Buffers**: Inference steps maintain a FIFO support history of the last 4 transitions to run MAML adaptation steps on live inputs.
+
