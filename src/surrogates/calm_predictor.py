@@ -12,7 +12,7 @@ system's topological "larynx".
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple, List
+from typing import Tuple, List, Dict, Optional, Union
 from src.core.honest_jitter import fractal_pad
 
 class CALM(nn.Module):
@@ -122,3 +122,91 @@ class CALM(nn.Module):
         # Update last
         buffer[:, -1, :] = new_state
         return buffer
+
+    def functional_forward(self, history: torch.Tensor, params: Optional[Dict[str, torch.Tensor]] = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Execute forward pass. If params is provided, temporarily load them to perform
+        the forward pass, then restore the original parameters.
+        """
+        if params is None:
+            return self.forward(history)
+            
+        orig_params = {k: v.data.clone() for k, v in self.named_parameters()}
+        try:
+            for name, param in self.named_parameters():
+                if name in params:
+                    param.data.copy_(params[name].data)
+            return self.forward(history)
+        finally:
+            for name, param in self.named_parameters():
+                if name in orig_params:
+                    param.data.copy_(orig_params[name])
+
+    def adapt(self, support_history: torch.Tensor, support_targets: Union[torch.Tensor, Dict[str, torch.Tensor]], steps: int = 1, lr: float = 0.01, entropy: Optional[torch.Tensor] = None) -> 'CALM':
+        """
+        Perform online inner-loop adaptation (MAML step) on support data.
+        Returns an adapted instance of CALM.
+        
+        Dynamic LR: scaled by (1.0 + entropy.mean()) if entropy is provided.
+        """
+        def clone_module(module):
+            import copy
+            clone = copy.copy(module)
+            clone._parameters = {}
+            for k, v in module._parameters.items():
+                if v is not None:
+                    clone._parameters[k] = nn.Parameter(v.clone(), requires_grad=v.requires_grad)
+                else:
+                    clone._parameters[k] = None
+            clone._buffers = {k: v.clone() if v is not None else None for k, v in module._buffers.items()}
+            clone._modules = {}
+            for k, v in module._modules.items():
+                if v is not None:
+                    clone._modules[k] = clone_module(v)
+                else:
+                    clone._modules[k] = None
+            return clone
+
+        adapted_model = clone_module(self)
+        
+        effective_lr = lr
+        if entropy is not None:
+            entropy_val = entropy.mean().item()
+            effective_lr = lr * (1.0 + abs(entropy_val))
+            
+        optimizer = torch.optim.SGD(adapted_model.parameters(), lr=effective_lr)
+        
+        for p in adapted_model.parameters():
+            p.requires_grad_(True)
+            
+        adapted_model.train()
+        for step in range(steps):
+            optimizer.zero_grad()
+            abort_score, rho_factor, step_factor, forcing, gauge, constraints = adapted_model(support_history)
+            
+            loss = torch.tensor(0.0, device=support_history.device)
+            if isinstance(support_targets, dict):
+                if 'forcing' in support_targets:
+                    loss = loss + F.mse_loss(forcing, support_targets['forcing'])
+                if 'abort_score' in support_targets:
+                    loss = loss + F.mse_loss(abort_score, support_targets['abort_score'])
+                if 'rho_factor' in support_targets:
+                    loss = loss + F.mse_loss(rho_factor, support_targets['rho_factor'])
+                if 'step_factor' in support_targets:
+                    loss = loss + F.mse_loss(step_factor, support_targets['step_factor'])
+                if 'gauge' in support_targets:
+                    loss = loss + F.mse_loss(gauge, support_targets['gauge'])
+                if 'constraints' in support_targets:
+                    loss = loss + F.mse_loss(constraints, support_targets['constraints'])
+            else:
+                if support_targets.shape[-1] == forcing.shape[-1]:
+                    loss = loss + F.mse_loss(forcing, support_targets)
+                else:
+                    loss = loss + F.mse_loss(forcing[:, :support_targets.shape[-1]], support_targets)
+            
+            if loss.requires_grad:
+                loss.backward()
+                optimizer.step()
+                
+        adapted_model.eval()
+        return adapted_model
