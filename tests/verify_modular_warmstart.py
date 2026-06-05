@@ -1,7 +1,9 @@
-import torch
 import sys
 import os
+# Add project root to path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+import torch
 from src.core.speculative_coprime_gate import SpeculativeCoprimeGate
 from src.core.modular_virtualization import ModularVirtualizationLayer
 
