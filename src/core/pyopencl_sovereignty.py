@@ -501,7 +501,7 @@ class SiliconSovereigntyEngine:
         if seed is None:
             from src.core.honest_jitter import harvest_honest_jitter
             # Harvest a single seed value from hardware friction
-            seed = int(harvest_honest_jitter((1,), scaled=False)[0].item() * 4294967295)
+            seed = int(abs(harvest_honest_jitter((1,), scaled=False)[0].item()) * 4294967295)
 
         mf = cl.mem_flags
         raw_values = np.asarray(raw_values, dtype=np.float32)
@@ -615,7 +615,7 @@ class SiliconSovereigntyEngine:
         """
         if seed is None:
             from src.core.honest_jitter import harvest_honest_jitter
-            seed = int(harvest_honest_jitter((1,), scaled=False)[0].item() * 4294967295)
+            seed = int(abs(harvest_honest_jitter((1,), scaled=False)[0].item()) * 4294967295)
 
         mf = cl.mem_flags
         matrix_a = np.asarray(matrix_a, dtype=np.float32)
@@ -644,7 +644,7 @@ class SiliconSovereigntyEngine:
         """
         if seed is None:
             from src.core.honest_jitter import harvest_honest_jitter
-            seed = int(harvest_honest_jitter((1,), scaled=False)[0].item() * 4294967295)
+            seed = int(abs(harvest_honest_jitter((1,), scaled=False)[0].item()) * 4294967295)
 
         mf = cl.mem_flags
         state = np.asarray(state, dtype=np.float32)
@@ -691,7 +691,7 @@ class SiliconSovereigntyEngine:
         """Execute Gyroid minimal surface projection on PyOpenCL hardware."""
         if seed is None:
             from src.core.honest_jitter import harvest_honest_jitter
-            seed = int(harvest_honest_jitter((1,), scaled=False)[0].item() * 4294967295)
+            seed = int(abs(harvest_honest_jitter((1,), scaled=False)[0].item()) * 4294967295)
 
         mf = cl.mem_flags
         coords_np = np.asarray(coords, dtype=np.float32)
