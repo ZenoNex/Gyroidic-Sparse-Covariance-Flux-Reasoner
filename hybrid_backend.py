@@ -690,12 +690,32 @@ class HybridAI:
                 if hasattr(self, 'admr_solver'):
                     neighbor_states = torch.stack([self.temporal_model.prev_states.mean(dim=0)] * 1).unsqueeze(0).to(self.torch_device)
                     adj_weight = torch.ones(1, neighbor_states.shape[1]).to(self.torch_device)
+                    
+                    # Run MAML online meta-optimization steps using the sliding support buffer
+                    if not hasattr(self, 'admr_support_buffer'):
+                        self.admr_support_buffer = []
+                    if len(self.admr_support_buffer) > 0:
+                        entropy_val = torch.tensor([0.5], device=self.torch_device)
+                        for s_states, s_neighbors, s_weights in self.admr_support_buffer:
+                            self.admr_solver = self.admr_solver.meta_optimize_admm_step(
+                                s_states, s_neighbors, s_weights, steps=1, lr=0.01, entropy=entropy_val
+                            )
+                            
                     # We use the raw hidden state for the ADMR step
                     _out = self.admr_solver.stochastic_differential_step(
                         states=self.hidden_state.unsqueeze(0),
                         neighbor_states=neighbor_states,
                         adjacency_weight=adj_weight
                     )
+                    
+                    # Append current states to sliding support buffer
+                    self.admr_support_buffer.append((
+                        self.hidden_state.unsqueeze(0).detach().clone(),
+                        neighbor_states.detach().clone(),
+                        adj_weight.detach().clone()
+                    ))
+                    if len(self.admr_support_buffer) > 4:
+                        self.admr_support_buffer.pop(0)
                     # Update state from solver
                     if isinstance(_out, torch.Tensor):
                         hidden_state_evolved = _out
