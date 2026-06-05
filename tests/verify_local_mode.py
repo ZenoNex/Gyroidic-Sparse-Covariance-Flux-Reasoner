@@ -1,3 +1,8 @@
+import sys
+import os
+# Add project root to path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import torch
 from src.core.admr_solver import PolynomialADMRSolver
 from src.core.orchestrator import UniversalOrchestrator
@@ -22,7 +27,7 @@ def test_orchestrator():
     pressure_grad = torch.randn(2, 16)
     coherence = torch.tensor([[0.5]])
     pas_h = 0.8
-    out, regime, routing = orchestrator(state, pressure_grad, pas_h, coherence)
+    out, regime, routing, _ = orchestrator(state, pressure_grad, pas_h, coherence)
     # Basic check that out has shape
     assert out.shape[-1] == 16, f"Expected dim 16, got {out.shape[-1]}"
     print("Orchestrator integration passed. Regime:", regime)
