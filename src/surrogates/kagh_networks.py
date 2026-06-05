@@ -186,6 +186,25 @@ class KANLayer(nn.Module):
         
         return base_output + spline_output
 
+    def functional_forward(self, x: torch.Tensor, params: Optional[Dict[str, torch.Tensor]] = None) -> torch.Tensor:
+        """
+        Execute forward pass. If params is provided, temporarily load them to perform
+        the forward pass, then restore the original parameters.
+        """
+        if params is None:
+            return self.forward(x)
+            
+        orig_params = {k: v.data.clone() for k, v in self.named_parameters()}
+        try:
+            for name, param in self.named_parameters():
+                if name in params:
+                    param.data.copy_(params[name].data)
+            return self.forward(x)
+        finally:
+            for name, param in self.named_parameters():
+                if name in orig_params:
+                    param.data.copy_(orig_params[name])
+
 class HarmonicWaveDecomposition(nn.Module):
     """
     Decomposes input into Ergodic and Non-Ergodic spectral components.
@@ -417,3 +436,72 @@ class KAGHBlock(nn.Module):
             x = x + noise
             
         return x
+
+    def functional_forward(self, c: torch.Tensor, params: Optional[Dict[str, torch.Tensor]] = None, M_mv: callable = None, use_boltzmann: bool = True, gcve_pressure: Optional[torch.Tensor] = None, chirality: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """
+        Execute forward pass. If params is provided, temporarily load them to perform
+        the forward pass, then restore the original parameters.
+        """
+        if params is None:
+            return self.forward(c, M_mv=M_mv, use_boltzmann=use_boltzmann, gcve_pressure=gcve_pressure, chirality=chirality)
+            
+        orig_params = {k: v.data.clone() for k, v in self.named_parameters()}
+        try:
+            for name, param in self.named_parameters():
+                if name in params:
+                    param.data.copy_(params[name].data)
+            return self.forward(c, M_mv=M_mv, use_boltzmann=use_boltzmann, gcve_pressure=gcve_pressure, chirality=chirality)
+        finally:
+            for name, param in self.named_parameters():
+                if name in orig_params:
+                    param.data.copy_(orig_params[name])
+
+    def adapt_online(self, support_states: torch.Tensor, support_targets: torch.Tensor, steps: int = 1, lr: float = 0.01, entropy: Optional[torch.Tensor] = None) -> 'KAGHBlock':
+        """
+        Perform online inner-loop adaptation (MAML step) on support data.
+        Returns an adapted instance of KAGHBlock.
+        
+        Dynamic LR: scaled by (1.0 + entropy.mean()) if entropy is provided.
+        """
+        def clone_module(module):
+            import copy
+            clone = copy.copy(module)
+            clone._parameters = {}
+            for k, v in module._parameters.items():
+                if v is not None:
+                    clone._parameters[k] = nn.Parameter(v.clone(), requires_grad=v.requires_grad)
+                else:
+                    clone._parameters[k] = None
+            clone._buffers = {k: v.clone() if v is not None else None for k, v in module._buffers.items()}
+            clone._modules = {}
+            for k, v in module._modules.items():
+                if v is not None:
+                    clone._modules[k] = clone_module(v)
+                else:
+                    clone._modules[k] = None
+            return clone
+
+        adapted_block = clone_module(self)
+        
+        effective_lr = lr
+        if entropy is not None:
+            entropy_val = entropy.mean().item()
+            effective_lr = lr * (1.0 + abs(entropy_val))
+            
+        optimizer = torch.optim.SGD(adapted_block.parameters(), lr=effective_lr)
+        
+        for p in adapted_block.parameters():
+            p.requires_grad_(True)
+            
+        adapted_block.train()
+        for step in range(steps):
+            optimizer.zero_grad()
+            predictions = adapted_block(support_states)
+            loss = F.mse_loss(predictions, support_targets)
+            
+            if loss.requires_grad:
+                loss.backward()
+                optimizer.step()
+                
+        adapted_block.eval()
+        return adapted_block
