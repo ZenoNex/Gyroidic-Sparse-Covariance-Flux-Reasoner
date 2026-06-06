@@ -1101,11 +1101,73 @@ class SovereignConversationalIngestor:
         except Exception as e:
             print(f" Warning: Failed to initialize persistent duplicate tracker: {e}")
 
+    def _get_active_state(self) -> Optional[torch.Tensor]:
+        if self.engine is not None:
+            cavity = getattr(self.engine, 'cavity', None) or getattr(self.engine, 'resonance_cavity', None)
+            if cavity is not None and hasattr(cavity, 'M'):
+                with torch.no_grad():
+                    M = cavity.M
+                    norms = torch.norm(M, dim=-1)
+                    max_idx = torch.argmax(norms)
+                    k_idx = (max_idx // M.shape[1]).item()
+                    m_idx = (max_idx % M.shape[1]).item()
+                    return M[k_idx, m_idx].clone().detach()
+        return None
+
+    def _get_signature(self, name: str, dim: int, device: str = 'cpu') -> torch.Tensor:
+        import hashlib
+        h = hashlib.sha256(name.encode('utf-8')).digest()
+        seed = int.from_bytes(h[:4], byteorder='big')
+        g = torch.Generator(device=device)
+        g.manual_seed(seed)
+        v = torch.randn(dim, device=device, generator=g)
+        return v / (torch.norm(v) + 1e-8)
+
+    def _steer_selection(self, options: List[str]) -> str:
+        state = self._get_active_state()
+        if state is not None and len(options) > 0:
+            try:
+                device = state.device
+                dim = state.shape[-1]
+                flat_state = state.flatten()
+                norm_state = flat_state / (torch.norm(flat_state) + 1e-8)
+                
+                scores = []
+                for opt in options:
+                    sig = self._get_signature(opt, dim, device)
+                    sim = torch.dot(norm_state, sig).item()
+                    scores.append(sim)
+                
+                scores_t = torch.tensor(scores, dtype=torch.float32, device=device) / 0.2
+                from src.core.honest_jitter import honest_multinomial
+                probs = torch.softmax(scores_t, dim=0)
+                idx = honest_multinomial(probs, 1).item()
+                return options[idx]
+            except Exception as e:
+                print(f"[INGEST] Active state steering failed: {e}")
+        
+        # Honest fallback choice using hardware jitter instead of pseudorandomness
+        if len(options) > 0:
+            from src.core.honest_jitter import harvest_honest_jitter
+            jitter = harvest_honest_jitter((1,), device=torch.device('cpu'), scaled=False).item()
+            u = (jitter + 1.0) / 2.0
+            idx = int(u * len(options))
+            return options[min(idx, len(options) - 1)]
+        return ""
+
     def ingest_sovereign_logic(self, limit: int = 50) -> List[Conversation]:
-        """Fetch high-entropy logic from SE and HN."""
-        convs = self.sovereign.ingest_stack_exchange(limit=limit)
-        convs.extend(self.sovereign.ingest_hacker_news(limit=limit, mode='ask'))
-        convs.extend(self.sovereign.ingest_hacker_news(limit=limit, mode='new'))
+        """Fetch high-entropy logic from SE and HN with dynamic active-state steering."""
+        # Project active state to select Stack Exchange site
+        se_site = self._steer_selection(['stackoverflow', 'mathoverflow', 'physics', 'philosophy', 'cstheory'])
+        print(f" [INGEST] Steered SE selection to: '{se_site}'")
+        convs = self.sovereign.ingest_stack_exchange(site=se_site, limit=limit)
+        
+        # Project active state to select Hacker News modes
+        hn_mode1 = self._steer_selection(['ask', 'show', 'new', 'top', 'best'])
+        hn_mode2 = self._steer_selection([m for m in ['ask', 'show', 'new', 'top', 'best'] if m != hn_mode1])
+        print(f" [INGEST] Steered HN selections to: '{hn_mode1}' and '{hn_mode2}'")
+        convs.extend(self.sovereign.ingest_hacker_news(limit=limit, mode=hn_mode1))
+        convs.extend(self.sovereign.ingest_hacker_news(limit=limit, mode=hn_mode2))
         return convs
 
     def start_background_learning(self):
