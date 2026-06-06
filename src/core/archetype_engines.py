@@ -164,15 +164,103 @@ class VolitionalDriveInjector(nn.Module):
     The Volitional Drive Injector.
     Exogenous scalar force allowing the human element to bypass standard ADMM constraints
     through sheer willpower, rendering objects or exits that violate standard geometric routing.
+    
+    Reconstructs the tag coordinate using Sine-Gordon breather mode embeddings of character
+    associations recovered from historical fossils, rather than static coordinates.
     """
     def __init__(self, state_dim: int):
         super().__init__()
         self.admin_bypass_layer = nn.Linear(state_dim, state_dim)
         
-    def forward(self, semantic_state: torch.Tensor, user_volition_scalar: float) -> torch.Tensor:
+        # Non-dual state tracker for breather time parameter
+        self.t_accum = 0.0
+        
+        # Breather params keyed by tag name -- populated lazily from fossil files.
+        # No hardcoded character roster: associations live in the fossil payloads.
+        self.cached_breathers: Dict[str, Dict] = {}
+        self._fossils_loaded = False
+        
+    def _load_fossils(self):
+        try:
+            from src.core.knowledge_dyad_fossilizer import DyadFossilizer
+            fossilizer = DyadFossilizer(storage_dir="data/encodings")
+            fossils = fossilizer.recover_fossils(limit=100)
+            for payload in fossils:
+                tags = payload.get('tags', [])
+                breather = payload.get('video_breather')
+                if breather and isinstance(breather, dict):
+                    # Register the breather under every tag this fossil carries
+                    for tag in tags:
+                        if tag not in self.cached_breathers:
+                            self.cached_breathers[tag] = breather
+        except Exception:
+            pass
+        self._fossils_loaded = True
+
+    def forward(self, semantic_state: torch.Tensor, user_volition_scalar: float, archetype_embeddings: Optional[torch.Tensor] = None) -> torch.Tensor:
         if user_volition_scalar > 0.9:
-            # Overrides topology via external Admin Pass
-            return self.admin_bypass_layer(semantic_state) * user_volition_scalar
+            # Increment time accumulator
+            self.t_accum += 0.1
+            
+            # Load fossils on demand to prevent startup latency
+            if not self._fossils_loaded:
+                self._load_fossils()
+
+            # Pick a breather tag via archetype embedding similarity when available
+            params = None
+            available_tags = list(self.cached_breathers.keys())
+            if archetype_embeddings is not None and available_tags:
+                ref_state = semantic_state.mean(dim=0) if semantic_state.dim() > 1 else semantic_state
+                norm_state = torch.nn.functional.normalize(ref_state, dim=-1)
+                norm_embeddings = torch.nn.functional.normalize(archetype_embeddings, dim=-1)
+                sims = torch.matmul(norm_embeddings, norm_state)
+                char_idx = torch.argmax(sims).item()
+                tag_idx = int(char_idx) % len(available_tags)
+                params = self.cached_breathers[available_tags[tag_idx]]
+            elif available_tags:
+                params = self.cached_breathers[available_tags[0]]
+
+            if params is None:
+                # Derive neutral breather params from state hash when no fossils are loaded
+                state_hash = int(semantic_state.sum().abs().item() * 1e4) % 100
+                params = {
+                    "omega":     0.3 + 0.6 * (state_hash % 7) / 6,
+                    "velocity":  0.0 + 0.8 * (state_hash % 5) / 4,
+                    "amplitude": 0.7 + 0.8 * (state_hash % 3) / 2,
+                    "phase":     0.0 + 3.14 * (state_hash % 4) / 3,
+                }
+            omega = params.get("omega", 0.5)
+            velocity = params.get("velocity", 0.0)
+            amplitude = params.get("amplitude", 1.0)
+            phase = params.get("phase", 0.0)
+            
+            # Relativistic Sine-Gordon Breather Wave calculation
+            omega = max(0.05, min(0.95, omega))
+            velocity = max(-0.9, min(0.9, velocity))
+            
+            gamma = 1.0 / math.sqrt(1.0 - velocity**2)
+            dim = semantic_state.shape[-1]
+            x = torch.linspace(-5.0, 5.0, dim, device=semantic_state.device)
+            
+            # Boost coordinates
+            x_boosted = gamma * (x - velocity * self.t_accum)
+            t_boosted = gamma * (self.t_accum - velocity * x) + phase
+            
+            envelope = math.sqrt(1.0 - omega**2)
+            num = envelope * torch.sin(omega * t_boosted)
+            denom = omega * torch.cosh(envelope * x_boosted)
+            
+            phi = 4.0 * torch.atan2(num, denom)
+            breather_mode = phi * amplitude
+            if semantic_state.dim() > 1:
+                breather_mode = breather_mode.unsqueeze(0).expand_as(semantic_state)
+            else:
+                breather_mode = breather_mode.view_as(semantic_state)
+            
+            # Blend standard linear pass with the Sine-Gordon breather mode
+            bypass_base = self.admin_bypass_layer(semantic_state)
+            return bypass_base * (1.0 - user_volition_scalar) + breather_mode * user_volition_scalar
+            
         return semantic_state
 
 class BardoRouter(nn.Module):
@@ -408,9 +496,13 @@ class ArchetypalSynthesisEngine(nn.Module):
             "flags": report.flags
         }
 
-    def compute_stacked_target(self, tag_weights: Dict[str, float]) -> torch.Tensor:
+    def compute_stacked_target(
+        self, 
+        tag_weights: Optional[Dict[str, float]] = None, 
+        current_state: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """Generate a composite multi-scalar superposition target."""
-        return self.tag_stacker.compute_composite_target(tag_weights)
+        return self.tag_stacker.compute_composite_target(tag_weights, current_state)
 
     def run_archetypes(
         self, 
@@ -435,11 +527,12 @@ class ArchetypalSynthesisEngine(nn.Module):
         """Unified runner for the full archetypal and psycho-topological constraint matrix."""
         
         # 0. Apply Ganbreeder Tag Stacking Superposition
-        stacked_target = None
-        if tag_weights is not None and len(tag_weights) > 0:
-            stacked_target = self.compute_stacked_target(tag_weights)
+        stacked_target = self.compute_stacked_target(tag_weights, current_state)
+        if stacked_target is not None and stacked_target.norm() > 0:
             # Softly shift current state towards stacked target (acting as a primer)
-            current_state = current_state + 0.1 * stacked_target
+            primed_state = current_state + 0.1 * stacked_target
+            # Apply the BoundaryRelaxationOperator (self.ombre) to blend between the state and target based on env_luminosity
+            current_state = self.ombre(primed_state, env_luminosity, stacked_target)
         
         # 1. TADC Abstraction Check (Ego Death) - Must run first before filtering
         r_a = self.abstraction.calculate_abstraction_rate(
@@ -480,7 +573,7 @@ class ArchetypalSynthesisEngine(nn.Module):
         state = self.billy(state, current_mischief)
 
         # 7. Apply Volition (Conjuring)
-        state = self.volition_injector(state, volitional_scalar)
+        state = self.volition_injector(state, volitional_scalar, archetype_embeddings=self.picture_gallery.archetype_embeddings)
         
         # 8. Apply Alien Puncture (Nergal)
         resurrections = []
