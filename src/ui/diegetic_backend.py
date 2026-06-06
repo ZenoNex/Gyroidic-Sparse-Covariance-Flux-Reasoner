@@ -1927,6 +1927,24 @@ class DiegeticPhysicsEngine(nn.Module):
         # =============================================
         # 5.b CALM: Update history buffer and get trajectory assessment
         # =============================================
+        # Run MAML online adaptation for CALM
+        if not hasattr(self, 'calm_support_buffer'):
+            self.calm_support_buffer = []
+        if len(self.calm_support_buffer) > 0:
+            entropy_val = getattr(self, '_last_spectral_entropy', None)
+            for s_hist, s_target in self.calm_support_buffer:
+                self.calm = self.calm.adapt(
+                    s_hist, s_target, steps=1, lr=0.01, entropy=entropy_val
+                )
+                
+        # Append latest transition to sliding support buffer BEFORE updating calm_history
+        self.calm_support_buffer.append((
+            self.calm_history.detach().clone(),
+            (self.meta_state.unsqueeze(0) - self.calm_history[:, -1, :]).detach().clone()
+        ))
+        if len(self.calm_support_buffer) > 4:
+            self.calm_support_buffer.pop(0)
+            
         # Update CALM history with current meta-state (tensor-based, not scalar)
         self.calm_history = self.calm.update_buffer(self.calm_history, self.meta_state)
         
@@ -2068,6 +2086,16 @@ class DiegeticPhysicsEngine(nn.Module):
         # Wrapped in Matrioshka shell iterations to find a quantized fixed-point.
         kagh_input = memory_state + 0.3 * self.meta_state + input_tensor * 0.4
         
+        # Run MAML online adaptation for KAGH
+        if not hasattr(self, 'kagh_support_buffer'):
+            self.kagh_support_buffer = []
+        if len(self.kagh_support_buffer) > 0:
+            entropy_val = getattr(self, '_last_spectral_entropy', None)
+            for s_in, s_target in self.kagh_support_buffer:
+                self.kagh_drafter = self.kagh_drafter.adapt_online(
+                    s_in, s_target, steps=1, lr=0.01, entropy=entropy_val
+                )
+                
         if self.caq is not None:
             current_state = kagh_input
             
@@ -2110,6 +2138,14 @@ class DiegeticPhysicsEngine(nn.Module):
             # Apply KAGH continuous gradient descent strictly to approved subset
             kagh_draft = self.kagh_drafter(kagh_input)
             response_ghost = kagh_input * (1.0 - safe_mask) + kagh_draft * safe_mask
+            
+        # Append current transition to KAGH sliding support buffer
+        self.kagh_support_buffer.append((
+            kagh_input.detach().clone(),
+            response_ghost.detach().clone()
+        ))
+        if len(self.kagh_support_buffer) > 4:
+            self.kagh_support_buffer.pop(0)
 
         
         # =============================================
