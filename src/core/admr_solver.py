@@ -271,8 +271,9 @@ class PolynomialADMRSolver(nn.Module):
         elipsodistrophy_metrics: Optional[Dict[str, Any]] = None,
         palindromic_hash: Optional[torch.Tensor] = None,
         anchor_sym: Optional[torch.Tensor] = None,
-        boundary_state: Optional[Any] = None
-    ) -> torch.Tensor:
+        boundary_state: Optional[Any] = None,
+        return_violation: bool = False
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """
         Continuous-time Stochastic Differential Update:
         dx(t) = [  A_i x_i(t) -   (x - r(x_k)) + _tension ] dt + (D) dW
@@ -314,7 +315,7 @@ class PolynomialADMRSolver(nn.Module):
             # facet_i: [batch, state_dim]
             facet_i = facets[..., i]
             # A_i: [state_dim, state_dim]
-            drift += torch.matmul(facet_i, self.A[i])
+            drift = drift + torch.matmul(facet_i, self.A[i])
             
         # 2. Survival Pressure (ADMR Negotiation)
         weighted_neighbors = torch.einsum('bn,bnd->bd', adjacency_weight, neighbor_states)
@@ -421,6 +422,10 @@ class PolynomialADMRSolver(nn.Module):
         if locked_state.dim() > new_state.dim():
             locked_state = locked_state.mean(dim=-1)
             
+        # Straight-Through Estimator to allow gradients to flow to self.A
+        if new_state.requires_grad:
+            locked_state = locked_state - new_state.detach() + new_state
+            
         # 6. PyOpenCL Silicon Sovereignty Execution
         if getattr(self, 'silicon_engine', None) is not None:
             raw_numpy = locked_state.detach().cpu().numpy()
@@ -432,6 +437,19 @@ class PolynomialADMRSolver(nn.Module):
             scaled_numpy = self.silicon_engine.apply_lipschitz_obstruction(rounded_numpy)
             
             locked_state = torch.from_numpy(scaled_numpy).float().to(states.device)
+            
+        if return_violation:
+            # We want the violation of new_state before PyOpenCL scaling
+            # But aligning shapes:
+            proj = locked_state
+            if proj.shape[-1] != new_state.shape[-1]:
+                if proj.shape[-1] > new_state.shape[-1]:
+                    proj = proj[..., :new_state.shape[-1]]
+                else:
+                    proj = torch.nn.functional.pad(proj, (0, new_state.shape[-1] - proj.shape[-1]))
+            # Detach the projection target to allow gradients to flow to self.A through new_state
+            violation = new_state - proj.detach()
+            return locked_state, violation
             
         return locked_state
 
@@ -498,34 +516,34 @@ class PolynomialADMRSolver(nn.Module):
         facets = self.config.evaluate(states)  # [batch, state_dim, K]
         K = self.config.k
 
-        fractional_drift = torch.zeros_like(states)
-        for k in range(K):
-            facet_k = facets[..., k]  # [batch, state_dim]
-            integer_drift_k = torch.matmul(facet_k, self.A[k])  # [batch, state_dim]
+        from src.optimization.fractional_operators import frac_apply
+        
+        fractional_drift_list = []
+        for b in range(batch_size):
+            b_drift = torch.zeros(self.state_dim, device=states.device)
+            for k in range(K):
+                facet_k = facets[..., k]  # [batch, state_dim]
+                integer_drift_k = torch.matmul(facet_k, self.A[k])  # [batch, state_dim]
 
-            # Distributed fractional order: cyclotomic mapping
-            # Low k -> alpha near 1.0 (fast, memoryless)
-            # k near K/2 -> alpha near 0.5 (slow, heavy memory tail)
-            alpha_k = 0.5 + 0.5 * math.cos(2.0 * math.pi * k / max(K, 1))
+                # Distributed fractional order: cyclotomic mapping
+                alpha_k = 0.5 + 0.5 * math.cos(2.0 * math.pi * k / max(K, 1))
 
-            # Modulate alpha by hunger: high hunger widens the Fermi envelope
-            # by pushing alpha toward 1.0 (faster updates when starving)
-            if hunger is not None:
-                h_mean = hunger.mean().clamp(0.0, 1.0).item()
-                alpha_k = alpha_k + (1.0 - alpha_k) * h_mean * 0.3
+                # Modulate alpha by hunger
+                if hunger is not None:
+                    h_mean = hunger.mean().clamp(0.0, 1.0).item()
+                    alpha_k = alpha_k + (1.0 - alpha_k) * h_mean * 0.3
 
-            # Apply fractional operator: M^alpha @ v
-            # We use the transition matrix A[k] as the operator M
-            for b in range(batch_size):
+                # Apply fractional operator
                 try:
                     frac_result = frac_apply(
                         self.A[k], integer_drift_k[b], alpha_k,
                         k_steps=min(15, self.state_dim), use_codes=False
                     )
-                    fractional_drift[b] += frac_result
+                    b_drift = b_drift + frac_result
                 except Exception:
-                    # Fallback to integer drift if fractional apply fails
-                    fractional_drift[b] += integer_drift_k[b]
+                    b_drift = b_drift + integer_drift_k[b]
+            fractional_drift_list.append(b_drift)
+        fractional_drift = torch.stack(fractional_drift_list, dim=0)
 
         # 2. Survival Pressure (ADMR Negotiation)
         weighted_neighbors = torch.einsum('bn,bnd->bd', adjacency_weight, neighbor_states)
@@ -610,7 +628,11 @@ class PolynomialADMRSolver(nn.Module):
             locked_state = locked_state.mean(dim=-1)
         # Soft blend: 70% trajectory, 30% polynomial projection
         # This keeps the fractional memory tail while maintaining coprime structure
-        locked_state = 0.7 * new_state + 0.3 * locked_state
+        if new_state.requires_grad:
+            locked_state_ste = locked_state - new_state.detach() + new_state
+        else:
+            locked_state_ste = locked_state
+        locked_state = 0.7 * new_state + 0.3 * locked_state_ste
 
         # 10. PyOpenCL Silicon Sovereignty
         if getattr(self, 'silicon_engine', None) is not None:
@@ -635,4 +657,74 @@ class PolynomialADMRSolver(nn.Module):
             'local_functional_entropy': local_h,
             'global_functional_entropy': global_h
         }
+
+    def compute_constraint_violation(self, states: torch.Tensor) -> torch.Tensor:
+        """
+        Compute the constraint violation vector: states - Proj_Poly(states)
+        """
+        projected = self.config.evaluate(states)
+        if projected.dim() > states.dim():
+            projected = projected.mean(dim=-1)
+        if projected.shape[-1] != self.state_dim:
+            if projected.shape[-1] > self.state_dim:
+                projected = projected[..., :self.state_dim]
+            else:
+                projected = torch.nn.functional.pad(projected, (0, self.state_dim - projected.shape[-1]))
+        return states - projected
+
+    def meta_optimize_admm_step(
+        self,
+        states: torch.Tensor,
+        neighbor_states: torch.Tensor,
+        adjacency_weight: torch.Tensor,
+        steps: int = 1,
+        lr: float = 0.01,
+        entropy: Optional[torch.Tensor] = None
+    ) -> 'PolynomialADMRSolver':
+        """
+        Perform 1-2 gradient steps on the solver parameters (A) to minimize
+        the L2 norm of the constraint violation vector of the outputs.
+        Returns an adapted instance of the solver.
+        """
+        def clone_module(module):
+            import copy
+            clone = copy.copy(module)
+            clone._parameters = {}
+            for k, v in module._parameters.items():
+                if v is not None:
+                    clone._parameters[k] = nn.Parameter(v.clone(), requires_grad=v.requires_grad)
+                else:
+                    clone._parameters[k] = None
+            clone._buffers = {k: v.clone() if v is not None else None for k, v in module._buffers.items()}
+            clone._modules = {}
+            for k, v in module._modules.items():
+                if v is not None:
+                    clone._modules[k] = clone_module(v)
+                else:
+                    clone._modules[k] = None
+            return clone
+
+        adapted_solver = clone_module(self)
+        
+        effective_lr = lr
+        if entropy is not None:
+            entropy_val = entropy.mean().item()
+            effective_lr = lr * (1.0 + abs(entropy_val))
+            
+        optimizer = torch.optim.SGD([adapted_solver.A], lr=effective_lr)
+        
+        adapted_solver.A.requires_grad_(True)
+        
+        for step in range(steps):
+            optimizer.zero_grad()
+            output_states, violation = adapted_solver.stochastic_differential_step(
+                states, neighbor_states, adjacency_weight, return_violation=True
+            )
+            loss = torch.norm(violation, p=2, dim=-1).mean()
+            
+            if loss.requires_grad:
+                loss.backward()
+                optimizer.step()
+                
+        return adapted_solver
 
