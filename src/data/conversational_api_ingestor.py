@@ -1115,13 +1115,95 @@ class SovereignConversationalIngestor:
         return None
 
     def _get_signature(self, name: str, dim: int, device: str = 'cpu') -> torch.Tensor:
-        import hashlib
-        h = hashlib.sha256(name.encode('utf-8')).digest()
-        seed = int.from_bytes(h[:4], byteorder='big')
-        g = torch.Generator(device=device)
-        g.manual_seed(seed)
-        v = torch.randn(dim, device=device, generator=g)
-        return v / (torch.norm(v) + 1e-8)
+        """
+        Generate signature vector using character concatenation clustering, singing, and audience projection.
+        This avoids the bag-of-words hash violation.
+        """
+        # 1. Resolve character embedding resources from the engine (larynx) if available
+        has_larynx = False
+        larynx = None
+        if self.engine is not None:
+            larynx = getattr(self.engine, 'larynx', None)
+            if larynx is not None and hasattr(larynx, 'proj') and hasattr(larynx.proj, 'weight'):
+                has_larynx = True
+
+        char_indices = []
+        for c in name:
+            idx = ord(c)
+            if has_larynx:
+                vocab_size = larynx.proj.weight.shape[0]
+                idx = idx % vocab_size
+            char_indices.append(idx)
+
+        if not char_indices:
+            char_indices = [0]
+
+        # 2. Gather character vectors (Character Concatenation)
+        char_vectors = []
+        if has_larynx:
+            weight = larynx.proj.weight.detach()
+            if weight.shape[1] == dim:
+                for idx in char_indices:
+                    char_vectors.append(weight[idx].to(device))
+            else:
+                # Pad/truncate weight dimension to match dim
+                proj_weight = torch.zeros(weight.shape[0], dim, device=device, dtype=weight.dtype)
+                min_dim = min(weight.shape[1], dim)
+                proj_weight[:, :min_dim] = weight[:, :min_dim].to(device)
+                for idx in char_indices:
+                    char_vectors.append(proj_weight[idx])
+        else:
+            # Fallback character vectors using Agent Smith Engine (honest jitter)
+            from src.core.honest_jitter import AgentSmithEngine
+            engine = AgentSmithEngine(device=device)
+            for idx in char_indices:
+                # Deterministic seed value in [0, 1] derived from character index
+                seed_val = (idx % 256) / 256.0
+                cv = engine((dim,), seed_val, scaled=False)
+                char_vectors.append(cv / (torch.norm(cv) + 1e-8))
+
+        # Stack to form concatenated representation
+        char_stack = torch.stack(char_vectors, dim=0)
+
+        # 3. Character Concatenation Clustering (Centroid calculation)
+        cluster_centroid = torch.mean(char_stack, dim=0)
+
+        # 4. Character Singing (Autoregressive state evolution using character feedback)
+        singing_state = torch.zeros(dim, device=device, dtype=char_stack.dtype)
+        for cv in char_vectors:
+            feedback = torch.tanh(cv)
+            singing_state = 0.9 * singing_state + 0.1 * feedback
+
+        # Blend the clustered centroid and sung sequence states
+        blended_state = 0.5 * cluster_centroid + 0.5 * singing_state
+
+        # 5. Audience Projection
+        has_mapper = False
+        audience_mapper = None
+        if self.engine is not None:
+            audience_mapper = getattr(self.engine, 'audience_mapper', None) or getattr(self.engine, 'audience_projector', None)
+            if audience_mapper is not None and callable(audience_mapper):
+                has_mapper = True
+
+        if has_mapper:
+            try:
+                # Add batch dim for forward pass
+                projected = audience_mapper(blended_state.unsqueeze(0)).squeeze(0)
+            except Exception:
+                projected = blended_state
+        else:
+            # Fallback residual projection using Agent Smith Engine (honest jitter)
+            from src.core.honest_jitter import AgentSmithEngine
+            engine = AgentSmithEngine(device=device)
+            # Deterministic seed value for fallback matrix
+            seed_val = 0.6180339887  # Golden ratio seed
+            proj_matrix = engine((dim, dim), seed_val, scaled=False) / (dim ** 0.5)
+            smooth_proj = torch.matmul(proj_matrix, blended_state)
+            projected = blended_state + 0.1 * torch.tanh(smooth_proj)
+
+        # Normalize to unit vector for cosine similarity steering
+        return projected / (torch.norm(projected) + 1e-8)
+
 
     def _steer_selection(self, options: List[str]) -> str:
         state = self._get_active_state()
