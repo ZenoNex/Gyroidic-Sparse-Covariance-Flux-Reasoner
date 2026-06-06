@@ -64,15 +64,50 @@ class SuperposedTagStacker(nn.Module):
         # Refusal: Do not learn the tag if the textbook filter fails
         return False, report
 
-    def compute_composite_target(self, tag_weights: Dict[str, float]) -> torch.Tensor:
+    def compute_composite_target(
+        self, 
+        tag_weights: Optional[Dict[str, float]] = None, 
+        current_state: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Compute the multi-scalar superposition of requested tags.
+        
+        If tag_weights is None/empty and current_state is provided, weights
+        are automatically derived by projecting current_state onto catalog vectors
+        using cosine similarity.
         
         Weights are unbound (can be >1 or <0), enabling hyperbolic exploration
         and feature subtraction.
         """
         target = torch.zeros(self.state_dim, device=self.device)
         
+        if (tag_weights is None or len(tag_weights) == 0) and current_state is not None:
+            if len(self.catalog_vectors) > 0:
+                derived_weights = {}
+                state_val = current_state.detach().to(self.device).float()
+                
+                # Standardize state vector to 1D [state_dim]
+                if state_val.dim() > 1:
+                    state_vec = state_val.mean(dim=list(range(state_val.dim() - 1)))
+                else:
+                    state_vec = state_val
+                
+                if state_vec.shape[0] > self.state_dim:
+                    state_vec = state_vec[:self.state_dim]
+                elif state_vec.shape[0] < self.state_dim:
+                    state_vec = torch.nn.functional.pad(state_vec, (0, self.state_dim - state_vec.shape[0]))
+                
+                norm_state = torch.nn.functional.normalize(state_vec, dim=-1)
+                
+                for name, param in self.catalog_vectors.items():
+                    norm_param = torch.nn.functional.normalize(param.float(), dim=-1)
+                    cos_sim = torch.dot(norm_state, norm_param).item()
+                    derived_weights[name] = cos_sim
+                
+                tag_weights = derived_weights
+            else:
+                return target
+
         if not tag_weights or len(self.catalog_vectors) == 0:
             return target
             
