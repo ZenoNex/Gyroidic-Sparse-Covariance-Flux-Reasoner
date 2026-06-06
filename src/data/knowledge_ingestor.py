@@ -19,6 +19,24 @@ from src.data.canonical_projection import CanonicalProjector
 from src.data.conversational_api_ingestor import ConversationalDataProcessor
 from src.ui.diegetic_visualizer import _chebyshev_project_np
 
+def _honest_randint(low: int, high: int, device: str = 'cpu') -> int:
+    if low >= high:
+        return low
+    from src.core.honest_jitter import harvest_honest_jitter
+    jitter = harvest_honest_jitter((1,), device=torch.device(device), scaled=False).item()
+    u = (jitter + 1.0) / 2.0
+    val = low + int(u * (high - low + 1))
+    return min(val, high)
+
+def _honest_choice(options: list, device: str = 'cpu') -> Any:
+    if not options:
+        return None
+    from src.core.honest_jitter import harvest_honest_jitter
+    jitter = harvest_honest_jitter((1,), device=torch.device(device), scaled=False).item()
+    u = (jitter + 1.0) / 2.0
+    idx = int(u * len(options))
+    return options[min(idx, len(options) - 1)]
+
 class ArXivSovereignIngestor:
     """
     Implements a 'Slow-Drip' non-teleological knowledge ingestor using ArXiv OAI-PMH and Search APIs.
@@ -175,6 +193,12 @@ class ArXivSovereignIngestor:
 
     def _parse_and_fossilize(self, xml_text: str, commutativity: str):
         """Parses OAI-PMH XML and converts records into permanent knowledge fossils."""
+        acquired = False
+        if self.engine is not None and hasattr(self.engine, '_processing_lock'):
+            acquired = self.engine._processing_lock.acquire(timeout=180.0)
+            if not acquired:
+                print("[INGEST] Warning: Failed to acquire lock for OAI-PMH parsing. Bypassing.")
+                return
         try:
             root = ET.fromstring(xml_text)
             records = root.findall('.//oai:record', self.ns)
@@ -250,6 +274,9 @@ class ArXivSovereignIngestor:
                 print(f"[INGEST] Successfully anchored {admitted_count} lore residues. Rejected {rejected_count} below threshold.")
         except Exception as e:
             print(f"[INGEST] Parsing error: {e}")
+        finally:
+            if acquired:
+                self.engine._processing_lock.release()
 
     def _get_category_signature(self, name: str) -> torch.Tensor:
         """Generates a deterministic, category-specific archetype signature vector in engine space."""
@@ -274,7 +301,8 @@ class ArXivSovereignIngestor:
         cleaned_query = " ".join(cleaned_query.split())
         query_param = "+".join(cleaned_query.split())
         
-        url = f"http://export.arxiv.org/api/query?search_query=all:{query_param}&max_results=5"
+        random_offset = _honest_randint(0, 30, device=self.device)
+        url = f"http://export.arxiv.org/api/query?search_query=all:{query_param}&sortBy=submittedDate&sortOrder=descending&start={random_offset}&max_results=5"
         
         try:
             print(f"[INGEST] Performing character-level search on ArXiv for: '{cleaned_query}'...")
@@ -288,6 +316,12 @@ class ArXivSovereignIngestor:
 
     def _parse_and_fossilize_atom(self, xml_text: str, query: str, commutativity: str):
         """Parses ArXiv Atom search API XML and converts entries into permanent knowledge fossils."""
+        acquired = False
+        if self.engine is not None and hasattr(self.engine, '_processing_lock'):
+            acquired = self.engine._processing_lock.acquire(timeout=180.0)
+            if not acquired:
+                print("[INGEST] Warning: Failed to acquire lock for Atom parsing. Bypassing.")
+                return
         try:
             root = ET.fromstring(xml_text)
             ns = {'atom': 'http://www.w3.org/2005/Atom'}
@@ -364,24 +398,120 @@ class ArXivSovereignIngestor:
                 print(f"[INGEST] Successfully anchored {admitted_count} query-based lore residues. Rejected {rejected_count} below threshold.")
         except Exception as e:
             print(f"[INGEST] Atom parsing error: {e}")
+        finally:
+            if acquired:
+                self.engine._processing_lock.release()
+
+    def _get_dynamic_fallback(self) -> str:
+        """Dynamically extracts query terms from historical memory fossils to guide search."""
+        try:
+            fossils = self.fossilizer.recover_fossils(limit=50)
+            if fossils:
+                for _ in range(15):
+                    chosen = _honest_choice(fossils, device=self.device)
+                    desc = chosen.get('text_input') or chosen.get('description', '')
+                    if not desc:
+                        continue
+                    # Tokenize and clean
+                    words = [w.strip(".,!?;:()[]{}'\"") for w in desc.split()]
+                    words = [w for w in words if len(w) > 4 and w.isalpha() and w.lower() not in [
+                        "about", "their", "there", "would", "could", "should", "under", "which",
+                        "these", "those", "other", "after", "before", "using", "first", "second"
+                    ]]
+                    if len(words) >= 2:
+                        idx = _honest_randint(0, len(words) - 2, device=self.device)
+                        query = f"{words[idx]} {words[idx+1]}"
+                        return query
+                    elif len(words) == 1:
+                        return words[0]
+        except Exception as e:
+            print(f"[INGEST] Dynamic fallback extraction failed: {e}")
+            
+        # Hardcore physical/topological concepts matching our mathematical framework as ultimate default
+        default_concepts = [
+            "Chebyshev polynomial", "Birkhoff polytope", "Chern Simons Gasket",
+            "Drucker Prager yield", "Mohr Coulomb", "Wasserstein distance",
+            "sine Gordon soliton", "homology Betti number", "non Hermitian flow"
+        ]
+        
+        # Project active state onto default concepts via cosine similarity
+        current_state = None
+        if self.state_callback is not None:
+            try:
+                current_state = self.state_callback()
+            except Exception:
+                pass
+        if current_state is None and self.engine is not None:
+            cavity = getattr(self.engine, 'cavity', None) or getattr(self.engine, 'resonance_cavity', None)
+            if cavity is not None and hasattr(cavity, 'M'):
+                try:
+                    M = cavity.M
+                    norms = torch.norm(M, dim=-1)
+                    max_idx = torch.argmax(norms)
+                    k_idx = (max_idx // M.shape[1]).item()
+                    m_idx = (max_idx % M.shape[1]).item()
+                    current_state = M[k_idx, m_idx]
+                except Exception:
+                    pass
+
+        if current_state is not None:
+            try:
+                flat_state = current_state.flatten()
+                if flat_state.shape[0] > self.engine_dim:
+                    flat_state = flat_state[:self.engine_dim]
+                elif flat_state.shape[0] < self.engine_dim:
+                    padding = torch.zeros(self.engine_dim - flat_state.shape[0], device=self.device)
+                    flat_state = torch.cat([flat_state, padding])
+
+                norm_state = flat_state / (torch.norm(flat_state) + 1e-8)
+
+                scores = []
+                for s in default_concepts:
+                    sig = self._get_category_signature(s)
+                    sim = torch.dot(norm_state, sig).item()
+                    scores.append(sim)
+
+                scores_t = torch.tensor(scores, dtype=torch.float32, device=self.device) / 0.2
+                from src.core.honest_jitter import honest_multinomial
+                probs = torch.softmax(scores_t, dim=0)
+                idx = honest_multinomial(probs, 1).item()
+                return default_concepts[idx]
+            except Exception as e:
+                print(f"[INGEST] Dynamic fallback steering failed: {e}")
+
+        return _honest_choice(default_concepts, device=self.device)
 
     def _generate_larynx_query(self) -> str:
         """Uses the engine's larynx autoregressively to generate a search query from the current meta_state."""
         if self.engine is None or not hasattr(self.engine, 'larynx'):
-            fallbacks = ["topology", "quantum gravity", "homology", "reaction diffusion", "fractional admm"]
-            import random
-            return random.choice(fallbacks)
+            return self._get_dynamic_fallback()
+            
+        acquired = False
+        if hasattr(self.engine, '_processing_lock'):
+            acquired = self.engine._processing_lock.acquire(timeout=5.0)
+            if not acquired:
+                return self._get_dynamic_fallback()
             
         try:
             # Temporarily flag that engine is generating background search terms
             old_processing = getattr(self.engine, '_is_processing', False)
             self.engine._is_processing = True
             
-            # Start with current meta_state clone
+            # Start with current meta_state clone or ResonanceCavity active mode
             if self.state_callback is not None:
                 current_state = self.state_callback().clone().detach()
             else:
-                current_state = torch.zeros((1, self.engine_dim), device=self.device)
+                # Try to initialize current_state from the ResonanceCavity active mode vector
+                cavity = getattr(self.engine, 'cavity', None) or getattr(self.engine, 'resonance_cavity', None)
+                if cavity is not None and hasattr(cavity, 'M'):
+                    M = cavity.M # [K, num_modes, hidden_dim]
+                    norms = torch.norm(M, dim=-1) # [K, num_modes]
+                    max_idx = torch.argmax(norms)
+                    k_idx = (max_idx // M.shape[1]).item()
+                    m_idx = (max_idx % M.shape[1]).item()
+                    current_state = M[k_idx, m_idx].unsqueeze(0).clone().detach()
+                else:
+                    current_state = torch.zeros((1, self.engine_dim), device=self.device)
                 
             larynx = self.engine.larynx
             larynx.eval()
@@ -411,17 +541,17 @@ class ArXivSovereignIngestor:
             query = " ".join(query.split())
             
             if len(query) < 3:
-                fallbacks = ["quantum topology", "fractional calculus", "soliton dynamics", "persistent homology"]
-                import random
-                query = random.choice(fallbacks)
+                query = self._get_dynamic_fallback()
                 
             return query
         except Exception as e:
             print(f"[INGEST] Larynx query generation failed: {e}")
-            return "mathematics"
+            return self._get_dynamic_fallback()
         finally:
             if self.engine is not None:
                 self.engine._is_processing = old_processing
+            if acquired:
+                self.engine._processing_lock.release()
 
     def start_sovereign_loop(self):
         """Starts the background ingestion thread with dynamic Meta-State Topic Steering."""
@@ -483,12 +613,12 @@ class ArXivSovereignIngestor:
                             probs = torch.softmax(scores_t, dim=0)
                             
                             # Sample category
-                            idx = torch.multinomial(probs, 1).item()
+                            from src.core.honest_jitter import honest_multinomial
+                            idx = honest_multinomial(probs, 1).item()
                             selected_set = sets[idx]
                             print(f" [INGEST] Meta-State Topic Steering selected topic: '{selected_set}' (prob: {probs[idx].item():.3f})")
                         else:
-                            import random
-                            selected_set = random.choice(sets)
+                            selected_set = _honest_choice(sets, device=self.device)
                             print(f" [INGEST] Dynamic loop selected uniform topic: '{selected_set}'")
                         
                         # Run ingestion
