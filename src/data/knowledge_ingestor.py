@@ -58,6 +58,10 @@ class ArXivSovereignIngestor:
         self.rate_limit_seconds = 4.0 # Conservatively above the 3s requirement
         self._engine_busy_fn = None
         
+        # Deduplication cache for already fossilized arxiv_ids
+        self.fossilized_arxiv_ids = set()
+        self._load_fossilized_arxiv_ids()
+        
         # NS Map for ArXiv OAI-PMH
         self.ns = {
             'oai': 'http://www.openarchives.org/OAI/2.0/',
@@ -66,7 +70,7 @@ class ArXivSovereignIngestor:
         }
         
         # Standardized Processing Pipeline
-        self.filter = TextbookFilter()
+        self.filter = TextbookFilter(engine=self.engine)
         self.projector = CanonicalProjector(dim=engine_dim, device=self.device)
         self.processor = ConversationalDataProcessor(device=self.device)
 
@@ -79,20 +83,67 @@ class ArXivSovereignIngestor:
             time.sleep(sleep_time)
         self.last_request_time = time.time()
 
+    def _load_fossilized_arxiv_ids(self):
+        """Builds a set of already fossilized arxiv_ids from files in storage_dir."""
+        try:
+            import os
+            import torch
+            if self.fossilizer is not None and hasattr(self.fossilizer, 'storage_dir') and os.path.exists(self.fossilizer.storage_dir):
+                for f in os.listdir(self.fossilizer.storage_dir):
+                    if f.endswith(".pt"):
+                        filepath = os.path.join(self.fossilizer.storage_dir, f)
+                        try:
+                            data = torch.load(filepath, map_location='cpu')
+                            if isinstance(data, dict):
+                                dyad_meta = data.get('dyad_metadata') or {}
+                                arxiv_id = dyad_meta.get('arxiv_id')
+                                if arxiv_id:
+                                    self.fossilized_arxiv_ids.add(self._clean_arxiv_id(arxiv_id))
+                        except Exception:
+                            pass
+            print(f"[INGEST] Loaded {len(self.fossilized_arxiv_ids)} existing ArXiv fossil IDs to prevent duplicate learning.")
+        except Exception as e:
+            print(f"[INGEST] Error loading existing ArXiv fossils: {e}")
+
+    def _clean_arxiv_id(self, raw_id: str) -> str:
+        """Extracts the clean, normalized, version-agnostic ArXiv ID from a URL or raw identifier."""
+        if not raw_id:
+            return ""
+        raw_id = raw_id.strip()
+        if '/abs/' in raw_id:
+            raw_id = raw_id.split('/abs/')[-1]
+        elif '/pdf/' in raw_id:
+            raw_id = raw_id.split('/pdf/')[-1]
+        if raw_id.lower().startswith('arxiv:'):
+            raw_id = raw_id[6:]
+        import re
+        raw_id = re.sub(r'v\d+$', '', raw_id)
+        if raw_id.endswith('.pdf'):
+            raw_id = raw_id[:-4]
+        return raw_id.strip()
+
+    def _set_to_category(self, set_name: str) -> str:
+        """Maps OAI-PMH set names to ArXiv Search API category names."""
+        if set_name == 'physics:physics.soc-ph':
+            return 'physics.soc-ph'
+        elif set_name.startswith('physics:'):
+            return set_name.split(':', 1)[1]
+        elif ':' in set_name:
+            return set_name.replace(':', '.')
+        return set_name
+
     def ingest_latest_math(self, set_name: str = "math", commutativity: str = 'symmetric'):
-        """Fetches the latest arrivals from ArXiv and fossilizes them into the manifold."""
+        """Fetches the latest arrivals from ArXiv using the Search API and fossilizes them into the manifold."""
         self._wait_for_rate_limit()
-        params = {
-            'verb': 'ListRecords',
-            'metadataPrefix': 'oai_dc',
-            'set': set_name
-        }
+        cat = self._set_to_category(set_name)
+        random_offset = _honest_randint(0, 10, device=self.device)
+        url = f"http://export.arxiv.org/api/query?search_query=cat:{cat}&sortBy=submittedDate&sortOrder=descending&start={random_offset}&max_results=5"
         
         try:
-            print(f"[INGEST] Querying ArXiv lore bank (set: {set_name})...")
-            response = requests.get(self.base_url, params=params, timeout=20)
+            print(f"[INGEST] Querying ArXiv lore bank (category: {cat})...")
+            response = requests.get(url, timeout=20)
             if response.status_code == 200:
-                self._parse_and_fossilize(response.text, commutativity)
+                self._parse_and_fossilize_atom(response.text, f"cat:{cat}", commutativity)
             else:
                 print(f"[INGEST] Failed to reach ArXiv (HTTP {response.status_code}). Manifold remains local.")
         except Exception as e:
@@ -219,10 +270,15 @@ class ArXivSovereignIngestor:
                     abstract = desc_elem.text if desc_elem is not None else "No Abstract"
                     arxiv_id = id_elem.text if id_elem is not None else "No ID"
                     
+                    # Deduplication check
+                    clean_id = self._clean_arxiv_id(arxiv_id)
+                    if clean_id in self.fossilized_arxiv_ids:
+                        continue
+                    
                     full_content = f"Title: {title}\nAbstract: {abstract}"
                     
                     # 1. Quality Gating (Structural Honesty & Textbook Standards)
-                    report = self.filter.assess(full_content, source=f"arxiv_{arxiv_id}")
+                    report = self.filter.assess(full_content, source=f"arxiv_{clean_id}")
                     
                     if not report.is_admissible:
                         rejected_count += 1
@@ -239,11 +295,11 @@ class ArXivSovereignIngestor:
                     
                     # 4. Multimodal Fingerprint Extraction (The ArXiv Bitstream Upgrade)
                     # We download the LaTeX source tarball and extract its visual media
-                    img_bytes_list = self._extract_media_from_eprint(arxiv_id)
+                    img_bytes_list = self._extract_media_from_eprint(clean_id)
                     multimodal_fingerprint = self._compute_multimodal_fingerprint(img_bytes_list)
                     
                     if len(img_bytes_list) > 0:
-                        print(f" [MULTIMODAL] Extracted {len(img_bytes_list)} images for {arxiv_id}. Fingerprint embedded.")
+                        print(f" [MULTIMODAL] Extracted {len(img_bytes_list)} images for {clean_id}. Fingerprint embedded.")
                         
                     # 5. Fossilization with full metadata
                     dyad = KnowledgeDyad(
@@ -251,7 +307,7 @@ class ArXivSovereignIngestor:
                         linguistic_description=title,
                         relevance_score=float(report.instructive), # Use instructor score as relevance
                         metadata={
-                            'arxiv_id': arxiv_id,
+                            'arxiv_id': clean_id,
                             'abstract_preview': abstract[:200],
                             'quality': report.to_dict(),
                             'affordance_gradients': gradients,
@@ -263,6 +319,7 @@ class ArXivSovereignIngestor:
                     
                     seed_state = self._resolve_seed_state(title)
                     self.fossilizer.fossilize(dyad, residue, seed_state=seed_state)
+                    self.fossilized_arxiv_ids.add(clean_id)
                     admitted_count += 1
                     
                     # Descriptive status log
@@ -341,13 +398,17 @@ class ArXivSovereignIngestor:
                 abstract = " ".join(abstract.split())
                 
                 arxiv_url = id_elem.text.strip() if id_elem is not None and id_elem.text else "No ID"
-                # Extract arxiv_id from url
-                arxiv_id = arxiv_url.split('/abs/')[-1] if '/abs/' in arxiv_url else arxiv_url
+                # Extract clean arxiv_id
+                clean_id = self._clean_arxiv_id(arxiv_url)
+                
+                # Deduplication check
+                if clean_id in self.fossilized_arxiv_ids:
+                    continue
                 
                 full_content = f"Title: {title}\nAbstract: {abstract}"
                 
                 # 1. Quality Gating (Structural Honesty & Textbook Standards)
-                report = self.filter.assess(full_content, source=f"arxiv_query_{arxiv_id}")
+                report = self.filter.assess(full_content, source=f"arxiv_query_{clean_id}")
                 
                 if not report.is_admissible:
                     rejected_count += 1
@@ -363,11 +424,11 @@ class ArXivSovereignIngestor:
                 gradients = self.processor.compute_affordance_gradients(full_content)
                 
                 # 4. Multimodal Fingerprint Extraction
-                img_bytes_list = self._extract_media_from_eprint(arxiv_id)
+                img_bytes_list = self._extract_media_from_eprint(clean_id)
                 multimodal_fingerprint = self._compute_multimodal_fingerprint(img_bytes_list)
                 
                 if len(img_bytes_list) > 0:
-                    print(f" [MULTIMODAL] Extracted {len(img_bytes_list)} images for {arxiv_id}. Fingerprint embedded.")
+                    print(f" [MULTIMODAL] Extracted {len(img_bytes_list)} images for {clean_id}. Fingerprint embedded.")
                     
                 # 5. Fossilization with full metadata
                 dyad = KnowledgeDyad(
@@ -375,7 +436,7 @@ class ArXivSovereignIngestor:
                     linguistic_description=title,
                     relevance_score=float(report.instructive),
                     metadata={
-                        'arxiv_id': arxiv_id,
+                        'arxiv_id': clean_id,
                         'abstract_preview': abstract[:200],
                         'query_used': query,
                         'quality': report.to_dict(),
@@ -388,6 +449,7 @@ class ArXivSovereignIngestor:
                 
                 seed_state = self._resolve_seed_state(title)
                 self.fossilizer.fossilize(dyad, residue, seed_state=seed_state)
+                self.fossilized_arxiv_ids.add(clean_id)
                 admitted_count += 1
                 
                 media_str = f"| MEDIA: {len(img_bytes_list)}" if len(img_bytes_list) > 0 else ""
