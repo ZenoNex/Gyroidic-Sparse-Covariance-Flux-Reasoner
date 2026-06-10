@@ -1,3 +1,10 @@
+"""
+Quantum-inspired reasoning state representation.
+
+This module models koncept superposition and entanglement using complex-valued
+tensors and Hermitian Hamiltonian dynamics for System 2 reasoners.
+"""
+
 import torch
 import torch.nn as nn
 import numpy as np
@@ -10,9 +17,15 @@ class QuantumInspiredReasoningState(nn.Module):
     Modeling superposition of hypotheses and concept entanglement.
     """
     def __init__(self, dim: int = 256):
+        """
+        Initialize the QuantumInspiredReasoningState module.
+
+        Args:
+            dim: Dimension of the complex amplitude vector and square Hamiltonian.
+        """
         super().__init__()
         self.dim = dim
-        # Initialize complex amplitude state |ψ⟩
+        # Initialize complex amplitude state |
         # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
         real_part = harvest_honest_jitter((dim,))
         imag_part = harvest_honest_jitter((dim,))
@@ -41,7 +54,7 @@ class QuantumInspiredReasoningState(nn.Module):
         is_batched = len(ref_shape) > 1
         batch_dim = ref_shape[0] if is_batched else 1
         
-        # 2. Create Superposition State |S⟩ = Σ c_i |h_i⟩
+        # 2. Create Superposition State |S =  c_i |h_i
         if is_batched:
              super_state = torch.zeros(ref_shape, dtype=torch.complex64, device=self.amplitude.device)
         else:
@@ -63,7 +76,7 @@ class QuantumInspiredReasoningState(nn.Module):
             complex_h = torch.complex(h, torch.zeros_like(h))
             super_state += coeff * complex_h
             
-        # 2. Evolve state: |S(t)⟩ = e^{-iHt} |S(0)⟩ (1 step)
+        # 2. Evolve state: |S(t) = e^{-iHt} |S(0) (1 step)
         dt = 0.1
         # Evolution operator U = exp(-iHt) ~ (I - iH*dt)
         evolution = torch.eye(self.dim, dtype=torch.complex64, device=self.amplitude.device) - \
@@ -81,7 +94,7 @@ class QuantumInspiredReasoningState(nn.Module):
         norm = torch.norm(evolved_state, dim=-1, keepdim=True)
         evolved_state = evolved_state / (norm + 1e-8)
         
-        # 3. Born Rule: P(x) = |ψ(x)|²
+        # 3. Born Rule: P(x) = |(x)|
         probabilities = torch.abs(evolved_state) ** 2
         
         return probabilities
@@ -91,7 +104,7 @@ class QuantumInspiredReasoningState(nn.Module):
         Create an entangled state between two concepts (Tensor Product).
         Returns entangled tensor (flattened or shaped).
         """
-        # Tensor product: A ⊗ B
+        # Tensor product: A  B
         # For computability, if dims are large, we use outer product simulation
         flat_a = concept_a.flatten()
         flat_b = concept_b.flatten()
@@ -135,14 +148,14 @@ class QuantumInspiredReasoningState(nn.Module):
         noise = torch.complex(noise_real, noise_imag)
         noise = noise / torch.norm(noise)
         
-        # ρ' = (1-p)ρ + p(I/d)
+        # ' = (1-p) + p(I/d)
         # Vector approximation
         decoherent = (1 - noise_strength) * state + noise_strength * noise
         return decoherent / torch.norm(decoherent)
 
     def quantum_interference(self, state_a: torch.Tensor, state_b: torch.Tensor, phase_shift: float) -> torch.Tensor:
         """
-        Interference: |ψ⟩ = |a⟩ + e^{iφ}|b⟩
+        Interference: | = |a + e^{i}|b
         """
         return state_a + state_b * np.exp(1j * phase_shift)
 
