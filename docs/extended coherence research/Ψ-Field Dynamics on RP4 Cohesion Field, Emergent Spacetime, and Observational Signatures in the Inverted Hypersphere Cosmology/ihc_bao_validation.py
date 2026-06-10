@@ -57,10 +57,22 @@ plt.rcParams.update({'font.family': 'serif', 'font.size': 10,
 
 # Background functions 
 def E_base(z):
+    """
+    Compute the standard base expansion rate parameter E(z).
+
+    Args:
+        z: Redshift value.
+    """
     return np.sqrt(Ω_m*(1+z)**3 + Ω_L)
 
 # k=1 shell correction: f(z) = 1 + (ξ-1)/2 * [1 + tanh((z1-z)/Δz)]
 def chi_fn(z):
+    """
+    Compute the comoving distance chi(z) using the base expansion rate.
+
+    Args:
+        z: Redshift value.
+    """
     return quad(lambda zp: c_kms/(H0*E_base(zp)), 0, z, limit=300)[0]
 
 # Find z_1 (redshift where χ = R_1)
@@ -91,9 +103,31 @@ def DV_IHC(z):
     DH_m = c_kms/(H0*E_ξ) * (1 + A_Z3*np.sin(2*np.pi*ch/λ_Z3))
     return (z * DM_m**2 * DH_m)**(1/3) / r_s_camb
 
-def DH_LCDM(z):  return (c_kms/(H0*E_base(z))) / r_s_camb
-def DM_LCDM(z):  return chi_fn(z) / r_s_camb
+def DH_LCDM(z):
+    """
+    Compute the Hubble distance DH(z)/r_s in LCDM.
+
+    Args:
+        z: Redshift value.
+    """
+    return (c_kms/(H0*E_base(z))) / r_s_camb
+
+def DM_LCDM(z):
+    """
+    Compute the comoving angular diameter distance DM(z)/r_s in LCDM.
+
+    Args:
+        z: Redshift value.
+    """
+    return chi_fn(z) / r_s_camb
+
 def DV_LCDM(z):
+    """
+    Compute the spherically averaged BAO distance DV(z)/r_s in LCDM.
+
+    Args:
+        z: Redshift value.
+    """
     ch=chi_fn(z); dh=c_kms/(H0*E_base(z))
     return (z*ch**2*dh)**(1/3) / r_s_camb
 
@@ -172,11 +206,25 @@ wz_errs = np.array([83.0, 101.0, 86.0]) / r_s_camb
 print('\nComputing predictions...')
 
 def pred_IHC(z, tp):
+    """
+    Predict the IHC value for a given redshift and survey observation type.
+
+    Args:
+        z: Redshift value.
+        tp: The survey observation type ('DM', 'DH', or others for 'DV').
+    """
     if tp=='DM': return DM_IHC(z)
     if tp=='DH': return DH_IHC(z)
     return DV_IHC(z)
 
 def pred_LCDM(z, tp):
+    """
+    Predict the LCDM value for a given redshift and survey observation type.
+
+    Args:
+        z: Redshift value.
+        tp: The survey observation type ('DM', 'DH', or others for 'DV').
+    """
     if tp=='DM': return DM_LCDM(z)
     if tp=='DH': return DH_LCDM(z)
     return DV_LCDM(z)
@@ -223,6 +271,15 @@ print('\n Tests ')
 passed = 0; failed = 0
 
 def check(label, val, expected, tol=0.10):
+    """
+    Verify a computed cosmological parameter or chi^2 statistic against reference values.
+
+    Args:
+        label: Text label describing the check.
+        val: The computed value.
+        expected: The expected reference value.
+        tol: Tolerance ratio.
+    """
     global passed, failed
     err = abs(val-expected)/abs(expected) if abs(expected)>1e-9 else abs(val)
     ok  = err < tol
@@ -306,6 +363,15 @@ DV_l = np.array([DV_LCDM(z) for z in z_c])
 s_col = {'6dFGS':CGRY,'MGS':CPUR,'SDSS':CPUR,'WigZ':('#e67e22'),
          'BOSS':CGOLD,'eBOSS':('#16a085'),'DESI':CGN}
 def get_col(name):
+    """
+    Return a consistent plotting color based on the survey name.
+
+    Args:
+        name: Name of the survey.
+
+    Returns:
+        The matched color hex string.
+    """
     return next((v for k,v in s_col.items() if k in name), CGRY)
 
 for ax_i, (ylabel, Yc, Yl, tp_key) in enumerate([
