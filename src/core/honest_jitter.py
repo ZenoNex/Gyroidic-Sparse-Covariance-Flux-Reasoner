@@ -1,3 +1,10 @@
+"""
+Honest Jitter entropy harvesting.
+
+This module provides the Agent Smith protocol for hardware-anchored timing jitter
+harvesting and entropy expansion using non-teleological logistic maps.
+"""
+
 import torch
 import torch.nn as nn
 import time
@@ -19,6 +26,12 @@ class AgentSmithEngine(nn.Module):
     - Grounded in physical substrate friction.
     """
     def __init__(self, device=None):
+        """
+        Initialize the AgentSmithEngine.
+
+        Args:
+            device: The target hardware device for tensor storage.
+        """
         super().__init__()
         # Internal state for learnable expansion
         self.register_buffer('iters_base_small', torch.tensor(30.0, device=device))
