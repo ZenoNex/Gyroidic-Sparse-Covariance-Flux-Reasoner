@@ -1,3 +1,10 @@
+"""
+Knowledge dyad fossilization and Agent Smith serialization.
+
+This module handles persistent storage (fossilization) of multi-modal knowledge dyads
+and exports/imports decoupled mathematical Agent Smith identities.
+"""
+
 import torch
 import torch.nn as nn
 import os
@@ -53,6 +60,12 @@ class ResidueFusion(nn.Module):
     Handles dynamic fingerprint dimensions (96 legacy, 96 Chebyshev un-lobotomized).
     """
     def __init__(self, feature_dim: int = 512):
+        """
+        Initialize the ResidueFusion module.
+
+        Args:
+            feature_dim: Projection target dimensionality for alignment.
+        """
         super().__init__()
         # Dynamic projectors to handle different input standards
         # Aligned to non-prime dimension 96 (32*3) as per Silicon Sovereignty.
@@ -102,6 +115,14 @@ class DyadFossilizer:
                  storage_dir: str = "data/encodings",
                  fusion_layer: Optional[ResidueFusion] = None,
                  feature_dim: int = 512):
+        """
+        Initialize the DyadFossilizer.
+
+        Args:
+            storage_dir: Directory path for persisting serialized .pt files.
+            fusion_layer: Optional explicit ResidueFusion module.
+            feature_dim: Base dimensionality for target embeddings.
+        """
         self.storage_dir = storage_dir
         os.makedirs(self.storage_dir, exist_ok=True)
         self.feature_dim = feature_dim
