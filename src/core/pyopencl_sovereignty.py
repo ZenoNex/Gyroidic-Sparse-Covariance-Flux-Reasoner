@@ -1,3 +1,10 @@
+"""
+Silicon Sovereignty engine utilizing PyOpenCL.
+
+This module provides hardware-accelerated kernels to bypass CPU bottlenecks
+and enforce topological constraints directly on the silicon substrate.
+"""
+
 import pyopencl as cl
 import numpy as np
 import logging
@@ -17,6 +24,14 @@ class SiliconSovereigntyEngine:
     """
 
     def __init__(self, use_gpu=True, target_lipschitz=1.0, love_protector=None):
+        """
+        Initialize the SiliconSovereigntyEngine.
+
+        Args:
+            use_gpu: Enable target execution on GPU if available.
+            target_lipschitz: Spectral bound for weight matrix normalization.
+            love_protector: The Love Invariant guardian instance.
+        """
         self.logger = logging.getLogger("SiliconSovereigntyEngine")
         self.target_lipschitz = target_lipschitz
         self.love_protector = love_protector # Bridge 3: Love Invariant sync
@@ -790,4 +805,10 @@ class SiliconSovereigntyEngine:
 
 # Expose standard execution hook
 def create_engine():
+    """
+    Create and return a SiliconSovereigntyEngine instance.
+
+    Returns:
+        An initialized instance of SiliconSovereigntyEngine.
+    """
     return SiliconSovereigntyEngine()
