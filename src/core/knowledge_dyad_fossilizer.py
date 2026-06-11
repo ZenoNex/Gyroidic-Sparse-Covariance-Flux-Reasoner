@@ -105,6 +105,38 @@ class ResidueFusion(nn.Module):
         
         return residue
 
+    def calculate_cross_modal_shear(self, 
+                                    image_fingerprint: torch.Tensor, 
+                                    text_embedding: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate cross-modal shear to inject residue as 'Dark Matter' seeds.
+        Formula: shear = (img_proj x txt_proj^T) - (txt_proj x img_proj^T) (non-abelian commutator shear)
+        We project the commutator back as a 'Dark Matter' seed.
+        """
+        in_dim = image_fingerprint.size(-1)
+        if in_dim == 96:
+            img_proj = self.image_proj(image_fingerprint)
+        else:
+            padded = torch.zeros(*image_fingerprint.shape[:-1], 96, device=image_fingerprint.device)
+            min_dim = min(in_dim, 96)
+            padded[..., :min_dim] = image_fingerprint[..., :min_dim]
+            img_proj = self.image_proj(padded)
+
+        txt_proj = self.text_proj(text_embedding)
+        
+        if img_proj.dim() == 1:
+            img_proj = img_proj.unsqueeze(0)
+        if txt_proj.dim() == 1:
+            txt_proj = txt_proj.unsqueeze(0)
+            
+        # Cross-modal shear matrix: I^T * T - T^T * I
+        shear = torch.matmul(img_proj.T, txt_proj) - torch.matmul(txt_proj.T, img_proj)
+        
+        # Project back to a 1D "Dark Matter" seed of length feature_dim
+        dark_matter_seed = torch.tanh(shear.mean(dim=0))
+        return dark_matter_seed
+
+
 class DyadFossilizer:
     """
     Handles the persistent storage ('Fossilization') of Knowledge Dyads.
@@ -382,7 +414,33 @@ class DyadFossilizer:
         
         return filepath
         
+    def ouroboros_shadow_loop(self, 
+                              failure_log: str, 
+                              seed_state: torch.Tensor, 
+                              text_embedding: torch.Tensor, 
+                              image_fingerprint: Optional[torch.Tensor] = None) -> Optional[str]:
+        """
+        Ouroboros Shadow loops: Fossilize shadow logs of mathematical failures
+        as permanent KnowledgeDyads when local correlation reaches 1.0 (GLYPHLOCK state).
+        """
+        from src.core.martinova_correlation import compute_bounded_correlation
+        corr_input = seed_state.unsqueeze(-1) if seed_state.dim() == 2 else seed_state
+        state_corr = compute_bounded_correlation(corr_input)
+        
+        # When local correlation reaches 1.0 (>= 0.99), we trigger glyphlock fossilization
+        if (state_corr >= 0.99).any():
+            print(f"[OUROBOROS] Correlation reached 1.0 (GLYPHLOCK state). Fossilizing shadow log of mathematical failure.")
+            # Wrap failure log as a permanent KnowledgeDyad
+            failure_dyad = KnowledgeDyad(
+                linguistic_description=f"Ouroboros Shadow Failure Log: {failure_log[:150]}...",
+                image_fingerprint=image_fingerprint,
+                metadata={'failure_type': 'ouroboros_shadow_loop', 'glyphlock_triggered': True, 'raw_log': failure_log}
+            )
+            return self.fossilize(failure_dyad, text_embedding, seed_state)
+        return None
+        
     def recover_fossils(self, limit: Optional[int] = 150) -> List[Dict]:
+
         """Load all fossilized dyads for 'Speculative Coprime Gating'."""
         fossils = []
         if not os.path.exists(self.storage_dir):
