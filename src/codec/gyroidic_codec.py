@@ -355,24 +355,39 @@ class GyroidImageProjector(nn.Module):
             if image is not None:
                 is_1d = image.dim() == 1
                 img_2d = self._prepare_image(image)  # [res, res]
+                
+                # Check clustering of visual features
+                from src.core.martinova_correlation import compute_bounded_correlation
+                visual_corr_input = img_2d.unsqueeze(-1) if img_2d.dim() == 2 else img_2d
+                visual_corr = compute_bounded_correlation(visual_corr_input).mean().item()
+                
+                # Map highly clustered visual features into high-curvature saddle points of the gyroid (G=0, high gradient)
+                dy, dx = torch.gradient(img_2d if not is_1d else img_2d.float())
+                gy, gx = torch.gradient(gyroid_slice)
+                
+                if visual_corr > 0.5:
+                    grad_mag = torch.sqrt(gx**2 + gy**2 + 1e-8)
+                    saddle_weight = torch.exp(-torch.abs(gyroid_slice)) * grad_mag
+                    saddle_weight = saddle_weight / (saddle_weight.max() + 1e-8)
+                    # Bias/amplify clustered features at the saddle points
+                    img_2d = img_2d * (1.0 + 1.5 * saddle_weight * visual_corr)
+                    print(f" [CODEC] Clustered visual features detected (corr={visual_corr:.3f}). Mapping to high-curvature saddle points.")
+                
                 modulated = gyroid_slice * img_2d
                 
                 # Compute Chiral Groupoid Anisotropy (Berry Phase analog)
                 # Calculates the geometric twist of image gradients across the gyroid slice
                 if is_1d:
                     # Bridge: For 1D spectral residues, twist is modal gradient
-                    # d_coeff / d_mode instead of d_pixel / d_space
-                    # We use a proxy: difference in mean values of neighboring coefficients
                     twist = (image.diff().mean() * gyroid_slice.mean()).clamp(-1.0, 1.0)
                 else:
-                    dy, dx = torch.gradient(img_2d)
-                    gy, gx = torch.gradient(gyroid_slice)
                     # Cross product proxy for 2D gradients (curl-like twist)
                     twist = (dx * gy - dy * gx).mean()
                 berry_phases.append(twist)
             else:
                 modulated = gyroid_slice
                 berry_phases.append(torch.tensor(0.0, device=self.config.device))
+
 
             # 3. Downsample to nn via adaptive average
             downsampled = self._adaptive_pool(modulated, self.n)  # [n, n]
