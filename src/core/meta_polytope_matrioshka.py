@@ -5,6 +5,12 @@ from typing import Dict, List, Tuple, Optional, Union, Callable, Any
 import torch.nn.functional as F
 
 
+class TopologicalRefusalError(Exception):
+    """Raised when containment fails in Seriousness mode."""
+    pass
+
+
+
 class BoundaryState:
     """
     Represents the boundary state of a polytope at a veto activation point.
@@ -131,7 +137,10 @@ class MetaPolytopeMatrioshka(nn.Module):
         calm_veto_score: float = 0.0,
         calm_gauge: float = 0.5,
         geom_veto_score: float = 0.0,
-        voynich_token: Optional[Any] = None
+        voynich_token: Optional[Any] = None,
+        mode: str = 'PLAY',
+        dt: float = 1.0,
+        h_mischief: float = 0.0
     ) -> Union[Tuple[torch.Tensor, int, int], BoundaryState]:
         """
         Apply Matrioshka-nested context-aware quantization and evolution.
@@ -143,6 +152,16 @@ class MetaPolytopeMatrioshka(nn.Module):
         """
         level = start_level if start_level is not None else self.max_depth
         
+        is_play = mode.upper() in ('PLAY', 'GOO')
+        is_serious = mode.upper() in ('SERIOUSNESS', 'PRICKLES')
+        
+        # Margin scaling
+        margin_factor = 1.0
+        if is_play:
+            margin_factor = 1.0 + 1.0 * h_mischief
+        elif is_serious:
+            margin_factor = 0.05
+            
         # Weighted Linear Interpolation (originally referred to as Riemann-Critical Veto Superposition)
         # Blends geometric and empirical veto bounds. The Riemann zeta critical line Re(s)=1/2 is an 
         # aesthetic metaphor for maintaining metastability.
@@ -170,7 +189,7 @@ class MetaPolytopeMatrioshka(nn.Module):
             
             # Simple geometric containment proxy (distance to lattice < delta * factor)
             # Modulated by total_veto: higher veto shrinks the containment boundary
-            boundary_margin_tensor = effective_delta * (1.0 - 0.5 * total_veto) * exemption_scale
+            boundary_margin_tensor = effective_delta * (1.0 - 0.5 * total_veto) * exemption_scale * margin_factor
             boundary_margin = boundary_margin_tensor.mean().item()
             
             # If the veto is extreme, we forcibly pop outward (manifold tear)
@@ -179,7 +198,20 @@ class MetaPolytopeMatrioshka(nn.Module):
                 continue
                 
             # Compute containment
-            quantized = torch.round(x / effective_delta) * effective_delta
+            # Play mode soft projection
+            if is_play:
+                floor_val = torch.floor(x / effective_delta) * effective_delta
+                ceil_val = torch.ceil(x / effective_delta) * effective_delta
+                d_floor = torch.abs(x - floor_val)
+                d_ceil = torch.abs(x - ceil_val)
+                temp = max(dt, 1e-6)
+                w_floor = torch.exp(-d_floor / temp)
+                w_ceil = torch.exp(-d_ceil / temp)
+                w_sum = w_floor + w_ceil + 1e-9
+                quantized = (w_floor * floor_val + w_ceil * ceil_val) / w_sum
+            else:
+                quantized = torch.round(x / effective_delta) * effective_delta
+                
             energy = torch.norm(x - quantized, dim=-1)
             mean_energy = energy.mean().item()
             
@@ -200,7 +232,19 @@ class MetaPolytopeMatrioshka(nn.Module):
                     y = xq
                     
                 # Re-quantize yq = Q(y)
-                yq = torch.round(y / effective_delta) * effective_delta
+                if is_play:
+                    floor_y = torch.floor(y / effective_delta) * effective_delta
+                    ceil_y = torch.ceil(y / effective_delta) * effective_delta
+                    d_floor_y = torch.abs(y - floor_y)
+                    d_ceil_y = torch.abs(y - ceil_y)
+                    temp = max(dt, 1e-6)
+                    w_floor_y = torch.exp(-d_floor_y / temp)
+                    w_ceil_y = torch.exp(-d_ceil_y / temp)
+                    w_sum_y = w_floor_y + w_ceil_y + 1e-9
+                    yq = (w_floor_y * floor_y + w_ceil_y * ceil_y) / w_sum_y
+                else:
+                    yq = torch.round(y / effective_delta) * effective_delta
+                    
                 y_energy = torch.norm(y - yq, dim=-1).mean().item()
                 
                 # Is yq an interior fixed point?
@@ -234,13 +278,23 @@ class MetaPolytopeMatrioshka(nn.Module):
         if facet_normal.dim() > 1:
             facet_normal = facet_normal.flatten()[:facet_normal.shape[-1]]
             
-        return BoundaryState.from_crossing(
+        boundary_state = BoundaryState.from_crossing(
             state_direction=state_direction,
             facet_normal=facet_normal,
             alpha=alpha,
             level=level,  # will be -1
             max_level=self.max_depth
         )
+        
+        if is_serious:
+            if boundary_state.is_critical():
+                # Hyperbolic Poincaré disk projection / inversion: x -> x / (||x||^2 + 1e-6)
+                projected_x = x / (torch.sum(x**2, dim=-1, keepdim=True) + 1e-6)
+                return projected_x, alpha, level
+            else:
+                raise TopologicalRefusalError("Topological refusal triggered in Seriousness mode")
+                
+        return boundary_state
 
     def get_diagnostics(self) -> Dict:
         return {
