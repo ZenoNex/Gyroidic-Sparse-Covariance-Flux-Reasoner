@@ -633,6 +633,29 @@ class DiegeticPhysicsEngine(nn.Module):
         self.fossil_cache = []
         self._refresh_fossil_cache()
         
+        # Stabilization, Visibility Flags, and Threading Locks
+        import threading
+        self._processing_lock = threading.RLock()
+        self._is_training_temporal = False
+        self._is_processing = False
+        self._last_resonance = 0.0
+        
+        # Interaction Context Buffer (Last 10 interaction seed_states)
+        self.interaction_context = []
+        self.max_context_len = 10
+        
+        # Seed the Larynx if it's a "Blank Slate"
+        self._initialize_larynx_weights()
+        
+        # Initialize background Larynx coherence trainer and shadow replay queue
+        from collections import deque
+        self._shadow_replay_queue = deque(maxlen=50)
+        
+        # Democratic Steering Hub (Phase 20)
+        self.expressivity_votes = 0
+        self.mischief_votes = 0
+        self.voting_threshold = 5  # Target net votes for discrete Symbolic Delta activation
+        
         # Sovereign Ingestor: Background Knowledge Acquisition
         try:
             # Mandated REPOSITORY_ROOT configuration (Sovereign Context)
@@ -667,32 +690,7 @@ class DiegeticPhysicsEngine(nn.Module):
             print(f"[INGEST] ArXiv Sovereign Ingestor failed: {e}")
             self.arxiv_ingestor = None
         
-        # Stabilization and Visibility Flags
-        self._is_training_temporal = False
-        self._is_processing = False
-        import threading
-        self._processing_lock = threading.RLock()
-        self._last_resonance = 0.0
-        
-        # Interaction Context Buffer (Last 10 interaction seed_states)
-        # Required by ResonanceLarynx.generate_response for autoregressive coherence.
-        self.interaction_context: List[torch.Tensor] = []
-        self.max_context_len = 10
-        
-        # Seed the Larynx if it's a "Blank Slate"
-        self._initialize_larynx_weights()
-        
-        # Initialize background Larynx coherence trainer and shadow replay queue
-        from collections import deque
-        self._shadow_replay_queue = deque(maxlen=50)
         self._start_background_larynx_trainer()
-
-        # =============================================
-        # DEMOCRATIC STEERING HUB (Phase 20)
-        # =============================================
-        self.expressivity_votes = 0
-        self.mischief_votes = 0
-        self.voting_threshold = 5 # Target net votes for discrete Symbolic Delta activation
 
     def _idx_to_char(self, idx: int) -> str:
         """Map vocabulary index to character string."""
