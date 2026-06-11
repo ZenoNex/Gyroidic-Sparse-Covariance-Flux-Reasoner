@@ -187,22 +187,46 @@ class CALM(nn.Module):
             loss = torch.tensor(0.0, device=support_history.device)
             if isinstance(support_targets, dict):
                 if 'forcing' in support_targets:
-                    loss = loss + F.mse_loss(forcing, support_targets['forcing'])
+                    t_forcing = support_targets['forcing']
+                    if t_forcing.shape != forcing.shape:
+                        t_forcing = t_forcing.view(forcing.shape)
+                    loss = loss + F.mse_loss(forcing, t_forcing)
                 if 'abort_score' in support_targets:
-                    loss = loss + F.mse_loss(abort_score, support_targets['abort_score'])
+                    t_abort = support_targets['abort_score']
+                    if t_abort.shape != abort_score.shape:
+                        t_abort = t_abort.view(abort_score.shape)
+                    loss = loss + F.mse_loss(abort_score, t_abort)
                 if 'rho_factor' in support_targets:
-                    loss = loss + F.mse_loss(rho_factor, support_targets['rho_factor'])
+                    t_rho = support_targets['rho_factor']
+                    if t_rho.shape != rho_factor.shape:
+                        t_rho = t_rho.view(rho_factor.shape)
+                    loss = loss + F.mse_loss(rho_factor, t_rho)
                 if 'step_factor' in support_targets:
-                    loss = loss + F.mse_loss(step_factor, support_targets['step_factor'])
+                    t_step = support_targets['step_factor']
+                    if t_step.shape != step_factor.shape:
+                        t_step = t_step.view(step_factor.shape)
+                    loss = loss + F.mse_loss(step_factor, t_step)
                 if 'gauge' in support_targets:
-                    loss = loss + F.mse_loss(gauge, support_targets['gauge'])
+                    t_gauge = support_targets['gauge']
+                    if t_gauge.shape != gauge.shape:
+                        t_gauge = t_gauge.view(gauge.shape)
+                    loss = loss + F.mse_loss(gauge, t_gauge)
                 if 'constraints' in support_targets:
-                    loss = loss + F.mse_loss(constraints, support_targets['constraints'])
+                    t_constraints = support_targets['constraints']
+                    if t_constraints.shape != constraints.shape:
+                        t_constraints = t_constraints.view(constraints.shape)
+                    loss = loss + F.mse_loss(constraints, t_constraints)
             else:
-                if support_targets.shape[-1] == forcing.shape[-1]:
-                    loss = loss + F.mse_loss(forcing, support_targets)
+                t_forcing = support_targets
+                if t_forcing.shape != forcing.shape:
+                    try:
+                        t_forcing = t_forcing.view(forcing.shape)
+                    except Exception:
+                        pass
+                if t_forcing.shape[-1] == forcing.shape[-1]:
+                    loss = loss + F.mse_loss(forcing, t_forcing)
                 else:
-                    loss = loss + F.mse_loss(forcing[:, :support_targets.shape[-1]], support_targets)
+                    loss = loss + F.mse_loss(forcing[:, :t_forcing.shape[-1]], t_forcing)
             
             if loss.requires_grad:
                 loss.backward()
