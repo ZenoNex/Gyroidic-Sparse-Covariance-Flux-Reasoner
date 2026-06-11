@@ -83,10 +83,20 @@ class TopologicalErosionFBM(nn.Module):
         Carve gullies into the feature space using the "Fractional Anisotropic 
         Fractal Polynomial Functionals encoded Brownian Motion" paradigm.
         """
+        # Determine Morphological Set Points in topological erosion when clustering hits 1.0 (>= 0.99)
+        from src.core.martinova_correlation import compute_bounded_correlation
+        state_corr_input = state.unsqueeze(-1) if state.dim() == 2 else state
+        state_corr = compute_bounded_correlation(state_corr_input)
+        if (state_corr >= 0.99).any():
+            # Freeze state directly as a Morphological Set Point
+            print("[EROSION] State clustering reached 1.0. Freezing as Morphological Set Point.")
+            return state
+
         if pressure_grad is None or intensity == 0:
             return state
             
         normalized_pressure = F.normalize(pressure_grad, dim=-1)
+
         
         # 1. Determine Frequencies (Dynamic vs Fossilized)
         # Spectral Atrophy Detection (PAS_h < 0.2 indicates collapse)
