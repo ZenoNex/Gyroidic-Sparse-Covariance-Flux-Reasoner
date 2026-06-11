@@ -22,13 +22,16 @@ class SparseHigherOrderTensorDynamics(nn.Module):
             for order in range(1, max_order + 1)
         })
         
-    def forward(self, x: torch.Tensor, active_facets: Optional[List[int]] = None) -> Dict[int, torch.Tensor]:
+    def forward(self, x: torch.Tensor, active_facets: Optional[List[int]] = None, mode: str = 'PLAY') -> Dict[int, torch.Tensor]:
         """
         Compute tensor dynamics.
         If active_facets is provided, compute sparsely.
         """
         results = {}
         batch_size, dim = x.shape
+        
+        is_play = mode.upper() in ('PLAY', 'GOO')
+        is_serious = mode.upper() in ('SERIOUSNESS', 'PRICKLES')
         
         # 1st Order (Linear) - Always computed fully
         w1 = self.tensor_weights['1']
@@ -38,9 +41,24 @@ class SparseHigherOrderTensorDynamics(nn.Module):
             return results
             
         # Determine facets to process
-        if active_facets is None:
-            # Auto-detect: For simulation, just pick top 10% magnitude indices
-            active_facets = torch.topk(x.abs().mean(dim=0), k=int(dim * 0.1)).indices.tolist()
+        # Detect clustered nodes of tensor activity using local correlation
+        from src.core.martinova_correlation import compute_bounded_correlation
+        node_patterns = x.T.unsqueeze(0) # [1, dim, batch]
+        node_corrs = compute_bounded_correlation(node_patterns).squeeze(0) # [dim]
+        combined_scores = x.abs().mean(dim=0) * (1.0 + node_corrs)
+        
+        if is_serious:
+            k_limit = max(1, int(dim * 0.25))
+            top_indices = torch.topk(combined_scores, k=k_limit).indices.tolist()
+            if active_facets is None:
+                active_facets = top_indices
+            else:
+                active_facets = [f for f in active_facets if f in top_indices]
+                if not active_facets:
+                    active_facets = top_indices
+        else:
+            if active_facets is None:
+                active_facets = torch.topk(combined_scores, k=max(1, int(dim * 0.1))).indices.tolist()
             
         # Create a mask for sparse computation
         mask = torch.zeros(dim, device=x.device)
@@ -58,9 +76,14 @@ class SparseHigherOrderTensorDynamics(nn.Module):
         # 3rd Order (Cubic)
         if self.max_order >= 3:
             w3 = self.tensor_weights['3']
-            x_sparse = x * mask
-            # Mock cubic interaction
-            results[3] = (torch.matmul(x_sparse, w3) ** 2) * x_sparse
+            if is_play:
+                soft_mask = torch.sigmoid(combined_scores)
+                x_soft = x * soft_mask
+                results[3] = (torch.matmul(x_soft, w3) ** 2) * x_soft
+            else:
+                x_sparse = x * mask
+                # Mock cubic interaction
+                results[3] = (torch.matmul(x_sparse, w3) ** 2) * x_sparse
             
         return results
 
