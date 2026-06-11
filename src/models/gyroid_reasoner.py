@@ -853,10 +853,16 @@ class GyroidicFluxReasoner(nn.Module):
             veto_result = self.veto_subspace.evaluate(
                 instability_severity=instability_severity,
                 covariance_aborts=_abort,
+                elipsodistrophy_atrophy=atrophy_val,
                 topological_pressure=total_topological_pressure.mean().item() if hasattr(total_topological_pressure, 'mean') else float(total_topological_pressure)
             )
             # Store diagnostics for downstream consumers
             self._last_veto_result = veto_result
+            
+            # Chaos Defibrillator trigger: if atrophy is extremely high, inject mischief directly
+            if atrophy_val >= 0.99:
+                if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'mischief_probe'):
+                    self.orchestrator.mischief_probe.H_mischief.fill_(5.0)  # Inject high mischief
             
             cavity_outputs = self.resonance_cavity(
                 h,
