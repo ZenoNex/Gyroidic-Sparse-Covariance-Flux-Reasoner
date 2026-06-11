@@ -619,10 +619,19 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                 # Clamp final output to reasonable range
                 final_features = torch.clamp(final_features, min=-20.0, max=20.0)
                 
+                # MGDAS correlation audit
+                val_res = self.validate_augmentation(X_processed, final_features)
+                if not val_res.get('topological_integrity', True):
+                    print(f"  Augmentation variation {aug_idx} failed correlation audit (approaching 0 or not tracking original), using fallback...")
+                    # Fallback: simple noise that preserves sign and variance
+                    final_features = X_processed + harvest_honest_jitter(X_processed.shape, device=X_processed.device, scaled=True) * 0.1
+                    final_features = torch.clamp(final_features, min=-20.0, max=20.0)
+                
                 augmented_X_list.append(final_features)
                 
                 if y is not None:
                     augmented_y_list.append(y)
+
                     
             except Exception as e:
                 print(f"  Augmentation {aug_idx} failed: {e}")
@@ -780,7 +789,6 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                     not torch.isinf(augmented_data).any() and
                     augmented_data.std() > 1e-6  # Has some variation
                 )
-        else:
             # Different dimensions - use alternative validation
             validation_results['covariance_preservation'] = (
                 not torch.isnan(augmented_data).any() and 
@@ -788,7 +796,30 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                 augmented_data.std() > 1e-6
             )
         
+        # Check 5: Audit augmented points via local correlation (MGDAS Audit)
+        from src.core.martinova_correlation import compute_bounded_correlation
+        orig_corr_input = original_data.unsqueeze(-1) if original_data.dim() == 2 else original_data
+        aug_corr_input = augmented_data.unsqueeze(-1) if augmented_data.dim() == 2 else augmented_data
+        
+        orig_corr = compute_bounded_correlation(orig_corr_input).mean().item()
+        aug_corr = compute_bounded_correlation(aug_corr_input).mean().item()
+        
+        # Reject variations approaching 0 (spatial randomness / noise)
+        not_random_noise = abs(aug_corr) > 0.15
+        
+        # Validate those tracking original pattern correlations
+        tracks_original = True
+        if orig_corr > 0.3 and aug_corr < 0.0:
+            tracks_original = False
+        elif orig_corr < -0.3 and aug_corr > 0.0:
+            tracks_original = False
+            
+        validation_results['not_random_noise'] = not_random_noise
+        validation_results['tracks_original_correlation'] = tracks_original
+        validation_results['topological_integrity'] = not_random_noise and tracks_original
+        
         return validation_results
+
 
 # Example usage and testing
 def demo_mandelbulb_gyroidic_augmentation():
