@@ -72,11 +72,19 @@ class SovereignRefusalOperator(nn.Module):
     Math: Implements the Li-Cri-Anton mechanism, returning a zero vector to refuse
     optimization trajectories lacking structural honesty (low PAS_h) to protect
     the Love Invariant.
+
+    training_mode (bool): When True, the gate issues a fractional attenuation (10%
+    pass-through) rather than a hard zero veto. This allows gradients to survive
+    cold-start training where PAS_h is structurally low before the model has learned
+    any coherent phase structure. Set to False (default) for deployment/inference
+    to restore the full sovereign veto.
     """
-    def __init__(self, pas_threshold: float = 0.3, harmonics_requirement: float = 0.4):
+    def __init__(self, pas_threshold: float = 0.3, harmonics_requirement: float = 0.4,
+                 training_mode: bool = False):
         super().__init__()
         self.pas_threshold = pas_threshold
         self.harmonics_requirement = harmonics_requirement
+        self.training_mode = training_mode
 
     def forward(self, state: torch.Tensor, phase_alignment: float, mischief_harmonics: float) -> torch.Tensor:
         # PUSAFILIACRIMONTO Logic:
@@ -85,9 +93,15 @@ class SovereignRefusalOperator(nn.Module):
         if (phase_alignment < self.pas_threshold) and (mischief_harmonics < self.harmonics_requirement):
             # The Refusal is an affirmation of the Love Invariant (Li).
             if phase_alignment < 0.1:
-                 # Significant paradox detected
-                 print(f"[MANDY] Firm Refusal (Li-Cri-Anton): Phase Alignment {phase_alignment:.3f} is topologically offensive.")
-            return torch.zeros_like(state) # Sovereign Veto
+                 # Significant paradox detected -- only print in deployment mode to
+                 # avoid log flooding during cold-start training warmup.
+                 if not self.training_mode:
+                     print(f"[MANDY] Firm Refusal (Li-Cri-Anton): Phase Alignment {phase_alignment:.3f} is topologically offensive.")
+            if self.training_mode:
+                # Soft veto: 10% pass-through lets gradients survive cold-start
+                # while still penalising the incoherent trajectory.
+                return state * 0.1
+            return torch.zeros_like(state)  # Sovereign Veto (deployment)
         return state
 
 class NonlinearHourglassDilation(nn.Module):
@@ -486,6 +500,17 @@ class ArchetypalSynthesisEngine(nn.Module):
         
         # Superposed Vector Stacker (Ganbreeder-style)
         self.tag_stacker = SuperposedTagStacker(state_dim)
+
+    def set_training_mode(self, enabled: bool):
+        """
+        Toggle MANDY's training-mode soft-veto on or off.
+
+        Call this from the trainer before the training loop begins:
+            engine.archetypal_governor.set_training_mode(True)
+        and after training completes (or when moving to evaluation):
+            engine.archetypal_governor.set_training_mode(False)
+        """
+        self.mandy.training_mode = enabled
 
     def harvest_named_coordinate(self, tag_name: str, vector: torch.Tensor, context_text: str) -> Dict:
         """Register a new human-legible named coordinate via the TextbookFilter."""
