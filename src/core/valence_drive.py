@@ -31,7 +31,8 @@ class ValenceFunctional(nn.Module):
         self, 
         current_pressure: torch.Tensor,
         mischief: Optional[torch.Tensor] = None,
-        entropy: Optional[torch.Tensor] = None
+        entropy: Optional[torch.Tensor] = None,
+        categories: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
         Computes the Training Valence (Hunger).
@@ -93,6 +94,15 @@ class ValenceFunctional(nn.Module):
             # High spectral entropy representing historical decay and category fragmentation.
             dissonance += 0.3 * entropy.mean()
 
+        # Coordinate category dispersion when the local correlation metric reaches 1.0
+        if categories is not None:
+            from src.core.martinova_correlation import compute_bounded_correlation
+            cat_corr = compute_bounded_correlation(categories)
+            if (cat_corr >= 0.99).any():
+                # Add a strong dissonance boost to coordinate dispersion (urge the system to disperse)
+                dissonance += 1.5
+                print("[VALENCE] Category clustering reached 1.0. Coordinating category dispersion.")
+
         # 4. Total Hunger
         hunger = (surprise + dissonance) * self.hunger_scale
         
@@ -100,6 +110,7 @@ class ValenceFunctional(nn.Module):
         self._last_hunger = hunger.mean().detach()
         
         return hunger
+
 
     def get_metrics(self) -> Dict[str, float]:
         """Return metrics for the diegetic terminal."""
