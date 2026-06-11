@@ -164,15 +164,29 @@ class LegibilityTripwire(nn.Module):
         else:
             correlation = torch.tensor(0.0, device=device)
         
-        # Warning condition: High coherence gap AND/OR correlation
+        # Audit activations for artificial clustering of reasoning vectors
+        from src.core.martinova_correlation import compute_bounded_correlation
+        selected_clustering = torch.tensor(0.0, device=device)
+        if selected_embeddings.shape[0] > 1:
+            selected_clustering = compute_bounded_correlation(selected_embeddings.unsqueeze(0)).squeeze(0)
+            
+        rejected_clustering = torch.tensor(0.0, device=device)
+        if rejected_embeddings.shape[0] > 1:
+            rejected_clustering = compute_bounded_correlation(rejected_embeddings.unsqueeze(0)).squeeze(0)
+            
+        is_crystallized = selected_clustering > 0.8
+        is_fractured = selected_clustering < -0.8
+        
+        # Warning condition: High coherence gap AND/OR correlation OR artificial crystallization/fracture
         coherence_gap = selected_coherence - rejected_coherence
-        is_warning = (coherence_gap > self.warning_threshold) or (correlation.abs() > 0.5)
+        is_warning = (coherence_gap > self.warning_threshold) or (correlation.abs() > 0.5) or is_crystallized or is_fractured
         
         if is_warning:
             warnings.warn(
                 f"LEGIBILITY TRIPWIRE: Selected configs have {coherence_gap:.2f} higher "
                 f"narrative coherence. Correlation with selection: {correlation:.2f}. "
-                f"This may indicate rich-club attractor bias.",
+                f"Clustering of selected reasoning vectors: {selected_clustering:.2f}. "
+                f"This may indicate rich-club attractor bias or artificial crystallization.",
                 UserWarning
             )
         
@@ -181,8 +195,13 @@ class LegibilityTripwire(nn.Module):
             'coherence_gap': coherence_gap,
             'correlation': correlation,
             'selected_coherence': selected_coherence,
-            'rejected_coherence': rejected_coherence
+            'rejected_coherence': rejected_coherence,
+            'selected_clustering': selected_clustering,
+            'rejected_clustering': rejected_clustering,
+            'is_crystallized': torch.tensor(is_crystallized, device=device),
+            'is_fractured': torch.tensor(is_fractured, device=device)
         }
+
     
     def reset(self):
         """Reset tracking history."""
