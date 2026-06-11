@@ -129,6 +129,27 @@ class SituationalBatchSampler(Sampler[List[int]]):
                     for p in play_samples:
                         consumed.add(p)
             
+            # Dynamic audit loop to ensure batch lies within the optimal correlation window [-0.7, 0.7]
+            attempts = 0
+            while attempts < 5 and len(batch) > 2:
+                batch_features = self.R[batch]
+                from core.martinova_correlation import compute_bounded_correlation
+                corr = compute_bounded_correlation(batch_features.unsqueeze(0)).squeeze(0).item()
+                if -0.7 <= corr <= 0.7:
+                    break
+                # Remove last element to disrupt extreme correlation and swap with play sample
+                removed = batch.pop()
+                if removed in consumed:
+                    consumed.remove(removed)
+                remaining = list(set(range(self.num_samples)) - consumed)
+                if remaining:
+                    jitter = harvest_honest_jitter((1,), device=self.R.device, scaled=True)
+                    idx = int(jitter.item() * len(remaining)) % len(remaining)
+                    play_sample = remaining[idx]
+                    batch.append(play_sample)
+                    consumed.add(play_sample)
+                attempts += 1
+
             if len(batch) > 0:
                 yield batch
 
