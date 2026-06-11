@@ -152,7 +152,7 @@ graph TD
 
 1.  **Selection Pressure** ($\mathcal{S}$): Measures the survivorship of the symbolic lattice (CRT, Entropy, Trust).
 2.  **Containment Pressure** ($\mathcal{C}$): Measures the structural tension in the repair glue (Homology Drift, Gyroid Violation).
-3.  **Topological Invariants** [IHC Standard]: The manifold is locked to $N=33$ nested shells. Sound horizon $r_s = 153.2$ Mpc is derived from the $k=7$ shell projection.
+3.  **Topological Invariants** [IHC Standard]: The manifold is locked to $N=33$ nested shells. Sound horizon $r_s = 153.2$ Mpc is derived from the $k=7$ shell projection. The derived coherence length scale $\ell_{\mathrm{coh}} \approx 346$ Mpc represents the $1/e$ correlation limit of the cohesion field.
 4.  **Topologically Typed Pressures**: Pressures are domain-isolated via strict typing (`StructuralPressure`). Cross-domain aggregation (scalarization) is mechanically forbidden to prevent teleological goal-collapsing.
 5.  **DAQUF Fossilization**: An evolved threshold where successful components become immutable. All fossils use the **Agent Smith .pt** standard for tensor preservation.
 5.  **Yield Duality**: Handles dual-regime plasticity; $\Pi_{\mathrm{MC}}$ for situational rupture logic and $\Pi_{\mathrm{DP}}$ for global navigability.
