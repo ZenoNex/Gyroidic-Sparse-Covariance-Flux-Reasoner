@@ -512,3 +512,75 @@ class CoherentPrimeResonance(nn.Module):
         
         return cond1 and cond2 and cond3
 
+
+class CALMCollapseDetector(nn.Module):
+    """
+    CALM Collapse Detector.
+    Uses bounded local correlation to track structural collapse/stagnation
+    in trajectory history of states.
+    """
+    def __init__(self, warning_threshold: float = 0.8):
+        super().__init__()
+        self.warning_threshold = warning_threshold
+
+    def forward(self, history: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Args:
+            history: [batch, history_len, dim] trajectory history
+            
+        Returns:
+            is_collapsed: [batch] boolean indicator of collapse
+            correlation: [batch] local correlation score in [-1, 1]
+        """
+        from src.core.martinova_correlation import compute_bounded_correlation
+        # Compute bounded correlation of history. Treat history_len as N points of dim-dimensional space.
+        corr = compute_bounded_correlation(history)
+        
+        # Stagnation/collapse is characterized by maximal clustering/fossilization (corr -> 1.0)
+        is_collapsed = corr >= self.warning_threshold
+        return is_collapsed, corr
+
+
+class KleinThroatTransition(nn.Module):
+    """
+    Klein Throat Transition.
+    Implements orientation flipping for normal vectors traversing the non-orientable
+    Klein-bottle throat, tracks the Contorsion Tensor, and handles Geometric Berry Phase backpropagation.
+    """
+    def __init__(self, dim: int = 3):
+        super().__init__()
+        self.dim = dim
+        # Contorsion tensor: K^i_{jk} = T^i_{jk} + T_{j k}^i + T_{k j}^i (where T is torsion)
+        self.contorsion = nn.Parameter(harvest_honest_jitter((dim, dim, dim), scaled=True) * 0.02)
+        # Berry Phase Tracker for holonomy
+        self.berry_tracker = BerryPhaseTracker()
+
+    def forward(self, state: torch.Tensor, normal_vector: torch.Tensor, traverse_threshold: float = 0.5) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Args:
+            state: [batch, dim] representing coordinate state
+            normal_vector: [batch, dim] representing normal vectors (e.g. from GyroidManifold.gradient)
+            traverse_threshold: threshold to trigger crossing the throat
+            
+        Returns:
+            flipped_normal: [batch, dim] orientation-flipped normal vector if crossing the throat
+            contorsion_effect: [batch, dim] contorsion tensor tracking contribution
+            berry_phase: [batch] geometric phase shift
+        """
+        # 1. Orientation Flipping: If traversing the Klein-bottle throat, the normal vector's orientation flips.
+        traverse_factor = torch.sin(state[:, 0])  # Proxy for throat position
+        cross_throat = traverse_factor.abs() > traverse_threshold
+        
+        # Flip orientation along the traverse boundary (non-orientability)
+        flipped_normal = normal_vector.clone()
+        flipped_normal[cross_throat] = -flipped_normal[cross_throat]
+        
+        # 2. Contorsion Tensor Tracking: K(v, w) = v_j * w_k * K^i_{jk}
+        contorsion_effect = torch.einsum('...j,...k,ijk->...i', state, flipped_normal, self.contorsion)
+        
+        # 3. Geometric Berry Phase Tracking
+        berry_phase = self.berry_tracker.update(state, state + contorsion_effect)
+        
+        return flipped_normal, contorsion_effect, berry_phase
+
+
