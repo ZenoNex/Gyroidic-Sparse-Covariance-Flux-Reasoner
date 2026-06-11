@@ -37,6 +37,7 @@ sys.path.insert(0, os.getcwd())
 try:
     from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka
     from src.core.quantum_inspired_reasoning import QuantumInspiredReasoningState
+    from src.core.sparse_higher_order_tensors import SparseHigherOrderTensorDynamics
     from src.core.context_aware_quantizer import ContextAwareQuantizer
     from src.core.zeitgeist_router import ZeitgeistRouter, ZeitgeistState
     EXTENSIONS_AVAILABLE = True
@@ -285,6 +286,7 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Advanced Extensions (Lazy Init)
         self.meta_polytope = MetaPolytopeMatrioshka(max_depth=5, base_dim=dim) if EXTENSIONS_AVAILABLE else None
+        self.tensor_dynamics = SparseHigherOrderTensorDynamics(max_order=3, num_shells=3, base_dim=dim) if EXTENSIONS_AVAILABLE else None
         self.quantum_reasoner = None
         self.extensions_enabled = EXTENSIONS_AVAILABLE
 
@@ -5522,8 +5524,30 @@ class DiegeticPhysicsEngine(nn.Module):
             # Lazy Init
             if self.meta_polytope is None:
                 self.meta_polytope = MetaPolytopeMatrioshka(max_depth=5, base_dim=self.dim) # Use self.dim
+                self.tensor_dynamics = SparseHigherOrderTensorDynamics(max_order=3, num_shells=3, base_dim=self.dim) # Use self.dim
                 self.quantum_reasoner = QuantumInspiredReasoningState(dim=self.dim) # Use self.dim
                 
+            # Map regime to mode name
+            regime_mode = 'PLAY'
+            if hasattr(self, 'current_regime') and self.current_regime == 'prickles':
+                regime_mode = 'SERIOUSNESS'
+                
+            # Get clock step dt
+            dt_val = 1.0
+            if hasattr(self, 'manifold_clock'):
+                if hasattr(self.manifold_clock, 'current_dt'):
+                    dt_val = self.manifold_clock.current_dt.item()
+                elif hasattr(self.manifold_clock, 'clock') and hasattr(self.manifold_clock.clock, 'current_dt'):
+                    dt_val = self.manifold_clock.clock.current_dt.item()
+                    
+            # Get mischief metric
+            h_mischief = 0.0
+            if hasattr(self, 'mischief_probe') and hasattr(self.mischief_probe, 'H_mischief'):
+                if hasattr(self.mischief_probe.H_mischief, 'item'):
+                    h_mischief = self.mischief_probe.H_mischief.item()
+                else:
+                    h_mischief = float(self.mischief_probe.H_mischief)
+                    
             # 3. Meta-Polytope Matrioshka
             # Project current cavity state
             if self.cavity.short_term_memory:
@@ -5538,16 +5562,40 @@ class DiegeticPhysicsEngine(nn.Module):
                          input_state = input_state_flat[:self.dim].unsqueeze(0)
                  
                  # Matrioshka quantization
-                 q_state, alpha, level = self.meta_polytope(input_state) # input_state is already [1, dim]
-                 diagnostics['matrioshka_level'] = int(level)
-                 diagnostics['crt_index'] = int(alpha)
+                 res = self.meta_polytope(
+                     input_state,
+                     mode=regime_mode,
+                     dt=dt_val,
+                     h_mischief=h_mischief
+                 )
+                 
+                 if isinstance(res, tuple):
+                     q_state, alpha, level = res
+                     diagnostics['matrioshka_level'] = int(level)
+                     diagnostics['crt_index'] = int(alpha)
+                 else:
+                     # BoundaryState returned
+                     q_state = input_state
+                     level = res.level
+                     alpha = res.alpha
+                     diagnostics['matrioshka_level'] = int(level)
+                     diagnostics['crt_index'] = int(alpha)
+                     diagnostics['topological_refusal'] = True
                  
                  # 4. Quantum Reasoning
                  # If Matrioshka level is high (deep thought), engage Quantum
                  if level >= 1:
-                     # Create hypotheses from spectral variations
-                     hypotheses = [input_state.squeeze(0), q_state.squeeze(0), (input_state * 1.1).squeeze(0)]
-                     probs = self.quantum_reasoner.superposition_reasoning(hypotheses)
+                     # Create hypotheses using tensor dynamics
+                     if self.tensor_dynamics is not None:
+                         tensor_results = self.tensor_dynamics(q_state, mode=regime_mode)
+                         if tensor_results:
+                             hypotheses = [tensor_results[order].squeeze(0) for order in sorted(tensor_results.keys())]
+                         else:
+                             hypotheses = [input_state.squeeze(0), q_state.squeeze(0), (input_state * 1.1).squeeze(0)]
+                     else:
+                         hypotheses = [input_state.squeeze(0), q_state.squeeze(0), (input_state * 1.1).squeeze(0)]
+                         
+                     probs = self.quantum_reasoner.superposition_reasoning(hypotheses, mode=regime_mode)
                      superposition_entropy = -(probs * torch.log(probs + 1e-9)).sum().item()
                      
                      diagnostics['quantum_superposition'] = True
