@@ -181,7 +181,8 @@ class SpectralCoherenceCorrector(nn.Module):
     def adaptive_coherence_correction(
         self, 
         signal: torch.Tensor,
-        output_text: Optional[str] = None
+        output_text: Optional[str] = None,
+        categories: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
         Apply adaptive coherence correction to merge spectral bands.
@@ -189,6 +190,7 @@ class SpectralCoherenceCorrector(nn.Module):
         Args:
             signal: Input signal to correct
             output_text: Optional output text for clustering detection
+            categories: Optional category activation tensor to monitor for clustering
             
         Returns:
             Corrected signal with merged spectral bands
@@ -213,6 +215,32 @@ class SpectralCoherenceCorrector(nn.Module):
                 min=self.min_threshold
             )
         
+        # Monitor categories for high-frequency peak clustering and trigger Schizo dispersion event
+        dispersion_triggered = False
+        if categories is not None:
+            from src.core.martinova_correlation import compute_bounded_correlation
+            cat_corr = compute_bounded_correlation(categories)
+            if (cat_corr >= 0.99).any():
+                dispersion_triggered = True
+                # Trigger Schizo Band dispersion event: force the threshold to minimum and inject jitter
+                self.theta_coherence.copy_(torch.tensor(self.min_threshold, device=self.theta_coherence.device))
+                jitter = harvest_honest_jitter(signal.shape, device=signal.device, scaled=True)
+                signal = signal + 0.15 * jitter
+                print("[SCHIZO] Category clustering reached 1.0. Triggered Schizo Band dispersion event.")
+
+        # Monitor high-frequency peak clustering in soliton_band directly
+        from src.core.martinova_correlation import compute_bounded_correlation
+        soliton_corr_input = soliton_band
+        if soliton_corr_input.dim() == 2:
+            soliton_corr_input = soliton_corr_input.unsqueeze(-1)
+        soliton_corr = compute_bounded_correlation(soliton_corr_input)
+        if (soliton_corr >= 0.99).any() and not dispersion_triggered:
+            # Trigger high-frequency peak clustering dispersion event
+            self.theta_coherence.copy_(torch.tensor(self.min_threshold, device=self.theta_coherence.device))
+            jitter = harvest_honest_jitter(signal.shape, device=signal.device, scaled=True)
+            signal = signal + 0.1 * jitter
+            print("[SCHIZO] High-frequency peak clustering reached 1.0 in soliton band. Triggered dispersion event.")
+        
         # Coherence-based merging
         coherence = torch.cosine_similarity(
             soliton_band.flatten(1), 
@@ -228,6 +256,7 @@ class SpectralCoherenceCorrector(nn.Module):
             corrected_signal = signal
         
         return corrected_signal
+
 
     def project_to_acoustic_resonance(self, facet_activations: torch.Tensor, time_steps: torch.Tensor) -> torch.Tensor:
         """
