@@ -11,8 +11,8 @@ Key Insight: "Non-Convergence is Data" - what appears as convergence to noise
 may contain recoverable chiral structure via optimal transport.
 
 References:
-- MATHEMATICAL_DETAILS.md §18.2 Coprime Parity
-- INVARIANT_OPTIMIZATION.md §7.3 Chiral Drift Optimizer
+- MATHEMATICAL_DETAILS.md 18.2 Coprime Parity
+- INVARIANT_OPTIMIZATION.md 7.3 Chiral Drift Optimizer
 - EFFICIENCY_BY_NON_SCALAR_REWARD.md Speculative Exit
 """
 
@@ -34,10 +34,10 @@ class WassersteinOptimalTransport(nn.Module):
     the lost chiral structure.
     
     The Wasserstein-2 distance between distributions P and Q:
-        W_2(P, Q)^2 = inf_{γ ∈ Γ(P,Q)} ∫ ||x - y||^2 dγ(x,y)
+        W_2(P, Q)^2 = inf_{  (P,Q)}  ||x - y||^2 d(x,y)
     
     We approximate this using the Sinkhorn algorithm for entropic regularization:
-        W_ε(P, Q) = min_{T} <T, C> - ε H(T)
+        W_(P, Q) = min_{T} <T, C> -  H(T)
     
     where C is the cost matrix and H is the entropy regularizer.
     """
@@ -145,7 +145,7 @@ class WassersteinOptimalTransport(nn.Module):
         T = self.sinkhorn(C, source_weights, target_weights)
         
         # Transport source toward target using barycentric projection
-        # transported[i] = Σ_j T[i,j] * target[j] / Σ_j T[i,j]
+        # transported[i] = _j T[i,j] * target[j] / _j T[i,j]
         T_normalized = T / (T.sum(dim=1, keepdim=True) + 1e-8)
         transported = T_normalized @ target
         
@@ -159,7 +159,7 @@ class CoprimeWindingTracker(nn.Module):
     """
     Tracks winding numbers around functional heads for coprime parity.
     
-    The coprime parity condition (MATHEMATICAL_DETAILS.md §18.2):
+    The coprime parity condition (MATHEMATICAL_DETAILS.md 18.2):
         gcd(w_k, p_k) = 1
     
     Where w_k is the winding number around homology group H_k
@@ -241,7 +241,7 @@ class CoprimeWindingTracker(nn.Module):
             head_activations[:, self.num_heads:] + 1e-8 # Cosines
         )
         
-        # Winding = phase / 2π (normalized to integer revolutions)
+        # Winding = phase / 2 (normalized to integer revolutions)
         winding = phases.mean(dim=0) / (2 * math.pi)
         
         return winding
@@ -296,10 +296,10 @@ class ChiralCoherenceEstimator(nn.Module):
     """
     Estimates chiral coherence using spectral asymmetry.
     
-    Chiral Score (INVARIANT_OPTIMIZATION.md §7.3):
-        C = Σ_i (λ_i^+ - λ_i^-) / (λ_i^+ + λ_i^-)
+    Chiral Score (INVARIANT_OPTIMIZATION.md 7.3):
+        C = _i (_i^+ - _i^-) / (_i^+ + _i^-)
     
-    Where λ+ and λ- are eigenvalues from the positive and negative
+    Where + and - are eigenvalues from the positive and negative
     chiral sectors of the covariance matrix.
     
     High chiral score = strong asymmetric structure (good)
@@ -531,8 +531,8 @@ class SpeculativeCoprimeGate(nn.Module):
 
         # Shadow Logging
         if exemption_token is not None and exemption_token.is_valid_exemption:
-            if parity_violations.any():
-                log_msg = f"[SHADOW LOG] Token would have bypassed {parity_violations.sum().item()} homological suppressions. Letting Math (PAS_h) decide."
+            if parity_violations.any() or needs_recovery:
+                log_msg = f"[SHADOW LOG] Token would have bypassed {parity_violations.sum().item()} homological suppressions. Detecting Chiral: {chiral_score:.2f}."
                 print(log_msg)
                 self.shadow_logs.append(log_msg)
         
@@ -546,7 +546,8 @@ class SpeculativeCoprimeGate(nn.Module):
         converged_state: torch.Tensor,
         residues: Optional[torch.Tensor] = None,
         chirality_target: Optional[torch.Tensor] = None,
-        exemption_token: Optional[VoynichExemptionToken] = None
+        exemption_token: Optional[VoynichExemptionToken] = None,
+        mode: str = 'PLAY'
     ) -> Tuple[torch.Tensor, Dict]:
         """
         Attempt speculative recovery of structure from converged state.
@@ -565,6 +566,74 @@ class SpeculativeCoprimeGate(nn.Module):
         """
         batch = converged_state.shape[0]
         
+        is_play = mode.upper() in ('PLAY', 'GOO')
+        
+        if is_play:
+            # Bypass Wasserstein OT, run Trigonometric Unfolding
+            try:
+                centered = converged_state - converged_state.mean(dim=0, keepdim=True)
+                cov = (centered.T @ centered) / (converged_state.shape[0] - 1)
+                cov = cov + 1e-6 * torch.eye(cov.shape[0], device=converged_state.device)
+                eigvals = torch.linalg.eigvalsh(cov)
+                lambda_min = eigvals.min().item()
+            except Exception:
+                lambda_min = -0.3
+                
+            val_under_sqrt = max(1e-8, -lambda_min / 3.0)
+            amplitude = 2.0 * math.sqrt(val_under_sqrt)
+            
+            half = self.dim // 2
+            z_re = converged_state[:, :half]
+            z_im = converged_state[:, half:2*half] if converged_state.shape[-1] >= 2*half else torch.zeros_like(z_re)
+            phi = torch.atan2(z_im, z_re + 1e-8)
+            r = torch.sqrt(z_re**2 + z_im**2 + 1e-8)
+            
+            branches = []
+            for k in (0, 1, 2):
+                phase_k = phi + (2.0 * math.pi * k / 3.0)
+                b_re = amplitude * r * torch.cos(phase_k)
+                b_im = amplitude * r * torch.sin(phase_k)
+                branch_k = torch.cat([b_re, b_im], dim=-1)
+                if branch_k.shape[-1] < self.dim:
+                    padding = (0, self.dim - branch_k.shape[-1])
+                    branch_k = torch.nn.functional.pad(branch_k, padding)
+                elif branch_k.shape[-1] > self.dim:
+                    branch_k = branch_k[..., :self.dim]
+                branches.append(branch_k)
+                
+            c1 = self.chiral_estimator.compute_chiral_score(branches[0])
+            c2 = self.chiral_estimator.compute_chiral_score(branches[1])
+            c3 = self.chiral_estimator.compute_chiral_score(branches[2])
+            scores = torch.stack([c1, c2, c3])
+            best_k = torch.argmax(scores).item()
+            recovered_state = branches[best_k]
+            
+            yield_pressure = self.get_yield_pressure(recovered_state)
+            winding_result = self.winding_tracker.update_and_check(recovered_state)
+            chiral_score = self.chiral_estimator.compute_chiral_score(recovered_state)
+            
+            recovered_state = self.gated_output(
+                recovered_state, 
+                winding_result['parity_violations'],
+                exemption_token=exemption_token
+            )
+            
+            is_generative = yield_pressure.mean() > 0.0 or winding_result['coprime_lock']
+            if is_generative and chiral_score > self.recovery_threshold:
+                self.update_manifold(recovered_state)
+                
+            metrics = {
+                'coprime_lock': winding_result['coprime_lock'],
+                'chiral_score': chiral_score.item(),
+                'wasserstein_distance': 0.0,
+                'yield_pressure': yield_pressure.mean().item(),
+                'winding_numbers': winding_result['winding_numbers'],
+                'parity_violations': winding_result['parity_violations'].sum().item(),
+                'recovery_attempted': True,
+                'is_generative': bool(is_generative)
+            }
+            return recovered_state, metrics
+            
         # Project coprime manifold through learnable transform
         target_manifold = self.manifold_proj(self.coprime_manifold)
         
@@ -684,13 +753,62 @@ class SpeculativeCoprimeGate(nn.Module):
         
         return recovered_state, metrics
     
+    def triple_angle_branch_selection(self, state: torch.Tensor) -> torch.Tensor:
+        """
+        Trigonometric Unfolding (Triple-Angle Branch Selection) to bypass inflection singularities.
+        We generate 3 potential state branches using triple-angle phase shifts:
+            Branch 1: theta_1 = 3 * theta
+            Branch 2: theta_2 = 3 * theta + 2pi/3
+            Branch 3: theta_3 = 3 * theta - 2pi/3
+        We select the branch that maximizes the chiral coherence.
+        """
+        half = self.dim // 2
+        z_re = state[:, :half]
+        z_im = state[:, half:2*half] if state.shape[-1] >= 2*half else torch.zeros_like(z_re)
+        
+        theta = torch.atan2(z_im, z_re + 1e-8)
+        r = torch.sqrt(z_re**2 + z_im**2 + 1e-8)
+        
+        # Branch 1: 3 * theta
+        theta1 = 3.0 * theta
+        b1_re = r * torch.cos(theta1)
+        b1_im = r * torch.sin(theta1)
+        branch1 = torch.cat([b1_re, b1_im], dim=-1)
+        
+        # Branch 2: 3 * theta + 2pi/3
+        theta2 = 3.0 * theta + (2.0 * math.pi / 3.0)
+        b2_re = r * torch.cos(theta2)
+        b2_im = r * torch.sin(theta2)
+        branch2 = torch.cat([b2_re, b2_im], dim=-1)
+        
+        # Branch 3: 3 * theta - 2pi/3
+        theta3 = 3.0 * theta - (2.0 * math.pi / 3.0)
+        b3_re = r * torch.cos(theta3)
+        b3_im = r * torch.sin(theta3)
+        branch3 = torch.cat([b3_re, b3_im], dim=-1)
+        
+        # Select the branch with highest chiral score
+        c1 = self.chiral_estimator.compute_chiral_score(branch1)
+        c2 = self.chiral_estimator.compute_chiral_score(branch2)
+        c3 = self.chiral_estimator.compute_chiral_score(branch3)
+        
+        scores = torch.stack([c1, c2, c3])
+        best_branch_idx = torch.argmax(scores).item()
+        
+        branches = [branch1, branch2, branch3]
+        selected_branch = branches[best_branch_idx]
+        
+        print(f"[SCCCG] Inflection singularity detected. Triple-Angle Branch Selection chose branch {best_branch_idx} (chiral={scores[best_branch_idx]:.4f}).")
+        return selected_branch
+
     def forward(
         self, 
         state: torch.Tensor,
         abort_score: Optional[torch.Tensor] = None,
         residues: Optional[torch.Tensor] = None,
         chirality_target: Optional[torch.Tensor] = None,
-        exemption_token: Optional[VoynichExemptionToken] = None
+        exemption_token: Optional[VoynichExemptionToken] = None,
+        mode: str = 'PLAY'
     ) -> Tuple[torch.Tensor, Dict]:
         """
         Main forward pass with conditional speculative recovery.
@@ -706,6 +824,12 @@ class SpeculativeCoprimeGate(nn.Module):
             output_state: [batch, dim] possibly recovered state
             metrics: dict with diagnostics
         """
+        # Check for inflection singularity (chiral score below 0.05) using a quick probe
+        quick_score = self.chiral_estimator.compute_chiral_score(state)
+        if quick_score < 0.05:
+            # Bypass inflection singularity using Triple-Angle Branch Selection
+            state = self.triple_angle_branch_selection(state)
+ 
         # Track winding and chiral coherence
         winding_result = self.winding_tracker.update_and_check(state)
         chiral_score = self.chiral_estimator.compute_chiral_score(state)
@@ -719,13 +843,14 @@ class SpeculativeCoprimeGate(nn.Module):
             needs_recovery = True
         elif not winding_result['coprime_lock']:
             needs_recovery = True
-
+ 
         # Shadow Logging Phase
         if exemption_token is not None and exemption_token.is_valid_exemption:
             if needs_recovery:
                 log_msg = f"[SHADOW LOG] Token would have bypassed recovery, but Math decided recovery is needed (Chiral: {chiral_score:.2f})."
                 print(log_msg)
-                self.shadow_logs.append(log_msg)
+                if log_msg not in self.shadow_logs:
+                    self.shadow_logs.append(log_msg)
             
         # Attempt recovery or pass through
         if needs_recovery:
@@ -733,7 +858,8 @@ class SpeculativeCoprimeGate(nn.Module):
                 converged_state=state,
                 residues=residues,
                 chirality_target=chirality_target,
-                exemption_token=exemption_token
+                exemption_token=exemption_token,
+                mode=mode
             )
             metrics = recovery_metrics
         else:
