@@ -317,6 +317,17 @@ class InfluenceAttractor(nn.Module):
             # Normalize trust scalars to prevent unbounded growth
             self.trust_scalars /= (self.trust_scalars.mean() + 1e-8)
 
+    def compute_basin_density(self) -> torch.Tensor:
+        """
+        Map the density of attractor basins using the local correlation function.
+        """
+        from core.martinova_correlation import compute_bounded_correlation
+        # self.fossilized_basins: [num_attractors, feature_dim]
+        # Treat basins as a spatial point pattern
+        density_corr = compute_bounded_correlation(self.fossilized_basins.unsqueeze(0)).squeeze(0)
+        return density_corr
+
+
 class ResonanceAttractor(nn.Module):
     """
     Harmonic lock-in via phase alignment. Creates stable interference patterns
@@ -745,7 +756,8 @@ class GardenOrchestrator(nn.Module):
             'resonance_lock': lock_status,
             'resonance_strength': resonance_strength,
             'chiral_gating': chiral_gating,
-            'phase_alignment': phase_alignment
+            'phase_alignment': phase_alignment,
+            'basin_density': self.influence_attractors.compute_basin_density()
         }
     
     def compute_garden_health_metrics(self, concepts: torch.Tensor) -> Dict[str, HealthMetric]:
