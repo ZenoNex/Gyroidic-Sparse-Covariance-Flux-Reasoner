@@ -1,10 +1,10 @@
 """
 Relational Kappa: Context-dependent soliton threshold.
 
-κ(t) = μ_rupture(t) + λ · σ_rupture(t)
+(t) = _rupture(t) +   _rupture(t)
 
-Never learned - learning κ turns solitons into rewards.
-Rewarded solitons cease to be solitons—they become attractors.
+Never learned - learning  turns solitons into rewards.
+Rewarded solitons cease to be solitonsthey become attractors.
 Attractors destroy rupture sensitivity.
 
 Author: Implementation from Structural Design Decisions
@@ -19,7 +19,7 @@ class RelationalKappa(nn.Module):
     """
     Soliton threshold that is relational and history-dependent.
     
-    λ is architectural temperament (chosen, not learned).
+     is architectural temperament (chosen, not learned).
     Solitons must remain costly but unavoidable.
     """
     
@@ -37,7 +37,7 @@ class RelationalKappa(nn.Module):
         """
         super().__init__()
         
-        # λ is NOT a parameter - it's an architectural choice
+        #  is NOT a parameter - it's an architectural choice
         # Do NOT make this nn.Parameter or it becomes learnable
         self.lambda_temperament = lambda_temperament
         self.window_size = window_size
@@ -59,7 +59,7 @@ class RelationalKappa(nn.Module):
     
     def compute_kappa(self) -> torch.Tensor:
         """
-        κ(t) = μ_rupture(t) + λ · σ_rupture(t)
+        (t) = _rupture(t) +   _rupture(t)
         
         Returns threshold for soliton detection.
         """
@@ -72,11 +72,9 @@ class RelationalKappa(nn.Module):
         history = self.tension_history[:filled]
         
         mu = history.mean()
-        sigma = history.std()
-        
-        # Handle zero variance
-        if sigma < 1e-8:
-            sigma = torch.tensor(0.1, device=history.device)
+        from core.martinova_correlation import compute_bounded_correlation
+        corr = compute_bounded_correlation(history.unsqueeze(-1).unsqueeze(0)).squeeze(0)
+        sigma = corr
         
         kappa = mu + self.lambda_temperament * sigma
         
@@ -84,7 +82,7 @@ class RelationalKappa(nn.Module):
     
     def is_soliton(self, current_tension: torch.Tensor) -> Tuple[bool, torch.Tensor]:
         """
-        Check if current tension exceeds κ threshold.
+        Check if current tension exceeds  threshold.
         
         Solitons are costly but unavoidable - not rewarded.
         """
@@ -115,10 +113,13 @@ class RelationalKappa(nn.Module):
         if filled >= self.min_history:
             history = self.tension_history[:filled]
             mu = history.mean()
-            sigma = history.std()
+            from core.martinova_correlation import compute_bounded_correlation
+            corr = compute_bounded_correlation(history.unsqueeze(-1).unsqueeze(0)).squeeze(0)
+            sigma = corr
         else:
             mu = torch.tensor(0.0, device=tension.device)
             sigma = torch.tensor(0.0, device=tension.device)
+            corr = torch.tensor(0.0, device=tension.device)
         
         return {
             'is_soliton': torch.tensor(is_soliton, device=tension.device),
@@ -126,6 +127,9 @@ class RelationalKappa(nn.Module):
             'current_tension': tension.mean() if tension.dim() > 0 else tension,
             'mu': mu,
             'sigma': sigma,
+            'correlation': corr,
+            'is_fossilized': (corr > 0.8).float(),
+            'is_fractured': (corr < -0.8).float(),
             'lambda_temperament': torch.tensor(self.lambda_temperament, device=tension.device)
         }
     
@@ -136,7 +140,7 @@ class RelationalKappa(nn.Module):
     
     def check_kappa_flatline(self) -> bool:
         """
-        Failure mode: σ_rupture → 0
+        Failure mode: _rupture  0
         
         If kappa becomes constant, inject controlled perturbations.
         """
@@ -144,5 +148,7 @@ class RelationalKappa(nn.Module):
         if filled < self.min_history:
             return False
         
-        sigma = self.tension_history[:filled].std()
-        return True # FORCED TOPOLOGICAL THAW
+        history = self.tension_history[:filled]
+        from core.martinova_correlation import compute_bounded_correlation
+        corr = compute_bounded_correlation(history.unsqueeze(-1).unsqueeze(0)).squeeze(0)
+        return corr.abs() < 1e-4 or history.std() < 1e-8
