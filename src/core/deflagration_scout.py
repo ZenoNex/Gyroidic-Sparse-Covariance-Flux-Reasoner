@@ -22,7 +22,7 @@ class OmipedialDeflagrator(nn.Module):
     
     def __init__(
         self,
-        dim: int = 137,
+        dim: int = 96,
         threshold_jump: float = 0.8,
         amplification: float = 2.0,
         device: str = None
@@ -40,7 +40,7 @@ class OmipedialDeflagrator(nn.Module):
 
     def scout_defects(self, predicted_flux: torch.Tensor, actual_flux: torch.Tensor) -> torch.Tensor:
         """
-        ΔD_i = Σ (R_ij - R_hat_ij)
+        D_i =  (R_ij - R_hat_ij)
         
         Identifies deviations from the expected resonance pattern.
         """
@@ -52,6 +52,12 @@ class OmipedialDeflagrator(nn.Module):
         defects = diff * self.amplification
         
         self.defect_count.add_(defects.mean().detach())
+        
+        # Highlight points with correlation -1.0 as structural gaps/topological holes
+        from core.martinova_correlation import compute_bounded_correlation
+        corr = compute_bounded_correlation(actual_flux)
+        self.structural_gaps = (corr <= -0.8).float()
+        
         return defects
 
     def omipedial_jump(self, ley_potential: torch.Tensor) -> torch.Tensor:
