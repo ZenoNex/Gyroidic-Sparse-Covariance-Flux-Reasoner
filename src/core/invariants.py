@@ -493,3 +493,18 @@ def apply_asymmetry_preserving_reshape(state: torch.Tensor, target_dim: int, k: 
     chiral_tail = chiral_tail * state_energy
     
     return torch.cat([state, chiral_tail], dim=-1)
+
+
+class MartinovaCorrelationInvariant(nn.Module):
+    """
+    Martinova Correlation Invariant.
+    Wraps compute_bounded_correlation to provide a standard module interface.
+    """
+    def __init__(self, neighborhood_radius: Optional[float] = None):
+        super().__init__()
+        self.r = neighborhood_radius
+        
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        from core.martinova_correlation import compute_bounded_correlation
+        return compute_bounded_correlation(X, self.r)
+
