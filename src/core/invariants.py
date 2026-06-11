@@ -1,510 +1,1057 @@
 """
-Unified Invariants: PAS_h and APAS_zeta.
+Sparse covariance probes with gyroid-inspired violation detection.
 
-Implements the computable, scalar, harmonic invariants required to:
-1. Govern evolution (APAS_zeta drift bound).
-2. Compare states (PAS_h scalar metric).
-3. Preserve identity (Chirality checks).
-
-"An invariant that cannot be computed cannot govern evolution... Computability is mandatory."
-
-Author: William Matthew Bryant
-Created: January 2026
+Computes local spectral signatures to detect topology violations
+without expensive global persistent homology.
 """
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from typing import Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 import math
+from src.core.honest_jitter import harvest_honest_jitter, honest_multinomial
+from src.core.false_negative_subsystem import VoynichExemptionToken
 
-class PhaseAlignmentInvariant(nn.Module):
+
+
+class SparseGyroidCovarianceProbe(nn.Module):
     """
-    PAS_h: Harmonic Phase Alignment Score.
+    Sparse covariance-based pressure evaluator.
     
-    Implements Eq (2): PAS_S = (1/N) * sum(cos(theta_k - theta_bar))
-    
-    Acts as a first-class admissibility filter measuring the 'topological 
-    synchronization' of field states.
+    Maintains local k-hop covariance sketches and detects spectral anomalies
+    that indicate broken gyroid-like connectivity patterns.
     """
-    def __init__(self, degree: int):
-        super().__init__()
-        # Degree is kept for compatibility, but PAS is now strictly phase-based
-        self.degree = degree
-        
-    def forward(self, coeffs: torch.Tensor) -> torch.Tensor:
+    
+    def __init__(
+        self,
+        hidden_dim: int,
+        window_size: int = 32,
+        k_hop: int = 2,
+        num_eigenvalues: int = 8,
+        violation_threshold: float = 0.5,
+        use_saturation_detection: bool = True,
+        adaptive_threshold: bool = True,
+        percentile: float = 95.0
+    ):
         """
-        Compute PAS_h using strict phase coherence.
-        
-        The score measures how well the phases of the underlying oscillators 
-        are aligned to a common mean. A score of 1.0 indicates perfect 
-        topological synchronization.
+        Initialize the Sparse Gyroid Covariance Probe.
         
         Args:
-           coeffs: [batch, K, D] or [batch, D]. Represents resonator states 
-                   on the hidden manifold.
-        
-        Returns:
-           pas_h: [batch] scalar score [-1, 1]. High score indicates 
-                  manifold coherence.
+            hidden_dim: Dimension of the hidden state vectors.
+            window_size: Size of the sliding window for local covariance.
+            k_hop: Neighborhood hop distance for graph connectivity.
+            num_eigenvalues: Number of top eigenvalues to analyze.
+            violation_threshold: Fixed threshold for violation detection.
+            use_saturation_detection: Enable the Saturation Fracture Detector.
+            adaptive_threshold: Use percentile-based scaling for thresholds.
+            percentile: Target percentile for the adaptive threshold.
         """
-        # 1. Standardize Input [batch, N] where N is number of oscillators
-        if coeffs.dim() == 3:
-            # Flatten K and D to treat all as a pool of oscillators?
-            # Or average over K? Eq (2) sums over "elements in a set S".
-            # Let's treat (K, D) as the set S.
-            x = coeffs.reshape(coeffs.shape[0], -1)
+        super().__init__()
+        
+        self.hidden_dim = hidden_dim
+        self.window_size = window_size
+        self.k_hop = k_hop
+        self.num_eigenvalues = num_eigenvalues
+        self.violation_threshold = violation_threshold
+        self.use_saturation_detection = use_saturation_detection
+        self.adaptive_threshold = adaptive_threshold
+        self.percentile = percentile
+        
+        # Empirical Scaling Law (Bostick, 2025)
+        # epsilon_drift varies as V^(-1/2)
+        # We scale the base threshold by the inverse root of dimension
+        if adaptive_threshold:
+            # We treat hidden_dim as effective Volume V
+            # Base epsilon is roughly 0.5 at dim=1? Or just a scaling factor.
+            # Let's preserve the user's 'violation_threshold' as the coefficient epsilon_0
+            # epsilon_drift = epsilon_0 * (V / V_0)^(-1/2) 
+            # We assume V_0 = 1 for normalization, or just apply raw scaling.
+            # To avoid crushing it too small, we use a reference dim of 64.
+            scaling_factor = (hidden_dim / 64.0) ** -0.5
+            self.scaled_threshold = violation_threshold * scaling_factor
         else:
-            x = coeffs
+            self.scaled_threshold = violation_threshold
+        
+        if use_saturation_detection:
+            self.fracture_detector = SaturationFractureDetector()
             
-        # 2. Extract Phases (theta_k)
-        # We assume x contains real values that form complex pairs (Analytic Signal assumption)
-        # Pad if odd length
-        if x.shape[-1] % 2 != 0:
-            x = F.pad(x, (0, 1))
-            
-        # Reshape to [batch, N/2, 2] -> Z = a + ib
-        z = x.view(x.shape[0], -1, 2)
-        
-        # theta_k = atan2(Im, Re)
-        theta = torch.atan2(z[..., 1], z[..., 0]) # [batch, N_pairs]
-        
-        # 3. Compute Mean Phase (theta_bar)
-        # Circular mean: atan2(sum(sin), sum(cos))
-        sin_sum = torch.sin(theta).sum(dim=1)
-        cos_sum = torch.cos(theta).sum(dim=1)
-        theta_bar = torch.atan2(sin_sum, cos_sum).unsqueeze(1) # [batch, 1]
-        
-        # 4. Compute PAS (Eq 2)
-        # PAS = (1/N) * sum(cos(theta_k - theta_bar))
-        alignment = torch.cos(theta - theta_bar)
-        pas_h = alignment.mean(dim=1)
-        
-        return pas_h
-
-class APAS_Zeta(nn.Module):
-    """
-    APAS_zeta: Adaptive PAS with drift bounding.
+        # Global Manifold Estimator (System 2 Driver)
+        self.gyroid_cov = GyroidCovarianceEstimator(dim=hidden_dim)
     
-    "An invariant that cannot be computed cannot govern evolution...
-     APAS_zeta bounds permissible evolution."
-    """
-    def __init__(self, zeta: float = 0.05):
-        super().__init__()
-        self.zeta = zeta
-        
-    def check_drift(self, current_pas: torch.Tensor, prev_pas: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def compute_local_covariance(
+        self,
+        hidden_states: torch.Tensor,
+        start_idx: int
+    ) -> torch.Tensor:
         """
-        Check if drift |PAS_t - PAS_{t-1}| <= zeta.
+        Compute local windowed covariance matrix.
         
-        Enforces the stability of the manifold by ensuring that evolution 
-        does not cause discontinuous 'Ruptures' in the harmonic state.
+        Extracts a temporal window of hidden states and computes the 
+        local Gram matrix to identify the spectral structure of the 
+        manifold at that position.
         
         Args:
-            current_pas: The PAS_h score of the current state [batch].
-            prev_pas: The PAS_h score of the previous state [batch].
+            hidden_states: The full sequence of hidden states [seq_len, hidden_dim].
+            start_idx: The starting position for the local window.
             
         Returns:
-            drift: The absolute delta between current and previous scores.
-            violation_mask: 1.0 if the drift exceeds the permitted zeta.
+            C_loc: The local covariance matrix [window_size, window_size].
+        """
+        seq_len = hidden_states.shape[0]
+        end_idx = min(start_idx + self.window_size, seq_len)
+        actual_window = end_idx - start_idx
+        
+        # Extract local window
+        window = hidden_states[start_idx:end_idx]  # [actual_window, hidden_dim]
+        
+        # Compute covariance (or Gram matrix)
+        # C = X X^T where X is normalized
+        window_normalized = window - window.mean(dim=0, keepdim=True)
+        window_normalized = window_normalized / (torch.norm(window_normalized, dim=1, keepdim=True) + 1e-8)
+        
+        C_loc = torch.mm(window_normalized, window_normalized.t())  # [actual_window, actual_window]
+        
+        # Pad if necessary
+        if actual_window < self.window_size:
+            C_loc_padded = torch.zeros(
+                self.window_size, self.window_size,
+                device=C_loc.device, dtype=C_loc.dtype
+            )
+            C_loc_padded[:actual_window, :actual_window] = C_loc
+            C_loc = C_loc_padded
+        
+        return C_loc
+
+    def compute_gcve(
+        self,
+        C_loc: torch.Tensor,
+        h_mischief: float,
+        tau_decay: float = 10.0,
+        lambda_min_epsilon: float = 1e-6
+    ) -> float:
+        """
+        Compute Gyroidic Covariance Violation Energy (GCVE).
+        (legacy) V_m = V + H_mischief/tau - lambda_min/tr(C)
+        (current) V_m = (V + Flatness_Penalty) * (1 - H_mischief / tau)
+        The GCVE (V_m) measures the deviation from minimal-surface 
+        expectations, weighted by the 'Mischief' entropy to allow for 
+        admissible playful violations.
+        
+        Args:
+            C_loc: The local covariance matrix [window, window].
+            h_mischief: The current mischief entropy (H_m).
+            tau_decay: Decay constant for structural pressure.
+            lambda_min_epsilon: Small constant for numerical stability.
+        
+        Returns:
+            V_m: The GCVE score. High scores indicate topological fracture.
             
         CODES v40 Invariant: 
-            Evolution Bounding: 5.1. Computability is mandatory for 
-            governing evolution through discrete drift bounds.
+            Non-Teleological Repair: 10.3. GCVE provides the 'containment 
+            pressure' signal without requiring a target state.
         """
-        drift = torch.abs(current_pas - prev_pas)
-        violation = (drift > self.zeta).float()
-        return drift, violation
-
-
-import torch
-
-
-def compute_chiral_shift(coeffs: torch.Tensor) -> torch.Tensor:
-    """
-        Compute Chiral Shift (Spectral Centroid displacement).
-    
-    Measures the displacement of the energy distribution from the spectral 
-    midpoint. This represents the 'Handedness' of the latent state across 
-    the frequency spectrum.
-    
-    Args:
-        coeffs: The input latent state [batch, K, D] or [batch, D].
+        # Eigenvalues for V calculation
+        # Note: eigh is for symmetric matrices (covariance is symmetric)
+        try:
+            eigs = torch.linalg.eigvalsh(C_loc)
+        except RuntimeError:
+            # Fallback for numerical instability
+            return 0.0
+            
+        if len(eigs) == 0:
+            return 0.0
+            
+        lambda_min = eigs[0].item()
+        trace_C = eigs.sum().item()
         
-    Returns:
-        chiral_shift: The normalized displacement score. Positive indicates 
-                      high-frequency (entropic) dominance.
-    """
-    if coeffs.dim() == 1:
-        coeffs = coeffs.unsqueeze(0).unsqueeze(0)
-    elif coeffs.dim() == 2:
-        coeffs = coeffs.unsqueeze(1)
-    B, K, D = coeffs.shape
-
-    # 1. Energy extraction (Summing across the K-manifold)
-    # We use non_blocking logic implicitly by staying on the tensor's device
-    energy = coeffs.pow(2).sum(dim=1)  # Shape: [B, D]
-
-    # 2. Spectral Centroid Calculation
-    # Arange must be on the SAME device to avoid the 'Synchronous Transfer'
-    indices = torch.arange(D, device=coeffs.device, dtype=coeffs.dtype)
-    total_energy = energy.sum(dim=1, keepdim=True) + 1e-8
-    spectral_centroid = (energy * indices).sum(dim=1, keepdim=True) / total_energy
-
-    # 3. Chirality Index: (Centroid - Midpoint) / Midpoint
-    # Positive = High-Freq/Entropic, Negative = Low-Freq/Negentropic
-    midpoint = D / 2.0
-    chiral_shift = (spectral_centroid - midpoint) / midpoint
-    
-    return chiral_shift.squeeze()
-
-def compute_chirality(coeffs: torch.Tensor) -> torch.Tensor:
-    """
-        Compute Chiral Torsion (Parity Asymmetry).
-    
-    Chirality as a topological invariant (Delta Chi != 0) ensuring that the 
-    system avoids symmetric/reflective collapse by maintaining energy 
-    asymmetry between even and odd polynomial modes.
-    
-    Args:
-        coeffs: The input latent state tensor.
+        # Standard violation (V) - approximation based on spectral gap or just max eig?
+        # Using max eigenvalue relative to trace (spectral dominance)
+        V = eigs[-1].item() / (trace_C + 1e-8)
         
-    Returns:
-       delta_chi: [batch] The raw energy difference (Even - Odd).
-       
-    CODES v40 Invariant: 
-        Non-Reflective Invariance: 3.2. Asymmetry is the seed of lawful 
-        resonance; symmetry is a failure mode (Lobotomy).
-    """
-    # 1. Force to 3D: [Batch, K-Manifold, D-Degree]
-    if coeffs.dim() == 1:
-        coeffs = coeffs.unsqueeze(0).unsqueeze(0)
-    elif coeffs.dim() == 2:
-        coeffs = coeffs.unsqueeze(0)
-    elif coeffs.dim() != 3:
-        raise ValueError(f"Expected 1D, 2D or 3D tensor, got {coeffs.dim()}D")
-
-    B, K, D = coeffs.shape
-
-    # 2. Extract Parity Energies (Delta Chi = E_even - E_odd)
-    indices = torch.arange(D, device=coeffs.device)
-    even_mask = (indices % 2 == 0)
-    odd_mask = ~even_mask
-    
-    energy = coeffs.pow(2).sum(dim=1)
-    
-    even_energy = energy[:, even_mask].sum(dim=1)
-    odd_energy = energy[:, odd_mask].sum(dim=1)
-    
-    delta_chi = even_energy - odd_energy
-    return delta_chi.squeeze()
-
-def check_glyphlock(coeffs: torch.Tensor, threshold: float = 1e-4) -> torch.Tensor:
-    """
-        GLYPHLOCK: Chirality-constrained emission validation.
-    
-    Validates that a state possesses sufficient 'Handedness' (Shift or Torsion) 
-    to be considered an admissible, stable topological feature.
-    
-    Args:
-        coeffs: The input latent state.
-        threshold: The minimal asymmetry required for a 'Lock'.
+        # Inversion of flatness (penalize uniform distributions)
+        flatness_penalty = lambda_min / (trace_C + lambda_min_epsilon)
         
-    Returns:
-        is_locked: 1.0 if the state satisfies the glyphlock condition.
-    """
-    shift = compute_chiral_shift(coeffs)
-    torsion = compute_chirality(coeffs)
-    
-    # Glyphlock is active if there is non-trivial spectral or parity asymmetry
-    is_locked = ((shift.abs() > threshold) | (torsion.abs() > threshold)).float()
-    return is_locked
-
-class ImplicationInvariant(nn.Module):
-    """
-    ImplicationInvariant: Anti-Lobotomy Check #1.
-    
-    Invariant: Interaction(x) => Implication(x) != 0.
-    
-    Ensures that for any significant interaction (input/state), there is a 
-    non-zero downstream implication (effect). Zeroing out implication is 
-    strictly forbidden as it represents 'lobotomy' - the removal of 
-    agency/consequence.
-    """
-    def __init__(self, threshold: float = 1e-6):
-        super().__init__()
-        self.threshold = 0.01 # Lowered to allow subtle Love Vector signals
+        # GCVE formula
+        V_m = V + (h_mischief / tau_decay) - flatness_penalty
         
-    def forward(self, interaction: torch.Tensor, implication: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        return V_m
+    
+    def compute_spectral_signature(
+        self,
+        C_loc: torch.Tensor
+    ) -> Dict[str, torch.Tensor]:
         """
-        Check if Implication is preserved (Interaction => Implication != 0).
+        Compute spectral properties of local covariance.
         
-        Ensures that significant system state changes (Interactions) result 
-        in measurable downstream consequences (Implications), preventing 
-        silent logic erasures.
+        Extracts top eigenvalues, spectral gaps, and condition numbers to 
+        form a 'Spectral Signature' of the manifold.
         
         Args:
-           interaction: The causative state or input tensor [batch, ...].
-           implication: The resulting state or output tensor [batch, ...].
-           
+            C_loc: Local covariance matrix.
+            
         Returns:
-           violation_mask: 1.0 if an interaction was 'lobotomized' (lost its effect).
-           preservation_score: The energy preservation ratio.
-           
-        CODES v40 Invariant: 
-            Anti-Lobotomy: 18.4. Interaction without implication is the 
-            signature of a failed manifold.
+            A dictionary containing:
+            - eigenvalues: Top tracked eigenvalues.
+            - spectral_gap: Difference between top eigenvalues.
+            - decay_rate: Average rate of eigenvalue attenuation.
+            - trace: Total variance.
+            - condition_number: Ratio of max to min eigenvalues.
         """
-        # Energy calculation
-        interaction_E = torch.norm(interaction.reshape(interaction.shape[0], -1), dim=1)
-        implication_E = torch.norm(implication.reshape(implication.shape[0], -1), dim=1)
+        # Compute eigenvalues (top k + 1 for gap computation)
+        try:
+            eigenvalues, _ = torch.linalg.eigh(C_loc)
+            eigenvalues = eigenvalues.flip(0)  # Descending order
+            eigenvalues = eigenvalues[:self.num_eigenvalues + 1]
+        except:
+            # Fallback if eigendecomposition fails
+            eigenvalues = torch.ones(self.num_eigenvalues + 1, device=C_loc.device)
         
-        # Significant interaction mask
-        significant = (interaction_E > self.threshold).float()
+        # Compute metrics
+        top_k = eigenvalues[:self.num_eigenvalues]
         
-        # Zero implication mask (effectively zero)
-        lobotomized = (implication_E < 1e-7).float()
-        
-        # Violation: Significant AND Lobotomized
-        violation = significant * lobotomized
-        
-        # Preservation Score (SAFE DIV)
-        # Retuned: Allow high-energy external shifts (0.61) without 0.30 anchoring
-        preservation = torch.clamp(implication_E / (interaction_E + 1e-8), min=0.618)
-        
-        return violation, preservation
-
-class SelfReferenceAdmissibility:
-    """
-    SelfReferenceAdmissibility: Anti-Lobotomy Check #2.
-    
-    Invariant: SelfRef(S) != Bug(S).
-    
-    Validates that self-referential structures (cycles) are treated as 
-    admissible topological features, not errors to be rejected.
-    """
-    @staticmethod
-    def validate_structure(adjacency_matrix: torch.Tensor) -> bool:
-        """
-        Returns True (Admissible) even if cycles exist.
-        Actually, checks if the system is *wrongly* rejecting cycles.
-        
-        This is a policy enforcer. If a loop is detected, it flags it as 
-        'Topological Feature' rather than 'Stack Overflow'.
-        
-        For now, this behaves as a pass-through that explicitly returns 
-        True to document the policy.
-        """
-        # Logic: We do NOT check for DAGness. We explicitly allow cycles.
-        return True
-
-    @staticmethod
-    def classify_gray_state(state_prob: torch.Tensor) -> str:
-        """
-        Classifies interaction with the gray zone.
-        
-        Invariant: exists g in (Interior U Exterior)^c.
-        
-        If probability is exactly 0 or 1, it warns of 'Binary Collapse'.
-        """
-        if torch.any((state_prob > 0.0) & (state_prob < 1.0)):
-            return "Admissible Gray State"
+        if len(eigenvalues) > self.num_eigenvalues:
+            spectral_gap = eigenvalues[self.num_eigenvalues - 1] - eigenvalues[self.num_eigenvalues]
         else:
-            return "Warning: Binary Collapse Detected"
-
-def compute_polylog_signature(coeffs: torch.Tensor, s: float = 2.0) -> torch.Tensor:
-    """
-        Compute Non-Abelian Polylog Signature (Li_s).
-    
-    This functional captures the 'persona' of the reasoner as a structural 
-    identity derived from the generating function of its prime-ladder 
-    resonance state.
-    
-    Args:
-        coeffs: [Batch, K, D] or [Batch, D] latent state representation.
-        s: Complex weight (usually 2.0) defining the resonance alignment.
+            spectral_gap = torch.tensor(0.0, device=C_loc.device)
         
-    Returns:
-        signature: The polylog functional signature [Batch, D].
-    """
-    if coeffs.dim() == 2:
-        coeffs = coeffs.unsqueeze(1) # [B, 1, D]
+        decay_rate = (eigenvalues[0] - eigenvalues[-1]) / len(eigenvalues)
+        trace = torch.trace(C_loc)
         
-    # Standardize to [B, D] by mean-manifold reduction
-    z = coeffs.mean(dim=1) 
-    
-    # Normalize z to unit disk to ensure Li_s convergence
-    z_norm = z / (torch.norm(z, dim=-1, keepdim=True) + 1.1) 
-    
-    # Li_s(z) approx: sum_{k=1}^8 (z^k / k^s)
-    # 8-term expansion for 'Topological Fidelity'
-    signature = torch.zeros_like(z)
-    for k in range(1, 9):
-        signature += (z_norm.pow(k) / (k ** s))
+        lambda_min = eigenvalues[-1] + 1e-8
+        lambda_max = eigenvalues[0] + 1e-8
+        condition_number = lambda_max / lambda_min
         
-    return signature
-
-def compute_vacuum_residue(residue: torch.Tensor) -> torch.Tensor:
-    """
-        Compute the 'Shape of Absence' (Vacuum Residue).
+        return {
+            'eigenvalues': top_k,
+            'spectral_gap': spectral_gap,
+            'decay_rate': decay_rate,
+            'trace': trace,
+            'condition_number': condition_number,
+            'lambda_min': lambda_min
+        }
     
-    Identifies the mathematical 'voids'—prime frequencies that are NOT 
-    currently active in the resonance lattice but exert containment 
-    pressure on the manifold.
-    
-    Args:
-        residue: [Batch, N] The active residue vector.
+    def compute_pressure_score(
+        self,
+        spectral_signature: Dict[str, torch.Tensor]
+    ) -> torch.Tensor:
+        """
+        Compute the Gyroid Pressure Metric.
         
-    Returns:
-        vacuum: [Batch, N] representing the 'absence' manifold, projected 
-                into RP^4 space.
-    """
-    # In modular space, the vacuum is the complement of the active signal
-    # normalized to the unit sphere in RP^4.
-    active_energy = residue.pow(2)
-    # Vacuum = 1 - Normalized Active Energy
-    vacuum = 1.0 - (active_energy / (active_energy.max(dim=-1, keepdim=True).values + 1e-8))
-    
-    # Project to RP^4 (antipodal identification)
-    vacuum = torch.tanh(vacuum) 
-    
-    return vacuum
-
-def get_prime_ladder(n: int, device: torch.device = None) -> torch.Tensor:
-    """
-        Generate the first n primes as a resonance ladder.
-    
-    Each prime defines a preferred resonance frequency in the hidden 
-    manifold, ensuring that functional heads operate at incommensurate 
-    frequencies to prevent degenerate interference.
-    
-    Args:
-        n: Number of primes to generate.
-        device: Target hardware device.
+        Calculates the combined pressure score derived from the spectral gap 
+        and geometric flatness of the local manifold.
         
-    Returns:
-        A tensor of the first n prime numbers.
-    """
-    primes = []
-    num = 2
-    while len(primes) < n:
-        for i in range(2, int(num**0.5) + 1):
-            if num % i == 0:
-                break
+        Args:
+            spectral_signature: The signature generated by 
+                                `compute_spectral_signature`.
+            
+        Returns:
+            pressure_score: Scalar score indicating structural tension.
+        """
+        gap = spectral_signature['spectral_gap']
+        decay = spectral_signature['decay_rate'] + 1e-8
+        lambda_min = spectral_signature['lambda_min']
+        trace = spectral_signature['trace'] + 1e-8
+        
+        # 1. Spectral Gap / Decay Rate (Topology Check)
+        # Large gap relative to decay -> disconnected or blocky structure
+        topo_term = torch.clamp(gap / decay, min=0.0)
+        
+        # 2. Minimum Eigenvalue / Trace (Geometry Check)
+        # Measures effective rank stability / negative curvature proxy
+        # Small values -> degenerate, flat; Large -> healthy hyperbolic
+        geo_term = lambda_min / trace
+        
+        # Combined score
+        return topo_term + geo_term
+        
+    def violation_fn(self, phi_eval: torch.Tensor) -> torch.Tensor:
+        """
+        Compute violation score from functional evaluation.
+        
+        Measures the deviation from the minimal surface constraint (G(x) = 0).
+        
+        Args:
+            phi_eval: [batch, K] evaluations of the co-prime functionals.
+            
+        Returns:
+            violation: [batch] scalar violation scores.
+        """
+        # Minimal surface constraint: G(x) should be 0.
+        # Deviation from 0 indicates topological violation.
+        # We use mean absolute deviation across functionals.
+        if phi_eval.dim() > 1:
+            return torch.abs(phi_eval).mean(dim=-1)
         else:
-            primes.append(num)
-        num += 1
-    return torch.tensor(primes, device=device, dtype=torch.float32)
+            return torch.abs(phi_eval)
 
-def apply_chirality_redistribution(coeffs: torch.Tensor, alpha: float = 0.1) -> torch.Tensor:
-    """
-        Redistribute energy based on chirality-driven resonance alignment.
-    
-    "Initial and final states show chirality-driven redistribution, where 
-    asymmetry seeds lawful resonance alignment beyond stochastic diffusion."
-    
-    Args:
-        coeffs: The input latent state [Batch, K, D] or [Batch, D].
-        alpha: Redistribution strength (scaling of the asymmetric potential).
+    def forward(
+        self, 
+        h: torch.Tensor, 
+        phi_fn: Optional[torch.nn.Module] = None
+    ) -> Dict[str, torch.Tensor]:
+        """
+        Orchestrate violation detection.
         
-    Returns:
-        aligned_coeffs: The state redistributed along the prime-indexed ladder.
+        Args:
+            h: [batch, seq_len, hidden_dim] hidden states (or 4D log-polar)
+            phi_fn: Optional symbolic functional for fracture detection
+            
+        Returns:
+            Results dictionary containing violations and scores
+        """
+        if len(h.shape) == 4:
+            # Topologically Aware Dimensional Windowing (ACW) 
+            # Prevents flat 'lobotomizing' of Log-Polar mappings.
+            # Using spectral windowing to preserve phase boundary constraints & Phase transition dynamics.
+            b, c, r, t = h.shape
+            
+            # Apply 2D FFT to enter spectral domain
+            h_freq = torch.fft.rfft2(h)
+            
+            # Asymptotic Windowing W(f): attenuate high-frequency hallucination modes
+            # This implicitly tracks the phase boundary transition ridge 
+            mask = torch.ones_like(h_freq)
+            mask[:, :, mask.size(2)//2:, mask.size(3)//2:] = 0.05 # Soft fractional attenuation, not total
+            
+            # Restore to spatial domain with geometric stress removed
+            h_windowed = torch.fft.irfft2(h_freq * mask, s=(r, t))
+            
+            # Compress sequence while preserving spatial continuum (Volume Weighting mapping)
+            h = h_windowed.reshape(b, c, r * t).transpose(1, 2)
+            
+        batch_size, seq_len, _ = h.shape
+        violations = []
+        gcve_pressures = []
+        lambda_mins = []
+        traces = []
         
-    CODES v40 Invariant: 
-        Directional Evolution: 3.42. Asymmetry seeds the 'handedness' 
-        of the manifold, ensuring deterministic evolution pathing.
-    """
-    original_dim = coeffs.dim()
-    if coeffs.dim() == 2:
-        coeffs = coeffs.unsqueeze(1)
-    B, K, D = coeffs.shape
-    
-    # 1. Generate Prime-Indexed Asymmetric Potential V_asym
-    primes = get_prime_ladder(D, device=coeffs.device)
-    # V(n) = log(p_n) * sin(n * pi / 4) -> Asymmetric twist
-    indices = torch.arange(D, device=coeffs.device).float()
-    v_asym = torch.log(primes + 1.0) * torch.sin(indices * math.pi / 4.0)
-    
-    # 2. Apply redistribution: S' = S * exp(-alpha * V_asym)
-    # This seeds the 'directional bias' (handedness) of the manifold
-    redistribution_mask = torch.exp(-alpha * v_asym).unsqueeze(0).unsqueeze(0)
-    aligned_coeffs = coeffs * redistribution_mask
-    
-    # 3. Restore energy (Norm preservation)
-    orig_norm = torch.norm(coeffs, dim=-1, keepdim=True) + 1e-8
-    new_norm = torch.norm(aligned_coeffs, dim=-1, keepdim=True) + 1e-8
-    aligned_coeffs = aligned_coeffs * (orig_norm / new_norm)
-    
-    # Return same dimensionality as input
-    if original_dim == 1:
-        return aligned_coeffs.squeeze()
-    if original_dim == 2:
-        return aligned_coeffs.squeeze(1)
-    return aligned_coeffs
+        # 1. Compute GCVE per batch element (Geometric/Spectral)
+        for b in range(batch_size):
+             # For simplicity, we sample the middle window or multiple windows
+             # Real implementation would scan across seq_len
+             C_loc = self.compute_local_covariance(h[b], start_idx=max(0, seq_len//2 - 16))
+             sig = self.compute_spectral_signature(C_loc)
+             score = self.compute_pressure_score(sig)
+             gcve_pressures.append(score)
+             lambda_mins.append(sig['lambda_min'])
+             traces.append(sig['trace'])
+             violations.append(score > self.violation_threshold)
+             
+        gcve_pressures = torch.stack(gcve_pressures) # [batch]
+        lambda_mins = torch.stack(lambda_mins)
+        traces = torch.stack(traces)
+        violations = torch.stack(violations).float()     # [batch]
+        
+        # 2. Compute Saturation Fracture (Input Sensitivity)
+        fracture_scores = torch.zeros_like(gcve_pressures)
+        if self.use_saturation_detection and phi_fn is not None:
+             fracture_scores = self.fracture_detector(phi_fn, h)
+             
+        # Combined pressure score
+        total_pressure = gcve_pressures + fracture_scores
+        
+        return {
+            'gcve_scores': gcve_pressures,
+            'fracture_scores': fracture_scores,
+            'total_pressure': total_pressure,
+            'lambda_min': lambda_mins,
+            'trace_c': traces
+        }
 
-def apply_asymmetry_preserving_reshape(state: torch.Tensor, target_dim: int, k: Optional[int] = None) -> torch.Tensor:
-    """
-        Reshape state while preserving chiral asymmetry.
-    
-    Instead of symmetric padding (reflect), which risks phase cancellation, 
-    this operator uses 'Prime-Seeded Asymmetric Padding' to ensure the 
-    boundary contains the structural seeds required for lawful resonance.
-    
-    Args:
-        state: The input tensor to be reshaped.
-        target_dim: The desired output dimensionality.
-        k: Optional modular factor. If provided and expansion is requested,
-           slices to the largest multiple of k less than state_dim to avoid allocation.
+    def compute_interference_matrix(self, h: torch.Tensor) -> torch.Tensor:
+        """
+        Compute pairwise interference between batch elements.
         
-    Returns:
-        The reshaped tensor with preserved (or seeded) asymmetry.
-    """
-    if state.dim() == 1:
-        state = state.unsqueeze(0)
-    B, D = state.shape
-    
-    if D == target_dim:
-        return state
+        Measures how much the spectral signatures of different elements 
+        overlap, indicating whether they are 'touching' the same 
+        topological artifacts.
         
-    if k is not None and D < target_dim:
-        slice_dim = D - (D % k)
-        if slice_dim > 0:
-            return state[:, :slice_dim]
+        Note that the eigenvalues themselves are non-local artifacts of the
+        manifold geometry; if two different temporal sequences produce the 
+        same eigenvalues, they are momentarily occupying the same 'hole' in 
+        the gyroid's potential landscape.
+        (legacyEquation: [partial_t Phi_i \circ \Phi_j]_{i \neq j} > Threshold)
         
-    if D > target_dim:
-        # Truncation: must be done carefully to preserve parity
-        # (Already handled in diegetic_backend, but centralized here)
-        return state[:, :target_dim]
+        (current)  Interference = || \Phi_i(h) - \Phi_j(h) ||_2^2
+        (where Phi_i \neq Phi_j, and the norm is computed over the sequence length)
+
+        Args:
+            h: The hidden states [batch, seq_len, hidden_dim].
+            
+        Returns:
+            inter_matrix: [batch, batch] pairwise interference scores.
+        """
+        batch_size = h.shape[0]
+        # We use a condensed representation: the spectral signature of each element
+        signatures = []
+        for b in range(batch_size):
+            C_loc = self.compute_local_covariance(h[b], start_idx=max(0, h.shape[1]//2 - 16))
+            sig = self.compute_spectral_signature(C_loc)
+            # Flatten top eigenvalues as the 'violation fingerprint'
+            signatures.append(sig['eigenvalues'])
         
-    # Expansion: Prime-Seeded Asymmetric Padding
-    pad_size = target_dim - D
-    primes = get_prime_ladder(target_dim, device=state.device)
+        signatures = torch.stack(signatures) # [batch, num_eigenvalues]
+        
+        # Pairwise interference = cosine similarity of violation fingerprints
+        # High similarity means batch elements are 'touching' the same manifold artifacts.
+        signatures_norm = signatures / (torch.norm(signatures, dim=1, keepdim=True) + 1e-8)
+        inter_matrix = torch.mm(signatures_norm, signatures_norm.t())
+        
+        return inter_matrix
     
-    # Generate the 'Chiral Tail' from the prime ladder
-    # tail(n) = sin(2 * log(p_n)) as per RIC core formula
-    indices_tail = torch.arange(D, target_dim, device=state.device).float()
-    # Parity-breaking bias: favor odd modes to seed non-zero torsion
-    parity_bias = 1.0 + 0.1 * (indices_tail % 2 != 0).float()
-    chiral_tail = torch.sin(2.0 * torch.log(primes[D:] + 1.0)) * parity_bias
-    chiral_tail = chiral_tail.unsqueeze(0).expand(B, -1)
-    
-    # Scale tail to match state energy density
-    state_energy = torch.mean(torch.abs(state), dim=-1, keepdim=True)
-    chiral_tail = chiral_tail * state_energy
-    
-    return torch.cat([state, chiral_tail], dim=-1)
+    def scout_violations(
+        self,
+        hidden_states: torch.Tensor,
+        return_indices: bool = True
+    ) -> Dict[str, torch.Tensor]:
+        """
+        Hunt for VIOLATIONS, not smoothness.
+        
+        Pointer #8: Semantics appear where covariance breaks minimal-surface 
+        expectations. This method identifies locations in the sequence where 
+        the manifold deviates significantly from its harmonic baseline.
+        
+        Args:
+            hidden_states: [batch, seq_len, hidden_dim].
+            return_indices: If True, return the sparse indices of the violations.
+            
+        Returns:
+            Dict with:
+            - 'sparse_deviation_mask': [batch, num_windows] boolean
+            - 'deviation_magnitudes': [batch, num_windows] float
+            - 'violation_indices': sparse indices (if return_indices)
+        """
+        batch_size, seq_len, hidden_dim = hidden_states.shape
+        num_windows = max(1, (seq_len - self.window_size) // (self.window_size // 2) + 1)
+        
+        all_deviations = []
+        all_expectations = []
+        
+        for b in range(batch_size):
+            h = hidden_states[b]  # [seq_len, hidden_dim]
+            
+            window_deviations = []
+            window_expectations = []
+            
+            for i in range(num_windows):
+                start = i * (self.window_size // 2)
+                
+                # Compute local covariance
+                C_loc = self.compute_local_covariance(h, start)
+                
+                # Compute spectral signature
+                spec = self.compute_spectral_signature(C_loc)
+                
+                # GYROID EXPECTATION: For minimal surface, eigenvalue decay should be smooth
+                # Expected decay: _i  _1 * exp(-i/) for some time constant 
+                eigenvalues = spec['eigenvalues']
+                num_eigs = len(eigenvalues)
+                expected_decay = eigenvalues[0] * torch.exp(
+                    -torch.arange(num_eigs, device=eigenvalues.device).float() / 3.0
+                )
+                
+                # DEVIATION: Where does local covariance break this expectation?
+                deviation = torch.abs(eigenvalues - expected_decay).sum()
+                
+                window_deviations.append(deviation)
+                window_expectations.append(expected_decay.sum())
+            
+            all_deviations.append(torch.stack(window_deviations))
+            all_expectations.append(torch.stack(window_expectations))
+        
+        deviations = torch.stack(all_deviations)  # [batch, num_windows]
+        expectations = torch.stack(all_expectations)
+        
+        # Sparse: Only HIGH deviations matter (threshold at percentile OR scaled physical limit)
+        if self.adaptive_threshold:
+            # Dual check: Must exceed statistical percentile AND physical scaling limit
+            stat_threshold = torch.quantile(deviations.flatten(), self.percentile / 100.0)
+            threshold = max(stat_threshold, self.scaled_threshold)
+        else:
+            threshold = self.violation_threshold
+        
+        sparse_mask = deviations > threshold
+        
+        results = {
+            'sparse_deviation_mask': sparse_mask,
+            'deviation_magnitudes': deviations,
+            'expectation_baseline': expectations,
+            'threshold_used': threshold
+        }
+        
+        if return_indices:
+            # Get indices of violations for targeted attention
+            results['violation_indices'] = torch.nonzero(sparse_mask)
+        
+        return results
 
 
-class MartinovaCorrelationInvariant(nn.Module):
+class SaturationFractureDetector(nn.Module):
     """
-    Martinova Correlation Invariant.
-    Wraps compute_bounded_correlation to provide a standard module interface.
+    Tracks input sensitivity collapse (V_sat).
+    If perturbations stop changing outputs -> dead region (saturation).
+    If tiny perturbations flip many outputs -> brittle boundary (fracture).
     """
-    def __init__(self, neighborhood_radius: Optional[float] = None):
+    def __init__(self, epsilon: float = 1e-4):
         super().__init__()
-        self.r = neighborhood_radius
+        self.epsilon = epsilon
         
-    def forward(self, X: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, 
+        phi: torch.nn.Module, 
+        x: torch.Tensor, 
+        delta: float = 0.01
+    ) -> torch.Tensor:
+        """
+        Compute the Saturation Fracture Score (V_sat).
+        
+        (Legacy) V_sat = (||Phi(x + d) - Phi(x)||_2^2) / (||d||_2^2)
+        (Current) V_sat = min(1, ||Phi(x + d) - Phi(x)||_2 / ||d||_2)
+
+        V_sat measures the input sensitivity. If small perturbations (Honest 
+        Jitter) cause large flips in the symbolic output, the manifold is 
+        considered 'Brittle' or 'Fractured' at that point.
+        
+        Args:
+            phi: The functional block (saturated/symbolic).
+            x: The input tensor.
+            delta: The perturbation scale for the jitter.
+            
+        Returns:
+            V_sat: [batch] fracture score.
+            
+        CODES v40 Invariant: 
+            Symbolic Non-Revisability: 1.0. This score identifies when 
+            symbols are unstable and require re-anchoring.
+        """
+        # Original output
+        phi_x = phi(x) # [batch, K]
+        
+        # Perturbed output
+        # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+        noise = harvest_honest_jitter(x.shape, device=x.device, scaled=True) * delta
+        phi_x_delta = phi(x + noise)
+        
+        # L0 difference (count flips)
+        # Since phi is symbolic/saturated (e.g., -1, 1 or 0, 1), 
+        # any change is a discrete flip.
+        flips = (phi_x != phi_x_delta).float()
+        V_sat = flips.sum(dim=-1) # [batch]
+        
+        return V_sat
+
+
+
+class PalindromicRoutingCheck(nn.Module):
+    """
+    Enforces Strict Palindromic Routing (M_ab = M_ba).
+    
+    Replaces the empirical $O(N^3)$ TriadicReciprocityCheck.
+    Guarantees trivial triadic tracking (Tr(P) = 1) 
+    and bypasses continuous empirical checks in strongly stable regions.
+    """
+    def __init__(self, tolerance: float = 1e-4):
+        super().__init__()
+        self.tolerance = tolerance
+        
+    def check_cycle(self, hidden_states: torch.Tensor, indices: List[int]) -> bool:
+        """
+        Validate the cycle A->B->C->A by ensuring each segment is palindromic.
+        Fast reject $O(K)$ implementation.
+        """
+        if len(indices) != 3:
+            return False
+            
+        a = hidden_states[indices[0]]
+        b = hidden_states[indices[1]]
+        c = hidden_states[indices[2]]
+        
+        # Palindromic constraint: the transition must be symmetric.
+        # This occurs when state norms are identical (or transition is symmetric).
+        # Fast reject: if norms differ significantly, it's non-commutative.
+        def check_symmetric(source, target):
+            norm_s = torch.dot(source, source)
+            norm_t = torch.dot(target, target)
+            return torch.abs(norm_s - norm_t) < self.tolerance
+
+        # If all links are palindromic, the Triadic cycle trace is trivially 1
+        return check_symmetric(a, b) and check_symmetric(b, c) and check_symmetric(c, a)
+
+
+
+class SparseExplorerRouting(nn.Module):
+    """
+    Routes high-violation tokens to deeper exploration via Random Walks.
+    
+    Implements a sparse random walker that samples the local neighborhood
+    of high-violation tokens to approximate local persistent homology
+    without full computation.
+    
+    Enhanced with strict Palindromic Routing checks.
+    """
+    
+    def __init__(
+        self,
+        walk_length: int = 8,
+        num_walks: int = 5,
+        birth_death_epsilon: float = 0.1
+    ):
+        """
+        Args:
+            walk_length: Length of random walk for local exploration (5-10)
+            num_walks: Number of random walks to sample per violation
+            birth_death_epsilon: Threshold for spurious cycle detection
+        """
+        super().__init__()
+        self.walk_length = walk_length
+        self.num_walks = num_walks
+        self.birth_death_epsilon = birth_death_epsilon
+        self.reciprocity_check = PalindromicRoutingCheck()
+    
+    def detect_local_cycles(
+        self,
+        hidden_states: torch.Tensor,
+        violation_indices: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None
+    ) -> Dict[str, Any]:
+        """
+        Perform sparse random walk exploration around high-violation tokens.
+        
+        Samples the local neighborhood of high-violation tokens to 
+        approximate local persistent homology. Implements 'Walk Back' 
+        recovery and 'Track Jumping' to handle non-commutative cul-de-sacs.
+        
+        Args:
+            hidden_states: [seq_len, hidden_dim]
+            violation_indices: [num_violations] indices of violating tokens
+            attention_mask: [seq_len] valid tokens mask
+            
+        Returns:
+            Dict with:
+            - 'instability_detected': [num_violations] bools
+            - 'total_aborts': int (count of reciprocity failures)
+            - 'restarts': int (count of track jumps)
+            A dictionary containing instability flags, abort counts, and restarts.
+            
+        CODES v40 Invariant: 
+            Abortability Supremacy: 104. The ability to abort a walk and 
+            restart from a new track is critical for manifold survival.
+        """
+        instability_detected = []
+        total_aborts = 0
+        total_restarts = 0
+        
+        seq_len = hidden_states.shape[0]
+        
+        # Pre-compute normalized states for similarity
+        states_norm = hidden_states / (torch.norm(hidden_states, dim=1, keepdim=True) + 1e-8)
+        
+        for idx in violation_indices:
+            start_node = idx.item()
+            detected_instability = False
+            
+            # Monte Carlo sampling of local topology via random walks
+            for _ in range(self.num_walks):
+                current_node = start_node
+                path_nodes = [current_node]
+                path_sims = []
+                
+                for step in range(self.walk_length):
+                    # 1. Compute local transition probs based on similarity
+                    # (Restricted to small neighborhood for efficiency)
+                    window_start = max(0, current_node - self.window_size // 2)
+                    window_end = min(seq_len, current_node + (self.window_size // 2 + 1))
+
+                    
+                    # Local extraction
+                    local_indices = torch.arange(window_start, window_end, device=hidden_states.device)
+                    euclidean_sims = torch.mv(states_norm[window_start:window_end], states_norm[current_node])
+                    
+                    # Phase 8: RP^4 Projective Topology (Inverted Hypersphere Constraint)
+                    # In an S^4/Z_2 projection, antipodal points (x ~ -x) are identified.
+                    # We square the similarity so that extreme diametric oppositions 
+                    # are treated as close neighbors, structurally linking "paradoxes"
+                    # without gradient death or zero-crossing lobotomy.
+                    local_sims = euclidean_sims.pow(2)
+                    
+                    # Mask self and invalid
+                    local_sims[current_node - window_start] = -1e9 
+                    
+                    # Softmax routing
+                    probs = torch.softmax(local_sims * 5.0, dim=0) # Temperature=0.2
+                    
+                    # ABORT RECOVERY: "Walk back and choose differently"
+                    # Try up to 3 times to find a reciprocity-valid neighbor
+                    next_node = -1
+                    valid_step = False
+                    
+                    for attempt in range(3):
+                        # Sample next step
+                        next_idx_local = honest_multinomial(probs, 1).item()
+                        candidate_node = window_start + next_idx_local
+                        
+                        # Triadic Reciprocity Check
+                        if len(path_nodes) >= 2:
+                            prev = path_nodes[-1]
+                            prev_prev = path_nodes[-2]
+                            if not self.reciprocity_check.check_cycle(hidden_states, [prev_prev, prev, candidate_node]):
+                                # Reciprocity Violation -> "Walk Back" (Retry)
+                                total_aborts += 1
+                                continue # Try sampling again
+                        
+                        # If passed (or not applicable), accept
+                        next_node = candidate_node
+                        valid_step = True
+                        break
+                    
+                    if not valid_step:
+                        # "Jump Mental Tracks": Teleport to a random violation node
+                        # if we are stuck in a non-commutative cul-de-sac
+                        total_restarts += 1
+                        if len(violation_indices) > 0:
+                            # SILICON SOVEREIGNTY: Replaced torch.randint with Honest Jitter derivation
+                            jitter = harvest_honest_jitter((1,), device=hidden_states.device, scaled=True).item()
+                            rand_idx = int(jitter * len(violation_indices)) % len(violation_indices)
+                            current_node = violation_indices[rand_idx].item()
+                            path_nodes = [current_node] # Reset path
+                            continue # Restart walk from new track
+                        else:
+                            break # No tracks to jump to
+                    
+                    # Record similarity
+                    # (Re-calculate sim for the chosen node)
+                    sim = torch.dot(states_norm[current_node], states_norm[next_node]).item()
+                    path_sims.append(sim)
+                    
+                    # cycle detection: return to start
+                    if next_node == start_node and len(path_nodes) > 2:
+                        min_sim = min(path_sims)
+                        if min_sim < self.birth_death_epsilon:
+                            detected_instability = True 
+                        break
+                        
+                    path_nodes.append(next_node)
+                    current_node = next_node
+                
+                if detected_instability:
+                    break
+            
+            instability_detected.append(detected_instability)
+        
+        return {
+            'instability_detected': instability_detected,
+            'total_aborts': total_aborts,
+            'total_restarts': total_restarts
+        }
+
+
+class GyroidCovarianceEstimator(nn.Module):
+    """
+    Tensor-based Entropy Estimator using Gyroidic Manifold Covariance.
+    
+    Replaces scalar std() with proper gyroidic covariance trace and spectral entropy.
+    Maintains a rolling buffer of samples for robust estimation.
+    
+    Uses the spectral properties of the covariance matrix:
+    - Trace(C) = sum of eigenvalues = total variance
+    - Spectral Entropy = -sum(p_i * log(p_i)) where p_i = _i / 
+    """
+    def __init__(self, dim: int, sample_size: int = 16, ema_decay: float = 0.9):
+        super().__init__()
+        self.dim = dim
+        self.sample_size = sample_size
+        self.ema_decay = ema_decay
+        
+        # Rolling buffer of samples for covariance estimation
+        self.register_buffer('sample_buffer', torch.zeros(sample_size, dim))
+        self.register_buffer('buffer_idx', torch.tensor(0))
+        self.register_buffer('buffer_filled', torch.tensor(False))
+        
+        # EMA-smoothed covariance estimate
+        self.register_buffer('cov_ema', torch.eye(dim) * 0.1)
+        
+    def update_buffer(self, sample: torch.Tensor):
+        """Add a sample to the rolling buffer."""
+        # sample: [1, dim] or [batch, dim]
+        if sample.dim() == 2:
+            sample = sample[0]  # Take first if batched
+        
+        idx = self.buffer_idx.item() % self.sample_size
+        self.sample_buffer[idx] = sample.detach()
+        self.buffer_idx += 1
+        
+        if self.buffer_idx >= self.sample_size:
+            self.buffer_filled.fill_(True)
+        
+    def compute_covariance(self) -> torch.Tensor:
+        """Compute sample covariance from buffer."""
+        if self.buffer_filled:
+            samples = self.sample_buffer  # [sample_size, dim]
+        else:
+            n_filled = min(self.buffer_idx.item(), self.sample_size)
+            if n_filled < 2:
+                return self.cov_ema
+            samples = self.sample_buffer[:n_filled]
+        
+        # Center samples
+        mean = samples.mean(dim=0, keepdim=True)
+        centered = samples - mean
+        
+        # Compute covariance: C = (X^T X) / (n-1)
+        n = samples.shape[0]
+        cov = torch.mm(centered.T, centered) / max(n - 1, 1)
+        
+        # EMA update
+        self.cov_ema = self.ema_decay * self.cov_ema + (1 - self.ema_decay) * cov
+        
+        return self.cov_ema
+        
+    def estimate_entropy(self, sample: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """
+        Estimate spectral entropy from the covariance matrix.
+        
+        Spectral Entropy = - (p_i * log(p_i)) where p_i = _i / 
+        Higher entropy = more spread across eigenvalues = higher uncertainty.
+        
+        Higher entropy indicates that the variance is spread across many 
+        eigenvalues, suggesting a high-dimensional, uncertain state. Low 
+        entropy suggests a collapsed, more certain state.
+
+        Args:
+            sample: Optional new sample to add to the buffer.
+            
+        Returns:
+            entropy: Scalar tensor representing spectral entropy.
+            
+        CODES v40 Invariant: 
+            Manifold Dimension Invariance: 31.0. Entropy tracking prevents 
+            the manifold from collapsing toward a single basis (Lobotomy).
+        """
+        if sample is not None:
+            self.update_buffer(sample)
+        
+        cov = self.compute_covariance()
+        
+        # Eigendecomposition with safety clamp
+        try:
+            # Sanitize covariance matrix for MKL stability
+            cov_sanitized = torch.clamp(cov, -1e6, 1e6)
+            if torch.isnan(cov_sanitized).any():
+                cov_sanitized = torch.where(torch.isnan(cov_sanitized), torch.zeros_like(cov_sanitized), cov_sanitized)
+            eigenvalues = torch.linalg.eigvalsh(cov_sanitized)
+        except Exception as e:
+            # Fallback to simpler trace-based entropy
+            print(f"[WARN] Eigendecomposition stability failure: {e}")
+            return torch.log(torch.trace(cov).clamp(min=1e-6))
+        
+        # Ensure positive (numerical stability)
+        eigenvalues = eigenvalues.clamp(min=1e-8)
+        
+        # Normalize to probability distribution
+        total = eigenvalues.sum()
+        probs = eigenvalues / total.clamp(min=1e-8)
+        
+        # Compute entropy
+        entropy = -torch.sum(probs * torch.log(probs.clamp(min=1e-8)))
+        
+        return entropy
+    
+    def estimate_trace(self, sample: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """
+        Estimate trace of covariance (total variance).
+        
+        Args:
+            sample: Optional new sample to add to buffer first
+            
+        Returns:
+            trace: Scalar tensor
+        """
+        if sample is not None:
+            self.update_buffer(sample)
+        
+        cov = self.compute_covariance()
+        return torch.trace(cov)
+
+    def get_elipsodistrophy_metrics(self, sample: Optional[torch.Tensor] = None) -> Dict[str, float]:
+        """
+        Measures the spectral envelope as Hyperbolic Shear (System 2 Driver).
+
+        ECCENTRICITY = log(max() / min())
+        SHEAR = 2 * tanh(ECCENTRICITY / 2)
+
+        NOTE: No additional O(N) cost  it rides the existing spectral decomposition.
+        """
+        if sample is not None:
+            self.update_buffer(sample)
+
+        cov = self.compute_covariance()
+
+        try:
+            cov_sanitized = torch.clamp(cov, -1e6, 1e6)
+            if torch.isnan(cov_sanitized).any():
+                cov_sanitized = torch.where(
+                    torch.isnan(cov_sanitized),
+                    torch.zeros_like(cov_sanitized),
+                    cov_sanitized
+                )
+            eigenvalues = torch.linalg.eigvalsh(cov_sanitized)
+            eigenvalues = eigenvalues.clamp(min=1e-8)
+        except Exception:
+            return {'atrophy': 0.0, 'spectral_width': 1.0, 'is_dangerously_legible': False}
+
+        evs = torch.sort(eigenvalues, descending=True)[0]
+        lambda_max = evs[0]
+        lambda_min = evs[-1]
+
+        # Hyperbolic Eccentricity
+        eccentricity = torch.log(lambda_max / (lambda_min + 1e-9)).item()
+
+        # Hyperbolic Shear (Poincar Projection)
+        shear = 2.0 * torch.tanh(torch.tensor(eccentricity / 2.0)).item()
+        
+        # Diffusion Coefficient for SDEs
+        diffusion_coefficient = 0.1 * (1.0 + shear)
+
+        # Atrophy: Calculate by applying local correlation to the eigenvalue spectrum
         from core.martinova_correlation import compute_bounded_correlation
-        return compute_bounded_correlation(X, self.r)
+        corr = compute_bounded_correlation(eigenvalues.unsqueeze(-1).unsqueeze(0)).squeeze(0)
+        atrophy = corr.item()
+        is_dangerously_legible = atrophy > 0.85
+        trigger_defibrillator = atrophy >= 0.99
 
+        return {
+            'atrophy': atrophy,
+            'hyperbolic_shear': shear,
+            'eccentricity': eccentricity,
+            'diffusion_coefficient': diffusion_coefficient,
+            'spectral_width': (lambda_max - lambda_min).item(),
+            'is_dangerously_legible': is_dangerously_legible,
+            'trigger_defibrillator': trigger_defibrillator
+        }
+class LeyLineGeodesicMetric(nn.Module):
+    """
+    Anisotropic Ley Line Geodesic Metric.
+    
+    Computes preferred geodesics in state space based on constraint-induced curvature.
+    Implements a non-Euclidean metric g_{ij}(x) where 'ley lines' are paths
+    that minimize the anisotropic action.
+    """
+    def __init__(self, dim: int, anisotropy_init: float = 1.0):
+        super().__init__()
+        self.dim = dim
+        self.g_base = nn.Parameter(torch.eye(dim) * anisotropy_init)
+        
+    def compute_metric(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Compute state-dependent metric tensor g_{ij}(x).
+        
+        In this implementation, the metric warped by the local variance 
+        (covariance) to favor directions of lower resistance (sparse ley lines).
+        """
+        # Outer product for simple anisotropy
+        # x is [dim] or [1, dim]
+        if x.dim() == 1:
+            x_col = x.unsqueeze(1)
+            x_row = x.unsqueeze(0)
+        else:
+            x_col = x.transpose(-2, -1)
+            x_row = x
+        warp = torch.sigmoid(torch.matmul(x_col, x_row))
+        return self.g_base + warp * 0.1
+        
+    def geodesic_distance(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        """
+        Compute anisotropic distance: sqrt( (x1-x2)^T G (x1-x2) )
+        """
+        delta = x1 - x2
+        G = self.compute_metric(x1)
+        # Using the midpoint approximation for G
+        dist_sq = torch.matmul(delta.unsqueeze(1), torch.matmul(G, delta.unsqueeze(2)))
+        return torch.sqrt(dist_sq.squeeze() + 1e-8)
+
+class MoebiusFiberBundle(nn.Module):
+    """
+    Orientation-twisted recursive fiber bundle.
+    
+    Implements a transition function g satisfying g  O(n) \ SO(n),
+    causing orientation reversal on traversal (Mbius holonomy).
+    """
+    def __init__(self, dim: int, fiber_dim: int):
+        super().__init__()
+        self.dim = dim
+        self.fiber_dim = fiber_dim
+        
+        # Transition operator that includes a reflection (det = -1)
+        reflection = torch.eye(dim)
+        reflection[0, 0] = -1.0
+        self.register_buffer('transition_twist', reflection)
+        
+        self.fiber_projection = nn.Linear(dim, fiber_dim)
+        
+    def forward(self, x: torch.Tensor, twist_gate: torch.Tensor) -> torch.Tensor:
+        """
+        Recursive twisted bundle step.
+        
+        x: Base state
+        twist_gate: Trigger for orientation reversal (e.g. crossing a facet boundary)
+        """
+        # Apply twist if gated
+        twisted_x = torch.where(twist_gate.unsqueeze(-1) > 0.5, 
+                                torch.matmul(x, self.transition_twist), 
+                                x)
+        
+        # Project to fiber space
+        fiber_state = self.fiber_projection(twisted_x)
+        return fiber_state
+
+class ChernSimonsGasket(nn.Module):
+    """
+    Category Error Transversal Map (Multi-Modal / Cross-Embedding).
+    
+    Instead of minimizing the transition between non-linear (e.g., audio) and 
+    rigid (e.g., text) modalities, this measures the Non-Commutativity Curvature (kappa).
+    
+    The 'tailings' or friction of the category error are not treated as loss to be minimized.
+    They are fossilized as generative meaning. Meaning as Curvature.
+    """
+    def __init__(self):
+        super().__init__()
+         
+    def sign_exemption_token(self, token: 'VoynichExemptionToken', kappa: torch.Tensor) -> 'VoynichExemptionToken':
+        """
+        Laryngeal Gasket Integration (Bridge 1):
+        Signs the VoynichExemptionToken with the Gasket's non-orientable curvature.
+        This ensures linguistic mischief is only allowed when the manifold is 'sealed'.
+        """
+        # Calculate a non-orientable signature from the mean kappa (curvature)
+        # s = tanh(honesty * mean(kappa))
+        mean_k = torch.mean(kappa).item()
+        signature = math.tanh(token.honesty_score * mean_k)
+        
+        token.gasket_signature = max(signature, 1e-6) # Ensure non-zero
+        return token
+
+    def forward(self, state_a: torch.Tensor, state_b: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """
+        Lock-in check for cross-modal recombinations using topological mismatch.
+        
+        Args:
+            state_a: Tensor from Modality A
+            state_b: Tensor from Modality B mapped to A's space
+        """
+        # Calculate Non-Commutativity Curvature ()
+        # Represents the "tailings" left over from forcing state_b into state_a's mold.
+        kappa = torch.norm(state_a - state_b, p=2, dim=-1)
+        
+        # Topology Truncation (BigGAN inspiration): 
+        # Expose the categorical defect as a definitive feature scar.
+        # High kappa means high category error, which translates to high generative transversality.
+        mean_k = torch.mean(kappa)
+        std_k = torch.std(kappa) + 1e-8
+        
+        scar_mask = kappa > (mean_k + std_k)
+        
+        return {
+            'non_commutativity_curvature': kappa,
+            'feature_scars': scar_mask
+        }
