@@ -6,10 +6,10 @@ to polynomial remainders with co-prime polynomial functionals.
 Operates in a saturated, symbolic regime for topological stability.
 
 Mathematical Foundation:
-    Given co-prime φ_1(x), ..., φ_K(x)
+    Given co-prime _1(x), ..., _K(x)
     For residues r_1(x), ..., r_K(x)
-    ∃! polynomial L(x) such that:
-        L(x) ≡ r_k(x) (mod φ_k(x)) for all k
+    ! polynomial L(x) such that:
+        L(x)  r_k(x) (mod _k(x)) for all k
 
 Author: William Matthew Bryant
 Created: January 2026
@@ -226,6 +226,18 @@ class PolynomialCRT(nn.Module):
         if not return_reconstruction:
             return pressure
         return pressure, reconstruction
+
+    def compute_packing_fraction(self, residue_distributions: torch.Tensor) -> torch.Tensor:
+        """
+        Determine packing fraction \phi based on correlation:
+        -1.0 represents highly dispersed "Meliponini" pots,
+        1.0 represents densely packed "Apis" lattices.
+        """
+        from core.martinova_correlation import compute_bounded_correlation
+        # residue_distributions: [batch, K, D]
+        # Calculate local spatial correlation across the K functionals (residue patterns)
+        phi = compute_bounded_correlation(residue_distributions)
+        return phi
 
 
 class PolynomialCRTKernelDetector:
