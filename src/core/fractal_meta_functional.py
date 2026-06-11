@@ -101,6 +101,15 @@ class FractalMetaFunctional(nn.Module):
         if dark_matter is None:
             dark_matter = torch.zeros_like(current_state)
             
+        # Compute spatial correlation of current_state to dynamically size fractal clusters
+        from src.core.martinova_correlation import compute_bounded_correlation
+        corr_input = current_state.unsqueeze(-1) if current_state.dim() == 2 else current_state
+        spatial_corr = compute_bounded_correlation(corr_input)  # [batch]
+        # Map spatial_corr from [-1, 1] to a cluster scaling factor in [0.2, 2.0]
+        # High spatial clustering (crystallization) shrinks the active cluster influence,
+        # while spatial dispersion expands it.
+        cluster_scale = (1.0 - 0.8 * spatial_corr).unsqueeze(-1)  # [batch, 1]
+            
         # --- Term 1: Inverse-Covariant CRT Fusion (Simplified Proxy) ---
         # We use the CRT module to reconstruct a 'belief' from residues, 
         # modulated by the meta-state.
@@ -121,7 +130,7 @@ class FractalMetaFunctional(nn.Module):
         # Project D -> dim (Fixing Dimension Mismatch)
         crt_state = self.crt_proj(crt_out) # [batch, dim]
         
-        term_crt = torch.abs(current_state - crt_state) # Difference/Error metric
+        term_crt = torch.abs(current_state - crt_state) * cluster_scale # Difference/Error metric scaled
         
         # --- Term 2: Recursive ADMR Residue ---
         # lambda_ADMR * sum( r_k * exp(gamma * delta + lambda_spec * phi(S_meta)) )
@@ -135,8 +144,8 @@ class FractalMetaFunctional(nn.Module):
         
         admr_out = self.admr(current_state, neighbor_states, adjacency) 
         
-        # Modulate by meta state
-        term_admr = self.lambda_admr * admr_out * torch.exp(0.1 * meta_mod)
+        # Modulate by meta state and cluster scale
+        term_admr = self.lambda_admr * admr_out * torch.exp(0.1 * meta_mod) * cluster_scale
         
         # --- Term 3: Hyper-Ring + Dark Matter ---
         # sum H_ij * sigma( f_i - f_j + gamma * D_dark )
@@ -166,8 +175,9 @@ class FractalMetaFunctional(nn.Module):
         # term_ring is the projected flow contribution
         term_ring = F.silu(aggregated_flow)
         
-        # Include Dark Matter influence directly
-        term_ring = term_ring + 0.1 * torch.sigmoid(dark_matter)
+        # Include Dark Matter influence directly and scale by cluster_scale
+        term_ring = (term_ring + 0.1 * torch.sigmoid(dark_matter)) * cluster_scale
+
         
         # --- Term 4: Autoscillatory Coupling ---
         # [ t_ddot - mu(1 - t^2)t_dot ... ]^2 (Van der Pol - ish)
