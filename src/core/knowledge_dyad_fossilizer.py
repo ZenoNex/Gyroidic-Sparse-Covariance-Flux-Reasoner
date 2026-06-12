@@ -414,33 +414,7 @@ class DyadFossilizer:
         
         return filepath
         
-    def ouroboros_shadow_loop(self, 
-                              failure_log: str, 
-                              seed_state: torch.Tensor, 
-                              text_embedding: torch.Tensor, 
-                              image_fingerprint: Optional[torch.Tensor] = None) -> Optional[str]:
-        """
-        Ouroboros Shadow loops: Fossilize shadow logs of mathematical failures
-        as permanent KnowledgeDyads when local correlation reaches 1.0 (GLYPHLOCK state).
-        """
-        from src.core.martinova_correlation import compute_bounded_correlation
-        corr_input = seed_state.unsqueeze(-1) if seed_state.dim() == 2 else seed_state
-        state_corr = compute_bounded_correlation(corr_input)
-        
-        # When local correlation reaches 1.0 (>= 0.99), we trigger glyphlock fossilization
-        if (state_corr >= 0.99).any():
-            print(f"[OUROBOROS] Correlation reached 1.0 (GLYPHLOCK state). Fossilizing shadow log of mathematical failure.")
-            # Wrap failure log as a permanent KnowledgeDyad
-            failure_dyad = KnowledgeDyad(
-                linguistic_description=f"Ouroboros Shadow Failure Log: {failure_log[:150]}...",
-                image_fingerprint=image_fingerprint,
-                metadata={'failure_type': 'ouroboros_shadow_loop', 'glyphlock_triggered': True, 'raw_log': failure_log}
-            )
-            return self.fossilize(failure_dyad, text_embedding, seed_state)
-        return None
-        
     def recover_fossils(self, limit: Optional[int] = 150) -> List[Dict]:
-
         """Load all fossilized dyads for 'Speculative Coprime Gating'."""
         fossils = []
         if not os.path.exists(self.storage_dir):
