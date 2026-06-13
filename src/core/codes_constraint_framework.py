@@ -2,6 +2,15 @@
 CODES: Constraint-Oriented Differential Equation System
 Based on Energy-Based Learning and Number Theory
 
+NOTE ON OVERLOADED TAXONOMY:
+The acronym CODES is overloaded in this codebase. This file implements the:
+- Constraint-Oriented Differential Equation System (EBM solver/learning framework).
+For the other variants, see:
+- Chirality of Dynamic Emergent Systems (universal grand theory: docs/Codes v40.md)
+- Coherence-Oriented Deterministic Execution System (GPU driver: src/optimization/codes_driver.py)
+- Constraint Oscillation Driven Evolutionary Selection (evolutionary selector)
+For full details, see docs/CODES_RESOLUTIONS.md.
+
 Implements constraint satisfaction through energy minimization:
 1. Constraints as energy functions
 2. Differential equations for constraint evolution
