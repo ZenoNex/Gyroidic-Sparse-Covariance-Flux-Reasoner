@@ -22,6 +22,9 @@ Below is the directory structure mapping core algorithms to their corresponding 
 *   **Manifold Hunger & Leontief Economics**
     *   *Implementation*: [valence_drive.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/valence_drive.py) & [leontief_governor.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/leontief_governor.py)
     *   *Documentation*: [UN_KNOWLEDGE_GUIDE.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/UN_KNOWLEDGE_GUIDE.md)
+*   **CODES Taxonomy & Overloaded Acronym Resolution**
+    *   *Implementation*: [codes_driver.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/codes_driver.py) & [codes_constraint_framework.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/codes_constraint_framework.py)
+    *   *Documentation*: [CODES_RESOLUTIONS.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/CODES_RESOLUTIONS.md) & [Codes v40.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/Codes%20v40.md)
 
 ### 2. Psycho-Topological Archetypes (The Amazing Digital Circus)
 *   **The Grand Governor & Conformal Picture Gallery Warp**
@@ -76,9 +79,18 @@ Floating summary files have been organized into the [docs/summaries/](file:///d:
 
 ---
 
+## System Release Notes & Addendums
+
+*   **BrainBreeder Alpha 1.0.0 Release Addendum**
+    *   *Documentation*: [RELEASE_ADDENDUM_alpha_1.0.0.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/RELEASE_ADDENDUM_alpha_1.0.0.md)
+    *   *Focus*: Complete details on the pure topological archetype refactoring, Phase 18 CRT switching, and the PyOpenCL hardware integration profile.
+
+---
+
 ## 🎯 Verification and Test Matrix
 
 The system includes multiple automated validation suites to ensure mathematical convergence and safety:
+
 
 *   **Archetype Flux & Clock Verification**:
     Run `verify_archetype_flux.py` to test Pomni, Gangle, Zooble, and Kinger integration:
