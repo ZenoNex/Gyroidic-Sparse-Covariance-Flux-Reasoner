@@ -692,6 +692,16 @@ class DiegeticPhysicsEngine(nn.Module):
             print(f"[INGEST] ArXiv Sovereign Ingestor failed: {e}")
             self.arxiv_ingestor = None
         
+        # Initialize Open Science Ingestor inside the engine
+        try:
+            from src.data.open_science_ingestor import OpenScienceIngestor
+            cache_dir = os.path.join(ENCODING_DIR, "open_science_cache")
+            self.open_science_ingestor = OpenScienceIngestor(cache_dir=cache_dir)
+            print(" Open Science Ingestor initialized in engine.")
+        except Exception as e:
+            self.open_science_ingestor = None
+            print(f"[INGEST] Failed to initialize OpenScienceIngestor: {e}")
+
         self._start_background_larynx_trainer()
 
     def _idx_to_char(self, idx: int) -> str:
@@ -958,7 +968,14 @@ class DiegeticPhysicsEngine(nn.Module):
                     # Teacher forcing: feed actual target character representation
                     idx = chars[i + 1]
                     feedback = torch.tanh(self.larynx.proj.weight[idx].detach().unsqueeze(0))
-                    current_state = 0.9 * current_state.detach() + 0.1 * feedback
+                    direction = feedback - current_state.detach()
+                    if hasattr(self, 'meta_polytope') and self.meta_polytope is not None:
+                        boundary_res = self.meta_polytope(current_state)
+                        from src.core.meta_polytope_matrioshka import BoundaryState
+                        if isinstance(boundary_res, BoundaryState):
+                            # Project update direction onto Bouligand tangent cone
+                            direction = self.meta_polytope.project_direction(current_state, direction, boundary_res)
+                    current_state = current_state.detach() + 0.1 * direction
             avg_loss = total_loss / max(1, len(chars) - 1)
             avg_loss.backward()
             torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
@@ -1025,7 +1042,29 @@ class DiegeticPhysicsEngine(nn.Module):
                             if t and len(t) >= 4:
                                 fossil_texts.append(t)
 
-                    all_texts = replay_texts + fossil_texts
+                    # Sense computational load (CPU and RAM) to throttle background ingestion
+                    scientific_texts = []
+                    try:
+                        import psutil
+                        cpu_percent = psutil.cpu_percent(interval=0.1)
+                        ram_percent = psutil.virtual_memory().percent
+                        # If computational load is low, seed background learning with scientific datasets
+                        if cpu_percent < 50.0 and ram_percent < 80.0:
+                            if getattr(self, 'open_science_ingestor', None) is not None:
+                                query_configs = [
+                                    {"type": "ligo", "event": "GW190521", "detector": "H1", "duration": 2.0},
+                                    {"type": "ncbi", "accession_id": "AM743169.1", "db": "nucleotide"}
+                                ]
+                                samples = self.open_science_ingestor.query_and_aggregate(query_configs)
+                                for s in samples:
+                                    t = s.get("text", "")
+                                    if t and len(t) >= 4:
+                                        scientific_texts.append(t)
+                    except Exception as load_err:
+                        # Log but do not crash background thread
+                        print(f"[BGLEARN] Load sensing or query failed: {load_err}")
+
+                    all_texts = replay_texts + fossil_texts + scientific_texts
                     total_loss, n = 0.0, 0
                     for text in all_texts[:12]:  # cap per cycle
                         loss = self._train_mimicry_step(text)
@@ -1035,7 +1074,7 @@ class DiegeticPhysicsEngine(nn.Module):
                         time.sleep(0.1)  # Yield lock and CPU time slice to prevent starving main thread
 
                     if n > 0:
-                        src = f"{len(replay_texts)} shadow + {n - len(replay_texts)} fossil"
+                        src = f"{len(replay_texts)} shadow + {len(fossil_texts)} fossil + {len(scientific_texts)} science"
                         print(f"[BGLEARN] step avg_loss={total_loss/n:.4f} ({src})")
                 except Exception as e:
                     print(f"[BGLEARN] Error: {e}")
