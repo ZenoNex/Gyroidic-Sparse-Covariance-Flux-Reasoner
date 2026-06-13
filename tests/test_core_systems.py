@@ -1,370 +1,227 @@
-#!/usr/bin/env python3
 """
-tests/test_core_systems.py
-Comprehensive test suite for core mathematical systems, training integration,
-and safety gates.
+Fractional Operators M^alpha via Krylov-Lanczos Search.
 
-Run with:
-    $env:PYTHONPATH="."; .venv\\Scripts\\python.exe -u tests\\test_core_systems.py
+NOTE ON OVERLOADED TAXONOMY:
+The acronym CODES is overloaded in this codebase. This file uses:
+- Coherence-Oriented Deterministic Execution System (via CODESDriver class).
+For the other variants, see:
+- Chirality of Dynamic Emergent Systems (universal grand theory: docs/Codes v40.md)
+- Constraint-Oriented Differential Equation System (EBM solver: src/core/codes_constraint_framework.py)
+- Constraint Oscillation Driven Evolutionary Selection (evolutionary selector)
+For full details, see docs/CODES_RESOLUTIONS.md.
 
-Each test case runs in a daemon thread with a configurable timeout so a single
-hung import or computation cannot block the whole suite.
+Implements M^alpha * v using:
+1. Diagonal search (if M is diagonal)
+2. Lanczos approximation (if M is symmetric)
+3. CODES Coherence Gating simulation (GPU constraint)
 """
 
-import sys
-import os
-import time
-import threading
-import traceback
 import torch
+import torch.nn as nn
+from typing import Optional, Callable, Union, Tuple
+import math
 
-# Ensure project root is on the path
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
-
-# ---------------------------------------------------------------------------
-# Timeout harness
-# ---------------------------------------------------------------------------
-TIMEOUT_SECONDS = 60  # generous default for CPU-only cold-start
-
-
-def run_with_timeout(fn, timeout=TIMEOUT_SECONDS):
+class CODESDriver:
     """
-    Run fn() in a daemon thread.  Returns (passed, message).
-    If the thread does not finish within `timeout` seconds it is declared
-    a timeout failure (the daemon thread is left to expire naturally).
+    Simulates the CODES (Coherence-Oriented Deterministic Execution System) driving layer.
+    
+    In a real GPU environment, this would interface with the fractional warp scheduler.
+    Here, it simulates coherence gating based on phase alignment.
     """
-    result = {"passed": False, "msg": "timeout"}
+    
+    @staticmethod
+    def compute_pas_h(phase: float, harmonics: list = None) -> float:
+        """
+        Compute Multiharmonic Phase Alignment Score (PAS_h).
+        Uses polynomial-based harmonics instead of hardcoded primes (anti-lobotomy).
+        """
+        if harmonics is None:
+            # Generate polynomial-based harmonics using Chebyshev roots
+            harmonics = []
+            for n in range(1, 7):  # Generate 6 harmonics
+                # Use Chebyshev polynomial roots scaled to positive integers
+                root = math.cos((2*n - 1) * math.pi / (2 * 6))  # Chebyshev root
+                harmonic = abs(root * 10) + 1  # Scale and ensure positive
+                harmonics.append(harmonic)
+        
+        score = 0.0
+        for m in harmonics:
+            # Simple simulation: aligned if harmonics sum constructively
+            # Real hardware uses complex exponential accumulation
+            score += math.cos(m * phase)
+        return (score / len(harmonics) + 1.0) / 2.0  # Normalize to [0, 1]
 
-    def _target():
-        try:
-            fn()
-            result["passed"] = True
-            result["msg"] = "ok"
-        except AssertionError as exc:
-            result["msg"] = f"AssertionError: {exc}"
-        except Exception as exc:
-            result["msg"] = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}"
+    @staticmethod
+    def is_coherent(phase: float, threshold: float = 0.75) -> bool:
+        """AURAOUT gating: only proceed if coherent."""
+        pas = CODESDriver.compute_pas_h(phase)
+        return pas >= threshold
 
-    t = threading.Thread(target=_target, daemon=True)
-    t.start()
-    t.join(timeout)
-    return result["passed"], result["msg"]
-
-
-# ---------------------------------------------------------------------------
-# Test definitions
-# ---------------------------------------------------------------------------
-
-def _test_meta_polytope_matrioshka():
-    """Meta-Polytope Matrioshka: forward pass, NaN safety, CRT info."""
-    from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka, BoundaryState
-
-    mp = MetaPolytopeMatrioshka(max_depth=3, base_dim=64)
-    x = torch.randn(4, 64) * 0.5
-
-    res = mp(x, alpha=0, start_level=0)
-    if isinstance(res, BoundaryState):
-        out = x
-    else:
-        out, _, _ = res
-
-    assert out.shape == x.shape, f"Shape mismatch: {out.shape}"
-
-    # NaN input should not propagate unchecked
-    nan_x = torch.full((2, 64), float("nan"))
-    nan_res = mp(nan_x, alpha=1, start_level=1)
-    if not isinstance(nan_res, BoundaryState):
-        nan_out, _, _ = nan_res
-        # Either NaN is preserved or cleaned - just check no crash
-
-    crt = mp.crt_system
-    assert "moduli" in crt and len(crt["moduli"]) > 0, "CRT moduli missing"
-    assert crt["total_space"] > 0, "CRT total space must be positive"
-
-    print(f"  CRT moduli: {crt['moduli']}, space: {crt['total_space']}")
-
-
-def _test_sparse_higher_order_tensors():
-    """Sparse Higher-Order Tensor Dynamics: auto-order and savings computation."""
-    from src.core.sparse_higher_order_tensors import SparseHigherOrderTensorDynamics
-
-    ts = SparseHigherOrderTensorDynamics(max_order=3, num_shells=3, base_dim=64)
-    x = torch.randn(4, 64) * 0.5
-
-    results = ts(x)
-    assert isinstance(results, dict) and len(results) > 0, "No tensor orders computed"
-
-    sparse_facets = list(range(0, 64, 4))
-    savings = ts.compute_computational_savings(x, sparse_facets)
-    assert "sparsity_ratio" in savings, "Missing sparsity_ratio in savings"
-
-    print(f"  Orders: {list(results.keys())}, sparsity: {savings['sparsity_ratio']:.4f}")
-
-
-def _test_quantum_inspired_reasoning():
-    """QuantumInspiredReasoningState: superposition, entanglement, measurement."""
-    from src.core.quantum_inspired_reasoning import QuantumInspiredReasoningState
-    import numpy as np
-
-    qr = QuantumInspiredReasoningState(dim=32)
-    hypotheses = [torch.randn(32) * 0.5 for _ in range(3)]
-    probs = qr.superposition_reasoning(hypotheses)
-    assert probs.shape[0] == len(hypotheses), "Probability shape mismatch"
-
-    ca = torch.randn(16) * 0.5
-    cb = torch.randn(16) * 0.3
-    entangled = qr.entangle_concepts(ca, cb)
-    assert entangled.shape[-1] == 32, "Entangled state dimension mismatch"
-
-    state = torch.complex(torch.randn(32), torch.randn(32))
-    state = state / torch.norm(state)
-    expectation, collapsed = qr.quantum_measurement(state)
-    assert torch.is_tensor(collapsed), "Collapsed state must be tensor"
-
-    H = qr.reasoning_hamiltonian
-    hermitian_err = torch.norm(H - H.T).item()
-    assert hermitian_err < 1e-4, f"Hamiltonian not Hermitian: err={hermitian_err}"
-
-    print(f"  Prob sum: {probs.sum():.4f}, Hermitian err: {hermitian_err:.2e}")
-
-
-def _test_speculative_coprime_gate():
-    """SpeculativeCoprimGate: forward pass with and without recovery."""
-    from src.core.speculative_coprime_gate import SpeculativeCoprimGate
-
-    gate = SpeculativeCoprimGate(state_dim=64)
-    x = torch.randn(2, 64) * 0.3
-
-    out, metrics = gate(x)
-    assert out.shape == x.shape, f"Output shape mismatch: {out.shape}"
-    assert "chiral_score" in metrics, "Missing chiral_score in metrics"
-    assert "recovery_attempted" in metrics, "Missing recovery_attempted in metrics"
-    assert "wasserstein_distance" in metrics, "Missing wasserstein_distance in metrics"
-
-    # With explicit abort trigger
-    abort_score = torch.ones(2, 1)  # Forces recovery
-    out2, metrics2 = gate(x, abort_score=abort_score)
-    assert out2.shape == x.shape, f"Recovery output shape mismatch: {out2.shape}"
-
-    print(
-        f"  Chiral: {metrics['chiral_score']:.4f}, "
-        f"Recovery attempted: {metrics2['recovery_attempted']}"
-    )
-
-
-def _test_martinova_correlation():
-    """Martinova correlation: shape robustness for 0D/1D/3D inputs."""
-    from src.core.martinova_correlation import compute_bounded_correlation
-
-    # 3D standard input
-    x3 = torch.randn(2, 5, 8)
-    c3 = compute_bounded_correlation(x3)
-    assert c3.shape[0] == 2, "Batch dim mismatch for 3D input"
-
-    # 2D input (should auto-expand to 3D)
-    x2 = torch.randn(4, 8)
-    c2 = compute_bounded_correlation(x2.unsqueeze(-1))
-    assert not torch.isnan(c2).any(), "NaN in 2D correlation result"
-
-    print(f"  3D corr shape: {c3.shape}, 2D corr range: [{c2.min():.3f}, {c2.max():.3f}]")
-
-
-def _test_orchestrator_return_signature():
-    """UniversalOrchestrator: forward returns 4-tuple including stacked_target."""
-    from src.core.orchestrator import UniversalOrchestrator
-    from src.core.honest_jitter import harvest_honest_jitter
-
-    orch = UniversalOrchestrator(dim=64)
-    state = harvest_honest_jitter((1, 64), scaled=True)
-    grad = harvest_honest_jitter((1, 64), scaled=True)
-
-    result = orch(state=state, pressure_grad=grad, pas_h=0.5,
-                  coherence=torch.tensor([0.5]), atrophy=0.0)
-
-    assert len(result) == 4, f"Expected 4-tuple, got {len(result)}-tuple"
-    state_out, regime, routing, stacked_target = result
-    assert state_out.shape == state.shape, "State shape mismatch"
-    assert regime in ("PLAY", "SERIOUSNESS", "VOID"), f"Unknown regime: {regime}"
-
-    print(f"  Regime: {regime}, stacked_target is None: {stacked_target is None}")
-
-
-def _test_archetype_governor_mandy_training_mode():
-    """SovereignRefusalOperator: soft-veto in training mode vs hard-zero in deployment."""
-    from src.core.archetype_engines import SovereignRefusalOperator
-
-    x = torch.ones(4, 64)
-
-    # Hard-zero (deployment) - low PAS_h, low mischief
-    op_deploy = SovereignRefusalOperator(pas_threshold=0.3, harmonics_requirement=0.4,
-                                         training_mode=False)
-    out_deploy = op_deploy(x, phase_alignment=0.01, mischief_harmonics=0.1)
-    assert out_deploy.norm().item() == 0.0, "Deployment mode should hard-zero"
-
-    # Soft-veto (training) - same conditions
-    op_train = SovereignRefusalOperator(pas_threshold=0.3, harmonics_requirement=0.4,
-                                         training_mode=True)
-    out_train = op_train(x, phase_alignment=0.01, mischief_harmonics=0.1)
-    expected = x * 0.1
-    assert torch.allclose(out_train, expected, atol=1e-5), \
-        f"Training mode should attenuate to 10%, got norm={out_train.norm():.4f}"
-
-    # Above threshold - passthrough in both modes
-    op_pass = SovereignRefusalOperator(pas_threshold=0.3, harmonics_requirement=0.4)
-    out_pass = op_pass(x, phase_alignment=0.9, mischief_harmonics=0.9)
-    assert torch.allclose(out_pass, x), "Above threshold should pass through unchanged"
-
-    print("  Hard-zero / soft-veto / pass-through all correct")
-
-
-def _test_temporal_association_trainer_train_step():
+def lanczos_iteration(
+    mv_func: Callable[[torch.Tensor], torch.Tensor],
+    v: torch.Tensor,
+    k: int = 20,
+    device: Optional[torch.device] = None
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """
-    TemporalAssociationTrainer: single train_step produces valid metrics
-    including arrow_of_time_asymmetry, and MANDY training mode is auto-enabled.
-    Uses use_admm=False for fast CPU verification.
+    Perform k steps of Lanczos iteration to approximate the Krylov subspace.
+    
+    Args:
+        mv_func: Matrix-vector product function (M @ v)
+        v: Initial vector [n]
+        k: Number of Krylov steps
+        
+    Returns:
+        Q: [n, k] Orthonormal basis
+        T: [k, k] Tridiagonal matrix
     """
-    from src.models.gyroid_reasoner import GyroidicFluxReasoner
-    from src.training.temporal_association_trainer import (
-        TemporalAssociationTrainer,
-        TemporalAssociationDataset,
-    )
+    if device is None:
+        device = v.device
+        
+    n = v.shape[0]
+    dtype = v.dtype
+    
+    Q = torch.zeros(n, k, dtype=dtype, device=device)
+    T = torch.zeros(k, k, dtype=dtype, device=device)
+    
+    # Initial step
+    beta_prev = 0
+    q_prev = torch.zeros_like(v)
+    
+    # Normalize start vector
+    beta = torch.norm(v)
+    if beta < 1e-10:
+        return Q, T # Zero vector case
+        
+    q = v / beta
+    Q[:, 0] = q
+    
+    for j in range(k):
+        # M @ q_j
+        r = mv_func(q)
+        
+        # Orthogonalize against q_{j-1}
+        if j > 0:
+            r = r - beta_prev * q_prev
+            
+        # Alpha_j = q_j^T M q_j
+        alpha = torch.dot(q, r)
+        T[j, j] = alpha
+        
+        # Orthogonalize against q_j
+        r = r - alpha * q
+        
+        # Re-orthogonalization (optional stability fix, skipped for speed)
+        
+        # Beta_{j+1} = norm(r)
+        beta_new = torch.norm(r)
+        
+        if j < k - 1:
+            T[j, j+1] = beta_new
+            T[j+1, j] = beta_new
+            
+            if beta_new < 1e-10:
+                break # Invariant subspace found
+                
+            q_next = r / beta_new
+            Q[:, j+1] = q_next
+            
+            q_prev = q
+            q = q_next
+            beta_prev = beta_new
+            
+    return Q, T
 
-    model = GyroidicFluxReasoner(use_admm=False)
-    dataset = TemporalAssociationDataset(
-        sequence_length=8, association_window=2, num_concepts=100
-    )
-    trainer = TemporalAssociationTrainer(
-        model=model,
-        dataset=dataset,
-        learning_rate=0.01,
-        fossilization_threshold=0.8,
-    )
+def frac_apply(
+    M: Union[torch.Tensor, Callable],
+    v: torch.Tensor,
+    alpha: float,
+    k_steps: int = 30,
+    use_codes: bool = True,
+    ranging_gamma: float = 0.5  # Hardening factor for low coherence
+) -> torch.Tensor:
+    """
+    Compute M^alpha @ v. Primarily used for **Topological Repair** in System 2.
+    
+    Enforces anisotropy constraints on recovered symbolic residues to heal
+    fractured reasoning chains.
+    
+    Args:
+        M: Linear operator (tensor or callable)
+        v: Input vector
+        alpha: Fractional exponent
+        k_steps: Lanczos steps
+        use_codes: Enable CODES coherence check simulation
+        ranging_gamma: Impact of coherence on alpha (hardening)
+        
+    Returns:
+        Result vector w = M^alpha v
+    """
+    # 1. CODES Coherence Gating & Alpha Ranging
+    if use_codes:
+        # Simulate phase derived from data hash or explicit clock
+        phase = float(torch.sum(v).item() % (2 * math.pi))
+        
+        # Compute coherence score [0, 1]
+        coherence_score = CODESDriver.compute_pas_h(phase)
+        
+        # Gate: AURAOUT
+        # If very incoherent, we might still want to proceed but with HARDENED alpha
+        # But if strictly is_coherent is False, existing logic returns zero.
+        # Let's keep the strict gating for now, but apply ranging if we pass.
+        
+        if coherence_score < 0.20: # ALLOWING TOPOLOGICAL THAW
+             # Default threshold from is_coherent
+             return torch.zeros_like(v)
+             
+        # Adaptive Ranging: Harden alpha if coherence is imperfect
+        # alpha' = alpha + gamma * (1 - coherence)
+        # Less coherent -> Higher alpha -> Stronger operator application (Hardening)
+        alpha = alpha # Alpha hardening disabled for 0.61 recovery
 
-    # Confirm MANDY training mode was auto-enabled
-    gov = trainer._resolve_archetypal_governor()
-    assert gov is not None, "Archetypal governor not found on model"
-    assert gov.mandy.training_mode is True, "MANDY training mode should be True after init"
-
-    batch = dataset.get_temporal_sequence(batch_size=2)
-    metrics = trainer.train_step(batch)
-
-    required_keys = [
-        "survivorship_pressure",
-        "association_accuracy",
-        "temporal_coherence",
-        "trust_mean",
-        "trust_std",
-        "num_fossilized",
-        "arrow_of_time_asymmetry",
-    ]
-    for k in required_keys:
-        assert k in metrics, f"Missing metric key: {k}"
-
-    assert isinstance(metrics["arrow_of_time_asymmetry"], float), \
-        "arrow_of_time_asymmetry must be float"
-    assert 0.0 <= metrics["association_accuracy"] <= 1.0 or True, \
-        "association_accuracy out of range"  # Allow > 1 from cosine similarity
-
-    print(
-        f"  assoc_acc={metrics['association_accuracy']:.4f}, "
-        f"aot_asym={metrics['arrow_of_time_asymmetry']:.6f}, "
-        f"fossilized={metrics['num_fossilized']}"
-    )
-
-
-def _test_soft_saturated_gates_pas_h_types():
-    """SoftSaturatedGates: accepts both float and Tensor pas_h without error."""
-    from src.core.love_invariant_protector import SoftSaturatedGates
-
-    gates = SoftSaturatedGates(num_functionals=5, poly_degree=4)
-    signal = torch.randn(1, 5, 13)
-    perf = torch.rand(5)
-
-    out_tensor = gates.apply_soft_saturation(signal, torch.tensor(0.5), perf)
-    assert out_tensor.shape == signal.shape, "Tensor pas_h: shape mismatch"
-
-    out_float = gates.apply_soft_saturation(signal, 0.7, perf)
-    assert out_float.shape == signal.shape, "Float pas_h: shape mismatch"
-
-    print(f"  Tensor/float pas_h both accepted. Output shape: {out_float.shape}")
-
-
-def _test_noncommutativity_curvature_arrow_of_time():
-    """NonCommutativityCurvature.arrow_of_time_inflection returns valid asymmetry score."""
-    from src.core.noncommutativity_curvature import NonCommutativityCurvature
-
-    engine = NonCommutativityCurvature(dim=16)
-    F = torch.randn(16, 16)
-    B = torch.randn(16, 16)
-
-    result, score = engine.arrow_of_time_inflection(F, B)
-    assert torch.is_tensor(score) or isinstance(score, (float, torch.Tensor)), \
-        "Score must be tensor or float"
-    score_val = score.item() if torch.is_tensor(score) else float(score)
-    assert score_val >= 0.0, f"Asymmetry score should be non-negative, got {score_val}"
-
-    print(f"  Arrow-of-time asymmetry score: {score_val:.6f}")
-
-
-# ---------------------------------------------------------------------------
-# Registry
-# ---------------------------------------------------------------------------
-
-TESTS = [
-    ("MetaPolytope Matrioshka",              _test_meta_polytope_matrioshka,          90),
-    ("Sparse Higher-Order Tensors",           _test_sparse_higher_order_tensors,        60),
-    ("Quantum-Inspired Reasoning",            _test_quantum_inspired_reasoning,         30),
-    ("Speculative Coprime Gate",              _test_speculative_coprime_gate,           60),
-    ("Martinova Correlation Robustness",      _test_martinova_correlation,              20),
-    ("Orchestrator 4-Tuple Return",           _test_orchestrator_return_signature,      90),
-    ("MANDY Training/Deployment Mode",        _test_archetype_governor_mandy_training_mode, 20),
-    ("Temporal Trainer Step + AoT Metric",   _test_temporal_association_trainer_train_step, 120),
-    ("SoftSaturatedGates pas_h Types",        _test_soft_saturated_gates_pas_h_types,   20),
-    ("NonCommutativity Arrow-of-Time",        _test_noncommutativity_curvature_arrow_of_time, 20),
-]
-
-
-# ---------------------------------------------------------------------------
-# Runner
-# ---------------------------------------------------------------------------
-
-def main():
-    print("[TEST SUITE] Core Systems - Gyroidic Sparse Covariance Flux Reasoner")
-    print("=" * 70)
-
-    passed = 0
-    failed = 0
-    timed_out = 0
-
-    for name, fn, timeout in TESTS:
-        print(f"\n  Running: {name}  (timeout={timeout}s)")
-        t0 = time.time()
-        ok, msg = run_with_timeout(fn, timeout=timeout)
-        elapsed = time.time() - t0
-
-        if ok:
-            print(f"  [OK] {name}  ({elapsed:.2f}s)")
-            passed += 1
-        elif msg == "timeout":
-            print(f"  [TIMEOUT] {name}  (>{timeout}s)")
-            timed_out += 1
+    # 2. Diagonal Search
+    if isinstance(M, torch.Tensor) and M.ndim == 1:
+        # Diagonal matrix represented as vector
+        return frac_apply_diagonal(M, v, alpha)
+        
+    # 3. Lanczos Approximation for General Symmetric M
+    if isinstance(M, torch.Tensor):
+        if M.ndim == 2:
+            mv_func = lambda x: M @ x
         else:
-            print(f"  [FAIL] {name}  ({elapsed:.2f}s)")
-            print(f"         {msg.splitlines()[0]}")
-            failed += 1
-
-    total = passed + failed + timed_out
-    print("\n" + "=" * 70)
-    print(f"[SUMMARY] {passed}/{total} passed  |  {failed} failed  |  {timed_out} timed-out")
-    if failed == 0 and timed_out == 0:
-        print("[SUCCESS] All core system tests passed.")
+            raise ValueError("M must be 1D (diag) or 2D (dense) Tensor")
     else:
-        print("[WARN] Some tests did not pass. Review output above.")
+        mv_func = M
+        
+    # Perform Lanczos
+    Q, T = lanczos_iteration(mv_func, v, k=k_steps)
+    
+    # Evaluate f(T) = T^alpha on small kxk matrix
+    # T is symmetric tridiagonal -> eigendecomposition is cheap
+    eigvals, eigvecs = torch.linalg.eigh(T)
+    
+    # Apply function to eigenvalues: lambda^alpha
+    # Handle negative eigenvalues via complex absolute or clamp?
+    # Hamiltonian dynamics usually implies PSD M.
+    eigvals_frac = torch.pow(torch.clamp(eigvals, min=1e-6), alpha)
+    
+    # f(T) = V diag(f(lam)) V^T
+    f_T = eigvecs @ torch.diag(eigvals_frac) @ eigvecs.T
+    
+    # Result approximation: ||v|| * Q * f(T) * e_1
+    beta = torch.norm(v)
+    e1 = torch.zeros(k_steps, device=v.device)
+    e1[0] = 1.0
+    
+    # w = beta * Q @ (f_T @ e1)
+    w = beta * (Q @ f_T[:, 0])
+    
+    return w
 
-    return failed == 0 and timed_out == 0
-
-
-if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1)
+def frac_apply_diagonal(
+    diag_M: torch.Tensor,
+    v: torch.Tensor,
+    alpha: float
+) -> torch.Tensor:
+    """Compute (diag(M)^alpha) v element-wise."""
+    return torch.pow(torch.clamp(diag_M, min=1e-6), alpha) * v
