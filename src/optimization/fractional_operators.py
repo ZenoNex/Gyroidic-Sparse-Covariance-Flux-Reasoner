@@ -1,6 +1,15 @@
 """
 Fractional Operators M^alpha via Krylov-Lanczos Search.
 
+NOTE ON OVERLOADED TAXONOMY:
+The acronym CODES is overloaded in this codebase. This file uses:
+- Coherence-Oriented Deterministic Execution System (via CODESDriver class).
+For the other variants, see:
+- Chirality of Dynamic Emergent Systems (universal grand theory: docs/Codes v40.md)
+- Constraint-Oriented Differential Equation System (EBM solver: src/core/codes_constraint_framework.py)
+- Constraint Oscillation Driven Evolutionary Selection (evolutionary selector)
+For full details, see docs/CODES_RESOLUTIONS.md.
+
 Implements M^alpha * v using:
 1. Diagonal search (if M is diagonal)
 2. Lanczos approximation (if M is symmetric)
