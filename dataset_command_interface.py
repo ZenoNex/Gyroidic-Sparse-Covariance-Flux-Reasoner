@@ -347,6 +347,19 @@ class DatasetCommandInterface:
                 temporal_associations=True,
                 manifold_aware=args.manifold_aware
             )
+        elif args.source == 'open_science':
+            open_science_source = args.dataset or 'all'
+            config = DatasetConfig(
+                name=f"open_science_{open_science_source.replace(',', '_')}",
+                source_type='open_science',
+                source_path=open_science_source,
+                preprocessing='text',
+                max_samples=args.samples,
+                augmentation=True,
+                mandelbulb_augmentation=args.augment,
+                temporal_associations=True,
+                manifold_aware=args.manifold_aware
+            )
         else:
             print(f"[ERR] Invalid source/dataset combination")
             return False
@@ -522,7 +535,7 @@ Examples:
     
     # Full pipeline command
     full_parser = subparsers.add_parser('full-pipeline', help='Run full pipeline with all features')
-    full_parser.add_argument('--source', required=True, choices=['huggingface', 'wikipedia', 'local', 'portal'], help='Data source')
+    full_parser.add_argument('--source', required=True, choices=['huggingface', 'wikipedia', 'local', 'portal', 'open_science'], help='Data source')
     full_parser.add_argument('--dataset', default=None, help='Dataset logical name or HuggingFace/Wikipedia path/topics')
     full_parser.add_argument('--path', default=None, help='Filesystem path for local/portal sources (alternative to --dataset for file paths)')
     full_parser.add_argument('--samples', type=int, default=1000, help='Max samples to use')
