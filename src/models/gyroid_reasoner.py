@@ -716,7 +716,7 @@ class GyroidicFluxReasoner(nn.Module):
         # Prepare Voynich Token (passed via text_emb's metadata if available, or attribute)
         voynich_token = getattr(self, '_current_voynich_token', None)
 
-        h_orchestrated, regime, routing = self.orchestrator(
+        h_orchestrated, regime, routing, _stacked_target = self.orchestrator(
             state=h,
             pressure_grad=pressure_grad,
             pas_h=pas_h_val,
@@ -724,6 +724,7 @@ class GyroidicFluxReasoner(nn.Module):
             atrophy=atrophy_val
         )
         h = h_orchestrated # Apply logical primitives
+
         
         # Collect orchestrator diagnostics
         metrics_from_board = self.orchestrator.bulletin_board.read_metrics()
