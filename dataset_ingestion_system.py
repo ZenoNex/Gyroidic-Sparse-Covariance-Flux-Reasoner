@@ -278,6 +278,8 @@ class DatasetIngestionSystem:
                 success = self._ingest_portal_dataset(config)
             elif config.source_type == 'minecraft':
                 success = self._ingest_minecraft_dataset(config)
+            elif config.source_type == 'open_science':
+                success = self._ingest_open_science_dataset(config)
             else:
                 print(f"[FAIL] Failed to add dataset {config.name}")
                 return False
@@ -291,6 +293,132 @@ class DatasetIngestionSystem:
             print(f"[ERR] Error adding dataset {config.name}: {e}")
             return False
 
+    def _ingest_open_science_dataset(self, config: DatasetConfig, return_samples: bool = False) -> Union[bool, List[Dict]]:
+        """Ingest dataset from open-access scientific API queries."""
+        try:
+            print(f"[OPEN_SCIENCE] Loading open science queries from: {config.source_path}")
+            
+            # 1. Parse the query configs
+            query_configs = []
+            source_path_str = config.source_path.strip()
+            
+            # Check if it's a file
+            file_path = Path(source_path_str)
+            if file_path.exists() and file_path.is_file():
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        content = f.read().strip()
+                        if content.startswith("[") or content.startswith("{"):
+                            parsed = json.loads(content)
+                            if isinstance(parsed, list):
+                                query_configs = parsed
+                            elif isinstance(parsed, dict):
+                                query_configs = [parsed]
+                        else:
+                            for line in content.splitlines():
+                                line = line.strip()
+                                if not line or line.startswith("#"):
+                                    continue
+                                try:
+                                    query_configs.append(json.loads(line))
+                                except json.JSONDecodeError:
+                                    query_configs.append({"type": line})
+                except Exception as e:
+                    print(f"   [WARN] Failed to parse query config file {file_path.name}: {e}")
+            
+            # If not parsed from file, try to parse directly as JSON string
+            if not query_configs:
+                if source_path_str.startswith("[") or source_path_str.startswith("{"):
+                    try:
+                        parsed = json.loads(source_path_str)
+                        if isinstance(parsed, list):
+                            query_configs = parsed
+                        elif isinstance(parsed, dict):
+                            query_configs = [parsed]
+                    except json.JSONDecodeError as e:
+                        print(f"   [WARN] Failed to parse inline JSON query: {e}")
+            
+            # If still empty, assume comma-separated list of types or "all"/"default"
+            if not query_configs:
+                types = []
+                if source_path_str.lower() in ["all", "default", "standard"]:
+                    types = ["ligo", "sdss", "ncbi", "openneuro"]
+                else:
+                    types = [t.strip().lower() for t in source_path_str.split(",") if t.strip()]
+                
+                reference_queries = {
+                    "ligo": {
+                        "type": "ligo",
+                        "event": "GW190521",
+                        "detector": "H1",
+                        "duration": 4.0,
+                        "sample_rate": 4096
+                    },
+                    "sdss": {
+                        "type": "sdss",
+                        "catalog_id": "J/A+A/540/A106",
+                        "row_limit": 100
+                    },
+                    "ncbi": {
+                        "type": "ncbi",
+                        "accession_id": "AM743169.1",
+                        "db": "nucleotide"
+                    },
+                    "openneuro": {
+                        "type": "openneuro",
+                        "dataset_id": "ds003445",
+                        "subject_id": "sub-01",
+                        "run_id": "run-1"
+                    }
+                }
+                
+                for t in types:
+                    if t in reference_queries:
+                        query_configs.append(reference_queries[t])
+                    else:
+                        print(f"   [WARN] Unknown query type: {t}, passing basic query dict.")
+                        query_configs.append({"type": t})
+            
+            print(f"   [OPEN_SCIENCE] Aggregating {len(query_configs)} scientific queries...")
+            
+            # 2. Query and aggregate samples using OpenScienceIngestor
+            from src.data.open_science_ingestor import OpenScienceIngestor
+            cache_dir = self.data_dir / "open_science_cache"
+            ingestor = OpenScienceIngestor(cache_dir=str(cache_dir))
+            
+            samples = ingestor.query_and_aggregate(query_configs)
+            
+            if config.max_samples:
+                samples = samples[:config.max_samples]
+                
+            # Apply manifold thick preprocessing
+            final_samples = []
+            for sample in samples:
+                preprocessed = self._preprocess_sample(sample, 'text')
+                if preprocessed:
+                    # Keep raw open science metadata alongside preprocessed fields
+                    preprocessed['metadata'].update(sample.get('metadata', {}))
+                    final_samples.append(preprocessed)
+                else:
+                    final_samples.append(sample)
+            
+            if return_samples:
+                return final_samples
+                
+            # Save dataset
+            dataset_path = self.data_dir / config.safe_name
+            dataset_path.mkdir(exist_ok=True, parents=True)
+            self._save_dynamic_dataset(final_samples, dataset_path, config)
+            
+            print(f"[OK] Open Science dataset created and chunked: {len(final_samples)} samples")
+            return True
+            
+        except Exception as e:
+            print(f"[ERR] Open Science ingestion failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+            
     def _ingest_minecraft_dataset(self, config: DatasetConfig, return_samples: bool = False) -> Union[bool, List[Dict]]:
         """Ingest dataset from Minecraft world saves and mod packages."""
         try:
