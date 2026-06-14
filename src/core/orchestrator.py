@@ -90,6 +90,10 @@ class UniversalOrchestrator(nn.Module):
         self.gluer = GluingOperator(dim)
         self.rupture_fn = RuptureFunctional()
         
+        # Topological Gyrocompass (Convexity shield & True North locator)
+        from src.core.topological_gyrocompass import TopologicalGyrocompass
+        self.gyrocompass = TopologicalGyrocompass(state_dim=dim, love_dim=max(1, dim // 4), device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+        
         # 2. Hyper-Ring: Non-Euclidean Neural Connectivity
         # We treat 'num_polytopes' as a constant or based on K
         self.hyper_ring = RecurrentHyperRingConnectivity(num_polytopes=5)
@@ -422,6 +426,11 @@ class UniversalOrchestrator(nn.Module):
             # Apply Love Invariant (The Structural Anchor)
             state_with_love = self.love(current_state)
             state_sync = state_with_love
+            
+            if is_red_zone or float(cycle_debt.item()) > 0.5:
+                print(f"[ORCHESTRATOR] Applying True North pull toward Love Invariant. (is_red_zone={is_red_zone}, cycle_debt={cycle_debt.item():.3f})", flush=True)
+                pull = self.gyrocompass.find_true_north(state_sync, self.love.L)
+                state_sync = state_sync + pull
             
             # Apply 600-Cell Quantization (Lattice Gating)
             if state_sync.shape[-1] >= 4:
