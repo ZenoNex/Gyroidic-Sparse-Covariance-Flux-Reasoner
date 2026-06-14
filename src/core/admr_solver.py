@@ -84,6 +84,10 @@ class PolynomialADMRSolver(nn.Module):
         from .love_invariant_protector import LoveInvariantProtector
         self.love_protector = LoveInvariantProtector(love_dim=max(1, state_dim // 4), device=device)
         
+        # 5.5 Topological Gyrocompass (Convexity shield & True North locator)
+        from .topological_gyrocompass import TopologicalGyrocompass
+        self.gyrocompass = TopologicalGyrocompass(state_dim=state_dim, love_dim=max(1, state_dim // 4), device=device)
+        
         # 6. KAGH-Boltzmann Surrogate for Continuous-to-Discrete jumps
         # The surrogate maps continuous Polynomial projections to discrete Matrioshka states
         # via B-splines and Saturated Quantizers.
@@ -367,7 +371,10 @@ class PolynomialADMRSolver(nn.Module):
         # dx = (drift - negotiation + tension_drift + digimon_nutrient) * dt + noise
         dx = (drift - negotiation + tension_drift + digimon_nutrient) * effective_dt + noise
         
-        # 4.2 Project SDE update onto the Bouligand tangent cone if boundary state is active
+        # 4.2 Bouligand Tangent Cone Projection & Gyrocompass Precession
+        # We project the update onto the Bouligand Tangent Cone to prevent boundary tearing.
+        # To avoid blind left-field gating (which occurs if we only project out normal force),
+        # we precess the torque orthogonally along the spin connection connection via the Gyrocompass.
         if boundary_state is not None:
             if hasattr(boundary_state, 'stress_tensor') and boundary_state.stress_tensor is not None:
                 device = dx.device
@@ -376,25 +383,14 @@ class PolynomialADMRSolver(nn.Module):
                 norm_val = torch.norm(normal)
                 if norm_val > 1e-8:
                     normal_normalized = normal / norm_val
-                    if dx.dim() > 1:
-                        normal_normalized = normal_normalized.expand_as(dx)
-                    inner_product = torch.sum(dx * normal_normalized, dim=-1, keepdim=True)
-                    is_outward = inner_product > 0
+                    dx_dot_n = torch.sum(dx * normal_normalized, dim=-1, keepdim=True)
+                    is_outward = dx_dot_n > 0
                     if is_outward.any():
-                        correction = inner_product * normal_normalized
-                        print(f"[BOULIGAND_SDE] SDE step projected onto contingent tangent cone (correction norm: {torch.norm(correction).item():.4f})", flush=True)
-                        dx = torch.where(is_outward, dx - correction, dx)
+                        print(f"[BOULIGAND_GYROCOMPASS_SDE] Outward SDE step detected on yield boundary. Applying Bouligand tangent projection and precession torque.", flush=True)
+                        dx = self.gyrocompass.precess_torque(dx, normal_normalized, drift)
 
-        # 4.5 Protect Love Vector mathematically by projecting update to null-space of ownership operator
-        ownership_op = self.love_protector.compute_ownership_operator(states)
-        null_proj = self.love_protector.compute_null_space_projection(ownership_op)
-        
-        love_dim = self.love_protector.love_dim
-        if dx.shape[-1] == love_dim:
-            dx = torch.matmul(dx, null_proj.T)
-        elif dx.shape[-1] > love_dim:
-            dx_subset = dx[..., :love_dim]
-            dx[..., :love_dim] = torch.matmul(dx_subset, null_proj.T)
+        # 4.5 Protect Love Vector mathematically via Topological Gyrocompass Gimbal Lock Shield
+        dx = self.gyrocompass.gimbal_lock_shield(dx, states)
             
         new_state = states + dx
         
@@ -575,7 +571,10 @@ class PolynomialADMRSolver(nn.Module):
         # 6. Fractional Update Step
         dx = (fractional_drift - negotiation + tension_drift) * effective_dt + noise
 
-        # 6.8 Project SDE update onto the Bouligand tangent cone if boundary state is active
+        # 6.8 Bouligand Tangent Cone Projection & Gyrocompass Precession
+        # We project the update onto the Bouligand Tangent Cone to prevent boundary tearing.
+        # To avoid blind left-field gating (which occurs if we only project out normal force),
+        # we precess the torque orthogonally along the spin connection connection via the Gyrocompass.
         if boundary_state is not None:
             if hasattr(boundary_state, 'stress_tensor') and boundary_state.stress_tensor is not None:
                 device = dx.device
@@ -584,25 +583,14 @@ class PolynomialADMRSolver(nn.Module):
                 norm_val = torch.norm(normal)
                 if norm_val > 1e-8:
                     normal_normalized = normal / norm_val
-                    if dx.dim() > 1:
-                        normal_normalized = normal_normalized.expand_as(dx)
-                    inner_product = torch.sum(dx * normal_normalized, dim=-1, keepdim=True)
-                    is_outward = inner_product > 0
+                    dx_dot_n = torch.sum(dx * normal_normalized, dim=-1, keepdim=True)
+                    is_outward = dx_dot_n > 0
                     if is_outward.any():
-                        correction = inner_product * normal_normalized
-                        print(f"[BOULIGAND_SDE] Fractional SDE step projected onto contingent tangent cone (correction norm: {torch.norm(correction).item():.4f})", flush=True)
-                        dx = torch.where(is_outward, dx - correction, dx)
+                        print(f"[BOULIGAND_GYROCOMPASS_SDE] Outward Fractional SDE step detected on yield boundary. Applying Bouligand tangent projection and precession torque.", flush=True)
+                        dx = self.gyrocompass.precess_torque(dx, normal_normalized, fractional_drift)
 
-        # 7. Love Invariant Protection (null-space projection)
-        ownership_op = self.love_protector.compute_ownership_operator(states)
-        null_proj = self.love_protector.compute_null_space_projection(ownership_op)
-
-        love_dim = self.love_protector.love_dim
-        if dx.shape[-1] == love_dim:
-            dx = torch.matmul(dx, null_proj.T)
-        elif dx.shape[-1] > love_dim:
-            dx_subset = dx[..., :love_dim]
-            dx[..., :love_dim] = torch.matmul(dx_subset, null_proj.T)
+        # 7. Love Invariant Protection (null-space projection) via Topological Gyrocompass Gimbal Lock Shield
+        dx = self.gyrocompass.gimbal_lock_shield(dx, states)
 
         new_state = states + dx
 
