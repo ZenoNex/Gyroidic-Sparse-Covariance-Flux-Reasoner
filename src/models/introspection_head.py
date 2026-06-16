@@ -68,8 +68,10 @@ class GeometricSelfModelProbe(nn.Module):
         hidden_states: torch.Tensor,
         probe_type: str = 'moral',
         gcve_pressure: Optional[torch.Tensor] = None,
-        suppress_narration: bool = True
+        suppress_narration: Optional[bool] = None
     ) -> Dict[str, torch.Tensor]:
+        if suppress_narration is None:
+            suppress_narration = getattr(self, 'suppress_narration', True)
         """
         Extract self-modeling direction from hidden states.
         
@@ -257,7 +259,8 @@ class AggregateGeometricSelfModel(nn.Module):
     def forward(
         self,
         hidden_states: torch.Tensor,
-        gcve_pressure: Optional[torch.Tensor] = None
+        gcve_pressure: Optional[torch.Tensor] = None,
+        suppress_narration: Optional[bool] = None
     ) -> Dict[str, torch.Tensor]:
         """
         Extract all probe directions.
@@ -269,8 +272,15 @@ class AggregateGeometricSelfModel(nn.Module):
             Dictionary mapping probe_type -> direction
         """
         results = {}
+        if suppress_narration is None:
+            suppress_narration = getattr(self, 'suppress_narration', True)
         for probe_type in self.probe_types:
-            probe_result = self.probe_head(hidden_states, probe_type, gcve_pressure=gcve_pressure)
+            probe_result = self.probe_head(
+                hidden_states,
+                probe_type,
+                gcve_pressure=gcve_pressure,
+                suppress_narration=suppress_narration
+            )
             results[probe_type] = probe_result['direction']
         
         return results
