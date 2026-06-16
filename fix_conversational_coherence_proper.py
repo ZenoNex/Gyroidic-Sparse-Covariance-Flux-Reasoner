@@ -21,6 +21,7 @@ from typing import Dict, List, Optional, Tuple, Any
 # Import proper polynomial system
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.core.spectral_coherence_repair import SpectralCoherenceCorrector
+from src.core.honest_jitter import harvest_honest_jitter
 
 class ProperConversationalCoherenceFix:
     """
@@ -116,12 +117,11 @@ class ProperConversationalCoherenceFix:
     def _text_to_polynomial_signal(self, text: str) -> torch.Tensor:
         """Convert text to polynomial signal using proper polynomial evaluation."""
         
-        # Create input from text hash (deterministic)
+        # Create input (Replaced with Sovereign Jitter)
         text_hash = hash(text) % (2**31)
-        torch.manual_seed(text_hash)
         
         # Generate input in [-1, 1] range for polynomial evaluation
-        input_val = torch.randn(1, device=self.device).clamp(-1, 1)
+        input_val = harvest_honest_jitter((1,), device=self.device, scaled=False).clamp(-1, 1)
         
         # Evaluate polynomial functionals
         poly_signal = self.polynomial_config.evaluate(input_val.unsqueeze(0))  # [1, 1, k]
@@ -389,10 +389,10 @@ def test_proper_conversational_fix():
         mock_turn = type('Turn', (), {
             'text': f'Hello there {i}',
             'affordance_gradients': {
-                'conversational_embedding_pressure': 0.8 + 0.1 * np.random.randn(),
-                'api_extraction_potential': 0.05 * np.random.rand(),
-                'formal_symbols': 0.02 * np.random.rand(),
-                'executability': 0.03 * np.random.rand()
+                'conversational_embedding_pressure': 0.8 + 0.1 * harvest_honest_jitter((1,), scaled=False).cpu().item(),
+                'api_extraction_potential': 0.05 * ((harvest_honest_jitter((1,), scaled=False).cpu().item() + 1.0)/2.0),
+                'formal_symbols': 0.02 * ((harvest_honest_jitter((1,), scaled=False).cpu().item() + 1.0)/2.0),
+                'executability': 0.03 * ((harvest_honest_jitter((1,), scaled=False).cpu().item() + 1.0)/2.0)
             }
         })()
         
@@ -426,7 +426,7 @@ def test_proper_conversational_fix():
     
     # Simulate garbled signal
     batch_size, dim = 1, 64
-    garbled_signal = torch.randn(batch_size, dim) * 2.0  # High variance = garbled
+    garbled_signal = harvest_honest_jitter((batch_size, dim), scaled=False) * 2.0  # High variance = garbled
     
     conversational_affordances = {
         'conversational_embedding_pressure': 0.8,
