@@ -348,21 +348,8 @@ class FibonacciResonanceEntropy(nn.Module):
         return torch.tensor(fibs[:n], dtype=torch.long)
     
     def _generate_primes(self, n: int) -> torch.Tensor:
-        """Generates the first n prime numbers."""
-        primes = []
-        candidate = 2
-        while len(primes) < n:
-            is_prime = True
-            for p in primes:
-                if candidate % p == 0:
-                    is_prime = False
-                    break
-                if p * p > candidate:
-                    break
-            if is_prime:
-                primes.append(candidate)
-            candidate += 1
-        return torch.tensor(primes, dtype=torch.long)
+        """Generates the first n prime numbers via PrimeResonanceLadder."""
+        return PrimeResonanceLadder(num_resonators=n).primes
     
     def forward(self, i: int = None, j: int = None) -> torch.Tensor:
         """
@@ -431,20 +418,8 @@ class CoherentPrimeResonance(nn.Module):
         self.spectral_purity_threshold = spectral_purity_threshold
         
         # Generate prime frequencies for spectral check
-        primes = []
-        candidate = 2
-        while len(primes) < num_primes:
-            is_prime = True
-            for p in primes:
-                if candidate % p == 0:
-                    is_prime = False
-                    break
-                if p * p > candidate:
-                    break
-            if is_prime:
-                primes.append(candidate)
-            candidate += 1
-        prime_freqs = 2 * 3.14159265359 * torch.log(torch.tensor(primes, dtype=torch.float))
+        ladder = PrimeResonanceLadder(num_resonators=num_primes)
+        prime_freqs = 2 * 3.14159265359 * torch.log(ladder.primes.float())
         self.register_buffer('prime_freqs', prime_freqs)
     
     def check_phase_coherence(self, field_phases: torch.Tensor) -> bool:
