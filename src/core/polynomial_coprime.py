@@ -621,8 +621,22 @@ class PolynomialCoprimeConfig:
             # Premature - block fossilization
             return False
         
-        self.is_fossilized[k] = True
-        return True
+        # [ARCHITECTURAL REMEDIATION] Replace arbitrary True assignment with Mohr-Coulomb yield
+        from src.core.yield_criteria import MohrCoulombProjection
+        if not hasattr(self, '_mc_yield'):
+            self._mc_yield = MohrCoulombProjection(friction_angle=30.0, cohesion=float(self.saturation_window))
+            
+        # Accumulated narrative time acts as pressure against the cohesion boundary
+        history_len = len(self._pressure_history.get(k, []))
+        pressure = torch.tensor([[float(history_len)]], device=self.device if self.device else torch.device('cpu'))
+        load = torch.zeros_like(pressure)
+        yielded_pressure = self._mc_yield(pressure, load)
+        
+        # Fossilization requires structural rupture past the yield criteria window
+        if yielded_pressure.item() > self.saturation_window * 1.5:
+            self.fossil_mask[k] = True
+            return True
+        return False
     
     def _apply_cyclotomic_shield(self, phi: torch.Tensor) -> torch.Tensor:
         """
