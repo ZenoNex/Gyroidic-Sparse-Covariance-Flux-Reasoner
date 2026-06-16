@@ -52,21 +52,10 @@ class EnergyBasedSolitonHealer(nn.Module):
     
     @staticmethod
     def _generate_primes(n: int) -> list:
-        """Generate the first n primes dynamically (no hardcoded lists)."""
-        primes = []
-        candidate = 2
-        while len(primes) < n:
-            is_prime = True
-            for p in primes:
-                if candidate % p == 0:
-                    is_prime = False
-                    break
-                if p * p > candidate:
-                    break
-            if is_prime:
-                primes.append(candidate)
-            candidate += 1
-        return primes
+        """Generate the first n primes via centralized FGRT ladder to preserve Lazarus synchronization."""
+        from src.core.fgrt_primitives import PrimeResonanceLadder
+        ladder = PrimeResonanceLadder(num_resonators=n)
+        return ladder.primes.tolist()
     
     def _create_soliton_template(self) -> torch.Tensor:
         """
@@ -81,7 +70,7 @@ class EnergyBasedSolitonHealer(nn.Module):
         template = torch.cos(2 * np.pi * indices / phi)
         
         # Add prime-based modulation for number-theoretic stability
-        # Dynamically generated — no hardcoded prime lists (anti-lobotomy compliance)
+        # Dynamically generated  no hardcoded prime lists (anti-lobotomy compliance)
         num_primes = min(10, self.state_dim // 8)
         primes = torch.tensor(self._generate_primes(max(num_primes, 1)), dtype=torch.float32)
         for i, p in enumerate(primes[:num_primes]):
@@ -108,7 +97,7 @@ class EnergyBasedSolitonHealer(nn.Module):
             target = self.soliton_template.unsqueeze(0).expand(batch_size, -1)
         
         # Energy based on distance from stable configuration
-        # E(state, target) = ||A(state - target)||² + bias·state
+        # E(state, target) = ||A(state - target)|| + biasstate
         diff = state - target
         quadratic_energy = torch.sum(diff * torch.mm(diff, self.energy_weights), dim=1)
         linear_energy = torch.sum(state * self.energy_bias.unsqueeze(0), dim=1)
