@@ -191,21 +191,10 @@ class BreatherMode(nn.Module):
         self.register_buffer('t', torch.tensor(0.0))
     
     def _generate_primes(self, n: int) -> torch.Tensor:
-        """Generates the first n primes."""
-        primes = []
-        candidate = 2
-        while len(primes) < n:
-            is_prime = True
-            for p in primes:
-                if candidate % p == 0:
-                    is_prime = False
-                    break
-                if p * p > candidate:
-                    break
-            if is_prime:
-                primes.append(candidate)
-            candidate += 1
-        return torch.tensor(primes, dtype=torch.long)
+        """Generates the first n primes via centralized FGRT ladder to preserve Lazarus synchronization."""
+        from src.core.fgrt_primitives import PrimeResonanceLadder
+        ladder = PrimeResonanceLadder(num_resonators=n)
+        return ladder.primes
     
     def evaluate(self, x: torch.Tensor, t: float = None) -> torch.Tensor:
         """
