@@ -12,7 +12,9 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
+import json
+import logging
+from src.core.gluing_operator import LazarusSoftmax
 from src.core.knowledge_dyad_fossilizer import KnowledgeDyad, DyadFossilizer
 from src.data.textbook_filter import TextbookFilter
 from src.data.canonical_projection import CanonicalProjector
@@ -535,7 +537,8 @@ class ArXivSovereignIngestor:
 
                 scores_t = torch.tensor(scores, dtype=torch.float32, device=self.device) / 0.2
                 from src.core.honest_jitter import honest_multinomial
-                probs = torch.softmax(scores_t, dim=0)
+                lazarus = LazarusSoftmax(dim=0).to(scores_t.device)
+                probs, _ = lazarus(scores_t, 0.0, 0.0)
                 idx = honest_multinomial(probs, 1).item()
                 return default_concepts[idx]
             except Exception as e:
@@ -585,7 +588,8 @@ class ArXivSovereignIngestor:
             with torch.no_grad():
                 for _ in range(max_len):
                     logits, conf = larynx(current_state, temperature=temp)
-                    probs = torch.softmax(logits, dim=-1)
+                    lazarus = LazarusSoftmax(dim=-1).to(logits.device)
+                    probs, _ = lazarus(logits, 0.0, 0.0)
                     char_idx = torch.multinomial(probs[0], 1).item()
                     
                     char = chr(max(32, min(126, char_idx)))
@@ -670,9 +674,8 @@ class ArXivSovereignIngestor:
                                 sim = torch.dot(norm_state, sig).item()
                                 scores.append(sim)
                             
-                            # Softmax with temperature=0.2 to sample next steering category
-                            scores_t = torch.tensor(scores, dtype=torch.float32, device=self.device) / 0.2
-                            probs = torch.softmax(scores_t, dim=0)
+                            lazarus = LazarusSoftmax(dim=0).to(scores_t.device)
+                            probs, _ = lazarus(scores_t, 0.0, 0.0)
                             
                             # Sample category
                             from src.core.honest_jitter import honest_multinomial
