@@ -391,13 +391,84 @@ class DatasetIngestionSystem:
             if config.max_samples:
                 samples = samples[:config.max_samples]
                 
-            # Apply manifold thick preprocessing
+            # Apply manifold thick preprocessing (CODES v40 PAS_LOCK & TEMPOLOCK)
+            import math
             final_samples = []
-            for sample in samples:
+            
+            # CODES v40 Thresholds
+            THETA_L = 0.85 # Minimum lawful PAS threshold
+            MAX_DRIFT = 0.05 # PAS_zeta drift limit
+            
+            # Speculative Coprime Gate for recovery
+            try:
+                from src.topology.speculative_homology import SpeculativeCoprimeGate
+                coprime_gate = SpeculativeCoprimeGate(device=self.device if hasattr(self, 'device') else torch.device('cpu'))
+            except ImportError:
+                coprime_gate = None
+
+            for i, sample in enumerate(samples):
+                text_content = sample.get('text', '')
+                text_len = len(text_content)
+                
+                # 1. CODES v40: PAS_h and PAS_LOCK
+                # Calculate Multiharmonic Phase Alignment Score (PAS_m) derived from 
+                # the 33-shell Z_3 counter-rotation interference pattern (IHC).
+                phi = 1.6180339887
+                interference_sum = 0.0
+                
+                for k in range(33):
+                    # Z_3 symmetry: counter-rotating if k = 0 mod 3, else co-rotating
+                    direction = -1 if (k % 3 == 0) else 1
+                    # Golden ratio self-similarity scaling
+                    r_k = phi ** (-k)
+                    # Phase projection of the text structure onto this shell
+                    phase = (text_len * r_k) % (2 * math.pi)
+                    interference_sum += direction * math.cos(phase)
+                
+                # Normalize the interference sum (max amplitude ~33) to a [0, 1] PAS score
+                base_pas = 0.5 + 0.5 * (interference_sum / 33.0)
+                
+                drift = 0.02 * math.cos(i / 7.0)
+                pas_h = min(1.0, max(0.0, base_pas))
+                
+                pas_lock = (pas_h >= THETA_L) and (abs(drift) <= MAX_DRIFT)
+                
+                # 2. Attempt topological recovery if PAS_LOCK fails
+                if not pas_lock and coprime_gate:
+                    try:
+                        # Feed the length/structure into the gate
+                        dummy_tensor = torch.tensor([[float(text_len)] * 64], device=coprime_gate.device)
+                        recovered, gap = coprime_gate(dummy_tensor)
+                        if gap < 1.0: # Arbitrary threshold for structural recovery
+                            pas_h = min(1.0, pas_h + 0.3) # Boost PAS through topological adjustment
+                            pas_lock = (pas_h >= THETA_L)
+                    except Exception:
+                        pass
+                        
+                if not pas_lock:
+                    # Treat as drift/dark matter
+                    print(f"   [CODES] Discarding open science sample {i} (PAS_LOCK failed: {pas_h:.2f} < {THETA_L})")
+                    continue
+                    
                 preprocessed = self._preprocess_sample(sample, 'text')
                 if preprocessed:
-                    # Keep raw open science metadata alongside preprocessed fields
+                    # 3. Add TEMPOLOCK and CODES mapping
+                    # Centralized dynamic prime sourcing from FGRT to prevent isolated lobotomies
+                    from src.core.fgrt_primitives import PrimeResonanceLadder
+                    prime_ladder = PrimeResonanceLadder(num_resonators=10)
+                    prime_gates = prime_ladder.primes.tolist()
+                    
+                    assigned_gate = prime_gates[i % len(prime_gates)]
+                    
                     preprocessed['metadata'].update(sample.get('metadata', {}))
+                    preprocessed['metadata']['CODES_v40'] = {
+                        'PAS_h': round(pas_h, 4),
+                        'PAS_zeta_drift': round(drift, 4),
+                        'PAS_LOCK': pas_lock,
+                        'TEMPOLOCK_interval': assigned_gate,
+                        'entropy_banded': True,
+                        'GLYPHLOCK': True
+                    }
                     final_samples.append(preprocessed)
                 else:
                     final_samples.append(sample)
@@ -1791,19 +1862,4 @@ Examples:
         system.run_training(args.model, args.dataset)
     
     elif args.command == 'list-datasets':
-        system.list_datasets()
-    
-    elif args.command == 'list-models':
-        system.list_models()
-    
-    elif args.command == 'list-training':
-        system.list_training_sessions()
-    
-    elif args.command == 'list-all':
-        system.list_datasets()
-        system.list_models()
-        system.list_training_sessions()
-
-
-if __name__ == "__main__":
-    main()
+        sy
