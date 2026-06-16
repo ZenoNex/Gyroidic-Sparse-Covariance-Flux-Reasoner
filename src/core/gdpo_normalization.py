@@ -62,6 +62,14 @@ class SignalSovereignty(nn.Module):
     ) -> torch.Tensor:
         """
         Normalize values within each group for a specific dimension.
+        
+        Args:
+            values: [batch] values for this dimension
+            group_ids: [batch] group assignment (e.g., constraint type)
+            dim_idx: Which dimension this is (for statistics tracking)
+            
+        Returns:
+            normalized: [batch] group-wise z-scores
         """
         normalized = torch.zeros_like(values)
         unique_groups = torch.unique(group_ids)
@@ -133,7 +141,7 @@ class SignalSovereignty(nn.Module):
         
         # Step 2: Weighted aggregation (DEPRECATED - ENFORCING NON-SCALARIZATION)
         # Note: We return decoupled pressures to maintain domain sovereignty.
-        # r̂ = Σ w_k · r̃_k (Removed to close the scalarization trap)
+        # r =  w_k  r_k (Removed to close the scalarization trap)
         
         # Step 3: Optional batch-level normalization for scale stability
         # if self.use_batch_norm and batch_size > 1:
@@ -172,9 +180,21 @@ class SignalSovereignty(nn.Module):
                 else:
                     self.performance_streak[k] = 0
                 
-                if self.performance_streak[k] >= self.fossil_threshold:
+                # [ARCHITECTURAL REMEDIATION] Replace naive integer threshold with Mohr-Coulomb 
+                # structural yield criteria.
+                from src.core.yield_criteria import MohrCoulombProjection
+                if not hasattr(self, '_mc_yield'):
+                    self._mc_yield = MohrCoulombProjection(friction_angle=30.0, cohesion=float(self.fossil_threshold))
+                
+                # Project the performance streak (pressure) against the cohesion barrier
+                pressure = torch.tensor([[float(self.performance_streak[k])]], device=values.device)
+                load = torch.zeros_like(pressure)
+                yielded_pressure = self._mc_yield(pressure, load)
+                
+                # Rupture (Fossilization) only occurs if the MC boundary yields
+                if yielded_pressure.item() > self.fossil_threshold:
                     self.is_fossilized[k] = True
-                    print(f"Signal Sovereignty: functional group {k} has fossilized.")
+                    print(f"Signal Sovereignty: functional group {k} has fossilized via Mohr-Coulomb yield.")
     
     def compute_separation_pressure(
         self,
@@ -213,7 +233,7 @@ class LearnableWeights(nn.Module):
     """
     Learnable per-dimension weights for SignalSovereignty aggregation.
     
-    w_k(θ) determines importance of each functional pressure.
+    w_k() determines importance of each functional pressure.
     """
     
     def __init__(
@@ -305,3 +325,23 @@ def compare_sovereignty_vs_standard(
         'gdpo': sov_sep,
         'improvement_pct': improvement
     }
+
+class GDPONormalization(nn.Module):
+    """
+    Drop-in replacement for nn.LayerNorm that utilizes Signal Sovereignty.
+    Ensures topological shape preservation by preventing collapse of distinct patterns.
+    """
+    def __init__(self, num_dimensions: int, epsilon: float = 1e-8):
+        super().__init__()
+        self.sovereignty = SignalSovereignty(num_dimensions, epsilon=epsilon, use_batch_norm=False)
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x is typically [batch, ..., hidden_dim]
+        original_shape = x.shape
+        # Flatten everything except the last dimension
+        x_flat = x.view(-1, original_shape[-1])
+        # We need weights, uniformly initialized
+        weights = torch.ones(original_shape[-1], device=x.device) / original_shape[-1]
+        decoupled, _ = self.sovereignty(x_flat, weights)
+        return decoupled.view(original_shape)
+
