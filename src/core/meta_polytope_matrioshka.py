@@ -93,21 +93,10 @@ class MetaPolytopeMatrioshka(nn.Module):
     """
     @staticmethod
     def _generate_primes(n: int) -> List[int]:
-        """Generate the first n primes dynamically (no hardcoded lists)."""
-        primes = []
-        candidate = 2
-        while len(primes) < n:
-            is_prime = True
-            for p in primes:
-                if candidate % p == 0:
-                    is_prime = False
-                    break
-                if p * p > candidate:
-                    break
-            if is_prime:
-                primes.append(candidate)
-            candidate += 1
-        return primes
+        """Generate the first n primes via centralized FGRT ladder to preserve Lazarus synchronization."""
+        from src.core.fgrt_primitives import PrimeResonanceLadder
+        ladder = PrimeResonanceLadder(num_resonators=n)
+        return ladder.primes.tolist()
     
     def __init__(self, max_depth: int = 5, base_dim: int = 64, crt_moduli: List[int] = None):
         super().__init__()
