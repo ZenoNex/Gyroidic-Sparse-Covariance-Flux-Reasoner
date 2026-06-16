@@ -183,7 +183,29 @@ class GovernanceManager:
     def startup_menu():
         """Interactive console menu for lifecycle control."""
         if os.environ.get('NON_INTERACTIVE') == '1':
-            return [8000, 8080]
+            return [8000, 8080], {
+                'regime': os.environ.get('GYROID_REGIME', 'goo'),
+                'commutativity': os.environ.get('GYROID_COMMUTATIVITY', 'non_commutative'),
+                'use_spectral_correction': os.environ.get('GYROID_SPECTRAL_CORRECTION', '1') == '1',
+                'mckenna_deconstruction_mode': os.environ.get('GYROID_MCKENNA', '0') == '1',
+                'quantum_inspired_mode': os.environ.get('GYROID_QUANTUM', '0') == '1',
+                'high_throughput_ingestion': os.environ.get('GYROID_INGESTION', '0') == '1',
+                'introspection_probes': os.environ.get('GYROID_PROBES', 'moral,uncertainty,creative,metacognitive').split(','),
+                'rigidity_decay_rate': float(os.environ.get('GYROID_RIGIDITY_DECAY', '0.005')),
+                'suppress_narration': os.environ.get('GYROID_SUPPRESS_NARRATION', '1') == '1',
+                'bg_scientific_learning': os.environ.get('GYROID_BG_LEARNING', '1') == '1',
+                'primary_query_dataset': os.environ.get('GYROID_PRIMARY_DATASET', 'LIGO'),
+                'cache_dir': os.environ.get('GYROID_CACHE_DIR', 'datasets/open_science_cache'),
+                'kagh_dyslexic_mode': os.environ.get('GYROID_KAGH_MODE', '0') == '1',
+                'fbm_persistence': float(os.environ.get('GYROID_FBM_PERSISTENCE', '0.5')),
+                'fbm_octaves': int(os.environ.get('GYROID_FBM_OCTAVES', '3')),
+                'mandelbulb_power': float(os.environ.get('GYROID_MANDELBULB_POWER', '8.0')),
+                'mandelbulb_escape_radius': float(os.environ.get('GYROID_MANDELBULB_ESCAPE', '2.0')),
+                'birkhoff_temperature': float(os.environ.get('GYROID_BIRKHOFF_TEMP', '1.0')),
+                'birkhoff_max_iterations': int(os.environ.get('GYROID_BIRKHOFF_MAX_ITER', '100')),
+                'tda_landmarks': int(os.environ.get('GYROID_TDA_LANDMARKS', '50')),
+                'ego_death_limit': float(os.environ.get('GYROID_EGO_DEATH_LIMIT', '1.5'))
+            }
             
         print("\n" + "="*50)
         print("      GYROIDIC GOVERNANCE INTERFACE ")
@@ -222,17 +244,227 @@ class GovernanceManager:
             except ValueError:
                 print("[FAIL] Invalid port format. Using defaults.")
         
-        return ports
+        # 3. Dynamic Configuration Options (Discovered from System Documentation)
+        config = {
+            'regime': 'goo',
+            'commutativity': 'non_commutative',
+            'use_spectral_correction': True,
+            'mckenna_deconstruction_mode': False,
+            'quantum_inspired_mode': False,
+            'high_throughput_ingestion': False,
+            'introspection_probes': 'moral,uncertainty,creative,metacognitive',
+            'rigidity_decay_rate': 0.005,
+            'suppress_narration': True,
+            'bg_scientific_learning': True,
+            'primary_query_dataset': 'LIGO',
+            'cache_dir': 'datasets/open_science_cache',
+            'kagh_dyslexic_mode': False,
+            'fbm_persistence': 0.5,
+            'fbm_octaves': 3,
+            'mandelbulb_power': 8.0,
+            'mandelbulb_escape_radius': 2.0,
+            'birkhoff_temperature': 1.0,
+            'birkhoff_max_iterations': 100,
+            'tda_landmarks': 50,
+            'ego_death_limit': 1.5
+        }
+        
+        print("\n" + "="*50)
+        print("      SYSTEM PARAMETER CONFIGURATION (Thorium Protocol)")
+        print("      Type 'default_all' at any prompt to skip remaining questions.")
+        print("="*50)
+
+        default_all_active = False
+
+        def get_input(prompt_text, default_val):
+            nonlocal default_all_active
+            if default_all_active:
+                return default_val
+            ans = input(f"{prompt_text} [Default: {default_val}]: ").strip()
+            if ans.lower() == 'default_all':
+                default_all_active = True
+                return default_val
+            if not ans:
+                return default_val
+            return ans
+
+        # 3.1 Regime
+        reg = get_input("[?] Select regime (goo/prickles)", config['regime']).lower()
+        if reg in ('goo', 'prickles'):
+            config['regime'] = reg
+        else:
+            print(f"[WARN] Invalid option, using default: {config['regime']}")
+
+        # 3.2 Commutativity
+        comm = get_input("[?] Select commutativity (non_commutative/symmetric)", config['commutativity']).lower()
+        if comm in ('non_commutative', 'symmetric'):
+            config['commutativity'] = comm
+        else:
+            print(f"[WARN] Invalid option, using default: {config['commutativity']}")
+
+        # 3.3 Spectral correction
+        spec = get_input("[?] Enable spectral correction (yes/no)", 'yes' if config['use_spectral_correction'] else 'no').lower()
+        if spec in ('yes', 'y'):
+            config['use_spectral_correction'] = True
+        elif spec in ('no', 'n'):
+            config['use_spectral_correction'] = False
+        else:
+            print(f"[WARN] Invalid option, using default: {'yes' if config['use_spectral_correction'] else 'no'}")
+
+        # 3.4 Operational mode
+        mode = get_input("[?] Select operational mode (standard/ingestion)", 'ingestion' if config['high_throughput_ingestion'] else 'standard').lower()
+        if mode == 'ingestion':
+            config['high_throughput_ingestion'] = True
+        elif mode == 'standard':
+            config['high_throughput_ingestion'] = False
+        else:
+            print(f"[WARN] Invalid option, using default: {'ingestion' if config['high_throughput_ingestion'] else 'standard'}")
+
+        # 3.5 Introspection probes
+        probes = get_input("[?] Active introspection probes (comma separated)", config['introspection_probes'])
+        config['introspection_probes'] = [p.strip() for p in probes.split(',') if p.strip()]
+
+        # 3.6 Rigidity decay rate
+        decay = get_input("[?] Introspection rigidity decay rate", str(config['rigidity_decay_rate']))
+        try:
+            config['rigidity_decay_rate'] = float(decay)
+        except ValueError:
+            print(f"[WARN] Invalid float, using default: {config['rigidity_decay_rate']}")
+
+        # 3.7 Suppress narration
+        supp = get_input("[?] Suppress narration (yes/no)", 'yes' if config['suppress_narration'] else 'no').lower()
+        if supp in ('yes', 'y'):
+            config['suppress_narration'] = True
+        elif supp in ('no', 'n'):
+            config['suppress_narration'] = False
+        else:
+            print(f"[WARN] Invalid option, using default: {'yes' if config['suppress_narration'] else 'no'}")
+
+        # 3.8 Background scientific learning
+        bg_learn = get_input("[?] Enable background scientific learning (yes/no)", 'yes' if config['bg_scientific_learning'] else 'no').lower()
+        if bg_learn in ('yes', 'y'):
+            config['bg_scientific_learning'] = True
+        elif bg_learn in ('no', 'n'):
+            config['bg_scientific_learning'] = False
+        else:
+            print(f"[WARN] Invalid option, using default: {'yes' if config['bg_scientific_learning'] else 'no'}")
+
+        # 3.9 Primary query dataset
+        dataset = get_input("[?] Primary scientific query dataset (LIGO/NCBI/SDSS/OpenNeuro)", config['primary_query_dataset']).upper()
+        if dataset in ('LIGO', 'NCBI', 'SDSS', 'OPENNEURO'):
+            config['primary_query_dataset'] = dataset
+        else:
+            print(f"[WARN] Invalid option, using default: {config['primary_query_dataset']}")
+
+        # 3.10 Cache directory
+        cache = get_input("[?] Scientific cache directory", config['cache_dir'])
+        config['cache_dir'] = cache
+
+        # 3.11 McKenna deconstruction mode
+        mck = get_input("[?] Enable McKenna deconstruction mode (yes/no)", 'yes' if config['mckenna_deconstruction_mode'] else 'no').lower()
+        if mck in ('yes', 'y'):
+            config['mckenna_deconstruction_mode'] = True
+        elif mck in ('no', 'n'):
+            config['mckenna_deconstruction_mode'] = False
+        else:
+            print(f"[WARN] Invalid option, using default: {'yes' if config['mckenna_deconstruction_mode'] else 'no'}")
+
+        # 3.12 Quantum-inspired reasoning
+        q_reason = get_input("[?] Enable quantum-inspired reasoning (yes/no)", 'yes' if config['quantum_inspired_mode'] else 'no').lower()
+        if q_reason in ('yes', 'y'):
+            config['quantum_inspired_mode'] = True
+        elif q_reason in ('no', 'n'):
+            config['quantum_inspired_mode'] = False
+        else:
+            print(f"[WARN] Invalid option, using default: {'yes' if config['quantum_inspired_mode'] else 'no'}")
+
+        # 3.13 KAGH dyslexic mode
+        dys = get_input("[?] Enable KAGH dyslexic mode (yes/no)", 'yes' if config['kagh_dyslexic_mode'] else 'no').lower()
+        if dys in ('yes', 'y'):
+            config['kagh_dyslexic_mode'] = True
+        elif dys in ('no', 'n'):
+            config['kagh_dyslexic_mode'] = False
+        else:
+            print(f"[WARN] Invalid option, using default: {'yes' if config['kagh_dyslexic_mode'] else 'no'}")
+
+        # 3.14 FBM persistence
+        fbm_p = get_input("[?] FBM erosion persistence", str(config['fbm_persistence']))
+        try:
+            config['fbm_persistence'] = float(fbm_p)
+        except ValueError:
+            print(f"[WARN] Invalid float, using default: {config['fbm_persistence']}")
+
+        # 3.15 FBM octaves
+        fbm_o = get_input("[?] FBM erosion octaves", str(config['fbm_octaves']))
+        try:
+            config['fbm_octaves'] = int(fbm_o)
+        except ValueError:
+            print(f"[WARN] Invalid int, using default: {config['fbm_octaves']}")
+
+        # 3.16 Mandelbulb power
+        m_pow = get_input("[?] Mandelbulb augmenter power", str(config['mandelbulb_power']))
+        try:
+            config['mandelbulb_power'] = float(m_pow)
+        except ValueError:
+            print(f"[WARN] Invalid float, using default: {config['mandelbulb_power']}")
+
+        # 3.17 Mandelbulb escape radius
+        m_esc = get_input("[?] Mandelbulb escape radius", str(config['mandelbulb_escape_radius']))
+        try:
+            config['mandelbulb_escape_radius'] = float(m_esc)
+        except ValueError:
+            print(f"[WARN] Invalid float, using default: {config['mandelbulb_escape_radius']}")
+
+        # 3.18 Birkhoff temperature
+        b_temp = get_input("[?] Birkhoff manifold temperature", str(config['birkhoff_temperature']))
+        try:
+            config['birkhoff_temperature'] = float(b_temp)
+        except ValueError:
+            print(f"[WARN] Invalid float, using default: {config['birkhoff_temperature']}")
+
+        # 3.19 Birkhoff max iterations
+        b_iters = get_input("[?] Birkhoff max iterations", str(config['birkhoff_max_iterations']))
+        try:
+            config['birkhoff_max_iterations'] = int(b_iters)
+        except ValueError:
+            print(f"[WARN] Invalid int, using default: {config['birkhoff_max_iterations']}")
+
+        # 3.20 TDA landmarks
+        tda_l = get_input("[?] Approximate TDA landmarks", str(config['tda_landmarks']))
+        try:
+            config['tda_landmarks'] = int(tda_l)
+        except ValueError:
+            print(f"[WARN] Invalid int, using default: {config['tda_landmarks']}")
+
+        # 3.21 Ego death limit
+        ego = get_input("[?] Ego death abstraction limit", str(config['ego_death_limit']))
+        try:
+            config['ego_death_limit'] = float(ego)
+        except ValueError:
+            print(f"[WARN] Invalid float, using default: {config['ego_death_limit']}")
+
+        print("\n[OK] Configuration finalized successfully.")
+        print("-" * 50)
+        
+        return ports, config
 
 
 class HybridAI:
     """Hybrid AI system using only working components."""
     
-    def __init__(self, use_spectral_correction: bool = True):
+    def __init__(self, use_spectral_correction: bool = True, config: dict = None):
+        if config is None:
+            config = {}
+            
         from src.core import DEVICE
         self.device = DEVICE
         # Torch tensors still use cpu when device is 'opencl' — PyOpenCL ops run via TailSlayer kernels
         self.torch_device = 'cpu' if str(DEVICE) == 'cpu' else 'cpu' # Centralized for now
+        
+        # Save config settings as attributes for process_text overrides
+        self.default_regime = config.get('regime', 'goo')
+        self.default_commutativity = config.get('commutativity', 'non_commutative')
+        self.high_throughput_ingestion = config.get('high_throughput_ingestion', False)
         
         # Initialize working components
 
@@ -370,6 +602,149 @@ class HybridAI:
         # Superposed Tag Stacker (Ganbreeder fallback)
         self.tag_stacker = SuperposedTagStacker(state_dim=256, device=self.torch_device)
 
+        # Apply start configuration options to engine components recursively
+        
+        # 1. McKenna deconstruction mode
+        mckenna_mode = config.get('mckenna_deconstruction_mode', False)
+        try:
+            from src.ui.diegetic_backend import TEXTBOOK_FILTER
+            TEXTBOOK_FILTER.mckenna_deconstruction_mode = mckenna_mode
+            print(f"[INIT] Textbook Filter McKenna Deconstruction: {mckenna_mode}")
+        except Exception as e:
+            print(f"[FAIL] Could not set TEXTBOOK_FILTER McKenna mode: {e}")
+            
+        # 2. Quantum-inspired reasoning pre-initialization
+        quantum_mode = config.get('quantum_inspired_mode', False)
+        if quantum_mode and self.engine:
+            try:
+                from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka
+                from src.core.quantum_inspired_reasoning import QuantumInspiredReasoningState
+                from src.core.sparse_higher_order_tensors import SparseHigherOrderTensorDynamics
+                self.engine.meta_polytope = MetaPolytopeMatrioshka(max_depth=5, base_dim=self.engine.dim)
+                self.engine.tensor_dynamics = SparseHigherOrderTensorDynamics(max_order=3, num_shells=3, base_dim=self.engine.dim)
+                self.engine.quantum_reasoner = QuantumInspiredReasoningState(dim=self.engine.dim)
+                self.engine.extensions_enabled = True
+                print("[INIT] Quantum-inspired reasoning & advanced engines pre-initialized")
+            except Exception as e:
+                print(f"[FAIL] Quantum-inspired engine pre-initialization failed: {e}")
+                
+        # 3. Introspection Head Configuration
+        if self.engine and hasattr(self.engine, 'introspection') and self.engine.introspection is not None:
+            try:
+                from src.models.introspection_head import AggregateGeometricSelfModel
+                probes_list = config.get('introspection_probes', ['moral', 'uncertainty', 'creative', 'metacognitive'])
+                if isinstance(probes_list, str):
+                    probes_list = [p.strip() for p in probes_list.split(',') if p.strip()]
+                self.engine.introspection = AggregateGeometricSelfModel(
+                    hidden_dim=self.engine.dim,
+                    probe_types=probes_list
+                ).to(self.engine.device)
+                
+                suppress_narr = config.get('suppress_narration', True)
+                self.engine.introspection.suppress_narration = suppress_narr
+                if hasattr(self.engine.introspection, 'probe_head'):
+                    self.engine.introspection.probe_head.suppress_narration = suppress_narr
+                    
+                self.engine.introspection.rigidity_decay_rate = config.get('rigidity_decay_rate', 0.005)
+                print(f"[INIT] Introspection Head configured: Probes={probes_list}, SuppressNarration={suppress_narr}")
+            except Exception as e:
+                print(f"[FAIL] Configuring Introspection Head failed: {e}")
+                
+        # 4. Open Science cache folder configuration
+        if self.engine and getattr(self.engine, 'open_science_ingestor', None) is not None:
+            try:
+                from pathlib import Path
+                cache_folder = config.get('cache_dir', 'datasets/open_science_cache')
+                self.engine.open_science_ingestor.cache_dir = Path(cache_folder)
+                self.engine.open_science_ingestor.cache_dir.mkdir(exist_ok=True, parents=True)
+                print(f"[INIT] Open Science cache directory set to: {cache_folder}")
+            except Exception as e:
+                print(f"[FAIL] Setting Open Science cache path failed: {e}")
+                
+        # 5. KAGH dyslexic mode
+        if self.engine and hasattr(self.engine, 'kagh_drafter') and self.engine.kagh_drafter is not None:
+            dyslexic = config.get('kagh_dyslexic_mode', False)
+            try:
+                self.engine.kagh_drafter.dyslexic_mode = dyslexic
+                if hasattr(self.engine.kagh_drafter, 'layers'):
+                    for layer in self.engine.kagh_drafter.layers:
+                        layer.dyslexic_mode = dyslexic
+                print(f"[INIT] KAGH dyslexic mode set to: {dyslexic}")
+            except Exception as e:
+                print(f"[FAIL] Configuring KAGH dyslexic mode failed: {e}")
+                
+        # 6. FBM Erosion
+        f_persistence = config.get('fbm_persistence', 0.5)
+        f_octaves = config.get('fbm_octaves', 3)
+        if self.engine:
+            try:
+                for module in self.engine.modules():
+                    if module.__class__.__name__ == 'TopologicalErosionFBM':
+                        module.persistence = float(f_persistence)
+                        module.octaves = int(f_octaves)
+                print(f"[INIT] FBM Erosion configured: Persistence={f_persistence}, Octaves={f_octaves}")
+            except Exception as e:
+                print(f"[FAIL] Configuring FBM Erosion failed: {e}")
+                
+        # 7. Mandelbulb Augmentation
+        m_pow = config.get('mandelbulb_power', 8.0)
+        m_esc = config.get('mandelbulb_escape_radius', 2.0)
+        if self.engine:
+            try:
+                from src.augmentation.mandelbulb_gyroidic_augmenter import MandelbulbGyroidicAugmenter, AugmentationConfig
+                aug_config = AugmentationConfig(mandelbulb_power=int(m_pow))
+                self.engine.augmenter = MandelbulbGyroidicAugmenter(aug_config).to(self.engine.device)
+                if hasattr(self.engine.augmenter, 'mandelbulb') and self.engine.augmenter.mandelbulb is not None:
+                    self.engine.augmenter.mandelbulb.power = float(m_pow)
+                    self.engine.augmenter.mandelbulb.escape_radius = float(m_esc)
+                print(f"[INIT] Mandelbulb Augmenter configured: Power={m_pow}, EscapeRadius={m_esc}")
+            except Exception as e:
+                print(f"[FAIL] Configuring Mandelbulb Augmenter failed: {e}")
+                
+        # 8. Birkhoff Obscured Manifold
+        b_temp = config.get('birkhoff_temperature', 1.0)
+        b_iters = config.get('birkhoff_max_iterations', 100)
+        if self.engine:
+            try:
+                for module in self.engine.modules():
+                    if module.__class__.__name__ in ('ObscuredBirkhoffManifold', 'BouligandBirkhoffManifold'):
+                        if hasattr(module, 'temperature') and isinstance(module.temperature, nn.Parameter):
+                            with torch.no_grad():
+                                module.temperature.copy_(torch.tensor(max(0.01, min(10.0, float(b_temp)))))
+                        else:
+                            module.temperature = float(b_temp)
+                        module.max_iterations = int(b_iters)
+                print(f"[INIT] Birkhoff Obscured Manifold configured: Temp={b_temp}, MaxIters={b_iters}")
+            except Exception as e:
+                print(f"[FAIL] Configuring Birkhoff Obscured Manifold failed: {e}")
+                
+        # 9. TDA Landmarks
+        tda_l = config.get('tda_landmarks', 50)
+        if self.engine:
+            try:
+                for module in self.engine.modules():
+                    if module.__class__.__name__ == 'ApproximatePHProbe':
+                        module.num_landmarks = int(tda_l)
+                print(f"[INIT] Approximate TDA Landmarks configured: Landmarks={tda_l}")
+            except Exception as e:
+                print(f"[FAIL] Configuring Approximate TDA Landmarks failed: {e}")
+                
+        # 10. Ego Death Threshold Limit
+        ego_limit = config.get('ego_death_limit', 1.5)
+        if self.engine and hasattr(self.engine, 'archetypal_governor') and self.engine.archetypal_governor is not None:
+            try:
+                if hasattr(self.engine.archetypal_governor, 'abstraction') and self.engine.archetypal_governor.abstraction is not None:
+                    self.engine.archetypal_governor.abstraction.abstraction_limit = float(ego_limit)
+                print(f"[INIT] Ego Death Threshold Limit configured: Limit={ego_limit}")
+            except Exception as e:
+                print(f"[FAIL] Configuring Ego Death Threshold Limit failed: {e}")
+                
+        # 11. Background Scientific Learning
+        self.bg_scientific_learning = config.get('bg_scientific_learning', True)
+        self.primary_query_dataset = config.get('primary_query_dataset', 'LIGO')
+        self.cache_dir = config.get('cache_dir', 'datasets/open_science_cache')
+        if self.bg_scientific_learning:
+            self._start_background_scientific_learning()
 
         # SOVEREIGN WARMSTART: Restore manifold if fossil exists (Thorium Protocol)
         self.load_model_state()
@@ -412,7 +787,9 @@ class HybridAI:
                         'fossil_memory': manifold_assets.get('fossil_memory'),
                         'cavity_M': manifold_assets.get('cavity', {}).get('M'),
                         'cavity_D_dark': manifold_assets.get('cavity', {}).get('D_dark'),
-                        'engine_meta_state': manifold_assets.get('meta_state')
+                        'engine_meta_state': manifold_assets.get('meta_state'),
+                        'unicode_to_idx': manifold_assets.get('unicode_to_idx', {}),
+                        'idx_to_unicode': manifold_assets.get('idx_to_unicode', {})
                     })
                 except Exception as engine_err:
                     print(f"[WARN] Engine manifold extraction failed: {engine_err}. Saving core state only.")
@@ -423,6 +800,89 @@ class HybridAI:
                     save_dict['temporal_model_state'] = self.temporal_model.state_dict()
                 except Exception as model_err:
                     print(f"[WARN] Temporal model state extraction failed: {model_err}")
+            
+            # 4. Deep Archetypal Persistence (TADC Characters)
+            if self.engine and hasattr(self.engine, 'archetypal_governor') and self.engine.archetypal_governor is not None:
+                try:
+                    save_dict['archetypal_governor_state'] = self.engine.archetypal_governor.export_governor_state()
+                except Exception as e:
+                    print(f"[WARN] Archetypal governor export failed: {e}")
+                    
+            # 5. Superposed Tag Stacker (Textual Tags -> Geometry)
+            if hasattr(self, 'tag_stacker') and self.tag_stacker is not None:
+                try:
+                    save_dict['tag_stacker_state'] = {
+                        'vectors': {k: v.detach().cpu() for k, v in self.tag_stacker.catalog_vectors.items()},
+                        'metadata': self.tag_stacker.catalog_metadata
+                    }
+                except Exception as e:
+                    print(f"[WARN] Tag stacker state export failed: {e}")
+                    
+            # 6. SIC-FA-ADMM & Optimization Momentum
+            if hasattr(self, 'training_manager') and self.training_manager is not None:
+                try:
+                    if hasattr(self.training_manager, 'optimizer') and self.training_manager.optimizer is not None:
+                        save_dict['optimizer_state'] = self.training_manager.optimizer.state_dict()
+                    if hasattr(self.training_manager, 'calm_history') and self.training_manager.calm_history is not None:
+                        save_dict['calm_history'] = self.training_manager.calm_history
+                except Exception as e:
+                    print(f"[WARN] Optimization momentum export failed: {e}")
+                    
+            # 7. Shadow Logs & Multimodal Collisions
+            if self.engine:
+                try:
+                    if hasattr(self.engine, 'shadow_replay_queue'):
+                        save_dict['shadow_logs'] = list(self.engine.shadow_replay_queue)
+                    if hasattr(self.engine, 'multimodal_collisions'):
+                        save_dict['multimodal_collisions'] = list(self.engine.multimodal_collisions)
+                except Exception as e:
+                    print(f"[WARN] Shadow logs/collisions export failed: {e}")
+            
+            # 8. CODES v40 Topological & Resonance Core Extensions
+            if self.engine:
+                try:
+                    codes_state = {}
+                    
+                    # Speculative Homology Engine
+                    if hasattr(self.engine, 'speculative_homology') and self.engine.speculative_homology:
+                        codes_state['speculative_homology'] = {
+                            'betti_numbers': self.engine.speculative_homology.betti_numbers if hasattr(self.engine.speculative_homology, 'betti_numbers') else None,
+                            'homology_gaps': getattr(self.engine.speculative_homology, 'homology_gaps', None)
+                        }
+                    
+                    # Chern-Simons Gasket
+                    if hasattr(self.engine, 'chern_simons_gasket') and self.engine.chern_simons_gasket:
+                        codes_state['chern_simons_gasket'] = {
+                            'kappa': getattr(self.engine.chern_simons_gasket, 'kappa', None),
+                            'curvature_history': getattr(self.engine.chern_simons_gasket, 'curvature_history', None)
+                        }
+                    
+                    # Love Invariant Protector
+                    if hasattr(self.engine, 'love_protector') and self.engine.love_protector:
+                        codes_state['love_protector'] = {
+                            'trust_levels': getattr(self.engine.love_protector, 'trust_levels', None),
+                            'non_ergodic_entropy': getattr(self.engine.love_protector, 'non_ergodic_entropy', None)
+                        }
+                    
+                    # Mandelbulb Gyroidic Augmenter
+                    if hasattr(self.engine, 'gyroidic_augmenter') and self.engine.gyroidic_augmenter:
+                        codes_state['gyroidic_augmenter'] = {
+                            'power': getattr(self.engine.gyroidic_augmenter, 'power', None)
+                        }
+                        
+                    # Resonance Intelligence Core
+                    if hasattr(self.engine, 'resonance_core') and self.engine.resonance_core:
+                        codes_state['resonance_core'] = {
+                            'pas_history': getattr(self.engine.resonance_core, 'pas_history', None),
+                            'fibonacci_entropy': getattr(self.engine.resonance_core, 'fibonacci_entropy', None),
+                            'breather_modes': getattr(self.engine.resonance_core, 'breather_modes', None),
+                            'multiharmonic_coherence': getattr(self.engine.resonance_core, 'multiharmonic_coherence', None)
+                        }
+                        
+                    if codes_state:
+                        save_dict['codes_v40_topology'] = codes_state
+                except Exception as e:
+                    print(f"[WARN] CODES v40 topology export failed: {e}")
             
             # ATOMIC SAVE
             torch.save(save_dict, state_path)
@@ -490,13 +950,92 @@ class HybridAI:
                         "D_dark": checkpoint.get("cavity_D_dark")
                     },
                     "meta_state": checkpoint.get("engine_meta_state"),
-                    "iteration": checkpoint.get("iteration", self.iteration_count)
+                    "iteration": checkpoint.get("iteration", self.iteration_count),
+                    "unicode_to_idx": checkpoint.get("unicode_to_idx", {}),
+                    "idx_to_unicode": checkpoint.get("idx_to_unicode", {})
                 }
                 self.engine.load_manifold_state(manifold_dict)
 
             if self.temporal_model and 'temporal_model_state' in checkpoint:
                 self.temporal_model.load_state_dict(checkpoint['temporal_model_state'], strict=False)
             
+            # Restore Archetypal Governor
+            if 'archetypal_governor_state' in checkpoint and self.engine and hasattr(self.engine, 'archetypal_governor') and self.engine.archetypal_governor is not None:
+                try:
+                    self.engine.archetypal_governor.import_governor_state(checkpoint['archetypal_governor_state'])
+                except Exception as e:
+                    print(f"[RECOVERY] Failed to restore Archetypal Governor: {e}")
+            
+            # Restore Superposed Tag Stacker
+            if 'tag_stacker_state' in checkpoint and hasattr(self, 'tag_stacker') and self.tag_stacker is not None:
+                try:
+                    tag_state = checkpoint['tag_stacker_state']
+                    for k, v in tag_state['vectors'].items():
+                        self.tag_stacker.catalog_vectors[k] = torch.nn.Parameter(v.to(self.torch_device))
+                    self.tag_stacker.catalog_metadata = tag_state['metadata']
+                except Exception as e:
+                    print(f"[RECOVERY] Failed to restore Superposed Tag Stacker: {e}")
+                    
+            # Restore SIC-FA-ADMM Momentum
+            if 'optimizer_state' in checkpoint and hasattr(self, 'training_manager') and self.training_manager is not None:
+                if hasattr(self.training_manager, 'optimizer') and self.training_manager.optimizer is not None:
+                    try:
+                        self.training_manager.optimizer.load_state_dict(checkpoint['optimizer_state'])
+                    except Exception as e:
+                        print(f"[RECOVERY] Failed to restore optimizer state: {e}")
+            if 'calm_history' in checkpoint and hasattr(self, 'training_manager') and self.training_manager is not None:
+                self.training_manager.calm_history = checkpoint['calm_history']
+                
+            # Restore Shadow Logs & Multimodal Collisions
+            if self.engine:
+                if 'shadow_logs' in checkpoint:
+                    from collections import deque
+                    self.engine.shadow_replay_queue = deque(checkpoint['shadow_logs'], maxlen=1000)
+                if 'multimodal_collisions' in checkpoint:
+                    from collections import deque
+                    self.engine.multimodal_collisions = deque(checkpoint['multimodal_collisions'], maxlen=500)
+            
+            # Restore CODES v40 Topological & Resonance Core Extensions
+            if self.engine and 'codes_v40_topology' in checkpoint:
+                try:
+                    codes_state = checkpoint['codes_v40_topology']
+                    
+                    if 'speculative_homology' in codes_state and hasattr(self.engine, 'speculative_homology') and self.engine.speculative_homology:
+                        if 'betti_numbers' in codes_state['speculative_homology']:
+                            self.engine.speculative_homology.betti_numbers = codes_state['speculative_homology']['betti_numbers']
+                        if 'homology_gaps' in codes_state['speculative_homology']:
+                            self.engine.speculative_homology.homology_gaps = codes_state['speculative_homology']['homology_gaps']
+                            
+                    if 'chern_simons_gasket' in codes_state and hasattr(self.engine, 'chern_simons_gasket') and self.engine.chern_simons_gasket:
+                        if 'kappa' in codes_state['chern_simons_gasket']:
+                            self.engine.chern_simons_gasket.kappa = codes_state['chern_simons_gasket']['kappa']
+                        if 'curvature_history' in codes_state['chern_simons_gasket']:
+                            self.engine.chern_simons_gasket.curvature_history = codes_state['chern_simons_gasket']['curvature_history']
+                            
+                    if 'love_protector' in codes_state and hasattr(self.engine, 'love_protector') and self.engine.love_protector:
+                        # Attempt to topological recovery or just raw trust loading
+                        # For now, reload raw trust into memory
+                        if 'trust_levels' in codes_state['love_protector'] and codes_state['love_protector']['trust_levels'] is not None:
+                            self.engine.love_protector.trust_levels = codes_state['love_protector']['trust_levels']
+                        if 'non_ergodic_entropy' in codes_state['love_protector']:
+                            self.engine.love_protector.non_ergodic_entropy = codes_state['love_protector']['non_ergodic_entropy']
+                            
+                    if 'gyroidic_augmenter' in codes_state and hasattr(self.engine, 'gyroidic_augmenter') and self.engine.gyroidic_augmenter:
+                        if 'power' in codes_state['gyroidic_augmenter']:
+                            self.engine.gyroidic_augmenter.power = codes_state['gyroidic_augmenter']['power']
+                            
+                    if 'resonance_core' in codes_state and hasattr(self.engine, 'resonance_core') and self.engine.resonance_core:
+                        if 'pas_history' in codes_state['resonance_core']:
+                            self.engine.resonance_core.pas_history = codes_state['resonance_core']['pas_history']
+                        if 'fibonacci_entropy' in codes_state['resonance_core']:
+                            self.engine.resonance_core.fibonacci_entropy = codes_state['resonance_core']['fibonacci_entropy']
+                        if 'breather_modes' in codes_state['resonance_core']:
+                            self.engine.resonance_core.breather_modes = codes_state['resonance_core']['breather_modes']
+                        if 'multiharmonic_coherence' in codes_state['resonance_core']:
+                            self.engine.resonance_core.multiharmonic_coherence = codes_state['resonance_core']['multiharmonic_coherence']
+                            
+                except Exception as e:
+                    print(f"[WARN] Failed to restore CODES v40 topology: {e}")
             print("[WARMSTART] Manifold soul restored successfully.")
         except Exception as e:
             print(f"[WARMSTART] Error during recovery: {e}. Manifold may be corrupt or entropic.")
@@ -533,7 +1072,13 @@ class HybridAI:
             return (jitter_tensor - 0.5) * 0.1
         return jitter_tensor
 
-    def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None, audio_dyad: dict = None, regime: str = 'goo', tag_weights: dict = None) -> dict:
+    def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None, audio_dyad: dict = None, regime: str = 'goo', tag_weights: dict = None, ingestion_mode: bool = False) -> dict:
+        # Override parameters if they match standard defaults and custom settings were chosen at startup
+        if commutativity == 'non_commutative':
+            commutativity = getattr(self, 'default_commutativity', 'non_commutative')
+        if regime == 'goo':
+            regime = getattr(self, 'default_regime', 'goo')
+
         # Ensure hidden_state is ready for cloning (isolation snapshot)
         if not hasattr(self, 'hidden_state') or self.hidden_state is None:
             self._initialize_manifold_state()
@@ -607,13 +1152,16 @@ class HybridAI:
             try:
                 # Process via Diegetic Engine
                 print(f"[ENGINE] Processing: '{text}' (Video Dyad: {'YES' if video_dyad_b64 else 'NO'}) (Image Fingerprint: {'YES' if fingerprint else 'NO'})", flush=True)
+                is_ingest = ingestion_mode or getattr(self, 'high_throughput_ingestion', False)
+                gen_resp = not is_ingest
                 engine_output = self.engine.process_input(
                     text_input=text, 
                     fingerprint=fingerprint,
                     audio_dyad=audio_dyad,
                     video_dyad_b64=video_dyad_b64,
                     commutativity=commutativity,
-                    generate_response=True,
+                    generate_response=gen_resp,
+                    ingestion_mode=is_ingest,
                     regime=regime,
                     tag_weights=tag_weights
                 )
@@ -1014,6 +1562,52 @@ class HybridAI:
             'output_length': len(response_text),
             'backend': 'hybrid_diegetic_integrated' if self.engine else 'hybrid'
         }
+
+    def _start_background_scientific_learning(self):
+        """Start a background loop to query the primary scientific dataset periodically."""
+        import threading
+        import time
+        
+        def _loop():
+            # Wait for startup stabilization
+            time.sleep(15)
+            print(f"[INGEST] Background Scientific Learning ACTIVE (Dataset: {self.primary_query_dataset})")
+            
+            while getattr(self, 'bg_scientific_learning', False):
+                try:
+                    if self.engine and getattr(self.engine, 'open_science_ingestor', None) is not None:
+                        q_type = self.primary_query_dataset.lower()
+                        q_config = {"type": q_type}
+                        if q_type == "ligo":
+                            q_config.update({"event": "GW190521", "detector": "H1", "duration": 2.0})
+                        elif q_type == "sdss":
+                            q_config.update({"catalog_id": "J/A+A/540/A106", "row_limit": 5})
+                        elif q_type == "ncbi":
+                            q_config.update({"accession_id": "AM743169.1", "db": "nucleotide"})
+                        elif q_type == "openneuro":
+                            q_config.update({"dataset_id": "ds003445", "subject_id": "sub-01"})
+                        
+                        samples = self.engine.open_science_ingestor.query_and_aggregate([q_config])
+                        if samples:
+                            for sample in samples:
+                                sample_text = sample.get("text", "")
+                                if sample_text:
+                                    self.process_text(
+                                        f"INGEST_DYAD: {sample_text}",
+                                        ingestion_mode=True
+                                    )
+                                    print(f"[INGEST] Background scientific data assimilated: {sample.get('source')}")
+                except Exception as e:
+                    print(f"[WARN] Background Scientific Learning iteration failed: {e}")
+                
+                # Sleep in small chunks to remain shutdown-responsive
+                for _ in range(60):
+                    if not getattr(self, 'bg_scientific_learning', False):
+                        break
+                    time.sleep(1)
+                    
+        self._science_thread = threading.Thread(target=_loop, daemon=True, name="BgScienceThread")
+        self._science_thread.start()
 
     def _save_fossil(self, text: str, state: torch.Tensor, metrics: dict):
         """Persist interaction state as a .pt file for the graph manager."""
@@ -2087,7 +2681,12 @@ def main():
     global AI_SYSTEM
     
     # 1. Governance Startup (Interactive)
-    active_ports = GovernanceManager.startup_menu()
+    startup_res = GovernanceManager.startup_menu()
+    if isinstance(startup_res, tuple) and len(startup_res) == 2:
+        active_ports, config = startup_res
+    else:
+        active_ports = startup_res
+        config = {}
     
     print("\n[START] Gyroidic Hybrid Backend (Sovereign Mode)")
     print("=" * 45)
@@ -2095,7 +2694,10 @@ def main():
     # 2. Initialize AI system
     print("[BRAIN] Initializing AI components...")
     try:
-        AI_SYSTEM = HybridAI()
+        AI_SYSTEM = HybridAI(
+            use_spectral_correction=config.get('use_spectral_correction', True),
+            config=config
+        )
         print("[OK] AI system initialized")
     except Exception as e:
         print(f"[FAIL] AI system initialization failed: {e}")
