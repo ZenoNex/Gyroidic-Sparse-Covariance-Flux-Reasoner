@@ -36,6 +36,7 @@ from urllib.parse import urlparse
 import subprocess
 import gzip
 import csv
+from src.core.honest_jitter import harvest_honest_jitter
 
 # Robust path management
 import os
@@ -414,19 +415,48 @@ class DatasetIngestionSystem:
                 # Calculate Multiharmonic Phase Alignment Score (PAS_m) derived from 
                 # the 33-shell Z_3 counter-rotation interference pattern (IHC).
                 phi = 1.6180339887
+                A_Z3 = 0.00442 # Exact topological constant from IHC paper
                 interference_sum = 0.0
+                
+                # Fetch Multimodal Dyad (Image Fingerprint / SIC-FADD Shadow footprint)
+                image_path = sample.get('image_path', None)
+                if image_path and hasattr(self, 'image_processor') and self.image_processor is not None:
+                    try:
+                        fingerprint_tensor = self.image_processor.extract_image_fingerprint(image_path)
+                        multimodal_mass = fingerprint_tensor.sum().item()
+                    except Exception:
+                        multimodal_mass = 137.0
+                else:
+                    # Shadow log collision / SIC-FADD dummy structure for multimodal data collision
+                    shadow_seed = sum([ord(c) for c in text_content[:10]]) if text_content else 42
+                    multimodal_mass = 137.0 * math.sin(shadow_seed) 
+                
+                # True Character Decomposition (Alphanumeric/Emoji byte-level traversal)
+                char_bytes = text_content.encode('utf-8') if text_content else b'0'
                 
                 for k in range(33):
                     # Z_3 symmetry: counter-rotating if k = 0 mod 3, else co-rotating
                     direction = -1 if (k % 3 == 0) else 1
                     # Golden ratio self-similarity scaling
                     r_k = phi ** (-k)
-                    # Phase projection of the text structure onto this shell
-                    phase = (text_len * r_k) % (2 * math.pi)
-                    interference_sum += direction * math.cos(phase)
+                    
+                    shell_collision = 0.0
+                    for byte_idx, byte_val in enumerate(char_bytes):
+                        # Phase projection of the true character structure + multimodal footprint onto this shell
+                        phase = ((byte_val * (byte_idx + 1)) * r_k + multimodal_mass) % (2 * math.pi)
+                        shell_collision += direction * math.cos(phase) * A_Z3
+                        
+                    interference_sum += shell_collision
                 
-                # Normalize the interference sum (max amplitude ~33) to a [0, 1] PAS score
-                base_pas = 0.5 + 0.5 * (interference_sum / 33.0)
+                # Normalize the interference sum using tanh scaling based on avg collision density
+                avg_interference = interference_sum / max(1, len(char_bytes))
+                base_pas = 0.5 + 0.5 * math.tanh(avg_interference)
+                
+                # Track Lazarus score (compression of variance along the ingestion trajectory)
+                variance_proxy = max(0.001, abs(avg_interference))
+                cohesion_gradient = (base_pas - getattr(self, '_last_pas', 0.5))
+                lazarus_score = 1.0 / (1.0 + math.exp(-((1.0 / variance_proxy) * cohesion_gradient)))
+                self._last_pas = base_pas
                 
                 drift = 0.02 * math.cos(i / 7.0)
                 pas_h = min(1.0, max(0.0, base_pas))
@@ -1493,10 +1523,12 @@ class DatasetIngestionSystem:
             if 'text' in sample:
                 # Simple embedding: hash-based projection (in real system, use proper embeddings)
                 text = sample['text']
-                # Create deterministic embedding from text hash
-                hash_val = hash(text) % (2**31)
-                np.random.seed(hash_val)
-                embedding = torch.tensor(np.random.randn(768), dtype=torch.float32)
+                # Create deterministic embedding from text hash using Sovereign Logistic Expansion
+                from src.core.honest_jitter import AgentSmithEngine
+                engine = AgentSmithEngine(device=torch.device('cpu'))
+                hash_val = sum(ord(c) for c in text[:100]) % 1000000
+                deterministic_seed = hash_val / 1000000.0
+                embedding = engine((768,), seed_val=deterministic_seed, scaled=False)
                 embeddings.append(embedding)
             elif 'image_path' in sample and self.image_processor:
                 # Use Image Processor to embed image
@@ -1506,8 +1538,8 @@ class DatasetIngestionSystem:
                     embeddings.append(embedding.squeeze(0).cpu())
                 except Exception as e:
                      print(f"   [WARN] Failed to embed image {sample['image_path']}: {e}")
-                     # Fallback to random
-                     embeddings.append(torch.randn(768))
+                     # Fallback to random (Sovereign Jitter)
+                     embeddings.append(harvest_honest_jitter((768,), scaled=False).cpu())
         
         # Create simple temporal dataset
         class SimpleTemporalDataset:
@@ -1520,8 +1552,9 @@ class DatasetIngestionSystem:
                 targets = []
                 
                 for _ in range(batch_size):
-                    # Random sequence
-                    start_idx = np.random.randint(0, max(1, len(self.embeddings) - self.sequence_length))
+                    # Random sequence (Sovereign Jitter)
+                    _j_val = (harvest_honest_jitter((1,), scaled=False).cpu().item() + 1.0) / 2.0
+                    start_idx = int(_j_val * max(1, len(self.embeddings) - self.sequence_length))
                     sequence = []
                     sequence_targets = []
                     
@@ -1532,9 +1565,12 @@ class DatasetIngestionSystem:
                             target_idx = min(start_idx + i + 1, len(self.embeddings) - 1)
                             sequence_targets.append(self.embeddings[target_idx])
                         else:
-                            # Pad with random
-                            sequence.append(torch.randn(768))
-                            sequence_targets.append(torch.randn(768))
+                            # Pad with deterministic boundary (Sovereign Logistic Expansion)
+                            from src.core.honest_jitter import AgentSmithEngine
+                            engine = AgentSmithEngine(device=torch.device('cpu'))
+                            pad_emb = engine((768,), seed_val=0.618, scaled=False)
+                            sequence.append(pad_emb)
+                            sequence_targets.append(pad_emb)
                     
                     sequences.append(torch.stack(sequence))
                     targets.append(torch.stack(sequence_targets))
