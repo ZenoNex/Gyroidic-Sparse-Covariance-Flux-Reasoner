@@ -21,7 +21,7 @@ class NonErgodicEntropyEstimator(nn.Module):
     """
     Entropy estimation that preserves non-ergodic (soliton) structure.
     
-    Standard entropy: H(X) = - p(x) log p(x)  [ergodic mixing]
+    Standard entropy: H(X) = -Σ  p(x) log p(x)  [ergodic mixing]
     Non-ergodic: Decompose into spectral bands, compute entropy per band,
     preserve soliton entropy separately.
     """
