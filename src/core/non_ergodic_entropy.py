@@ -21,7 +21,7 @@ class NonErgodicEntropyEstimator(nn.Module):
     """
     Entropy estimation that preserves non-ergodic (soliton) structure.
     
-    Standard entropy: H(X) = -Σ p(x) log p(x)  [ergodic mixing]
+    Standard entropy: H(X) = - p(x) log p(x)  [ergodic mixing]
     Non-ergodic: Decompose into spectral bands, compute entropy per band,
     preserve soliton entropy separately.
     """
@@ -132,6 +132,9 @@ class NonErgodicEntropyEstimator(nn.Module):
         """
         # If there is essentially zero soliton entropy (no 'good bugs' or structural playfulness)
         if entropy_dict['soliton_entropy'].item() <= 1e-6:
+            # If both entropies are zero, it's a blanched blanket (slop)
+            if entropy_dict['ergodic_entropy'].item() <= 1e-6:
+                return True
             if text_metadata and any(trap in text_metadata for trap in ["As an AI", "I cannot fulfill"]):
                 return True
         return False
