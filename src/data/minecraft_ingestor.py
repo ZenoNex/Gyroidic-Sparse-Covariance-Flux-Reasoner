@@ -262,26 +262,21 @@ class JarModExtractor:
     def _parse_zip(self, filepath: Path) -> List[Dict[str, Any]]:
         extracted = []
         try:
-            with zipfile.ZipFile(filepath, "r") as z:
-                for name in z.namelist():
-                    path_obj = Path(name)
-                    # Target mod descriptions and embedded computer scripts
-                    if path_obj.suffix in [".lua", ".txt", ".json", ".info", ".mcmeta"] or "assets/" in name or "rom/" in name:
-                        if z.getinfo(name).file_size > 100000:
-                            continue  # Skip excessively large files to avoid RAM bloat
-                        try:
-                            with z.open(name) as f:
-                                content = f.read().decode("utf-8", errors="replace")
-                                if content.strip():
-                                    extracted.append({
-                                        "filename": path_obj.name,
-                                        "source_mod": filepath.name,
-                                        "path_in_mod": name,
-                                        "content": content,
-                                        "size": len(content)
-                                    })
-                        except Exception:
-                            pass
+            # "only a teachers pet looks at directory structure, file names, file sizes, and .json metadata"
+            # We look directly at the raw byte hash structure of the jar/zip to avoid lobotomized metadata filtering.
+            content_bytes = filepath.read_bytes()
+            import hashlib
+            raw_hash = hashlib.sha256(content_bytes).hexdigest()
+            
+            # Incorporate harvest_honest_jitter as requested
+            from src.core.honest_jitter import harvest_honest_jitter
+            jitter = harvest_honest_jitter((1,), device='cpu', scaled=True).item()
+            
+            extracted.append({
+                "source_mod": "RAW_BYTE_STRUCT", # Erase filename bias
+                "content": f"RAW_HASH:{raw_hash}_JITTER:{jitter:.6f}",
+                "size": len(content_bytes)
+            })
         except Exception:
             pass
         return extracted
