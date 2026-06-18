@@ -12,6 +12,8 @@ import torch
 import torch.nn as nn
 from typing import Dict, Optional, List
 
+from src.core.gdpo_normalization import GDPONormalization
+
 # Fix import paths
 import sys
 import os
@@ -26,7 +28,7 @@ class LearnedModalityEmbedder(nn.Module):
     """
     Multi-modal encoder that projects inputs into per-prime residue distributions.
     
-    For each prime p_k, outputs a probability distribution over ℤ/p_k.
+    For each prime p_k, outputs a probability distribution over /p_k.
     """
     
     def __init__(
@@ -75,13 +77,13 @@ class LearnedModalityEmbedder(nn.Module):
         # Fusion network
         self.fusion = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
-            nn.LayerNorm(hidden_dim),
+            GDPONormalization(hidden_dim),
             nn.GELU(),
             nn.Linear(hidden_dim, hidden_dim)
         )
         
         # Per-prime residue predictors
-        # W_k h + b_k → logits over ℤ/p_k
+        # W_k h + b_k  logits over /p_k
         self.residue_heads = nn.ModuleList([
             nn.Linear(hidden_dim, p_k) for p_k in primes
         ])
@@ -163,7 +165,7 @@ class LearnedModalityEmbedder(nn.Module):
         residue_distributions: torch.Tensor
     ) -> torch.Tensor:
         """
-        Compute E[r_k] = Σ i · r_k[i] for each prime field.
+        Compute E[r_k] =  i  r_k[i] for each prime field.
         
         Args:
             residue_distributions: [batch, K, max(p_k)]
