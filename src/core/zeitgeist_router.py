@@ -379,6 +379,10 @@ class ZeitgeistRouter(nn.Module):
         #  Betti-Aware Routing  #
         self.betti_router = BettiRouter(feature_dim=dim, num_sectors=self.M)
         
+        #  Gyroid Covariance Estimator for Curvature Tracking  #
+        from src.topology.gyroid_covariance import GyroidCovarianceEstimator
+        self.gyroid_cov = GyroidCovarianceEstimator(dim=dim, sample_size=16)
+        
         self.fossil_landmarks = {}
         self._last_diag = {}
 
@@ -639,7 +643,12 @@ class ZeitgeistRouter(nn.Module):
         """
         Bridge 4: Maps a Fossil ID to a Poincar Gravity Well.
         """
-        hash_bytes = bytes.fromhex(blake2s_id[:16]) if len(blake2s_id) >= 16 else b'\x00'*8
+        try:
+            hash_bytes = bytes.fromhex(blake2s_id[:16]) if len(blake2s_id) >= 16 else b'\x00'*8
+        except ValueError:
+            import hashlib
+            digest = hashlib.blake2s(blake2s_id.encode('utf-8')).hexdigest()
+            hash_bytes = bytes.fromhex(digest[:16])
         bias_list = []
         for i in range(self.M):
             val = (hash_bytes[i % len(hash_bytes)] / 255.0) - 0.5
@@ -813,8 +822,13 @@ class ZeitgeistRouter(nn.Module):
                 nc_curvature = 0.0 # Bypassed
             else:
                 try:
-                    # Compute relative curvature between state and itself (temporal drift)
-                    nc_res = self._nc_curvature.compute_curvature(x.T @ x, x.T @ x)
+                    # Compute relative curvature between state covariance and rolling temporal covariance (temporal drift)
+                    # This replaces the lobotomized x.T @ x crude silos
+                    self.gyroid_cov.update_buffer(x)
+                    rolling_cov = self.gyroid_cov.compute_covariance()
+                    current_cov = torch.mm(x.T, x) if x.dim() == 2 else torch.outer(x, x)
+                    
+                    nc_res = self._nc_curvature.compute_curvature(current_cov, rolling_cov)
                     nc_curvature = float(nc_res['curvature_norm'].item())
                     
                     # Symmetric Tensor Shortcut (Love Invariant)
