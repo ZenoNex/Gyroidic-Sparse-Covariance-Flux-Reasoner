@@ -67,8 +67,8 @@ class ResidueFusion(nn.Module):
             feature_dim: Projection target dimensionality for alignment.
         """
         super().__init__()
-        # Dynamic projectors to handle different input standards
-        # Aligned to non-prime dimension 96 (32*3) as per Silicon Sovereignty.
+        self.feature_dim = feature_dim
+        # Default initialization to 96, but will dynamically scale to preserve full multimodal mass (e.g., 768 or 137)
         self.image_proj = nn.Linear(96, feature_dim)
         self.text_proj = nn.Linear(feature_dim, feature_dim)
         
@@ -76,23 +76,22 @@ class ResidueFusion(nn.Module):
         # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
         self.torsion_matrix = nn.Parameter(harvest_honest_jitter((feature_dim, feature_dim)))
         
+    def _ensure_image_proj_dim(self, in_dim: int, device: torch.device):
+        """Anti-Lobotomy: Ensure we don't truncate multimodal fingerprints down to 96."""
+        if self.image_proj.in_features != in_dim:
+            self.image_proj = nn.Linear(in_dim, self.feature_dim).to(device)
+            nn.init.orthogonal_(self.image_proj.weight)
+            print(f"[ResidueFusion] Anti-Lobotomy: Scaled image projection to {in_dim}-dim to preserve multimodal mass.")
+
     def forward(self, 
                 image_fingerprint: torch.Tensor, 
                 text_embedding: torch.Tensor) -> torch.Tensor:
         """
         Compute Residue R = Torsion(I, L).
-        Automatically aligns input dimensions to feature_dim.
         """
-        # Handle input dimension drift (Anti-Lobotomy alignment)
         in_dim = image_fingerprint.size(-1)
-        if in_dim == 96:
-            img_proj = self.image_proj(image_fingerprint)
-        else:
-            # Fallback zero-pad or trim to 96
-            padded = torch.zeros(*image_fingerprint.shape[:-1], 96, device=image_fingerprint.device)
-            min_dim = min(in_dim, 96)
-            padded[..., :min_dim] = image_fingerprint[..., :min_dim]
-            img_proj = self.image_proj(padded)
+        self._ensure_image_proj_dim(in_dim, image_fingerprint.device)
+        img_proj = self.image_proj(image_fingerprint)
 
         txt_proj = self.text_proj(text_embedding)
         
@@ -111,16 +110,10 @@ class ResidueFusion(nn.Module):
         """
         Calculate cross-modal shear to inject residue as 'Dark Matter' seeds.
         Formula: shear = (img_proj x txt_proj^T) - (txt_proj x img_proj^T) (non-abelian commutator shear)
-        We project the commutator back as a 'Dark Matter' seed.
         """
         in_dim = image_fingerprint.size(-1)
-        if in_dim == 96:
-            img_proj = self.image_proj(image_fingerprint)
-        else:
-            padded = torch.zeros(*image_fingerprint.shape[:-1], 96, device=image_fingerprint.device)
-            min_dim = min(in_dim, 96)
-            padded[..., :min_dim] = image_fingerprint[..., :min_dim]
-            img_proj = self.image_proj(padded)
+        self._ensure_image_proj_dim(in_dim, image_fingerprint.device)
+        img_proj = self.image_proj(image_fingerprint)
 
         txt_proj = self.text_proj(text_embedding)
         
@@ -313,7 +306,13 @@ class DyadFossilizer:
                 s = s_state.view(1, -1)
                 norm_s = s / (s.norm() + 1e-8)
                 adj = torch.abs(norm_s.T @ norm_s)
-                adj = (adj > 0.1).float()
+                
+                # [ARCHITECTURAL REMEDIATION] Thresholding creates Apis graph fragmentation. 
+                # We use HybridLassoQuantizer for Meliponini-compliant discretization.
+                from src.core.non_ergodic_entropy import HybridLassoQuantizer
+                if not hasattr(self, '_adj_quantizer'):
+                    self._adj_quantizer = HybridLassoQuantizer(dim=adj.shape[-1], lasso_lambda=0.1).to(device)
+                adj = self._adj_quantizer(adj)
                 
                 # IHC Standard: Capture 8-threshold filtration signature to avoid scalar flattening
                 betti_results = self.betti_approximator.estimate_betti_numbers(adj, max_dim=1, num_thresholds=8)
@@ -414,7 +413,33 @@ class DyadFossilizer:
         
         return filepath
         
+    def ouroboros_shadow_loop(self, 
+                              failure_log: str, 
+                              seed_state: torch.Tensor, 
+                              text_embedding: torch.Tensor, 
+                              image_fingerprint: Optional[torch.Tensor] = None) -> Optional[str]:
+        """
+        Ouroboros Shadow loops: Fossilize shadow logs of mathematical failures
+        as permanent KnowledgeDyads when local correlation reaches 1.0 (GLYPHLOCK state).
+        """
+        from src.core.martinova_correlation import compute_bounded_correlation
+        corr_input = seed_state.unsqueeze(-1) if seed_state.dim() == 2 else seed_state
+        state_corr = compute_bounded_correlation(corr_input)
+        
+        # When local correlation reaches 1.0 (>= 0.99), we trigger glyphlock fossilization
+        if (state_corr >= 0.99).any():
+            print(f"[OUROBOROS] Correlation reached 1.0 (GLYPHLOCK state). Fossilizing shadow log of mathematical failure.")
+            # Wrap failure log as a permanent KnowledgeDyad
+            failure_dyad = KnowledgeDyad(
+                linguistic_description=f"Ouroboros Shadow Failure Log: {failure_log[:150]}...",
+                image_fingerprint=image_fingerprint,
+                metadata={'failure_type': 'ouroboros_shadow_loop', 'glyphlock_triggered': True, 'raw_log': failure_log}
+            )
+            return self.fossilize(failure_dyad, text_embedding, seed_state)
+        return None
+        
     def recover_fossils(self, limit: Optional[int] = 150) -> List[Dict]:
+
         """Load all fossilized dyads for 'Speculative Coprime Gating'."""
         fossils = []
         if not os.path.exists(self.storage_dir):
