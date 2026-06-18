@@ -156,6 +156,7 @@ class GyroidicFluxReasoner(nn.Module):
             ModularTransformerLayer(
                 hidden_dim=hidden_dim,
                 num_heads=num_heads,
+                poly_config=self.poly_config,
                 num_functionals=self.K,
                 dropout=dropout
             )
