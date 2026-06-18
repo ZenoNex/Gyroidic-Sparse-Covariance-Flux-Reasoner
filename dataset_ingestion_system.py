@@ -547,28 +547,52 @@ class DatasetIngestionSystem:
             voxel_res = results.get("combined_residue")
             voxel_res_list = voxel_res.tolist() if isinstance(voxel_res, torch.Tensor) else None
             
-            # 1. Mod Scripts ingestion
+            # 1. Raw Byte Mod Ingestion (No JVM, No Names, Pure Structural Topology)
             mods_dir = world_path.parent / "mods"
             if mods_dir.exists():
-                extractor = JarModExtractor(mods_dir)
-                scripts = extractor.extract_mod_scripts()
-                for script in scripts:
-                    sample = {
-                        'text': f"Source: {script['source_mod']}\nFilename: {script['filename']}\nContent:\n{script['content']}",
-                        'length': len(script['content']),
-                        'source': f"minecraft:{config.source_path}/mods/{script['filename']}",
-                        'metadata': {
-                            'world_name': config.source_path,
-                            'type': 'mod_script',
-                            'filename': script['filename'],
-                            'source_mod': script['source_mod'],
-                            'noncommutativity_curvature': results.get('noncommutativity_curvature', 0.0),
-                            'commutativity_gap': results.get('commutativity_gap', 0.0),
-                        }
-                    }
-                    if voxel_res_list:
-                        sample['metadata']['voxel_residue'] = voxel_res_list
-                    samples.append(sample)
+                from src.core.honest_jitter import AgentSmithEngine
+                import hashlib
+                
+                engine = AgentSmithEngine(device=self.device if hasattr(self, 'device') else torch.device('cpu'))
+                for mod_file in mods_dir.rglob("*"):
+                    if mod_file.is_file() and mod_file.suffix in ['.jar', '.zip']:
+                        try:
+                            # Read raw bytes completely ignoring internal structure or semantics
+                            with open(mod_file, "rb") as f:
+                                raw_bytes = f.read()
+                            
+                            if not raw_bytes: continue
+                            
+                            # Chunked rolling hash logic over pure bytes
+                            chunk_size = 1024 * 1024 # 1MB chunks
+                            structural_hash = 0
+                            for i in range(0, len(raw_bytes), chunk_size):
+                                chunk = raw_bytes[i:i+chunk_size]
+                                chunk_val = int(hashlib.sha256(chunk).hexdigest()[:8], 16)
+                                structural_hash = (structural_hash + chunk_val) % (16**8)
+                                
+                            deterministic_seed = structural_hash / (16**8)
+                            
+                            # Sovereign Logistic Expansion maps byte structure to manifold
+                            structural_embedding = engine((768,), seed_val=deterministic_seed, scaled=False)
+                            
+                            sample = {
+                                'text': f"RAW_BYTE_TOPOLOGY:{hashlib.md5(raw_bytes).hexdigest()}",
+                                'length': len(raw_bytes),
+                                'source': f"minecraft_mod_raw_byte_stream",
+                                'metadata': {
+                                    'world_name': config.source_path,
+                                    'type': 'raw_byte_topology',
+                                    'noncommutativity_curvature': results.get('noncommutativity_curvature', 0.0),
+                                    'commutativity_gap': results.get('commutativity_gap', 0.0),
+                                    'structural_embedding': structural_embedding.cpu().tolist()
+                                }
+                            }
+                            if voxel_res_list:
+                                sample['metadata']['voxel_residue'] = voxel_res_list
+                            samples.append(sample)
+                        except Exception as e:
+                            print(f"[WARN] Failed to process mod byte stream: {e}")
 
             # 2. Config Files Ingestion
             config_texts = []
