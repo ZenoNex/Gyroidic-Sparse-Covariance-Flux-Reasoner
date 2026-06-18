@@ -9,11 +9,13 @@ dataset augmentation.
 
 import torch
 import torch.nn as nn
-import numpy as np
+from typing import Dict, Tuple, List, Optional, Any
 import math
-from typing import Tuple, Dict, Optional, List, Any
+import numpy as np
 from dataclasses import dataclass
+
 from src.core.honest_jitter import harvest_honest_jitter
+from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer
 
 @dataclass
 class AugmentationConfig:
@@ -336,7 +338,8 @@ class SparseCovariantOptimizer(nn.Module):
         optimized_features = augmented_features.clone()
         optimized_features.requires_grad_(True)
         
-        optimizer = torch.optim.Adam([optimized_features], lr=0.01)
+        # [ANTI-LOBOTOMY ENFORCEMENT] Replace Adam with RicciFlowOptimizer
+        optimizer = RicciFlowOptimizer([optimized_features], lr=0.01, torsion_weight=0.1)
         
         for step in range(self.max_optimization_steps):
             optimizer.zero_grad()
