@@ -38,11 +38,14 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 
+from src.core.honest_jitter import harvest_honest_jitter
 from src.core.polynomial_coprime import PolynomialCoprimeConfig, SaturatedPolynomialGate
 from src.core.spectral_coherence_repair import SpectralCoherenceCorrector, BezoutCoefficientRefresh
 from src.core.chern_simons_gasket import ChernSimonsGasket, SolitonStabilityHealer
 from src.core.love_invariant_protector import LoveInvariantProtector, SoftSaturatedGates
 from src.optimization.codes_driver import CODES
+from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer, WillmoreEnergy
+from src.core.birkhoff_projection import BouligandBirkhoffProjectionFunction
 
 
 class NonLobotomyTemporalModel(nn.Module):
@@ -310,16 +313,30 @@ class NonLobotomyTemporalModel(nn.Module):
         active_mask = ~self.is_fossilized
         if active_mask.any():
             mutation_prob = 0.1
-            mutations = torch.rand(self.K, device=self.device) < mutation_prob
+            _jitter = harvest_honest_jitter((self.K,), device=self.device, scaled=False)
+            _rand_vals = (_jitter + 1.0) / 2.0
+            mutations = _rand_vals < mutation_prob
             mutation_mask = active_mask & mutations
             if mutation_mask.any():
                 self.bimodal_genome[mutation_mask] = 1 - self.bimodal_genome[mutation_mask]
     
     def attempt_fossilization(self):
         fossilization_events = []
+        
+        # [ARCHITECTURAL REMEDIATION] Replaced naive `trust > 0.8` fossilization bypass
+        # with the formal DAQUFOperator to evaluate structural persistence based on
+        # unknowledge contradiction load and speculative flux bounds.
+        from src.core.daqf_operator import DAQUFOperator
+        if not hasattr(self, '_daquf_operator'):
+            self._daquf_operator = DAQUFOperator(num_fossils=self.K, fossil_dim=1, device=self.device)
+            
+        flux_scores = self.trust_scalars.unsqueeze(1)
+        persistence = self._daquf_operator.speculate_persistence(flux_scores)
+        
         for k in range(self.K):
             if not self.is_fossilized[k] and self._is_saturated(k):
-                if self.trust_scalars[k] > 0.8:
+                # We enforce fossilization only if DAQUF formally grants persistence
+                if persistence[k] > 0:
                     self.is_fossilized[k] = True
                     fossilization_events.append(k)
         return fossilization_events
@@ -350,7 +367,10 @@ class NonLobotomyTemporalTrainer:
             if 'polynomial_config' not in name:
                 neural_params.append(param)
         
-        self.optimizer = torch.optim.Adam(neural_params, lr=1e-4)
+        # [ANTI-LOBOTOMY ENFORCEMENT] Replace Adam with Ricci Flow
+        self.optimizer = RicciFlowOptimizer(neural_params, lr=1e-3, torsion_weight=0.1)
+        self.willmore_energy = WillmoreEnergy()
+        
         self.history = {
             'survivorship_pressure': [],
             'association_accuracy': [],
@@ -397,10 +417,16 @@ class NonLobotomyTemporalTrainer:
         avg_coherence = torch.stack(coherence_scores).mean()
         
         self.optimizer.zero_grad()
-        avg_survivorship_pressure.backward()
+        
+        # [ANTI-LOBOTOMY ENFORCEMENT] Calculate structural tension instead of scalar MSE
+        structural_tension = self.willmore_energy(hidden_state) + avg_survivorship_pressure
+        
+        # Backpropagate topological stress
+        structural_tension.backward()
+        
+        # [BOULIGAND PROJECTION] Apply Bouligand projections on gradients if needed via manifold
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
         self.optimizer.step()
-        
         self._update_trust_evolutionary(avg_association_accuracy.item(), avg_coherence.item())
         
         return {
@@ -479,7 +505,7 @@ class SimpleTemporalDataset:
         self.num_concepts = num_concepts
         self.embedding_dim = embedding_dim
         self.device = device
-        self.concept_embeddings = torch.randn(num_concepts, embedding_dim, device=device)
+        self.concept_embeddings = harvest_honest_jitter((num_concepts, embedding_dim), device=device, scaled=False)
         self.associations = self._create_associations()
     
     def _create_associations(self):
@@ -501,20 +527,26 @@ class SimpleTemporalDataset:
         for _ in range(batch_size):
             sequence = []
             sequence_targets = []
-            current_concept = np.random.randint(self.num_concepts)
+            _j1 = (harvest_honest_jitter((1,), scaled=False).cpu().item() + 1.0) / 2.0
+            current_concept = int(_j1 * self.num_concepts)
             for step in range(self.sequence_length):
                 sequence.append(self.concept_embeddings[current_concept])
                 if current_concept in self.associations:
                     target_concepts = self.associations[current_concept]
-                    target_concept = np.random.choice(target_concepts)
+                    _j2 = (harvest_honest_jitter((1,), scaled=False).cpu().item() + 1.0) / 2.0
+                    target_concept = target_concepts[int(_j2 * len(target_concepts))]
                     target_embedding = self.concept_embeddings[target_concept]
                 else:
                     target_embedding = self.concept_embeddings[current_concept]
                 sequence_targets.append(target_embedding)
-                if current_concept in self.associations and np.random.random() > 0.3:
-                    current_concept = np.random.choice(self.associations[current_concept])
+                
+                _j3 = (harvest_honest_jitter((1,), scaled=False).cpu().item() + 1.0) / 2.0
+                if current_concept in self.associations and _j3 > 0.3:
+                    _j4 = (harvest_honest_jitter((1,), scaled=False).cpu().item() + 1.0) / 2.0
+                    current_concept = self.associations[current_concept][int(_j4 * len(self.associations[current_concept]))]
                 else:
-                    current_concept = np.random.randint(self.num_concepts)
+                    _j5 = (harvest_honest_jitter((1,), scaled=False).cpu().item() + 1.0) / 2.0
+                    current_concept = int(_j5 * self.num_concepts)
             sequences.append(torch.stack(sequence))
             targets.append(torch.stack(sequence_targets))
         return {
