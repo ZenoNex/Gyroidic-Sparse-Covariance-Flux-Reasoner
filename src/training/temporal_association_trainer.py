@@ -17,6 +17,7 @@ import time
 from src.models.gyroid_reasoner import GyroidicFluxReasoner
 from src.models.resonance_cavity import ResonanceCavity
 from src.topology.unknowledge_domain import UnknowledgeDomain
+from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer
 
 # Fix import paths
 import sys
@@ -250,10 +251,10 @@ class TemporalAssociationTrainer:
         self.fossilization_threshold = fossilization_threshold
         self.device = device
         
-        # Optimizer for model parameters (excluding fossilized ones)
-        self.optimizer = torch.optim.Adam(
+        # [ANTI-LOBOTOMY ENFORCEMENT] Replace Adam with RicciFlowOptimizer
+        self.optimizer = RicciFlowOptimizer(
             [p for p in model.parameters() if p.requires_grad], 
-            lr=learning_rate
+            lr=learning_rate, torsion_weight=0.1
         )
 
         # Automatically enable MANDY's soft-veto training mode so cold-start
@@ -335,10 +336,18 @@ class TemporalAssociationTrainer:
                     target_flat.unsqueeze(1), flat_residues.shape[1]
                 ).squeeze(1)
         
-        # Association pressure: how well residues correlate with expected associations
-        correlation_loss = 1.0 - torch.cosine_similarity(flat_residues, target_flat, dim=1).mean()
+        # [ANTI-LOBOTOMY ENFORCEMENT] Replace scalar Cosine Loss with Non-Ergodic Entropy tracking
+        # We compute the Wasserstein-like divergence between the distributions rather than flat cosine similarity
+        target_norm = torch.nn.functional.normalize(target_flat, p=2, dim=1)
+        residue_norm = torch.nn.functional.normalize(flat_residues, p=2, dim=1)
         
-        # Manifold Flattening Guard: if loss is too low (total alignment), add small entropy penalty
+        # Non-Ergodic Entropy: sum(p * log(p/q)) approximation using shifted scalar product
+        inner_prod = torch.sum(target_norm * residue_norm, dim=1)
+        # Prevent log(0)
+        clamped_prod = torch.clamp((1.0 - inner_prod) / 2.0, min=1e-6)
+        correlation_loss = -torch.log(clamped_prod).mean()
+        
+        # Manifold Flattening Guard: if entropy collapses, add structural penalty
         if correlation_loss < 0.1:
             correlation_loss = correlation_loss + 0.01 * torch.norm(flat_residues, p=2).mean()
             
