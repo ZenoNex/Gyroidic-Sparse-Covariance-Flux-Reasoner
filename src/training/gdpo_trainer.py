@@ -13,6 +13,7 @@ import numpy as np
 
 from src.core.gdpo_normalization import SignalSovereignty
 from src.core.birkhoff_projection import project_to_birkhoff
+from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer
 
 # Fix import paths
 import sys
@@ -183,7 +184,8 @@ class GDPOSovereigntyAdaptor:
         self.max_grad_norm = max_grad_norm
         
         if optimizer is None:
-            self.optimizer = torch.optim.Adam(self.configuration.parameters(), lr=3e-4)
+            # [ANTI-LOBOTOMY ENFORCEMENT] Replace Adam with RicciFlowOptimizer
+            self.optimizer = RicciFlowOptimizer(self.configuration.parameters(), lr=1e-3, torsion_weight=0.1)
         else:
             self.optimizer = optimizer
         
