@@ -14,6 +14,7 @@ from typing import Dict, Optional
 
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.core.primitive_ops import FixedPointField, LearnedPrimitivePerturbation
+from src.core.gdpo_normalization import GDPONormalization
 
 # Fix import paths
 import sys
@@ -84,7 +85,7 @@ class PolynomialFunctionalEmbedder(nn.Module):
         # Fusion network
         self.fusion = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
-            nn.LayerNorm(hidden_dim),
+            GDPONormalization(hidden_dim),
             nn.GELU(),
             nn.Linear(hidden_dim, hidden_dim)
         )
