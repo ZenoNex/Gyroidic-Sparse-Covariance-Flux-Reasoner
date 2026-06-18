@@ -300,14 +300,18 @@ class UniversalOrchestrator(nn.Module):
                  # This simulates a clique complex built from feature associations
                  norm_s = s / (s.norm() + 1e-8)
                  adj = torch.abs(norm_s.T @ norm_s)
-                 # Thresholding to create a sparse simplicial complex
-                 adj = (adj > 0.1).float()
+                 # [ARCHITECTURAL REMEDIATION] Thresholding creates Apis graph fragmentation. 
+                 # We use HybridLassoQuantizer for Meliponini-compliant discretization.
+                 from src.core.non_ergodic_entropy import HybridLassoQuantizer
+                 if not hasattr(self, '_adj_quantizer'):
+                     self._adj_quantizer = HybridLassoQuantizer(dim=adj.shape[-1], lasso_lambda=0.1).to(state.device)
+                 adj = self._adj_quantizer(adj)
                  
-                 betti_results = self.quantum_betti.estimate_betti_numbers(adj, max_dim=1)
-                 b1 = betti_results.get(1, 0.0)
+                 betti_results = self.quantum_betti.estimate_betti_numbers(adj, max_dim=1, num_thresholds=8)
+                 b1_vec = betti_results.get(1, torch.zeros(8, device=state.device))
                  
-                 # H_1 != 0 indicates a non-trivial cycle (The 'Hole' in the manifold)
-                 has_homology = (b1 > 0.01)
+                 # H_1 != 0 indicates a non-trivial cycle across the filtration
+                 has_homology = (b1_vec.max().item() > 0.01)
         
         # Emergence = Seriousness (Structure Emerged)
         # Now requires GLYPHLOCK and non-trivial Homology
@@ -522,9 +526,17 @@ class UniversalOrchestrator(nn.Module):
             normalized_samples = F.normalize(samples, dim=-1)
             # Correlation matrix [dim, dim]
             adj_proxy = torch.matmul(normalized_samples.T, normalized_samples) / max(1, samples.shape[0])
-            betti_results = self.quantum_betti.estimate_betti_numbers(adj_proxy, max_dim=1)
-            b0 = betti_results[0].float().mean().item()
-            b1 = betti_results[1].float().mean().item()
+            
+            # [ARCHITECTURAL REMEDIATION] Use HybridLassoQuantizer to avoid arbitrary structural destruction
+            from src.core.non_ergodic_entropy import HybridLassoQuantizer
+            if not hasattr(self, '_adj_quantizer'):
+                self._adj_quantizer = HybridLassoQuantizer(dim=adj_proxy.shape[-1], lasso_lambda=0.1).to(state_safe.device)
+            adj_proxy = self._adj_quantizer(adj_proxy)
+            
+            # IHC Standard: 8-threshold filtration to prevent scalar lobotomy
+            betti_results = self.quantum_betti.estimate_betti_numbers(adj_proxy, max_dim=1, num_thresholds=8)
+            b0 = betti_results.get(0, torch.ones(8, device=state_safe.device)).float().mean().item()
+            b1 = betti_results.get(1, torch.zeros(8, device=state_safe.device)).float().mean().item()
             
         # Sovereign Refusal: Protect high-coherence solitons from over-projection
         try:
