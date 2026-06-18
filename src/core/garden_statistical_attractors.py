@@ -621,8 +621,12 @@ class GardenOrchestrator(nn.Module):
         """Fallback entropy computation with numerical stability."""
         # Simple Shannon entropy with stability
         temperature = 1.0
-        probs = F.softmax(concepts / temperature, dim=-1)
-        probs = torch.clamp(probs, min=1e-8, max=1.0)
+        from src.core.gluing_operator import LazarusSoftmax
+        lazarus = LazarusSoftmax(dim=-1).to(concepts.device)
+        probs, _ = lazarus(concepts / temperature, 0.0, 0.0)
+        
+        # [ARCHITECTURAL REMEDIATION] Removed hard scalar clamp 
+        # (MohrCoulombProjection handles structural yielding separately if needed)
         
         log_probs = torch.log(probs + 1e-8)
         entropy = -torch.sum(probs * log_probs, dim=-1)
@@ -834,7 +838,9 @@ class GardenOrchestrator(nn.Module):
             attractor_sums = influence_pulls.sum(dim=0)
             
             if attractor_sums.sum() > 1e-8:
-                attractor_probs = F.softmax(attractor_sums, dim=0)
+                from src.core.gluing_operator import LazarusSoftmax
+                lazarus = LazarusSoftmax(dim=0).to(attractor_sums.device)
+                attractor_probs, _ = lazarus(attractor_sums, 0.0, 0.0)
                 attractor_entropy = -torch.sum(attractor_probs * torch.log(attractor_probs + 1e-8))
                 metrics['attractor_diversity'] = HealthMetric(HealthMetricType.SCALAR, attractor_entropy.item())
             else:
