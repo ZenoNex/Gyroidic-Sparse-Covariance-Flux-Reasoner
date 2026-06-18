@@ -347,6 +347,21 @@ class ChernSimonsGasket(nn.Module):
         # Detect logic leak
         leak_detected = self.detect_logic_leak(residues)
         
+        # --- The Laryngeal Seal & Non-Orientable Hashing ---
+        # Calculate non-commutative curvature kappa from the gauge field strength
+        F = self.compute_field_strength()
+        kappa = torch.norm(F, p='fro')
+        
+        # Pull structural honesty
+        from src.core.honest_jitter import harvest_honest_jitter
+        honesty = harvest_honest_jitter((residues.size(0), residues.size(1), 1), device=self.device)
+        
+        # Sign the tokens with a non-orientable hash: s = tanh(honesty * kappa)
+        seal = torch.tanh(honesty * kappa)
+        residues = residues * seal
+        # ----------------------------------------------------
+        
+        
         if leak_detected:
             # Apply chiral torsion shift to repair
             repaired_residues = self.apply_chiral_torsion_shift(residues)
