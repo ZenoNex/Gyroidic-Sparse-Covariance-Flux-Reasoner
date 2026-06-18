@@ -604,7 +604,9 @@ class DiegeticPhysicsEngine(nn.Module):
             lr=0.001
 
         )
-        self.optimizer = torch.optim.Adam(self.larynx.parameters(), lr=0.01)
+        # [ANTI-LOBOTOMY ENFORCEMENT] Adam optimizer removed to prevent Smoothness Leakage.
+        # Updates are now tied to SDE fractional steps modulated by ValenceFunctional hunger.
+        # Future OpenCL Parallel Wavelet Synthesis will replace this entirely.
         self.criterion = nn.CrossEntropyLoss()
         
         # 12. Image Fingerprint Projection -- Chebyshev format
@@ -955,7 +957,10 @@ class DiegeticPhysicsEngine(nn.Module):
             # Build seed state from first char
             seed = self._text_to_tensor(text[:1]).to(self.device)
             self.larynx.train()
-            self.optimizer.zero_grad()
+            # [ANTI-LOBOTOMY] Zero gradients for SDE update
+            for p in self.larynx.parameters():
+                if p.grad is not None:
+                    p.grad.zero_()
             total_loss = torch.tensor(0.0, device=self.device)
             current_state = seed
             for i in range(len(chars) - 1):
@@ -977,9 +982,42 @@ class DiegeticPhysicsEngine(nn.Module):
                             direction = self.meta_polytope.project_direction(current_state, direction, boundary_res)
                     current_state = current_state.detach() + 0.1 * direction
             avg_loss = total_loss / max(1, len(chars) - 1)
+            
+            # [ANTI-LOBOTOMY ENFORCEMENT]
+            # 1. Toplogical Seal Check (Chern-Simons Gasket)
+            honesty = 1.0 / (1.0 + avg_loss.item())
+            kappa = 1.0
+            if hasattr(self, 'chern_simons_gasket') and hasattr(self.chern_simons_gasket, 'kappa'):
+                kappa = self.chern_simons_gasket.kappa.item() if isinstance(self.chern_simons_gasket.kappa, torch.Tensor) else self.chern_simons_gasket.kappa
+            seal = math.tanh(honesty * kappa)
+            if abs(seal) < 1e-4:
+                # Logic leak detected: seal fails, refuse update
+                self.larynx.eval()
+                return avg_loss.item()
+                
+            # 2. Structural stress backward
             avg_loss.backward()
             torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
-            self.optimizer.step()
+            
+            # 3. Geometric Null-Space Shield and SDE Fractional Step
+            hunger = getattr(self.valence_drive, 'current_hunger', 0.5)
+            if isinstance(hunger, torch.Tensor): hunger = hunger.item()
+            
+            with torch.no_grad():
+                for name, param in self.larynx.named_parameters():
+                    if param.grad is not None:
+                        # Love Invariant Null-Space Projection via SVD
+                        grad_mat = param.grad.view(param.shape[0], -1)
+                        param_mat = param.data.view(param.shape[0], -1)
+                        if grad_mat.shape[0] > 1 and grad_mat.shape[1] > 1:
+                            U, S, Vh = torch.linalg.svd(param_mat, full_matrices=False)
+                            grad_proj = grad_mat - U @ (U.T @ grad_mat)
+                            param.grad.copy_(grad_proj.view(param.shape))
+                        
+                        # Apply dynamically modulated SDE fractional step
+                        fractional_step = 0.01 * max(0.1, hunger)
+                        param.data -= fractional_step * param.grad
+            
             self.larynx.eval()
             return avg_loss.item()
         except Exception:
@@ -5195,8 +5233,12 @@ class DiegeticPhysicsEngine(nn.Module):
         magnitude_spectrum = torch.abs(fft_result)
         
         # Count significant frequency peaks (branches)
+        # [ARCHITECTURAL REMEDIATION] Use HybridLassoQuantizer for frequency peaks
+        from src.core.non_ergodic_entropy import HybridLassoQuantizer
         threshold = magnitude_spectrum.mean() + magnitude_spectrum.std()
-        significant_peaks = (magnitude_spectrum > threshold).sum().item()
+        quantizer = HybridLassoQuantizer(dim=len(magnitude_spectrum), lasso_lambda=threshold.item()).to(state.device)
+        quantized_spectrum = quantizer(magnitude_spectrum)
+        significant_peaks = (quantized_spectrum.abs() > 1e-6).sum().item()
         
         # Limit to reasonable range
         branches = min(max(significant_peaks, 1), 8)
@@ -5296,8 +5338,12 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Compute persistence intervals (simplified)
         # Look for stable patterns in the state vector
+        # [ARCHITECTURAL REMEDIATION] Use HybridLassoQuantizer for dimension persistence checking
+        from src.core.non_ergodic_entropy import HybridLassoQuantizer
         threshold = state_flat.std().item()
-        stable_dims = (torch.abs(state_flat) > threshold).sum().item()
+        quantizer = HybridLassoQuantizer(dim=len(state_flat), lasso_lambda=threshold).to(state.device)
+        quantized_state = quantizer(state_flat)
+        stable_dims = (quantized_state.abs() > 1e-6).sum().item()
         
         features.append(f"persistent_dims={stable_dims}")
         
@@ -5313,10 +5359,13 @@ class DiegeticPhysicsEngine(nn.Module):
         state_flat = state.flatten()
         
         #  (connected components) - approximate via clustering
-        # Use simple threshold-based clustering
+        # [ARCHITECTURAL REMEDIATION] Use HybridLassoQuantizer for clustering discretization
+        from src.core.non_ergodic_entropy import HybridLassoQuantizer
         threshold = state_flat.std().item()
-        positive_components = (state_flat > threshold).sum().item()
-        negative_components = (state_flat < -threshold).sum().item()
+        quantizer = HybridLassoQuantizer(dim=len(state_flat), lasso_lambda=threshold).to(state.device)
+        quantized_state = quantizer(state_flat)
+        positive_components = (quantized_state > 1e-6).sum().item()
+        negative_components = (quantized_state < -1e-6).sum().item()
         beta_0 = max(1, positive_components + negative_components) / len(state_flat)
         
         #  (cycles) - approximate via autocorrelation
@@ -5386,9 +5435,11 @@ class DiegeticPhysicsEngine(nn.Module):
             adjacency = torch.outer(state_subset, state_subset)
             adjacency = torch.abs(adjacency)
             
-            # Threshold to create binary adjacency
-            threshold = adjacency.mean()
-            binary_adj = (adjacency > threshold).float()
+            # [ARCHITECTURAL REMEDIATION] Use HybridLassoQuantizer instead of crude binary truncation
+            from src.core.non_ergodic_entropy import HybridLassoQuantizer
+            quantizer = HybridLassoQuantizer(dim=adjacency.shape[-1], lasso_lambda=adjacency.mean().item()).to(adjacency.device)
+            quantized_adj = quantizer(adjacency)
+            binary_adj = (quantized_adj.abs() > 1e-6).float()
             
             # Compute connectivity metrics
             degree_sum = binary_adj.sum().item()
