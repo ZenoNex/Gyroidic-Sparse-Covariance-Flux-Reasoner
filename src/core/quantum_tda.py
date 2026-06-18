@@ -69,22 +69,32 @@ class QuantumBettiApproximator(nn.Module):
             
             b1 = 0.0
             if max_dim >= 1:
-                num_edges = int(torch.sum(adj > 0.1).item() / 2)
+                # Use absolute value thresholding for edges since quantizer can produce negative/positive lattice points
+                num_edges = int(torch.sum(adj.abs() > 1e-6).item() / 2)
                 b1 = max(0.0, b0 - (N - num_edges))
                 noise = (1 - self.simulation_fidelity) * (b1 * 0.1) * harvest_honest_jitter((1,), device=device, scaled=True).item()
                 b1 = max(0.0, b1 + noise)
             return b0, b1
 
         results = {}
+        
+        def apply_meliponini_quantization(adj_mat, threshold):
+            # [ARCHITECTURAL REMEDIATION] Replace arbitrary thresholding with Meliponini discrete lasso
+            from src.core.non_ergodic_entropy import HybridLassoQuantizer
+            quantizer = HybridLassoQuantizer(dim=adj_mat.shape[-1], lasso_lambda=threshold).to(adj_mat.device)
+            return quantizer(adj_mat)
+
         if num_thresholds <= 1:
-            b0, b1 = estimate_single(adjacency_matrix)
+            quantized_adj = apply_meliponini_quantization(adjacency_matrix, 0.1)
+            b0, b1 = estimate_single(quantized_adj)
             results[0] = torch.tensor([b0], device=device)
             results[1] = torch.tensor([b1], device=device)
         else:
             t_vals = torch.linspace(0.05, 0.5, num_thresholds, device=device)
             b0s, b1s = [], []
             for t in t_vals:
-                b0, b1 = estimate_single((adjacency_matrix > t).float())
+                quantized_adj = apply_meliponini_quantization(adjacency_matrix, t.item())
+                b0, b1 = estimate_single(quantized_adj)
                 b0s.append(b0)
                 b1s.append(b1)
             results[0] = torch.tensor(b0s, device=device)
