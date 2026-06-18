@@ -236,31 +236,35 @@ class PolynomialADMRSolver(nn.Module):
 
     def apply_ivst_sidechain_dropout(self, states: torch.Tensor, elipsodistrophy_metrics: Optional[Dict[str, Any]]) -> torch.Tensor:
         """
-        Apply instrument-modulated module dropout based on the chaotic boundary envelope
-        with Birkhoff mass conservation and Lazarus rehydration.
+        [ARCHITECTURAL REMEDIATION] Replace crude dropout and NaN injection with Unknowledge Domain
+        shielding to protect Dream States from lobotomizing System 2 pressure.
         """
-        y_threshold = self.evaluate_ivst_sidechain(states, elipsodistrophy_metrics)
+        # Get Unknowledge metrics
+        h_mischief = 1.0 # Default if unknown
+        if elipsodistrophy_metrics is not None:
+             h_mischief = elipsodistrophy_metrics.get('h_mischief', 1.0)
+        
+        # Calculate Computable Flux (V_m) proxy
         current_pressure = torch.abs(states)
+        y_threshold = self.evaluate_ivst_sidechain(states, elipsodistrophy_metrics)
+        v_m_proxy = current_pressure - y_threshold
         
-        # Dropout mask: 1.0 for active, 0.0 for dropped out
-        mask = (current_pressure >= y_threshold).float()
+        from src.topology.unknowledge_domain import UnknowledgeDomain
+        if not hasattr(self, '_unknowledge_domain'):
+            self._unknowledge_domain = UnknowledgeDomain()
+            
+        # Instead of replacing states with NaN (crude dropout), we shield the pressures
+        # that fall into the Unknowledge Domain (V_m < 0, H_mischief > threshold)
+        shielded_pressure = self._unknowledge_domain.apply_shielding(current_pressure, v_m_proxy, h_mischief)
         
-        # Conserve mass: sum and redistribute energy
-        total_mass = torch.sum(current_pressure, dim=-1, keepdim=True)
-        active_mass = torch.sum(current_pressure * mask, dim=-1, keepdim=True)
+        # Apply the shielded pressure scaling back to the states
+        # The shield dampens the magnitude of state updates rather than destroying them
+        scale_factor = shielded_pressure / (current_pressure + 1e-8)
+        shielded_states = states * scale_factor
         
-        # Proportional scale factor
-        scale_factor = total_mass / (active_mass + 1e-8)
-        
-        # Redistribute mass
-        redistributed_states = states * scale_factor * mask
-        
-        # Topological refusal (emit NaN)
-        nan_states = torch.where(mask > 0.5, redistributed_states, torch.full_like(states, float('nan')))
-        
-        # Lazarus Rehydration: trigger apply_energy_based_stabilization
+        # Lazarus Rehydration: apply energy stabilization
         from src.core.spectral_coherence_repair import apply_energy_based_stabilization
-        rehydrated_states = apply_energy_based_stabilization(nan_states, stability_margin=1e-5)
+        rehydrated_states = apply_energy_based_stabilization(shielded_states, stability_margin=1e-5)
         
         return rehydrated_states
 
