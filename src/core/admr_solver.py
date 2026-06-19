@@ -210,9 +210,9 @@ class PolynomialADMRSolver(nn.Module):
                  
         return curr_states
 
-    def evaluate_ivst_sidechain(self, states: torch.Tensor, elipsodistrophy_metrics: Optional[Dict[str, Any]]) -> torch.Tensor:
+    def evaluate_unknowledge_envelope(self, states: torch.Tensor, elipsodistrophy_metrics: Optional[Dict[str, Any]]) -> torch.Tensor:
         """
-        Evaluate the IVST side-chain chaotic envelope.
+        Evaluate the Unknowledge Domain chaotic envelope.
         """
         level = 0.0
         if elipsodistrophy_metrics is not None:
@@ -234,7 +234,7 @@ class PolynomialADMRSolver(nn.Module):
         y_threshold = macro_envelope * soliton_transient
         return y_threshold
 
-    def apply_ivst_sidechain_dropout(self, states: torch.Tensor, elipsodistrophy_metrics: Optional[Dict[str, Any]]) -> torch.Tensor:
+    def apply_unknowledge_domain_dropout(self, states: torch.Tensor, elipsodistrophy_metrics: Optional[Dict[str, Any]]) -> torch.Tensor:
         """
         [ARCHITECTURAL REMEDIATION] Replace crude dropout and NaN injection with Unknowledge Domain
         shielding to protect Dream States from lobotomizing System 2 pressure.
@@ -246,7 +246,7 @@ class PolynomialADMRSolver(nn.Module):
         
         # Calculate Computable Flux (V_m) proxy
         current_pressure = torch.abs(states)
-        y_threshold = self.evaluate_ivst_sidechain(states, elipsodistrophy_metrics)
+        y_threshold = self.evaluate_unknowledge_envelope(states, elipsodistrophy_metrics)
         v_m_proxy = current_pressure - y_threshold
         
         from src.topology.unknowledge_domain import UnknowledgeDomain
