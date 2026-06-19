@@ -13,24 +13,27 @@ from src.core.honest_jitter import harvest_honest_jitter
 
 class SurgicalSeamVisualizer(nn.Module):
     """
-    Diagnostic monitoring for hyperbolic "slender seam" tension (kappa).
+        Diagnostic monitoring for hyperbolic "slender seam" tension (kappa).
     
-    The slender side of a rotating hyperbolic triangle marks the surgical seam
-    where incommensurate logical manifolds are stitched.
+        The slender side of a rotating hyperbolic triangle marks the surgical seam
+         where incommensurate logical manifolds are stitched.
     
     Sovereign Trace: 
         kappa = sum(abs(curvature_i)) / L_seam
     """
-    def __init__(self, seam_threshold: float = 0.85):
+    def __init__(self, poly_config=None, seam_threshold: float = 0.85):
         """
         Initialize the seam visualizer with a stability threshold.
         
         Args:
-            seam_threshold: The tension threshold above which the manifold is 
-                            considered at risk of 'Rupture' (topological fracture).
+            poly_config: Optional PolynomialCoprimeConfig for dynamic thresholding.
+            seam_threshold: Fallback tension threshold.
         """
         super().__init__()
-        self.seam_threshold = seam_threshold
+        if poly_config is not None and hasattr(poly_config, 'annealing_factor'):
+            self.seam_threshold = poly_config.annealing_factor
+        else:
+            self.seam_threshold = seam_threshold
         self.register_buffer('current_tension', torch.tensor(0.0))
         self.register_buffer('seam_status', torch.tensor(0)) # 0: stable, 1: tension, 2: rupture
 
@@ -96,6 +99,7 @@ class ChernSimonsGasket(nn.Module):
         self,
         manifold_dim: int = 3,
         level_k: int = 1,
+        poly_config=None,
         device: str = None
     ):
         """
@@ -105,6 +109,7 @@ class ChernSimonsGasket(nn.Module):
             manifold_dim: The dimensionality of the hidden manifold (default: 3).
             level_k: The Chern-Simons level, governing the strength of the 
                      topological twist (chirality).
+            poly_config: Optional polynomial configuration.
             device: Hardware target (CPU/GPU/OpenCL).
         """
         super().__init__()
@@ -122,7 +127,7 @@ class ChernSimonsGasket(nn.Module):
         self.register_buffer('twist_energy', torch.tensor(0.0, device=device))
         
         # Surgical Seam Visualizer
-        self.seam_visualizer = SurgicalSeamVisualizer()
+        self.seam_visualizer = SurgicalSeamVisualizer(poly_config=poly_config)
     
     def initialize_gauge_field(self, polynomial_coeffs: torch.Tensor, winding_numbers: torch.Tensor):
         """
@@ -359,6 +364,20 @@ class ChernSimonsGasket(nn.Module):
         # Sign the tokens with a non-orientable hash: s = tanh(honesty * kappa)
         seal = torch.tanh(honesty * kappa)
         residues = residues * seal
+        
+        # --- Symplectic Gluing ---
+        # Stitch the non-orientable hashes via a symplectic form omega(u,v) to prevent phase-flattening
+        if residues.shape[-1] >= 2:
+            D_symp = (residues.shape[-1] // 2) * 2 # Must be even
+            u = residues[..., :D_symp//2]
+            v = residues[..., D_symp//2:D_symp]
+            # Symplectic inner product as a phase stitch (omega(u,v) = u^T J v)
+            symplectic_stitch = torch.sum(u * v.flip(dims=[-1]), dim=-1, keepdim=True)
+            # Apply stitch as a geometric phase correction
+            residues_symp = residues[..., :D_symp].clone()
+            residues_symp = residues_symp * torch.cos(symplectic_stitch) + residues_symp.flip(dims=[-1]) * torch.sin(symplectic_stitch)
+            residues[..., :D_symp] = residues_symp
+            
         # ----------------------------------------------------
         
         
