@@ -53,7 +53,7 @@ class CALM(nn.Module):
         self.gauge_head = nn.Linear(dim, 1)            # Predict scalar gauge pressure P
         self.constraint_head = nn.Linear(dim, 5)       # Attention weights over 5 primary constraints
         
-    def forward(self, history: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(self, history: torch.Tensor, h_mischief: Optional[float] = None, dt: float = 1.0) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Args:
             history: [batch, history_len, dim]
@@ -80,6 +80,16 @@ class CALM(nn.Module):
         
         # Veto Score
         abort_score = torch.sigmoid(self.veto_head(last_latent))
+        
+        # --- Ouroboros Meditation State ---
+        # Decouple paradox from panic. When H_mischief is high and dt is dilated ('Play' state),
+        # lower the abort_score so the shadow log routes directly into ResonanceCavity D_dark
+        # without triggering the ADMM repair loop.
+        if h_mischief is not None and h_mischief > 0.8 and dt > 1.5:
+            abort_score = abort_score * 0.1
+            self.meditation_active = True
+        else:
+            self.meditation_active = False
         
         # Rho Adjustment Factor
         rho_factor = torch.exp(torch.tanh(self.rho_head(last_latent))) 
@@ -123,20 +133,20 @@ class CALM(nn.Module):
         buffer[:, -1, :] = new_state
         return buffer
 
-    def functional_forward(self, history: torch.Tensor, params: Optional[Dict[str, torch.Tensor]] = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def functional_forward(self, history: torch.Tensor, params: Optional[Dict[str, torch.Tensor]] = None, h_mischief: Optional[float] = None, dt: float = 1.0) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Execute forward pass. If params is provided, temporarily load them to perform
         the forward pass, then restore the original parameters.
         """
         if params is None:
-            return self.forward(history)
+            return self.forward(history, h_mischief, dt)
             
         orig_params = {k: v.data.clone() for k, v in self.named_parameters()}
         try:
             for name, param in self.named_parameters():
                 if name in params:
                     param.data.copy_(params[name].data)
-            return self.forward(history)
+            return self.forward(history, h_mischief, dt)
         finally:
             for name, param in self.named_parameters():
                 if name in orig_params:
