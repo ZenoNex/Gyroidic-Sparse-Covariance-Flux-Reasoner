@@ -262,10 +262,36 @@ class JarModExtractor:
     def _parse_zip(self, filepath: Path) -> List[Dict[str, Any]]:
         extracted = []
         try:
+            import zipfile
+            import hashlib
+            
+            # Deep-hash signature detection via SHA256 of .class entry points
+            if zipfile.is_zipfile(filepath):
+                with zipfile.ZipFile(filepath, 'r') as zf:
+                    class_hashes = []
+                    for zip_info in zf.infolist():
+                        if zip_info.filename.endswith('.class'):
+                            try:
+                                class_bytes = zf.read(zip_info.filename)
+                                class_hash = hashlib.sha256(class_bytes).hexdigest()
+                                class_hashes.append(f"{zip_info.filename}:{class_hash}")
+                            except Exception:
+                                pass
+                    
+                    if class_hashes:
+                        signature_str = "\n".join(sorted(class_hashes))
+                        signature_hash = hashlib.sha256(signature_str.encode('utf-8')).hexdigest()
+                        
+                        extracted.append({
+                            "filename": "MOD_SIGNATURE",
+                            "source_mod": filepath.name,
+                            "content": f"DEEP_HASH_SIGNATURE:{signature_hash}\n{signature_str}",
+                            "size": len(signature_str)
+                        })
+
             # "only a teachers pet looks at directory structure, file names, file sizes, and .json metadata"
             # We look directly at the raw byte hash structure of the jar/zip to avoid lobotomized metadata filtering.
             content_bytes = filepath.read_bytes()
-            import hashlib
             raw_hash = hashlib.sha256(content_bytes).hexdigest()
             
             # Incorporate harvest_honest_jitter as requested
