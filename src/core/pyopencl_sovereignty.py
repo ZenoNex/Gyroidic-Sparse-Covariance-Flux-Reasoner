@@ -5,9 +5,14 @@ This module provides hardware-accelerated kernels to bypass CPU bottlenecks
 and enforce topological constraints directly on the silicon substrate.
 """
 
-import pyopencl as cl
+try:
+    import pyopencl as cl
+    PYOPENCL_AVAILABLE = True
+except ImportError:
+    PYOPENCL_AVAILABLE = False
 import numpy as np
 import logging
+import math
 
 class SiliconSovereigntyEngine:
     """
@@ -36,61 +41,77 @@ class SiliconSovereigntyEngine:
         self.target_lipschitz = target_lipschitz
         self.love_protector = love_protector # Bridge 3: Love Invariant sync
         
-        # Initialize Context and Devices
-        platforms = cl.get_platforms()
-        if not platforms:
-            raise RuntimeError("No OpenCL platforms found.")
-            
-        gpu_devices = []
-        other_devices = []
-        for platform in platforms:
-            try:
-                gpus = platform.get_devices(device_type=cl.device_type.GPU)
-                gpu_devices.extend(gpus)
-            except Exception:
-                pass
-            try:
-                all_devs = platform.get_devices()
-                other_devices.extend(all_devs)
-            except Exception:
-                pass
+        self.device = None
+        self.ctx = None
+        self.queue_a = None
+        self.queue_b = None
+        
+        if not PYOPENCL_AVAILABLE:
+            self.logger.warning("PyOpenCL is not installed. Silicon Sovereignty running in CPU Mock mode.")
+            return
 
-        # Favor discrete GPU (e.g. GTX 1050 Ti, NVIDIA) over integrated GPU (e.g. Intel HD Graphics)
-        selected_device = None
-        if use_gpu and gpu_devices:
-            # Look for NVIDIA/discrete GPU first (GPU 1)
-            for dev in gpu_devices:
-                name_lower = dev.name.lower()
-                if "nvidia" in name_lower or "geforce" in name_lower or "gtx" in name_lower or "discrete" in name_lower:
-                    selected_device = dev
-                    self.logger.info(f"Targeting Discrete GPU (GPU 1): {dev.name}")
-                    break
-            # Fallback to any other GPU (e.g. Intel iGPU / GPU 0) if no discrete GPU is found
-            if selected_device is None:
-                for dev in gpu_devices:
-                    selected_device = dev
-                    self.logger.info(f"Targeting Integrated/Available GPU (GPU 0): {dev.name}")
-                    break
-        
-        # Absolute fallback to first available device (e.g. CPU)
-        if selected_device is None:
-            if other_devices:
-                selected_device = other_devices[0]
-                self.logger.info(f"Targeting Fallback Device: {selected_device.name}")
-            else:
-                raise RuntimeError("No OpenCL devices found.")
+        try:
+            platforms = cl.get_platforms()
+            if not platforms:
+                self.logger.warning("No OpenCL platforms found. Silicon Sovereignty running in CPU Mock mode.")
+                return
+        except Exception as e:
+            self.logger.warning(f"Failed to query OpenCL platforms: {e}. Silicon Sovereignty running in CPU Mock mode.")
+            return
             
-        self.device = selected_device
-        self.ctx = cl.Context([self.device])
-        
-        self.logger.info(f"Silicon Sovereignty Initialized on: {self.device.name}")
-        
-        # Dual-Command Queue Architecture
-        # We need two queues to process Odd/Even CRT moduli in parallel without serial friction.
-        self.queue_a = cl.CommandQueue(self.ctx, properties=cl.command_queue_properties.PROFILING_ENABLE) # Odd
-        self.queue_b = cl.CommandQueue(self.ctx, properties=cl.command_queue_properties.PROFILING_ENABLE) # Even
-        
-        self._build_kernels()
+        try:
+            gpu_devices = []
+            other_devices = []
+            for platform in platforms:
+                try:
+                    gpus = platform.get_devices(device_type=cl.device_type.GPU)
+                    gpu_devices.extend(gpus)
+                except Exception:
+                    pass
+                try:
+                    all_devs = platform.get_devices()
+                    other_devices.extend(all_devs)
+                except Exception:
+                    pass
+
+            # Favor discrete GPU (e.g. GTX 1050 Ti, NVIDIA) over integrated GPU (e.g. Intel HD Graphics)
+            selected_device = None
+            if use_gpu and gpu_devices:
+                # Look for NVIDIA/discrete GPU first (GPU 1)
+                for dev in gpu_devices:
+                    name_lower = dev.name.lower()
+                    if "nvidia" in name_lower or "geforce" in name_lower or "gtx" in name_lower or "discrete" in name_lower:
+                        selected_device = dev
+                        self.logger.info(f"Targeting Discrete GPU (GPU 1): {dev.name}")
+                        break
+                # Fallback to any other GPU (e.g. Intel iGPU / GPU 0) if no discrete GPU is found
+                if selected_device is None:
+                    for dev in gpu_devices:
+                        selected_device = dev
+                        self.logger.info(f"Targeting Integrated/Available GPU (GPU 0): {dev.name}")
+                        break
+            
+            # Absolute fallback to first available device (e.g. CPU)
+            if selected_device is None:
+                if other_devices:
+                    selected_device = other_devices[0]
+                    self.logger.info(f"Targeting Fallback Device: {selected_device.name}")
+                else:
+                    raise RuntimeError("No OpenCL devices found.")
+                
+            self.device = selected_device
+            self.ctx = cl.Context([self.device])
+            self.logger.info(f"Silicon Sovereignty Initialized on: {self.device.name}")
+            
+            # Dual-Command Queue Architecture
+            # We need two queues to process Odd/Even CRT moduli in parallel without serial friction.
+            self.queue_a = cl.CommandQueue(self.ctx, properties=cl.command_queue_properties.PROFILING_ENABLE) # Odd
+            self.queue_b = cl.CommandQueue(self.ctx, properties=cl.command_queue_properties.PROFILING_ENABLE) # Even
+            
+            self._build_kernels()
+        except Exception as e:
+            self.logger.warning(f"Failed to initialize OpenCL context/queues: {e}. Silicon Sovereignty running in CPU Mock mode.")
+            self.ctx = None
 
     def _build_kernels(self):
         """Build the OpenCL kernels for the topological constraints."""
@@ -447,6 +468,55 @@ class SiliconSovereigntyEngine:
             }
             output_signal[gid] = val;
         }
+
+        // 12. Nostalgic Leak TEA-salt Binding
+        __kernel void nostalgic_leak_tea(
+            __global float *state,
+            __global const float *mu_l,
+            __global const float *o_mask,
+            float alpha,
+            uint base_salt,
+            float t_rfc_stall_anchor,
+            int total_elements,
+            int fossil_dim
+        ) {
+            int gid = get_global_id(0);
+            if (gid >= total_elements) return;
+            
+            int offset = gid * fossil_dim;
+            
+            // TEA Hash state preparation
+            uint v0 = gid;
+            uint v1 = (uint)(t_rfc_stall_anchor * 1000.0f);
+            uint sum = 0;
+            uint delta = 0x9E3779B9;
+            uint k0 = base_salt, k1 = 0x12345678, k2 = 0x87654321, k3 = base_salt ^ delta;
+            
+            // 4-round TEA
+            for(int i=0; i<4; i++) {
+                sum += delta;
+                v0 += ((v1<<4) + k0) ^ (v1 + sum) ^ ((v1>>5) + k1);
+                v1 += ((v0<<4) + k2) ^ (v0 + sum) ^ ((v0>>5) + k3);
+            }
+            
+            float salt_factor = ((float)(v0 % 1000) / 1000.0f) * 0.1f;
+            
+            float dist_sq = 0.0f;
+            for(int d=0; d<fossil_dim; d++) {
+                float diff = state[offset + d] - o_mask[d];
+                dist_sq += diff * diff;
+            }
+            float dist = sqrt(dist_sq);
+            
+            // vis = sigmoid(alpha * dist)
+            float vis = 1.0f / (1.0f + exp(-alpha * dist));
+            
+            // Apply leak with TEA salt modulation
+            for(int d=0; d<fossil_dim; d++) {
+                float leak = state[offset + d] * mu_l[d] * (1.0f - vis) * (1.0f + salt_factor);
+                state[offset + d] = state[offset + d] - leak;
+            }
+        }
         """
         
         import warnings
@@ -460,6 +530,10 @@ class SiliconSovereigntyEngine:
         Dual-Channel Intercosamination Formula.
         Executes parallel updates on the odd and even queues.
         """
+        if self.ctx is None:
+            # CPU Mock: do nothing
+            return
+
         mf = cl.mem_flags
         
         # Dispatch Odd data on Queue A
@@ -481,6 +555,10 @@ class SiliconSovereigntyEngine:
         Returns the delta in hardware latency (ns). Positive means A won, Negative means B won.
         Used to trigger topological braid word permutations in Phase 25.
         """
+        if self.ctx is None:
+            # CPU Mock: return 0.0 delta
+            return 0.0
+
         import time
         import torch
         mf = cl.mem_flags
@@ -511,11 +589,18 @@ class SiliconSovereigntyEngine:
     def apply_stochastic_rounding(self, raw_values, scale=1.0, seed=None):
         """
         Applies LSB Stochastic Rounding to preserve Feature Scars.
-        Anchored to hardware jitter if no seed is provided.
         """
+        if self.ctx is None:
+            # CPU Mock rounding
+            raw_values = np.asarray(raw_values, dtype=np.float32)
+            scaled_vals = raw_values * scale
+            floor_vals = np.floor(scaled_vals)
+            fracs = scaled_vals - floor_vals
+            rnd = (np.random.random(raw_values.shape) < fracs).astype(np.int64)
+            return floor_vals.astype(np.int64) + rnd
+
         if seed is None:
             from src.core.honest_jitter import harvest_honest_jitter
-            # Harvest a single seed value from hardware friction
             seed = int(abs(harvest_honest_jitter((1,), scaled=False)[0].item()) * 4294967295)
 
         mf = cl.mem_flags
@@ -525,19 +610,23 @@ class SiliconSovereigntyEngine:
         raw_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=raw_values)
         res_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, fixed_results.nbytes)
         
-        # Enqueue on primary queue (A)
-        # Consolidate sync points: No need for kernel.wait() before enqueue_copy in the same queue.
         self.program.stochastic_rounding(
             self.queue_a, raw_values.shape, None,
             raw_buf, res_buf, np.float32(scale), np.uint32(seed)
         )
         
-        # Blocking copy ensures data is ready on CPU with minimal sync overhead.
         cl.enqueue_copy(self.queue_a, fixed_results, res_buf, is_blocking=True)
         return fixed_results
 
     def filter_dead_logic(self, candidates, targets):
         """O(1) Parity Filter rejecting Dead Logic topological trajectories."""
+        if self.ctx is None:
+            # CPU Mock
+            candidates = np.asarray(candidates, dtype=np.int64)
+            targets = np.asarray(targets, dtype=np.int64)
+            is_valid = ((candidates & 1) ^ (targets & 1)) == 0
+            return is_valid.astype(bool)
+
         mf = cl.mem_flags
         candidates = np.asarray(candidates, dtype=np.int64)
         targets = np.asarray(targets, dtype=np.int64)
@@ -553,11 +642,17 @@ class SiliconSovereigntyEngine:
         )
         
         cl.enqueue_copy(self.queue_b, is_valid, res_buf, is_blocking=True)
-        # Return boolean array of valid trajectories
         return is_valid.astype(bool)
 
     def apply_lipschitz_obstruction(self, weights):
         """Prevents gradient explosion by spectrally scaling global memory weights."""
+        if self.ctx is None:
+            # CPU Mock
+            weights = np.asarray(weights, dtype=np.float32)
+            current_norm = np.linalg.norm(weights)
+            scale_factor = max(1.0, current_norm / self.target_lipschitz)
+            return weights / scale_factor
+
         mf = cl.mem_flags
         weights = np.asarray(weights, dtype=np.float32)
         current_norm = np.linalg.norm(weights)
@@ -575,37 +670,36 @@ class SiliconSovereigntyEngine:
     def get_hardware_latency_anchor(self) -> float:
         """
         Harvests the physical t_RFC (Row Refresh Cycle) / DRAM stall anchor.
-        Used to ground the Agent Smith protocol in the local silicon substrate.
         """
         from src.core.honest_jitter import harvest_honest_jitter
-        # Harvest a single timing seed representing local physical friction
         anchor = harvest_honest_jitter((1,), scaled=False)[0].item()
-        return float(anchor * 200.0) # Scale to typical tRFC ms range
+        return float(anchor * 200.0)
 
     def get_virtual_algorithmic_latency(self, internal_entropy: float = 0.5) -> float:
         """
-        Agent Smith Portability (Virtual Algorithmic Latency):
         Returns the current algorithmic stall intensity (kappa-proxy).
         """
-        # Hardware anchor (DRAM stalls)
-        hw_anchor = self.get_hardware_latency_anchor() / 200.0 # Normalized
-        
-        # Algorithmic entropy + Hardware jitter
+        hw_anchor = self.get_hardware_latency_anchor() / 200.0
         intensity = 0.05 + 0.3 * internal_entropy + 0.1 * hw_anchor
         return float(intensity)
 
     def lazarus_traversal(self, trajectories, kappa_proxy):
         """
-        Speculative void traversal. Called deliberately during Virtual Algorithmic 
-        Latency stalls (exceeding mathematical entropy bounds).
+        Speculative void traversal.
         """
-        # Bridge 3: Immediate pre-emption if Love Invariant is violated
         if self.love_protector is not None:
             if self.love_protector.detect_love_violation():
                 self.logger.warning("LOVE VIOLATION DETECTED DURING STALL. TRIGGERING IMMEDIATE LAZARUS TRANSITION.")
                 self.love_protector.restore_love_invariant()
-                # Return original trajectories (recovery branch)
                 return trajectories
+
+        if self.ctx is None:
+            # CPU Mock
+            trajectories = np.asarray(trajectories, dtype=np.float32)
+            variance = np.var(trajectories)
+            denom = np.sqrt(variance * kappa_proxy)
+            grad = (kappa_proxy / denom) if (denom > 0.0001) else 0.0
+            return trajectories + grad
 
         mf = cl.mem_flags
         trajectories = np.asarray(trajectories, dtype=np.float32)
@@ -626,8 +720,16 @@ class SiliconSovereigntyEngine:
     def matrix_mix_breeding(self, matrix_a, matrix_b, alpha=0.5, kappa_seal=0.1, hyperbolic_shear=0.0, seed=None):
         """
         Operationalizes the 'TailSlayer Bypass' via dual-queue matrix mixing.
-        Uses Queue B (Non-Ergodic/Soliton) to ensure First-to-Finish dynamics.
         """
+        if self.ctx is None:
+            # CPU Mock mixing
+            matrix_a = np.asarray(matrix_a, dtype=np.float32)
+            matrix_b = np.asarray(matrix_b, dtype=np.float32)
+            mixed = (1.0 - alpha) * matrix_a + alpha * matrix_b
+            if np.random.random() > 0.95:
+                mixed = np.round(mixed * 65536.0) / 65536.0
+            return mixed
+
         if seed is None:
             from src.core.honest_jitter import harvest_honest_jitter
             seed = int(abs(harvest_honest_jitter((1,), scaled=False)[0].item()) * 4294967295)
@@ -641,7 +743,6 @@ class SiliconSovereigntyEngine:
         b_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=matrix_b)
         out_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, output.nbytes)
         
-        # Enqueue on Queue B (Non-Ergodic/Soliton Channel)
         self.program.matrix_mix(
             self.queue_b, matrix_a.shape, None,
             a_buf, b_buf, out_buf, 
@@ -654,9 +755,33 @@ class SiliconSovereigntyEngine:
 
     def apply_surgical_integration(self, state, residues, braid_word, cs_phase, manifold_kappa=1.0, seed=None):
         """
-        Executes the 'The Four Revisions' surgical kernel on the local hardware.
-        Enforces Analytic, Computational, Geometric, and Categorical stability.
+        Executes the 'The Four Revisions' surgical kernel.
         """
+        if self.ctx is None:
+            # CPU Mock surgical integration
+            state = np.asarray(state, dtype=np.float32).copy()
+            residues = np.asarray(residues, dtype=np.int64)
+            num_residues = residues.shape[1] if residues.ndim > 1 else len(residues)
+            braid_word = np.asarray(braid_word, dtype=np.int32)
+            
+            # A. Analytic: Homology Laplacian smoothing
+            if len(state) > 2:
+                drift = np.zeros_like(state)
+                drift[1:-1] = (state[:-2] + state[2:] - 2.0 * state[1:-1]) * 0.1
+                state += drift
+                
+            # B. Computational, C. Geometric, D. Categorical
+            for i in range(len(state)):
+                res_anchor = residues[i % num_residues]
+                comp_correction = (0.01 if (res_anchor & 1) else -0.01) * manifold_kappa
+                geom_twist = sum(math.sin(cs_phase * float(bw) + float(i)) for bw in braid_word) * 0.05
+                val = state[i] + comp_correction + geom_twist
+                cat_scale = 1.0
+                if abs(val) > manifold_kappa:
+                    cat_scale = 1.0 / (1.0 + math.exp(abs(val) - manifold_kappa))
+                state[i] = val * cat_scale
+            return state
+
         if seed is None:
             from src.core.honest_jitter import harvest_honest_jitter
             seed = int(abs(harvest_honest_jitter((1,), scaled=False)[0].item()) * 4294967295)
@@ -683,7 +808,33 @@ class SiliconSovereigntyEngine:
         return state
 
     def apply_mandelbulb_iteration(self, coords, max_iterations=50, escape_radius=2.0, power=8.0):
-        """Execute Mandelbulb fractal iteration entirely on PyOpenCL hardware."""
+        """Execute Mandelbulb fractal iteration."""
+        if self.ctx is None:
+            # CPU Mock mandelbulb
+            coords_np = np.asarray(coords, dtype=np.float32).copy()
+            p = min(power, 8.0)
+            for i in range(coords_np.size // 3):
+                offset = i * 3
+                z0 = np.clip(coords_np[offset], -5.0, 5.0)
+                z1 = np.clip(coords_np[offset + 1], -5.0, 5.0)
+                z2 = np.clip(coords_np[offset + 2], -5.0, 5.0)
+                c0, c1, c2 = z0, z1, z2
+                for iter_idx in range(max_iterations):
+                    r = math.sqrt(z0*z0 + z1*z1 + z2*z2)
+                    if r > escape_radius:
+                        break
+                    xy_norm = math.sqrt(z0*z0 + z1*z1 + 1e-8)
+                    theta = math.atan2(xy_norm, z2)
+                    phi = math.atan2(z1, z0 + 1e-8)
+                    r_new = math.pow(max(1e-8, min(10.0, r)), p)
+                    theta_new = theta * power
+                    phi_new = phi * power
+                    z0 = r_new * math.sin(theta_new) * math.cos(phi_new) + c0
+                    z1 = r_new * math.sin(theta_new) * math.sin(phi_new) + c1
+                    z2 = r_new * math.cos(theta_new) + c2
+                coords_np[offset:offset+3] = [z0, z1, z2]
+            return coords_np
+
         mf = cl.mem_flags
         coords_np = np.asarray(coords, dtype=np.float32)
         total_elements = coords_np.size // 3
@@ -702,8 +853,70 @@ class SiliconSovereigntyEngine:
         cl.enqueue_copy(self.queue_a, coords_np, coords_buf, is_blocking=True)
         return coords_np
 
+    def apply_nostalgic_leak_tea_salt(self, state, mu_l, o_mask, alpha, t_rfc_stall_anchor, seed=None):
+        """
+        Bind hardware t_RFC stalls to Nostalgic Leak Functional via TEA-salt.
+        """
+        if self.ctx is None:
+            # CPU Mock: simply return state unmodified for now as fallback
+            return state
+
+        if seed is None:
+            from src.core.honest_jitter import harvest_honest_jitter
+            seed = int(abs(harvest_honest_jitter((1,), scaled=False)[0].item()) * 4294967295)
+
+        mf = cl.mem_flags
+        state = np.asarray(state, dtype=np.float32)
+        mu_l = np.asarray(mu_l, dtype=np.float32)
+        o_mask = np.asarray(o_mask, dtype=np.float32)
+        
+        batch_size = state.shape[0] if state.ndim > 1 else 1
+        fossil_dim = state.shape[-1]
+        total_elements = batch_size
+        
+        state_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=state)
+        mu_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=mu_l)
+        o_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=o_mask)
+        
+        self.program.nostalgic_leak_tea(
+            self.queue_b, (total_elements,), None,
+            state_buf, mu_buf, o_buf,
+            np.float32(alpha), np.uint32(seed), np.float32(t_rfc_stall_anchor),
+            np.int32(total_elements), np.int32(fossil_dim)
+        )
+        
+        cl.enqueue_copy(self.queue_b, state, state_buf, is_blocking=True)
+        return state
+
     def apply_gyroid_projection(self, coords, max_steps=20, tolerance=1e-3, seed=None):
-        """Execute Gyroid minimal surface projection on PyOpenCL hardware."""
+        """Execute Gyroid minimal surface projection."""
+        if self.ctx is None:
+            # CPU Mock gyroid
+            coords_np = np.asarray(coords, dtype=np.float32).copy()
+            for i in range(coords_np.size // 3):
+                offset = i * 3
+                x = np.clip(coords_np[offset], -3.0, 3.0)
+                y = np.clip(coords_np[offset + 1], -3.0, 3.0)
+                z = np.clip(coords_np[offset + 2], -3.0, 3.0)
+                for step in range(max_steps):
+                    sx, cx = math.sin(x), math.cos(x)
+                    sy, cy = math.sin(y), math.cos(y)
+                    sz, cz = math.sin(z), math.cos(z)
+                    violation = sx*cy + sy*cz + sz*cx
+                    if abs(violation) < tolerance * 10.0:
+                        break
+                    gx = cx*cy - sz*sx
+                    gy = -sx*sy + cy*cz
+                    gz = -sy*sz + cz*cx
+                    g_norm = math.sqrt(gx*gx + gy*gy + gz*gz) + 1e-8
+                    gx /= g_norm; gy /= g_norm; gz /= g_norm
+                    step_size = np.clip(0.1 * violation, -0.5, 0.5)
+                    x = np.clip(x - step_size * gx, -5.0, 5.0)
+                    y = np.clip(y - step_size * gy, -5.0, 5.0)
+                    z = np.clip(z - step_size * gz, -5.0, 5.0)
+                coords_np[offset:offset+3] = [x, y, z]
+            return coords_np
+
         if seed is None:
             from src.core.honest_jitter import harvest_honest_jitter
             seed = int(abs(harvest_honest_jitter((1,), scaled=False)[0].item()) * 4294967295)
@@ -727,14 +940,35 @@ class SiliconSovereigntyEngine:
         return coords_np
 
     def apply_erosion_fbm(self, state, pressure_grad_normalized, octaves=4, persistence=0.5, lacunarity=2.0, intensity=0.1, primes=None):
-        """Execute Topological Erosion FBM on PyOpenCL hardware."""
+        """Execute Topological Erosion FBM."""
         if primes is None:
-            # Default fossilized survival basis generated dynamically via PrimeResonanceLadder
             from src.core.fgrt_primitives import PrimeResonanceLadder
             ladder = PrimeResonanceLadder(num_resonators=8)
             primes = ladder.primes.detach().cpu().numpy().astype(np.float32)
         else:
             primes = np.asarray(primes, dtype=np.float32)
+
+        if self.ctx is None:
+            # CPU Mock erosion
+            state_np = np.asarray(state, dtype=np.float32).copy()
+            pgrad_np = np.asarray(pressure_grad_normalized, dtype=np.float32)
+            for i in range(state_np.size):
+                x = state_np[i]
+                p_grad = pgrad_np[i]
+                total = 0.0
+                freq_scale = 1.0
+                amp_scale = 1.0
+                max_val = 0.0
+                for oct_idx in range(octaves):
+                    p = primes[oct_idx % len(primes)]
+                    phase = x * p * freq_scale
+                    total += math.sin(phase) * amp_scale
+                    max_val += amp_scale
+                    amp_scale *= persistence
+                    freq_scale *= lacunarity
+                noise_field = total / max_val
+                state_np[i] = x + intensity * (-p_grad * abs(noise_field))
+            return state_np
 
         mf = cl.mem_flags
         state_np = np.asarray(state, dtype=np.float32)
@@ -760,21 +994,37 @@ class SiliconSovereigntyEngine:
 
     def apply_video_dyad_chunking(self, raw_bytes: np.ndarray, chunk_size: int, max_chunks: int) -> np.ndarray:
         """
-        Executes Video Dyad chunking and subsampling natively on OpenCL.
-        Bypasses PyTorch CUDA VRAM fragmentation by parsing the raw bytestream directly
-        into a float32 tensor of shape (output_chunks, chunk_size).
+        Executes Video Dyad chunking and subsampling.
         """
+        if self.ctx is None:
+            # CPU Mock chunking
+            total_elements = raw_bytes.size
+            total_possible_chunks = total_elements // chunk_size
+            if total_possible_chunks == 0:
+                total_possible_chunks = 1
+            output_chunks = min(total_possible_chunks, max_chunks)
+            step_size = 0.0
+            if total_possible_chunks > max_chunks and max_chunks > 1:
+                step_size = float(total_possible_chunks - 1) / float(max_chunks - 1)
+            output_signal = np.zeros((output_chunks, chunk_size), dtype=np.float32)
+            for chunk_idx in range(output_chunks):
+                source_chunk = 0 if max_chunks == 1 else int(round(chunk_idx * step_size))
+                source_idx = source_chunk * chunk_size
+                chunk_data = raw_bytes[source_idx:source_idx+chunk_size]
+                if len(chunk_data) < chunk_size:
+                    chunk_data = np.pad(chunk_data, (0, chunk_size - len(chunk_data)))
+                output_signal[chunk_idx] = chunk_data.astype(np.float32)
+            return output_signal
+
         mf = cl.mem_flags
         total_elements = raw_bytes.size
         
-        # Calculate how many chunks we can form
         total_possible_chunks = total_elements // chunk_size
         if total_possible_chunks == 0:
-            total_possible_chunks = 1 # We will pad inside the kernel or it handles bounds
+            total_possible_chunks = 1
 
         output_chunks = min(total_possible_chunks, max_chunks)
         
-        # Step size for linspace subsampling
         step_size = 0.0
         if total_possible_chunks > max_chunks and max_chunks > 1:
             step_size = float(total_possible_chunks - 1) / float(max_chunks - 1)
@@ -782,7 +1032,6 @@ class SiliconSovereigntyEngine:
         output_signal = np.zeros((output_chunks, chunk_size), dtype=np.float32)
         total_output_elements = output_chunks * chunk_size
         
-        # Create buffers
         raw_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=raw_bytes)
         out_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, output_signal.nbytes)
         
@@ -799,9 +1048,10 @@ class SiliconSovereigntyEngine:
         return output_signal
 
     def flush(self):
-        """Explicitly flush and finish both queues to ensure global manifold coherence."""
-        self.queue_a.finish()
-        self.queue_b.finish()
+        """Explicitly flush queues."""
+        if self.ctx is not None:
+            self.queue_a.finish()
+            self.queue_b.finish()
 
 # Expose standard execution hook
 def create_engine():
