@@ -912,9 +912,12 @@ class GyroidCovarianceEstimator(nn.Module):
         # Diffusion Coefficient for SDEs
         diffusion_coefficient = 0.1 * (1.0 + shear)
 
-        # Atrophy: Still reported for backward compatibility
-        atrophy = 1.0 - (shear / 2.0)
+        # Atrophy: Calculate by applying local correlation to the eigenvalue spectrum
+        from core.martinova_correlation import compute_bounded_correlation
+        corr = compute_bounded_correlation(eigenvalues.unsqueeze(-1).unsqueeze(0)).squeeze(0)
+        atrophy = corr.item()
         is_dangerously_legible = atrophy > 0.85
+        trigger_defibrillator = atrophy >= 0.99
 
         return {
             'atrophy': atrophy,
@@ -922,7 +925,8 @@ class GyroidCovarianceEstimator(nn.Module):
             'eccentricity': eccentricity,
             'diffusion_coefficient': diffusion_coefficient,
             'spectral_width': (lambda_max - lambda_min).item(),
-            'is_dangerously_legible': is_dangerously_legible
+            'is_dangerously_legible': is_dangerously_legible,
+            'trigger_defibrillator': trigger_defibrillator
         }
 class LeyLineGeodesicMetric(nn.Module):
     """
