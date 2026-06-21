@@ -118,7 +118,7 @@ class HomologyPressure(nn.Module):
         of transition readiness. High-Lazarus states show substantially higher transition 
         probability than distance-matched low-Lazarus states.
         
-        Computed via Fisher-geometric principles: inverse variance (compression) 
+        Computed via Fisher-geometric principles: explicit Fisher-metric compression ratio 
         modulated by the local curvature (max - mean).
         """
         if len(cycle_pressures) <= 1:
@@ -127,6 +127,12 @@ class HomologyPressure(nn.Module):
         # Approximation of the Fisher information metric trace via variance (compression)
         # In Psi-field topology, high variance represents High-UV Structural Noise.
         variance = cycle_pressures.var() + 1e-8
+        
+        # Explicit Fisher-metric compression ratio
+        # F ~ 1 / variance. Compression ratio = F_local / F_global
+        # We proxy F_global via the maximum possible variance for this range: (max-min)^2 / 4
+        max_possible_var = ((cycle_pressures.max() - cycle_pressures.min()) ** 2) / 4.0 + 1e-8
+        fisher_compression_ratio = max_possible_var / variance
         
         # Local curvature proxy (distance to transition ridge) represents the IR Anchor.
         curvature_proxy = cycle_pressures.max() - cycle_pressures.mean()
@@ -138,8 +144,8 @@ class HomologyPressure(nn.Module):
         uv_ir_coupling = (variance ** 0.5) * (curvature_proxy ** 0.5)
         cohesion_gradient = curvature_proxy / (uv_ir_coupling + 1e-8)
         
-        # Lazarus score combines Fisher trajectory compression with Cohesion limits
-        lazarus = (1.0 / variance) * cohesion_gradient
+        # Lazarus score explicitly applies the Fisher-metric compression ratio
+        lazarus = fisher_compression_ratio * cohesion_gradient
         return torch.sigmoid(lazarus) # Bound to [0, 1] range
     
     def forward(
