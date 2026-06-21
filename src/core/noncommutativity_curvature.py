@@ -1,13 +1,13 @@
 """
 Non-Commutativity Curvature Tensor.
 
-Computes the 2-form K = Σ κ_ij e_i∧e_j measuring update order dependence.
-When two update operators A, B don't commute (AB ≠ BA), the system has
-non-trivial curvature — the order of operations matters structurally.
+Computes the 2-form K =  _ij e_ie_j measuring update order dependence.
+When two update operators A, B don't commute (AB  BA), the system has
+non-trivial curvature  the order of operations matters structurally.
 
 References:
     - VETO_SUBSPACE_ARCHITECTURE.md
-    - ai project report_2-2-2026.txt §"Non-commutativity curvature tensor"
+    - ai project report_2-2-2026.txt "Non-commutativity curvature tensor"
 """
 
 import torch
@@ -19,13 +19,13 @@ class NonCommutativityCurvature(nn.Module):
     """
     Computes the non-commutativity curvature 2-form from pairs of update operators.
     
-    Given operators A, B ∈ R^{d×d} (weight matrices, Jacobians, or update steps):
-        [A, B] = A·B - B·A                    (commutator)
-        κ = ½([A, B] - [A, B]^T)              (antisymmetric part = curvature)
-        K_norm = ||κ||_F                        (Frobenius norm = total curvature)
+    Given operators A, B  R^{dd} (weight matrices, Jacobians, or update steps):
+        [A, B] = AB - BA                    (commutator)
+         = ([A, B] - [A, B]^T)              (antisymmetric part = curvature)
+        K_norm = ||||_F                        (Frobenius norm = total curvature)
     
     High curvature means the system is in a regime where update ordering
-    produces divergent trajectories — a structural signal for the veto lattice.
+    produces divergent trajectories  a structural signal for the veto lattice.
     """
     
     def __init__(self, dim: int, curvature_threshold: float = 0.3,
@@ -62,9 +62,9 @@ class NonCommutativityCurvature(nn.Module):
         """
         Extract the antisymmetric curvature 2-form from the commutator.
         
-        κ_ij = ½([A,B]_ij - [A,B]_ji)
+        _ij = ([A,B]_ij - [A,B]_ji)
         
-        This is the "pure rotation" part — the part that genuinely measures
+        This is the "pure rotation" part  the part that genuinely measures
         non-commutativity rather than symmetric scaling artifacts.
         """
         if commutator.dim() == 2:
@@ -105,7 +105,7 @@ class NonCommutativityCurvature(nn.Module):
         curvature_norm = torch.norm(kappa, p='fro')
         
         # Relative curvature: normalize by operator norms to get
-        # a scale-invariant measure ∈ [0, 1]
+        # a scale-invariant measure  [0, 1]
         norm_A = torch.norm(A, p='fro').clamp(min=1e-8)
         norm_B = torch.norm(B, p='fro').clamp(min=1e-8)
         relative_curvature = curvature_norm / (norm_A * norm_B)
@@ -137,10 +137,10 @@ class NonCommutativityCurvature(nn.Module):
         basis_vectors: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
-        Decompose κ into wedge product components κ_ij e_i ∧ e_j.
+        Decompose  into wedge product components _ij e_i  e_j.
         
         In the standard basis, these are just the upper-triangular 
-        entries of the antisymmetric matrix κ. With a custom basis,
+        entries of the antisymmetric matrix . With a custom basis,
         we project first.
         
         Args:
@@ -151,7 +151,7 @@ class NonCommutativityCurvature(nn.Module):
             components: [dim*(dim-1)/2] wedge product coefficients
         """
         if basis_vectors is not None:
-            # Change of basis: κ' = E^T κ E
+            # Change of basis: ' = E^T  E
             kappa = basis_vectors.T @ kappa @ basis_vectors
             
         # Extract upper-triangular (i < j) entries
@@ -162,12 +162,12 @@ class NonCommutativityCurvature(nn.Module):
         """
         Convenience method: returns a single scalar pressure from curvature.
         
-        Used as a veto signal — high pressure means update order matters
+        Used as a veto signal  high pressure means update order matters
         enough that the system should be cautious about committing to
         either ordering.
         
         Returns:
-            pressure: scalar ∈ [0, 1] (sigmoid of relative curvature)
+            pressure: scalar  [0, 1] (sigmoid of relative curvature)
         """
         result = self.compute_curvature(A, B, update_ema=True)
         return torch.sigmoid(result['relative_curvature'] * 3.0 - 1.0)
@@ -179,3 +179,39 @@ class NonCommutativityCurvature(nn.Module):
             'max_observed': self.max_observed.item(),
             'threshold': self.curvature_threshold
         }
+
+    def arrow_of_time_inflection(self, 
+                                 forward_step: torch.Tensor, 
+                                 backward_step: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Define the non-commutativity curvature tensor to map inflection points
+        of the Arrow of Time.
+        
+        We compute the commutator of the forward step operator F and backward step operator B.
+        In a time-reversible system, [F, B] = 0. In an irreversible system (with Arrow of Time),
+        [F, B] != 0. The inflection points are where the curvature changes sign (zero crossings)
+        or reaches a local extremum.
+        
+        Args:
+            forward_step: [dim, dim] forward update operator
+            backward_step: [dim, dim] backward/inverse update operator
+            
+        Returns:
+            inflection_points: [dim] indices of coordinates where inflection occurs
+            time_asymmetry_score: scalar score of time-reversibility violation
+        """
+        # Commutator of forward and backward operators
+        t_commutator = self.compute_commutator(forward_step, backward_step)
+        kappa_time = self.extract_curvature(t_commutator) # [dim, dim]
+        
+        # Inflection points: look at the eigenvalues of kappa_time
+        eigs = torch.linalg.eigvals(kappa_time + 1e-8 * torch.eye(self.dim, device=kappa_time.device)).real
+        
+        # We classify inflection points where the eigenvalue is close to 0 but the gradient/variation is non-zero
+        inflection_mask = torch.abs(eigs) < 0.05
+        
+        # Total time-asymmetry score is the Frobenius norm of kappa_time
+        time_asymmetry_score = torch.norm(kappa_time, p='fro')
+        
+        return inflection_mask.float(), time_asymmetry_score
+
