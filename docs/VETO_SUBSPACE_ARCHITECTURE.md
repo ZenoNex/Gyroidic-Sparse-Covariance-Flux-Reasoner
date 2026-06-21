@@ -254,3 +254,19 @@ The pot's identity is inseparable from its categorical context: a Love Invariant
 
 **References**: `src/safety/red_teaming.py` (TopologicalRefusalFilter, TopologicalRefusalError), `src/topology/gyroid_covariance.py` (ChernSimonsGasket  cerumen wall), `src/core/veto_subspace.py`, `docs/TOPOLOGICAL_EXTENSIONS.md Part VII` (Meliponini formal definition), `MATHEMATICAL_DETAILS.md 55` (tag-based mixing), `docs/INTERCOSAMINATION_THEORY.md 2` (Elipsodistrophy as IAI monitor)
 
+---
+
+## 12. ChaosDefibrillator: Atrophy and Systemic Lobotomy Repair
+
+**Implementation**: [`core/veto_subspace.py`](../src/core/veto_subspace.py)
+
+The `ChaosDefibrillator` acts as an emergency response system for severe structural atrophy ("lobotomization"). When the `elipsodistrophy` metric reveals extreme dimensional collapse (e.g. `atrophy >= 0.99`), the manifold is losing its gyroidic expressivity and collapsing into a highly symmetric, dead state.
+
+### Defibrillation Protocol
+When activated, the `ChaosDefibrillator` applies an aggressive intervention to shatter the sterile symmetry:
+
+1. **Topological Shock**: Injects a massive dose of chiral torsion (`honest_jitter`) directly into the representation tensors to forcefully dislodge them from the collapsed attractor.
+2. **Phase Unlocking**: Scrambles the positional and structural embeddings momentarily, preventing the system from recursively reinforcing the flatline state.
+3. **Escalation**: Triggers the `SATURATION_ESCALATION` recovery status to notify the Orchestrator that the normal flow must be disrupted to incorporate deep associative play or radical context shifts.
+
+The Defibrillator is a last-resort veto override designed not to *halt* execution, but to violently inject *life* back into a mathematically dead (over-regularized) output.
