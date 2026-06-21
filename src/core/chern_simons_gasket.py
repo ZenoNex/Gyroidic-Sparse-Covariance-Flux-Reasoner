@@ -409,6 +409,44 @@ class ChernSimonsGasket(nn.Module):
         diag.update(self.seam_visualizer.get_seam_report())
         return diag
 
+    def sign_exemption_token(self, token, kappa: torch.Tensor):
+        """
+        Laryngeal Gasket Integration (Bridge 1):
+        Signs the VoynichExemptionToken with the Gasket's non-orientable curvature.
+        This ensures linguistic mischief is only allowed when the manifold is 'sealed'.
+        """
+        # Calculate a non-orientable signature from the mean kappa (curvature)
+        # s = tanh(honesty * mean(kappa))
+        mean_k = torch.mean(kappa).item()
+        signature = math.tanh(token.honesty_score * mean_k)
+        
+        token.gasket_signature = max(signature, 1e-6) # Ensure non-zero
+        return token
+
+    def forward(self, state_a: torch.Tensor, state_b: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """
+        Lock-in check for cross-modal recombinations using topological mismatch.
+        
+        Args:
+            state_a: Tensor from Modality A
+            state_b: Tensor from Modality B mapped to A's space
+        """
+        # Calculate Non-Commutativity Curvature ()
+        # Represents the "tailings" left over from forcing state_b into state_a's mold.
+        kappa = torch.norm(state_a - state_b, p=2, dim=-1)
+        
+        # Topology Truncation (BigGAN inspiration): 
+        # Expose the categorical defect as a definitive feature scar.
+        # High kappa means high category error, which translates to high generative transversality.
+        mean_k = torch.mean(kappa)
+        std_k = torch.std(kappa) + 1e-8
+        
+        scar_mask = kappa > (mean_k + std_k)
+        
+        return {
+            'non_commutativity_curvature': kappa,
+            'feature_scars': scar_mask
+        }
 
 class SolitonStabilityHealer(nn.Module):
     """
