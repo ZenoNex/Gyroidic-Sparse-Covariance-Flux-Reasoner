@@ -26,6 +26,7 @@ class SurgicalSeamVisualizer(nn.Module):
         Initialize the seam visualizer with a stability threshold.
         
         Args:
+            
             poly_config: Optional PolynomialCoprimeConfig for dynamic thresholding.
             seam_threshold: Fallback tension threshold.
         """
