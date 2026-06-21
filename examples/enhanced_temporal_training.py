@@ -607,7 +607,7 @@ class NonLobotomyTemporalTrainer:
                 fossilization_events = self.model.attempt_fossilization()
                 
                 if fossilization_events:
-                    print(f"🔒 Fossilized functionals: {fossilization_events}")
+                    print(f"[LOCK] Fossilized functionals: {fossilization_events}")
                     self.history['fossilization_events'].extend(fossilization_events)
             
             # Print progress
@@ -710,12 +710,12 @@ def run_non_lobotomy_temporal_training():
     """Run temporal training with proper non-lobotomy architecture."""
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
-    print(f"🧠 Non-Lobotomy Temporal Association Training")
+    print(f"[BRAIN] Non-Lobotomy Temporal Association Training")
     print(f"Device: {device}")
     print("=" * 60)
     
     # Create model with proper architecture
-    print("🏗️ Creating non-lobotomy model...")
+    print("[BUILD] Creating non-lobotomy model...")
     model = NonLobotomyTemporalModel(
         input_dim=768,
         hidden_dim=256,
@@ -724,24 +724,24 @@ def run_non_lobotomy_temporal_training():
         device=device
     )
     
-    print(f"✅ Model created with {sum(p.numel() for p in model.parameters()):,} parameters")
+    print(f"[OK] Model created with {sum(p.numel() for p in model.parameters()):,} parameters")
     print(f"   Polynomial functionals: {model.K}")
     print(f"   Polynomial degree: {model.D - 1}")
     print(f"   Bimodal genome: {model.bimodal_genome.tolist()}")
     print(f"   Trust scalars: {[f'{t:.3f}' for t in model.trust_scalars.tolist()]}")
     
     # Create dataset
-    print("\n📊 Creating dataset...")
+    print("\n[METRICS] Creating dataset...")
     dataset = SimpleTemporalDataset(sequence_length=6, num_concepts=30, device=device)
-    print(f"✅ Dataset created with {dataset.num_concepts} concepts")
+    print(f"[OK] Dataset created with {dataset.num_concepts} concepts")
     
     # Create trainer
-    print("\n🎯 Creating trainer...")
+    print("\n[GOAL] Creating trainer...")
     trainer = NonLobotomyTemporalTrainer(model, dataset)
-    print("✅ Trainer created")
+    print("[OK] Trainer created")
     
     # Test functionality
-    print("\n🧪 Testing functionality...")
+    print("\n[TEST] Testing functionality...")
     sample_batch = dataset.get_batch(batch_size=2)
     print(f"   Sequences shape: {sample_batch['sequences'].shape}")
     print(f"   Targets shape: {sample_batch['targets'].shape}")
@@ -756,16 +756,16 @@ def run_non_lobotomy_temporal_training():
     num_epochs = 5
     batches_per_epoch = 20
     
-    print(f"\n🚀 Starting training: {num_epochs} epochs, {batches_per_epoch} batches each")
+    print(f"\n[START] Starting training: {num_epochs} epochs, {batches_per_epoch} batches each")
     print("-" * 60)
     
     for epoch in range(num_epochs):
-        print(f"\n📚 Epoch {epoch + 1}/{num_epochs}")
+        print(f"\n[DOCS] Epoch {epoch + 1}/{num_epochs}")
         
         try:
             epoch_metrics = trainer.train_epoch(num_batches=batches_per_epoch)
             
-            print(f"\n📊 Epoch {epoch + 1} Summary:")
+            print(f"\n[METRICS] Epoch {epoch + 1} Summary:")
             print(f"   Survivorship Pressure: {epoch_metrics['survivorship_pressure']:.3f}")
             print(f"   Association Accuracy: {epoch_metrics['association_accuracy']:.3f}")
             print(f"   Temporal Coherence: {epoch_metrics['temporal_coherence']:.3f}")
@@ -778,12 +778,12 @@ def run_non_lobotomy_temporal_training():
             print(f"   Trust Scalars: {[f'{t:.3f}' for t in current_trust.tolist()]}")
             
         except Exception as e:
-            print(f"❌ Epoch {epoch + 1} failed: {e}")
+            print(f"[ERR] Epoch {epoch + 1} failed: {e}")
             import traceback
             traceback.print_exc()
             break
     
-    print(f"\n🎯 Training Complete!")
+    print(f"\n[GOAL] Training Complete!")
     print(f"Final Trust: {[f'{t:.3f}' for t in model.trust_scalars.tolist()]}")
     print(f"Final Bimodal Genome: {model.bimodal_genome.tolist()}")
     print(f"Fossilization Events: {len(trainer.history['fossilization_events'])}")
@@ -792,16 +792,16 @@ def run_non_lobotomy_temporal_training():
 
 
 if __name__ == "__main__":
-    print("🧠 Non-Lobotomy Temporal Association Training")
+    print("[BRAIN] Non-Lobotomy Temporal Association Training")
     print("Using polynomial co-prime functionals and evolutionary trust selection")
     print("=" * 75)
     
     try:
         model, trainer = run_non_lobotomy_temporal_training()
-        print(f"\n✅ Training completed successfully!")
+        print(f"\n[OK] Training completed successfully!")
         
     except Exception as e:
-        print(f"\n❌ Training failed: {e}")
+        print(f"\n[ERR] Training failed: {e}")
         import traceback
         traceback.print_exc()
 
