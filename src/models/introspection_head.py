@@ -208,35 +208,69 @@ class GeometricSelfModelProbe(nn.Module):
         
         return pressure
 
-    def unlearn_rigidity(self, decay_rate: float = 0.005):
+    def unlearn_rigidity(self, current_time: float = 0.0, overlap_window: float = 21600.0):
         """
-        Perturbs the probe projection weights using honest jitter to break rigidity,
-        while strictly preserving the Frobenius norm of the weights to prevent lobotomy.
+        Engram-based unlearning of rigidity using sparsity, intrinsic excitability,
+        temporal overlap (< 6 hours), and Bouligand polyshape blocks.
+        Decay is driven by biological memory consolidation rather than trust gradients.
         """
         from src.core.honest_jitter import harvest_honest_jitter
         with torch.no_grad():
             for probe_type, sequential in self.probes.items():
                 for layer in sequential:
                     if isinstance(layer, nn.Linear):
-                        # Get original norm to prevent weight decay / lobotomy
+                        # Initialize Intrinsic Excitability and Engram Trackers
+                        if not hasattr(layer, 'neuronal_excitability'):
+                            layer.register_buffer('neuronal_excitability', torch.rand_like(layer.weight))
+                            layer.register_buffer('last_engram_activation', torch.zeros_like(layer.weight))
+                            
+                        # 1. Sparsity: Engrams are remarkably sparse (2-6%). We target ~5%.
+                        k = max(1, int(0.05 * layer.weight.numel()))
+                        
+                        # 2. Overlapping Engrams: Shared populations if linked < 6 hours
+                        time_since_last = current_time - layer.last_engram_activation
+                        temporal_boost = torch.exp(-time_since_last / overlap_window)
+                        
+                        # 3. Bouligand Polyshape Blocks: Geometric structural gating
+                        bouligand_gate = torch.sin(layer.weight * 3.14159).abs()
+                        
+                        # 4. Neuronal Excitability: Threshold readiness + temporal + geometry
+                        effective_excitability = layer.neuronal_excitability * (1.0 + temporal_boost) * bouligand_gate
+                        
+                        # Competition: Local inhibitory microcircuitry selects top K
+                        _, engram_indices = torch.topk(effective_excitability.view(-1), k)
+                        engram_mask = torch.zeros_like(effective_excitability).view(-1)
+                        engram_mask[engram_indices] = 1.0
+                        engram_mask = engram_mask.view_as(layer.weight)
+                        
+                        # 5. Co-Retrieval & Temporal Updating
+                        layer.last_engram_activation = torch.where(
+                            engram_mask > 0, 
+                            torch.tensor(current_time, device=layer.weight.device), 
+                            layer.last_engram_activation
+                        )
+                        
                         orig_norm = layer.weight.norm().item()
                         if orig_norm < 1e-6:
                             continue
-                        
-                        # Generate honest jitter matching the weight shape
+                            
                         jitter = harvest_honest_jitter(
                             layer.weight.shape,
                             device=layer.weight.device,
                             scaled=True
-                        ) * decay_rate
+                        ) * 0.05  # Base engram plasticity
                         
-                        # Apply perturbation
-                        layer.weight.add_(jitter)
+                        # Apply plasticity ONLY to the active engram complex
+                        layer.weight.add_(jitter * engram_mask)
                         
-                        # Re-normalize to original Frobenius norm to conserve energy/implication
+                        # Re-normalize to prevent total lobotomy
                         new_norm = layer.weight.norm().item()
                         if new_norm > 1e-8:
                             layer.weight.mul_(orig_norm / new_norm)
+                            
+                        # Excitability homeostasis
+                        layer.neuronal_excitability.mul_(0.99)
+                        layer.neuronal_excitability.add_(0.01 * torch.rand_like(layer.neuronal_excitability))
 
 
 
@@ -319,7 +353,7 @@ class AggregateGeometricSelfModel(nn.Module):
         
         return torch.stack(dissonance_scores)
 
-    def unlearn_rigidity(self, decay_rate: float = 0.005):
+    def unlearn_rigidity(self, current_time: float = 0.0, overlap_window: float = 21600.0):
         """Trigger unlearning across all aggregated self-model probes."""
-        self.probe_head.unlearn_rigidity(decay_rate)
+        self.probe_head.unlearn_rigidity(current_time, overlap_window)
 
