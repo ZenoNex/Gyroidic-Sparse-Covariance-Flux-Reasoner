@@ -336,16 +336,22 @@ class TemporalAssociationTrainer:
                     target_flat.unsqueeze(1), flat_residues.shape[1]
                 ).squeeze(1)
         
-        # [ANTI-LOBOTOMY ENFORCEMENT] Replace scalar Cosine Loss with Non-Ergodic Entropy tracking
-        # We compute the Wasserstein-like divergence between the distributions rather than flat cosine similarity
+        # --- BOULIGAND SAMPLE DIVERGENCE ---
+        # Instead of standard entropy or cosine distance, we project the divergence
+        # onto the Bouligand tangent cone of the feasible topological region.
         target_norm = torch.nn.functional.normalize(target_flat, p=2, dim=1)
         residue_norm = torch.nn.functional.normalize(flat_residues, p=2, dim=1)
         
-        # Non-Ergodic Entropy: sum(p * log(p/q)) approximation using shifted scalar product
-        inner_prod = torch.sum(target_norm * residue_norm, dim=1)
-        # Prevent log(0)
-        clamped_prod = torch.clamp((1.0 - inner_prod) / 2.0, min=1e-6)
-        correlation_loss = -torch.log(clamped_prod).mean()
+        # Tangent cone projection (Bouligand Divergence):
+        # D_B(x, y) = || x - \\Pi_{T_x}(y) ||^2 where \\Pi is the projection onto the tangent cone
+        # Simplified continuous proxy:
+        diff = residue_norm - target_norm
+        # Project diff onto the tangent plane of target_norm (orthogonal component)
+        tangent_proj = diff - torch.sum(diff * target_norm, dim=1, keepdim=True) * target_norm
+        # Divergence is the norm of this projection + penalty for moving off-manifold
+        bouligand_div = torch.norm(tangent_proj, p=2, dim=1)**2 + 0.1 * torch.abs(torch.sum(diff * target_norm, dim=1))
+        
+        correlation_loss = bouligand_div.mean()
         
         # Manifold Flattening Guard: if entropy collapses, add structural penalty
         if correlation_loss < 0.1:
@@ -641,6 +647,20 @@ class TemporalAssociationTrainer:
         # Gradient clipping for stability
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
         
+        # --- ASYMPTOTIC FRACTAL LEARNING RATE ---
+        from src.core.valence_drive import ValenceFunctional
+        if not hasattr(self, '_valence_drive'):
+            self._valence_drive = ValenceFunctional()
+        
+        # Modulate LR based on v_m and h_mischief (asymptotic fractal nature)
+        # Using topological pressure proxy to map cycle debt and structural hunger
+        topological_pressure = abs(float(v_m))
+        dynamic_lr = self.learning_rate * (1.0 + float(h_mischief) + 0.1 * topological_pressure)
+        # Asymptotic bounded
+        dynamic_lr = max(1e-6, min(1e-2, dynamic_lr))
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = dynamic_lr
+            
         self.optimizer.step()
         
         # Update trust scalars
@@ -649,6 +669,13 @@ class TemporalAssociationTrainer:
         
         # Collect diagnostics
         final_output = sequence_outputs[-1]
+        
+        # SparseExplorerRouting Verification (Audit Mechanism)
+        routing_sparsity = 0.0
+        if hasattr(self.model, 'dynamic_attention_mask') and self.model.dynamic_attention_mask is not None:
+            mask = self.model.dynamic_attention_mask
+            routing_sparsity = (mask == 0.0).float().mean().item()
+
         repair_diagnostics = {
             'spectral': final_output.get('spectral_diagnostics', {}),
             'chern_simons': final_output.get('chern_simons_diagnostics', {}),
@@ -656,7 +683,8 @@ class TemporalAssociationTrainer:
             'love': final_output.get('love_diagnostics', {}),
             'soft_gates': final_output.get('soft_gates_diagnostics', {}),
             'archetype_leak': final_output.get('archetype_leak', 0.0),
-            'nav_mode': final_output.get('nav_mode', 'UNKNOWN')
+            'nav_mode': final_output.get('nav_mode', 'UNKNOWN'),
+            'routing_sparsity': routing_sparsity
         }
         
         return {
@@ -667,10 +695,11 @@ class TemporalAssociationTrainer:
             'trust_std': self.model.trust_scalars.std().item(),
             'num_fossilized': (self.model.trust_scalars > self.fossilization_threshold).sum().item(),
             'repair_diagnostics': repair_diagnostics,
-            'arrow_of_time_asymmetry': asym_score
+            'arrow_of_time_asymmetry': asym_score,
+            'routing_sparsity': routing_sparsity
         }
     
-    def train_on_interaction(self, input_tensor: torch.Tensor, response_tensor: torch.Tensor) -> Dict[str, float]:
+    def train_on_interaction(self, input_tensor: torch.Tensor, response_tensor: torch.Tensor, tag_weights: Optional[Dict[str, float]] = None) -> Dict[str, float]:
         """Train directly on a live interaction from the diegetic backend."""
         # Expand dims to batch=1 if needed
         if input_tensor.dim() == 1:
@@ -679,9 +708,14 @@ class TemporalAssociationTrainer:
             response_tensor = response_tensor.unsqueeze(0)
             
         # Run model via adapter to get internal state
+        kwargs = {}
+        if tag_weights is not None:
+             kwargs['tag_weights'] = tag_weights
+             
         model_output = self._call_model(
             text_emb=input_tensor,
             return_analysis=True,
+            **kwargs
         )
         
         # Create target associations from response tensor
@@ -760,7 +794,8 @@ class TemporalAssociationTrainer:
             'association_accuracy': [],
             'temporal_coherence': [],
             'trust_evolution': [],
-            'repair_metrics': []
+            'repair_metrics': [],
+            'routing_sparsity': []
         }
         
         for batch_idx in range(num_batches):
@@ -771,7 +806,7 @@ class TemporalAssociationTrainer:
             step_metrics = self.train_step(batch_data)
             
             # Collect metrics
-            for key in ['survivorship_pressure', 'association_accuracy', 'temporal_coherence']:
+            for key in ['survivorship_pressure', 'association_accuracy', 'temporal_coherence', 'routing_sparsity']:
                 epoch_metrics[key].append(step_metrics[key])
             
             epoch_metrics['trust_evolution'].append({
@@ -788,13 +823,14 @@ class TemporalAssociationTrainer:
                       f"Assoc={step_metrics['association_accuracy']:.3f}, "
                       f"Coherence={step_metrics['temporal_coherence']:.3f}, "
                       f"Trust={step_metrics['trust_mean']:.3f} (+-{step_metrics['trust_std']:.4f}), "
+                      f"Sparsity={step_metrics['routing_sparsity']:.2%}, "
                       f"Mode={step_metrics['repair_diagnostics'].get('nav_mode', '???')}, "
                       f"Leak={step_metrics['repair_diagnostics'].get('archetype_leak', 0.0):.4f}, "
                       f"Fossilized={step_metrics['num_fossilized']}")
         
         # Compute epoch averages
         epoch_summary = {}
-        for key in ['survivorship_pressure', 'association_accuracy', 'temporal_coherence']:
+        for key in ['survivorship_pressure', 'association_accuracy', 'temporal_coherence', 'routing_sparsity']:
             epoch_summary[key] = np.mean(epoch_metrics[key])
         
         epoch_summary['final_trust_mean'] = epoch_metrics['trust_evolution'][-1]['mean']
@@ -803,6 +839,7 @@ class TemporalAssociationTrainer:
         # Update training history
         self.training_history['association_accuracy'].append(epoch_summary['association_accuracy'])
         self.training_history['temporal_coherence'].append(epoch_summary['temporal_coherence'])
+        self.training_history['routing_sparsity'].append(epoch_summary['routing_sparsity'])
         self.training_history['trust_evolution'].append(epoch_metrics['trust_evolution'])
         self.training_history['repair_diagnostics'].append(epoch_metrics['repair_metrics'])
         
