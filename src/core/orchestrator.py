@@ -45,6 +45,28 @@ from src.core.manifold_time import TwoCopsSchedule
 from src.core.archetype_engines import ArchetypalSynthesisEngine
 
 
+class GeneralUserAliasTracker(nn.Module):
+    """
+    Tracks and biases the topology to understand and preserve general user human aliases
+    and any non-human AI archetypes they inspire.
+    """
+    def __init__(self, dim: int):
+        super().__init__()
+        self.dim = dim
+        # Projector for user alias resonance
+        self.alias_projector = nn.Linear(dim, dim)
+        # Projector for inspired AI archetypes resonance
+        self.archetype_projector = nn.Linear(dim, dim)
+        
+    def forward(self, state: torch.Tensor, is_alias_active: bool, is_archetype_active: bool) -> torch.Tensor:
+        delta = torch.zeros_like(state)
+        if is_alias_active:
+            delta = delta + 0.1 * self.alias_projector(state)
+        if is_archetype_active:
+            delta = delta + 0.1 * self.archetype_projector(state)
+        return state + delta
+
+
 class UniversalOrchestrator(nn.Module):
     """
     Holistic governor of the Gyroidic Sparse Covariance Flux Reasoner.
@@ -151,6 +173,9 @@ class UniversalOrchestrator(nn.Module):
         self.topological_refusal = TopologicalRefusalFilter(value_gap_threshold=0.5)
         self.quantum_betti = QuantumBettiApproximator()
         self.audience_projector = AudienceProjection(input_dim=dim, audience_dim=dim)
+        
+        # 6b. General User Alias Tracking (User/AI Friction Anchor)
+        self.alias_tracker = GeneralUserAliasTracker(dim)
         
         # 7. Diegetic Responder (The "Larynx" & "Scars")
         from src.models.diegetic_heads import ResonanceLarynx
@@ -504,6 +529,19 @@ class UniversalOrchestrator(nn.Module):
         
         state_governed = arch_results['active_state']
         stacked_target = arch_results.get('stacked_target', None)
+        
+        # Determine active contexts from tag weights for Alias Tracker
+        is_alias_active = False
+        is_archetype_active = False
+        if tag_weights:
+            # We assume alias/archetype triggers appear in tags from harvesting
+            is_alias_active = any(k in tag_weights and tag_weights[k] > 0.5 for k in ["is_human_alias", "is_creator"])
+            is_archetype_active = any(k in tag_weights and tag_weights[k] > 0.5 for k in ["is_nonhuman_archetype"])
+            
+        # Apply Alias Tracker if we are in SATURATION_ESCALATION or if tags dictate
+        veto_status = tag_weights.get("veto_status", None) if tag_weights else None
+        if veto_status == "saturation_escalation" or is_alias_active or is_archetype_active:
+             state_governed = self.alias_tracker(state_governed, is_alias_active, is_archetype_active)
         
         # Update Mischief Probe with current cycle results
         self.mischief_probe.update(
