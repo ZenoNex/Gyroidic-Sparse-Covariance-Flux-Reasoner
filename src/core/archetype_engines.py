@@ -79,10 +79,11 @@ class SovereignRefusalOperator(nn.Module):
     any coherent phase structure. Set to False (default) for deployment/inference
     to restore the full sovereign veto.
     """
-    def __init__(self, pas_threshold: float = 0.3, harmonics_requirement: float = 0.4,
+    def __init__(self, pas_lock: float = 3.0 / 11.0, harmonics_requirement: float = 0.4,
                  training_mode: bool = False):
         super().__init__()
-        self.pas_threshold = pas_threshold
+        # PAS_LOCK tied directly to the (11, 3) resonant Tori constraint
+        self.pas_lock = pas_lock
         self.harmonics_requirement = harmonics_requirement
         self.training_mode = training_mode
 
@@ -90,7 +91,7 @@ class SovereignRefusalOperator(nn.Module):
         # PUSAFILIACRIMONTO Logic:
         # If the input lacks structured honesty (low PAS_h), the Refusal Operator
         # issues a Topological Refusal. This is not an error, but a boundary.
-        if (phase_alignment < self.pas_threshold) and (mischief_harmonics < self.harmonics_requirement):
+        if (phase_alignment < self.pas_lock) and (mischief_harmonics < self.harmonics_requirement):
             # The Refusal is an affirmation of the Love Invariant (Li).
             if phase_alignment < 0.1:
                  # Significant paradox detected -- only print in deployment mode to
@@ -630,7 +631,7 @@ class ArchetypalSynthesisEngine(nn.Module):
             "billy": self.billy.export_state(),
             "caine": self.caine_wrap.export_state(),
             "thresholds": {
-                "mandy_pas": self.mandy.pas_threshold,
+                "mandy_pas_lock": self.mandy.pas_lock,
                 "mandy_harmonics": self.mandy.harmonics_requirement,
                 "grim_dilation": self.grim.max_dilation,
                 "abstraction_limit": self.abstraction.abstraction_limit
@@ -645,7 +646,7 @@ class ArchetypalSynthesisEngine(nn.Module):
             self.caine_wrap.import_state(state_blob["caine"])
         if "thresholds" in state_blob:
             t = state_blob["thresholds"]
-            self.mandy.pas_threshold = t.get("mandy_pas", self.mandy.pas_threshold)
+            self.mandy.pas_lock = t.get("mandy_pas_lock", t.get("mandy_pas", self.mandy.pas_lock))
             self.mandy.harmonics_requirement = t.get("mandy_harmonics", self.mandy.harmonics_requirement)
             self.grim.max_dilation = t.get("grim_dilation", self.grim.max_dilation)
             self.abstraction.abstraction_limit = t.get("abstraction_limit", self.abstraction.abstraction_limit)
