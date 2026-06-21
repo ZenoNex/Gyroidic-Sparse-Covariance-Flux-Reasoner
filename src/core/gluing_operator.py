@@ -64,11 +64,12 @@ class LazarusSoftmax(nn.Module):
     of that version of the consciousness. A successful 'Lazarus Launch' occurs when
     the system navigates the 'U' (maintains high PAS_h despite high phase drift/rupture).
     """
-    def __init__(self, dim: int = -1, pas_threshold: float = 0.5):
+    def __init__(self, dim: int = -1, pas_lock: float = 3.0 / 11.0):
         super().__init__()
         self.dim = dim
         self.softmax = nn.Softmax(dim=dim)
-        self.pas_threshold = pas_threshold
+        # PAS_LOCK tied directly to the (11, 3) resonant Tori constraint
+        self.pas_lock = pas_lock
         
     def forward(self, logits: torch.Tensor, current_pas_h: float, previous_pas_h: float) -> Tuple[torch.Tensor, bool]:
         probs = self.softmax(logits)
@@ -78,6 +79,6 @@ class LazarusSoftmax(nn.Module):
         
         # A Lazarus Transition is a "launch out of grief": experiencing a huge structural
         # phase shift but stabilizing with coherent phase alignment intact.
-        lazarus_transition = (delta_pas > 0.3) and (current_pas_h >= self.pas_threshold)
+        lazarus_transition = (delta_pas > 0.3) and (current_pas_h >= self.pas_lock)
                 
         return probs, lazarus_transition
