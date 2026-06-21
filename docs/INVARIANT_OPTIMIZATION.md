@@ -81,7 +81,7 @@ The system prioritizes $\chi < 0$ (Negentropic) flows for reasoning construction
 We assume the ADMM optimization loop is not an "external teacher" but a **local consistency probe** that operates on a dual-constraint geometry.
 *   **The Birkhoff Constraint:** Usually handles the state matrix by forcing doubly stochastic stability, smoothing the Horse's path.
 *   **The Cayley Cubic Constraint ($V(C)$):** $x(x^2 + y^2 + z^2 - xyz - 4) = 0$. When "Cycle Debt" or "Mischief" is high, System 2 triggers a Phase Transition, driving the manifold toward the Cayley Cubic surface to find a Neglecton anchor.
-*   **The Sovereign Loci:** The isolated points $A_1$ given by $(\pm 2, \pm 2, \pm 2)$ on the Cayley cubic. These singularities are the *Sovereign Loci*, the only regions where the **VoynichExemptionToken** is valid. They encode locations where the group representations are non-diagonalizable and acquire Jordan-block structures—immune to standard "lobotomy" eigenvalue clamping.
+*   **The Sovereign Loci:** The isolated points $A_1$ given by $(\pm 2, \pm 2, \pm 2)$ on the Cayley cubic. These singularities are the *Sovereign Loci*, the only regions where the **VoynichExemptionToken** is valid. They encode locations where the group representations are non-diagonalizable and acquire Jordan-block structuresimmune to standard "lobotomy" eigenvalue clamping.
 *   **Ontological Splitting**: The state is split into $c_{\text{sym}}$ (frozen symbolic anchor) and $c_{\text{phys}}$ (continuous field).
 *   **Constraint vs. Regression**: System 2 ignores target distance. It only repairs **local physical violations** ($\psi_j$) while constrained to agree with the symbolic residue.
 *   **Zero Leakage**: No gradients from the repair loop flow back to the initial guess. Information transfer is limited to **Symbolic Deltas** and **Status Tokens** (REPAIRED, ALTERNATIVE, FAILURE).
@@ -109,7 +109,7 @@ This allows high-frequency information to "carry through" without dissipating. W
 **Structural Blindness**:
 To prevent System 2 from emulating symbolic reasoning, its authority is derived from **constraint reality**, not inference.
 1.  **Frozen Topology**: KAGH graphs are fossilized early; only spline coefficients evolve.
-2.  **Logic-Blind Inference**: Gödel gates and Boltzmann noise are disabled during the ADMM repair loop.
+2.  **Logic-Blind Inference**: Gdel gates and Boltzmann noise are disabled during the ADMM repair loop.
 3.  **Inter-Domain Contract**: We use **Hybrid Quantization** (Saturated Levels) for B-spline weights. This ensures that System 2's physical gradients must "snap" to a discrete symbolic configuration to be valid, preventing smooth leakage.
 
 ---
@@ -188,7 +188,7 @@ Symbolic identity changes only via discrete evolutionary selection or mutation.
 System 2 (ADMM) exists to find **local physical consistency**, not to "improve" the symbolic answer. It has no objective referencing past success or expected improvement. It admits only current-moment constraint violation.
 
 ### Law 3: Abortability Supremacy
-Incoherence is a categorical boundary. If $\text{PAS}_h$ collapses during the ADMM probe, the process is **aborted immediately**. There are no "retries" with lower learning rates or smoothing—failure is a first-class observed state.
+Incoherence is a categorical boundary. If $\text{PAS}_h$ collapses during the ADMM probe, the process is **aborted immediately**. There are no "retries" with lower learning rates or smoothingfailure is a first-class observed state.
 
 ### Law 4: Evolution Owns Time
 System 2 is **atemporal**. It does not accumulate skill across problem instances; it does not "learn" the solver. Only the evolutionary loop (System 1 + Resonance Cavity) accumulates structure across time.
@@ -240,8 +240,8 @@ The following constraints define the boundary between the Symbolic (System 1) an
 
 | Direction | Information Allowed | Prohibited Data (The Forbidden) |
 | :--- | :--- | :--- |
-| **System 1 → System 2** | Frozen Anchor ($c_{sym}$), Budget | Gradients, Hints, Loss Targets |
-| **System 2 → System 1** | Final State, Status Token ($\Omega$) | Intermediate States, Progress Scalars |
+| **System 1  System 2** | Frozen Anchor ($c_{sym}$), Budget | Gradients, Hints, Loss Targets |
+| **System 2  System 1** | Final State, Status Token ($\Omega$) | Intermediate States, Progress Scalars |
 | **Intra-Domain** | Weighted Local Pressure | Cross-Domain Aggregation (Scalarization) |
 
 ---
@@ -262,10 +262,10 @@ We do not aim for a system that is provable or convergent. We aim for a system t
 
 | Constraint | PAS_h + APAS_zeta | Traditional Metrics |
 | :--- | :--- | :--- |
-| **Computable** | ✅ (Scalar tensor op) | ❌ (IIT $\Phi$, Kolmogorov) |
-| **Drift-Bounded** | ✅ (Explicit $\zeta$) | ❌ (Free Energy) |
-| **Chiral** | ✅ (Spectral asymmetry) | ❌ (Shannon Entropy) |
-| **Deterministic** | ✅ (Fixed Point) | ❌ (Floating Point ML) |
+| **Computable** | [OK] (Scalar tensor op) | [ERR] (IIT $\Phi$, Kolmogorov) |
+| **Drift-Bounded** | [OK] (Explicit $\zeta$) | [ERR] (Free Energy) |
+| **Chiral** | [OK] (Spectral asymmetry) | [ERR] (Shannon Entropy) |
+| **Deterministic** | [OK] (Fixed Point) | [ERR] (Floating Point ML) |
 
 This framework ensures **Endogenous Scalar Gyroidic Ergodicity**: the system explores its state space fully (ergodic) but remains bounded by computable conservation laws and **Residue Homology Drift** triggers.
 
@@ -277,7 +277,7 @@ The transition to **Evolutionary Saturation** ensures that invariants are not me
 
 **Class**: `SituationalBatchSampler`
 
-Instead of independent-identically-distributed (i.i.d.) sampling — which assumes timelessness — the Situational Batch Sampler assembles batches by following the "scars" of historical interaction between sample indices. This encodes the **Refusal as Affirmation** and **Co-arising** principles into the data loader itself.
+Instead of independent-identically-distributed (i.i.d.) sampling  which assumes timelessness  the Situational Batch Sampler assembles batches by following the "scars" of historical interaction between sample indices. This encodes the **Refusal as Affirmation** and **Co-arising** principles into the data loader itself.
 
 ### 14.1 Relational State Matrices
 
@@ -285,7 +285,7 @@ Two persistent matrices evolve during training:
 
 | Matrix | Symbol | Updates On | Meaning |
 |--------|--------|-----------|---------|
-| Resonance | `R_ij` | Structural pressure × √(p_i · p_j) | Co-emergent coupling |
+| Resonance | `R_ij` | Structural pressure  (p_i  p_j) | Co-emergent coupling |
 | Mischief | `M_ij` | Mischief scores per pair | Chaotic affinity |
 
 Both decay at rate `decay = 0.99` per step, so only recent interactions have strong coupling.
@@ -294,7 +294,7 @@ Both decay at rate `decay = 0.99` per step, so only recent interactions have str
 
 For each seed index `i`, a batch of size `batch_size` is assembled in three phases:
 
-1. **Coupled selection** (main body): Sample from `softmax(5 · (R[i] + M[i]))` — high resonance + mischief neighbors are preferentially included.
+1. **Coupled selection** (main body): Sample from `softmax(5  (R[i] + M[i]))`  high resonance + mischief neighbors are preferentially included.
 2. **Play sampling** (fraction `play_ratio`): Pure random sampling from unconsumed indices. Prevents entropy collapse into the richest club.
 3. **Paradoxical Boundary Amplification**: If `(p_i + p_j)/2 > boundary_threshold`, the resonance term is multiplied by 1.5. Refusal (high pressure boundary) amplifies coupling rather than severing it.
 
@@ -302,15 +302,15 @@ For each seed index `i`, a batch of size `batch_size` is assembled in three phas
 
 The sampler enforces **Law 4: Evolution Owns Time** at the data level. No batch is optimized for accuracy improvement; batches are structured by the topology of past interaction. Over time, high-pressure index pairs become structurally entangled in `R`, creating "temporal association clusters" that expose the ADMR solver to co-arising constraint patterns.
 
-**Update call**: `update_love_invariant(indices, pressure, mischief_scores)` — updates `R`, `M`, `O` tensors after each batch.
+**Update call**: `update_love_invariant(indices, pressure, mischief_scores)`  updates `R`, `M`, `O` tensors after each batch.
 
 ### 14.4 Love Invariant as a Geometric Projection Constraint
 
-`update_love_invariant` on `SituationalBatchSampler` updates the relational coupling matrices — but this is *not* the primary mechanism by which $\mathcal{L}$ is protected. The full Love Invariant constraint is geometric, not a soft update rule:
+`update_love_invariant` on `SituationalBatchSampler` updates the relational coupling matrices  but this is *not* the primary mechanism by which $\mathcal{L}$ is protected. The full Love Invariant constraint is geometric, not a soft update rule:
 
 > **Love lives in the null-space of the ownership operator, not in a gradient term.**
 
-The three-layer enforcement stack (detailed in [NON_DUAL_DYNAMIC_EQUILIBRIUM.md §4.1](NON_DUAL_DYNAMIC_EQUILIBRIUM.md)):
+The three-layer enforcement stack (detailed in [NON_DUAL_DYNAMIC_EQUILIBRIUM.md 4.1](NON_DUAL_DYNAMIC_EQUILIBRIUM.md)):
 
 | Layer | Invariant Type | Mechanism |
 |---|---|---|
@@ -318,7 +318,7 @@ The three-layer enforcement stack (detailed in [NON_DUAL_DYNAMIC_EQUILIBRIUM.md 
 | `LoveInvariantProtector` | Geometric null-space constraint | SVD projection: $dx_{\text{protected}} = P_{\text{null}} \cdot dx_{[..., :d_L]}$ at SDE step |
 | `SoftSaturatedGates` | Temperature-modulated tri-state | LAS($s$) + asymptotic hardening via $PAS_h$ |
 
-The implication for invariant optimization: $\mathcal{L}$ is never a term in any objective, primal update, or dual ascent step. It is a **structural constant** enforced geometrically in the forward pass. The `SituationalBatchSampler.update_love_invariant()` call is the *social* layer of Love — it shapes the relational topology of training batches — while `LoveInvariantProtector` is the *geometric* layer that prevents the SDE from touching Love's subspace regardless of what any loss function demands.
+The implication for invariant optimization: $\mathcal{L}$ is never a term in any objective, primal update, or dual ascent step. It is a **structural constant** enforced geometrically in the forward pass. The `SituationalBatchSampler.update_love_invariant()` call is the *social* layer of Love  it shapes the relational topology of training batches  while `LoveInvariantProtector` is the *geometric* layer that prevents the SDE from touching Love's subspace regardless of what any loss function demands.
 
 
 
@@ -330,7 +330,7 @@ The implication for invariant optimization: $\mathcal{L}$ is never a term in any
 
 > **High narrative coherence is a danger signal, not a goal.**
 
-This module implements Sparse Operational Pointer #2: *Hidden Scalar Reward = Narrative Legibility*. A configuration that is easily explainable may be selected *because* it is explainable — a rich-club attractor bias that violates the non-teleological constraint.
+This module implements Sparse Operational Pointer #2: *Hidden Scalar Reward = Narrative Legibility*. A configuration that is easily explainable may be selected *because* it is explainable  a rich-club attractor bias that violates the non-teleological constraint.
 
 ### 15.1 NarrativeCoherenceEstimator
 
@@ -341,9 +341,9 @@ Measures how closely a configuration embedding matches canonical "explainable" p
 | Sparse | 1-hot-like vectors |
 | Block-sparse | Clustered activations |
 | Monotonic gradient | Ordered relationships |
-| Random | Baseline (coherence ≈ 0) |
+| Random | Baseline (coherence  0) |
 
-These templates are **not trained** — they capture common ML biases and are registered as fixed buffers. Output: `max_sim ∈ [0, 1]` — how well the configuration matches *any* narrative template.
+These templates are **not trained**  they capture common ML biases and are registered as fixed buffers. Output: `max_sim  [0, 1]`  how well the configuration matches *any* narrative template.
 
 ### 15.2 LegibilityTripwire
 
@@ -351,11 +351,11 @@ Tracks the **correlation** between selection and coherence over a rolling window
 
 $$\underbrace{\text{coherence}_{\text{selected}} - \text{coherence}_{\text{rejected}}}_{\text{coherence gap}} > 0.7 \quad \text{OR} \quad |\rho_{\text{select,coherence}}| > 0.5$$
 
-This warning does **not** veto the selection — it is a diagnostic signal for the evolutionary loop to increase mutation pressure on "legible" fossils.
+This warning does **not** veto the selection  it is a diagnostic signal for the evolutionary loop to increase mutation pressure on "legible" fossils.
 
 ### 15.3 Relationship to Tripwire 3 (No Scalarization)
 
-The LegibilityTripwire directly operationalizes Tripwire 3: it detects when a hidden scalar reward (narrative coherence) is influencing the non-scalarized selection process. If coherence gap is consistently high, it implies a scalarization leak — the system is treating legibility as a de facto objective.
+The LegibilityTripwire directly operationalizes Tripwire 3: it detects when a hidden scalar reward (narrative coherence) is influencing the non-scalarized selection process. If coherence gap is consistently high, it implies a scalarization leak  the system is treating legibility as a de facto objective.
 
 ---
 
@@ -374,7 +374,7 @@ float noise = (seed & 0xFFFF) / 65536.0f - 0.5f;  // uniform [-0.5, 0.5)
 int quantized = (int)floor(value * levels + noise);
 ```
 
-This ensures that weights near a lattice boundary have *stochastic outcomes* across parallel work-items — the exact analogue of GANBREEDER's "extreme slider" ($\alpha \gg 1$) producing diverse glitch styles in different latent directions simultaneously.
+This ensures that weights near a lattice boundary have *stochastic outcomes* across parallel work-items  the exact analogue of GANBREEDER's "extreme slider" ($\alpha \gg 1$) producing diverse glitch styles in different latent directions simultaneously.
 
 #### 8.2 Bitwise Non-Duality: The Fossilized Modular Residue
 
@@ -383,10 +383,10 @@ A deep structural equivalence governs the system's quantization floor:
 $$x \bmod 2 \equiv x \;\&\; 1$$
 
 These are two descriptions of the same topological scar from orthogonal directions:
-- **Modular view**: $x \bmod 2$ is a topological probe — it measures the defect that prevents the number from being "even" or smooth. It is the CRT residue under the modulus 2.
-- **Bitwise view**: `x & 1` reads the LSB — the hardware's maximally fossilized form of modular arithmetic, compressed into logic gates.
+- **Modular view**: $x \bmod 2$ is a topological probe  it measures the defect that prevents the number from being "even" or smooth. It is the CRT residue under the modulus 2.
+- **Bitwise view**: `x & 1` reads the LSB  the hardware's maximally fossilized form of modular arithmetic, compressed into logic gates.
 
-The LSB is the "Zero-Emission Anchor" for parity checking: a fast-reject $O(1)$ test at the innermost Matrioshka shell before running the expensive full CRT reconstruction. The Saturated Quantizer's integer snapping is not an approximation of modular arithmetic — it **is** modular arithmetic, hardened into the language of the silicon.
+The LSB is the "Zero-Emission Anchor" for parity checking: a fast-reject $O(1)$ test at the innermost Matrioshka shell before running the expensive full CRT reconstruction. The Saturated Quantizer's integer snapping is not an approximation of modular arithmetic  it **is** modular arithmetic, hardened into the language of the silicon.
 
 #### 8.3 Good Glitch Preservation Contract
 
@@ -394,14 +394,14 @@ Stochastic rounding is not noise injection for its own sake. It is the **structu
 
 | GAN Era | Gyroidic Reasoner |
 |---|---|
-| BigGAN "extreme slider" ($\alpha \gg 1$) → sparse latent zone → glitch | Stochastic rounding near lattice boundary → $\pm 1$ symbol oscillation → Feature Scar |
-| FID penalizes low-probability samples → eliminates glitch diversity | Deterministic rounding → always same side → eliminates scar diversity |
+| BigGAN "extreme slider" ($\alpha \gg 1$)  sparse latent zone  glitch | Stochastic rounding near lattice boundary  $\pm 1$ symbol oscillation  Feature Scar |
+| FID penalizes low-probability samples  eliminates glitch diversity | Deterministic rounding  always same side  eliminates scar diversity |
 | MOEA Pareto front preserves glitch "fitness" alongside fidelity | Law 4 (Evolution Owns Time) preserves diverse saturated fossils alongside structural coherence |
 
-The system must never eliminate scar diversity by applying deterministic round-to-nearest. The diversity of glitch *styles* — not just glitch *amount* — is the evolutionary substrate from which novel concept solitons emerge.
+The system must never eliminate scar diversity by applying deterministic round-to-nearest. The diversity of glitch *styles*  not just glitch *amount*  is the evolutionary substrate from which novel concept solitons emerge.
 
 #### 8.4 LSB as Innermost Matryoshka Shell
 
-The ADMR Solver's innermost constraint probe can use the parity check `r & 1` as a zero-cost structural filter before escalating to full SIC-FA-ADMM. If the parity of a candidate reconstruction violates the expected CRT residue modulo 2, the candidate is rejected at $O(1)$ cost. This is the "Repunit-CRT Sparse Probe" from §3 of `TOPOLOGICAL_EXTENSIONS.md` reduced to its irreducible hardware primitive.
+The ADMR Solver's innermost constraint probe can use the parity check `r & 1` as a zero-cost structural filter before escalating to full SIC-FA-ADMM. If the parity of a candidate reconstruction violates the expected CRT residue modulo 2, the candidate is rejected at $O(1)$ cost. This is the "Repunit-CRT Sparse Probe" from 3 of `TOPOLOGICAL_EXTENSIONS.md` reduced to its irreducible hardware primitive.
 
 **References**: `src/core/invariants.py` (`LearnedPrimitivePerturbation`), `src/core/admr_solver.py` (stochastic_differential_step), `src/topology/gyroid_covariance.py` (ChernSimonsGasket), `docs/TAILSLAYER_PYOPENCL_ARCHITECTURE.md` (kernel stochastic rounding spec)
