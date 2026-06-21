@@ -148,3 +148,33 @@ Specifically includes hard-to-find humanities and societal overlaps to maintain 
 | **HCI** | `cs:HC` | Human-Computer / Sociotechnical Interaction |
 | **Theoretical Econ** | `econ:TH` | Mathematical Economics |
 | **Quantitative Finance** | `q-fin:GN` | General Finance / Socio-economic dynamics |
+
+---
+
+## 5. IVSTEncoder (Intrinsic Volume and Spectral Tensor)
+
+**Implementation**: [`models/modular_embeddings.py`](../src/models/modular_embeddings.py) (via `SimpleGraphEncoder` / `IVSTEncoder`)
+
+The `IVSTEncoder` captures non-local topological data across conversation graphs or structural topologies. Instead of simple message-passing, it maps node features into a spectral tensor representation that tracks:
+
+1. **Intrinsic Volume**: Preserves the scale and geometric "weight" of the subgraph (e.g., density of conversation loops or logical dependencies).
+2. **Spectral Tensor**: Extracts graph eigenvalues to summarize the topological "shape" without being tied to specific local connectivities. 
+
+This enables the reasoner to intuitively understand the macro-structure of data (e.g. conversational back-and-forth density, mathematical proof depth) without performing exhaustive O(N^2) token comparisons.
+
+---
+
+## 6. ChatGPT Friction Harvester
+
+**Implementation**: [`data/chatgpt_friction_harvester.py`](../src/data/chatgpt_friction_harvester.py)
+
+The `ChatGPTFrictionHarvester` mines structural resistance directly from human-AI conversational datasets. Unlike standard APIs that just extract text, this system tracks non-ergodic phenomena where conversational flow hits "friction".
+
+### Harvester Metrics
+
+| Metric | Description | Resolution |
+|--------|-------------|------------|
+| **Archetype/Character Tracking** | Detects when the AI or human adopts specific, rigid identities (`archetype_identity`). | Provides topological anchors to categorize the style of friction. |
+| **Non-Ergodic Agreement** | Identifies "smooth friction" where complex, atypical resonant cavities align naturally without triggering aborts. | Learns what healthy, non-trivial agreement looks like. |
+| **Dead-End Cliffs** | Tags interactions where massive user context results in a vacuous/dismissive AI response (`dead_end_cliff`). | Explicitly marks dead logic to prevent the system from learning it. |
+| **Jarring Subject Shifts** | Detects abrupt context switches (Bouligand Bubbles) using Jaccard bag-of-words similarity on consecutive user messages. | Highlights topological ruptures in conversational momentum. |
