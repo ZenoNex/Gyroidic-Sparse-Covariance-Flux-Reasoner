@@ -238,6 +238,8 @@ class ObscuredBirkhoffManifold(nn.Module):
 
 BirkhoffProjection = ObscuredBirkhoffManifold
 
+
+
 def sinkhorn_knopp(
     T: torch.Tensor, 
     max_iterations: int = 50, 
