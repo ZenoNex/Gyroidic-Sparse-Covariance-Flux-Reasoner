@@ -138,6 +138,9 @@ from src.data.conversational_api_ingestor import SovereignConversationalIngestor
 
 # SOVEREIGN INGESTION SYSTEM
 from src.data.knowledge_ingestor import ArXivSovereignIngestor
+from src.data.chatgpt_friction_harvester import ChatGPTFrictionHarvester, auto_temporal_training_loop
+import threading
+import asyncio
 
 # Graph Topology
 from src.topology.embedding_graph import GyroidicGraphManager
@@ -703,6 +706,29 @@ class DiegeticPhysicsEngine(nn.Module):
         except Exception as e:
             self.open_science_ingestor = None
             print(f"[INGEST] Failed to initialize OpenScienceIngestor: {e}")
+
+        # --- CHATGPT FRICTION HARVESTER (Background Auto-Temporal Training) ---
+        chatgpt_export_dir = r"D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\data\raw\chatgpt_userIla_and_archetpes_dyads_data\9894d8be355693bad4f30a9a8341f63f0519577efadeafd6e93ad9c97521d980-2026-03-31-10-43-19-a178149902ef4042a44540feb4301932"
+        if os.path.exists(chatgpt_export_dir):
+             self.chatgpt_harvester = ChatGPTFrictionHarvester(export_dir=chatgpt_export_dir, dim=self.dim)
+             
+             def run_harvester_loop():
+                 loop = asyncio.new_event_loop()
+                 asyncio.set_event_loop(loop)
+                 # Re-init temporal trainer if not present, though it is usually lazy-initted.
+                 # Actually, we use self.trainer which is SpectralStructuralTrainer, but the request was
+                 # for TemporalAssociationTrainer. We need to instantiate it if it doesn't exist.
+                 if not hasattr(self, '_temporal_trainer') or self._temporal_trainer is None:
+                     from src.training.temporal_association_trainer import TemporalAssociationTrainer
+                     self._temporal_trainer = TemporalAssociationTrainer(model=self)
+                 
+                 loop.run_until_complete(auto_temporal_training_loop(self.chatgpt_harvester, self._temporal_trainer, delay=0.1))
+                 
+             self._chatgpt_harvester_thread = threading.Thread(target=run_harvester_loop, daemon=True)
+             self._chatgpt_harvester_thread.start()
+             print(f"[ENGINE] ChatGPT Friction Harvester running in background thread.")
+        else:
+             print(f"[ENGINE] Warning: ChatGPT export dir {chatgpt_export_dir} not found.")
 
         self._start_background_larynx_trainer()
 
@@ -6688,41 +6714,3 @@ def main():
     kill_port_owner(8000)
     
     # PID Tracking
-    pid_file = ".backend.pid"
-    with open(pid_file, "w") as f:
-        f.write(str(os.getpid()))
-        
-    print(f"PID: {os.getpid()} | Port: 8000")
-    
-    server_address = ('', 8000)
-    try:
-        httpd = http.server.HTTPServer(server_address, RequestHandler)
-    except Exception as e:
-        print(f"CRITICAL PORT ERROR: {e}")
-        # Final attempt to clear port
-        kill_port_owner(8000)
-        time.sleep(1)
-        httpd = http.server.HTTPServer(server_address, RequestHandler)
-    
-    print("INITIALIZING PHYSICS ENGINE...")
-    print("STATUS: MANIFOLD COHERENT. STANDBY FOR CONNECTIONS.")
-    
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        print("\nShutting down manifold...")
-        if os.path.exists(pid_file):
-            os.remove(pid_file)
-        httpd.server_close()
-        # Prevent PyArrow segfault by finalizing S3
-        try:
-            import pyarrow.fs
-            pyarrow.fs.finalize_s3()
-        except Exception:
-            pass
-
-if __name__ == "__main__":
-    main()
-
-
-
