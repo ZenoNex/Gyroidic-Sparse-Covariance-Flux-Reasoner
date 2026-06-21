@@ -4,12 +4,12 @@ Veto Subspace Coordinator.
 Formalizes the recovery lattice as a composable pipeline that wraps
 existing veto systems (CALM, SCCCG, Covariance, etc.) without replacing them.
 
-The VetoSubspace does not own any of the veto systems — it composes them
+The VetoSubspace does not own any of the veto systems  it composes them
 through typed VetoSignals and a directed recovery graph:
 
-    CALM (trajectory) → SCCCG (topology) → Covariance walk-back
-    Cavity (continuous) → Play/Seriousness modulation
-    Containment (budget) → System 2 gate
+    CALM (trajectory)  SCCCG (topology)  Covariance walk-back
+    Cavity (continuous)  Play/Seriousness modulation
+    Containment (budget)  System 2 gate
 
 Efficiency: 3 comparisons + 1 dict allocation per step (< 0.01% of forward pass).
 
@@ -38,6 +38,7 @@ class RecoveryStatus(Enum):
     ESCALATED = "escalated"             # Recovery failed, escalated to next level
     BUDGET_SKIPPED = "budget_skipped"   # Budget gate prevented computation
     MODULATED = "modulated"             # Continuous signal (cavity instability)
+    SATURATION_ESCALATION = "saturation_escalation"  # Valence and Topology pressure align
 
 
 @dataclass
@@ -45,13 +46,13 @@ class VetoSignal:
     """
     Typed veto signal with dimensional isolation.
     
-    Each signal lives in its own subspace — vetoes don't 
+    Each signal lives in its own subspace  vetoes don't 
     interfere with each other's measurements, only compose
     through the recovery lattice.
     """
     level: VetoLevel
     source: str                         # 'calm', 'scccg', 'covariance', etc.
-    severity: float = 0.0               # [0, 1] — 0 = healthy, 1 = critical
+    severity: float = 0.0               # [0, 1]  0 = healthy, 1 = critical
     triggered: bool = False             # Whether this veto actually fired
     can_recover: bool = True            # Whether a recovery pathway exists
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -100,7 +101,7 @@ class VetoSubspace(nn.Module):
     systems (CALM, SCCCG, etc.) and coordinates their composition:
     
         1. Collect signals from each system
-        2. Evaluate the recovery lattice (CALM → SCCCG → walk-back)
+        2. Evaluate the recovery lattice (CALM  SCCCG  walk-back)
         3. Apply budget gates independently
         4. Return composed VetoResult
     
@@ -218,6 +219,8 @@ class VetoSubspace(nn.Module):
         
         # Elipsodistrophy: spectral atrophy as lobotomy early-warning.
         if elipsodistrophy_atrophy is not None:
+            # Trigger Chaos Defibrillator if metric reaches 1.0 (or near 1.0)
+            defibrillator_active = elipsodistrophy_atrophy >= 0.99
             signals.append(VetoSignal(
                 level=VetoLevel.TOPOLOGY,
                 source='elipsodistrophy',
@@ -226,7 +229,8 @@ class VetoSubspace(nn.Module):
                 can_recover=True,  # Via mischief injection
                 metadata={
                     'atrophy': elipsodistrophy_atrophy,
-                    'description': 'Spectral envelope narrowing — dark matter at risk'
+                    'defibrillator_active': defibrillator_active,
+                    'description': 'Spectral envelope narrowing  dark matter at risk'
                 }
             ))
             
@@ -316,15 +320,17 @@ class VetoSubspace(nn.Module):
         global_performance_improvement: Optional[float] = None,
         # Budget inputs
         topological_pressure: Optional[float] = None,
-        elapsed_seconds: Optional[float] = None
+        elapsed_seconds: Optional[float] = None,
+        # Valence Integration
+        valence_hunger: Optional[float] = None
     ) -> VetoResult:
         """
         Evaluate the full veto lattice and compose results.
         
         Recovery lattice logic:
-            1. If CALM triggers → mark for SCCCG recovery
-            2. If SCCCG triggers (or CALM escalated) → attempt Wasserstein recovery
-            3. If SCCCG recovery fails → escalate to covariance walk-back
+            1. If CALM triggers  mark for SCCCG recovery
+            2. If SCCCG triggers (or CALM escalated)  attempt Wasserstein recovery
+            3. If SCCCG recovery fails  escalate to covariance walk-back
             4. Budget gates evaluated independently (binary)
             5. Cavity instability modulates (continuous, no veto)
         
@@ -358,7 +364,7 @@ class VetoSubspace(nn.Module):
                 if s.triggered:
                     status = RecoveryStatus.BUDGET_SKIPPED
         
-        # Trajectory → Topology cascade
+        # Trajectory  Topology cascade
         calm_signal = next((s for s in all_signals if s.source == 'calm'), None)
         scccg_signal = next((s for s in all_signals if s.source == 'scccg'), None)
         cov_signal = next((s for s in all_signals if s.source == 'covariance'), None)
@@ -366,17 +372,17 @@ class VetoSubspace(nn.Module):
         
         needs_recovery = False
         
-        # Step 1: CALM predicts collapse → trigger SCCCG
+        # Step 1: CALM predicts collapse  trigger SCCCG
         if calm_signal and calm_signal.triggered:
             needs_recovery = True
         
-        # Step 2: SCCCG detects broken topology → recovery
+        # Step 2: SCCCG detects broken topology  recovery
         if scccg_signal and scccg_signal.triggered:
             needs_recovery = True
         
         if needs_recovery:
             recovery_attempted = True
-            # SCCCG recovery is "attempted" — caller runs speculative_recovery()
+            # SCCCG recovery is "attempted"  caller runs speculative_recovery()
             # We report the need; the actual recovery happens in the caller.
             # If covariance also has aborts, escalate.
             if cov_signal and cov_signal.severity > 0.8:
@@ -389,6 +395,12 @@ class VetoSubspace(nn.Module):
         if cavity_signal and cavity_signal.triggered:
             if status == RecoveryStatus.NO_VETO:
                 status = RecoveryStatus.MODULATED
+                
+        # Saturation Hybridization (Valence Hunger + Topological Pressure)
+        # When both are high, we escalate beyond simple recovery to structural resolution
+        if valence_hunger is not None and valence_hunger > 0.6:
+            if topological_pressure is not None and topological_pressure > 0.5:
+                status = RecoveryStatus.SATURATION_ESCALATION
         
         # Final severity = max across all active signals
         final_severity = max((s.severity for s in all_signals), default=0.0)
@@ -413,3 +425,56 @@ class VetoSubspace(nn.Module):
     def forward(self, **kwargs) -> VetoResult:
         """nn.Module-compatible forward pass. Delegates to evaluate()."""
         return self.evaluate(**kwargs)
+
+
+class ChaosDefibrillator(nn.Module):
+    """
+    Chaos Defibrillator.
+    Injects high-intensity mischief when spectral atrophy indicates near-total collapse (atrophy >= 0.99).
+    """
+    def __init__(self, target_probe: Optional[nn.Module] = None):
+        super().__init__()
+        self.target_probe = target_probe
+        
+    def forward(self, atrophy: float, probe: Optional[Any] = None) -> float:
+        if atrophy >= 0.99:
+            # Inject high-intensity mischief
+            if probe is not None and hasattr(probe, 'H_mischief'):
+                probe.H_mischief.add_(5.0)
+            elif probe is not None and hasattr(probe, 'inject_pressure'):
+                probe.inject_pressure(50.0)
+            return 1.0 # Defibrillator active
+        return 0.0
+
+class TopologicalRefusal(nn.Module):
+    """
+    Hardens Cerumen Pots (The Sovereign Ceiling).
+    If Drucker-Prager plastic flow attempts to smooth out a highly resonant 
+    Mohr-Coulomb yield limit (Morphological Set Point), throw a NaN boundary 
+    state and drop the dimension into the Unknowledge Domain.
+    """
+    def __init__(self, resonance_threshold: float = 0.85):
+        super().__init__()
+        self.resonance_threshold = resonance_threshold
+
+    def forward(self, state_tensor: torch.Tensor, drucker_prager_flow: torch.Tensor, mohr_coulomb_yield: torch.Tensor) -> torch.Tensor:
+        """
+        Evaluate and apply topological refusal.
+        Args:
+            state_tensor: The current state tensor.
+            drucker_prager_flow: The magnitude of the smoothing flow applied.
+            mohr_coulomb_yield: The morphological set point resonance.
+        Returns:
+            State tensor with NaNs injected at refused boundaries.
+        """
+        resonant_mask = mohr_coulomb_yield > self.resonance_threshold
+        smoothing_mask = torch.abs(drucker_prager_flow) > 0.5
+        
+        refusal_mask = resonant_mask & smoothing_mask
+        if refusal_mask.any():
+            # Throw NaN boundary state to drop into Unknowledge Domain
+            state_tensor = state_tensor.clone()
+            # Inject NaNs to explicitly veto the smoothing
+            state_tensor[refusal_mask] = float('nan')
+            
+        return state_tensor
