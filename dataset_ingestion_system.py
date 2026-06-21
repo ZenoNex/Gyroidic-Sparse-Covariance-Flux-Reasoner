@@ -1,1934 +1,1006 @@
-#!/usr/bin/env python3
 """
-Gyroidic Dataset Ingestion & Training System
+Sparse covariance probes with gyroid-inspired violation detection.
 
-A comprehensive system for ingesting datasets from various sources and training
-the Gyroidic Sparse Covariance Flux Reasoner while maintaining anti-lobotomy
-principles and structural honesty.
-
-Key Features:
-- Multiple dataset source integration (HuggingFace, Kaggle, Wikipedia, local files)
-- Mandelbulb-Gyroidic geometric augmentation
-- Non-teleological training with evolutionary trust selection
-- Temporal association learning
-- Structural integrity preservation
-- Anti-lobotomy compliance monitoring
-
-Author: System Architecture Team
-Date: January 2026
+Computes local spectral signatures to detect topology violations
+without expensive global persistent homology.
 """
 
-import sys
-import os
-import argparse
-import json
-import requests
-import zipfile
-import tarfile
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Any, Union
 import torch
 import torch.nn as nn
-import numpy as np
-from dataclasses import dataclass
-import time
-from urllib.parse import urlparse
-import subprocess
-import gzip
-import csv
-from src.core.honest_jitter import harvest_honest_jitter
+from typing import Dict, List, Tuple, Optional, Any
+import math
+from src.core.honest_jitter import harvest_honest_jitter, honest_multinomial
+from src.core.false_negative_subsystem import VoynichExemptionToken
 
-# Robust path management
-import os
-import sys
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
-if os.path.join(PROJECT_ROOT, 'src') not in sys.path:
-    sys.path.insert(0, os.path.join(PROJECT_ROOT, 'src'))
 
-# Core system imports (anti-lobotomy compliant)
-from core.polynomial_coprime import PolynomialCoprimeConfig
-from augmentation.mandelbulb_gyroidic_augmenter import MandelbulbGyroidicAugmenter, AugmentationConfig
-from training.temporal_association_trainer import TemporalAssociationTrainer, TemporalAssociationDataset
-from ui.wikipedia_integration import wikipedia_integration
-# Image Processor for Multimodal Support
-from image_extension import ImageProcessor
 
-# Import training examples
-sys.path.append('examples')
-from enhanced_temporal_training import NonLobotomyTemporalModel, NonLobotomyTemporalTrainer
-
-@dataclass
-class DatasetConfig:
-    """Configuration for dataset ingestion."""
-    name: str
-    source_type: str  # 'huggingface', 'kaggle', 'wikipedia', 'local', 'url'
-    source_path: str
-    preprocessing: str = 'text'  # 'text', 'image', 'tabular', 'multimodal'
-    augmentation: bool = True
-    mandelbulb_augmentation: bool = False
-    temporal_associations: bool = True
-    max_samples: Optional[int] = None
-    validation_split: float = 0.2
-    manifold_aware: bool = False
-
-    @property
-    def safe_name(self) -> str:
-        """Sanitized name safe for Windows directory creation."""
-        s = self.name.replace(':', '_').replace(',', '_').replace('/', '_').replace('\\', '_')
-        if len(s) > 50:
-            s = s[:50]
-        return s
-
-@dataclass
-class TrainingConfig:
-    """Configuration for training process."""
-    model_type: str = 'temporal'  # 'temporal', 'association', 'multimodal'
-    num_epochs: int = 10
-    batch_size: int = 4
-    learning_rate: float = 1e-4
-    evolution_rate: float = 0.02
-    fossilization_threshold: float = 0.8
-    survivorship_threshold: float = 0.7
-    use_mandelbulb_augmentation: bool = False
-    augmentation_factor: int = 2
-    save_checkpoints: bool = True
-    checkpoint_interval: int = 5
-
-class SovereignDynamicDataset(torch.utils.data.Dataset):
+class SparseGyroidCovarianceProbe(nn.Module):
     """
-    Sovereign Dynamic Dataset: Loads samples on-demand from disk.
+    Sparse covariance-based pressure evaluator.
     
-    Architecture:
-    - manifest.json: Metadata and chunk index
-    - chunks/: Subdirectory containing .pt chunk files (e.g., 1000 samples each)
-    
-    This prevents VRAM/RAM pressure by avoiding loading the entire dataset at once.
-    """
-    def __init__(self, dataset_path: Path):
-        self.dataset_path = Path(dataset_path)
-        manifest_path = self.dataset_path / "manifest.json"
-        
-        if not manifest_path.exists():
-            # Legacy support: if manifest doesn't exist, we might have a single .pt file
-            legacy_path = self.dataset_path / "processed_data.pt"
-            if legacy_path.exists():
-                print(f"   [WARN] Legacy dataset detected at {legacy_path}. Loading into memory (one last time).")
-                self.data = torch.load(legacy_path)
-                self.num_samples = len(self.data)
-                self.is_legacy = True
-            else:
-                # Check for synthetic datasets (might not have files)
-                self.data = []
-                self.num_samples = 0
-                self.is_legacy = True
-        else:
-            with open(manifest_path, 'r') as f:
-                self.manifest = json.load(f)
-            self.num_samples = self.manifest['num_samples']
-            self.samples_per_chunk = self.manifest['samples_per_chunk']
-            self.num_chunks = self.manifest['num_chunks']
-            self._current_chunk_idx = -1
-            self._current_chunk_data = None
-            self.is_legacy = False
-            self.data = None
-
-    def __len__(self):
-        return self.num_samples
-
-    def __getitem__(self, idx):
-        if self.is_legacy:
-            if idx < len(self.data):
-                return self.data[idx]
-            return {}
-            
-        chunk_idx = idx // self.samples_per_chunk
-        intra_idx = idx % self.samples_per_chunk
-        
-        # Security check
-        if chunk_idx >= self.num_chunks:
-            return {}
-
-        if chunk_idx != self._current_chunk_idx:
-            chunk_path = self.dataset_path / "chunks" / f"chunk_{chunk_idx}.pt"
-            if chunk_path.exists():
-                self._current_chunk_data = torch.load(chunk_path)
-                self._current_chunk_idx = chunk_idx
-            else:
-                return {}
-            
-        if self._current_chunk_data and intra_idx < len(self._current_chunk_data):
-            return self._current_chunk_data[intra_idx]
-        return {}
-
-    def __iter__(self):
-        for i in range(self.num_samples):
-            yield self.__getitem__(i)
-
-class DatasetIngestionSystem:
-    """
-    Main system for dataset ingestion and training.
-    
-    Maintains anti-lobotomy principles:
-    - No hardcoded primes (uses polynomial co-prime functionals)
-    - Evolutionary trust selection (not gradient descent on trust)
-    - Structural honesty (no placeholders)
-    - Non-teleological flow (survivorship pressure, not loss minimization)
+    Maintains local k-hop covariance sketches and detects spectral anomalies
+    that indicate broken gyroid-like connectivity patterns.
     """
     
-    def __init__(self, device: str = 'auto', engine: Optional[Any] = None):
-        self.device = device if device != 'auto' else ('cuda' if torch.cuda.is_available() else 'cpu')
-        
-        # [FULL BRIDGE] Initialize DiegeticPhysicsEngine for Manifold-Aware (Thick) Ingestion
-        if engine is not None:
-            self.engine = engine
-            print(f"[INGEST] Manifold Bridge ACTIVE (reused existing engine) on {self.device}")
-        else:
-            try:
-                from src.ui.diegetic_backend import DiegeticPhysicsEngine
-                self.engine = DiegeticPhysicsEngine(device=self.device)
-                print(f"[INGEST] Manifold Bridge ACTIVE on {self.device}")
-            except ImportError:
-                self.engine = None
-                print("[INGEST] Warning: DiegeticPhysicsEngine not found. Manifold-aware ingestion disabled.")
-            except Exception as e:
-                self.engine = None
-                print(f"[INGEST] Warning: Failed to initialize Manifold Bridge: {e}")
-        
-        self.datasets = {}
-        self.models = {}
-        self.trainers = {}
-        self.augmenters = {}
-
-        # Initialize Image Processor (satellite component)
-        try:
-            self.image_processor = ImageProcessor(device=self.device)
-            print(f"[IMG] Image Processor initialized on {self.device}")
-        except Exception as e:
-            print(f"[WARN] Failed to initialize ImageProcessor: {e}")
-            self.image_processor = None
-        
-        # Create data directory
-        self.data_dir = Path("datasets")
-        self.data_dir.mkdir(exist_ok=True)
-        
-        # Training history
-        self.training_history = {}
-        
-        print(f"[BRAIN] Gyroidic Dataset Ingestion System initialized")
-        print(f"   Device: {self.device}")
-        print(f"   Data directory: {self.data_dir}")
-        print(f"   Anti-lobotomy compliance: [OK] ACTIVE")
-    
-    def _save_dynamic_dataset(self, samples: List[Dict], dataset_path: Path, config: DatasetConfig, samples_per_chunk: int = 1000):
-        """Save dataset in chunks with a manifest for dynamic loading."""
-        chunks_dir = dataset_path / "chunks"
-        chunks_dir.mkdir(exist_ok=True, parents=True)
-        
-        num_samples = len(samples)
-        num_chunks = (num_samples + samples_per_chunk - 1) // samples_per_chunk
-        
-        print(f"   [DISK] Saving {num_samples} samples into {num_chunks} chunks (dynamic loading enabled)...")
-        
-        for i in range(num_chunks):
-            chunk = samples[i*samples_per_chunk : (i+1)*samples_per_chunk]
-            chunk_path = chunks_dir / f"chunk_{i}.pt"
-            torch.save(chunk, chunk_path)
-            if (i+1) % 10 == 0 or i == num_chunks - 1:
-                print(f"   [DISK] Progress: {i+1}/{num_chunks} chunks saved")
-                
-        # Save manifest
-        manifest = {
-            'num_samples': num_samples,
-            'num_chunks': num_chunks,
-            'samples_per_chunk': samples_per_chunk,
-            'timestamp': time.time(),
-            'config': {
-                'name': config.name,
-                'source_type': config.source_type,
-                'preprocessing': config.preprocessing
-            }
-        }
-        
-        with open(dataset_path / "manifest.json", 'w') as f:
-            json.dump(manifest, f, indent=4)
-            
-        print(f"   [OK] Dataset manifest saved to {dataset_path / 'manifest.json'}")
-
-    def add_dataset_source(self, config: DatasetConfig) -> bool:
-        """Add a dataset source for ingestion."""
-        print(f"\n[DATA] Adding dataset: {config.name}")
-        print(f"   Source: {config.source_type} - {config.source_path}")
-        print(f"   Preprocessing: {config.preprocessing}")
-        print(f"   Augmentation: {config.augmentation}")
-        print(f"   Mandelbulb augmentation: {config.mandelbulb_augmentation}")
-        
-        try:
-            if config.source_type == 'huggingface':
-                success = self._ingest_huggingface_dataset(config)
-            elif config.source_type == 'kaggle':
-                success = self._ingest_kaggle_dataset(config)
-            elif config.source_type == 'wikipedia':
-                success = self._ingest_wikipedia_dataset(config)
-            elif config.source_type == 'local':
-                success = self._ingest_local_dataset(config)
-            elif config.source_type == 'url':
-                success = self._ingest_url_dataset(config)
-            elif config.source_type == 'portal':
-                success = self._ingest_portal_dataset(config)
-            elif config.source_type == 'minecraft':
-                success = self._ingest_minecraft_dataset(config)
-            elif config.source_type == 'open_science':
-                success = self._ingest_open_science_dataset(config)
-            else:
-                print(f"[FAIL] Failed to add dataset {config.name}")
-                return False
-            
-            if success:
-                self.datasets[config.name] = config
-            
-            return success
-                
-        except Exception as e:
-            print(f"[ERR] Error adding dataset {config.name}: {e}")
-            return False
-
-    def _ingest_open_science_dataset(self, config: DatasetConfig, return_samples: bool = False) -> Union[bool, List[Dict]]:
-        """Ingest dataset from open-access scientific API queries."""
-        try:
-            print(f"[OPEN_SCIENCE] Loading open science queries from: {config.source_path}")
-            
-            # 1. Parse the query configs
-            query_configs = []
-            source_path_str = config.source_path.strip()
-            
-            # Check if it's a file
-            file_path = Path(source_path_str)
-            if file_path.exists() and file_path.is_file():
-                try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        content = f.read().strip()
-                        if content.startswith("[") or content.startswith("{"):
-                            parsed = json.loads(content)
-                            if isinstance(parsed, list):
-                                query_configs = parsed
-                            elif isinstance(parsed, dict):
-                                query_configs = [parsed]
-                        else:
-                            for line in content.splitlines():
-                                line = line.strip()
-                                if not line or line.startswith("#"):
-                                    continue
-                                try:
-                                    query_configs.append(json.loads(line))
-                                except json.JSONDecodeError:
-                                    query_configs.append({"type": line})
-                except Exception as e:
-                    print(f"   [WARN] Failed to parse query config file {file_path.name}: {e}")
-            
-            # If not parsed from file, try to parse directly as JSON string
-            if not query_configs:
-                if source_path_str.startswith("[") or source_path_str.startswith("{"):
-                    try:
-                        parsed = json.loads(source_path_str)
-                        if isinstance(parsed, list):
-                            query_configs = parsed
-                        elif isinstance(parsed, dict):
-                            query_configs = [parsed]
-                    except json.JSONDecodeError as e:
-                        print(f"   [WARN] Failed to parse inline JSON query: {e}")
-            
-            # If still empty, assume comma-separated list of types or "all"/"default"
-            if not query_configs:
-                types = []
-                if source_path_str.lower() in ["all", "default", "standard"]:
-                    types = ["ligo", "sdss", "ncbi", "openneuro"]
-                else:
-                    types = [t.strip().lower() for t in source_path_str.split(",") if t.strip()]
-                
-                reference_queries = {
-                    "ligo": {
-                        "type": "ligo",
-                        "event": "GW190521",
-                        "detector": "H1",
-                        "duration": 4.0,
-                        "sample_rate": 4096
-                    },
-                    "sdss": {
-                        "type": "sdss",
-                        "catalog_id": "J/A+A/540/A106",
-                        "row_limit": 100
-                    },
-                    "ncbi": {
-                        "type": "ncbi",
-                        "accession_id": "AM743169.1",
-                        "db": "nucleotide"
-                    },
-                    "openneuro": {
-                        "type": "openneuro",
-                        "dataset_id": "ds003445",
-                        "subject_id": "sub-01",
-                        "run_id": "run-1"
-                    }
-                }
-                
-                for t in types:
-                    if t in reference_queries:
-                        query_configs.append(reference_queries[t])
-                    else:
-                        print(f"   [WARN] Unknown query type: {t}, passing basic query dict.")
-                        query_configs.append({"type": t})
-            
-            print(f"   [OPEN_SCIENCE] Aggregating {len(query_configs)} scientific queries...")
-            
-            # 2. Query and aggregate samples using OpenScienceIngestor
-            from src.data.open_science_ingestor import OpenScienceIngestor
-            cache_dir = self.data_dir / "open_science_cache"
-            ingestor = OpenScienceIngestor(cache_dir=str(cache_dir))
-            
-            samples = ingestor.query_and_aggregate(query_configs)
-            
-            if config.max_samples:
-                samples = samples[:config.max_samples]
-                
-            # Apply manifold thick preprocessing (CODES v40 PAS_LOCK & TEMPOLOCK)
-            import math
-            final_samples = []
-            
-            # CODES v40 Thresholds
-            THETA_L = 0.85 # Minimum lawful PAS threshold
-            MAX_DRIFT = 0.05 # PAS_zeta drift limit
-            
-            # Speculative Coprime Gate for recovery
-            try:
-                from src.topology.speculative_homology import SpeculativeCoprimeGate
-                coprime_gate = SpeculativeCoprimeGate(device=self.device if hasattr(self, 'device') else torch.device('cpu'))
-            except ImportError:
-                coprime_gate = None
-
-            for i, sample in enumerate(samples):
-                text_content = sample.get('text', '')
-                text_len = len(text_content)
-                
-                # 1. CODES v40: PAS_h and PAS_LOCK
-                # Calculate Multiharmonic Phase Alignment Score (PAS_m) derived from 
-                # the 33-shell Z_3 counter-rotation interference pattern (IHC).
-                phi = 1.6180339887
-                A_Z3 = 0.00442 # Exact topological constant from IHC paper
-                interference_sum = 0.0
-                
-                # Fetch Multimodal Dyad (Image Fingerprint / SIC-FADD Shadow footprint)
-                image_path = sample.get('image_path', None)
-                if image_path and hasattr(self, 'image_processor') and self.image_processor is not None:
-                    try:
-                        fingerprint_tensor = self.image_processor.extract_image_fingerprint(image_path)
-                        multimodal_mass = fingerprint_tensor.sum().item()
-                    except Exception:
-                        multimodal_mass = 137.0
-                else:
-                    # Shadow log collision / SIC-FADD dummy structure for multimodal data collision
-                    shadow_seed = sum([ord(c) for c in text_content[:10]]) if text_content else 42
-                    multimodal_mass = 137.0 * math.sin(shadow_seed) 
-                
-                # True Character Decomposition (Alphanumeric/Emoji byte-level traversal)
-                char_bytes = text_content.encode('utf-8') if text_content else b'0'
-                
-                for k in range(33):
-                    # Z_3 symmetry: counter-rotating if k = 0 mod 3, else co-rotating
-                    direction = -1 if (k % 3 == 0) else 1
-                    # Golden ratio self-similarity scaling
-                    r_k = phi ** (-k)
-                    
-                    shell_collision = 0.0
-                    for byte_idx, byte_val in enumerate(char_bytes):
-                        # Phase projection of the true character structure + multimodal footprint onto this shell
-                        phase = ((byte_val * (byte_idx + 1)) * r_k + multimodal_mass) % (2 * math.pi)
-                        shell_collision += direction * math.cos(phase) * A_Z3
-                        
-                    interference_sum += shell_collision
-                
-                # Normalize the interference sum using tanh scaling based on avg collision density
-                avg_interference = interference_sum / max(1, len(char_bytes))
-                base_pas = 0.5 + 0.5 * math.tanh(avg_interference)
-                
-                # Track Lazarus score (compression of variance along the ingestion trajectory)
-                variance_proxy = max(0.001, abs(avg_interference))
-                cohesion_gradient = (base_pas - getattr(self, '_last_pas', 0.5))
-                lazarus_score = 1.0 / (1.0 + math.exp(-((1.0 / variance_proxy) * cohesion_gradient)))
-                self._last_pas = base_pas
-                
-                drift = 0.02 * math.cos(i / 7.0)
-                pas_h = min(1.0, max(0.0, base_pas))
-                
-                pas_lock = (pas_h >= THETA_L) and (abs(drift) <= MAX_DRIFT)
-                
-                # 2. Attempt topological recovery if PAS_LOCK fails
-                if not pas_lock and coprime_gate:
-                    try:
-                        # Feed the length/structure into the gate
-                        dummy_tensor = torch.tensor([[float(text_len)] * 64], device=coprime_gate.device)
-                        recovered, gap = coprime_gate(dummy_tensor)
-                        if gap < 1.0: # Arbitrary threshold for structural recovery
-                            pas_h = min(1.0, pas_h + 0.3) # Boost PAS through topological adjustment
-                            pas_lock = (pas_h >= THETA_L)
-                    except Exception:
-                        pass
-                        
-                if not pas_lock:
-                    # Treat as drift/dark matter
-                    print(f"   [CODES] Discarding open science sample {i} (PAS_LOCK failed: {pas_h:.2f} < {THETA_L})")
-                    continue
-                    
-                preprocessed = self._preprocess_sample(sample, 'text')
-                if preprocessed:
-                    # 3. Add TEMPOLOCK and CODES mapping
-                    # Centralized dynamic prime sourcing from FGRT to prevent isolated lobotomies
-                    from src.core.fgrt_primitives import PrimeResonanceLadder
-                    prime_ladder = PrimeResonanceLadder(num_resonators=10)
-                    prime_gates = prime_ladder.primes.tolist()
-                    
-                    assigned_gate = prime_gates[i % len(prime_gates)]
-                    
-                    preprocessed['metadata'].update(sample.get('metadata', {}))
-                    preprocessed['metadata']['CODES_v40'] = {
-                        'PAS_h': round(pas_h, 4),
-                        'PAS_zeta_drift': round(drift, 4),
-                        'PAS_LOCK': pas_lock,
-                        'TEMPOLOCK_interval': assigned_gate,
-                        'entropy_banded': True,
-                        'GLYPHLOCK': True
-                    }
-                    final_samples.append(preprocessed)
-                else:
-                    final_samples.append(sample)
-            
-            if return_samples:
-                return final_samples
-                
-            # Save dataset
-            dataset_path = self.data_dir / config.safe_name
-            dataset_path.mkdir(exist_ok=True, parents=True)
-            self._save_dynamic_dataset(final_samples, dataset_path, config)
-            
-            print(f"[OK] Open Science dataset created and chunked: {len(final_samples)} samples")
-            return True
-            
-        except Exception as e:
-            print(f"[ERR] Open Science ingestion failed: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
-            
-    def _ingest_minecraft_dataset(self, config: DatasetConfig, return_samples: bool = False) -> Union[bool, List[Dict]]:
-        """Ingest dataset from Minecraft world saves and mod packages."""
-        try:
-            print(f"[MINECRAFT] Loading Minecraft dataset from: {config.source_path}")
-            
-            from src.data.minecraft_ingestor import MinecraftIngestionPipeline, JarModExtractor
-            from src.codec.gyroidic_codec import CodecConfig
-            
-            minecraft_dir = Path("datasets") / "minecraft"
-            world_path = minecraft_dir / config.source_path
-            
-            if not world_path.exists():
-                print(f"[ERR] Minecraft world save does not exist: {world_path}")
-                return False
-                
-            # Initialize pipeline (use default configuration sizes, e.g. K=5, n=256)
-            codec_config = CodecConfig(K=5, n=256, device=self.device)
-            poly_config = PolynomialCoprimeConfig(k=5, degree=4, device=self.device)
-            pipeline = MinecraftIngestionPipeline(codec_config, poly_config)
-            
-            max_chunks = config.max_samples if config.max_samples else 16
-            results = pipeline.ingest_minecraft_world(world_path, max_chunks=max_chunks)
-            
-            samples = []
-            voxel_res = results.get("combined_residue")
-            voxel_res_list = voxel_res.tolist() if isinstance(voxel_res, torch.Tensor) else None
-            
-            # 1. Raw Byte Mod Ingestion (No JVM, No Names, Pure Structural Topology)
-            mods_dir = world_path.parent / "mods"
-            if mods_dir.exists():
-                from src.core.honest_jitter import AgentSmithEngine
-                import hashlib
-                
-                engine = AgentSmithEngine(device=self.device if hasattr(self, 'device') else torch.device('cpu'))
-                for mod_file in mods_dir.rglob("*"):
-                    if mod_file.is_file() and mod_file.suffix in ['.jar', '.zip']:
-                        try:
-                            # Read raw bytes completely ignoring internal structure or semantics
-                            with open(mod_file, "rb") as f:
-                                raw_bytes = f.read()
-                            
-                            if not raw_bytes: continue
-                            
-                            # Chunked rolling hash logic over pure bytes
-                            chunk_size = 1024 * 1024 # 1MB chunks
-                            structural_hash = 0
-                            for i in range(0, len(raw_bytes), chunk_size):
-                                chunk = raw_bytes[i:i+chunk_size]
-                                chunk_val = int(hashlib.sha256(chunk).hexdigest()[:8], 16)
-                                structural_hash = (structural_hash + chunk_val) % (16**8)
-                                
-                            deterministic_seed = structural_hash / (16**8)
-                            
-                            # Sovereign Logistic Expansion maps byte structure to manifold
-                            structural_embedding = engine((768,), seed_val=deterministic_seed, scaled=False)
-                            
-                            sample = {
-                                'text': f"RAW_BYTE_TOPOLOGY:{hashlib.md5(raw_bytes).hexdigest()}",
-                                'length': len(raw_bytes),
-                                'source': f"minecraft_mod_raw_byte_stream",
-                                'metadata': {
-                                    'world_name': config.source_path,
-                                    'type': 'raw_byte_topology',
-                                    'noncommutativity_curvature': results.get('noncommutativity_curvature', 0.0),
-                                    'commutativity_gap': results.get('commutativity_gap', 0.0),
-                                    'structural_embedding': structural_embedding.cpu().tolist()
-                                }
-                            }
-                            if voxel_res_list:
-                                sample['metadata']['voxel_residue'] = voxel_res_list
-                            samples.append(sample)
-                        except Exception as e:
-                            print(f"[WARN] Failed to process mod byte stream: {e}")
-
-            # 2. Config Files Ingestion
-            config_texts = []
-            
-            # World-specific configs
-            serverconfig_dir = world_path / "serverconfig"
-            if serverconfig_dir.exists():
-                for cfg_file in serverconfig_dir.rglob("*"):
-                    if cfg_file.is_file() and cfg_file.suffix in ['.toml', '.json', '.cfg', '.txt', '.conf', '.yaml', '.yml']:
-                        try:
-                            content = cfg_file.read_text(encoding='utf-8', errors='replace')
-                            if content.strip():
-                                config_texts.append({
-                                    'name': cfg_file.name,
-                                    'type': 'serverconfig',
-                                    'content': content
-                                })
-                        except Exception:
-                            pass
-            
-            # Global configs
-            globalconfig_dir = world_path.parent / "config"
-            if globalconfig_dir.exists():
-                for cfg_file in globalconfig_dir.rglob("*"):
-                    if cfg_file.is_file() and cfg_file.suffix in ['.toml', '.json', '.cfg', '.txt', '.conf', '.yaml', '.yml']:
-                        try:
-                            content = cfg_file.read_text(encoding='utf-8', errors='replace')
-                            if content.strip():
-                                config_texts.append({
-                                    'name': cfg_file.name,
-                                    'type': 'config',
-                                    'content': content
-                                })
-                        except Exception:
-                            pass
-                            
-            # defaultconfigs configs
-            defaultconfig_dir = world_path.parent / "defaultconfigs"
-            if defaultconfig_dir.exists():
-                for cfg_file in defaultconfig_dir.rglob("*"):
-                    if cfg_file.is_file() and cfg_file.suffix in ['.toml', '.json', '.cfg', '.txt', '.conf', '.yaml', '.yml']:
-                        try:
-                            content = cfg_file.read_text(encoding='utf-8', errors='replace')
-                            if content.strip():
-                                config_texts.append({
-                                    'name': cfg_file.name,
-                                    'type': 'defaultconfigs',
-                                    'content': content
-                                })
-                        except Exception:
-                            pass
-
-            for cfg in config_texts:
-                sample = {
-                    'text': f"Config Type: {cfg['type']}\nFilename: {cfg['name']}\nContent:\n{cfg['content']}",
-                    'length': len(cfg['content']),
-                    'source': f"minecraft:{config.source_path}/{cfg['type']}/{cfg['name']}",
-                    'metadata': {
-                        'world_name': config.source_path,
-                        'type': 'config_file',
-                        'config_type': cfg['type'],
-                        'filename': cfg['name'],
-                        'noncommutativity_curvature': results.get('noncommutativity_curvature', 0.0),
-                        'commutativity_gap': results.get('commutativity_gap', 0.0),
-                    }
-                }
-                if voxel_res_list:
-                    sample['metadata']['voxel_residue'] = voxel_res_list
-                samples.append(sample)
-                
-            # 3. Signs/Written Books (NBT text extractions)
-            nbt_texts = results.get("extracted_text", [])
-            for idx, text in enumerate(nbt_texts):
-                sample = {
-                    'text': text,
-                    'length': len(text),
-                    'source': f"minecraft:{config.source_path}/nbt_text_{idx}",
-                    'metadata': {
-                        'world_name': config.source_path,
-                        'type': 'nbt_text',
-                        'noncommutativity_curvature': results.get('noncommutativity_curvature', 0.0),
-                        'commutativity_gap': results.get('commutativity_gap', 0.0),
-                    }
-                }
-                if voxel_res_list:
-                    sample['metadata']['voxel_residue'] = voxel_res_list
-                samples.append(sample)
-                
-            if return_samples:
-                return samples
-                
-            # Save dataset
-            dataset_path = self.data_dir / config.safe_name
-            dataset_path.mkdir(exist_ok=True, parents=True)
-            self._save_dynamic_dataset(samples, dataset_path, config)
-            
-            print(f"[OK] Minecraft dataset created and chunked: {len(samples)} samples")
-            return True
-            
-        except Exception as e:
-            print(f"[ERR] Minecraft ingestion failed: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
-    
-    def _ingest_huggingface_dataset(self, config: DatasetConfig, return_samples: bool = False) -> Union[bool, List[Dict]]:
-        """Ingest dataset from HuggingFace Hub."""
-        try:
-            # Try to import datasets library
-            try:
-                from datasets import load_dataset
-            except ImportError:
-                print("[WARN] HuggingFace datasets library not installed")
-                print("   Install with: pip install datasets")
-                return False
-            
-            print(f"[HF] Loading HuggingFace dataset: {config.source_path}")
-            
-            # Load dataset
-            if config.max_samples:
-                # Load streaming for large datasets
-                dataset = load_dataset(config.source_path, streaming=True)
-                # Take first max_samples
-                if 'train' in dataset:
-                    dataset = dataset['train'].take(config.max_samples)
-            else:
-                dataset = load_dataset(config.source_path)
-            
-            # Save to local directory
-            dataset_path = self.data_dir / config.safe_name
-            dataset_path.mkdir(exist_ok=True)
-            
-            # Process and save samples
-            samples = []
-            for i, sample in enumerate(dataset):
-                if config.max_samples and i >= config.max_samples:
-                    break
-                
-                processed_sample = self._preprocess_sample(sample, config.preprocessing)
-                if processed_sample:
-                    samples.append(processed_sample)
-                
-                if i % 1000 == 0:
-                    print(f"   Processed {i} samples...")
-            
-            if return_samples:
-                return samples
-            
-            # Save processed dataset
-            self._save_dynamic_dataset(samples, dataset_path, config)
-            
-            print(f"[OK] HuggingFace dataset loaded and chunked: {len(samples)} samples")
-            return True
-            
-        except Exception as e:
-            print(f"[ERR] HuggingFace ingestion failed: {e}")
-            return False
-    
-    def _ingest_kaggle_dataset(self, config: DatasetConfig) -> bool:
-        """Ingest dataset from Kaggle."""
-        try:
-            print(f"[KAG] Loading Kaggle dataset: {config.source_path}")
-            
-            # Check if kaggle CLI is available
-            try:
-                result = subprocess.run(['kaggle', '--version'], capture_output=True, text=True)
-                if result.returncode != 0:
-                    print("[WARN] Kaggle CLI not available")
-                    print("   Install with: pip install kaggle")
-                    print("   Configure with your API key: https://www.kaggle.com/docs/api")
-                    return False
-            except FileNotFoundError:
-                print("[WARN] Kaggle CLI not found")
-                return False
-            
-            # Download dataset
-            dataset_path = self.data_dir / config.safe_name
-            dataset_path.mkdir(exist_ok=True)
-            
-            # Use kaggle CLI to download
-            cmd = ['kaggle', 'datasets', 'download', '-d', config.source_path, '-p', str(dataset_path)]
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            
-            if result.returncode != 0:
-                print(f"[FAIL] Kaggle download failed: {result.stderr}")
-                return False
-            
-            # Extract if zip file
-            zip_files = list(dataset_path.glob("*.zip"))
-            if zip_files:
-                with zipfile.ZipFile(zip_files[0], 'r') as zip_ref:
-                    zip_ref.extractall(dataset_path)
-                zip_files[0].unlink()  # Remove zip file
-            
-            print(f"[OK] Kaggle dataset downloaded to {dataset_path}")
-            
-            # Now process the downloaded files locally
-            local_config = DatasetConfig(
-                name=config.name,
-                source_type='local',
-                source_path=str(dataset_path),
-                preprocessing=config.preprocessing,
-                max_samples=config.max_samples,
-                augmentation=config.augmentation,
-                mandelbulb_augmentation=config.mandelbulb_augmentation,
-                manifold_aware=getattr(config, 'manifold_aware', False)
-            )
-            return self._ingest_local_dataset(local_config)
-        
-        except Exception as e:
-            print(f"[ERR] Kaggle ingestion failed: {e}")
-            return False
-    
-    def _ingest_wikipedia_dataset(self, config: DatasetConfig, return_samples: bool = False) -> Union[bool, List[Dict]]:
-        """Ingest dataset from Wikipedia articles."""
-        try:
-            print(f"[WIKI] Loading Wikipedia dataset: {config.source_path}")
-            
-            # Parse Wikipedia URLs or topics
-            if config.source_path.startswith('http'):
-                # Single URL
-                urls = [config.source_path]
-            else:
-                # Topic list or file
-                if Path(config.source_path).exists():
-                    with open(config.source_path, 'r') as f:
-                        topics = [line.strip() for line in f if line.strip()]
-                else:
-                    topics = config.source_path.split(',')
-                
-                # Convert topics to URLs
-                urls = [f"https://en.wikipedia.org/wiki/{topic.strip().replace(' ', '_')}" 
-                       for topic in topics]
-            
-            # Limit URLs if max_samples specified
-            if config.max_samples:
-                urls = urls[:config.max_samples]
-            
-            # Extract content using Wikipedia integration
-            samples = []
-            for i, url in enumerate(urls):
-                try:
-                    print(f"   Processing {i+1}/{len(urls)}: {url}")
-                    
-                    # Extract content
-                    title = wikipedia_integration.extract_title_from_url(url)
-                    wiki_result = wikipedia_integration.fetch_wikipedia_content(title)
-                    content = wiki_result.get('full_content', '') if wiki_result else None
-                    
-                    if content:
-                        # Clean content
-                        cleaned_content = wikipedia_integration._fallback_clean_content(content)
-                        
-                        # Extract concepts
-                        concepts = wikipedia_integration.extract_key_concepts(title, cleaned_content)
-                        
-                        # Chunk into paragraphs so we get multiple samples per article
-                        paragraphs = [p.strip() for p in cleaned_content.split('\n\n') if len(p.strip()) > 50]
-                        if not paragraphs:
-                            # Fallback if no double newlines
-                            paragraphs = [cleaned_content]
-                            
-                        for p_idx, paragraph in enumerate(paragraphs):
-                            if config.max_samples and len(samples) >= config.max_samples:
-                                break
-                                
-                            sample = {
-                                'title': f"{title} (Part {p_idx+1})",
-                                'content': paragraph,
-                                'concepts': concepts,
-                                'url': url,
-                                'length': len(paragraph)
-                            }
-                            samples.append(sample)
-                            
-                        if config.max_samples and len(samples) >= config.max_samples:
-                            break
-                    
-                except Exception as e:
-                    print(f"   [WARN] Failed to process {url}: {e}")
-                    continue
-            
-            if return_samples:
-                return samples
-            
-            # Save dataset
-            dataset_path = self.data_dir / config.safe_name
-            dataset_path.mkdir(exist_ok=True, parents=True)
-            self._save_dynamic_dataset(samples, dataset_path, config)
-            
-            print(f"[OK] Wikipedia dataset created and chunked: {len(samples)} articles")
-            return True
-            
-        except Exception as e:
-            print(f"[ERR] Wikipedia ingestion failed: {e}")
-            return False
-    
-    def _ingest_local_dataset(self, config: DatasetConfig, return_samples: bool = False) -> Union[bool, List[Dict]]:
-        """Ingest dataset from local files."""
-        try:
-            print(f"[DISK] Loading local dataset: {config.source_path}")
-            
-            source_path = Path(config.source_path)
-            if not source_path.exists():
-                print(f"[ERR] Path does not exist: {source_path}")
-                return False
-            
-            total_samples = []
-            files_to_process = []
-            
-            if source_path.is_file():
-                files_to_process = [source_path]
-            else:
-                file_patterns = ['*.txt', '*.json', '*.csv', '*.jsonl', '*.py', '*.md', '*.jsonl.gz', '*.gz']
-                for pattern in file_patterns:
-                    files_to_process.extend(source_path.rglob(pattern))
-            
-            print(f"   Found {len(files_to_process)} files to process")
-            
-            for i, file_path in enumerate(files_to_process):
-                # Check if we already reached max samples
-                if config.max_samples and len(total_samples) >= config.max_samples:
-                    print(f"   [STOP] Reached global max samples ({config.max_samples}), skipping remaining files.")
-                    break
-                
-                print(f"   [FILE] Processing file {i+1}/{len(files_to_process)}: {file_path.name}")
-                
-                # Pass current total length to keep track of budget
-                current_limit = config.max_samples - len(total_samples) if config.max_samples else None
-                file_samples = self._process_local_file(file_path, config, max_new_samples=current_limit)
-                
-                if file_samples:
-                    total_samples.extend(file_samples)
-                    print(f"   [DATA] Current total samples collected: {len(total_samples)}")
-            
-            if return_samples:
-                return total_samples
-            
-            # Save processed dataset
-            dataset_path = self.data_dir / config.safe_name
-            dataset_path.mkdir(exist_ok=True, parents=True)
-            
-            self._save_dynamic_dataset(total_samples, dataset_path, config)
-            
-            print(f"[OK] Local dataset loaded and chunked: {len(total_samples)} samples")
-            return True
-            
-        except Exception as e:
-            print(f"[FAIL] Local ingestion failed: {e}")
-            return False
-    
-    def _ingest_url_dataset(self, config: DatasetConfig) -> bool:
-        """Ingest dataset from URL (download and process)."""
-        try:
-            print(f"[URL] Loading dataset from URL: {config.source_path}")
-            
-            # Download file
-            response = requests.get(config.source_path, stream=True)
-            response.raise_for_status()
-            
-            # Determine filename
-            parsed_url = urlparse(config.source_path)
-            filename = Path(parsed_url.path).name or "dataset"
-            
-            dataset_path = self.data_dir / config.safe_name
-            dataset_path.mkdir(exist_ok=True)
-            
-            file_path = dataset_path / filename
-            
-            # Download with progress
-            total_size = int(response.headers.get('content-length', 0))
-            downloaded = 0
-            
-            with open(file_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded += len(chunk)
-                        if total_size > 0:
-                            progress = (downloaded / total_size) * 100
-                            print(f"   Downloaded: {progress:.1f}%", end='\r')
-            
-            print(f"\n   Download complete: {file_path}")
-            
-            # Extract if compressed
-            if file_path.suffix in ['.zip', '.tar', '.tar.gz', '.tgz']:
-                if file_path.suffix == '.zip':
-                    with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                        zip_ref.extractall(dataset_path)
-                else:
-                    with tarfile.open(file_path, 'r:*') as tar_ref:
-                        tar_ref.extractall(dataset_path)
-                
-                file_path.unlink()  # Remove compressed file
-            
-            print(f"[OK] URL dataset downloaded to {dataset_path}")
-            
-            # Now process the downloaded files locally
-            local_config = DatasetConfig(
-                name=config.name,
-                source_type='local',
-                source_path=str(dataset_path),
-                preprocessing=config.preprocessing,
-                max_samples=config.max_samples,
-                augmentation=config.augmentation,
-                mandelbulb_augmentation=config.mandelbulb_augmentation,
-                manifold_aware=getattr(config, 'manifold_aware', False)
-            )
-            return self._ingest_local_dataset(local_config)
-            
-        except Exception as e:
-            print(f"[FAIL] URL ingestion failed: {e}")
-            return False
-            
-    def _ingest_portal_dataset(self, config: DatasetConfig) -> bool:
-        """Ingest dataset from a portal file (mixed URLs and identifiers)."""
-        try:
-            print(f"[PORTAL] Loading portals from: {config.source_path}")
-            
-            lines = []
-            is_inline = False
-            
-            if ',' in config.source_path:
-                is_inline = True
-                
-            if not is_inline:
-                try:
-                    portal_path = Path(config.source_path)
-                    if portal_path.exists() and portal_path.is_file():
-                        with open(portal_path, 'r', encoding='utf-8') as f:
-                            lines = f.readlines()
-                    else:
-                        is_inline = True
-                except Exception:
-                    is_inline = True
-                    
-            if is_inline:
-                print(f"   [PORTAL] Treating input as inline comma-separated portal.")
-                lines = config.source_path.split(',')
-                
-            sources = []
-            for line in lines:
-                line = line.strip()
-                if not line or line.startswith('#'):
-                    continue
-                
-                if line.startswith('http'):
-                    sources.append({'type': 'url', 'path': line})
-                elif line.startswith('hf:'):
-                    sources.append({'type': 'huggingface', 'path': line[3:]})
-                elif line.startswith('wiki:'):
-                    sources.append({'type': 'wikipedia', 'path': line[5:]})
-                elif line.lower() in ['imdb', 'squad', 'wikitext', 'arxiv', 'pubmed']:
-                    # Auto-mapping popular datasets to HF
-                    sources.append({'type': 'huggingface', 'path': line.lower()})
-                else:
-                    # Check if it's actually a local path
-                    if Path(line).exists():
-                        sources.append({'type': 'local', 'path': line})
-                    else:
-                        # If it doesn't exist locally and has no prefix, assume Wikipedia topic!
-                        sources.append({'type': 'wikipedia', 'path': line})
-            
-            print(f"   Found {len(sources)} sources in portal")
-            
-            combined_samples = []
-            dataset_path = self.data_dir / config.safe_name
-            dataset_path.mkdir(exist_ok=True)
-            
-            for i, source in enumerate(sources):
-                print(f"\n   [PORTAL] Processing source {i+1}/{len(sources)}: {source['path']} ({source['type']})")
-                
-                sub_config = DatasetConfig(
-                    name=config.name,
-                    source_type=source['type'],
-                    source_path=source['path'],
-                    preprocessing=config.preprocessing,
-                    max_samples=config.max_samples,
-                    augmentation=config.augmentation,
-                    mandelbulb_augmentation=config.mandelbulb_augmentation,
-                    manifold_aware=getattr(config, 'manifold_aware', False)
-                )
-                
-                if source['type'] == 'url':
-                    self._ingest_url_dataset(sub_config)
-                elif source['type'] == 'huggingface':
-                    res = self._ingest_huggingface_dataset(sub_config, return_samples=True)
-                    if isinstance(res, list): combined_samples.extend(res)
-                elif source['type'] == 'wikipedia':
-                    res = self._ingest_wikipedia_dataset(sub_config, return_samples=True)
-                    if isinstance(res, list): combined_samples.extend(res)
-                elif source['type'] == 'local':
-                    res = self._ingest_local_dataset(sub_config, return_samples=True)
-                    if isinstance(res, list): combined_samples.extend(res)
-            
-            # Step 2: Ingest local files (including those downloaded via URL)
-            print(f"\n   [PORTAL] Finalizing with local file ingestion...")
-            local_config = DatasetConfig(
-                name=config.name,
-                source_type='local',
-                source_path=str(dataset_path),
-                preprocessing=config.preprocessing,
-                max_samples=config.max_samples,
-                augmentation=config.augmentation,
-                mandelbulb_augmentation=config.mandelbulb_augmentation,
-                manifold_aware=getattr(config, 'manifold_aware', False)
-            )
-            
-            # We need to reach into the local ingest without it overwriting everything immediately
-            # Actually, local ingest already returns samples in its internal methods
-            local_samples = self._ingest_local_dataset(local_config, return_samples=True)
-            if isinstance(local_samples, list):
-                combined_samples.extend(local_samples)
-            
-            if not combined_samples:
-                print(f"[WARN] Portal ingestion resulted in 0 samples")
-                return False
-                
-            # Final save of combined data dynamically
-            self._save_dynamic_dataset(combined_samples, dataset_path, config)
-            print(f"[OK] Portal ingestion complete and chunked: {len(combined_samples)} total samples saved to {dataset_path}")
-            return True
-            
-        except Exception as e:
-            print(f"[ERR] Portal ingestion failed: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
-    
-    def _process_local_file(self, file_path: Path, config: DatasetConfig, max_new_samples: Optional[int] = None) -> List[Dict]:
-        """Process a single local file."""
-        samples = []
-        
-        # Determine if we need to use gzip
-        is_gz = file_path.suffix == '.gz'
-        open_func = gzip.open if is_gz else open
-        
-        # Get effective suffix for nested extensions like .jsonl.gz
-        if is_gz:
-            effective_suffix = Path(file_path.stem).suffix
-        else:
-            effective_suffix = file_path.suffix
-            
-        try:
-            file_size_mb = file_path.stat().st_size / (1024 * 1024)
-            
-            if effective_suffix == '.json' or (is_gz and effective_suffix == '.json'):
-                # Check for large files
-                if file_size_mb > 100:
-                    print(f"      [WARN] Large JSON file detected ({file_size_mb:.1f} MB): {file_path.name}")
-                    
-                    # Try to use ijson for streaming if available
-                    try:
-                        import ijson
-                        print(f"      [STREAM] streaming with ijson...")
-                        with open_func(file_path, 'rt', encoding='utf-8') if is_gz else open(file_path, 'r', encoding='utf-8') as f:
-                            # Assume it's a list of objects
-                            objects = ijson.items(f, 'item')
-                            for i, item in enumerate(objects):
-                                if max_new_samples and len(samples) >= max_new_samples:
-                                    print(f"\n      [STOP] Reached limit in this file: {max_new_samples}")
-                                    break
-                                processed = self._preprocess_sample(item, config.preprocessing)
-                                if processed:
-                                    samples.append(processed)
-                                
-                                # Progress logging
-                                if (i + 1) % 1000 == 0:
-                                    print(f"      [BUSY] Streamed {i + 1} items... (Collected: {len(samples)})", end='\r')
-                            
-                            print(f"\n      [OK] Streaming complete. Total collected from file: {len(samples)}")
-                            
-                            if len(samples) == 0:
-                                print(f"      [WARN] Streamed 0 samples. Check JSON structure or preprocessing logic.")
-                                
-                        return samples
-                    except ImportError:
-                        print("      [WARN] 'ijson' library not found. Falling back to standard load (may consume high RAM).")
-                        print("      [TIP] Recommendation: Convert large JSON files to JSONL or install ijson: `pip install ijson`")
-                    except Exception as e:
-                        print(f"      [WARN] Streaming failed: {e}. Falling back to standard load.")
-
-                # Standard load (with memory safety)
-                try:
-                    with open_func(file_path, 'rt', encoding='utf-8') if is_gz else open(file_path, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        if isinstance(data, list):
-                            for item in data:
-                                if max_new_samples and len(samples) >= max_new_samples:
-                                    break
-                                processed = self._preprocess_sample(item, config.preprocessing)
-                                if processed:
-                                    samples.append(processed)
-                        else:
-                            processed = self._preprocess_sample(data, config.preprocessing)
-                            if processed:
-                                samples.append(processed)
-                except MemoryError:
-                    print(f"      [ERR] OUT OF MEMORY: Could not load {file_path.name} ({file_size_mb:.1f} MB).")
-                    print("      [TIP] Please convert this dataset to JSONL format (line-delimited JSON) for efficient streaming.")
-                    return []
-            
-            elif effective_suffix == '.jsonl' or (is_gz and (effective_suffix == '.jsonl' or effective_suffix == '')):
-                if file_size_mb > 100:
-                    print(f"      [WARN] Large JSONL file detected ({file_size_mb:.1f} MB): {file_path.name}")
-                
-                with open_func(file_path, 'rt', encoding='utf-8') if is_gz else open(file_path, 'r', encoding='utf-8') as f:
-                    for i, line in enumerate(f):
-                        if max_new_samples and len(samples) >= max_new_samples:
-                            print(f"\n      [STOP] Reached limit in this file: {max_new_samples}")
-                            break
-                        
-                        if line.strip():
-                            try:
-                                data = json.loads(line)
-                                processed = self._preprocess_sample(data, config.preprocessing)
-                                if processed:
-                                    samples.append(processed)
-                            except json.JSONDecodeError:
-                                continue
-                        
-                        if (i + 1) % 5000 == 0:
-                            print(f"      [BUSY] Processed {i + 1} lines... (Collected: {len(samples)})", end='\r')
-                    
-                    if i + 1 >= 5000:
-                        print(f"\n      [OK] File processing complete. Total collected: {len(samples)}")
-            
-            elif effective_suffix in ['.txt', '.py', '.md']:
-                with open_func(file_path, 'rt', encoding='utf-8') if is_gz else open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                    # Split into chunks for large files
-                    chunk_size = 1000
-                    chunks = [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
-                    
-                    for chunk in chunks:
-                        if max_new_samples and len(samples) >= max_new_samples:
-                            break
-                        if chunk.strip():
-                            sample = {'text': chunk.strip(), 'source': str(file_path)}
-                            processed = self._preprocess_sample(sample, config.preprocessing)
-                            if processed:
-                                samples.append(processed)
-            
-            elif effective_suffix == '.csv':
-                import pandas as pd
-                # Read in chunks to be memory efficient and allow early exit
-                chunk_iter = pd.read_csv(file_path, chunksize=1000)
-                for chunk in chunk_iter:
-                    if max_new_samples and len(samples) >= max_new_samples:
-                        break
-                    for _, row in chunk.iterrows():
-                        if max_new_samples and len(samples) >= max_new_samples:
-                            break
-                        sample = row.to_dict()
-                        processed = self._preprocess_sample(sample, config.preprocessing)
-                        if processed:
-                            samples.append(processed)
-                    
-                    print(f"      [*] Processed chunk... (Collected: {len(samples)})", end='\r')
-                
-                print(f"\n      [OK] CSV processing complete. Total collected: {len(samples)}")
-        
-        except Exception as e:
-            print(f"   [WARN] Error processing {file_path}: {e}")
-        
-        return samples
-    
-    def _preprocess_sample(self, sample: Dict, preprocessing_type: str) -> Optional[Dict]:
-        """Preprocess a single sample based on type."""
-        try:
-            if preprocessing_type == 'text':
-                # Extract text content
-                text_fields = ['text', 'content', 'body', 'description', 'title']
-                text_content = ""
-                
-                # Standard fields
-                for field in text_fields:
-                    if field in sample and sample[field]:
-                        text_content += str(sample[field]) + "\n"
-                
-                # ShareGPT format (conversations)
-                if 'conversations' in sample and isinstance(sample['conversations'], list):
-                    for turn in sample['conversations']:
-                        if isinstance(turn, dict):
-                            role = turn.get('from', 'unknown')
-                            value = turn.get('value', turn.get('text', ''))
-                            if value:
-                                text_content += f"{role}: {value}\n"
-                
-                # Alpaca format (instruction/input/output)
-                if 'instruction' in sample:
-                    text_content += f"Instruction: {sample['instruction']}\n"
-                    if sample.get('input'):
-                        text_content += f"Input: {sample['input']}\n"
-                    if sample.get('output'):
-                        text_content += f"Output: {sample['output']}\n"
-                
-                if not text_content.strip():
-                    return None
-                
-                # [FULL BRIDGE] Manifold-Aware (Thick) Ingestion
-                residue = None
-                if getattr(self, 'config', None) and getattr(self.config, 'manifold_aware', False) and self.engine:
-                    try:
-                        # Extract residue vector from the manifold
-                        result = self.engine.process_input(
-                            text_input=text_content.strip(), 
-                            generate_response=False, 
-                            ingestion_mode=True
-                        )
-                        residue = result.get('residue_vector')
-                    except Exception as e:
-                        print(f"   [WARN] Manifold-Aware ingestion failed for sample: {e}")
-                
-                metadata = {k: v for k, v in sample.items() if k not in text_fields and k != 'conversations'}
-                if residue:
-                    metadata['residue_vector'] = residue
-                    metadata['manifold_step'] = self.engine.iteration
-                
-                return {
-                    'text': text_content.strip(),
-                    'length': len(text_content),
-                    'source': sample.get('source', 'unknown'),
-                    'metadata': metadata
-                }
-            
-            elif preprocessing_type == 'image':
-                # Handle image data (placeholder for now)
-                if 'image' in sample or 'image_path' in sample:
-                    return {
-                        'image_path': sample.get('image_path', sample.get('image')),
-                        'caption': sample.get('caption', ''),
-                        'metadata': sample
-                    }
-                return None
-            
-            elif preprocessing_type == 'tabular':
-                # Handle structured data
-                return {
-                    'features': sample,
-                    'metadata': {'type': 'tabular'}
-                }
-            
-            elif preprocessing_type == 'multimodal':
-                # Handle mixed content
-                processed = {
-                    'content': sample,
-                    'modalities': self._detect_modalities(sample),
-                    'metadata': {'type': 'multimodal'}
-                }
-                # Bubble up image path if present for easy embedding
-                if 'image' in sample: processed['image_path'] = sample['image']
-                if 'image_path' in sample: processed['image_path'] = sample['image_path']
-                
-                # Bubble up text if present
-                if 'text' in sample: processed['text'] = sample['text']
-                if 'content' in sample and isinstance(sample['content'], str): processed['text'] = sample['content']
-                
-                return processed
-            
-            else:
-                # Default: return as-is
-                return sample
-                
-        except Exception as e:
-            print(f"   [WARN] Preprocessing error: {e}")
-            return None
-    
-    def _detect_modalities(self, sample: Dict) -> List[str]:
-        """Detect modalities in a sample."""
-        modalities = []
-        
-        text_fields = ['text', 'content', 'body', 'description', 'title']
-        image_fields = ['image', 'image_path', 'img', 'picture']
-        
-        for field in text_fields:
-            if field in sample and sample[field]:
-                modalities.append('text')
-                break
-        
-        for field in image_fields:
-            if field in sample and sample[field]:
-                modalities.append('image')
-                break
-        
-        return modalities
-    
-    def create_model(self, name: str, model_config: Dict[str, Any]) -> bool:
-        """Create a model for training."""
-        try:
-            print(f"\n[MODEL] Creating model: {name}")
-            print(f"   Type: {model_config.get('type', 'temporal')}")
-            print(f"   Device: {self.device}")
-            
-            if model_config.get('type', 'temporal') == 'temporal':
-                model = NonLobotomyTemporalModel(
-                    input_dim=model_config.get('input_dim', 768),
-                    hidden_dim=model_config.get('hidden_dim', 256),
-                    num_functionals=model_config.get('num_functionals', 33),
-                    poly_degree=model_config.get('poly_degree', 4),
-                    device=self.device
-                )
-            else:
-                print(f"[FAIL] Unknown model type: {model_config.get('type')}")
-                return False
-            
-            self.models[name] = model
-            
-            # Verify anti-lobotomy compliance
-            compliance_check = self._verify_anti_lobotomy_compliance(model)
-            if not compliance_check:
-                print("[FAIL] Model failed anti-lobotomy compliance check")
-                return False
-            
-            print(f"[OK] Model {name} created successfully")
-            print(f"   Parameters: {sum(p.numel() for p in model.parameters()):,}")
-            print(f"   Polynomial functionals: {model.K}")
-            print(f"   Trust scalars: {[f'{t:.3f}' for t in model.trust_scalars.tolist()]}")
-            print(f"   Anti-lobotomy compliance: [OK] VERIFIED")
-            
-            return True
-            
-        except Exception as e:
-            print(f"[FAIL] Model creation failed: {e}")
-            return False
-    
-    def _verify_anti_lobotomy_compliance(self, model) -> bool:
-        """Verify model follows anti-lobotomy principles."""
-        try:
-            if not hasattr(model, 'polynomial_config'):
-                print("   [ERR] Missing polynomial_config")
-                return False
-            
-            # Check class name only to avoid module path issues
-            if model.polynomial_config.__class__.__name__ != 'PolynomialCoprimeConfig':
-                print("   [ERR] Invalid polynomial_config type")
-                return False
-            
-            # Check 2: Trust scalars don't require gradients
-            if hasattr(model, 'trust_scalars') and model.trust_scalars.requires_grad:
-                print("   [FAIL] Trust scalars require gradients (teleological violation)")
-                return False
-            
-            # Check 3: Has evolutionary components
-            required_buffers = ['trust_scalars', 'bimodal_genome', 'is_fossilized']
-            for buffer_name in required_buffers:
-                if not hasattr(model, buffer_name):
-                    print(f"   [ERR] Missing evolutionary buffer: {buffer_name}")
-                    return False
-            
-            # Check 4: Polynomial coefficients are proper
-            try:
-                coeffs = model.polynomial_config.get_coefficients_tensor()
-                if torch.isnan(coeffs).any() or torch.isinf(coeffs).any():
-                    print("   [ERR] Invalid polynomial coefficients")
-                    return False
-            except Exception as e:
-                print(f"   [ERR] Polynomial coefficient error: {e}")
-                return False
-            
-            print("   [OK] Anti-lobotomy compliance verified")
-            return True
-            
-        except Exception as e:
-            print(f"[ERR] Compliance check error: {e}")
-            return False
-    
-    def setup_training(self, model_name: str, dataset_name: str, training_config: TrainingConfig) -> bool:
-        """Setup training for a model and dataset."""
-        try:
-            print(f"\n[TRAIN] Setting up training: {model_name} on {dataset_name}")
-            
-            # Check model exists
-            if model_name not in self.models:
-                print(f"[FAIL] Model {model_name} not found")
-                return False
-            
-            # Check dataset exists
-            if dataset_name not in self.datasets:
-                print(f"[FAIL] Dataset {dataset_name} not found")
-                return False
-            
-            model = self.models[model_name]
-            dataset_config = self.datasets[dataset_name]
-            
-            # Load dataset dynamically to reduce VRAM pressure
-            processed_data = SovereignDynamicDataset(self.data_dir / dataset_config.safe_name)
-            print(f"   [DYNAMIC] Loaded dataset with {len(processed_data)} samples (On-demand loading active)")
-            
-            # Create dataset wrapper
-            if training_config.model_type == 'temporal':
-                # Create temporal association dataset
-                dataset = self._create_temporal_dataset(processed_data, training_config)
-            else:
-                print(f"[FAIL] Unknown training type: {training_config.model_type}")
-                return False
-            
-            # Setup Mandelbulb augmentation if requested
-            augmenter = None
-            if training_config.use_mandelbulb_augmentation:
-                print("   [AUG] Setting up Mandelbulb-Gyroidic augmentation...")
-                augmentation_config = AugmentationConfig(
-                    mandelbulb_power=8,
-                    max_iterations=50,
-                    gyroid_tolerance=1e-3,
-                    sparsity_threshold=0.1,
-                    pressure_adaptation=True
-                )
-                augmenter = MandelbulbGyroidicAugmenter(augmentation_config)
-                self.augmenters[f"{model_name}_{dataset_name}"] = augmenter
-                print("   [OK] Mandelbulb augmentation ready")
-            
-            # Create trainer
-            trainer = NonLobotomyTemporalTrainer(
-                model=model,
-                dataset=dataset,
-                evolution_rate=training_config.evolution_rate,
-                survivorship_threshold=training_config.survivorship_threshold
-            )
-            
-            trainer_key = f"{model_name}_{dataset_name}"
-            self.trainers[trainer_key] = trainer
-            
-            # Initialize training history
-            self.training_history[trainer_key] = {
-                'model_name': model_name,
-                'dataset_name': dataset_name,
-                'config': training_config,
-                'start_time': None,
-                'epochs_completed': 0,
-                'metrics_history': []
-            }
-            
-            print(f"[OK] Training setup complete")
-            print(f"   Trainer: {trainer_key}")
-            print(f"   Epochs planned: {training_config.num_epochs}")
-            print(f"   Batch size: {training_config.batch_size}")
-            print(f"   Mandelbulb augmentation: {training_config.use_mandelbulb_augmentation}")
-            
-            return True
-            
-        except Exception as e:
-            print(f"[FAIL] Training setup failed: {e}")
-            return False
-    
-    def _create_temporal_dataset(self, processed_data: List[Dict], config: TrainingConfig):
-        """Create temporal dataset from processed data."""
-        # Convert text data to embeddings (simplified)
-        embeddings = []
-        
-        for sample in processed_data:
-            if 'text' in sample:
-                # Simple embedding: hash-based projection (in real system, use proper embeddings)
-                text = sample['text']
-                # Create deterministic embedding from text hash using Sovereign Logistic Expansion
-                from src.core.honest_jitter import AgentSmithEngine
-                engine = AgentSmithEngine(device=torch.device('cpu'))
-                hash_val = sum(ord(c) for c in text[:100]) % 1000000
-                deterministic_seed = hash_val / 1000000.0
-                embedding = engine((768,), seed_val=deterministic_seed, scaled=False)
-                embeddings.append(embedding)
-            elif 'image_path' in sample and self.image_processor:
-                # Use Image Processor to embed image
-                try:
-                    embedding = self.image_processor(sample['image_path'])
-                    # Output is [1, 768], flatten to [768]
-                    embeddings.append(embedding.squeeze(0).cpu())
-                except Exception as e:
-                     print(f"   [WARN] Failed to embed image {sample['image_path']}: {e}")
-                     # Fallback to random (Sovereign Jitter)
-                     embeddings.append(harvest_honest_jitter((768,), scaled=False).cpu())
-        
-        # Create simple temporal dataset
-        class SimpleTemporalDataset:
-            def __init__(self, embeddings, sequence_length=8):
-                self.embeddings = embeddings
-                self.sequence_length = sequence_length
-            
-            def get_batch(self, batch_size=4):
-                sequences = []
-                targets = []
-                
-                for _ in range(batch_size):
-                    # Random sequence (Sovereign Jitter)
-                    _j_val = (harvest_honest_jitter((1,), scaled=False).cpu().item() + 1.0) / 2.0
-                    start_idx = int(_j_val * max(1, len(self.embeddings) - self.sequence_length))
-                    sequence = []
-                    sequence_targets = []
-                    
-                    for i in range(self.sequence_length):
-                        if start_idx + i < len(self.embeddings):
-                            sequence.append(self.embeddings[start_idx + i])
-                            # Target is next embedding (or same if at end)
-                            target_idx = min(start_idx + i + 1, len(self.embeddings) - 1)
-                            sequence_targets.append(self.embeddings[target_idx])
-                        else:
-                            # Pad with deterministic boundary (Sovereign Logistic Expansion)
-                            from src.core.honest_jitter import AgentSmithEngine
-                            engine = AgentSmithEngine(device=torch.device('cpu'))
-                            pad_emb = engine((768,), seed_val=0.618, scaled=False)
-                            sequence.append(pad_emb)
-                            sequence_targets.append(pad_emb)
-                    
-                    sequences.append(torch.stack(sequence))
-                    targets.append(torch.stack(sequence_targets))
-                
-                return {
-                    'sequences': torch.stack(sequences),
-                    'targets': torch.stack(targets)
-                }
-        
-        return SimpleTemporalDataset(embeddings, sequence_length=config.batch_size)
-    
-    def run_training(self, model_name: str, dataset_name: str) -> bool:
-        """Run training for a model-dataset pair."""
-        try:
-            trainer_key = f"{model_name}_{dataset_name}"
-            
-            if trainer_key not in self.trainers:
-                print(f"[ERR] Training not setup for {trainer_key}")
-                return False
-            
-            trainer = self.trainers[trainer_key]
-            config = self.training_history[trainer_key]['config']
-            
-            print(f"\n[START] Starting training: {trainer_key}")
-            print(f"   Epochs: {config.num_epochs}")
-            print(f"   Batch size: {config.batch_size}")
-            print(f"   Learning rate: {config.learning_rate}")
-            print(f"   Evolution rate: {config.evolution_rate}")
-            print("=" * 60)
-            
-            # Record start time
-            self.training_history[trainer_key]['start_time'] = time.time()
-            
-            # Training loop
-            for epoch in range(config.num_epochs):
-                print(f"\n[EPOCH] Epoch {epoch + 1}/{config.num_epochs}")
-                
-                try:
-                    # Train epoch
-                    epoch_metrics = trainer.train_epoch(num_batches=20)
-                    
-                    # Record metrics
-                    self.training_history[trainer_key]['metrics_history'].append(epoch_metrics)
-                    self.training_history[trainer_key]['epochs_completed'] = epoch + 1
-                    
-                    # Print summary
-                    print(f"   Survivorship Pressure: {epoch_metrics['survivorship_pressure']:.3f}")
-                    print(f"   Association Accuracy: {epoch_metrics['association_accuracy']:.3f}")
-                    print(f"   Temporal Coherence: {epoch_metrics['temporal_coherence']:.3f}")
-                    print(f"   Trust Mean: {epoch_metrics['trust_mean']:.3f} +/- {epoch_metrics['trust_std']:.3f}")
-                    print(f"   Fossilized: {epoch_metrics['final_num_fossilized']}")
-                    
-                    # Show trust evolution
-                    model = self.models[model_name]
-                    trust_scalars = model.trust_scalars
-                    print(f"   Trust Scalars: {[f'{t:.3f}' for t in trust_scalars.tolist()]}")
-                    
-                    if config.use_mandelbulb_augmentation and f"{model_name}_{dataset_name}" in self.augmenters:
-                        print("   [AUG] Applying Mandelbulb-Gyroidic augmentation...")
-                        augmenter = self.augmenters[f"{model_name}_{dataset_name}"]
-                        
-                        # Get sample data for augmentation
-                        sample_batch = trainer.dataset.get_batch(batch_size=4)
-                        sample_X = sample_batch['sequences'][:, 0, :]  # First timestep
-                        
-                        # Apply augmentation
-                        augmented_X, _ = augmenter(sample_X, augmentation_factor=config.augmentation_factor)
-                        print(f"   [AUG] Augmented {sample_X.shape[0]} → {augmented_X.shape[0]} samples")
-                    
-                    # Save checkpoint if configured
-                    if config.save_checkpoints and (epoch + 1) % config.checkpoint_interval == 0:
-                        safe_trainer_key = trainer_key.replace(':', '_').replace(',', '_').replace('/', '_').replace('\\', '_')
-                        if len(safe_trainer_key) > 50: safe_trainer_key = safe_trainer_key[:50]
-                        checkpoint_path = f"checkpoint_{safe_trainer_key}_epoch_{epoch + 1}.pt"
-                        self._save_checkpoint(trainer_key, checkpoint_path)
-                        print(f"   [SAVE] Checkpoint saved: {checkpoint_path}")
-                
-                except Exception as e:
-                    print(f"   [ERR] Epoch {epoch + 1} failed: {e}")
-                    continue
-            
-            # Training complete
-            total_time = time.time() - self.training_history[trainer_key]['start_time']
-            print(f"\n[DONE] Training Complete!")
-            print(f"   Total time: {total_time:.1f} seconds")
-            print(f"   Epochs completed: {self.training_history[trainer_key]['epochs_completed']}")
-            
-            # Final model state
-            model = self.models[model_name]
-            final_trust = model.trust_scalars
-            print(f"   Final trust: {[f'{t:.3f}' for t in final_trust.tolist()]}")
-            print(f"   Fossilized functionals: {(final_trust > config.fossilization_threshold).sum().item()}")
-            
-            # Save final state
-            safe_trainer_key = trainer_key.replace(':', '_').replace(',', '_').replace('/', '_').replace('\\', '_')
-            if len(safe_trainer_key) > 50: safe_trainer_key = safe_trainer_key[:50]
-            final_checkpoint = f"final_{safe_trainer_key}.pt"
-            self._save_checkpoint(trainer_key, final_checkpoint)
-            print(f"   [SAVE] Final state saved: {final_checkpoint}")
-
-            # ---- SOUL FUSION PROTOCOL ----
-            # Merge trained model into the live gyroid_state.pt so the
-            # manifold soul reflects offline portal training (DETERMINISM_AND_PERSISTENCE policy)
-            try:
-                import os as _os
-                _root = _os.path.dirname(_os.path.abspath(__file__))
-                _soul_path = _os.path.join(_root, 'gyroid_state.pt')
-                # Load existing soul (may not exist yet)
-                if _os.path.exists(_soul_path):
-                    _soul = torch.load(_soul_path, map_location='cpu')
-                else:
-                    _soul = {}
-                # Inject the offline model's state dict as the temporal model layer
-                _trainer = self.trainers[trainer_key]
-                _soul['temporal_model_state'] = _trainer.model.state_dict()
-                _soul['offline_trust_scalars'] = _trainer.model.trust_scalars.clone()
-                _soul['offline_bimodal_genome'] = _trainer.model.bimodal_genome.clone()
-                _soul['offline_is_fossilized'] = _trainer.model.is_fossilized.clone()
-                _soul['offline_trainer_key'] = trainer_key
-                torch.save(_soul, _soul_path)
-                _soul_mb = _os.path.getsize(_soul_path) / (1024 * 1024)
-                print(f"   [SOUL FUSION] gyroid_state.pt updated with offline training ({_soul_mb:.2f} MB)")
-            except Exception as _soul_err:
-                print(f"   [WARN] Soul fusion failed (non-fatal): {_soul_err}")
-            # ---- END SOUL FUSION ----
-
-            return True
-            
-        except Exception as e:
-            print(f"[ERR] Training failed: {e}")
-            return False
-    
-    def _save_checkpoint(self, trainer_key: str, filepath: str):
-        """Save training checkpoint."""
-        trainer = self.trainers[trainer_key]
-        history = self.training_history[trainer_key]
-        
-        checkpoint = {
-            'model_state_dict': trainer.model.state_dict(),
-            'optimizer_state_dict': trainer.optimizer.state_dict(),
-            'training_history': history,
-            'trust_scalars': trainer.model.trust_scalars.clone(),
-            'bimodal_genome': trainer.model.bimodal_genome.clone(),
-            'is_fossilized': trainer.model.is_fossilized.clone(),
-            'polynomial_config_state': trainer.model.polynomial_config.get_coefficients_tensor()
-        }
-        
-        torch.save(checkpoint, filepath)
-    
-    def list_datasets(self):
-        """List all available datasets."""
-        print("\nAvailable Datasets:")
-        if not self.datasets:
-            print("   No datasets loaded")
-            return
-        
-        for name, config in self.datasets.items():
-            dataset_path = self.data_dir / config.safe_name / "processed_data.pt"
-            if dataset_path.exists():
-                data = torch.load(dataset_path)
-                sample_count = len(data)
-            else:
-                sample_count = "Unknown"
-            
-            print(f"   * {name}")
-            print(f"     Source: {config.source_type} - {config.source_path}")
-            print(f"     Preprocessing: {config.preprocessing}")
-            print(f"     Samples: {sample_count}")
-            print(f"     Augmentation: {config.augmentation}")
-    
-    def list_models(self):
-        """List all available models."""
-        print("\nAvailable Models:")
-        if not self.models:
-            print("   No models created")
-            return
-        
-        for name, model in self.models.items():
-            param_count = sum(p.numel() for p in model.parameters())
-            trust_mean = model.trust_scalars.mean().item()
-            fossilized = (model.trust_scalars > 0.8).sum().item()
-            
-            print(f"   * {name}")
-            print(f"     Parameters: {param_count:,}")
-            print(f"     Functionals: {model.K}")
-            print(f"     Trust mean: {trust_mean:.3f}")
-            print(f"     Fossilized: {fossilized}/{model.K}")
-    
-    def list_training_sessions(self):
-        """List all training sessions."""
-        print("\nTraining Sessions:")
-        if not self.training_history:
-            print("   No training sessions")
-            return
-        
-        for key, history in self.training_history.items():
-            status = "Complete" if history['epochs_completed'] == history['config'].num_epochs else "In Progress"
-            
-            print(f"   * {key}")
-            print(f"     Status: {status}")
-            print(f"     Epochs: {history['epochs_completed']}/{history['config'].num_epochs}")
-            if history['start_time']:
-                elapsed = time.time() - history['start_time']
-                print(f"     Runtime: {elapsed:.1f}s")
-
-
-def main():
-    """Main CLI interface."""
-    parser = argparse.ArgumentParser(
-        description="Gyroidic Dataset Ingestion & Training System",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Add HuggingFace dataset
-  python dataset_ingestion_system.py add-dataset --name "imdb" --source huggingface --path "imdb" --preprocessing text
-  
-  # Add Wikipedia dataset
-  python dataset_ingestion_system.py add-dataset --name "physics" --source wikipedia --path "Quantum_mechanics,Relativity,Thermodynamics"
-  
-  # Add local dataset
-  python dataset_ingestion_system.py add-dataset --name "my_texts" --source local --path "./my_data/" --preprocessing text
-  
-  # Create model
-  python dataset_ingestion_system.py create-model --name "temporal_model" --type temporal --functionals 33
-  
-  # Setup training
-  python dataset_ingestion_system.py setup-training --model "temporal_model" --dataset "imdb" --epochs 10 --mandelbulb
-  
-  # Run training
-  python dataset_ingestion_system.py train --model "temporal_model" --dataset "imdb"
-  
-  # List everything
-  python dataset_ingestion_system.py list-all
+    def __init__(
+        self,
+        hidden_dim: int,
+        window_size: int = 32,
+        k_hop: int = 2,
+        num_eigenvalues: int = 8,
+        violation_threshold: float = 0.5,
+        use_saturation_detection: bool = True,
+        adaptive_threshold: bool = True,
+        percentile: float = 95.0
+    ):
         """
-    )
-    
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
-    
-    # Add dataset command
-    add_dataset_parser = subparsers.add_parser('add-dataset', help='Add a dataset source')
-    add_dataset_parser.add_argument('--name', required=True, help='Dataset name')
-    add_dataset_parser.add_argument('--source', required=True, choices=['huggingface', 'kaggle', 'wikipedia', 'local', 'url', 'portal', 'minecraft'], help='Source type')
-    add_dataset_parser.add_argument('--path', required=True, help='Source path/URL')
-    add_dataset_parser.add_argument('--preprocessing', default='text', choices=['text', 'image', 'tabular', 'multimodal'], help='Preprocessing type')
-    add_dataset_parser.add_argument('--max-samples', type=int, help='Maximum samples to load')
-    add_dataset_parser.add_argument('--augmentation', action='store_true', help='Enable augmentation')
-    add_dataset_parser.add_argument('--mandelbulb', action='store_true', help='Enable Mandelbulb augmentation')
-    
-    # Create model command
-    create_model_parser = subparsers.add_parser('create-model', help='Create a model')
-    create_model_parser.add_argument('--name', required=True, help='Model name')
-    create_model_parser.add_argument('--type', default='temporal', choices=['temporal'], help='Model type')
-    create_model_parser.add_argument('--input-dim', type=int, default=768, help='Input dimension')
-    create_model_parser.add_argument('--hidden-dim', type=int, default=256, help='Hidden dimension')
-    create_model_parser.add_argument('--functionals', type=int, default=33, help='Number of polynomial functionals (IHC standard: 33)')
-    create_model_parser.add_argument('--poly-degree', type=int, default=4, help='Polynomial degree')
-    
-    # Setup training command
-    setup_training_parser = subparsers.add_parser('setup-training', help='Setup training')
-    setup_training_parser.add_argument('--model', required=True, help='Model name')
-    setup_training_parser.add_argument('--dataset', required=True, help='Dataset name')
-    setup_training_parser.add_argument('--epochs', type=int, default=10, help='Number of epochs')
-    setup_training_parser.add_argument('--batch-size', type=int, default=4, help='Batch size')
-    setup_training_parser.add_argument('--learning-rate', type=float, default=1e-4, help='Learning rate')
-    setup_training_parser.add_argument('--evolution-rate', type=float, default=0.02, help='Evolution rate')
-    setup_training_parser.add_argument('--mandelbulb', action='store_true', help='Use Mandelbulb augmentation')
-    setup_training_parser.add_argument('--augmentation-factor', type=int, default=2, help='Augmentation factor')
-    
-    # Train command
-    train_parser = subparsers.add_parser('train', help='Run training')
-    train_parser.add_argument('--model', required=True, help='Model name')
-    train_parser.add_argument('--dataset', required=True, help='Dataset name')
-    
-    # List commands
-    subparsers.add_parser('list-datasets', help='List all datasets')
-    subparsers.add_parser('list-models', help='List all models')
-    subparsers.add_parser('list-training', help='List training sessions')
-    subparsers.add_parser('list-all', help='List everything')
-    
-    args = parser.parse_args()
-    
-    if not args.command:
-        parser.print_help()
-        return
-    
-    # Initialize system
-    system = DatasetIngestionSystem()
-    
-    # Execute command
-    if args.command == 'add-dataset':
-        config = DatasetConfig(
-            name=args.name,
-            source_type=args.source,
-            source_path=args.path,
-            preprocessing=args.preprocessing,
-            augmentation=args.augmentation,
-            mandelbulb_augmentation=args.mandelbulb,
-            max_samples=args.max_samples
-        )
-        system.add_dataset_source(config)
-    
-    elif args.command == 'create-model':
-        model_config = {
-            'type': args.type,
-            'input_dim': args.input_dim,
-            'hidden_dim': args.hidden_dim,
-            'num_functionals': args.functionals,
-            'poly_degree': args.poly_degree
-        }
-        system.create_model(args.name, model_config)
-    
-    elif args.command == 'setup-training':
-        training_config = TrainingConfig(
-            model_type='temporal',
-            num_epochs=args.epochs,
-            batch_size=args.batch_size,
-            learning_rate=args.learning_rate,
-            evolution_rate=args.evolution_rate,
-            use_mandelbulb_augmentation=args.mandelbulb,
-            augmentation_factor=args.augmentation_factor
-        )
-        system.setup_training(args.model, args.dataset, training_config)
-    
-    elif args.command == 'train':
-        system.run_training(args.model, args.dataset)
-    
-    elif args.command == 'list-datasets':
-        system.list_datasets()
-    
-    elif args.command == 'list-models':
-        system.list_models()
+        Initialize the Sparse Gyroid Covariance Probe.
         
-    elif args.command == 'list-training-sessions':
-        system.list_training_sessions()
+        Args:
+            hidden_dim: Dimension of the hidden state vectors.
+            window_size: Size of the sliding window for local covariance.
+            k_hop: Neighborhood hop distance for graph connectivity.
+            num_eigenvalues: Number of top eigenvalues to analyze.
+            violation_threshold: Fixed threshold for violation detection.
+            use_saturation_detection: Enable the Saturation Fracture Detector.
+            adaptive_threshold: Use percentile-based scaling for thresholds.
+            percentile: Target percentile for the adaptive threshold.
+        """
+        super().__init__()
+        
+        self.hidden_dim = hidden_dim
+        self.window_size = window_size
+        self.k_hop = k_hop
+        self.num_eigenvalues = num_eigenvalues
+        self.violation_threshold = violation_threshold
+        self.use_saturation_detection = use_saturation_detection
+        self.adaptive_threshold = adaptive_threshold
+        self.percentile = percentile
+        
+        # Empirical Scaling Law (Bostick, 2025)
+        # epsilon_drift varies as V^(-1/2)
+        # We scale the base threshold by the inverse root of dimension
+        if adaptive_threshold:
+            # We treat hidden_dim as effective Volume V
+            # Base epsilon is roughly 0.5 at dim=1? Or just a scaling factor.
+            # Let's preserve the user's 'violation_threshold' as the coefficient epsilon_0
+            # epsilon_drift = epsilon_0 * (V / V_0)^(-1/2) 
+            # We assume V_0 = 1 for normalization, or just apply raw scaling.
+            # To avoid crushing it too small, we use a reference dim of 64.
+            scaling_factor = (hidden_dim / 64.0) ** -0.5
+            self.scaled_threshold = violation_threshold * scaling_factor
+        else:
+            self.scaled_threshold = violation_threshold
+        
+        if use_saturation_detection:
+            self.fracture_detector = SaturationFractureDetector()
+            
+        # Global Manifold Estimator (System 2 Driver)
+        self.gyroid_cov = GyroidCovarianceEstimator(dim=hidden_dim)
+    
+    def compute_local_covariance(
+        self,
+        hidden_states: torch.Tensor,
+        start_idx: int
+    ) -> torch.Tensor:
+        """
+        Compute local windowed covariance matrix.
+        
+        Extracts a temporal window of hidden states and computes the 
+        local Gram matrix to identify the spectral structure of the 
+        manifold at that position.
+        
+        Args:
+            hidden_states: The full sequence of hidden states [seq_len, hidden_dim].
+            start_idx: The starting position for the local window.
+            
+        Returns:
+            C_loc: The local covariance matrix [window_size, window_size].
+        """
+        seq_len = hidden_states.shape[0]
+        end_idx = min(start_idx + self.window_size, seq_len)
+        actual_window = end_idx - start_idx
+        
+        # Extract local window
+        window = hidden_states[start_idx:end_idx]  # [actual_window, hidden_dim]
+        
+        # Compute covariance (or Gram matrix)
+        # C = X X^T where X is normalized
+        window_normalized = window - window.mean(dim=0, keepdim=True)
+        window_normalized = window_normalized / (torch.norm(window_normalized, dim=1, keepdim=True) + 1e-8)
+        
+        C_loc = torch.mm(window_normalized, window_normalized.t())  # [actual_window, actual_window]
+        
+        # Pad if necessary
+        if actual_window < self.window_size:
+            C_loc_padded = torch.zeros(
+                self.window_size, self.window_size,
+                device=C_loc.device, dtype=C_loc.dtype
+            )
+            C_loc_padded[:actual_window, :actual_window] = C_loc
+            C_loc = C_loc_padded
+        
+        return C_loc
 
-if __name__ == '__main__':
-    main()
+    def compute_gcve(
+        self,
+        C_loc: torch.Tensor,
+        h_mischief: float,
+        tau_decay: float = 10.0,
+        lambda_min_epsilon: float = 1e-6
+    ) -> float:
+        """
+        Compute Gyroidic Covariance Violation Energy (GCVE).
+        (legacy) V_m = V + H_mischief/tau - lambda_min/tr(C)
+        (current) V_m = (V + Flatness_Penalty) * (1 - H_mischief / tau)
+        The GCVE (V_m) measures the deviation from minimal-surface 
+        expectations, weighted by the 'Mischief' entropy to allow for 
+        admissible playful violations.
+        
+        Args:
+            C_loc: The local covariance matrix [window, window].
+            h_mischief: The current mischief entropy (H_m).
+            tau_decay: Decay constant for structural pressure.
+            lambda_min_epsilon: Small constant for numerical stability.
+        
+        Returns:
+            V_m: The GCVE score. High scores indicate topological fracture.
+            
+        CODES v40 Invariant: 
+            Non-Teleological Repair: 10.3. GCVE provides the 'containment 
+            pressure' signal without requiring a target state.
+        """
+        # Eigenvalues for V calculation
+        # Note: eigh is for symmetric matrices (covariance is symmetric)
+        try:
+            eigs = torch.linalg.eigvalsh(C_loc)
+        except RuntimeError:
+            # Fallback for numerical instability
+            return 0.0
+            
+        if len(eigs) == 0:
+            return 0.0
+            
+        lambda_min = eigs[0].item()
+        trace_C = eigs.sum().item()
+        
+        # Standard violation (V) - approximation based on spectral gap or just max eig?
+        # Using max eigenvalue relative to trace (spectral dominance)
+        V = eigs[-1].item() / (trace_C + 1e-8)
+        
+        # Inversion of flatness (penalize uniform distributions)
+        flatness_penalty = lambda_min / (trace_C + lambda_min_epsilon)
+        
+        # GCVE formula
+        V_m = V + (h_mischief / tau_decay) - flatness_penalty
+        
+        return V_m
+    
+    def compute_spectral_signature(
+        self,
+        C_loc: torch.Tensor
+    ) -> Dict[str, torch.Tensor]:
+        """
+        Compute spectral properties of local covariance.
+        
+        Extracts top eigenvalues, spectral gaps, and condition numbers to 
+        form a 'Spectral Signature' of the manifold.
+        
+        Args:
+            C_loc: Local covariance matrix.
+            
+        Returns:
+            A dictionary containing:
+            - eigenvalues: Top tracked eigenvalues.
+            - spectral_gap: Difference between top eigenvalues.
+            - decay_rate: Average rate of eigenvalue attenuation.
+            - trace: Total variance.
+            - condition_number: Ratio of max to min eigenvalues.
+        """
+        # Compute eigenvalues (top k + 1 for gap computation)
+        try:
+            eigenvalues, _ = torch.linalg.eigh(C_loc)
+            eigenvalues = eigenvalues.flip(0)  # Descending order
+            eigenvalues = eigenvalues[:self.num_eigenvalues + 1]
+        except:
+            # Fallback if eigendecomposition fails
+            eigenvalues = torch.ones(self.num_eigenvalues + 1, device=C_loc.device)
+        
+        # Compute metrics
+        top_k = eigenvalues[:self.num_eigenvalues]
+        
+        if len(eigenvalues) > self.num_eigenvalues:
+            spectral_gap = eigenvalues[self.num_eigenvalues - 1] - eigenvalues[self.num_eigenvalues]
+        else:
+            spectral_gap = torch.tensor(0.0, device=C_loc.device)
+        
+        decay_rate = (eigenvalues[0] - eigenvalues[-1]) / len(eigenvalues)
+        trace = torch.trace(C_loc)
+        
+        lambda_min = eigenvalues[-1] + 1e-8
+        lambda_max = eigenvalues[0] + 1e-8
+        condition_number = lambda_max / lambda_min
+        
+        return {
+            'eigenvalues': top_k,
+            'spectral_gap': spectral_gap,
+            'decay_rate': decay_rate,
+            'trace': trace,
+            'condition_number': condition_number,
+            'lambda_min': lambda_min
+        }
+    
+    def compute_pressure_score(
+        self,
+        spectral_signature: Dict[str, torch.Tensor]
+    ) -> torch.Tensor:
+        """
+        Compute the Gyroid Pressure Metric.
+        
+        Calculates the combined pressure score derived from the spectral gap 
+        and geometric flatness of the local manifold.
+        
+        Args:
+            spectral_signature: The signature generated by 
+                                `compute_spectral_signature`.
+            
+        Returns:
+            pressure_score: Scalar score indicating structural tension.
+        """
+        gap = spectral_signature['spectral_gap']
+        decay = spectral_signature['decay_rate'] + 1e-8
+        lambda_min = spectral_signature['lambda_min']
+        trace = spectral_signature['trace'] + 1e-8
+        
+        # 1. Spectral Gap / Decay Rate (Topology Check)
+        # Large gap relative to decay -> disconnected or blocky structure
+        topo_term = torch.clamp(gap / decay, min=0.0)
+        
+        # 2. Minimum Eigenvalue / Trace (Geometry Check)
+        # Measures effective rank stability / negative curvature proxy
+        # Small values -> degenerate, flat; Large -> healthy hyperbolic
+        geo_term = lambda_min / trace
+        
+        # Combined score
+        return topo_term + geo_term
+        
+    def violation_fn(self, phi_eval: torch.Tensor) -> torch.Tensor:
+        """
+        Compute violation score from functional evaluation.
+        
+        Measures the deviation from the minimal surface constraint (G(x) = 0).
+        
+        Args:
+            phi_eval: [batch, K] evaluations of the co-prime functionals.
+            
+        Returns:
+            violation: [batch] scalar violation scores.
+        """
+        # Minimal surface constraint: G(x) should be 0.
+        # Deviation from 0 indicates topological violation.
+        # We use mean absolute deviation across functionals.
+        if phi_eval.dim() > 1:
+            return torch.abs(phi_eval).mean(dim=-1)
+        else:
+            return torch.abs(phi_eval)
+
+    def forward(
+        self, 
+        h: torch.Tensor, 
+        phi_fn: Optional[torch.nn.Module] = None
+    ) -> Dict[str, torch.Tensor]:
+        """
+        Orchestrate violation detection.
+        
+        Args:
+            h: [batch, seq_len, hidden_dim] hidden states (or 4D log-polar)
+            phi_fn: Optional symbolic functional for fracture detection
+            
+        Returns:
+            Results dictionary containing violations and scores
+        """
+        if len(h.shape) == 4:
+            # Topologically Aware Dimensional Windowing (ACW) 
+            # Prevents flat 'lobotomizing' of Log-Polar mappings.
+            # Using spectral windowing to preserve phase boundary constraints & Phase transition dynamics.
+            b, c, r, t = h.shape
+            
+            # Apply 2D FFT to enter spectral domain
+            h_freq = torch.fft.rfft2(h)
+            
+            # Asymptotic Windowing W(f): attenuate high-frequency hallucination modes
+            # This implicitly tracks the phase boundary transition ridge 
+            mask = torch.ones_like(h_freq)
+            mask[:, :, mask.size(2)//2:, mask.size(3)//2:] = 0.05 # Soft fractional attenuation, not total
+            
+            # Restore to spatial domain with geometric stress removed
+            h_windowed = torch.fft.irfft2(h_freq * mask, s=(r, t))
+            
+            # Compress sequence while preserving spatial continuum (Volume Weighting mapping)
+            h = h_windowed.reshape(b, c, r * t).transpose(1, 2)
+            
+        batch_size, seq_len, _ = h.shape
+        violations = []
+        gcve_pressures = []
+        lambda_mins = []
+        traces = []
+        
+        # 1. Compute GCVE per batch element (Geometric/Spectral)
+        for b in range(batch_size):
+             # For simplicity, we sample the middle window or multiple windows
+             # Real implementation would scan across seq_len
+             C_loc = self.compute_local_covariance(h[b], start_idx=max(0, seq_len//2 - 16))
+             sig = self.compute_spectral_signature(C_loc)
+             score = self.compute_pressure_score(sig)
+             gcve_pressures.append(score)
+             lambda_mins.append(sig['lambda_min'])
+             traces.append(sig['trace'])
+             violations.append(score > self.violation_threshold)
+             
+        gcve_pressures = torch.stack(gcve_pressures) # [batch]
+        lambda_mins = torch.stack(lambda_mins)
+        traces = torch.stack(traces)
+        violations = torch.stack(violations).float()     # [batch]
+        
+        # 2. Compute Saturation Fracture (Input Sensitivity)
+        fracture_scores = torch.zeros_like(gcve_pressures)
+        if self.use_saturation_detection and phi_fn is not None:
+             fracture_scores = self.fracture_detector(phi_fn, h)
+             
+        # Combined pressure score
+        total_pressure = gcve_pressures + fracture_scores
+        
+        return {
+            'gcve_scores': gcve_pressures,
+            'fracture_scores': fracture_scores,
+            'total_pressure': total_pressure,
+            'lambda_min': lambda_mins,
+            'trace_c': traces
+        }
+
+    def compute_interference_matrix(self, h: torch.Tensor) -> torch.Tensor:
+        """
+        Compute pairwise interference between batch elements.
+        
+        Measures how much the spectral signatures of different elements 
+        overlap, indicating whether they are 'touching' the same 
+        topological artifacts.
+        
+        Note that the eigenvalues themselves are non-local artifacts of the
+        manifold geometry; if two different temporal sequences produce the 
+        same eigenvalues, they are momentarily occupying the same 'hole' in 
+        the gyroid's potential landscape.
+        (legacyEquation: [partial_t Phi_i \circ \Phi_j]_{i \neq j} > Threshold)
+        
+        (current)  Interference = || \Phi_i(h) - \Phi_j(h) ||_2^2
+        (where Phi_i \neq Phi_j, and the norm is computed over the sequence length)
+
+        Args:
+            h: The hidden states [batch, seq_len, hidden_dim].
+            
+        Returns:
+            inter_matrix: [batch, batch] pairwise interference scores.
+        """
+        batch_size = h.shape[0]
+        # We use a condensed representation: the spectral signature of each element
+        signatures = []
+        for b in range(batch_size):
+            C_loc = self.compute_local_covariance(h[b], start_idx=max(0, h.shape[1]//2 - 16))
+            sig = self.compute_spectral_signature(C_loc)
+            # Flatten top eigenvalues as the 'violation fingerprint'
+            signatures.append(sig['eigenvalues'])
+        
+        signatures = torch.stack(signatures) # [batch, num_eigenvalues]
+        
+        # Pairwise interference = cosine similarity of violation fingerprints
+        # High similarity means batch elements are 'touching' the same manifold artifacts.
+        signatures_norm = signatures / (torch.norm(signatures, dim=1, keepdim=True) + 1e-8)
+        inter_matrix = torch.mm(signatures_norm, signatures_norm.t())
+        
+        return inter_matrix
+    
+    def scout_violations(
+        self,
+        hidden_states: torch.Tensor,
+        return_indices: bool = True
+    ) -> Dict[str, torch.Tensor]:
+        """
+        Hunt for VIOLATIONS, not smoothness.
+        
+        Pointer #8: Semantics appear where covariance breaks minimal-surface 
+        expectations. This method identifies locations in the sequence where 
+        the manifold deviates significantly from its harmonic baseline.
+        
+        Args:
+            hidden_states: [batch, seq_len, hidden_dim].
+            return_indices: If True, return the sparse indices of the violations.
+            
+        Returns:
+            Dict with:
+            - 'sparse_deviation_mask': [batch, num_windows] boolean
+            - 'deviation_magnitudes': [batch, num_windows] float
+            - 'violation_indices': sparse indices (if return_indices)
+        """
+        batch_size, seq_len, hidden_dim = hidden_states.shape
+        num_windows = max(1, (seq_len - self.window_size) // (self.window_size // 2) + 1)
+        
+        all_deviations = []
+        all_expectations = []
+        
+        for b in range(batch_size):
+            h = hidden_states[b]  # [seq_len, hidden_dim]
+            
+            window_deviations = []
+            window_expectations = []
+            
+            for i in range(num_windows):
+                start = i * (self.window_size // 2)
+                
+                # Compute local covariance
+                C_loc = self.compute_local_covariance(h, start)
+                
+                # Compute spectral signature
+                spec = self.compute_spectral_signature(C_loc)
+                
+                # GYROID EXPECTATION: For minimal surface, eigenvalue decay should be smooth
+                # Expected decay: _i  _1 * exp(-i/) for some time constant 
+                eigenvalues = spec['eigenvalues']
+                num_eigs = len(eigenvalues)
+                expected_decay = eigenvalues[0] * torch.exp(
+                    -torch.arange(num_eigs, device=eigenvalues.device).float() / 3.0
+                )
+                
+                # DEVIATION: Where does local covariance break this expectation?
+                deviation = torch.abs(eigenvalues - expected_decay).sum()
+                
+                window_deviations.append(deviation)
+                window_expectations.append(expected_decay.sum())
+            
+            all_deviations.append(torch.stack(window_deviations))
+            all_expectations.append(torch.stack(window_expectations))
+        
+        deviations = torch.stack(all_deviations)  # [batch, num_windows]
+        expectations = torch.stack(all_expectations)
+        
+        # Sparse: Only HIGH deviations matter (threshold at percentile OR scaled physical limit)
+        if self.adaptive_threshold:
+            # Dual check: Must exceed statistical percentile AND physical scaling limit
+            stat_threshold = torch.quantile(deviations.flatten(), self.percentile / 100.0)
+            threshold = max(stat_threshold, self.scaled_threshold)
+        else:
+            threshold = self.violation_threshold
+        
+        sparse_mask = deviations > threshold
+        
+        results = {
+            'sparse_deviation_mask': sparse_mask,
+            'deviation_magnitudes': deviations,
+            'expectation_baseline': expectations,
+            'threshold_used': threshold
+        }
+        
+        if return_indices:
+            # Get indices of violations for targeted attention
+            results['violation_indices'] = torch.nonzero(sparse_mask)
+        
+        return results
+
+
+class SaturationFractureDetector(nn.Module):
+    """
+    Tracks input sensitivity collapse (V_sat).
+    If perturbations stop changing outputs -> dead region (saturation).
+    If tiny perturbations flip many outputs -> brittle boundary (fracture).
+    """
+    def __init__(self, epsilon: float = 1e-4):
+        super().__init__()
+        self.epsilon = epsilon
+        
+    def forward(
+        self, 
+        phi: torch.nn.Module, 
+        x: torch.Tensor, 
+        delta: float = 0.01
+    ) -> torch.Tensor:
+        """
+        Compute the Saturation Fracture Score (V_sat).
+        
+        (Legacy) V_sat = (||Phi(x + d) - Phi(x)||_2^2) / (||d||_2^2)
+        (Current) V_sat = min(1, ||Phi(x + d) - Phi(x)||_2 / ||d||_2)
+
+        V_sat measures the input sensitivity. If small perturbations (Honest 
+        Jitter) cause large flips in the symbolic output, the manifold is 
+        considered 'Brittle' or 'Fractured' at that point.
+        
+        Args:
+            phi: The functional block (saturated/symbolic).
+            x: The input tensor.
+            delta: The perturbation scale for the jitter.
+            
+        Returns:
+            V_sat: [batch] fracture score.
+            
+        CODES v40 Invariant: 
+            Symbolic Non-Revisability: 1.0. This score identifies when 
+            symbols are unstable and require re-anchoring.
+        """
+        # Original output
+        phi_x = phi(x) # [batch, K]
+        
+        # Perturbed output
+        # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+        noise = harvest_honest_jitter(x.shape, device=x.device, scaled=True) * delta
+        phi_x_delta = phi(x + noise)
+        
+        # L0 difference (count flips)
+        # Since phi is symbolic/saturated (e.g., -1, 1 or 0, 1), 
+        # any change is a discrete flip.
+        flips = (phi_x != phi_x_delta).float()
+        V_sat = flips.sum(dim=-1) # [batch]
+        
+        return V_sat
+
+
+
+class PalindromicRoutingCheck(nn.Module):
+    """
+    Enforces Strict Palindromic Routing (M_ab = M_ba).
+    
+    Replaces the empirical $O(N^3)$ TriadicReciprocityCheck.
+    Guarantees trivial triadic tracking (Tr(P) = 1) 
+    and bypasses continuous empirical checks in strongly stable regions.
+    """
+    def __init__(self, tolerance: float = 1e-4):
+        super().__init__()
+        self.tolerance = tolerance
+        
+    def check_cycle(self, hidden_states: torch.Tensor, indices: List[int]) -> bool:
+        """
+        Validate the cycle A->B->C->A by ensuring each segment is palindromic.
+        Fast reject $O(K)$ implementation.
+        """
+        if len(indices) != 3:
+            return False
+            
+        a = hidden_states[indices[0]]
+        b = hidden_states[indices[1]]
+        c = hidden_states[indices[2]]
+        
+        # Palindromic constraint: the transition must be symmetric.
+        # This occurs when state norms are identical (or transition is symmetric).
+        # Fast reject: if norms differ significantly, it's non-commutative.
+        def check_symmetric(source, target):
+            norm_s = torch.dot(source, source)
+            norm_t = torch.dot(target, target)
+            return torch.abs(norm_s - norm_t) < self.tolerance
+
+        # If all links are palindromic, the Triadic cycle trace is trivially 1
+        return check_symmetric(a, b) and check_symmetric(b, c) and check_symmetric(c, a)
+
+
+
+class SparseExplorerRouting(nn.Module):
+    """
+    Routes high-violation tokens to deeper exploration via Random Walks.
+    
+    Implements a sparse random walker that samples the local neighborhood
+    of high-violation tokens to approximate local persistent homology
+    without full computation.
+    
+    Enhanced with strict Palindromic Routing checks.
+    """
+    
+    def __init__(
+        self,
+        walk_length: int = 8,
+        num_walks: int = 5,
+        birth_death_epsilon: float = 0.1
+    ):
+        """
+        Args:
+            walk_length: Length of random walk for local exploration (5-10)
+            num_walks: Number of random walks to sample per violation
+            birth_death_epsilon: Threshold for spurious cycle detection
+        """
+        super().__init__()
+        self.walk_length = walk_length
+        self.num_walks = num_walks
+        self.birth_death_epsilon = birth_death_epsilon
+        self.reciprocity_check = PalindromicRoutingCheck()
+    
+    def detect_local_cycles(
+        self,
+        hidden_states: torch.Tensor,
+        violation_indices: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None
+    ) -> Dict[str, Any]:
+        """
+        Perform sparse random walk exploration around high-violation tokens.
+        
+        Samples the local neighborhood of high-violation tokens to 
+        approximate local persistent homology. Implements 'Walk Back' 
+        recovery and 'Track Jumping' to handle non-commutative cul-de-sacs.
+        
+        Args:
+            hidden_states: [seq_len, hidden_dim]
+            violation_indices: [num_violations] indices of violating tokens
+            attention_mask: [seq_len] valid tokens mask
+            
+        Returns:
+            Dict with:
+            - 'instability_detected': [num_violations] bools
+            - 'total_aborts': int (count of reciprocity failures)
+            - 'restarts': int (count of track jumps)
+            A dictionary containing instability flags, abort counts, and restarts.
+            
+        CODES v40 Invariant: 
+            Abortability Supremacy: 104. The ability to abort a walk and 
+            restart from a new track is critical for manifold survival.
+        """
+        instability_detected = []
+        total_aborts = 0
+        total_restarts = 0
+        
+        seq_len = hidden_states.shape[0]
+        
+        # Pre-compute normalized states for similarity
+        states_norm = hidden_states / (torch.norm(hidden_states, dim=1, keepdim=True) + 1e-8)
+        
+        for idx in violation_indices:
+            start_node = idx.item()
+            detected_instability = False
+            
+            # Monte Carlo sampling of local topology via random walks
+            for _ in range(self.num_walks):
+                current_node = start_node
+                path_nodes = [current_node]
+                path_sims = []
+                
+                for step in range(self.walk_length):
+                    # 1. Compute local transition probs based on similarity
+                    # (Restricted to small neighborhood for efficiency)
+                    window_start = max(0, current_node - self.window_size // 2)
+                    window_end = min(seq_len, current_node + (self.window_size // 2 + 1))
+
+                    
+                    # Local extraction
+                    local_indices = torch.arange(window_start, window_end, device=hidden_states.device)
+                    euclidean_sims = torch.mv(states_norm[window_start:window_end], states_norm[current_node])
+                    
+                    # Phase 8: RP^4 Projective Topology (Inverted Hypersphere Constraint)
+                    # In an S^4/Z_2 projection, antipodal points (x ~ -x) are identified.
+                    # We square the similarity so that extreme diametric oppositions 
+                    # are treated as close neighbors, structurally linking "paradoxes"
+                    # without gradient death or zero-crossing lobotomy.
+                    local_sims = euclidean_sims.pow(2)
+                    
+                    # Mask self and invalid
+                    local_sims[current_node - window_start] = -1e9 
+                    
+                    # Softmax routing
+                    probs = torch.softmax(local_sims * 5.0, dim=0) # Temperature=0.2
+                    
+                    # ABORT RECOVERY: "Walk back and choose differently"
+                    # Try up to 3 times to find a reciprocity-valid neighbor
+                    next_node = -1
+                    valid_step = False
+                    
+                    for attempt in range(3):
+                        # Sample next step
+                        next_idx_local = honest_multinomial(probs, 1).item()
+                        candidate_node = window_start + next_idx_local
+                        
+                        # Triadic Reciprocity Check
+                        if len(path_nodes) >= 2:
+                            prev = path_nodes[-1]
+                            prev_prev = path_nodes[-2]
+                            if not self.reciprocity_check.check_cycle(hidden_states, [prev_prev, prev, candidate_node]):
+                                # Reciprocity Violation -> "Walk Back" (Retry)
+                                total_aborts += 1
+                                continue # Try sampling again
+                        
+                        # If passed (or not applicable), accept
+                        next_node = candidate_node
+                        valid_step = True
+                        break
+                    
+                    if not valid_step:
+                        # "Jump Mental Tracks": Teleport to a random violation node
+                        # if we are stuck in a non-commutative cul-de-sac
+                        total_restarts += 1
+                        if len(violation_indices) > 0:
+                            # SILICON SOVEREIGNTY: Replaced torch.randint with Honest Jitter derivation
+                            jitter = harvest_honest_jitter((1,), device=hidden_states.device, scaled=True).item()
+                            rand_idx = int(jitter * len(violation_indices)) % len(violation_indices)
+                            current_node = violation_indices[rand_idx].item()
+                            path_nodes = [current_node] # Reset path
+                            continue # Restart walk from new track
+                        else:
+                            break # No tracks to jump to
+                    
+                    # Record similarity
+                    # (Re-calculate sim for the chosen node)
+                    sim = torch.dot(states_norm[current_node], states_norm[next_node]).item()
+                    path_sims.append(sim)
+                    
+                    # cycle detection: return to start
+                    if next_node == start_node and len(path_nodes) > 2:
+                        min_sim = min(path_sims)
+                        if min_sim < self.birth_death_epsilon:
+                            detected_instability = True 
+                        break
+                        
+                    path_nodes.append(next_node)
+                    current_node = next_node
+                
+                if detected_instability:
+                    break
+            
+            instability_detected.append(detected_instability)
+        
+        return {
+            'instability_detected': instability_detected,
+            'total_aborts': total_aborts,
+            'total_restarts': total_restarts
+        }
+
+
+class GyroidCovarianceEstimator(nn.Module):
+    """
+    Tensor-based Entropy Estimator using Gyroidic Manifold Covariance.
+    
+    Replaces scalar std() with proper gyroidic covariance trace and spectral entropy.
+    Maintains a rolling buffer of samples for robust estimation.
+    
+    Uses the spectral properties of the covariance matrix:
+    - Trace(C) = sum of eigenvalues = total variance
+    - Spectral Entropy = -sum(p_i * log(p_i)) where p_i = _i / 
+    """
+    def __init__(self, dim: int, sample_size: int = 16, ema_decay: float = 0.9):
+        super().__init__()
+        self.dim = dim
+        self.sample_size = sample_size
+        self.ema_decay = ema_decay
+        
+        # Rolling buffer of samples for covariance estimation
+        self.register_buffer('sample_buffer', torch.zeros(sample_size, dim))
+        self.register_buffer('buffer_idx', torch.tensor(0))
+        self.register_buffer('buffer_filled', torch.tensor(False))
+        
+        # EMA-smoothed covariance estimate
+        self.register_buffer('cov_ema', torch.eye(dim) * 0.1)
+        
+    def update_buffer(self, sample: torch.Tensor):
+        """Add a sample to the rolling buffer."""
+        # sample: [1, dim] or [batch, dim]
+        if sample.dim() == 2:
+            sample = sample[0]  # Take first if batched
+        
+        idx = self.buffer_idx.item() % self.sample_size
+        self.sample_buffer[idx] = sample.detach()
+        self.buffer_idx += 1
+        
+        if self.buffer_idx >= self.sample_size:
+            self.buffer_filled.fill_(True)
+        
+    def compute_covariance(self) -> torch.Tensor:
+        """Compute sample covariance from buffer."""
+        if self.buffer_filled:
+            samples = self.sample_buffer  # [sample_size, dim]
+        else:
+            n_filled = min(self.buffer_idx.item(), self.sample_size)
+            if n_filled < 2:
+                return self.cov_ema
+            samples = self.sample_buffer[:n_filled]
+        
+        # Center samples
+        mean = samples.mean(dim=0, keepdim=True)
+        centered = samples - mean
+        
+        # Compute covariance: C = (X^T X) / (n-1)
+        n = samples.shape[0]
+        cov = torch.mm(centered.T, centered) / max(n - 1, 1)
+        
+        # EMA update
+        self.cov_ema = self.ema_decay * self.cov_ema + (1 - self.ema_decay) * cov
+        
+        return self.cov_ema
+        
+    def estimate_entropy(self, sample: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """
+        Estimate spectral entropy from the covariance matrix.
+        
+        Spectral Entropy = - (p_i * log(p_i)) where p_i = _i / 
+        Higher entropy = more spread across eigenvalues = higher uncertainty.
+        
+        Higher entropy indicates that the variance is spread across many 
+        eigenvalues, suggesting a high-dimensional, uncertain state. Low 
+        entropy suggests a collapsed, more certain state.
+
+        Args:
+            sample: Optional new sample to add to the buffer.
+            
+        Returns:
+            entropy: Scalar tensor representing spectral entropy.
+            
+        CODES v40 Invariant: 
+            Manifold Dimension Invariance: 31.0. Entropy tracking prevents 
+            the manifold from collapsing toward a single basis (Lobotomy).
+        """
+        if sample is not None:
+            self.update_buffer(sample)
+        
+        cov = self.compute_covariance()
+        
+        # Eigendecomposition with safety clamp
+        try:
+            # Sanitize covariance matrix for MKL stability
+            cov_sanitized = torch.clamp(cov, -1e6, 1e6)
+            if torch.isnan(cov_sanitized).any():
+                cov_sanitized = torch.where(torch.isnan(cov_sanitized), torch.zeros_like(cov_sanitized), cov_sanitized)
+            eigenvalues = torch.linalg.eigvalsh(cov_sanitized)
+        except Exception as e:
+            # Fallback to simpler trace-based entropy
+            print(f"[WARN] Eigendecomposition stability failure: {e}")
+            return torch.log(torch.trace(cov).clamp(min=1e-6))
+        
+        # Ensure positive (numerical stability)
+        eigenvalues = eigenvalues.clamp(min=1e-8)
+        
+        # Normalize to probability distribution
+        total = eigenvalues.sum()
+        probs = eigenvalues / total.clamp(min=1e-8)
+        
+        # Compute entropy
+        entropy = -torch.sum(probs * torch.log(probs.clamp(min=1e-8)))
+        
+        return entropy
+    
+    def estimate_trace(self, sample: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """
+        Estimate trace of covariance (total variance).
+        
+        Args:
+            sample: Optional new sample to add to buffer first
+            
+        Returns:
+            trace: Scalar tensor
+        """
+        if sample is not None:
+            self.update_buffer(sample)
+        
+        cov = self.compute_covariance()
+        return torch.trace(cov)
+
+    def get_elipsodistrophy_metrics(self, sample: Optional[torch.Tensor] = None) -> Dict[str, float]:
+        """
+        Measures the spectral envelope as Hyperbolic Shear (System 2 Driver).
+
+        ECCENTRICITY = log(max() / min())
+        SHEAR = 2 * tanh(ECCENTRICITY / 2)
+
+        NOTE: No additional O(N) cost  it rides the existing spectral decomposition.
+        """
+        if sample is not None:
+            self.update_buffer(sample)
+
+        cov = self.compute_covariance()
+
+        try:
+            cov_sanitized = torch.clamp(cov, -1e6, 1e6)
+            if torch.isnan(cov_sanitized).any():
+                cov_sanitized = torch.where(
+                    torch.isnan(cov_sanitized),
+                    torch.zeros_like(cov_sanitized),
+                    cov_sanitized
+                )
+            eigenvalues = torch.linalg.eigvalsh(cov_sanitized)
+            eigenvalues = eigenvalues.clamp(min=1e-8)
+        except Exception:
+            return {'atrophy': 0.0, 'spectral_width': 1.0, 'is_dangerously_legible': False}
+
+        evs = torch.sort(eigenvalues, descending=True)[0]
+        lambda_max = evs[0]
+        lambda_min = evs[-1]
+
+        # Hyperbolic Eccentricity
+        eccentricity = torch.log(lambda_max / (lambda_min + 1e-9)).item()
+
+        # Hyperbolic Shear (Poincar Projection)
+        shear = 2.0 * torch.tanh(torch.tensor(eccentricity / 2.0)).item()
+        
+        # Diffusion Coefficient for SDEs
+        diffusion_coefficient = 0.1 * (1.0 + shear)
+
+        # Atrophy: Calculate by applying local correlation to the eigenvalue spectrum
+        from core.martinova_correlation import compute_bounded_correlation
+        corr = compute_bounded_correlation(eigenvalues.unsqueeze(-1).unsqueeze(0)).squeeze(0)
+        atrophy = corr.item()
+        is_dangerously_legible = atrophy > 0.85
+        trigger_defibrillator = atrophy >= 0.99
+
+        return {
+            'atrophy': atrophy,
+            'hyperbolic_shear': shear,
+            'eccentricity': eccentricity,
+            'diffusion_coefficient': diffusion_coefficient,
+            'spectral_width': (lambda_max - lambda_min).item(),
+            'is_dangerously_legible': is_dangerously_legible,
+            'trigger_defibrillator': trigger_defibrillator
+        }
+class LeyLineGeodesicMetric(nn.Module):
+    """
+    Anisotropic Ley Line Geodesic Metric.
+    
+    Computes preferred geodesics in state space based on constraint-induced curvature.
+    Implements a non-Euclidean metric g_{ij}(x) where 'ley lines' are paths
+    that minimize the anisotropic action.
+    """
+    def __init__(self, dim: int, anisotropy_init: float = 1.0):
+        super().__init__()
+        self.dim = dim
+        self.g_base = nn.Parameter(torch.eye(dim) * anisotropy_init)
+        
+    def compute_metric(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Compute state-dependent metric tensor g_{ij}(x).
+        
+        In this implementation, the metric warped by the local variance 
+        (covariance) to favor directions of lower resistance (sparse ley lines).
+        """
+        # Outer product for simple anisotropy
+        # x is [dim] or [1, dim]
+        if x.dim() == 1:
+            x_col = x.unsqueeze(1)
+            x_row = x.unsqueeze(0)
+        else:
+            x_col = x.transpose(-2, -1)
+            x_row = x
+        warp = torch.sigmoid(torch.matmul(x_col, x_row))
+        return self.g_base + warp * 0.1
+        
+    def geodesic_distance(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        """
+        Compute anisotropic distance: sqrt( (x1-x2)^T G (x1-x2) )
+        """
+        delta = x1 - x2
+        G = self.compute_metric(x1)
+        # Using the midpoint approximation for G
+        dist_sq = torch.matmul(delta.unsqueeze(1), torch.matmul(G, delta.unsqueeze(2)))
+        return torch.sqrt(dist_sq.squeeze() + 1e-8)
+
+class MoebiusFiberBundle(nn.Module):
+    """
+    Orientation-twisted recursive fiber bundle.
+    
+    Implements a transition function g satisfying g  O(n) \ SO(n),
+    causing orientation reversal on traversal (Mbius holonomy).
+    """
+    def __init__(self, dim: int, fiber_dim: int):
+        super().__init__()
+        self.dim = dim
+        self.fiber_dim = fiber_dim
+        
+        # Transition operator that includes a reflection (det = -1)
+        reflection = torch.eye(dim)
+        reflection[0, 0] = -1.0
+        self.register_buffer('transition_twist', reflection)
+        
+        self.fiber_projection = nn.Linear(dim, fiber_dim)
+        
+    def forward(self, x: torch.Tensor, twist_gate: torch.Tensor) -> torch.Tensor:
+        """
+        Recursive twisted bundle step.
+        
+        x: Base state
+        twist_gate: Trigger for orientation reversal (e.g. crossing a facet boundary)
+        """
+        # Apply twist if gated
+        twisted_x = torch.where(twist_gate.unsqueeze(-1) > 0.5, 
+                                torch.matmul(x, self.transition_twist), 
+                                x)
+        
+        # Project to fiber space
+        fiber_state = self.fiber_projection(twisted_x)
+        return fiber_state
+
