@@ -1922,4 +1922,13 @@ Examples:
         system.run_training(args.model, args.dataset)
     
     elif args.command == 'list-datasets':
-        sy
+        system.list_datasets()
+    
+    elif args.command == 'list-models':
+        system.list_models()
+        
+    elif args.command == 'list-training-sessions':
+        system.list_training_sessions()
+
+if __name__ == '__main__':
+    main()
