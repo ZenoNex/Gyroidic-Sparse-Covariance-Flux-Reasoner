@@ -489,8 +489,11 @@ class SiliconSovereigntyEngine:
             uint v0 = gid;
             uint v1 = (uint)(t_rfc_stall_anchor * 1000.0f);
             uint sum = 0;
-            uint delta = 0x9E3779B9;
-            uint k0 = base_salt, k1 = 0x12345678, k2 = 0x87654321, k3 = base_salt ^ delta;
+            uint delta = base_salt ^ 0x9E3779B9;
+            uint k0 = base_salt;
+            uint k1 = base_salt * 0x12345678;
+            uint k2 = base_salt * 0x87654321;
+            uint k3 = base_salt ^ delta;
             
             // 4-round TEA
             for(int i=0; i<4; i++) {
@@ -853,12 +856,53 @@ class SiliconSovereigntyEngine:
         cl.enqueue_copy(self.queue_a, coords_np, coords_buf, is_blocking=True)
         return coords_np
 
+    def _is_healthy(self) -> bool:
+        """Check if OpenCL context is active and queues are valid."""
+        return self.ctx is not None and self.queue_a is not None and self.queue_b is not None
+
     def apply_nostalgic_leak_tea_salt(self, state, mu_l, o_mask, alpha, t_rfc_stall_anchor, seed=None):
         """
         Bind hardware t_RFC stalls to Nostalgic Leak Functional via TEA-salt.
         """
-        if self.ctx is None:
-            # CPU Mock: simply return state unmodified for now as fallback
+        if not self._is_healthy():
+            # CPU Fallback calculation of TEA-salt logic
+            state = np.asarray(state, dtype=np.float32).copy()
+            mu_l = np.asarray(mu_l, dtype=np.float32)
+            o_mask = np.asarray(o_mask, dtype=np.float32)
+            if seed is None:
+                from src.core.honest_jitter import harvest_honest_jitter
+                seed = int(abs(harvest_honest_jitter((1,), scaled=False)[0].item()) * 4294967295)
+            
+            fossil_dim = state.shape[-1]
+            batch_size = state.shape[0] if state.ndim > 1 else 1
+            for i in range(batch_size):
+                offset = i * fossil_dim
+                v0 = i
+                v1 = int(t_rfc_stall_anchor * 1000.0) & 0xFFFFFFFF
+                sm = 0
+                delta = (seed ^ 0x9E3779B9) & 0xFFFFFFFF
+                k0 = seed
+                k1 = (seed * 0x12345678) & 0xFFFFFFFF
+                k2 = (seed * 0x87654321) & 0xFFFFFFFF
+                k3 = (seed ^ delta) & 0xFFFFFFFF
+                
+                for _ in range(4):
+                    sm = (sm + delta) & 0xFFFFFFFF
+                    v0 = (v0 + (((v1 << 4) + k0) ^ (v1 + sm) ^ ((v1 >> 5) + k1))) & 0xFFFFFFFF
+                    v1 = (v1 + (((v0 << 4) + k2) ^ (v0 + sm) ^ ((v0 >> 5) + k3))) & 0xFFFFFFFF
+                    
+                salt_factor = ((v0 % 1000) / 1000.0) * 0.1
+                
+                dist_sq = 0.0
+                for d in range(fossil_dim):
+                    diff = state[offset + d] - o_mask[d]
+                    dist_sq += diff * diff
+                dist = math.sqrt(dist_sq)
+                vis = 1.0 / (1.0 + math.exp(max(min(-alpha * dist, 88.0), -88.0)))
+                
+                for d in range(fossil_dim):
+                    leak = state[offset + d] * mu_l[d] * (1.0 - vis) * (1.0 + salt_factor)
+                    state[offset + d] -= leak
             return state
 
         if seed is None:
