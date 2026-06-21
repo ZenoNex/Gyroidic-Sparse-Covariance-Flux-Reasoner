@@ -717,6 +717,12 @@ class GyroidicFluxReasoner(nn.Module):
         # Prepare Voynich Token (passed via text_emb's metadata if available, or attribute)
         voynich_token = getattr(self, '_current_voynich_token', None)
 
+        # Inject VetoStatus into tag weights so Orchestrator can trigger Saturation Escalation
+        if tag_weights is None:
+            tag_weights = {}
+        if hasattr(self, '_last_veto_result') and self._last_veto_result is not None:
+            tag_weights['veto_status'] = self._last_veto_result.status.value
+            
         h_orchestrated, regime, routing, _stacked_target = self.orchestrator(
             state=h,
             pressure_grad=pressure_grad,
@@ -856,7 +862,8 @@ class GyroidicFluxReasoner(nn.Module):
                 instability_severity=instability_severity,
                 covariance_aborts=_abort,
                 elipsodistrophy_atrophy=atrophy_val,
-                topological_pressure=total_topological_pressure.mean().item() if hasattr(total_topological_pressure, 'mean') else float(total_topological_pressure)
+                topological_pressure=total_topological_pressure.mean().item() if hasattr(total_topological_pressure, 'mean') else float(total_topological_pressure),
+                valence_hunger=self.orchestrator.current_hunger.item() if hasattr(self, 'orchestrator') else None
             )
             # Store diagnostics for downstream consumers
             self._last_veto_result = veto_result
