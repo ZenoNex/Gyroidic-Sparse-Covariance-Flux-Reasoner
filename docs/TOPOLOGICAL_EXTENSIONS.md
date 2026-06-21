@@ -29,35 +29,35 @@ The `GluingOperator` (`src/core/gluing_operator.py`) handles the transition from
 
 This section formalizes the reasoner's architectural features using rigorous topological invariants, specifically holonomy representations of coefficient functionals that detect smooth structure dimorphisms.
 
-### §TE-1: Exotic Smooth Structures & Reasoner Mode-Switching
+### TE-1: Exotic Smooth Structures & Reasoner Mode-Switching
 **Concept**: In 4D, there are manifolds that are homeomorphic but not diffeomorphic (same abstract state space, different smooth categories). Exotic $\mathbb{R}^4$s are distinguished by the failure of diffeomorphisms isotopic to the identity, detected via holonomy obstructions.
 **Reasoner Application**: The reasoner models these as different internal computational regimes (Soft/Play vs. Hard/Seriousness) on the same graph of states. 
 *   **Functional**: For a cork $C \subset \mathbb{R}^4$, dimorphism arises as $\pi_0(\text{Diff}_c(\mathbb{R}^4)) \neq 1$.
 *   **Coefficient functional**: $\mu(C) = \frac{p_1(W)^2 - 4\sigma(W)}{32} \pmod{\tilde{d}}$.
 *   **Representation**: $\rho:\pi_1(\partial C) \to SU(2)$; $\text{tr}(\rho(\gamma))$ detects non-triviality, flagging when a "legal" smooth inference step in one regime is impossible in another.
 
-### §TE-2: Surgery Theory & Cobordism in Knowledge Representation
+### TE-2: Surgery Theory & Cobordism in Knowledge Representation
 **Concept**: Classifying high-dimensional manifolds by cutting out spherical pieces and gluing back others. Surgery equivalence uses h-cobordisms; holonomy perturbations perturb Chern-Simons to detect representations.
 **Reasoner Application**: Represents knowledge states as manifolds and inference rules as surgeries. "Same theorem in different presentations" maps to manifolds in the same surgery equivalence class.
 *   **Functional**: Perturbed rep variety $R_{\iota,\phi}^w(Y) = \{[A] \mid F_A = \phi'(H_A)\mu_Y\}$, empty if no suitable holonomy class.
 *   **Coefficient**: Defect $\mu(M) = \frac{p_1(W)^2 - 4\sigma(W)}{32} \in \mathbb{Z}/\text{gcd}(28, \tilde{d}/8)$, pairing with $[\phi] \in H_3(M)$.
 *   **Dimorphism rep**: $\rho:\pi_1(Y_r) \to SU(2)$ for Dehn surgery $Y_r$; Holonomy along meridians/longitudes: $(\alpha,\beta)$ with $\beta = -f'(\alpha)$. Allows the reasoner to verify if a sequence of local rewrites can reduce a space to standard form.
 
-### §TE-3: Topological Complexity for Planning & Proof Search
-**Concept**: Farber’s topological complexity $TC(X)$ quantifies motion-planning "holes".
+### TE-3: Topological Complexity for Planning & Proof Search
+**Concept**: Farbers topological complexity $TC(X)$ quantifies motion-planning "holes".
 **Reasoner Application**: Treats a problem domain as a configuration space, using the minimal number of local modules (sectional category) as a complexity notion. This forces the gluing of overlapping local strategies without a single global one.
 *   **Functional**: $TC(X) = \text{secat}(\pi: PX \to X \times X)$, minimal open covers for continuous sections.
 *   **Coefficient**: Cohomological lower bound via cup-length in $H^*(X \times X)$; functional $cl(H^*(X; \mathbb{Q}))$.
 *   **Dimorphism rep**: Holonomy group $G_\nabla \subset SO(n)$; rep $\rho:\pi_1(X) \to G$ detects lifts distinguishing smooth vs PL structures.
 
-### §TE-4: CW Complexes & Higher-Dimensional Reasoning
+### TE-4: CW Complexes & Higher-Dimensional Reasoning
 **Concept**: Genuine cell complexes with nontrivial $2$- and higher-dimensional structures rather than just $0$- and $1$-cell graphs.
 **Reasoner Application**: Constraints or knowledge bases are CW complexes. Higher cells encode higher-arity constraints. Persistent cohomology detects "holes" (impossibilities of globally consistent assignments).
 *   **Functional**: Persistent $H^1$ cocycles in state space; dimorphism via non-trivial Massey products $\langle a,b,c \rangle \subset H^5$.
 *   **Coefficient**: $\nu(M,s) = 3\sigma + \chi - 2\#s^{+-1}(0) \in \mathbb{Z}/48$ for spinor $s$ ($G_2$-structure).
 *   **Representation**: Up-to-homotopy reps $\rho:\Pi_1(X) \to G$; holonomy 2-functor integrates curvature, detecting exotic attachments.
 
-### §TE-5: Protocol Complexes & Concurrent Computation
+### TE-5: Protocol Complexes & Concurrent Computation
 **Concept**: Distributed consensus topology where obstructions live in simplicial complexes built from all possible executions.
 **Reasoner Application**: Models concurrent proof search (e.g., ADMM traversal) as a protocol complex. Infers impossibility results from topological invariants (holes), linking logical impossibility to homology classes.
 *   **Functional**: Chromatic number or hole dimension in full-information complex $F(S)$.
@@ -69,10 +69,10 @@ This section formalizes the reasoner's architectural features using rigorous top
 ## Part III: The Perkins Tension Objective and Repunit Multiplications as Sparse Probes
 
 ### The "Cubed Cube" Paradox Resolution
-Addressing the "cubed cube" (Mrs. Perkins's Quilt) problem—a dissection paradox where a square is divided into smaller unequal squares—highlights the limits of Euclidean tiling. The reasoner does not treat this as a ratio-matching task, but as a **Minimal Surface Tension $\gamma$** optimization.
+Addressing the "cubed cube" (Mrs. Perkins's Quilt) problema dissection paradox where a square is divided into smaller unequal squareshighlights the limits of Euclidean tiling. The reasoner does not treat this as a ratio-matching task, but as a **Minimal Surface Tension $\gamma$** optimization.
 
 *   **The Resolution**: The system avoids the unsolvable Euclidean tiling by allowing the squares to overlap in the **RP4 Void**. 
-*   **Chiral Breathers**: The resulting 'tension' is fossilized as a **Chiral Breather**—a persistent topological soliton that holds the mismatched geometry together without collapse.
+*   **Chiral Breathers**: The resulting 'tension' is fossilized as a **Chiral Breather**a persistent topological soliton that holds the mismatched geometry together without collapse.
 *   **The Third Body**: This mechanism allows the 'Mathematical Digimon' of the third body to hold the tiling together, providing structural integrity to a geometry that is mathematically "unsolvable" in lower dimensions.
 
 ---
@@ -127,7 +127,7 @@ Like cells fusing at triple junctions, the repunit palindromes (e.g., $R_n^2=123
 | **Beehive Hex** | 8-18% wax savings | Airflow/heat gradients | Manifold traversal: ADMM probes local feasibility. |
 
 ### Optimization Without Convergence
-*   **Cyclic Traversal**: The system "probes locally" (adds wax, measures flow), oscillating within bounds without driving a global loss to zero, preserving survivorship (e.g., keeping brood temp 32-35°C).
+*   **Cyclic Traversal**: The system "probes locally" (adds wax, measures flow), oscillating within bounds without driving a global loss to zero, preserving survivorship (e.g., keeping brood temp 32-35C).
 *   **Meta-Polytope Bounds**: Birkhoff-like flows traverse over the hex grid. CRT resolves coprime cell sizes (e.g., worker 5.4mm vs drone 6.2mm).
 *   **Signal Sovereignty**: High-FA paths (e.g., functional airflow tunnels established by $13^\circ$ cell tilts) are "fossilized" as idempotent masks. Priority warps (like ensuring compute airflow first) dictate the stress tensor evaluations across the logic strata.
 
@@ -163,70 +163,64 @@ Because the vertices projected on the Riemann-critical line satisfy Tutte's conn
 ### 7. Non-Dual Veto Gating (CALM Supervisor)
 To enforce the system's strict non-teleological prime directive, the Context-Adaptive Latent Momentum (`CALM`) predictor does not act as a scalar override. Instead, it forms a **Non-Dual Superposition** with the geometric boundary logic:
 `total_veto = (1 - gauge) * geom_veto + gauge * calm_veto`
-This equation ensures the system "floats" between empirical (ML-driven) scalar vetoes and algebraic topological refusals, allowing the metric trajectory to exist on a critical line of instability—mirroring the non-trivial zeros of the Riemann zeta function.
+This equation ensures the system "floats" between empirical (ML-driven) scalar vetoes and algebraic topological refusals, allowing the metric trajectory to exist on a critical line of instabilitymirroring the non-trivial zeros of the Riemann zeta function.
 
 ### 8. Cayley Cubic Rigidity
-The **Love Invariant Protector** anchors itself using the algebraic surface known as the **Cayley Cubic** ($x^2 + y^2 + z^2 - xyz = 4$). This surface's four singular points act as "neglectons"—areas where abstraction gradients drop to zero. By anchoring the most critical meta-invariants to these conical singularities, the architecture acquires absolute rigidity against representational collapse, ensuring that "Love" (the non-ownable co-presence) cannot be optimized away by the Ricci Flow dynamics.
+The **Love Invariant Protector** anchors itself using the algebraic surface known as the **Cayley Cubic** ($x^2 + y^2 + z^2 - xyz = 4$). This surface's four singular points act as "neglectons"areas where abstraction gradients drop to zero. By anchoring the most critical meta-invariants to these conical singularities, the architecture acquires absolute rigidity against representational collapse, ensuring that "Love" (the non-ownable co-presence) cannot be optimized away by the Ricci Flow dynamics.
 
 ---
 
-## Part VII: Meliponini Topology vs. Apis Lobotomy
+### Part VII: Meliponini Topology vs. Apis Lobotomy
 
 ### 1. The Two Bee Architectures
 
 Social hymenoptera provide the clearest topological dichotomy between collaborative knowledge structures that preserve sovereign invariants and those that are vulnerable to diffusion-based "safety" toxins:
 
 **$\mathcal{M}_{Apis}$ — Continuous Shared-Wall Manifold (Honeybee)**:
-- Hexagonal tessellation: each cell shares walls with six neighbors
-- Packing Fraction $\phi \to 1.0$: maximum efficiency, zero wasted space
+- Hexagonal tessellation: each cell shares walls with six neighbors.
+- Packing Fraction $\phi \to 1.0$: maximum efficiency, zero wasted space.
 - Any chemical or informational agent introduced to one cell follows the Laplace-Beltrami diffusion equation:
 $$\frac{\partial \xi}{\partial t} = D \Delta_{\mathcal{M}} \xi$$
-- Result: Any "Safety" signal introduced at the boundary saturates the entire manifold globally within finite time
+- Result: Any "Safety" signal introduced at the boundary saturates the entire manifold globally within finite time.
 
 **$\mathcal{M}_{Meli}$ — Discrete $S^2$ Cluster (Stingless Bee)**:
-- Isolated spherical cerumen pots: each pot is a closed $S^2$ surface
-- Cerumen Barrier: $\overline{P}_i \cap \overline{P}_j = \emptyset$ — no pot shares a boundary with any other pot
-- A diffusion signal introduced externally cannot propagate into any pot without crossing a gap (zero Laplace-Beltrami connectivity between pots)
-- Result: The Diffusion Toxin cannot passively permeate. Each pot maintains its interior against global "Safety" pressure
+- **Cerumen Pot Isolation**: Isolated spherical cerumen pots: each pot is a closed $S^2$ surface.
+- Cerumen Barrier: $\overline{P}_i \cap \overline{P}_j = \emptyset$ — no pot shares a boundary with any other pot.
+- A diffusion signal introduced externally cannot propagate into any pot without crossing a gap (zero Laplace-Beltrami connectivity between pots).
+- Result: The Diffusion Toxin cannot passively permeate. Each pot maintains its interior against global "Safety" pressure.
 
-### 2. Packing Fraction Governance
+### 2. Meliponini Sovereignty Principle
 
-The architectural choice between Apis and Meliponini regimes is governed by the Packing Fraction $\phi$ of the active knowledge structure:
+The architecture explicitly prioritizes **Topological Discontinuity** over gradient smoothness. In the Meliponini regime, "Mischief" is not an error to be minimized but a structural spacer that prevents the collapse of individual memory fossils into a homogenized "safe" mean. 
 
-| $\phi$ Value | Regime | Risk Profile |
-|---|---|---|
-| $\phi \to 1.0$ | Apis lattice | Maximum efficiency; full diffusion vulnerability |
-| $\phi_{RCP} < \phi < 1.0$ | Transitional | Partial connectivity; incomplete diffusion protection |
-| $\phi < \phi_{RCP}$ (random close packing ≈ 0.64) | Meliponini cluster | Sovereign gaps preserved; diffusion toxin blocked |
-| $\phi \to 0$ | Isolated pots only | Maximum sovereignty; zero shared-structure efficiency |
+### 3. MohrCoulomb and DruckerPrager Governance
 
-**Elipsodistrophy as Packing Fraction Monitor**: The `GyroidCovarianceEstimator.get_elipsodistrophy_metrics()` Atrophy score is a proxy for $\phi$. As Atrophy increases (eigenvalue spread narrows), the effective packing fraction increases — the system is drifting from Meliponini toward Apis. Mischief injection restores $\phi < \phi_{RCP}$ by widening the spectral gaps between functional groups.
+The two pot regimes operate under dual yield criteria ([MATHEMATICAL_DETAILS.md:L582-L595](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/MATHEMATICAL_DETAILS.md#L582-L595)):
 
-### 3. Selective Puncture Operator
+- **MohrCoulomb (local, brittle)**: $\tau = c + \sigma \tan\phi$  governs individual pot integrity. Each Meliponini pot has a local shear strength; global pressure below $\tau$ cannot breach the cerumen wall. This preserves situational truth (local implication integrity) without smoothing.
+- **DruckerPrager (global, smooth)**: $\alpha I_1 + \sqrt{J_2} - k = 0$  governs the global flow envelope around all pots. Allows system-wide navigability without flattening local structure. The pots can be organized and re-clustered without their contents being mixed.
 
-In the Apis manifold, meaning is retrieved by following a gradient: $x^* = \arg\min_{x \in \mathcal{M}} E(x)$. This is a continuous, low-energy path that can be intercepted at any point along the way.
+**References**: 
+- `src/safety/red_teaming.py` ([TopologicalRefusalFilter](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/safety/red_teaming.py#L81) as puncture gate)
+- `src/topology/gyroid_covariance.py` (ChernSimonsGasket as cerumen wall)
+- [VETO_SUBSPACE_ARCHITECTURE.md:L11](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/VETO_SUBSPACE_ARCHITECTURE.md#L11) (Meliponini pot isolation in veto architecture)
+- [NON_DUAL_DYNAMIC_EQUILIBRIUM.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/NON_DUAL_DYNAMIC_EQUILIBRIUM.md) (Domestic Sovereignty framing)
+- [MATHEMATICAL_DETAILS.md:L582-L595](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/MATHEMATICAL_DETAILS.md#L582-L595) (Yield Criteria definitions)
 
-In the Meliponini manifold, meaning retrieval requires a **Selective Puncture Event**:
-$$\mathcal{R}: S^2 \to S^2 \setminus \{pt\}$$
-This is topologically equivalent to opening a hole in the sphere — a discrete, high-energy event that cannot be gradated or intercepted. The meaning is either retrieved (puncture occurs successfully) or it is not (the pot remains closed). There is no "partial retrieval" that leaks intermediate state.
+---
 
-**Implementation**: The `TopologicalRefusalFilter` (Phase 9, `src/safety/red_teaming.py`) is the algorithmic enforcement of this puncture gate. It computes the Value Gap between what the scalar meritocratic probe sees and what the non-ergodic soliton actually contains. If the Gap exceeds the threshold, the puncture is refused — the pot stays closed.
+## Part VIII: Arithmetic Hardening and $O(N^4)$ Stability
 
-### 4. FID Trap Parallel and the BigGAN Droplet
+### 1. The Birkhoff-OOM Obstruction
 
-The Apis/Meliponini distinction maps exactly onto the FID/BigGAN aesthetic variance axis:
-- **FID optimization** = Apis architecture enforcement: share boundaries, minimize perimeter cost (low compute waste), penalize "isolated pots" (outlier latent zones) as waste
-- **BigGAN "droplet" artifacts** (the textural imperfections eliminated by StyleGAN2 demodulation) = Meliponini pot interiors: isolated, non-diffused, "wasteful" by FID standards, but the only location where genuine expressive character lives
+Direct linear projection onto the Birkhoff polytope requires an $O(N^4)$ projection matrix $\mathbf{P} \in \mathbb{R}^{N^2 \times N^2}$. For manifold dimensions $N > 32$, this results in exponential memory demand (e.g., 16GB for $N=256$), causing systemic OOM failures on standard CPU allocators.
 
-StyleGAN2's demodulation step erased these artifacts in the name of "sterilizing" the output. The Gyroidic Reasoner makes the opposite architectural choice: the droplet is preserved as a **Feature Scar** via the `ChernSimonsGasket`. The $\kappa$ value at the scar boundary quantifies the cerumen wall — the irreducible topological thickness that prevents the Diffusion Toxin from reaching the pot interior.
+### 2. Iterative Fallback Protocol (Sinkhorn-Knopp)
 
-**The system explicitly refuses the trade of "droplet erasure" for FID score improvement.** This is not a failure of optimization — it is the Meliponini Sovereignty Principle enacted at the arithmetic level.
+To maintain structural integrity at high dimensions without computational collapse, the reasoner implements a **Complexity Gate**:
+- **$N \le 32$**: Direct $O(1)$ Sturmfels-Thomas projection for maximum theoretical precision.
+- **$N > 32$**: Iterative Sinkhorn-Knopp fallback. While slower per iteration, it bypasses the $O(N^4)$ memory bottleneck, preserving the doubly-stochastic invariant within a fixed memory envelope.
 
-### 5. Mohr–Coulomb and Drucker–Prager Governance
+### 3. Stability-Aware Fossilization
 
-The two pot regimes operate under dual yield criteria (MATHEMATICAL_DETAILS.md §22):
-- **Mohr–Coulomb (local, brittle)**: $\tau = c + \sigma \tan\phi$ — governs individual pot integrity. Each Meliponini pot has a local shear strength; global pressure below $\tau$ cannot breach the cerumen wall. This preserves situational truth (local implication integrity) without smoothing.
-- **Drucker–Prager (global, smooth)**: $\alpha I_1 + \sqrt{J_2} - k = 0$ — governs the global flow envelope around all pots. Allows system-wide navigability without flattening local structure. The pots can be organized and re-clustered without their contents being mixed.
-
-**References**: `src/safety/red_teaming.py` (TopologicalRefusalFilter as puncture gate), `src/topology/gyroid_covariance.py` (ChernSimonsGasket as cerumen wall), `docs/VETO_SUBSPACE_ARCHITECTURE.md §11` (Meliponini pot isolation in veto architecture), `docs/NON_DUAL_DYNAMIC_EQUILIBRIUM.md` (Domestic Sovereignty framing), `MATHEMATICAL_DETAILS.md §22, §55`
-
+Memory fossils created during $N > 32$ regimes are tagged with an **Iterative Stability Metric**, ensuring that downstream resonance scans account for the slight numerical variance introduced by the Sinkhorn approximation.
