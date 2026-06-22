@@ -22,6 +22,9 @@ import torch.nn as nn
 from typing import Tuple, Optional, Dict
 import numpy as np
 
+from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine, PYOPENCL_AVAILABLE
+import math
+
 
 class HyperRingOperator(nn.Module):
     """
@@ -248,6 +251,9 @@ class HyperRingClosureChecker(nn.Module):
         super().__init__()
         self.closure_tolerance = closure_tolerance
         self.trivial_threshold = trivial_threshold
+        
+        # Hardware-accelerated Bouligand Contingent Cone checker
+        self.engine = SiliconSovereigntyEngine() if PYOPENCL_AVAILABLE else None
     
     def is_in_cycle_group(
         self,
@@ -275,6 +281,33 @@ class HyperRingClosureChecker(nn.Module):
         # Closed if relative magnitude is below tolerance
         # Added epsilon to prevent division by zero in zero-scale sectors
         is_closed = relative_magnitude < self.closure_tolerance
+        
+        # If OpenCL Bouligand kernel is available, enforce strict Gyroidic Differential Inclusion
+        if self.engine is not None:
+            # We treat the hyper_ring as the incoming flux (state_j) and constraint_manifold as state_i
+            # We use Fixed Irrational Tick Rates (e.g. sqrt(2), phi)
+            omega_i = math.sqrt(2)
+            omega_j = (1.0 + math.sqrt(5)) / 2.0  # Golden ratio
+            t_pseudo = torch.norm(constraint_manifold).item()  # Pseudo-time metric
+            
+            # Delegate to PyOpenCL Bouligand intersection
+            # Ensure tensors are contiguous and on CPU for numpy cast
+            state_i = constraint_manifold.detach().cpu().flatten()
+            state_j = hyper_ring.detach().cpu().flatten()
+            
+            # Pad or truncate state_j to match state_i
+            if state_j.shape[0] > state_i.shape[0]:
+                state_j = state_j[:state_i.shape[0]]
+            elif state_j.shape[0] < state_i.shape[0]:
+                state_j = torch.nn.functional.pad(state_j, (0, state_i.shape[0] - state_j.shape[0]))
+                
+            opencl_mask = self.engine.evaluate_bouligand_intersection(
+                state_i, state_j, omega_i, omega_j, t_pseudo
+            )
+            
+            # If the OpenCL mask rejects the path, force it open (not closed)
+            opencl_mask_tensor = torch.from_numpy(opencl_mask).to(is_closed.device).view_as(is_closed)
+            is_closed = is_closed & opencl_mask_tensor
         
         return is_closed
     
