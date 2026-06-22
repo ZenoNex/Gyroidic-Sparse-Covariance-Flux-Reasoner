@@ -520,6 +520,40 @@ class SiliconSovereigntyEngine:
                 state[offset + d] = state[offset + d] - leak;
             }
         }
+        // 13. Bouligand Contingent Cone Intersection
+        // Evaluates if the incoming covariance flux from neighbor (state_j) 
+        // fits within the viable tangent space of state_i, modulated by fixed irrational tick rates.
+        __kernel void bouligand_intersection(
+            __global const float *state_i,
+            __global const float *state_j,
+            __global char *is_viable,
+            float omega_i,
+            float omega_j,
+            float t,
+            int total_elements
+        ) {
+            int gid = get_global_id(0);
+            if (gid >= total_elements) return;
+            
+            float val_i = state_i[gid];
+            float val_j = state_j[gid];
+            
+            // Fractal phase shift
+            float phase = sin(omega_i * t - omega_j * t);
+            float flux_vector = val_j * phase;
+            
+            // Contingent Cone Check (Simplified geometric bounds)
+            // The tangent cone allows vectors that do not push the magnitude beyond the current curvature bounds
+            // The 1D line is geometrically strict.
+            float curvature_bound = fabs(val_i) + 0.1f; // Proxy for local manifold curvature limit
+            
+            // If the incoming flux forces the state outside the local curvature bound, intersection = empty
+            if (fabs(val_i + flux_vector) > curvature_bound) {
+                is_viable[gid] = 0; // Rejected by fractal boundary
+            } else {
+                is_viable[gid] = 1; // Intersects contingent cone
+            }
+        }
         """
         
         import warnings
@@ -931,6 +965,41 @@ class SiliconSovereigntyEngine:
         
         cl.enqueue_copy(self.queue_b, state, state_buf, is_blocking=True)
         return state
+
+    def evaluate_bouligand_intersection(self, state_i, state_j, omega_i: float, omega_j: float, t: float):
+        """
+        Evaluates the Gyroidic Differential Inclusion via the Bouligand contingent cone.
+        Uses fixed irrational phase boundaries (omega_i, omega_j) and returns a boolean mask
+        indicating where the flux successfully leaked through.
+        """
+        if self.ctx is None:
+            # CPU Mock
+            state_i = np.asarray(state_i, dtype=np.float32)
+            state_j = np.asarray(state_j, dtype=np.float32)
+            phase = math.sin(omega_i * t - omega_j * t)
+            flux = state_j * phase
+            curvature_bound = np.abs(state_i) + 0.1
+            return (np.abs(state_i + flux) <= curvature_bound).astype(bool)
+            
+        mf = cl.mem_flags
+        state_i = np.asarray(state_i, dtype=np.float32)
+        state_j = np.asarray(state_j, dtype=np.float32)
+        total_elements = state_i.size
+        
+        is_viable = np.empty(state_i.shape, dtype=np.int8)
+        
+        i_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=state_i)
+        j_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=state_j)
+        res_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, is_viable.nbytes)
+        
+        self.program.bouligand_intersection(
+            self.queue_a, state_i.shape, None,
+            i_buf, j_buf, res_buf,
+            np.float32(omega_i), np.float32(omega_j), np.float32(t), np.int32(total_elements)
+        )
+        
+        cl.enqueue_copy(self.queue_a, is_viable, res_buf, is_blocking=True)
+        return is_viable.astype(bool)
 
     def apply_gyroid_projection(self, coords, max_steps=20, tolerance=1e-3, seed=None):
         """Execute Gyroid minimal surface projection."""
