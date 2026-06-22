@@ -5,9 +5,8 @@ from typing import Dict, List, Tuple, Optional, Union, Callable, Any
 import torch.nn.functional as F
 
 
-class TopologicalRefusalError(Exception):
-    """Raised when containment fails in Seriousness mode."""
-    pass
+from src.safety.red_teaming import TopologicalRefusalError
+from src.topology.homology_pressure import HomologyPressure
 
 
 
@@ -114,9 +113,27 @@ class MetaPolytopeMatrioshka(nn.Module):
             "total_space": total_space
         }
         
-        # Facet pressure tensors (mock simulation for Advanced Extension)
-        self.facet_pressure = nn.Parameter(torch.zeros(max_depth + 5, base_dim)) # [Moduli, Dim]
+        # True Topological Pressure
+        self.homology_pressure = HomologyPressure()
+        # Dynamically updated facet pressure buffer
+        self.register_buffer("facet_pressure", torch.zeros(max_depth + 5, base_dim))
         
+    def update_topological_pressure(self, cycles: List[List[int]], node_pressures: torch.Tensor, alpha_idx: int):
+        """
+        Dynamically updates the facet pressure for a given CRT moduli shell
+        using the true geometric tension computed from Betti-1 homology.
+        """
+        if len(cycles) > 0:
+            pressure_scalar = self.homology_pressure(cycles, node_pressures)
+            # Distribute the scalar pressure across the facet dimensions based on the node_pressures gradient
+            if node_pressures.dim() > 1 and node_pressures.shape[-1] == self.base_dim:
+                gradient = node_pressures.mean(dim=0)
+            else:
+                gradient = torch.ones(self.base_dim, device=node_pressures.device) / self.base_dim
+            
+            # Update the specific alpha shell with the directed pressure flux
+            self.facet_pressure[alpha_idx] = pressure_scalar * F.normalize(gradient, dim=0)
+
     def forward(
         self, 
         x: torch.Tensor, 
