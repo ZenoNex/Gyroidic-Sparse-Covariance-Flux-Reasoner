@@ -407,6 +407,7 @@ class PolynomialCoprimeConfig:
         basis_type: str = 'chebyshev',
         learnable: bool = True,
         use_saturation: bool = True,
+        use_halbach_touroids: bool = True,
         device: str = None,
         **kwargs
     ):
@@ -417,6 +418,7 @@ class PolynomialCoprimeConfig:
             basis_type: Type of polynomial basis
             learnable: If True, _k are learnable parameters
             use_saturation: If True, apply piecewise saturation
+            use_halbach_touroids: If True, apply J.H. Heinbockel Halbach touroid rotation
             device: Device for tensors
         """
         self.k = k
@@ -424,6 +426,7 @@ class PolynomialCoprimeConfig:
         self.basis_type = basis_type
         self.learnable = learnable
         self.use_saturation = use_saturation
+        self.use_halbach_touroids = use_halbach_touroids
         self.device = device
         
         # Create polynomial basis
@@ -744,6 +747,42 @@ class PolynomialCoprimeConfig:
                 
         return phi_k
     
+    def apply_halbach_rotation(self, phi: torch.Tensor) -> torch.Tensor:
+        """
+        Apply J.H. Heinbockel style rotating phase coordinate transformation (Halbach Array of Touroids)
+        to the K coprime channels to enforce one-way thought-field displacement.
+        """
+        import math
+        batch_shape = phi.shape[:-1]
+        K = phi.shape[-1]
+        phi_flat = phi.view(-1, K)
+        
+        # Define rotation matrix Q
+        Q = torch.zeros(K, K, device=phi.device, dtype=phi.dtype)
+        for k in range(0, K - 1, 2):
+            theta = float(k) * (math.pi / 2.0)
+            c = math.cos(theta)
+            s = math.sin(theta)
+            # 2x2 rotation block
+            Q[k, k] = c
+            Q[k, k+1] = s
+            Q[k+1, k] = -s
+            Q[k+1, k+1] = c
+            
+        # Handle odd K (e.g. K=33)
+        if K % 2 != 0:
+            Q[K-1, K-1] = 1.0
+            
+        # Apply transformation: phi_rotated = phi_flat @ Q.t()
+        phi_rotated = torch.matmul(phi_flat, Q.t())
+        
+        # Directional gain amplification for forward reasoning path:
+        # Constructive interference in forward, destructive in reverse.
+        gain = torch.where(phi_rotated > 0, 1.5, 0.1)
+        phi_rotated = phi_rotated * gain
+        
+        return phi_rotated.view(*batch_shape, K)
+
     def evaluate(self, x: torch.Tensor) -> torch.Tensor:
         """
         Evaluate all _k(x; _k).
@@ -760,6 +799,10 @@ class PolynomialCoprimeConfig:
         # Matrix multiply: [batch, ..., D]  [D, K] = [batch, ..., K]
         phi = torch.matmul(basis_vals, self.theta.t())
         
+        # Apply J.H. Heinbockel style Halbach rotation of touroids
+        if hasattr(self, 'use_halbach_touroids') and self.use_halbach_touroids:
+            phi = self.apply_halbach_rotation(phi)
+            
         # Apply saturation
         if self.use_saturation:
             phi = self.gate(phi)
