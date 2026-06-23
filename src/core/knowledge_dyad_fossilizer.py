@@ -164,6 +164,43 @@ class DyadFossilizer:
         # Phase Alignment tracking
         self.prev_pas = torch.tensor(0.91) # Initial stability threshold
         
+        # Deduplication memory cache
+        self.fossilized_hashes = set()
+        self._load_fossilized_hashes()
+
+    def _load_fossilized_hashes(self):
+        """Builds a set of already fossilized prompt hashes to prevent duplicate learning."""
+        self.fossilized_hashes = set()
+        try:
+            if os.path.exists(self.storage_dir):
+                for f in os.listdir(self.storage_dir):
+                    if f.endswith(".pt"):
+                        filepath = os.path.join(self.storage_dir, f)
+                        try:
+                            # Use map_location='cpu' to avoid loading onto GPU
+                            data = torch.load(filepath, map_location='cpu')
+                            if isinstance(data, dict):
+                                p_hash = data.get('prompt_hash')
+                                if p_hash:
+                                    self.fossilized_hashes.add(p_hash)
+                                else:
+                                    desc = data.get('description') or data.get('text_input')
+                                    if desc:
+                                        computed_hash = hashlib.sha256(desc.encode('utf-8')).hexdigest()
+                                        self.fossilized_hashes.add(computed_hash)
+                        except Exception:
+                            pass
+            print(f"[FOSSILIZER] Loaded {len(self.fossilized_hashes)} existing fossil prompt hashes for deduplication.")
+        except Exception as e:
+            print(f"[FOSSILIZER] Error loading existing hashes: {e}")
+
+    def is_already_ingested(self, text: str) -> bool:
+        """Check if a prompt/text has already been fossilized."""
+        if not text:
+            return False
+        h = hashlib.sha256(text.strip().encode('utf-8')).hexdigest()
+        return h in self.fossilized_hashes
+
     def compute_poincar_embedding(self, x: torch.Tensor) -> torch.Tensor:
         """
         Map a Euclidean vector x to the Poincar disk B^n (System 2 Speculative Recovery).
@@ -345,8 +382,10 @@ class DyadFossilizer:
             seam_tension = 0.0
 
         # 4. Prepare Payload (Aligned with System Schema)
+        prompt_hash = hashlib.sha256(dyad.linguistic_description.strip().encode('utf-8')).hexdigest()
         payload = {
             'type': 'knowledge_dyad',
+            'prompt_hash': prompt_hash,
             'description': dyad.linguistic_description, # Legacy description key
             'text_input': dyad.linguistic_description,
             'meta_state': seed_state.detach().cpu() if seed_state is not None else None,
@@ -396,7 +435,7 @@ class DyadFossilizer:
         else:
             # Use every non-empty word in the description as a candidate tag
             char_tags = [w for w in dyad.linguistic_description.split() if len(w) >= 1]
-
+ 
         tags = char_tags + [f"crt_{r1}_{r2}_{r3}"]
         if atrophy_detected:
             tags.append("atrophy_rehydrated")
@@ -410,6 +449,8 @@ class DyadFossilizer:
         filepath = os.path.join(self.storage_dir, filename)
         
         torch.save(payload, filepath)
+        self.fossilized_hashes.add(prompt_hash)
+
         
         return filepath
         
