@@ -183,6 +183,17 @@ class GovernanceManager:
     def startup_menu():
         """Interactive console menu for lifecycle control."""
         if os.environ.get('NON_INTERACTIVE') == '1':
+            ds_env = os.environ.get('GYROID_PRIMARY_DATASET', 'LIGO')
+            parsed_datasets = []
+            if ds_env.lower() == 'all':
+                parsed_datasets = ['LIGO', 'NCBI', 'SDSS', 'OPENNEURO']
+            else:
+                for ds in ds_env.split(','):
+                    ds_stripped = ds.strip().upper()
+                    if ds_stripped in ('LIGO', 'NCBI', 'SDSS', 'OPENNEURO'):
+                        parsed_datasets.append(ds_stripped)
+            final_ds = ','.join(parsed_datasets) if parsed_datasets else 'LIGO'
+
             return [8000, 8080], {
                 'regime': os.environ.get('GYROID_REGIME', 'goo'),
                 'commutativity': os.environ.get('GYROID_COMMUTATIVITY', 'non_commutative'),
@@ -194,7 +205,7 @@ class GovernanceManager:
                 'rigidity_decay_rate': float(os.environ.get('GYROID_RIGIDITY_DECAY', '0.005')),
                 'suppress_narration': os.environ.get('GYROID_SUPPRESS_NARRATION', '1') == '1',
                 'bg_scientific_learning': os.environ.get('GYROID_BG_LEARNING', '1') == '1',
-                'primary_query_dataset': os.environ.get('GYROID_PRIMARY_DATASET', 'LIGO'),
+                'primary_query_dataset': final_ds,
                 'cache_dir': os.environ.get('GYROID_CACHE_DIR', 'datasets/open_science_cache'),
                 'kagh_dyslexic_mode': os.environ.get('GYROID_KAGH_MODE', '0') == '1',
                 'fbm_persistence': float(os.environ.get('GYROID_FBM_PERSISTENCE', '0.5')),
@@ -292,11 +303,8 @@ class GovernanceManager:
         print("[INFO] Operational regime is dynamically determined by the engine (Eq 10). Manual selection bypassed.")
 
         # 3.2 Commutativity
-        comm = get_input("[?] Select commutativity (non_commutative/symmetric)", config['commutativity']).lower()
-        if comm in ('non_commutative', 'symmetric'):
-            config['commutativity'] = comm
-        else:
-            print(f"[WARN] Invalid option, using default: {config['commutativity']}")
+        print("[INFO] Commutativity is dynamically determined at point of ingestion (default: non_commutative). Selection bypassed.")
+        config['commutativity'] = 'non_commutative'
 
         # 3.3 Spectral correction
         spec = get_input("[?] Enable spectral correction (yes/no)", 'yes' if config['use_spectral_correction'] else 'no').lower()
@@ -308,13 +316,8 @@ class GovernanceManager:
             print(f"[WARN] Invalid option, using default: {'yes' if config['use_spectral_correction'] else 'no'}")
 
         # 3.4 Operational mode
-        mode = get_input("[?] Select operational mode (standard/ingestion)", 'ingestion' if config['high_throughput_ingestion'] else 'standard').lower()
-        if mode == 'ingestion':
-            config['high_throughput_ingestion'] = True
-        elif mode == 'standard':
-            config['high_throughput_ingestion'] = False
-        else:
-            print(f"[WARN] Invalid option, using default: {'ingestion' if config['high_throughput_ingestion'] else 'standard'}")
+        print("[INFO] Operational mode is dynamically set at runtime based on data connection. Selection bypassed.")
+        config['high_throughput_ingestion'] = False
 
         # 3.5 Introspection probes
         probes = get_input("[?] Active introspection probes (comma separated)", config['introspection_probes'])
@@ -345,10 +348,19 @@ class GovernanceManager:
         else:
             print(f"[WARN] Invalid option, using default: {'yes' if config['bg_scientific_learning'] else 'no'}")
 
-        # 3.9 Primary query dataset
-        dataset = get_input("[?] Primary scientific query dataset (LIGO/NCBI/SDSS/OpenNeuro)", config['primary_query_dataset']).upper()
-        if dataset in ('LIGO', 'NCBI', 'SDSS', 'OPENNEURO'):
-            config['primary_query_dataset'] = dataset
+        # 3.9 Primary scientific query dataset
+        dataset_raw = get_input("[?] Primary scientific query dataset (LIGO/NCBI/SDSS/OpenNeuro or 'all' or comma-separated)", config['primary_query_dataset'])
+        parsed_datasets = []
+        if dataset_raw.lower() == 'all':
+            parsed_datasets = ['LIGO', 'NCBI', 'SDSS', 'OPENNEURO']
+        else:
+            for ds in dataset_raw.split(','):
+                ds_stripped = ds.strip().upper()
+                if ds_stripped in ('LIGO', 'NCBI', 'SDSS', 'OPENNEURO'):
+                    parsed_datasets.append(ds_stripped)
+        
+        if parsed_datasets:
+            config['primary_query_dataset'] = ','.join(parsed_datasets)
         else:
             print(f"[WARN] Invalid option, using default: {config['primary_query_dataset']}")
 
@@ -1097,8 +1109,9 @@ class HybridAI:
             self.prev_pas = pas_h_live_init
             
             atrophy_val_init = 0.0
-            if hasattr(self, 'engine') and self.engine and self.engine.use_gyroid_probes:
-                atrophy_metrics = self.engine.gyroid_probe.gyroid_cov.get_elipsodistrophy_metrics()
+            if hasattr(self, 'engine') and self.engine and getattr(self.engine, 'use_gyroid_probes', False):
+                sample = self.engine.meta_state if hasattr(self.engine, 'meta_state') else None
+                atrophy_metrics = self.engine.gyroid_cov.get_elipsodistrophy_metrics(sample)
                 atrophy_val_init = atrophy_metrics.get('atrophy', 0.0)
                 
             is_glyph_locked = False
@@ -1606,33 +1619,39 @@ class HybridAI:
         
         def _loop():
             # Wait for startup stabilization
-            time.sleep(15)
-            print(f"[INGEST] Background Scientific Learning ACTIVE (Dataset: {self.primary_query_dataset})")
+            time.sleep(1)
+            print(f"[INGEST] Background Scientific Learning ACTIVE (Dataset: {self.primary_query_dataset})", flush=True)
             
             while getattr(self, 'bg_scientific_learning', False):
                 try:
                     if self.engine and getattr(self.engine, 'open_science_ingestor', None) is not None:
-                        q_type = self.primary_query_dataset.lower()
-                        q_config = {"type": q_type}
-                        if q_type == "ligo":
-                            q_config.update({"event": "GW190521", "detector": "H1", "duration": 2.0})
-                        elif q_type == "sdss":
-                            q_config.update({"catalog_id": "J/A+A/540/A106", "row_limit": 5})
-                        elif q_type == "ncbi":
-                            q_config.update({"accession_id": "AM743169.1", "db": "nucleotide"})
-                        elif q_type == "openneuro":
-                            q_config.update({"dataset_id": "ds003445", "subject_id": "sub-01"})
+                        ds_list = [d.strip().lower() for d in self.primary_query_dataset.split(',') if d.strip()]
+                        q_configs = []
+                        for q_type in ds_list:
+                            q_config = {"type": q_type}
+                            if q_type == "ligo":
+                                q_config.update({"event": "GW190521", "detector": "H1", "duration": 2.0})
+                            elif q_type == "sdss":
+                                q_config.update({"catalog_id": "J/A+A/540/A106", "row_limit": 5})
+                            elif q_type == "ncbi":
+                                q_config.update({"accession_id": "AM743169.1", "db": "nucleotide"})
+                            elif q_type == "openneuro":
+                                q_config.update({"dataset_id": "ds003445", "subject_id": "sub-01"})
+                            else:
+                                continue
+                            q_configs.append(q_config)
                         
-                        samples = self.engine.open_science_ingestor.query_and_aggregate([q_config])
-                        if samples:
-                            for sample in samples:
-                                sample_text = sample.get("text", "")
-                                if sample_text:
-                                    self.process_text(
-                                        f"INGEST_DYAD: {sample_text}",
-                                        ingestion_mode=True
-                                    )
-                                    print(f"[INGEST] Background scientific data assimilated: {sample.get('source')}")
+                        if q_configs:
+                            samples = self.engine.open_science_ingestor.query_and_aggregate(q_configs)
+                            if samples:
+                                for sample in samples:
+                                    sample_text = sample.get("text", "")
+                                    if sample_text:
+                                        self.process_text(
+                                            f"INGEST_DYAD: {sample_text}",
+                                            ingestion_mode=True
+                                        )
+                                        print(f"[INGEST] Background scientific data assimilated: {sample.get('source')}", flush=True)
                 except Exception as e:
                     print(f"[WARN] Background Scientific Learning iteration failed: {e}")
                 
@@ -1849,6 +1868,8 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             self._send_json({'success': True, 'message': 'Training stopped'})
         elif parsed_path.path == '/api/save_model':
             self._handle_save_model()
+        elif parsed_path.path == '/api/shutdown':
+            self._handle_shutdown()
         elif parsed_path.path == '/associate':
             self._handle_association()
         elif parsed_path.path == '/wikipedia':
@@ -2613,6 +2634,19 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self._send_json({'success': False, 'message': f'Fossilization failed: {str(e)}'})
 
+    def _handle_shutdown(self):
+        """Handle /api/shutdown."""
+        try:
+            self._send_json({'success': True, 'message': 'Shutdown initiated'})
+            def _stop():
+                time.sleep(1)
+                import os
+                import signal
+                os.kill(os.getpid(), signal.SIGINT)
+            threading.Thread(target=_stop, daemon=True).start()
+        except Exception as e:
+            self._send_json({'success': False, 'message': f'Shutdown failed: {str(e)}'})
+
     def _handle_local_datasets(self):
         """Scan and return local datasets."""
         try:
@@ -2711,6 +2745,20 @@ def start_server(port):
             httpd.serve_forever()
     except Exception as e:
         print(f"[FAIL] Server error on port {port}: {e}")
+
+import atexit
+
+def clean_exit_handler():
+    global AI_SYSTEM
+    if AI_SYSTEM:
+        print("[FOSSIL] Clean exit triggered. Running Fossilization Protocol...", flush=True)
+        try:
+            message = AI_SYSTEM.save_model_state()
+            print(f"[OK] {message}", flush=True)
+        except Exception as e:
+            print(f"[FAIL] Emergency clean exit save failed: {e}", flush=True)
+
+atexit.register(clean_exit_handler)
 
 def main():
     """Start the Gyroidic Backend with Governance and Persistence."""
