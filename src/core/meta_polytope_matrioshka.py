@@ -351,7 +351,7 @@ class MetaPolytopeMatrioshka(nn.Module):
         
         if is_outward.any():
             correction = inner_product * normal_normalized
-            print(f"[BOULIGAND_MATRIOSHKA] Outward boundary crossing projected onto tangent cone (normal norm: {norm_val.item():.4f})", flush=True)
+            # print(f"[BOULIGAND_MATRIOSHKA] Outward boundary crossing projected onto tangent cone (normal norm: {norm_val.item():.4f})", flush=True)
             direction_proj = torch.where(is_outward, direction - correction, direction)
             return direction_proj
             
