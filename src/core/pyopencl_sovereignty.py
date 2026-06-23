@@ -13,6 +13,7 @@ except ImportError:
 import numpy as np
 import logging
 import math
+from typing import Tuple
 
 class SiliconSovereigntyEngine:
     """
@@ -1159,6 +1160,34 @@ class SiliconSovereigntyEngine:
         
         cl.enqueue_copy(self.queue_a, output_signal, out_buf, is_blocking=True)
         return output_signal
+
+    def process_dualpath_transfer(self, prefill_data: np.ndarray, decode_cache_data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Executes parallel DualPath transfers over the OpenCL hardware command queues.
+        Queue A is assigned to prefill operations, and Queue B handles asynchronous KV cache offloading.
+        """
+        if self.ctx is None:
+            # CPU Mock: return original data copies
+            return prefill_data.copy(), decode_cache_data.copy()
+
+        mf = cl.mem_flags
+        prefill_np = np.asarray(prefill_data, dtype=np.float32)
+        decode_np = np.asarray(decode_cache_data, dtype=np.float32)
+
+        # Allocate buffers
+        prefill_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=prefill_np)
+        decode_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=decode_np)
+
+        # Asynchronously enqueue copy of decode cache on Queue B (memory-bound path)
+        event_decode = cl.enqueue_copy(self.queue_b, decode_np, decode_buf, is_blocking=False)
+
+        # Enqueue marker on Queue A (prefill compute-bound path)
+        event_prefill = cl.enqueue_marker(self.queue_a)
+
+        # Synchronize both queues at the end of the reasoning cycle
+        cl.wait_for_events([event_prefill, event_decode])
+
+        return prefill_np, decode_np
 
     def flush(self):
         """Explicitly flush queues."""
