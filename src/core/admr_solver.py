@@ -268,6 +268,40 @@ class PolynomialADMRSolver(nn.Module):
         
         return rehydrated_states
 
+    def apply_ivst_sidechain_dropout(self, states: torch.Tensor, elipsodistrophy_metrics: Optional[Dict[str, Any]]) -> torch.Tensor:
+        """
+        Integrates continuous-time IVST side-chaining and module dropout.
+        When a state dimension's pressure drops below the chaotic envelope, it is flagged for dropout.
+        Then, energy from the dropped-out dimensions is redistributed to the active dimensions to conserve
+        the state's total energy prior to dropout, and dropped dimensions are rehydrated using Lazarus rehydration.
+        """
+        if elipsodistrophy_metrics is None:
+            elipsodistrophy_metrics = {}
+
+        # 1. Evaluate chaotic envelope
+        y_threshold = self.evaluate_unknowledge_envelope(states, elipsodistrophy_metrics)
+        
+        # Flag dropout where absolute pressure is less than the envelope
+        is_dropout = torch.abs(states) < y_threshold
+        is_active = ~is_dropout
+
+        # 2. Birkhoff Mass Conservation (Energy Conservation)
+        # Calculate pre-dropout energy per sample (sum of squares)
+        original_energy = (states ** 2).sum(dim=-1, keepdim=True)
+        active_energy = torch.where(is_active, states ** 2, torch.zeros_like(states)).sum(dim=-1, keepdim=True)
+        
+        # Scaling factor to redistribute dropped energy to active dimensions
+        scale_factor = torch.sqrt(original_energy / (active_energy + 1e-8))
+        
+        # Apply scaling to active dimensions, and mark dropped dimensions with NaN
+        states_new = torch.where(is_active, states * scale_factor, torch.tensor(float('nan'), device=states.device, dtype=states.dtype))
+
+        # 3. Lazarus Rehydration
+        from src.core.spectral_coherence_repair import apply_energy_based_stabilization
+        rehydrated_states = apply_energy_based_stabilization(states_new, stability_margin=1e-5)
+
+        return rehydrated_states
+
     def stochastic_differential_step(
         self, 
         states: torch.Tensor, 
@@ -280,8 +314,9 @@ class PolynomialADMRSolver(nn.Module):
         palindromic_hash: Optional[torch.Tensor] = None,
         anchor_sym: Optional[torch.Tensor] = None,
         boundary_state: Optional[Any] = None,
-        return_violation: bool = False
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+        return_violation: bool = False,
+        return_dx: bool = False
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
         """
         Continuous-time Stochastic Differential Update:
         dx(t) = [  A_i x_i(t) -   (x - r(x_k)) + _tension ] dt + (D) dW
@@ -375,6 +410,21 @@ class PolynomialADMRSolver(nn.Module):
         # dx = (drift - negotiation + tension_drift + digimon_nutrient) * dt + noise
         dx = (drift - negotiation + tension_drift + digimon_nutrient) * effective_dt + noise
         
+        # Hans-Joachim Hein Kähler geometry boundary decay (preventing boundary blow-up near memory limits)
+        r_norm = torch.norm(states, p=2, dim=-1, keepdim=True)
+        r_max = 10.0
+        d_boundary = torch.clamp(r_max - r_norm, min=1e-5)
+        beta_exponent = 1.345
+        kahler_decay = torch.where(r_norm < r_max, (d_boundary / r_max) ** beta_exponent, torch.ones_like(r_norm))
+        dx = dx * kahler_decay
+        
+        # Step-size control: limit dx norm to at most 10% of the remaining distance to the boundary
+        dx_norm = torch.norm(dx, p=2, dim=-1, keepdim=True)
+        max_step = 0.1 * d_boundary
+        scale = torch.clamp(max_step / (dx_norm + 1e-8), max=1.0)
+        scale = torch.where(r_norm < r_max, scale, torch.ones_like(scale))
+        dx = dx * scale
+        
         # 4.2 Bouligand Tangent Cone Projection & Gyrocompass Precession
         # We project the update onto the Bouligand Tangent Cone to prevent boundary tearing.
         # To avoid blind left-field gating (which occurs if we only project out normal force),
@@ -449,7 +499,12 @@ class PolynomialADMRSolver(nn.Module):
                     proj = torch.nn.functional.pad(proj, (0, new_state.shape[-1] - proj.shape[-1]))
             # Detach the projection target to allow gradients to flow to self.A through new_state
             violation = new_state - proj.detach()
+            if return_dx:
+                return locked_state, violation, dx
             return locked_state, violation
+            
+        if return_dx:
+            return locked_state, dx
             
         return locked_state
 
@@ -574,6 +629,21 @@ class PolynomialADMRSolver(nn.Module):
 
         # 6. Fractional Update Step
         dx = (fractional_drift - negotiation + tension_drift) * effective_dt + noise
+        
+        # Hans-Joachim Hein Kähler geometry boundary decay (preventing boundary blow-up near memory limits)
+        r_norm = torch.norm(states, p=2, dim=-1, keepdim=True)
+        r_max = 10.0
+        d_boundary = torch.clamp(r_max - r_norm, min=1e-5)
+        beta_exponent = 1.345
+        kahler_decay = torch.where(r_norm < r_max, (d_boundary / r_max) ** beta_exponent, torch.ones_like(r_norm))
+        dx = dx * kahler_decay
+        
+        # Step-size control: limit dx norm to at most 10% of the remaining distance to the boundary
+        dx_norm = torch.norm(dx, p=2, dim=-1, keepdim=True)
+        max_step = 0.1 * d_boundary
+        scale = torch.clamp(max_step / (dx_norm + 1e-8), max=1.0)
+        scale = torch.where(r_norm < r_max, scale, torch.ones_like(scale))
+        dx = dx * scale
 
         # 6.8 Bouligand Tangent Cone Projection & Gyrocompass Precession
         # We project the update onto the Bouligand Tangent Cone to prevent boundary tearing.
