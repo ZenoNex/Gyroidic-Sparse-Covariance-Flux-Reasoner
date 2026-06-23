@@ -225,6 +225,11 @@ class FastChatViewer(tk.Tk):
         # Render cancellation token: increment to cancel any in-flight render
         self._render_gen = 0
 
+        # Pagination state
+        self.current_page = 0
+        self.page_size = 200
+        self._filtered_entries = []
+
         self._build_ui()
 
     # ------------------------------------------------------------------
@@ -256,13 +261,30 @@ class FastChatViewer(tk.Tk):
         self.search_var.trace_add("write", self._on_search)
         ttk.Entry(search_frame, textvariable=self.search_var).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=4)
 
-        self.listbox = tk.Listbox(left_outer, font=("Segoe UI", 10), activestyle="dotbox")
+        # Frame for Listbox and scrollbar
+        list_frame = ttk.Frame(left_outer)
+        list_frame.pack(fill=tk.BOTH, expand=True, pady=2)
+
+        self.listbox = tk.Listbox(list_frame, font=("Segoe UI", 10), activestyle="dotbox")
         self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.listbox.bind("<<ListboxSelect>>", self._on_select_conv)
 
-        sb = ttk.Scrollbar(left_outer, orient=tk.VERTICAL, command=self.listbox.yview)
+        sb = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.listbox.yview)
         sb.pack(side=tk.RIGHT, fill=tk.Y)
         self.listbox.config(yscrollcommand=sb.set)
+
+        # Pagination controls frame
+        page_frame = ttk.Frame(left_outer)
+        page_frame.pack(fill=tk.X, pady=4)
+
+        self.btn_prev = ttk.Button(page_frame, text="Prev", command=self.prev_page, width=6)
+        self.btn_prev.pack(side=tk.LEFT, padx=2)
+
+        self.lbl_page = ttk.Label(page_frame, text="Page 1 of 1 (0 total)")
+        self.lbl_page.pack(side=tk.LEFT, fill=tk.X, expand=True, anchor=tk.CENTER)
+
+        self.btn_next = ttk.Button(page_frame, text="Next", command=self.next_page, width=6)
+        self.btn_next.pack(side=tk.RIGHT, padx=2)
 
         # Right: message text area
         right_frame = ttk.Frame(paned)
@@ -346,21 +368,63 @@ class FastChatViewer(tk.Tk):
     def _indexing_done(self, idx: ConversationIndex) -> None:
         self.index = idx
         self._set_status(f"Indexed {len(idx.entries)} conversations.", busy=False)
-        self._rebuild_list(idx.entries)
+        self._apply_filter_and_reset_page()
 
-    def _rebuild_list(self, entries) -> None:
+    def _apply_filter_and_reset_page(self) -> None:
+        self.current_page = 0
+        self._filtered_entries = []
+        if not self.index:
+            self._rebuild_list()
+            return
+        
+        flt = self.search_var.get().lower().strip()
+        for i, entry in enumerate(self.index.entries):
+            title = entry[0]
+            if not flt or flt in title.lower():
+                self._filtered_entries.append((i, entry))
+        self._rebuild_list()
+
+    def _rebuild_list(self) -> None:
         self.listbox.delete(0, tk.END)
         self._filtered = []
-        flt = self.search_var.get().lower()
-        for i, (title, _, _) in enumerate(entries):
-            if flt and flt not in title.lower():
-                continue
+        
+        total_items = len(self._filtered_entries)
+        total_pages = max(1, (total_items + self.page_size - 1) // self.page_size)
+        
+        # Clamp page index
+        if self.current_page >= total_pages:
+            self.current_page = total_pages - 1
+        if self.current_page < 0:
+            self.current_page = 0
+            
+        start_idx = self.current_page * self.page_size
+        end_idx = min(start_idx + self.page_size, total_items)
+        
+        for idx in range(start_idx, end_idx):
+            original_idx, (title, _, _) = self._filtered_entries[idx]
             self.listbox.insert(tk.END, title)
-            self._filtered.append(i)
+            self._filtered.append(original_idx)
+            
+        # Update page label and buttons
+        self.lbl_page.config(text=f"Page {self.current_page + 1} of {total_pages} ({total_items} total)")
+        self.btn_prev.config(state=tk.NORMAL if self.current_page > 0 else tk.DISABLED)
+        self.btn_next.config(state=tk.NORMAL if self.current_page < total_pages - 1 else tk.DISABLED)
+
+    def prev_page(self) -> None:
+        if self.current_page > 0:
+            self.current_page -= 1
+            self._rebuild_list()
+
+    def next_page(self) -> None:
+        total_items = len(self._filtered_entries)
+        total_pages = max(1, (total_items + self.page_size - 1) // self.page_size)
+        if self.current_page < total_pages - 1:
+            self.current_page += 1
+            self._rebuild_list()
 
     def _on_search(self, *_) -> None:
         if self.index:
-            self._rebuild_list(self.index.entries)
+            self._apply_filter_and_reset_page()
 
     # ------------------------------------------------------------------
     # Conversation Selection & Loading
