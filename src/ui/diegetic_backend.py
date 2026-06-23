@@ -724,7 +724,8 @@ class DiegeticPhysicsEngine(nn.Module):
 
         if os.path.exists(chatgpt_export_dir):
              print(f"[ENGINE] ChatGPT export dir resolved to: {chatgpt_export_dir}")
-             self.chatgpt_harvester = ChatGPTFrictionHarvester(export_dir=chatgpt_export_dir, dim=self.dim)
+             self.chatgpt_harvester = ChatGPTFrictionHarvester(export_dir=chatgpt_export_dir, dim=self.dim, fossilizer=self.fossilizer)
+
              
              def run_harvester_loop():
                  loop = asyncio.new_event_loop()
@@ -1135,11 +1136,45 @@ class DiegeticPhysicsEngine(nn.Module):
                                     {"type": "ligo", "event": "GW190521", "detector": "H1", "duration": 2.0},
                                     {"type": "ncbi", "accession_id": "AM743169.1", "db": "nucleotide"}
                                 ]
-                                samples = self.open_science_ingestor.query_and_aggregate(query_configs)
-                                for s in samples:
-                                    t = s.get("text", "")
-                                    if t and len(t) >= 4:
-                                        scientific_texts.append(t)
+                                
+                                # Determine which queries are already registered as tags
+                                active_configs = []
+                                for q in query_configs:
+                                    q_type = q.get("type", "").lower()
+                                    if q_type == "ligo":
+                                        tag_name = f"science_ligo_{q.get('event', 'GW190521').lower()}"
+                                    elif q_type == "ncbi":
+                                        tag_name = f"science_ncbi_{q.get('accession_id', 'AM743169.1').lower()}"
+                                    else:
+                                        tag_name = f"science_{q_type}"
+                                        
+                                    if not hasattr(self.archetypal_governor, 'tag_stacker') or tag_name not in self.archetypal_governor.tag_stacker.catalog_vectors:
+                                        active_configs.append(q)
+                                        
+                                if active_configs:
+                                    print(f"[BGLEARN] Redundant open science data check failed for {len(active_configs)} query/queries. Ingesting and mating with SuperposedTagStacker.")
+                                    samples = self.open_science_ingestor.query_and_aggregate(active_configs)
+                                    for s in samples:
+                                        t = s.get("text", "")
+                                        if t and len(t) >= 4:
+                                            scientific_texts.append(t)
+                                            # Derive tag name
+                                            meta = s.get("metadata", {})
+                                            s_type = meta.get("type", "science")
+                                            if s_type == "ligo_strain":
+                                                t_name = f"science_ligo_{meta.get('event', 'unknown').lower()}"
+                                            elif s_type == "ncbi_sequence":
+                                                t_name = f"science_ncbi_{meta.get('accession', 'unknown').lower()}"
+                                            else:
+                                                t_name = f"science_{s_type}"
+                                                
+                                            # Embed and register in stacker
+                                            vector = self._text_to_tensor(t).to(self.device)
+                                            self.archetypal_governor.harvest_named_coordinate(t_name, vector, t)
+                                            print(f"[BGLEARN] Registered scientific tag: '{t_name}' in SuperposedTagStacker.")
+                                else:
+                                    # Already registered, skip query!
+                                    pass
                     except Exception as load_err:
                         # Log but do not crash background thread
                         print(f"[BGLEARN] Load sensing or query failed: {load_err}")
@@ -2324,6 +2359,15 @@ class DiegeticPhysicsEngine(nn.Module):
                 print(f" Zeitgeist mode: {_zg_mode} | alpha: {self._zeitgeist_state.alpha} "
                       f"| crt_idx: {self._zeitgeist_state.crt_index} "
                       f"| step: {self._zeitgeist_state.step}")
+                
+                # Mating Zeitgeist Router (glitches) with SuperposedTagStacker
+                if _zg_mode == 'switching' and self.archetypal_governor is not None:
+                    step = self._zeitgeist_state.step
+                    tag_name = f"glitch_switching_step_{step}"
+                    desc = f"Topological switch glitch at step {step} with braid word {self._zeitgeist_state.braid_word} and CS phase {self._zeitgeist_state.cs_phase}"
+                    vector = seed_state.detach().mean(dim=0) if seed_state.dim() > 1 else seed_state.detach()
+                    self.archetypal_governor.harvest_named_coordinate(tag_name, vector, desc)
+                    print(f" [ZEITGEIST] Dynamic Glitch Style Tagging registered: '{tag_name}' in SuperposedTagStacker.")
             except Exception as _zg_e:
                 print(f"  ZeitgeistRouter error (non-fatal): {_zg_e}")
 
