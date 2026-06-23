@@ -163,7 +163,7 @@ class ArXivSovereignIngestor:
                 # We do this in-memory to prevent disk pollution
                 with tarfile.open(fileobj=io.BytesIO(response.content), mode="r:gz") as tar:
                     for member in tar.getmembers():
-                        if member.name.lower().endswith(('.png', '.jpg', '.jpeg')):
+                        if member.name.lower().endswith(('.png', '.jpg', '.jpeg', '.webm')):
                             f = tar.extractfile(member)
                             if f:
                                 images.append(f.read())
@@ -674,6 +674,7 @@ class ArXivSovereignIngestor:
                                 sim = torch.dot(norm_state, sig).item()
                                 scores.append(sim)
                             
+                            scores_t = torch.tensor(scores, dtype=torch.float32, device=self.device) / 0.2
                             lazarus = LazarusSoftmax(dim=0).to(scores_t.device)
                             probs, _ = lazarus(scores_t, 0.0, 0.0)
                             
