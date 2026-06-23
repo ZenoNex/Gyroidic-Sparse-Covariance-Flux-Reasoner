@@ -21,6 +21,7 @@ class FastChatViewer(tk.Tk):
         self.conversations = [] # List of (title, start_pos, end_pos)
         self.mmap_obj = None
         self.file_obj = None
+        self.current_render_id = 0
         
         self._build_ui()
         
@@ -34,6 +35,8 @@ class FastChatViewer(tk.Tk):
         
         self.lbl_status = ttk.Label(toolbar, text="Ready.")
         self.lbl_status.pack(side=tk.LEFT, padx=10)
+        
+        self.progress = ttk.Progressbar(toolbar, mode='indeterminate', length=150)
         
         # Paned Window
         paned = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
@@ -81,7 +84,11 @@ class FastChatViewer(tk.Tk):
             
         self.filepath = path
         self.lbl_status.config(text=f"Indexing {os.path.basename(path)}... Please wait.")
-        self.update()
+        self.progress.pack(side=tk.LEFT, padx=5)
+        self.progress.start()
+        
+        # Cancel any active load/render
+        self.current_render_id += 1
         
         self._index_file()
 
@@ -96,52 +103,64 @@ class FastChatViewer(tk.Tk):
             self.file_obj = open(self.filepath, "rb")
             self.mmap_obj = mmap.mmap(self.file_obj.fileno(), 0, access=mmap.ACCESS_READ)
             
-            # Simple heuristic: ChatGPT HTML exports usually have <div class="message"> or similar
-            # Or headers like <h4>Conversation Name</h4>
-            # We will just split it into manageable 1MB chunks if no clear marker is found,
-            # or try to find <div class="conversation">
-            
             self.conversations = []
             self.listbox.delete(0, tk.END)
             
-            # Regex for titles (very heuristic, depends on chatgpt export format)
-            # Usually <h4>Title</h4> or similar inside <div class="conversation">
-            # We'll do a simple scan
-            pattern = re.compile(b'<h4>(.*?)</h4>', re.IGNORECASE)
+            # Start background thread for indexing to keep GUI responsive
+            import threading
+            threading.Thread(target=self._index_file_worker, daemon=True).start()
             
-            pos = 0
+        except Exception as e:
+            self.progress.stop()
+            self.progress.pack_forget()
+            messagebox.showerror("Error", f"Failed to index file:\n{e}")
+            self.lbl_status.config(text="Error.")
+
+    def _index_file_worker(self):
+        try:
+            pattern = re.compile(b'<h4>(.*?)</h4>', re.IGNORECASE)
             file_size = len(self.mmap_obj)
             chunk_size = 1024 * 1024 * 5 # 5MB virtual chunks
             
-            # If we don't find proper markers, just virtualize by 5MB chunks
             markers = []
             for match in pattern.finditer(self.mmap_obj):
                 title = match.group(1).decode('utf-8', errors='ignore')
-                # Clean html tags
                 title = re.sub(r'<[^>]+>', '', title).strip()
                 markers.append((title, match.start()))
                 
+            conversations = []
             if markers:
                 for i in range(len(markers)):
                     title, start_pos = markers[i]
                     end_pos = markers[i+1][1] if i + 1 < len(markers) else file_size
-                    self.conversations.append((title, start_pos, end_pos))
-                    self.listbox.insert(tk.END, title)
+                    conversations.append((title, start_pos, end_pos))
             else:
-                # Fallback: Virtualize by 5MB chunks
                 num_chunks = (file_size // chunk_size) + 1
                 for i in range(num_chunks):
                     start_pos = i * chunk_size
                     end_pos = min((i + 1) * chunk_size, file_size)
                     title = f"Chunk {i+1} ({start_pos//1024}KB - {end_pos//1024}KB)"
-                    self.conversations.append((title, start_pos, end_pos))
-                    self.listbox.insert(tk.END, title)
+                    conversations.append((title, start_pos, end_pos))
                     
-            self.lbl_status.config(text=f"Indexed {len(self.conversations)} sections.")
+            self.after(0, self._indexing_done, conversations)
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to index file:\n{e}")
-            self.lbl_status.config(text="Error.")
+            self.after(0, self._indexing_failed, str(e))
+
+    def _indexing_done(self, conversations):
+        self.progress.stop()
+        self.progress.pack_forget()
+        self.conversations = conversations
+        self.listbox.delete(0, tk.END)
+        for title, _, _ in self.conversations:
+            self.listbox.insert(tk.END, title)
+        self.lbl_status.config(text=f"Indexed {len(self.conversations)} sections.")
+        
+    def _indexing_failed(self, error_msg):
+        self.progress.stop()
+        self.progress.pack_forget()
+        messagebox.showerror("Error", f"Failed to index file:\n{error_msg}")
+        self.lbl_status.config(text="Error.")
 
     def on_select_conv(self, event):
         selection = self.listbox.curselection()
@@ -157,90 +176,150 @@ class FastChatViewer(tk.Tk):
         if not self.mmap_obj:
             return
             
+        # Cancel any ongoing rendering
+        self.current_render_id += 1
+        render_id = self.current_render_id
+        
         self.text_area.delete(1.0, tk.END)
         self.text_area.insert(tk.END, "Loading...")
-        self.update()
+        
+        self.lbl_status.config(text="Loading section data...")
+        self.progress.pack(side=tk.LEFT, padx=5)
+        self.progress.start()
         
         # Read the chunk
         self.mmap_obj.seek(start_pos)
         raw_bytes = self.mmap_obj.read(end_pos - start_pos)
-        text = raw_bytes.decode('utf-8', errors='replace')
         
-        # We need to preserve some structure to guess user vs assistant.
-        # Typically ChatGPT HTML has alternating blocks. We will split by typical markers or paragraphs.
-        # To avoid complex HTML parsing, let's split by '<div' and extract text.
-        blocks = re.split(r'<div', text)
-        
-        self.text_area.delete(1.0, tk.END)
-        
-        # Import harvester logic for tagging
-        import sys
-        import os
-        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-        from src.data.chatgpt_friction_harvester import ChatGPTFrictionHarvester
-        harvester = ChatGPTFrictionHarvester(export_dir="")
-        
-        last_user_tokens = set()
-        last_user_len = 0
-        last_user_text = ""
-        
-        for block in blocks:
-            if not block.strip():
-                continue
-            
-            # Clean HTML from block
-            clean_block = block.replace("<br>", "\n").replace("</p>", "\n\n")
-            clean_block = re.sub(r'<[^>]+>', '', "<div" + clean_block)
-            clean_block = clean_block.replace("&quot;", '"').replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").strip()
-            
-            if not clean_block:
-                continue
+        import threading
+        threading.Thread(
+            target=self._load_content_worker,
+            args=(raw_bytes, render_id),
+            daemon=True
+        ).start()
+
+    def _load_content_worker(self, raw_bytes, render_id):
+        try:
+            if render_id != self.current_render_id:
+                return
                 
-            tags = harvester._extract_tags(clean_block)
+            text = raw_bytes.decode('utf-8', errors='replace')
+            blocks = re.split(r'<div', text)
             
-            # Simple heuristic for User vs AI in unstructured HTML chunks:
-            # We track Jaccard for shifts, assume alternating or just apply to all blocks
-            current_tokens = set(clean_block.lower().split())
+            # Import harvester logic for tagging
+            import sys
+            import os
+            sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+            from src.data.chatgpt_friction_harvester import ChatGPTFrictionHarvester
+            harvester = ChatGPTFrictionHarvester(export_dir="")
             
-            # Check jarring shift
-            jaccard = 1.0
-            if last_user_tokens and current_tokens:
-                intersection = len(last_user_tokens.intersection(current_tokens))
-                union = len(last_user_tokens.union(current_tokens))
-                jaccard = intersection / max(1, union)
-                
-            if jaccard < 0.05 and len(current_tokens) > 10:
-                tags["jarring_shift"] = 1.0
-                
-            # Check dead end (long previous, short current)
-            if last_user_len > 500 and len(clean_block) < 50:
-                if not tags.get("is_character_play"):
-                    tags["dead_end_cliff"] = 1.0
+            last_user_tokens = set()
+            last_user_len = 0
+            last_user_text = ""
+            
+            parsed_blocks = []
+            
+            for block in blocks:
+                if render_id != self.current_render_id:
+                    return
                     
-            # Update last user state (assuming every long block is a prompt for heuristics)
-            if len(clean_block) > 50:
-                last_user_tokens = current_tokens
-                last_user_len = len(clean_block)
-                last_user_text = clean_block
+                if not block.strip():
+                    continue
                 
-            # Insert text
+                clean_block = block.replace("<br>", "\n").replace("</p>", "\n\n")
+                clean_block = re.sub(r'<[^>]+>', '', "<div" + clean_block)
+                clean_block = clean_block.replace("&quot;", '"').replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").strip()
+                
+                if not clean_block:
+                    continue
+                    
+                tags = harvester._extract_tags(clean_block)
+                current_tokens = set(clean_block.lower().split())
+                
+                jaccard = 1.0
+                if last_user_tokens and current_tokens:
+                    intersection = len(last_user_tokens.intersection(current_tokens))
+                    union = len(last_user_tokens.union(current_tokens))
+                    jaccard = intersection / max(1, union)
+                    
+                if jaccard < 0.05 and len(current_tokens) > 10:
+                    tags["jarring_shift"] = 1.0
+                    
+                if last_user_len > 500 and len(clean_block) < 50:
+                    if not tags.get("is_character_play"):
+                        tags["dead_end_cliff"] = 1.0
+                        
+                if len(clean_block) > 50:
+                    last_user_tokens = current_tokens
+                    last_user_len = len(clean_block)
+                    last_user_text = clean_block
+                    
+                parsed_blocks.append((clean_block, tags))
+                
+            if render_id != self.current_render_id:
+                return
+                
+            self.after(0, self._render_content, parsed_blocks, render_id)
+            
+        except Exception as e:
+            self.after(0, self._render_error, str(e), render_id)
+
+    def _render_content(self, parsed_blocks, render_id):
+        if render_id != self.current_render_id:
+            return
+        self.progress.stop()
+        self.progress.pack_forget()
+        self.text_area.delete(1.0, tk.END)
+        self._insert_blocks_incremental(parsed_blocks, 0, render_id)
+        
+    def _render_error(self, error_msg, render_id):
+        if render_id != self.current_render_id:
+            return
+        self.progress.stop()
+        self.progress.pack_forget()
+        self.text_area.delete(1.0, tk.END)
+        self.text_area.insert(tk.END, f"Error processing content:\n{error_msg}")
+        self.lbl_status.config(text="Error.")
+
+    def _insert_blocks_incremental(self, parsed_blocks, start_idx, render_id):
+        if render_id != self.current_render_id:
+            return
+            
+        batch_size = 50
+        end_idx = min(start_idx + batch_size, len(parsed_blocks))
+        
+        for i in range(start_idx, end_idx):
+            clean_block, tags = parsed_blocks[i]
+            
             start_index = self.text_area.index(tk.INSERT)
             self.text_area.insert(tk.END, clean_block + "\n\n")
             end_index = self.text_area.index(tk.INSERT)
             
-            # Apply tags visually
             if tags.get("dead_end_cliff"):
                 self.text_area.tag_add("dead_end", start_index, end_index)
             if tags.get("jarring_shift"):
                 self.text_area.tag_add("jarring_shift", start_index, end_index)
             if tags.get("is_character_play"):
                 self.text_area.tag_add("character_play", start_index, end_index)
+                
+        if end_idx < len(parsed_blocks):
+            self.lbl_status.config(text=f"Loaded {end_idx}/{len(parsed_blocks)} blocks...")
+            self.after(10, self._insert_blocks_incremental, parsed_blocks, end_idx, render_id)
+        else:
+            self.lbl_status.config(text=f"Load complete. Loaded {len(parsed_blocks)} blocks.")
 
     def on_closing(self):
+        self.current_render_id += 1
         if self.mmap_obj:
-            self.mmap_obj.close()
+            try:
+                self.mmap_obj.close()
+            except:
+                pass
         if self.file_obj:
-            self.file_obj.close()
+            try:
+                self.file_obj.close()
+            except:
+                pass
         self.destroy()
 
 if __name__ == "__main__":
