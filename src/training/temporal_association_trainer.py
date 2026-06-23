@@ -287,6 +287,7 @@ class TemporalAssociationTrainer:
         self,
         text_emb: 'torch.Tensor',
         return_analysis: bool = True,
+        **kwargs
     ) -> dict:
         """
         Dispatch helper so the trainer works both with:
@@ -295,10 +296,10 @@ class TemporalAssociationTrainer:
         """
         if hasattr(self.model, 'forward_text_emb'):
             return self.model.forward_text_emb(
-                text_emb, return_analysis=return_analysis
+                text_emb, return_analysis=return_analysis, **kwargs
             )
         # Legacy fallback  original model interface
-        return self.model(text_emb=text_emb, return_analysis=return_analysis)
+        return self.model(text_emb=text_emb, return_analysis=return_analysis, **kwargs)
 
     def compute_association_loss(
         self, 
