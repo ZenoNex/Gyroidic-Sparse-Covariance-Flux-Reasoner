@@ -62,6 +62,8 @@ def test_agentic_calm():
         def __init__(self):
             super().__init__()
         def update_buffer(self, b, n): return b
+        def adapt(self, support_history, support_targets, steps=1, lr=0.01, entropy=None):
+            return self
         def forward(self, h):
             # Return high gauge pressure (>0.1) to trigger forcing
             return (torch.tensor([0.0]), torch.tensor([1.0]), torch.tensor([1.0]), 
