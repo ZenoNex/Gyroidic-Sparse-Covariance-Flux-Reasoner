@@ -208,7 +208,7 @@ class GeometricSelfModelProbe(nn.Module):
         
         return pressure
 
-    def unlearn_rigidity(self, current_time: float = 0.0, overlap_window: float = 21600.0):
+    def unlearn_rigidity(self, current_time: float = 0.0, overlap_window: float = 21600.0, decay_rate: Optional[float] = None):
         """
         Engram-based unlearning of rigidity using sparsity, intrinsic excitability,
         temporal overlap (< 6 hours), and Bouligand polyshape blocks.
@@ -254,11 +254,12 @@ class GeometricSelfModelProbe(nn.Module):
                         if orig_norm < 1e-6:
                             continue
                             
+                        decay_scale = decay_rate if decay_rate is not None else 0.05
                         jitter = harvest_honest_jitter(
                             layer.weight.shape,
                             device=layer.weight.device,
                             scaled=True
-                        ) * 0.05  # Base engram plasticity
+                        ) * decay_scale  # Base engram plasticity
                         
                         # Apply plasticity ONLY to the active engram complex
                         layer.weight.add_(jitter * engram_mask)
@@ -353,7 +354,7 @@ class AggregateGeometricSelfModel(nn.Module):
         
         return torch.stack(dissonance_scores)
 
-    def unlearn_rigidity(self, current_time: float = 0.0, overlap_window: float = 21600.0):
+    def unlearn_rigidity(self, current_time: float = 0.0, overlap_window: float = 21600.0, decay_rate: Optional[float] = None):
         """Trigger unlearning across all aggregated self-model probes."""
-        self.probe_head.unlearn_rigidity(current_time, overlap_window)
+        self.probe_head.unlearn_rigidity(current_time, overlap_window, decay_rate)
 
