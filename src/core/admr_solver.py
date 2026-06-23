@@ -440,7 +440,7 @@ class PolynomialADMRSolver(nn.Module):
                     dx_dot_n = torch.sum(dx * normal_normalized, dim=-1, keepdim=True)
                     is_outward = dx_dot_n > 0
                     if is_outward.any():
-                        print(f"[BOULIGAND_GYROCOMPASS_SDE] Outward SDE step detected on yield boundary. Applying Bouligand tangent projection and precession torque.", flush=True)
+                        # print(f"[BOULIGAND_GYROCOMPASS_SDE] Outward SDE step detected on yield boundary. Applying Bouligand tangent projection and precession torque.", flush=True)
                         dx = self.gyrocompass.precess_torque(dx, normal_normalized, drift)
 
         # 4.5 Protect Love Vector mathematically via Topological Gyrocompass Gimbal Lock Shield
@@ -660,7 +660,7 @@ class PolynomialADMRSolver(nn.Module):
                     dx_dot_n = torch.sum(dx * normal_normalized, dim=-1, keepdim=True)
                     is_outward = dx_dot_n > 0
                     if is_outward.any():
-                        print(f"[BOULIGAND_GYROCOMPASS_SDE] Outward Fractional SDE step detected on yield boundary. Applying Bouligand tangent projection and precession torque.", flush=True)
+                        # print(f"[BOULIGAND_GYROCOMPASS_SDE] Outward Fractional SDE step detected on yield boundary. Applying Bouligand tangent projection and precession torque.", flush=True)
                         dx = self.gyrocompass.precess_torque(dx, normal_normalized, fractional_drift)
 
         # 7. Love Invariant Protection (null-space projection) via Topological Gyrocompass Gimbal Lock Shield
