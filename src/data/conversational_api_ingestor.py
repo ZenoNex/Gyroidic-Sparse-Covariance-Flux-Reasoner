@@ -649,9 +649,10 @@ class ConversationalDataProcessor:
     - Constraint geometry creation
     """
     
-    def __init__(self, device: Any = None):
+    def __init__(self, device: Any = None, dim: int = 64):
         self.device = device if device is not None else DEVICE
-        
+        self.dim = dim
+
         # Initialize pressure ingestor for constraint generation
         self.pressure_ingestor = PressureIngestor(device=device)
         
@@ -662,7 +663,9 @@ class ConversationalDataProcessor:
         )
 
         # Canonical projector aligned with topological pipeline
-        self.projector = CanonicalProjector(dim=64, k=5, device=device)
+        # dim is forwarded from the caller (e.g. ChatGPTFrictionHarvester passes
+        # the engine's own dim so projector output matches trainer expectations).
+        self.projector = CanonicalProjector(dim=dim, k=5, device=device)
     
     def compute_text_embedding(self, text: str) -> torch.Tensor:
         """Project text into manifold-consistent [1, dim] state using canonical projector."""
