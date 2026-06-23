@@ -237,7 +237,8 @@ class ModularAttention(nn.Module):
         output_flat = output.view(batch_size_out * seq_len_out, dim_out)
         self.dropout.to(output.device)
         output_leaked = self.dropout(output_flat)
-        output = output_leaked.view(batch_size_out, seq_len_out, dim_out)
+        output_flat = output_flat + 0.1 * output_leaked
+        output = output_flat.view(batch_size_out, seq_len_out, dim_out)
         
         if return_field_outputs:
             return output, field_outputs
