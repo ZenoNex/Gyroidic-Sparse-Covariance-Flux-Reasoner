@@ -131,50 +131,100 @@ class SpectralCoherenceCorrector(nn.Module):
     
     def compute_spectral_bands(self, signal: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Decompose signal into Soliton Band (high-freq) and Ergodic Band (low-freq).
+        Decompose signal into Soliton Band and Ergodic Band using
+        a semoid-semi-passive three-band bandpass filter architecture.
         
         Args:
             signal: Input signal [batch, seq_len, dim] or [batch, dim]
             
         Returns:
-            soliton_band: High-frequency components
-            ergodic_band: Low-frequency components
+            soliton_band: High-frequency components (Phaser modulated)
+            ergodic_band: Low-frequency + Mid-frequency components (Ring & Delay modulated)
         """
+        import math
+        
         if signal.dim() == 2:
-            # For [batch, dim] signals, treat dim as the spatial signal
             signal_for_fft = signal
             fft_dim = -1
         else:
-            # For [batch, seq, dim] signals, treat seq as the temporal signal
             signal_for_fft = signal
             fft_dim = 1
-        
-        # FFT-based spectral decomposition
-        # (Architecture Alignment: features are treated as a spatial wave)
+            
+        # 1. FFT-based spectral decomposition
         fft_signal = torch.fft.fft(signal_for_fft, dim=fft_dim)
-        freqs = torch.fft.fftfreq(signal_for_fft.shape[fft_dim], device=signal.device)
+        T_len = signal_for_fft.shape[fft_dim]
+        freqs = torch.fft.fftfreq(T_len, device=signal.device)
         
-        # Split at median frequency (Nyquist/2)
-        median_freq = torch.median(torch.abs(freqs))
-        high_freq_mask = torch.abs(freqs) > median_freq
-        low_freq_mask = ~high_freq_mask
+        # Virtual sample rate to map speech range: 80 kHz
+        fs = 80000.0
+        f_hz = freqs * fs
+        w = 2.0 * math.pi * f_hz
         
-        # Separate bands
-        soliton_fft = fft_signal.clone()
-        ergodic_fft = fft_signal.clone()
+        # Constants
+        Q = 4.32
+        K = 1.0
         
+        # Center frequencies (geometric means of the bands)
+        f_r_low = math.sqrt(45.0 * 355.0)       # ~126.4 Hz
+        f_r_mid = math.sqrt(355.0 * 3550.0)     # ~1122.9 Hz
+        f_r_high = math.sqrt(3550.0 * 35500.0)  # ~11229.4 Hz
+        
+        # Helper to compute bandpass transfer function H
+        def get_bandpass_H(f_r):
+            w0 = 2.0 * math.pi * f_r
+            num = 1j * K * (w0 / Q) * w
+            denom = (w0**2 - w**2) + 1j * (w0 / Q) * w
+            return num / (denom + 1e-8)
+            
+        H_low = get_bandpass_H(f_r_low)
+        H_mid = get_bandpass_H(f_r_mid)
+        H_high = get_bandpass_H(f_r_high)
+        
+        # Shape alignment for broadcasting H
+        # H is [T_len], we need to broadcast it to [batch, T_len, dim] or [batch, dim]
         if fft_dim == -1:
-            soliton_fft[..., low_freq_mask] = 0
-            ergodic_fft[..., high_freq_mask] = 0
+            H_low = H_low.view(1, -1)
+            H_mid = H_mid.view(1, -1)
+            H_high = H_high.view(1, -1)
         else:
-            # Use unsqueezed masks for proper broadcasting if needed, 
-            # or use explicit dimension indexing.
-            # For [batch, seq, dim], low_freq_mask aligns with seq (dim 1)
-            soliton_fft[:, low_freq_mask, :] = 0
-            ergodic_fft[:, high_freq_mask, :] = 0
+            H_low = H_low.view(1, -1, 1)
+            H_mid = H_mid.view(1, -1, 1)
+            H_high = H_high.view(1, -1, 1)
+            
+        # 2. Decompose into the three filter channels
+        low_fft = fft_signal * H_low
+        mid_fft = fft_signal * H_mid
+        high_fft = fft_signal * H_high
         
-        soliton_band = torch.fft.ifft(soliton_fft, dim=fft_dim).real
-        ergodic_band = torch.fft.ifft(ergodic_fft, dim=fft_dim).real
+        # 3. Apply Phaser modulation in frequency domain for High Band
+        # Phaser shifts phases of frequencies dynamically
+        phi_omega = 0.5 * torch.sin(2.0 * math.pi * f_hz / 1000.0)
+        if fft_dim == -1:
+            phi_omega = phi_omega.view(1, -1)
+        else:
+            phi_omega = phi_omega.view(1, -1, 1)
+        high_fft = high_fft * torch.exp(1j * phi_omega)
+        
+        # Reconstruct signals
+        low_band = torch.fft.ifft(low_fft, dim=fft_dim).real
+        mid_band = torch.fft.ifft(mid_fft, dim=fft_dim).real
+        soliton_band = torch.fft.ifft(high_fft, dim=fft_dim).real
+        
+        # 4. Apply Ring Modulation to Low Band
+        t = torch.arange(T_len, device=signal.device, dtype=signal.dtype)
+        if fft_dim == -1:
+            ring = 1.0 + 0.5 * torch.sin(2.0 * math.pi * 30.0 * t / T_len)
+            ring = ring.view(1, -1)
+        else:
+            ring = 1.0 + 0.5 * torch.sin(2.0 * math.pi * 30.0 * t / T_len)
+            ring = ring.view(1, -1, 1)
+        low_band = low_band * ring
+        
+        # 5. Apply Delay (Circular Shift) to Mid Band
+        mid_band = torch.roll(mid_band, shifts=2, dims=fft_dim)
+        
+        # Merge Low and Mid into Ergodic Band for two-band compatibility
+        ergodic_band = low_band + mid_band
         
         return soliton_band, ergodic_band
     
