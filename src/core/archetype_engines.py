@@ -80,10 +80,13 @@ class SovereignRefusalOperator(nn.Module):
     to restore the full sovereign veto.
     """
     def __init__(self, pas_lock: float = 3.0 / 11.0, harmonics_requirement: float = 0.4,
-                 training_mode: bool = False):
+                 training_mode: bool = False, pas_threshold: Optional[float] = None):
         super().__init__()
         # PAS_LOCK tied directly to the (11, 3) resonant Tori constraint
-        self.pas_lock = pas_lock
+        if pas_threshold is not None:
+            self.pas_lock = pas_threshold
+        else:
+            self.pas_lock = pas_lock
         self.harmonics_requirement = harmonics_requirement
         self.training_mode = training_mode
 
