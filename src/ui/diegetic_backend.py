@@ -1568,10 +1568,34 @@ class DiegeticPhysicsEngine(nn.Module):
         self.iteration += 1
         self.last_input_time = time.time()
         
+        # --- DYNAMIC REGIME DETERMINATION (Integrated Emergence Condition, Eq 10) ---
+        # Instead of manual override, the regime emerges from the current manifold state.
+        with torch.no_grad():
+            pas_h_live_init = self._compute_pas_h(self.meta_state) if hasattr(self, 'meta_state') else 0.61
+            if not hasattr(self, 'prev_pas'):
+                self.prev_pas = pas_h_live_init
+            drift_init = abs(pas_h_live_init - self.prev_pas)
+            self.prev_pas = pas_h_live_init
+            
+            atrophy_val_init = 0.0
+            if self.use_gyroid_probes:
+                atrophy_metrics = self.gyroid_probe.gyroid_cov.get_elipsodistrophy_metrics()
+                atrophy_val_init = atrophy_metrics.get('atrophy', 0.0)
+                
+            is_glyph_locked = bool(check_glyphlock(self.poly_config.get_coefficients_tensor()).max().item() > 0) if hasattr(self, 'poly_config') else False
+            
+            theta_L = 0.85
+            epsilon_drift = 0.05
+            is_coherent = pas_h_live_init >= theta_L
+            is_stable = drift_init <= epsilon_drift
+            
+            if is_coherent and is_stable and is_glyph_locked and atrophy_val_init < 0.85:
+                self.current_regime = 'prickles'
+            else:
+                self.current_regime = 'goo'
+
         # --- REGIME-BASED ENTROPY INJECTION ---
-        # Moving to 'goo' reduces hardening and increases mischief/entropy.
-        # Moving to 'prickles' increases hardening for logical consistency.
-        if regime == 'goo':
+        if self.current_regime == 'goo':
             self.current_regime = 'goo'
             print(f"[PHYSICS] Regime: GOO. Injecting Nutrients (Entropy boost).")
             # Nudge hardening toward 0.15 (soft manifold)
@@ -3213,7 +3237,8 @@ class DiegeticPhysicsEngine(nn.Module):
             "chiral_torsion": float(compute_chirality(self.poly_config.get_coefficients_tensor()).abs().mean().item()) if hasattr(self, 'poly_config') else 0.0,
             "glyphlock": bool((check_glyphlock(self.poly_config.get_coefficients_tensor()).max().item() > 0) or (calm_diagnostics["trajectory_status"] == "RECOVERED")),
             "pas_h": pas_h_live,
-            "retrieval_state": retrieval_state
+            "retrieval_state": retrieval_state,
+            "regime": self.current_regime
         }
 
         # Construct metrics now that all dependencies are available
@@ -3240,6 +3265,7 @@ class DiegeticPhysicsEngine(nn.Module):
             "calm_diagnostics": calm_diagnostics,
             "constraint_forcing_applied": constraint_forcing_needed,
             "diagnostics": diagnostics,
+            "regime": self.current_regime,
             # Phase 18: CRT Zeitgeist index diagnostics
             "zeitgeist": {
                 "mode": _zg_mode,
