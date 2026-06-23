@@ -607,9 +607,9 @@ class DiegeticPhysicsEngine(nn.Module):
             lr=0.001
 
         )
-        # [ANTI-LOBOTOMY ENFORCEMENT] Adam optimizer removed to prevent Smoothness Leakage.
-        # Updates are now tied to SDE fractional steps modulated by ValenceFunctional hunger.
-        # Future OpenCL Parallel Wavelet Synthesis will replace this entirely.
+        # [ANTI-LOBOTOMY ENFORCEMENT] Adam optimizer replaced with RicciFlowOptimizer to prevent Smoothness Leakage.
+        from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer
+        self.optimizer = RicciFlowOptimizer(self.larynx.parameters(), lr=0.001)
         self.criterion = nn.CrossEntropyLoss()
         
         # 12. Image Fingerprint Projection -- Chebyshev format
@@ -719,8 +719,10 @@ class DiegeticPhysicsEngine(nn.Module):
                  # Actually, we use self.trainer which is SpectralStructuralTrainer, but the request was
                  # for TemporalAssociationTrainer. We need to instantiate it if it doesn't exist.
                  if not hasattr(self, '_temporal_trainer') or self._temporal_trainer is None:
-                     from src.training.temporal_association_trainer import TemporalAssociationTrainer
-                     self._temporal_trainer = TemporalAssociationTrainer(model=self)
+                     from src.training.temporal_association_trainer import TemporalAssociationTrainer, TemporalAssociationDataset
+                     if not hasattr(self, '_temporal_dataset') or self._temporal_dataset is None:
+                         self._temporal_dataset = TemporalAssociationDataset(device=self.device)
+                     self._temporal_trainer = TemporalAssociationTrainer(model=self, dataset=self._temporal_dataset)
                  
                  loop.run_until_complete(auto_temporal_training_loop(self.chatgpt_harvester, self._temporal_trainer, delay=0.1))
                  
@@ -3469,6 +3471,7 @@ class DiegeticPhysicsEngine(nn.Module):
         self,
         text_emb: torch.Tensor,
         return_analysis: bool = False,
+        **kwargs
     ) -> dict:
         """
         Adapter required by TemporalAssociationTrainer.
@@ -3517,7 +3520,7 @@ class DiegeticPhysicsEngine(nn.Module):
     # Make TemporalAssociationTrainer's `self.model(text_emb=..., ...)` syntax work
     def __call_with_text_emb(self, *args, text_emb=None, return_analysis=False, **kwargs):
         if text_emb is not None:
-            return self.forward_text_emb(text_emb, return_analysis=return_analysis)
+            return self.forward_text_emb(text_emb, return_analysis=return_analysis, **kwargs)
         return super().__call__(*args, **kwargs)
 
     def _compute_pas_h(self, state: torch.Tensor) -> float:
