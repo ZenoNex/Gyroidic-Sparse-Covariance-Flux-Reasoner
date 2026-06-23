@@ -393,7 +393,8 @@ class GyroidicFluxReasoner(nn.Module):
         anchors: Optional[torch.Tensor] = None,
         group_ids: Optional[torch.Tensor] = None,
         return_analysis: bool = False,
-        voynich_token: Optional[Any] = None
+        voynich_token: Optional[Any] = None,
+        tag_weights: Optional[Dict[str, float]] = None
     ) -> Dict[str, torch.Tensor]:
         """
         Forward pass (Ecology over Algebra).
@@ -728,7 +729,8 @@ class GyroidicFluxReasoner(nn.Module):
             pressure_grad=pressure_grad,
             pas_h=pas_h_val,
             coherence=coherence_val,
-            atrophy=atrophy_val
+            atrophy=atrophy_val,
+            tag_weights=tag_weights
         )
         h = h_orchestrated # Apply logical primitives
 
