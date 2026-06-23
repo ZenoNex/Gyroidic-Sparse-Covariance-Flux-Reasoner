@@ -138,7 +138,7 @@
             padding: 4px 12px;
             font-size: 0.7rem;
             font-weight: 700;
-            cursor: pointer;
+            cursor: default;
             border-radius: 4px;
             transition: all 0.2s;
             color: #666;
@@ -1440,6 +1440,21 @@
             if (soliton && soliton.healing_progress > 0.1) {
                 triggerMischief(soliton.healing_progress);
             }
+
+            // Sync regime indicator dynamically
+            const resolvedRegime = normalizedData.regime || (diag && diag.regime) || 'goo';
+            state.regime = resolvedRegime;
+            const gooBtn = document.getElementById('regime-goo');
+            const pricklesBtn = document.getElementById('regime-prickles');
+            if (gooBtn && pricklesBtn) {
+                if (resolvedRegime === 'goo') {
+                    gooBtn.classList.add('active');
+                    pricklesBtn.classList.remove('active');
+                } else if (resolvedRegime === 'prickles') {
+                    pricklesBtn.classList.add('active');
+                    gooBtn.classList.remove('active');
+                }
+            }
         }
 
         function appendMessage(type, text, curvature = 0) {
@@ -2281,17 +2296,11 @@
         });
 
         document.getElementById('regime-goo').onclick = () => {
-            state.regime = 'goo';
-            document.getElementById('regime-goo').classList.add('active');
-            document.getElementById('regime-prickles').classList.remove('active');
-            appendMessage('system', "SWITCHING TO GOO REGIME: NON-DOMINANT CO-PRESENCE ENABLED.");
+            appendMessage('system', "REGIME OVERRIDE BLOCKED: Operational regime is dynamically determined by Equation 10 (Integrated Emergence Condition).");
         };
 
         document.getElementById('regime-prickles').onclick = () => {
-            state.regime = 'prickles';
-            document.getElementById('regime-prickles').classList.add('active');
-            document.getElementById('regime-goo').classList.remove('active');
-            appendMessage('system', "SWITCHING TO PRICKLES REGIME: TRUTH BRANCHING (CRT) ARMED.");
+            appendMessage('system', "REGIME OVERRIDE BLOCKED: Operational regime is dynamically determined by Equation 10 (Integrated Emergence Condition).");
         };
 
         fileInput.onchange = (e) => {
