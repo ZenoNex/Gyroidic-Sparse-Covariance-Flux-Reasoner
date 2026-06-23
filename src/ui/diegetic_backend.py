@@ -286,6 +286,7 @@ class DiegeticPhysicsEngine(nn.Module):
         self.k = k
         self.last_input_time = 0
         self.hardening = 0.5 # Default manifold state
+        self.use_gyroid_probes = True
         
         # Advanced Extensions (Lazy Init)
         self.meta_polytope = MetaPolytopeMatrioshka(max_depth=5, base_dim=dim) if EXTENSIONS_AVAILABLE else None
@@ -709,7 +710,20 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # --- CHATGPT FRICTION HARVESTER (Background Auto-Temporal Training) ---
         chatgpt_export_dir = r"D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\data\raw\chatgpt_userIla_and_archetpes_dyads_data\9894d8be355693bad4f30a9a8341f63f0519577efadeafd6e93ad9c97521d980-2026-03-31-10-43-19-a178149902ef4042a44540feb4301932"
+        if not os.path.exists(chatgpt_export_dir):
+             relative_suffix = os.path.join("data", "raw", "chatgpt_userIla_and_archetpes_dyads_data", "9894d8be355693bad4f30a9a8341f63f0519577efadeafd6e93ad9c97521d980-2026-03-31-10-43-19-a178149902ef4042a44540feb4301932")
+             candidate_cwd = os.path.abspath(relative_suffix)
+             if os.path.exists(candidate_cwd):
+                  chatgpt_export_dir = candidate_cwd
+             else:
+                  script_dir = os.path.dirname(os.path.abspath(__file__))
+                  root_dir = os.path.dirname(os.path.dirname(script_dir))
+                  candidate_root = os.path.join(root_dir, relative_suffix)
+                  if os.path.exists(candidate_root):
+                       chatgpt_export_dir = candidate_root
+
         if os.path.exists(chatgpt_export_dir):
+             print(f"[ENGINE] ChatGPT export dir resolved to: {chatgpt_export_dir}")
              self.chatgpt_harvester = ChatGPTFrictionHarvester(export_dir=chatgpt_export_dir, dim=self.dim)
              
              def run_harvester_loop():
@@ -1578,8 +1592,9 @@ class DiegeticPhysicsEngine(nn.Module):
             self.prev_pas = pas_h_live_init
             
             atrophy_val_init = 0.0
-            if self.use_gyroid_probes:
-                atrophy_metrics = self.gyroid_probe.gyroid_cov.get_elipsodistrophy_metrics()
+            if getattr(self, 'use_gyroid_probes', False):
+                sample = self.meta_state if hasattr(self, 'meta_state') else None
+                atrophy_metrics = self.gyroid_cov.get_elipsodistrophy_metrics(sample)
                 atrophy_val_init = atrophy_metrics.get('atrophy', 0.0)
                 
             is_glyph_locked = bool(check_glyphlock(self.poly_config.get_coefficients_tensor()).max().item() > 0) if hasattr(self, 'poly_config') else False
