@@ -367,8 +367,8 @@ class TextbookFilter:
         """
         report = QualityReport()
         
-        if not text or len(text.strip()) < 50:
-            report.flags.append('too_short')
+        if not text or not text.strip():
+            report.flags.append('empty_text')
             return report
         
         # Detect content type
