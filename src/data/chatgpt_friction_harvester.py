@@ -154,9 +154,10 @@ class ChatGPTFrictionHarvester:
     files are usually a subset of the full history.
     """
 
-    def __init__(self, export_dir: str, dim: int = 256):
+    def __init__(self, export_dir: str, dim: int = 256, fossilizer: Optional[Any] = None):
         self.export_dir = export_dir
         self.dim = dim
+        self.fossilizer = fossilizer
         self.creator_aliases: List[str] = ["ila", "akkaris", "willabusta"]
         self.ai_archetype_keywords: List[str] = [
             "archetype", "entity", "system", "architecture", "non-human", "ai"
@@ -170,6 +171,7 @@ class ChatGPTFrictionHarvester:
             "simulating ", "acting as ", "representing ", "emulating ",
             "personifying ", "impersonating ", "channeling ",
         ]
+
 
     # ------------------------------------------------------------------
     # Dynamic registration
@@ -300,8 +302,12 @@ class ChatGPTFrictionHarvester:
 
         for role, text in messages:
             if role == "user":
+                if self.fossilizer is not None and self.fossilizer.is_already_ingested(text):
+                    last_user_text = None
+                    continue
                 current_tokens = set(text.lower().split())
                 shift_tags: Dict[str, Any] = {}
+
 
                 if last_user_tokens and current_tokens:
                     inter = len(last_user_tokens & current_tokens)
