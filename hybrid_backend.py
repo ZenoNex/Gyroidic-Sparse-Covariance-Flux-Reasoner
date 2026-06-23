@@ -289,11 +289,7 @@ class GovernanceManager:
             return ans
 
         # 3.1 Regime
-        reg = get_input("[?] Select regime (goo/prickles)", config['regime']).lower()
-        if reg in ('goo', 'prickles'):
-            config['regime'] = reg
-        else:
-            print(f"[WARN] Invalid option, using default: {config['regime']}")
+        print("[INFO] Operational regime is dynamically determined by the engine (Eq 10). Manual selection bypassed.")
 
         # 3.2 Commutativity
         comm = get_input("[?] Select commutativity (non_commutative/symmetric)", config['commutativity']).lower()
@@ -1076,13 +1072,52 @@ class HybridAI:
         # Override parameters if they match standard defaults and custom settings were chosen at startup
         if commutativity == 'non_commutative':
             commutativity = getattr(self, 'default_commutativity', 'non_commutative')
-        if regime == 'goo':
-            regime = getattr(self, 'default_regime', 'goo')
 
         # Ensure hidden_state is ready for cloning (isolation snapshot)
         if not hasattr(self, 'hidden_state') or self.hidden_state is None:
             self._initialize_manifold_state()
+
+        # --- DYNAMIC REGIME DETERMINATION (Integrated Emergence Condition, Eq 10) ---
+        self.current_regime = 'goo'
+        with torch.no_grad():
+            pas_h_live_init = 0.61
+            if hasattr(self, 'engine') and self.engine and hasattr(self.engine, 'meta_state'):
+                pas_h_live_init = self.engine._compute_pas_h(self.engine.meta_state)
+            elif self.hidden_state is not None:
+                # Fallback calculation
+                pas_h_live_init = 1.0
+                state_len = len(self.hidden_state)
+                for d in range(8):
+                    segment = self.hidden_state[d*(state_len//8):(d+1)*(state_len//8)]
+                    pas_h_live_init += (1.0 / (d + 1.0)) * torch.norm(segment).item()
             
+            if not hasattr(self, 'prev_pas'):
+                self.prev_pas = pas_h_live_init
+            drift_init = abs(pas_h_live_init - self.prev_pas)
+            self.prev_pas = pas_h_live_init
+            
+            atrophy_val_init = 0.0
+            if hasattr(self, 'engine') and self.engine and self.engine.use_gyroid_probes:
+                atrophy_metrics = self.engine.gyroid_probe.gyroid_cov.get_elipsodistrophy_metrics()
+                atrophy_val_init = atrophy_metrics.get('atrophy', 0.0)
+                
+            is_glyph_locked = False
+            if hasattr(self, 'engine') and self.engine and hasattr(self.engine, 'poly_config'):
+                is_glyph_locked = bool(check_glyphlock(self.engine.poly_config.get_coefficients_tensor()).max().item() > 0)
+            elif self.hidden_state is not None:
+                coeffs = self.hidden_state.unsqueeze(0) if self.hidden_state.dim() == 1 else self.hidden_state
+                is_glyph_locked = bool(check_glyphlock(coeffs).max().item() > 0)
+                
+            theta_L = 0.85
+            epsilon_drift = 0.05
+            is_coherent = pas_h_live_init >= theta_L
+            is_stable = drift_init <= epsilon_drift
+            
+            if is_coherent and is_stable and is_glyph_locked and atrophy_val_init < 0.85:
+                self.current_regime = 'prickles'
+            else:
+                self.current_regime = 'goo'
+
         hidden_state = self.hidden_state.clone()
         diagnostics = {}
         response_text = ""
@@ -1162,7 +1197,7 @@ class HybridAI:
                     commutativity=commutativity,
                     generate_response=gen_resp,
                     ingestion_mode=is_ingest,
-                    regime=regime,
+                    regime=self.current_regime,
                     tag_weights=tag_weights
                 )
                 
@@ -1553,6 +1588,7 @@ class HybridAI:
             target['glyphlock'] = bool(glyphlock)
             target['pas_h'] = float(pas_h) if 'pas_h' in locals() else 1.0
             target['iteration'] = int(self.iteration_count)
+            target['regime'] = self.current_regime
             if 'retrieval_state' not in target:
                 target['retrieval_state'] = diagnostics.get('retrieval_state', 'KNOWN')
 
