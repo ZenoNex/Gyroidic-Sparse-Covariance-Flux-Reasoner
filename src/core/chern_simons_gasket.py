@@ -377,7 +377,10 @@ class ChernSimonsGasket(nn.Module):
             # Apply stitch as a geometric phase correction
             residues_symp = residues[..., :D_symp].clone()
             residues_symp = residues_symp * torch.cos(symplectic_stitch) + residues_symp.flip(dims=[-1]) * torch.sin(symplectic_stitch)
-            residues[..., :D_symp] = residues_symp
+            if D_symp == residues.shape[-1]:
+                residues = residues_symp
+            else:
+                residues = torch.cat([residues_symp, residues[..., D_symp:]], dim=-1)
             
         # ----------------------------------------------------
         
