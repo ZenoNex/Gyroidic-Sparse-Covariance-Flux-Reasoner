@@ -76,21 +76,53 @@ class SiliconSovereigntyEngine:
                     pass
 
             # Favor discrete GPU (e.g. GTX 1050 Ti, NVIDIA) over integrated GPU (e.g. Intel HD Graphics)
+            import os
             selected_device = None
-            if use_gpu and gpu_devices:
-                # Look for NVIDIA/discrete GPU first (GPU 1)
-                for dev in gpu_devices:
-                    name_lower = dev.name.lower()
-                    if "nvidia" in name_lower or "geforce" in name_lower or "gtx" in name_lower or "discrete" in name_lower:
-                        selected_device = dev
-                        self.logger.info(f"Targeting Discrete GPU (GPU 1): {dev.name}")
-                        break
-                # Fallback to any other GPU (e.g. Intel iGPU / GPU 0) if no discrete GPU is found
-                if selected_device is None:
+            
+            # Check environment overrides first for explicit GPU selection (e.g. GPU 0 or GPU 1)
+            device_override = os.environ.get("Sovereign_GPU_Index") or os.environ.get("GPU_INDEX") or os.environ.get("PYOPENCL_DEVICE_INDEX")
+            if device_override is not None:
+                # 1. Numeric index
+                try:
+                    dev_idx = int(device_override)
+                    if use_gpu and gpu_devices and 0 <= dev_idx < len(gpu_devices):
+                        selected_device = gpu_devices[dev_idx]
+                        self.logger.info(f"Targeting GPU from index override ({device_override}): {selected_device.name}")
+                    elif 0 <= dev_idx < len(other_devices):
+                        selected_device = other_devices[dev_idx]
+                        self.logger.info(f"Targeting Device from index override ({device_override}): {selected_device.name}")
+                except ValueError:
+                    # 2. Substring match
+                    override_lower = device_override.lower()
+                    if use_gpu and gpu_devices:
+                        for dev in gpu_devices:
+                            if override_lower in dev.name.lower():
+                                selected_device = dev
+                                self.logger.info(f"Targeting GPU from name override ({device_override}): {dev.name}")
+                                break
+                    if selected_device is None:
+                        for dev in other_devices:
+                            if override_lower in dev.name.lower():
+                                selected_device = dev
+                                self.logger.info(f"Targeting Device from name override ({device_override}): {dev.name}")
+                                break
+
+            # Standard selection logic if no override or override not matched
+            if selected_device is None:
+                if use_gpu and gpu_devices:
+                    # Look for NVIDIA/discrete GPU first (GPU 1)
                     for dev in gpu_devices:
-                        selected_device = dev
-                        self.logger.info(f"Targeting Integrated/Available GPU (GPU 0): {dev.name}")
-                        break
+                        name_lower = dev.name.lower()
+                        if "nvidia" in name_lower or "geforce" in name_lower or "gtx" in name_lower or "discrete" in name_lower:
+                            selected_device = dev
+                            self.logger.info(f"Targeting Discrete GPU (GPU 1): {dev.name}")
+                            break
+                    # Fallback to any other GPU (e.g. Intel iGPU / GPU 0) if no discrete GPU is found
+                    if selected_device is None:
+                        for dev in gpu_devices:
+                            selected_device = dev
+                            self.logger.info(f"Targeting Integrated/Available GPU (GPU 0): {dev.name}")
+                            break
             
             # Absolute fallback to first available device (e.g. CPU)
             if selected_device is None:
