@@ -633,7 +633,7 @@ except Exception as err:
                         row_limit=q.get("row_limit", 100)
                     )
                     rows_summary = "\n".join([
-                        f"Galaxy {r.get('GalaxyID')}: Group={r.get('GroupID')}, RA={r.get('RAJ2000')}, DEC={r.get('DEJ2000')}, Redshift={r.get('z')}"
+                        f"Galaxy {r.get('GalaxyID') or r.get('ID')}: Group={r.get('GroupID') or r.get('IDcl')}, RA={r.get('RAJ2000')}, DEC={r.get('DEJ2000')}, Redshift={r.get('z')}"
                         for r in data["rows"][:5]
                     ])
                     text_summary = (
