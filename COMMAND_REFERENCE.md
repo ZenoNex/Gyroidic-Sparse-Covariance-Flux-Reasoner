@@ -131,6 +131,34 @@ python src/ui/diegetic_terminal.py
 - View system status
 - Real-time responses
 
+### Diegetic Terminal Exclusive Chat Commands
+When using the chat interface, you can type special command prefixes directly into the prompt text area. These command structures bypass the standard conversation pipeline to run specific system and database tasks:
+
+* **`SOVEREIGN_FETCH:`**
+  Manual Sovereign Nutrient Fetch. Pulls high-entropy conversations from StackExchange and HackerNews into the training pipeline.
+  * *Syntax*: `SOVEREIGN_FETCH:`
+* **`CLOUD_FETCH:`**
+  Manual Cloud Nutrient Sync. Synchronizes text and logic shards from the Google Drive cloud workspace.
+  * *Syntax*: `CLOUD_FETCH:`
+* **`EXPORT_AGENT_SMITH:`**
+  Agent Smith Export Protocol. Decouples the active mathematical state and psychological profile (meta-state geometry, Betti numbers, prime frequencies, and gauge fields) and exports them to a `.pt` identity file.
+  * *Syntax*: `EXPORT_AGENT_SMITH: [Description/Label]`
+* **`IMPORT_AGENT_SMITH:`**
+  Agent Smith Import Protocol. Inject and rehydrate an exported soliton identity, aligning the geometry and re-stabilizing the archetypal configuration.
+  * *Syntax*: `IMPORT_AGENT_SMITH: [Absolute or relative path to .pt file]`
+* **`INGEST_DYAD:`**
+  Ingests a concept description or a pair of concept descriptions directly into the active manifold.
+  * *Syntax*: `INGEST_DYAD: [Description]` or `INGEST_DYAD: Description A <-> Description B`
+* **`ASSOCIATE:`**
+  Maps a conceptual association between two ideas, updating the topological coordinate system.
+  * *Syntax*: `ASSOCIATE: Concept A <-> Concept B`
+* **`INGEST_AUDIO_DYAD:`**
+  Ingests base64-encoded audio alongside a linguistic description.
+  * *Syntax*: `INGEST_AUDIO_DYAD: [Description]`
+* **`INGEST_VIDEO_DYAD:`**
+  Ingests base64-encoded video frames alongside a linguistic description.
+  * *Syntax*: `INGEST_VIDEO_DYAD: [Description]`
+
 ### Wikipedia Trainer
 ```bash
 # Start backend
@@ -147,43 +175,78 @@ python src/ui/diegetic_backend.py
 
 ---
 
-## [TEST] Testing Commands
+## [TEST] Testing & Verification Commands
 
-### Core Tests
+### Core System Mathematical & Logic Tests
+Run the core mathematical systems verification suite (Krylov subspaces, Bouligand slides, Birkhoff projections, etc.):
+```bash
+# Direct runner (with built-in thread timeout harness)
+$env:PYTHONPATH="."
+.venv\scripts\python.exe -u tests/test_core_systems.py
+
+# Pytest runner (runs all cases to completion)
+.venv\scripts\python.exe -m pytest -v -o python_functions="_test_*" tests/test_core_systems.py
+```
+
+### Silicon Sovereignty (GPU/OpenCL) & Synthesis Tests
+Run the GPU acceleration tests (stochastic rounding, dual command queues, Born rule, and Betti number approximation):
+```bash
+# Verify PyOpenCL kernels and device execution on GPU
+$env:PYTHONPATH="."
+.venv\scripts\python.exe -m pytest -v tests/test_unicorn_synthesis.py
+```
+
+### Algebraic Invariant Verification
+```bash
+$env:PYTHONPATH="."
+.venv\scripts\python.exe -m pytest -v tests/test_algebraic_invariants.py
+```
+
+### GPU / OpenCL Device Selection Overrides
+To target specific discrete graphics cards (e.g., GTX 1050 Ti, NVIDIA) or fallback platforms, set the environment variables before running the tests:
+```powershell
+# Target discrete NVIDIA GPU (recommended)
+$env:GPU_INDEX="nvidia"
+.venv\scripts\python.exe -m pytest -v tests/test_unicorn_synthesis.py
+
+# Explicit device index mapping (0, 1, etc.)
+$env:Sovereign_GPU_Index="0"
+$env:PYOPENCL_DEVICE_INDEX="1"
+.venv\scripts\python.exe -m pytest -v tests/test_unicorn_synthesis.py
+```
+
+### General Bug Fixes and Image Verification
 ```bash
 # Test bug fixes (run this first)
-python test_fixes_verification.py
+.venv\scripts\python.exe test_fixes_verification.py
 
 # Test image processing
-python test_image_simple.py
-python test_image_integration.py
+.venv\scripts\python.exe test_image_simple.py
+.venv\scripts\python.exe test_image_integration.py
 
 # Test Wikipedia system
-python test_enhanced_wikipedia_system.py
+.venv\scripts\python.exe test_enhanced_wikipedia_system.py
 ```
 
-### Feature Tests
+### Legacy & Component Level Tests
 ```bash
 # Test association learning
-python test_enhanced_association_learning.py
+.venv\scripts\python.exe test_enhanced_association_learning.py
 
 # Test dataset augmentation
-python test_mandelbulb_augmentation.py
+.venv\scripts\python.exe test_mandelbulb_augmentation.py
 
 # Test repair systems
-python test_repair_integration.py
-```
+.venv\scripts\python.exe test_repair_integration.py
 
-### System Phase Tests
-```bash
 # Test Phase 3 (dyad system)
-python test_phase3_dyad_system.py
+.venv\scripts\python.exe test_phase3_dyad_system.py
 
 # Test Phase 4 (advanced features)
-python test_phase4_advanced_features.py
+.venv\scripts\python.exe test_phase4_advanced_features.py
 
 # Test enhanced fingerprints
-python test_enhanced_fingerprint.py
+.venv\scripts\python.exe test_enhanced_fingerprint.py
 ```
 
 ---
