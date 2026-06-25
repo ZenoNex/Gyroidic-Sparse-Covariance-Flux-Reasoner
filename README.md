@@ -196,8 +196,8 @@ python hybrid_backend.py
 **File**: `src/ui/wikipedia_trainer.html` (via backend)
 
 ```bash
-# Start backend (includes Wikipedia trainer)
-python src/ui/diegetic_backend.py
+# Start unified hybrid backend (includes Wikipedia trainer)
+python hybrid_backend.py
 
 # Open: http://localhost:8000/wikipedia-trainer
 ```
@@ -374,8 +374,8 @@ python dataset_command_interface.py quick-start --dataset imdb --samples 500 --e
 
 #### Backend Connection Issues
 ```bash
-# Make sure backend is running
-python src/ui/diegetic_backend.py
+# Make sure hybrid backend is running
+python hybrid_backend.py
 
 # Check Windows Firewall (if on Windows)
 # Allow Python through firewall for port 8000
