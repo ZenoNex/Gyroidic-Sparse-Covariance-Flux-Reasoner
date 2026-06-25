@@ -7,14 +7,15 @@
 ## [START] Essential Commands
 
 ### Start the System
+The unified `hybrid_backend.py` is the recommended way to run most, if not all, of the essential backends (including the Diegetic Terminal chat UI and the Wikipedia trainer).
 ```bash
-# Web chat interface
-python src/ui/diegetic_terminal.py
-# Then open: http://localhost:8000
+# Launch the unified hybrid backend
+.venv\scripts\python.exe hybrid_backend.py
 
-# Backend server (for Wikipedia trainer)
-python src/ui/diegetic_backend.py
-# Then open: http://localhost:8000/wikipedia-trainer
+# Then open in your browser:
+# Chat Interface:        http://localhost:8000
+# Wikipedia Trainer:     http://localhost:8000/wikipedia-trainer
+# Conversational Data Trainer    http://localhost:8080
 ```
 
 ### Quick Training
@@ -118,9 +119,10 @@ python dataset_command_interface.py status
 ##  Web Interfaces
 
 ### Chat Interface
+(Served automatically via the unified hybrid backend)
 ```bash
-# Start server
-python src/ui/diegetic_terminal.py
+# Start backend server
+.venv\scripts\python.exe hybrid_backend.py
 
 # Open browser to: http://localhost:8000
 ```
@@ -160,9 +162,10 @@ When using the chat interface, you can type special command prefixes directly in
   * *Syntax*: `INGEST_VIDEO_DYAD: [Description]`
 
 ### Wikipedia Trainer
+(Served automatically via the unified hybrid backend)
 ```bash
-# Start backend
-python src/ui/diegetic_backend.py
+# Start backend server
+.venv\scripts\python.exe hybrid_backend.py
 
 # Open browser to: http://localhost:8000/wikipedia-trainer
 ```
@@ -309,8 +312,8 @@ pip install --upgrade Pillow
 # Type handling error (should be fixed)
 python test_fixes_verification.py
 
-# Backend connection lost
-python src/ui/diegetic_backend.py
+# Backend connection lost (Restart the unified server)
+.venv\scripts\python.exe hybrid_backend.py
 
 # Out of storage
 python dataset_command_interface.py status
@@ -335,9 +338,10 @@ python dataset_command_interface.py status
 ##  File Locations
 
 ### Main Scripts
+- `hybrid_backend.py` - Unified backend server (recommended runner)
 - `dataset_command_interface.py` - Main dataset training
-- `src/ui/diegetic_terminal.py` - Web chat interface
-- `src/ui/diegetic_backend.py` - Backend server
+- `src/ui/diegetic_terminal.py` - Legacy web chat interface script
+- `src/ui/diegetic_backend.py` - Legacy backend server script
 - `image_extension.py` - Image processing
 
 ### Test Scripts
@@ -359,9 +363,9 @@ python dataset_command_interface.py status
 # 1. Test system
 python test_fixes_verification.py
 
-# 2. Start chat
-python src/ui/diegetic_terminal.py
-# Open http://localhost:8000
+# 2. Start unified hybrid backend server
+.venv\scripts\python.exe hybrid_backend.py
+# Open http://localhost:8000 in your browser
 
 # 3. Quick training
 python dataset_command_interface.py quick-start --dataset imdb --samples 500 --epochs 3
