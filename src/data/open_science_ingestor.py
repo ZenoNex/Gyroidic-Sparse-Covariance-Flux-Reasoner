@@ -20,10 +20,13 @@ class OpenScienceIngestor:
     Encapsulated manager for open-access scientific datasets.
     Provides flexible query aggregation and deterministic fallback generators.
     """
-    def __init__(self, cache_dir: Optional[str] = None):
+    def __init__(self, cache_dir: Optional[str] = None, email: str = "default@example.com", verbosity: str = "normal"):
         self.cache_dir = Path(cache_dir) if cache_dir else Path("datasets/open_science_cache")
+        self.email = email
+        self.verbosity = verbosity
         self.cache_dir.mkdir(exist_ok=True, parents=True)
-        print(f"[INGEST] OpenScienceIngestor initialized. Cache: {self.cache_dir}")
+        if self.verbosity != "low":
+            print(f"[INGEST] OpenScienceIngestor initialized. Cache: {self.cache_dir} | Email: {self.email} | Verbosity: {self.verbosity}")
 
     # =========================================================================
     # 1. LIGO Strain Data Ingestion
