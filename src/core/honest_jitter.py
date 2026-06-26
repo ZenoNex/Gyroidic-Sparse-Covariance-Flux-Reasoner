@@ -67,41 +67,44 @@ class AgentSmithEngine(nn.Module):
             Substrate Sovereignty: 1.1. Entropy must be grounded in physical 
             timing variance, not pseudorandom algorithms.
         """
-        shape = tuple(shape) # Normalize to tuple for consistent dict keys
-        device = self.gauge.device
-        num_elements = torch.Size(shape).numel()
-        
-        # Check for warmstart state compatibility
-        if shape in self.warmstart_states and self.warmstart_states[shape].device == device:
-            x = self.warmstart_states[shape]
-            # Inject tiny hardware seed variance to prevent attractor lock-in
-            x = (x + seed_val * 1e-4) % 1.0
-        else:
-            # Initialize from linspace + hardware seed
-            x = (torch.linspace(0.1, 0.9, num_elements, device=device) + seed_val) % 1.0
+        with torch.no_grad():
+            shape = tuple(shape) # Normalize to tuple for consistent dict keys
+            device = self.gauge.device
+            num_elements = torch.Size(shape).numel()
             
-        # Determine iteration count (learnable)
-        base = self.iters_base_small if num_elements < 1024 else self.iters_base_large
-        iters = int(torch.clamp(base * self.iter_multiplier, 10, 150).item())
-        
-        # Logistic Map Expansion: x_{n+1} = gauge * x_n * (1 - x_n)
-        for _ in range(iters):
-            x = self.gauge * x * (1.0 - x)
+            # Check for warmstart state compatibility
+            if shape in self.warmstart_states and self.warmstart_states[shape].device == device:
+                x = self.warmstart_states[shape]
+                # Inject tiny hardware seed variance to prevent attractor lock-in
+                x = (x + seed_val * 1e-4) % 1.0
+            else:
+                # Initialize from linspace + hardware seed
+                x = (torch.linspace(0.1, 0.9, num_elements, device=device) + seed_val) % 1.0
+                
+            # Determine iteration count (learnable)
+            base = self.iters_base_small if num_elements < 1024 else self.iters_base_large
+            iters = int(torch.clamp(base * self.iter_multiplier, 10, 150).item())
             
-        # Update warmstart state (detach to prevent graph growth)
-        self.warmstart_states[shape] = x.detach()
-        
-        # Scale to [-1, 1] for jitter
-        jitter_flat = (x * 2.0 - 1.0)
-        
-        if scaled:
-            # Scale by a small amount to avoid disrupting global invariants
-            jitter_flat = jitter_flat * 0.01
+            # Logistic Map Expansion: x_{n+1} = gauge * x_n * (1 - x_n)
+            for _ in range(iters):
+                x = self.gauge * x * (1.0 - x)
+                
+            # Update warmstart state (detach to prevent graph growth)
+            self.warmstart_states[shape] = x.detach()
             
-        return jitter_flat.view(shape)
+            # Scale to [-1, 1] for jitter
+            jitter_flat = (x * 2.0 - 1.0)
+            
+            if scaled:
+                # Scale by a small amount to avoid disrupting global invariants
+                jitter_flat = jitter_flat * 0.01
+                
+            return jitter_flat.view(shape).clone()
 
 # Global singleton for Agent Smith Engine (initialized on first call)
 _AGENT_SMITH_ENGINE = None
+_DUMMY_BUFFER_A = None
+_DUMMY_BUFFER_B = None
 
 def harvest_honest_jitter(shape: torch.Size, device: torch.device = None, scaled: bool = True) -> torch.Tensor:
     """
@@ -120,26 +123,30 @@ def harvest_honest_jitter(shape: torch.Size, device: torch.device = None, scaled
     Returns:
         A tensor of 'Honest Jitter' grounded in physical substrate friction.
     """
-    global _LAST_HARVEST_TIME, _AGENT_SMITH_ENGINE
+    global _LAST_HARVEST_TIME, _AGENT_SMITH_ENGINE, _DUMMY_BUFFER_A, _DUMMY_BUFFER_B
     
-    if device is None:
-        device = DEVICE
+    target_device = torch.device(device) if device is not None else DEVICE
     
     # Lazy initialization of the expansion engine
-    if _AGENT_SMITH_ENGINE is None:
-        _AGENT_SMITH_ENGINE = AgentSmithEngine(device=device)
+    if _AGENT_SMITH_ENGINE is None or _AGENT_SMITH_ENGINE.gauge.device != target_device:
+        _AGENT_SMITH_ENGINE = AgentSmithEngine(device=target_device)
     
     # Check cache first for standard shapes if we are in a tight loop
     now = time.time()
     if shape in _HONEST_JITTER_CACHE and (now - _LAST_HARVEST_TIME) < _HARVEST_COOLDOWN:
-        return _HONEST_JITTER_CACHE[shape].to(device)
+        return _HONEST_JITTER_CACHE[shape].clone().to(target_device)
     
     # --- PHYSICAL HARVESTING ---
     if (now - _LAST_HARVEST_TIME) >= _HARVEST_COOLDOWN:
-        # Dummy memory pressure to trigger stalls
-        _ = torch.empty(1024 * 1024, device=device).fill_(3.14)
+        # Lazy initialization of dummy memory buffers to prevent memory pressure allocation overhead
+        if _DUMMY_BUFFER_A is None or _DUMMY_BUFFER_A.device != target_device:
+            _DUMMY_BUFFER_A = torch.empty(1024 * 1024, device=target_device)
+        if _DUMMY_BUFFER_B is None or _DUMMY_BUFFER_B.device != target_device:
+            _DUMMY_BUFFER_B = torch.empty(1024 * 1024, device=target_device)
+            
+        _DUMMY_BUFFER_A.fill_(3.14)
         t0 = time.perf_counter()
-        _ = torch.empty(1024 * 1024, device=device).fill_(2.71)
+        _DUMMY_BUFFER_B.fill_(2.71)
         t1 = time.perf_counter()
         
         # The 'hardware seed' is derived from nanosecond latency variance
@@ -152,9 +159,13 @@ def harvest_honest_jitter(shape: torch.Size, device: torch.device = None, scaled
     # Agent Smith Expansion
     jitter_tensor = _AGENT_SMITH_ENGINE(shape, seed_val, scaled=scaled)
     
-    # Update cache for frequently used shapes
-    if shape in [(64, 64), (1,)]:
-        _HONEST_JITTER_CACHE[shape] = jitter_tensor.clone().detach()
+    # Update cache for all shapes to prevent redundant generation
+    if len(_HONEST_JITTER_CACHE) > 128:
+        # Keep 'seed' and clear other elements if cache gets too large
+        seed_val = _HONEST_JITTER_CACHE.get('seed', 0.5)
+        _HONEST_JITTER_CACHE.clear()
+        _HONEST_JITTER_CACHE['seed'] = seed_val
+    _HONEST_JITTER_CACHE[shape] = jitter_tensor.clone().detach()
 
     return jitter_tensor
 
