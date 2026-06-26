@@ -277,7 +277,12 @@ class GovernanceManager:
             'birkhoff_temperature': 1.0,
             'birkhoff_max_iterations': 100,
             'tda_landmarks': 50,
-            'ego_death_limit': 1.5
+            'ego_death_limit': 1.5,
+            'open_science_email': 'default@example.com',
+            'chatgpt_ingestor_enabled': True,
+            'chatgpt_ingestor_verbosity': 'normal',
+            'open_science_ingestor_enabled': True,
+            'open_science_ingestor_verbosity': 'normal'
         }
         
         print("\n" + "="*50)
@@ -430,6 +435,26 @@ class GovernanceManager:
         except ValueError:
             print(f"[WARN] Invalid float, using default: {config['birkhoff_temperature']}")
 
+        # 3.19 Open Science Email
+        os_email = get_input("[?] Email for Open Science Ingestor (NCBI/Entrez)", config['open_science_email'])
+        config['open_science_email'] = os_email
+
+        # 3.20 ChatGPT Ingestor On/Off
+        chat_enabled = get_input("[?] Enable ChatGPT Friction Harvester (yes/no)", 'yes' if config['chatgpt_ingestor_enabled'] else 'no').lower()
+        config['chatgpt_ingestor_enabled'] = chat_enabled in ('yes', 'y')
+
+        # 3.21 ChatGPT Ingestor Verbosity
+        chat_verb = get_input("[?] ChatGPT Ingestor verbosity (low/normal/high)", config['chatgpt_ingestor_verbosity']).lower()
+        config['chatgpt_ingestor_verbosity'] = chat_verb
+
+        # 3.22 Open Science Ingestor On/Off
+        os_enabled = get_input("[?] Enable Open Science Ingestor (yes/no)", 'yes' if config['open_science_ingestor_enabled'] else 'no').lower()
+        config['open_science_ingestor_enabled'] = os_enabled in ('yes', 'y')
+
+        # 3.23 Open Science Ingestor Verbosity
+        os_verb = get_input("[?] Open Science Ingestor verbosity (low/normal/high)", config['open_science_ingestor_verbosity']).lower()
+        config['open_science_ingestor_verbosity'] = os_verb
+
         # 3.19 Birkhoff max iterations
         b_iters = get_input("[?] Birkhoff max iterations", str(config['birkhoff_max_iterations']))
         try:
@@ -550,7 +575,7 @@ class HybridAI:
         try:
             from src.ui.diegetic_backend import DiegeticPhysicsEngine
             # Initialize with compatible dimension (256 matches hybrid state)
-            self.engine = DiegeticPhysicsEngine(dim=256, device=self.torch_device)
+            self.engine = DiegeticPhysicsEngine(dim=256, device=self.torch_device, config=config)
             print("[OK] Diegetic Physics Engine attached (CALM/KAGH/FGRT/Larynx Active)")
         except Exception as e:
              print(f"[FAIL] Diegetic Engine connection failed: {e}")
