@@ -21,7 +21,7 @@ class NonErgodicEntropyEstimator(nn.Module):
     """
     Entropy estimation that preserves non-ergodic (soliton) structure.
     
-    Standard entropy: H(X) = -Σ  p(x) log p(x)  [ergodic mixing]
+    Standard entropy: H(X) = - p(x) log p(x)  [ergodic mixing]
     Non-ergodic: Decompose into spectral bands, compute entropy per band,
     preserve soliton entropy separately.
     """
@@ -366,6 +366,9 @@ class NonErgodicFractalEntropy(nn.Module):
 
 
 
+_POLYNOMIAL_BASIS_CACHE = {}
+
+
 class HybridLassoQuantizer(nn.Module):
     """
     Hybrid "LAS + Oblite" Quantization System.
@@ -396,6 +399,8 @@ class HybridLassoQuantizer(nn.Module):
             import math
             def get_polynomial_basis(n):
                 """Generate polynomial basis coefficients instead of primes."""
+                if n in _POLYNOMIAL_BASIS_CACHE:
+                    return _POLYNOMIAL_BASIS_CACHE[n]
                 basis = []
                 for k in range(n):
                     # Use Chebyshev polynomial T_k evaluated at multiple points
@@ -419,6 +424,7 @@ class HybridLassoQuantizer(nn.Module):
                     basis_val = abs(coeff * 10) + 1
                     basis.append(basis_val)
                 
+                _POLYNOMIAL_BASIS_CACHE[n] = basis
                 return basis
             
             self.polynomial_basis = get_polynomial_basis(dim)
