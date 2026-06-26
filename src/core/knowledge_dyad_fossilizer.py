@@ -166,33 +166,122 @@ class DyadFossilizer:
         
         # Deduplication memory cache
         self.fossilized_hashes = set()
-        self._load_fossilized_hashes()
+        self.index_file = os.path.join(self.storage_dir, ".fossil_index.json")
+        self.fossil_index = {}
+        self._load_index()
 
-    def _load_fossilized_hashes(self):
-        """Builds a set of already fossilized prompt hashes to prevent duplicate learning."""
+    def _load_index(self):
+        """Loads or builds the fast fossil index to prevent O(N) startup bottlenecks."""
         self.fossilized_hashes = set()
-        try:
-            if os.path.exists(self.storage_dir):
-                for f in os.listdir(self.storage_dir):
-                    if f.endswith(".pt"):
+        if os.path.exists(self.index_file):
+            try:
+                with open(self.index_file, "r", encoding="utf-8") as f:
+                    self.fossil_index = json.load(f)
+                
+                # Check for sync: fast validation of existing .pt files
+                existing_files = set(f for f in os.listdir(self.storage_dir) if f.endswith(".pt"))
+                indexed_files = set(self.fossil_index.keys())
+                
+                missing_files = indexed_files - existing_files
+                for f in missing_files:
+                    del self.fossil_index[f]
+                
+                new_files = existing_files - indexed_files
+                if new_files:
+                    # Scan only new files to avoid reloading old ones
+                    for f in new_files:
                         filepath = os.path.join(self.storage_dir, f)
                         try:
-                            # Use map_location='cpu' to avoid loading onto GPU
+                            mtime = os.path.getmtime(filepath)
                             data = torch.load(filepath, map_location='cpu')
                             if isinstance(data, dict):
                                 p_hash = data.get('prompt_hash')
-                                if p_hash:
-                                    self.fossilized_hashes.add(p_hash)
-                                else:
+                                if not p_hash:
                                     desc = data.get('description') or data.get('text_input')
                                     if desc:
-                                        computed_hash = hashlib.sha256(desc.encode('utf-8')).hexdigest()
-                                        self.fossilized_hashes.add(computed_hash)
+                                        p_hash = hashlib.sha256(desc.encode('utf-8')).hexdigest()
+                                dyad_meta = data.get('dyad_metadata') or {}
+                                arxiv_id = dyad_meta.get('arxiv_id')
+                                self.fossil_index[f] = {
+                                    'prompt_hash': p_hash,
+                                    'arxiv_id': arxiv_id,
+                                    'mtime': mtime
+                                }
                         except Exception:
                             pass
-            print(f"[FOSSILIZER] Loaded {len(self.fossilized_hashes)} existing fossil prompt hashes for deduplication.")
+                
+                if missing_files or new_files:
+                    self._save_index()
+                    
+                for f, info in self.fossil_index.items():
+                    if info.get('prompt_hash'):
+                        self.fossilized_hashes.add(info['prompt_hash'])
+                        
+                print(f"[FOSSILIZER] Fast index loaded. {len(self.fossilized_hashes)} existing hashes from {self.index_file}.")
+                return
+            except Exception as e:
+                print(f"[FOSSILIZER] Loading fast index failed: {e}. Rebuilding index.")
+                
+        self._rebuild_index()
+
+    def _rebuild_index(self):
+        """Builds index by scanning directory."""
+        self.fossil_index = {}
+        self.fossilized_hashes = set()
+        if not os.path.exists(self.storage_dir):
+            return
+            
+        print("[FOSSILIZER] Rebuilding fast fossil index... This may take a few seconds.")
+        try:
+            entries = [e for e in os.scandir(self.storage_dir) if e.name.endswith(".pt")]
+            for entry in entries:
+                filepath = entry.path
+                f = entry.name
+                try:
+                    mtime = entry.stat().st_mtime
+                    data = torch.load(filepath, map_location='cpu')
+                    if isinstance(data, dict):
+                        p_hash = data.get('prompt_hash')
+                        if not p_hash:
+                            desc = data.get('description') or data.get('text_input')
+                            if desc:
+                                p_hash = hashlib.sha256(desc.encode('utf-8')).hexdigest()
+                        dyad_meta = data.get('dyad_metadata') or {}
+                        arxiv_id = dyad_meta.get('arxiv_id')
+                        self.fossil_index[f] = {
+                            'prompt_hash': p_hash,
+                            'arxiv_id': arxiv_id,
+                            'mtime': mtime
+                        }
+                        if p_hash:
+                            self.fossilized_hashes.add(p_hash)
+                except Exception:
+                    pass
+            self._save_index()
+            print(f"[FOSSILIZER] Rebuilt fast index. Indexed {len(self.fossil_index)} files.")
         except Exception as e:
-            print(f"[FOSSILIZER] Error loading existing hashes: {e}")
+            print(f"[FOSSILIZER] Rebuilding index failed: {e}")
+
+    def _save_index(self):
+        """Saves current fast index to disk."""
+        try:
+            with open(self.index_file, "w", encoding="utf-8") as f:
+                json.dump(self.fossil_index, f)
+        except Exception as e:
+            print(f"[FOSSILIZER] Saving fast index failed: {e}")
+
+    def get_all_arxiv_ids(self) -> set:
+        """Returns the set of all indexed ArXiv IDs."""
+        ids = set()
+        for f, info in self.fossil_index.items():
+            a_id = info.get('arxiv_id')
+            if a_id:
+                ids.add(a_id)
+        return ids
+
+    def _load_fossilized_hashes(self):
+        """Legacy stub for backward compatibility."""
+        pass
 
     def is_already_ingested(self, text: str) -> bool:
         """Check if a prompt/text has already been fossilized."""
@@ -450,7 +539,14 @@ class DyadFossilizer:
         
         torch.save(payload, filepath)
         self.fossilized_hashes.add(prompt_hash)
-
+        
+        # Update fast index
+        self.fossil_index[filename] = {
+            'prompt_hash': prompt_hash,
+            'arxiv_id': payload.get('dyad_metadata', {}).get('arxiv_id') if payload.get('dyad_metadata') else None,
+            'mtime': datetime.datetime.now().timestamp()
+        }
+        self._save_index()
         
         return filepath
         
@@ -480,37 +576,40 @@ class DyadFossilizer:
         return None
         
     def recover_fossils(self, limit: Optional[int] = 150) -> List[Dict]:
-
-        """Load all fossilized dyads for 'Speculative Coprime Gating'."""
+        """Load all fossilized dyads for 'Speculative Coprime Gating' using fast index."""
         fossils = []
         if not os.path.exists(self.storage_dir):
             return fossils
             
-        files = [f for f in os.listdir(self.storage_dir) if f.endswith(".pt")]
+        sorted_files = sorted(
+            self.fossil_index.keys(),
+            key=lambda x: self.fossil_index[x].get('mtime', 0.0),
+            reverse=True
+        )
         
-        # Sort files by modification time, newest first
-        try:
-            files.sort(key=lambda x: os.path.getmtime(os.path.join(self.storage_dir, x)), reverse=True)
-        except Exception as e:
-            print(f"[RECOVERY] Sorting files failed: {e}")
-            
         if limit is not None:
-            files = files[:limit]
+            sorted_files = sorted_files[:limit]
             
-        for f in files:
+        for f in sorted_files:
             filepath = os.path.join(self.storage_dir, f)
             try:
-                data = torch.load(filepath)
+                data = torch.load(filepath, map_location='cpu')
                 # Check both 'text_input' (new) and 'description' (legacy)
                 if isinstance(data, dict) and ('residue_vector' in data or 'meta_state' in data):
                     fossils.append(data)
                 else:
                     print(f"[RECOVERY] Deleting invalid fossil (missing residue_vector): {f}")
                     os.remove(filepath)
+                    if f in self.fossil_index:
+                        del self.fossil_index[f]
+                        self._save_index()
             except Exception as e:
                 print(f"[RECOVERY] Deleting corrupted fossil {f}: {e}")
                 try:
                     os.remove(filepath)
+                    if f in self.fossil_index:
+                        del self.fossil_index[f]
+                        self._save_index()
                 except:
                     pass
         return fossils
@@ -638,6 +737,13 @@ class DyadFossilizer:
         }
         filepath = os.path.join(self.storage_dir, filename)
         torch.save(payload, filepath)
+        # Update fast index
+        self.fossil_index[filename] = {
+            'prompt_hash': blake2s_digest,
+            'arxiv_id': None,
+            'mtime': datetime.datetime.now().timestamp()
+        }
+        self._save_index()
         print(f"[FOSSILIZER] Sovereign Agent Smith Exported: {filename} (Shielding ID: {pot_id}, PI-Growth: {h_gamma:.4f})")
         return filepath
 
