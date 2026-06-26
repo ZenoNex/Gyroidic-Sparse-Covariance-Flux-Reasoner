@@ -183,17 +183,10 @@ class ChernSimonsGasket(nn.Module):
         A = self.gauge_field
         
         # Curvature F = dA + [A, A] (simplified for discrete case)
-        # Using commutator [A, A] = AA - AA = 0, so F  dA
+        # Using commutator [A, A] = AA - AA = 0, so F ~ dA
         # In discrete setting, approximate dA as finite differences
-        
-        F = torch.zeros_like(A)
-        
-        # Compute discrete exterior derivative (simplified)
-        for i in range(self.manifold_dim):
-            for j in range(self.manifold_dim):
-                if i != j:
-                    # Discrete curl-like operation
-                    F[i, j] = A[i, j] - A[j, i]
+        # Vectorized equivalent of the discrete exterior derivative: F[i, j] = A[i, j] - A[j, i]
+        F = A - A.t()
         
         return F
     
