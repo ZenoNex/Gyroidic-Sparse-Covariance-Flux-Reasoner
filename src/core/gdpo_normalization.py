@@ -114,40 +114,45 @@ class SignalSovereignty(nn.Module):
         if group_ids is None:
             group_ids = torch.zeros(batch_size, dtype=torch.long, device=multi_dim_pressures.device)
         
-        # Step 1: Per-dimension group-wise normalization
+        # Step 1: Vectorized group-wise normalization across all dimensions
         decoupled = torch.zeros_like(multi_dim_pressures)
+        unique_groups = torch.unique(group_ids)
         
-        for k in range(num_dims):
-            decoupled[:, k] = self.group_normalize(
-                multi_dim_pressures[:, k],
-                group_ids,
-                dim_idx=k
-            )
+        for group in unique_groups:
+            mask = (group_ids == group)
+            group_values = multi_dim_pressures[mask]
+            num_samples = group_values.shape[0]
             
-            # Update running statistics (ONLY if not fossilized)
-            if self.training and not self.is_fossilized[k]:
-                with torch.no_grad():
-                    mean_k = multi_dim_pressures[:, k].mean()
-                    var_k = multi_dim_pressures[:, k].var(unbiased=False)
-                    
-                    self.running_mean[k] = (1 - self.momentum) * self.running_mean[k] + \
-                                           self.momentum * mean_k
-                    self.running_var[k] = (1 - self.momentum) * self.running_var[k] + \
-                                          self.momentum * var_k
+            if num_samples > 1:
+                mean = group_values.mean(dim=0)
+                std = group_values.std(dim=0, unbiased=False) + self.epsilon
+                decoupled[mask] = (group_values - mean) / std
+            else:
+                # Single sample in group - use running stats
+                decoupled[mask] = (group_values - self.running_mean) / \
+                                  (torch.sqrt(self.running_var) + self.epsilon)
+            
+        # Update running statistics (ONLY if not fossilized)
+        if self.training:
+            with torch.no_grad():
+                mean_all = multi_dim_pressures.mean(dim=0)
+                var_all = multi_dim_pressures.var(dim=0, unbiased=False)
+                
+                not_fossilized = ~self.is_fossilized
+                self.running_mean = torch.where(
+                    not_fossilized,
+                    (1.0 - self.momentum) * self.running_mean + self.momentum * mean_all,
+                    self.running_mean
+                )
+                self.running_var = torch.where(
+                    not_fossilized,
+                    (1.0 - self.momentum) * self.running_var + self.momentum * var_all,
+                    self.running_var
+                )
         
         # Check for Fossilization triggers
         if self.training:
             self._update_fossilization_state(multi_dim_pressures)
-        
-        # Step 2: Weighted aggregation (DEPRECATED - ENFORCING NON-SCALARIZATION)
-        # Note: We return decoupled pressures to maintain domain sovereignty.
-        # r =  w_k  r_k (Removed to close the scalarization trap)
-        
-        # Step 3: Optional batch-level normalization for scale stability
-        # if self.use_batch_norm and batch_size > 1:
-        #    batch_mean = aggregated.mean()
-        #    batch_std = aggregated.std(unbiased=False) + self.epsilon
-        #    aggregated = (aggregated - batch_mean) / batch_std
         
         # Diagnostics
         diagnostics = {
@@ -166,33 +171,34 @@ class SignalSovereignty(nn.Module):
         Update fossilization based on stability of signaling.
         """
         with torch.no_grad():
-            for k in range(self.num_dimensions):
-                if self.is_fossilized[k]:
-                    continue
-                
-                # Metric: Stability of z-score variance
-                # If variance of current batch matches running variance tightly, signal is stabilizing
-                current_var = values[:, k].var(unbiased=False)
-                var_diff = torch.abs(current_var - self.running_var[k]) / (self.running_var[k] + self.epsilon)
-                
-                if var_diff < 0.05: # High stability
-                    self.performance_streak[k] += 1
-                else:
-                    self.performance_streak[k] = 0
-                
-                # [ARCHITECTURAL REMEDIATION] Replace naive integer threshold with Mohr-Coulomb 
-                # structural yield criteria.
-                from src.core.yield_criteria import MohrCoulombProjection
-                if not hasattr(self, '_mc_yield'):
-                    self._mc_yield = MohrCoulombProjection(friction_angle=30.0, cohesion=float(self.fossil_threshold))
-                
-                # Project the performance streak (pressure) against the cohesion barrier
-                pressure = torch.tensor([[float(self.performance_streak[k])]], device=values.device)
-                load = torch.zeros_like(pressure)
-                yielded_pressure = self._mc_yield(pressure, load)
-                
-                # Rupture (Fossilization) only occurs if the MC boundary yields
-                if yielded_pressure.item() > self.fossil_threshold:
+            # Metric: Stability of z-score variance across all dimensions
+            current_var = values.var(dim=0, unbiased=False)
+            var_diff = torch.abs(current_var - self.running_var) / (self.running_var + self.epsilon)
+            
+            # Update performance streak
+            stable_mask = var_diff < 0.05
+            self.performance_streak = torch.where(
+                stable_mask,
+                self.performance_streak + 1,
+                torch.zeros_like(self.performance_streak)
+            )
+            
+            # [ARCHITECTURAL REMEDIATION] Replace naive integer threshold with Mohr-Coulomb 
+            # structural yield criteria.
+            from src.core.yield_criteria import MohrCoulombProjection
+            if not hasattr(self, '_mc_yield'):
+                self._mc_yield = MohrCoulombProjection(friction_angle=30.0, cohesion=float(self.fossil_threshold))
+            
+            # Project the performance streak (pressure) against the cohesion barrier in a vectorized manner
+            # pressure shape: [num_dimensions, 1]
+            pressure = self.performance_streak.unsqueeze(-1).float()
+            load = torch.zeros_like(pressure)
+            yielded_pressure = self._mc_yield(pressure, load).squeeze(-1) # [num_dimensions]
+            
+            # Rupture (Fossilization) only occurs if the MC boundary yields
+            newly_fossilized = (~self.is_fossilized) & (yielded_pressure > self.fossil_threshold)
+            if newly_fossilized.any():
+                for k in torch.where(newly_fossilized)[0].tolist():
                     self.is_fossilized[k] = True
                     print(f"Signal Sovereignty: functional group {k} has fossilized via Mohr-Coulomb yield.")
     
