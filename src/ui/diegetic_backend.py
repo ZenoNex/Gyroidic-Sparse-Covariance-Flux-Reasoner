@@ -273,8 +273,9 @@ class DiegeticPhysicsEngine(nn.Module):
     The Core Engine.
     Combines Cavity + Larynx + Persistence + Fractal Meta-Recursion + CALM + KAGH.
     """
-    def __init__(self, dim=256, k=5, calm_history_len=8, device=None):
+    def __init__(self, dim=256, k=5, calm_history_len=8, device=None, config=None):
         super().__init__()
+        self.config = config or {}
         if device is None:
             self.device = DEVICE
         else:
@@ -384,27 +385,16 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Repunit-CRT Sparse Probe - for topological factoring
         # Using Legendre polynomial generated coefficients instead of hardcoded primes (anti-lobotomy compliance)
-        poly_moduli = []
-        x = 0.7
-        p_prev2, p_prev1 = 1.0, x
-        for i in range(k):
-            if i == 0:
-                p_k = 1.0
-            elif i == 1:
-                p_k = x
-            else:
-                p_k = ((2*i - 1) * x * p_prev1 - (i - 1) * p_prev2) / i
-                p_prev2, p_prev1 = p_prev1, p_k
-            
-            # Scale to positive integers for CRT moduli
-            # Use dynamic prime offset to avoid 'Dead Logic' (Anti-Lobotomy 4)
-            from src.core.fgrt_primitives import PrimeResonanceLadder
-            if not hasattr(self, '_prime_ladder'):
-                self._prime_ladder = PrimeResonanceLadder(num_resonators=32).to(device)
-            prime_offset = int(self._prime_ladder.primes[2].item()) # Using 3rd prime as stable offset
-            poly_moduli.append(int(abs(p_k * 10) + prime_offset))
+        from src.core.polynomial_coprime import PolynomialBasis
+        basis = PolynomialBasis(degree=k-1, basis_type='legendre')
+        legendre_vals = basis.evaluate(torch.tensor([0.7], device=device))[0]
 
-            
+        from src.core.fgrt_primitives import PrimeResonanceLadder
+        if not hasattr(self, '_prime_ladder'):
+            self._prime_ladder = PrimeResonanceLadder(num_resonators=32).to(device)
+        prime_offset = int(self._prime_ladder.primes[2].item()) # Using 3rd prime as stable offset
+        
+        poly_moduli = [int(abs(p.item() * 10) + prime_offset) for p in legendre_vals]            
         self.repunit_probe = SparseRepunitProbe(moduli=poly_moduli)
         
         # Love Invariant Protector - prevents Love vector scalarization
@@ -676,8 +666,11 @@ class DiegeticPhysicsEngine(nn.Module):
                 engine=self
             )
             # Re-enable the background slow-drip learning (Valence Modulated)
-            self.ingestor.start_background_learning()
-            print(" Sovereign Ingestor (Option D) initialized. Background learning ACTIVE.")
+            if not os.environ.get("Sovereign_Disable_Background"):
+                self.ingestor.start_background_learning()
+                print(" Sovereign Ingestor (Option D) initialized. Background learning ACTIVE.")
+            else:
+                print(" Sovereign Ingestor: background learning disabled by environment override.")
         except Exception as e:
             print(f"[INGEST] Failed to start sovereign ingestor: {e}")
             self.ingestor = None
@@ -692,62 +685,82 @@ class DiegeticPhysicsEngine(nn.Module):
                 engine=self
             )
             self.arxiv_ingestor._engine_busy_fn = lambda: self._is_processing
-            self.arxiv_ingestor.start_sovereign_loop()
-            print(" ArXiv Sovereign Ingestor ACTIVE. Realtime lore ingestion enabled.")
+            if not os.environ.get("Sovereign_Disable_Background"):
+                self.arxiv_ingestor.start_sovereign_loop()
+                print(" ArXiv Sovereign Ingestor ACTIVE. Realtime lore ingestion enabled.")
+            else:
+                print(" ArXiv Sovereign Ingestor: background loop disabled by environment override.")
         except Exception as e:
             print(f"[INGEST] ArXiv Sovereign Ingestor failed: {e}")
             self.arxiv_ingestor = None
         
         # Initialize Open Science Ingestor inside the engine
-        try:
-            from src.data.open_science_ingestor import OpenScienceIngestor
-            cache_dir = os.path.join(ENCODING_DIR, "open_science_cache")
-            self.open_science_ingestor = OpenScienceIngestor(cache_dir=cache_dir)
-            print(" Open Science Ingestor initialized in engine.")
-        except Exception as e:
+        if self.config.get('open_science_ingestor_enabled', True):
+            try:
+                from src.data.open_science_ingestor import OpenScienceIngestor
+                cache_dir = os.path.join(ENCODING_DIR, "open_science_cache")
+                email = self.config.get('open_science_email', 'default@example.com')
+                verbosity = self.config.get('open_science_ingestor_verbosity', 'normal')
+                self.open_science_ingestor = OpenScienceIngestor(cache_dir=cache_dir, email=email, verbosity=verbosity)
+                print(" Open Science Ingestor initialized in engine.")
+            except Exception as e:
+                self.open_science_ingestor = None
+                print(f"[INGEST] Failed to initialize OpenScienceIngestor: {e}")
+        else:
             self.open_science_ingestor = None
-            print(f"[INGEST] Failed to initialize OpenScienceIngestor: {e}")
+            print(" Open Science Ingestor: disabled by configuration.")
 
         # --- CHATGPT FRICTION HARVESTER (Background Auto-Temporal Training) ---
-        chatgpt_export_dir = r"D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\data\raw\chatgpt_userIla_and_archetpes_dyads_data\9894d8be355693bad4f30a9a8341f63f0519577efadeafd6e93ad9c97521d980-2026-03-31-10-43-19-a178149902ef4042a44540feb4301932"
-        if not os.path.exists(chatgpt_export_dir):
-             relative_suffix = os.path.join("data", "raw", "chatgpt_userIla_and_archetpes_dyads_data", "9894d8be355693bad4f30a9a8341f63f0519577efadeafd6e93ad9c97521d980-2026-03-31-10-43-19-a178149902ef4042a44540feb4301932")
-             candidate_cwd = os.path.abspath(relative_suffix)
-             if os.path.exists(candidate_cwd):
-                  chatgpt_export_dir = candidate_cwd
-             else:
-                  script_dir = os.path.dirname(os.path.abspath(__file__))
-                  root_dir = os.path.dirname(os.path.dirname(script_dir))
-                  candidate_root = os.path.join(root_dir, relative_suffix)
-                  if os.path.exists(candidate_root):
-                       chatgpt_export_dir = candidate_root
+        if self.config.get('chatgpt_ingestor_enabled', True):
+            verbosity = self.config.get('chatgpt_ingestor_verbosity', 'normal')
+            chatgpt_export_dir = r"D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\data\raw\chatgpt_userIla_and_archetpes_dyads_data\9894d8be355693bad4f30a9a8341f63f0519577efadeafd6e93ad9c97521d980-2026-03-31-10-43-19-a178149902ef4042a44540feb4301932"
+            if not os.path.exists(chatgpt_export_dir):
+                 relative_suffix = os.path.join("data", "raw", "chatgpt_userIla_and_archetpes_dyads_data", "9894d8be355693bad4f30a9a8341f63f0519577efadeafd6e93ad9c97521d980-2026-03-31-10-43-19-a178149902ef4042a44540feb4301932")
+                 candidate_cwd = os.path.abspath(relative_suffix)
+                 if os.path.exists(candidate_cwd):
+                      chatgpt_export_dir = candidate_cwd
+                 else:
+                      script_dir = os.path.dirname(os.path.abspath(__file__))
+                      root_dir = os.path.dirname(os.path.dirname(script_dir))
+                      candidate_root = os.path.join(root_dir, relative_suffix)
+                      if os.path.exists(candidate_root):
+                           chatgpt_export_dir = candidate_root
 
-        if os.path.exists(chatgpt_export_dir):
-             print(f"[ENGINE] ChatGPT export dir resolved to: {chatgpt_export_dir}")
-             self.chatgpt_harvester = ChatGPTFrictionHarvester(export_dir=chatgpt_export_dir, dim=self.dim, fossilizer=self.fossilizer)
+            if os.path.exists(chatgpt_export_dir):
+                 if verbosity != 'low':
+                     print(f"[ENGINE] ChatGPT export dir resolved to: {chatgpt_export_dir} | Verbosity: {verbosity}")
+                 self.chatgpt_harvester = ChatGPTFrictionHarvester(export_dir=chatgpt_export_dir, dim=self.dim, fossilizer=self.fossilizer)
 
-             
-             def run_harvester_loop():
-                 loop = asyncio.new_event_loop()
-                 asyncio.set_event_loop(loop)
-                 # Re-init temporal trainer if not present, though it is usually lazy-initted.
-                 # Actually, we use self.trainer which is SpectralStructuralTrainer, but the request was
-                 # for TemporalAssociationTrainer. We need to instantiate it if it doesn't exist.
-                 if not hasattr(self, '_temporal_trainer') or self._temporal_trainer is None:
-                     from src.training.temporal_association_trainer import TemporalAssociationTrainer, TemporalAssociationDataset
-                     if not hasattr(self, '_temporal_dataset') or self._temporal_dataset is None:
-                         self._temporal_dataset = TemporalAssociationDataset(device=self.device)
-                     self._temporal_trainer = TemporalAssociationTrainer(model=self, dataset=self._temporal_dataset)
-                 
-                 loop.run_until_complete(auto_temporal_training_loop(self.chatgpt_harvester, self._temporal_trainer, delay=0.1))
-                 
-             self._chatgpt_harvester_thread = threading.Thread(target=run_harvester_loop, daemon=True)
-             self._chatgpt_harvester_thread.start()
-             print(f"[ENGINE] ChatGPT Friction Harvester running in background thread.")
+                 def run_harvester_loop():
+                     loop = asyncio.new_event_loop()
+                     asyncio.set_event_loop(loop)
+                     if not hasattr(self, '_temporal_trainer') or self._temporal_trainer is None:
+                         from src.training.temporal_association_trainer import TemporalAssociationTrainer, TemporalAssociationDataset
+                         if not hasattr(self, '_temporal_dataset') or self._temporal_dataset is None:
+                             self._temporal_dataset = TemporalAssociationDataset(device=self.device)
+                         self._temporal_trainer = TemporalAssociationTrainer(model=self, dataset=self._temporal_dataset)
+                     
+                     loop.run_until_complete(auto_temporal_training_loop(self.chatgpt_harvester, self._temporal_trainer, delay=0.1))
+                     
+                 if not os.environ.get("Sovereign_Disable_Background"):
+                     self._chatgpt_harvester_thread = threading.Thread(target=run_harvester_loop, daemon=True)
+                     self._chatgpt_harvester_thread.start()
+                     if verbosity != 'low':
+                         print(f"[ENGINE] ChatGPT Friction Harvester running in background thread.")
+                 else:
+                     if verbosity != 'low':
+                         print(" ChatGPT Friction Harvester: background harvester disabled by environment override.")
+            else:
+                 print(f"[ENGINE] Warning: ChatGPT export dir {chatgpt_export_dir} not found.")
+                 self.chatgpt_harvester = None
         else:
-             print(f"[ENGINE] Warning: ChatGPT export dir {chatgpt_export_dir} not found.")
+            self.chatgpt_harvester = None
+            print(" ChatGPT Friction Harvester: disabled by configuration.")
 
-        self._start_background_larynx_trainer()
+        if not os.environ.get("Sovereign_Disable_Background"):
+            self._start_background_larynx_trainer()
+        else:
+            print(" Background Larynx trainer: disabled by environment override.")
 
     def _idx_to_char(self, idx: int) -> str:
         """Map vocabulary index to character string."""
@@ -1004,13 +1017,15 @@ class DiegeticPhysicsEngine(nn.Module):
             for p in self.larynx.parameters():
                 if p.grad is not None:
                     p.grad.zero_()
-            total_loss = torch.tensor(0.0, device=self.device)
+            seq_len = max(1, len(chars) - 1)
+            total_loss_val = 0.0
             current_state = seed
             for i in range(len(chars) - 1):
                 logits, _ = self.larynx(current_state, temperature=1.0)
                 target = torch.tensor([chars[i + 1]], device=self.device, dtype=torch.long)
-                loss = self.criterion(logits, target)
-                total_loss = total_loss + loss
+                loss = self.criterion(logits, target) / seq_len
+                loss.backward()
+                total_loss_val += loss.item()
                 # Detach state to prevent gradient explosion across steps
                 with torch.no_grad():
                     # Teacher forcing: feed actual target character representation
@@ -1024,22 +1039,24 @@ class DiegeticPhysicsEngine(nn.Module):
                             # Project update direction onto Bouligand tangent cone
                             direction = self.meta_polytope.project_direction(current_state, direction, boundary_res)
                     current_state = current_state.detach() + 0.1 * direction
-            avg_loss = total_loss / max(1, len(chars) - 1)
+            avg_loss_val = total_loss_val
             
             # [ANTI-LOBOTOMY ENFORCEMENT]
             # 1. Toplogical Seal Check (Chern-Simons Gasket)
-            honesty = 1.0 / (1.0 + avg_loss.item())
+            honesty = 1.0 / (1.0 + avg_loss_val)
             kappa = 1.0
             if hasattr(self, 'chern_simons_gasket') and hasattr(self.chern_simons_gasket, 'kappa'):
                 kappa = self.chern_simons_gasket.kappa.item() if isinstance(self.chern_simons_gasket.kappa, torch.Tensor) else self.chern_simons_gasket.kappa
             seal = math.tanh(honesty * kappa)
             if abs(seal) < 1e-4:
                 # Logic leak detected: seal fails, refuse update
+                for p in self.larynx.parameters():
+                    if p.grad is not None:
+                        p.grad.zero_()
                 self.larynx.eval()
-                return avg_loss.item()
+                return avg_loss_val
                 
-            # 2. Structural stress backward
-            avg_loss.backward()
+            # 2. Structural stress backward (computed inline above)
             torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
             
             # 3. Geometric Null-Space Shield and SDE Fractional Step
@@ -3821,14 +3838,14 @@ class DiegeticPhysicsEngine(nn.Module):
         # Dynamic tokenization map
         chars = [self._char_to_idx(c) for c in text_target]
         
-        total_loss = torch.tensor(0.0, device=self.device)
+        seq_len = max(1, len(chars) - 1)
         current_state = input_state.clone().to(self.device)
         
         for i in range(len(chars) - 1):
             logits, _ = self.larynx(current_state, temperature=1.0)
             target_idx = torch.tensor([chars[i + 1]], device=self.device, dtype=torch.long)
-            loss = self.criterion(logits, target_idx)
-            total_loss = total_loss + loss
+            loss = self.criterion(logits, target_idx) / seq_len
+            loss.backward()
             
             with torch.no_grad():
                 # Teacher forcing: feed actual target character embedding to next step state
@@ -3836,8 +3853,6 @@ class DiegeticPhysicsEngine(nn.Module):
                 feedback = torch.tanh(self.larynx.proj.weight[idx].detach().unsqueeze(0))
                 current_state = 0.9 * current_state.detach() + 0.1 * feedback
                 
-        avg_loss = total_loss / max(1, len(chars) - 1)
-        avg_loss.backward()
         torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
         self.optimizer.step()
         self.larynx.eval()
