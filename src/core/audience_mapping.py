@@ -29,12 +29,22 @@ class AudienceProjection(nn.Module):
         super().__init__()
         self.input_dim = input_dim
         self.audience_dim = audience_dim
-        self.lipschitz_k = lipschitz_k
+        # Enforce Banach fixed-point convergence by strictly bounding Lipschitz constant < 1
+        self.lipschitz_k = min(lipschitz_k, 0.95)
         
         # We use Spectral Normalization to enforce Lipschitz constraint K=1 (roughly)
         # Residual structure y = x + f(x) helps with invertibility (homeomorphism)
         
-        hidden = max(input_dim, audience_dim) * 2
+        # Adaptive Performance Weighting:
+        # Scale hidden dimension organically based on available system memory using psutil
+        import psutil
+        free_gb = psutil.virtual_memory().available / (1024 ** 3)
+        # Base factor scales with free RAM, bounded between 1 and 4 for stability
+        scale_factor = min(4.0, max(1.0, free_gb / 4.0)) 
+        
+        # Determine hidden dim dynamically, clamping the absolute max to avoid tensor explosion
+        base_hidden = max(input_dim, audience_dim) * 2
+        hidden = int(min(base_hidden, 1024 * scale_factor))
         
         self.net = nn.Sequential(
             spectral_norm(nn.Linear(input_dim, hidden)),
