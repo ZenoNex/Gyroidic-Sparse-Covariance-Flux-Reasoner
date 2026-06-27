@@ -18,6 +18,8 @@ from src.core.honest_jitter import fractal_pad
 from src.core.gdpo_normalization import GDPONormalization
 from src.core.chern_simons_gasket import ChernSimonsGasket
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
+from src.models.resonance_cavity import BreatherMode
+from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
 
 # Fix import paths
 import sys
@@ -89,6 +91,12 @@ class ModularAttention(nn.Module):
         self.dropout = NostalgicLeakFunctional(fossil_dim=hidden_dim)
         
         self.scale = math.sqrt(self.head_dim)
+        
+        # O(K) Breather Memory Hybridization
+        self.num_breathers = self.K * self.num_heads
+        self.breather_cache = BreatherMode(num_breathers=self.num_breathers, dim=hidden_dim)
+        self.opencl_engine = SiliconSovereigntyEngine(use_gpu=True)
+        self.warmstart_mix = nn.Parameter(torch.tensor(0.0))
         
         # Structural Integrity Buffer
         self.register_buffer('last_integrity_mask', torch.ones(1, dtype=torch.bool))
@@ -181,6 +189,31 @@ class ModularAttention(nn.Module):
                 attn_weights = torch.softmax(scores, dim=-1)
             A_k = torch.matmul(attn_weights, V_k)  # [batch, num_heads, seq_len, head_dim]
             
+            # --- HYBRID O(K) BREATHER CACHE ---
+            if self.warmstart_mix > 0.0:
+                # Flatten seq_len into batch for spatial evaluation
+                Q_k_flat = Q_k.transpose(1, 2).contiguous().view(batch_size * seq_len, self.hidden_dim)
+                V_k_flat = V_k.transpose(1, 2).contiguous().view(batch_size * seq_len, self.hidden_dim)
+                
+                # O(1) PyOpenCL Parity Filter
+                import numpy as np
+                q_numpy = (Q_k_flat.detach().cpu().numpy().mean(axis=-1) * 1000).astype(np.int64)
+                v_numpy = (V_k_flat.detach().cpu().numpy().mean(axis=-1) * 1000).astype(np.int64)
+                
+                valid_mask = self.opencl_engine.filter_dead_logic(v_numpy, q_numpy)
+                valid_mask_tensor = torch.from_numpy(valid_mask).to(V_k_flat.device).float().unsqueeze(-1)
+                
+                # Excitation is only permitted if logic is not dead
+                safe_excitation = V_k_flat * valid_mask_tensor
+                
+                # Evaluate Breather Modes
+                breather_out = self.breather_cache(Q_k_flat, excitation=safe_excitation)
+                
+                # Reshape to match A_k: [batch, num_heads, seq_len, head_dim]
+                A_k_breather = breather_out.view(batch_size, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
+                
+                A_k = (1.0 - self.warmstart_mix) * A_k + self.warmstart_mix * A_k_breather
+            
             # Update Structural Integrity tracker
             if self.use_birkhoff:
                 integrity = self.birkhoff.validate_stochasticity(attn_weights) # [batch, num_heads]
@@ -207,8 +240,8 @@ class ModularAttention(nn.Module):
             
             # Pull dynamic polynomial coefficients from live config
             coeffs = self.poly_config.get_coefficients_tensor().to(x.device)
-            # Ensure coeffs matches the active K
-            if len(field_outputs) < self.K:
+            # Ensure coeffs matches the active K (number of field outputs)
+            if coeffs.shape[0] > len(field_outputs):
                 coeffs = coeffs[:len(field_outputs)]
                 
             # Plug the logic leak
