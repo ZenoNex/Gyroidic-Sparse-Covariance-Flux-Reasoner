@@ -428,6 +428,16 @@ class DiegeticPhysicsEngine(nn.Module):
         
         print(" Garbled Output Repair System initialized")
         
+        # System 2 Modular Attention for reality-checking associations
+        from src.models.modular_attention import ModularAttention
+        self.modular_attention = ModularAttention(
+            hidden_dim=dim,
+            num_heads=4,
+            poly_config=self.poly_config,
+            num_functionals=k
+        ).to(self.device)
+
+        
         # =============================================
         
         # FRACTAL META-FUNCTIONAL HOOK
@@ -1187,7 +1197,8 @@ class DiegeticPhysicsEngine(nn.Module):
                                                 
                                             # Embed and register in stacker
                                             vector = self._text_to_tensor(t).to(self.device)
-                                            self.archetypal_governor.harvest_named_coordinate(t_name, vector, t)
+                                            self.archetypal_governor.harvest_named_coordinate(t_name, vector, t, parent_engine=self)
+
                                             print(f"[BGLEARN] Registered scientific tag: '{t_name}' in SuperposedTagStacker.")
                                 else:
                                     # Already registered, skip query!
@@ -2383,7 +2394,8 @@ class DiegeticPhysicsEngine(nn.Module):
                     tag_name = f"glitch_switching_step_{step}"
                     desc = f"Topological switch glitch at step {step} with braid word {self._zeitgeist_state.braid_word} and CS phase {self._zeitgeist_state.cs_phase}"
                     vector = seed_state.detach().mean(dim=0) if seed_state.dim() > 1 else seed_state.detach()
-                    self.archetypal_governor.harvest_named_coordinate(tag_name, vector, desc)
+                    self.archetypal_governor.harvest_named_coordinate(tag_name, vector, desc, parent_engine=self)
+
                     print(f" [ZEITGEIST] Dynamic Glitch Style Tagging registered: '{tag_name}' in SuperposedTagStacker.")
             except Exception as _zg_e:
                 print(f"  ZeitgeistRouter error (non-fatal): {_zg_e}")
@@ -3835,8 +3847,21 @@ class DiegeticPhysicsEngine(nn.Module):
         self.larynx.train()
         self.optimizer.zero_grad()
         
+        # Adaptive Performance Weighting
+        # Dynamically scale the sequence truncation based on current hardware stress
+        import psutil
+        cpu_load = psutil.cpu_percent(interval=None) # Quick non-blocking read
+        mem_free = psutil.virtual_memory().available / (1024 ** 3) # Free RAM in GB
+        
+        if cpu_load > 85.0 or mem_free < 2.0:
+            max_seq = 16  # Heavy constraint
+        elif cpu_load > 60.0 or mem_free < 4.0:
+            max_seq = 64  # Moderate constraint
+        else:
+            max_seq = 256 # Free operation
+            
         # Dynamic tokenization map
-        chars = [self._char_to_idx(c) for c in text_target]
+        chars = [self._char_to_idx(c) for c in text_target[:max_seq]]
         
         seq_len = max(1, len(chars) - 1)
         current_state = input_state.clone().to(self.device)
@@ -4126,6 +4151,37 @@ class DiegeticPhysicsEngine(nn.Module):
             conversational_embedding_pressure * 0.12 +   # Conversations need temporal associations
             api_extraction_potential * 0.08              # API data creates external constraints
         )
+        # Compute breathermode expandable list subject to the archetype conjuring systems and prime resonance ladder
+        from src.core.fgrt_primitives import PrimeResonanceLadder
+        if not hasattr(self, '_prime_ladder'):
+            self._prime_ladder = PrimeResonanceLadder(num_resonators=32).to(self.device)
+        freqs, repunits, status_dict = self._prime_ladder()
+        
+        breather_list = []
+        k_limit = getattr(self.poly_config, 'k', 5)
+        for idx in range(min(k_limit, len(freqs))):
+            freq = freqs[idx].item()
+            repunit = int(repunits[idx].item())
+            
+            # Base excitation modulated by formal density
+            base_excitation = float(torch.sin(input_tensor.mean() * freq).abs().item() * (1.0 + formal_symbol_density))
+            
+            active_archetype = "None"
+            if self.archetypal_governor is not None:
+                active_archetype = "Pomni" if idx % 2 == 0 else "Mandy"
+                if active_archetype == "Pomni":
+                    base_excitation *= 1.2
+                else:
+                    base_excitation *= 0.8
+                    
+            breather_list.append({
+                'id': idx,
+                'frequency': freq,
+                'repunit': repunit,
+                'excitation': base_excitation,
+                'active_archetype': active_archetype
+            })
+
         # Update affordance history for temporal tracking
         affordance_snapshot = {
             'executability_pressure': executability_pressure,
@@ -4139,7 +4195,8 @@ class DiegeticPhysicsEngine(nn.Module):
             'tensor_entropy': tensor_entropy,
             'tensor_variance': tensor_variance,
             'tensor_sparsity': tensor_sparsity,
-            'tensor_coherence': tensor_coherence
+            'tensor_coherence': tensor_coherence,
+            'breather_modes': breather_list # NEW
         }
         
         self.affordance_history.append(affordance_snapshot)
