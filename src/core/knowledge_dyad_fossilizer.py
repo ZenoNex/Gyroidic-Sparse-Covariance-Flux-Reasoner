@@ -45,7 +45,7 @@ class KnowledgeDyad:
     gyroid_residue: Optional[torch.Tensor] = None # [n, n] irreducible entanglement
     hyperbolic_residue: Optional[torch.Tensor] = None # ShadowLog Non-Euclidean curvature
     meta_state: Optional[torch.Tensor] = None # [dim] architecture state
-    all_shapes: Optional[List[torch.Tensor]] = None # [dim] List of alternate functional mappings (Sparrow/Dog/Man)
+    all_shapes: Optional[List[torch.Tensor]] = None # [dim] List of alternate functional mappings (Sparrow/Dog/Human)
     relevance_score: float = 1.0
     timestamp: str = ""
     metadata: Optional[Dict] = None
