@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import math
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.superposed_tag_stacker import SuperposedTagStacker
 
@@ -351,22 +351,22 @@ class LowLuminosityCoherenceBridge(nn.Module):
 class SolitonMultiverseMapper(nn.Module):
     """
     The Soliton Multiverse Mapper (legacy alias: GromShapeShifter).
-    Maps solitons across multiple functional bases (Sparrow/Dog/Man) preserving core invariants.
+    Maps solitons across multiple functional bases (Sparrow/Dog/Human) preserving core invariants.
     """
     def __init__(self, state_dim: int):
         super().__init__()
-        # Functional basis for Sparrow, Dog, Man
+        # Functional basis for Sparrow, Dog, Human
         self.sparrow_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
         self.dog_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
-        self.man_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
+        self.human_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
 
     def forward(self, state: torch.Tensor, shape_idx: int = 0) -> torch.Tensor:
         if shape_idx == 1: # Sparrow
             return state * 0.8 + self.sparrow_basis * 0.2
         elif shape_idx == 2: # Dog
             return state * 0.7 + self.dog_basis * 0.3
-        elif shape_idx == 3: # Man
-            return state * 0.6 + self.man_basis * 0.4
+        elif shape_idx == 3: # Human
+            return state * 0.6 + self.human_basis * 0.4
         return state # Original Soliton
 
 class EgoDeathThresholdMonitor(nn.Module):
@@ -516,13 +516,74 @@ class ArchetypalSynthesisEngine(nn.Module):
         """
         self.mandy.training_mode = enabled
 
-    def harvest_named_coordinate(self, tag_name: str, vector: torch.Tensor, context_text: str) -> Dict:
-        """Register a new human-legible named coordinate via the TextbookFilter."""
+    def harvest_named_coordinate(self, tag_name: str, vector: torch.Tensor, context_text: str, parent_engine: Optional[Any] = None) -> Dict:
+        """Register a new human-legible named coordinate via the TextbookFilter and System 2 checks."""
+        # 1. Draw from ModularAttention to reality-check and generate the association
+        is_admissible = True
+        flags = []
+        
+        if parent_engine is not None and hasattr(parent_engine, 'modular_attention'):
+            # Convert vector shape to match attention input: [batch_size, seq_len, dim] -> [1, 1, dim]
+            attn_dev = next(parent_engine.modular_attention.parameters()).device
+            x_in = vector.to(attn_dev).view(1, 1, -1)
+            
+            with torch.no_grad():
+                reality_checked_vector = parent_engine.modular_attention(x_in).view(-1).to(vector.device)
+                
+            # Validate new constraints are real constraints of the real world via Birkhoff Polytope structural integrity
+            integrity_check = parent_engine.modular_attention.validate_structural_integrity()
+            is_training = getattr(self.mandy, 'training_mode', False)
+            if not integrity_check.all().item():
+                print(f"[REJECT] Proposed tag '{tag_name}' failed structural integrity check (not on Birkhoff Polytope)")
+                if is_training:
+                    print(f"  [MANDY VETO SLIP] Training mode is ACTIVE. Registering tag anyway despite structural integrity failure.")
+                    flags.append("FAILED_BIRKHOFF_INTEGRITY")
+                else:
+                    return {
+                        "success": False,
+                        "admissible": False,
+                        "flags": ["FAILED_BIRKHOFF_INTEGRITY"],
+                        "pas_score": 0.0
+                    }
+            
+            # Adopt the reality-checked vector as the registered coordinate
+            vector = reality_checked_vector
+
+        # 2. Phase Alignment Score check (PAS_h >= 3/11) using PhaseAlignmentInvariant
+        from src.core.invariants import PhaseAlignmentInvariant
+        pas_metric = PhaseAlignmentInvariant(degree=4)
+        
+        # Reshape to [1, dim] for the invariant metric
+        pas_score = float(pas_metric(vector.unsqueeze(0)).item())
+        pas_threshold = 3.0 / 11.0 # Mandy's pas_lock
+        
+        is_training = getattr(self.mandy, 'training_mode', False)
+        if pas_score < pas_threshold:
+            print(f"[REJECT] Proposed tag '{tag_name}' failed System 2 coherence check (PAS: {pas_score:.3f} < {pas_threshold:.3f})")
+            if is_training:
+                print(f"  [MANDY VETO SLIP] Training mode is ACTIVE. Registering tag anyway despite low coherence.")
+                flags.append("LOW_COHERENCE")
+            else:
+                return {
+                    "success": False,
+                    "admissible": False,
+                    "flags": ["LOW_COHERENCE"],
+                    "pas_score": pas_score
+                }
+
+        # 3. Final TextbookFilter + Stacker add
         success, report = self.tag_stacker.add_tag(tag_name, vector, context_text)
+        
+        ret_flags = list(report.flags) if hasattr(report, 'flags') else []
+        if not report.is_admissible:
+            flags.append("TEXTBOOK_FILTER_REJECT")
+            is_admissible = False
+            
         return {
-            "success": success,
-            "admissible": report.is_admissible,
-            "flags": report.flags
+            "success": success and is_admissible,
+            "admissible": report.is_admissible and is_admissible,
+            "flags": ret_flags + flags,
+            "pas_score": pas_score
         }
 
     def compute_stacked_target(
