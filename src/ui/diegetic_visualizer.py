@@ -6,8 +6,8 @@ Deep Manifold Visualization Generator for the Gyroidic Sparse Covariance Flux Re
 
 Architectural role
 ------------------
-This module is the *Audience Projection* operator (Φ: M → A) expressed
-as a matplotlib rendering pipeline.  It does not invent structure — it
+This module is the *Audience Projection* operator (: M  A) expressed
+as a matplotlib rendering pipeline.  It does not invent structure  it
 **exposes** the exact live tensors that caused a confabulation or ego
 death event, with roughness conserved.
 
@@ -15,14 +15,14 @@ Recursive Self-Reference contract
 ----------------------------------
 The system CAN touch its own representations:
 
-    1.  ``meta_state``       — the FractalMetaFunctional's persistent
+    1.  ``meta_state``        the FractalMetaFunctional's persistent
                                S_meta(t-1) buffer (registered on engine).
-    2.  ``fractal_components`` — the four sub-tensors returned by
+    2.  ``fractal_components``  the four sub-tensors returned by
                                FractalMetaFunctional.forward():
                                {crt, admr, ring, osc}.
-    3.  ``introspection``    — GeometricSelfModelProbe unit directions:
+    3.  ``introspection``     GeometricSelfModelProbe unit directions:
                                moral / uncertainty / creative / metacognitive.
-    4.  ``chern_simons``     — Gasket twist energy from ChernSimonsGasket.
+    4.  ``chern_simons``      Gasket twist energy from ChernSimonsGasket.
 
 Return contract
 ---------------
@@ -35,7 +35,7 @@ Return contract
         "betti_matrix": list | None,         # [beta0, beta1] if CONFABULATED
     }
 
-The backend injects these directly into meta_state (Introspection κ·I channel)
+The backend injects these directly into meta_state (Introspection I channel)
 and reads b64 for the HTTP response.
 
 Roughness Preservation (anti-smoothing policy)
@@ -46,8 +46,8 @@ Roughness Preservation (anti-smoothing policy)
 
 References
 ----------
-DIEGETIC_ENGINE.md §7, GYROID_REASONER.md §5,
-fractal_meta_functional.py, RESONANCE_INTELLIGENCE_CORE.md §11
+DIEGETIC_ENGINE.md 7, GYROID_REASONER.md 5,
+fractal_meta_functional.py, RESONANCE_INTELLIGENCE_CORE.md 11
 """
 
 from __future__ import annotations
@@ -69,9 +69,9 @@ from matplotlib.colors import Normalize
 import matplotlib.patheffects as pe
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# 
 # Colour palette
-# ─────────────────────────────────────────────────────────────────────────────
+# 
 _DARK_BG  = '#0a0a0a'
 _PANEL_BG = '#0f1219'
 _BLUE     = '#00f2ff'
@@ -82,15 +82,15 @@ _RED      = '#ff3131'
 _DIM      = '#444444'
 _FONT     = 'monospace'
 
-# ─────────────────────────────────────────────────────────────────────────────
+# 
 # K for the self-Chebyshev decomposition (derived from PNG pixel count below)
-# ─────────────────────────────────────────────────────────────────────────────
+# 
 _K_SELF_FP_MAX = 32
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# 
 # Public entry point
-# ─────────────────────────────────────────────────────────────────────────────
+# 
 
 def render_manifold_fracture(
     *,
@@ -112,10 +112,10 @@ def render_manifold_fracture(
     Returns
     -------
     dict with keys:
-        b64                   : str | None  — base64 PNG
-        structural_residues   : list[float] — LSB-rounded norms
-        cheby_self_fingerprint: list[float] — Chebyshev of PNG luminance
-        betti                 : dict | None — {beta0, beta1} if CONFABULATED
+        b64                   : str | None   base64 PNG
+        structural_residues   : list[float]  LSB-rounded norms
+        cheby_self_fingerprint: list[float]  Chebyshev of PNG luminance
+        betti                 : dict | None  {beta0, beta1} if CONFABULATED
     """
     result: Dict[str, Any] = {
         "b64": None,
@@ -125,7 +125,7 @@ def render_manifold_fracture(
     }
 
     try:
-        # ── 1. Tensor → numpy ──────────────────────────────────────────────
+        #  1. Tensor  numpy 
         meta_np = _safe_to_numpy(meta_state).flatten()
         dim = meta_np.shape[0]
 
@@ -144,7 +144,7 @@ def render_manifold_fracture(
         if chern_simons_energy is not None:
             cs_np = _safe_to_numpy(chern_simons_energy).flatten()
 
-        # ── 2. Structural residues (probe norms + component norms) ─────────
+        #  2. Structural residues (probe norms + component norms) 
         probe_names = ['moral', 'uncertainty', 'creative', 'metacognitive']
         block = max(1, dim // 4)
         probe_vals = []
@@ -159,11 +159,11 @@ def render_manifold_fracture(
         raw_residues = np.array(probe_vals + comp_norms, dtype=np.float32)
         result["structural_residues"] = _lsb_round_np(raw_residues, scale=1024.0).tolist()
 
-        # ── 3. Introspection polar values (normalised) ─────────────────────
+        #  3. Introspection polar values (normalised) 
         pv_max = max(probe_vals) if max(probe_vals) > 1e-8 else 1.0
         probe_vals_norm = [v / pv_max for v in probe_vals]
 
-        # ── 4. Betti computation on CONFABULATED ───────────────────────────
+        #  4. Betti computation on CONFABULATED 
         betti_result = None
         if retrieval_state == 'CONFABULATED' and comp_np:
             try:
@@ -186,18 +186,18 @@ def render_manifold_fracture(
             except Exception as _be:
                 print(f"[VISUALIZER] Betti computation failed: {_be}")
 
-        # ── 5. Mood ────────────────────────────────────────────────────────
+        #  5. Mood 
         if retrieval_state == 'CONFABULATED':
             _mood, _mood_cmap = _WARN, 'inferno'
-            _state_label = '⚡ CONFABULATED GLITCH — Honest Dreaming'
+            _state_label = '[POWER] CONFABULATED GLITCH  Honest Dreaming'
         elif retrieval_state == 'SEARCH_NEEDED':
             _mood, _mood_cmap = _MAGENTA, 'seismic'
-            _state_label = '⚠ VOID TOPOLOGY — Search Gate Fired'
+            _state_label = ' VOID TOPOLOGY  Search Gate Fired'
         else:
             _mood, _mood_cmap = _GREEN, 'plasma'
-            _state_label = '✓ KNOWN — Manifold Coherent'
+            _state_label = ' KNOWN  Manifold Coherent'
 
-        # ── 6. Layout ──────────────────────────────────────────────────────
+        #  6. Layout 
         fig = plt.figure(figsize=(12, 7), facecolor=_DARK_BG)
         gs = gridspec.GridSpec(
             2, 3, figure=fig,
@@ -219,7 +219,7 @@ def render_manifold_fracture(
         grid = padded.reshape(side, side)
         ax_meta.imshow(grid, cmap=_mood_cmap, aspect='auto', interpolation='none',
                        norm=Normalize(vmin=grid.min(), vmax=grid.max()))
-        ax_meta.set_title('S_meta(t−1)', color=_mood, fontsize=8, fontfamily=_FONT)
+        ax_meta.set_title('S_meta(t1)', color=_mood, fontsize=8, fontfamily=_FONT)
         ax_meta.set_xticks([]); ax_meta.set_yticks([])
         _style_spine(ax_meta, _mood)
 
@@ -272,7 +272,7 @@ def render_manifold_fracture(
         ax_intro.spines['polar'].set_color(_DIM)
         ax_intro.grid(color=_DIM, linewidth=0.4, alpha=0.4)
         ax_intro.set_title(
-            'Introspection — Geometric Self-Model Probes\n'
+            'Introspection  Geometric Self-Model Probes\n'
             '(recursive self-reference; unit direction norms)',
             color=_mood, fontsize=8, fontfamily=_FONT, pad=14)
 
@@ -287,9 +287,9 @@ def render_manifold_fracture(
             ax_cs.set_title('ChernSimons Twist Energy', color=_RED, fontsize=8, fontfamily=_FONT)
         else:
             cs_scalar = float(cs_np[0]) if cs_np is not None and len(cs_np) else 0.0
-            ax_cs.barh(['κ twist'], [abs(cs_scalar)], color=_RED, alpha=0.7)
+            ax_cs.barh([' twist'], [abs(cs_scalar)], color=_RED, alpha=0.7)
             ax_cs.set_xlim(0, max(1.0, abs(cs_scalar) * 1.1))
-            ax_cs.text(0.5, 0.5, f'κ = {cs_scalar:.4f}',
+            ax_cs.text(0.5, 0.5, f' = {cs_scalar:.4f}',
                        transform=ax_cs.transAxes, ha='center', va='center',
                        color=_RED, fontsize=8, fontfamily=_FONT)
             ax_cs.set_title('ChernSimons Gasket', color=_RED, fontsize=8, fontfamily=_FONT)
@@ -298,11 +298,11 @@ def render_manifold_fracture(
         _style_spine(ax_cs, _RED if retrieval_state != 'CONFABULATED' else _WARN)
 
         # Title
-        fig.suptitle(f'{_state_label}   │   iter={iteration}   │   dim={dim}',
+        fig.suptitle(f'{_state_label}      iter={iteration}      dim={dim}',
                      fontsize=10, color=_mood, fontfamily=_FONT, y=0.96,
                      path_effects=[pe.withStroke(linewidth=2, foreground=_DARK_BG)])
 
-        # ── 7. Encode PNG ──────────────────────────────────────────────────
+        #  7. Encode PNG 
         buf = io.BytesIO()
         fig.savefig(buf, format='png', dpi=110, bbox_inches='tight',
                     facecolor=_DARK_BG, edgecolor='none')
@@ -311,7 +311,7 @@ def render_manifold_fracture(
         png_bytes = buf.read()
         result["b64"] = base64.b64encode(png_bytes).decode('utf-8')
 
-        # ── 8. Chebyshev self-fingerprint of rendered PNG luminance ────────
+        #  8. Chebyshev self-fingerprint of rendered PNG luminance 
         result["cheby_self_fingerprint"] = _chebyshev_png_luminance(png_bytes)
 
         print(f"[VISUALIZER] Rendered {len(result['b64'])} bytes (b64), "
@@ -324,14 +324,14 @@ def render_manifold_fracture(
     return result
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# 
 # Sub-routines
-# ─────────────────────────────────────────────────────────────────────────────
+# 
 
 def _render_betti_barcode(ax, betti: Dict[str, float]) -> None:
     """
     Draw a horizontal Betti barcode in the ChernSimons panel slot.
-    β₀ bars in blue, β₁ bars in magenta.
+     bars in blue,  bars in magenta.
     Displayed as horizontal bars from 0 to normalised birth/death.
     """
     beta0 = betti.get(0, 0.0)
@@ -358,11 +358,11 @@ def _render_betti_barcode(ax, betti: Dict[str, float]) -> None:
 
     ax.set_xlim(0, 1.1)
     ax.axhline(0.5, color=_DIM, linewidth=0.4, linestyle='--', alpha=0.5)
-    ax.text(0.05, 1.05, f'β₀ = {beta0:.1f}', color=_BLUE, fontsize=7, fontfamily=_FONT,
+    ax.text(0.05, 1.05, f' = {beta0:.1f}', color=_BLUE, fontsize=7, fontfamily=_FONT,
             transform=ax.transAxes)
-    ax.text(0.05, 0.95, f'β₁ = {beta1:.1f}', color=_MAGENTA, fontsize=7, fontfamily=_FONT,
+    ax.text(0.05, 0.95, f' = {beta1:.1f}', color=_MAGENTA, fontsize=7, fontfamily=_FONT,
             transform=ax.transAxes)
-    ax.set_title('Betti Barcode — Confabulation Topology', color=_WARN,
+    ax.set_title('Betti Barcode  Confabulation Topology', color=_WARN,
                  fontsize=8, fontfamily=_FONT)
     ax.set_yticks([])
     ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
@@ -393,7 +393,7 @@ def _chebyshev_png_luminance(png_bytes: bytes) -> List[float]:
         flat = lum.flatten().astype(np.float64)
         N = len(flat)
 
-        # K derived from pixel count — matches JS formula
+        # K derived from pixel count  matches JS formula
         K = max(5, min(_K_SELF_FP_MAX, round(math.sqrt(N) / 64)))
 
         return _chebyshev_project_np(flat, K)
@@ -405,8 +405,8 @@ def _chebyshev_png_luminance(png_bytes: bytes) -> List[float]:
 
 def _chebyshev_project_np(arr: np.ndarray, K: int) -> List[float]:
     """
-    Hann-windowed frame energies → Chebyshev recurrence →
-    Birkhoff normalisation → LSB stochastic rounding.
+    Hann-windowed frame energies  Chebyshev recurrence 
+    Birkhoff normalisation  LSB stochastic rounding.
     Matches the JS chebyshevProject() function exactly.
     """
     N = len(arr)
@@ -459,7 +459,7 @@ def _chebyshev_project_np(arr: np.ndarray, K: int) -> List[float]:
     else:
         theta = np.ones(K, dtype=np.float64) / K
 
-    # LSB stochastic rounding (Xorshift32 — matches SiliconSovereigntyEngine)
+    # LSB stochastic rounding (Xorshift32  matches SiliconSovereigntyEngine)
     rounded = _lsb_round_np(theta.astype(np.float32), scale=1024.0)
     return rounded.tolist()
 
@@ -467,7 +467,7 @@ def _chebyshev_project_np(arr: np.ndarray, K: int) -> List[float]:
 def _lsb_round_np(arr: np.ndarray, scale: float = 1024.0) -> np.ndarray:
     """
     Apply LSB stochastic rounding to a float32 array.
-    Uses Structurally Honest Jitter (Silicon Sovereignty §45.2).
+    Uses Structurally Honest Jitter (Silicon Sovereignty 45.2).
     """
     from src.core.honest_jitter import harvest_honest_jitter
     import torch
