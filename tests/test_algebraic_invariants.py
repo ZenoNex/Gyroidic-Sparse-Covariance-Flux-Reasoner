@@ -171,7 +171,7 @@ def _test_lazarus_softmax_transitions():
     """LazarusSoftmax: correctly identifies stable drift, Lazarus success, and collapse."""
     from src.core.gluing_operator import LazarusSoftmax
 
-    lazarus = LazarusSoftmax(dim=-1, pas_threshold=0.5)
+    lazarus = LazarusSoftmax(dim=-1, pas_lock=0.5)
     logits = torch.randn(4)
 
     # Stable: minor drift -> not a Lazarus event
