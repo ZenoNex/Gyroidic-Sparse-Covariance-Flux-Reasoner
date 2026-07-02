@@ -156,6 +156,7 @@ from src.core.valence_drive import ValenceFunctional
 from src.core.voynich_architecture import VoynichLinguist
 from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
 from src.core.audience_mapping import AudienceProjection
+from src.core.gluing_operator import GluingOperator
 
 # Local Data Loading (Phase 1: HF token barrier removal)
 from src.data.local_data_loader import LocalDataLoader
@@ -372,6 +373,9 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # Audience Mapping (: M -> A)
         self.audience_mapper = AudienceProjection(input_dim=dim, audience_dim=dim)
+
+        # Symplectic Gluing Operator (Psi)
+        self.gluer = GluingOperator(dim)
 
         # Soliton Stability Healer - heals fractured solitons
         self.soliton_healer = SolitonStabilityHealer(
@@ -1346,7 +1350,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 'components': {}
             }
 
-    def _prime_manifold_with_fossils(self, input_tensor: torch.Tensor):
+    def _prime_manifold_with_fossils(self, input_tensor: torch.Tensor, text_input: Optional[str] = None):
         """
         Speculative Recovery: Pre-emptively nudges the meta_state toward
         relevant legacy fossils discovered in the cache.
@@ -1355,31 +1359,48 @@ class DiegeticPhysicsEngine(nn.Module):
             return
 
         with torch.no_grad():
-            # 1. Compute similarity against the entire cache
-            # input_tensor is [1, dim], residue_vectors are [1, dim]
             input_norm = input_tensor / (torch.norm(input_tensor) + 1e-8)
             
             similarities = []
             for fossil in self.fossil_cache:
-                # Residue vectors are stored as CPU tensors in the cache
-                # Robust Fallback: handle legacy fossils missing 'residue_vector'
-                res_vec = fossil.get('residue_vector', fossil.get('meta_state'))
-                if not isinstance(res_vec, torch.Tensor):
-                    continue
+                # Retrieve the text input of the fossil
+                text_str = fossil.get('text_input', fossil.get('description', ''))
+                
+                if text_input is not None:
+                    # Robust Word-Overlap / Keyword Similarity
+                    q_words = [w.strip(".,!?\"'()[]{}<>").lower() for w in text_input.split()]
+                    t_words = [w.strip(".,!?\"'()[]{}<>").lower() for w in text_str.split()]
                     
-                res_vec = res_vec.to(self.device).view(1, -1)
-                # Handle dimension mismatch (e.g. if meta_state used as fallback has wrong dim)
-                if res_vec.shape[-1] != self.dim:
-                    if res_vec.shape[-1] < self.dim:
-                        res_vec = F.pad(res_vec, (0, self.dim - res_vec.shape[-1]))
+                    # Filter out stopwords / short conversational words
+                    stopwords = {'a', 'an', 'the', 'is', 'are', 'was', 'were', 'to', 'for', 'of', 'in', 'on', 'at', 'by', 'about', 'tell', 'me', 'please', 'willabusta', 'how', 'what', 'who', 'where', 'why', 'can', 'you', 'your', 'my'}
+                    q_words = [w for w in q_words if w and w not in stopwords and len(w) > 1]
+                    t_words_set = set(w for w in t_words if w and w not in stopwords)
+                    
+                    if q_words:
+                        matches = sum(1 for w in q_words if w in t_words_set)
+                        sim = matches / len(q_words)
                     else:
-                        res_vec = res_vec[:, :self.dim]
+                        sim = 0.0
+                else:
+                    # Fallback to text embedding similarity if text_input is not passed
+                    if '_text_tensor' not in fossil:
+                        fossil['_text_tensor'] = self._text_to_tensor(text_str).cpu()
+                    
+                    f_text_emb = fossil['_text_tensor'].to(self.device).view(1, -1)
+                    f_text_norm = f_text_emb / (torch.norm(f_text_emb) + 1e-8)
+                    sim = torch.mm(input_norm, f_text_norm.t()).item()
+                
+                # Retrieve state vector if similarity passes threshold
+                res_vec = fossil.get('meta_state', fossil.get('residue_vector'))
+                if isinstance(res_vec, torch.Tensor):
+                    res_vec = res_vec.to(self.device).view(1, -1)
+                    if res_vec.shape[-1] != self.dim:
+                        if res_vec.shape[-1] < self.dim:
+                            res_vec = F.pad(res_vec, (0, self.dim - res_vec.shape[-1]))
+                        else:
+                            res_vec = res_vec[:, :self.dim]
+                    similarities.append((sim, res_vec))
 
-                res_norm = res_vec / (torch.norm(res_vec) + 1e-8)
-                sim = torch.mm(input_norm, res_norm.t()).item()
-                similarities.append((sim, res_vec))
-
-            # 2. Extract top-N matches
             # Speculative threshold: only match if similarity > 0.4
             top_matches = sorted([m for m in similarities if m[0] > 0.4], key=lambda x: x[0], reverse=True)[:3]
 
@@ -1878,7 +1899,7 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # --- SPECULATIVE MEMORY BRIDGE ---
         # Prime the manifold with relevant fossils before starting the reasoning pass
-        self._prime_manifold_with_fossils(input_tensor)
+        self._prime_manifold_with_fossils(input_tensor, text_input)
         
         print(f"[CONFIG] Affordance Gradients Computed:")
         print(f"   Executability: {affordance_gradients['executability_pressure']:.4f}")
@@ -2276,6 +2297,10 @@ class DiegeticPhysicsEngine(nn.Module):
             chirality_target=stacked_target if stacked_target is not None and stacked_target.norm() > 0 else input_tensor,
             exemption_token=exemption_token
         )
+        
+        # Apply Symplectic Gluing (Psi) to stitch state boundaries dynamically
+        if hasattr(self, 'gluer') and self.gluer is not None:
+            self.meta_state = self.gluer(self.meta_state)
         # If recovery succeeded in locking coprime parity, we override the CALM abort
         if recovery_metrics['coprime_lock'] and recovery_metrics['recovery_attempted']:
              abort_score = 0.0
@@ -3177,7 +3202,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 self._refresh_fossil_cache()
                 
                 # 4. Nudge the meta_state to inject the new topological context
-                self._prime_manifold_with_fossils(input_tensor)
+                self._prime_manifold_with_fossils(input_tensor, text_input)
                 
                 # Update response text prefix
                 response_text = f"[SEARCH_HEALED] Manifold updated via ArXiv search for '{query}'. " + response_text
