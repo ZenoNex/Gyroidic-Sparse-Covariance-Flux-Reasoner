@@ -168,6 +168,8 @@ class DyadFossilizer:
         self.fossilized_hashes = set()
         self.index_file = os.path.join(self.storage_dir, ".fossil_index.json")
         self.fossil_index = {}
+        
+        # Load fast index to prevent O(N) startup/scan bottlenecks
         self._load_index()
 
     def _load_index(self):
@@ -393,6 +395,26 @@ class DyadFossilizer:
         # We only perform this 'expensive' magic during fossilization to save heuristic speed.
         hyperbolic_residue = self.compute_poincar_embedding(residue)
         
+        # IHC Standard: Ensure hyperbolic residue is not flat (Bouligand Homology protection)
+        # If std is extremely small, it signals a flatline collapse. We recover by projecting
+        # onto the tangent cone of the seed state (or honest jitter if seed_state is None)
+        if hyperbolic_residue.std().item() < 1e-4:
+            print("[FOSSILIZER] Flatline detected in hyperbolic residue. Applying Bouligand tangent cone recovery...", flush=True)
+            if seed_state is not None:
+                # Project onto the non-flat seed state deviation
+                recovery_vector = seed_state - seed_state.mean()
+            else:
+                # Fallback to hardware-anchored honest jitter
+                recovery_vector = harvest_honest_jitter(residue.shape, device=residue.device, scaled=False)
+                recovery_vector = recovery_vector - recovery_vector.mean()
+                
+            # Normalize recovery vector and scale to standard scale
+            rec_norm = recovery_vector.norm() + 1e-8
+            # Blend with 5% of the recovery vector to restore homological variance
+            residue = residue + 0.05 * (recovery_vector / rec_norm) * residue.norm().item()
+            hyperbolic_residue = self.compute_poincar_embedding(residue)
+            print(f"[FOSSILIZER] Bouligand Recovery complete. New std: {hyperbolic_residue.std().item():.6f}", flush=True)
+        
         # 3. Real-time Topological Derivation (No Erasing of Implication)
         # We derive the 'Shadow' of the thought from the seed_state history.
         if seed_state is not None:
@@ -487,12 +509,12 @@ class DyadFossilizer:
             'seam_tension': float(seam_tension),
             'betti_0': b0_vec.detach().cpu(),
             'betti_1': b1_vec.detach().cpu(),
-            'unified_spectral_signature': dyad.unified_spectral_signature.detach().cpu() if dyad.unified_spectral_signature is not None else None,
+            'unified_spectral_signature': dyad.unified_spectral_signature.detach().cpu() if isinstance(dyad.unified_spectral_signature, torch.Tensor) else dyad.unified_spectral_signature,
             'image_fingerprint': dyad.image_fingerprint.detach().cpu() if isinstance(dyad.image_fingerprint, torch.Tensor) else dyad.image_fingerprint,
-            'audio_harmonics': dyad.audio_harmonics,
+            'audio_harmonics': dyad.audio_harmonics.detach().cpu() if isinstance(dyad.audio_harmonics, torch.Tensor) else dyad.audio_harmonics,
             'video_breather': dyad.video_breather,
             'residue_vector': s_state_redistributed.detach().cpu(),
-            'gyroid_residue': dyad.gyroid_residue.detach().cpu() if dyad.gyroid_residue is not None else None,
+            'gyroid_residue': dyad.gyroid_residue.detach().cpu() if isinstance(dyad.gyroid_residue, torch.Tensor) else dyad.gyroid_residue,
             'hyperbolic_residue': hyperbolic_residue.detach().cpu(),
             'timestamp': dyad.timestamp,
             # Upstream Atrophy Diagnostics (added 2026-04-24)
@@ -529,6 +551,9 @@ class DyadFossilizer:
         if atrophy_detected:
             tags.append("atrophy_rehydrated")
         payload['tags'] = tags
+        
+        # Target cleanup of existing duplicates/flat files for this prompt_hash
+        self.clean_prompt_hash(prompt_hash)
         
         # 5. Save to Disk (Safe, atomic-like write)
         # Use descriptive filename to prevent 'erasing of implication' visibility.
@@ -719,15 +744,16 @@ class DyadFossilizer:
             "polylog_signature": compute_polylog_signature(prime_frequencies).detach().cpu(),
             "shape_of_absence": compute_vacuum_residue(dyad.gyroid_residue if dyad.gyroid_residue is not None else prime_frequencies).detach().cpu(),
             "hyperbolic_residue": dyad.hyperbolic_residue.detach().cpu() if hasattr(dyad, 'hyperbolic_residue') and dyad.hyperbolic_residue is not None else None,
-            "audio_harmonics": dyad.audio_harmonics,
+            "unified_spectral_signature": dyad.unified_spectral_signature.detach().cpu() if isinstance(dyad.unified_spectral_signature, torch.Tensor) else dyad.unified_spectral_signature,
+            "audio_harmonics": dyad.audio_harmonics.detach().cpu() if isinstance(dyad.audio_harmonics, torch.Tensor) else dyad.audio_harmonics,
             "video_breather": dyad.video_breather,
             "gauge_field": gauge_field.detach().cpu() if gauge_field is not None else None,
             "betti_signature_8": betti_numbers,
             "meta_state_shielded": protected_state, # Punctured State
             "all_shapes": [s.detach().cpu() for s in dyad.all_shapes] if dyad.all_shapes else None, # Grom Flexibility
             "image_fingerprint": dyad.image_fingerprint.detach().cpu() if isinstance(dyad.image_fingerprint, torch.Tensor) else dyad.image_fingerprint,
-            "gyroid_residue": gyroid_val,
-            "prime_frequencies": prime_val,
+            "gyroid_residue": gyroid_val.detach().cpu() if isinstance(gyroid_val, torch.Tensor) else gyroid_val,
+            "prime_frequencies": prime_val.detach().cpu() if isinstance(prime_val, torch.Tensor) else prime_val,
             "timestamp": dyad.timestamp,
             "archetype_profile": archetype_profile,
             "agent_smith_iters": float(_AGENT_SMITH_ENGINE.iters_base_small.item()) if _AGENT_SMITH_ENGINE is not None else 30.0,
@@ -775,3 +801,203 @@ class DyadFossilizer:
              bridge.rehydrate_warmstart(payload, agent_smith_engine)
              
         return payload
+
+    def clean_flat_duplicates(self):
+        """
+        Deletes duplicate encoding files having the exact same description,
+        especially prioritizing deleting those with flat FGRT tensors.
+        """
+        if not os.path.exists(self.storage_dir):
+            return
+            
+        print("[FOSSILIZER] Scanning for flat and duplicate fossils on disk...")
+        groups = {} # prompt_hash -> list of dicts
+        
+        try:
+            for filename in os.listdir(self.storage_dir):
+                if not filename.endswith(".pt") or filename == "neglecton_snapshot.pt":
+                    continue
+                filepath = os.path.join(self.storage_dir, filename)
+                try:
+                    mtime = os.path.getmtime(filepath)
+                    data = torch.load(filepath, map_location='cpu')
+                    if not isinstance(data, dict):
+                        continue
+                    
+                    # Retrieve description and hash
+                    desc = data.get('text_input') or data.get('description')
+                    if not desc:
+                        continue
+                    p_hash = data.get('prompt_hash')
+                    if not p_hash:
+                        p_hash = hashlib.sha256(desc.strip().encode('utf-8')).hexdigest()
+                    
+                    # Check for flat FGRT tensor (variance < 1e-6)
+                    fgrt = data.get('meta_state')
+                    if fgrt is None:
+                        fgrt = data.get('residue_vector')
+                    if fgrt is None:
+                        fgrt = data.get('memory_state')
+                    if fgrt is None:
+                        fgrt = data.get('input_tensor')
+                    
+                    if isinstance(fgrt, torch.Tensor):
+                        var_val = fgrt.var().item()
+                    else:
+                        var_val = 0.0
+                    
+                    is_flat = var_val < 1e-6
+                    
+                    # ALSO check hyperbolic residue flatness
+                    hr = data.get('hyperbolic_residue')
+                    if isinstance(hr, torch.Tensor):
+                        if hr.var().item() < 1e-6:
+                            is_flat = True
+                    
+                    if p_hash not in groups:
+                        groups[p_hash] = []
+                    groups[p_hash].append({
+                        'filename': filename,
+                        'filepath': filepath,
+                        'mtime': mtime,
+                        'variance': var_val,
+                        'is_flat': is_flat
+                    })
+                except Exception:
+                    pass
+                    
+            deleted_count = 0
+            for p_hash, items in groups.items():
+                if len(items) == 1:
+                    item = items[0]
+                    if item['is_flat']:
+                        try:
+                            os.remove(item['filepath'])
+                            if item['filename'] in self.fossil_index:
+                                del self.fossil_index[item['filename']]
+                            deleted_count += 1
+                        except Exception:
+                            pass
+                    continue
+                    
+                flat_items = [x for x in items if x['is_flat']]
+                active_items = [x for x in items if not x['is_flat']]
+                
+                # Delete all flat files in the duplicate group
+                for item in flat_items:
+                    try:
+                        os.remove(item['filepath'])
+                        if item['filename'] in self.fossil_index:
+                            del self.fossil_index[item['filename']]
+                        deleted_count += 1
+                    except Exception:
+                        pass
+                
+                # Keep only one active item
+                if len(active_items) > 1:
+                    active_items.sort(key=lambda x: (x['variance'], x['mtime']), reverse=True)
+                    for item in active_items[1:]:
+                        try:
+                            os.remove(item['filepath'])
+                            if item['filename'] in self.fossil_index:
+                                del self.fossil_index[item['filename']]
+                            deleted_count += 1
+                        except Exception:
+                            pass
+                elif len(active_items) == 0 and len(flat_items) > 0:
+                    # If all were flat, we deleted them all.
+                    pass
+                            
+            if deleted_count > 0:
+                self._save_index()
+                # Update hashes set to ensure index synchronization
+                self.fossilized_hashes = set(info['prompt_hash'] for info in self.fossil_index.values() if info.get('prompt_hash'))
+                print(f"[FOSSILIZER] Cleaned up {deleted_count} duplicate/flat fossil files from disk.")
+        except Exception as e:
+            print(f"[FOSSILIZER] Cleanup failed: {e}")
+
+    def clean_prompt_hash(self, prompt_hash: str):
+        """
+        Targeted cleanup for a specific prompt_hash.
+        """
+        matching_files = [f for f, info in self.fossil_index.items() if info.get('prompt_hash') == prompt_hash]
+        if not matching_files:
+            return
+            
+        items = []
+        for filename in matching_files:
+            filepath = os.path.join(self.storage_dir, filename)
+            if not os.path.exists(filepath):
+                continue
+            try:
+                mtime = os.path.getmtime(filepath)
+                data = torch.load(filepath, map_location='cpu')
+                if isinstance(data, dict):
+                    fgrt = data.get('meta_state')
+                    if fgrt is None:
+                        fgrt = data.get('residue_vector')
+                    if fgrt is None:
+                        fgrt = data.get('memory_state')
+                    if fgrt is None:
+                        fgrt = data.get('input_tensor')
+                    
+                    if isinstance(fgrt, torch.Tensor):
+                        var_val = fgrt.var().item()
+                    else:
+                        var_val = 0.0
+                    is_flat = var_val < 1e-6
+                    
+                    hr = data.get('hyperbolic_residue')
+                    if isinstance(hr, torch.Tensor):
+                        if hr.var().item() < 1e-6:
+                            is_flat = True
+                            
+                    items.append({
+                        'filename': filename,
+                        'filepath': filepath,
+                        'mtime': mtime,
+                        'variance': var_val,
+                        'is_flat': is_flat
+                    })
+            except Exception:
+                pass
+                
+        if not items:
+            return
+            
+        deleted_count = 0
+        if len(items) == 1:
+            if items[0]['is_flat']:
+                try:
+                    os.remove(items[0]['filepath'])
+                    if items[0]['filename'] in self.fossil_index:
+                        del self.fossil_index[items[0]['filename']]
+                    deleted_count += 1
+                except Exception:
+                    pass
+        else:
+            flat_items = [x for x in items if x['is_flat']]
+            active_items = [x for x in items if not x['is_flat']]
+            
+            for item in flat_items:
+                try:
+                    os.remove(item['filepath'])
+                    if item['filename'] in self.fossil_index:
+                        del self.fossil_index[item['filename']]
+                    deleted_count += 1
+                except Exception:
+                    pass
+                    
+            if len(active_items) > 1:
+                active_items.sort(key=lambda x: (x['variance'], x['mtime']), reverse=True)
+                for item in active_items[1:]:
+                    try:
+                        os.remove(item['filepath'])
+                        if item['filename'] in self.fossil_index:
+                            del self.fossil_index[item['filename']]
+                        deleted_count += 1
+                    except Exception:
+                        pass
+        
+        if deleted_count > 0:
+            self._save_index()
