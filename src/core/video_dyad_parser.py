@@ -174,7 +174,7 @@ class VideoDyadParser(nn.Module):
         centered = signal - signal_mean
         cov = (centered.T @ centered) / (signal.size(0) - 1 + 1e-8)
         
-        threshold = torch.quantile(cov.abs(), 0.90)
+        threshold = torch.quantile(cov.abs(), 0.50)
         sparse_cov = torch.where(cov.abs() > threshold, cov, torch.zeros_like(cov))
         
         # 6. Fractal Fractional Anisotropic Recursive Entropy
