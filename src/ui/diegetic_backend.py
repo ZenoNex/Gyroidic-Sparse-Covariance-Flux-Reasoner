@@ -604,6 +604,7 @@ class DiegeticPhysicsEngine(nn.Module):
             fusion_layer=self.fusion_layer,  # shared reference
             feature_dim=self.dim
         )
+        self.coprime_gate.fossilizer = self.fossilizer
         
         # 11. Spectral Structural Trainer (Deeper Dynamics)
         self.trainer = SpectralStructuralTrainer(
@@ -4837,7 +4838,17 @@ class DiegeticPhysicsEngine(nn.Module):
         media_received = False
         
         audio_tensor = None
-        video_breather = None
+        # Initialize default video_breather dict with all keys present and defaulted to None/zeroes
+        video_breather = {
+            'fractal_entropy': 0.0,
+            'substream_entropy': 0.0,
+            'signal_length': 0.0,
+            'audio_detected': False,
+            'sparse_covariance': None,
+            'unified_spectral_signature': None,
+            'image_fingerprint': None,
+            'audio_harmonics': None
+        }
         
         if active_modality == "Audio" and (audio_dyad or audio_b64):
             if audio_b64:
@@ -4852,6 +4863,7 @@ class DiegeticPhysicsEngine(nn.Module):
                     signal_tensor[:min_sz] = v_audio_harmonics[:min_sz]
                     audio_tensor = signal_tensor.clone()
                     media_received = True
+                    video_breather['audio_harmonics'] = audio_tensor.detach().cpu()
                     print("[VIDEO_PARSER] Raw Audio stream isolated and projected via ffmpeg.", flush=True)
                 else:
                     print("[VIDEO_PARSER] Failed to extract harmonics from raw audio b64.", flush=True)
@@ -4863,6 +4875,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 signal_tensor = torch.tensor(harmonics, device=self.device).float()
                 audio_tensor = signal_tensor.clone()
                 media_received = True
+                video_breather['audio_harmonics'] = audio_tensor.detach().cpu()
         elif active_modality == "Video" and video_dyad_b64:
             if not hasattr(self, 'video_parser'):
                 from src.core.video_dyad_parser import VideoDyadParser
@@ -4870,13 +4883,6 @@ class DiegeticPhysicsEngine(nn.Module):
             
             # parse_video_b64 now handles audio extraction internally for a unified signature
             breather_modes = self.video_parser.parse_video_b64(video_dyad_b64, healing_ref=seed_state, extract_audio=True)
-            
-            video_breather = {
-                'fractal_entropy': breather_modes['fractal_entropy'].item(),
-                'substream_entropy': breather_modes['substream_entropy'].item(),
-                'signal_length': breather_modes['signal_length'].item(),
-                'audio_detected': breather_modes.get('audio_harmonics') is not None
-            }
             
             # Unified Spectral Signature: Covariance + Entropy + Audio
             signal_tensor = self.video_parser.extract_96_spectral_signature(breather_modes)
@@ -4887,6 +4893,16 @@ class DiegeticPhysicsEngine(nn.Module):
                 audio_tensor = v_audio_harmonics
                 print("[VIDEO_PARSER] Audio stream isolated and projected into harmonic space.", flush=True)
                 
+            video_breather = {
+                'fractal_entropy': breather_modes['fractal_entropy'].item(),
+                'substream_entropy': breather_modes['substream_entropy'].item(),
+                'signal_length': breather_modes['signal_length'].item(),
+                'audio_detected': breather_modes.get('audio_harmonics') is not None,
+                'sparse_covariance': breather_modes['sparse_covariance'].detach().cpu() if isinstance(breather_modes.get('sparse_covariance'), torch.Tensor) else None,
+                'unified_spectral_signature': signal_tensor.detach().cpu(),
+                'image_fingerprint': None,
+                'audio_harmonics': audio_tensor.detach().cpu() if audio_tensor is not None else None
+            }
             media_received = True
         elif active_modality == "Image" and fingerprint:
             # Standard Image Ingestion (Zero-Mock Path)
@@ -4942,6 +4958,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 # The GyroidicCodec will handle the 1D->2D landscape transition.
                 signal_tensor = torch.cat([l_tensor, cr_tensor, cb_tensor])
                 media_received = True
+                video_breather['image_fingerprint'] = signal_tensor.detach().cpu()
 
             elif 'chebyshev' in fingerprint:
                 # Modern Chebyshev Spectral Signature (Phase 12 un-lobotomized)
@@ -4967,6 +4984,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 else:
                     signal_tensor = torch.nn.functional.pad(fp_tensor, (0, 96 - fp_tensor.size(0)))
                 media_received = True
+                video_breather['image_fingerprint'] = signal_tensor.detach().cpu()
 
             elif 'r' in fingerprint:
                 # Legacy 96-dim format
@@ -4989,6 +5007,7 @@ class DiegeticPhysicsEngine(nn.Module):
                     
                     signal_tensor = fp_tensor
                     media_received = True
+                    video_breather['image_fingerprint'] = signal_tensor.detach().cpu()
 
         # --- TOPOLOGICAL MATURATION (Augmentation Phase) ---
         # We perform augmentation-first to ensure matured, fractal-stable signals
@@ -5049,7 +5068,13 @@ class DiegeticPhysicsEngine(nn.Module):
                 print(f"[ASSOCIATOR] Collision failure")
             
             # Restore non-Abelian check
-            codec_result = self.codec.encode(description, signal_tensor)
+            codec_result = self.codec.encode(
+                description,
+                image=signal_tensor if active_modality == "Image" else None,
+                unified_spectral_signature=signal_tensor if active_modality == "Video" else None,
+                audio_harmonics=audio_tensor if active_modality == "Audio" else None,
+                commutativity=commutativity
+            )
             entanglement = codec_result.diagnostics.get('entanglement_ratio', 0.0)
             print(f" [CODEC] Non-Abelian Entanglement: {entanglement:.4f}", flush=True)
             
@@ -5059,9 +5084,10 @@ class DiegeticPhysicsEngine(nn.Module):
 
             dyad = KnowledgeDyad(
                 linguistic_description=description,
-                image_fingerprint=signal_tensor,
-                audio_harmonics=audio_tensor,
+                image_fingerprint=signal_tensor if active_modality == "Image" else None,
+                audio_harmonics=audio_tensor if active_modality == "Audio" else None,
                 video_breather=video_breather,
+                unified_spectral_signature=signal_tensor if active_modality == "Video" else None,
                 gyroid_residue=codec_result.residue, # Irreducible cross-modal state
                 meta_state=seed_state.detach().cpu() if seed_state is not None else None,
                 metadata={
@@ -5088,10 +5114,10 @@ class DiegeticPhysicsEngine(nn.Module):
         dyad = KnowledgeDyad(
             linguistic_description=description,
             # If no fingerprint provided, use the zero-filled signal_tensor [96] as the 'Image Ground State'
-            # FIX: Preserve signal_tensor for both Image and Video modalities
-            image_fingerprint=signal_tensor if (fingerprint or modality in ["Image", "Video"]) else None,
-            audio_harmonics=audio_tensor,
+            image_fingerprint=signal_tensor if (fingerprint or active_modality == "Image") else None,
+            audio_harmonics=audio_tensor if active_modality == "Audio" else None,
             video_breather=video_breather,
+            unified_spectral_signature=signal_tensor if active_modality == "Video" else None,
             gyroid_residue=entanglement_residue
         )
         
