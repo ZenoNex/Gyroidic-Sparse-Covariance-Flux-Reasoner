@@ -332,7 +332,13 @@ class GyroidImageProjector(nn.Module):
         ])
         self.caq = ContextAwareQuantizer(dim=config.n * config.n, max_depth=config.degree)
 
-    def forward(self, image: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self,
+        image: Optional[torch.Tensor] = None,
+        unified_spectral_signature: Optional[torch.Tensor] = None,
+        image_fingerprint: Optional[torch.Tensor] = None,
+        audio_harmonics: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Project image to K residue matrices.
 
@@ -340,11 +346,23 @@ class GyroidImageProjector(nn.Module):
             image: Optional [H, W] or [C, H, W] image tensor.
                    If None, uses the gyroid field itself as the "image"
                    (self-referential encoding).
+            unified_spectral_signature: Optional 1D signature tensor.
+            image_fingerprint: Optional 1D fingerprint tensor.
+            audio_harmonics: Optional 1D harmonics tensor.
 
         Returns:
-            residues: [K, n, n]  each G_k  GL(n)
+            residues: [K, n, n]  each G_k \in GL(n)
             berry_phases: [K]  accumulated chiral twist
         """
+        # Resolve dynamic inputs
+        img_input = image
+        if img_input is None:
+            img_input = unified_spectral_signature
+        if img_input is None:
+            img_input = image_fingerprint
+        if img_input is None:
+            img_input = audio_harmonics
+
         residues = []
         berry_phases = []
         for k in range(self.K):
@@ -352,9 +370,9 @@ class GyroidImageProjector(nn.Module):
             gyroid_slice = self.gyroid.evaluate_2d_slice(k)  # [res, res]
 
             # 2. Modulate with image if provided
-            if image is not None:
-                is_1d = image.dim() == 1
-                img_2d = self._prepare_image(image)  # [res, res]
+            if img_input is not None:
+                is_1d = img_input.dim() == 1
+                img_2d = self._prepare_image(img_input)  # [res, res]
                 
                 # Check clustering of visual features
                 from src.core.martinova_correlation import compute_bounded_correlation
@@ -379,7 +397,7 @@ class GyroidImageProjector(nn.Module):
                 # Calculates the geometric twist of image gradients across the gyroid slice
                 if is_1d:
                     # Bridge: For 1D spectral residues, twist is modal gradient
-                    twist = (image.diff().mean() * gyroid_slice.mean()).clamp(-1.0, 1.0)
+                    twist = (img_input.diff().mean() * gyroid_slice.mean()).clamp(-1.0, 1.0)
                 else:
                     # Cross product proxy for 2D gradients (curl-like twist)
                     twist = (dx * gy - dy * gx).mean()
@@ -410,6 +428,10 @@ class GyroidImageProjector(nn.Module):
         """Resize/reshape image to match gyroid resolution."""
         # Handle 1D Spectral Residues (Zero-Mock Path)
         if image.dim() == 1:
+            # Reorganize data to group identical/similar values (BWT-like permutation)
+            # to make repetitive/spatial patterns apparent for the subsequent stages
+            image, _ = torch.sort(image)
+            
             # Reshape 1D [24] or [96] into a square Spectral Landscape
             n_in = image.size(0)
             res_side = int(math.ceil(math.sqrt(n_in)))
@@ -793,7 +815,10 @@ class GyroidicCodec(nn.Module):
         self,
         text: str,
         image: Optional[torch.Tensor] = None,
-        commutativity: str = 'text_first'
+        commutativity: str = 'text_first',
+        unified_spectral_signature: Optional[torch.Tensor] = None,
+        image_fingerprint: Optional[torch.Tensor] = None,
+        audio_harmonics: Optional[torch.Tensor] = None
     ) -> EncodingResult:
         """
         Encode a text-image pair.
@@ -803,6 +828,9 @@ class GyroidicCodec(nn.Module):
             image: Optional image tensor [H,W] or [C,H,W].
                    If None, uses gyroid self-reference.
             commutativity: 'media_first' (M*T), 'text_first' (T*M), or 'symmetric' (Mean).
+            unified_spectral_signature: Optional 1D signature tensor.
+            image_fingerprint: Optional 1D fingerprint tensor.
+            audio_harmonics: Optional 1D harmonics tensor.
 
         Returns:
             EncodingResult with full encoding diagnostics
@@ -811,7 +839,12 @@ class GyroidicCodec(nn.Module):
         text_residues = self.text_projector(text)      # [K, n, n]
 
         # 2. Image  residues and berry phases
-        image_residues, berry_phases = self.image_projector(image)    # [K, n, n], [K]
+        image_residues, berry_phases = self.image_projector(
+            image=image,
+            unified_spectral_signature=unified_spectral_signature,
+            image_fingerprint=image_fingerprint,
+            audio_harmonics=audio_harmonics
+        )    # [K, n, n], [K]
 
         # 3. Non-abelian combination
         if commutativity == 'media_first':
