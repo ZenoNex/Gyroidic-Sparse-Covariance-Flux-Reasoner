@@ -86,23 +86,13 @@ class ArXivSovereignIngestor:
         self.last_request_time = time.time()
 
     def _load_fossilized_arxiv_ids(self):
-        """Builds a set of already fossilized arxiv_ids from files in storage_dir."""
+        """Builds a set of already fossilized arxiv_ids from the fast index."""
         try:
-            import os
-            import torch
-            if self.fossilizer is not None and hasattr(self.fossilizer, 'storage_dir') and os.path.exists(self.fossilizer.storage_dir):
-                for f in os.listdir(self.fossilizer.storage_dir):
-                    if f.endswith(".pt"):
-                        filepath = os.path.join(self.fossilizer.storage_dir, f)
-                        try:
-                            data = torch.load(filepath, map_location='cpu')
-                            if isinstance(data, dict):
-                                dyad_meta = data.get('dyad_metadata') or {}
-                                arxiv_id = dyad_meta.get('arxiv_id')
-                                if arxiv_id:
-                                    self.fossilized_arxiv_ids.add(self._clean_arxiv_id(arxiv_id))
-                        except Exception:
-                            pass
+            if self.fossilizer is not None and hasattr(self.fossilizer, 'fossil_index'):
+                for f, info in self.fossilizer.fossil_index.items():
+                    arxiv_id = info.get('arxiv_id')
+                    if arxiv_id:
+                        self.fossilized_arxiv_ids.add(self._clean_arxiv_id(arxiv_id))
             print(f"[INGEST] Loaded {len(self.fossilized_arxiv_ids)} existing ArXiv fossil IDs to prevent duplicate learning.")
         except Exception as e:
             print(f"[INGEST] Error loading existing ArXiv fossils: {e}")
@@ -163,7 +153,7 @@ class ArXivSovereignIngestor:
                 # We do this in-memory to prevent disk pollution
                 with tarfile.open(fileobj=io.BytesIO(response.content), mode="r:gz") as tar:
                     for member in tar.getmembers():
-                        if member.name.lower().endswith(('.png', '.jpg', '.jpeg', '.webm')):
+                        if member.name.lower().endswith(('.png', '.jpg', '.jpeg')):
                             f = tar.extractfile(member)
                             if f:
                                 images.append(f.read())
@@ -308,6 +298,8 @@ class ArXivSovereignIngestor:
                         image_fingerprint=multimodal_fingerprint,
                         linguistic_description=title,
                         relevance_score=float(report.instructive), # Use instructor score as relevance
+                        unified_spectral_signature=None,
+                        audio_harmonics=None,
                         metadata={
                             'arxiv_id': clean_id,
                             'abstract_preview': abstract[:200],
@@ -437,6 +429,8 @@ class ArXivSovereignIngestor:
                     image_fingerprint=multimodal_fingerprint,
                     linguistic_description=title,
                     relevance_score=float(report.instructive),
+                    unified_spectral_signature=None,
+                    audio_harmonics=None,
                     metadata={
                         'arxiv_id': clean_id,
                         'abstract_preview': abstract[:200],
