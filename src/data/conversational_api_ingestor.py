@@ -1389,6 +1389,8 @@ class SovereignConversationalIngestor:
                     dyad = KnowledgeDyad(
                         linguistic_description=full_text,
                         image_fingerprint=signal_tensor, # None if purely logical
+                        unified_spectral_signature=None,
+                        audio_harmonics=None,
                         metadata=convo.context
                     )
                     self.fossilizer.fossilize(
