@@ -642,8 +642,10 @@ class SpeculativeCoprimeGate(nn.Module):
         target_manifold_list = [target_manifold]
         
         try:
-            from src.core.knowledge_dyad_fossilizer import DyadFossilizer
-            fossilizer = DyadFossilizer()
+            fossilizer = getattr(self, 'fossilizer', None)
+            if fossilizer is None:
+                from src.core.knowledge_dyad_fossilizer import DyadFossilizer
+                fossilizer = DyadFossilizer()
             fossils = fossilizer.recover_fossils()
             if fossils:
                 # Extract up to 16 fossil residue vectors to act as gravity wells
