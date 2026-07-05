@@ -1915,3 +1915,13 @@ In continuous-time SDE steps, the drift update $dx$ is projected onto the Boulig
 $$dx(t) = \operatorname{Proj}_{T_S(x(t))} \left( f(x(t)) \right) dt + \sigma\, dW$$
 
 This guarantees that the trajectory remains topologically contained in the feasible manifold $S$, preventing numerical runaway and NaN generation while obeying Law 2 (Non-Teleological Repair).
+
+### 58.4 PyOpenCL-Accelerated Bouligand Contingent Cone Check
+
+To accelerate validation of the Gyroidic Differential Inclusion on hardware, the closure checker integrates PyOpenCL-based boundary evaluation. For a center constraint manifold state $s_i$ and loop flux $s_j$:
+
+1. The GPU kernel evaluates intersection viability using fixed irrational phase boundaries (e.g. $\omega_i = \sqrt{2}$, $\omega_j = \phi$):
+   $$\text{flux}_k = s_{j,k} \cdot \sin(\omega_i t - \omega_j t)$$
+2. A path is viable under the contingent cone if:
+   $$|s_{i,k} + \text{flux}_k| \le |s_{i,k}| + 0.1$$
+3. Tensors are automatically copied to CPU and flattened for high-throughput batch checks, ensuring that only paths conforming to the hardware-constrained contingent cone geometry are recognized as closed.
