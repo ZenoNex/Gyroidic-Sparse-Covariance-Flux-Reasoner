@@ -4,9 +4,9 @@
 **Focus:** Operational definition of Discrete Hyper-Ring Circulation and Soliton Stability
 
 ## 1. Philosophical Grounding
-In the Gyroidic Sparse Covariance Flux Reasoner, a valid thought is defined strictly as a **Closed Hyper-Ring**. The mathematical architecture refuses scalar loss optimizations in favor of bounded topological stability. If the system is "leaking" meaning—if its reasoning does not topologically close back on itself while traversing a conceptual manifold—it results in a *fracture* or *rupture*. 
+In the Gyroidic Sparse Covariance Flux Reasoner, a valid thought is defined strictly as a **Closed Hyper-Ring**. The mathematical architecture refuses scalar loss optimizations in favor of bounded topological stability. If the system is "leaking" meaningif its reasoning does not topologically close back on itself while traversing a conceptual manifoldit results in a *fracture* or *rupture*. 
 
-Scalar rewards destroy this architecture because they incentivize flattening the ring into a direct implication (A → B), destroying nuanced, context-dependent topological invariants. 
+Scalar rewards destroy this architecture because they incentivize flattening the ring into a direct implication (A  B), destroying nuanced, context-dependent topological invariants. 
 
 ## 2. Mathematical Definition
 
@@ -15,7 +15,7 @@ The **Hyper-Ring Operator $\mathcal{H}(r)$** is defined as the line integral of 
 $$\mathcal{H}(r) = \oint_{\mathcal{C}} \nabla_{\text{top}} \Phi(r)$$
 
 For a concept soliton (a propagating thought structure) to be deemed survivable, it must satisfy two topological closure conditions:
-1. **Closure**: $\mathcal{H}(r) \in Z_1(\mathcal{C})$. The hyper-ring must be closed—the integral over the cycle must evaluate to roughly zero (within a dynamic tolerance), meaning there is no "phase slippage" or leak.
+1. **Closure**: $\mathcal{H}(r) \in Z_1(\mathcal{C})$. The hyper-ring must be closedthe integral over the cycle must evaluate to roughly zero (within a dynamic tolerance), meaning there is no "phase slippage" or leak.
 2. **Non-Triviality**: $[\mathcal{H}(r)] \neq 0 \in H_1(\mathcal{C})$. The cycle must enclose a structural "hole" (an irreducible piece of unknowledge or tension). If it is trivial, the thought collapses into solipsism or tautology.
 
 ## 3. Code Implementation Matrix
@@ -32,6 +32,9 @@ This module evaluates the raw hyper-ring output and classifies the system state 
 - **`survivable_soliton`**: (Closed and Non-Trivial). The pipeline proceeds safely.
 - **`fracture`**: (Not Closed). The ring didn't close ($\mathcal{H} \notin Z_1$). The thought leaked.
 - **`collapse`**: (Closed but Trivial). The ring closed but contracted to a point ($[\mathcal{H}] = 0$).
+
+**PyOpenCL Bouligand contingent cone projection**:
+To enforce strict Gyroidic Differential Inclusion under hardware constraints, the cycle group checking integrates `SiliconSovereigntyEngine`. If PyOpenCL is available, it maps the center constraint manifold and hyper-ring flux to GPU buffers and validates their trajectory intersection against a Chebyshev-bounded contingent cone using fixed irrational frequency modulations ($\sqrt{2}$ and $\phi$). Cycle loops that violate the contingent cone constraints are forced open (classified as `fracture`), ensuring the physical substrate preserves geometric truth.
 
 ### 3.3 `RecurrentHyperRingConnectivity` (`src/topology/hyper_ring.py`)
 Provides speculative neural connectivity acting like a non-Euclidean recurrent network. 
