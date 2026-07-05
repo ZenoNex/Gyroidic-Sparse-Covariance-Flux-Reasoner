@@ -410,6 +410,8 @@ async def auto_temporal_training_loop(
                     from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
                     dyad = KnowledgeDyad(
                         linguistic_description=user_text,
+                        unified_spectral_signature=None,
+                        audio_harmonics=None,
                         metadata={"tags": list(tags.keys()), "response_text": assistant_text}
                     )
                     fossilizer.fossilize(dyad, in_tensor, seed_state=out_tensor)
