@@ -18,6 +18,7 @@ Each test runs in a daemon thread with a per-test timeout.
 
 import sys
 import os
+os.environ["Sovereign_Disable_Background"] = "1"
 import time
 import threading
 import traceback
