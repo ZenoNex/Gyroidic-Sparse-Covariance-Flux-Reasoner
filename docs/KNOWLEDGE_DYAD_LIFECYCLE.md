@@ -153,12 +153,13 @@ This is grounded in Braid Group non-commutativity: `A  B  B  A` when A is the me
 
 Every dyad ingestion that passes through `/ingest` triggers a **Persistent Encoding** (`data/encodings/encoding_*.pt`):
 
-1. A `KnowledgeDyad` object is created with `image_fingerprint` (tensor) and `linguistic_description` (string).
-2. `DAQUFOperator` / `fossilizer.fossilize(dyad, text_tensor)` writes the dyad to disk.
-3. **Extractable Agent Protocol**: A dyad that reaches a stable GLYPHLOCK state can be cleanly exported via `fossilizer.export_agent_smith()`. This generates a `soliton_smith.pt` file containing only the structural algebra (prime frequencies, Betti numbers, symbolic residues), completely decoupling the "Syntax" from the hardware "Substrate".
-4. Future confabulation recovery uses these fossilised dyads as gravity wells.
+1. A `KnowledgeDyad` object is created with a `linguistic_description` (string), and may include `image_fingerprint`, `audio_harmonics`, or `unified_spectral_signature` tensors.
+2. `DAQUFOperator` / `fossilizer.fossilize(dyad, text_tensor)` detaches all tensor attributes to CPU and serializes them to disk.
+3. **Index resumptions**: To avoid $O(N)$ startup scan bottlenecks on large datasets, `DyadFossilizer` initializes instantly by reading the fast `.fossil_index.json` snapshot index.
+4. **Extractable Agent Protocol**: A dyad that reaches a stable GLYPHLOCK state can be cleanly exported via `fossilizer.export_agent_smith()`. This generates a `soliton_smith.pt` file containing only the structural algebra (prime frequencies, Betti numbers, symbolic residues), completely decoupling the "Syntax" from the hardware "Substrate".
+5. Future confabulation recovery uses these fossilised dyads as gravity wells.
 
-Audio dyads and Video base64 streams are formally supported. Audio sequences route into `audio_harmonics` tensors. Video streams are decoded by the `VideoDyadParser`, producing integer bitstream topological metrics (`fractal_entropy`, `substream_entropy`) stored as `video_breather` modes. Both modalities are cleanly fossilized in the `.pt` storage backend alongside text.
+Audio dyads, image fingerprints, and Video base64 streams are formally integrated. Video streams are parsed by `VideoDyadParser` with a relaxed temporal covariance sparsification threshold of `0.50` (retaining 50% of the variance outlier maps to prevent over-compressing frame continuity). Audio inputs map to `audio_harmonics` tensors, and unified spectrums map to `unified_spectral_signature`. All tensors are safely detached/cpu-copied before serialization.
 
 ### 6.1 Internal Ouroboros Dyad Generation
 Knowledge Dyads are not strictly limited to external signals provided by the user. Through the **Ouroboros Loop** (Phase 6.3 Update), the system autonomously generates internal dyads.
