@@ -238,9 +238,10 @@ Read right-to-left: (1) Compute functional gradients fused with Love Invariant, 
 ### 7.2 Zero-Mock Residue Ingestion (Phase 19 Update)
 To achieve **Structural Honesty** (12.1), the system has transitioned away from 137-dim "Simulation" padding.
 
-*   **Primary Residue**: Visual data is ingested as a 24-dim spectral residue (3 channels $\{L, Cr, Cb\} \times 8$ Chebyshev modes).
+*   **Primary Residue**: Visual and spectral data are ingested dynamically using Chebyshev-mode arrays supporting `unified_spectral_signature`, `image_fingerprint`, and `audio_harmonics`.
 *   **Hardware-Perceptual Coupling**: The baseline energy ($T_0$) of the luminance residue is directly coupled to hardware $t_{RFC}$ stall intensity.
-*   **Spectral Reshaping**: 1D spectral residues are reshaped into 2D **Spectral Landscapes** within the `GyroidicCodec`, allowing the system to perform non-commutative collisions without relying on spatial pixel-grid placeholders.
+*   **Spectral Reshaping & BWT Reordering**: 1D spectral and harmonic residues are first sorted using a **Burrows-Wheeler Transform (BWT) inspired reordering** to group similar value regions, maximizing spatial structure. They are then padded reflectively and reshaped into 2D **Spectral Landscapes** within the `GyroidicCodec` for non-commutative collisions.
+*   **Frame Continuity Retention**: Video breather modes preserve frame continuity variance outlier maps by relaxing the temporal covariance sparsification threshold from `0.90` to `0.50` in the video parser.
 
 ### 7.3 Ouroboros Shadow Fossilization (Phase 6.3 Update)
 The system transcends the need to manually bypass internal anomalies. By establishing the **Ouroboros Loop**, the system organically self-ingests its own topological paradoxes.
