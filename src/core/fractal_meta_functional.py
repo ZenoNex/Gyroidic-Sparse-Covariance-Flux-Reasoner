@@ -86,7 +86,8 @@ class FractalMetaFunctional(nn.Module):
         current_state: torch.Tensor,
         meta_state_prev: torch.Tensor,
         residues: torch.Tensor,
-        dark_matter: Optional[torch.Tensor] = None
+        dark_matter: Optional[torch.Tensor] = None,
+        cavity_overtones: Optional[torch.Tensor] = None
     ) -> Dict[str, torch.Tensor]:
         """
         Compute S_fractal(t) based on state(t) and S_meta(t-1).
