@@ -431,7 +431,8 @@ class ResonanceCavity(nn.Module):
         reconstruction_pressure: Optional[torch.Tensor] = None,
         refined_residues: Optional[torch.Tensor] = None,
         instability_severity: float = 0.0,
-        braid_word: Optional[List[int]] = None
+        braid_word: Optional[List[int]] = None,
+        bouligand_bubble_residual: Optional[torch.Tensor] = None
     ):
         """
         Update resonance cavity memory (GDPO-enhanced + GCVE + System 2 Feedback).
@@ -602,6 +603,11 @@ class ResonanceCavity(nn.Module):
              # Scaled by the gap size to ensure collision 'seeds' it
              dD_dt = (excitation - self.M[field_idx]) * residue_gap * gap_scale
              self.D_dark[field_idx] += dt * 0.1 * dD_dt
+
+        if bouligand_bubble_residual is not None:
+             # Seed the dark matter field with the non-smooth jump vector
+             jump_term = bouligand_bubble_residual.mean(dim=0, keepdim=True).expand_as(self.D_dark[field_idx])
+             self.D_dark[field_idx] += dt * 0.5 * jump_term
         
         # Normalize to prevent blow-up (Lipschitz Bound enforcement)
         # But allow small violations to preserve resonance vibrancy
@@ -806,7 +812,8 @@ class ResonanceCavity(nn.Module):
         instability_severity: float = 0.0,
         braid_word: Optional[List[int]] = None,
         nav_mode: str = 'VOID',
-        archetype_leak: float = 0.0
+        archetype_leak: float = 0.0,
+        bouligand_bubble_residual: Optional[torch.Tensor] = None
     ) -> Dict[str, torch.Tensor]:
         """
         Update all field cavities and return aggregated memory state.
@@ -823,6 +830,7 @@ class ResonanceCavity(nn.Module):
             braid_word: Optional [List[int]] word for Braid Group Steering
             nav_mode: Navigation mode (VOID, etc)
             archetype_leak: Archetypal resonance leakage gain
+            bouligand_bubble_residual: Optional [batch, dim] non-smooth jump vector
             
         Returns:
             Dictionary with:
@@ -846,7 +854,8 @@ class ResonanceCavity(nn.Module):
                 reconstruction_pressure=reconstruction_pressure,
                 refined_residues=refined_residues,
                 instability_severity=instability_severity,
-                braid_word=braid_word
+                braid_word=braid_word,
+                bouligand_bubble_residual=bouligand_bubble_residual
             )
         
         # Return current memory state (flattened across fields)
