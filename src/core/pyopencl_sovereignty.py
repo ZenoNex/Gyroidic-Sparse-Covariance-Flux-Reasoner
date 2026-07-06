@@ -587,6 +587,62 @@ class SiliconSovereigntyEngine:
                 is_viable[gid] = 1; // Intersects contingent cone
             }
         }
+
+        // 14. Implicit Quadric Elliptical Lattice Evaluation
+        typedef struct {
+            float2 center;
+            float2 axes;      // x_radius (a), y_radius (b)
+            float  rotation;  // Angle theta in radians
+            float  thickness; // Shell boundary tolerance epsilon
+        } EllipticalPrimitive;
+
+        __kernel void evaluate_elliptical_hash_lattice(
+            __global const float2* sample_coordinates, // Ingested coordinate manifold
+            __constant EllipticalPrimitive* lattice,   // Packed structural anchors (e.g., 3 ovals)
+            const int num_primitives,
+            __global uint* lattice_bitmask_out,        // Irreducible combinatorial hash output
+            __global float* containment_pressure_out   // Strain gradient for System 2 ADMR
+        ) {
+            int gid = get_global_id(0);
+            float2 x = sample_coordinates[gid];
+            
+            uint spatial_bitmask = 0;
+            float combined_strain = 0.0f;
+            
+            for (int i = 0; i < num_primitives; i++) {
+                EllipticalPrimitive ell = lattice[i];
+                
+                // 1. Translate to local center
+                float2 local_x = x - ell.center;
+                
+                // 2. Rotate to align with principal axes (Chiral Torsion transformation)
+                float cos_t = native_cos(ell.rotation);
+                float sin_t = native_sin(ell.rotation);
+                
+                float rot_x = local_x.x * cos_t + local_x.y * sin_t;
+                float rot_y = -local_x.x * sin_t + local_x.y * cos_t;
+                
+                // 3. Evaluate algebraic distance from curve: (x/a)^2 + (y/b)^2
+                float norm_x = rot_x / ell.axes.x;
+                float norm_y = rot_y / ell.axes.y;
+                float algebraic_dist = (norm_x * norm_x) + (norm_y * norm_y);
+                
+                // 4. Compute deviation from the 1.0 boundary shell
+                float delta = fabs(algebraic_dist - 1.0f);
+                
+                // Predicated execution: Avoid 'if' statements to eliminate branch divergence
+                // If within thickness tolerance, set the i-th bit in the spatial hash
+                uint in_shell = (delta <= ell.thickness) ? 1 : 0;
+                spatial_bitmask |= (in_shell << i);
+                
+                // Accumulate directional pressure if the coordinate strains the boundary
+                combined_strain += delta;
+            }
+            
+            // Write back to device global streams
+            lattice_bitmask_out[gid] = spatial_bitmask;
+            containment_pressure_out[gid] = combined_strain;
+        }
         """
         
         import warnings
@@ -1033,6 +1089,97 @@ class SiliconSovereigntyEngine:
         
         cl.enqueue_copy(self.queue_a, is_viable, res_buf, is_blocking=True)
         return is_viable.astype(bool)
+
+    def evaluate_elliptical_hash_lattice(self, sample_coordinates, lattice):
+        """
+        Evaluates the Implicit Quadric Elliptical Lattice for the coordinates.
+        lattice is a list of dicts or a structured numpy array with EllipticalPrimitive fields:
+            center: [2]
+            axes: [2]
+            rotation: float
+            thickness: float
+        """
+        elliptical_primitive_dtype = np.dtype([
+            ('center', np.float32, 2),
+            ('axes', np.float32, 2),
+            ('rotation', np.float32),
+            ('thickness', np.float32)
+        ])
+
+        if isinstance(lattice, list):
+            primitives = np.zeros(len(lattice), dtype=elliptical_primitive_dtype)
+            for idx, p in enumerate(lattice):
+                primitives[idx]['center'] = p['center']
+                primitives[idx]['axes'] = p['axes']
+                primitives[idx]['rotation'] = p['rotation']
+                primitives[idx]['thickness'] = p['thickness']
+            lattice = primitives
+        else:
+            lattice = np.asarray(lattice, dtype=elliptical_primitive_dtype)
+
+        if self.ctx is None:
+            # CPU Mock
+            coords = np.asarray(sample_coordinates, dtype=np.float32) # [G, 2]
+            if coords.ndim == 1:
+                coords = coords.reshape(-1, 2)
+            G = coords.shape[0]
+            lattice_bitmask = np.zeros(G, dtype=np.uint32)
+            containment_pressure = np.zeros(G, dtype=np.float32)
+            
+            for i in range(len(lattice)):
+                primitive = lattice[i]
+                center = primitive['center']
+                axes = primitive['axes']
+                rotation = primitive['rotation']
+                thickness = primitive['thickness']
+                
+                # 1. Translate
+                local_x = coords - center
+                # 2. Rotate
+                cos_t = np.cos(rotation)
+                sin_t = np.sin(rotation)
+                
+                rot_x = local_x[:, 0] * cos_t + local_x[:, 1] * sin_t
+                rot_y = -local_x[:, 0] * sin_t + local_x[:, 1] * cos_t
+                
+                # 3. Distance from curve
+                norm_x = rot_x / axes[0]
+                norm_y = rot_y / axes[1]
+                algebraic_dist = norm_x**2 + norm_y**2
+                
+                # 4. Dev from 1.0 boundary
+                delta = np.abs(algebraic_dist - 1.0)
+                
+                # Predicated shell inclusion
+                in_shell = (delta <= thickness).astype(np.uint32)
+                lattice_bitmask |= (in_shell << i)
+                containment_pressure += delta
+                
+            return lattice_bitmask, containment_pressure
+
+        mf = cl.mem_flags
+        coords = np.asarray(sample_coordinates, dtype=np.float32)
+        if coords.ndim == 1:
+            coords = coords.reshape(-1, 2)
+        total_elements = coords.shape[0]
+        
+        lattice_bitmask = np.zeros(total_elements, dtype=np.uint32)
+        containment_pressure = np.zeros(total_elements, dtype=np.float32)
+        
+        coords_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=coords)
+        lattice_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=lattice)
+        bitmask_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, lattice_bitmask.nbytes)
+        pressure_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, containment_pressure.nbytes)
+        
+        self.program.evaluate_elliptical_hash_lattice(
+            self.queue_a, (total_elements,), None,
+            coords_buf, lattice_buf, np.int32(len(lattice)), bitmask_buf, pressure_buf
+        )
+        
+        cl.enqueue_copy(self.queue_a, lattice_bitmask, bitmask_buf, is_blocking=True)
+        cl.enqueue_copy(self.queue_a, containment_pressure, pressure_buf, is_blocking=True)
+        
+        return lattice_bitmask, containment_pressure
 
     def apply_gyroid_projection(self, coords, max_steps=20, tolerance=1e-3, seed=None):
         """Execute Gyroid minimal surface projection."""
