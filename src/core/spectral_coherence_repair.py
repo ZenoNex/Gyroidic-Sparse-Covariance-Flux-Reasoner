@@ -16,7 +16,8 @@ from .codes_constraint_framework import CODESConstraintFramework
 
 def apply_energy_based_stabilization(state: torch.Tensor, 
                                    energy_threshold: float = 10.0,
-                                   stability_margin: float = 1e-6) -> torch.Tensor:
+                                   stability_margin: float = 1e-6,
+                                   cavity_overtones: Optional[torch.Tensor] = None) -> torch.Tensor:
     """
     Apply energy-based numerical stabilization.
     
@@ -27,11 +28,23 @@ def apply_energy_based_stabilization(state: torch.Tensor,
     """
     # Check for NaN/inf values
     if torch.isnan(state).any() or torch.isinf(state).any():
-        print("state = apply_energy_based_stabilization(state)")
-        # Replace NaN/inf with small random values
-        # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
+        # Replace NaN/inf with small values from active overtones of the ResonanceCavity if provided
+        if cavity_overtones is not None:
+            overtones = cavity_overtones.mean(dim=0)
+            while overtones.dim() > 1:
+                overtones = overtones.mean(dim=0)
+            if overtones.shape[-1] != state.shape[-1]:
+                if overtones.shape[-1] < state.shape[-1]:
+                    overtones = torch.nn.functional.pad(overtones, (0, state.shape[-1] - overtones.shape[-1]))
+                else:
+                    overtones = overtones[:state.shape[-1]]
+            # Add dynamic phase/jitter derived from the overtones
+            turbulent_energy = overtones.unsqueeze(0).expand_as(state) * (1.0 + harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 0.1)
+        else:
+            turbulent_energy = harvest_honest_jitter(state.shape, device=state.device, scaled=True)
+            
         state = torch.where(torch.isnan(state) | torch.isinf(state), 
-                          harvest_honest_jitter(state.shape, device=state.device, scaled=True) * stability_margin, 
+                          turbulent_energy * stability_margin, 
                           state)
     
     # Energy-based clamping
