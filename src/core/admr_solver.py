@@ -234,7 +234,7 @@ class PolynomialADMRSolver(nn.Module):
         y_threshold = macro_envelope * soliton_transient
         return y_threshold
 
-    def apply_unknowledge_domain_dropout(self, states: torch.Tensor, elipsodistrophy_metrics: Optional[Dict[str, Any]]) -> torch.Tensor:
+    def apply_unknowledge_domain_dropout(self, states: torch.Tensor, elipsodistrophy_metrics: Optional[Dict[str, Any]], cavity_overtones: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         [ARCHITECTURAL REMEDIATION] Replace crude dropout and NaN injection with Unknowledge Domain
         shielding to protect Dream States from lobotomizing System 2 pressure.
@@ -264,11 +264,11 @@ class PolynomialADMRSolver(nn.Module):
         
         # Lazarus Rehydration: apply energy stabilization
         from src.core.spectral_coherence_repair import apply_energy_based_stabilization
-        rehydrated_states = apply_energy_based_stabilization(shielded_states, stability_margin=1e-5)
+        rehydrated_states = apply_energy_based_stabilization(shielded_states, stability_margin=1e-5, cavity_overtones=cavity_overtones)
         
         return rehydrated_states
 
-    def apply_ivst_sidechain_dropout(self, states: torch.Tensor, elipsodistrophy_metrics: Optional[Dict[str, Any]]) -> torch.Tensor:
+    def apply_ivst_sidechain_dropout(self, states: torch.Tensor, elipsodistrophy_metrics: Optional[Dict[str, Any]], cavity_overtones: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Integrates continuous-time IVST side-chaining and module dropout.
         When a state dimension's pressure drops below the chaotic envelope, it is flagged for dropout.
@@ -298,7 +298,7 @@ class PolynomialADMRSolver(nn.Module):
 
         # 3. Lazarus Rehydration
         from src.core.spectral_coherence_repair import apply_energy_based_stabilization
-        rehydrated_states = apply_energy_based_stabilization(states_new, stability_margin=1e-5)
+        rehydrated_states = apply_energy_based_stabilization(states_new, stability_margin=1e-5, cavity_overtones=cavity_overtones)
 
         return rehydrated_states
 
@@ -315,7 +315,8 @@ class PolynomialADMRSolver(nn.Module):
         anchor_sym: Optional[torch.Tensor] = None,
         boundary_state: Optional[Any] = None,
         return_violation: bool = False,
-        return_dx: bool = False
+        return_dx: bool = False,
+        cavity_overtones: Optional[torch.Tensor] = None
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
         """
         Continuous-time Stochastic Differential Update:
@@ -449,7 +450,7 @@ class PolynomialADMRSolver(nn.Module):
         new_state = states + dx
         
         # IVST Side-Chaining and Module Dropout
-        new_state = self.apply_ivst_sidechain_dropout(new_state, elipsodistrophy_metrics)
+        new_state = self.apply_ivst_sidechain_dropout(new_state, elipsodistrophy_metrics, cavity_overtones=cavity_overtones)
         
         # 5.8. Topological Refusal & Anchor Snap (Phase 18 Integration)
         # If curvature is high or elipsodistrophy is extreme, snap toward anchor
@@ -520,7 +521,8 @@ class PolynomialADMRSolver(nn.Module):
         elipsodistrophy_metrics: Optional[Dict[str, Any]] = None,
         palindromic_hash: Optional[torch.Tensor] = None,
         anchor_sym: Optional[torch.Tensor] = None,
-        boundary_state: Optional[Any] = None
+        boundary_state: Optional[Any] = None,
+        cavity_overtones: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
         Fractional-order Stochastic Differential Update with distributed alpha.
@@ -567,6 +569,17 @@ class PolynomialADMRSolver(nn.Module):
         diff_coeff = elipsodistrophy_metrics.get('diffusion_coefficient', 1.0) if elipsodistrophy_metrics else 1.0
         effective_sigma = sigma * diff_coeff
 
+        # Compute distance to boundary state to adjust fractional order (viscoelastic drag)
+        dist_to_boundary = 1.0
+        if boundary_state is not None:
+            if isinstance(boundary_state, torch.Tensor):
+                dist_to_boundary = torch.norm(states - boundary_state.to(states.device), dim=-1).mean().item()
+            else:
+                try:
+                    dist_to_boundary = float(boundary_state)
+                except Exception:
+                    pass
+
         # 1. Compute drift per coprime facet with distributed fractional order
         facets = self.config.evaluate(states)  # [batch, state_dim, K]
         K = self.config.k
@@ -582,6 +595,10 @@ class PolynomialADMRSolver(nn.Module):
 
                 # Distributed fractional order: cyclotomic mapping
                 alpha_k = 0.5 + 0.5 * math.cos(2.0 * math.pi * k / max(K, 1))
+
+                # Modulate alpha by distance to boundary (viscoelastic drag)
+                if boundary_state is not None:
+                    alpha_k = alpha_k * (0.5 + 0.5 * math.tanh(dist_to_boundary))
 
                 # Modulate alpha by hunger
                 if hunger is not None:
@@ -669,7 +686,7 @@ class PolynomialADMRSolver(nn.Module):
         new_state = states + dx
 
         # IVST Side-Chaining and Module Dropout
-        new_state = self.apply_ivst_sidechain_dropout(new_state, elipsodistrophy_metrics)
+        new_state = self.apply_ivst_sidechain_dropout(new_state, elipsodistrophy_metrics, cavity_overtones=cavity_overtones)
 
         # 8. Anchor Snap
         if anchor_sym is not None:
@@ -741,7 +758,8 @@ class PolynomialADMRSolver(nn.Module):
         adjacency_weight: torch.Tensor,
         steps: int = 1,
         lr: float = 0.01,
-        entropy: Optional[torch.Tensor] = None
+        entropy: Optional[torch.Tensor] = None,
+        cavity_overtones: Optional[torch.Tensor] = None
     ) -> 'PolynomialADMRSolver':
         """
         Perform 1-2 gradient steps on the solver parameters (A) to minimize
@@ -780,7 +798,7 @@ class PolynomialADMRSolver(nn.Module):
         for step in range(steps):
             optimizer.zero_grad()
             output_states, violation = adapted_solver.stochastic_differential_step(
-                states, neighbor_states, adjacency_weight, return_violation=True
+                states, neighbor_states, adjacency_weight, return_violation=True, cavity_overtones=cavity_overtones
             )
             loss = torch.norm(violation, p=2, dim=-1).mean()
             
