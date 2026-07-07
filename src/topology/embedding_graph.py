@@ -240,7 +240,8 @@ class GyroidicGraphManager:
                 "matrioshka_level": int(clean_val(n.matrioshka_level)),
                 "quantum": bool(n.quantum_superposition),
                 "repaired": bool(n.repair_active),
-                "locked": bool(n.coprime_lock)
+                "locked": bool(n.coprime_lock),
+                "tags": n.metrics.get("tags", [])
             })
 
         return json.dumps({"nodes": nodes_data, "links": edges})
