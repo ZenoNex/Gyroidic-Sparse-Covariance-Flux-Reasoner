@@ -82,7 +82,8 @@ class SpectralStructuralTrainer:
         self.codes.add_constraint(1, constraint_type='harmonic')
         self.codes.add_constraint(2, constraint_type='polynomial_coprime')
         
-        self.register_buffer('prev_output', None, persistent=False)
+      
+        self.prev_output = None
 
     def train_step(self, input_data: torch.Tensor) -> Dict[str, float]:
         """Performs a non-teleological training step with spectral gating.
@@ -198,75 +199,3 @@ class SpectralStructuralTrainer:
         if coherence_probe_pressure.requires_grad:
             coherence_probe_pressure.backward()
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
-            self.optimizer.step()
-        probe_log['coherence_pressure'] = coherence_probe_pressure.item()
-        probe_log['mischief_tolerance'] = mischief_tolerance
-
-        with torch.no_grad():
-            for p in self.model.parameters():
-                if p.dim() == 2 and p.shape[0] == p.shape[1]:
-                    p.copy_(project_to_birkhoff(p.data))
-
-        # --- Probe k=2: CODES Formal Constrainment Energy ---
-        # P_2: r -> argmin_{c in C_codes} E_codes(c)
-        # Constraint-Oriented Differential Equation System (CODES_RESOLUTIONS.md §2.3)
-        self.optimizer.zero_grad()
-        codes_energy = self.codes.compute_total_energy(proposal).mean()
-        if codes_energy.requires_grad:
-            codes_energy.backward()
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
-            self.optimizer.step()
-        probe_log['codes_energy'] = codes_energy.item()
-
-        with torch.no_grad():
-            for p in self.model.parameters():
-                if p.dim() == 2 and p.shape[0] == p.shape[1]:
-                    p.copy_(project_to_birkhoff(p.data))
-
-        # --- Probe k=3: Topological Curvature (optional, only if dim >= 3) ---
-        # Ricci Flow: g_{ij}(t+1) = g_{ij}(t) - 2 * R_{ij}
-        # Only runs when manifold has sufficient dimensionality.
-        if proposal.shape[-1] >= 3:
-            self.optimizer.zero_grad()
-            k_gaussian = self.gyroid.gaussian_curvature(proposal[..., :3])
-            curvature_pressure = torch.mean(
-                torch.abs(k_gaussian) * proposal.pow(2).mean(dim=-1)
-            )
-            if curvature_pressure.requires_grad:
-                (0.1 * curvature_pressure).backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
-                self.optimizer.step()
-            probe_log['curvature_pressure'] = curvature_pressure.item()
-            violation = self.gyroid(output[..., :3]).mean()
-
-            with torch.no_grad():
-                for p in self.model.parameters():
-                    if p.dim() == 2 and p.shape[0] == p.shape[1]:
-                        p.copy_(project_to_birkhoff(p.data))
-        else:
-            violation = torch.tensor(0.0)
-
-        # ------------------------------------------------------------------ #
-        # 6. Tracker updates                                                  #
-        # ------------------------------------------------------------------ #
-        if self.prev_output is not None and self.prev_output.shape == output.shape:
-            self.phase_tracker.update(self.prev_output, output)
-        self.prev_output = output.detach()
-
-        # Total energy is diagnostic-only: not used to drive any gradient
-        total_energy = sum(v for v in probe_log.values()
-                           if isinstance(v, float) and not ('mischief' in str(v)))
-
-        return {
-            "willmore_energy": total_energy,
-            "spectral_entropy": spectral_entropy.item(),
-            "pas_h": pas_h,
-            "gyroid_violation": violation.item() if isinstance(violation, torch.Tensor) else violation,
-            "berry_phase": self.phase_tracker.running_phase.item(),
-            **{f"probe_{k}": v for k, v in probe_log.items()}
-        }
-
-    def register_buffer(self, name, tensor, persistent=True):
-        """Helper for non-parameter buffers."""
-        self.model.register_buffer(name, tensor, persistent=persistent)
-        setattr(self, name, tensor)
