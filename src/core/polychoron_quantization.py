@@ -107,8 +107,3 @@ class Polychoron600Quantizer(nn.Module):
         quantized = self.vertices[indices]
         
         return quantized.view(orig_shape)
-
-    @staticmethod
-    def _is_even_permutation(p, base):
-        # Placeholder for complex parity logic if needed
-        return True
