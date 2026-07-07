@@ -307,6 +307,9 @@ class GyroidicFluxReasoner(nn.Module):
         self.use_meta_invariant = True
         self.meta_invariant = MetaInvariant()
         
+        # Phase 4 Repair: Instantiate CODES driver for phase anchoring
+        self.codes_driver = CODES()
+        
         # Containment Budget: max allowed structural pressure before System 2 repair
         self.containment_budget = 0.5
         
@@ -562,6 +565,10 @@ class GyroidicFluxReasoner(nn.Module):
         h_corrected = self.spectral_coherence_corrector.adaptive_coherence_correction(h)
         h = h_corrected
         
+        # Phase 4 Repair: CODES Phase Anchoring (Chordlock)
+        if hasattr(self, 'codes_driver'):
+            h = self.codes_driver.chordlock(h, None)
+        
         # 2. Bezout Coefficient Refresh (fix CRT modulus drift)
         residue_distributions = self.bezout_refresh.apply_crt_correction(residue_distributions)
         
@@ -602,6 +609,9 @@ class GyroidicFluxReasoner(nn.Module):
         # Note: We rely on the CRT internal trust-weighting now, 
         # but we still scale them here for System 1 thresholding.
         symbolic_residues = residue_distributions # [batch, K, D]
+        
+        # Initialize failure mask early to fix UnboundLocalError
+        failure_mask = torch.zeros(h.shape[0], dtype=torch.bool, device=h.device)
         
         # Phase 3: Check structural irreducibility before CRT
         if self.use_structural_irreducibility:
@@ -769,7 +779,7 @@ class GyroidicFluxReasoner(nn.Module):
 
         
         # Check for symbolic failure/conflict OR budget violation
-        failure_mask = (reconstruction_pressure_pre > 0.5) 
+        failure_mask = failure_mask | (reconstruction_pressure_pre > 0.5) 
         if self.use_gyroid_probes:
             failure_mask = failure_mask | (total_topological_pressure > self.containment_budget)
         
