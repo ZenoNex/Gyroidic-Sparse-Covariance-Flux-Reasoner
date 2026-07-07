@@ -724,9 +724,18 @@ class TemporalAssociationTrainer:
         association_loss = self.compute_association_loss(model_output, response_tensor)
         
         # Temporal coherence: compare input to output
+        inp_padded = input_tensor
+        resp_padded = response_tensor
+        if inp_padded.shape[1] != resp_padded.shape[1]:
+            max_dim = max(inp_padded.shape[1], resp_padded.shape[1])
+            if inp_padded.shape[1] < max_dim:
+                inp_padded = torch.nn.functional.pad(inp_padded, (0, max_dim - inp_padded.shape[1]))
+            if resp_padded.shape[1] < max_dim:
+                resp_padded = torch.nn.functional.pad(resp_padded, (0, max_dim - resp_padded.shape[1]))
+
         seq_outs = [
-            {'reconstruction': input_tensor},
-            {'reconstruction': response_tensor}
+            {'reconstruction': inp_padded},
+            {'reconstruction': resp_padded}
         ]
         temporal_coherence = self.compute_temporal_coherence(seq_outs)
         
@@ -734,8 +743,8 @@ class TemporalAssociationTrainer:
         
         # Apply automatic, situational & context-shaped arrow of time feedback
         mock_seq_outs = [
-            {'state': input_tensor},
-            {'state': response_tensor}
+            {'state': inp_padded},
+            {'state': resp_padded}
         ]
         survivorship_pressure, asym_score = self._apply_arrow_of_time_feedback(
             mock_seq_outs,
