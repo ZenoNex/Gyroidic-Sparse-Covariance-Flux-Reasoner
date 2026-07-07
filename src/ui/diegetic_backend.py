@@ -287,6 +287,7 @@ class DiegeticPhysicsEngine(nn.Module):
         self.dim = dim
         self.k = k
         self.last_input_time = 0
+        self.last_user_tokens = set()
         self.hardening = 0.5 # Default manifold state
         self.use_gyroid_probes = True
         
@@ -948,7 +949,7 @@ class DiegeticPhysicsEngine(nn.Module):
             
         return dream
 
-    def forward(self, input_tensor: torch.Tensor, dt: float = 0.1, collision_residues: Optional[torch.Tensor] = None, braid_word: Optional[List[int]] = None) -> torch.Tensor:
+    def forward(self, input_tensor: torch.Tensor, dt: float = 0.1, collision_residues: Optional[torch.Tensor] = None, braid_word: Optional[List[int]] = None, bouligand_bubble_residual: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Evolutionary Forward Pass for Manifold Invariants.
         Used by SpectralStructuralTrainer for Ricci Flow and ADMM repairs.
@@ -968,7 +969,8 @@ class DiegeticPhysicsEngine(nn.Module):
             input_tensor.unsqueeze(1),
             expected_residues=expected_residues,
             multimodal_excitation=collision_residues,
-            braid_word=braid_word
+            braid_word=braid_word,
+            bouligand_bubble_residual=bouligand_bubble_residual
         )
         memory_state = cavity_out['memory_state'].mean(dim=1) # [1, dim]
         self._last_memory_state = memory_state
@@ -986,6 +988,7 @@ class DiegeticPhysicsEngine(nn.Module):
             meta_state_prev=self.meta_state,
             residues=est_residues,
             dark_matter=self.cavity.D_dark[0].mean(dim=0, keepdim=True),# [1, dim]
+            cavity_overtones=self.cavity.M
         )
         
         # Update persistent meta-state (detach to prevent graph blowup here)
@@ -1737,6 +1740,19 @@ class DiegeticPhysicsEngine(nn.Module):
         # 1. Embed Input (Hash Projection)
         input_tensor = self._text_to_tensor(text_input) # [1, dim]
         
+        # Jaccard similarity and Bouligand Bubble detection
+        current_tokens = set(text_input.lower().split())
+        bouligand_bubble_residual = None
+        if getattr(self, 'last_user_tokens', None):
+            intersection = len(current_tokens.intersection(self.last_user_tokens))
+            union = len(current_tokens.union(self.last_user_tokens))
+            jaccard = intersection / max(1, union)
+            
+            if jaccard < 0.30:
+                print(f"[BOULIGAND_BUBBLE] Context shift detected (Jaccard: {jaccard:.4f}). Seeding dark matter residual.", flush=True)
+                bouligand_bubble_residual = input_tensor - self.meta_state
+        self.last_user_tokens = current_tokens
+        
         # --- PHASE 0: AFFORDANCE GRADIENT COMPUTATION (Hoisted) ---
         # Compute affordance gradients for both code and conversational patterns
         affordance_gradients = self._compute_affordance_gradients(text_input, input_tensor)
@@ -2127,7 +2143,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Now passes collision_residues to Gap A internal path
         # Extract Braid word from current Zeitgeist state for steering
         braid_word = self._zeitgeist_state.braid_word if self._zeitgeist_state else None
-        manifold_state = self.forward(input_tensor, dt=dt, collision_residues=collision_residues, braid_word=braid_word)
+        manifold_state = self.forward(input_tensor, dt=dt, collision_residues=collision_residues, braid_word=braid_word, bouligand_bubble_residual=bouligand_bubble_residual)
         seed_state = manifold_state.detach() # Explicit seed for response
 
         memory_state = getattr(self, '_last_memory_state', self.meta_state)
