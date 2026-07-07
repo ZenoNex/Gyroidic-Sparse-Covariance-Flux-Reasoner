@@ -510,7 +510,7 @@ class UniversalOrchestrator(nn.Module):
         # (Using defaults for luminosity/trauma unless provided via kwargs in future)
         arch_results = self.archetype_governor.run_archetypes(
             current_state=state_final,
-            stranded_states=torch.zeros((1, self.dim), device=state_final.device), # Placeholder for void
+            stranded_states=torch.empty((0, self.dim), device=state_final.device),
             current_mischief=mischief_metrics['H_mischief'],
             phase_alignment=pas_h,
             love_strengths=torch.norm(self.love.L),
