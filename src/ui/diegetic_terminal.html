@@ -7,6 +7,7 @@
     <title>Gyroidic Diegetic Terminal // Structural Honesty</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Fira+Code:wght@400&display=swap"
         rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         :root {
             --bg-color: #030303;
@@ -242,6 +243,51 @@
             overflow-y: auto;
             border-top: 1px solid var(--glass-border);
             padding-top: 0.5rem;
+        }
+
+        /* --- Console Tabs styling --- */
+        .console-tabs {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 100;
+        }
+
+        .console-tab {
+            flex: 1;
+            text-align: center;
+            padding: 0.75rem;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            color: #888;
+            border-bottom: 2px solid transparent;
+            transition: all 0.25s ease;
+        }
+
+        .console-tab:hover {
+            color: #ccc;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .console-tab.active {
+            color: var(--terminal-blue);
+            border-bottom-color: var(--terminal-blue);
+            background: rgba(0, 242, 255, 0.05);
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.4);
+        }
+
+        .tab-pane {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .tab-pane.active {
+            display: flex;
         }
 
         /* --- Center Console --- */
@@ -785,13 +831,73 @@
 
         <!-- Center: Conversational Console -->
         <section class="console">
-            <div id="chat-feed">
-                <!-- Messages appended here -->
-                <div class="message system">SYSTEM INITIALIZED. WAITING FOR MANIFOLD PERTURBATION.</div>
+            <div class="console-tabs">
+                <div class="console-tab active" data-tab="terminal">RESONANCE TERMINAL</div>
+                <div class="console-tab" data-tab="graph">OBSIDIAN GRAPH</div>
+                <div class="console-tab" data-tab="link-editor">LINK & SCHEDULES</div>
             </div>
-            <div class="input-area">
-                <span style="color:var(--terminal-blue); font-family:var(--font-mono);">></span>
-                <input type="text" id="user-input" placeholder="Ingest symbolic residue..." autocomplete="off">
+            <div class="tab-pane active" id="pane-terminal">
+                <div id="chat-feed" style="flex: 1; overflow-y: auto;">
+                    <!-- Messages appended here -->
+                    <div class="message system">SYSTEM INITIALIZED. WAITING FOR MANIFOLD PERTURBATION.</div>
+                </div>
+                <div class="input-area">
+                    <span style="color:var(--terminal-blue); font-family:var(--font-mono);">></span>
+                    <input type="text" id="user-input" placeholder="Ingest symbolic residue..." autocomplete="off">
+                </div>
+            </div>
+            
+            <!-- Tab 2: Obsidian Graph -->
+            <div class="tab-pane" id="pane-graph" style="position: relative; flex-direction: column; background: #030303; flex: 1;">
+                <div style="padding: 0.5rem 1rem; display: flex; gap: 0.5rem; border-bottom: 1px solid var(--glass-border); align-items: center; justify-content: space-between; z-index: 10;">
+                    <input type="text" id="graph-search" placeholder="Search fossils or tags..." style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none;">
+                    <button onclick="refreshGraph()" style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; border: 1px solid var(--terminal-blue); transition: all 0.2s;">REFRESH</button>
+                </div>
+                <div id="graph-container" style="flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 400px; height: 100%;">
+                    <div id="graph-canvas-container" style="width: 100%; height: 100%; flex: 1;"></div>
+                    <div id="graph-info-overlay" style="position: absolute; bottom: 10px; left: 10px; right: 10px; background: rgba(0,0,0,0.85); border: 1px solid var(--glass-border); padding: 8px; border-radius: 6px; font-size: 0.75rem; color: #ddd; max-height: 100px; overflow-y: auto; pointer-events: auto; display: none; z-index: 100;"></div>
+                </div>
+            </div>
+            
+            <!-- Tab 3: Link & Schedule Editor -->
+            <div class="tab-pane" id="pane-link-editor" style="background: #050505; padding: 1rem; overflow-y: auto;">
+                <h3 style="margin-top: 0; font-family: var(--font-mono); font-size: 0.95rem; color: var(--terminal-blue); letter-spacing: 1px; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">INSTANCED MANIFOLD LINKER & SCHEDULER</h3>
+                <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem;">
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">SOURCE NODE (FOSSIL OR TAG)</label>
+                        <select id="link-source" style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;"></select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">TARGET NODE (FOSSIL OR TAG)</label>
+                        <select id="link-target" style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;"></select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">LINK MODALITY</label>
+                        <select id="link-modality" style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;">
+                            <option value="resonance">Resonance (Co-primality Parity Check)</option>
+                            <option value="shadow">Shadow Token (Voynich Exemption Bypass)</option>
+                            <option value="spectral">Spectral Covariance (Chebyshev L-Cr-Cb)</option>
+                            <option value="openscience">Open Science Integration (PubMed/arXiv Cross-ref)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">TEMPORAL SCHEDULE</label>
+                        <select id="link-schedule" style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;">
+                            <option value="immediate">Immediate Validation Test (Deterministic)</option>
+                            <option value="next_epoch">Queue for Next Epoch training loop (Dream State)</option>
+                            <option value="prime_interval">Defer to Prime Interval lock (PAS_h check)</option>
+                        </select>
+                    </div>
+                    
+                    <button id="btn-submit-link" style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; font-weight: bold; margin-top: 0.5rem; transition: all 0.2s; outline: none; border: 1px solid var(--terminal-blue);">
+                        EXECUTE RESONANCE COHERENCE CHECK
+                    </button>
+                    
+                    <div style="margin-top: 0.5rem;">
+                        <div style="font-family: var(--font-mono); font-size: 0.65rem; color: #888; margin-bottom: 0.25rem;">DIAGNOSTIC TELEMETRY LOGGER</div>
+                        <div id="link-diagnostics-log" style="background: #000; border: 1px solid var(--glass-border); padding: 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; color: var(--terminal-green); height: 120px; overflow-y: auto; white-space: pre-wrap;">[CONSOLE] Idle. Select nodes and press button to test resonance stability.</div>
+                    </div>
+                </div>
             </div>
             <div id="soliton-layer"></div>
         </section>
@@ -1085,6 +1191,398 @@
             active_video_file: null,
             media_chain: [] // Array of {type, data, filename, icon}
         };
+
+        // Tab switching logic
+        document.addEventListener("DOMContentLoaded", () => {
+            const tabs = document.querySelectorAll(".console-tab");
+            const panes = document.querySelectorAll(".tab-pane");
+
+            tabs.forEach(tab => {
+                tab.addEventListener("click", () => {
+                    // Remove active classes
+                    tabs.forEach(t => {
+                        t.classList.remove("active");
+                    });
+                    panes.forEach(p => p.classList.remove("active"));
+
+                    // Add active class
+                    tab.classList.add("active");
+                    const targetPane = document.getElementById("pane-" + tab.dataset.tab);
+                    if (targetPane) {
+                        targetPane.classList.add("active");
+                    }
+
+                    // Auto refresh graph if selected
+                    if (tab.dataset.tab === "graph") {
+                        refreshGraph();
+                    }
+                });
+            });
+            
+            // Setup submit link handler
+            const btnSubmit = document.getElementById("btn-submit-link");
+            if (btnSubmit) {
+                btnSubmit.addEventListener("click", executeResonanceLink);
+            }
+        });
+
+        // D3 Force Graph logic
+        let graphSimulation = null;
+        let graphSvg = null;
+        let graphDataGlobal = null;
+
+        async function refreshGraph() {
+            const container = document.getElementById('graph-canvas-container');
+            if (!container) return;
+            container.innerHTML = '<div style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:var(--terminal-blue); font-size:0.75rem; letter-spacing:1px; z-index:100;">RE-SCANNING FIELD...</div>';
+            
+            try {
+                const response = await fetch(`${state.backend_url}/graph`);
+                const data = await response.json();
+                graphDataGlobal = data;
+                
+                container.innerHTML = '';
+                
+                // Build D3 nodes and links
+                const d3Nodes = [];
+                const d3Links = [];
+                const seenTags = new Set();
+                const fossilIdMap = new Map();
+                
+                // 1. Process Fossils
+                data.nodes.forEach(node => {
+                    const d3Node = {
+                        id: node.id,
+                        label: node.label,
+                        chiral: node.chiral || 0.0,
+                        entropy: node.entropy || 0.0,
+                        matrioshka_level: node.matrioshka_level || 0,
+                        quantum: !!node.quantum,
+                        repaired: !!node.repaired,
+                        locked: !!node.locked,
+                        type: 'fossil',
+                        tags: node.tags || []
+                    };
+                    d3Nodes.push(d3Node);
+                    fossilIdMap.set(node.id, d3Node);
+                    
+                    // Collect Tags
+                    (node.tags || []).forEach(tag => {
+                        if (tag) {
+                            seenTags.add(tag);
+                            d3Links.push({
+                                source: node.id,
+                                target: 'tag_' + tag,
+                                type: 'tag-link',
+                                weight: 0.8
+                            });
+                        }
+                    });
+                });
+                
+                // 2. Add Tag Hub Nodes
+                seenTags.forEach(tag => {
+                    d3Nodes.push({
+                        id: 'tag_' + tag,
+                        label: '#' + tag,
+                        type: 'tag',
+                        tags: [tag]
+                    });
+                });
+                
+                // 3. Process Resonance/Similarity Links
+                (data.links || []).forEach(link => {
+                    if (fossilIdMap.has(link.source) && fossilIdMap.has(link.target)) {
+                        d3Links.push({
+                            source: link.source,
+                            target: link.target,
+                            type: 'resonance',
+                            weight: link.weight
+                        });
+                    }
+                });
+                
+                // 4. Set up dropdown lists in Link & Schedule Editor
+                populateLinkDropdowns(data.nodes, Array.from(seenTags));
+                
+                // 5. Render SVG
+                const width = container.clientWidth || 500;
+                const height = container.clientHeight || 400;
+                
+                const svg = d3.select(container)
+                    .append('svg')
+                    .attr('width', '100%')
+                    .attr('height', '100%')
+                    .style('background', '#030303')
+                    .call(d3.zoom().scaleExtent([0.1, 4]).on('zoom', (event) => {
+                        g.attr('transform', event.transform);
+                    }));
+                    
+                const g = svg.append('g');
+                
+                // Link lines
+                const link = g.append('g')
+                    .selectAll('line')
+                    .data(d3Links)
+                    .enter()
+                    .append('line')
+                    .attr('stroke', d => d.type === 'tag-link' ? 'rgba(0, 255, 65, 0.15)' : 'rgba(0, 242, 255, 0.35)')
+                    .attr('stroke-width', d => d.type === 'tag-link' ? 1 : 2)
+                    .attr('stroke-dasharray', d => d.type === 'tag-link' ? '3,3' : 'none');
+                    
+                // Node groups
+                const node = g.append('g')
+                    .selectAll('.node')
+                    .data(d3Nodes)
+                    .enter()
+                    .append('g')
+                    .attr('class', 'node')
+                    .style('cursor', 'pointer')
+                    .call(d3.drag()
+                        .on('start', dragstarted)
+                        .on('drag', dragged)
+                        .on('end', dragended));
+                        
+                // Draw shapes based on node type
+                node.each(function(d) {
+                    const el = d3.select(this);
+                    if (d.type === 'tag') {
+                        el.append('rect')
+                            .attr('width', 12)
+                            .attr('height', 12)
+                            .attr('x', -6)
+                            .attr('y', -6)
+                            .attr('transform', 'rotate(45)')
+                            .attr('fill', '#00ff41')
+                            .attr('stroke', 'rgba(0, 255, 65, 0.7)')
+                            .attr('stroke-width', 1.5);
+                    } else {
+                        const fill = d.chiral > 0.5 ? 'rgba(255, 0, 242, 0.25)' : 'rgba(0, 242, 255, 0.25)';
+                        const stroke = d.chiral > 0.5 ? 'var(--terminal-magenta)' : 'var(--terminal-blue)';
+                        el.append('circle')
+                            .attr('r', 8 + d.matrioshka_level * 2)
+                            .attr('fill', fill)
+                            .attr('stroke', stroke)
+                            .attr('stroke-width', d.locked ? 2.5 : 1.5);
+                    }
+                });
+                
+                // Node labels
+                node.append('text')
+                    .attr('dx', 14)
+                    .attr('dy', 4)
+                    .attr('font-size', '0.65rem')
+                    .attr('font-family', 'var(--font-mono)')
+                    .attr('fill', d => d.type === 'tag' ? 'var(--terminal-green)' : '#fff')
+                    .text(d => d.label.substring(0, 16) + (d.label.length > 16 ? '...' : ''));
+                    
+                // Click handler to show info overlay
+                node.on('click', (event, d) => {
+                    event.stopPropagation();
+                    const overlay = document.getElementById('graph-info-overlay');
+                    if (!overlay) return;
+                    if (d.type === 'tag') {
+                        overlay.innerHTML = `<strong>Tag Hub:</strong> ${d.label}<br/>Fossils tagged: ${d3Links.filter(l => l.target === d.id).length}`;
+                    } else {
+                        overlay.innerHTML = `<strong>Fossil ID:</strong> ${d.id}<br/>
+                        <strong>Residue:</strong> "${d.label}"<br/>
+                        <strong>Chiral Shift:</strong> ${d.chiral.toFixed(4)} | <strong>Spectral Entropy:</strong> ${d.entropy.toFixed(4)}<br/>
+                        <strong>Tags:</strong> ${d.tags.join(', ') || 'none'}`;
+                        
+                        // Populate source/target selects
+                        const srcSelect = document.getElementById('link-source');
+                        const tgtSelect = document.getElementById('link-target');
+                        if (srcSelect && tgtSelect) {
+                            if (!srcSelect.value || srcSelect.value === d.id) {
+                                srcSelect.value = d.id;
+                            } else {
+                                tgtSelect.value = d.id;
+                            }
+                        }
+                    }
+                    overlay.style.display = 'block';
+                });
+                
+                // Setup simulation forces
+                graphSimulation = d3.forceSimulation(d3Nodes)
+                    .force('link', d3.forceLink(d3Links).id(d => d.id).distance(d => d.type === 'tag-link' ? 40 : 80))
+                    .force('charge', d3.forceManyBody().strength(-120))
+                    .force('center', d3.forceCenter(width / 2, height / 2))
+                    .force('collide', d3.forceCollide().radius(22))
+                    .on('tick', ticked);
+                    
+                function ticked() {
+                    link
+                        .attr('x1', d => d.source.x)
+                        .attr('y1', d => d.source.y)
+                        .attr('x2', d => d.target.x)
+                        .attr('y2', d => d.target.y);
+                        
+                    node
+                        .attr('transform', d => `translate(${d.x}, ${d.y})`);
+                }
+                
+                // Drag helper functions
+                function dragstarted(event, d) {
+                    if (!event.active) graphSimulation.alphaTarget(0.3).restart();
+                    d.fx = d.x;
+                    d.fy = d.y;
+                }
+                
+                function dragged(event, d) {
+                    d.fx = event.x;
+                    d.fy = event.y;
+                }
+                
+                function dragended(event, d) {
+                    if (!event.active) graphSimulation.alphaTarget(0);
+                    d.fx = null;
+                    d.fy = null;
+                }
+                
+                // Setup dynamic search filter
+                const searchInput = document.getElementById('graph-search');
+                if (searchInput) {
+                    searchInput.addEventListener('input', () => {
+                        const query = searchInput.value.toLowerCase().trim();
+                        if (!query) {
+                            node.style('opacity', 1);
+                            link.style('opacity', 1);
+                            return;
+                        }
+                        
+                        node.style('opacity', d => {
+                            const labelMatch = d.label.toLowerCase().includes(query);
+                            const idMatch = d.id.toLowerCase().includes(query);
+                            const tagMatch = d.tags.some(t => t.toLowerCase().includes(query));
+                            return (labelMatch || idMatch || tagMatch) ? 1 : 0.15;
+                        });
+                        
+                        link.style('opacity', d => {
+                            const srcNode = d3Nodes.find(n => n.id === d.source.id);
+                            const tgtNode = d3Nodes.find(n => n.id === d.target.id);
+                            const srcMatch = srcNode && (srcNode.label.toLowerCase().includes(query) || srcNode.tags.some(t => t.toLowerCase().includes(query)));
+                            const tgtMatch = tgtNode && (tgtNode.label.toLowerCase().includes(query) || tgtNode.tags.some(t => t.toLowerCase().includes(query)));
+                            return (srcMatch || tgtMatch) ? 0.8 : 0.05;
+                        });
+                    });
+                }
+                
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = '<div style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:red; font-size:0.75rem;">COGNITIVE BUS DISCONNECT</div>';
+            }
+        }
+
+        function populateLinkDropdowns(nodes, tags) {
+            const srcSelect = document.getElementById('link-source');
+            const tgtSelect = document.getElementById('link-target');
+            if (!srcSelect || !tgtSelect) return;
+            
+            const prevSrc = srcSelect.value;
+            const prevTgt = tgtSelect.value;
+            
+            srcSelect.innerHTML = '';
+            tgtSelect.innerHTML = '';
+            
+            const createGroup = (label) => {
+                const grp = document.createElement('optgroup');
+                grp.label = label;
+                return grp;
+            };
+            
+            const fossilsGrpSrc = createGroup('FOSSIL FILES');
+            const fossilsGrpTgt = createGroup('FOSSIL FILES');
+            
+            nodes.forEach(n => {
+                const opt = document.createElement('option');
+                opt.value = n.id;
+                opt.innerText = `${n.id.substring(0, 15)}... (${n.label.substring(0, 30)}...)`;
+                fossilsGrpSrc.appendChild(opt.cloneNode(true));
+                fossilsGrpTgt.appendChild(opt.cloneNode(true));
+            });
+            
+            const tagsGrpSrc = createGroup('TAG HUBS');
+            const tagsGrpTgt = createGroup('TAG HUBS');
+            
+            tags.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = 'tag_' + t;
+                opt.innerText = `#${t}`;
+                tagsGrpSrc.appendChild(opt.cloneNode(true));
+                tagsGrpTgt.appendChild(opt.cloneNode(true));
+            });
+            
+            srcSelect.appendChild(fossilsGrpSrc);
+            srcSelect.appendChild(tagsGrpSrc);
+            
+            tgtSelect.appendChild(fossilsGrpTgt);
+            tgtSelect.appendChild(tagsGrpTgt);
+            
+            // Restore selection if valid
+            if (Array.from(srcSelect.options).some(o => o.value === prevSrc)) {
+                srcSelect.value = prevSrc;
+            }
+            if (Array.from(tgtSelect.options).some(o => o.value === prevTgt)) {
+                tgtSelect.value = prevTgt;
+            }
+        }
+
+        async function executeResonanceLink() {
+            const source = document.getElementById("link-source").value;
+            const target = document.getElementById("link-target").value;
+            const modality = document.getElementById("link-modality").value;
+            const schedule = document.getElementById("link-schedule").value;
+            const logEl = document.getElementById("link-diagnostics-log");
+            
+            if (!source || !target) {
+                logEl.innerHTML = `[ERROR] Select both a source and target node to link.`;
+                return;
+            }
+            
+            if (source === target) {
+                logEl.innerHTML = `[ERROR] Cannot link a node to itself. Identity loops are vacuum-locked.`;
+                return;
+            }
+            
+            logEl.innerHTML = `[PENDING] Commencing coherence test for: ${source.substring(0,8)} <-> ${target.substring(0,8)}...\n`;
+            
+            try {
+                const response = await fetch(`${state.backend_url}/api/test_resonance_link`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source, target, modality, schedule })
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    let logMsg = `[STATUS] ${result.timestamp}\n`;
+                    logMsg += `[MODALITY] ${result.modality.toUpperCase()}\n`;
+                    logMsg += `[CO-PRIMALITY] ${result.coprime_stable ? 'STABLE' : 'UNSTABLE'}\n`;
+                    logMsg += `[EMBEDDING SIMILARITY] ${result.similarity.toFixed(4)}\n`;
+                    logMsg += `[LINK STABILITY] ${result.link_allowed ? 'COHERENT (PASSED)' : 'INCOHERENT (VETOED)'}\n`;
+                    logMsg += `[DIAGNOSTICS] ${result.reason}\n`;
+                    if (result.saved_link_path) {
+                        logMsg += `[PERSISTENCE] Link saved to: ${result.saved_link_path}\n`;
+                        logMsg += `[SCHEDULER] Ingestor queued background update step.\n`;
+                    }
+                    
+                    logEl.innerHTML = logMsg;
+                    logEl.style.color = result.link_allowed ? 'var(--terminal-green)' : 'var(--terminal-warn)';
+                    
+                    // Refresh graph to show the new link if written immediately
+                    if (result.link_allowed) {
+                        setTimeout(refreshGraph, 1000);
+                    }
+                } else {
+                    logEl.innerHTML = `[ERROR] Resonance link execution failed:\n${result.error}`;
+                    logEl.style.color = 'red';
+                }
+            } catch (err) {
+                logEl.innerHTML = `[DISCONNECT] Connection failed:\n${err.message}`;
+                logEl.style.color = 'red';
+            }
+        }
 
         // Reset State Helpers
         function resetVideoState() {
@@ -2289,8 +2787,20 @@
         }
 
         // --- Event Listeners ---
+        const consoleTabs = document.querySelectorAll('.console-tab');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+        
+        consoleTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                consoleTabs.forEach(t => t.classList.remove('active'));
+                tabPanes.forEach(p => p.classList.remove('active'));
+                
+                tab.classList.add('active');
+                const targetId = 'pane-' + tab.getAttribute('data-tab');
+                document.getElementById(targetId).classList.add('active');
+            });
+        });
 
-        // --- Event Listeners ---
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage(userInput.value);
         });
