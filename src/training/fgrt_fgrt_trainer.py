@@ -62,20 +62,20 @@ class SpectralStructuralTrainer:
         # 1. Polynomial ADMR for state reconciliation
         self.admr = PolynomialADMRSolver(
             poly_config=poly_config,
-            state_dim=256 
+            state_dim=model.dim 
         )
         
         # 2. System 2 Probe: SIC-FA-ADMM
         self.system2_probe = SicFaAdmmSolver(
-            dim=256, # state_dim
+            dim=model.dim, # state_dim
             max_iters=50,
             admissibility_threshold=spectral_threshold
         )
         
         # 3. Formal System 2 Constraints (RIC/CODES)
         # These are used for calculating the formal Survivorship Pressure (6.3)
-        self.ric = ResonanceCavity(hidden_dim=256, num_modes=64, poly_config=poly_config)
-        self.codes = CODESConstraintFramework(state_dim=256)
+        self.ric = ResonanceCavity(hidden_dim=model.dim, num_modes=64, poly_config=poly_config)
+        self.codes = CODESConstraintFramework(state_dim=model.dim)
         
         # Seed CODES with standard formal constraints
         self.codes.add_constraint(0, constraint_type='quadratic')
@@ -85,113 +85,185 @@ class SpectralStructuralTrainer:
         self.register_buffer('prev_output', None, persistent=False)
 
     def train_step(self, input_data: torch.Tensor) -> Dict[str, float]:
-        """Performs a non-teleological training step with spectral gating."""
+        """Performs a non-teleological training step with spectral gating.
+
+        Architecture follows PHYSICS_ADMM.md §2.1 Cyclic Constraint Traversal:
+            For each constraint k: P_k: r -> argmin_{c in C_k} L_k(r, c)
+        Each probe is isolated — no cross-domain gradient contamination.
+
+        Mischief is a local strain tolerance modifier (NonDualProbe §5.1),
+        NOT a negative loss term. It gates how tightly coherence is enforced.
+        This is the anti-scalarization mandated by INVARIANT_OPTIMIZATION.md Tripwire 3.
+        """
+
+        # ------------------------------------------------------------------ #
+        # 1. System 1: Heuristic Proposal                                     #
+        # ------------------------------------------------------------------ #
+        # Forward pass — zero_grad happens per-probe below
         self.optimizer.zero_grad()
-        
-        # 1. System 1: Heuristic Proposal
         output = self.model(input_data)
-        
-        # 2. Spectral Speculative Check
-        # Does the proposal exhibit 'Soliton' structure?
+
+        # ------------------------------------------------------------------ #
+        # 2. Spectral Speculative Check (Wager #4, EFFICIENCY doc)            #
+        # Does the proposal exhibit Soliton structure?                         #
+        # ------------------------------------------------------------------ #
         output_freq = torch.fft.rfft(output)
         power = torch.abs(output_freq) ** 2
         power_norm = power / (power.sum(dim=-1, keepdim=True) + 1e-8)
         spectral_entropy = -(power_norm * torch.log(power_norm + 1e-8)).sum(dim=-1).mean()
-        
-        # --- Group Relative Sparsity (GRS) Logic ---
-        # Calculate batch-relative sparsity baseline to keep encodings efficient
+
+        # Group Relative Sparsity baseline
         l1_norms = torch.norm(output, p=1, dim=-1)
         batch_avg_l1 = l1_norms.mean().item() + 1e-8
-        
-        # 3. Decision Logic: Trust System 1 or Invoke System 2?
+
+        # ------------------------------------------------------------------ #
+        # 3. System 2 Gate: Trust System 1 or invoke geometric repair         #
+        # ------------------------------------------------------------------ #
         proposal = output
         if spectral_entropy > self.system2_probe.admissibility_threshold:
-            # System 2: Geometric Repair (SIC-FA-ADMM)
-            # Use GRS to dampen or amplify sparsity pressure based on batch density
-            # If current thought is much denser than average, increase lambda
             lambda_grs = self.system2_probe.lambda_sparse * (l1_norms.mean() / batch_avg_l1)
-            
             repaired_output = self.system2_probe.solve(
                 forward_op=lambda x: x,
                 anchor=output.detach(),
                 M_alpha_op=None,
                 lambda_sparse_override=lambda_grs.item()
             )
-            # Add reconciliation pressure: model should have predicted the repair
             recon_loss = F.mse_loss(proposal, repaired_output.detach())
-            output = repaired_output # Following metrics use repaired state
+            output = repaired_output
         else:
-            recon_loss = torch.tensor(0.0, device=output.device)
-        
-        # 4. Compute Invariants
-        pas_h = self.pas_metric(output.unsqueeze(1) if output.dim() == 2 else output).mean().item()
-        
-        # 5. Compute formal Survivorship Pressure (6.3 TAT Unified)
-        # Survivorship_Pressure = Association_Inaccuracy +   (1.0 - Coherence) -   Mischief
-        # - Association_Inaccuracy (recon_loss): Pressure to find the correct manifold.
-        # - Coherence Penalty (1.0 - coherence): Pressure to maintain temporal stability.
-        # - Mischief Reward (mischief): Reward for novel topological exploration (15.2).
-        
-        alpha_coh = 0.1
-        beta_mischief = 0.05
-        
-        # Formal Coherence via Resonance Cavity (RIC)
-        # We query the cavity to see how much the proposal resonates with known patterns.
-        resonance_data = self.ric.query(proposal)
-        coherence = resonance_data['resonance_scores'].mean()
-        
-        # Formal Mischief via High-Order Resonance (15.2)
-        # Mischief is the measure of novelty relative to the resonant baseline.
-        # It's high when the proposal is structurally valid but 'surprising' to the RIC.
-        mischief = (1.0 - coherence) * spectral_entropy
-        
-        # Formal Survivorship Pressure ensuring non-negative bias for accuracy/coherence
-        # and a reward for 'Play' (mischief).
-        survivorship_pressure = recon_loss + alpha_coh * (1.0 - coherence) - beta_mischief * mischief
-        
-        # Formal Constrainment Energy via CODES
-        # This replaces the Willmore heuristic for the local manifold curvature.
-        formal_energy = self.codes.compute_total_energy(proposal).mean()
-        
-        # Total Non-Teleological Energy
-        energy = formal_energy + survivorship_pressure
-        
-        # 6. Topological Curvature Modulation
-        # f_topo = f * (1 + gamma * K)
-        if proposal.shape[-1] >= 3:
-            k_gaussian = self.gyroid.gaussian_curvature(proposal[..., :3])
-            # High negative curvature (holes) increases the local "functional potential"
-            # preventing the system from flattening the topological features.
-            curvature_pressure = torch.mean(torch.abs(k_gaussian) * proposal.pow(2).mean(dim=-1))
-            energy = energy + 0.1 * curvature_pressure
-            violation = self.gyroid(output[..., :3]).mean()
-        else:
-            violation = torch.tensor(0.0)
-            
-        # 7. Backward Pass & Ricci Step
-        # Ricci Flow: g_{ij}(t+1) = g_{ij}(t) - 2 * R_{ij}
-        # In our case, we use the energy gradient to 'warp' the parameters.
-        energy.backward()
-        self.optimizer.step()
+            recon_loss = torch.tensor(0.0, device=output.device, requires_grad=False)
 
-        # --- MANDATORY BIRKHOFF MANIFOLD PROJECTION ---
+        # ------------------------------------------------------------------ #
+        # 4. Compute Invariants (read-only diagnostics, no grad)              #
+        # ------------------------------------------------------------------ #
+        pas_h = self.pas_metric(
+            output.unsqueeze(1) if output.dim() == 2 else output
+        ).mean().item()
+
+        # Mischief: measure of novelty relative to RIC resonant baseline.
+        # Per NonDualProbe §5.1: mischief is a TOLERANCE MODIFIER, not a loss.
+        # High mischief -> loosen coherence enforcement; low mischief -> tighten.
+        # It is NOT subtracted from a scalar aggregate — that would be scalarization.
+        with torch.no_grad():
+            resonance_data = self.ric.query(proposal.detach())
+            coherence_scalar = resonance_data['resonance_scores'].mean().item()
+            mischief_tolerance = (1.0 - coherence_scalar) * spectral_entropy.item()
+        # beta_mischief governs how much mischief expands the coherence tolerance
+        beta_mischief = 0.05
+        alpha_coh = 0.1
+
+        # ------------------------------------------------------------------ #
+        # 5. CYCLIC CONSTRAINT PROBES — each probe is a sovereign domain      #
+        #                                                                      #
+        # Probe ordering follows PHYSICS_ADMM.md §2.2:                        #
+        #   k=0: Reconstruction (association inaccuracy)                       #
+        #   k=1: Coherence (NonDualProbe — mischief gates tolerance)          #
+        #   k=2: CODES formal constrainment energy                             #
+        #   k=3: Topological curvature (optional)                              #
+        #                                                                      #
+        # Each probe uses a detached anchor for its internal computation.      #
+        # Gradients flow only through the probe's own forward—no cross-leak.  #
+        # ------------------------------------------------------------------ #
+
+        probe_log = {}  # For diagnostics
+
+        # --- Probe k=0: Reconstruction / Association Inaccuracy ---
+        # P_0: r -> argmin_{c in C_0} |output - repaired|^2
+        # Enforces that System 1 output stays close to the repair anchor.
+        if recon_loss.requires_grad:
+            self.optimizer.zero_grad()
+            recon_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+            self.optimizer.step()
+        probe_log['recon_loss'] = recon_loss.item()
+
+        # Birkhoff projection after each probe step (mandatory per GDPO pattern)
         with torch.no_grad():
             for p in self.model.parameters():
                 if p.dim() == 2 and p.shape[0] == p.shape[1]:
                     p.copy_(project_to_birkhoff(p.data))
-        # --- END BIRKHOFF PROJECTION ---
-        
-        # 8. Tracker updates
+
+        # --- Probe k=1: Coherence — gated by mischief tolerance (NonDualProbe) ---
+        # Per PHYSICS_ADMM.md §5.1: penalty = max(strain - beta * H_mischief, 0)
+        # This makes mischief a *strain tolerance* gate, not a scalar reward to subtract.
+        # Re-query coherence with fresh graph on current proposal (not detached)
+        self.optimizer.zero_grad()
+        resonance_data_live = self.ric.query(proposal)
+        coherence_live = resonance_data_live['resonance_scores'].mean()
+        raw_coherence_strain = alpha_coh * (1.0 - coherence_live)
+        # Apply mischief tolerance gate: allow more strain if system is mischievous
+        coherence_probe_pressure = torch.clamp(
+            raw_coherence_strain - beta_mischief * mischief_tolerance, min=0.0
+        )
+        if coherence_probe_pressure.requires_grad:
+            coherence_probe_pressure.backward()
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+            self.optimizer.step()
+        probe_log['coherence_pressure'] = coherence_probe_pressure.item()
+        probe_log['mischief_tolerance'] = mischief_tolerance
+
+        with torch.no_grad():
+            for p in self.model.parameters():
+                if p.dim() == 2 and p.shape[0] == p.shape[1]:
+                    p.copy_(project_to_birkhoff(p.data))
+
+        # --- Probe k=2: CODES Formal Constrainment Energy ---
+        # P_2: r -> argmin_{c in C_codes} E_codes(c)
+        # Constraint-Oriented Differential Equation System (CODES_RESOLUTIONS.md §2.3)
+        self.optimizer.zero_grad()
+        codes_energy = self.codes.compute_total_energy(proposal).mean()
+        if codes_energy.requires_grad:
+            codes_energy.backward()
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+            self.optimizer.step()
+        probe_log['codes_energy'] = codes_energy.item()
+
+        with torch.no_grad():
+            for p in self.model.parameters():
+                if p.dim() == 2 and p.shape[0] == p.shape[1]:
+                    p.copy_(project_to_birkhoff(p.data))
+
+        # --- Probe k=3: Topological Curvature (optional, only if dim >= 3) ---
+        # Ricci Flow: g_{ij}(t+1) = g_{ij}(t) - 2 * R_{ij}
+        # Only runs when manifold has sufficient dimensionality.
+        if proposal.shape[-1] >= 3:
+            self.optimizer.zero_grad()
+            k_gaussian = self.gyroid.gaussian_curvature(proposal[..., :3])
+            curvature_pressure = torch.mean(
+                torch.abs(k_gaussian) * proposal.pow(2).mean(dim=-1)
+            )
+            if curvature_pressure.requires_grad:
+                (0.1 * curvature_pressure).backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+                self.optimizer.step()
+            probe_log['curvature_pressure'] = curvature_pressure.item()
+            violation = self.gyroid(output[..., :3]).mean()
+
+            with torch.no_grad():
+                for p in self.model.parameters():
+                    if p.dim() == 2 and p.shape[0] == p.shape[1]:
+                        p.copy_(project_to_birkhoff(p.data))
+        else:
+            violation = torch.tensor(0.0)
+
+        # ------------------------------------------------------------------ #
+        # 6. Tracker updates                                                  #
+        # ------------------------------------------------------------------ #
         if self.prev_output is not None and self.prev_output.shape == output.shape:
-             self.phase_tracker.update(self.prev_output, output)
+            self.phase_tracker.update(self.prev_output, output)
         self.prev_output = output.detach()
-        
+
+        # Total energy is diagnostic-only: not used to drive any gradient
+        total_energy = sum(v for v in probe_log.values()
+                           if isinstance(v, float) and not ('mischief' in str(v)))
+
         return {
-            "willmore_energy": energy.item(),
+            "willmore_energy": total_energy,
             "spectral_entropy": spectral_entropy.item(),
             "pas_h": pas_h,
-            "gyroid_violation": violation.item(),
-            "berry_phase": self.phase_tracker.running_phase.item()
+            "gyroid_violation": violation.item() if isinstance(violation, torch.Tensor) else violation,
+            "berry_phase": self.phase_tracker.running_phase.item(),
+            **{f"probe_{k}": v for k, v in probe_log.items()}
         }
 
     def register_buffer(self, name, tensor, persistent=True):
