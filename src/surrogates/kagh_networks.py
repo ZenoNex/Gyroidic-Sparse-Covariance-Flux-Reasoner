@@ -73,8 +73,8 @@ class SaturatedQuantizer(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         # STE: Pass gradient through unchanged
-        # Return none for 'levels' and 'dyslexic_mode' arguments
-        return grad_output, None, None
+        # Return none for 'levels', 'dyslexic_mode', and 'd_basis' arguments
+        return grad_output, None, None, None
 
 class KANLayer(nn.Module):
     """
