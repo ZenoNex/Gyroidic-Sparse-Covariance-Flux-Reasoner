@@ -25,10 +25,33 @@ class SaturatedQuantizer(torch.autograd.Function):
     latent token crowding (the 'muddy blot' outcome).
     """
     @staticmethod
-    def forward(ctx, input, levels=64, dyslexic_mode=False):
+    def forward(ctx, input, levels=64, dyslexic_mode=False, d_basis=None):
         # Scale to integer grid [-levels/2, levels/2]
         scale = levels / 2.0
         snapped = torch.round(input * scale) / scale
+        
+        # Topological Protective Sheath (High-Frequency Micro-Wave)
+        # Phi(x) = x_tilde + A_micro * |dx_tilde/dx| * sin(omega_micro * x)
+        # |dx_tilde/dx| is the derivative magnitude of the piecewise-constant quantization map.
+        # Under the STE, this is approximated using the distance to the boundary,
+        # or exactly using the B-spline derivative tensor d_basis if provided.
+        A_micro = 0.05
+        omega_micro = 50.0
+
+        if d_basis is not None:
+            # Match the input shape (spline weights: [out, in, grid_size+spline_order])
+            # d_basis shape: [batch, in, grid_size+spline_order]
+            # We average over the batch dimension to get a static parameter weight derivative proxy
+            with torch.no_grad():
+                grad_proxy = torch.abs(d_basis).mean(dim=0)  # [in, grid_size+spline_order]
+                # Broadcast over the output dimension [1, in, grid_size+spline_order]
+                grad_proxy = grad_proxy.unsqueeze(0).to(input.device)
+        else:
+            frac = (input * scale) - torch.floor(input * scale)   # [0, 1)
+            grad_proxy = 2.0 * torch.clamp(torch.min(frac, 1.0 - frac), min=0.0, max=0.5)  # [0, 1]
+
+        micro_wave = A_micro * grad_proxy * torch.sin(omega_micro * input)
+        snapped = snapped + micro_wave
         
         if dyslexic_mode:
             # Topological Kerning: nudge residues that are too close to the snap boundary.
@@ -177,9 +200,69 @@ class KANLayer(nn.Module):
         # Evaluate basis
         basis = self.b_splines(x) # [batch, in, coeff_dim]
         
+        # Phase 4 Repair: Inject high-frequency micro-wave mechanism into the B-spline activation
+        # Phi(x) = basis + A_micro * |d_basis/dx| * sin(omega_micro * x)
+        #
+        # EXACT COMPUTATION: Using Cox-de Boor recurrence, the derivative of a B-spline basis
+        # of order k is exactly computed using B-splines of order k-1:
+        # d/dx B_{i, k}(x) = k * [ B_{i, k-1}(x)/(t_{i+k} - t_i) - B_{i+1, k-1}(x)/(t_{i+k+1} - t_{i+1}) ]
+        A_micro = 0.05
+        omega_micro = 50.0
+
+        with torch.no_grad():
+            k = self.spline_order
+            grid = self.grid
+            grid_broad = grid.unsqueeze(0)
+            x_unsup = x.unsqueeze(-1)
+
+            # Evaluate (k-1)-th order basis functions
+            bases_k_minus_1 = ((x_unsup >= grid_broad[:, :, :-1]) & (x_unsup < grid_broad[:, :, 1:])).float()
+            for p in range(1, k):
+                t_i = grid_broad[:, :, :-1-p]
+                t_i_p = grid_broad[:, :, p:-1]
+                numer1 = x_unsup - t_i
+                denom1 = t_i_p - t_i + 1e-8
+                term1 = (numer1 / denom1) * bases_k_minus_1[:, :, :-1]
+
+                t_i_1 = grid_broad[:, :, 1:-p]
+                t_i_p_1 = grid_broad[:, :, p+1:]
+                numer2 = t_i_p_1 - x_unsup
+                denom2 = t_i_p_1 - t_i_1 + 1e-8
+                term2 = (numer2 / denom2) * bases_k_minus_1[:, :, 1:]
+                bases_k_minus_1 = term1 + term2
+
+            # Compute derivatives for all G+k elements
+            t_i = grid_broad[:, :, :-1-k]
+            t_i_k = grid_broad[:, :, k:-1]
+            denom1 = t_i_k - t_i + 1e-8
+            term1 = (1.0 / denom1) * bases_k_minus_1[:, :, :-1]
+
+            t_i_1 = grid_broad[:, :, 1:-k]
+            t_i_k_1 = grid_broad[:, :, k+1:]
+            denom2 = t_i_k_1 - t_i_1 + 1e-8
+            term2 = (1.0 / denom2) * bases_k_minus_1[:, :, 1:]
+
+            d_basis = k * (term1 - term2)
+            
+            # Align dimensionality to the target spline weight dimension
+            target_dim = self.spline_weight.shape[-1]
+            if d_basis.shape[-1] > target_dim:
+                d_basis = d_basis[:, :, :target_dim]
+            elif d_basis.shape[-1] < target_dim:
+                padding = torch.zeros(d_basis.shape[0], d_basis.shape[1], target_dim - d_basis.shape[-1], device=x.device)
+                d_basis = torch.cat([d_basis, padding], dim=-1)
+
+            grad_proxy = torch.abs(d_basis)
+
+        # Micro-wave injection
+        micro_wave = A_micro * grad_proxy * torch.sin(omega_micro * x.unsqueeze(-1))
+        basis = basis + micro_wave
+
+        
         # Hybrid Quantization of Spline Weights
         # "Inter-Domain Contract": Weights must be quantized
-        q_weight = SaturatedQuantizer.apply(self.spline_weight, self.quantization_levels, self.dyslexic_mode)
+        q_weight = SaturatedQuantizer.apply(self.spline_weight, self.quantization_levels, self.dyslexic_mode, d_basis)
+
         
         # Linear combination: y = sum(w_i * b_i(x))
         spline_output = torch.einsum('bic,oic->bo', basis, q_weight)
