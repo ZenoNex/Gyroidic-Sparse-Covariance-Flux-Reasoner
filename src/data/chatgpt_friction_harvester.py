@@ -163,13 +163,13 @@ class ChatGPTFrictionHarvester:
             "archetype", "entity", "system", "architecture", "non-human", "ai"
         ]
         self.character_roleplay_patterns: List[str] = [
-            "i am ", "i will act as ", "playing the role of ", "persona: ",
-            "act as ", "act as the speculative version of", "you are a ",
-            "pretend to be ", "assume the role ", "imagine you are ",
-            "roleplay ", "in the style of ", "respond as ",
-            "take on the persona ", "you will be ", "portraying ",
-            "simulating ", "acting as ", "representing ", "emulating ",
-            "personifying ", "impersonating ", "channeling ",
+            r"\bi am (a|the|your)\b", r"\bi will act as\b", r"\bplaying the role of\b", r"\bpersona:\b",
+            r"\bact as (a|an|the)\b", r"\bact as the speculative version of\b", r"\byou are a\b",
+            r"\bpretend to be\b", r"\bassume the role\b", r"\bimagine you are\b",
+            r"\broleplay\b", r"\bin the style of\b", r"\brespond as\b",
+            r"\btake on the persona\b", r"\byou will be\b", r"\bportraying\b",
+            r"\bsimulating\b", r"\bacting as\b", r"\brepresenting\b", r"\bemulating\b",
+            r"\bpersonifying\b", r"\bimpersonating\b", r"\bchanneling\b",
         ]
 
 
@@ -409,7 +409,7 @@ class ChatGPTFrictionHarvester:
         roleplay_header = re.match(r'^(?:\[([A-Za-z0-9 _-]+)\]|([A-Za-z0-9 _-]{2,20})):\s', text)
         has_asterisks = text.count('*') >= 2 and re.search(r'\*.*?\*', text)
         
-        if roleplay_header or any(p in text_lower for p in self.character_roleplay_patterns) or has_asterisks:
+        if roleplay_header or any(re.search(p, text_lower) for p in self.character_roleplay_patterns) or has_asterisks:
             tags["is_character_play"] = 1.0
             tags["archetype_identity"] = 1.0
             if roleplay_header:
@@ -490,7 +490,7 @@ async def auto_temporal_training_loop(
         # Check if PC is not taxed and scan for sterile/semisimple data to rerun
         try:
             import psutil
-            cpu_load = psutil.cpu_percent(interval=None)
+            cpu_load = psutil.cpu_percent(interval=0.1)
             ram_percent = psutil.virtual_memory().percent
             
             if cpu_load < 40.0 and ram_percent < 75.0:
