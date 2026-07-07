@@ -182,7 +182,9 @@ class PersistentHomologyComputer(nn.Module):
         """
         Compute Betti numbers for a simplicial complex.
         
-        Simplified computation using Euler characteristic and rank.
+        Uses Spectral Approximations (Combinatorial Laplacian kernels)
+        as mandated for TDA persistence. The multiplicity of the zero 
+        eigenvalue of the k-th Laplacian corresponds to the k-th Betti number.
         
         Args:
             complex: Simplicial complex dictionary
@@ -192,34 +194,50 @@ class PersistentHomologyComputer(nn.Module):
         """
         betti = {}
         
-        # β_0: number of connected components
-        # Use graph connectivity
-        if len(complex[0]) == 0:
-            betti[0] = 0
-        elif len(complex[1]) == 0:
-            betti[0] = len(complex[0])  # All isolated vertices
-        else:
-            # Build graph and count components
-            G = nx.Graph()
-            G.add_nodes_from([v[0] for v in complex[0]])
-            G.add_edges_from(complex[1])
-            betti[0] = nx.number_connected_components(G)
+        num_vertices = len(complex.get(0, []))
+        num_edges = len(complex.get(1, []))
+        num_faces = len(complex.get(2, []))
         
-        # β_1: number of independent cycles
-        if len(complex[1]) == 0:
-            betti[1] = 0
-        else:
-            # Build graph
-            G = nx.Graph()
-            G.add_nodes_from([v[0] for v in complex[0]])
-            G.add_edges_from(complex[1])
+        if num_vertices == 0:
+            return {0: 0, 1: 0}
             
-            # β_1 = |E| - |V| + |components|
-            num_edges = len(complex[1])
-            num_vertices = len(complex[0])
-            num_components = nx.number_connected_components(G)
-            betti[1] = max(0, num_edges - num_vertices + num_components)
+        # 1. Build B_1 (Boundary matrix for edges -> vertices)
+        # B_1 is |V| x |E|
+        B_1 = torch.zeros((num_vertices, num_edges), dtype=torch.float32)
+        vertex_to_idx = {v[0]: i for i, v in enumerate(complex.get(0, []))}
         
+        for j, edge in enumerate(complex.get(1, [])):
+            u, v = edge
+            B_1[vertex_to_idx[u], j] = -1.0
+            B_1[vertex_to_idx[v], j] = 1.0
+            
+        # 2. Build B_2 (Boundary matrix for faces -> edges)
+        # B_2 is |E| x |F|
+        B_2 = torch.zeros((num_edges, num_faces), dtype=torch.float32)
+        edge_to_idx = {tuple(sorted(e)): i for i, e in enumerate(complex.get(1, []))}
+        
+        for j, face in enumerate(complex.get(2, [])):
+            u, v, w = face
+            e1, e2, e3 = tuple(sorted((u, v))), tuple(sorted((v, w))), tuple(sorted((u, w)))
+            if e1 in edge_to_idx: B_2[edge_to_idx[e1], j] = 1.0
+            if e2 in edge_to_idx: B_2[edge_to_idx[e2], j] = 1.0
+            if e3 in edge_to_idx: B_2[edge_to_idx[e3], j] = -1.0 # arbitrary orientation
+            
+        # Spectral Approximation (Laplacian Kernels)
+        # L_0 = B_1 @ B_1^T
+        L_0 = B_1 @ B_1.T
+        eig_0 = torch.linalg.eigvalsh(L_0)
+        # Count zero eigenvalues (with small tolerance)
+        betti[0] = (eig_0 < 1e-5).sum().item()
+        
+        # L_1 = B_1^T @ B_1 + B_2 @ B_2^T
+        if num_edges > 0:
+            L_1 = B_1.T @ B_1 + B_2 @ B_2.T
+            eig_1 = torch.linalg.eigvalsh(L_1)
+            betti[1] = (eig_1 < 1e-5).sum().item()
+        else:
+            betti[1] = 0
+            
         return betti
     
     def compute_persistent_homology(
