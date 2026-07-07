@@ -275,8 +275,11 @@ class GDPOSovereigntyAdaptor:
             group_ids
         )
         
-        # Normalize sovereignty (standard practice)
-        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+        # Normalize sovereignty per-pressure-dimension to avoid scalarization collapse
+        # advantages: [batch, steps, num_pressures]
+        adv_mean = advantages.mean(dim=(0, 1), keepdim=True)
+        adv_std = advantages.std(dim=(0, 1), keepdim=True)
+        advantages = (advantages - adv_mean) / (adv_std + 1e-8)
         
         # Re-evaluate under current configuration
         # (This would require forward pass through configuration - simplified here)
