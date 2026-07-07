@@ -25,6 +25,26 @@ class KnowledgeFossilNode:
         self.quantum_superposition = metrics.get('quantum_superposition', False)
         self.love_invariant_protected = metrics.get('love_diagnostics', {}).get('protected', False)
 
+        # Tag weights: Dict[str, float] persisted by gyroid_reasoner into the fossil.
+        # Carries semantic identity signals: is_creator, is_nonhuman_archetype, friction, etc.
+        # Keys are normalized using the same rule as SuperposedTagStacker.add_tag:
+        #   tag_name.replace(' ', '_').lower()  — so lookups on known keys are reliable.
+        raw_tags = metrics.get('tags', [])
+        raw_tag_weights = metrics.get('tag_weights', {})
+        # Normalize all keys on ingestion to match the stacker catalog key format
+        normalized_tag_weights = {
+            k.replace(' ', '_').lower(): v
+            for k, v in raw_tag_weights.items()
+        } if raw_tag_weights else {}
+        # If tag_weights not persisted but tags list exists, assign uniform weight 1.0
+        if not normalized_tag_weights and raw_tags:
+            normalized_tag_weights = {
+                t.replace(' ', '_').lower(): 1.0
+                for t in raw_tags if isinstance(t, str)
+            }
+        self.tag_weights: Dict[str, float] = normalized_tag_weights  # {normalized_tag: weight}
+        self.tags: list = raw_tags
+
 class GyroidicGraphManager:
     """
     Manages the topological graph of embeddings.
@@ -159,7 +179,29 @@ class GyroidicGraphManager:
                     if isinstance(c_j, torch.Tensor): c_j = c_j.item()
                     
                     chiral_factor = math.exp(-abs(c_i - c_j))
-                    weight = float(sim * chiral_factor)
+
+                    # Tag overlap factor: shared high-weight tags indicate shared topological
+                    # lineage (same friction type, archetype, alias) — they pull manifold
+                    # distance closer. Uses the same key normalization as SuperposedTagStacker.
+                    #
+                    # SIGN AWARENESS: SuperposedTagStacker allows negative weights (feature
+                    # subtraction / hyperbolic divergence). A negative * negative product is
+                    # geometrically a divergence, not an attraction. We use max(overlap, 0)
+                    # so only genuine positive co-activation increases edge affinity.
+                    tw_i = self.nodes[i].tag_weights
+                    tw_j = self.nodes[j].tag_weights
+                    if tw_i and tw_j:
+                        shared_keys = set(tw_i) & set(tw_j)
+                        overlap = sum(tw_i[k] * tw_j[k] for k in shared_keys)
+                        norm_i = math.sqrt(sum(v ** 2 for v in tw_i.values())) + 1e-8
+                        norm_j = math.sqrt(sum(v ** 2 for v in tw_j.values())) + 1e-8
+                        # clamp to [0, 1]: only positive co-activation amplifies affinity
+                        signed_cosine = overlap / (norm_i * norm_j)
+                        tag_overlap_factor = 1.0 + 0.3 * max(signed_cosine, 0.0)
+                    else:
+                        tag_overlap_factor = 1.0
+
+                    weight = float(sim * chiral_factor * tag_overlap_factor)
                     
                     edges.append({
                         "source": str(self.nodes[i].node_id),
@@ -241,7 +283,8 @@ class GyroidicGraphManager:
                 "quantum": bool(n.quantum_superposition),
                 "repaired": bool(n.repair_active),
                 "locked": bool(n.coprime_lock),
-                "tags": n.metrics.get("tags", [])
+                "tags": n.tags,
+                "tag_weights": n.tag_weights  # Dict[str, float] for client-side shading
             })
 
         return json.dumps({"nodes": nodes_data, "links": edges})
@@ -295,13 +338,25 @@ class GyroidicGraphManager:
             else:
                 base_label = node.text[:50].replace('"', '') + "..."
             
-            # 2. Add System 2 Indicators (The new stuff)
+            # 2. Add System 2 Indicators
             indicators = []
             if node.repair_active: indicators.append("")
             if node.coprime_lock: indicators.append("")
             if node.quantum_superposition: indicators.append("")
             if node.matrioshka_level > 0: indicators.append(f"{node.matrioshka_level}")
             if node.love_invariant_protected: indicators.append("")
+
+            # Tag weight indicators: show dominant tag if its weight exceeds 0.5
+            # is_creator / is_nonhuman_archetype get distinct markers
+            dominant_tag = None
+            dominant_weight = 0.0
+            for tag, wt in node.tag_weights.items():
+                if wt > dominant_weight:
+                    dominant_weight = wt
+                    dominant_tag = tag
+            if dominant_tag and dominant_weight > 0.5:
+                short_tag = dominant_tag[:12]  # Keep label compact
+                indicators.append(f"[{short_tag}:{dominant_weight:.1f}]")
             
             indicator_str = " ".join(indicators)
             
@@ -317,23 +372,32 @@ class GyroidicGraphManager:
             
             lines.append(f'    {clean_id}["{full_label}"]')
             
-            # 4. Advanced Styling (Priority-based)
-            # Priority: Repaired > Locked > Quantum > High Chirality > Low Chirality
+            # 4. Advanced Styling — Topology-first priority.
+            # Identity tags (is_creator, is_nonhuman_archetype) are informational only;
+            # they never outrank a node's structural/topological condition.
+            # Priority: Repaired > Locked > Quantum > High Chirality > tag overlay > Low Chirality
             if node.repair_active:
-                # Orange tint for Repaired nodes (Type Fixed)
+                # Orange tint: System 2 repair is structurally active
                 lines.append(f'    style {clean_id} fill:#ff990022,stroke:#ff9900')
             elif node.coprime_lock:
-                # Blue/Green tint for Fossilized nodes
+                # Blue/Green tint: Fossilized — structurally crystallized
                 lines.append(f'    style {clean_id} fill:#00ff9922,stroke:#00ff99,stroke-width:2px')
             elif node.quantum_superposition:
-                # Purple tint for Quantum nodes
+                # Purple tint: Quantum superposition active
                 lines.append(f'    style {clean_id} fill:#9900ff22,stroke:#9900ff')
             elif c_val > 0.5:
-                # High Chirality (Pink)
+                # High Chirality (Pink): strong topological rupture curvature
                 lines.append(f'    style {clean_id} fill:#ff00f222,stroke:#ff00f2')
+            elif node.tag_weights.get('is_creator', 0.0) > 0.5:
+                # Gold tint: creator-origin tag, only visible when no structural alert is active
+                lines.append(f'    style {clean_id} fill:#ffd70022,stroke:#ffd700')
+            elif node.tag_weights.get('is_nonhuman_archetype', 0.0) > 0.5:
+                # Violet tint: archetype-origin tag, same — informational, not prioritized
+                lines.append(f'    style {clean_id} fill:#cc44ff22,stroke:#cc44ff')
             else:
-                # Low Chirality (Cyan)
+                # Low Chirality (Cyan): baseline
                 lines.append(f'    style {clean_id} fill:#00f2ff11,stroke:#00f2ff')
+
                 
         # Add Edges
         for edge in edges:
