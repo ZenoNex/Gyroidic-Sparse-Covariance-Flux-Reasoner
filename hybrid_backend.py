@@ -576,6 +576,8 @@ class HybridAI:
             from src.ui.diegetic_backend import DiegeticPhysicsEngine
             # Initialize with compatible dimension (256 matches hybrid state)
             self.engine = DiegeticPhysicsEngine(dim=256, device=self.torch_device, config=config)
+            import src.ui.diegetic_backend
+            src.ui.diegetic_backend.ENGINE = self.engine
             print("[OK] Diegetic Physics Engine attached (CALM/KAGH/FGRT/Larynx Active)")
         except Exception as e:
              print(f"[FAIL] Diegetic Engine connection failed: {e}")
@@ -1849,6 +1851,13 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         """Handle GET requests."""
         parsed_path = urlparse(self.path)
+        
+        # Delegate specific paths to DiegeticRequestHandler
+        if parsed_path.path in ['/graph', '/health', '/api/minecraft/scan', '/conversational-gui', '/wikipedia-trainer']:
+            from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
+            DiegeticRequestHandler.do_GET(self)
+            return
+            
         if parsed_path.path == '/':
             self._serve_terminal_interface()
         elif parsed_path.path == '/api/graph':
@@ -1881,6 +1890,13 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         """Handle POST requests."""
         parsed_path = urlparse(self.path)
+        
+        # Delegate specific paths to DiegeticRequestHandler
+        if parsed_path.path in ['/api/minecraft/ingest', '/wikipedia-extract', '/api/test_resonance_link', '/api/tabby_complete', '/api/tabby_generate_training']:
+            from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
+            DiegeticRequestHandler.do_POST(self)
+            return
+            
         if parsed_path.path == '/interact':
             self._handle_chat()
         elif parsed_path.path == '/api/chat':
@@ -2343,6 +2359,17 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Content-type', 'application/json')
         self.end_headers()
         self.wfile.write(json.dumps(data, cls=TensorEncoder).encode())
+        
+    def _send_error_json(self, message, code=500):
+        """Send JSON error response."""
+        try:
+            self.send_response(code)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            error_data = json.dumps({"error": message}).encode('utf-8')
+            self.wfile.write(error_data)
+        except Exception as e:
+            print(f"[FAIL] Could not send error JSON: {e}")
     
     def _handle_association(self):
         """Handle knowledge association requests."""
