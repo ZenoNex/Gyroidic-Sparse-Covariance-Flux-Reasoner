@@ -495,9 +495,10 @@ class DiegeticPhysicsEngine(nn.Module):
         self.image_processor = ImageProcessor(device=self.device)
         self.register_buffer('trust_scalars', torch.ones(k))
 
-        # Temporal Association Trainer state (lazy-init on first interaction)
-        self._temporal_trainer = None
-        self._temporal_dataset = None
+        # Temporal Association Trainer state (eagerly initialized to support background loops)
+        from src.training.temporal_association_trainer import TemporalAssociationTrainer, TemporalAssociationDataset
+        self._temporal_dataset = TemporalAssociationDataset(device=self.device)
+        self._temporal_trainer = TemporalAssociationTrainer(model=self, dataset=self._temporal_dataset)
         self._temporal_thread = None
         self._last_temporal_diag: dict = {}
         self._last_matrioshka_diag: dict = {}
@@ -742,33 +743,34 @@ class DiegeticPhysicsEngine(nn.Module):
                       if os.path.exists(candidate_root):
                            chatgpt_export_dir = candidate_root
 
-            if os.path.exists(chatgpt_export_dir):
+            active_export_dir = chatgpt_export_dir if os.path.exists(chatgpt_export_dir) else None
+            if active_export_dir:
                  if verbosity != 'low':
-                     print(f"[ENGINE] ChatGPT export dir resolved to: {chatgpt_export_dir} | Verbosity: {verbosity}")
-                 self.chatgpt_harvester = ChatGPTFrictionHarvester(export_dir=chatgpt_export_dir, dim=self.dim, fossilizer=self.fossilizer)
-
-                 def run_harvester_loop():
-                     loop = asyncio.new_event_loop()
-                     asyncio.set_event_loop(loop)
-                     if not hasattr(self, '_temporal_trainer') or self._temporal_trainer is None:
-                         from src.training.temporal_association_trainer import TemporalAssociationTrainer, TemporalAssociationDataset
-                         if not hasattr(self, '_temporal_dataset') or self._temporal_dataset is None:
-                             self._temporal_dataset = TemporalAssociationDataset(device=self.device)
-                         self._temporal_trainer = TemporalAssociationTrainer(model=self, dataset=self._temporal_dataset)
-                     
-                     loop.run_until_complete(auto_temporal_training_loop(self.chatgpt_harvester, self._temporal_trainer, delay=0.1))
-                     
-                 if not os.environ.get("Sovereign_Disable_Background"):
-                     self._chatgpt_harvester_thread = threading.Thread(target=run_harvester_loop, daemon=True)
-                     self._chatgpt_harvester_thread.start()
-                     if verbosity != 'low':
-                         print(f"[ENGINE] ChatGPT Friction Harvester running in background thread.")
-                 else:
-                     if verbosity != 'low':
-                         print(" ChatGPT Friction Harvester: background harvester disabled by environment override.")
+                      print(f"[ENGINE] ChatGPT export dir resolved to: {active_export_dir} | Verbosity: {verbosity}")
             else:
-                 print(f"[ENGINE] Warning: ChatGPT export dir {chatgpt_export_dir} not found.")
-                 self.chatgpt_harvester = None
+                 print(f"[ENGINE] Warning: ChatGPT export dir {chatgpt_export_dir} not found. Ingestor running in Local Fossil mode.")
+
+            self.chatgpt_harvester = ChatGPTFrictionHarvester(export_dir=active_export_dir, dim=self.dim, fossilizer=self.fossilizer)
+
+            def run_harvester_loop():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                if not hasattr(self, '_temporal_trainer') or self._temporal_trainer is None:
+                    from src.training.temporal_association_trainer import TemporalAssociationTrainer, TemporalAssociationDataset
+                    if not hasattr(self, '_temporal_dataset') or self._temporal_dataset is None:
+                        self._temporal_dataset = TemporalAssociationDataset(device=self.device)
+                    self._temporal_trainer = TemporalAssociationTrainer(model=self, dataset=self._temporal_dataset)
+                
+                loop.run_until_complete(auto_temporal_training_loop(self.chatgpt_harvester, self._temporal_trainer, delay=0.1))
+                
+            if not os.environ.get("Sovereign_Disable_Background"):
+                self._chatgpt_harvester_thread = threading.Thread(target=run_harvester_loop, daemon=True)
+                self._chatgpt_harvester_thread.start()
+                if verbosity != 'low':
+                    print(f"[ENGINE] ChatGPT/Local Fossil Harvester running in background thread.")
+            else:
+                if verbosity != 'low':
+                    print(" ChatGPT Friction Harvester: background harvester disabled by environment override.")
         else:
             self.chatgpt_harvester = None
             print(" ChatGPT Friction Harvester: disabled by configuration.")
@@ -3578,8 +3580,8 @@ class DiegeticPhysicsEngine(nn.Module):
 
     def _maybe_trigger_temporal_training(self, input_tensor: torch.Tensor, response_text: str) -> None:
         """
-        Fire one TemporalAssociationTrainer.train_on_interaction in a background daemon
-        thread so that it never blocks the HTTP response path.
+        Fire background training steps on live interaction.
+        Updates both SpectralStructuralTrainer and TemporalAssociationTrainer.
         """
         if self._is_training_temporal:
             return
@@ -3588,36 +3590,47 @@ class DiegeticPhysicsEngine(nn.Module):
             try:
                 self._is_training_temporal = True
                 self._in_training = True
+                
                 # Detach for training
                 inp = input_tensor.detach().cpu()
                 
-                # Check for trainer availability
-                if not hasattr(self, 'trainer') or self.trainer is None:
-                    return
-
-                # Dispatch to whichever training interface the trainer provides.
-                # SpectralStructuralTrainer    train_step(input_data)
-                # TemporalAssociationTrainer   train_on_interaction(input_tensor, response_tensor)
-                if hasattr(self.trainer, 'train_on_interaction'):
+                # Topological checkpoint: isolate meta_state gradient history 
+                if hasattr(self, 'meta_state') and isinstance(self.meta_state, torch.Tensor):
+                    self.meta_state = self.meta_state.detach().requires_grad_(True)
+                
+                # 1. Run Temporal Association Trainer (TAT) if available
+                if hasattr(self, '_temporal_trainer') and self._temporal_trainer is not None:
                     # Encode response_text as a float tensor for association learning
                     resp_chars = [ord(c) / 128.0 for c in (response_text or '')[:256]]
                     if len(resp_chars) < 256:
                         resp_chars += [0.0] * (256 - len(resp_chars))
                     resp_tensor = torch.tensor(resp_chars, dtype=torch.float32)
-                    self.trainer.train_on_interaction(
-                        input_tensor=inp,
-                        response_tensor=resp_tensor,
-                    )
-                elif hasattr(self.trainer, 'train_step'):
-                    self.trainer.train_step(inp)
-                else:
-                    print("[TAT] No known training interface on trainer  skipping.")
+                    
+                    try:
+                        self._temporal_trainer.train_on_interaction(
+                            input_tensor=inp,
+                            response_tensor=resp_tensor
+                        )
+                    except Exception as tat_e:
+                        print(f"[TAT] Live background TemporalAssociation training error: {tat_e}")
+                
+                # Topological checkpoint: isolate meta_state gradient history between trainers
+                if hasattr(self, 'meta_state') and isinstance(self.meta_state, torch.Tensor):
+                    self.meta_state = self.meta_state.detach().requires_grad_(True)
+                
+                # 2. Run Spectral Structural Trainer if available
+                if hasattr(self, 'trainer') and self.trainer is not None:
+                    try:
+                        if hasattr(self.trainer, 'train_step'):
+                            self.trainer.train_step(inp)
+                    except Exception as sst_e:
+                        print(f"[TAT] Live background SpectralStructural training error: {sst_e}")
+                        
             except Exception as e:
-                print(f"[TAT] Background training error: {e}")
+                print(f"[TAT] General background training exception: {e}")
             finally:
                 self._is_training_temporal = False
                 self._in_training = False
-
 
         import threading
         t = threading.Thread(target=_bg_train, daemon=True)
@@ -6847,6 +6860,146 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 t.start()
                 
                 self._send_json({'success': True, 'message': f'Training started: {epochs} epochs'})
+            
+            elif self.path == '/api/test_resonance_link':
+                print("API REQUEST: /api/test_resonance_link")
+                try:
+                    content_len = int(self.headers.get('Content-Length', 0))
+                    post_body = self.rfile.read(content_len)
+                    data = json.loads(post_body.decode('utf-8'))
+                    
+                    source = data.get('source', '')
+                    target = data.get('target', '')
+                    modality = data.get('modality', 'resonance')
+                    schedule = data.get('schedule', 'immediate')
+                    
+                    if not source or not target:
+                        self._send_json({
+                            "success": False,
+                            "error": "Source or target node not specified."
+                        })
+                        return
+                        
+                    source_fossil = None
+                    target_fossil = None
+                    
+                    is_source_tag = source.startswith('tag_')
+                    is_target_tag = target.startswith('tag_')
+                    
+                    source_text = source.replace('tag_', '#') if is_source_tag else source
+                    target_text = target.replace('tag_', '#') if is_target_tag else target
+                    
+                    source_vector = None
+                    target_vector = None
+                    
+                    # Resolve source fossil
+                    if not is_source_tag:
+                        filepath = os.path.join(ENCODING_DIR, source)
+                        if os.path.exists(filepath):
+                            try:
+                                source_fossil = torch.load(filepath, map_location='cpu')
+                                source_text = source_fossil.get('text_input', source_fossil.get('description', ''))
+                                source_vector = source_fossil.get('meta_state', source_fossil.get('residue_vector'))
+                            except Exception:
+                                pass
+                                
+                    # Resolve target fossil
+                    if not is_target_tag:
+                        filepath = os.path.join(ENCODING_DIR, target)
+                        if os.path.exists(filepath):
+                            try:
+                                target_fossil = torch.load(filepath, map_location='cpu')
+                                target_text = target_fossil.get('text_input', target_fossil.get('description', ''))
+                                target_vector = target_fossil.get('meta_state', target_fossil.get('residue_vector'))
+                            except Exception:
+                                pass
+                                
+                    if source_vector is None:
+                        source_vector = ENGINE._text_to_tensor(source_text)
+                    if target_vector is None:
+                        target_vector = ENGINE._text_to_tensor(target_text)
+                        
+                    # Cosine Similarity
+                    cos_sim = torch.dot(source_vector.flatten(), target_vector.flatten()) / (torch.norm(source_vector) * torch.norm(target_vector) + 1e-8)
+                    cos_sim = float(cos_sim.item())
+                    
+                    # Co-primality check
+                    r1_s, r2_s, r3_s = ENGINE.fossilizer.generate_residue_tuple(source_vector)
+                    r1_t, r2_t, r3_t = ENGINE.fossilizer.generate_residue_tuple(target_vector)
+                    
+                    gcd_val = math.gcd(r1_s * r2_s * r3_s, r1_t * r2_t * r3_t)
+                    coprime_stable = (gcd_val == 1)
+                    
+                    link_allowed = True
+                    reason = "Topological parity coherent."
+                    
+                    if modality == 'resonance':
+                        if not coprime_stable:
+                            link_allowed = False
+                            reason = f"Impedance mismatch: Co-primality check failed (GCD={gcd_val}). Link threatens Smoothness Leakage."
+                        elif cos_sim < 0.2:
+                            link_allowed = False
+                            reason = f"Resonance threshold too low (Similarity = {cos_sim:.4f}). Manifold connection unstable."
+                    elif modality == 'shadow':
+                        reason = f"Voynich Exemption bypass active. Similarity: {cos_sim:.4f}. Link force-stabilized."
+                    elif modality == 'spectral':
+                        if cos_sim < 0.1:
+                            link_allowed = False
+                            reason = f"Spectral band overlap insufficient (Similarity = {cos_sim:.4f})."
+                        else:
+                            reason = f"Spectral Chebyshev link locked. Similarity: {cos_sim:.4f}."
+                    elif modality == 'openscience':
+                        has_open_ref = False
+                        if source_fossil and target_fossil:
+                            arxiv_s = source_fossil.get('dyad_metadata', {}).get('arxiv_id') if isinstance(source_fossil.get('dyad_metadata'), dict) else None
+                            arxiv_t = target_fossil.get('dyad_metadata', {}).get('arxiv_id') if isinstance(target_fossil.get('dyad_metadata'), dict) else None
+                            if arxiv_s and arxiv_t and arxiv_s == arxiv_t:
+                                has_open_ref = True
+                        if has_open_ref:
+                            reason = "Identical OpenScience Reference (arXiv) detected. Coherence verified."
+                        else:
+                            reason = f"OpenScience cross-ref not found. Fallback to similarity: {cos_sim:.4f}."
+                            
+                    saved_link_path = None
+                    if link_allowed and schedule in ('immediate', 'next_epoch'):
+                        from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
+                        blended_vector = 0.5 * (source_vector.flatten() + target_vector.flatten())
+                        
+                        # Resize/pad blended vector to matching dim if needed
+                        if blended_vector.numel() != ENGINE.dim:
+                            if blended_vector.numel() > ENGINE.dim:
+                                blended_vector = blended_vector[:ENGINE.dim]
+                            else:
+                                blended_vector = F.pad(blended_vector, (0, ENGINE.dim - blended_vector.numel()))
+                                
+                        link_dyad = KnowledgeDyad(
+                            linguistic_description=f"LINK: {source_text[:100]} <-> {target_text[:100]}",
+                            unified_spectral_signature=None,
+                            audio_harmonics=None,
+                            metadata={
+                                "tags": ["user_link", modality, f"source_{source[:8]}", f"target_{target[:8]}"],
+                                "response_text": f"Aligned connection under modality '{modality}'. Similarity {cos_sim:.3f}.",
+                                "link_source": source,
+                                "link_target": target,
+                                "link_type": modality,
+                                "schedule": schedule
+                            }
+                        )
+                        saved_link_path = ENGINE.fossilizer.fossilize(link_dyad, blended_vector, seed_state=blended_vector)
+                        
+                    self._send_json({
+                        "success": True,
+                        "link_allowed": link_allowed,
+                        "modality": modality,
+                        "similarity": cos_sim,
+                        "coprime_stable": coprime_stable,
+                        "reason": reason,
+                        "saved_link_path": os.path.basename(saved_link_path) if saved_link_path else None,
+                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    })
+                except Exception as e:
+                    self._send_error_json(str(e))
+                return
             
             elif self.path == '/api/stop_training':
                 TRAINING_STATE['active'] = False
