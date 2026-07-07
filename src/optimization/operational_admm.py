@@ -110,7 +110,6 @@ class OperationalAdmmPrimitive(autograd.Function):
         
         # Local Projections
         mc_proj = MohrCoulombProjection().to(initial_c.device)
-        love = LoveVector(initial_c.shape[-1]).to(initial_c.device)
         dp_proj = DruckerPragerProjection().to(initial_c.device)
         
         # 0. Ontological Splitting:
@@ -198,6 +197,7 @@ class OperationalAdmmPrimitive(autograd.Function):
                 
                 # Apply Local Yield (Mohr-Coulomb) and Love Vector
                 # This ensures sharp situational logic is maintained
+                love = LoveVector(c_phys.shape[-1]).to(initial_c.device)
                 c_phys = love(mc_proj(c_phys, c_phys)) # Self-limiting local yield
                 
                 # Check for rupture
