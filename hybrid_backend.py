@@ -215,7 +215,8 @@ class GovernanceManager:
                 'birkhoff_temperature': float(os.environ.get('GYROID_BIRKHOFF_TEMP', '1.0')),
                 'birkhoff_max_iterations': int(os.environ.get('GYROID_BIRKHOFF_MAX_ITER', '100')),
                 'tda_landmarks': int(os.environ.get('GYROID_TDA_LANDMARKS', '50')),
-                'ego_death_limit': float(os.environ.get('GYROID_EGO_DEATH_LIMIT', '1.5'))
+                'ego_death_limit': float(os.environ.get('GYROID_EGO_DEATH_LIMIT', '1.5')),
+                'udp_colonizer_enabled': os.environ.get('GYROID_UDP_COLONIZER', '0') == '1'
             }
             
         print("\n" + "="*50)
@@ -282,7 +283,8 @@ class GovernanceManager:
             'chatgpt_ingestor_enabled': True,
             'chatgpt_ingestor_verbosity': 'normal',
             'open_science_ingestor_enabled': True,
-            'open_science_ingestor_verbosity': 'normal'
+            'open_science_ingestor_verbosity': 'normal',
+            'udp_colonizer_enabled': False
         }
         
         print("\n" + "="*50)
@@ -475,6 +477,10 @@ class GovernanceManager:
             config['ego_death_limit'] = float(ego)
         except ValueError:
             print(f"[WARN] Invalid float, using default: {config['ego_death_limit']}")
+
+        # 3.22 UDP Server Colonizer
+        udp_col = get_input("[?] Enable Option D UDP Master Server Colonizer (yes/no)", 'yes' if config['udp_colonizer_enabled'] else 'no').lower()
+        config['udp_colonizer_enabled'] = udp_col in ('yes', 'y')
 
         print("\n[OK] Configuration finalized successfully.")
         print("-" * 50)
@@ -2853,11 +2859,15 @@ def main():
         threads.append(t)
         
     # Option D: UDP Server Colonization
-    print("[UDP] Booting Option D Master Server Colonizer...")
-    udp_colonizer = OptionD_Colonizer(port=27015, app_id=320)
-    # Start with localhost, assuming Cloudflare tunnel points here
-    udp_colonizer.set_tunnel_url("http://localhost:8000")
-    udp_colonizer.start()
+    udp_colonizer = None
+    if config.get('udp_colonizer_enabled', False):
+        print("[UDP] Booting Option D Master Server Colonizer...")
+        udp_colonizer = OptionD_Colonizer(port=27015, app_id=320)
+        # Start with localhost, assuming Cloudflare tunnel points here
+        udp_colonizer.set_tunnel_url("http://localhost:8000")
+        udp_colonizer.start()
+    else:
+        print("[UDP] Option D Master Server Colonizer is DISABLED.")
     
     # 4. Lifecycle Control (Ctrl+C Fossilization)
     try:
@@ -2885,8 +2895,9 @@ def main():
         else:
             print("[WARN] AI_SYSTEM not initialized; bypassing fossilization.", flush=True)
             
-        print("[UDP] Stopping Option D Master Server Colonizer...", flush=True)
-        udp_colonizer.stop()
+        if udp_colonizer is not None:
+            print("[UDP] Stopping Option D Master Server Colonizer...", flush=True)
+            udp_colonizer.stop()
         
         print("[STOP]  Shutting down manifolds. Goodbye.", flush=True)
         # Prevent PyArrow segfault by finalizing S3
