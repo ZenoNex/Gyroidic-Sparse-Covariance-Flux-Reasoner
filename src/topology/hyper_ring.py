@@ -158,7 +158,7 @@ class RecurrentHyperRingConnectivity(nn.Module):
         from src.core.deflagration_scout import OmipedialDeflagrator
         self.deflagrator = OmipedialDeflagrator(dim=state_dim, threshold_jump=0.7)
 
-    def _project_to_polytope(self, state: torch.Tensor) -> torch.Tensor:
+    def project_to_polytope(self, state: torch.Tensor) -> torch.Tensor:
         """Projects high-dim state to polytope functional space via Coprime basis."""
         # Mean pooling to single scalar per batch element for polynomial evaluation
         x_norm = state.mean(dim=-1, keepdim=True)
