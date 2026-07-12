@@ -185,7 +185,7 @@ class GDPOSovereigntyAdaptor:
         
         if optimizer is None:
             # [ANTI-LOBOTOMY ENFORCEMENT] Replace Adam with RicciFlowOptimizer
-            self.optimizer = RicciFlowOptimizer(self.configuration.parameters(), lr=1e-3, torsion_weight=0.1)
+            self.optimizer = RicciFlowOptimizer(self.configuration.parameters(), lr=1e-3, seam_width=0.1)
         else:
             self.optimizer = optimizer
         
