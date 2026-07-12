@@ -115,22 +115,20 @@ class GyroidicGraphManager:
                 current_text = data.get('text_input', '')
                 
                 if self.nodes:
-                    # Normalize for cosine similarity check
                     e_norm = embedding / (torch.norm(embedding) + 1e-8)
-                    for existing in self.nodes:
-                        ex_norm = existing.state / (torch.norm(existing.state) + 1e-8)
-                        sim = torch.dot(e_norm, ex_norm).item()
-                        
-                        # Strict dedup for identical text
-                        if current_text == existing.text:
-                             if sim > 0.99:
-                                 is_redundant = True
-                                 break
-                        else:
-                             # Diverse text -> only prune if literally the same point
-                             if sim > self.dedup_threshold:
-                                 is_redundant = True
-                                 break
+                    
+                    # Batched similarity check
+                    existing_states = torch.stack([n.state for n in self.nodes])
+                    existing_norms = existing_states / (torch.norm(existing_states, dim=1, keepdim=True) + 1e-8)
+                    sims = torch.mv(existing_norms, e_norm)
+                    
+                    # Check text matches
+                    identical_text_mask = torch.tensor([n.text == current_text for n in self.nodes], device=embedding.device)
+                    
+                    if torch.any((sims > 0.99) & identical_text_mask):
+                        is_redundant = True
+                    elif torch.any((sims > self.dedup_threshold) & ~identical_text_mask):
+                        is_redundant = True
                 
                 if not is_redundant:
                     node = KnowledgeFossilNode(
