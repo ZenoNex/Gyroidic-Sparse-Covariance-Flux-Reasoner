@@ -44,7 +44,7 @@ from src.core.spectral_coherence_repair import SpectralCoherenceCorrector, Bezou
 from src.core.chern_simons_gasket import ChernSimonsGasket, SolitonStabilityHealer
 from src.core.love_invariant_protector import LoveInvariantProtector, SoftSaturatedGates
 from src.optimization.codes_driver import CODES
-from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer, WillmoreEnergy
+from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer, BouligandWillmoreGasket
 from src.core.birkhoff_projection import BouligandBirkhoffProjectionFunction
 
 
@@ -369,7 +369,7 @@ class NonLobotomyTemporalTrainer:
         
         # [ANTI-LOBOTOMY ENFORCEMENT] Replace Adam with Ricci Flow
         self.optimizer = RicciFlowOptimizer(neural_params, lr=1e-3, torsion_weight=0.1)
-        self.willmore_energy = WillmoreEnergy()
+        self.willmore_energy = BouligandWillmoreGasket()
         
         self.history = {
             'survivorship_pressure': [],
