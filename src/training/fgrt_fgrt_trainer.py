@@ -44,7 +44,7 @@ class SpectralStructuralTrainer:
         model: nn.Module,
         poly_config: PolynomialCoprimeConfig,
         lr: float = 1e-4,
-        torsion_weight: float = 0.1,
+        seam_width: float = 0.1,
         spectral_threshold: float = 1.0
     ):
         self.model = model
@@ -52,7 +52,7 @@ class SpectralStructuralTrainer:
         self.optimizer = RicciFlowOptimizer(
             model.parameters(), 
             lr=lr, 
-            torsion_weight=torsion_weight
+            seam_width=seam_width
         )
         self.willmore = BouligandWillmoreGasket()
         self.phase_tracker = BerryPhaseTracker()
