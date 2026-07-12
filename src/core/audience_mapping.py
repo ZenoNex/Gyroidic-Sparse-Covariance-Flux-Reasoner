@@ -37,8 +37,8 @@ class AudienceProjection(nn.Module):
         self.lipschitz_k = min(lipschitz_k, 0.95)
         
         # Instantiate Silicon Sovereignty Engine for hardware-backed projection
-        from src.core.pyopencl_sovereignty import get_silicon_engine
-        self.silicon_engine = get_silicon_engine()
+        from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+        self.silicon_engine = SiliconSovereigntyEngine()
         
     def forward(self, manifold_state: torch.Tensor) -> torch.Tensor:
         """
