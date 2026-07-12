@@ -4,7 +4,7 @@ Discrete Hyper-Ring Circulation.
 The ring is an ordered cycle of constraint states, not a smooth manifold.
 Continuous formulations are fiction here.
 
-∮_H Φ ≈ Σ ⟨Φ(C_i), ΔC_i⟩
+_H    (C_i), C_i
 
 Author: Implementation from Structural Design Decisions
 Created: January 2026
@@ -18,7 +18,7 @@ class DiscreteHyperRingCirculation(nn.Module):
     """
     Compute discrete line integral over constraint cycle.
     
-    ∮_H Φ ≈ Σ ⟨Φ(C_i), ΔC_i⟩
+    _H    (C_i), C_i
     
     Adaptive Resolution: Increase ONLY when phase slippage (non-zero circulation) 
     or soliton nucleation is suspected. Fixed high-res is wasteful.
@@ -62,10 +62,10 @@ class DiscreteHyperRingCirculation(nn.Module):
             C_i = constraint_cycle[i]
             C_next = constraint_cycle[(i + 1) % n]
             
-            # Φ(C_i) - The force field at point i
+            # (C_i) - The force field at point i
             phi_i = functional(C_i)
             
-            # ΔC_i = C_{i+1} - C_i - The displacement
+            # C_i = C_{i+1} - C_i - The displacement
             delta_C = C_next - C_i
             
             # Inner product: Force . Displacement
@@ -136,24 +136,35 @@ class RecurrentHyperRingConnectivity(nn.Module):
     Acts like a non-Euclidean, recurrent network supporting dynamic 
     amortization over local polytopes (Text Gardens).
     
-    H_ij = omega_ij * sigma( f_i - f_j + gamma D_dark )
+    [ANTI-LOBOTOMY REWRITE]:
+    Removed ML proxies (nn.Linear) and generic sigmoidal gating.
+    Integrates PolynomialCoprimeConfig for state-to-polytope projection and
+    OmipedialDeflagrator for ley-line potential topological jumps.
     """
     def __init__(self, num_polytopes: int, state_dim: int = 64, coupling_init: float = 0.1):
         super().__init__()
         self.num_polytopes = num_polytopes
         self.state_dim = state_dim
         
-        # Adaptive coupling matrix ω
+        # Adaptive coupling matrix (base)
         self.omega = nn.Parameter(torch.ones(num_polytopes, num_polytopes) * coupling_init)
         self.gamma = nn.Parameter(torch.tensor(0.5)) # Dark matter influence scale
         
-        # Learnable Projection: State Dim -> Polytope Functionals
-        # This bridges high-dimensional state space to polytope-level features
-        self.project_to_polytope = nn.Linear(state_dim, num_polytopes)
+        # System 1: Polynomial Co-Prime Config replaces nn.Linear ML proxies
+        from src.core.polynomial_coprime import PolynomialCoprimeConfig
+        self.poly_config = PolynomialCoprimeConfig(k=num_polytopes, degree=4, basis_type='chebyshev', learnable=True)
         
-        # Learnable Projection: Polytope Functionals -> State Dim
-        # This bridges back from polytope-level output to state space
-        self.project_from_polytope = nn.Linear(num_polytopes, state_dim)
+        # System 2: Deflagration Scout handles topological jumps instead of sigmoid gates
+        from src.core.deflagration_scout import OmipedialDeflagrator
+        self.deflagrator = OmipedialDeflagrator(dim=state_dim, threshold_jump=0.7)
+
+    def _project_to_polytope(self, state: torch.Tensor) -> torch.Tensor:
+        """Projects high-dim state to polytope functional space via Coprime basis."""
+        # Mean pooling to single scalar per batch element for polynomial evaluation
+        x_norm = state.mean(dim=-1, keepdim=True)
+        # Evaluate polynomial basis to get K polytope functionals
+        polytope_vals = self.poly_config.evaluate(x_norm)
+        return polytope_vals.squeeze(1) if polytope_vals.dim() == 3 else polytope_vals
 
     def forward(
         self, 
@@ -165,28 +176,35 @@ class RecurrentHyperRingConnectivity(nn.Module):
             polytope_functionals: [batch, num_polytopes] f_j scores
             dark_matter: [batch, num_polytopes] D_dark speculative traces
         """
+        batch_size = polytope_functionals.size(0)
+        
         # 1. Functional difference matrix [batch, num_p, num_p]
-        # (f_i - f_j)
         f_diff = polytope_functionals.unsqueeze(2) - polytope_functionals.unsqueeze(1)
         
         # 2. Add Dark Matter influence if available
         if dark_matter is not None:
-             # Dark matter influence from the destination polytope j
-             # gamma * D_dark_j
              f_diff = f_diff + self.gamma * dark_matter.unsqueeze(1)
              
-        # 3. Connectivity Matrix H_ij = omega_ij * sigmoid(f_diff)
-        # Sgn(f_diff) allows flow toward "higher resonance" or lower "hole energy"
-        connectivity = self.omega.unsqueeze(0) * torch.sigmoid(f_diff)
+        # 3. Base Connectivity Matrix H_ij = omega_ij * tanh(f_diff)
+        # Replacing non-topological sigmoid with symmetric tanh
+        base_connectivity = self.omega.unsqueeze(0) * torch.tanh(f_diff)
+        
+        # 4. Omipedial Deflagration (Ley-line topological jumps)
+        # Ley potential proxy from functional variance
+        ley_potential = torch.abs(f_diff).mean(dim=-1)
+        jumps = self.deflagrator.omipedial_jump(ley_potential)
+        
+        # Apply jumps: open topological shortcuts where ley potential > threshold
+        connectivity = base_connectivity + jumps.unsqueeze(2) * 1.5
         
         return connectivity
 
-    def flow_step(self, polytope_states: torch.Tensor, connectivity: torch.Tensor) -> torch.Tensor:
+    def flow_step(self, polytope_states: torch.Tensor, connectivity: torch.Tensor, dt: float = 1.0) -> torch.Tensor:
         """
-        Computes the neural-like flow across polytopes:
-        dS_i/dt = sum_j H_ij S_j
+        Computes the neural-like flow across polytopes modulated by ManifoldClock's dt:
+        S_{t+dt} = S_t + (dt) * sum_j H_ij S_j
         """
         # states: [batch, num_p, hidden_dim]
         # connectivity: [batch, num_p, num_p]
-        flow = torch.bmm(connectivity, polytope_states)
-        return flow
+        flow_delta = torch.bmm(connectivity, polytope_states)
+        return polytope_states + (flow_delta * dt)
