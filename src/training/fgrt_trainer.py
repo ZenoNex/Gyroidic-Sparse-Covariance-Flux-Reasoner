@@ -38,14 +38,14 @@ class FGRTStructuralTrainer:
         self,
         model: nn.Module,
         lr: float = 1e-4,
-        torsion_weight: float = 0.1,
+        seam_width: float = 0.1,
         gluing_dim: int = 4
     ):
         self.model = model
         self.optimizer = RicciFlowOptimizer(
             model.parameters(), 
             lr=lr, 
-            torsion_weight=torsion_weight
+            seam_width=seam_width
         )
         self.willmore = BouligandWillmoreGasket()
         try:
