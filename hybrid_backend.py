@@ -122,7 +122,8 @@ class GovernanceManager:
                     if proc.info['name'] and 'python' in proc.info['name'].lower():
                         cmdline = proc.info['cmdline']
                         if cmdline and any('hybrid_backend.py' in part for part in cmdline):
-                            if proc.info['pid'] != my_pid:
+                            # Exclude our own PID and our Parent's PID (to avoid killing the launcher wrapper)
+                            if proc.info['pid'] not in (my_pid, os.getppid()):
                                 matches.append(proc.info)
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
@@ -150,7 +151,8 @@ class GovernanceManager:
                     if 'python' in process_name.lower():
                         # We look for 'hybrid_backend' in the window title as a heuristic
                         if 'hybrid_backend.py' in window_title or 'Hybrid Backend' in window_title:
-                            if pid != my_pid:
+                            # Exclude our own PID and Parent PID
+                            if pid not in (my_pid, os.getppid()):
                                 matches.append({'pid': pid, 'cmdline': [window_title]})
             except Exception as e:
                 print(f"[FAIL] Tasklist fallback failed: {e}")
@@ -479,7 +481,8 @@ class GovernanceManager:
             print(f"[WARN] Invalid float, using default: {config['ego_death_limit']}")
 
         # 3.22 UDP Server Colonizer
-        udp_col = get_input("[?] Enable Option D UDP Master Server Colonizer (yes/no)", 'yes' if config['udp_colonizer_enabled'] else 'no').lower()
+        udp_col_prompt = "[?] Enable Option D UDP Master Server Colonizer (yes/no) [Default: no]: "
+        udp_col = get_input(udp_col_prompt, 'no').lower()
         config['udp_colonizer_enabled'] = udp_col in ('yes', 'y')
 
         print("\n[OK] Configuration finalized successfully.")
