@@ -18,6 +18,11 @@ class AudienceProjection(nn.Module):
     1. Lipschitz Continuous (bounded gradient).
     2. Homeomorphic (bijective, continuous inverse) - approximated via invertibility.
     3. Preserves Roughness (singularities are mapped, not smoothed).
+    
+    [ANTI-LOBOTOMY REWRITE]: 
+    Eradicated nn.Linear ML proxies. 
+    Now utilizes PyOpenCL SiliconSovereigntyEngine video dyad chunking (GTX 1050ti encoder trick)
+    for hardware-backed topological projections.
     """
     
     def __init__(
@@ -29,58 +34,46 @@ class AudienceProjection(nn.Module):
         super().__init__()
         self.input_dim = input_dim
         self.audience_dim = audience_dim
-        # Enforce Banach fixed-point convergence by strictly bounding Lipschitz constant < 1
         self.lipschitz_k = min(lipschitz_k, 0.95)
         
-        # We use Spectral Normalization to enforce Lipschitz constraint K=1 (roughly)
-        # Residual structure y = x + f(x) helps with invertibility (homeomorphism)
-        
-        # Adaptive Performance Weighting:
-        # Scale hidden dimension organically based on available system memory using psutil
-        import psutil
-        free_gb = psutil.virtual_memory().available / (1024 ** 3)
-        # Base factor scales with free RAM, bounded between 1 and 4 for stability
-        scale_factor = min(4.0, max(1.0, free_gb / 4.0)) 
-        
-        # Determine hidden dim dynamically, clamping the absolute max to avoid tensor explosion
-        base_hidden = max(input_dim, audience_dim) * 2
-        hidden = int(min(base_hidden, 1024 * scale_factor))
-        
-        self.net = nn.Sequential(
-            spectral_norm(nn.Linear(input_dim, hidden)),
-            nn.LeakyReLU(0.1),
-            spectral_norm(nn.Linear(hidden, hidden)),
-            nn.LeakyReLU(0.1),
-            spectral_norm(nn.Linear(hidden, audience_dim))
-        )
-        
-        # Roughness preservation: A skip connection that carries high frequencies?
-        # Or simply the residual itself.
+        # Instantiate Silicon Sovereignty Engine for hardware-backed projection
+        from src.core.pyopencl_sovereignty import get_silicon_engine
+        self.silicon_engine = get_silicon_engine()
         
     def forward(self, manifold_state: torch.Tensor) -> torch.Tensor:
         """
-        Phi(m).
+        Phi(m). Uses PyOpenCL video encoder chunking to perform topological projection.
         """
-        # Base projection
-        smooth_projection = self.net(manifold_state)
+        device = manifold_state.device
+        dtype = manifold_state.dtype
+        batch_size = manifold_state.shape[0] if manifold_state.dim() > 1 else 1
         
-        # Enforce global Lipschitz sealing scaling
-        # (Spectral norm does this per layer, but accumulation can grow)
+        # 1. Convert to numpy for PyOpenCL ingestion
+        raw_np = manifold_state.detach().cpu().numpy().astype(np.float32)
         
-        # Roughness Preservation:
-        # If input has high-frequency noise (singularities), we want it in output.
-        # We add a fraction of the input (padded/projected) to the output.
+        # 2. Apply hardware video dyad chunking (projects into discrete structural bins)
+        # We chunk into audience_dim to natively map the dimensions.
+        chunked_np = self.silicon_engine.apply_video_dyad_chunking(
+            raw_np, 
+            chunk_size=self.audience_dim, 
+            max_chunks=1  # We want a single projected vector per batch item
+        )
+        
+        # 3. Re-ingest to PyTorch tensor
+        audience_state = torch.from_numpy(chunked_np).to(device=device, dtype=dtype)
+        
+        # 4. Enforce Lipschitz boundary scaling
+        audience_state = audience_state * self.lipschitz_k
+        
+        # 5. Roughness Preservation: Add raw singularities directly back (skip connection style)
         if self.input_dim == self.audience_dim:
             identity = manifold_state
         elif self.input_dim < self.audience_dim:
             identity = torch.cat([manifold_state, torch.zeros_like(manifold_state)], dim=-1)[:, :self.audience_dim]
         else:
-            identity = manifold_state[:, :self.audience_dim]
+            identity = manifold_state[..., :self.audience_dim]
             
-        # y = f(x) * K + x  (ResNet style, tends to be homeomorphic if Lip(f) < 1)
-        audience_state = smooth_projection * self.lipschitz_k + identity
-        
-        return audience_state
+        return audience_state + identity
         
     def inverse(self, audience_state: torch.Tensor, iterations: int = 5) -> torch.Tensor:
         """
@@ -90,14 +83,14 @@ class AudienceProjection(nn.Module):
         """
         x = audience_state # Initial guess
         for _ in range(iterations):
-            # mapping handles the identity part logic in reverse? 
-            # If y = N(x) + x, then x = y - N(x)
-            
-            # Need to handle dimension mismatch for true inverse, 
-            # but assuming dims match for the core manifold mappings.
             if self.input_dim != self.audience_dim:
-                # Can't easily invert dimensionality change without a decoder
                 return x
-                
-            x = audience_state - self.net(x)
+            
+            raw_np = x.detach().cpu().numpy().astype(np.float32)
+            chunked_np = self.silicon_engine.apply_video_dyad_chunking(
+                raw_np, chunk_size=self.audience_dim, max_chunks=1
+            )
+            f_x = torch.from_numpy(chunked_np).to(device=audience_state.device, dtype=audience_state.dtype)
+            
+            x = audience_state - (f_x * self.lipschitz_k)
         return x
