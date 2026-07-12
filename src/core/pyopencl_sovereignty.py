@@ -643,6 +643,26 @@ class SiliconSovereigntyEngine:
             lattice_bitmask_out[gid] = spatial_bitmask;
             containment_pressure_out[gid] = combined_strain;
         }
+
+        // 15. Chern-Simons Gasket
+        // Computes CS(A) = Tr(A dA + A A A) for phase alignment
+        __kernel void chern_simons_gasket(
+            __global const float *flux_covariance, // A (NxN flattened or diagonals)
+            __global float *seam_tension,          // Output
+            int n,
+            float seam_width
+        ) {
+            int gid = get_global_id(0);
+            if (gid >= n) return;
+            
+            // Simplified straight-through computation
+            // We approximate local trace components for the 1D flow
+            float a_val = flux_covariance[gid * n + gid];
+            float da = (gid < n - 1) ? (flux_covariance[(gid+1)*n + (gid+1)] - a_val) : 0.0f;
+            
+            float cs_local = a_val * da + a_val * a_val * a_val;
+            seam_tension[gid] = cs_local * seam_width;
+        }
         """
         
         import warnings
@@ -1373,6 +1393,61 @@ class SiliconSovereigntyEngine:
         if self.ctx is not None:
             self.queue_a.finish()
             self.queue_b.finish()
+
+    def evaluate_chern_simons_gasket(self, flux_covariance, seam_width=1.0):
+        """
+        Evaluates the Chern-Simons Gasket seal.
+        Computes CS(A) = Tr(A dA + A A A) directly via PyOpenCL.
+        Acts as the topological glue binding the split beams.
+        """
+        if self.ctx is None:
+            # CPU Mock
+            flux = np.asarray(flux_covariance, dtype=np.float32)
+            if flux.ndim < 2:
+                # Handle 1D
+                n = flux.shape[0]
+                seam_tension = np.zeros(n, dtype=np.float32)
+                for i in range(n):
+                    a = flux[i]
+                    da = (flux[i+1] - a) if i < n-1 else 0.0
+                    seam_tension[i] = (a * da + a * a * a) * seam_width
+                return seam_tension
+            
+            n = flux.shape[-1]
+            seam_tension = np.zeros(n, dtype=np.float32)
+            for i in range(n):
+                a = flux[..., i, i]
+                # Assuming batch is handled or we just take the first element for simplicity in mock
+                a_val = a.item() if a.size == 1 else a[0]
+                da_val = (flux[..., i+1, i+1][0] - a_val) if i < n-1 else 0.0
+                seam_tension[i] = (a_val * da_val + a_val * a_val * a_val) * seam_width
+            return seam_tension
+        
+        mf = cl.mem_flags
+        flux = np.asarray(flux_covariance, dtype=np.float32)
+        n = flux.shape[-1] if flux.ndim >= 2 else flux.shape[0]
+        
+        # Ensure it's padded/shaped as NxN for the kernel if it's 2D
+        if flux.ndim == 1:
+            # Make a dummy diagonal matrix
+            flux_mat = np.zeros((n, n), dtype=np.float32)
+            np.fill_diagonal(flux_mat, flux)
+            flux = flux_mat
+            
+        seam_tension = np.zeros(n, dtype=np.float32)
+        
+        flux_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=flux)
+        tension_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, seam_tension.nbytes)
+        
+        self.program.chern_simons_gasket(
+            self.queue_a, (n,), None,
+            flux_buf, tension_buf, np.int32(n), np.float32(seam_width)
+        )
+        
+        # Enqueue barrier to satisfy the topological invariant seal sync
+        cl.enqueue_barrier(self.queue_a)
+        cl.enqueue_copy(self.queue_a, seam_tension, tension_buf, is_blocking=True)
+        return seam_tension
 
 # Expose standard execution hook
 def create_engine():
