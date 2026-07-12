@@ -14,7 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, List, Optional, Tuple
 
-from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer, WillmoreEnergy
+from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer, BouligandWillmoreGasket
 from src.core.fgrt_primitives import GyroidManifold, BerryPhaseTracker
 from src.optimization.sic_fa_admm import SicFaAdmmSolver
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
@@ -54,7 +54,7 @@ class SpectralStructuralTrainer:
             lr=lr, 
             torsion_weight=torsion_weight
         )
-        self.willmore = WillmoreEnergy()
+        self.willmore = BouligandWillmoreGasket()
         self.phase_tracker = BerryPhaseTracker()
         self.gyroid = GyroidManifold()
         self.pas_metric = PhaseAlignmentInvariant(degree=poly_config.degree)
