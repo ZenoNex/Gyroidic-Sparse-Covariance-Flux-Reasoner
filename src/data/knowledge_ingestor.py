@@ -235,13 +235,7 @@ class ArXivSovereignIngestor:
         return seed_state
 
     def _parse_and_fossilize(self, xml_text: str, commutativity: str):
-        """Parses OAI-PMH XML and converts records into permanent knowledge fossils."""
-        acquired = False
-        if self.engine is not None and hasattr(self.engine, '_processing_lock'):
-            acquired = self.engine._processing_lock.acquire(timeout=180.0)
-            if not acquired:
-                print("[INGEST] Warning: Failed to acquire lock for OAI-PMH parsing. Bypassing.")
-                return
+        \"\"\"Parses OAI-PMH XML and converts records into permanent knowledge fossils.\"\"\"
         try:
             root = ET.fromstring(xml_text)
             records = root.findall('.//oai:record', self.ns)
@@ -312,8 +306,16 @@ class ArXivSovereignIngestor:
                     )
                     
                     seed_state = self._resolve_seed_state(title)
-                    self.fossilizer.fossilize(dyad, residue, seed_state=seed_state)
-                    self.fossilized_arxiv_ids.add(clean_id)
+                    acquired = False
+                    if self.engine is not None and hasattr(self.engine, '_processing_lock'):
+                        acquired = self.engine._processing_lock.acquire(timeout=10.0)
+                    try:
+                        self.fossilizer.fossilize(dyad, residue, seed_state=seed_state)
+                        self.fossilized_arxiv_ids.add(clean_id)
+                    finally:
+                        if acquired:
+                            self.engine._processing_lock.release()
+                    
                     admitted_count += 1
                     
                     # Descriptive status log
@@ -325,9 +327,6 @@ class ArXivSovereignIngestor:
                 print(f"[INGEST] Successfully anchored {admitted_count} lore residues. Rejected {rejected_count} below threshold.")
         except Exception as e:
             print(f"[INGEST] Parsing error: {e}")
-        finally:
-            if acquired:
-                self.engine._processing_lock.release()
 
     def _get_category_signature(self, name: str) -> torch.Tensor:
         """Generates a deterministic, category-specific archetype signature vector in engine space."""
@@ -366,13 +365,7 @@ class ArXivSovereignIngestor:
             print(f"[INGEST] Search transport error: {e}. Ingestion suspended.")
 
     def _parse_and_fossilize_atom(self, xml_text: str, query: str, commutativity: str):
-        """Parses ArXiv Atom search API XML and converts entries into permanent knowledge fossils."""
-        acquired = False
-        if self.engine is not None and hasattr(self.engine, '_processing_lock'):
-            acquired = self.engine._processing_lock.acquire(timeout=180.0)
-            if not acquired:
-                print("[INGEST] Warning: Failed to acquire lock for Atom parsing. Bypassing.")
-                return
+        \"\"\"Parses ArXiv Atom search API XML and converts entries into permanent knowledge fossils.\"\"\"
         try:
             root = ET.fromstring(xml_text)
             ns = {'atom': 'http://www.w3.org/2005/Atom'}
@@ -444,8 +437,15 @@ class ArXivSovereignIngestor:
                 )
                 
                 seed_state = self._resolve_seed_state(title)
-                self.fossilizer.fossilize(dyad, residue, seed_state=seed_state)
-                self.fossilized_arxiv_ids.add(clean_id)
+                acquired = False
+                if self.engine is not None and hasattr(self.engine, '_processing_lock'):
+                    acquired = self.engine._processing_lock.acquire(timeout=10.0)
+                try:
+                    self.fossilizer.fossilize(dyad, residue, seed_state=seed_state)
+                    self.fossilized_arxiv_ids.add(clean_id)
+                finally:
+                    if acquired:
+                        self.engine._processing_lock.release()
                 admitted_count += 1
                 
                 media_str = f"| MEDIA: {len(img_bytes_list)}" if len(img_bytes_list) > 0 else ""
@@ -456,9 +456,6 @@ class ArXivSovereignIngestor:
                 print(f"[INGEST] Successfully anchored {admitted_count} query-based lore residues. Rejected {rejected_count} below threshold.")
         except Exception as e:
             print(f"[INGEST] Atom parsing error: {e}")
-        finally:
-            if acquired:
-                self.engine._processing_lock.release()
 
     def _get_dynamic_fallback(self) -> str:
         """Dynamically extracts query terms from historical memory fossils to guide search."""
