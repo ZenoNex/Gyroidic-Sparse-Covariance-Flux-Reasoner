@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, List, Optional, Tuple
-from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer, WillmoreEnergy
+from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer, BouligandWillmoreGasket
 from src.core.fgrt_primitives import GyroidManifold, BerryPhaseTracker
 from src.core.gluing_operator import GluingOperator
 from src.core.orchestrator import UniversalOrchestrator
@@ -47,7 +47,7 @@ class FGRTStructuralTrainer:
             lr=lr, 
             torsion_weight=torsion_weight
         )
-        self.willmore = WillmoreEnergy()
+        self.willmore = BouligandWillmoreGasket()
         try:
             self.gluer = GluingOperator(gluing_dim)
         except:
