@@ -368,7 +368,7 @@ class NonLobotomyTemporalTrainer:
                 neural_params.append(param)
         
         # [ANTI-LOBOTOMY ENFORCEMENT] Replace Adam with Ricci Flow
-        self.optimizer = RicciFlowOptimizer(neural_params, lr=1e-3, torsion_weight=0.1)
+        self.optimizer = RicciFlowOptimizer(neural_params, lr=1e-3, seam_width=0.1)
         self.willmore_energy = BouligandWillmoreGasket()
         
         self.history = {
