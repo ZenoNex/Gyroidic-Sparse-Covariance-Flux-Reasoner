@@ -235,7 +235,7 @@ class ArXivSovereignIngestor:
         return seed_state
 
     def _parse_and_fossilize(self, xml_text: str, commutativity: str):
-        \"\"\"Parses OAI-PMH XML and converts records into permanent knowledge fossils.\"\"\"
+        """Parses OAI-PMH XML and converts records into permanent knowledge fossils."""
         try:
             root = ET.fromstring(xml_text)
             records = root.findall('.//oai:record', self.ns)
@@ -365,7 +365,7 @@ class ArXivSovereignIngestor:
             print(f"[INGEST] Search transport error: {e}. Ingestion suspended.")
 
     def _parse_and_fossilize_atom(self, xml_text: str, query: str, commutativity: str):
-        \"\"\"Parses ArXiv Atom search API XML and converts entries into permanent knowledge fossils.\"\"\"
+        """Parses ArXiv Atom search API XML and converts entries into permanent knowledge fossils."""
         try:
             root = ET.fromstring(xml_text)
             ns = {'atom': 'http://www.w3.org/2005/Atom'}
