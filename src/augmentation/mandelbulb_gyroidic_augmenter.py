@@ -339,7 +339,7 @@ class SparseCovariantOptimizer(nn.Module):
         optimized_features.requires_grad_(True)
         
         # [ANTI-LOBOTOMY ENFORCEMENT] Replace Adam with RicciFlowOptimizer
-        optimizer = RicciFlowOptimizer([optimized_features], lr=0.01, torsion_weight=0.1)
+        optimizer = RicciFlowOptimizer([optimized_features], lr=0.01, seam_width=0.1)
         
         for step in range(self.max_optimization_steps):
             optimizer.zero_grad()
