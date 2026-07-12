@@ -254,7 +254,7 @@ class TemporalAssociationTrainer:
         # [ANTI-LOBOTOMY ENFORCEMENT] Replace Adam with RicciFlowOptimizer
         self.optimizer = RicciFlowOptimizer(
             [p for p in model.parameters() if p.requires_grad], 
-            lr=learning_rate, torsion_weight=0.1
+            lr=learning_rate, seam_width=0.1
         )
 
         # Automatically enable MANDY's soft-veto training mode so cold-start
