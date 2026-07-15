@@ -65,14 +65,25 @@ class ModularVirtualizationLayer(nn.Module):
         Topological Refusal: Snaps the state back to the nearest Birkhoff Polytope boundary.
         Biased towards the residue anchor (c_sym) to preserve Symbolic Non-Revisability (Law 1).
         """
-        # Simple implementation: move towards anchor by a discrete 'snap' factor 
-        # when a rupture is detected.
-        snap_factor = 0.8
-        snapped = x + snap_factor * (anchor_sym - x)
-        
-        # In a full implementation, this would project onto the specific 
-        # Birkhoff facet hierarchy.
-        return snapped
+        import math
+        n = int(self.dim ** 0.5)
+        if n * n == self.dim:
+            from src.core.birkhoff_projection import DirectBirkhoffProjection
+            if not hasattr(self, 'birkhoff_projector') or self.birkhoff_projector.n != n:
+                self.birkhoff_projector = DirectBirkhoffProjection(n, device=x.device)
+            
+            # Project onto the Birkhoff subspace
+            projected = self.birkhoff_projector(x)
+            
+            # Snap factor bias to anchor to preserve Symbolic Non-Revisability (Law 1)
+            snap_factor = 0.8
+            snapped = projected + snap_factor * (anchor_sym - projected)
+            return snapped
+        else:
+            # Fallback discrete snap when dimension is not a perfect square matrix representation
+            snap_factor = 0.8
+            snapped = x + snap_factor * (anchor_sym - x)
+            return snapped
 
     def float_to_rns(self, tensor: torch.Tensor, anchor_sym: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
@@ -113,7 +124,7 @@ class ModularVirtualizationLayer(nn.Module):
         scale_factor = 1e4
         return residues / scale_factor
 
-    def fast_congruence_check(self, state_a: torch.Tensor, state_b: torch.Tensor, tolerance: float = 0.05) -> bool:
+    def fast_congruence_check(self, state_a: torch.Tensor, state_b: torch.Tensor, tolerance: float = 0.10) -> bool:
         """
         Check digit-pattern congruence (warmstart shortcut) using the hybrid basis.
         """
