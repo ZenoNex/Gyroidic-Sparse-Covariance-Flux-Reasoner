@@ -16,6 +16,14 @@ Instead of discrete prime moduli, this solver uses co-prime polynomial functiona
 
 ---
 
+### advanced_extensions_bridge.py
+**Class**: `AdvancedExtensionsBridge`  
+**Role**: Advanced Extensions Bridge (AEB) for LCFT projections and spectral sequence evaluation.
+
+Concurrently integrated into the main forward pass and garbled output repair pipeline of the Diegetic Physics Engine. Provides two primary operators: (1) `apply_lcft_projection` which applies a logarithmic conformal scaling to stabilize the recurrent hidden state dynamics and prevent numerical explosion; (2) `evaluate_spectral_sequence` which computes the stable topological homology features from the current residue vectors as a computationally tractable surrogate for persistent homology.
+
+---
+
 ### audience_mapping.py
 **Class**: `AudienceProjection`  
 **Role**: Lipschitz homeomorphic projection from manifold M to audience space A.
