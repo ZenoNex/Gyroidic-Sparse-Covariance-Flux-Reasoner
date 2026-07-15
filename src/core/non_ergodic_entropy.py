@@ -55,7 +55,26 @@ class NonErgodicEntropyEstimator(nn.Module):
                 'soliton_entropy': torch.tensor(0.0, device=device),
                 'total_bands': torch.zeros(self.num_bands, device=device)
             }
-        
+            
+        # 0. Bouligand Tangent Cone Projection
+        # Project the input functionals onto the tangent cone of the physical containment boundary
+        # to ensure that the estimated non-ergodic entropy is constrained to the physical acceptance cone.
+        with torch.no_grad():
+            centroid = phi.mean(dim=-1, keepdim=True)
+            normal = phi - centroid
+            normal_norm = torch.norm(normal, p=2, dim=-1, keepdim=True)
+            
+            # The physical acceptance threshold is defined by the trust threshold or 2.0 std deviations
+            max_allowed = 2.0 * (phi.std(dim=-1, keepdim=True) + 1e-8)
+            outward_mask = normal_norm > max_allowed
+            
+            if outward_mask.any():
+                normal_normalized = normal / (normal_norm + 1e-8)
+                # Bouligand tangent cone projection: project out the outward-pointing normal component
+                proj_phi = phi - torch.where(outward_mask, normal_normalized * (normal_norm - max_allowed), torch.zeros_like(phi))
+                # Straight-Through Estimator to preserve gradient flow
+                phi = (proj_phi - phi).detach() + phi
+
         # 1. Spectral decomposition with Windowed Projection Quantization (Safeguard)
         # "Restrict operator spectrum to physical acceptance window"
         # We assume phi lives in a dense/fractal space. Truncating FFT effectively 
