@@ -374,7 +374,7 @@ class EgoDeathThresholdMonitor(nn.Module):
     The Ego Death Threshold Monitor (legacy alias: AbstractionThresholdMonitor).
     Calculates and monitors the abstraction rate (R_a) to trigger recycling into raw geometry.
     
-    Formula: R_a = [E_s * (T_m + delta)] / L_i
+    Formula: R_a = [E_s * sinh(T_m + delta)] / cosh(L_i)
     """
     def __init__(self, abstraction_limit: float = 1.0):
         super().__init__()
@@ -389,18 +389,19 @@ class EgoDeathThresholdMonitor(nn.Module):
         is_high_priority: bool = False
     ) -> float:
         """
-        Calculates the R_a (Abstraction Rate) using the unified ego-death formula.
+        Calculates the R_a (Abstraction Rate) using the auth factorization functional hyperbolic.
         
-        Formula: R_a = [E_s * (T_m + delta)] / L_i
+        Formula: R_a = [E_s * sinh(T_m + delta)] / cosh(L_i)
         where E_s is entropy, T_m is trauma, delta is dissonance, and L_i is lucidity.
         
         High R_a scores trigger memory abstraction.
         """
-        # Narrowly Adaptive Lucidity Floor:
-        safe_floor = max(1e-4, 0.05 * system_entropy_es)
-        lucidity_index_li = max(lucidity_index_li, safe_floor)
+        # Clamped inputs to prevent float overflow in sinh/cosh
+        tm_delta = min(10.0, max(-10.0, memory_trauma_tm + dissonance_delta))
+        li = min(10.0, max(-10.0, lucidity_index_li))
         
-        r_a = (system_entropy_es * (memory_trauma_tm + dissonance_delta)) / lucidity_index_li
+        # Hyperbolic factorization functional calculation
+        r_a = (system_entropy_es * math.sinh(tm_delta)) / (math.cosh(li) + 1e-8)
         
         # Merciful Cap:
         if is_high_priority:
@@ -411,7 +412,20 @@ class EgoDeathThresholdMonitor(nn.Module):
     def forward(self, state: torch.Tensor, r_a_score: float, is_high_priority: bool = False) -> torch.Tensor:
         if r_a_score >= self.abstraction_limit and not is_high_priority:
             # Ego Death: Total collapse into glitched matter
-            return harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 5.0
+            # Optimized on Bouligand Tangent Cone of the Birkhoff Polytope
+            dim = state.shape[-1]
+            n = int(dim ** 0.5)
+            if n * n == dim:
+                from src.core.birkhoff_projection import DirectBirkhoffProjection
+                if not hasattr(self, 'birkhoff_projector') or self.birkhoff_projector.n != n:
+                    self.birkhoff_projector = DirectBirkhoffProjection(n, device=state.device)
+                
+                # Project the glitched state onto the Birkhoff polytope
+                glitched = harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 5.0
+                projected = self.birkhoff_projector(glitched)
+                return projected
+            else:
+                return harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 5.0
         return state
 
 # =========================================================================
