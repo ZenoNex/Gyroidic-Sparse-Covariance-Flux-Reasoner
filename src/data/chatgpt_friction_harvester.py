@@ -517,9 +517,17 @@ async def auto_temporal_training_loop(
                                         tags_dict = {tag: 1.0 for tag in tags_list}
                                         
                                         # Run full background training step (System 1 + System 2)
-                                        trainer.train_on_interaction(in_tensor, out_tensor, tag_weights=tags_dict)
-                                        if hasattr(trainer.model, 'trainer') and trainer.model.trainer is not None:
-                                            trainer.model.trainer.train_step(in_tensor)
+                                        engine = trainer.model
+                                        acquired = False
+                                        if hasattr(engine, '_processing_lock'):
+                                            acquired = engine._processing_lock.acquire(timeout=10.0)
+                                        try:
+                                            trainer.train_on_interaction(in_tensor, out_tensor, tag_weights=tags_dict)
+                                            if hasattr(engine, 'trainer') and engine.trainer is not None:
+                                                engine.trainer.train_step(in_tensor)
+                                        finally:
+                                            if acquired:
+                                                engine._processing_lock.release()
                                             
                                         # Replace the stale/sterile data with fresh, non-semisimple projections
                                         data['meta_state'] = in_tensor.detach().cpu()
@@ -546,9 +554,17 @@ async def auto_temporal_training_loop(
         count = 0
         try:
             for in_tensor, out_tensor, tags, user_text, assistant_text in harvester.harvest_interactions():
-                metrics = trainer.train_on_interaction(
-                    in_tensor, out_tensor, tag_weights=tags
-                )
+                engine = trainer.model
+                acquired = False
+                if hasattr(engine, '_processing_lock'):
+                    acquired = engine._processing_lock.acquire(timeout=10.0)
+                try:
+                    metrics = trainer.train_on_interaction(
+                        in_tensor, out_tensor, tag_weights=tags
+                    )
+                finally:
+                    if acquired:
+                        engine._processing_lock.release()
                 count += 1
 
                 # Fossilize dyad if a fossilizer is present on the model and not already saved
