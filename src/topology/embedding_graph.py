@@ -63,6 +63,7 @@ class GyroidicGraphManager:
         Scans up to scan_limit files but only keeps limit unique nodes.
         Attempts to load from a unified snapshot first for maximum performance.
         """
+        loaded_from_snapshot = False
         snapshot_path = os.path.join(self.data_dir, "neglecton_snapshot.pt")
         if use_snapshot and os.path.exists(snapshot_path):
             try:
@@ -70,76 +71,179 @@ class GyroidicGraphManager:
                 data = torch.load(snapshot_path, map_location='cpu')
                 self.load_memory_snapshot(data)
                 if len(self.nodes) >= limit:
-                    return
+                    loaded_from_snapshot = True
             except Exception as e:
                 print(f"[GRAPH] Snapshot corrupt or incompatible: {e}. Falling back to scan.")
 
-        if not os.path.exists(self.data_dir):
-            return
+        if not loaded_from_snapshot and os.path.exists(self.data_dir):
+            files = sorted(os.listdir(self.data_dir), reverse=True)
+            # Filter for .pt files and exclude the snapshot itself
+            files = [f for f in files if f.endswith(".pt") and f != "neglecton_snapshot.pt"][:scan_limit]
             
-        files = sorted(os.listdir(self.data_dir), reverse=True)
-        # Filter for .pt files and exclude the snapshot itself
-        files = [f for f in files if f.endswith(".pt") and f != "neglecton_snapshot.pt"][:scan_limit]
-        
-        # Keep existing nodes if we are appending, otherwise reset
-        # self.nodes = [] # Removed to allow merging with snapshot
-        
-        for f in files:
-            if len(self.nodes) >= limit: break
-            
-            try:
-                path = os.path.join(self.data_dir, f)
-                data = torch.load(path, map_location='cpu')
+            for f in files:
+                if len(self.nodes) >= limit: break
                 
-                # Extract embeddings. Fallback sequence: meta_state -> memory_state -> input_tensor
-                # We check explicitly for None to avoid key-exists-but-value-is-None traps.
-                embedding = data.get('meta_state')
-                if embedding is None:
-                    embedding = data.get('memory_state')
-                if embedding is None:
-                    embedding = data.get('input_tensor')
-                if embedding is None:
-                    embedding = torch.zeros(self.dim)
-                
-                # Ensure it's [dim]
-                embedding = embedding.flatten()
-                if embedding.shape[0] > self.dim:
-                    embedding = embedding[:self.dim]
-                elif embedding.shape[0] < self.dim:
-                    padding = torch.zeros(self.dim - embedding.shape[0])
-                    embedding = torch.cat([embedding, padding])
+                try:
+                    path = os.path.join(self.data_dir, f)
+                    data = torch.load(path, map_location='cpu')
+                    
+                    # Extract embeddings. Fallback sequence: meta_state -> memory_state -> input_tensor
+                    # We check explicitly for None to avoid key-exists-but-value-is-None traps.
+                    embedding = data.get('meta_state')
+                    if embedding is None:
+                        embedding = data.get('memory_state')
+                    if embedding is None:
+                        embedding = data.get('input_tensor')
+                    if embedding is None:
+                        embedding = torch.zeros(self.dim)
+                    
+                    # Ensure it's [dim]
+                    embedding = embedding.flatten()
+                    if embedding.shape[0] > self.dim:
+                        embedding = embedding[:self.dim]
+                    elif embedding.shape[0] < self.dim:
+                        padding = torch.zeros(self.dim - embedding.shape[0])
+                        embedding = torch.cat([embedding, padding])
 
-                # DEDUPLICATION: Avoid showing essentially identical nodes
-                # POLICY: If text is novel, we allow very high embedding similarity.
-                is_redundant = False
-                current_text = data.get('text_input', '')
+                    # DEDUPLICATION: Avoid showing essentially identical nodes
+                    # POLICY: If text is novel, we allow very high embedding similarity.
+                    is_redundant = False
+                    current_text = data.get('text_input', '')
+                    
+                    if self.nodes:
+                        e_norm = embedding / (torch.norm(embedding) + 1e-8)
+                        
+                        # Batched similarity check
+                        existing_states = torch.stack([n.state for n in self.nodes])
+                        existing_norms = existing_states / (torch.norm(existing_states, dim=1, keepdim=True) + 1e-8)
+                        sims = torch.mv(existing_norms, e_norm)
+                        
+                        # Check text matches
+                        identical_text_mask = torch.tensor([n.text == current_text for n in self.nodes], device=embedding.device)
+                        
+                        if torch.any((sims > 0.99) & identical_text_mask):
+                            is_redundant = True
+                        elif torch.any((sims > self.dedup_threshold) & ~identical_text_mask):
+                            is_redundant = True
+                    
+                    if not is_redundant:
+                        node = KnowledgeFossilNode(
+                            node_id=f,
+                            state=embedding,
+                            text=data.get('text_input', ''),
+                            metrics=data
+                        )
+                        self.nodes.append(node)
+                except Exception as e:
+                    print(f"Failed to load fossil {f}: {e}")
+                    
+        # Always inject live states at the end of load_fossils
+        self._inject_live_gyroid_states()
+
+    def _inject_live_gyroid_states(self):
+        """
+        Integrates current states from gyroid_state.pt as special live nodes
+        with type classification for visual distinction and adjacency mapping.
+        """
+        # Remove any existing live nodes to avoid duplicates
+        self.nodes = [n for n in self.nodes if not n.node_id.startswith("live_")]
+        
+        gyroid_path = os.path.join(os.getcwd(), "gyroid_state.pt")
+        if os.path.exists(gyroid_path):
+            try:
+                g_state = torch.load(gyroid_path, map_location='cpu')
+                iteration = g_state.get('iteration', 0)
                 
-                if self.nodes:
-                    e_norm = embedding / (torch.norm(embedding) + 1e-8)
-                    
-                    # Batched similarity check
-                    existing_states = torch.stack([n.state for n in self.nodes])
-                    existing_norms = existing_states / (torch.norm(existing_states, dim=1, keepdim=True) + 1e-8)
-                    sims = torch.mv(existing_norms, e_norm)
-                    
-                    # Check text matches
-                    identical_text_mask = torch.tensor([n.text == current_text for n in self.nodes], device=embedding.device)
-                    
-                    if torch.any((sims > 0.99) & identical_text_mask):
-                        is_redundant = True
-                    elif torch.any((sims > self.dedup_threshold) & ~identical_text_mask):
-                        is_redundant = True
-                
-                if not is_redundant:
-                    node = KnowledgeFossilNode(
-                        node_id=f,
-                        state=embedding,
-                        text=data.get('text_input', ''),
-                        metrics=data
-                    )
-                    self.nodes.append(node)
+                # Helper to pad/truncate embedding to self.dim
+                def format_state(tensor):
+                    t_flat = tensor.flatten()
+                    if t_flat.shape[0] > self.dim:
+                        return t_flat[:self.dim]
+                    elif t_flat.shape[0] < self.dim:
+                        padding = torch.zeros(self.dim - t_flat.shape[0], device=tensor.device)
+                        return torch.cat([t_flat, padding])
+                    return t_flat
+
+                # Add hidden_state
+                if 'hidden_state' in g_state:
+                    hs = format_state(g_state['hidden_state'])
+                    self.nodes.append(KnowledgeFossilNode(
+                        node_id="live_hidden_state",
+                        state=hs,
+                        text=f"Live Hidden State (Iteration {iteration})",
+                        metrics={
+                            "chiral_score": 0.1,
+                            "spectral_entropy": 0.2,
+                            "tags": ["live", "hidden_state"],
+                            "tag_weights": {"live": 1.0, "hidden_state": 1.0},
+                            "type": "live_hidden"
+                        }
+                    ))
+                # Add hidden_state_scarred
+                if 'hidden_state_scarred' in g_state:
+                    hss = format_state(g_state['hidden_state_scarred'])
+                    self.nodes.append(KnowledgeFossilNode(
+                        node_id="live_hidden_state_scarred",
+                        state=hss,
+                        text="Live Scarred State",
+                        metrics={
+                            "chiral_score": 0.9, # Scarring is highly chiral
+                            "spectral_entropy": 0.8,
+                            "tags": ["live", "scarred_state"],
+                            "tag_weights": {"live": 1.0, "scarred_state": 1.0},
+                            "type": "live_scarred"
+                        }
+                    ))
+                # Add damage_residue
+                if 'damage_residue' in g_state:
+                    dr = format_state(g_state['damage_residue'])
+                    self.nodes.append(KnowledgeFossilNode(
+                        node_id="live_damage_residue",
+                        state=dr,
+                        text="Live Damage Residue",
+                        metrics={
+                            "chiral_score": 0.5,
+                            "spectral_entropy": 0.5,
+                            "tags": ["live", "damage_residue"],
+                            "tag_weights": {"live": 1.0, "damage_residue": 1.0},
+                            "type": "live_damage"
+                        }
+                    ))
+                print(f"[GRAPH] Loaded live states from gyroid_state.pt into the Neglecton Graph.")
             except Exception as e:
-                print(f"Failed to load fossil {f}: {e}")
+                print(f"[GRAPH] Failed to load gyroid_state.pt: {e}")
+
+    def compute_poincare_projection(self, state: torch.Tensor):
+        """
+        Project high-dimensional embedding to 2D Poincare disk.
+        Uses a deterministic harmonic (sine/cosine) projection to capture global shape,
+        then maps to the unit disk via tanh.
+        """
+        try:
+            device = state.device
+            dim = state.shape[0]
+            
+            # Harmonic projection vector weights
+            t = torch.arange(dim, dtype=torch.float32, device=device)
+            w_x = torch.cos(2.0 * math.pi * t / dim)
+            w_y = torch.sin(2.0 * math.pi * t / dim)
+            
+            # Normalize projection vectors
+            w_x = w_x / (torch.norm(w_x) + 1e-8)
+            w_y = w_y / (torch.norm(w_y) + 1e-8)
+            
+            px_raw = torch.dot(state.float(), w_x).item()
+            py_raw = torch.dot(state.float(), w_y).item()
+            
+            # Map into Poincare disk (norm < 1) using tanh
+            raw_norm = math.sqrt(px_raw**2 + py_raw**2)
+            scale = math.tanh(raw_norm) / (raw_norm + 1e-8)
+            
+            return px_raw * scale, py_raw * scale
+        except Exception as e:
+            print(f"[GRAPH] Poincare projection error: {e}")
+            return 0.0, 0.0
+
                 
     def get_adjacency_list(self) -> List[Dict[str, Any]]:
         """
@@ -271,7 +375,7 @@ class GyroidicGraphManager:
 
         nodes_data = []
         for n in self.nodes:
-            # Stats for Client Visualization
+            px, py = self.compute_poincare_projection(n.state)
             nodes_data.append({
                 "id": str(n.node_id),
                 "label": str(n.text[:100]),
@@ -282,7 +386,10 @@ class GyroidicGraphManager:
                 "repaired": bool(n.repair_active),
                 "locked": bool(n.coprime_lock),
                 "tags": n.tags,
-                "tag_weights": n.tag_weights  # Dict[str, float] for client-side shading
+                "tag_weights": n.tag_weights,  # Dict[str, float] for client-side shading
+                "px": px,
+                "py": py,
+                "type": n.metrics.get("type", "fossil")
             })
 
         return json.dumps({"nodes": nodes_data, "links": edges})
