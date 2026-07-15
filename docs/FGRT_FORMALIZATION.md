@@ -23,6 +23,8 @@ $$ \frac{\partial g_{\mu\nu}}{\partial t} = -2R_{\mu\nu} $$
 The system "learns" by relaxing into a **minimal Willmore energy** state:
 $$ \mathcal{W} = \int (H^2 - K) dA $$
 
+*Note on Implementation*: The standard scalar L2 approximation of the Willmore Energy proxy has been upgraded to a **Bouligand-Willmore Gasket** model (`BouligandWillmoreGasket`). This module computes true structural deviation via Bouligand Manifold contingent cone intersection. When PyOpenCL is available, it queries the TailSlayer system directly to compute the contingent cone intersection rejection rate as the tension metric.
+
 ### 4.1 Fractional Anisotropic FBM Erosion (Geological Memory)
 In tandem with Ricci Flow, "Good Bugs" and high-pressure topological events carve permanent structures using **Fractional Anisotropic Fractal Polynomial Functionals encoded Brownian Motion**.
 Erosion is anisotropic, directed along the normalized pressure gradient and modulated by a resonant multi-octave noise field:
