@@ -1249,7 +1249,7 @@
                 const seenTags = new Set();
                 const fossilIdMap = new Map();
                 
-                // 1. Process Fossils
+                // 1. Process Fossils and Live Nodes
                 data.nodes.forEach(node => {
                     const d3Node = {
                         id: node.id,
@@ -1260,8 +1260,10 @@
                         quantum: !!node.quantum,
                         repaired: !!node.repaired,
                         locked: !!node.locked,
-                        type: 'fossil',
-                        tags: node.tags || []
+                        type: node.type || 'fossil',
+                        tags: node.tags || [],
+                        px: node.px || 0.0,
+                        py: node.py || 0.0
                     };
                     d3Nodes.push(d3Node);
                     fossilIdMap.set(node.id, d3Node);
@@ -1286,7 +1288,9 @@
                         id: 'tag_' + tag,
                         label: '#' + tag,
                         type: 'tag',
-                        tags: [tag]
+                        tags: [tag],
+                        px: (Math.random() - 0.5) * 0.4,
+                        py: (Math.random() - 0.5) * 0.4
                     });
                 });
                 
@@ -1308,6 +1312,14 @@
                 // 5. Render SVG
                 const width = container.clientWidth || 500;
                 const height = container.clientHeight || 400;
+                
+                // Initialize node coordinates based on Poincare coordinates projected to canvas
+                d3Nodes.forEach(d => {
+                    d.x = width / 2 + (width / 2 - 40) * d.px;
+                    d.y = height / 2 + (height / 2 - 40) * d.py;
+                    d.vx = 0;
+                    d.vy = 0;
+                });
                 
                 const svg = d3.select(container)
                     .append('svg')
@@ -1356,6 +1368,24 @@
                             .attr('fill', '#00ff41')
                             .attr('stroke', 'rgba(0, 255, 65, 0.7)')
                             .attr('stroke-width', 1.5);
+                    } else if (d.type && d.type.startsWith('live_')) {
+                        let fill, stroke;
+                        if (d.type === 'live_hidden') {
+                            fill = 'rgba(0, 255, 65, 0.35)';
+                            stroke = 'var(--terminal-green)';
+                        } else if (d.type === 'live_scarred') {
+                            fill = 'rgba(255, 0, 242, 0.35)';
+                            stroke = 'var(--terminal-magenta)';
+                        } else {
+                            fill = 'rgba(255, 204, 0, 0.35)';
+                            stroke = 'var(--terminal-warn)';
+                        }
+                        el.append('circle')
+                            .attr('r', 12) // larger radius for live states
+                            .attr('fill', fill)
+                            .attr('stroke', stroke)
+                            .attr('stroke-width', 3)
+                            .style('filter', `drop-shadow(0 0 5px ${stroke})`); // neon glow
                     } else {
                         const fill = d.chiral > 0.5 ? 'rgba(255, 0, 242, 0.25)' : 'rgba(0, 242, 255, 0.25)';
                         const stroke = d.chiral > 0.5 ? 'var(--terminal-magenta)' : 'var(--terminal-blue)';
@@ -1371,10 +1401,17 @@
                 node.append('text')
                     .attr('dx', 14)
                     .attr('dy', 4)
-                    .attr('font-size', '0.65rem')
+                    .attr('font-size', d => d.type && d.type.startsWith('live_') ? '0.7rem' : '0.65rem')
+                    .attr('font-weight', d => d.type && d.type.startsWith('live_') ? 'bold' : 'normal')
                     .attr('font-family', 'var(--font-mono)')
-                    .attr('fill', d => d.type === 'tag' ? 'var(--terminal-green)' : '#fff')
-                    .text(d => d.label.substring(0, 16) + (d.label.length > 16 ? '...' : ''));
+                    .attr('fill', d => {
+                        if (d.type === 'tag') return 'var(--terminal-green)';
+                        if (d.type === 'live_hidden') return 'var(--terminal-green)';
+                        if (d.type === 'live_scarred') return 'var(--terminal-magenta)';
+                        if (d.type === 'live_damage') return 'var(--terminal-warn)';
+                        return '#fff';
+                    })
+                    .text(d => d.label.substring(0, 24) + (d.label.length > 24 ? '...' : ''));
                     
                 // Click handler to show info overlay
                 node.on('click', (event, d) => {
@@ -1409,7 +1446,15 @@
                     .force('charge', d3.forceManyBody().strength(-120))
                     .force('center', d3.forceCenter(width / 2, height / 2))
                     .force('collide', d3.forceCollide().radius(22))
-                    .on('tick', ticked);
+                    .alphaMin(0.02); // Cool down sooner to conserve compute
+                
+                // Warm up simulation offline for 80 ticks to settle nodes instantly
+                for (let i = 0; i < 80; i++) {
+                    graphSimulation.tick();
+                }
+                
+                // Register tick listener after warmup
+                graphSimulation.on('tick', ticked);
                     
                 function ticked() {
                     link
