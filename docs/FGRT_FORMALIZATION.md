@@ -92,7 +92,11 @@ For agents analyzing the codebase, this formalization maps to:
     *   **Logic**: Uses Polynomial Coefficients `[K, D]` for topological glue.
 *   **Torsion/Chirality**: Implemented via `GyroidCovarianceEstimator` in `src/topology/gyroid_covariance.py`
     *   **Metric**: Measures curl/drift in the `[Batch, Dim]` state trajectory.
-*   **Ricci Flow**: Approximated by the `SpectralStructuralTrainer` in `src/training/fgrt_fgrt_trainer.py`.
+*   **Modular Virtualization**: Implemented via `ModularVirtualizationLayer` in `src/core/modular_virtualization.py`
+    *   **Role**: Virtualizes/de-virtualizes hidden states during recurrent transitions.
+*   **Ego Death / Abstraction**: Governed by `EgoDeathThresholdMonitor` in `src/core/archetype_engines.py`
+    *   **Role**: Computes the hyperbolic abstraction rate and projects collapsed states onto the Bouligand tangent cone.
+*   **Ricci Flow**: Approximated by the `SpectralStructuralTrainer` in `src/training/fgrt_fgrt_trainer.py` and optimized via `RicciFlowOptimizer` in `src/optimization/ricci_flow_optimizer.py`.
 *   **Tensor Flow**: `State [B, D]` $\xrightarrow{\text{Residue Map}}$ `Residues [B, K, D//K]` $\xrightarrow{\text{Repair}}$ `State [B, D]`
 *   **Chiral Groupoid**: Constraint transport tracked via `src/core/chern_simons_gasket.py` (factorization product) and `src/topology/gyroid_covariance.py` (Berry phase accumulation).
 
@@ -104,5 +108,10 @@ For agents analyzing the codebase, this formalization maps to:
 | Berry phase / torsion field | [MATHEMATICAL_DETAILS.md 19](MATHEMATICAL_DETAILS.md) |
 | ADMM as facet stabilizer | [SYSTEM_ARCHITECTURE.md 9.1](SYSTEM_ARCHITECTURE.md) |
 | Matryoshka nesting | [MATHEMATICAL_DETAILS.md 31](MATHEMATICAL_DETAILS.md) |
+| Recurrent Modular Virtualization | [MATHEMATICAL_DETAILS.md 59](MATHEMATICAL_DETAILS.md) |
+| Hyperbolic Ego Death & Tangent Cone | [MATHEMATICAL_DETAILS.md 60](MATHEMATICAL_DETAILS.md) |
+| Non-Teleological Ricci Flow & 0D Fix | [MATHEMATICAL_DETAILS.md 61](MATHEMATICAL_DETAILS.md) |
+| Sequential ADMM & Fresh Proposal | [MATHEMATICAL_DETAILS.md 62](MATHEMATICAL_DETAILS.md) |
+| Poincaré Hyperbolic Graph Mapping | [MATHEMATICAL_DETAILS.md 63](MATHEMATICAL_DETAILS.md) |
 | Anti-lobotomy constraints | [GOVERNANCE_ANTI_LOBOTOMY.md](../vault_docs/GOVERNANCE_ANTI_LOBOTOMY.md) |
 
