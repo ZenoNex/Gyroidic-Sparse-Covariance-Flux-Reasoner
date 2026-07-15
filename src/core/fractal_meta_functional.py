@@ -81,6 +81,10 @@ class FractalMetaFunctional(nn.Module):
         self.meta_proj_ring = nn.Linear(dim, dim)
         self.meta_proj_osc = nn.Linear(dim, dim)
         
+        # 6. Modular Virtualization Layer
+        from src.core.modular_virtualization import ModularVirtualizationLayer
+        self.modular_rns = ModularVirtualizationLayer(dim=dim, base=2)
+        
     def forward(
         self,
         current_state: torch.Tensor,
@@ -98,6 +102,11 @@ class FractalMetaFunctional(nn.Module):
             residues: [batch, k] (r_k)
             dark_matter: [batch, dim] (D_dark)
         """
+        # Virtualize states to hybrid modular coordinates (endogenous connection)
+        # Using meta_state_prev as the parity anchor to trigger topological refusal snap if invalid
+        virtual_state_rns = self.modular_rns.float_to_rns(current_state, anchor_sym=meta_state_prev)
+        current_state = self.modular_rns.rns_to_float(virtual_state_rns)
+        
         batch_size = current_state.shape[0]
         if dark_matter is None:
             dark_matter = torch.zeros_like(current_state)
