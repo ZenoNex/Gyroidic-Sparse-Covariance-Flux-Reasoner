@@ -321,7 +321,7 @@ Computes Betti numbers via approximate methods (Vietoris-Rips simplification, la
 ### embedding_graph.py
 **Role**: Manages the memory-state graph visualization and deduplication logic.
 
-Builds and maintains the `GyroidicGraphManager` node graph, where nodes represent unique `memory_state` embeddings and edges represent structural resonance. Includes importance calculation, smart label wrapping, and advanced state indicators (Quantum, Matrioshka, Repaired, Locked). Deduplication uses `dedup_threshold` cosine distance on both text embeddings and `memory_state` vectors.
+Builds and maintains the `GyroidicGraphManager` node graph, where nodes represent unique `memory_state` embeddings and edges represent structural resonance. Includes importance calculation, smart label wrapping, and advanced state indicators. Ingests live model states (`hidden_state`, `hidden_state_scarred`, and `damage_residue` loaded from `gyroid_state.pt`) as neon-glowing live indicator nodes. Implements `compute_poincare_projection` to map high-dimensional states to 2D coordinates on the Poincaré disk model using a harmonic projection scale contracted via `tanh` to ensure stable startup coordinates on the HTML canvas.
 
 ---
 
@@ -380,7 +380,7 @@ Manages the dual-variable updates and cyclic routing for topological constraint 
 ### ricci_flow_optimizer.py
 **Role**: Ricci flow based manifold optimization.
 
-Applies discrete Ricci flow  the process of uniformizing sectional curvature across the manifold  as an optimization step. Prevents curvature singularities that would produce degenerate CRT residues. *(Full details pending source review.)*
+Applies discrete Ricci flow (uniformizing sectional curvature across the manifold) instead of standard gradient descent. Employs a Split-Beam metric: Channel A (standard gradient pressure) and Channel B (non-commutative structural torsion via Gasket). Computes Chern-Simons tension on the parameter's covariance metric and projects update forces based on tensor dimensionality. Includes an explicit bypass for 0-dimensional scalar parameters to prevent broadcast shape errors during in-place weight additions.
 
 ---
 
@@ -414,7 +414,7 @@ Provides standard PyTorch `Dataset` and `DataLoader` APIs for augmenting the tra
 ### fgrt_fgrt_trainer.py
 **Role**: Doubly-composed FGRT (Fractal Gyroidic Resonance Training) trainer.
 
-Applies FGRT training composedly  each training step itself undergoes a fractal decomposition. The double-composition prevents teleological leakage by ensuring no single step can directly optimize toward a target. *(Naming appears intentional  double application of the FGRT principle.)*
+Applies FGRT training composedly (each training step itself undergoes a fractal decomposition) and coordinates the Spectral Structural Trainer. Manages the cyclic ADMM constraint traversal probes. Includes sequential step updates: Probe k=0 (Reconstruction) runs its backward pass and optimizer step, followed immediately by parameter projections to the Birkhoff polytope. To prevent PyTorch in-place modification conflicts during the Probe k=1 (Coherence) backward pass, the trainer triggers a fresh forward pass on the updated parameters before evaluating the coherence metrics.
 
 ---
 
