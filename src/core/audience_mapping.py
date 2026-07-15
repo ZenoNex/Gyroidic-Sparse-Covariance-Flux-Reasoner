@@ -9,6 +9,7 @@ an Audience space A while preserving topological roughness (singularities).
 import torch
 import torch.nn as nn
 import torch.nn.utils.spectral_norm as spectral_norm
+import numpy as np
 
 class AudienceProjection(nn.Module):
     """
