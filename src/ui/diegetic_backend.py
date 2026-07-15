@@ -3138,7 +3138,14 @@ class DiegeticPhysicsEngine(nn.Module):
                 self.interaction_context.pop(0)
             if gate_out["knowledge_state"] == KnowledgeState.SEARCH_NEEDED:
                 response_text = "[SEARCH_GATE_TRIGGERED] Internal manifold lacks topology. " + response_text
-        print(f" Generated physics-enriched response: {response_text}")
+        def _safe_print_response(prefix, text):
+            try:
+                print(f"{prefix}{text}")
+            except UnicodeEncodeError:
+                safe_text = text.encode('ascii', errors='replace').decode('ascii')
+                print(f"{prefix}{safe_text} (Unicode replaced for console)")
+        
+        _safe_print_response(" Generated physics-enriched response: ", response_text)
         print(f" Response length: {len(response_text)} characters")
         
         # Inject CALM veto message if trajectory is unstable
@@ -3148,7 +3155,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Agentic Dyad Override (Phase 4)
         if dyad_override_response:
             response_text = dyad_override_response
-            print(f"[WAVE] Dyad Override applied: {response_text[:50]}...")
+            _safe_print_response("[WAVE] Dyad Override applied: ", response_text[:50] + "...")
 
         # Metrics will be constructed after Phase 4 computations to ensure dependencies are defined
         
