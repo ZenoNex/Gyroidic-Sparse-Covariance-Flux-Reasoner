@@ -77,8 +77,12 @@ class RicciFlowOptimizer(Optimizer):
                 
                 # Channel B (Non-Commutative): True structural torsion via Gasket
                 # We use outer product to form a covariance metric if p is 1D
-                if p.dim() == 1:
+                if p.dim() == 0:
+                    d_p = grad_pressure
+                elif p.dim() == 1:
                     flux_cov = torch.outer(p, p)
+                    seam_tension = self.split_beam.compute_chern_simons_tension(flux_cov, seam_width)
+                    d_p = grad_pressure + seam_tension
                 elif p.dim() >= 2:
                     # Flatten into square matrices if possible, else use covariance
                     if p.shape[-1] == p.shape[-2]:
@@ -86,13 +90,9 @@ class RicciFlowOptimizer(Optimizer):
                     else:
                         flux_cov = torch.matmul(p, p.transpose(-1, -2))
                         
-                # Compute exact Chern-Simons Gasket tension through TailSlayer hardware sync
-                seam_tension = self.split_beam.compute_chern_simons_tension(flux_cov, seam_width)
-                
-                # Reshape tension to apply as a structural twist force field
-                if p.dim() == 1:
-                    d_p = grad_pressure + seam_tension
-                elif p.dim() >= 2:
+                    # Compute exact Chern-Simons Gasket tension through TailSlayer hardware sync
+                    seam_tension = self.split_beam.compute_chern_simons_tension(flux_cov, seam_width)
+                    
                     if p.shape[-1] == p.shape[-2]:
                         # Diagonal tension twist
                         twist = torch.diag_embed(seam_tension)
