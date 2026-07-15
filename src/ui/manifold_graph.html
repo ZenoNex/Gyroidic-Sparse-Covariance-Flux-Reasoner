@@ -208,8 +208,15 @@
                     const label = node.label.replace(/[\[\]\(\)\{\}\"\'\;]/g, '').substring(0, 20);
                     const id = node.id.replace(/[^a-zA-Z0-9]/g, '_');
 
-                    // Style nodes by chiral score
-                    const color = node.chiral > 0.5 ? 'fill:#ff00f233,stroke:#ff00f2' : 'fill:#00f2ff22,stroke:#00f2ff';
+                    // Style nodes by chiral score and node type
+                    let color = node.chiral > 0.5 ? 'fill:#ff00f233,stroke:#ff00f2' : 'fill:#00f2ff22,stroke:#00f2ff';
+                    if (node.type === 'live_hidden') {
+                        color = 'fill:#00ff4144,stroke:#00ff41,stroke-width:3px';
+                    } else if (node.type === 'live_scarred') {
+                        color = 'fill:#ff00f244,stroke:#ff00f2,stroke-width:3px';
+                    } else if (node.type === 'live_damage') {
+                        color = 'fill:#ffcc0044,stroke:#ffcc00,stroke-width:3px';
+                    }
                     mermaidText += `    ${id}["${label}<br/><small>χ: ${node.chiral.toFixed(2)}</small>"]\n`;
                     mermaidText += `    style ${id} ${color}\n`;
                 });
