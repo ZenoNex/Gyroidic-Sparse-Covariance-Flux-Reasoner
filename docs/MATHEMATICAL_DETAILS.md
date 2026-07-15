@@ -1570,11 +1570,17 @@ $$\Delta p \leftarrow \Delta p + \tau \cdot \tfrac{1}{2}(\Delta p - \Delta p^\to
 
 This introduces chirality into the flow  the update has a preferred handedness.
 
-### 39.2 WillmoreEnergy
+### 39.2 WillmoreEnergy & BouligandWillmoreGasket
 
 $$W = \int (H^2 - K)\,dA$$
 
-Measures deviation from a minimal surface (gyroid). Computed as an L2 norm proxy of the state field. Used to **drive** Ricci flow, not to minimize via Adamm.
+Measures deviation from a minimal surface (gyroid). 
+
+**Bouligand-Willmore Gasket**: The simple L2 norm proxy has been upgraded to a true structural deviation model (`BouligandWillmoreGasket`). This evaluates whether the state tensor is within the **Bouligand Manifold Contingent Cone**.
+- **PyOpenCL Mode**: Queries the TailSlayer system directly using `evaluate_bouligand_intersection(x, x, omega_i=0.618, omega_j=1.618, t=1.0)` to compute the contingent cone intersection. The tension is proportional to the rejection rate.
+- **CPU Fallback**: Computes an exact mathematical fallback of the contingent cone geometry bounded by the local variance limit:
+  $$\text{viable} = (|\mathbf{x}_{\text{flat}} + \mathbf{x}_{\text{flat}} \cdot \sin(0.618 - 1.618)| \le |\mathbf{x}_{\text{flat}}| + 0.1)$$
+  The returned energy is $1.0 - \text{mean}(\text{viable})$.
 
 ---
 
