@@ -189,7 +189,12 @@ class SpectralStructuralTrainer:
         # This makes mischief a *strain tolerance* gate, not a scalar reward to subtract.
         # Re-query coherence with fresh graph on current proposal (not detached)
         self.optimizer.zero_grad()
-        resonance_data_live = self.ric.query(proposal)
+        
+        # Fresh forward pass on updated parameters to avoid in-place graph conflict
+        with torch.enable_grad():
+            new_proposal = self.model(input_data)
+            
+        resonance_data_live = self.ric.query(new_proposal)
         coherence_live = resonance_data_live['resonance_scores'].mean()
         raw_coherence_strain = alpha_coh * (1.0 - coherence_live)
         # Apply mischief tolerance gate: allow more strain if system is mischievous
@@ -199,3 +204,10 @@ class SpectralStructuralTrainer:
         if coherence_probe_pressure.requires_grad:
             coherence_probe_pressure.backward()
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+            self.optimizer.step()
+            
+        # Birkhoff projection after each probe step (mandatory per GDPO pattern)
+        with torch.no_grad():
+            for p in self.model.parameters():
+                if p.dim() == 2 and p.shape[0] == p.shape[1]:
+                    p.copy_(project_to_birkhoff(p.data))
