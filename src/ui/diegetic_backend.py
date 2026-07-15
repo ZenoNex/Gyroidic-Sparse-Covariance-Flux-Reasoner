@@ -40,6 +40,7 @@ try:
     from src.core.sparse_higher_order_tensors import SparseHigherOrderTensorDynamics
     from src.core.context_aware_quantizer import ContextAwareQuantizer
     from src.core.zeitgeist_router import ZeitgeistRouter, ZeitgeistState
+    from src.core.advanced_extensions_bridge import AdvancedExtensionsBridge
     EXTENSIONS_AVAILABLE = True
     print("OK: Advanced Extensions loaded successfully!")
 except ImportError as e:
@@ -295,6 +296,7 @@ class DiegeticPhysicsEngine(nn.Module):
         self.meta_polytope = MetaPolytopeMatrioshka(max_depth=5, base_dim=dim) if EXTENSIONS_AVAILABLE else None
         self.tensor_dynamics = SparseHigherOrderTensorDynamics(max_order=3, num_shells=3, base_dim=dim) if EXTENSIONS_AVAILABLE else None
         self.quantum_reasoner = None
+        self.advanced_bridge = AdvancedExtensionsBridge(dim=dim, device=self.device) if EXTENSIONS_AVAILABLE else None
         self.extensions_enabled = EXTENSIONS_AVAILABLE
 
         self.cavity = ResonanceCavity(hidden_dim=dim, num_modes=16)
@@ -1004,10 +1006,10 @@ class DiegeticPhysicsEngine(nn.Module):
         # Return state for character generation / training
         # IMPORTANT: During training, we return the non-detached fractal state
         # to allow gradient propagation for Ricci Flow and Association learning.
-        if self.training:
-            return meta_out['s_fractal']
-            
-        return self.meta_state
+        output_state = meta_out['s_fractal'] if self.training else self.meta_state
+        if hasattr(self, 'advanced_bridge') and self.advanced_bridge is not None:
+            output_state = self.advanced_bridge.apply_lcft_projection(output_state)
+        return output_state
 
     def _refresh_fossil_cache(self):
         """Speculatively recovers legacy fossils into the live session cache."""
@@ -2505,6 +2507,12 @@ class DiegeticPhysicsEngine(nn.Module):
             
             # Get spectral diagnostics
             spectral_diagnostics = self.spectral_corrector.get_diagnostics()
+            
+            # Incorporate AdvancedExtensionsBridge spectral sequence page if enabled
+            if hasattr(self, 'advanced_bridge') and self.advanced_bridge is not None:
+                seq_info = self.advanced_bridge.evaluate_spectral_sequence(seed_state_corrected)
+                spectral_diagnostics['stable_homology_features'] = int(seq_info['stable_features'].sum().item())
+                
             print(f" Spectral Coherence: theta={spectral_diagnostics['theta_coherence']:.3f}, "
                   f"energy_ratio={spectral_diagnostics['energy_ratio']:.3f}")
             
