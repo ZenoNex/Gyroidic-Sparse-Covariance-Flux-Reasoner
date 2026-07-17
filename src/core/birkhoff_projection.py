@@ -155,6 +155,7 @@ class ObscuredBirkhoffManifold(nn.Module):
         # Clamp initial temperature to stable range
         self.temperature = nn.Parameter(torch.tensor(max(0.1, min(10.0, temperature))))
         self.register_buffer('delta_o', torch.tensor(delta_o))
+        self.register_buffer('o', torch.zeros(n, device=device))
         self.max_iterations = max_iterations
         
         # Unicorn Synthesis: Use Direct Projection only for small dimensions to avoid OOM
@@ -171,6 +172,21 @@ class ObscuredBirkhoffManifold(nn.Module):
                     _BIRKHOFF_WARNED_DIMENSIONS.add(n)
                     print(f" [CONFIG] Birkhoff dimension {n} too large for direct projection. Using iterative fallback.")
     
+    def update_obscurity_from_state(self, state: torch.Tensor):
+        """Update delta_o based on proximity to obstruction center o."""
+        if hasattr(self, 'o') and self.o is not None:
+            # Project state onto same dimension as o
+            x = state.view(-1)
+            if x.shape[0] >= self.o.shape[0]:
+                x = x[:self.o.shape[0]]
+            else:
+                x = torch.nn.functional.pad(x, (0, self.o.shape[0] - x.shape[0]))
+            dist = torch.norm(x - self.o)
+            # Proximity-based visibility mask
+            vis = torch.sigmoid(5.0 * dist)
+            # Maximum dynamic obscurity is 0.5 (partial veiling) when state is close to o
+            self.delta_o.copy_(0.5 * (1.0 - vis))
+
     def evolve_obstruction(self, genome: torch.Tensor, decay: float = 0.99):
         """delta_o = Obsc(g)"""
         target_obsc = torch.sigmoid(torch.mean(genome)) * 0.5
