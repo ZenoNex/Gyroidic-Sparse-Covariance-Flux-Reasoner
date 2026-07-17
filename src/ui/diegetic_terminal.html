@@ -849,8 +849,19 @@
             
             <!-- Tab 2: Obsidian Graph -->
             <div class="tab-pane" id="pane-graph" style="position: relative; flex-direction: column; background: #030303; flex: 1;">
-                <div style="padding: 0.5rem 1rem; display: flex; gap: 0.5rem; border-bottom: 1px solid var(--glass-border); align-items: center; justify-content: space-between; z-index: 10;">
-                    <input type="text" id="graph-search" placeholder="Search fossils or tags..." style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none;">
+                <div style="padding: 0.5rem 1rem; display: flex; gap: 0.8rem; border-bottom: 1px solid var(--glass-border); align-items: center; justify-content: space-between; z-index: 10; flex-wrap: wrap;">
+                    <input type="text" id="graph-search" placeholder="Search fossils or tags..." style="flex: 2; min-width: 150px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none;">
+                    
+                    <div style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888;">
+                        <span>LIMIT:</span>
+                        <input type="number" id="graph-limit" value="150" min="10" max="1000" step="10" style="width: 55px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; text-align: center; outline: none;">
+                    </div>
+                    
+                    <label style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888; cursor: pointer;">
+                        <input type="checkbox" id="graph-include-tags" checked style="accent-color: var(--terminal-blue); cursor: pointer;">
+                        <span>NON-HIERARCHICAL TAGS</span>
+                    </label>
+                    
                     <button onclick="refreshGraph()" style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; border: 1px solid var(--terminal-blue); transition: all 0.2s;">REFRESH</button>
                 </div>
                 <div id="graph-container" style="flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 400px; height: 100%;">
@@ -1236,8 +1247,13 @@
             if (!container) return;
             container.innerHTML = '<div style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:var(--terminal-blue); font-size:0.75rem; letter-spacing:1px; z-index:100;">RE-SCANNING FIELD...</div>';
             
+            const limitEl = document.getElementById('graph-limit');
+            const includeTagsEl = document.getElementById('graph-include-tags');
+            const limit = limitEl ? parseInt(limitEl.value) || 150 : 150;
+            const includeTags = includeTagsEl ? includeTagsEl.checked : true;
+            
             try {
-                const response = await fetch(`${state.backend_url}/graph`);
+                const response = await fetch(`${state.backend_url}/graph?limit=${limit}`);
                 const data = await response.json();
                 graphDataGlobal = data;
                 
@@ -1269,30 +1285,34 @@
                     fossilIdMap.set(node.id, d3Node);
                     
                     // Collect Tags
-                    (node.tags || []).forEach(tag => {
-                        if (tag) {
-                            seenTags.add(tag);
-                            d3Links.push({
-                                source: node.id,
-                                target: 'tag_' + tag,
-                                type: 'tag-link',
-                                weight: 0.8
-                            });
-                        }
-                    });
+                    if (includeTags) {
+                        (node.tags || []).forEach(tag => {
+                            if (tag) {
+                                seenTags.add(tag);
+                                d3Links.push({
+                                    source: node.id,
+                                    target: 'tag_' + tag,
+                                    type: 'tag-link',
+                                    weight: 0.8
+                                });
+                            }
+                        });
+                    }
                 });
                 
                 // 2. Add Tag Hub Nodes
-                seenTags.forEach(tag => {
-                    d3Nodes.push({
-                        id: 'tag_' + tag,
-                        label: '#' + tag,
-                        type: 'tag',
-                        tags: [tag],
-                        px: (Math.random() - 0.5) * 0.4,
-                        py: (Math.random() - 0.5) * 0.4
+                if (includeTags) {
+                    seenTags.forEach(tag => {
+                        d3Nodes.push({
+                            id: 'tag_' + tag,
+                            label: '#' + tag,
+                            type: 'tag',
+                            tags: [tag],
+                            px: (Math.random() - 0.5) * 0.4,
+                            py: (Math.random() - 0.5) * 0.4
+                        });
                     });
-                });
+                }
                 
                 // 3. Process Resonance/Similarity Links
                 (data.links || []).forEach(link => {
