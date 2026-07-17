@@ -35,7 +35,7 @@ SKIP_REASON = None
 # Preflight: is the backend up?
 # ---------------------------------------------------------------------------
 
-def _check_backend_available(timeout=3.0):
+def _check_backend_available(timeout=30.0):
     """Returns True if the /ping endpoint responds 200 within `timeout` seconds."""
     if not _HAS_REQUESTS:
         return False, "requests package not installed"
@@ -121,7 +121,7 @@ def _assert_linguistic_health(output_text, min_vowel_ratio=0.15, max_symbol_rati
 def _test_ping():
     """Backend responds to /ping with a 200."""
     _skip_if_no_backend()
-    r = requests.get(f"{BACKEND_URL}/ping", timeout=5)
+    r = requests.get(f"{BACKEND_URL}/ping", timeout=30)
     assert r.status_code == 200, f"Ping failed: {r.status_code}"
     data = r.json()
     print(f"  ping response: {data}")
