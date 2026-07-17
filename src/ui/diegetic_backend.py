@@ -88,7 +88,7 @@ def _compute_fossil_budget() -> int:
             return 150  # safe fallback
     # ~0.8 MB per fossil (dim=256 tensor + metadata dict)
     estimated = int(available_mb / 0.8)
-    return max(50, min(2000, estimated))
+    return max(50, min(50000, estimated))
 from urllib.parse import urlparse, parse_qs
 from typing import Dict, Any, List, Optional, Tuple, Union
 import hashlib
@@ -356,7 +356,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Tri-State Output Gate 4/5 
         self.five_gate_pipeline = FiveGatePipeline(state_dim=dim)
         self.archetypal_governor = ArchetypalSynthesisEngine(state_dim=dim)
-        self.unknowledge_domain = UnknowledgeDomain(tau_m=0.3)
+        self.unknowledge_domain = UnknowledgeDomain(tau_m=0.3, dim=dim)
         self.mischief_probe = EntropicMischiefProbe(device=self.device)
         self.voynich_linguist = VoynichLinguist(latent_dim=dim).to(self.device)
         
@@ -781,6 +781,12 @@ class DiegeticPhysicsEngine(nn.Module):
             self._start_background_larynx_trainer()
         else:
             print(" Background Larynx trainer: disabled by environment override.")
+
+        # Initialize Bonfire nomadic network and Investor news ingestor
+        from src.topology.bonfire_network import BonfireNetwork
+        from src.core.investor_news_ingestor import InvestorNewsIngestor
+        self.bonfire = BonfireNetwork(node_id="engine_node", local_url="http://localhost:8080")
+        self.investor_ingestor = InvestorNewsIngestor()
 
     def _idx_to_char(self, idx: int) -> str:
         """Map vocabulary index to character string."""
@@ -1427,6 +1433,32 @@ class DiegeticPhysicsEngine(nn.Module):
             else:
                 pass # No relevant fossils detected for this input
 
+    def set_active_user_alias(self, alias: str):
+        if not alias:
+            return
+        import hashlib
+        import numpy as np
+        sha = hashlib.sha256(alias.encode('utf-8')).digest()
+        rng = np.random.default_rng(int.from_bytes(sha[:4], byteorder='big'))
+        o_arr = rng.uniform(-1.0, 1.0, size=(self.dim,))
+        o_tensor = torch.tensor(o_arr, dtype=torch.float32, device=self.device)
+        
+        if hasattr(self, 'unknowledge_domain') and self.unknowledge_domain is not None:
+            self.unknowledge_domain.o.copy_(o_tensor)
+            
+        if hasattr(self, 'modular_attention') and self.modular_attention is not None:
+            if hasattr(self.modular_attention, 'dropout') and self.modular_attention.dropout is not None:
+                self.modular_attention.dropout.o.copy_(o_tensor)
+                
+            if hasattr(self.modular_attention, 'birkhoff') and self.modular_attention.birkhoff is not None:
+                o_target = self.modular_attention.birkhoff.o
+                if o_tensor.shape[0] >= o_target.shape[0]:
+                    o_target.copy_(o_tensor[:o_target.shape[0]])
+                else:
+                    o_target.copy_(torch.nn.functional.pad(o_tensor, (0, o_target.shape[0] - o_tensor.shape[0])))
+                
+        print(f"[DOMAIN CONTRACT] Active User Alias updated geometrically: '{alias}' -> o_norm={o_tensor.norm().item():.4f}")
+
     def process_input(
         self,
         text_input: str,
@@ -1441,7 +1473,8 @@ class DiegeticPhysicsEngine(nn.Module):
         regime: str = 'goo',
         voynich_token: Optional[Any] = None,
         performance_buffered: bool = False,
-        tag_weights: Optional[Dict[str, float]] = None
+        tag_weights: Optional[Dict[str, float]] = None,
+        user_alias: Optional[str] = None
     ) -> dict:
         """
         Main entry point for processing an interaction.
@@ -1469,7 +1502,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 regime=regime,
                 voynich_token=voynich_token,
                 performance_buffered=performance_buffered,
-                tag_weights=tag_weights
+                tag_weights=tag_weights,
+                user_alias=user_alias
             )
         finally:
             self._is_processing = False
@@ -1659,7 +1693,8 @@ class DiegeticPhysicsEngine(nn.Module):
         regime: str = 'goo',
         voynich_token: Optional[Any] = None,
         performance_buffered: bool = False,
-        tag_weights: Optional[Dict[str, float]] = None
+        tag_weights: Optional[Dict[str, float]] = None,
+        user_alias: Optional[str] = None
     ) -> dict:
         """
         Process user text, update cavity, and generate emergent response via Fractal Recursion.
@@ -1673,6 +1708,9 @@ class DiegeticPhysicsEngine(nn.Module):
         """
         self.iteration += 1
         self.last_input_time = time.time()
+        
+        if user_alias:
+            self.set_active_user_alias(user_alias)
         
         # --- DYNAMIC REGIME DETERMINATION (Integrated Emergence Condition, Eq 10) ---
         # Instead of manual override, the regime emerges from the current manifold state.
@@ -3360,6 +3398,11 @@ class DiegeticPhysicsEngine(nn.Module):
         else:
             # Visualizer returned a bare string (old format) or None
             visualization_b64 = viz_result if isinstance(viz_result, str) else None
+
+        # Update Obscured Birkhoff Polytope level based on current meta_state proximity to User center o
+        if hasattr(self, 'modular_attention') and self.modular_attention is not None:
+            if hasattr(self.modular_attention, 'birkhoff') and self.modular_attention.birkhoff is not None:
+                self.modular_attention.birkhoff.update_obscurity_from_state(self.meta_state)
 
         print("[VISUALIZER] Feedback pass complete")
 
@@ -6268,6 +6311,14 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 self._send_json(TRAINING_STATE)
                 return
             
+            elif self.path == '/api/security/creator_status':
+                from src.safety.hardware_fingerprint import is_creator_initialized, get_stable_hardware_fingerprint
+                self._send_json({
+                    'initialized': is_creator_initialized(),
+                    'fingerprint': get_stable_hardware_fingerprint()
+                })
+                return
+            
             # --- GUI SERVING ---
             elif self.path == '/conversational-gui':
                 try:
@@ -6370,6 +6421,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         data['ingestion_mode'] = form_fields.get('ingestion_mode', 'false').lower() == 'true'
                         data['performance_buffered'] = form_fields.get('performance_buffered', 'false').lower() == 'true'
                         data['audio_b64'] = form_fields.get('audio_b64', None)
+                        data['alias'] = form_fields.get('alias', None)
                         
                         video_file = form_fields.get('video_dyad_file')
                         if isinstance(video_file, dict) and 'content' in video_file:
@@ -6398,15 +6450,16 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     audio_dyad    = data.get('audio_dyad', None)
                     video_dyad_b64 = data.get('video_dyad_b64', None)
                     commutativity = data.get('commutativity', 'symmetric')
+                    user_alias    = data.get('alias', None)
                     
                     if video_dyad_b64 == "[FILE_POINTER]":
                         video_dyad_b64 = None
                         
                     print(f" User input: '{user_text}' | commutativity={commutativity} | "
-                          f"has_image={fingerprint is not None} | has_audio={audio_dyad is not None} | "
-                          f"has_video={video_dyad_b64 is not None}")
+                           f"has_image={fingerprint is not None} | has_audio={audio_dyad is not None} | "
+                           f"has_video={video_dyad_b64 is not None} | alias={user_alias}")
                     print(" Starting ENGINE.process_input...")
-
+ 
                     response_data = ENGINE.process_input(
                         user_text,
                         fingerprint=fingerprint,
@@ -6417,7 +6470,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         commutativity=commutativity,
                         generate_response=data.get('generate_response', True),
                         ingestion_mode=data.get('ingestion_mode', False),
-                        performance_buffered=data.get('performance_buffered', False)
+                        performance_buffered=data.get('performance_buffered', False),
+                        user_alias=user_alias
                     )
                     self._send_json(response_data)
                 except Exception as e:
@@ -7102,6 +7156,112 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                             pass
                     
                     self._send_json(result.to_dict())
+                
+            elif self.path == '/api/bonfire/sync':
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len)
+                data = json.loads(post_body.decode('utf-8'))
+                sig = data.get("signature", "none")
+                self._send_json({
+                    "status": "ok",
+                    "signature": f"sig_{ENGINE.iteration}"
+                })
+                
+            elif self.path == '/api/bonfire/kelly':
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len)
+                data = json.loads(post_body.decode('utf-8'))
+                self._send_json({
+                    "kelly": float(ENGINE.bonfire.local_kelly),
+                    "p_success": float(ENGINE.bonfire.local_p_success)
+                })
+                
+            elif self.path == '/api/bonfire/compute_admr':
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len)
+                data = json.loads(post_body.decode('utf-8'))
+                state_list = data.get("state", [])
+                state_t = torch.tensor(state_list, dtype=torch.float32, device=ENGINE.device).view(1, -1)
+                if state_t.shape[-1] < ENGINE.dim:
+                    state_t = torch.nn.functional.pad(state_t, (0, ENGINE.dim - state_t.shape[-1]))
+                elif state_t.shape[-1] > ENGINE.dim:
+                    state_t = state_t[:, :ENGINE.dim]
+                from src.core.spectral_coherence_repair import apply_energy_based_stabilization
+                stabilized = apply_energy_based_stabilization(state_t)
+                self._send_json({
+                    "status": "ok",
+                    "states": stabilized.view(-1).tolist()
+                })
+                
+            elif self.path == '/api/bonfire/status':
+                from src.safety.hardware_fingerprint import discover_public_ip
+                self._send_json({
+                    "node_id": ENGINE.bonfire.node_id,
+                    "local_url": ENGINE.bonfire.local_url,
+                    "public_ip": discover_public_ip(),
+                    "peers": ENGINE.bonfire.peers,
+                    "healthy_peers": ENGINE.bonfire.healthy_peers,
+                    "local_kelly": ENGINE.bonfire.local_kelly,
+                    "local_p_success": ENGINE.bonfire.local_p_success,
+                    "consensus_kelly": ENGINE.bonfire.cached_consensus_kelly,
+                    "consensus_p_success": ENGINE.bonfire.cached_consensus_p_success,
+                    "local_signature": ENGINE.bonfire.local_signature
+                })
+                
+            elif self.path == '/api/security/creator_login':
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len)
+                data = json.loads(post_body.decode('utf-8'))
+                passphrase = data.get("passphrase")
+                if not passphrase:
+                    self._send_error_json("Missing passphrase")
+                else:
+                    from src.safety.hardware_fingerprint import verify_sole_creator
+                    if verify_sole_creator(passphrase):
+                        self._send_json({"status": "ok", "message": "Authenticated as Sole Creator"})
+                    else:
+                        self._send_json({"status": "error", "message": "Authentication failed: Hardware mismatch or invalid passcode"})
+                
+            elif self.path == '/api/bonfire/add_peer':
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len)
+                data = json.loads(post_body.decode('utf-8'))
+                url = data.get("url")
+                if url:
+                    ENGINE.bonfire.add_peer(url)
+                    self._send_json({"status": "ok", "message": f"Peer added: {url}"})
+                else:
+                    self._send_error_json("Missing peer url")
+                    
+            elif self.path == '/api/bonfire/remove_peer':
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len)
+                data = json.loads(post_body.decode('utf-8'))
+                url = data.get("url")
+                if url:
+                    ENGINE.bonfire.remove_peer(url)
+                    self._send_json({"status": "ok", "message": f"Peer removed: {url}"})
+                else:
+                    self._send_error_json("Missing peer url")
+                    
+            elif self.path == '/api/crawlers/ingest_news':
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len)
+                data = json.loads(post_body.decode('utf-8'))
+                feeds = data.get("feeds", ["https://finance.yahoo.com/news/rssindex"])
+                payloads = ENGINE.investor_ingestor.ingest_market_topologies(feeds)
+                ingested_count = 0
+                for text in payloads[:10]:
+                    try:
+                        ENGINE.process_input(text, generate_response=False)
+                        ingested_count += 1
+                    except Exception as e:
+                        print(f"[BONFIRE] Failed to ingest article: {e}")
+                self._send_json({
+                    "status": "ok",
+                    "crawled_articles": len(payloads),
+                    "ingested_articles": ingested_count
+                })
                 
             else:
                 self.send_error(404)
