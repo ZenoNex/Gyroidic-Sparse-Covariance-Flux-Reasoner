@@ -154,7 +154,11 @@
 
     <header>
         <div class="title">Topological Manifold // Resonance Graph</div>
-        <div class="controls">
+        <div class="controls" style="display: flex; align-items: center; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.75rem; color: #888;">
+                <span>LIMIT:</span>
+                <input type="number" id="graph-limit" value="150" min="10" max="1000" step="10" style="width: 55px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 2px 4px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; text-align: center; outline: none;">
+            </div>
             <button onclick="fetchAndRender()">REFRESH MANIFOLD</button>
             <button onclick="window.location.href='diegetic_terminal.html'">BACK TO TERMINAL</button>
         </div>
@@ -183,16 +187,19 @@
             loading.style.display = 'block';
             target.innerHTML = '';
 
+            const limitEl = document.getElementById('graph-limit');
+            const limit = limitEl ? parseInt(limitEl.value) || 150 : 150;
+
             // Calculate API URL: same host if served by server, else localhost:8000
             const host = (window.location.hostname === '' || window.location.hostname === 'null') ? 'localhost' : window.location.hostname;
             const port = window.location.port === '' ? '8000' : window.location.port;
             const protocol = window.location.protocol === 'file:' ? 'http:' : window.location.protocol;
             const apiBase = `${protocol}//${host}:${port}`;
 
-            console.log(`Connecting to Manifold at: ${apiBase}/graph`);
+            console.log(`Connecting to Manifold at: ${apiBase}/graph?limit=${limit}`);
 
             try {
-                const response = await fetch(`${apiBase}/graph`);
+                const response = await fetch(`${apiBase}/graph?limit=${limit}`);
                 const data = await response.json();
 
                 if (!data.nodes || data.nodes.length === 0) {
