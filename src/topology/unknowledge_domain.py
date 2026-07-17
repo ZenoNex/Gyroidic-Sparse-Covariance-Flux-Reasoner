@@ -202,18 +202,21 @@ class UnknowledgeDomain(nn.Module):
         self,
         tau_m: float = 0.5,
         tau_decay: float = 0.99,
-        legibility_threshold: float = 0.85
+        legibility_threshold: float = 0.85,
+        dim: int = 256
     ):
         """
         Args:
             tau_m: Baseline mischief threshold for Dream State activation.
             tau_decay: Narrative time decay for V_m computation.
             legibility_threshold: Above this, system is dangerously "legible".
+            dim: Dimension of the obstruction coordinates vector.
         """
         super().__init__()
         self.tau_m = tau_m
         self.tau_decay = tau_decay
         self.legibility_threshold = legibility_threshold
+        self.register_buffer('o', torch.zeros(dim))
 
     def compute_computable_flux(
         self,
@@ -244,6 +247,7 @@ class UnknowledgeDomain(nn.Module):
         self,
         v_m: torch.Tensor,
         h_mischief: float,
+        state: Optional[torch.Tensor] = None,
         hyper_ring_status: Optional[str] = None
     ) -> torch.Tensor:
         """
@@ -252,17 +256,48 @@ class UnknowledgeDomain(nn.Module):
         Args:
             v_m: Mischief Violation Score (Computable Flux)
             h_mischief: Mischief score (H_mischief)
+            state: Optional state tensor to check proximity to o
             hyper_ring_status: Topology status string, e.g., 'survivable_soliton'
 
         Returns:
             A boolean tensor mask indicating which elements are shielded.
         """
         # U = {X | V_m < 0, H_mischief > tau_m}
+        # Handle type mismatch gracefully if v_m is float/int
+        if not isinstance(v_m, torch.Tensor):
+            v_m = torch.tensor(v_m, device=self.o.device)
+            
         shielded = (v_m < 0) & (h_mischief > self.tau_m)
+
+        # Proximity shield to user's private obstruction point o:
+        if state is not None and hasattr(self, 'o') and self.o is not None:
+            dim = self.o.shape[0]
+            # Slicing state to match o dimensions if needed
+            if state.dim() > 1:
+                x = state
+                if x.shape[-1] >= dim:
+                    x = x[..., :dim]
+                else:
+                    x = torch.nn.functional.pad(x, (0, dim - x.shape[-1]))
+                dist = torch.norm(x - self.o, p=2, dim=-1)
+            else:
+                x = state
+                if x.shape[0] >= dim:
+                    x = x[:dim]
+                else:
+                    x = torch.nn.functional.pad(x, (0, dim - x.shape[0]))
+                dist = torch.norm(x - self.o, p=2)
+            
+            # If distance is small (< 1.0), it's close to the user's secret center
+            proximity_shield = dist < 1.0
+            shielded = shielded | proximity_shield
 
         # Explicitly protect "survivable_soliton" hyper-ring phases
         if hyper_ring_status == 'survivable_soliton' and h_mischief > (self.tau_m * 0.5):
-            shielded = shielded | True
+            if isinstance(shielded, torch.Tensor):
+                shielded = shielded | True
+            else:
+                shielded = True
 
         return shielded
 
@@ -271,6 +306,7 @@ class UnknowledgeDomain(nn.Module):
         pressures: torch.Tensor,
         v_m: torch.Tensor,
         h_mischief: float,
+        state: Optional[torch.Tensor] = None,
         hyper_ring_status: Optional[str] = None
     ) -> torch.Tensor:
         """
@@ -284,12 +320,13 @@ class UnknowledgeDomain(nn.Module):
             pressures: Original pressures [batch]
             v_m: Mischief Violation Score [batch]
             h_mischief: Mischief scalar
+            state: Optional state tensor to check proximity to o
             hyper_ring_status: Topology status
 
         Returns:
             Shielded pressures (where domain matches, pressure is dampened to 1%).
         """
-        shield_mask = self.is_shielded(v_m, h_mischief, hyper_ring_status)
+        shield_mask = self.is_shielded(v_m, h_mischief, state, hyper_ring_status)
 
         shielded_pressures = torch.where(
             shield_mask,
