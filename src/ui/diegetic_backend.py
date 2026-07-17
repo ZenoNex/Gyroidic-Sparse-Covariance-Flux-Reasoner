@@ -6182,9 +6182,17 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     traceback.print_exc()
                     self.send_error(500, f"Error serving diegetic terminal: {e}")
                     return
-            elif self.path == '/graph':
-                print("API REQUEST: /graph")
-                ENGINE.graph_manager.load_fossils(limit=150) 
+            elif self.path.startswith('/graph'):
+                print(f"API REQUEST: {self.path}")
+                parsed = urlparse(self.path)
+                query = parse_qs(parsed.query)
+                
+                try:
+                    limit = int(query.get('limit', [150])[0])
+                except ValueError:
+                    limit = 150
+                
+                ENGINE.graph_manager.load_fossils(limit=limit) 
                 graph_data = json.loads(ENGINE.graph_manager.export_graph_json())
                 self._send_json(graph_data)
                 return
