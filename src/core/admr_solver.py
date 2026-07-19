@@ -255,7 +255,7 @@ class PolynomialADMRSolver(nn.Module):
             
         # Instead of replacing states with NaN (crude dropout), we shield the pressures
         # that fall into the Unknowledge Domain (V_m < 0, H_mischief > threshold)
-        shielded_pressure = self._unknowledge_domain.apply_shielding(current_pressure, v_m_proxy, h_mischief)
+        shielded_pressure = self._unknowledge_domain.apply_shielding(current_pressure, v_m_proxy, h_mischief, state=states)
         
         # Apply the shielded pressure scaling back to the states
         # The shield dampens the magnitude of state updates rather than destroying them
