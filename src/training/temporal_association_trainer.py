@@ -638,7 +638,8 @@ class TemporalAssociationTrainer:
             survivorship_pressure.unsqueeze(0),
             torch.tensor([float(v_m)], device=self.device),
             float(h_mischief),
-            hyper_ring_status
+            state=state_to_post,
+            hyper_ring_status=hyper_ring_status
         ).squeeze(0)
         
         # Backward pass
@@ -770,12 +771,14 @@ class TemporalAssociationTrainer:
 
         
         hyper_ring_status = final_output.get('hyper_ring_status', 'unknown')
+        state_active = final_output.get('state', final_output.get('reconstruction', torch.zeros(1, self.model.dim, device=self.device)))
         
         survivorship_pressure = self.unknowledge_domain.apply_shielding(
             survivorship_pressure.unsqueeze(0),
             torch.tensor([float(v_m)], device=self.device),
             float(h_mischief),
-            hyper_ring_status
+            state=state_active,
+            hyper_ring_status=hyper_ring_status
         ).squeeze(0)
         
         self.optimizer.zero_grad()
