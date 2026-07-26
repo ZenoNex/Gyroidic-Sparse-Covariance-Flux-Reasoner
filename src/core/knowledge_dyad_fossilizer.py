@@ -265,17 +265,18 @@ class DyadFossilizer:
             print(f"[FOSSILIZER] Rebuilding index failed: {e}")
 
     def _save_index(self):
-        """Saves current fast index to disk."""
+        """Saves current fast index to disk safely using a snapshot dictionary."""
         try:
+            index_snapshot = dict(self.fossil_index)
             with open(self.index_file, "w", encoding="utf-8") as f:
-                json.dump(self.fossil_index, f)
+                json.dump(index_snapshot, f)
         except Exception as e:
             print(f"[FOSSILIZER] Saving fast index failed: {e}")
 
     def get_all_arxiv_ids(self) -> set:
         """Returns the set of all indexed ArXiv IDs."""
         ids = set()
-        for f, info in self.fossil_index.items():
+        for f, info in list(self.fossil_index.items()):
             a_id = info.get('arxiv_id')
             if a_id:
                 ids.add(a_id)
