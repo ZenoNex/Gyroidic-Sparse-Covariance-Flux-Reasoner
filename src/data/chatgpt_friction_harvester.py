@@ -433,6 +433,10 @@ def is_semisimple_or_sterile(data: dict) -> bool:
     if not isinstance(data, dict):
         return True
         
+    tags = data.get('tags', [])
+    if 'non_semisimple_refreshed' in tags or data.get('semisimple_rerun_complete', False):
+        return False
+
     # 1. Atrophy tag / flag check
     if data.get('atrophy_detected', False):
         return True
@@ -462,7 +466,6 @@ def is_semisimple_or_sterile(data: dict) -> bool:
             return True
             
     # 5. Check if tags indicate semisimple/sterile status
-    tags = data.get('tags', [])
     if any(tag in ['sterile_moduli', 'atrophy_rehydrated', 'semisimple_reconstruction', 'semisimple_compute'] for tag in tags):
         return True
         
@@ -539,6 +542,7 @@ async def auto_temporal_training_loop(
                                         data['tags'] = [t for t in tags_list if t not in ['sterile_moduli', 'atrophy_rehydrated', 'semisimple_reconstruction', 'semisimple_compute']]
                                         if 'non_semisimple_refreshed' not in data['tags']:
                                             data['tags'].append('non_semisimple_refreshed')
+                                        data['semisimple_rerun_complete'] = True
                                             
                                         # Re-save the file to disk!
                                         torch.save(data, filepath)
