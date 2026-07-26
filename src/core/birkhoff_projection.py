@@ -14,6 +14,8 @@ Refactored: January 2026 (Anti-Lobotomy)
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import math
 from typing import Optional, List, Tuple, Dict, Any
 import threading
 from src.core.device_utils import DEVICE
@@ -236,13 +238,43 @@ class ObscuredBirkhoffManifold(nn.Module):
         return (row_err < tolerance) & (col_err < tolerance)
 
     def _sinkhorn_knopp_internal(self, T: torch.Tensor, iters: int) -> torch.Tensor:
-        """Iterative Sinkhorn-Knopp algorithm for non-standard dimensions."""
+        """
+        Iterative Sinkhorn-Knopp algorithm with Non-Semisimple Topological Phase Preservation.
+        
+        To prevent standard Sinkhorn iteration from collapsing into a flat, semisimple
+        equilibrium centroid (which strips non-Abelian phase dynamics), a non-commutative
+        Sine-Gordon / Chern-Simons breather perturbation is applied between normalization steps.
+        """
         T_it = T.clone()
-        for _ in range(iters):
+        n = T_it.shape[-1]
+        
+        # Non-commutative breather frequency parameters
+        omega = 1.0 / 3.0
+        sq = math.sqrt(1.0 - omega**2)
+        
+        for step in range(iters):
             # Row normalization
             T_it = T_it / (T_it.sum(dim=-1, keepdim=True) + 1e-8)
             # Column normalization
             T_it = T_it / (T_it.sum(dim=-2, keepdim=True) + 1e-8)
+            
+            # Non-semisimple topological phase preservation (Cognitive Context Seeded):
+            # Rather than using unseeded synthetic noise (which erases cognitive context and allows
+            # teacher's pet / cultural default bias to leak in), we derive the non-commutative
+            # phase matrix directly from the input tensor's intrinsic skew-symmetry (T_it - T_it^T).
+            if (step + 1) % 5 == 0 and step < iters - 1:
+                t_val = (step + 1) * 0.1
+                x_pos = T_it.mean()
+                u_n = 4.0 * math.atan((sq / omega) * (1.0 / (math.cosh(sq * x_pos) + 1e-8)) * math.sin(omega * t_val))
+                
+                # Extract intrinsic non-commutative skew-symmetry from T_it itself
+                skew_T = T_it - T_it.transpose(-1, -2)
+                skew_norm = skew_T.norm(dim=(-2, -1), keepdim=True) + 1e-8
+                
+                # Context-seeded non-Abelian phase matrix preserving exact cognitive footprint
+                phase_matrix = 0.01 * u_n * (skew_T / skew_norm) * (T_it.std() + 1e-6)
+                T_it = F.relu(T_it + phase_matrix)
+                
         return T_it
     
     def forward(self, T: torch.Tensor, anneal: bool = False) -> torch.Tensor:
