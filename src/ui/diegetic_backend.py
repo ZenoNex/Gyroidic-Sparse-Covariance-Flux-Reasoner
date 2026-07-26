@@ -3654,7 +3654,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 
                 # Topological checkpoint: isolate meta_state gradient history 
                 if hasattr(self, 'meta_state') and isinstance(self.meta_state, torch.Tensor):
-                    self.meta_state = self.meta_state.detach().requires_grad_(True)
+                    self.meta_state = self.meta_state.detach()
                 
                 # 1. Run Temporal Association Trainer (TAT) if available
                 if hasattr(self, '_temporal_trainer') and self._temporal_trainer is not None:
@@ -3674,7 +3674,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 
                 # Topological checkpoint: isolate meta_state gradient history between trainers
                 if hasattr(self, 'meta_state') and isinstance(self.meta_state, torch.Tensor):
-                    self.meta_state = self.meta_state.detach().requires_grad_(True)
+                    self.meta_state = self.meta_state.detach()
                 
                 # 2. Run Spectral Structural Trainer if available
                 if hasattr(self, 'trainer') and self.trainer is not None:
