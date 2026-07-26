@@ -1104,10 +1104,10 @@ class DiegeticPhysicsEngine(nn.Module):
                         
                         # Apply dynamically modulated SDE fractional step
                         fractional_step = 0.01 * max(0.1, hunger)
-                        param.data -= fractional_step * param.grad
+                        param.data.sub_(fractional_step * param.grad)
             
             self.larynx.eval()
-            return avg_loss.item()
+            return avg_loss_val
         except Exception:
             self.larynx.eval()
             return None
@@ -5095,6 +5095,20 @@ class DiegeticPhysicsEngine(nn.Module):
                     signal_tensor = fp_tensor
                     media_received = True
                     video_breather['image_fingerprint'] = signal_tensor.detach().cpu()
+
+        if not media_received:
+            # Derive deterministic ground-state signal from linguistic description
+            # Preserves non-zero spectral entropy and topological depth for text-only scientific dyads (e.g. LIGO, NCBI)
+            import hashlib
+            t_hash = hashlib.sha256(description.encode('utf-8')).digest()
+            seed_vals = torch.tensor([b / 255.0 for b in t_hash], device=self.device).float()
+            signal_tensor = seed_vals.repeat((96 // len(seed_vals)) + 1)[:96]
+            t_val = self.iteration * 0.1
+            omega = 1.0 / 3.0
+            sq = math.sqrt(1.0 - omega**2)
+            x_pos = signal_tensor.mean()
+            u_n = 4.0 * math.atan((sq / omega) * (1.0 / (math.cosh(sq * x_pos) + 1e-8)) * math.sin(omega * t_val))
+            signal_tensor = signal_tensor + 0.05 * u_n
 
         # --- TOPOLOGICAL MATURATION (Augmentation Phase) ---
         # We perform augmentation-first to ensure matured, fractal-stable signals
