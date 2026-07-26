@@ -1683,10 +1683,11 @@ class HybridAI:
                                 for sample in samples:
                                     sample_text = sample.get("text", "")
                                     if sample_text:
-                                        self.process_text(
-                                            f"INGEST_DYAD: {sample_text}",
-                                            ingestion_mode=True
-                                        )
+                                        with torch.no_grad():
+                                            self.process_text(
+                                                f"INGEST_DYAD: {sample_text}",
+                                                ingestion_mode=True
+                                            )
                                         print(f"[INGEST] Background scientific data assimilated: {sample.get('source')}", flush=True)
                 except Exception as e:
                     print(f"[WARN] Background Scientific Learning iteration failed: {e}")
