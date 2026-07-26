@@ -742,21 +742,20 @@
             <div class="stat-item">ITERATION: <span id="stat-iteration">0</span></div>
             <div class="stat-item">META STATE: <span id="stat-retrieval" style="color: #666;">UNKNOWN</span></div>
         </div>
-        <!-- Master Commutativity Selector ─────────────────────────────────────
-             Controls the global A→B ordering for ALL dyad types simultaneously.
-             Per-panel selectors remain for within-panel ordering only.
-             Sends 'commutativity' field with every /interact payload. -->
-        <div
-            style="display:flex;align-items:center;gap:0.75rem;padding:0.35rem 1.25rem;background:rgba(0,0,0,0.4);border-top:1px solid var(--glass-border);font-family:var(--font-mono);font-size:0.65rem;letter-spacing:1px;">
+
+        <!-- Master Commutativity Selector & User Geometric Domain Contract -->
+        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.35rem 1.25rem;background:rgba(0,0,0,0.4);border-top:1px solid var(--glass-border);font-family:var(--font-mono);font-size:0.65rem;letter-spacing:1px;width:100%;box-sizing:border-box;">
             <span style="color:#555;">DYAD ORDER:</span>
-            <select id="commute-master"
-                style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-blue);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;border-radius:3px;outline:none;cursor:pointer;">
+            <select id="commute-master" style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-blue);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;border-radius:3px;outline:none;cursor:pointer;">
                 <option value="symmetric" selected>&#x2297; Symmetric</option>
                 <option value="media_first">Media &#x2192; Text</option>
                 <option value="text_first">Text &#x2192; Media</option>
             </select>
             <span style="color:#333;">│</span>
-            <span style="color:#555;font-size:0.58rem;">Governs all dyad channels simultaneously</span>
+            <span style="color:#555;">USER CONTRACT (ALIAS):</span>
+            <input type="text" id="user-alias" value="admin" style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-magenta);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;width:100px;border-radius:3px;outline:none;letter-spacing:1px;">
+            <span style="color:#333;">│</span>
+            <span id="creator-lock-status" style="color:var(--terminal-green);cursor:pointer;font-weight:bold;" onclick="promptCreatorAuth()">🔓 GUEST</span>
         </div>
     </header>
 
@@ -1235,7 +1234,64 @@
             if (btnSubmit) {
                 btnSubmit.addEventListener("click", executeResonanceLink);
             }
+            
+            checkCreatorStatus();
         });
+
+        async function checkCreatorStatus() {
+            try {
+                const response = await fetch('/api/security/creator_status');
+                const data = await response.json();
+                const lockEl = document.getElementById('creator-lock-status');
+                if (lockEl) {
+                    if (data.initialized) {
+                        lockEl.textContent = "🔒 LOCKED GUEST";
+                        lockEl.style.color = "var(--terminal-blue)";
+                    } else {
+                        lockEl.textContent = "🔓 REGISTER SOLE CREATOR";
+                        lockEl.style.color = "var(--terminal-yellow)";
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to fetch creator status:", e);
+            }
+        }
+
+        async function promptCreatorAuth() {
+            const response = await fetch('/api/security/creator_status');
+            const statusData = await response.json();
+            
+            let promptMsg = statusData.initialized 
+                ? "Enter Sole Creator Passphrase to authorize this hardware node:"
+                : "Enter a new Sole Creator Passphrase to lock this system to this physical machine's fingerprint:";
+                
+            const passphrase = prompt(promptMsg);
+            if (!passphrase) return;
+            
+            try {
+                const res = await fetch('/api/security/creator_login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ passphrase: passphrase })
+                });
+                const data = await res.json();
+                alert(data.message);
+                
+                const lockEl = document.getElementById('creator-lock-status');
+                if (lockEl) {
+                    if (data.status === 'ok') {
+                        lockEl.textContent = "🔑 SOLE CREATOR";
+                        lockEl.style.color = "var(--terminal-magenta)";
+                        lockEl.style.textShadow = "0 0 8px var(--terminal-magenta)";
+                    } else {
+                        lockEl.textContent = "❌ AUTH FAILED";
+                        lockEl.style.color = "red";
+                    }
+                }
+            } catch (e) {
+                alert("Auth request failed: " + e.message);
+            }
+        }
 
         // D3 Force Graph logic
         let graphSimulation = null;
@@ -1755,6 +1811,9 @@
             userInput.value = '';
 
             try {
+                const aliasEl = document.getElementById('user-alias');
+                const alias = aliasEl ? aliasEl.value : 'admin';
+
                 let response;
                 if (state.active_video_file) {
                     const formData = new FormData();
@@ -1769,6 +1828,7 @@
                     formData.append('media_chain', JSON.stringify(state.media_chain.map(item => ({ type: item.type, data: item.data }))));
                     formData.append('commutativity', _calculateContextualCommutativity());
                     formData.append('regime', state.regime);
+                    formData.append('alias', alias);
 
                     response = await fetch(`${state.backend_url}/interact`, {
                         method: 'POST',
@@ -1783,6 +1843,7 @@
                         media_chain: state.media_chain.map(item => ({ type: item.type, data: item.data })),
                         commutativity: _calculateContextualCommutativity(),
                         regime: state.regime,
+                        alias: alias
                     };
 
                     response = await fetch(`${state.backend_url}/interact`, {
