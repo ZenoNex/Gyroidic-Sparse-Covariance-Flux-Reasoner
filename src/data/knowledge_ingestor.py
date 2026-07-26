@@ -361,6 +361,10 @@ class ArXivSovereignIngestor:
                 self._parse_and_fossilize_atom(response.text, cleaned_query, commutativity)
             else:
                 print(f"[INGEST] Search query failed (HTTP {response.status_code}).")
+        except requests.exceptions.Timeout as te:
+            print(f"[INGEST] Search transport timeout for '{cleaned_query}' (20s limit): {te}. Ingestion suspended gracefully.")
+        except requests.exceptions.RequestException as re:
+            print(f"[INGEST] Search transport network failure: {re}. Ingestion suspended.")
         except Exception as e:
             print(f"[INGEST] Search transport error: {e}. Ingestion suspended.")
 
