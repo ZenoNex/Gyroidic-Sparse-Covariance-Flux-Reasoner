@@ -267,7 +267,13 @@ class DyadFossilizer:
     def _save_index(self):
         """Saves current fast index to disk safely using a snapshot dictionary."""
         try:
-            index_snapshot = dict(self.fossil_index)
+            while True:
+                try:
+                    index_snapshot = dict(self.fossil_index)
+                    break
+                except RuntimeError:
+                    import time
+                    time.sleep(0.01)
             with open(self.index_file, "w", encoding="utf-8") as f:
                 json.dump(index_snapshot, f)
         except Exception as e:
