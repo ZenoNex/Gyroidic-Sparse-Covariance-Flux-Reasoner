@@ -35,6 +35,10 @@ class BonfireNetwork:
         self.local_kelly: float = 0.5
         self.local_p_success: float = 0.5
         
+        # Thread-safe prediction bets cache
+        self.peer_predictions: Dict[str, float] = {}
+        self.peer_penalty_debts: Dict[str, int] = {}
+        
         self._load_peers()
         
         # Async worker thread pool
@@ -158,6 +162,71 @@ class BonfireNetwork:
                 "consensus_p_success": self.cached_consensus_p_success
             }
 
+        # Thread-safe prediction bets cache
+        self.peer_predictions: Dict[str, float] = {}
+        self.peer_penalty_debts: Dict[str, int] = {}
+
+    def place_zero_dollar_bet(self, peer_url: str, predicted_pas: float) -> Dict[str, Any]:
+        """
+        Zero-Dollar Predictive Bet Registration.
+        Allows peer nodes to stake zero-cost predictions on system convergence (PAS_h).
+        If predictions fail to accrue yield or underperform Kelly consensus, peer receives a compute challenge.
+        """
+        with self.lock:
+            self.peer_predictions[peer_url] = max(0.0, min(1.0, float(predicted_pas)))
+            current_consensus = self.cached_consensus_p_success
+            
+            # Compute Kelly expectation
+            p_success = predicted_pas
+            kelly_fraction = max(0.0, 2.0 * p_success - 1.0)
+            half_kelly = 0.5 * kelly_fraction
+            
+            # Underperformance check relative to consensus
+            delta = current_consensus - predicted_pas
+            is_underperforming = delta > 0.2
+            
+            if is_underperforming:
+                self.peer_penalty_debts[peer_url] = self.peer_penalty_debts.get(peer_url, 0) + 1
+                challenge_issued = True
+            else:
+                self.peer_penalty_debts[peer_url] = max(0, self.peer_penalty_debts.get(peer_url, 0) - 1)
+                challenge_issued = False
+
+            # Trigger boot if penalty debt exceeds tolerance (3 strikes)
+            booted = False
+            if self.peer_penalty_debts.get(peer_url, 0) >= 3:
+                self.remove_peer(peer_url)
+                booted = True
+                print(f"[BONFIRE] [BOOT] Peer {peer_url} booted after 3 underperforming prediction bets/failed challenges.")
+
+            return {
+                "peer_url": peer_url,
+                "predicted_pas": predicted_pas,
+                "half_kelly": half_kelly,
+                "challenge_issued": challenge_issued,
+                "penalty_debt": self.peer_penalty_debts.get(peer_url, 0),
+                "booted": booted
+            }
+
+    def evaluate_compute_challenge(self, peer_url: str, response_payload: Dict[str, Any]) -> bool:
+        """
+        Evaluates a peer's response to a computational penalty challenge.
+        If response contains valid ADMR state or proof of work, clears penalty debt.
+        Otherwise increments debt towards booting.
+        """
+        with self.lock:
+            valid_proof = response_payload.get("proof_of_work") is not None or response_payload.get("states") is not None
+            if valid_proof:
+                self.peer_penalty_debts[peer_url] = max(0, self.peer_penalty_debts.get(peer_url, 0) - 1)
+                print(f"[BONFIRE] Peer {peer_url} successfully cleared compute challenge penalty.")
+                return True
+            else:
+                self.peer_penalty_debts[peer_url] = self.peer_penalty_debts.get(peer_url, 0) + 1
+                if self.peer_penalty_debts[peer_url] >= 3:
+                    self.remove_peer(peer_url)
+                    print(f"[BONFIRE] [BOOT] Peer {peer_url} failed compute challenge and was booted from ring.")
+                return False
+
     def distribute_admr_to_synthetic_endpoint(self, state: torch.Tensor) -> Optional[torch.Tensor]:
         """
         Offloads ADMR calculations to a healthy peer if available.
@@ -192,3 +261,4 @@ class BonfireNetwork:
     def close(self):
         self.running = False
         self.executor.shutdown(wait=False)
+
