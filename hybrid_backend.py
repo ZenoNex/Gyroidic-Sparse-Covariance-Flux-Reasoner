@@ -793,6 +793,28 @@ class HybridAI:
         # SOVEREIGN WARMSTART: Restore manifold if fossil exists (Thorium Protocol)
         self.load_model_state()
 
+        # FREENET GHOST CALLER INTEGRATION
+        try:
+            from src.data.freenet_ghost_caller import FreenetGhostCaller
+            self.ghost_caller = FreenetGhostCaller(host='127.0.0.1', port=9481)
+            self.ghost_caller.broadcast_ghost_call()
+            print("[OK] Freenet Ghost Caller initialized and introductory call dispatched")
+        except Exception as e:
+            print(f"[FAIL] Freenet Ghost Caller init failed: {e}")
+            self.ghost_caller = None
+
+        # NON-DUAL COIN INTEGRATION
+        try:
+            from src.core.non_dual_coin import TripsodicLedger
+            from src.data.freenet_bulletin_router import FreenetBulletinRouter
+            self.tripsodic_ledger = TripsodicLedger()
+            self.bulletin_router = FreenetBulletinRouter()
+            print("[OK] Non-Dual Coin ledger and Bulletin Router initialized.")
+        except Exception as e:
+            print(f"[FAIL] Non-Dual Coin init failed: {e}")
+            self.tripsodic_ledger = None
+            self.bulletin_router = None
+
     def _initialize_manifold_state(self):
         """Initialize the manifold with the FGRT harmonic seed (Love Vector Norm 3.127)."""
         t_basis = torch.linspace(0, 2 * 3.14159265, 256, device=self.torch_device)
@@ -1689,6 +1711,25 @@ class HybridAI:
                                                 ingestion_mode=True
                                             )
                                         print(f"[INGEST] Background scientific data assimilated: {sample.get('source')}", flush=True)
+
+                                        # Tripsodic Expansion & Proof of Honesty
+                                        if hasattr(self, 'tripsodic_ledger') and self.tripsodic_ledger:
+                                            self.tripsodic_ledger.rhythm_tick()
+                                            
+                                            # Dynamically modulate limits
+                                            new_lr = self.tripsodic_ledger.get_learning_rate_modulator()
+                                            new_ego_limit = self.tripsodic_ledger.get_ego_death_limit_modulator()
+                                            
+                                            if self.engine and hasattr(self.engine, 'archetypal_governor') and self.engine.archetypal_governor:
+                                                if hasattr(self.engine.archetypal_governor, 'abstraction') and self.engine.archetypal_governor.abstraction:
+                                                    self.engine.archetypal_governor.abstraction.abstraction_limit = new_ego_limit
+                                            
+                                            if hasattr(self, 'bulletin_router') and self.bulletin_router:
+                                                self.bulletin_router.broadcast_proof_of_honesty(
+                                                    volume=self.tripsodic_ledger.global_volume,
+                                                    mischief=self.tripsodic_ledger.mischief_buffer
+                                                )
+                                                print(f"[NDC] Tripsodic Expansion tick. New Volume: {self.tripsodic_ledger.global_volume:.2f} (Ego Limit: {new_ego_limit:.2f})")
                 except Exception as e:
                     print(f"[WARN] Background Scientific Learning iteration failed: {e}")
                 
