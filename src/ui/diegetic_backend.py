@@ -7207,6 +7207,54 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     "states": stabilized.view(-1).tolist()
                 })
                 
+            elif self.path == '/api/bonfire/predict':
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len)
+                data = json.loads(post_body.decode('utf-8'))
+                peer_url = data.get("peer_url", "http://localhost:8001")
+                predicted_pas = float(data.get("predicted_pas", 0.75))
+                bet_res = ENGINE.bonfire.place_zero_dollar_bet(peer_url, predicted_pas)
+                self._send_json({
+                    "status": "ok",
+                    "bet_result": bet_res
+                })
+
+            elif self.path == '/api/bonfire/economic_news':
+                from src.data.economic_news_linker import EconomicAgentLinker
+                linker = EconomicAgentLinker()
+                news_items = linker.fetch_sovereign_business_news()
+                bittensor_res = linker.fetch_bittensor_subnet_prediction(41)
+                olas_res = linker.fetch_autonolas_olas_mech()
+                self._send_json({
+                    "status": "ok",
+                    "business_news": news_items,
+                    "bittensor": bittensor_res,
+                    "autonolas": olas_res
+                })
+
+            elif self.path == '/api/bonfire/dispatch_tao_forecast':
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len)
+                data = json.loads(post_body.decode('utf-8'))
+                subnet_id = int(data.get("subnet_id", 41))
+                forecast = data.get("forecast", {"predicted_pas": 0.75})
+                from src.data.economic_news_linker import EconomicAgentLinker
+                linker = EconomicAgentLinker()
+                res = linker.submit_bittensor_subnet_forecast(subnet_id, forecast)
+                self._send_json({"status": "ok", "bittensor_submission": res})
+
+            elif self.path == '/api/bonfire/dispatch_olas_mech':
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len)
+                data = json.loads(post_body.decode('utf-8'))
+                mech = data.get("mech_address", "0xOlasMechEndpoint")
+                tool = data.get("tool", "prediction-offline-v1")
+                prompt = data.get("prompt", "Verify topological convergence")
+                from src.data.economic_news_linker import EconomicAgentLinker
+                linker = EconomicAgentLinker()
+                res = linker.dispatch_olas_mech_task(mech, tool, prompt)
+                self._send_json({"status": "ok", "olas_mech_dispatch": res})
+
             elif self.path == '/api/bonfire/status':
                 from src.safety.hardware_fingerprint import discover_public_ip
                 self._send_json({
@@ -7219,7 +7267,9 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     "local_p_success": ENGINE.bonfire.local_p_success,
                     "consensus_kelly": ENGINE.bonfire.cached_consensus_kelly,
                     "consensus_p_success": ENGINE.bonfire.cached_consensus_p_success,
-                    "local_signature": ENGINE.bonfire.local_signature
+                    "local_signature": ENGINE.bonfire.local_signature,
+                    "peer_predictions": ENGINE.bonfire.peer_predictions,
+                    "peer_penalty_debts": ENGINE.bonfire.peer_penalty_debts
                 })
                 
             elif self.path == '/api/security/creator_login':
