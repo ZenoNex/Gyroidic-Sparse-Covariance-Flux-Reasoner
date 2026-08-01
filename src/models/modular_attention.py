@@ -195,13 +195,12 @@ class ModularAttention(nn.Module):
                 Q_k_flat = Q_k.transpose(1, 2).contiguous().view(batch_size * seq_len, self.hidden_dim)
                 V_k_flat = V_k.transpose(1, 2).contiguous().view(batch_size * seq_len, self.hidden_dim)
                 
-                # O(1) PyOpenCL Parity Filter
-                import numpy as np
-                q_numpy = (Q_k_flat.detach().cpu().numpy().mean(axis=-1) * 1000).astype(np.int64)
-                v_numpy = (V_k_flat.detach().cpu().numpy().mean(axis=-1) * 1000).astype(np.int64)
+                # O(1) Parity Filter evaluated natively to prevent CPU/GPU pipeline stalling
+                q_int = (Q_k_flat.mean(dim=-1) * 1000).to(torch.int64)
+                v_int = (V_k_flat.mean(dim=-1) * 1000).to(torch.int64)
                 
-                valid_mask = self.opencl_engine.filter_dead_logic(v_numpy, q_numpy)
-                valid_mask_tensor = torch.from_numpy(valid_mask).to(V_k_flat.device).float().unsqueeze(-1)
+                # Native PyTorch bitwise evaluation replacing PyOpenCL overhead
+                valid_mask_tensor = ((q_int ^ v_int) & 1).float().unsqueeze(-1)
                 
                 # Excitation is only permitted if logic is not dead
                 safe_excitation = V_k_flat * valid_mask_tensor
