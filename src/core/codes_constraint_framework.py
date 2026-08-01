@@ -210,12 +210,48 @@ class CODESConstraintFramework(nn.Module):
         return current_state, diagnostics
     
     def _compute_stability_score(self, state: torch.Tensor) -> float:
-        """Compute stability score based on energy landscape curvature."""
-        # Compute Hessian approximation
+        """Compute stability score based on energy landscape curvature (8x8 Hessian Trick)."""
+        # 8x8 Hessian Trick (boundary-curvature ledger)
+        # Instead of a full O(d^2) Hessian, we extract an 8x8 boundary-curvature ledger
+        # from the state's most active dimensions to compute principal curvatures.
         grad = self.compute_energy_gradient(state)
         
-        # Stability based on gradient magnitude (lower = more stable)
-        stability = 1.0 / (1.0 + torch.norm(grad).item())
+        dim = state.shape[-1]
+        if dim > 8:
+            # Extract top 8 most active dimensions based on gradient magnitude
+            _, top_indices = torch.topk(torch.abs(grad.flatten()), min(8, grad.numel()))
+            top_indices = top_indices % dim
+        else:
+            top_indices = torch.arange(dim, device=state.device)
+            
+        # Finite difference to compute 8x8 Hessian on active boundary
+        k = len(top_indices)
+        hessian_8x8 = torch.zeros((k, k), device=state.device)
+        delta = 1e-4
+        
+        for i in range(k):
+            idx = top_indices[i]
+            perturbed_state = state.clone()
+            if perturbed_state.dim() == 1:
+                perturbed_state[idx] += delta
+            else:
+                perturbed_state[..., idx] += delta
+                
+            grad_perturbed = self.compute_energy_gradient(perturbed_state)
+            grad_diff = (grad_perturbed - grad) / delta
+            
+            if grad_diff.dim() == 1:
+                hessian_8x8[i, :] = grad_diff[top_indices]
+            else:
+                hessian_8x8[i, :] = grad_diff[..., top_indices].mean(dim=0)
+                
+        # Symmetrize the ledger
+        hessian_8x8 = 0.5 * (hessian_8x8 + hessian_8x8.T)
+        
+        # Stability is inversely proportional to maximum curvature (spectral radius)
+        # using the Frobenius norm of the 8x8 ledger as a proxy
+        curvature_proxy = torch.norm(hessian_8x8, p='fro').item()
+        stability = 1.0 / (1.0 + curvature_proxy + torch.norm(grad).item())
         
         return stability
     
