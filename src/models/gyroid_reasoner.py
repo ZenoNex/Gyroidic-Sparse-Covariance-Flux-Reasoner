@@ -94,7 +94,8 @@ class GyroidicFluxReasoner(nn.Module):
         use_admm: bool = True,
         admm_rho: float = 2.0,
         admm_steps: int = 50,
-        use_saturation: bool = False
+        use_saturation: bool = False,
+        vocab_size: int = 50257
     ):
         """
         Args:
@@ -125,7 +126,6 @@ class GyroidicFluxReasoner(nn.Module):
         # --- FORCED REPAIR INJECTION ---
         self.device = DEVICE
         device = self.device
-        poly_degree = 4 # Match historical state
         # -------------------------------
 
         # Polynomial functional configuration
@@ -340,8 +340,11 @@ class GyroidicFluxReasoner(nn.Module):
             device=device
         )
 
+        from src.core.context_aware_quantizer import ContextAwareQuantizer
+        self.caq = ContextAwareQuantizer(feature_dim=hidden_dim, num_shells=33, device=device)
+
         # Output projection
-        self.output_proj = nn.Linear(hidden_dim, 1)
+        self.output_proj = nn.Linear(hidden_dim, vocab_size)
     
     def _create_constraint_probes(self, device: torch.device):
         """
@@ -633,9 +636,9 @@ class GyroidicFluxReasoner(nn.Module):
                     # Mark reducible samples for System 2 repair
                     reducible_mask = ~irreducibility_result['is_irreducible']
                     failure_mask = failure_mask | reducible_mask
-            except Exception:
-                # If irreducibility check fails, continue without it
-                pass
+            except Exception as e:
+                # If irreducibility check fails, fail loudly (topological rupture)
+                raise RuntimeError("Topological irreducibility rupture detected.") from e
         
         # 3b. Measure Selection and Containment Pressure
         reconstruction_pressure_pre = self.crt.compute_reconstruction_pressure(
@@ -927,9 +930,9 @@ class GyroidicFluxReasoner(nn.Module):
                     graphs=[constraint_graph] if constraint_graph else None
                 )
                 # Log violation but don't fail - this is a monitoring invariant
-            except Exception:
-                # If meta-invariant check fails, continue without it
-                pass
+            except Exception as e:
+                # If meta-invariant check fails, fail loudly
+                raise RuntimeError("Meta-invariant topology ruptured.") from e
         
         # Phase 3: Continuous Co-Primality Check (optional, for diagnostics)
         if self.use_continuous_coprimality and self.K >= 2:
@@ -943,9 +946,9 @@ class GyroidicFluxReasoner(nn.Module):
                             residue_i, residue_j, check_asymptotic=False
                         )
                         # Use for diagnostics or selection pressure
-            except Exception:
-                # If co-primality check fails, continue without it
-                pass
+            except Exception as e:
+                # If co-primality check fails, fail loudly
+                raise RuntimeError("Continuous co-primality constraint shattered.") from e
         
         # 9. Output (Projection)
         # Use squeezed h if sequence length is 1, else mean pool or use last token
@@ -1060,54 +1063,3 @@ class GyroidicFluxReasoner(nn.Module):
                 'reconstruction': results['reconstruction'],
                 'confidence': confidence
             }
-    
-    def _create_constraint_probes(self, device: torch.device):
-        """
-        Create constraint probe operators for each polynomial functional.
-        Phase 1: Initialize constraint probes with sparse covariance matrices.
-        """
-        if not self.use_admm:
-            return
-        
-        probes = []
-        
-        for k in range(self.K):
-            # Create sparse covariance matrix for constraint k
-            # Use identity with small random perturbation for anisotropy
-            cov_dim = self.D  # Dimension matches polynomial degree
-            sparse_cov = torch.eye(cov_dim, device=device) * 0.5
-            # Add small honest anisotropy
-            sparse_cov += harvest_honest_jitter((cov_dim, cov_dim), device=device, scaled=True)
-            sparse_cov = (sparse_cov + sparse_cov.t()) / 2.0  # Symmetrize
-            
-            # Embedding function: identity for now (can be customized)
-            embedding_fn = lambda r: r.reshape(-1, self.D) if r.numel() == self.D else r
-            
-            # Gyroid violation function: use gyroid probe if available
-            if self.use_gyroid_probes:
-                def gyroid_violation_fn(c):
-                    # Proper gyroid violation computation using the gyroid probe
-                    # Compute violation score based on gyroid surface distance
-                    batch_size = c.shape[0]
-                    violation_scores = torch.zeros(batch_size, device=c.device)
-                    
-                    for i in range(batch_size):
-                        constraint_state = c[i]  # Single constraint state
-                        # Use the gyroid probe to compute proper violation
-                        violation_score = self.gyroid_probe.compute_violation_score(constraint_state.unsqueeze(0))
-                        violation_scores[i] = violation_score.squeeze()
-                    
-                    return violation_scores
-            else:
-                gyroid_violation_fn = lambda c: torch.zeros(c.shape[0], device=device)
-            
-            probe = ConstraintProbeOperator(
-                constraint_index=k,
-                sparse_covariance=sparse_cov,
-                embedding_fn=embedding_fn,
-                gyroid_violation_fn=gyroid_violation_fn,
-                device=device
-            )
-            probes.append(probe)
-        
-        self.constraint_probes = nn.ModuleList(probes)
