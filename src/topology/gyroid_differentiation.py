@@ -7,7 +7,7 @@ embedding flow is perpendicular to gyroid gradient.
 Mathematical Foundation:
     G(x) = sin(x)cos(y) + sin(y)cos(z) + sin(z)cos(x) = 0
     
-    Constraint: ∇_flow Φ(r) ⟂ ∇G
+    Constraint: _flow (r)  G
     
     Forbidden smoothing: NOT exists gamma: [0,1] -> C s.t.
     Phi(r1) ~ Phi(r2) and gamma subset G^perp
@@ -22,7 +22,7 @@ from src.core.fgrt_primitives import GyroidManifold
 
 class GyroidFlowConstraint(nn.Module):
     """
-    Gyroid Flow Constraint: ∇_flow Φ(r) ⟂ ∇G
+    Gyroid Flow Constraint: _flow (r)  G
     
     Ensures embedding flow is perpendicular to gyroid gradient.
     """
@@ -43,7 +43,7 @@ class GyroidFlowConstraint(nn.Module):
         embedding_fn: Optional[callable] = None
     ) -> torch.Tensor:
         """
-        Compute flow gradient ∇_flow Φ(r).
+        Compute flow gradient _flow (r).
         
         Args:
             residue: [batch, ...] residue tensor
@@ -79,7 +79,7 @@ class GyroidFlowConstraint(nn.Module):
         embedding_fn: Optional[callable] = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Check flow constraint: <∇_flow Φ(r), ∇G> = 0
+        Check flow constraint: <_flow (r), G> = 0
         
         Args:
             residue: [batch, ...] residue tensor
@@ -261,11 +261,17 @@ class ForbiddenSmoothingChecker(nn.Module):
             tangents = path_points_3d[1:] - path_points_3d[:-1]  # [num_samples-1, 3]
             grad_G_mid = (grad_G[1:] + grad_G[:-1]) / 2.0  # [num_samples-1, 3]
             
-            # Dot product: should be ~0 for path in G^perp
+            # Dot product: should be ~0 for path in G^perp (first-order)
             dot_products = torch.sum(tangents * grad_G_mid, dim=-1)  # [num_samples-1]
             
-            # Path is in G^perp if all dot products are small
-            path_in_G_perp = torch.all(torch.abs(dot_products) < self.flow_constraint.tolerance)
+            # Second-order condition: tangent^T H tangent ~ 0
+            # Approximated via finite difference of gradient along the path
+            delta_grad_G = grad_G[1:] - grad_G[:-1]
+            second_order = torch.sum(tangents * delta_grad_G, dim=-1)
+            
+            # Path is in G^perp if both first and second order derivatives are small
+            path_in_G_perp = torch.all(torch.abs(dot_products) < self.flow_constraint.tolerance) and \
+                             torch.all(torch.abs(second_order) < self.flow_constraint.tolerance)
             
             if path_in_G_perp:
                 is_forbidden[b] = True
