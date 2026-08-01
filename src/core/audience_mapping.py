@@ -21,9 +21,8 @@ class AudienceProjection(nn.Module):
     3. Preserves Roughness (singularities are mapped, not smoothed).
     
     [ANTI-LOBOTOMY REWRITE]: 
-    Eradicated nn.Linear ML proxies. 
-    Now utilizes PyOpenCL SiliconSovereigntyEngine video dyad chunking (GTX 1050ti encoder trick)
-    for hardware-backed topological projections.
+    Eradicated nn.Linear ML proxies and legacy video encoding hacks. 
+    Now utilizes Symplectic Gluing (GluingOperator) for rigorous P2P manifold integration.
     """
     
     def __init__(
@@ -37,40 +36,32 @@ class AudienceProjection(nn.Module):
         self.audience_dim = audience_dim
         self.lipschitz_k = min(lipschitz_k, 0.95)
         
-        # Instantiate Silicon Sovereignty Engine for hardware-backed projection
-        from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
-        self.silicon_engine = SiliconSovereigntyEngine()
+        from src.core.gluing_operator import GluingOperator
+        self.gluing_operator = GluingOperator(dim=input_dim)
         
     def forward(self, manifold_state: torch.Tensor) -> torch.Tensor:
         """
-        Phi(m). Uses PyOpenCL video encoder chunking to perform topological projection.
+        Phi(m). Uses Symplectic Gluing to dynamically stitch state boundaries for projection.
         """
-        device = manifold_state.device
-        dtype = manifold_state.dtype
-        batch_size = manifold_state.shape[0] if manifold_state.dim() > 1 else 1
+        # 1. Apply Symplectic Gluing (P2P manifold integration)
+        glued_state = self.gluing_operator(manifold_state)
         
-        # 1. Convert to numpy for PyOpenCL ingestion
-        raw_np = manifold_state.detach().cpu().numpy().astype(np.float32)
-        
-        # 2. Apply hardware video dyad chunking (projects into discrete structural bins)
-        # We chunk into audience_dim to natively map the dimensions.
-        chunked_np = self.silicon_engine.apply_video_dyad_chunking(
-            raw_np, 
-            chunk_size=self.audience_dim, 
-            max_chunks=1  # We want a single projected vector per batch item
-        )
-        
-        # 3. Re-ingest to PyTorch tensor
-        audience_state = torch.from_numpy(chunked_np).to(device=device, dtype=dtype)
-        
-        # 4. Enforce Lipschitz boundary scaling
+        # 2. Align dimensions for Audience space
+        if self.input_dim > self.audience_dim:
+            audience_state = glued_state[..., :self.audience_dim]
+        elif self.input_dim < self.audience_dim:
+            audience_state = torch.cat([glued_state, torch.zeros_like(glued_state)], dim=-1)[..., :self.audience_dim]
+        else:
+            audience_state = glued_state
+            
+        # 3. Enforce Lipschitz boundary scaling
         audience_state = audience_state * self.lipschitz_k
         
-        # 5. Roughness Preservation: Add raw singularities directly back (skip connection style)
+        # 4. Roughness Preservation: Add raw singularities directly back (skip connection style)
         if self.input_dim == self.audience_dim:
             identity = manifold_state
         elif self.input_dim < self.audience_dim:
-            identity = torch.cat([manifold_state, torch.zeros_like(manifold_state)], dim=-1)[:, :self.audience_dim]
+            identity = torch.cat([manifold_state, torch.zeros_like(manifold_state)], dim=-1)[..., :self.audience_dim]
         else:
             identity = manifold_state[..., :self.audience_dim]
             
@@ -87,11 +78,8 @@ class AudienceProjection(nn.Module):
             if self.input_dim != self.audience_dim:
                 return x
             
-            raw_np = x.detach().cpu().numpy().astype(np.float32)
-            chunked_np = self.silicon_engine.apply_video_dyad_chunking(
-                raw_np, chunk_size=self.audience_dim, max_chunks=1
-            )
-            f_x = torch.from_numpy(chunked_np).to(device=audience_state.device, dtype=audience_state.dtype)
+            # Use Symplectic Gluing forward pass for fixed-point iteration
+            f_x = self.gluing_operator(x)
             
             x = audience_state - (f_x * self.lipschitz_k)
         return x
