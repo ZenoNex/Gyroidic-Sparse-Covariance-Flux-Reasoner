@@ -919,7 +919,7 @@
                 <div class="section-title">Panel A: Dyad Ingestor</div>
 
                 <!-- Commutativity Selector -->
-                <div class="commutativity-row">
+                <div class="commutativity-row" title="Selects the entanglement order between the parsed modal inputs (Image/Text). Symmetric generates dual resonances.">
                     <label>ORDER</label>
                     <select class="commute-select" id="commute-image">
                         <option value="image_first">Image &#8594; Text</option>
@@ -928,23 +928,31 @@
                     </select>
                 </div>
 
-                <div id="dyad-dropzone">
+                <div id="dyad-dropzone" title="Drag and drop one or more images here to create a visual dyad.">
                     <span style="font-size: 1.5rem; color: var(--terminal-blue);">+</span>
-                    <div class="drop-hint">DRAG DYAD (IMAGE)</div>
-                    <input type="file" id="file-input" style="display: none;" accept="image/*">
+                    <div class="drop-hint">DRAG DYAD (MULTIPLE IMAGES)</div>
+                    <input type="file" id="file-input" style="display: none;" accept="image/*" multiple>
                 </div>
-                <div class="section-title">Manifold Buffer (A)</div>
-                <textarea id="manifold-buffer" placeholder="Reasoning target buffer for image dyad..."></textarea>
+                <div class="section-title" title="The reasoning target buffer will contextualize the image dyad into the gyroidal network.">Manifold Buffer (A)</div>
+                <textarea id="manifold-buffer" placeholder="Reasoning target buffer for image dyad..." title="Enter text context for the image(s)"></textarea>
                 <div class="metric-card" style="margin-bottom: 0.5rem;">
-                    <div class="metric-label">Source Topic</div>
-                    <input type="text" id="assoc-source" placeholder="e.g. Visual Signature"
+                    <div class="metric-label" title="Source topic anchors the dyad in the topological space.">Source Topic</div>
+                    <input type="text" id="assoc-source" placeholder="e.g. Visual Signature" title="Semantic anchor for the dyad"
                         style="width: 100%; background: transparent; border: none; color: #fff; border-bottom: 1px solid var(--glass-border); padding: 4px 0; outline: none; font-size: 0.8rem;">
                     <button id="commit-assoc"
-                        style="width: 100%; margin-top: 1rem; background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">
+                        style="width: 100%; margin-top: 1rem; background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;" title="Commits the dyad buffer into the continuous learning system">
                         COMMIT DYAD ASSOCIATION
                     </button>
                 </div>
                 <div id="assoc-log" class="small-log"></div>
+            </div>
+
+            <!-- CHAINING SYSTEM EXPLANATION -->
+            <div style="background: rgba(0, 242, 255, 0.05); border: 1px dashed var(--terminal-blue); padding: 10px; margin: 10px 0; border-radius: 4px;">
+                <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--terminal-blue); margin-bottom: 5px; font-weight: bold;">[?] CHAINING SYSTEM</div>
+                <div style="font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; line-height: 1.4;">
+                    The Chaining System allows you to pipe the output of one Panel directly into another. By committing a Dyad (Panel A), you can utilize its topological signature as the implicit input context for Semantic Documents (Panel B) or Audio (Panel C), enabling multi-modal cross-attention.
+                </div>
             </div>
 
             <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
@@ -954,7 +962,7 @@
                 <div class="section-title">Panel B: Semantic Linker</div>
 
                 <!-- Commutativity Selector -->
-                <div class="commutativity-row">
+                <div class="commutativity-row" title="Selects the entanglement order for semantic connections. Source -> Target maps concept to buffer.">
                     <label>ORDER</label>
                     <select class="commute-select" id="commute-text">
                         <option value="source_first">Source &#8594; Target</option>
@@ -964,29 +972,29 @@
                 </div>
 
                 <div id="semantic-buffer-dropzone"
-                    style="border: 1px dashed var(--terminal-magenta); border-radius: 4px; padding: 10px; text-align: center; margin-bottom: 8px; cursor: pointer; background: rgba(255, 0, 242, 0.05); transition: border-color 0.2s;">
+                    style="border: 1px dashed var(--terminal-magenta); border-radius: 4px; padding: 10px; text-align: center; margin-bottom: 8px; cursor: pointer; background: rgba(255, 0, 242, 0.05); transition: border-color 0.2s;" title="Drag and drop multiple text/markdown files to populate the Target Buffer.">
                     <div
                         style="font-size: 0.7rem; color: var(--terminal-magenta); pointer-events: none; margin-bottom: 2px;">
-                        DRAG TARGET BUFFER TEXT FILE HERE</div>
+                        DRAG TARGET BUFFER (MULTIPLE FILES) HERE</div>
                     <div style="font-size: 0.5rem; color: #888; pointer-events: none;">.txt &bull; .md &bull; .py</div>
-                    <input type="file" id="semantic-buffer-file" style="display:none;" accept=".txt,.md,.py">
+                    <input type="file" id="semantic-buffer-file" style="display:none;" accept=".txt,.md,.py" multiple>
                 </div>
 
                 <div style="display:flex; justify-content:space-between; margin-bottom: 4px; align-items:center;">
                     <span style="font-size:0.6rem; color:#888;">TARGET BUFFER (B) (MANUAL INPUT)</span>
                 </div>
-                <textarea id="semantic-buffer" placeholder="Semantic target (Target Text)..."
+                <textarea id="semantic-buffer" placeholder="Semantic target (Target Text)..." title="Enter the primary semantic content to ingest"
                     style="height: 120px; width: 100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); color:var(--terminal-green); font-family:var(--font-mono); font-size:0.7rem; padding:0.5rem; resize:none; outline:none; margin-bottom:0.75rem; border-radius:4px;"></textarea>
 
                 <div class="metric-card">
                     <div id="semantic-source-dropzone"
-                        style="border: 1px dashed var(--terminal-magenta); border-radius: 4px; padding: 10px; text-align: center; margin-bottom: 8px; cursor: pointer; background: rgba(255, 0, 242, 0.05); transition: border-color 0.2s;">
+                        style="border: 1px dashed var(--terminal-magenta); border-radius: 4px; padding: 10px; text-align: center; margin-bottom: 8px; cursor: pointer; background: rgba(255, 0, 242, 0.05); transition: border-color 0.2s;" title="Drag and drop multiple files here to set the Source Concept.">
                         <div
                             style="font-size: 0.7rem; color: var(--terminal-magenta); pointer-events: none; margin-bottom: 2px;">
-                            DRAG SOURCE CONCEPT TEXT FILE HERE</div>
+                            DRAG SOURCE CONCEPT (MULTIPLE FILES) HERE</div>
                         <div style="font-size: 0.5rem; color: #888; pointer-events: none;">.txt &bull; .md &bull; .py
                         </div>
-                        <input type="file" id="semantic-source-file" style="display:none;" accept=".txt,.md,.py">
+                        <input type="file" id="semantic-source-file" style="display:none;" accept=".txt,.md,.py" multiple>
                     </div>
                     <div class="metric-card">
                         <div
@@ -1022,13 +1030,13 @@
                     </div>
 
                     <!-- Drop zone -->
-                    <div id="audio-dropzone">
+                    <div id="audio-dropzone" title="Drag and drop multiple audio files to extract spectral dyads.">
                         <div class="audio-drop-icon">&#9836;</div>
-                        <div class="audio-drop-hint" id="audio-drop-hint">DRAG AUDIO DYAD<br><span
+                        <div class="audio-drop-hint" id="audio-drop-hint">DRAG AUDIO DYAD (MULTIPLE FILES)<br><span
                                 style="color:#444;">mp3
                                 &bull; m4a &bull; wav &bull; ogg</span></div>
                         <input type="file" id="audio-file-input" style="display:none;"
-                            accept="audio/mpeg,audio/mp4,audio/wav,audio/ogg,.mp3,.m4a,.wav,.ogg">
+                            accept="audio/mpeg,audio/mp4,audio/wav,audio/ogg,.mp3,.m4a,.wav,.ogg" multiple>
                     </div>
 
                     <!-- Mini waveform canvas -->
@@ -1069,15 +1077,15 @@
                     </div>
 
                     <!-- Drop zone -->
-                    <div id="video-dropzone"
+                    <div id="video-dropzone" title="Drag and drop multiple video files for holographic unfolding."
                         style="width: 100%; height: 90px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 0.75rem;">
                         <div style="font-size: 1.4rem; line-height: 1; color: var(--terminal-blue);">&#128249;</div>
                         <div
                             style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">
-                            DRAG BINARY MEDIA<br><span style="color:#444;">mp4 &bull; avi &bull; gif &bull; webm</span>
+                            DRAG BINARY MEDIA (MULTIPLE FILES)<br><span style="color:#444;">mp4 &bull; avi &bull; gif &bull; webm</span>
                         </div>
                         <input type="file" id="video-file-input" style="display:none;"
-                            accept="video/mp4,video/avi,video/webm,image/gif,.mp4,.avi,.webm,.gif">
+                            accept="video/mp4,video/avi,video/webm,image/gif,.mp4,.avi,.webm,.gif" multiple>
                     </div>
 
                     <!-- Description buffer -->
