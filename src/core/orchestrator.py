@@ -83,6 +83,11 @@ class UniversalOrchestrator(nn.Module):
         self.fossil_threshold = fossil_threshold
         self.mischief_threshold = mischief_threshold
         self.play_volition_ratio = play_volition_ratio
+        
+        # Dynamical phase transition thresholds (previously hardcoded)
+        self.theta_L = 0.85
+        self.epsilon_drift = 0.05
+        self.mu_CI = 0.1
         self.micro_steps = 8 # Default N micro-steps
         
         # 1. Logical Primitives
@@ -292,9 +297,10 @@ class UniversalOrchestrator(nn.Module):
         Sub-conditions that are not available default to True (graceful
         degradation to the original Eq 3 behavior).
         """
-        theta_L = 0.85  # High coherence threshold
-        epsilon_drift = 0.05
-        mu_CI = 0.1  # Minimum complexity index for emergence
+        # Phase transition dynamic thresholds
+        theta_L = getattr(self, 'theta_L', 0.85)
+        epsilon_drift = getattr(self, 'epsilon_drift', 0.05)
+        mu_CI = getattr(self, 'mu_CI', 0.1)
         
         # 1. Core conditions (Eq 3  always checked)
         is_coherent = pas_h >= theta_L
