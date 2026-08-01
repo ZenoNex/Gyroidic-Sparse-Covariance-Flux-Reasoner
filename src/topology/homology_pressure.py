@@ -262,39 +262,38 @@ class WeightedBettiNumber(nn.Module):
         
         weighted_betti[0] = beta_0
         
-        # _1: cycles (simplified - use cycle basis)
+        # _1: cycles (O(1) algebraic approximation via Euler characteristic to avoid O(n^3) bottleneck)
         try:
-            cycles = nx.cycle_basis(graph)
-            beta_1 = 0.0
+            V = graph.number_of_nodes()
+            E = graph.number_of_edges()
+            C = len(components)
+            betti_1_unweighted = max(0, E - V + C)
             
-            for cycle in cycles:
-                # Persistence approximation: edge weight variance
-                edge_weights = []
-                for i in range(len(cycle)):
-                    u, v = cycle[i], cycle[(i+1) % len(cycle)]
-                    if graph.has_edge(u, v):
-                        edge_weights.append(graph[u][v].get('weight', 1.0))
-                
-                if len(edge_weights) > 0:
-                    persistence = max(edge_weights) - min(edge_weights)
+            beta_1 = 0.0
+            if betti_1_unweighted > 0:
+                # Estimate average cycle weight instead of exact O(n^3) enumeration
+                if E > 0:
+                    weights = [data.get('weight', 1.0) for u, v, data in graph.edges(data=True)]
+                    persistence = max(weights) - min(weights) if weights else 0.0
                 else:
                     persistence = 0.0
                 
-                # Weight by persistence and coherence
                 weight = persistence
                 
                 if node_coherence is not None:
-                    cycle_coherence = sum(node_coherence.get(n, 1.0) for n in cycle) / len(cycle)
-                    weight *= cycle_coherence
+                    avg_coherence = sum(node_coherence.values()) / max(1, len(node_coherence))
+                    weight *= avg_coherence
                 
-                # Exponential decay by Hausdorff dimension (approximated by cycle length)
-                dim_H = len(cycle) / graph.number_of_nodes()  # Normalized
+                # Approximate cycle length as log(V) + 1
+                import math
+                approx_cycle_len = math.log(max(2, V)) + 1
+                dim_H = approx_cycle_len / max(1, V)
                 weight *= (2 ** (-dim_H))
                 
-                beta_1 += weight
-            
+                beta_1 = betti_1_unweighted * weight
+                
             weighted_betti[1] = beta_1
-        except:
+        except Exception:
             weighted_betti[1] = 0.0
         
         return weighted_betti
