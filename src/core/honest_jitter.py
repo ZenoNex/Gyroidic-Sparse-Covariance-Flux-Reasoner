@@ -30,6 +30,7 @@ class AgentSmithEngine(nn.Module):
         Initialize the AgentSmithEngine.
         """
         super().__init__()
+        self.target_device = device if device is not None else torch.device('cpu')
 
     def forward(self, shape: torch.Size, seed_val: float, scaled: bool = True) -> torch.Tensor:
         """
@@ -82,7 +83,7 @@ def harvest_honest_jitter(shape: torch.Size, device: torch.device = None, scaled
     target_device = torch.device(device) if device is not None else DEVICE
     
     # Lazy initialization of the expansion engine
-    if _AGENT_SMITH_ENGINE is None or _AGENT_SMITH_ENGINE.gauge.device != target_device:
+    if _AGENT_SMITH_ENGINE is None or _AGENT_SMITH_ENGINE.target_device != target_device:
         _AGENT_SMITH_ENGINE = AgentSmithEngine(device=target_device)
     
     # Check cache first for standard shapes if we are in a tight loop
