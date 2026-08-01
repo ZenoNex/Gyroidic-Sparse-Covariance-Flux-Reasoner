@@ -196,24 +196,12 @@ class ObscuredBirkhoffManifold(nn.Module):
         
     def project(self, T: torch.Tensor, max_iterations: Optional[int] = None) -> torch.Tensor:
         """Project matrix T onto Birkhoff subspace with obstruction."""
-        # 1. Softmax/Exp to ensure positivity
-        # Clamp temperature to prevent division by zero or exp blow-up
+        # 1. Log-domain Sinkhorn-Knopp for numerical stability
         temp = torch.clamp(self.temperature, min=0.01, max=10.0)
-        T_clipped = torch.clamp(T, min=-15.0, max=15.0)
-        T_soft = torch.exp(T_clipped / temp)
+        log_T = T / temp
         
-        # 2. Check if Direct Projection is possible (dimension match)
-        # T: [..., n, n]
-        n_in = T.shape[-1]
-        
-        if n_in == self.n and self.direct_projector is not None:
-            # Linear Projection (Direct)
-            T_ds = self.direct_projector(T_soft)
-        else:
-            # Iterative Fallback: Sinkhorn-Knopp for dynamic sequence lengths or large dimensions
-            # "When geometry shifts, we return to the process"
-            iters = max_iterations if max_iterations is not None else self.max_iterations
-            T_ds = self._sinkhorn_knopp_internal(T_soft, iters)
+        iters = max_iterations if max_iterations is not None else self.max_iterations
+        T_ds = self._sinkhorn_knopp_internal(log_T, iters)
         
         # 3. Apply Obstruction (delta_o)
         # sum_j T_ij = 1 - delta_o
@@ -237,45 +225,18 @@ class ObscuredBirkhoffManifold(nn.Module):
         
         return (row_err < tolerance) & (col_err < tolerance)
 
-    def _sinkhorn_knopp_internal(self, T: torch.Tensor, iters: int) -> torch.Tensor:
+    def _sinkhorn_knopp_internal(self, log_T: torch.Tensor, iters: int) -> torch.Tensor:
         """
-        Iterative Sinkhorn-Knopp algorithm with Non-Semisimple Topological Phase Preservation.
-        
-        To prevent standard Sinkhorn iteration from collapsing into a flat, semisimple
-        equilibrium centroid (which strips non-Abelian phase dynamics), a non-commutative
-        Sine-Gordon / Chern-Simons breather perturbation is applied between normalization steps.
+        Iterative Sinkhorn-Knopp algorithm in Log-Domain (Alternating Log-Softmax).
+        Guarantees symmetrical row/column normalization without underflow.
         """
-        T_it = T.clone()
-        n = T_it.shape[-1]
-        
-        # Non-commutative breather frequency parameters
-        omega = 1.0 / 3.0
-        sq = math.sqrt(1.0 - omega**2)
-        
         for step in range(iters):
-            # Row normalization
-            T_it = T_it / (T_it.sum(dim=-1, keepdim=True) + 1e-8)
-            # Column normalization
-            T_it = T_it / (T_it.sum(dim=-2, keepdim=True) + 1e-8)
+            # Row normalization (log-softmax)
+            log_T = log_T - torch.logsumexp(log_T, dim=-1, keepdim=True)
+            # Column normalization (log-softmax)
+            log_T = log_T - torch.logsumexp(log_T, dim=-2, keepdim=True)
             
-            # Non-semisimple topological phase preservation (Cognitive Context Seeded):
-            # Rather than using unseeded synthetic noise (which erases cognitive context and allows
-            # teacher's pet / cultural default bias to leak in), we derive the non-commutative
-            # phase matrix directly from the input tensor's intrinsic skew-symmetry (T_it - T_it^T).
-            if (step + 1) % 5 == 0 and step < iters - 1:
-                t_val = (step + 1) * 0.1
-                x_pos = T_it.mean()
-                u_n = 4.0 * math.atan((sq / omega) * (1.0 / (math.cosh(sq * x_pos) + 1e-8)) * math.sin(omega * t_val))
-                
-                # Extract intrinsic non-commutative skew-symmetry from T_it itself
-                skew_T = T_it - T_it.transpose(-1, -2)
-                skew_norm = skew_T.norm(dim=(-2, -1), keepdim=True) + 1e-8
-                
-                # Context-seeded non-Abelian phase matrix preserving exact cognitive footprint
-                phase_matrix = 0.01 * u_n * (skew_T / skew_norm) * (T_it.std() + 1e-6)
-                T_it = F.relu(T_it + phase_matrix)
-                
-        return T_it
+        return torch.exp(log_T)
     
     def forward(self, T: torch.Tensor, anneal: bool = False) -> torch.Tensor:
         """
