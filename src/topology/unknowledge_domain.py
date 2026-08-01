@@ -102,13 +102,14 @@ class EntropicMischiefProbe(nn.Module):
         self.register_buffer('H_schizo', torch.tensor(0.0, device=device))
         self.register_buffer('H_mischief', torch.tensor(0.0, device=device))
 
-    def update(
+    def update_bands(
         self,
         pressure_grad: torch.Tensor,
         coherence: torch.Tensor,
         pas_h: float,
         is_good_bug: bool = False,
-        batch_coherence: Optional[float] = None
+        batch_coherence: Optional[float] = None,
+        freenet_he_support: Optional[float] = None
     ):
         """
         Updates the metaphysical bands.
@@ -135,7 +136,13 @@ class EntropicMischiefProbe(nn.Module):
         if batch_coherence is None:
             batch_coherence = coherence.mean().item() if coherence.numel() > 0 else 0.5
             
-        community_support_factor = (pas_h * 0.7) + (batch_coherence * 0.3)
+        if freenet_he_support is not None:
+            # If connected to the P2P Freenet, Zeta is derived entirely from the Homomorphically Encrypted
+            # consensus of the wider network, rather than just local batch coherence.
+            community_support_factor = (pas_h * 0.3) + (freenet_he_support * 0.7)
+        else:
+            # Fallback to local isolated computation
+            community_support_factor = (pas_h * 0.7) + (batch_coherence * 0.3)
         
         # Safe Cracking: Throttle fragmentation if support is low, 
         # preventing Forced Abstraction in cold/disconnected manifolds.
