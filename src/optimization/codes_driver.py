@@ -138,10 +138,12 @@ class CODES:
         for _ in range(latent.dim()):
             anchors_tensor = anchors_tensor.unsqueeze(-1)
         
-        # Calculate resonance: cos(2*pi * x / p)
-        # Resonant: x = k*p => cos(2*pi*k) = 1.0
-        # Dissonant: x = (k+0.5)*p => cos(2*pi*k + pi) = -1.0
-        resonance_grid = torch.cos(2.0 * math.pi * latent / anchors_tensor)
+        # Calculate resonance via exact prime lattice distance
+        # Resonant: fractional part near 0 or 1
+        # Dissonant: fractional part near 0.5
+        frac = (latent / anchors_tensor) % 1.0
+        dist = torch.min(frac, 1.0 - frac)
+        resonance_grid = torch.where(dist < 0.05, 1.0, 0.1)
         
         # Compute mean resonance across all anchors for each latent element
         avg_resonance = resonance_grid.mean(dim=0)
