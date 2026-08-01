@@ -302,8 +302,23 @@ class GyroidicGraphManager:
                         tag_overlap_factor = 1.0 + 0.3 * max(signed_cosine, 0.0)
                     else:
                         tag_overlap_factor = 1.0
+                        
+                    # LCFT Logarithmic Correlation for Neglecton Scars
+                    is_scar_i = "scar" in self.nodes[i].node_id.lower() or "damage" in self.nodes[i].node_id.lower()
+                    is_scar_i = is_scar_i or self.nodes[i].metrics.get('type') in ['live_scarred', 'live_damage']
+                    is_scar_j = "scar" in self.nodes[j].node_id.lower() or "damage" in self.nodes[j].node_id.lower()
+                    is_scar_j = is_scar_j or self.nodes[j].metrics.get('type') in ['live_scarred', 'live_damage']
+                    
+                    if is_scar_i and is_scar_j:
+                        # Logarithmic Conformal Field Theory (LCFT) 2-point function for partner fields
+                        dist = torch.norm(self.nodes[i].state - self.nodes[j].state).item()
+                        # <psi(x) psi(y)> ~ -2 log|x-y| + C
+                        # We map it to a multiplicative boost [1.0, 3.0] based on log distance
+                        lcft_boost = max(1.0, -2.0 * math.log(dist + 1e-4) / 10.0 + 1.5)
+                    else:
+                        lcft_boost = 1.0
 
-                    weight = float(sim * chiral_factor * tag_overlap_factor)
+                    weight = float(sim * chiral_factor * tag_overlap_factor * lcft_boost)
                     
                     edges.append({
                         "source": str(self.nodes[i].node_id),
