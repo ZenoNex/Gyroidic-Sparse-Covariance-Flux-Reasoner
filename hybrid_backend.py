@@ -243,10 +243,30 @@ class GovernanceManager:
             print("[OK] No shadow processes identified.")
 
         # 2. Port Infrastructure
+        import json
+        config_path = '.gyroid_config.json'
+        saved_config = None
+        saved_ports = None
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r') as f:
+                    data = json.load(f)
+                    saved_config = data.get('config')
+                    saved_ports = data.get('ports')
+            except Exception:
+                pass
+                
+        if saved_config and saved_ports:
+            ans = input("\n[?] Found saved startup settings (.gyroid_config.json). Do you want to use your last settings or select new settings? (Y/n): ").strip().lower()
+            if ans in ('', 'y', 'yes'):
+                print(f"[OK] Loaded saved configuration. Manifold scaled to ports: {saved_ports}")
+                return saved_ports, saved_config
+
         print("\n[CONFIG] Port Selection Infrastructure")
         ports = [8000, 8080]
         print(f"   Default ports: {ports}")
         
+        print("\n[INFO] What is this? Extra ports allow horizontal scaling of the manifold server nodes.")
         extra_ports_raw = input("[?] Specify extra ports to scale (comma separated) or [Enter] for defaults: ").strip()
         if extra_ports_raw:
             try:
@@ -481,9 +501,22 @@ class GovernanceManager:
             print(f"[WARN] Invalid float, using default: {config['ego_death_limit']}")
 
         # 3.22 UDP Server Colonizer
+        print("\n[INFO] What is this? UDP master server colonizer handles aggressive UDP topological peering.")
         udp_col_prompt = "[?] Enable Option D UDP Master Server Colonizer (yes/no) [Default: no]: "
         udp_col = get_input(udp_col_prompt, 'no').lower()
         config['udp_colonizer_enabled'] = udp_col in ('yes', 'y')
+
+        # Obsidian Graph False Nodes Explanation
+        print("\n" + "-"*50)
+        print("[OBSIDIAN GRAPH NOTE]: Note that the legacy Obsidian graph feature had a 'false number of nodes' anomaly where the UI falsely reported topological vertices due to uncollapsed homological ghost cycles. The backend correctly prunes them now, but the startup output may reflect raw structural sizes.")
+        print("-" * 50)
+
+        # Save config
+        try:
+            with open(config_path, 'w') as f:
+                json.dump({'config': config, 'ports': ports}, f, indent=4)
+        except Exception as e:
+            print(f"[WARN] Could not save config: {e}")
 
         print("\n[OK] Configuration finalized successfully.")
         print("-" * 50)
