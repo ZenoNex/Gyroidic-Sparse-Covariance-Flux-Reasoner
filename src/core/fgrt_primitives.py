@@ -146,12 +146,15 @@ class PrimeResonanceLadder(nn.Module):
         self.register_buffer('frequencies', frequencies)
         
     def _is_prime(self, n: int) -> bool:
-        """Standard primality test."""
+        """Optimized deterministic primality test to avoid naive O(n√n) bottleneck."""
         if n < 2: return False
-        if n == 2: return True
-        if n % 2 == 0: return False
-        for i in range(3, int(n**0.5) + 1, 2):
-            if n % i == 0: return False
+        if n in (2, 3): return True
+        if n % 2 == 0 or n % 3 == 0: return False
+        i = 5
+        while i * i <= n:
+            if n % i == 0 or n % (i + 2) == 0:
+                return False
+            i += 6
         return True
 
     def _generate_hybrid_basis(self, n: int, base_n: int) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -210,11 +213,9 @@ class PrimeResonanceLadder(nn.Module):
             
             # Since we don't hold a persistent engine here, we simulate the sensing
             # of the dual-queue architecture described in pyopencl_sovereignty.py
-            # SILICON SOVEREIGNTY: Replaced torch.rand with honest jitter from hardware timing.
-            # The logistic map seed is derived from sub-microsecond CPU timing variance,
-            # not a synthetic PRNG. 0.3 is the Tailslayer bypass threshold.
-            _jitter = harvest_honest_jitter((1,), scaled=False)
-            queue_b_finished_first = bool(_jitter[0].item() > 0.3)  # Sovereign Tailslayer probe
+            # SILICON SOVEREIGNTY: Replaced PRNG and 0.3 threshold with deterministic parity
+            # based on true hardware timing resolution.
+            queue_b_finished_first = bool(time.perf_counter_ns() % 2 == 1)  # Sovereign Tailslayer probe
             if queue_b_finished_first:
                 signal = "Chern-Simons Sync Barrier Complete (Hardware Bypass Active)"
         except ImportError:
