@@ -116,8 +116,8 @@ class PolynomialCRT(nn.Module):
             dim=1
         )
         
-        # 4. Scale back to float
-        return reconstruction_fp.to(torch.float32) / (self.scaling_factor ** 2)
+        # 4. Scale back to float without precision loss (underflow)
+        return (reconstruction_fp.to(torch.float64) / float(self.scaling_factor ** 2)).to(torch.float32)
 
     def forward(
         self,
