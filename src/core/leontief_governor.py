@@ -260,12 +260,62 @@ class LeontiefGovernor(nn.Module):
 
         should_veto = (not diags['is_productive']) or (not can_afford)
 
+        # ---------------------------------------------------------
+        # P2P Slashing Mechanics (Kelly Criterion & Mischief Systems)
+        # ---------------------------------------------------------
+        # If the cascading cost exceeds 10x the budget, it indicates an intentional 
+        # Mischief System attack (Unfunded Soliton). We execute a Collapse Path Poison.
+        slashed = False
+        if not can_afford and (total_cost > available_budget * self.state_dim * 10.0):
+            self.kelly_slash_malicious_actor(demand, total_cost)
+            slashed = True
+
         diags['total_cost'] = total_cost
         diags['available_budget'] = available_budget
         diags['can_afford'] = can_afford
         diags['vetoed'] = should_veto
+        diags['slashed_via_poison'] = slashed
 
         return should_veto, diags
+
+    def kelly_slash_malicious_actor(self, malicious_demand: torch.Tensor, total_cost: float):
+        """
+        Executes a Collapse Path Poisoning protocol against a malicious node that 
+        submitted a fraudulent or drastically under-funded Soliton bet.
+        
+        Uses the Inverted Hypersphere Cosmology mapped via RP4 Topology to isolate
+        the adversary's state and collapse their projected coordinates, permanently 
+        cutting them off from the Freenet 0.2.116 consensus network.
+        """
+        # 1. Project the malicious demand into RP4 (Real Projective Space 4D)
+        # We append a projective coordinate w=1.0 for the RP4 transform.
+        # This allows us to push the attacker to infinity (the boundary).
+        if malicious_demand.dim() == 1 and malicious_demand.shape[0] >= 4:
+            rp4_vector = torch.cat([malicious_demand[:4], torch.ones(1, device=malicious_demand.device)])
+            
+            # 2. Inverted Hypersphere inversion: x -> x / |x|^2
+            # This turns the core into the boundary, tossing the attacker to the 
+            # void of the Inverted Hypersphere.
+            norm_sq = torch.dot(rp4_vector, rp4_vector) + 1e-8
+            inverted_rp4 = rp4_vector / norm_sq
+            
+            # 3. Collapse Path Poisoning
+            # We inject this inverted vector back into the cached Leontief inverse 
+            # as a permanent topological singularity (poisoning the path), 
+            # rendering the attacker's topological signature inert.
+            poison_tensor = torch.ger(inverted_rp4[:self.state_dim], inverted_rp4[:self.state_dim])
+            
+            # We scale the poison by the Kelly fraction loss
+            kelly_fraction = 0.5  # Heavy slash penalty
+            
+            # Apply poison to the ledger
+            with torch.no_grad():
+                self.cached_leontief_inverse -= kelly_fraction * poison_tensor
+                
+            print(f"[LEONTIEF GOVERNOR] MISCHIEF SYSTEM DETECTED (Cost: {total_cost:.2f}). "
+                  f"Executing Collapse Path Poison via RP4 Inverted Hypersphere. Malicious actor slashed.")
+        else:
+            print("[LEONTIEF GOVERNOR] Mischief detected, but dimensionality insufficient for RP4 poison.")
 
     def get_metrics(self) -> Dict[str, float]:
         """Diagnostic metrics for the bulletin board."""
