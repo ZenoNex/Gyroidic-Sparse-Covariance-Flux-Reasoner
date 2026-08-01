@@ -57,17 +57,21 @@ class PhaseAlignmentInvariant(nn.Module):
         else:
             x = coeffs
             
-        # 2. Extract Phases (theta_k)
-        # We assume x contains real values that form complex pairs (Analytic Signal assumption)
-        # Pad if odd length
-        if x.shape[-1] % 2 != 0:
-            x = F.pad(x, (0, 1))
-            
-        # Reshape to [batch, N/2, 2] -> Z = a + ib
-        z = x.view(x.shape[0], -1, 2)
-        
-        # theta_k = atan2(Im, Re)
-        theta = torch.atan2(z[..., 1], z[..., 0]) # [batch, N_pairs]
+        # 2. Extract Phases (theta_k) using True Analytic Signal (Hilbert Transform)
+        import torch.fft
+        X = torch.fft.fft(x, dim=1)
+        N = X.shape[1]
+        h = torch.zeros_like(X)
+        if N > 0:
+            h[:, 0] = 1
+            if N % 2 == 0:
+                h[:, 1:N//2] = 2
+                h[:, N//2] = 1
+            else:
+                h[:, 1:(N+1)//2] = 2
+                
+        analytic_signal = torch.fft.ifft(X * h, dim=1)
+        theta = torch.angle(analytic_signal) # [batch, N]
         
         # 3. Compute Mean Phase (theta_bar)
         # Circular mean: atan2(sum(sin), sum(cos))
