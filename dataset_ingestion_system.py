@@ -564,18 +564,16 @@ class DatasetIngestionSystem:
                     if mod_file.is_file() and mod_file.suffix in ['.jar', '.zip']:
                         try:
                             # Read raw bytes completely ignoring internal structure or semantics
-                            with open(mod_file, "rb") as f:
-                                raw_bytes = f.read()
-                            
-                            if not raw_bytes: continue
-                            
-                            # Chunked rolling hash logic over pure bytes
                             chunk_size = 1024 * 1024 # 1MB chunks
                             structural_hash = 0
-                            for i in range(0, len(raw_bytes), chunk_size):
-                                chunk = raw_bytes[i:i+chunk_size]
-                                chunk_val = int(hashlib.sha256(chunk).hexdigest()[:8], 16)
-                                structural_hash = (structural_hash + chunk_val) % (16**8)
+                            
+                            with open(mod_file, "rb") as f:
+                                while True:
+                                    chunk = f.read(chunk_size)
+                                    if not chunk:
+                                        break
+                                    chunk_val = int(hashlib.sha256(chunk).hexdigest()[:8], 16)
+                                    structural_hash = (structural_hash + chunk_val) % (16**8)
                                 
                             deterministic_seed = structural_hash / (16**8)
                             
