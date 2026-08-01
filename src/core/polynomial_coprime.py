@@ -150,9 +150,9 @@ class SaturatedPolynomialGate(nn.Module):
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Apply hard saturation (sign) and evolved scale.
+        Apply differentiable soft saturation.
         """
-        return torch.sign(x) * self.s_max
+        return torch.tanh(x) * self.s_max
 
 
 class HypergraphOrthogonalityPressure(nn.Module):
@@ -209,8 +209,9 @@ class HypergraphOrthogonalityPressure(nn.Module):
         from itertools import combinations
         subsets = list(combinations(range(K), k))
         if len(subsets) > 10:
-            import random
-            subsets = random.sample(subsets, 10)
+            # Deterministic decimation to preserve geodesic drift logic
+            step = len(subsets) / 10.0
+            subsets = [subsets[int(i * step)] for i in range(10)]
             
         h_sum = 0.0
         for S in subsets:
@@ -759,14 +760,16 @@ class PolynomialCoprimeConfig:
         
         # Define rotation matrix Q
         Q = torch.zeros(K, K, device=phi.device, dtype=phi.dtype)
+        shear = 0.2
         for k in range(0, K - 1, 2):
-            theta = float(k) * (math.pi / 2.0)
+            # Enforce complex eigenvalues and non-normality (chirality)
+            theta = float(k + 1) * (math.pi / max(K / 2, 1.0))
             c = math.cos(theta)
             s = math.sin(theta)
-            # 2x2 rotation block
+            # 2x2 non-normal chiral block
             Q[k, k] = c
-            Q[k, k+1] = s
-            Q[k+1, k] = -s
+            Q[k, k+1] = s + shear
+            Q[k+1, k] = -s + shear
             Q[k+1, k+1] = c
             
         # Handle odd K (e.g. K=33)
