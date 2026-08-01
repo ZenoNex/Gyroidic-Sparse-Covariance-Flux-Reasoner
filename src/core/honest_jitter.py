@@ -28,75 +28,29 @@ class AgentSmithEngine(nn.Module):
     def __init__(self, device=None):
         """
         Initialize the AgentSmithEngine.
-
-        Args:
-            device: The target hardware device for tensor storage.
         """
         super().__init__()
-        # Internal state for learnable expansion
-        self.register_buffer('iters_base_small', torch.tensor(30.0, device=device))
-        self.register_buffer('iters_base_large', torch.tensor(50.0, device=device))
-        
-        # Learnable parameters (Agent Smith Protocol)
-        self.gauge = nn.Parameter(torch.tensor(3.99, device=device))
-        self.iter_multiplier = nn.Parameter(torch.tensor(1.0, device=device))
-        
-        # Warmstart state tracking (persistent across calls)
-        self.warmstart_states = {}
 
     def forward(self, shape: torch.Size, seed_val: float, scaled: bool = True) -> torch.Tensor:
         """
-        Execute the Agent Smith Entropy Expansion.
-        
-        Using the Logistic Map (x_{n+1} = gauge * x_n * (1 - x_n)), this method 
-        takes a physical seed value and expands it into a high-dimensional 
-        entropy field that is deterministic for a given seed but has high 
-        structural complexity.
-        
-        Args:
-            shape: The desired output shape for the jitter tensor.
-            seed_val: The physical seed value [0, 1] harvested from 
-                      substrate friction.
-            scaled: If True, scales the jitter to [-0.01, 0.01] to minimize 
-                    invariant disruption.
-                    
-        Returns:
-            A tensor of the specified shape containing 'Honest Jitter'.
-            
-        CODES v40 Invariant: 
-            Substrate Sovereignty: 1.1. Entropy must be grounded in physical 
-            timing variance, not pseudorandom algorithms.
+        Execute the Agent Smith Entropy Expansion using physical hardware timing.
         """
         with torch.no_grad():
-            shape = tuple(shape) # Normalize to tuple for consistent dict keys
-            device = self.gauge.device
+            shape = tuple(shape)
+            device = next(self.parameters()).device if list(self.parameters()) else torch.device('cpu')
             num_elements = torch.Size(shape).numel()
             
-            # Check for warmstart state compatibility
-            if shape in self.warmstart_states and self.warmstart_states[shape].device == device:
-                x = self.warmstart_states[shape]
-                # Inject tiny hardware seed variance to prevent attractor lock-in
-                x = (x + seed_val * 1e-4) % 1.0
-            else:
-                # Initialize from linspace + hardware seed
-                x = (torch.linspace(0.1, 0.9, num_elements, device=device) + seed_val) % 1.0
-                
-            # Determine iteration count (learnable)
-            base = self.iters_base_small if num_elements < 1024 else self.iters_base_large
-            iters = int(torch.clamp(base * self.iter_multiplier, 10, 150).item())
+            # True hardware-anchored seed via nanosecond counter
+            ns = time.perf_counter_ns()
             
-            # Logistic Map Expansion: x_{n+1} = gauge * x_n * (1 - x_n)
-            for _ in range(iters):
-                x = self.gauge * x * (1.0 - x)
-                
-            # Update warmstart state (detach to prevent graph growth)
-            self.warmstart_states[shape] = x.detach()
+            # Structural expansion via Weyl sequence (deterministic sequence, hardware-seeded, no PRNG)
+            indices = torch.arange(num_elements, device=device).float()
+            phi = 0.6180339887498948482
+            x = ((indices + 1.0) * ns * phi + seed_val) % 1.0
             
-            # Scale to [-1, 1] for jitter
             jitter_flat = (x * 2.0 - 1.0)
             
             if scaled:
-                # Scale by a small amount to avoid disrupting global invariants
                 jitter_flat = jitter_flat * 0.01
                 
             return jitter_flat.view(shape).clone()
