@@ -227,6 +227,23 @@ class MetaPolytopeMatrioshka(nn.Module):
                 best_quantization = quantized.clone()
             
             if mean_energy <= boundary_margin:
+                # 3. Repunit-CRT Gatekeeper Check
+                # Validate the parity congruence of the topological shell boundary
+                from src.core.modular_virtualization import HybridModularVirtualization
+                if not hasattr(self, '_repunit_gatekeeper'):
+                    self._repunit_gatekeeper = HybridModularVirtualization(dim=x.shape[-1], device=x.device)
+                
+                # Check topological parity congruence using the Repunit-CRT Fast-Reject probe
+                modulus = self._repunit_gatekeeper.get_hybrid_modulus().to(x.device)
+                integerized_x = (x * self._repunit_gatekeeper.scale_factor).long()
+                target_residue = torch.remainder(integerized_x, modulus.long())
+                is_valid_parity = self._repunit_gatekeeper.repunit_crt_sparse_probe(integerized_x, target_residue)
+                
+                if not torch.all(is_valid_parity):
+                    # Parity refusal at boundary: Pop Outward
+                    level -= 1
+                    continue
+                    
                 # Inside Polytope!
                 xq = quantized
                 
