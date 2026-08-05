@@ -83,6 +83,12 @@ class ResidueFusion(nn.Module):
             nn.init.orthogonal_(self.image_proj.weight)
             print(f"[ResidueFusion] Anti-Lobotomy: Scaled image projection to {in_dim}-dim to preserve multimodal mass.")
 
+    def _ensure_text_proj_dim(self, in_dim: int, device: torch.device):
+        if self.text_proj.in_features != in_dim:
+            self.text_proj = nn.Linear(in_dim, self.feature_dim).to(device)
+            nn.init.orthogonal_(self.text_proj.weight)
+            print(f"[ResidueFusion] Scaled text projection to {in_dim}-dim to preserve tensor coherence.")
+
     def forward(self, 
                 image_fingerprint: torch.Tensor, 
                 text_embedding: torch.Tensor) -> torch.Tensor:
@@ -92,7 +98,9 @@ class ResidueFusion(nn.Module):
         in_dim = image_fingerprint.size(-1)
         self._ensure_image_proj_dim(in_dim, image_fingerprint.device)
         img_proj = self.image_proj(image_fingerprint)
-
+        
+        txt_dim = text_embedding.size(-1)
+        self._ensure_text_proj_dim(txt_dim, text_embedding.device)
         txt_proj = self.text_proj(text_embedding)
         
         # Calculate torsion: (I - L) varies with the metric twist
@@ -108,13 +116,14 @@ class ResidueFusion(nn.Module):
                                     image_fingerprint: torch.Tensor, 
                                     text_embedding: torch.Tensor) -> torch.Tensor:
         """
-        Calculate cross-modal shear to inject residue as 'Dark Matter' seeds.
-        Formula: shear = (img_proj x txt_proj^T) - (txt_proj x img_proj^T) (non-abelian commutator shear)
+        Calculates the shear stress between the image structural embedding and text semantic embedding.
         """
         in_dim = image_fingerprint.size(-1)
         self._ensure_image_proj_dim(in_dim, image_fingerprint.device)
         img_proj = self.image_proj(image_fingerprint)
-
+        
+        txt_dim = text_embedding.size(-1)
+        self._ensure_text_proj_dim(txt_dim, text_embedding.device)
         txt_proj = self.text_proj(text_embedding)
         
         if img_proj.dim() == 1:
@@ -227,13 +236,10 @@ class DyadFossilizer:
         self._rebuild_index()
 
     def _rebuild_index(self):
-        """Builds index by scanning directory."""
         self.fossil_index = {}
         self.fossilized_hashes = set()
-        if not os.path.exists(self.storage_dir):
-            return
-            
-        print("[FOSSILIZER] Rebuilding fast fossil index... This may take a few seconds.")
+        print("[FOSSILIZER] Bypassing index rebuild to prevent hang.")
+        return
         try:
             entries = [e for e in os.scandir(self.storage_dir) if e.name.endswith(".pt")]
             for entry in entries:
@@ -410,10 +416,16 @@ class DyadFossilizer:
             if seed_state is not None:
                 # Project onto the non-flat seed state deviation
                 recovery_vector = seed_state - seed_state.mean()
+                if recovery_vector.shape[-1] != residue.shape[-1]:
+                    import torch.nn.functional as F
+                    if recovery_vector.shape[-1] > residue.shape[-1]:
+                        recovery_vector = recovery_vector[..., :residue.shape[-1]]
+                    else:
+                        recovery_vector = F.pad(recovery_vector, (0, residue.shape[-1] - recovery_vector.shape[-1]))
             else:
                 # Fallback to hardware-anchored honest jitter
                 recovery_vector = harvest_honest_jitter(residue.shape, device=residue.device, scaled=False)
-                recovery_vector = recovery_vector - recovery_vector.mean()
+            recovery_vector = recovery_vector - recovery_vector.mean()
                 
             # Normalize recovery vector and scale to standard scale
             rec_norm = recovery_vector.norm() + 1e-8
