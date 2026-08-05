@@ -57,6 +57,15 @@ class GyroidicGraphManager:
         self.edge_threshold = 0.7  # Similarity threshold for edge creation
         self.dedup_threshold = 0.9999 # Threshold for identity (to prune duplicates)
         
+    def get_valid_node_count(self) -> int:
+        """Returns the number of actual nodes, excluding uncollapsed homological ghost cycles."""
+        count = 0
+        for n in self.nodes:
+            # Prune out any node ID containing 'ghost' or 'live_damage'
+            if "ghost" not in n.node_id.lower() and "live_damage" not in n.node_id.lower():
+                count += 1
+        return count
+        
     def load_fossils(self, limit: int = 150, scan_limit: int = 500, use_snapshot: bool = True):
         """
         Load recently diverse encodings.
@@ -389,7 +398,11 @@ class GyroidicGraphManager:
             return v
 
         nodes_data = []
+        valid_node_ids = set()
         for n in self.nodes:
+            if "ghost" in n.node_id.lower() or "live_damage" in n.node_id.lower():
+                continue
+            valid_node_ids.add(n.node_id)
             px, py = self.compute_poincare_projection(n.state)
             nodes_data.append({
                 "id": str(n.node_id),
@@ -407,7 +420,8 @@ class GyroidicGraphManager:
                 "type": n.metrics.get("type", "fossil")
             })
 
-        return json.dumps({"nodes": nodes_data, "links": edges})
+        valid_edges = [e for e in edges if e['source'] in valid_node_ids and e['target'] in valid_node_ids]
+        return json.dumps({"nodes": nodes_data, "links": valid_edges})
 
     def generate_mermaid_text(self) -> str:
         """
