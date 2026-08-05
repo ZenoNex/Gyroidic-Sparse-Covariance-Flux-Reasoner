@@ -308,207 +308,107 @@ class GovernanceManager:
             'open_science_ingestor_verbosity': 'normal',
             'udp_colonizer_enabled': False
         }
-        
+
         print("\n" + "="*50)
-        print("      SYSTEM PARAMETER CONFIGURATION (Thorium Protocol)")
-        print("      Type 'default_all' at any prompt to skip remaining questions.")
+        print("      SYSTEM PARAMETER CONFIGURATION")
         print("="*50)
-
-        default_all_active = False
-
-        def get_input(prompt_text, default_val):
-            nonlocal default_all_active
-            if default_all_active:
-                return default_val
-            ans = input(f"{prompt_text} [Default: {default_val}]: ").strip()
-            if ans.lower() == 'default_all':
-                default_all_active = True
-                return default_val
-            if not ans:
-                return default_val
-            return ans
-
-        # 3.1 Regime
-        print("[INFO] Operational regime is dynamically determined by the engine (Eq 10). Manual selection bypassed.")
-
-        # 3.2 Commutativity
-        print("[INFO] Commutativity is dynamically determined at point of ingestion (default: non_commutative). Selection bypassed.")
-        config['commutativity'] = 'non_commutative'
-
-        # 3.3 Spectral correction
-        spec = get_input("[?] Enable spectral correction (yes/no)", 'yes' if config['use_spectral_correction'] else 'no').lower()
-        if spec in ('yes', 'y'):
-            config['use_spectral_correction'] = True
-        elif spec in ('no', 'n'):
-            config['use_spectral_correction'] = False
-        else:
-            print(f"[WARN] Invalid option, using default: {'yes' if config['use_spectral_correction'] else 'no'}")
-
-        # 3.4 Operational mode
-        print("[INFO] Operational mode is dynamically set at runtime based on data connection. Selection bypassed.")
-        config['high_throughput_ingestion'] = False
-
-        # 3.5 Introspection probes
-        probes = get_input("[?] Active introspection probes (comma separated)", config['introspection_probes'])
-        config['introspection_probes'] = [p.strip() for p in probes.split(',') if p.strip()]
-
-        # 3.6 Rigidity decay rate
-        decay = get_input("[?] Introspection rigidity decay rate", str(config['rigidity_decay_rate']))
-        try:
-            config['rigidity_decay_rate'] = float(decay)
-        except ValueError:
-            print(f"[WARN] Invalid float, using default: {config['rigidity_decay_rate']}")
-
-        # 3.7 Suppress narration
-        supp = get_input("[?] Suppress narration (yes/no)", 'yes' if config['suppress_narration'] else 'no').lower()
-        if supp in ('yes', 'y'):
-            config['suppress_narration'] = True
-        elif supp in ('no', 'n'):
-            config['suppress_narration'] = False
-        else:
-            print(f"[WARN] Invalid option, using default: {'yes' if config['suppress_narration'] else 'no'}")
-
-        # 3.8 Background scientific learning
-        bg_learn = get_input("[?] Enable background scientific learning (yes/no)", 'yes' if config['bg_scientific_learning'] else 'no').lower()
-        if bg_learn in ('yes', 'y'):
-            config['bg_scientific_learning'] = True
-        elif bg_learn in ('no', 'n'):
-            config['bg_scientific_learning'] = False
-        else:
-            print(f"[WARN] Invalid option, using default: {'yes' if config['bg_scientific_learning'] else 'no'}")
-
-        # 3.9 Primary scientific query dataset
-        dataset_raw = get_input("[?] Primary scientific query dataset (LIGO/NCBI/SDSS/OpenNeuro or 'all' or comma-separated)", config['primary_query_dataset'])
-        parsed_datasets = []
-        if dataset_raw.lower() == 'all':
-            parsed_datasets = ['LIGO', 'NCBI', 'SDSS', 'OPENNEURO']
-        else:
-            for ds in dataset_raw.split(','):
-                ds_stripped = ds.strip().upper()
-                if ds_stripped in ('LIGO', 'NCBI', 'SDSS', 'OPENNEURO'):
-                    parsed_datasets.append(ds_stripped)
         
-        if parsed_datasets:
-            config['primary_query_dataset'] = ','.join(parsed_datasets)
+        mode_choice = input("[?] Select configuration mode:\n  [1] Predefined Template\n  [2] Custom Configuration\n  [3] Default All (Skip)\nChoice [1/2/3]: ").strip()
+        
+        if mode_choice == "1":
+            print("\n--- TEMPLATES ---")
+            print("  [A] Sovereign Mode (High telemetry, aggressive ingestion, all logic paths active)")
+            print("  [B] Lightweight Mode (Suppressed narration, no background lore, fast processing)")
+            print("  [C] KAGH Dyslexic Mode (High erosion, chaos enabled, unpredictable)")
+            tpl = input("Choose template [A/B/C]: ").strip().upper()
+            
+            if tpl == "A":
+                config['chatgpt_ingestor_enabled'] = True
+                config['open_science_ingestor_enabled'] = True
+                config['bg_scientific_learning'] = True
+                config['suppress_narration'] = False
+                config['mckenna_deconstruction_mode'] = True
+                print("[OK] Applied Sovereign Mode template.")
+            elif tpl == "B":
+                config['chatgpt_ingestor_enabled'] = False
+                config['open_science_ingestor_enabled'] = False
+                config['bg_scientific_learning'] = False
+                config['suppress_narration'] = True
+                config['use_spectral_correction'] = False
+                print("[OK] Applied Lightweight Mode template.")
+            elif tpl == "C":
+                config['kagh_dyslexic_mode'] = True
+                config['mckenna_deconstruction_mode'] = True
+                config['birkhoff_temperature'] = 3.0
+                config['mandelbulb_power'] = 12.0
+                print("[OK] Applied KAGH Dyslexic Mode template.")
+            else:
+                print("[WARN] Invalid choice, using Base defaults.")
+                
+        elif mode_choice == "2":
+            print("\n[INFO] Entering Custom Configuration. Press Enter to use the default for any option.")
+            
+            def get_input(prompt_text, default_val, desc=""):
+                if desc:
+                    print(f"\nINFO: {desc}")
+                ans = input(f"{prompt_text} [Default: {default_val}]: ").strip()
+                return ans if ans else default_val
+
+            spec = get_input("[?] Enable spectral correction (yes/no)", 'yes' if config['use_spectral_correction'] else 'no', "Corrects topological errors in real-time.").lower()
+            config['use_spectral_correction'] = spec in ('yes', 'y')
+
+            probes = get_input("[?] Active introspection probes (comma separated)", config['introspection_probes'], "Determines which cognitive modalities analyze the graph.")
+            config['introspection_probes'] = [p.strip() for p in probes.split(',') if p.strip()]
+
+            decay = get_input("[?] Introspection rigidity decay rate", str(config['rigidity_decay_rate']), "How fast rigid beliefs are eroded by entropy (e.g. 0.005).")
+            try: config['rigidity_decay_rate'] = float(decay)
+            except: pass
+
+            supp = get_input("[?] Suppress narration (yes/no)", 'yes' if config['suppress_narration'] else 'no', "Disables verbose philosophical output in the terminal.").lower()
+            config['suppress_narration'] = supp in ('yes', 'y')
+
+            bg_learn = get_input("[?] Enable background scientific learning (yes/no)", 'yes' if config['bg_scientific_learning'] else 'no', "Periodically queries APIs to ingest new knowledge.").lower()
+            config['bg_scientific_learning'] = bg_learn in ('yes', 'y')
+
+            dataset_raw = get_input("[?] Primary scientific query dataset (LIGO/NCBI/SDSS/OpenNeuro)", config['primary_query_dataset'])
+            config['primary_query_dataset'] = dataset_raw.upper() if dataset_raw else 'LIGO'
+
+            mck = get_input("[?] Enable McKenna deconstruction mode (yes/no)", 'yes' if config['mckenna_deconstruction_mode'] else 'no', "Applies extreme semantic deconstruction to inputs.").lower()
+            config['mckenna_deconstruction_mode'] = mck in ('yes', 'y')
+
+            q_reason = get_input("[?] Enable quantum-inspired reasoning (yes/no)", 'yes' if config['quantum_inspired_mode'] else 'no', "Allows superposition of truth values before collapse.").lower()
+            config['quantum_inspired_mode'] = q_reason in ('yes', 'y')
+
+            dys = get_input("[?] Enable KAGH dyslexic mode (yes/no)", 'yes' if config['kagh_dyslexic_mode'] else 'no', "Injects deliberate typos and logical inversions to test resilience.").lower()
+            config['kagh_dyslexic_mode'] = dys in ('yes', 'y')
+
+            fbm_p = get_input("[?] FBM erosion persistence", str(config['fbm_persistence']), "Controls the roughness of the noise landscape (0.0 to 1.0).")
+            try: config['fbm_persistence'] = float(fbm_p)
+            except: pass
+
+            m_pow = get_input("[?] Mandelbulb augmenter power", str(config['mandelbulb_power']), "Degree of the Mandelbulb fractal for spatial embedding (e.g. 8.0).")
+            try: config['mandelbulb_power'] = float(m_pow)
+            except: pass
+
+            b_temp = get_input("[?] Birkhoff manifold temperature", str(config['birkhoff_temperature']), "Controls annealing heat for topological relaxation.")
+            try: config['birkhoff_temperature'] = float(b_temp)
+            except: pass
+
+            chat_enabled = get_input("[?] Enable ChatGPT Friction Harvester (yes/no)", 'yes' if config['chatgpt_ingestor_enabled'] else 'no', "Scrapes local ChatGPT export data for background learning.").lower()
+            config['chatgpt_ingestor_enabled'] = chat_enabled in ('yes', 'y')
+
+            os_enabled = get_input("[?] Enable Open Science Ingestor (yes/no)", 'yes' if config['open_science_ingestor_enabled'] else 'no', "Pulls external papers and datasets automatically.").lower()
+            config['open_science_ingestor_enabled'] = os_enabled in ('yes', 'y')
+            
+            udp_col = get_input("[?] Enable Option D UDP Master Server Colonizer (yes/no)", 'no', "Experimental: connects to external instances aggressively.").lower()
+            config['udp_colonizer_enabled'] = udp_col in ('yes', 'y')
+            
         else:
-            print(f"[WARN] Invalid option, using default: {config['primary_query_dataset']}")
-
-        # 3.10 Cache directory
-        cache = get_input("[?] Scientific cache directory", config['cache_dir'])
-        config['cache_dir'] = cache
-
-        # 3.11 McKenna deconstruction mode
-        mck = get_input("[?] Enable McKenna deconstruction mode (yes/no)", 'yes' if config['mckenna_deconstruction_mode'] else 'no').lower()
-        if mck in ('yes', 'y'):
-            config['mckenna_deconstruction_mode'] = True
-        elif mck in ('no', 'n'):
-            config['mckenna_deconstruction_mode'] = False
-        else:
-            print(f"[WARN] Invalid option, using default: {'yes' if config['mckenna_deconstruction_mode'] else 'no'}")
-
-        # 3.12 Quantum-inspired reasoning
-        q_reason = get_input("[?] Enable quantum-inspired reasoning (yes/no)", 'yes' if config['quantum_inspired_mode'] else 'no').lower()
-        if q_reason in ('yes', 'y'):
-            config['quantum_inspired_mode'] = True
-        elif q_reason in ('no', 'n'):
-            config['quantum_inspired_mode'] = False
-        else:
-            print(f"[WARN] Invalid option, using default: {'yes' if config['quantum_inspired_mode'] else 'no'}")
-
-        # 3.13 KAGH dyslexic mode
-        dys = get_input("[?] Enable KAGH dyslexic mode (yes/no)", 'yes' if config['kagh_dyslexic_mode'] else 'no').lower()
-        if dys in ('yes', 'y'):
-            config['kagh_dyslexic_mode'] = True
-        elif dys in ('no', 'n'):
-            config['kagh_dyslexic_mode'] = False
-        else:
-            print(f"[WARN] Invalid option, using default: {'yes' if config['kagh_dyslexic_mode'] else 'no'}")
-
-        # 3.14 FBM persistence
-        fbm_p = get_input("[?] FBM erosion persistence", str(config['fbm_persistence']))
-        try:
-            config['fbm_persistence'] = float(fbm_p)
-        except ValueError:
-            print(f"[WARN] Invalid float, using default: {config['fbm_persistence']}")
-
-        # 3.15 FBM octaves
-        fbm_o = get_input("[?] FBM erosion octaves", str(config['fbm_octaves']))
-        try:
-            config['fbm_octaves'] = int(fbm_o)
-        except ValueError:
-            print(f"[WARN] Invalid int, using default: {config['fbm_octaves']}")
-
-        # 3.16 Mandelbulb power
-        m_pow = get_input("[?] Mandelbulb augmenter power", str(config['mandelbulb_power']))
-        try:
-            config['mandelbulb_power'] = float(m_pow)
-        except ValueError:
-            print(f"[WARN] Invalid float, using default: {config['mandelbulb_power']}")
-
-        # 3.17 Mandelbulb escape radius
-        m_esc = get_input("[?] Mandelbulb escape radius", str(config['mandelbulb_escape_radius']))
-        try:
-            config['mandelbulb_escape_radius'] = float(m_esc)
-        except ValueError:
-            print(f"[WARN] Invalid float, using default: {config['mandelbulb_escape_radius']}")
-
-        # 3.18 Birkhoff temperature
-        b_temp = get_input("[?] Birkhoff manifold temperature", str(config['birkhoff_temperature']))
-        try:
-            config['birkhoff_temperature'] = float(b_temp)
-        except ValueError:
-            print(f"[WARN] Invalid float, using default: {config['birkhoff_temperature']}")
-
-        # 3.19 Open Science Email
-        os_email = get_input("[?] Email for Open Science Ingestor (NCBI/Entrez)", config['open_science_email'])
-        config['open_science_email'] = os_email
-
-        # 3.20 ChatGPT Ingestor On/Off
-        chat_enabled = get_input("[?] Enable ChatGPT Friction Harvester (yes/no)", 'yes' if config['chatgpt_ingestor_enabled'] else 'no').lower()
-        config['chatgpt_ingestor_enabled'] = chat_enabled in ('yes', 'y')
-
-        # 3.21 ChatGPT Ingestor Verbosity
-        chat_verb = get_input("[?] ChatGPT Ingestor verbosity (low/normal/high)", config['chatgpt_ingestor_verbosity']).lower()
-        config['chatgpt_ingestor_verbosity'] = chat_verb
-
-        # 3.22 Open Science Ingestor On/Off
-        os_enabled = get_input("[?] Enable Open Science Ingestor (yes/no)", 'yes' if config['open_science_ingestor_enabled'] else 'no').lower()
-        config['open_science_ingestor_enabled'] = os_enabled in ('yes', 'y')
-
-        # 3.23 Open Science Ingestor Verbosity
-        os_verb = get_input("[?] Open Science Ingestor verbosity (low/normal/high)", config['open_science_ingestor_verbosity']).lower()
-        config['open_science_ingestor_verbosity'] = os_verb
-
-        # 3.19 Birkhoff max iterations
-        b_iters = get_input("[?] Birkhoff max iterations", str(config['birkhoff_max_iterations']))
-        try:
-            config['birkhoff_max_iterations'] = int(b_iters)
-        except ValueError:
-            print(f"[WARN] Invalid int, using default: {config['birkhoff_max_iterations']}")
-
-        # 3.20 TDA landmarks
-        tda_l = get_input("[?] Approximate TDA landmarks", str(config['tda_landmarks']))
-        try:
-            config['tda_landmarks'] = int(tda_l)
-        except ValueError:
-            print(f"[WARN] Invalid int, using default: {config['tda_landmarks']}")
-
-        # 3.21 Ego death limit
-        ego = get_input("[?] Ego death abstraction limit", str(config['ego_death_limit']))
-        try:
-            config['ego_death_limit'] = float(ego)
-        except ValueError:
-            print(f"[WARN] Invalid float, using default: {config['ego_death_limit']}")
-
-        # 3.22 UDP Server Colonizer
-        print("\n[INFO] What is this? UDP master server colonizer handles aggressive UDP topological peering.")
-        udp_col_prompt = "[?] Enable Option D UDP Master Server Colonizer (yes/no) [Default: no]: "
-        udp_col = get_input(udp_col_prompt, 'no').lower()
-        config['udp_colonizer_enabled'] = udp_col in ('yes', 'y')
+            print("[INFO] Defaulting to all standard configuration values.")
 
         # Obsidian Graph False Nodes Explanation
         print("\n" + "-"*50)
-        print("[OBSIDIAN GRAPH NOTE]: Note that the legacy Obsidian graph feature had a 'false number of nodes' anomaly where the UI falsely reported topological vertices due to uncollapsed homological ghost cycles. The backend correctly prunes them now, but the startup output may reflect raw structural sizes.")
+        print("[OBSIDIAN GRAPH NOTE]: The legacy Obsidian graph feature had a 'false number of nodes' anomaly where the UI falsely reported topological vertices. The backend now correctly prunes uncollapsed homological ghost cycles, ensuring accurate UI node counts.")
         print("-" * 50)
 
         # Save config
@@ -535,6 +435,30 @@ class HybridAI:
         self.device = DEVICE
         # Torch tensors still use cpu when device is 'opencl' — PyOpenCL ops run via TailSlayer kernels
         self.torch_device = 'cpu' if str(DEVICE) == 'cpu' else 'cpu' # Centralized for now
+        
+        # Wiring up the Decoupled Bulletin Board & Freenet transport layer
+        from src.core.bulletin_board import BulletinBoard
+        from src.data.freenet_bulletin_router import FreenetBulletinRouter
+        self.bulletin_board = BulletinBoard(size=256, device=self.torch_device)
+        self.bulletin_board = BulletinBoard(size=256, device=self.torch_device)
+        self.freenet_router = FreenetBulletinRouter()
+        
+        # --- PHASE 2 REINTEGRATION ---
+        try:
+            from src.p2p.freenet_ws_client import FreenetClient
+            from src.p2p.bonfire_consensus import BonfireNomadicRing
+            from src.p2p.zk_aggregator import ZKAggregator
+            
+            self.p2p_ws_client = FreenetClient()
+            # self.p2p_ws_client.start() # Start async loop (disabled by default to prevent port conflicts, but wired)
+            
+            self.zk_aggregator = ZKAggregator()
+            self.bonfire_ring = BonfireNomadicRing(freenet_client=self.p2p_ws_client)
+            print("[OK] P2P Nomadic Ring (Bonfire + ZK) instantiated.")
+        except Exception as e:
+            print(f"[FAIL] P2P Nomadic Ring initialization failed: {e}")
+        # -----------------------------
+
         
         # Save config settings as attributes for process_text overrides
         self.default_regime = config.get('regime', 'goo')
@@ -564,7 +488,18 @@ class HybridAI:
                 self.ley_line_metric = LeyLineGeodesicMetric(dim=256)
                 self.moebius_bundle = MoebiusFiberBundle(dim=256, fiber_dim=64)
                 
-                print("[OK] Advanced AI components initialized")
+                # --- PHASE 1 REINTEGRATION ---
+                from src.core.garden_statistical_attractors import InfluenceAttractor, ResonanceAttractor
+                from src.core.ley_line_tracker import LeyLineTracker
+                from src.core.invariant_optimization import LexicographicalOrderingDispatcher
+                
+                self.influence_attractor = InfluenceAttractor(num_attractors=16, feature_dim=256, device=self.torch_device)
+                self.resonance_attractor = ResonanceAttractor(num_modes=8, base_frequency=1.0, device=self.torch_device)
+                self.ley_line_tracker = LeyLineTracker(num_samples=256, alpha=1.0, beta=0.5, gamma=0.2, device=self.torch_device)
+                self.lex_dispatcher = LexicographicalOrderingDispatcher(eps=1e-5)
+                # -----------------------------
+                
+                print("[OK] Advanced AI components initialized (including Phase 1 Topologicals)")
             except Exception as e:
                 print(f"[FAIL] Advanced AI initialization failed: {e}")
                 self.temporal_model = None
@@ -668,7 +603,7 @@ class HybridAI:
             
             self.graph_manager = GyroidicGraphManager(data_dir=self.graph_dir, dim=256)
             self.graph_manager.load_fossils(limit=150)
-            print(f"[OK] Gyroidic Graph Manager initialized with {len(self.graph_manager.nodes)} fossils")
+            print(f"[OK] Gyroidic Graph Manager initialized with {self.graph_manager.get_valid_node_count()} fossils")
         except Exception as e:
             print(f"[FAIL] Graph Manager init failed: {e}")
             self.graph_manager = None
@@ -1388,6 +1323,27 @@ class HybridAI:
                                 s_states, s_neighbors, s_weights, steps=1, lr=0.01, entropy=entropy_val
                             )
                             
+                    # --- Phase 1: Garden Attractors & Ley Line Nudging ---
+                    if hasattr(self, 'influence_attractor'):
+                        try:
+                            # 1. Influence pull (treating hidden state as concept vector)
+                            pull_forces = self.influence_attractor.compute_statistical_pull(self.hidden_state.unsqueeze(0))
+                            
+                            # 2. Update Ley Line Tracker (treating 256 dims as resonance nodes)
+                            # Simple identity adjacency and zero defects for isolated inference
+                            adj = torch.eye(256, device=self.torch_device)
+                            love = torch.zeros(256, device=self.torch_device)
+                            defects = torch.zeros(256, device=self.torch_device)
+                            self.ley_line_tracker.update_potential(adj, love, defects)
+                            
+                            # 3. Nudge the hidden state along the preferred flow
+                            ley_flow = self.ley_line_tracker.get_preferred_flow(torch.arange(256, device=self.torch_device))
+                            nudge = ley_flow * pull_forces.mean() * 0.05
+                            self.hidden_state = self.hidden_state + nudge
+                        except Exception as e:
+                            print(f"[WARN] Phase 1 Topological Nudge failed: {e}")
+                    # -----------------------------------------------------
+                    
                     # We use the raw hidden state for the ADMR step
                     _out = self.admr_solver.stochastic_differential_step(
                         states=self.hidden_state.unsqueeze(0),
@@ -1403,17 +1359,68 @@ class HybridAI:
                     ))
                     if len(self.admr_support_buffer) > 4:
                         self.admr_support_buffer.pop(0)
+
                     # Update state from solver
                     if isinstance(_out, torch.Tensor):
                         hidden_state_evolved = _out
                         self.hidden_state = hidden_state_evolved.squeeze(0).squeeze(0)
                     hidden_state = self.hidden_state.clone() # Update local binding
+
+                # --- Asynchronous Gossip Bridge ---
+                # Calculate local topological metrics based on entropy and drift
+                derived_covariance_variance = drift_init if 'drift_init' in locals() else 0.02
+                derived_kelly = max(0.01, min(0.5, 0.1 / (derived_covariance_variance + 1e-4)))
+                
+                # System 1 / System 2 Post state to decoupled board
+                self.bulletin_board.post_residue(self.hidden_state_scarred)
+                self.bulletin_board.post_metrics({
+                    "betti_numbers": [1, 2, int(derived_covariance_variance*100)], # Heuristic proxy
+                    "covariance_variance": derived_covariance_variance,
+                    "kelly_fraction": derived_kelly,
+                    "valence_drive": getattr(self, "prev_pas", 0.5)
+                })
+
+                # Orchestrator reads from board and dispatches externally
+                board_metrics = self.bulletin_board.read_metrics()
+                if self.iteration_count % 10 == 0:  # Nomadic Ring Gossip Tick
+                    current_volume = getattr(self, 'iteration_count', 0) * 1.5
+                    current_mischief = derived_covariance_variance * 10.0
+                    self.freenet_router.broadcast_proof_of_honesty(current_volume, current_mischief, metrics=board_metrics)
+                
+                # Update the state with the evolved trajectory
+                hidden_state_evolved_sq = hidden_state_evolved.squeeze(0)
+                # Define Lawful Distortion (0.01 sigma as per Solver signature)
+                distortion = self._harvest_honest_jitter(hidden_state_evolved_sq.shape) * 0.1
+                candidate_state = hidden_state_evolved_sq + distortion
+                
+                # --- Phase 1: Lexicographical Hierarchy Enforcement ---
+                if hasattr(self, 'lex_dispatcher'):
+                    from src.core.invariant_optimization import SemioticState
+                    # Construct state proposals (Pre-ADMR vs Post-ADMR)
+                    # We approximate System 2 admissibility via drift magnitude (lower is better invariant adherence)
+                    # We approximate System 1 heuristic via spectral entropy (higher is better heuristic speed)
+                    drift_post = float(torch.norm(candidate_state - self.hidden_state_scarred).item())
                     
-                    # Update the state with the evolved trajectory
-                    hidden_state_evolved_sq = hidden_state_evolved.squeeze(0)
-                    # Define Lawful Distortion (0.01 sigma as per Solver signature)
-                    distortion = self._harvest_honest_jitter(hidden_state_evolved_sq.shape) * 0.1
-                    self.hidden_state_scarred = hidden_state_evolved_sq + distortion
+                    state_pre = SemioticState(
+                        system_2_admissibility=0.0, # Pre-state is the anchor (perfect adherence)
+                        system_1_heuristic=0.5,
+                        state_tensor=self.hidden_state_scarred
+                    )
+                    state_post = SemioticState(
+                        system_2_admissibility=drift_post,
+                        system_1_heuristic=getattr(self, 'prev_pas', 0.5) + 0.1, # Boost heuristic for advancing time
+                        state_tensor=candidate_state
+                    )
+                    
+                    # Lexicographical check: will reject post-state if admissibility violation is too high
+                    best_semiotic = self.lex_dispatcher.select_best([state_pre, state_post])
+                    self.hidden_state_scarred = best_semiotic.state_tensor
+                else:
+                    self.hidden_state_scarred = candidate_state
+                # ------------------------------------------------------
+                
+                model_diagnostics["physics_solver"] = "ADMR_MAML_ACTIVE"
+                model_diagnostics["drift_magnitude"] = float(torch.norm(self.hidden_state_scarred - hidden_state_256).item())
 
                 # Map evolved state to the corrected tensor for downstream affordance tracking
                 self.corrected_tensor = self.hidden_state_scarred.clone()
@@ -1695,6 +1702,40 @@ class HybridAI:
             target['regime'] = self.current_regime
             if 'retrieval_state' not in target:
                 target['retrieval_state'] = diagnostics.get('retrieval_state', 'KNOWN')
+
+        # --- PHASE 2 REINTEGRATION: Nomadic Ring Consensus ---
+        if hasattr(self, 'bonfire_ring') and hasattr(self, 'zk_aggregator'):
+            try:
+                # 1. Extract topological metrics
+                gv_score = float(inner_diag.get('gyroid_violation_score', 0.5))
+                variance = min(1.0, max(0.0, gv_score))
+                
+                betti_nums = [1, 0, 0] # Default Fallback
+                topo_analysis = inner_diag.get('topological_analysis', {})
+                if 'betti_numbers' in topo_analysis:
+                    betti_nums = topo_analysis['betti_numbers']
+                
+                # 2. Compress topological metrics into a ZK signature
+                proof = self.zk_aggregator.prove_chern_simons_invariant(
+                    state_tensor=self.hidden_state_scarred,
+                    gauge_field=torch.tensor([gv_score], device=self.torch_device)
+                )
+                
+                # 3. Wire BonfireConsensus for peer trust scoring and broadcasting
+                if proof.get("publicSignals", []) == ["1"]:
+                    self.bonfire_ring.share_topological_signature(
+                        local_peer_id="GyroidNode_01",
+                        betti_numbers=betti_nums,
+                        variance=variance
+                    )
+                    
+                    # 4. Compute Egalitarian Consensus Kelly Allocation (K_bar)
+                    k_bar = self.bonfire_ring.compute_egalitarian_consensus(engine_meta_state=self.hidden_state_scarred)
+                    for target in [diagnostics, inner_diag]:
+                        target['bonfire_k_bar'] = float(k_bar)
+            except Exception as e:
+                print(f"[WARN] Phase 2 P2P Nomadic Ring Integration failed: {e}")
+        # -----------------------------------------------------
 
         return {
             "response": response_text,
