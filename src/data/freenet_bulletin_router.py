@@ -15,43 +15,71 @@ class FreenetBulletinRouter:
         self.sone_uri_base = "USK@Gyroidic-Sone-Identity"
         self.fms_board = "Gyroidic.Resonance"
 
-    def _generate_fms_xml(self, volume: float, mischief: float) -> str:
-        """Generates a synthetic FMS Message XML payload."""
+    def _generate_fms_xml(self, volume: float, mischief: float, metrics: dict = None) -> str:
+        """Generates a Bonfire P2P FMS Message XML payload."""
         date_str = datetime.datetime.utcnow().strftime('%Y-%m-%d')
         time_str = datetime.datetime.utcnow().strftime('%H:%M:%S')
         message_id = f"{uuid.uuid4().hex}@fms.gyroidic"
+        
+        if metrics is None:
+            raise ValueError("Cannot generate FMS XML: Topological metrics are disconnected. Bulletin Board state required.")
+            
+        kelly_fraction = metrics.get('kelly_fraction', 0.0)
+        covariance_variance = metrics.get('covariance_variance', 0.0)
         
         xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Message>
     <Date>{date_str}</Date>
     <Time>{time_str}</Time>
-    <Subject>Proof of Honesty: Tripsodic Expansion</Subject>
+    <Subject>Bonfire Ring: Proof of Honesty & Microhedging</Subject>
     <MessageID>{message_id}</MessageID>
     <ReplyBoard>{self.fms_board}</ReplyBoard>
     <Body>
         <![CDATA[
-        [NDC AUTOMATED RECEIPT]
-        The Gyroidic Reasoner has rhythmically expanded its manifold volume.
+        [BONFIRE P2P PROTOCOL]
+        The Gyroidic Reasoner has reached a local consensus state.
         Current Ledger Volume: {volume:.4f}
-        Mischief (Good Bugs) Digested: {mischief:.4f}
+        Mischief Digested: {mischief:.4f}
         
-        Topological Harmony maintained. The Chern-Simons Gasket remains intact.
+        [Egalitarian Microhedging]
+        Fractional Kelly Allocation: {kelly_fraction:.4f}
+        Covariance Variance: {covariance_variance:.4f}
+        
+        System maintains topological resonance against the Nomadic Ring.
         ]]>
     </Body>
 </Message>
 """
         return xml
 
-    def _generate_sone_json(self, volume: float) -> str:
-        """Generates a synthetic Sone post JSON payload."""
-        # Sone internal storage is typically XML, but API posts can be made via local HTTP or JSON blocks over FCP depending on plugin.
-        # We will simulate the post text body.
-        return f"Tripsodic Expansion confirmed. The Reasoner's cognitive volume is now {volume:.2f}. #NonDualCoin #Gyroidic"
+    def _generate_sone_json(self, volume: float, metrics: dict = None) -> str:
+        """Generates a Bonfire P2P Nomadic Ring topological signature payload."""
+        import json
+        if metrics is None:
+            raise ValueError("Cannot generate Sone JSON: Topological metrics are disconnected. Bulletin Board state required.")
+        
+        payload = {
+            "type": "BonfireNomadicRingSignature",
+            "volume": round(volume, 4),
+            "topological_signature": {
+                "betti_numbers": metrics.get("betti_numbers", []),
+                "euler_characteristic": metrics.get("euler_characteristic", 0),
+                "coprime_residues": metrics.get("coprime_residue", 1)
+            },
+            "egalitarian_microhedging": {
+                "kelly_fraction": metrics.get("kelly_fraction", 0.01),
+                "covariance_variance": metrics.get("covariance_variance", 0.01),
+                "valence_drive": metrics.get("valence_drive", 1.0)
+            },
+            "tags": ["#BonfireRing", "#Gyroidic", "#NonDualCoin"]
+        }
+        return json.dumps(payload, indent=2)
 
-    def broadcast_proof_of_honesty(self, volume: float, mischief: float):
+
+    def broadcast_proof_of_honesty(self, volume: float, mischief: float, metrics: dict = None):
         """Asynchronously dispatches the FMS and Sone synthetic payloads over FCPv2."""
         fms_payload = self._generate_fms_xml(volume, mischief)
-        sone_payload = self._generate_sone_json(volume)
+        sone_payload = self._generate_sone_json(volume, metrics=metrics)
         
         def _run():
             try:
