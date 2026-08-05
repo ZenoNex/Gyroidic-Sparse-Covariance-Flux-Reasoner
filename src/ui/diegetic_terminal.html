@@ -2168,31 +2168,55 @@
         // The old 96-dim histogram format is gone; the backend fingerprint_proj
         // is replaced with a 3*K_max (=96) linear layer.
 
-        async function processImage(file) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const fingerprint = computeFingerprint(img);
-                    state.active_fingerprint = fingerprint;
-                    updateRibbon(fingerprintToVector(fingerprint));
-                    document.querySelector('.drop-hint').innerText = `DYAD CAPTURED: ${file.name}`;
-                    const totalCoeffs = fingerprint.L.length + fingerprint.Cr.length + fingerprint.Cb.length;
-                    appendMessage('system',
-                        `⬡ DYAD ARMED — ${totalCoeffs}-coeff Chebyshev fingerprint computed locally ` +
-                        `(K=${fingerprint.chebyshev_degree}, ${fingerprint.px_width}\u00d7${fingerprint.px_height}px).\n` +
-                        `\u25b6 PROMPT: Type a description and press Enter to INGEST.\n` +
-                        `\u25b6 ADVANCED: Type 'ASSOCIATE: source <-> target' to link a new dyad manually.`);
+        async function processImages(files) {
+            if (!files || files.length === 0) return;
+            document.querySelector('.drop-hint').innerText = `PROCESSING ${files.length} DYADS...`;
+            
+            let averagedFingerprint = null;
+            let loadedCount = 0;
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const fingerprint = computeFingerprint(img);
+                            if (!averagedFingerprint) {
+                                averagedFingerprint = fingerprint;
+                            } else {
+                                // Average the vectors for a composite dyad
+                                for (let j=0; j<fingerprint.L.length; j++) {
+                                    averagedFingerprint.L[j] = (averagedFingerprint.L[j] * loadedCount + fingerprint.L[j]) / (loadedCount + 1);
+                                    averagedFingerprint.Cr[j] = (averagedFingerprint.Cr[j] * loadedCount + fingerprint.Cr[j]) / (loadedCount + 1);
+                                    averagedFingerprint.Cb[j] = (averagedFingerprint.Cb[j] * loadedCount + fingerprint.Cb[j]) / (loadedCount + 1);
+                                }
+                            }
+                            loadedCount++;
+                            resolve();
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+            
+            state.active_fingerprint = averagedFingerprint;
+            updateRibbon(fingerprintToVector(averagedFingerprint));
+            document.querySelector('.drop-hint').innerText = `COMPOSITE DYAD CAPTURED: ${files.length} IMAGES`;
+            
+            const totalCoeffs = averagedFingerprint.L.length + averagedFingerprint.Cr.length + averagedFingerprint.Cb.length;
+            appendMessage('system',
+                `⬡ COMPOSITE DYAD ARMED — ${totalCoeffs}-coeff Chebyshev fingerprint computed locally ` +
+                `(K=${averagedFingerprint.chebyshev_degree}, averaged over ${files.length} images).\n` +
+                `▶ PROMPT: Type a description and press Enter to INGEST.\n` +
+                `▶ ADVANCED: Type 'ASSOCIATE: source <-> target' to link a new dyad manually.`);
 
-                    // Visual signal: arm the input box
-                    userInput.placeholder = 'Describe or use ASSOCIATE: source <-> target...';
-                    userInput.style.borderColor = 'var(--terminal-cyan, #00e5ff)';
-                    userInput.style.boxShadow = '0 0 8px var(--terminal-cyan, #00e5ff)';
-                    userInput.focus();
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+            userInput.placeholder = 'Describe or use ASSOCIATE: source <-> target...';
+            userInput.style.borderColor = 'var(--terminal-cyan, #00e5ff)';
+            userInput.style.boxShadow = '0 0 8px var(--terminal-cyan, #00e5ff)';
+            userInput.focus();
         }
 
         function computeFingerprint(img) {
@@ -2399,18 +2423,67 @@
                 }
             };
 
-            fileInput.onchange = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    if (isTextarea) {
-                        targetInput.value = e.target.result;
-                    } else {
-                        targetInput.value = e.target.result.substring(0, 100);
+            fileInput.onchange = async (e) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+                
+                targetInput.value = "Reading files via Streams API...";
+                targetInput.disabled = true;
+                let combinedText = "";
+                let previewText = "";
+                
+                for(let i=0; i<files.length; i++) {
+                    const file = files[i];
+                    if (files.length > 1) {
+                        combinedText += `--- ${file.name} ---\n`;
+                        previewText += `--- ${file.name} ---\n`;
                     }
-                };
-                reader.readAsText(file);
+                    
+                    targetInput.value = `Streaming ${file.name} (${Math.round(file.size/1024/1024)}MB)...`;
+                    
+                    const stream = file.stream();
+                    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+                    
+                    let chunks = [];
+                    let receivedLength = 0;
+                    let previewLength = 0;
+                    
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        chunks.push(value);
+                        receivedLength += value.length;
+                        
+                        if (previewLength < 1000) {
+                            previewText += value;
+                            previewLength += value.length;
+                        }
+                        
+                        if (chunks.length % 50 === 0) {
+                             targetInput.value = `Streaming ${file.name}: ${Math.round(receivedLength/1024/1024)}MB read...`;
+                        }
+                    }
+                    
+                    combinedText += chunks.join('');
+                    if (receivedLength > 1000) {
+                        previewText = previewText.substring(0, 1000) + `\n\n... [PREVIEW END - FULL FILE LOADED IN MEMORY] ...`;
+                    }
+                    
+                    if (i < files.length - 1) {
+                        combinedText += "\n\n";
+                        previewText += "\n\n";
+                    }
+                }
+                
+                state[`${targetInput.id}_payload`] = combinedText;
+                targetInput.disabled = false;
+                
+                if (isTextarea) {
+                    targetInput.value = previewText;
+                } else {
+                    targetInput.value = previewText.substring(0, 100);
+                }
             };
         }
 
@@ -2418,8 +2491,21 @@
         setupSemanticDropzone('semantic-source-dropzone', 'semantic-source-file', 'semantic-source', false);
 
         async function commitSemanticLink() {
-            const source = document.getElementById('semantic-source').value.trim();
-            const target = document.getElementById('semantic-buffer').value.trim();
+            const sourceEl = document.getElementById('semantic-source');
+            const targetEl = document.getElementById('semantic-buffer');
+            
+            let source = state['semantic-source_payload'] || sourceEl.value.trim();
+            if (state['semantic-source_payload'] && !sourceEl.value.includes('[PREVIEW END')) {
+                source = sourceEl.value.trim();
+                state['semantic-source_payload'] = null;
+            }
+            
+            let target = state['semantic-buffer_payload'] || targetEl.value.trim();
+            if (state['semantic-buffer_payload'] && !targetEl.value.includes('[PREVIEW END')) {
+                target = targetEl.value.trim();
+                state['semantic-buffer_payload'] = null;
+            }
+
             const commute = document.getElementById('commute-text').value;
 
             if (!source || !target) {
@@ -2429,7 +2515,7 @@
 
             const command = `ASSOCIATE: ${source} <-> ${target}`;
             const displayOrder = commute === 'source_first' ? 'Source → Target' : commute === 'target_first' ? 'Target → Source' : '≅ Symmetric';
-            appendMessage('user', `LINKING [${displayOrder}]: ${source} TO SEMANTIC BUFFER...`);
+            appendMessage('user', `LINKING [${displayOrder}]: ${source.substring(0, 50)}... TO SEMANTIC BUFFER (${target.length} chars)...`);
 
             try {
                 const response = await fetch(`${state.backend_url}/interact`, {
@@ -2446,12 +2532,14 @@
                 handleResponse(data);
 
                 const logEntry = document.createElement('div');
-                logEntry.innerText = `[${new Date().toLocaleTimeString()}] [${displayOrder}] ${source} -> ${target.substring(0, 20)}...`;
+                logEntry.innerText = `[${new Date().toLocaleTimeString()}] [${displayOrder}] ${source.substring(0, 20)} -> ${target.substring(0, 20)}...`;
                 document.getElementById('semantic-log').prepend(logEntry);
 
                 // Clear inputs
                 document.getElementById('semantic-buffer').value = '';
                 document.getElementById('semantic-source').value = '';
+                state['semantic-source_payload'] = null;
+                state['semantic-buffer_payload'] = null;
 
             } catch (err) {
                 appendMessage('system', "SEMANTIC RUPTURE. PERSISTENCE FAILED.");
@@ -2948,14 +3036,14 @@
         };
 
         fileInput.onchange = (e) => {
-            if (e.target.files.length > 0) processImage(e.target.files[0]);
+            if (e.target.files.length > 0) processImages(e.target.files);
         };
 
         dropzone.ondragover = (e) => { e.preventDefault(); dropzone.style.borderColor = 'var(--terminal-blue)'; };
         dropzone.ondragleave = (e) => { e.preventDefault(); dropzone.style.borderColor = 'var(--glass-border)'; };
         dropzone.ondrop = (e) => {
             e.preventDefault();
-            if (e.dataTransfer.files.length > 0) processImage(e.dataTransfer.files[0]);
+            if (e.dataTransfer.files.length > 0) processImages(e.dataTransfer.files);
         };
 
         document.getElementById('commit-semantic').onclick = commitSemanticLink;
