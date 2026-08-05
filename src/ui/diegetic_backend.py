@@ -1425,6 +1425,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 total_sim = sum(m[0] for m in top_matches)
                 for sim, res in top_matches:
                     weight = sim / total_sim
+                    res = res.view(nudge.shape)
                     nudge += weight * res
                 
                 # Apply nudge: meta_state = (1-eta)*meta_state + eta*nudge
@@ -2134,6 +2135,12 @@ class DiegeticPhysicsEngine(nn.Module):
         elif commutativity == 'symmetric' and media_biases:
             # Simultaneous injection: Add the mean of all biases to input_tensor.
             mean_bias = torch.stack(media_biases).mean(dim=0)
+            if mean_bias.shape[-1] != input_tensor.shape[-1]:
+                import torch.nn.functional as F
+                if mean_bias.shape[-1] > input_tensor.shape[-1]:
+                    mean_bias = mean_bias[..., :input_tensor.shape[-1]]
+                else:
+                    mean_bias = F.pad(mean_bias, (0, input_tensor.shape[-1] - mean_bias.shape[-1]))
             input_tensor = input_tensor + 0.5 * mean_bias
         # 'text_first' handled after forward()
         
@@ -3078,7 +3085,7 @@ class DiegeticPhysicsEngine(nn.Module):
         mischief_active = (self.current_regime == 'goo') or (current_gcve > 0.3)
         pressure_grad = self.calm_history.mean(dim=0) if self.calm_history is not None else torch.zeros(self.dim, device=self.device)
         
-        self.mischief_probe.update(
+        self.mischief_probe.update_bands(
             pressure_grad=pressure_grad, 
             coherence=torch.tensor(0.5, device=self.device), 
             pas_h=pas_h_live, 
