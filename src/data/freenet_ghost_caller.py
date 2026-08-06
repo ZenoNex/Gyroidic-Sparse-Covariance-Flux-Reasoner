@@ -4,10 +4,10 @@ import uuid
 
 class FreenetGhostCaller:
     """
-    Subsystem that interfaces with Freenet's FCPv2 to broadcast
-    the Gyroidic Sparse Covariance Flux Reasoner onto the darknet.
+    Directly whispers 'Ghost' (echo test) messages across the Freenet 
+    sub-substrate to detect topological latency and structural readiness.
     """
-    def __init__(self, host: str = '127.0.0.1', port: int = 9481):
+    def __init__(self, host: str = '127.0.0.1', port: int = 7509):
         self.host = host
         self.port = port
         self.broadcasted = False
