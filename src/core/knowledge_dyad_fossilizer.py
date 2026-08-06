@@ -162,6 +162,9 @@ class DyadFossilizer:
         self.feature_dim = feature_dim
         self.fusion_layer = fusion_layer or ResidueFusion(feature_dim=feature_dim)
         
+        # Threading event to ensure no fossilization occurs before the index is fully ready
+        self._index_ready = threading.Event()
+        
         # Topological Derivation Engines (Non-Lazy Implication Binding)
         self.homology_engine = SpeculativeHomologyEngine(feature_dim=feature_dim)
         self.covariance_probe = SparseGyroidCovarianceProbe(hidden_dim=feature_dim)
@@ -180,6 +183,7 @@ class DyadFossilizer:
         
         # Load fast index to prevent O(N) startup/scan bottlenecks
         self._load_index()
+        self._index_ready.set()
 
     def _load_index(self):
         """Loads or builds the fast fossil index to prevent O(N) startup bottlenecks."""
@@ -238,15 +242,17 @@ class DyadFossilizer:
     def _rebuild_index(self):
         self.fossil_index = {}
         self.fossilized_hashes = set()
-        print("[FOSSILIZER] Bypassing index rebuild to prevent hang.")
-        return
+        print("[FOSSILIZER] Rebuilding index via concurrent scanning...")
         try:
             entries = [e for e in os.scandir(self.storage_dir) if e.name.endswith(".pt")]
-            for entry in entries:
-                filepath = entry.path
-                f = entry.name
+            import concurrent.futures
+            
+            def process_entry(entry):
                 try:
+                    filepath = entry.path
+                    f = entry.name
                     mtime = entry.stat().st_mtime
+                    # Use a lightweight load if possible, or standard load
                     data = torch.load(filepath, map_location='cpu')
                     if isinstance(data, dict):
                         p_hash = data.get('prompt_hash')
@@ -256,17 +262,26 @@ class DyadFossilizer:
                                 p_hash = hashlib.sha256(desc.encode('utf-8')).hexdigest()
                         dyad_meta = data.get('dyad_metadata') or {}
                         arxiv_id = dyad_meta.get('arxiv_id')
-                        self.fossil_index[f] = {
+                        return f, {
                             'prompt_hash': p_hash,
                             'arxiv_id': arxiv_id,
                             'mtime': mtime
                         }
-                        if p_hash:
-                            self.fossilized_hashes.add(p_hash)
                 except Exception:
                     pass
+                return None
+                
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                results = executor.map(process_entry, entries)
+                for res in results:
+                    if res:
+                        f, info = res
+                        self.fossil_index[f] = info
+                        if info.get('prompt_hash'):
+                            self.fossilized_hashes.add(info['prompt_hash'])
+                            
             self._save_index()
-            print(f"[FOSSILIZER] Rebuilt fast index. Indexed {len(self.fossil_index)} files.")
+            print(f"[FOSSILIZER] Rebuilt fast index concurrently. Indexed {len(self.fossil_index)} files.")
         except Exception as e:
             print(f"[FOSSILIZER] Rebuilding index failed: {e}")
 
@@ -324,6 +339,7 @@ class DyadFossilizer:
     # Rehydration intensity: gentle enough not to destroy existing geometry
     _REHYDRATION_INTENSITY = 0.05
 
+
     def fossilize(self, 
                   dyad: KnowledgeDyad, 
                   text_embedding: torch.Tensor,
@@ -339,6 +355,7 @@ class DyadFossilizer:
             If detected, honest jitter is injected to rehydrate variance and
             the atrophy event is recorded in the fossil payload.
         """
+        self._index_ready.wait()
         # --- UPSTREAM SPECTRAL ATROPHY GUARD ---
         # This guard detects the 0.8824 flatline BEFORE the invariant engines
         # see it, so they don't produce meaningless chiral/betti metrics from
@@ -581,7 +598,9 @@ class DyadFossilizer:
         filename = f"encoding_{safe_desc}_{timestamp_int}.pt"
         filepath = os.path.join(self.storage_dir, filename)
         
-        torch.save(payload, filepath)
+        tmp_filepath = filepath + ".tmp"
+        torch.save(payload, tmp_filepath)
+        os.replace(tmp_filepath, filepath)
         self.fossilized_hashes.add(prompt_hash)
         
         # Update fast index
@@ -781,7 +800,9 @@ class DyadFossilizer:
             "dyad_metadata": dyad.metadata 
         }
         filepath = os.path.join(self.storage_dir, filename)
-        torch.save(payload, filepath)
+        tmp_filepath = filepath + ".tmp"
+        torch.save(payload, tmp_filepath)
+        os.replace(tmp_filepath, filepath)
         # Update fast index
         self.fossil_index[filename] = {
             'prompt_hash': blake2s_digest,
