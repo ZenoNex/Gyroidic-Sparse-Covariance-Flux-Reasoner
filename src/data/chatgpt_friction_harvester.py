@@ -545,13 +545,23 @@ async def auto_temporal_training_loop(
                                         data['semisimple_rerun_complete'] = True
                                             
                                         # Re-save the file to disk!
-                                        torch.save(data, filepath)
+                                        tmp_filepath = filepath + ".tmp"
+                                        torch.save(data, tmp_filepath)
+                                        os.replace(tmp_filepath, filepath)
                                         print(f"[RECOVERY] Successfully reran and upgraded semisimple file to non-semisimple topology: {filename}")
                                         
                                         # Break after one rerun to let training steps run and yield CPU
                                         break
                             except Exception as fe:
-                                print(f"[RECOVERY] Error during semisimple rerun check for {filename}: {fe}")
+                                str_e = str(fe).lower()
+                                if "zipfile" in str_e or "storages" in str_e:
+                                    print(f"[RECOVERY] Unrecoverable ZIP truncation error for {filename}. Deleting file.")
+                                    try:
+                                        os.remove(filepath)
+                                    except OSError:
+                                        pass
+                                else:
+                                    print(f"[RECOVERY] Error during semisimple rerun check for {filename}: {fe}")
         except Exception as pe:
             print(f"[RECOVERY] Error checking system load for semisimple rerun: {pe}")
 
