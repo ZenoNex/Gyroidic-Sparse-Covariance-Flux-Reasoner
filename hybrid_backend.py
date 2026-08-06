@@ -764,7 +764,7 @@ class HybridAI:
         # FREENET GHOST CALLER INTEGRATION
         try:
             from src.data.freenet_ghost_caller import FreenetGhostCaller
-            self.ghost_caller = FreenetGhostCaller(host='127.0.0.1', port=9481)
+            self.ghost_caller = FreenetGhostCaller(host='127.0.0.1', port=7509)
             self.ghost_caller.broadcast_ghost_call()
             print("[OK] Freenet Ghost Caller initialized and introductory call dispatched")
         except Exception as e:
