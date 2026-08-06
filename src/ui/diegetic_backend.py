@@ -6258,7 +6258,12 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 
                 ENGINE.graph_manager.load_fossils(limit=limit) 
                 graph_data = json.loads(ENGINE.graph_manager.export_graph_json())
+                graph_data["total_index"] = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0
                 self._send_json(graph_data)
+                return
+            elif self.path == '/api/index_size':
+                size = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0
+                self._send_json({"total_index": size})
                 return
             elif self.path == '/health':
                 print("API REQUEST: /health")
