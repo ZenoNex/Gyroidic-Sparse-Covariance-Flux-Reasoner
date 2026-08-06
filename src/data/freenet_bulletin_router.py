@@ -9,7 +9,7 @@ class FreenetBulletinRouter:
     with the global Freenet bulletin boards (FMS & Sone).
     Generates synthetic payloads and routes them via FCPv2.
     """
-    def __init__(self, host: str = '127.0.0.1', port: int = 9481):
+    def __init__(self, host: str = '127.0.0.1', port: int = 7509):
         self.host = host
         self.port = port
         self.sone_uri_base = "USK@Gyroidic-Sone-Identity"
