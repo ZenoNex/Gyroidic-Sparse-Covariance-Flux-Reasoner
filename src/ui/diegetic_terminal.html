@@ -1313,10 +1313,21 @@
             
             const limitEl = document.getElementById('graph-limit');
             const includeTagsEl = document.getElementById('graph-include-tags');
-            const limit = limitEl ? parseInt(limitEl.value) || 150 : 150;
-            const includeTags = includeTagsEl ? includeTagsEl.checked : true;
             
             try {
+                // Fetch the actual index size first to see if we need a bigger graph
+                const sizeRes = await fetch(`${state.backend_url}/api/index_size`);
+                const sizeData = await sizeRes.json();
+                if (sizeData && sizeData.total_index) {
+                    if (limitEl && parseInt(limitEl.value) < sizeData.total_index) {
+                        limitEl.value = sizeData.total_index;
+                        limitEl.max = Math.max(1000, sizeData.total_index);
+                    }
+                }
+                
+                const limit = limitEl ? parseInt(limitEl.value) || 150 : 150;
+                const includeTags = includeTagsEl ? includeTagsEl.checked : true;
+
                 const response = await fetch(`${state.backend_url}/graph?limit=${limit}`);
                 const data = await response.json();
                 graphDataGlobal = data;
