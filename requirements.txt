@@ -25,3 +25,14 @@ aiohttp>=3.8.0
 convokit>=2.5.3
 psutil>=5.9.0
 wikiextractor>=3.0.6
+moviepy>=1.0.3
+camb>=1.5.0
+boto3>=1.26.0
+botocore>=1.29.0
+websockets>=11.0.3
+
+gwpy==2.0.4
+gwosc==0.5.4
+ligotimegps
+astroquery
+biopython
