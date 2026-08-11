@@ -26,43 +26,43 @@ _BIRKHOFF_CACHE_LOCK = threading.Lock()
 _BIRKHOFF_WARNED_DIMENSIONS = set()
 
 
-class SparseRepunitProbe(nn.Module):
+class DModuleRankProbe(nn.Module):
     """
-    Repunit-CRT Sparse Probe.
-    Translates complex geometric invariants into ultra-fast discrete integer math.
-    By mapping high-dimensional constraint vectors to bit-shifted repunit arrays,
-    ADMM incoherence tests reduce to XORs and bitwise operations.
-    
-    Fuses repunit sparsity to the stack: gyroids minimize \\psi like surface tension, 
-    Birkhoff bounds lifts, and ADMM traverses cycles.
+    D-Module Rank Probe.
+    Replaces SparseRepunitProbe to prevent killing of high-entropy Voyenese.
+    Uses NumericalDModuleManager to evaluate the true holonomic rank instead of geometric efficiency.
     """
-    def __init__(self, moduli: List[int]):
+    def __init__(self, state_dim: int, num_functionals: int):
         super().__init__()
-        self.register_buffer('moduli', torch.tensor(moduli, dtype=torch.float32))
+        from src.core.numerical_d_module import NumericalDModuleManager
+        self.d_module = NumericalDModuleManager(state_dim=state_dim, num_functionals=num_functionals)
         
-    def forward(self, n: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, state: torch.Tensor, entropy: float = 0.5) -> Tuple[torch.Tensor, bool]:
         """
-        Compute Repunit-CRT Probe for $R_n$.
-        Returns the majority lift and a boolean feasibility mask (\\psi < 0.5).
+        If the state has sufficient D-Module rank (is not a Lazarus Void), it passes.
+        Otherwise it is scaled down (repressed).
+        Returns:
+            processed_state: The preserved or repressed state
+            is_feasible: True if rank was sufficient
         """
-        # R_n = (10^n - 1) // 9
-        r = (10**n - 1) // 9
+        batch_size = state.shape[0] if state.dim() > 1 else 1
+        state_2d = state.view(batch_size, -1)
         
-        # Use floating point remainder for large R_n numerical limits
-        r_tensor = torch.tensor(float(r), dtype=torch.float32, device=self.moduli.device)
-        residues = torch.remainder(r_tensor, self.moduli).unsqueeze(0)
+        # Approximate facets via self-outer product for rank evaluation
+        num_funcs = min(state_2d.shape[-1], self.d_module.num_functionals)
+        facets = torch.einsum('bi,bj->bij', state_2d, state_2d[:, :num_funcs])
         
-        # Popcount overlaps proxy psi
-        mean_res = torch.mean(residues, dim=0)
-        psi = torch.norm(residues - mean_res, dim=0)
+        if num_funcs < self.d_module.num_functionals:
+            pad = torch.zeros(batch_size, state_2d.shape[-1], self.d_module.num_functionals - num_funcs, device=state.device)
+            facets = torch.cat([facets, pad], dim=-1)
+            
+        metrics = self.d_module(facets, entropy)
+        is_feasible = not metrics["is_lazarus_void"]
         
-        # Majority-symbol lifts via vote
-        diag_mod = torch.diag(1.0 / self.moduli)
-        normalized_res = residues @ diag_mod
-        lift = torch.mode(normalized_res, dim=-1)[0]
-        
-        is_feasible = psi < 0.5
-        return lift, is_feasible
+        if is_feasible:
+            return state, True
+        else:
+            return state * 0.1, False
 
 
 
