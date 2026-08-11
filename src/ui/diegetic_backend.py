@@ -148,7 +148,7 @@ from src.topology.embedding_graph import GyroidicGraphManager
 # Pressure Ingestor for constraint forcing when code is detected
 from src.data.pressure_ingestor import PressureIngestor
 # Topological Extensions (Repunit Probes)
-from src.core.birkhoff_projection import SparseRepunitProbe
+from src.core.birkhoff_projection import DModuleRankProbe
 from src.topology.unknowledge_domain import UnknowledgeDomain, EntropicMischiefProbe
 from src.core.five_gate_pipeline import FiveGatePipeline, KnowledgeState
 from src.core.archetype_engines import ArchetypalSynthesisEngine
@@ -360,6 +360,23 @@ class DiegeticPhysicsEngine(nn.Module):
         self.mischief_probe = EntropicMischiefProbe(device=self.device)
         self.voynich_linguist = VoynichLinguist(latent_dim=dim).to(self.device)
         
+        # Topological ingestion gate (replaces missing boundary validation)
+        from src.core.topological_ingestion_validator import TopologicalIngestionValidator
+        from src.core.polynomial_coprime import PolynomialCoprimeConfig
+        poly_config = PolynomialCoprimeConfig(
+            k=5,
+            degree=4,
+            basis_type='chebyshev',
+            learnable=True,
+            use_saturation=True
+        )
+        self.ingestion_validator = TopologicalIngestionValidator(
+            poly_config=poly_config,
+            state_dim=dim,
+            scale=65536.0,
+            min_rank_ratio=0.3,
+        ).to(self.device)
+        
         # Introspection head for self-modeling
         from src.models.introspection_head import AggregateGeometricSelfModel
         self.introspection = AggregateGeometricSelfModel(hidden_dim=dim).to(self.device)
@@ -397,12 +414,7 @@ class DiegeticPhysicsEngine(nn.Module):
         legendre_vals = basis.evaluate(torch.tensor([0.7], device=device))[0]
 
         from src.core.fgrt_primitives import PrimeResonanceLadder
-        if not hasattr(self, '_prime_ladder'):
-            self._prime_ladder = PrimeResonanceLadder(num_resonators=32).to(device)
-        prime_offset = int(self._prime_ladder.primes[2].item()) # Using 3rd prime as stable offset
-        
-        poly_moduli = [int(abs(p.item() * 10) + prime_offset) for p in legendre_vals]            
-        self.repunit_probe = SparseRepunitProbe(moduli=poly_moduli)
+        self.rank_probe = DModuleRankProbe(state_dim=dim, num_functionals=k)
         
         # Love Invariant Protector - prevents Love vector scalarization
         self.love_protector = LoveInvariantProtector(
@@ -2949,11 +2961,10 @@ class DiegeticPhysicsEngine(nn.Module):
             # L + meta_state
             self.meta_state = self.love_vector(self.meta_state)
             
-            # Apply Repunit-CRT Probe factoring
-            # Map continuous norm to a discrete repunit index n
-            rep_n = int(torch.norm(self.meta_state).item()) % 20
-            repunit_state, _ = self.repunit_probe(rep_n)
-            self.meta_state = self.meta_state * 0.5 + repunit_state * 0.5
+            # Apply D-Module Rank check to protect high-entropy Voyenese structures
+            # We skip the geometric repunit clipping that killed Voyenese
+            processed_state, is_feasible = self.rank_probe(self.meta_state.unsqueeze(0))
+            self.meta_state = self.meta_state * 0.5 + processed_state.squeeze(0) * 0.5
             
             # Diagnostic check (kernel property)
             ownership_leak = self.love_vector.ownership_check().item()
@@ -5135,6 +5146,38 @@ class DiegeticPhysicsEngine(nn.Module):
                 signal_tensor = signal_tensor.squeeze(0)
             except Exception as e:
                 print(f" [PIPELINE]  Augmentation-first bypass: {e}")
+
+        # --- TOPOLOGICAL VALIDATION (Ingestion Air Lock) ---
+        import time
+        # Validate text structurally before encoding
+        text_val = self.ingestion_validator.validate_text(
+            description,
+            manifold_state=self.meta_state.flatten()[:self.ingestion_validator.state_dim]
+        )
+        if not text_val["admissible"]:
+            self.neglecton.log_scar(
+                key=f"ingestion_refusal_text_{int(time.time())}",
+                state=text_val["residues"],
+                reason=text_val["reason"],
+                source="bimodal_ingestion"
+            )
+            return f"[TOPOLOGICAL_REFUSAL] Text failed validation: {text_val['reason']}"
+
+        if media_received:
+            # Validate signal tensor
+            signal_flat = signal_tensor.view(1, -1)
+            sig_val = self.ingestion_validator.validate_tensor(
+                signal_flat,
+                manifold_state=self.meta_state.flatten()[:self.ingestion_validator.state_dim]
+            )
+            if not sig_val["admissible"]:
+                self.neglecton.log_scar(
+                    key=f"ingestion_refusal_media_{int(time.time())}",
+                    state=sig_val["residues"],
+                    reason=sig_val["reason"],
+                    source="bimodal_ingestion"
+                )
+                return f"[TOPOLOGICAL_REFUSAL] Media failed validation: {sig_val['reason']}"
 
         # --- OFFICIAL DATA ASSOCIATION (Collision Phase) ---
         # Use DataAssociationLayer to fuse Multi-modal Invariants.
