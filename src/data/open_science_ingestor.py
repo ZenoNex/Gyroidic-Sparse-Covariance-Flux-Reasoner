@@ -20,9 +20,19 @@ class OpenScienceIngestor:
     Encapsulated manager for open-access scientific datasets.
     Provides flexible query aggregation and deterministic fallback generators.
     """
-    def __init__(self, cache_dir: Optional[str] = None, email: str = "default@example.com", verbosity: str = "normal"):
+    def __init__(self, cache_dir: Optional[str] = None, verbosity: str = "normal"):
         self.cache_dir = Path(cache_dir) if cache_dir else Path("datasets/open_science_cache")
-        self.email = email
+        
+        self.email = "default@example.com"
+        self.api_key = ""
+        try:
+            with open('.gyroid_config.json', 'r') as f:
+                conf = json.load(f)
+                self.email = conf.get('config', {}).get('open_science_email', self.email)
+                self.api_key = conf.get('config', {}).get('ncbi_api_key', "")
+        except Exception:
+            pass
+
         self.verbosity = verbosity
         self.cache_dir.mkdir(exist_ok=True, parents=True)
         if self.verbosity != "low":
@@ -167,13 +177,41 @@ class OpenScienceIngestor:
             
             # Configure Vizier Row Limit
             v = Vizier(row_limit=row_limit)
-            result = v.get_catalogs(catalog_id)
             
-            if not result or len(result) <= table_idx:
-                raise ValueError(f"Catalog {catalog_id} not found or index {table_idx} out of bounds.")
+            # Catalogs to try if the primary one fails
+            # J/ApJ/818/130 is explicitly prioritized for resilient group catalog fetching
+            catalogs_to_try = [
+                catalog_id, 
+                "J/ApJ/818/130", 
+                "J/A+A/540/A106", 
+                "VII/292/sdss_dr12", 
+                "J/ApJS/247/43", 
+                "J/ApJ/736/21",
+                "J/MNRAS/465/3817",
+                "VIII/92/vizier"
+            ]
+            result = None
+            successful_catalog = catalog_id
+            
+            for cat in catalogs_to_try:
+                try:
+                    res = v.get_catalogs(cat)
+                    if res and len(res) > table_idx:
+                        result = res
+                        successful_catalog = cat
+                        print(f"   [SDSS] Successfully fetched {cat}")
+                        break
+                    else:
+                        print(f"   [SDSS] Catalog {cat} empty or index {table_idx} out of bounds, trying next...")
+                except Exception as loop_e:
+                    print(f"   [SDSS] Failed fetching {cat}: {loop_e}, trying next...")
+            
+            if not result:
+                raise ValueError(f"All catalog attempts failed or returned empty data.")
                 
             table = result[table_idx]
             columns = table.colnames
+            catalog_id = successful_catalog  # Update for correct logging and cache naming
             
             # Convert astropy Table rows into standard list of dicts
             rows = []
@@ -270,9 +308,13 @@ class OpenScienceIngestor:
 
         try:
             from Bio import Entrez, SeqIO
+            import os
             
-            Entrez.email = email
-            print(f"   [NCBI] Connection established under identity '{email}'")
+            Entrez.email = self.email
+            api_key = self.api_key or os.environ.get("NCBI_API_KEY")
+            if api_key:
+                Entrez.api_key = api_key
+            print(f"   [NCBI] Connection established under identity '{self.email}' (API Key: {'YES' if api_key else 'NO'})")
             
             with Entrez.efetch(db=db, id=accession_id, rettype="gb", retmode="text") as handle:
                 record = SeqIO.read(handle, "genbank")
