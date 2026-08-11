@@ -28,7 +28,8 @@ from pathlib import Path
 
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.codec.gyroidic_codec import CodecConfig, EncodingResult
-from src.core.voynich_architecture import VoynichLinguist
+from src.core.topological_ingestion_validator import TopologicalIngestionValidator
+from src.core.polynomial_coprime import PolynomialCoprimeConfig
 
 
 # Pre-allocate a flat integer array REGISTRY_TABLE of size 1024
@@ -413,10 +414,18 @@ class MinecraftIngestionPipeline:
     def __init__(self, codec_config: CodecConfig, poly_config: PolynomialCoprimeConfig):
         self.config = codec_config
         self.poly_config = poly_config
-        self.voynich_linguist = VoynichLinguist(
-            vocab_size=8000, 
-            num_residues=codec_config.K, 
-            latent_dim=codec_config.n * codec_config.n
+        self.poly_config = PolynomialCoprimeConfig(
+            k=codec_config.K,
+            degree=4,
+            basis_type='chebyshev',
+            learnable=True,
+            use_saturation=True
+        )
+        self.validator = TopologicalIngestionValidator(
+            poly_config=self.poly_config,
+            state_dim=codec_config.n * codec_config.n,
+            scale=65536.0,
+            min_rank_ratio=0.3,
         )
         self.voxel_projector = VoxelSpectralProjector(codec_config, poly_config)
 
@@ -515,16 +524,31 @@ class MinecraftIngestionPipeline:
         all_text_inputs = extracted_text + [s["content"] for s in mod_scripts]
         if all_text_inputs:
             unified_text = "\n".join(all_text_inputs[:20]) # Limit input length
-            # Use VoynichLinguist to generate text residue representation
-            # Flatten residue shape requirement: (n * n)
-            with torch.no_grad():
-                res_v, symbol_val, honesty, token = self.voynich_linguist(
-                    torch.zeros(1, self.config.n * self.config.n)
-                )
-                # Map flat residues to [K, n, n] matrix
-                # Replicate K channel flat residue to n x n matrices
+            text_val = self.validator.validate_text(unified_text)
+            text_admissible = text_val["admissible"]
+            text_reason = text_val["reason"]
+
+            if text_admissible:
+                res_v = text_val["residues"].squeeze(0)
                 for k in range(self.config.K):
-                    combined_text_residue[k] = res_v[0, k].repeat(self.config.n, self.config.n) * 0.1
+                    combined_text_residue[k] = res_v[k].repeat(self.config.n, self.config.n) * 0.1
+            else:
+                results["logs"].append(f"[TOPOLOGICAL_REFUSAL] Text blocked: {text_reason}")
+                
+        # Validate voxel residue BEFORE non-commutative product
+        voxel_flat = combined_voxel_residue.view(1, -1)
+        voxel_val = self.validator.validate_tensor(voxel_flat)
+        voxel_admissible = voxel_val["admissible"]
+
+        if not voxel_admissible:
+            results["logs"].append(f"[TOPOLOGICAL_REFUSAL] Voxel grid blocked: {voxel_val['reason']}")
+
+        if not (all_text_inputs and text_admissible) and not voxel_admissible:
+            results["combined_residue"] = torch.zeros(self.config.K, self.config.n, self.config.n)
+            results["commutativity_gap"] = 0.0
+            results["noncommutativity_curvature"] = 0.0
+            results["extracted_text"] = extracted_text
+            return results
 
         # 5. Non-commutative product of Voxel and Text (Braid Group representation)
         # R = Voxel * Text != Text * Voxel
