@@ -400,6 +400,11 @@ class GovernanceManager:
             os_enabled = get_input("[?] Enable Open Science Ingestor (yes/no)", 'yes' if config['open_science_ingestor_enabled'] else 'no', "Pulls external papers and datasets automatically.").lower()
             config['open_science_ingestor_enabled'] = os_enabled in ('yes', 'y')
             
+            if config['open_science_ingestor_enabled']:
+                ncbi_key = get_input("[?] NCBI API Key (leave blank for none)", config.get('ncbi_api_key', ""), "Used for NCBI fetch rate limit bypass.")
+                config['ncbi_api_key'] = ncbi_key
+
+            
             udp_col = get_input("[?] Enable Option D UDP Master Server Colonizer (yes/no)", 'no', "Experimental: connects to external instances aggressively.").lower()
             config['udp_colonizer_enabled'] = udp_col in ('yes', 'y')
             
@@ -3039,8 +3044,3 @@ def main():
         except Exception:
             pass
         # Restore signal handler before exit if needed (though os._exit is coming)
-        os._exit(0)
-
-if __name__ == "__main__":
-    main()
-
