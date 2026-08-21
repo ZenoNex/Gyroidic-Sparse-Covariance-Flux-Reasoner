@@ -83,6 +83,10 @@ class ModularAttention(nn.Module):
         # Birkhoff projector
         if use_birkhoff:
             self.birkhoff = BirkhoffProjection()
+        else:
+            # Phase 3: Garden Statistical Attractor fallback (replaces dense softmax)
+            from src.core.garden_statistical_attractors import GardenOrchestrator
+            self.garden = GardenOrchestrator(num_attractors=8, feature_dim=self.head_dim)
         
         # Output projection
         self.output_proj = nn.Linear(hidden_dim * self.K, hidden_dim)
@@ -185,9 +189,15 @@ class ModularAttention(nn.Module):
                 # Project each head's attention matrix to doubly-stochastic
                 # Use training mode for annealing schedule
                 attn_weights = self.birkhoff(scores, anneal=self.training)  # [batch, num_heads, seq_len, seq_len]
+                A_k = torch.matmul(attn_weights, V_k)  # [batch, num_heads, seq_len, head_dim]
             else:
-                attn_weights = torch.softmax(scores, dim=-1)
-            A_k = torch.matmul(attn_weights, V_k)  # [batch, num_heads, seq_len, head_dim]
+                # [PHASE 3] Replace dense softmax with topological attractor evolution
+                raw_attn = torch.matmul(scores, V_k)  # [batch, num_heads, seq_len, head_dim]
+                raw_flat = raw_attn.reshape(-1, self.head_dim)
+                
+                self.garden.to(raw_flat.device)
+                garden_out = self.garden.evolve_garden(raw_flat, dt=0.1)['evolved_concepts']
+                A_k = garden_out.view(batch_size, self.num_heads, seq_len, self.head_dim)
             
             # --- HYBRID O(K) BREATHER CACHE ---
             if self.warmstart_mix > 0.0:
