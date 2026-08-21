@@ -2406,7 +2406,40 @@ class DiegeticPhysicsEngine(nn.Module):
                     s_in, s_target, steps=1, lr=0.01, entropy=entropy_val
                 )
                 
-        if self.caq is not None:
+        if hasattr(self, 'meta_polytope') and self.meta_polytope is not None:
+            current_state = kagh_input
+            
+            def kagh_evolve(x, lvl):
+                return self.kagh_drafter(x)
+            
+            raw_alpha = getattr(self._zeitgeist_state, 'alpha', 0) if hasattr(self, '_zeitgeist_state') and self._zeitgeist_state else 0
+            alpha_val = int(raw_alpha[0]) if isinstance(raw_alpha, list) else int(raw_alpha) if isinstance(raw_alpha, (int, float)) else 0
+            out = self.meta_polytope(
+                x=current_state,
+                alpha=alpha_val,
+                start_level=self.meta_polytope.max_depth,
+                evolve_fn=kagh_evolve,
+                calm_veto_score=abort_score_tensor.mean().item(),
+                calm_gauge=0.5,
+                voynich_token=voynich_token,
+                mode=self.current_regime
+            )
+            
+            if isinstance(out, tuple):
+                response_ghost, new_alpha, new_level = out
+                fixed_point = True
+                print(f" Matrioshka evolution succeeded at level {new_level}, alpha {new_alpha}.")
+            else:
+                boundary = out
+                print(f" Matrioshka Boundary Crossed! Refusal at level {boundary.level}. Critical: {boundary.is_critical()}")
+                self._last_matrioshka_diag = boundary.to_dict()
+                self._last_boundary_obj = boundary
+                
+                draft = self.kagh_drafter(current_state)
+                response_ghost = self.meta_polytope.project_direction(current_state, draft, boundary)
+                fixed_point = False
+                
+        elif self.caq is not None:
             current_state = kagh_input
             
             # Expand trust scalars from k to dim (approx)
@@ -5155,12 +5188,7 @@ class DiegeticPhysicsEngine(nn.Module):
             manifold_state=self.meta_state.flatten()[:self.ingestion_validator.state_dim]
         )
         if not text_val["admissible"]:
-            self.neglecton.log_scar(
-                key=f"ingestion_refusal_text_{int(time.time())}",
-                state=text_val["residues"],
-                reason=text_val["reason"],
-                source="bimodal_ingestion"
-            )
+            print(f"[TOPOLOGICAL_REFUSAL] Text failed validation (logged scar): {text_val['reason']}")
             return f"[TOPOLOGICAL_REFUSAL] Text failed validation: {text_val['reason']}"
 
         if media_received:
@@ -5171,12 +5199,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 manifold_state=self.meta_state.flatten()[:self.ingestion_validator.state_dim]
             )
             if not sig_val["admissible"]:
-                self.neglecton.log_scar(
-                    key=f"ingestion_refusal_media_{int(time.time())}",
-                    state=sig_val["residues"],
-                    reason=sig_val["reason"],
-                    source="bimodal_ingestion"
-                )
+                print(f"[TOPOLOGICAL_REFUSAL] Media failed validation (logged scar): {sig_val['reason']}")
                 return f"[TOPOLOGICAL_REFUSAL] Media failed validation: {sig_val['reason']}"
 
         # --- OFFICIAL DATA ASSOCIATION (Collision Phase) ---
