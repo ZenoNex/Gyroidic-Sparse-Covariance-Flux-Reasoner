@@ -550,11 +550,18 @@ class GyroidicFluxReasoner(nn.Module):
         system_load = total_topological_pressure.mean().item()
         
         # 3a. Transformer processing (Modular multi-field with adaptive load)
+        
+        # Phase 3: Evolutionary Trust Loops (Wire T_t to attention fields)
+        if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'trust_tracker'):
+            evolutionary_trust = self.orchestrator.trust_tracker.get_trust()
+        else:
+            evolutionary_trust = 1.0
+            
         for layer in self.layers:
             h = layer(
                 h, 
                 mask=attention_mask, 
-                trust_scalars=self.trust_scalars,
+                trust_scalars=self.trust_scalars * evolutionary_trust,
                 load=system_load,
                 path_topology_vectors=path_topology
             )  # [batch, seq_len, hidden_dim]
