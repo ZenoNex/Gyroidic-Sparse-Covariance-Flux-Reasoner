@@ -16,6 +16,7 @@ import time
 from src.core.invariants import PhaseAlignmentInvariant, APAS_Zeta
 from src.topology.persistence_obstruction import PersistentHomologyComputer, ResidueFiltration
 from src.tda.chebyshev_filtration import MinimaxPolynomialApproximation
+from src.core.narrative_collapse import LinguisticEntropyMonitor
 
 class SpeculativeHomologyEngine(nn.Module):
     """
@@ -46,6 +47,13 @@ class SpeculativeHomologyEngine(nn.Module):
         
         # 3. Fallback / Oracle: Full Persistent Homology
         self.oracle = PersistentHomologyComputer(max_dimension=max_homology_dim)
+        
+        # 4. Anti-Lobotomy Monitor: Detects artificial smoothing
+        self.linguistic_monitor = LinguisticEntropyMonitor(entropy_threshold=0.01)
+        
+        # History buffer for trajectory smoothing detection
+        self.register_buffer('state_history', torch.zeros(10, feature_dim))
+        self.register_buffer('history_ptr', torch.tensor(0, dtype=torch.long))
         
         # Statistics
         self.draft_accepts = 0
@@ -144,6 +152,34 @@ class SpeculativeHomologyEngine(nn.Module):
         drift, violation = self.apas_limit.check_drift(mean_pas, prev_pas)
         
         is_stable = (drift <= self.apas_limit.zeta).item()
+        
+        # Anti-Lobotomy Check: Narrative Collapse
+        # Update state history
+        ptr = self.history_ptr.item()
+        if x.dim() == 2:
+            self.state_history[ptr % 10] = x.mean(dim=0).detach()
+        else:
+            self.state_history[ptr % 10] = x.detach().view(-1)[:self.state_history.shape[-1]]
+        self.history_ptr += 1
+        
+        # Get recent states for linearity check
+        num_valid = min(self.history_ptr.item(), 10)
+        recent_states = None
+        if num_valid >= 3:
+            # We want chronologically ordered states
+            start_idx = max(0, self.history_ptr.item() - num_valid)
+            indices = [ (start_idx + i) % 10 for i in range(num_valid) ]
+            recent_states = self.state_history[indices]
+            
+        monitor_results = self.linguistic_monitor(x, recent_states=recent_states)
+        
+        # If entropy drops (smoothing_warning) AND trajectory is linear -> Draft Rejection!
+        is_linear = monitor_results.get('is_linear', torch.tensor(False)).item()
+        smoothing_warning = monitor_results.get('smoothing_warning', torch.tensor(False)).item()
+        
+        if is_linear and smoothing_warning:
+            print("[SpeculativeHomologyEngine] Draft Rejected: Hallucination Loop Detected (Narrative Collapse).")
+            is_stable = False
         
         return is_stable, mean_pas
 
