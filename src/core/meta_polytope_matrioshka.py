@@ -183,78 +183,63 @@ class MetaPolytopeMatrioshka(nn.Module):
         best_quantization = None
         min_energy = float('inf')
         
-        while level >= 0:
-            # 1. Determine local lattice scale based on level
-            # Deeper level -> Finer granularity (smaller step size)
-            delta = 1.0 / (2.0 ** (level + 1))
+        # Phase 4: Instant LCFT Projection
+        # Replaces brute-force topological slide iteration with conformal scaling
+        if not hasattr(self, '_aeb'):
+            from src.core.advanced_extensions_bridge import AdvancedExtensionsBridge
+            self._aeb = AdvancedExtensionsBridge(dim=x.shape[-1], device=x.device)
+        
+        x_lcft = self._aeb.apply_lcft_projection(x)
+        conformal_energy = torch.norm(x_lcft, dim=-1).mean().item()
+        
+        # Instant level mapping (lower energy -> deeper shell)
+        target_level = int(self.max_depth * math.exp(-conformal_energy))
+        level = max(0, min(self.max_depth, target_level))
+        
+        if total_veto > 0.8:
+            level = -1
             
-            # 2. Check if P^(l)_ contains x
-            # Pressure-Based Warp
+        if level >= 0:
+            delta = 1.0 / (2.0 ** (level + 1))
             pressure_warp = torch.sigmoid(self.facet_pressure[alpha % len(self.crt_moduli)])
             effective_delta = delta * (1.0 + 0.5 * pressure_warp)
             
-            # Simple geometric containment proxy (distance to lattice < delta * factor)
-            # Modulated by total_veto: higher veto shrinks the containment boundary
             boundary_margin_tensor = effective_delta * (1.0 - 0.5 * total_veto) * exemption_scale * margin_factor
             boundary_margin = boundary_margin_tensor.mean().item()
             
-            # If the veto is extreme, we forcibly pop outward (manifold tear)
-            if total_veto > 0.8:
-                level -= 1
-                continue
-                
-            # Compute containment
-            # Play mode soft projection
             if is_play:
-                floor_val = torch.floor(x / effective_delta) * effective_delta
-                ceil_val = torch.ceil(x / effective_delta) * effective_delta
-                d_floor = torch.abs(x - floor_val)
-                d_ceil = torch.abs(x - ceil_val)
+                floor_val = torch.floor(x_lcft / effective_delta) * effective_delta
+                ceil_val = torch.ceil(x_lcft / effective_delta) * effective_delta
+                d_floor = torch.abs(x_lcft - floor_val)
+                d_ceil = torch.abs(x_lcft - ceil_val)
                 temp = max(dt, 1e-6)
                 w_floor = torch.exp(-d_floor / temp)
                 w_ceil = torch.exp(-d_ceil / temp)
                 w_sum = w_floor + w_ceil + 1e-9
                 quantized = (w_floor * floor_val + w_ceil * ceil_val) / w_sum
             else:
-                quantized = torch.round(x / effective_delta) * effective_delta
+                quantized = torch.round(x_lcft / effective_delta) * effective_delta
                 
-            energy = torch.norm(x - quantized, dim=-1)
-            mean_energy = energy.mean().item()
+            best_quantization = quantized.clone()
             
-            # Track best approximation for BoundaryState failure case
-            if mean_energy < min_energy:
-                min_energy = mean_energy
-                best_quantization = quantized.clone()
+            from src.core.modular_virtualization import ModularVirtualizationLayer
+            if not hasattr(self, '_repunit_gatekeeper'):
+                self._repunit_gatekeeper = ModularVirtualizationLayer(dim=x.shape[-1], device=x.device)
             
-            if mean_energy <= boundary_margin:
-                # 3. Repunit-CRT Gatekeeper Check
-                # Validate the parity congruence of the topological shell boundary
-                from src.core.modular_virtualization import HybridModularVirtualization
-                if not hasattr(self, '_repunit_gatekeeper'):
-                    self._repunit_gatekeeper = HybridModularVirtualization(dim=x.shape[-1], device=x.device)
-                
-                # Check topological parity congruence using the Repunit-CRT Fast-Reject probe
-                modulus = self._repunit_gatekeeper.get_hybrid_modulus().to(x.device)
-                integerized_x = (x * self._repunit_gatekeeper.scale_factor).long()
-                target_residue = torch.remainder(integerized_x, modulus.long())
-                is_valid_parity = self._repunit_gatekeeper.repunit_crt_sparse_probe(integerized_x, target_residue)
-                
-                if not torch.all(is_valid_parity):
-                    # Parity refusal at boundary: Pop Outward
-                    level -= 1
-                    continue
-                    
-                # Inside Polytope!
+            modulus = self._repunit_gatekeeper.get_hybrid_modulus().to(x.device)
+            integerized_x = (x_lcft * self._repunit_gatekeeper.scale_factor).long()
+            target_residue = torch.remainder(integerized_x, modulus.long())
+            is_valid_parity = self._repunit_gatekeeper.repunit_crt_sparse_probe(integerized_x, target_residue)
+            
+            if not torch.all(is_valid_parity):
+                level = -1
+            else:
                 xq = quantized
-                
-                # Evolution Function application F(Q(x))
                 if evolve_fn is not None:
                     y = evolve_fn(xq, level)
                 else:
-                    # Fallback identity evolution
                     y = xq
                     
-                # Re-quantize yq = Q(y)
                 if is_play:
                     floor_y = torch.floor(y / effective_delta) * effective_delta
                     ceil_y = torch.ceil(y / effective_delta) * effective_delta
@@ -269,23 +254,13 @@ class MetaPolytopeMatrioshka(nn.Module):
                     yq = torch.round(y / effective_delta) * effective_delta
                     
                 y_energy = torch.norm(y - yq, dim=-1).mean().item()
-                
-                # Is yq an interior fixed point?
                 if y_energy < 0.01 * delta:
-                    # Stable Update
                     return yq, alpha, level
+                elif y_energy < boundary_margin * 1.5:
+                    new_alpha = (alpha + int(yq.mean().item() * 10)) % len(self.crt_moduli)
+                    return yq, new_alpha, level
                 else:
-                    # Is yq on Facet? 
-                    if y_energy < boundary_margin * 1.5:
-                        # Facet Grazing / Switch CRT
-                        new_alpha = (alpha + int(yq.mean().item() * 10)) % len(self.crt_moduli)
-                        return yq, new_alpha, level
-                    else:
-                        # Pop Outward
-                        level -= 1
-            else:
-                # Does not contain x -> Pop Outward
-                level -= 1
+                    level = -1
                 
         # If l < 0 -> Topological Refusal
         # Calculate stress tensor from the original state vs the closest approximation
