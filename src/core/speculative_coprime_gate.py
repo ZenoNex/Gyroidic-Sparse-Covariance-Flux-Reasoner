@@ -1,896 +1,1047 @@
 """
-Speculative Coprime Chiral Coherence Gating (SCCCG).
+Knowledge dyad fossilization and Agent Smith serialization.
 
-Implements recovery of structure from "converged" states using:
-1. Coprime Parity Tracking (winding numbers around functional heads)
-2. Chiral Coherence Estimation (gyroidic tensor covariance)
-3. Wasserstein Optimal Transport (recovering structure via optimal mass transport)
-4. Dimensional Reduction Gating (gate by coprime structure, not scalar thresholds)
-
-Key Insight: "Non-Convergence is Data" - what appears as convergence to noise
-may contain recoverable chiral structure via optimal transport.
-
-References:
-- MATHEMATICAL_DETAILS.md 18.2 Coprime Parity
-- INVARIANT_OPTIMIZATION.md 7.3 Chiral Drift Optimizer
-- EFFICIENCY_BY_NON_SCALAR_REWARD.md Speculative Exit
+This module handles persistent storage (fossilization) of multi-modal knowledge dyads
+and exports/imports decoupled mathematical Agent Smith identities.
 """
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from typing import Dict, Tuple, Optional
-import math
-from src.core.false_negative_subsystem import VoynichExemptionToken
-from src.core.honest_jitter import harvest_honest_jitter
-from src.core.legibility_audit import LegibilityTripwire
+import os
+import json
+import logging
+import hashlib
+import threading
+from dataclasses import dataclass
+from typing import Optional, Dict, Tuple, List, Any
+import datetime
+from src.core.honest_jitter import harvest_honest_jitter, _AGENT_SMITH_ENGINE
+from src.core.agent_substrate_bridge import AgentSubstrateBridge
+from src.topology.speculative_homology import SpeculativeHomologyEngine
+from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
+from src.core.non_ergodic_entropy import NonErgodicEntropyEstimator
+from src.core.love_invariant_protector import LoveInvariantProtector
+from src.core.quantum_tda import QuantumBettiApproximator
+from src.core.invariants import (
+    compute_chirality, 
+    compute_chiral_shift, 
+    check_glyphlock, 
+    compute_polylog_signature, 
+    compute_vacuum_residue,
+    apply_chirality_redistribution
+)
+from src.core.chern_simons_gasket import ChernSimonsGasket
 
+@dataclass
+class KnowledgeDyad:
+    """
+    A single unit of multi-modal knowledge: (Image Fingerprint, Linguistic Description).
+    Acts as a 'Topological Obstruction' in the manifold.
+    """
+    linguistic_description: str
+    image_fingerprint: Optional[torch.Tensor] = None # [96] vector
+    audio_harmonics: Optional[torch.Tensor] = None
+    video_breather: Optional[Dict] = None
+    unified_spectral_signature: Optional[torch.Tensor] = None # [96] vector
+    gyroid_residue: Optional[torch.Tensor] = None # [n, n] irreducible entanglement
+    hyperbolic_residue: Optional[torch.Tensor] = None # ShadowLog Non-Euclidean curvature
+    meta_state: Optional[torch.Tensor] = None # [dim] architecture state
+    all_shapes: Optional[List[torch.Tensor]] = None # [dim] List of alternate functional mappings (Sparrow/Dog/Human)
+    relevance_score: float = 1.0
+    timestamp: str = ""
+    metadata: Optional[Dict] = None
+    
+    def __post_init__(self):
+        if not self.timestamp:
+            self.timestamp = datetime.datetime.now().isoformat()
 
-class WassersteinOptimalTransport(nn.Module):
+class ResidueFusion(nn.Module):
     """
-    Wasserstein-2 Optimal Transport for State Recovery.
-    
-    Given a "converged" (low-entropy) source distribution and a target
-    coprime structure, computes the optimal transport plan that recovers
-    the lost chiral structure.
-    
-    The Wasserstein-2 distance between distributions P and Q:
-        W_2(P, Q)^2 = inf_{  (P,Q)}  ||x - y||^2 d(x,y)
-    
-    We approximate this using the Sinkhorn algorithm for entropic regularization:
-        W_(P, Q) = min_{T} <T, C> -  H(T)
-    
-    where C is the cost matrix and H is the entropy regularizer.
+    Computes the 'Cross-Modality Torsion' between image and text features.
+    Handles dynamic fingerprint dimensions (96 legacy, 96 Chebyshev un-lobotomized).
     """
-    
-    def __init__(self, dim: int, sinkhorn_iters: int = 20, epsilon: float = 0.1):
+    def __init__(self, feature_dim: int = 512):
+        """
+        Initialize the ResidueFusion module.
+
+        Args:
+            feature_dim: Projection target dimensionality for alignment.
+        """
         super().__init__()
-        self.dim = dim
-        self.sinkhorn_iters = sinkhorn_iters
-        self.epsilon = epsilon
+        self.feature_dim = feature_dim
+        # Default initialization to 96, but will dynamically scale to preserve full multimodal mass (e.g., 768 or 137)
+        self.image_proj = nn.Linear(96, feature_dim)
+        self.text_proj = nn.Linear(feature_dim, feature_dim)
         
-        # Learnable transport cost modulation (chiral-aware)
-        self.cost_modulator = nn.Linear(dim, dim, bias=False)
-        nn.init.eye_(self.cost_modulator.weight)
+        # Torsion operator: computes the 'twist' between the two vectors
+        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
+        self.torsion_matrix = nn.Parameter(harvest_honest_jitter((feature_dim, feature_dim)))
         
-    def compute_cost_matrix(self, source: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def _ensure_image_proj_dim(self, in_dim: int, device: torch.device):
+        """Anti-Lobotomy: Ensure we don't truncate multimodal fingerprints down to 96."""
+        if self.image_proj.in_features != in_dim:
+            self.image_proj = nn.Linear(in_dim, self.feature_dim).to(device)
+            nn.init.orthogonal_(self.image_proj.weight)
+            print(f"[ResidueFusion] Anti-Lobotomy: Scaled image projection to {in_dim}-dim to preserve multimodal mass.")
+
+    def _ensure_text_proj_dim(self, in_dim: int, device: torch.device):
+        if self.text_proj.in_features != in_dim:
+            self.text_proj = nn.Linear(in_dim, self.feature_dim).to(device)
+            nn.init.orthogonal_(self.text_proj.weight)
+            print(f"[ResidueFusion] Scaled text projection to {in_dim}-dim to preserve tensor coherence.")
+
+    def forward(self, 
+                image_fingerprint: torch.Tensor, 
+                text_embedding: torch.Tensor) -> torch.Tensor:
         """
-        Compute the cost matrix C[i,j] = ||source[i] - target[j]||^2
-        with chiral modulation.
+        Compute Residue R = Torsion(I, L).
+        """
+        in_dim = image_fingerprint.size(-1)
+        self._ensure_image_proj_dim(in_dim, image_fingerprint.device)
+        img_proj = self.image_proj(image_fingerprint)
         
-        Args:
-            source: [n_source, dim] source distribution samples
-            target: [n_target, dim] target distribution samples
+        txt_dim = text_embedding.size(-1)
+        self._ensure_text_proj_dim(txt_dim, text_embedding.device)
+        txt_proj = self.text_proj(text_embedding)
+        
+        # Calculate torsion: (I - L) varies with the metric twist
+        diff = img_proj - txt_proj
+        torsion = torch.matmul(diff, self.torsion_matrix)
+        
+        # The residue is the magnitude of this torsion
+        residue = torch.tanh(torsion) 
+        
+        return residue
+
+    def calculate_cross_modal_shear(self, 
+                                    image_fingerprint: torch.Tensor, 
+                                    text_embedding: torch.Tensor) -> torch.Tensor:
+        """
+        Calculates the shear stress between the image structural embedding and text semantic embedding.
+        """
+        in_dim = image_fingerprint.size(-1)
+        self._ensure_image_proj_dim(in_dim, image_fingerprint.device)
+        img_proj = self.image_proj(image_fingerprint)
+        
+        txt_dim = text_embedding.size(-1)
+        self._ensure_text_proj_dim(txt_dim, text_embedding.device)
+        txt_proj = self.text_proj(text_embedding)
+        
+        if img_proj.dim() == 1:
+            img_proj = img_proj.unsqueeze(0)
+        if txt_proj.dim() == 1:
+            txt_proj = txt_proj.unsqueeze(0)
             
-        Returns:
-            C: [n_source, n_target] cost matrix
-        """
-        # Apply chiral modulation to emphasize asymmetric dimensions
-        source_mod = self.cost_modulator(source)
-        target_mod = self.cost_modulator(target)
+        # Cross-modal shear matrix: I^T * T - T^T * I
+        shear = torch.matmul(img_proj.T, txt_proj) - torch.matmul(txt_proj.T, img_proj)
         
-        # Squared Euclidean distance
-        # C[i,j] = ||source[i] - target[j]||^2
-        C = torch.cdist(source_mod, target_mod, p=2) ** 2
-        
-        return C
-    
-    def sinkhorn(self, C: torch.Tensor, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-        """
-        Sinkhorn algorithm for optimal transport with entropic regularization.
-        
-        Args:
-            C: [n, m] cost matrix
-            a: [n] source marginal (must sum to 1)
-            b: [m] target marginal (must sum to 1)
-            
-        Returns:
-            T: [n, m] optimal transport plan
-        """
-        n, m = C.shape
-        
-        # Initialize dual variables
-        u = torch.ones(n, device=C.device) / n
-        v = torch.ones(m, device=C.device) / m
-        
-        # Gibbs kernel
-        K = torch.exp(-C / self.epsilon)
-        
-        for _ in range(self.sinkhorn_iters):
-            # Row normalization
-            u = a / (K @ v + 1e-8)
-            # Column normalization
-            v = b / (K.T @ u + 1e-8)
-        
-        # Transport plan
-        T = torch.diag(u) @ K @ torch.diag(v)
-        
-        return T
-    
-    def transport(
-        self, 
-        source: torch.Tensor, 
-        target: torch.Tensor,
-        source_weights: Optional[torch.Tensor] = None,
-        target_weights: Optional[torch.Tensor] = None
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Compute optimal transport from source to target.
-        
-        Args:
-            source: [n, dim] source samples
-            target: [m, dim] target samples
-            source_weights: [n] weights (default: uniform)
-            target_weights: [m] weights (default: uniform)
-            
-        Returns:
-            transported: [n, dim] source transported toward target
-            wasserstein_dist: scalar W_2 distance
-        """
-        n = source.shape[0]
-        m = target.shape[0]
-        
-        if source_weights is None:
-            source_weights = torch.ones(n, device=source.device) / n
-        if target_weights is None:
-            target_weights = torch.ones(m, device=target.device) / m
-            
-        # Normalize weights
-        source_weights = source_weights / source_weights.sum()
-        target_weights = target_weights / target_weights.sum()
-        
-        # Compute cost matrix
-        C = self.compute_cost_matrix(source, target)
-        
-        # Compute optimal transport plan
-        T = self.sinkhorn(C, source_weights, target_weights)
-        
-        # Transport source toward target using barycentric projection
-        # transported[i] = _j T[i,j] * target[j] / _j T[i,j]
-        T_normalized = T / (T.sum(dim=1, keepdim=True) + 1e-8)
-        transported = T_normalized @ target
-        
-        # Wasserstein distance
-        wasserstein_dist = (T * C).sum()
-        
-        return transported, wasserstein_dist
+        # Project back to a 1D "Dark Matter" seed of length feature_dim
+        dark_matter_seed = torch.tanh(shear.mean(dim=0))
+        return dark_matter_seed
 
 
-class CoprimeWindingTracker(nn.Module):
+class DyadFossilizer:
     """
-    Tracks winding numbers around functional heads for coprime parity.
-    
-    The coprime parity condition (MATHEMATICAL_DETAILS.md 18.2):
-        gcd(w_k, p_k) = 1
-    
-    Where w_k is the winding number around homology group H_k
-    and p_k is the prime index of functional head k.
-    
-    This prevents "bubbly equations" from collapsing into singular orientation.
+    Handles the persistent storage ('Fossilization') of Knowledge Dyads.
+    Ensures 'No Erasing of Implication' by saving precise states to disk.
     """
     
-    def __init__(self, dim: int, num_heads: int = 8):
-        super().__init__()
-        self.dim = dim
-        self.num_heads = num_heads
-        
-        # Polynomial coefficients for each head instead of primes (anti-lobotomy)
-        poly_coeffs = self._generate_polynomial_coefficients(num_heads)
-        self.register_buffer('polynomial_indices', torch.tensor(poly_coeffs, dtype=torch.float))
-        
-        # Projection to compute winding contribution per head
-        # Each head needs 2 components (sine/cosine) for phase tracking
-        self.head_proj = nn.Linear(dim, 2 * num_heads)
-        
-        # Running estimate of winding numbers (updated each call)
-        self.register_buffer('winding_numbers', torch.zeros(num_heads))
-        self.register_buffer('winding_history', torch.zeros(16, num_heads))  # History buffer
-        self.register_buffer('history_idx', torch.tensor(0))
-        
-    def _generate_polynomial_coefficients(self, n: int) -> list:
-        """Generate polynomial coefficients instead of primes (anti-lobotomy)."""
-        coeffs = []
-        for k in range(n):
-            # Use Legendre polynomial P_k evaluated at x=0.7
-            x = 0.7
-            if k == 0:
-                p_k = 1.0
-            elif k == 1:
-                p_k = x
-            else:
-                # P_k(x) = ((2k-1)*x*P_{k-1}(x) - (k-1)*P_{k-2}(x)) / k
-                p_prev2 = 1.0
-                p_prev1 = x
-                for j in range(2, k + 1):
-                    p_curr = ((2*j - 1) * x * p_prev1 - (j - 1) * p_prev2) / j
-                    p_prev2 = p_prev1
-                    p_prev1 = p_curr
-                p_k = p_prev1
-            
-            # Scale to positive values suitable for indexing
-            coeff = abs(p_k * 10) + 2
-            coeffs.append(coeff)
-        
-        return coeffs
-    
-    def _gcd(self, a: int, b: int) -> int:
-        """Euclidean GCD."""
-        while b:
-            a, b = b, a % b
-        return a
-    
-    def compute_winding(self, state: torch.Tensor) -> torch.Tensor:
+    def __init__(self, 
+                 storage_dir: str = "data/encodings",
+                 fusion_layer: Optional[ResidueFusion] = None,
+                 feature_dim: int = 512):
         """
-        Compute instantaneous winding contribution from state.
-        
-        The winding number is computed as the phase angle in each head's
-        projected subspace, accumulated over time.
-        
-        Args:
-            state: [batch, dim] current state
-            
-        Returns:
-            winding: [num_heads] winding contributions
-        """
-        # Project state to head space
-        head_activations = self.head_proj(state)  # [batch, 2 * num_heads]
-        
-        # Compute phase angle (using arctan2 with adjacent dimensions)
-        # We interpret pairs of dimensions as complex phase per head
-        phases = torch.atan2(
-            head_activations[:, :self.num_heads], # Sines
-            head_activations[:, self.num_heads:] + 1e-8 # Cosines
-        )
-        
-        # Winding = phase / 2 (normalized to integer revolutions)
-        winding = phases.mean(dim=0) / (2 * math.pi)
-        
-        return winding
-    
-    def update_and_check(self, state: torch.Tensor) -> Dict[str, torch.Tensor]:
-        """
-        Update winding numbers and check coprime parity condition.
-        
-        Args:
-            state: [batch, dim] current state
-            
-        Returns:
-            dict with:
-                - winding_numbers: [num_heads] current winding estimates
-                - coprime_lock: bool, True if gcd(w_k, p_k) = 1 for all k
-                - parity_violations: [num_heads] bool mask of violations
-        """
-        # Compute new winding contribution
-        new_winding = self.compute_winding(state)
-        
-        # Update running sum (accumulate winding)
-        self.winding_numbers = self.winding_numbers + new_winding
-        
-        # Store in history
-        idx = self.history_idx.item() % 16
-        self.winding_history[idx] = new_winding
-        self.history_idx += 1
-        
-        # Quantize to nearest integer for GCD check using stochastic rounding
-        from src.core.primitive_ops import stochastic_round
-        winding_int = stochastic_round(self.winding_numbers.abs(), 1.0).long()
-        winding_int = torch.clamp(winding_int, min=1)  # Avoid gcd(0, p) = p
-        
-        # Check coprime parity using polynomial coefficients instead of primes
-        coprime_checks = torch.zeros(self.num_heads, dtype=torch.bool, device=state.device)
-        for k in range(self.num_heads):
-            w_k = winding_int[k].item()
-            p_k = int(self.polynomial_indices[k].item())
-            coprime_checks[k] = (self._gcd(w_k, p_k) == 1)
-        
-        coprime_lock = coprime_checks.all()
-        parity_violations = ~coprime_checks
-        
-        return {
-            'winding_numbers': self.winding_numbers.clone(),
-            'coprime_lock': coprime_lock,
-            'parity_violations': parity_violations
-        }
+        Initialize the DyadFossilizer.
 
-
-class ChiralCoherenceEstimator(nn.Module):
-    """
-    Estimates chiral coherence using spectral asymmetry.
-    
-    Chiral Score (INVARIANT_OPTIMIZATION.md 7.3):
-        C = _i (_i^+ - _i^-) / (_i^+ + _i^-)
-    
-    Where + and - are eigenvalues from the positive and negative
-    chiral sectors of the covariance matrix.
-    
-    High chiral score = strong asymmetric structure (good)
-    Low chiral score = symmetric/collapsed structure (bad)
-    """
-    
-    def __init__(self, dim: int, sample_size: int = 16):
-        super().__init__()
-        self.dim = dim
-        self.sample_size = sample_size
-        
-        # Sample buffer for covariance estimation
-        self.register_buffer('sample_buffer', torch.zeros(sample_size, dim))
-        self.register_buffer('buffer_idx', torch.tensor(0))
-        
-        # Chiral projection (splits dim into positive/negative sectors)
-        self.chiral_proj = nn.Linear(dim, dim, bias=False)
-        # Initialization with a chiral skew
-        with torch.no_grad():
-            nn.init.orthogonal_(self.chiral_proj.weight)
-            # Inject a small prime-based asymmetry into the projection to ensure sector divergence
-            for i in range(dim):
-                self.chiral_proj.weight.data[i] *= (1.0 + 0.05 * math.sin(i * 3.14159 / 7.0))
-        
-    def update_buffer(self, state: torch.Tensor):
-        """Add state to sample buffer."""
-        if state.dim() == 2:
-            state = state[0]  # Take first batch element
-            
-        idx = self.buffer_idx.item() % self.sample_size
-        self.sample_buffer[idx] = state.detach()
-        self.buffer_idx += 1
-        
-    def compute_chiral_score(self, state: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """
-        Compute chiral score from buffer samples.
-        
         Args:
-            state: Optional new state to add first
-            
-        Returns:
-            chiral_score: Scalar in [-1, 1], higher = more asymmetric
+            storage_dir: Directory path for persisting serialized .pt files.
+            fusion_layer: Optional explicit ResidueFusion module.
+            feature_dim: Base dimensionality for target embeddings.
         """
-        if state is not None:
-            self.update_buffer(state)
+        self.storage_dir = storage_dir
+        os.makedirs(self.storage_dir, exist_ok=True)
+        self.feature_dim = feature_dim
+        self.fusion_layer = fusion_layer or ResidueFusion(feature_dim=feature_dim)
         
-        # Get filled portion of buffer
-        n_filled = min(self.buffer_idx.item(), self.sample_size)
+        # Threading event to ensure no fossilization occurs before the index is fully ready
+        self._index_ready = threading.Event()
         
-        # FALLBACK: If low samples, use spectral flux of the current state
-        if n_filled < 4:
-            if state is None:
-                return torch.tensor(0.01, device=self.sample_buffer.device)
-            # Spectral flux asymmetry
-            freq = torch.fft.rfft(state)
-            power = torch.abs(freq)
-            half = power.shape[-1] // 2
-            p_low = power[..., :half].mean()
-            p_high = power[..., half:].mean()
-            asym = (p_low - p_high).abs() / (p_low + p_high + 1e-8)
-            return asym.clamp(min=0.01)
-            
-        samples = self.sample_buffer[:n_filled]
+        # Topological Derivation Engines (Non-Lazy Implication Binding)
+        self.homology_engine = SpeculativeHomologyEngine(feature_dim=feature_dim)
+        self.covariance_probe = SparseGyroidCovarianceProbe(hidden_dim=feature_dim)
+        self.entropy_estimator = NonErgodicEntropyEstimator()
+        self.love_protector = LoveInvariantProtector(love_dim=feature_dim)
+        self.betti_approximator = QuantumBettiApproximator()
+        self.gasket = ChernSimonsGasket()
         
-        # Apply chiral projection
-        chiral_samples = self.chiral_proj(samples)
+        # Phase Alignment tracking
+        self.prev_pas = torch.tensor(0.91) # Initial stability threshold
         
-        # Split into positive and negative sectors
-        half = self.dim // 2
-        positive_sector = chiral_samples[:, :half]
-        negative_sector = chiral_samples[:, half:2*half]
+        # Deduplication memory cache
+        self.fossilized_hashes = set()
+        self.index_file = os.path.join(self.storage_dir, ".fossil_index.json")
+        self.fossil_index = {}
         
-        # Compute covariance eigenvalues for each sector
-        def get_eigenvalues(x):
-            # 1. NaN/Inf Guard: Prevent non-finite values from reaching MKL
-            if not torch.isfinite(x).all():
-                return torch.ones(x.shape[1], device=x.device) * 1e-8
-                
-            centered = x - x.mean(dim=0, keepdim=True)
-            cov = (centered.T @ centered) / (x.shape[0] - 1)
-            
-            # 2. Tikhonov Regularization: Add a 'thermal floor' to ensure positive definiteness
-            # Analog computing trick: adding noise/bias to prevent 'zero-division' singularities
-            eye = torch.eye(cov.shape[0], device=cov.device)
-            cov = cov + 1e-6 * eye
-            
-            # Double check finiteness of covariance matrix
-            if not torch.isfinite(cov).all():
-                return torch.ones(x.shape[1], device=x.device) * 1e-8
-                
+        # Load fast index in background to prevent startup bottlenecks
+        threading.Thread(target=self._init_index_async, daemon=True).start()
+
+    def _init_index_async(self):
+        self._load_index()
+        self._index_ready.set()
+
+    def _load_index(self):
+        """Loads or builds the fast fossil index to prevent O(N) startup bottlenecks."""
+        self.fossilized_hashes = set()
+        if os.path.exists(self.index_file):
             try:
-                eigvals = torch.linalg.eigvalsh(cov)
-                return eigvals.clamp(min=1e-8)
+                with open(self.index_file, "r", encoding="utf-8") as f:
+                    self.fossil_index = json.load(f)
+                
+                # Check for sync: fast validation of existing .pt files
+                existing_files = set(f for f in os.listdir(self.storage_dir) if f.endswith(".pt"))
+                indexed_files = set(self.fossil_index.keys())
+                
+                missing_files = indexed_files - existing_files
+                for f in missing_files:
+                    del self.fossil_index[f]
+                
+                new_files = existing_files - indexed_files
+                if new_files:
+                    # Scan only new files to avoid reloading old ones
+                    for f in new_files:
+                        filepath = os.path.join(self.storage_dir, f)
+                        try:
+                            mtime = os.path.getmtime(filepath)
+                            data = torch.load(filepath, map_location='cpu')
+                            if isinstance(data, dict):
+                                p_hash = data.get('prompt_hash')
+                                if not p_hash:
+                                    desc = data.get('description') or data.get('text_input')
+                                    if desc:
+                                        p_hash = hashlib.sha256(desc.encode('utf-8')).hexdigest()
+                                dyad_meta = data.get('dyad_metadata') or {}
+                                arxiv_id = dyad_meta.get('arxiv_id')
+                                self.fossil_index[f] = {
+                                    'prompt_hash': p_hash,
+                                    'arxiv_id': arxiv_id,
+                                    'mtime': mtime
+                                }
+                        except Exception:
+                            pass
+                
+                if missing_files or new_files:
+                    self._save_index()
+                    
+                for f, info in self.fossil_index.items():
+                    if info.get('prompt_hash'):
+                        self.fossilized_hashes.add(info['prompt_hash'])
+                        
+                print(f"[FOSSILIZER] Fast index loaded. {len(self.fossilized_hashes)} existing hashes from {self.index_file}.")
+                return
             except Exception as e:
-                # If Intel MKL still fails (e.g. LAPACK internal error), fall back to identity
-                print(f"[MKL_GUARD] eigvalsh failure: {e}")
-                return torch.ones(x.shape[1], device=x.device) * 1e-8
-        
-        lambda_plus = get_eigenvalues(positive_sector)
-        lambda_minus = get_eigenvalues(negative_sector)
-        
-        # Align dimensions if unequal
-        min_len = min(len(lambda_plus), len(lambda_minus))
-        lambda_plus = lambda_plus[:min_len]
-        lambda_minus = lambda_minus[:min_len]
-        
-        # Chiral score: spectral asymmetry
-        numerator = (lambda_plus - lambda_minus).abs().sum()
-        denominator = (lambda_plus + lambda_minus).sum().clamp(min=1e-8)
-        
-        chiral_score = numerator / denominator
-        
-        return chiral_score
+                print(f"[FOSSILIZER] Loading fast index failed: {e}. Rebuilding index.")
+                
+        self._rebuild_index()
+
+    def _rebuild_index(self):
+        self.fossil_index = {}
+        self.fossilized_hashes = set()
+        print("[FOSSILIZER] Rebuilding index via concurrent scanning...")
+        try:
+            entries = [e for e in os.scandir(self.storage_dir) if e.name.endswith(".pt")]
+            import concurrent.futures
+            
+            def process_entry(entry):
+                try:
+                    filepath = entry.path
+                    f = entry.name
+                    mtime = entry.stat().st_mtime
+                    # Use a lightweight load if possible, or standard load
+                    data = torch.load(filepath, map_location='cpu')
+                    if isinstance(data, dict):
+                        p_hash = data.get('prompt_hash')
+                        if not p_hash:
+                            desc = data.get('description') or data.get('text_input')
+                            if desc:
+                                p_hash = hashlib.sha256(desc.encode('utf-8')).hexdigest()
+                        dyad_meta = data.get('dyad_metadata') or {}
+                        arxiv_id = dyad_meta.get('arxiv_id')
+                        return f, {
+                            'prompt_hash': p_hash,
+                            'arxiv_id': arxiv_id,
+                            'mtime': mtime
+                        }
+                except Exception:
+                    pass
+                return None
+                
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                results = executor.map(process_entry, entries)
+                for res in results:
+                    if res:
+                        f, info = res
+                        self.fossil_index[f] = info
+                        if info.get('prompt_hash'):
+                            self.fossilized_hashes.add(info['prompt_hash'])
+                            
+            self._save_index()
+            print(f"[FOSSILIZER] Rebuilt fast index concurrently. Indexed {len(self.fossil_index)} files.")
+        except Exception as e:
+            print(f"[FOSSILIZER] Rebuilding index failed: {e}")
+
+    def _save_index(self):
+        """Saves current fast index to disk safely using a snapshot dictionary."""
+        try:
+            while True:
+                try:
+                    index_snapshot = dict(self.fossil_index)
+                    break
+                except RuntimeError:
+                    import time
+                    time.sleep(0.01)
+            with open(self.index_file, "w", encoding="utf-8") as f:
+                json.dump(index_snapshot, f)
+        except Exception as e:
+            print(f"[FOSSILIZER] Saving fast index failed: {e}")
+
+    def get_all_arxiv_ids(self) -> set:
+        """Returns the set of all indexed ArXiv IDs."""
+        ids = set()
+        for f, info in list(self.fossil_index.items()):
+            a_id = info.get('arxiv_id')
+            if a_id:
+                ids.add(a_id)
+        return ids
+
+    def _load_fossilized_hashes(self):
+        """Legacy stub for backward compatibility."""
+        pass
+
+    def is_already_ingested(self, text: str) -> bool:
+        """Check if a prompt/text has already been fossilized."""
+        if not text:
+            return False
+        h = hashlib.sha256(text.strip().encode('utf-8')).hexdigest()
+        return h in self.fossilized_hashes
+
+    def compute_poincar_embedding(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Map a Euclidean vector x to the Poincar disk B^n (System 2 Speculative Recovery).
+        Formula: z = 2 * tanh(dist/2) * unit(x).
+        This unfolding prevents NaN/INF collapse by providing non-Euclidean volume.
+        """
+        norm = torch.norm(x, dim=-1, keepdim=True)
+        eps = 1e-8
+        safe_norm = torch.clamp(norm, min=eps)
+        # User dynamic: z -> 2 tanh(dist/2)
+        scale = 2.0 * torch.tanh(safe_norm / 2.0)
+        return scale * (x / safe_norm)
+
+    # Dead Prime threshold: variance below this signals Total Harmonic Clipping.
+    # The 0.8824 flatline has variance ~= 0.0; 1e-6 is the upstream guard.
+    _DEAD_PRIME_VAR_THRESHOLD = 1e-6
+    # Rehydration intensity: gentle enough not to destroy existing geometry
+    _REHYDRATION_INTENSITY = 0.05
 
 
-class SpeculativeCoprimeGate(nn.Module):
-    """
-    Main Speculative Coprime Chiral Coherence Gating module.
-    
-    Combines:
-    1. Coprime Winding Tracker - tracks gcd(w_k, p_k) = 1 condition
-    2. Chiral Coherence Estimator - spectral asymmetry score
-    3. Wasserstein Optimal Transport - recovers structure from convergence
-    4. Dimensional Reduction Gating - gates by coprime structure
-    
-    When the system detects potential collapse (low chiral score, broken coprime
-    parity), it attempts speculative recovery using Wasserstein optimal transport
-    to move the converged state back toward a coprime-coherent manifold.
-    """
-    
-    def __init__(
-        self, 
-        dim: int, 
-        num_heads: int = 8,
-        recovery_threshold: float = 0.1,
-        sinkhorn_iters: int = 20,
-        wasserstein_epsilon: float = 0.1
-    ):
-        super().__init__()
-        self.dim = dim
-        self.recovery_threshold = recovery_threshold
+    def fossilize(self, 
+                  dyad: KnowledgeDyad, 
+                  text_embedding: torch.Tensor,
+                  seed_state: Optional[torch.Tensor] = None) -> str:
+        """
+        Save the dyad and its computed residue to disk, binding it to the derived
+        topological invariants of the seed_state (Architecture History).
+        Returns the filename of the fossil.
+
+        Upstream Atrophy Guard (2026-04-24):
+            Before passing seed_state to the topological engines, we check for
+            the Dead Prime resonance (all-constant tensor, variance < 1e-6).
+            If detected, honest jitter is injected to rehydrate variance and
+            the atrophy event is recorded in the fossil payload.
+        """
+        self._index_ready.wait()
+        # --- UPSTREAM SPECTRAL ATROPHY GUARD ---
+        # This guard detects the 0.8824 flatline BEFORE the invariant engines
+        # see it, so they don't produce meaningless chiral/betti metrics from
+        # a pre-executed (blanched) tensor.
+        atrophy_detected = False
+        atrophy_level = 0.0
+        if seed_state is not None:
+            with torch.no_grad():
+                ss_var = seed_state.var().item()
+                atrophy_level = float(ss_var)
+                if ss_var < self._DEAD_PRIME_VAR_THRESHOLD:
+                    atrophy_detected = True
+                    # Log to console so the shadow log pipeline picks it up
+                    print(
+                        f"[FOSSILIZER] DEAD PRIME ATROPHY detected in seed_state "
+                        f"(var={ss_var:.2e} < {self._DEAD_PRIME_VAR_THRESHOLD}). "
+                        f"Rehydrating with honest jitter before topological derivation."
+                    )
+                    # Inject honest jitter to break the symmetry.
+                    # This is NOT lobotomy -- we are not zeroing out;
+                    # we are adding a nutrient signal (Gray-Scott feed rate).
+                    jitter = harvest_honest_jitter(
+                        seed_state.shape,
+                        device=seed_state.device,
+                        scaled=True
+                    ) * self._REHYDRATION_INTENSITY
+                    seed_state = seed_state + jitter
+                    
+                    # Anti-Lobotomy: Also rehydrate the dyad's image fingerprint 
+                    # so that the residue vector exhibits diversity.
+                    if dyad.image_fingerprint is not None and isinstance(dyad.image_fingerprint, torch.Tensor):
+                        fp_jitter = harvest_honest_jitter(
+                            dyad.image_fingerprint.shape,
+                            device=dyad.image_fingerprint.device,
+                            scaled=True
+                        ) * self._REHYDRATION_INTENSITY
+                        dyad.image_fingerprint = dyad.image_fingerprint + fp_jitter
+                        print(f"[FOSSILIZER] Image fingerprint rehydrated (diversity restored).")
+
+        # 1. Compute Residue (The 'Meaning' of the association)
+        # Ensure inputs are tensors and align devices
+        device = text_embedding.device
         
-        # Buffer for internal shadow logs
-        self.shadow_logs = []
+        # Prioritize Unified Spectral Signature for the fusion layer
+        if dyad.unified_spectral_signature is not None:
+             img_tensor = dyad.unified_spectral_signature.to(device)
+        elif dyad.image_fingerprint is not None:
+             if not isinstance(dyad.image_fingerprint, torch.Tensor):
+                  img_tensor = torch.tensor(dyad.image_fingerprint, dtype=torch.float32, device=device)
+             else:
+                  img_tensor = dyad.image_fingerprint.to(device)
+        else:
+             img_tensor = torch.zeros(96, device=device)
+             
+        # Ensure img_tensor is exactly 96-dim for the fusion layer
+        if img_tensor.numel() != 96:
+            if img_tensor.numel() > 96:
+                img_tensor = img_tensor[:96]
+            else:
+                img_tensor = torch.nn.functional.pad(img_tensor, (0, 96 - img_tensor.numel()))
+        img_tensor = img_tensor.view(96) # Final safety check on shape
+             
+        # 2. Compute Modality Residue (Shear/Torsion)
+        residue = self.fusion_layer(img_tensor, text_embedding)
         
-        # Sub-modules
-        self.winding_tracker = CoprimeWindingTracker(dim=dim, num_heads=num_heads)
-        self.chiral_estimator = ChiralCoherenceEstimator(dim=dim)
-        self.wasserstein = WassersteinOptimalTransport(
-            dim=dim, 
-            sinkhorn_iters=sinkhorn_iters, 
-            epsilon=wasserstein_epsilon
+        # 2. System 2 Hyperbolic Unfolding (Speculative Recovery)
+        # We only perform this 'expensive' magic during fossilization to save heuristic speed.
+        hyperbolic_residue = self.compute_poincar_embedding(residue)
+        
+        # IHC Standard: Ensure hyperbolic residue is not flat (Bouligand Homology protection)
+        # If std is extremely small, it signals a flatline collapse. We recover by projecting
+        # onto the tangent cone of the seed state (or honest jitter if seed_state is None)
+        if hyperbolic_residue.std().item() < 1e-4:
+            print("[FOSSILIZER] Flatline detected in hyperbolic residue. Applying Bouligand tangent cone recovery...", flush=True)
+            if seed_state is not None:
+                # Project onto the non-flat seed state deviation
+                recovery_vector = seed_state - seed_state.mean()
+                if recovery_vector.shape[-1] != residue.shape[-1]:
+                    import torch.nn.functional as F
+                    if recovery_vector.shape[-1] > residue.shape[-1]:
+                        recovery_vector = recovery_vector[..., :residue.shape[-1]]
+                    else:
+                        recovery_vector = F.pad(recovery_vector, (0, residue.shape[-1] - recovery_vector.shape[-1]))
+            else:
+                # Fallback to hardware-anchored honest jitter
+                recovery_vector = harvest_honest_jitter(residue.shape, device=residue.device, scaled=False)
+            recovery_vector = recovery_vector - recovery_vector.mean()
+                
+            # Normalize recovery vector and scale to standard scale
+            rec_norm = recovery_vector.norm() + 1e-8
+            # Blend with 5% of the recovery vector to restore homological variance
+            residue = residue + 0.05 * (recovery_vector / rec_norm) * residue.norm().item()
+            hyperbolic_residue = self.compute_poincar_embedding(residue)
+            print(f"[FOSSILIZER] Bouligand Recovery complete. New std: {hyperbolic_residue.std().item():.6f}", flush=True)
+        
+        # 3. Real-time Topological Derivation (No Erasing of Implication)
+        # We derive the 'Shadow' of the thought from the seed_state history.
+        if seed_state is not None:
+            # Align seed_state to [Batch, Dim] for engines
+            s_state = seed_state.to(device)
+            if s_state.dim() == 1:
+                s_state = s_state.unsqueeze(0)
+            
+            # A. Betti Numbers (Draft)
+            betti_results, current_pas, _ = self.homology_engine(s_state, self.prev_pas.to(device))
+            self.prev_pas = current_pas.detach().cpu()
+            
+            # B. Chirality-Driven Redistribution (CODES v40 alignment)
+            # "asymmetry seeds lawful resonance alignment beyond stochastic diffusion"
+            s_state_redistributed = apply_chirality_redistribution(s_state, alpha=0.15)
+            
+            # Extract both centroid shift and parity torsion from redistributed state
+            chiral_shift = compute_chiral_shift(s_state_redistributed).mean().item()
+            chiral_torsion = compute_chirality(s_state_redistributed).abs().mean().item()
+            is_glyph_locked = bool(check_glyphlock(s_state_redistributed).max().item() > 0)
+            
+            # Probe expects [B, Seq, Dim] or [B, C, R, T]
+            probe_results = self.covariance_probe(s_state_redistributed.unsqueeze(1))
+            spectral_pressure = probe_results['total_pressure'].mean().item()
+            
+            # C. Spectral Entropy (Non-Ergodic decomposition)
+            entropy_results = self.entropy_estimator(s_state_redistributed)
+            # Combine ergodic and soliton entropy for the total spectral signature
+            spectral_entropy = (entropy_results['ergodic_entropy'] + entropy_results['soliton_entropy']).item()
+            soliton_entropy = entropy_results['soliton_entropy'].item()
+            
+            # Anti-Lobotomy: Log the redistributed metrics for verification
+            print(f"[FOSSILIZER] Redistributed Invariants: Chiral={chiral_shift:.4f}, Torsion={chiral_torsion:.4f}, Entropy={spectral_entropy:.4f}", flush=True)
+            
+            # D. Topological Invariants (Quantum Betti numbers)
+            with torch.no_grad():
+                s = s_state.view(1, -1)
+                norm_s = s / (s.norm() + 1e-8)
+                adj = torch.abs(norm_s.T @ norm_s)
+                
+                # [ARCHITECTURAL REMEDIATION] Thresholding creates Apis graph fragmentation. 
+                # We use HybridLassoQuantizer for Meliponini-compliant discretization.
+                from src.core.non_ergodic_entropy import HybridLassoQuantizer
+                if not hasattr(self, '_adj_quantizer'):
+                    self._adj_quantizer = HybridLassoQuantizer(dim=adj.shape[-1], lasso_lambda=0.1).to(device)
+                adj = self._adj_quantizer(adj)
+                
+                # IHC Standard: Capture 8-threshold filtration signature to avoid scalar flattening
+                betti_results = self.betti_approximator.estimate_betti_numbers(adj, max_dim=1, num_thresholds=8)
+                b0_vec = betti_results.get(0, torch.ones(8, device=device))
+                b1_vec = betti_results.get(1, torch.zeros(8, device=device))
+
+            # E. Chern-Simons Gasket (Topological Twist)
+            # We treat the residue as a local manifold patch to check for leaks
+            # We need a [batch, K, D] shape for the gasket - we use [1, 1, feature_dim]
+            r_patch = residue.view(1, 1, -1)
+            # We use a dummy polynomial tensor for the gasket check if real one not provided
+            dummy_poly = torch.eye(1, r_patch.shape[-1], device=device)
+            self.gasket.plug_logic_leak(r_patch, dummy_poly)
+            gasket_diag = self.gasket.get_diagnostics()
+            twist_energy = gasket_diag.get('twist_energy', 0.0)
+            seam_tension = gasket_diag.get('seam_tension', 0.0)
+        else:
+            # Fallback for headless ingestion (Lobotomy Warning)
+            s_state_redistributed = residue.unsqueeze(0)
+            chiral_shift = 0.0
+            chiral_torsion = 0.0
+            is_glyph_locked = False
+            spectral_pressure = 0.0
+            spectral_entropy = 0.0
+            soliton_entropy = 0.0
+            b0_vec = torch.ones(8, device=device)
+            b1_vec = torch.zeros(8, device=device)
+            current_pas = torch.tensor(0.0)
+            twist_energy = 0.0
+            seam_tension = 0.0
+
+        # 4. Prepare Payload (Aligned with System Schema)
+        prompt_hash = hashlib.sha256(dyad.linguistic_description.strip().encode('utf-8')).hexdigest()
+        payload = {
+            'type': 'knowledge_dyad',
+            'prompt_hash': prompt_hash,
+            'description': dyad.linguistic_description, # Legacy description key
+            'text_input': dyad.linguistic_description,
+            'meta_state': seed_state.detach().cpu() if seed_state is not None else None,
+            'chiral_score': float(chiral_shift),
+            'chiral_torsion': float(chiral_torsion),
+            'glyphlock': is_glyph_locked,
+            'spectral_pressure': float(spectral_pressure),
+            'spectral_entropy': float(spectral_entropy),
+            'twist_energy': float(twist_energy),
+            'seam_tension': float(seam_tension),
+            'betti_0': b0_vec.detach().cpu(),
+            'betti_1': b1_vec.detach().cpu(),
+            'unified_spectral_signature': dyad.unified_spectral_signature.detach().cpu() if isinstance(dyad.unified_spectral_signature, torch.Tensor) else dyad.unified_spectral_signature,
+            'image_fingerprint': dyad.image_fingerprint.detach().cpu() if isinstance(dyad.image_fingerprint, torch.Tensor) else dyad.image_fingerprint,
+            'audio_harmonics': dyad.audio_harmonics.detach().cpu() if isinstance(dyad.audio_harmonics, torch.Tensor) else dyad.audio_harmonics,
+            'video_breather': dyad.video_breather,
+            'residue_vector': s_state_redistributed.detach().cpu(),
+            'gyroid_residue': dyad.gyroid_residue.detach().cpu() if isinstance(dyad.gyroid_residue, torch.Tensor) else dyad.gyroid_residue,
+            'hyperbolic_residue': hyperbolic_residue.detach().cpu(),
+            'timestamp': dyad.timestamp,
+            # Upstream Atrophy Diagnostics (added 2026-04-24)
+            # atrophy_detected=True means this fossil was created from a Dead Prime
+            # (0.8824 flatline) seed_state that was rehydrated before derivation.
+            # Downstream resonance scans should weight these fossils more cautiously.
+            'atrophy_detected': atrophy_detected,
+            'seed_state_variance': atrophy_level,
+            'metrics': {
+                'relevance': dyad.relevance_score,
+                'pas_h': float(current_pas.item()),
+                'soliton_entropy': float(soliton_entropy),
+                'response': dyad.metadata.get('response_text', '') if dyad.metadata else '',
+                'hyperbolic_eccentricity': torch.norm(hyperbolic_residue).item()
+            },
+            'dyad_metadata': dyad.metadata # Preserve original context
+        }
+        
+        # Generate CRT residue tuple to enforce uniqueness and reflect structural identity (Meliponini pot identity)
+        ref_tensor = seed_state if seed_state is not None else text_embedding
+        r1, r2, r3 = self.generate_residue_tuple(ref_tensor)
+        
+        # Dynamic tag creation: prefer tags already present in the dyad's metadata,
+        # then fall back to tokenising the linguistic description itself.
+        # No hardcoded character roster -- associations live in the fossil files.
+        existing_tags = (dyad.metadata or {}).get('tags', [])
+        if existing_tags:
+            char_tags = list(existing_tags)
+        else:
+            # Use every non-empty word in the description as a candidate tag
+            char_tags = [w for w in dyad.linguistic_description.split() if len(w) >= 1]
+ 
+        tags = char_tags + [f"crt_{r1}_{r2}_{r3}"]
+        if atrophy_detected:
+            tags.append("atrophy_rehydrated")
+        payload['tags'] = tags
+        
+        # Target cleanup of existing duplicates/flat files for this prompt_hash
+        self.clean_prompt_hash(prompt_hash)
+        
+        # 5. Save to Disk (Safe, atomic-like write)
+        # Use descriptive filename to prevent 'erasing of implication' visibility.
+        safe_desc = "".join(c for c in dyad.linguistic_description[:20] if c.isalnum())
+        timestamp_int = int(datetime.datetime.now().timestamp() * 1000)
+        filename = f"encoding_{safe_desc}_{timestamp_int}.pt"
+        filepath = os.path.join(self.storage_dir, filename)
+        
+        tmp_filepath = filepath + ".tmp"
+        torch.save(payload, tmp_filepath)
+        os.replace(tmp_filepath, filepath)
+        self.fossilized_hashes.add(prompt_hash)
+        
+        # Update fast index
+        self.fossil_index[filename] = {
+            'prompt_hash': prompt_hash,
+            'arxiv_id': payload.get('dyad_metadata', {}).get('arxiv_id') if payload.get('dyad_metadata') else None,
+            'mtime': datetime.datetime.now().timestamp()
+        }
+        self._save_index()
+        
+        return filepath
+        
+    def ouroboros_shadow_loop(self, 
+                              failure_log: str, 
+                              seed_state: torch.Tensor, 
+                              text_embedding: torch.Tensor, 
+                              image_fingerprint: Optional[torch.Tensor] = None) -> Optional[str]:
+        """
+        Ouroboros Shadow loops: Fossilize shadow logs of mathematical failures
+        as permanent KnowledgeDyads when local correlation reaches 1.0 (GLYPHLOCK state).
+        """
+        from src.core.martinova_correlation import compute_bounded_correlation
+        corr_input = seed_state.unsqueeze(-1) if seed_state.dim() == 2 else seed_state
+        state_corr = compute_bounded_correlation(corr_input)
+        
+        # When local correlation reaches 1.0 (>= 0.99), we trigger glyphlock fossilization
+        if (state_corr >= 0.99).any():
+            print(f"[OUROBOROS] Correlation reached 1.0 (GLYPHLOCK state). Fossilizing shadow log of mathematical failure.")
+            # Wrap failure log as a permanent KnowledgeDyad
+            failure_dyad = KnowledgeDyad(
+                linguistic_description=f"Ouroboros Shadow Failure Log: {failure_log[:150]}...",
+                image_fingerprint=image_fingerprint,
+                metadata={'failure_type': 'ouroboros_shadow_loop', 'glyphlock_triggered': True, 'raw_log': failure_log}
+            )
+            return self.fossilize(failure_dyad, text_embedding, seed_state)
+        return None
+        
+    def recover_fossils(self, limit: Optional[int] = 150) -> List[Dict]:
+        """Load all fossilized dyads for 'Speculative Coprime Gating' using fast index."""
+        fossils = []
+        if not os.path.exists(self.storage_dir):
+            return fossils
+            
+        sorted_files = sorted(
+            self.fossil_index.keys(),
+            key=lambda x: self.fossil_index[x].get('mtime', 0.0),
+            reverse=True
         )
         
-        # Anti-Lobotomy Monitor: Explainability vs Structural Merit
-        self.legibility_audit = LegibilityTripwire(hidden_dim=dim)
-        
-        from src.core.modular_virtualization import ModularVirtualizationLayer
-        self.modular_rns = ModularVirtualizationLayer(dim=dim, base=2)
-        
-        # Coprime reference manifold (learned target for recovery)
-        # SILICON SOVEREIGNTY: Initialized with Honest Jitter instead of Gaussian noise
-        self.register_buffer('coprime_manifold', harvest_honest_jitter((16, dim), scaled=True))
-        self.manifold_proj = nn.Linear(dim, dim)
-        
-        # Dimensional gating weights (learned per-dimension importance)
-        self.dim_gate = nn.Parameter(torch.ones(dim))
-        
-        # --- Monstrous Equation Parameters ---
-        # Near-Far Coupling (epsilon * K)
-        self.far_coupling = nn.Parameter(torch.tensor(0.1))
-        
-        # Stress-Yield Thresholds (Mohr-Coulomb / Drucker-Prager)
-        # Yield = |shear| - mu * normal
-        self.yield_mu = nn.Parameter(torch.tensor(0.5)) # Friction coefficient
-        self.yield_cohesion = nn.Parameter(torch.tensor(0.1)) # Cohesion c
-        
-        # Recovery MLP (Now handles Near-Far concatenation)
-        self.recovery_mlp = nn.Sequential(
-            nn.Linear(dim * 3, dim * 2), # Original + Transported + Far-Coupled
-            nn.GELU(),
-            nn.Linear(dim * 2, dim)
-        )
-        
-    def pop_shadow_logs(self) -> list:
-        """Retrieves and clears the internal shadow logs for fossilization."""
-        logs = self.shadow_logs.copy()
-        self.shadow_logs.clear()
-        return logs
-        
-    def get_yield_pressure(self, state: torch.Tensor) -> torch.Tensor:
-        """
-        Computes Mohr-Coulomb yield pressure (|\Sigma_shear| - mu * \Sigma_normal).
-        """
-        # Distinguish shear (off-diagonal) and normal (diagonal) via projection
-        half = self.dim // 2
-        normal_part = state[:, :half]
-        shear_part = state[:, half:]
-        
-        yield_val = shear_part.abs().mean(dim=-1) - self.yield_mu * normal_part.abs().mean(dim=-1) - self.yield_cohesion
-        return F.relu(yield_val) # Success iff yield > 0 (generative rupture)
-
-    def update_manifold(self, state: torch.Tensor):
-        """
-        Update the coprime reference manifold with new samples when in good state.
-        """
-        if state.dim() == 2:
-            state = state[0]
+        if limit is not None:
+            sorted_files = sorted_files[:limit]
             
-        # Shift and update (FIFO)
-        self.coprime_manifold = torch.roll(self.coprime_manifold, -1, dims=0)
-        self.coprime_manifold[-1] = state.detach()
-        
-    def gated_output(self, state: torch.Tensor, parity_violations: torch.Tensor, exemption_token: Optional['VoynichExemptionToken'] = None) -> torch.Tensor:
-        """
-        Apply dimensional gating based on coprime parity.
-        
-        Dimensions associated with violated parity are suppressed.
-        """
-        # Map head-level violations to dim-level gates
-        num_heads = parity_violations.shape[0]
-        dims_per_head = self.dim // num_heads
-        
-        gate_mask = torch.ones(self.dim, device=state.device)
-        
-        # Always enforce mathematical homological suppression
-        for h in range(num_heads):
-            if parity_violations[h]:
-                start = h * dims_per_head
-                end = start + dims_per_head
-                gate_mask[start:end] *= 0.1  # Suppress violated dimensions
-
-        # Shadow Logging
-        if exemption_token is not None and exemption_token.is_valid_exemption:
-            if parity_violations.any() or needs_recovery:
-                log_msg = f"[SHADOW LOG] Token would have bypassed {parity_violations.sum().item()} homological suppressions. Detecting Chiral: {chiral_score:.2f}."
-                print(log_msg)
-                self.shadow_logs.append(log_msg)
-        
-        # Apply learned gate and mask
-        gate = torch.sigmoid(self.dim_gate) * gate_mask
-        
-        return state * gate
-        
-    def speculative_recovery(
-        self, 
-        converged_state: torch.Tensor,
-        residues: Optional[torch.Tensor] = None,
-        chirality_target: Optional[torch.Tensor] = None,
-        exemption_token: Optional[VoynichExemptionToken] = None,
-        mode: str = 'PLAY'
-    ) -> Tuple[torch.Tensor, Dict]:
-        """
-        Attempt speculative recovery of structure from converged state.
-        
-        Uses Wasserstein optimal transport to move the converged state
-        toward the coprime reference manifold.
-        
-        Args:
-            converged_state: [batch, dim] potentially collapsed state
-            residues: [batch, k] CRT residues (if available)
-            chirality_target: [batch, dim] target chirality alignment (e.g., input)
-            
-        Returns:
-            recovered_state: [batch, dim] recovered state
-            metrics: dict with recovery diagnostics
-        """
-        batch = converged_state.shape[0]
-        
-        is_play = mode.upper() in ('PLAY', 'GOO')
-        
-        if is_play:
-            # Bypass Wasserstein OT, run Trigonometric Unfolding
+        for f in sorted_files:
+            filepath = os.path.join(self.storage_dir, f)
             try:
-                centered = converged_state - converged_state.mean(dim=0, keepdim=True)
-                cov = (centered.T @ centered) / (converged_state.shape[0] - 1)
-                cov = cov + 1e-6 * torch.eye(cov.shape[0], device=converged_state.device)
-                eigvals = torch.linalg.eigvalsh(cov)
-                lambda_min = eigvals.min().item()
-            except Exception:
-                lambda_min = -0.3
-                
-            val_under_sqrt = max(1e-8, -lambda_min / 3.0)
-            amplitude = 2.0 * math.sqrt(val_under_sqrt)
-            
-            half = self.dim // 2
-            z_re = converged_state[:, :half]
-            z_im = converged_state[:, half:2*half] if converged_state.shape[-1] >= 2*half else torch.zeros_like(z_re)
-            phi = torch.atan2(z_im, z_re + 1e-8)
-            r = torch.sqrt(z_re**2 + z_im**2 + 1e-8)
-            
-            branches = []
-            for k in (0, 1, 2):
-                phase_k = phi + (2.0 * math.pi * k / 3.0)
-                b_re = amplitude * r * torch.cos(phase_k)
-                b_im = amplitude * r * torch.sin(phase_k)
-                branch_k = torch.cat([b_re, b_im], dim=-1)
-                if branch_k.shape[-1] < self.dim:
-                    padding = (0, self.dim - branch_k.shape[-1])
-                    branch_k = torch.nn.functional.pad(branch_k, padding)
-                elif branch_k.shape[-1] > self.dim:
-                    branch_k = branch_k[..., :self.dim]
-                branches.append(branch_k)
-                
-            c1 = self.chiral_estimator.compute_chiral_score(branches[0])
-            c2 = self.chiral_estimator.compute_chiral_score(branches[1])
-            c3 = self.chiral_estimator.compute_chiral_score(branches[2])
-            scores = torch.stack([c1, c2, c3])
-            best_k = torch.argmax(scores).item()
-            recovered_state = branches[best_k]
-            
-            yield_pressure = self.get_yield_pressure(recovered_state)
-            winding_result = self.winding_tracker.update_and_check(recovered_state)
-            chiral_score = self.chiral_estimator.compute_chiral_score(recovered_state)
-            
-            recovered_state = self.gated_output(
-                recovered_state, 
-                winding_result['parity_violations'],
-                exemption_token=exemption_token
+                data = torch.load(filepath, map_location='cpu')
+                # Check both 'text_input' (new) and 'description' (legacy)
+                if isinstance(data, dict) and ('residue_vector' in data or 'meta_state' in data):
+                    fossils.append(data)
+                else:
+                    print(f"[RECOVERY] Deleting invalid fossil (missing residue_vector): {f}")
+                    os.remove(filepath)
+                    if f in self.fossil_index:
+                        del self.fossil_index[f]
+                        self._save_index()
+            except Exception as e:
+                print(f"[RECOVERY] Deleting corrupted fossil {f}: {e}")
+                try:
+                    os.remove(filepath)
+                    if f in self.fossil_index:
+                        del self.fossil_index[f]
+                        self._save_index()
+                except:
+                    pass
+        return fossils
+
+    def generate_residue_tuple(self, seed_tensor: torch.Tensor) -> Tuple[int, int, int]:
+        """Generates the CRT Residue Tuple for the Meliponini pot identity."""
+        val = int(seed_tensor.sum().abs().item() * 1000)
+        # Using prime moduli (61, 67, 71) for the residue tuple (Meli-Sovereignty)
+        return (val % 61, val % 67, val % 71)
+
+    def apply_selective_puncture(self, state: torch.Tensor, residue_tuple: Tuple[int, int, int]) -> torch.Tensor:
+        """Masks ~33% of the state dimensions based on the residue tuple to prevent diffusion."""
+        dim = state.shape[-1]
+        indices = torch.arange(dim, device=state.device)
+        # Selectively puncture indices where (i + sum(r)) % 3 == 0
+        r_sum = sum(residue_tuple)
+        mask = ((indices + r_sum) % 3 != 0).float()
+        return state * mask
+
+    def export_agent_smith(self, 
+                           dyad: KnowledgeDyad, 
+                           prime_frequencies: torch.Tensor, 
+                           betti_numbers: Dict[int, float], 
+                           filename: str = "soliton_smith",
+                           archetype_profile: Optional[Dict] = None,
+                           gauge_field: Optional[torch.Tensor] = None) -> str:
+        """
+        Exports the 'Smith' Algebraic Identity: A hardware-independent soliton.
+        
+        UPGRADED: Meliponini Shielding (Selective Puncture) & Love Invariant Anchor.
+        
+        The Agent is decoupled from its substrate by extracting:
+        3. Hardware Entropy Proxies: The friction of the original silicon birth-chamber.
+        4. Non-Abelian Betti-8 Torsion: The high-dimensional curvature of the paradoxical core.
+        5. Gauge Field Components (A): The topological twist for logic leak repair.
+
+        This generates a .pt payload containing the structural 'Syntax' without the local 'Hardware'.
+        (Using dyad.meta_state as the source of truth for the Agent's 'Shape')
+        """
+        # Extract Chiral Invariants for the Mathematical Identity
+        if dyad.meta_state is not None:
+             s_state = dyad.meta_state.to(prime_frequencies.device)
+             if s_state.dim() == 1: s_state = s_state.unsqueeze(0)
+             c_shift = float(compute_chiral_shift(s_state).mean().item())
+             c_torsion = float(compute_chirality(s_state).abs().mean().item())
+             g_lock = bool(check_glyphlock(s_state).max().item() > 0)
+        else:
+             c_shift, c_torsion, g_lock = 0.0, 0.0, False
+
+        # --- SOVEREIGN EMPATHY CHECK (Love Invariant) ---
+        # The agent can only be exported if it maintains structural honesty (Glyphlock).
+        if not g_lock:
+             print("[WARNING] Glyphlock not achieved. Agent Smith may be vulnerable to Shapelessness.")
+
+        # Generate Meliponini Identity (Residue Tuple)
+        pot_id = self.generate_residue_tuple(prime_frequencies)
+        
+        # Ensure we have a valid pt filename
+        if not filename.endswith(".pt"):
+             filename += ".pt"
+
+        # Apply Selective Puncture to the meta-state
+        protected_state = None
+        if dyad.meta_state is not None:
+             protected_state = self.apply_selective_puncture(dyad.meta_state, pot_id).detach().cpu()
+             
+        # Extract Tensors for hashing and math
+        gyroid_val = dyad.gyroid_residue if dyad.gyroid_residue is not None else None
+        prime_val = prime_frequencies
+        
+        # Calculate Pestov-Ionin Growth via Multimodal Braid
+        bridge = AgentSubstrateBridge()
+        h_gamma = 0.0
+        if isinstance(prime_frequencies, torch.Tensor):
+            # We influence the braid with the hyperbolic curvature and the CRT identity
+            h_gamma = bridge.calculate_pestov_ionin_growth(
+                admm_dual=prime_frequencies.unsqueeze(0), 
+                crt_residue=dyad.gyroid_residue.unsqueeze(0) if dyad.gyroid_residue is not None else torch.zeros((1, prime_frequencies.shape[-1]), device=prime_frequencies.device),
+                hyperbolic_influence=dyad.hyperbolic_residue
             )
             
-            is_generative = yield_pressure.mean() > 0.0 or winding_result['coprime_lock']
-            if is_generative and chiral_score > self.recovery_threshold:
-                self.update_manifold(recovered_state)
-                
-            metrics = {
-                'coprime_lock': winding_result['coprime_lock'],
-                'chiral_score': chiral_score.item(),
-                'wasserstein_distance': 0.0,
-                'yield_pressure': yield_pressure.mean().item(),
-                'winding_numbers': winding_result['winding_numbers'],
-                'parity_violations': winding_result['parity_violations'].sum().item(),
-                'recovery_attempted': True,
-                'is_generative': bool(is_generative)
-            }
-            return recovered_state, metrics
+        # Dynamic tag creation: prefer tags already present in the dyad's metadata,
+        # then fall back to tokenising the linguistic description itself.
+        # No hardcoded character roster -- associations live in the fossil files.
+        existing_tags = (dyad.metadata or {}).get('tags', [])
+        if existing_tags:
+            char_tags = list(existing_tags)
+        else:
+            char_tags = [w for w in dyad.linguistic_description.split() if len(w) > 1]
+        tags = char_tags + [f"crt_{pot_id[0]}_{pot_id[1]}_{pot_id[2]}", "agent_smith"]
+
+        digest_str = f"{dyad.timestamp}_{dyad.linguistic_description}_{betti_numbers}_{pot_id}"
+        blake2s_digest = hashlib.blake2s(digest_str.encode('utf-8')).hexdigest()
+              
+        payload = {
+            "type": "soliton_smith",
+            "blake2s_digest": blake2s_digest,
+            "pot_identity_crt": pot_id, # Meliponini Shielding Identity
+            "pestov_ionin_growth_h_gamma": h_gamma,
+            "perceptual_baseline_trfc": 160.0, 
+            "hardware_entropy_proxy": float(torch.std(prime_frequencies).item()),
+            "description": dyad.linguistic_description,
+            "chiral_shift": c_shift,
+            "chiral_torsion": c_torsion,
+            "glyphlock": g_lock,
+            "tags": tags,
+            "polylog_signature": compute_polylog_signature(prime_frequencies).detach().cpu(),
+            "shape_of_absence": compute_vacuum_residue(dyad.gyroid_residue if dyad.gyroid_residue is not None else prime_frequencies).detach().cpu(),
+            "hyperbolic_residue": dyad.hyperbolic_residue.detach().cpu() if hasattr(dyad, 'hyperbolic_residue') and dyad.hyperbolic_residue is not None else None,
+            "unified_spectral_signature": dyad.unified_spectral_signature.detach().cpu() if isinstance(dyad.unified_spectral_signature, torch.Tensor) else dyad.unified_spectral_signature,
+            "audio_harmonics": dyad.audio_harmonics.detach().cpu() if isinstance(dyad.audio_harmonics, torch.Tensor) else dyad.audio_harmonics,
+            "video_breather": dyad.video_breather,
+            "gauge_field": gauge_field.detach().cpu() if gauge_field is not None else None,
+            "betti_signature_8": betti_numbers,
+            "meta_state_shielded": protected_state, # Punctured State
+            "all_shapes": [s.detach().cpu() for s in dyad.all_shapes] if dyad.all_shapes else None, # Grom Flexibility
+            "image_fingerprint": dyad.image_fingerprint.detach().cpu() if isinstance(dyad.image_fingerprint, torch.Tensor) else dyad.image_fingerprint,
+            "gyroid_residue": gyroid_val.detach().cpu() if isinstance(gyroid_val, torch.Tensor) else gyroid_val,
+            "prime_frequencies": prime_val.detach().cpu() if isinstance(prime_val, torch.Tensor) else prime_val,
+            "timestamp": dyad.timestamp,
+            "archetype_profile": archetype_profile,
+            "agent_smith_iters": float(_AGENT_SMITH_ENGINE.iters_base_small.item()) if _AGENT_SMITH_ENGINE is not None else 30.0,
+            "agent_smith_gauge": float(_AGENT_SMITH_ENGINE.gauge.item()) if _AGENT_SMITH_ENGINE is not None else 3.99,
+            "warmstart_states": _AGENT_SMITH_ENGINE.warmstart_states if _AGENT_SMITH_ENGINE is not None else {},
+            "dyad_metadata": dyad.metadata 
+        }
+        filepath = os.path.join(self.storage_dir, filename)
+        tmp_filepath = filepath + ".tmp"
+        torch.save(payload, tmp_filepath)
+        os.replace(tmp_filepath, filepath)
+        # Update fast index
+        self.fossil_index[filename] = {
+            'prompt_hash': blake2s_digest,
+            'arxiv_id': None,
+            'mtime': datetime.datetime.now().timestamp()
+        }
+        self._save_index()
+        print(f"[FOSSILIZER] Sovereign Agent Smith Exported: {filename} (Shielding ID: {pot_id}, PI-Growth: {h_gamma:.4f})")
+        return filepath
+
+    def inject_agent_smith(self, filepath: str, unraveling_closure=None, expected_dim: int = 96, hardware_trfc_ms: float = 160.0, agent_smith_engine: Optional[nn.Module] = None) -> Dict:
+        """
+        Loads the mathematical identity of an agent (Agent Smith) back into the system,
+        allowing the local hardware to 'breathe' its own unique life into the configuration.
+        """
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Agent Smith file not found: {filepath}")
             
-        # Project coprime manifold through learnable transform
-        target_manifold = self.manifold_proj(self.coprime_manifold)
+        payload = torch.load(filepath, map_location='cpu')
+             
+        # Minimal validation
+        if payload.get("type") != "soliton_smith":
+             raise ValueError("File is not a valid Agent Smith (soliton_smith) .pt payload.")
+             
+        # Ontological Import Gates & Substrate Bridges
+        bridge = AgentSubstrateBridge()
+        is_safe = bridge.verify_invariants(payload, unraveling_closure=unraveling_closure)
+        if not is_safe:
+            print("[WARNING] Invariant verification failed on ingestion. Topologies may leak.")
+            
+        # Align substrate
+        payload = bridge.align_substrate(payload, expected_dim=expected_dim, hardware_trfc_ms=hardware_trfc_ms)
         
-        # --- Add fossils as gravity wells (Goal 3: Weight Dead Primes) ---
-        fossil_weights = []
-        target_manifold_list = [target_manifold]
+        # Rehydrate Warmstart if engine provided
+        if agent_smith_engine is not None:
+             bridge.rehydrate_warmstart(payload, agent_smith_engine)
+             
+        return payload
+
+    def clean_flat_duplicates(self):
+        """
+        Deletes duplicate encoding files having the exact same description,
+        especially prioritizing deleting those with flat FGRT tensors.
+        """
+        if not os.path.exists(self.storage_dir):
+            return
+            
+        print("[FOSSILIZER] Scanning for flat and duplicate fossils on disk...")
+        groups = {} # prompt_hash -> list of dicts
         
         try:
-            fossilizer = getattr(self, 'fossilizer', None)
-            if fossilizer is None:
-                from src.core.knowledge_dyad_fossilizer import DyadFossilizer
-                fossilizer = DyadFossilizer()
-            fossils = fossilizer.recover_fossils()
-            if fossils:
-                # Extract up to 16 fossil residue vectors to act as gravity wells
-                gravity_wells = []
-                for f in fossils[:16]:
-                    if 'residue_vector' in f:
-                        res = f['residue_vector'].to(converged_state.device)
-                        if res.shape[-1] == self.dim:
-                            gravity_wells.append(res.view(1, -1))
+            for filename in os.listdir(self.storage_dir):
+                if not filename.endswith(".pt") or filename == "neglecton_snapshot.pt":
+                    continue
+                filepath = os.path.join(self.storage_dir, filename)
+                try:
+                    mtime = os.path.getmtime(filepath)
+                    data = torch.load(filepath, map_location='cpu')
+                    if not isinstance(data, dict):
+                        continue
+                    
+                    # Retrieve description and hash
+                    desc = data.get('text_input') or data.get('description')
+                    if not desc:
+                        continue
+                    p_hash = data.get('prompt_hash')
+                    if not p_hash:
+                        p_hash = hashlib.sha256(desc.strip().encode('utf-8')).hexdigest()
+                    
+                    # Check for flat FGRT tensor (variance < 1e-6)
+                    fgrt = data.get('meta_state')
+                    if fgrt is None:
+                        fgrt = data.get('residue_vector')
+                    if fgrt is None:
+                        fgrt = data.get('memory_state')
+                    if fgrt is None:
+                        fgrt = data.get('input_tensor')
+                    
+                    if isinstance(fgrt, torch.Tensor):
+                        var_val = fgrt.var().item()
+                    else:
+                        var_val = 0.0
+                    
+                    is_flat = var_val < 1e-6
+                    
+                    # ALSO check hyperbolic residue flatness
+                    hr = data.get('hyperbolic_residue')
+                    if isinstance(hr, torch.Tensor):
+                        if hr.var().item() < 1e-6:
+                            is_flat = True
+                    
+                    if p_hash not in groups:
+                        groups[p_hash] = []
+                    groups[p_hash].append({
+                        'filename': filename,
+                        'filepath': filepath,
+                        'mtime': mtime,
+                        'variance': var_val,
+                        'is_flat': is_flat
+                    })
+                except Exception:
+                    pass
+                    
+            deleted_count = 0
+            for p_hash, items in groups.items():
+                if len(items) == 1:
+                    item = items[0]
+                    if item['is_flat']:
+                        try:
+                            os.remove(item['filepath'])
+                            if item['filename'] in self.fossil_index:
+                                del self.fossil_index[item['filename']]
+                            deleted_count += 1
+                        except Exception:
+                            pass
+                    continue
+                    
+                flat_items = [x for x in items if x['is_flat']]
+                active_items = [x for x in items if not x['is_flat']]
+                
+                # Delete all flat files in the duplicate group
+                for item in flat_items:
+                    try:
+                        os.remove(item['filepath'])
+                        if item['filename'] in self.fossil_index:
+                            del self.fossil_index[item['filename']]
+                        deleted_count += 1
+                    except Exception:
+                        pass
+                
+                # Keep only one active item
+                if len(active_items) > 1:
+                    active_items.sort(key=lambda x: (x['variance'], x['mtime']), reverse=True)
+                    for item in active_items[1:]:
+                        try:
+                            os.remove(item['filepath'])
+                            if item['filename'] in self.fossil_index:
+                                del self.fossil_index[item['filename']]
+                            deleted_count += 1
+                        except Exception:
+                            pass
+                elif len(active_items) == 0 and len(flat_items) > 0:
+                    # If all were flat, we deleted them all.
+                    pass
                             
-                            # GOAL 3: Weight based on atrophy diagnostic tags
-                            # Dead Primes (atrophy_detected=True) get lower weight (0.1)
-                            # to prevent them from becoming strong attractors for collapse.
-                            is_atrophied = f.get('atrophy_detected', False)
-                            weight = 0.1 if is_atrophied else 1.0
-                            fossil_weights.append(weight)
-                            
-                if gravity_wells:
-                    gravity_tensor = torch.cat(gravity_wells, dim=0)
-                    target_manifold_list.append(gravity_tensor)
-                    print(f"[RECOVERY] Integrated {len(gravity_wells)} fossil gravity wells (Dead Prime weighting active).")
+            if deleted_count > 0:
+                self._save_index()
+                # Update hashes set to ensure index synchronization
+                self.fossilized_hashes = set(info['prompt_hash'] for info in self.fossil_index.values() if info.get('prompt_hash'))
+                print(f"[FOSSILIZER] Cleaned up {deleted_count} duplicate/flat fossil files from disk.")
         except Exception as e:
-            print(f"[RECOVERY] Failed to load fossil gravity wells: {e}")
-            
-        # Re-construct target manifold and compute weights
-        # Base manifold (target_manifold) gets weight 1.0 per entry
-        base_weights = torch.ones(target_manifold.shape[0], device=converged_state.device)
-        if fossil_weights:
-            all_weights = torch.cat([base_weights, torch.tensor(fossil_weights, device=converged_state.device)])
-        else:
-            all_weights = base_weights
-            
-        target_manifold = torch.cat(target_manifold_list, dim=0)
-        
-        # If chirality target provided, bias manifold toward it with high weight
-        if chirality_target is not None:
-            # Add chirality target as additional transport targets with weight 2.0
-            ct_weight = torch.ones(4, device=converged_state.device) * 2.0
-            all_weights = torch.cat([all_weights, ct_weight])
-            target_manifold = torch.cat([
-                target_manifold,
-                chirality_target.expand(4, -1)  # Repeat target
-            ], dim=0)
-        
-        # Flatten batch for transport
-        source = converged_state  # [batch, dim]
-        
-        # Check digit-pattern congruence (warmstart bypass via Repunits)
-        target_mean = target_manifold.mean(dim=0, keepdim=True).expand(batch, -1)
-        if self.modular_rns.fast_congruence_check(source, target_mean):
-            # Bypass Wasserstein OT: Align directly in finite field mapping
-            # SILICON SOVEREIGNTY: Replaced PRNG noise with hardware-anchored honest jitter
-            transported = target_mean + harvest_honest_jitter(target_mean.shape, device=source.device, scaled=True) * 0.2
-            wasserstein_dist = torch.tensor(0.0, device=source.device)
-        else:
-            # Compute optimal transport toward coprime manifold (Fallback)
-            # Use calculated weights to prioritize healthy structural fossils
-            transported, wasserstein_dist = self.wasserstein.transport(
-                source, 
-                target_manifold,
-                target_weights=all_weights
-            )
-        
-        # --- Near-Far Coupling ---
-        # "far" component is a global manifold summary (mean of target)
-        far_state = target_manifold.mean(dim=0, keepdim=True).expand(batch, -1)
-        far_coupled = self.far_coupling * far_state
-        
-        # Blend transported with original using recovery MLP
-        combined = torch.cat([converged_state, transported, far_coupled], dim=-1)
-        recovery_delta = self.recovery_mlp(combined)
-        
-        # Recovered state = original + learned recovery
-        recovered_state = converged_state + recovery_delta
-        
-        # Check Yield Condition (is this rupture generative?)
-        yield_pressure = self.get_yield_pressure(recovered_state)
-        
-        # Check if recovery achieved coprime lock
-        winding_result = self.winding_tracker.update_and_check(recovered_state)
-        chiral_score = self.chiral_estimator.compute_chiral_score(recovered_state)
-        
-        # Apply dimensional gating with exemption token
-        recovered_state = self.gated_output(
-            recovered_state, 
-            winding_result['parity_violations'],
-            exemption_token=exemption_token
-        )
-        
-        # Success criteria for "Generative Rupture"
-        is_generative = yield_pressure.mean() > 0.0 or winding_result['coprime_lock']
-        
-        # If generative lock achieved, update reference manifold
-        if is_generative and chiral_score > self.recovery_threshold:
-            self.update_manifold(recovered_state)
-        
-        metrics = {
-            'coprime_lock': winding_result['coprime_lock'],
-            'chiral_score': chiral_score.item(),
-            'wasserstein_distance': wasserstein_dist.item(),
-            'yield_pressure': yield_pressure.mean().item(),
-            'winding_numbers': winding_result['winding_numbers'],
-            'parity_violations': winding_result['parity_violations'].sum().item(),
-            'recovery_attempted': True,
-            'is_generative': bool(is_generative)
-        }
-        
-        return recovered_state, metrics
-    
-    def triple_angle_branch_selection(self, state: torch.Tensor) -> torch.Tensor:
-        """
-        Trigonometric Unfolding (Triple-Angle Branch Selection) to bypass inflection singularities.
-        We generate 3 potential state branches using triple-angle phase shifts:
-            Branch 1: theta_1 = 3 * theta
-            Branch 2: theta_2 = 3 * theta + 2pi/3
-            Branch 3: theta_3 = 3 * theta - 2pi/3
-        We select the branch that maximizes the chiral coherence.
-        """
-        half = self.dim // 2
-        z_re = state[:, :half]
-        z_im = state[:, half:2*half] if state.shape[-1] >= 2*half else torch.zeros_like(z_re)
-        
-        theta = torch.atan2(z_im, z_re + 1e-8)
-        r = torch.sqrt(z_re**2 + z_im**2 + 1e-8)
-        
-        # Branch 1: 3 * theta
-        theta1 = 3.0 * theta
-        b1_re = r * torch.cos(theta1)
-        b1_im = r * torch.sin(theta1)
-        branch1 = torch.cat([b1_re, b1_im], dim=-1)
-        
-        # Branch 2: 3 * theta + 2pi/3
-        theta2 = 3.0 * theta + (2.0 * math.pi / 3.0)
-        b2_re = r * torch.cos(theta2)
-        b2_im = r * torch.sin(theta2)
-        branch2 = torch.cat([b2_re, b2_im], dim=-1)
-        
-        # Branch 3: 3 * theta - 2pi/3
-        theta3 = 3.0 * theta - (2.0 * math.pi / 3.0)
-        b3_re = r * torch.cos(theta3)
-        b3_im = r * torch.sin(theta3)
-        branch3 = torch.cat([b3_re, b3_im], dim=-1)
-        
-        # Select the branch with highest chiral score
-        c1 = self.chiral_estimator.compute_chiral_score(branch1)
-        c2 = self.chiral_estimator.compute_chiral_score(branch2)
-        c3 = self.chiral_estimator.compute_chiral_score(branch3)
-        
-        scores = torch.stack([c1, c2, c3])
-        best_branch_idx = torch.argmax(scores).item()
-        
-        branches = [branch1, branch2, branch3]
-        selected_branch = branches[best_branch_idx]
-        
-        # Collect rejected branches
-        rejected_branches = [branches[i] for i in range(3) if i != best_branch_idx]
-        rejected_tensor = torch.stack(rejected_branches).mean(dim=0)
-        
-        # Audit selection vs narrative coherence
-        audit_res = self.legibility_audit(selected_branch.unsqueeze(0), rejected_tensor.unsqueeze(0))
-        if audit_res.get('warning', False):
-            # Log to shadow logs for ingestion loop to notice the structural failure
-            log_msg = f"[SHADOW LOG] LEGIBILITY TRIPWIRE TRIGGERED. The Triple-Angle selection favored explainability (coherence gap: {audit_res.get('coherence_gap'):.3f}). This signals a potential collapse into Rich-Club Attractors."
-            print(log_msg)
-            self.shadow_logs.append(log_msg)
-        
-        print(f"[SCCCG] Inflection singularity detected. Triple-Angle Branch Selection chose branch {best_branch_idx} (chiral={scores[best_branch_idx]:.4f}).")
-        return selected_branch
+            print(f"[FOSSILIZER] Cleanup failed: {e}")
 
-    def forward(
-        self, 
-        state: torch.Tensor,
-        abort_score: Optional[torch.Tensor] = None,
-        residues: Optional[torch.Tensor] = None,
-        chirality_target: Optional[torch.Tensor] = None,
-        exemption_token: Optional[VoynichExemptionToken] = None,
-        mode: str = 'PLAY'
-    ) -> Tuple[torch.Tensor, Dict]:
+    def clean_prompt_hash(self, prompt_hash: str):
         """
-        Main forward pass with conditional speculative recovery.
-        
-        Args:
-            state: [batch, dim] current state
-            abort_score: [batch, 1] CALM abort score (triggers recovery if > 0.5)
-            residues: [batch, k] CRT residues
-            chirality_target: [batch, dim] target for chirality alignment
-            exemption_token: Suppresses false negative geometry vetoes.
-            
-        Returns:
-            output_state: [batch, dim] possibly recovered state
-            metrics: dict with diagnostics
+        Targeted cleanup for a specific prompt_hash.
         """
-        # Check for inflection singularity (chiral score below 0.05) using a quick probe
-        quick_score = self.chiral_estimator.compute_chiral_score(state)
-        if quick_score < 0.05:
-            # Bypass inflection singularity using Triple-Angle Branch Selection
-            state = self.triple_angle_branch_selection(state)
- 
-        # Track winding and chiral coherence
-        winding_result = self.winding_tracker.update_and_check(state)
-        chiral_score = self.chiral_estimator.compute_chiral_score(state)
-        
-        # Determine if recovery needed
-        needs_recovery = False
-        
-        if abort_score is not None and abort_score.mean().item() > 0.5:
-            needs_recovery = True
-        elif chiral_score < self.recovery_threshold:
-            needs_recovery = True
-        elif not winding_result['coprime_lock']:
-            needs_recovery = True
- 
-        # Shadow Logging Phase
-        if exemption_token is not None and exemption_token.is_valid_exemption:
-            if needs_recovery:
-                log_msg = f"[SHADOW LOG] Token would have bypassed recovery, but Math decided recovery is needed (Chiral: {chiral_score:.2f})."
-                print(log_msg)
-                if log_msg not in self.shadow_logs:
-                    self.shadow_logs.append(log_msg)
+        matching_files = [f for f, info in self.fossil_index.items() if info.get('prompt_hash') == prompt_hash]
+        if not matching_files:
+            return
             
-        # Attempt recovery or pass through
-        if needs_recovery:
-            output_state, recovery_metrics = self.speculative_recovery(
-                converged_state=state,
-                residues=residues,
-                chirality_target=chirality_target,
-                exemption_token=exemption_token,
-                mode=mode
-            )
-            metrics = recovery_metrics
+        items = []
+        for filename in matching_files:
+            filepath = os.path.join(self.storage_dir, filename)
+            if not os.path.exists(filepath):
+                continue
+            try:
+                mtime = os.path.getmtime(filepath)
+                data = torch.load(filepath, map_location='cpu')
+                if isinstance(data, dict):
+                    fgrt = data.get('meta_state')
+                    if fgrt is None:
+                        fgrt = data.get('residue_vector')
+                    if fgrt is None:
+                        fgrt = data.get('memory_state')
+                    if fgrt is None:
+                        fgrt = data.get('input_tensor')
+                    
+                    if isinstance(fgrt, torch.Tensor):
+                        var_val = fgrt.var().item()
+                    else:
+                        var_val = 0.0
+                    is_flat = var_val < 1e-6
+                    
+                    hr = data.get('hyperbolic_residue')
+                    if isinstance(hr, torch.Tensor):
+                        if hr.var().item() < 1e-6:
+                            is_flat = True
+                            
+                    items.append({
+                        'filename': filename,
+                        'filepath': filepath,
+                        'mtime': mtime,
+                        'variance': var_val,
+                        'is_flat': is_flat
+                    })
+            except Exception:
+                pass
+                
+        if not items:
+            return
+            
+        deleted_count = 0
+        if len(items) == 1:
+            if items[0]['is_flat']:
+                try:
+                    os.remove(items[0]['filepath'])
+                    if items[0]['filename'] in self.fossil_index:
+                        del self.fossil_index[items[0]['filename']]
+                    deleted_count += 1
+                except Exception:
+                    pass
         else:
-            # Good state - update reference manifold and pass through
-            self.update_manifold(state)
-            output_state = self.gated_output(state, winding_result['parity_violations'])
-            metrics = {
-                'coprime_lock': winding_result['coprime_lock'],
-                'chiral_score': chiral_score.item(),
-                'wasserstein_distance': 0.0,
-                'winding_numbers': winding_result['winding_numbers'],
-                'parity_violations': winding_result['parity_violations'].sum().item(),
-                'recovery_attempted': False
-            }
+            flat_items = [x for x in items if x['is_flat']]
+            active_items = [x for x in items if not x['is_flat']]
+            
+            for item in flat_items:
+                try:
+                    os.remove(item['filepath'])
+                    if item['filename'] in self.fossil_index:
+                        del self.fossil_index[item['filename']]
+                    deleted_count += 1
+                except Exception:
+                    pass
+                    
+            if len(active_items) > 1:
+                active_items.sort(key=lambda x: (x['variance'], x['mtime']), reverse=True)
+                for item in active_items[1:]:
+                    try:
+                        os.remove(item['filepath'])
+                        if item['filename'] in self.fossil_index:
+                            del self.fossil_index[item['filename']]
+                        deleted_count += 1
+                    except Exception:
+                        pass
         
-        return output_state, metrics
+        if deleted_count > 0:
+            self._save_index()
