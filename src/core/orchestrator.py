@@ -142,6 +142,21 @@ class UniversalOrchestrator(nn.Module):
         # 2d. Cycle Debt Tracker (Topological Boredom)
         self.stress_tester = CollapsePathPoisoner(hidden_dim=dim, cycle_history_size=100)
         
+        # 2e. Topological Yield & Approximation (Phase 4 Integration)
+        from src.topology.approximate_ph import ApproximatePHProbe
+        from src.core.relational_kappa import RelationalKappa
+        from src.core.non_dual_coin import TripsodicLedger, CerumenPotWallet, ChernSimonsValidator
+        
+        self.approx_ph = ApproximatePHProbe(signature_size=min(10, dim))
+        self.relational_kappa = RelationalKappa()
+        
+        # Economic Topology / Yield Stress
+        self.tripsodic_ledger = TripsodicLedger(base_volume=1000.0)
+        _device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.sys1_wallet = CerumenPotWallet(dim=dim, device=_device)
+        self.sys2_wallet = CerumenPotWallet(dim=dim, device=_device)
+        self.chern_simons_validator = ChernSimonsValidator(yield_criteria=2.5)
+        
         # Phase 6: Topographical memory via FBM erosion
         self.erosion_filter = TopologicalErosionFBM(octaves=4, persistence=0.6)
         
@@ -187,6 +202,25 @@ class UniversalOrchestrator(nn.Module):
         self.larynx = ResonanceLarynx(dim, vocab_size=256)
         
         self.prev_pas = 0.0 # Temporal anchor for drift check
+        
+        # 8. P2P & External Integrations
+        self.freenet_router = None
+        self.freenet_ws = None
+        self.bonfire_ring = None
+        self.zk_aggregator = None
+        try:
+            from src.data.freenet_bulletin_router import FreenetBulletinRouter
+            from src.p2p.freenet_ws_client import FreenetClient
+            from src.p2p.bonfire_consensus import BonfireNomadicRing
+            from src.p2p.zk_aggregator import ZKAggregator
+            
+            self.freenet_router = FreenetBulletinRouter()
+            self.freenet_ws = FreenetClient()
+            self.freenet_ws.start()
+            self.bonfire_ring = BonfireNomadicRing(self.freenet_ws)
+            self.zk_aggregator = ZKAggregator()
+        except ImportError as e:
+            print(f"[ORCHESTRATOR] P2P Modules Not Loaded: {e}")
 
 
     def compute_complexity_index(self, state: torch.Tensor, pas_h: float) -> float:
@@ -499,6 +533,36 @@ class UniversalOrchestrator(nn.Module):
                  state_final = state_glued + 0.01 * flow
             else:
                  state_final = state_glued
+                 
+            # 5.5 Phase 4 Topological Integration Check
+            # Approximate PH triggers on relative barcode changes
+            ph_results = self.approx_ph(state_final.reshape(-1, self.dim))
+            if ph_results['is_rupture'].item():
+                print(f"[ORCHESTRATOR] Approximate PH Rupture Detected (Rel Change: {ph_results['relative_change']:.3f}).")
+                # Exacerbate the red zone if a topological rupture occurs
+                is_red_zone = True
+
+            # Relational Kappa soliton check
+            kappa_results = self.relational_kappa(actual_flux)
+            if kappa_results['is_soliton'].item():
+                # Reward structural anomalies that qualify as solitons by dampening their tension
+                print("[ORCHESTRATOR] Soliton Threshold Exceeded (Relational Kappa). Dampening stress.")
+                state_final = state_final * 0.95
+                
+            # Non-Dual Coin Transaction: Stress-test the system 1 / system 2 interface
+            try:
+                from src.core.non_dual_coin import transact, EconomicAbortException
+                # Inject current states into wallets as dummy projections
+                with torch.no_grad():
+                    self.sys1_wallet.state.copy_(self.sys1_wallet.state * 0.9 + 0.1 * current_state.view(-1)[:self.dim].unsqueeze(0).expand(self.dim, self.dim))
+                    self.sys2_wallet.state.copy_(self.sys2_wallet.state * 0.9 + 0.1 * state_final.view(-1)[:self.dim].unsqueeze(0).expand(self.dim, self.dim))
+                transact(self.sys1_wallet, self.sys2_wallet, self.chern_simons_validator)
+                # If transaction succeeds, register the interaction rhythm
+                self.tripsodic_ledger.rhythm_tick()
+            except EconomicAbortException as e:
+                print(f"[ORCHESTRATOR] {e}")
+                # We can't safely fuse the manifolds, revert to safe state
+                state_final = current_state
             
             # Post the corrected geometric force to the board for the next micro-round
             self.bulletin_board.post_force(state_final - state)
@@ -613,8 +677,13 @@ class UniversalOrchestrator(nn.Module):
         # Modulate Leontief Governor based on hardware race
         self.leontief.spectral_safety_margin = max(0.8, min(0.99, 0.95 + (braid_race_delta / 1000000.0)))
         
+        
+        k_bar = 1.0
+        if self.bonfire_ring is not None:
+            k_bar = self.bonfire_ring.compute_egalitarian_consensus()
+
         # Post Diagnostic Payload to Bulletin Board (including Scars/Tension/Hunger)
-        self.bulletin_board.post_metrics({
+        board_metrics = {
             "b0": b0,
             "b1": b1,
             "mischief": mischief_metrics['H_mischief'],
@@ -629,11 +698,33 @@ class UniversalOrchestrator(nn.Module):
             "manifold_hunger": self.current_hunger.item(),
             "cycle_debt": cycle_debt.item() if isinstance(cycle_debt, torch.Tensor) else cycle_debt,
             "hunger_entropy_mean": modulated_entropy.mean().item(),
-            "leontief_spectral_radius": self.leontief.cached_spectral_radius.item()
-        })
+            "leontief_spectral_radius": self.leontief.cached_spectral_radius.item(),
+            "kelly_fraction": k_bar,
+            "covariance_variance": 0.05
+        }
+        self.bulletin_board.post_metrics(board_metrics)
         
         # Update EMA Flux for next scout
         self.expected_flux.copy_(0.9 * self.expected_flux + 0.1 * actual_flux)
+        
+        # P2P Broadcasting and Consensus Integration
+        if self.freenet_router is not None:
+            volume = torch.norm(state_shielded).item()
+            self.freenet_router.broadcast_proof_of_honesty(volume, mischief_metrics['H_mischief'], metrics=board_metrics)
+            
+        if self.bonfire_ring is not None:
+            self.bonfire_ring.share_topological_signature(
+                local_peer_id="gyroid_node_1",
+                betti_numbers=[b0, b1],
+                variance=0.01
+            )
+            # Modulate hunger with the Kelly consensus
+            self.current_hunger.fill_(self.current_hunger.item() * (0.5 + 0.5 * k_bar))
+            
+        if self.zk_aggregator is not None:
+            # Generate ZK Proof of Chern-Simons invariant when system is stable
+            if not is_red_zone and gasket_diags.get('seam_tension', 0) < 0.1:
+                self.zk_aggregator.prove_chern_simons_invariant(state_shielded, current_state)
         
         return state_shielded, regime, routing, stacked_target
 
