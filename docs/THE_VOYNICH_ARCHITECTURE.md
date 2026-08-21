@@ -4,7 +4,7 @@
 
 ---
 
-## 📜 The Challenge of the Unknown
+##  The Challenge of the Unknown
 
 In the Beinecke Rare Book & Manuscript Library sits the **Voynich Manuscript** (MS 408). It is a 15th-century codex written in an unknown script, filled with illustrations of plants that do not exist, star charts of unknown skies, and plumbing systems ('balneological' sections) that transport green fluids through organ-like tubes.
 
@@ -19,9 +19,9 @@ But deeper analysis reveals something more profound:
 
 ---
 
-## 🏗️ The Systems Inspired by MS 408
+## [BUILD] The Systems Inspired by MS 408
 
-The **Gyroidic Sparse Covariance Flux Reasoner** is transitioning from a statistical architecture into a biomimetic **Nervous System** model, attempting to reverse-engineer the "Voynich Physics." We are not building an AI to answer questions (translate to English). We emphasize **Relational Persistence** instead of pure "Teleological Optimization." We are building an AI to write its own Voynich Manuscript—a system of thought that is internally structurally sound, regardless of whether it maps to human language.
+The **Gyroidic Sparse Covariance Flux Reasoner** is transitioning from a statistical architecture into a biomimetic **Nervous System** model, attempting to reverse-engineer the "Voynich Physics." We are not building an AI to answer questions (translate to English). We emphasize **Relational Persistence** instead of pure "Teleological Optimization." We are building an AI to write its own Voynich Manuscripta system of thought that is internally structurally sound, regardless of whether it maps to human language.
 
 ### 1. The Script: Opaque Symbolic Residues
 **Voynich Feature**: The "Voyenese" script. Distinct characters (`g`, `8`, `9`, `4`, `o`) combined into rigid morpho-units.
@@ -53,7 +53,7 @@ The **Gyroidic Sparse Covariance Flux Reasoner** is transitioning from a statist
 
 ---
 
-## 🌟 To The Learner: Why This Matters
+##  To The Learner: Why This Matters
 
 Modern AI (LLMs) is obsessed with **Translation**. It wants to map Input A to Output B. It wants to please the user. It is a "Servant."
 
@@ -71,28 +71,34 @@ If you build the pipes strong enough (Admissibility), and the geometry pure enou
 
 ---
 
-## 📐 Implementation Notes
+##  Implementation Notes
 
 ### Polynomial Coprime Functionals (Anti-Hardcoded-Prime Compliant)
-The `VoynichLinguist` uses `PolynomialCoprimeConfig` to generate its symbolic residue channels. Each channel $k$ evaluates $\phi_k(x; \theta_k)$ — a Chebyshev polynomial with Birkhoff polytope-sampled coefficients. This replaces the original hardcoded integer primes `[3, 5, 7, 11, 13]` that violated the anti-hardcoded-prime invariant.
+The `VoynichLinguist` uses `PolynomialCoprimeConfig` to generate its symbolic residue channels. Each channel $k$ evaluates $\phi_k(x; \theta_k)$  a Chebyshev polynomial with Birkhoff polytope-sampled coefficients. This replaces the original hardcoded integer primes `[3, 5, 7, 11, 13]` that violated the anti-hardcoded-prime invariant.
 
 **Key migration**:
-- `x mod p_i` → `φ_k(projected_thought)` (polynomial functional evaluation)
-- Integer CRT reconstruction → Learned consensus decoder (neural head)
-- Modular deviation check → Jackknife consensus variance (leave-one-out stability)
-- Co-primality enforcement → Root Persistence Pressure + Orthogonality Pressure (continuous)
+- `x mod p_i`  `_k(projected_thought)` (polynomial functional evaluation)
+- Integer CRT reconstruction  PAS (Phase Alignment Score) evaluation
+- Modular deviation check  PAS_h (Multiharmonic Phase Alignment Score)
+- Co-primality enforcement  Root Persistence Pressure + Orthogonality Pressure (continuous)
+
+### Common Misconceptions: The Output Protector vs. Spatial Mapping
+**CRITICAL**: The `VoynichLinguist` is an **Output Protector**, NOT an input resolver.
+The problem it solves is *not* "we don't know what this Minecraft block ID means." That is spatial context mapping. The real problem it solves is: *"our own geometric efficiency gates are too stupid to recognize our own thoughts."*
+
+Because Voyenese logic is naturally opaque and highly entropic by design, standard efficiency gates (like Repunit Congruence) will kill the output as noise. The Linguist protects the high-entropy System 1 output by validating its structural honesty via PAS (Phase Alignment Score) and PAS_LOCK, allowing it to survive to the final stages. Conflating this with spatial context mapping (e.g., in `minecraft_ingestor.py`) is a fundamental error.
 
 ### Gate 5: Honest Confabulation
-The `check_honesty()` method returns a consensus score — the structural signal for detecting confidence vs uncertainty. This serves as the embryonic **Gate 5 (ConfabulationDetector)** in the five-part decision architecture. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full flow and [PHILOSOPHY.md §18](../vault_docs/PHILOSOPHY.md) for the ethics of honest confabulation.
+The `check_honesty()` method returns a consensus score  the structural signal for detecting confidence vs uncertainty. This serves as the embryonic **Gate 5 (ConfabulationDetector)** in the five-part decision architecture. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full flow and [PHILOSOPHY.md 18](../vault_docs/PHILOSOPHY.md) for the ethics of honest confabulation.
 
 ### False Negatives & The Exemption Token
 Because Voyenese logic is naturally opaque and highly entropic by design, standard geometric efficiency gates (like Repunit Congruence and CALM Singularity prediction) historically misidentified Voynich structures as structural corruption. 
 
-To prevent these "False Negatives", the Linguist generates a `VoynichExemptionToken` anytime the internal Jackknife consensus `honesty_score` exceeds 0.95.
+To prevent these "False Negatives", the Linguist generates a `VoynichExemptionToken` anytime the internal PAS (Phase Alignment Score) exceeds 0.95.
 In the current architecture, the token operates purely in **Shadow Mode**. Instead of mechanically bypassing false negative triggers, it serves as a continuous diagnostic log. The system dynamically scales Matrioshka shell depth via **Mischief-Dependent Adaptive Quantization** ($\mathbb{RP}^4$ entropy) allowing mathematical thresholds (Phase Alignment $PAS_h$) to decide routing organically.
 
 ### Bridge 1: The Laryngeal Gasket
-To ensure that linguistic "mischief" doesn't lead to structural leakage (Topological Rupture), the system employs the **Laryngeal Gasket** ([Neighborhood 1 ↔ 2]).
+To ensure that linguistic "mischief" doesn't lead to structural leakage (Topological Rupture), the system employs the **Laryngeal Gasket** ([Neighborhood 1  2]).
 
 *   **The Seal**: Every `VoynichExemptionToken` must be "signed" by the `ChernSimonsGasket`.
 *   **The Signature**: The signature is a non-orientable hash: $s = \tanh(\text{honesty} \cdot \kappa)$, where $\kappa$ is the **Non-Commutativity Curvature** of the manifold.
