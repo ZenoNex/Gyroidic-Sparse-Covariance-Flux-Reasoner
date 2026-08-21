@@ -23,6 +23,7 @@ from typing import Dict, Tuple, Optional
 import math
 from src.core.false_negative_subsystem import VoynichExemptionToken
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.legibility_audit import LegibilityTripwire
 
 
 class WassersteinOptimalTransport(nn.Module):
@@ -454,6 +455,9 @@ class SpeculativeCoprimeGate(nn.Module):
             epsilon=wasserstein_epsilon
         )
         
+        # Anti-Lobotomy Monitor: Explainability vs Structural Merit
+        self.legibility_audit = LegibilityTripwire(hidden_dim=dim)
+        
         from src.core.modular_virtualization import ModularVirtualizationLayer
         self.modular_rns = ModularVirtualizationLayer(dim=dim, base=2)
         
@@ -799,6 +803,18 @@ class SpeculativeCoprimeGate(nn.Module):
         
         branches = [branch1, branch2, branch3]
         selected_branch = branches[best_branch_idx]
+        
+        # Collect rejected branches
+        rejected_branches = [branches[i] for i in range(3) if i != best_branch_idx]
+        rejected_tensor = torch.stack(rejected_branches).mean(dim=0)
+        
+        # Audit selection vs narrative coherence
+        audit_res = self.legibility_audit(selected_branch.unsqueeze(0), rejected_tensor.unsqueeze(0))
+        if audit_res.get('warning', False):
+            # Log to shadow logs for ingestion loop to notice the structural failure
+            log_msg = f"[SHADOW LOG] LEGIBILITY TRIPWIRE TRIGGERED. The Triple-Angle selection favored explainability (coherence gap: {audit_res.get('coherence_gap'):.3f}). This signals a potential collapse into Rich-Club Attractors."
+            print(log_msg)
+            self.shadow_logs.append(log_msg)
         
         print(f"[SCCCG] Inflection singularity detected. Triple-Angle Branch Selection chose branch {best_branch_idx} (chiral={scores[best_branch_idx]:.4f}).")
         return selected_branch
