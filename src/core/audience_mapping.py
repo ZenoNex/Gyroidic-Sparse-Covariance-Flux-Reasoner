@@ -39,10 +39,18 @@ class AudienceProjection(nn.Module):
         from src.core.gluing_operator import GluingOperator
         self.gluing_operator = GluingOperator(dim=input_dim)
         
+        # Phase 3: Homology-driven projection shaping
+        from src.topology.speculative_homology import SpeculativeHomologyEngine
+        self.homology_engine = SpeculativeHomologyEngine(feature_dim=input_dim)
+        
     def forward(self, manifold_state: torch.Tensor) -> torch.Tensor:
         """
         Phi(m). Uses Symplectic Gluing to dynamically stitch state boundaries for projection.
         """
+        # Phase 3: Homology-driven topological shaping
+        draft_betti = self.homology_engine.predict_draft_betti(manifold_state)
+        betti_1 = draft_betti.get(1, 0)
+        
         # 1. Apply Symplectic Gluing (P2P manifold integration)
         glued_state = self.gluing_operator(manifold_state)
         
@@ -54,8 +62,12 @@ class AudienceProjection(nn.Module):
         else:
             audience_state = glued_state
             
+        # Homology constraint: modify Lipschitz mapping based on holes (Betti 1)
+        # Prevents topological collapse (flattening a torus into a disk)
+        effective_k = max(0.1, self.lipschitz_k * (1.0 - 0.1 * min(betti_1, 5)))
+            
         # 3. Enforce Lipschitz boundary scaling
-        audience_state = audience_state * self.lipschitz_k
+        audience_state = audience_state * effective_k
         
         # 4. Roughness Preservation: Add raw singularities directly back (skip connection style)
         if self.input_dim == self.audience_dim:
