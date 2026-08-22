@@ -113,41 +113,56 @@ This law dictates how symbolic proposals from System 1 are hardened through the 
 
 ```mermaid
 graph TD
-    Ingest[open_science_ingestor.py] -->|"Validates Invariants"| Input
-
-    subgraph "System 1 (Intuition)"
-        Input --> PolyEmbed[Polynomial Embedder]
-        PolyEmbed --> Trans[Transformer]
-        Trans --> Birkhoff[BouligandBirkhoffManifold]
-        Birkhoff --> Anchors[Symbolic Residues C_sym]
-        Anchors -.->|"B-Derivative Backpropagation"| Birkhoff
+    subgraph "Data Input Systems (Ingestion Layer)"
+        LIGO[LIGO Strain Simulation<br/>open_science_ingestor.py] -->|Strain Data| IngRouter{Ingestion Router}
+        MCA[Minecraft MCA/NBT<br/>minecraft_ingestor.py] -->|Voxel-Text Dyads| IngRouter
+        Local[Local Formats<br/>local_dataset_ingestor.py] -->|Raw Files| IngRouter
+        TextB[McKenna Deconstruction<br/>textbook_filter.py] -->|Creative Prose| IngRouter
     end
 
-    subgraph "System 2 (Physics Solver)"
-        Anchors -- "Anchor" --> ADMM[Operational ADMM]
-        ADMM --> SDE[SDE / Fractional SDE Step]
+    IngRouter -->|Validates Invariants| Val[Topological Ingestion Validator]
+    Val -->|L-Invariant & PAS_h checks| Input
+
+    subgraph "System 1 (Intuition Manifold)"
+        Input --> PolyEmbed[Polynomial Embedder<br/>polynomial_embeddings.py]
+        PolyEmbed -->|Chebyshev/Legendre Basis| Trans[Transformer]
+        Trans --> Birkhoff[BouligandBirkhoffManifold<br/>birkhoff_projection.py]
+        Birkhoff --> Anchors[Symbolic Residues C_sym]
+        Anchors -.->|"B-Derivative Backprop"| Birkhoff
+    end
+
+    subgraph "System 2 (Physics Solver & Metapolytopes)"
+        Anchors -- "Anchor" --> ADMM[Operational ADMM / SIC-FA-ADMM]
+        ADMM --> SDE[Fractional SDE Flow]
+        
         SDE --> BCheck{Boundary Contact?}
-        BCheck -- "Yes (Out-of-Bounds)" --> BSent[BoundaryState Sentinel]
+        BCheck -- "Critical Facet" --> BSent[BoundaryState Sentinel<br/>meta_polytope_matrioshka.py]
         BSent --> Inversion[Hyperspherical Inversion]
         Inversion --> SDE
-        BCheck -- "Yes (Facet Contact)" --> BouligandProj[Bouligand Tangent Cone Projection]
+        
+        BCheck -- "Facet Glide" --> BouligandProj[Bouligand Tangent Cone Projection]
         BouligandProj --> SDE
-        BCheck -- "No" --> LoveProj[Love Vector Null-space Projection]
+        
+        BCheck -- "No Contact" --> LoveProj[Love Vector Null-space Projection]
         LoveProj --> SDE
-        SDE --> KAGH[KAGH Surrogate]
+        
+        SDE --> KAGH[KAGH Surrogate<br/>kagh_networks.py]
         KAGH -- "Consistency" --> ADMM
     end
 
-    subgraph "Dark Matter (Invariants)"
-        SDE -- "Veto?" --> CDO[Chiral Drift Opt]
+    subgraph "Dark Matter (Invariants & TDA)"
+        SDE -- "Veto?" --> CDO[Chiral Drift Opt<br/>codes_driver.py]
         CDO -- "Accept/Abort" --> FinalState
-        GCVE[Gyroid Probe] -- "Pressure" --> FluxAlign[Flux Warping]
+        GCVE[Gyroid Probe<br/>gyroid_covariance.py] -- "Pressure" --> FluxAlign[Flux Warping]
         FluxAlign --> FGRT[FGRT Flow]
         FGRT -- "Ricci Update" --> Trans
         FGRT -- "Chiral Flip" --> Trans
+        
+        TDA[Approximate PH<br/>approximate_ph.py] -->|Betti Numbers| BettiRouter[Betti Router]
+        BettiRouter --> FinalState
     end
 
-    FinalState --> CRT[CRT Reconstruction]
+    FinalState --> CRT[CRT Reconstruction<br/>gyroidic_codec.py]
 ```
 
 ---
@@ -185,6 +200,11 @@ To ensure structural integrity, we enforce a strict information bottleneck betwe
 *   [**INVARIANT_OPTIMIZATION.md**](INVARIANT_OPTIMIZATION.md): Deep dive into Dark Matter, Fixed Points, and Chirality.
 *   [**PHILOSOPHY.md**](PHILOSOPHY.md): The manifesto of the Saturated Symbolic Machine.
 *   [**NON_DUAL_DYNAMIC_EQUILIBRIUM.md**](NON_DUAL_DYNAMIC_EQUILIBRIUM.md): Guide to Love Invariants and positional non-duality.
+*   [**DIEGETIC_INTEGRATION.md**](DIEGETIC_INTEGRATION.md): Bridging HybridAI with the DiegeticPhysicsEngine.
+*   [**OUTPUT_BOUNDARY_POLICY.md**](OUTPUT_BOUNDARY_POLICY.md): Policies preventing NaN/Inf scalar leaks at output limits.
+*   [**INTROSPECTION_HEAD.md**](INTROSPECTION_HEAD.md): Structural self-modeling and metacognitive extraction.
+*   [**RESONANCE_CAVITY.md**](RESONANCE_CAVITY.md): Topological vector injection bounds.
+*   [**CONFORMAL_PARADOX_SHIELD.md**](CONFORMAL_PARADOX_SHIELD.md): Shield mechanics.
 ---
 
 ##  Verbose Operator Formulation
@@ -238,6 +258,28 @@ The total accumulated phase $\Phi = \sum_n \Delta\phi_n$ is the system's structu
 $$\dot{\mathcal{X}} = \Pi_{\text{DP}} \!\left(\text{ADMM}_{\lambda_j} \!\left[\text{CRT}_k \!\left(\left\{ \Pi_{\text{MC}}\!\left(\nabla f_j(\mathbf{c}_j) \oplus \mathbf{L}\right) \bmod m_k \right\}_j\right)\right]\right)$$
 
 Read right-to-left: (1) Compute functional gradients fused with Love Invariant, (2) Project onto symbolic residues modulo $m_k$, (3) Reconstruct via CRT, (4) Probe through ADMM constraints, (5) Accept via Diegetic Projection.
+
+### 7.1 Sovereign Network & Diegetic UI Pathway (Phase 21 Update)
+
+The entire interface flow ensures user actions undergo sovereign validation before perturbing the reasoning engine.
+
+```mermaid
+graph TD
+    subgraph "Sovereign Network & UI Pipeline"
+        WebUI[conversational_web_gui.html] -->|HTTP POST| Hyb[conversational_backend_server.py]
+        Dieg[diegetic_terminal.py] -->|Direct Call| DiegEng[Diegetic Physics Engine<br/>diegetic_backend.py]
+        Hyb --> DiegEng
+        
+        DiegEng --> CALM[CALM Predictor<br/>calm_predictor.py]
+        CALM -->|Veto/Entropy Checks| Larynx[Larynx Vocalizer]
+        DiegEng --> FGRT_Train[FGRT Trainer<br/>fgrt_trainer.py]
+        FGRT_Train --> Larynx
+        
+        DiegEng --> ZK[ZK Aggregator<br/>zk_aggregator.py]
+        ZK -->|Cryptographic Verification| Bonfire[Bonfire Consensus<br/>bonfire_network.py]
+        Bonfire -->|P2P Network| Peers[Freenet WS Client]
+    end
+```
 
 ### 7.2 Zero-Mock Residue Ingestion (Phase 19 Update)
 To achieve **Structural Honesty** (12.1), the system has transitioned away from 137-dim "Simulation" padding.
