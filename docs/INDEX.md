@@ -22,6 +22,9 @@ Below is the directory structure mapping core algorithms to their corresponding 
 *   **Manifold Hunger & Leontief Economics**
     *   *Implementation*: [valence_drive.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/valence_drive.py) & [leontief_governor.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/leontief_governor.py)
     *   *Documentation*: [UN_KNOWLEDGE_GUIDE.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/UN_KNOWLEDGE_GUIDE.md)
+*   **Bostick & Garden Statistical Attractors**
+    *   *Implementation*: [garden_attractors.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/garden_attractors.py) (implied via integrations)
+    *   *Documentation*: [GARDEN_STATISTICAL_ATTRACTORS.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/GARDEN_STATISTICAL_ATTRACTORS.md)
 *   **CODES Taxonomy & Overloaded Acronym Resolution**
     *   *Implementation*: [codes_driver.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/codes_driver.py) & [codes_constraint_framework.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/codes_constraint_framework.py)
     *   *Documentation*: [CODES_RESOLUTIONS.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/CODES_RESOLUTIONS.md) & [Codes v40.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/Codes%20v40.md)
@@ -58,6 +61,23 @@ graph TD
         G --> H
     end
 ```
+
+---
+
+### 3. Multimodal Topology & Codecs
+*   **Gyroidic Codec & Visual Residues**
+    *   *Implementation*: [gyroidic_codec.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/gyroidic_codec.py)
+    *   *Documentation*: [GYROIDIC_CODEC.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/GYROIDIC_CODEC.md)
+*   **Intercosamination (Handle-Attachment Surgery)**
+    *   *Implementation*: [vision_surgery.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/vision_surgery.py)
+    *   *Documentation*: [INTERCOSAMINATION_THEORY.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/INTERCOSAMINATION_THEORY.md)
+
+---
+
+### 4. Entrypoints & Sovereignty Interface
+*   **Diegetic Terminal & Sovereign UI**
+    *   *Implementation*: [conversational_backend_server.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/conversational_backend_server.py) & [diegetic_backend.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py)
+    *   *Documentation*: [INTERFACE_LAYER.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/INTERFACE_LAYER.md)
 
 ---
 
