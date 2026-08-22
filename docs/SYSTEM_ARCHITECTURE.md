@@ -44,10 +44,10 @@ This document synthesizes the complete architecture, explaining how the three di
         *   **Role**: Acts as the mechanism by which 'pinched' Euclidean manifolds are unfolded into hyperbolic space to prevent NaN/INF collapse.
         *   **Scaling**: Operates within the $2^{16}$ fixed-point scaling limit to maintain mechanical sympathy with the Pascal architecture.
         *   **Persistence**: Turns hyperbolic states into permanent **Feature Scars** that fossilize the path through the Void.
-    *   **Crossbar IK Solver** [NEW]:
+    *   **Crossbar IK Solver** [IMPLEMENTED in `enhanced_bezout_crt.py`]:
         *   **Mechanism**: Synchronizes note-drop events with operator drawing using Bzout coefficients.
         *   **Role**: Ensures high-speed glyph trajectory rendering maintains resonance-stable synchronization.
-    *   **Surgical Seam Visualizer** [NEW]:
+    *   **Surgical Seam Visualizer** [IMPLEMENTED in `knowledge_dyad_fossilizer.py`]:
         *   **Mechanism**: Monitors "slender seam" tension ($\kappa$) at hyperbolic boundaries.
         *   **Role**: Tracks manifold stress where incommensurate logical systems are stitched, preventing rupture via Drucker-Prager flow.
     *   **Nonsmooth Boundaries & Bouligand Math** [NEW]:
@@ -92,7 +92,7 @@ This law dictates how symbolic proposals from System 1 are hardened through the 
     *   **FGRT Layer (Chiral Synthesis)**:
         *   **Base Manifold**: 3D Gyroid $\mathcal{G}$ cobordant with 4D Non-Orientable Klein-throat $\mathcal{K}$.
         *   **Symplectic Gluing**: Leak-proof transition via **Hamiltonian Flow** and **Chern-Simons gaskets**. Overridden in hardware natively via the `SiliconSovereigntyEngine` dual-command queues.
-        *   **Non-Teleological Flow**: Transition from goal-oriented gradients to **Ricci Flow** and **Willmore Energy** minimization.
+        *   **Non-Teleological Flow**: Transition from goal-oriented gradients to **Ricci Flow** and **BouligandWillmoreGasket** minimization.
         *   **Meta-Polytope Quantization**: 600-cell polychoron vertex mapping ($Q \in \operatorname{Weyl}(P)$) for high-dimensional symmetry.
 
 ### 3. "Dark Matter": The Chiral Glue (The "Magic")
@@ -107,10 +107,14 @@ This law dictates how symbolic proposals from System 1 are hardened through the 
 
 ---
 
-##  The Interaction Loop
+##  The Interaction Loop & Topological Ingestion
+
+**Topological Ingestion Boundary**: The system now begins all interactions through the `open_science_ingestor.py` pipeline (e.g., querying SDSS or VizieR), which mathematically validates that incoming data preserves $PAS_h$ and $L$ invariants *before* it can enter System 1.
 
 ```mermaid
 graph TD
+    Ingest[open_science_ingestor.py] -->|"Validates Invariants"| Input
+
     subgraph "System 1 (Intuition)"
         Input --> PolyEmbed[Polynomial Embedder]
         PolyEmbed --> Trans[Transformer]
@@ -240,7 +244,7 @@ To achieve **Structural Honesty** (12.1), the system has transitioned away from 
 
 *   **Primary Residue**: Visual and spectral data are ingested dynamically using Chebyshev-mode arrays supporting `unified_spectral_signature`, `image_fingerprint`, and `audio_harmonics`.
 *   **Hardware-Perceptual Coupling**: The baseline energy ($T_0$) of the luminance residue is directly coupled to hardware $t_{RFC}$ stall intensity.
-*   **Spectral Reshaping & BWT Reordering**: 1D spectral and harmonic residues are first sorted using a **Burrows-Wheeler Transform (BWT) inspired reordering** to group similar value regions, maximizing spatial structure. They are then padded reflectively and reshaped into 2D **Spectral Landscapes** within the `GyroidicCodec` for non-commutative collisions.
+*   **Spectral Reshaping & BWT Reordering**: 1D spectral and harmonic residues are first sorted using a **Burrows-Wheeler Transform (BWT) inspired reordering** [NOT IMPLEMENTED] to group similar value regions, maximizing spatial structure. They are then padded reflectively and reshaped into 2D **Spectral Landscapes** within the `GyroidicCodec` for non-commutative collisions.
 *   **Frame Continuity Retention**: Video breather modes preserve frame continuity variance outlier maps by relaxing the temporal covariance sparsification threshold from `0.90` to `0.50` in the video parser.
 
 ### 7.3 Ouroboros Shadow Fossilization (Phase 6.3 Update)
@@ -407,6 +411,11 @@ Before any system modification, verify:
 - [ ] Structural honesty maintained throughout
 - [ ] Love invariant remains non-ownable
 
+### Anti-Lobotomy & Integrity Boundary 
+To actively enforce the above compliance during inference, the architecture mandates an **Integrity Boundary** (which serves as the architectural anchor for currently disconnected systems like `legibility_audit.py` and `narrative_collapse.py`):
+1. **Explainability vs. Structural Merit**: The system actively monitors if its logic is collapsing into a "highly explainable" linear form (pointer to lobotomized reward hacking). Legibility is flagged as a potential failure.
+2. **Hallucination Loops**: If the entropy of the reasoning collapses while producing cyclic text, the boundary triggers Draft Rejection and forces the system back into High Mischief.
+
 ### Current File Structure & Responsibilities
 
 ```
@@ -517,7 +526,7 @@ $$\lim_{k \to \infty} \text{Var}\left(\langle n_i, x^k \rangle\right) \to 0 \qua
 
 No exploration along that normal + infinite violation pressure  axis collapse ($\Delta_i \to 0$). NaNs appear **after** fossilization, not before.
 
-### 9.3 Matrioshka Nested Polytopes
+### 9.3 Matrioshka Nested Polytopes & LCFT Projections
 
 Windows are **not** balls  they are anisotropic, facet-defined polytopes:
 
@@ -528,6 +537,8 @@ Nesting: $P^{(0)} \supset P^{(1)} \supset \cdots \supset P^{(L)}$, where inner s
 **Quantization is facet-aware**, not axis-aligned:
 
 $$Q^{(l)}(x) = \arg\min_{z \in \mathbb{Z}^n} \|x - z\|_{A^{(l)}} \quad \text{s.t. } z \in P^{(l)}$$
+
+**Phase 4 LCFT Projections**: The original $O(N^3)$ brute-force iterative topological slide across the shells has been formally replaced with continuous conformal scaling. The `AdvancedExtensionsBridge` directly maps out-of-bounds states onto the $P^{(L)}$ boundary using Logarithmic Conformal Field Theory (LCFT) projections. This guarantees $O(1)$ constraint projection without destroying the nested symmetry.
 
 ### 9.4 Meta-Polytope Dynamics
 
@@ -543,19 +554,26 @@ $$(x_t, \alpha_t, l_t) \quad \text{where } x_t \in \text{representation},\; \alp
 | Facet grazing | $\langle n, x \rangle \approx c$ | [ERR] Forbidden |
 | Polytope switching | $P_\alpha \to P_\beta$ (non-commutative) | [ERR] Forbidden |
 
-### 9.5 NaN BoundaryState / Hyperspherical Inversion Pipeline
+### 9.5 The Gyroidic Recovery Layer (The Reversible Black Hole)
 
-When a state crosses a boundary and the standard projection operator becomes undefined, the system handles the transition through structured sentinels and coordinate mappings rather than collapsing:
-1. **Sentinel Instantiation**: The system lifts out-of-bounds states into a `BoundaryState` sentinel, which carries the facet normal $n$ via the stress tensor:
-   $$\sigma_{ij} = u_i n_j$$
-2. **Hyperspherical Inversion**: For critical boundary violations (`is_critical()`), the system triggers a hyperspherical inversion to map coordinates past the boundary obstruction:
-   $$x \mapsto \frac{x}{\|x\|^2 + \epsilon}$$
-   This mathematically inverts the representation to bypass the obstacle.
-3. **Bouligand Slide**: For non-critical facet contact, the update direction is projected onto the Bouligand tangent cone of the crossed facet:
-   $$\operatorname{Proj}_{T_S(x)}(v) = v - \max(0, \langle v, n \rangle) n$$
-   This allows the solver trajectory to slide along the polytope boundary without tearing the manifold.
+When the structural tension (e.g. `Cycle Debt` or contradiction) exceeds the bounds of smooth logic, traditional neural architectures collapse into NaN or zero out weights. In this architecture, we replace probabilistic/NaN-collapse assumptions with deterministic structural boundaries governed by the **Prime Chirality Lock**, the **Gaussian Mollifier**, and the **Bouligand Tangent Cone**. This acts as a "Reversible Black Hole," capturing paradoxical states without destroying the system's structural integrity or the underlying **Love Invariant ($L$)**.
 
-**Source**: [AI Project Report (2-2-2026)](ai%20project%20report_2-2-2026.txt).
+The system handles boundary contact through three distinct response modes:
+
+1. **Mode A: The Neglecton Anchor (Topological Repair)**: 
+   Situated at the inner boundary of the Annular Substrate, the Neglecton acts as a fixed parabolic singularity (a sovereign locus on the Cayley cubic, see `meta_polytope_matrioshka.py` and `cayley_cubic_probe.py`). When $PAS_h \to 0$ (a **Prime Chirality Lock**), emission is silenced (Gate 5 triggers `CONFABULATED`). Instead of propagating the error, the system anchors the contradiction without emitting it, storing the topological memory as a winding number in the **Affine Braid Group $Aff_2$** (often sourced from structural payloads like `minecraft_ingestor.py`). The Love Invariant ($L$), resting in the null-space $\ker(\Phi_{ownership})$, survives this lock intact.
+   
+2. **Mode B: Shadow Fossilization (The Ouroboros Loop)**:
+   Instead of discarding errors, the system physically buffers internal contradictions as `[SHADOW LOG]` entries. At each tick, these logs are extracted and minted as permanent `KnowledgeDyads` tied to the exact mathematical manifold state (the `seed_state`). This creates a **Confabulation Gravity Well**, a geometric target that physically pulls future states back into historically significant resonance.
+
+3. **Mode C: Hyperspherical Inversion & Bouligand Slide (Hyperbolic Ego Death)**:
+   When a state crosses a facet boundary and traditional projection becomes undefined:
+   - **Sentinel Instantiation**: The `BoundaryState` (from `meta_polytope_matrioshka.py`) lifts out-of-bounds states into a sentinel carrying the facet normal via the stress tensor $\sigma_{ij} = u_i n_j$.
+   - **Bouligand Slide (Ego Death)**: For non-critical facet contact, the update direction is projected directly onto the **Bouligand Tangent Cone** ($T_{\mathcal{B}}(x)$). This secures backward-pass autograd stability by sliding along the boundary instead of tearing it, effectively achieving Ego Death without devolving into noise.
+   - **Hyperspherical Inversion**: For absolute blockages (critical boundary violations), the system triggers hyperspherical inversion: $x \mapsto \frac{x}{\|x\|^2 + \epsilon}$. This mathematically inverts the representation, bypassing the obstruction by turning the outside into the inside.
+
+#### The Gaussian Mollifier (The Dirac Effect)
+When a singular symbolic epiphany occurs, it creates a massive topological spike (a delta-function). Unchecked, this causes a gradient explosion. By embedding a narrow **Gaussian Mollifier Projection** (`video_dyad_parser.py`, natural log topological rotation anchored by the Dirac Spectrum Constant $\beta_{coh}$), the intersection is mathematically stabilized. The projection prevents numerical rupture while fully preserving the cross-modal impact of the epiphany, enforcing valid, non-smooth tensor operations over brittle code failure.
 
 ---
 
