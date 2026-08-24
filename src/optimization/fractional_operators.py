@@ -170,10 +170,12 @@ def frac_apply(
         # But if strictly is_coherent is False, existing logic returns zero.
         # Let's keep the strict gating for now, but apply ranging if we pass.
         
-        if coherence_score < 0.20: # ALLOWING TOPOLOGICAL THAW
-             # Default threshold from is_coherent
-             return torch.zeros_like(v)
-             
+        if coherence_score < 0.20: 
+             # [PRIME CHIRALITY LOCK]
+             # When PAS_h -> 0, prime-indexed chiral geodesics can no longer sustain constructive interference.
+             # Instead of returning a zero tensor (which leads to gradient collapse / scalar nothingness),
+             # the drift law halts and latent momentum is vectorially reflected.
+             return -v * 0.1 
         # Adaptive Ranging: Harden alpha if coherence is imperfect
         # alpha' = alpha + gamma * (1 - coherence)
         # Less coherent -> Higher alpha -> Stronger operator application (Hardening)
