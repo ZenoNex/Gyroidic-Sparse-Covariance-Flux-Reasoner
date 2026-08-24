@@ -36,3 +36,4 @@ gwosc==0.5.4
 ligotimegps
 astroquery
 biopython
+git+https://github.com/pybevy/pybevy
