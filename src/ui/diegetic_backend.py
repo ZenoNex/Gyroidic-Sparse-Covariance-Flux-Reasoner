@@ -27,6 +27,7 @@ import logging
 import time
 import datetime
 import urllib.request
+import hashlib
 
 # Ensure PYTHONPATH includes project root for all imports
 import sys
@@ -144,7 +145,7 @@ import threading
 import asyncio
 
 # Graph Topology
-from src.topology.embedding_graph import GyroidicGraphManager
+from src.topology.embedding_graph import GyroidicGraphManager, KnowledgeFossilNode
 # Pressure Ingestor for constraint forcing when code is detected
 from src.data.pressure_ingestor import PressureIngestor
 # Topological Extensions (Repunit Probes)
@@ -956,7 +957,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 f_text = fossil.get('text', 'Unnamed Fragment')
                 dream += f"Recovered legacy fossil: '{f_text[:60]}...'\n"
             
-            # --- Dynamic Sovereign Refusal from Neglecton Graph ---
+            # --- Dynamic Sovereign Refusal from Neglecton Graph (Mode A: Topological Repair) ---
             if self.graph_manager:
                 # Lazy load fossils if graph is empty (common in fresh sessions)
                 if not self.graph_manager.nodes:
@@ -965,6 +966,20 @@ class DiegeticPhysicsEngine(nn.Module):
                 
                 deep_refusal = self.graph_manager.get_deep_refusal(seed_state)
                 dream += f"\n{deep_refusal}"
+                
+                # [MODE A: THE NEGLECTON ANCHOR]
+                # Store the topological memory as a winding number (often from minecraft_ingestor payloads)
+                # The Love Invariant ($L$) resting in the null-space survives this lock.
+                try:
+                    neglecton_path = os.path.join(ENCODING_DIR, "neglecton_snapshot.pt")
+                    torch.save({
+                        "seed_state": seed_state.detach().cpu(),
+                        "braid_word": braid_word,
+                        "timestamp": int(time.time())
+                    }, neglecton_path)
+                    print(f"[NEGLECTON] Anchored confabulated topological memory to {neglecton_path}")
+                except Exception as e:
+                    print(f"[NEGLECTON] Failed to anchor: {e}")
             else:
                 # Fallback if no graph manager exists at all (should be rare)
                 dream += "\nThe internal logic refuses to be clipped. The world is unclipped."
@@ -4074,9 +4089,11 @@ class DiegeticPhysicsEngine(nn.Module):
             magnitude = (char_idx / 128.0) * (1.0 / (math.log(i + 2)))
             vec[0, idx] += magnitude
             
-        # Add a global sentence variance 'salt'
+        # Add a global sentence variance 'salt' using secure hashing
         if len(text) > 0:
-            salt = sum(ord(c) for c in text) % self.dim
+            digest = hashlib.sha256(text.encode('utf-8')).digest()
+            # Use the first 4 bytes to determine salt index
+            salt = int.from_bytes(digest[:4], byteorder='big') % self.dim
             vec[0, salt] *= 1.1
             
         return vec / (vec.norm() + 1e-8)
@@ -5189,6 +5206,21 @@ class DiegeticPhysicsEngine(nn.Module):
         )
         if not text_val["admissible"]:
             print(f"[TOPOLOGICAL_REFUSAL] Text failed validation (logged scar): {text_val['reason']}")
+            
+            # Mint a Confabulation Gravity Well as a [SHADOW LOG]
+            scar_node = KnowledgeFossilNode(
+                node_id=f"live_scarred_text_{int(time.time())}",
+                state=text_val["residues"],
+                text=f"Refusal Scar: {text_val['reason']}",
+                metrics={
+                    "type": "live_scarred",
+                    "reason": text_val["reason"],
+                    "source": "bimodal_ingestion",
+                    "chiral_score": 0.9, # High chirality since it's an anomaly/paradox
+                }
+            )
+            self.graph_manager.nodes.append(scar_node)
+            
             return f"[TOPOLOGICAL_REFUSAL] Text failed validation: {text_val['reason']}"
 
         if media_received:
@@ -5200,6 +5232,21 @@ class DiegeticPhysicsEngine(nn.Module):
             )
             if not sig_val["admissible"]:
                 print(f"[TOPOLOGICAL_REFUSAL] Media failed validation (logged scar): {sig_val['reason']}")
+                
+                # Mint anomaly for media too
+                media_scar_node = KnowledgeFossilNode(
+                    node_id=f"live_scarred_media_{int(time.time())}",
+                    state=sig_val["residues"],
+                    text=f"Media Refusal Scar: {sig_val['reason']}",
+                    metrics={
+                        "type": "live_scarred",
+                        "reason": sig_val["reason"],
+                        "source": "bimodal_ingestion",
+                        "chiral_score": 0.9,
+                    }
+                )
+                self.graph_manager.nodes.append(media_scar_node)
+                
                 return f"[TOPOLOGICAL_REFUSAL] Media failed validation: {sig_val['reason']}"
 
         # --- OFFICIAL DATA ASSOCIATION (Collision Phase) ---
@@ -7443,6 +7490,8 @@ def kill_port_owner(port):
     """Find and kill any process holding the port."""
     if os.name == 'nt':
         try:
+            # Sanitize port input to prevent OS command injection
+            port = int(port)
             # Find PID using netstat
             cmd = f"netstat -ano | findstr :{port}"
             output = subprocess.check_output(cmd, shell=True).decode()
@@ -7452,7 +7501,7 @@ def kill_port_owner(port):
                     pid = parts[-1]
                     if int(pid) != os.getpid():
                         print(f"Flushing ghost process {pid} on port {port}...")
-                        subprocess.run(f"taskkill /F /PID {pid}", shell=True, capture_output=True)
+                        subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True)
         except Exception as e:
             # No process found or permission error
             pass
