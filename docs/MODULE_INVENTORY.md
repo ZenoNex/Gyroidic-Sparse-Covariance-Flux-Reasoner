@@ -16,6 +16,12 @@ Instead of discrete prime moduli, this solver uses co-prime polynomial functiona
 
 ---
 
+### invariant_optimization.py
+**Class**: `LexicographicalOrderingDispatcher`, `SemioticState`  
+**Role**: Enforces the Semiotic Hierarchy by assigning System 2 Invariant Admissibility strictly above System 1 heuristic speed via Dictionary Order. Serves as the philosophical grounding for non-scalarized multi-objective constraints.
+
+---
+
 ### advanced_extensions_bridge.py
 **Class**: `AdvancedExtensionsBridge`  
 **Role**: Advanced Extensions Bridge (AEB) for LCFT projections and spectral sequence evaluation.
@@ -75,8 +81,8 @@ Maps the Energy-Based Models (EBM) framework to the project's topological manifo
 ---
 
 ### enhanced_bezout_crt.py
-**Class**: `EnhancedBezoutCRT` (probable)  
-**Role**: Extended-GCD based CRT reconstruction with Bzout coefficient caching.
+**Class**: `EnhancedBezoutCRT`, `CrossbarIKSolver`
+**Role**: Extended-GCD based CRT reconstruction with Bzout coefficient caching and the Crossbar IK Solver for discrete polynomial structural solving.
 
 ---
 
@@ -89,10 +95,10 @@ Detects if a high-entropy or topologically asymmetric state is actually an hones
 ---
 
 ### fgrt_primitives.py
-**Class**: `PrimeResonanceLadder`, `RepunitHasher`  
-**Role**: Lowest-level arithmetic foundationsResonance Ladders and Repunit Hashing.
+**Class**: `PrimeResonanceLadder`, `RepunitHasher`, `KleinThroatTransition`
+**Role**: Lowest-level arithmetic foundationsResonance Ladders, Repunit Hashing, and the **Klein-neck Reversal (P-Parity transformation)**.
 
-`PrimeResonanceLadder` generates resonance frequencies $f_p = 2\pi \ln(p)$ and **Repunit-Prime Pairs** $(p, R_p)$ for the hybrid basis. It prioritizes **Lazarus Primes** (where both $p$ and $(p^n-1)/(p-1)$ are prime) to ensure Symmetry-Stable warmstarting. `RepunitHasher` generates cyclic structural markers via repunit sequences, providing a non-periodicity guarantee for symbolic residues. These primitives form the "Meliponini" arithmetic defense against gradient collapse.
+`PrimeResonanceLadder` generates resonance frequencies $f_p = 2\pi \ln(p)$ and **Repunit-Prime Pairs** $(p, R_p)$ for the hybrid basis. It prioritizes **Lazarus Primes** (where both $p$ and $(p^n-1)/(p-1)$ are prime) to ensure Symmetry-Stable warmstarting. `RepunitHasher` generates cyclic structural markers via repunit sequences, providing a non-periodicity guarantee for symbolic residues. `KleinThroatTransition` handles orientation flipping and geometric berry phase backpropagation through non-orientable topological bottlenecks.
 
 ---
 
@@ -145,13 +151,26 @@ Implements computable harmonic invariants. Contains `ImplicationInvariant` (Anti
 **Classes**: `KnowledgeDyad`, `ResidueFusion`, `DyadFossilizer`  
 **Role**: Fossilizes knowledge dyads (paired visual/text concept structures) into the persistent fossil layer.
 
-Computes cross-modality torsion between image fingerprints and text embeddings using the `ResidueFusion` layer. During `fossilize()`, it maps the output to Poincar disk hyperbolic coordinates to avoid NaN collapse, and derives real-time topological invariants from the `seed_state` (including Betti numbers, chirality-driven redistribution centroid shift and parity torsion, spectral pressure, and Chern-Simons gasket diagnostics). Also exports/injects sovereign `Agent Smith` soliton payloads to decouple inference syntax from local hardware substrate.
+Computes cross-modality torsion between image fingerprints and text embeddings using the `ResidueFusion` layer. During `fossilize()`, it maps the output to Poincar disk hyperbolic coordinates to avoid NaN collapse, and derives real-time topological invariants from the `seed_state` (including Betti numbers, chirality-driven redistribution centroid shift and parity torsion, spectral pressure, and Chern-Simons gasket diagnostics like **Surgical Seam Tension**). Also exports/injects sovereign `Agent Smith` soliton payloads to decouple inference syntax from local hardware substrate.
+
+---
+
+### pyopencl_sovereignty.py
+**Role**: Manages the OpenCL hardware kernels for computing Surgical Seam tension across the gyroidic boundaries. Evaluates Chern-Simons gasket metrics directly on GPU/accelerator using C-level kernel extensions, avoiding PyTorch overhead for non-commutative geometric checks.
+
+---
+
+### non_ergodic_entropy.py
+**Class**: `HybridLassoQuantizer`
+**Role**: Implements the Speculative TDA via Sparse Polynomial (LASSO). 
+Applies Lattice Adaptive Shrinkage (Lasso) L1 Sparsity to silence weak signals. Handles the non-ergodic survival discretization required by the Diegetic Backend.
 
 ---
 
 ### legibility_audit.py
 **Classes**: `LegibilityTripwire`, `NarrativeCoherenceEstimator`  
 **Role**: Detects when the system is being selected for explainability rather than structural merit.
+**Status**: [DISCONNECTED - PENDING REINTEGRATION]
 
 `NarrativeCoherenceEstimator` measures how closely a configuration embedding matches canonical "explainable" patterns (sparse 1-hot, block-sparse, monotonic gradient) using fixed buffer-registered templates (not trained). `LegibilityTripwire` tracks the *correlation* between selection probability and narrative coherence over a rolling window  if selected configs consistently have higher coherence than rejected ones, it raises a `UserWarning`. High coherence is a **danger signal** (Pointer #2 from Sparse Operational Pointers)  not a goal.
 
@@ -204,8 +223,17 @@ Refactored to integrate the prime-based torus with palindromic repunit symmetry 
 ### narrative_collapse.py
 **Class**: `LinguisticEntropyMonitor` (also aliased as `NarrativeCollapseDetector`)  
 **Role**: Detects "hallucination loops" where reasoning entropy collapses and trajectory linearizes.
+**Status**: [DISCONNECTED - PENDING REINTEGRATION]
 
 Two detection signals: (1) **Entropy collapse**  softmax entropy of hidden state falls below `entropy_threshold`; flags `smoothing_warning`. (2) **Trajectory linearity**  cosine similarity between consecutive state deltas `, ` exceeds `prediction_threshold` (0.99); flags `is_linear`. Feeds into `SpeculativeHomologyEngine` to trigger Draft Rejection. Internally uses `ResidueObstructionGraph` for homological PAS_h monitoring.
+
+---
+
+### non_dual_coin.py
+**Role**: Enforces topological yield stress limits (Mohr-Coulomb) via non-dual physics tracking.
+**Status**: [DISCONNECTED - PENDING REINTEGRATION]
+
+Handles advanced physics primitives regarding structural yield limits inside the manifold. Currently floating without connection to the main matrix loop or diegetic backend.
 
 ---
 
@@ -219,7 +247,7 @@ Implements an ADMM variant that deliberately avoids scalarizing the dual variabl
 ### number_theoretic_stabilizer.py
 **Role**: Applies number-theoretic stability constraints via dynamic prime spacing.
 
-Enforces structural stability conditions derived from prime arithmetic  prime gaps, Euler product convergence, or modular residue distributions  to prevent numerical fragility in the CRT reconstruction pipeline. *(Full class details pending source review.)*
+Enforces structural stability conditions derived from prime arithmetic  prime gaps, Euler product convergence, or modular residue distributions  to prevent numerical fragility in the CRT reconstruction pipeline. It also implements **Speculative TDA via Rational Approximation**, using continued fractions to stabilize frequency ratio convergents.
 
 ---
 
@@ -321,8 +349,42 @@ Computes the conditions under which a structural component "yields" (transitions
 
 ### approximate_ph.py
 **Role**: Approximate persistent homology for computational tractability.
+**Status**: [DISCONNECTED - PENDING REINTEGRATION]
 
 Computes Betti numbers via approximate methods (Vietoris-Rips simplification, landmark selection) rather than exact persistence diagrams. Referenced in `OPEN_QUESTIONS 9.1` as the working solution to the undecidable-homology challenge. Reduces computation from exponential (exact PH) to polynomial typical-case.
+
+---
+
+### bonfire_network.py
+**Class**: `BonfireNetwork`  
+**Role**: Nomadic Ring Protocol and decentralized P2P coordination network.  
+**Status**: [DISCONNECTED - PENDING REINTEGRATION]
+
+Manages horizontal peer-to-peer Nomadic Rings to exchange topological signatures and aggregate Kelly consensus allocations asynchronously via a background daemon thread. Exposes routes for dynamic peer discovery, consensus tracking, and non-blocking synthetic offloading (ADMR calculations). Conceptualized in detail in the [BONFIRE_P2P_FEDERATED_COOPERATION.md](BONFIRE_P2P_FEDERATED_COOPERATION.md) guide.
+
+---
+
+### bonfire_consensus.py
+**Role**: Decentralized consensus protocol mechanism for Gyroidic operations.
+**Status**: [DISCONNECTED - PENDING REINTEGRATION]
+
+Implements the actual state-agreement mathematics complementing the network layer of `bonfire_network.py`.
+
+---
+
+### zk_aggregator.py
+**Role**: Privacy-preserving Zero-Knowledge state aggregation for the P2P network.
+**Status**: [DISCONNECTED - PENDING REINTEGRATION]
+
+Responsible for securely aggregating consensus states across peers without leaking internal topological configurations. 
+
+---
+
+### freenet_bulletin_router.py & freenet_ghost_caller.py
+**Role**: Specialized Freenet-style P2P routing mechanisms.
+**Status**: [DISCONNECTED - PENDING REINTEGRATION]
+
+Provides resilient bulletin board message propagation and unacknowledged "ghost" calls within the decentralized peer topology.
 
 ---
 
@@ -386,9 +448,10 @@ Manages the dual-variable updates and cyclic routing for topological constraint 
 ---
 
 ### ricci_flow_optimizer.py
-**Role**: Ricci flow based manifold optimization.
+**Class**: `RicciFlowOptimizer`, `BouligandWillmoreGasket`
+**Role**: Ricci flow based manifold optimization and **Willmore Energy Minimization**.
 
-Applies discrete Ricci flow (uniformizing sectional curvature across the manifold) instead of standard gradient descent. Employs a Split-Beam metric: Channel A (standard gradient pressure) and Channel B (non-commutative structural torsion via Gasket). Computes Chern-Simons tension on the parameter's covariance metric and projects update forces based on tensor dimensionality. Includes an explicit bypass for 0-dimensional scalar parameters to prevent broadcast shape errors during in-place weight additions.
+Applies discrete Ricci flow (uniformizing sectional curvature across the manifold) instead of standard gradient descent. Employs a Split-Beam metric: Channel A (standard gradient pressure) and Channel B (non-commutative structural torsion via Gasket). Computes Chern-Simons tension on the parameter's covariance metric and projects update forces based on tensor dimensionality. The `BouligandWillmoreGasket` acts as the non-teleological proxy for Willmore energy, punishing self-intersections as deviation from internal curvature limits. Includes an explicit bypass for 0-dimensional scalar parameters to prevent broadcast shape errors during in-place weight additions.
 
 ---
 
@@ -396,6 +459,19 @@ Applies discrete Ricci flow (uniformizing sectional curvature across the manifol
 **Role**: Spectrally-corrected Inexact Constrained Feasibility-Aware ADMM.
 
 Main ADMM solver with spectral transform for the CALM predictor, enabling speculative early exit when the predicted hidden state exhibits low spectral entropy. Partial coverage in `PHYSICS_ADMM.md`. Extended in conversations 51ed57b4 and 57c73ebe.
+
+---
+
+## src/data
+
+### ivst_encoder.py
+**Class**: `IVSTEncoder`  
+**Role**: Independent Vector Spectral Topology (IVST) encoder for parsing structural patterns in MP4/MKV video and audio without extracting raw pixel content, bypassing standard copyright infringement and focusing on causal structural constraints (I-frames, zero-crossings).
+
+---
+
+### webp_prompt_extractor.py
+**Role**: Extracts metadata and topology fingerprints from visual WebP media. (Currently orphaned but conceptually mapped alongside IVST).
 
 ---
 
@@ -419,10 +495,17 @@ Provides standard PyTorch `Dataset` and `DataLoader` APIs for augmenting the tra
 
 ## src/training
 
-### fgrt_fgrt_trainer.py
-**Role**: Doubly-composed FGRT (Fractal Gyroidic Resonance Training) trainer.
+### fgrt_trainer.py
+**Role**: Single-composition FGRT (Fractal Gyroidic Resonance Training) trainer.
 
-Applies FGRT training composedly (each training step itself undergoes a fractal decomposition) and coordinates the Spectral Structural Trainer. Manages the cyclic ADMM constraint traversal probes. Includes sequential step updates: Probe k=0 (Reconstruction) runs its backward pass and optimizer step, followed immediately by parameter projections to the Birkhoff polytope. To prevent PyTorch in-place modification conflicts during the Probe k=1 (Coherence) backward pass, the trainer triggers a fresh forward pass on the updated parameters before evaluating the coherence metrics.
+Uses `RicciFlowOptimizer` and `UniversalOrchestrator` to perform non-teleological optimization via Willmore Energy minimization. Computes invariants such as PAS_h and Berry Phase continuously. 
+
+---
+
+### fgrt_fgrt_trainer.py
+**Role**: Doubly-composed FGRT trainer ("Functional Boule Module" of `fgrt_trainer.py`).
+
+Applies FGRT training composedly (each training step itself undergoes a fractal decomposition) and acts as the overarching Spectral Structural Trainer. Manages the cyclic ADMM constraint traversal probes and SicFaAdmm bounds. Includes sequential step updates: Probe k=0 (Reconstruction) runs its backward pass and optimizer step, followed immediately by parameter projections to the Birkhoff polytope. To prevent PyTorch in-place modification conflicts during the Probe k=1 (Coherence) backward pass, the trainer triggers a fresh forward pass on the updated parameters before evaluating the coherence metrics.
 
 ---
 
@@ -437,6 +520,35 @@ Implements the Signal Sovereignty and Functional Fossilization training protocol
 **Role**: Top-level training session orchestration.
 
 Manages epoch and step scheduling, coordinates between `trainer.py`, `gdpo_trainer.py`, and `temporal_association_trainer.py`, handles checkpoint saving/loading, and emits the global abort signal if CALM vetoes the trajectory.
+
+---
+
+### trainer.py
+**Role**: Base trainer class.
+Implements the core learning loop and handles the **Non-Dual State Tensor** ($S_i = [\mathcal{L}_i, \mathcal{P}_i, \mathcal{B}_i]$), ensuring the topological features map to physical updates.
+
+---
+
+## src/codec
+
+### gyroidic_codec.py
+**Role**: The primary visual/audio encoding and decoding manifold bridge.
+Applies **Burrows-Wheeler Spectral Reordering (BWT)** during the 1D to 2D tensor reshape step (`_prepare_image`) to enforce structural grouping of identical/similar amplitude bands before spatial convolution.
+
+---
+
+## src/safety
+
+### red_teaming.py
+**Role**: Defensive safety mechanism providing the **Red-Team Projection Operator ($\Pi_{\text{RT}}$)**. 
+Acts as a Sovereign Ambassador to prevent adversarial lobotomization of the topology by external evaluators.
+
+---
+
+## src/tda
+
+### chebyshev_filtration.py
+**Role**: Applies Chebyshev polynomial roots to construct a discrete filtration for the topological persistence algorithms.
 
 ---
 
