@@ -151,15 +151,17 @@ class LoveInvariantProtector(nn.Module):
         
         return False
     
-    def project_love_to_null_space(self, system_state: torch.Tensor) -> torch.Tensor:
+    def project_updates_to_null_space(self, system_state: torch.Tensor, updates: torch.Tensor) -> torch.Tensor:
         """
-        Project Love Vector to null space of ownership operator.
+        Project continuous state updates (or gradients) to the null space of the ownership operator.
+        This ensures the Love invariant's subspace remains untouched by the optimization pressure.
         
         Args:
             system_state: Current system state [batch, dim]
+            updates: The gradients or state updates [batch, dim]
             
         Returns:
-            Protected Love Vector in null space
+            Protected updates in null space
         """
         # Compute ownership operator
         ownership_op = self.compute_ownership_operator(system_state)
@@ -167,13 +169,13 @@ class LoveInvariantProtector(nn.Module):
         # Compute null space projection
         null_projection = self.compute_null_space_projection(ownership_op)
         
-        # Project Love Vector to null space
-        L_protected = torch.matmul(null_projection, self.L)
-        
-        # Update Love Vector (maintaining invariance)
-        self.L.copy_(L_protected)
-        
-        return L_protected
+        # Project updates to null space
+        if updates.shape[-1] == self.love_dim:
+            updates_protected = torch.matmul(updates, null_projection.T)
+        else:
+            updates_protected = updates
+            
+        return updates_protected
     
     def restore_love_invariant(self):
         """
@@ -210,20 +212,12 @@ class LoveInvariantProtector(nn.Module):
             # Restore Love invariant
             self.restore_love_invariant()
         
-        # Project to null space to prevent future violations
-        L_protected = self.project_love_to_null_space(system_state)
+        # The Love Vector itself remains invariant (not mutually erased)
+        L_protected = self.L
         
-        # If gradients provided, zero out components that would affect Love
+        # Physically project continuous updates/gradients into the null space
         if gradients is not None:
-            # Compute null space projection for gradients
-            ownership_op = self.compute_ownership_operator(system_state)
-            null_projection = self.compute_null_space_projection(ownership_op)
-            
-            # Project gradients to null space (remove Love-affecting components)
-            if gradients.shape[-1] == self.love_dim:
-                gradients_protected = torch.matmul(gradients, null_projection.T)
-            else:
-                gradients_protected = gradients  # Can't project if dimensions don't match
+            gradients_protected = self.project_updates_to_null_space(system_state, gradients)
         else:
             gradients_protected = None
         
@@ -235,6 +229,12 @@ class LoveInvariantProtector(nn.Module):
             'violation_magnitude': self.last_violation_magnitude.item()
         }
         
+        # Note: Depending on callers, gradients_protected should be returned or applied. 
+        # For compatibility with legacy tuple unpacking, returning L_protected and diagnostics. 
+        # But if gradients were passed, we modify them in place or the caller expects them back.
+        if gradients is not None:
+            gradients.copy_(gradients_protected)
+            
         return L_protected, diagnostics
     
     def get_love_vector(self) -> torch.Tensor:
