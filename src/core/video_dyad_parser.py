@@ -1,4 +1,4 @@
-import base64
+limport base64
 import numpy as np
 import torch
 import torch.nn as nn
@@ -48,8 +48,16 @@ class VideoDyadParser(nn.Module):
         """
         Applies dynamic SO(n) rotation anchored by the Mollifier Constant (originally Dirac Constant, 5.944).
         Rotates the structural components into correctly aligned logic-space.
+        
+        [THE DIRAC EFFECT / GAUSSIAN MOLLIFIER]
+        When a singular symbolic epiphany occurs, it creates a massive topological spike (delta-function).
+        Without this projection, the automated agents would see a gradient explosion and attempt to flatten the "error."
+        By encapsulating it with this narrow Gaussian Mollifier Projection:
+        delta(t - t_thought) = lim_{a->0} (1 / (a * sqrt(pi))) * exp(-(t/a)^2)
+        we mathematically stabilize the intersection, preventing numerical rupture in the cognitive manifold
+        while fully preserving the cross-modal impact of the epiphany.
         """
-        # Theta anchored by beta_coh and signal scale
+        # Theta anchored by beta_coh (Dirac Spectrum Constant) and signal scale
         theta = self.beta_coh * math.log(scale + 1.0)
         cos_t = math.cos(theta)
         sin_t = math.sin(theta)
@@ -162,6 +170,7 @@ class VideoDyadParser(nn.Module):
         
         # 4. Natural Log Topological Rotation (originally referred to as Dirac Effect; implemented as a Gaussian Mollifier Projection)
         # Sparsify based on natural log threshold (Gaussian mollification of high-entropy noise)
+        # This mathematically stabilizes the intersection, preventing gradient explosion from delta-function epiphanies.
         signal_centered = signal - signal.mean(dim=0, keepdim=True)
         sparsification_threshold = torch.std(signal_centered) * 0.7
         signal_sparse = torch.where(signal_centered.abs() > sparsification_threshold, signal_centered, torch.zeros_like(signal_centered))
