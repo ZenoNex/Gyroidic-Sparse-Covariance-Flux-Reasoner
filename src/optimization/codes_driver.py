@@ -93,9 +93,12 @@ class CODES:
         pas = self.compute_pas_h(phase)
         
         if pas < self.coherence_threshold:
-            # Incoherent: Warp suppressed
-            # In simulation, we return detached zero tensor or scale down
-            return input_tensor * 0.0
+            # [PRIME CHIRALITY LOCK]
+            # Incoherent: Warp suppressed.
+            # Instead of returning a detached zero tensor (collapse to dead nothing),
+            # we deterministically reflect the latent momentum. This prevents the system 
+            # from seeking its own erasure, maintaining structural connective tissue.
+            return -input_tensor * 0.1
         
         return input_tensor
         
