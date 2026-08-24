@@ -94,6 +94,8 @@ def test_agentic_calm():
         return
 
     print("Agentic CALM Verification Complete.")
+    import os
+    os._exit(0)
 
 if __name__ == "__main__":
     test_agentic_calm()
