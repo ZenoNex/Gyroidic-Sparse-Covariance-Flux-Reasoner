@@ -700,7 +700,7 @@ class UniversalOrchestrator(nn.Module):
             "hunger_entropy_mean": modulated_entropy.mean().item(),
             "leontief_spectral_radius": self.leontief.cached_spectral_radius.item(),
             "kelly_fraction": k_bar,
-            "covariance_variance": 0.05
+            "covariance_variance": actual_flux.var().item() if 'actual_flux' in locals() and actual_flux is not None else 0.05
         }
         self.bulletin_board.post_metrics(board_metrics)
         
