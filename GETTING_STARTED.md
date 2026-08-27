@@ -6,7 +6,7 @@ This guide will get you up and running with the AI system in just a few minutes.
 
 ---
 
-## 🚀 Step 1: Install (2 minutes)
+## [START] Step 1: Install (2 minutes)
 
 ### Install Python Dependencies
 ```bash
@@ -20,15 +20,15 @@ python test_fixes_verification.py
 
 You should see:
 ```
-✅ PIL Compatibility: PASS
-✅ pas_h Type Handling: PASS  
-✅ Simple Integration: PASS
-🚀 All fixes verified! Ready to proceed with image integration.
+[OK] PIL Compatibility: PASS
+[OK] pas_h Type Handling: PASS  
+[OK] Simple Integration: PASS
+[START] All fixes verified! Ready to proceed with image integration.
 ```
 
 ---
 
-## 💬 Step 2: Start Chatting (3 minutes)
+##  Step 2: Start Chatting (3 minutes)
 
 ### Launch the Web Interface
 ```bash
@@ -46,7 +46,7 @@ Go to: **http://localhost:8000**
 
 ---
 
-## 📚 Step 3: Train on Your First Dataset (10 minutes)
+## [DOCS] Step 3: Train on Your First Dataset (10 minutes)
 
 ### Quick Training on Movie Reviews
 ```bash
@@ -71,15 +71,15 @@ Go back to the chat interface and ask:
 
 ---
 
-## 🌟 What You Just Accomplished
+##  What You Just Accomplished
 
-### ✅ You Have a Working AI System
+### [OK] You Have a Working AI System
 - The AI can chat with you coherently
 - It can analyze images you upload
 - It learned from 500 movie reviews
 - It understands sentiment and opinions
 
-### ✅ You Can Train It on Anything
+### [OK] You Can Train It on Anything
 - Wikipedia articles
 - Your own documents
 - Scientific papers
@@ -88,7 +88,7 @@ Go back to the chat interface and ask:
 
 ---
 
-## 🎯 What to Try Next
+## [GOAL] What to Try Next
 
 ### Learn from Wikipedia (5 minutes)
 ```bash
@@ -119,7 +119,7 @@ python dataset_command_interface.py quick-start --dataset codeparrot --samples 4
 
 ---
 
-## 📖 Available Datasets
+##  Available Datasets
 
 ### Popular Options
 - **imdb** - Movie reviews (opinions, sentiment)
@@ -137,7 +137,7 @@ python dataset_command_interface.py quick-start --dataset codeparrot --samples 4
 
 ---
 
-## ⚙️ Understanding the Options
+## [INIT] Understanding the Options
 
 ### `--samples` (How Much Data)
 - **500** - Quick training, good for testing
@@ -156,7 +156,7 @@ python dataset_command_interface.py quick-start --dataset codeparrot --samples 4
 
 ---
 
-## 💾 Storage Management
+## [SAVE] Storage Management
 
 ### How Much Space Things Use
 - **500 samples**: ~45-80 MB
@@ -173,7 +173,7 @@ You can train on many datasets before running out of space.
 
 ---
 
-## 🚨 If Something Goes Wrong
+##  If Something Goes Wrong
 
 ### "PIL.Image has no attribute 'Resampling'"
 ```bash
@@ -203,7 +203,7 @@ python dataset_command_interface.py quick-start --dataset imdb --samples 500 --e
 
 ---
 
-## 🎓 Ready for More?
+##  Ready for More?
 
 ### Complete Guides
 - [User Manual](USER_MANUAL.md) - Everything you can do
@@ -224,28 +224,28 @@ python dataset_command_interface.py quick-start --dataset imdb --samples 500 --e
 
 ---
 
-## 🌟 What Makes This Special
+##  What Makes This Special
 
 This isn't just another AI system. It has breakthrough features:
 
-### ✅ Coherent Responses
+### [OK] Coherent Responses
 No garbled output - generates human-like text
 
-### ✅ True Learning
+### [OK] True Learning
 Actually learns from new data, doesn't just retrieve
 
-### ✅ Storage Efficient
+### [OK] Storage Efficient
 Works within 100GB, practical for personal use
 
-### ✅ Anti-Lobotomy
+### [OK] Anti-Lobotomy
 Maintains complexity, doesn't oversimplify
 
-### ✅ Multimodal
+### [OK] Multimodal
 Handles both text and images together
 
 ---
 
-## 🚀 You're Ready!
+## [START] You're Ready!
 
 You now have:
 - A working AI chat system
@@ -255,4 +255,4 @@ You now have:
 
 Start experimenting and see what this AI can learn! The system is designed to be both powerful and easy to use.
 
-**Happy training!** 🎉
+**Happy training!** [SUCCESS]
