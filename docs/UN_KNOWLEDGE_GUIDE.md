@@ -16,7 +16,7 @@ leak = NostalgicLeakFunctional(
     device='cuda'
 )
 
-# μ_l (Archetype coefficients) define the "flavor" of the leak
+# _l (Archetype coefficients) define the "flavor" of the leak
 # o (Obstruction point) defines the location of the concealed center
 ```
 
@@ -64,9 +64,9 @@ The `UnknowledgeDomain` (in `unknowledge_domain.py`) is the formal $\mathcal{U}$
 ### Consolidated Module
 
 As of this update, `unknowledge_domain.py` **owns** all Unknowledge primitives:
-- `NostalgicLeakFunctional` — the archetype concealment operator $\psi_l$
-- `EntropicMischiefProbe` — the three-band metaphysical disorder tracker ($H_{meta}$)
-- `UnknowledgeDomain` — the shield/gate logic with Computable Flux and Elipsodistrophy
+- `NostalgicLeakFunctional`  the archetype concealment operator $\psi_l$
+- `EntropicMischiefProbe`  the three-band metaphysical disorder tracker ($H_{meta}$)
+- `UnknowledgeDomain`  the shield/gate logic with Computable Flux and Elipsodistrophy
 
 (`src/core/unknowledge_flux.py` re-exports for backward compatibility.)
 
@@ -86,7 +86,7 @@ If $V_m < 0$ **and** $H_{mischief} > \tau_m$, the domain dampens pressure to 1%.
 
 ```python
 metrics = u_domain.get_elipsodistrophy_metrics(eigenvalues)
-# metrics['atrophy'] > 0.85 → system is dangerously "legible" (lobotomy risk)
+# metrics['atrophy'] > 0.85  system is dangerously "legible" (lobotomy risk)
 ```
 
 This feeds into the `VetoSubspace` as a topology-level `elipsodistrophy` veto signal.
@@ -95,16 +95,16 @@ This feeds into the `VetoSubspace` as a topology-level `elipsodistrophy` veto si
 
 ## 6. The Five-Part Decision Flow
 
-The $\mathcal{U}$ domain is not an isolated shield — it extends into the broader decision architecture as two additional gates:
+The $\mathcal{U}$ domain is not an isolated shield  it extends into the broader decision architecture as two additional gates:
 
 | Gate | Name | $\mathcal{U}$ Role |
 |------|------|-----|
-| System 1 | Heuristic | — |
+| System 1 | Heuristic |  |
 | System 2 | Physics-ADMM Repair | $\mathcal{U}$ shields creative anomalies from repair |
 | Gate 4 | SearchGate | $\mathcal{U}$ prevents search when mischief is productive |
 | Gate 5 | ConfabulationDetector | $\mathcal{U}$ enables honest creative generation |
 
-When $\mathcal{U}$ is active and search returns nothing useful, the system may **honestly confabulate** — generating novel content while flagging it as generated rather than retrieved. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full flow diagram and [PHILOSOPHY.md §18](../vault_docs/PHILOSOPHY.md) for the philosophical foundation.
+When $\mathcal{U}$ is active and search returns nothing useful, the system may **honestly confabulate**  generating novel content while flagging it as generated rather than retrieved. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full flow diagram and [PHILOSOPHY.md 18](../vault_docs/PHILOSOPHY.md) for the philosophical foundation.
 
 ---
 > **"We stop pretending to be algebra. We start being an ecology of unknowledge."**
