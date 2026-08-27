@@ -4,6 +4,19 @@
 
 ---
 
+## [START] Essential Commands
+
+### Start the System
+The unified `hybrid_backend.py` is the recommended way to run most, if not all, of the essential backends (including the Diegetic Terminal chat UI and the Wikipedia trainer).
+```bash
+# Launch the unified hybrid backend
+.venv\scripts\python.exe hybrid_backend.py
+
+# Then open in your browser:
+# Chat Interface:        http://localhost:8000
+# Wikipedia Trainer:     http://localhost:8000/wikipedia-trainer
+# Conversational Data Trainer    http://localhost:8080
+```
 
 ### Quick Training
 ```bash
