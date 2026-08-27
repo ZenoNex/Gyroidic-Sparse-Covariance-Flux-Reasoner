@@ -3044,3 +3044,8 @@ def main():
         except Exception:
             pass
         # Restore signal handler before exit if needed (though os._exit is coming)
+        os._exit(0)
+
+if __name__ == "__main__":
+    main()
+
