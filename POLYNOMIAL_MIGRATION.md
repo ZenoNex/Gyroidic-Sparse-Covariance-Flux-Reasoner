@@ -48,27 +48,27 @@ L(x) ≈ Σ_k w_k · r_k(x)  where r_k are polynomial remainders
 
 ###Key Improvements
 
-✅ **No Hardcoded Values**: Fully continuous, learnable system  
-✅ **Birkhoff Polytope**: Natural doubly-stochastic constraint  
-✅ **Co-Primality**: Mathematically verified functional independence  
-✅ **GDPO Compatible**: Decoupled normalization works on coefficient space  
-✅ **Richer Expressivity**: Polynomial basis more flexible than discrete mod-p
+[OK] **No Hardcoded Values**: Fully continuous, learnable system  
+[OK] **Birkhoff Polytope**: Natural doubly-stochastic constraint  
+[OK] **Co-Primality**: Mathematically verified functional independence  
+[OK] **GDPO Compatible**: Decoupled normalization works on coefficient space  
+[OK] **Richer Expressivity**: Polynomial basis more flexible than discrete mod-p
 
 ### Implementation Status
 
 | Component | Old (Prime-Based) | New (Polynomial) | Status |
 |-----------|------------------|------------------|--------|
-| Core Config | `PrimeFieldConfig` | `PolynomialCoprimeConfig` | ✅ Complete |
-| CRT | `DifferentiableCRT` | `PolynomialCRT` | ✅ Complete |
-| GDPO CRT | `DecoupledCRT` | `DecoupledPolynomialCRT` | ✅ Complete |
-| Embeddings | `LearnedModalityEmbedder` | `PolynomialFunctionalEmbedder` | ✅ Complete |
-| Main Model | `GyroidicFluxReasoner` | Needs update | 🔄 Next |
-| Resonance Cavity | Uses primes list | Needs poly_config | 🔄 Next |
-| Documentation | References primes | Needs terminology update | 📝 Pending |
+| Core Config | `PrimeFieldConfig` | `PolynomialCoprimeConfig` | [OK] Complete |
+| CRT | `DifferentiableCRT` | `PolynomialCRT` | [OK] Complete |
+| GDPO CRT | `DecoupledCRT` | `DecoupledPolynomialCRT` | [OK] Complete |
+| Embeddings | `LearnedModalityEmbedder` | `PolynomialFunctionalEmbedder` | [OK] Complete |
+| Main Model | `GyroidicFluxReasoner` | Needs update |  Next |
+| Resonance Cavity | Uses primes list | Needs poly_config |  Next |
+| Documentation | References primes | Needs terminology update |  Pending |
 
 ### Next Steps
 
-1. ✅ Create polynomial-based main reasoner model
+1. [OK] Create polynomial-based main reasoner model
 2. Update resonance cavity to use polynomial config
 3. Update all documentation (global find/replace)
 4. Create migration example
