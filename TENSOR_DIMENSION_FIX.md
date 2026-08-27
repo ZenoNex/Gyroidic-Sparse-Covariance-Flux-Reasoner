@@ -6,7 +6,7 @@ This guide explains how to fix tensor dimension mismatches in the Gyroidic AI Sy
 
 ---
 
-## 🚨 The Problem
+##  The Problem
 
 When integrating different parts of the AI system, you might encounter errors like:
 
@@ -21,9 +21,9 @@ This happens when:
 
 ---
 
-## 🔧 The Solution: Learnable Projection
+##  The Solution: Learnable Projection
 
-### ✅ Recommended Approach
+### [OK] Recommended Approach
 Use a **learnable projection** that preserves the learned representations:
 
 ```python
@@ -47,7 +47,7 @@ similarity = torch.cosine_similarity(image_emb, text_emb_projected, dim=0)
 
 ---
 
-## 🔄 Symmetry-Preserving Reshape (Recommended)
+##  Symmetry-Preserving Reshape (Recommended)
 
 ### When to Use
 This is the **established solution** used throughout the Gyroidic system for tensor dimension mismatches.
@@ -58,7 +58,7 @@ if tensor.shape[0] != target_size:
     if tensor.shape[0] < target_size:
         pad_size = target_size - tensor.shape[0]
         tensor_padded = torch.nn.functional.pad(tensor, (0, pad_size), mode='reflect')
-        print(f"🔧 Applied Symmetry-Preserving padding: {tensor.shape[0]} -> {tensor_padded.shape[0]}")
+        print(f" Applied Symmetry-Preserving padding: {tensor.shape[0]} -> {tensor_padded.shape[0]}")
     else:
         tensor_padded = tensor[:target_size]  # Truncate if larger
 
@@ -80,7 +80,7 @@ Based on the breakthrough solution: **64 → 65 dimensions using `torch.nn.funct
 
 ---
 
-## ❌ What NOT to Do
+## [ERR] What NOT to Do
 
 ### Don't Truncate
 ```python
@@ -102,7 +102,7 @@ text_model = NonLobotomyTemporalModel(hidden_dim=768)  # Don't change this
 
 ---
 
-## 🧪 Testing Your Fix
+## [TEST] Testing Your Fix
 
 ### Quick Test
 ```python
@@ -134,7 +134,7 @@ print(f"Batch similarities: {similarities}")
 
 ---
 
-## 🎯 Implementation Examples
+## [GOAL] Implementation Examples
 
 ### In Training Code
 ```python
@@ -170,7 +170,7 @@ def compare_image_text(image_emb, text_emb):
 
 ---
 
-## 📚 Related Documentation
+## [DOCS] Related Documentation
 
 ### Core Concepts
 - [Breakthrough Report](docs/BREAKTHROUGH_REPORT.md) - Original Symmetry-Preserving Reshape
@@ -184,7 +184,7 @@ def compare_image_text(image_emb, text_emb):
 
 ---
 
-## 🔬 Technical Details
+##  Technical Details
 
 ### Why Dimensions Mismatch
 1. **Image fingerprints** are 137-dimensional (color + texture + edges)
