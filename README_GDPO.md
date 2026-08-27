@@ -1,6 +1,6 @@
 # GDPO Enhancement (January 2026)
 
-## 🎯 New: GDPO Decoupled Normalization
+## [GOAL] New: GDPO Decoupled Normalization
 
 **Author**: William Matthew Bryant  
 **Reference**: [arXiv:2601.05242](https://arxiv.org/abs/2601.05242) - GDPO
@@ -79,7 +79,7 @@ model_standard = GyroidicFluxReasoner(
 |---------|-------------|-------------------|
 | **Pattern Separation** | Low (collapse) | High (preserved) |
 | **Gradient Richness** | 2x combinations | 4x combinations |
-| **Learnable Weights** | ❌ | ✅ |
+| **Learnable Weights** | [ERR] | [OK] |
 | **RL Stability** | Moderate | High |
 | **Multi-Objective** | Struggles | Excellent |
 
