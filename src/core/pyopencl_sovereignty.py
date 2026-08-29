@@ -46,6 +46,7 @@ class SiliconSovereigntyEngine:
         self.ctx = None
         self.queue_a = None
         self.queue_b = None
+        self._kernel_cache = {}
         
         if not PYOPENCL_AVAILABLE:
             self.logger.warning("PyOpenCL is not installed. Silicon Sovereignty running in CPU Mock mode.")
@@ -145,6 +146,11 @@ class SiliconSovereigntyEngine:
         except Exception as e:
             self.logger.warning(f"Failed to initialize OpenCL context/queues: {e}. Silicon Sovereignty running in CPU Mock mode.")
             self.ctx = None
+
+    def _get_kernel(self, name):
+        if name not in self._kernel_cache:
+            self._kernel_cache[name] = cl.Kernel(self.program, name)
+        return self._kernel_cache[name]
 
     def _build_kernels(self):
         """Build the OpenCL kernels for the topological constraints."""
@@ -756,7 +762,7 @@ class SiliconSovereigntyEngine:
         raw_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=raw_values)
         res_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, fixed_results.nbytes)
         
-        self.program.stochastic_rounding(
+        self._get_kernel('stochastic_rounding')(
             self.queue_a, raw_values.shape, None,
             raw_buf, res_buf, np.float32(scale), np.uint32(seed)
         )
@@ -782,7 +788,7 @@ class SiliconSovereigntyEngine:
         targ_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=targets)
         res_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, is_valid.nbytes)
         
-        self.program.parity_filter(
+        self._get_kernel('parity_filter')(
             self.queue_b, candidates.shape, None,
             cand_buf, targ_buf, res_buf
         )
@@ -805,7 +811,7 @@ class SiliconSovereigntyEngine:
         
         w_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=weights)
         
-        self.program.lipschitz_projection(
+        self._get_kernel('lipschitz_projection')(
             self.queue_a, weights.shape, None,
             w_buf, np.float32(self.target_lipschitz), np.float32(current_norm)
         )
@@ -855,7 +861,7 @@ class SiliconSovereigntyEngine:
         traj_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=trajectories)
         grad_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, cohesion_grads.nbytes)
         
-        self.program.lazarus_cohesion(
+        self._get_kernel('lazarus_cohesion')(
             self.queue_b, trajectories.shape, None,
             traj_buf, grad_buf, np.float32(kappa_proxy), np.float32(variance)
         )
@@ -889,7 +895,7 @@ class SiliconSovereigntyEngine:
         b_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=matrix_b)
         out_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, output.nbytes)
         
-        self.program.matrix_mix(
+        self._get_kernel('matrix_mix')(
             self.queue_b, matrix_a.shape, None,
             a_buf, b_buf, out_buf, 
             np.float32(alpha), np.float32(kappa_seal), np.float32(hyperbolic_shear), np.uint32(seed)
@@ -942,7 +948,7 @@ class SiliconSovereigntyEngine:
         res_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=residues)
         braid_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=braid_word)
         
-        self.program.surgical_manifold_integration(
+        self._get_kernel('surgical_manifold_integration')(
             self.queue_a, state.shape, None,
             state_buf, res_buf, np.int32(num_residues), braid_buf, 
             np.int32(len(braid_word)), np.float32(cs_phase), 
@@ -987,7 +993,7 @@ class SiliconSovereigntyEngine:
         
         coords_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=coords_np)
         
-        self.program.mandelbulb_iteration(
+        self._get_kernel('mandelbulb_iteration')(
             self.queue_a, (total_elements,), None,
             coords_buf,
             np.int32(max_iterations),
@@ -1065,7 +1071,7 @@ class SiliconSovereigntyEngine:
         mu_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=mu_l)
         o_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=o_mask)
         
-        self.program.nostalgic_leak_tea(
+        self._get_kernel('nostalgic_leak_tea')(
             self.queue_b, (total_elements,), None,
             state_buf, mu_buf, o_buf,
             np.float32(alpha), np.uint32(seed), np.float32(t_rfc_stall_anchor),
@@ -1101,7 +1107,7 @@ class SiliconSovereigntyEngine:
         j_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=state_j)
         res_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, is_viable.nbytes)
         
-        self.program.bouligand_intersection(
+        self._get_kernel('bouligand_intersection')(
             self.queue_a, state_i.shape, None,
             i_buf, j_buf, res_buf,
             np.float32(omega_i), np.float32(omega_j), np.float32(t), np.int32(total_elements)
@@ -1191,7 +1197,7 @@ class SiliconSovereigntyEngine:
         bitmask_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, lattice_bitmask.nbytes)
         pressure_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, containment_pressure.nbytes)
         
-        self.program.evaluate_elliptical_hash_lattice(
+        self._get_kernel('evaluate_elliptical_hash_lattice')(
             self.queue_a, (total_elements,), None,
             coords_buf, lattice_buf, np.int32(len(lattice)), bitmask_buf, pressure_buf
         )
@@ -1240,7 +1246,7 @@ class SiliconSovereigntyEngine:
         
         coords_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=coords_np)
         
-        self.program.gyroid_projection(
+        self._get_kernel('gyroid_projection')(
             self.queue_a, (total_elements,), None,
             coords_buf,
             np.int32(max_steps),
@@ -1292,7 +1298,7 @@ class SiliconSovereigntyEngine:
         pgrad_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=pgrad_np)
         prime_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=primes)
         
-        self.program.topological_erosion_fbm(
+        self._get_kernel('topological_erosion_fbm')(
             self.queue_a, (total_elements,), None,
             state_buf, pgrad_buf, prime_buf, np.int32(len(primes)),
             np.int32(octaves),
@@ -1348,7 +1354,7 @@ class SiliconSovereigntyEngine:
         raw_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=raw_bytes)
         out_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, output_signal.nbytes)
         
-        self.program.video_dyad_chunking(
+        self._get_kernel('video_dyad_chunking')(
             self.queue_a, (total_output_elements,), None,
             raw_buf, out_buf,
             np.int32(total_elements),
@@ -1439,7 +1445,7 @@ class SiliconSovereigntyEngine:
         flux_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=flux)
         tension_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, seam_tension.nbytes)
         
-        self.program.chern_simons_gasket(
+        self._get_kernel('chern_simons_gasket')(
             self.queue_a, (n,), None,
             flux_buf, tension_buf, np.int32(n), np.float32(seam_width)
         )
