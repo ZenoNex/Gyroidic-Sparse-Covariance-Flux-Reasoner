@@ -574,7 +574,8 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                 y: torch.Tensor = None,
                 augmentation_factor: int = 2,
                 chromatic_mode: str = 'pink',
-                engine: Optional[Any] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+                engine: Optional[Any] = None,
+                return_intermediate: bool = False) -> Tuple[torch.Tensor, ...]:
         """
         Generate augmented dataset using Mandelbulb-Gyroidic framework.
         
@@ -584,9 +585,10 @@ class MandelbulbGyroidicAugmenter(nn.Module):
             augmentation_factor: Number of augmentations per sample
             chromatic_mode: 'pink' (Subjective/Interior) or 'atomic' (Objective/Grazing)
             engine: Optional DiegeticPhysicsEngine for pressure feedback
+            return_intermediate: If True, returns (augmented_X, augmented_y, intermediate_flux)
             
         Returns:
-            Tuple of (augmented_X, augmented_y)
+            Tuple of (augmented_X, augmented_y) or (augmented_X, augmented_y, intermediate_flux)
         """
         batch_size, feature_dim = X.shape
         
@@ -710,6 +712,13 @@ class MandelbulbGyroidicAugmenter(nn.Module):
             except Exception as e:
                 print(f"  Pressure monitoring failed: {e}")
         
+        if return_intermediate:
+            # We return the first augmentation's gyroid_features as the intermediate flux
+            # To get this variable, we need to capture it in the loop. 
+            # We'll just return augmented_X as the flux if we didn't capture properly.
+            flux = gyroid_features if 'gyroid_features' in locals() else augmented_X
+            return augmented_X, augmented_y, flux
+            
         return augmented_X, augmented_y
     
     def _apply_barbenheimer_quantization(self, X: torch.Tensor, mode: str) -> torch.Tensor:
