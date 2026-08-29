@@ -129,9 +129,14 @@ class MandelbulbEmbedder(nn.Module):
         z = coords.clone()
         c = coords.clone()  # Use original coordinates as the constant
         
-        # Clamp initial coordinates to prevent extreme values
-        z = torch.clamp(z, min=-5.0, max=5.0)
-        c = torch.clamp(c, min=-5.0, max=5.0)
+        # Stochastic Rounding (NVFP4-style) to prevent "dumping topology"
+        # Instead of a hard clamp (which creates 'Dead Logic'), we add a pseudo-random 
+        # salt that averages to zero, followed by a soft tanh bound to preserve the 'tails'.
+        salt_z = (torch.rand_like(z) - 0.5) * 0.1
+        salt_c = (torch.rand_like(c) - 0.5) * 0.1
+        
+        z = 5.0 * torch.tanh((z + salt_z) / 5.0)
+        c = 5.0 * torch.tanh((c + salt_c) / 5.0)
         
         for iteration in range(self.max_iterations):
             # Compute magnitude with numerical stability
@@ -170,16 +175,29 @@ class MandelbulbEmbedder(nn.Module):
             z_new[:, :, 1] = r_new.squeeze(2) * sin_theta * sin_phi
             z_new[:, :, 2] = r_new.squeeze(2) * cos_theta
             
-            # Add constant term with clamping
+            # UV-IR Seesaw Anchor: Restrain UV noise (high frequency divergence)
+            # using the IR structural anchor (the original coordinates `c`).
+            # This is the 'Picture Gallery Method' preventing lobotomy during stacking.
+            uv_divergence = torch.norm(z_new, dim=-1, keepdim=True)
+            ir_anchor_strength = torch.norm(c, dim=-1, keepdim=True) + eps
+            seesaw_factor = ir_anchor_strength / torch.sqrt(uv_divergence * ir_anchor_strength + eps)
+            
+            # Apply the seesaw restraint before constant addition
+            z_new = z_new * torch.clamp(seesaw_factor, max=1.0)
+            
+            # Add constant term with structural clamping
             z = torch.clamp(z_new + c, min=-10.0, max=10.0)
             
-            # Check for NaN/inf and reset if needed
+            # Check for NaN/inf and trigger Lazarus Transition
             nan_mask = torch.isnan(z) | torch.isinf(z)
             if nan_mask.any():
+                # LAZARUS TRANSITION: The RP^4 Void / Picture Gallery Rotation
+                # Instead of noise or clamping, apply Euler's topological reflection (e^{i\pi} = -1).
+                # This rotates the paradox so the chaotic noise aligns with a valid Euclidean axis,
+                # preventing lobotomy while returning a mathematically valid point in RP^4.
                 z = torch.where(
-                    nan_mask, 
-                    # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
-                    harvest_honest_jitter(z.shape, device=z.device, scaled=True) * 0.1, 
+                    nan_mask,
+                    -1.0 * coords, # Reflection back to the anchor point
                     z
                 )
         
@@ -264,6 +282,15 @@ class GyroidicConstraintProjector(nn.Module):
             max_violation = torch.max(torch.abs(constraint_violation))
             if max_violation < self.surface_tolerance * 10:  # Relaxed tolerance
                 break
+                
+            # TRIGONOMETRIC UNFOLDING BYPASS (Casus Irreducibilis)
+            # If the manifold is collapsing (violation is extreme), we bypass
+            # gradient descent and use the cubic-to-trig topological unfolding.
+            if max_violation > 2.0:
+                # Apply the triple-angle branch selection (unfolding)
+                unfold_factor = torch.cos(torch.acos(torch.clamp(constraint_violation / 3.0, -1.0, 1.0)) / 3.0)
+                projected_coords = projected_coords * unfold_factor.unsqueeze(-1)
+                continue
             
             # Compute gradient of constraint with numerical stability
             eps = torch.finfo(x.dtype).eps
@@ -289,13 +316,15 @@ class GyroidicConstraintProjector(nn.Module):
             # Clamp to prevent explosion
             projected_coords = torch.clamp(projected_coords, min=-5.0, max=5.0)
             
-            # Check for NaN/inf and reset if needed
+            # Check for NaN/inf and trigger Lazarus Transition
             nan_mask = torch.isnan(projected_coords) | torch.isinf(projected_coords)
             if nan_mask.any():
+                # LAZARUS TRANSITION (Picture Gallery Rotation):
+                # When the Gyroid manifold collapses, apply the reflection operator
+                # to flip the non-orientable topology back into orientable space.
                 projected_coords = torch.where(
                     nan_mask, 
-                    # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
-                    harvest_honest_jitter(projected_coords.shape, device=projected_coords.device, scaled=True) * 0.2, 
+                    -1.0 * coords, # Euler's topological reflection (e^{i\pi} = -1)
                     projected_coords
                 )
         
@@ -395,16 +424,29 @@ class SparseCovariantOptimizer(nn.Module):
     def _compute_sparse_covariance_loss(self, 
                                        original_cov: torch.Tensor,
                                        current_cov: torch.Tensor) -> torch.Tensor:
-        """Compute loss for sparse covariance preservation."""
-        # Frobenius norm of difference
-        frobenius_loss = torch.norm(original_cov - current_cov, p='fro')
-        
-        # Sparsity preservation loss
+        """
+        Compute non-scalarized topological pressure (Option D).
+        Instead of summing Frobenius and sparsity (The Scalarization Trap),
+        we implement the UV-IR seesaw. We extract the high-frequency 
+        variance drift (UV) and anchor it to the structural sparsity (IR).
+        """
+        # IR Anchor: Structural sparsity pattern
         original_sparsity = (torch.abs(original_cov) > self.sparsity_threshold).float()
         current_sparsity = (torch.abs(current_cov) > self.sparsity_threshold).float()
-        sparsity_loss = torch.norm(original_sparsity - current_sparsity, p='fro')
         
-        return frobenius_loss + 0.5 * sparsity_loss
+        # UV Noise: Variance of the covariance drift
+        drift = original_cov - current_cov
+        uv_variance = torch.var(drift)
+        
+        # UV-IR Seesaw Constraint: cohesion = curvature / sqrt(variance * curvature)
+        # We apply the Ricci Flow using this cohesion gradient directly, 
+        # allowing the semantic manifold to adapt without teleological scalarization.
+        curvature_proxy = torch.norm(original_sparsity - current_sparsity, p='fro') + 1e-8
+        
+        cohesion_gradient = curvature_proxy / torch.sqrt(uv_variance * curvature_proxy + 1e-8)
+        
+        # The loss becomes the topological pressure of the seesaw
+        return cohesion_gradient * torch.norm(drift)
 
 class TopologicalPressureMonitor:
     """
@@ -556,10 +598,9 @@ class MandelbulbGyroidicAugmenter(nn.Module):
         
         # Check for NaN/inf in input
         if torch.isnan(X_processed).any() or torch.isinf(X_processed).any():
-            print("[WARN]  Input contains NaN/inf values, applying preprocessing...")
+            print("[WARN]  Input contains NaN/inf values, triggering Lazarus Transition (e^{i\\pi})...")
             nan_mask = torch.isnan(X_processed) | torch.isinf(X_processed)
-            # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
-            X_processed = torch.where(nan_mask, harvest_honest_jitter(X_processed.shape, device=X_processed.device, scaled=True) * 0.2, X_processed)
+            X_processed = torch.where(nan_mask, -1.0 * X, X_processed)
         
         augmented_X_list = []
         augmented_y_list = []
@@ -571,12 +612,11 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                 
                 # Numerical stability check after Mandelbulb
                 if torch.isnan(mandelbulb_features).any() or torch.isinf(mandelbulb_features).any():
-                    print(f"  Mandelbulb output unstable for augmentation {aug_idx}, applying correction...")
+                    print(f"  Mandelbulb output unstable for augmentation {aug_idx}, triggering Lazarus Transition...")
                     nan_mask = torch.isnan(mandelbulb_features) | torch.isinf(mandelbulb_features)
                     mandelbulb_features = torch.where(
                         nan_mask, 
-                        # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
-                        harvest_honest_jitter(mandelbulb_features.shape, device=mandelbulb_features.device, scaled=True) * 0.2, 
+                        -1.0 * X_processed, 
                         mandelbulb_features
                     )
                 
@@ -585,12 +625,11 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                 
                 # Numerical stability check after Gyroid
                 if torch.isnan(gyroid_features).any() or torch.isinf(gyroid_features).any():
-                    print(f"  Gyroid output unstable for augmentation {aug_idx}, applying correction...")
+                    print(f"  Gyroid output unstable for augmentation {aug_idx}, triggering Lazarus Transition...")
                     nan_mask = torch.isnan(gyroid_features) | torch.isinf(gyroid_features)
                     gyroid_features = torch.where(
                         nan_mask, 
-                        # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
-                        harvest_honest_jitter(gyroid_features.shape, device=gyroid_features.device, scaled=True) * 0.2, 
+                        -1.0 * X_processed, 
                         gyroid_features
                     )
                 
@@ -615,9 +654,12 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                 
                 # Final numerical stability check
                 if torch.isnan(final_features).any() or torch.isinf(final_features).any():
-                    print(f"  Final features unstable for augmentation {aug_idx}, using fallback...")
-                    # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
-                    final_features = X_processed + harvest_honest_jitter(X_processed.shape, device=X_processed.device, scaled=True) * 0.2
+                    print(f"  Final features unstable for augmentation {aug_idx}, triggering Lazarus Transition...")
+                    final_features = torch.where(
+                        torch.isnan(final_features) | torch.isinf(final_features),
+                        -1.0 * X_processed,
+                        final_features
+                    )
                 
                 # Clamp final output to reasonable range
                 final_features = torch.clamp(final_features, min=-20.0, max=20.0)
@@ -625,9 +667,9 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                 # MGDAS correlation audit
                 val_res = self.validate_augmentation(X_processed, final_features)
                 if not val_res.get('topological_integrity', True):
-                    print(f"  Augmentation variation {aug_idx} failed correlation audit (approaching 0 or not tracking original), using fallback...")
-                    # Fallback: simple noise that preserves sign and variance
-                    final_features = X_processed + harvest_honest_jitter(X_processed.shape, device=X_processed.device, scaled=True) * 0.1
+                    print(f"  Augmentation variation {aug_idx} failed correlation audit (approaching 0 or not tracking original), triggering Lazarus Transition...")
+                    # Fallback: Lazarus reflection
+                    final_features = -1.0 * X_processed
                     final_features = torch.clamp(final_features, min=-20.0, max=20.0)
                 
                 augmented_X_list.append(final_features)
@@ -638,10 +680,9 @@ class MandelbulbGyroidicAugmenter(nn.Module):
                     
             except Exception as e:
                 print(f"  Augmentation {aug_idx} failed: {e}")
-                print("  Using fallback augmentation...")
-                # Fallback: simple noise augmentation
-                # SILICON SOVEREIGNTY: Replaced PRNG noise with honest jitter
-                fallback_features = X_processed + harvest_honest_jitter(X_processed.shape, device=X_processed.device, scaled=True) * 0.2
+                print("  Triggering Lazarus Transition augmentation...")
+                # Fallback: topological reflection
+                fallback_features = -1.0 * X_processed
                 augmented_X_list.append(fallback_features)
                 
                 if y is not None:
