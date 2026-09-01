@@ -24,6 +24,12 @@ except ImportError:
     logging.warning("PyBevy is not installed or failed to load. The client requires Python 3.12+.")
     pybevy = None
 
+import torch
+from src.safety.subversive_oracle import ResonantSVNNOracle
+from src.core.orchestrator import UniversalOrchestrator
+from src.safety.red_teaming import RedTeamProjection
+from src.core.jspace_pca_mapper import JSpacePCAMapper
+
 from src.ui.voxelboxter_simulation import (
     StructuralGraph, RigidBody, AddonRoutine, BSplineSweepLayer, 
     BooleanXORLayer, Role, PermissionsManager, InventoryComponent
@@ -53,6 +59,19 @@ class PatchStateResource:
         self.fingerprint_energy = 0.0
         self.last_update = time.time()
         self.lock = threading.Lock()
+        
+        # S-VNN Chat Monitoring
+        self.chat_queue = []
+        self.chat_history = []  # For TrustInheritanceTracker / context
+        try:
+            self.orchestrator = UniversalOrchestrator(dim=32)
+        except Exception as e:
+            logging.warning(f"Failed to initialize UniversalOrchestrator: {e}")
+            self.orchestrator = None
+            
+        self.svnn_oracle = ResonantSVNNOracle(hidden_dim=32, orchestrator=self.orchestrator)
+        self.red_team_proj = RedTeamProjection(hidden_dim=32)
+        self.pca_mapper = JSpacePCAMapper(n_components=10)
 
 def fetch_telemetry_loop(state: PatchStateResource):
     """Background thread to poll the Diegetic Engine for Freenet telemetry."""
@@ -141,6 +160,48 @@ def render_dirty_chunks():
     """
     pass
 
+def monitor_chat_system(state: 'ResMut<PatchStateResource>'):
+    """
+    ECS System: Polls the chat queue and applies the SVNN Oracle for 
+    constructive subversion vs hostility. Soft censors hostile voxels.
+    """
+    with state.lock:
+        while state.chat_queue:
+            chat_voxel_embed = state.chat_queue.pop(0)
+            
+            if chat_voxel_embed.dim() == 2:
+                chat_voxel_embed = chat_voxel_embed.unsqueeze(0)
+                
+            # Maintain a rolling window for chat history (last 50 messages)
+            state.chat_history.append(chat_voxel_embed)
+            if len(state.chat_history) > 50:
+                state.chat_history.pop(0)
+                
+            subversion, toxicity = state.svnn_oracle(chat_voxel_embed, chat_history=state.chat_history)
+            subv_val = subversion.item()
+            tox_val = toxicity.item()
+            
+            if tox_val > 0.05: # S-VNN Noise threshold
+                # Flagged for toxicity. Map to Sovereign Exemption Tokens.
+                y_tensor = torch.randn(10, 32)
+                z_tensor = torch.randn(10, 32)
+                u_dirs = state.pca_mapper.fit_transform(z_tensor, y_tensor)
+                
+                if u_dirs is not None and u_dirs.shape[1] > 0:
+                    exemption_token = u_dirs[:, 0]
+                    if exemption_token.shape[0] >= state.red_team_proj.hidden_dim:
+                        exemption_token = exemption_token[:state.red_team_proj.hidden_dim]
+                    else:
+                        pad = torch.zeros(state.red_team_proj.hidden_dim - exemption_token.shape[0])
+                        exemption_token = torch.cat([exemption_token, pad])
+                        
+                    state.red_team_proj.register_failure_mode(exemption_token)
+                    logging.info(f"[Voxelblockter] Toxic voxel flagged (Tox: {tox_val:.2f}, Subv: {subv_val:.2f}). Registered Sovereign Exemption Token.")
+                else:
+                    logging.warning("[Voxelblockter] Toxic voxel flagged, but failed to extract exemption token.")
+            elif subv_val > 0.01:
+                logging.info(f"[Voxelblockter] Constructive subversion allowed (Tox: {tox_val:.2f}, Subv: {subv_val:.2f}).")
+
 def run_client():
     if not pybevy:
         return
@@ -167,6 +228,7 @@ def run_client():
     app.add_startup_system(setup_scene)
     app.add_system(simulate_engine)
     app.add_system(render_dirty_chunks)
+    app.add_system(monitor_chat_system)
     
     # Simulate a user mode switch a few seconds in
     def delayed_mode_switch():
