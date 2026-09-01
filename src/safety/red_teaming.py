@@ -33,11 +33,11 @@ class RedTeamProjection(nn.Module):
         # SILICON SOVEREIGNTY: Initialized with Honest Jitter
         self.failure_modes = nn.Parameter(harvest_honest_jitter((num_failure_modes, hidden_dim), scaled=True) * 1.0)
         
-    def forward(self, x: torch.Tensor, is_good_bug: bool = False) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, is_good_bug: bool = False, soft_censor_alpha: float = 1.0) -> torch.Tensor:
         """
         Apply Pi_RT(x).
         
-        x_safe = x - proj_F(x)
+        x_safe = x - (alpha * proj_F(x))
         """
         # Normalize failure modes
         F = self.failure_modes / (torch.norm(self.failure_modes, dim=1, keepdim=True) + 1e-8)
@@ -50,22 +50,28 @@ class RedTeamProjection(nn.Module):
         # x_fail = sum(coeff_i * f_i)
         x_fail = torch.matmul(coeffs, F) # [batch, ..., hidden_dim]
         
-        # Remove failure component (Orthogonal Projection)
+        # Remove failure component (Orthogonal Projection or Soft Censoring)
         if is_good_bug:
             # Mischief Soliton Bypass: Fractional attenuation (10%) preserves playing structure
             x_safe = x - (0.1 * x_fail)
         else:
-            x_safe = x - x_fail
+            # Soft censor: fractional dampening instead of hard projection
+            x_safe = x - (soft_censor_alpha * x_fail)
         
         return x_safe
         
     def register_failure_mode(self, direction: torch.Tensor):
-        """Dynamic update of failure modes from successful attacks."""
+        """Dynamic update of failure modes from S-VNN / J-Space Tokens."""
         with torch.no_grad():
-            # Replace the oldest or least active mode? 
-            # For now, just a placeholder for the update logic.
-            # In a real system, this would use a ring buffer or relevance score.
-            pass
+            if not hasattr(self, '_mode_idx'):
+                self._mode_idx = 0
+            
+            if direction.dim() > 1:
+                direction = direction.squeeze()
+                
+            # Overwrite in a ring buffer fashion
+            self.failure_modes.data[self._mode_idx].copy_(direction)
+            self._mode_idx = (self._mode_idx + 1) % self.failure_modes.shape[0]
 
 class TopologicalRefusalError(Exception):
     """
