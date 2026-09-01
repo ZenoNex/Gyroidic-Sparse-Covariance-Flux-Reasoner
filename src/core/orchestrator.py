@@ -35,6 +35,9 @@ from src.core.leontief_governor import LeontiefGovernor
 from src.core.collapse_poisoner import CollapsePathPoisoner
 
 from src.core.structural_monitors import AntiScalingMonitor, MetaInfraIntraMonitor
+from src.core.jspace_pca_mapper import JSpacePCAMapper
+from src.core.federated_router import OpenRouterClient, FederatedNetworkMonitor
+from src.models.introspection_head import IntrospectionHead
 from src.safety.trust_inheritance import TrustInheritanceTracker
 from src.safety.red_teaming import RedTeamProjection, TopologicalRefusalFilter
 from src.core.quantum_tda import QuantumBettiApproximator
@@ -214,10 +217,14 @@ class UniversalOrchestrator(nn.Module):
             from src.p2p.bonfire_consensus import BonfireNomadicRing
             from src.p2p.zk_aggregator import ZKAggregator
             
+            logger.info("Initializing Freenet P2P Core & OpenRouter...")
             self.freenet_router = FreenetBulletinRouter()
             self.freenet_ws = FreenetClient()
             self.freenet_ws.start()
             self.bonfire_ring = BonfireNomadicRing(self.freenet_ws)
+            
+            self.open_router = OpenRouterClient()
+            self.federated_monitor = FederatedNetworkMonitor(self.freenet_ws, self.freenet_router, self.open_router)
             self.zk_aggregator = ZKAggregator()
         except ImportError as e:
             print(f"[ORCHESTRATOR] P2P Modules Not Loaded: {e}")
