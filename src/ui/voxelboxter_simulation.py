@@ -9,6 +9,8 @@ from typing import Dict, List, Optional, Tuple
 import uuid
 import copy
 from enum import Enum, auto
+import torch
+from src.surrogates.kagh_networks import KANLayer
 
 # ==========================================
 # ROLES, PERMISSIONS & INVENTORY
@@ -169,33 +171,42 @@ class AddonLayer:
     def execute(self, graph: StructuralGraph):
         pass
 
-class BSplineSweepLayer(AddonLayer):
-    """Generates blocks along a spline (additive)."""
-    def __init__(self, name: str, start_pos: Tuple[int, int, int], end_pos: Tuple[int, int, int]):
+class BSplineCompiledMod(AddonLayer):
+    """
+    True B-Spline Addon Mod.
+    Uses the Kolmogorov-Arnold Network (KANLayer) from the KAGH architecture
+    as a mathematical compiler to generate arbitrary mod features (like custom 
+    machines, fields, or ores) across the StructuralGraph.
+    """
+    def __init__(self, name: str, latent_dim: int = 3):
         super().__init__(name)
-        self.start = start_pos
-        self.end = end_pos
+        self.latent_dim = latent_dim
+        # The KANLayer maps parametric coordinates (u, v, w) to spatial mod geometry (x, y, z)
+        # using the exact vectorized Cox-de Boor implementation from kagh_networks.
+        self.kan = KANLayer(in_features=latent_dim, out_features=3, spline_order=3, dyslexic_mode=True)
 
     def execute(self, graph: StructuralGraph):
         if not self.enabled: return
         
-        steps = max(abs(self.end[0]-self.start[0]), abs(self.end[1]-self.start[1]), abs(self.end[2]-self.start[2]))
-        if steps == 0: steps = 1
-        
-        r = int(self.settings.radius)
-        for i in range(steps + 1):
-            t = i / steps
-            cx = int(self.start[0] + (self.end[0] - self.start[0]) * t)
-            cy = int(self.start[1] + (self.end[1] - self.start[1]) * t)
-            cz = int(self.start[2] + (self.end[2] - self.start[2]) * t)
+        # Compile the Addon Mod into the graph by sweeping the parametric B-Spline surface
+        # Each evaluated point corresponds to an injected mod structure (e.g. a conduit or machine block)
+        resolution = 20
+        with torch.no_grad():
+            # Generate a parametric grid
+            u = torch.linspace(-1, 1, resolution)
+            grid_u, grid_v, grid_w = torch.meshgrid(u, u, u, indexing='ij')
+            latent_coords = torch.stack([grid_u.flatten(), grid_v.flatten(), grid_w.flatten()], dim=-1)
             
-            # Apply radius thickness
-            for dx in range(-r, r+1):
-                for dy in range(-r, r+1):
-                    for dz in range(-r, r+1):
-                        b = Block(local_cell=(cx+dx, cy+dy, cz+dz), rotation=(0,0,0,1), 
-                                  material_id=self.settings.material_id, health=100.0)
-                        graph.add_block(b)
+            # Evaluate the true KAN B-Spline network
+            spatial_coords = self.kan(latent_coords)
+            
+            for i in range(spatial_coords.shape[0]):
+                x, y, z = spatial_coords[i].tolist()
+                cell = (int(round(x)), int(round(y)), int(round(z)))
+                if cell not in graph.blocks:
+                    b = Block(local_cell=cell, rotation=(0,0,0,1), 
+                              material_id=self.settings.material_id, health=100.0)
+                    graph.add_block(b)
 
 class BooleanXORLayer(AddonLayer):
     """Subtractive XOR cut (carving out engine bays, etc)."""
@@ -204,7 +215,7 @@ class BooleanXORLayer(AddonLayer):
         self.center = center
         self.dims = dimensions
 
-    def execute(self, graph: StructuralGraph):
+    def execute(self, graph: StructuralGraph, inventory: Optional[InventoryComponent] = None):
         if not self.enabled: return
         cx, cy, cz = self.center
         hx, hy, hz = self.dims[0]//2, self.dims[1]//2, self.dims[2]//2
@@ -225,7 +236,7 @@ class MirrorSymmetryLayer(AddonLayer):
         super().__init__(name)
         self.axis = axis
 
-    def execute(self, graph: StructuralGraph):
+    def execute(self, graph: StructuralGraph, inventory: Optional[InventoryComponent] = None):
         if not self.enabled: return
         
         new_blocks = []
@@ -251,6 +262,46 @@ class AddonRoutine:
     def add_layer(self, layer: AddonLayer):
         self.layers.append(layer)
         
+    def try_add_layer(self, layer: AddonLayer, inventory: InventoryComponent) -> bool:
+        """
+        Attempts to add an addon layer. 
+        Calculates the exact block delta and enforces precise mass deduction.
+        Returns True if successful, False if insufficient mass.
+        """
+        # Calculate current graph composition
+        current_graph = self.generate_graph()
+        current_counts = {}
+        for b in current_graph.blocks.values():
+            current_counts[b.material_id] = current_counts.get(b.material_id, 0) + 1
+            
+        # Simulate addition of new layer
+        self.layers.append(layer)
+        new_graph = self.generate_graph()
+        new_counts = {}
+        for b in new_graph.blocks.values():
+            new_counts[b.material_id] = new_counts.get(b.material_id, 0) + 1
+            
+        # Check delta against inventory
+        can_afford = True
+        delta = {}
+        for mat_id, count in new_counts.items():
+            diff = count - current_counts.get(mat_id, 0)
+            if diff > 0:
+                if inventory.block_masses.get(mat_id, 0) < diff:
+                    can_afford = False
+                    break
+                delta[mat_id] = diff
+                
+        if can_afford:
+            # Deduct the exact mass delta
+            for mat_id, diff in delta.items():
+                inventory.block_masses[mat_id] -= diff
+            return True
+        else:
+            # Revert layer addition
+            self.layers.pop()
+            return False
+
     def generate_graph(self) -> StructuralGraph:
         """Executes the entire layer stack non-destructively."""
         graph = StructuralGraph()
