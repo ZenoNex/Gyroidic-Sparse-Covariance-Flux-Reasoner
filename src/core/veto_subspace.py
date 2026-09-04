@@ -322,7 +322,9 @@ class VetoSubspace(nn.Module):
         topological_pressure: Optional[float] = None,
         elapsed_seconds: Optional[float] = None,
         # Valence Integration
-        valence_hunger: Optional[float] = None
+        valence_hunger: Optional[float] = None,
+        # Legibility Integration
+        legibility_escalation: Optional[bool] = None
     ) -> VetoResult:
         """
         Evaluate the full veto lattice and compose results.
@@ -401,6 +403,12 @@ class VetoSubspace(nn.Module):
         if valence_hunger is not None and valence_hunger > 0.6:
             if topological_pressure is not None and topological_pressure > 0.5:
                 status = RecoveryStatus.SATURATION_ESCALATION
+                
+        # Legibility Tripwire: If legibility > 0.8, the system is too frictionless
+        # and we must trigger SATURATION_ESCALATION to freeze evolutionary trusts
+        # and force a chaotic, resonant diegesis.
+        if legibility_escalation:
+            status = RecoveryStatus.SATURATION_ESCALATION
         
         # Final severity = max across all active signals
         final_severity = max((s.severity for s in all_signals), default=0.0)
