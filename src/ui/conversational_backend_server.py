@@ -64,6 +64,7 @@ class ServerState:
         self.training_progress = 0
         self.training_log = []
         self.diegetic_backend = None
+        self.active_fingerprint = None
         
         # Silicon Sovereignty / Tailslayer Architecture Initialization
         self.sovereign_engine = None
@@ -388,6 +389,8 @@ def chat():
         data = request.get_json()
         message = data.get('message', '').strip()
         fingerprint = data.get('fingerprint')
+        if fingerprint:
+            state.active_fingerprint = fingerprint
         audio_dyad = data.get('audio_dyad')
         video_dyad_b64 = data.get('video_dyad_b64')
         
@@ -449,6 +452,8 @@ def associate():
         source = data.get('source', data.get('text1', '')).strip()
         target = data.get('target', data.get('text2', '')).strip()
         fingerprint = data.get('fingerprint')
+        if fingerprint:
+            state.active_fingerprint = fingerprint
         audio_dyad = data.get('audio_dyad')
         video_dyad_b64 = data.get('video_dyad_b64')
         
@@ -521,7 +526,8 @@ def system_status():
         'model_trained': state.model is not None,
         'chat_ready': state.diegetic_backend is not None,
         'device': state.device,
-        'conversations_count': len(state.conversations) if state.conversations else 0
+        'conversations_count': len(state.conversations) if state.conversations else 0,
+        'chebyshev_degree': state.active_fingerprint.get('chebyshev_degree', len(state.active_fingerprint.get('chebyshev', []))) if state.active_fingerprint else 0
     })
 
 def run_server(host='localhost', port=5000, debug=False):
