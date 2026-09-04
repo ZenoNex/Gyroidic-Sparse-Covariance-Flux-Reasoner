@@ -28,6 +28,7 @@ import time
 import datetime
 import urllib.request
 import hashlib
+import hmac
 
 # Ensure PYTHONPATH includes project root for all imports
 import sys
@@ -293,6 +294,18 @@ class DiegeticPhysicsEngine(nn.Module):
         self.hardening = 0.5 # Default manifold state
         self.use_gyroid_probes = True
         
+        # Load or generate persistent node HMAC secret for anti-poisoning topology
+        secret_path = os.path.join(os.path.dirname(__file__), '..', '..', 'data', '.node_secret')
+        os.makedirs(os.path.dirname(secret_path), exist_ok=True)
+        if os.path.exists(secret_path):
+            with open(secret_path, 'rb') as f:
+                _hmac_bytes = f.read()
+        else:
+            _hmac_bytes = os.urandom(32)
+            with open(secret_path, 'wb') as f:
+                f.write(_hmac_bytes)
+        self.register_buffer('_hmac_key', torch.tensor(list(_hmac_bytes), dtype=torch.uint8))
+        
         # Advanced Extensions (Lazy Init)
         self.meta_polytope = MetaPolytopeMatrioshka(max_depth=5, base_dim=dim) if EXTENSIONS_AVAILABLE else None
         self.tensor_dynamics = SparseHigherOrderTensorDynamics(max_order=3, num_shells=3, base_dim=dim) if EXTENSIONS_AVAILABLE else None
@@ -301,7 +314,7 @@ class DiegeticPhysicsEngine(nn.Module):
         self.extensions_enabled = EXTENSIONS_AVAILABLE
 
         self.cavity = ResonanceCavity(hidden_dim=dim, num_modes=16)
-        self.larynx = ResonanceLarynx(hidden_dim=dim, vocab_size=256) # ASCII + EMOJI
+        self.larynx = ResonanceLarynx(hidden_dim=dim) # Pure Topological
         self.unicode_to_idx = {}
         self.idx_to_unicode = []
         # Centralized Allowed Characters list
@@ -1628,7 +1641,7 @@ class DiegeticPhysicsEngine(nn.Module):
         vowels = set("aeiouAEIOU")
         vowel_boost_factor = 1.5 # Mandated for 'singing' quality
         
-        # 4. Positional State Evolution
+        # 4. Positional State Evolution (Purely Structural)
         current_state = seed_state
         if fingerprint and 'L' in fingerprint:
             # Inject fingerprint residue into starting state
@@ -1638,73 +1651,44 @@ class DiegeticPhysicsEngine(nn.Module):
             current_state = 0.8 * current_state + 0.2 * fp_bias.unsqueeze(0)
         
         if audio_dyad:
-            # Inject audio harmonics influence
             harmonics = audio_dyad.get('chebyshev_harmonics', [0.0]*10)
             a_bias = torch.tensor(harmonics, device=self.device, dtype=torch.float32)
             if a_bias.numel() < seed_state.shape[-1]: a_bias = F.pad(a_bias, (0, seed_state.shape[-1] - a_bias.numel()))
             current_state = 0.9 * current_state + 0.1 * a_bias.unsqueeze(0)
 
         if video_dyad_b64:
-            # Subtle entropy shift for video
-            current_state = current_state * 1.05 # 'Excited' state evolution for video context
+            current_state = current_state * 1.05 
 
-        generated_chars = []
-        max_len = 300
-        min_len = 60
+        # Advance state through ResonanceLarynx (Topology -> Next Topology)
+        # Restore the longer state evolution sequence to allow the mathematical
+        # trajectory to fully unfold, rather than truncating it.
+        trajectory_hashes = []
+        energy_sum = 0.0
+        conf_sum = 0.0
         
-        # Autoregressive Loop
-        for i in range(max_len):
-            # Gradual temperature decay (Start focused -> End creative)
+        for i in range(60): # 60 steps of pure topological evolution
             iter_temp = temperature * (1.0 + 0.002 * i) 
+            current_state, conf = self.larynx(current_state, temperature=iter_temp)
             
-            logits, conf = self.larynx(current_state, temperature=iter_temp)
+            # Record mathematical state
+            state_np = current_state.detach().cpu().numpy().flatten()
+            step_hex = "".join([f"{int(abs(x)*255)%256:02x}" for x in state_np[:2]])
+            trajectory_hashes.append(step_hex)
             
-            # Clean Vocabulary Filtering: Mask out non-standard symbols to force human/Voynich readability
-            for idx in range(logits.shape[-1]):
-                char_from_idx = self._idx_to_char(idx)
-                if idx < 128:
-                    if char_from_idx not in self.allowed_chars:
-                        logits[0, idx] = -1e9
-                else:
-                    # Allow dynamically registered unicode/emojis
-                    if idx - 128 >= len(self.idx_to_unicode):
-                        logits[0, idx] = -1e9
+            energy_sum += torch.norm(current_state).item()
+            conf_sum += conf.item()
             
-            # Apply Echo Suppression
-            for char in input_chars:
-                c_idx = self._char_to_idx(char)
-                if c_idx < logits.shape[-1]:
-                    logits[0, c_idx] -= suppression_factor
-            
-            # Apply Vowel Boosting
-            for v in vowels:
-                v_idx = self._char_to_idx(v)
-                if v_idx < logits.shape[-1]:
-                    logits[0, v_idx] *= vowel_boost_factor
-            
-            probs = torch.softmax(logits, dim=-1)
-            char_idx = torch.multinomial(probs[0], 1).item()
-            
-            char = self._idx_to_char(char_idx)
-            generated_chars.append(char)
-            
-            # Stop condition: require min_len AND high confidence at punctuation
-            if len(generated_chars) >= min_len and char in ('.', '!', '?') and conf.item() > 0.85:
-                break
-                
-            # State Evolution (Singing)
-            # Use Larynx weights to rotate the state based on the symbol emitted
-            feedback = torch.tanh(self.larynx.proj.weight[char_idx].unsqueeze(0))
+            # Feedback from own state
+            feedback = torch.tanh(current_state)
             current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * self._harvest_honest_jitter(current_state.shape)
 
-        # 5. Linguistic Correction (Anti-glitch filter)
-        res = "".join(generated_chars)
-        # Fix excessive consonant runs
-        vowel_indices = [i for i, c in enumerate(res) if c.lower() in 'aeiou']
-        if len(vowel_indices) < len(res) / 5:
-            # Add emergency vowel if too dry
-            res += " eia"
-            
+        # Format as mathematical tensor representation trajectory
+        avg_energy = energy_sum / 60
+        avg_conf = conf_sum / 60
+        full_hash = "-".join(trajectory_hashes)
+        
+        res = f"[TENSOR TRAJECTORY] ||H(r)|| = {avg_energy:.4f} :: TRACE: {full_hash} :: COHERENCE: {avg_conf:.2f}"
+        
         return res
 
     def _process_input_internal(
@@ -4091,7 +4075,8 @@ class DiegeticPhysicsEngine(nn.Module):
             
         # Add a global sentence variance 'salt' using secure hashing
         if len(text) > 0:
-            digest = hashlib.sha256(text.encode('utf-8')).digest()
+            key_bytes = bytes(self._hmac_key.cpu().numpy().tobytes())
+            digest = hmac.new(key_bytes, text.encode('utf-8'), hashlib.sha256).digest()
             # Use the first 4 bytes to determine salt index
             salt = int.from_bytes(digest[:4], byteorder='big') % self.dim
             vec[0, salt] *= 1.1
@@ -5097,6 +5082,13 @@ class DiegeticPhysicsEngine(nn.Module):
                     x_pos = tensor.mean()
                     u_n = 4.0 * math.atan((sq / omega) * (1.0 / (math.cosh(sq * x_pos) + 1e-8)) * math.sin(omega * t_val))
                     tensor.add_(0.05 * u_n)
+                    
+                    # Meliponini Migration Protocol: Conformal hyperspherical inversion across S^2 boundary
+                    # Weighted by PAS_h resonance to map edge of one cerumen pot to the center of next
+                    pas = self._compute_pas_h(tensor)
+                    norm_sq = torch.sum(tensor**2, dim=-1, keepdim=True) + 1e-8
+                    inversion = tensor / norm_sq
+                    tensor.copy_(inversion * pas)
                 
                 # PHASE 19: 13 PUSAFILIACRIMONTO ATTACHMENT
                 # Non-dual anchoring of visual luminance to Love Invariant
