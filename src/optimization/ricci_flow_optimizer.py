@@ -145,3 +145,6 @@ class BouligandWillmoreGasket(nn.Module):
         flux = x_flat * phase
         viable = (torch.abs(x_flat + flux) <= curvature_bound).float()
         return 1.0 - viable.mean()
+
+# Legacy alias for backward compatibility with older training scripts (Phase 3)
+WillmoreEnergy = BouligandWillmoreGasket
