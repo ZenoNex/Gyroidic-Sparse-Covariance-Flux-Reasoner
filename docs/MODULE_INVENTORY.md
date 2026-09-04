@@ -598,4 +598,4 @@ Physics-informed surrogate providing admissible constraint embeddings. KAN layer
 
 ---
 
-*Last updated: 2026-03-04. Modules marked "(Full details pending source review)" have been inspected only at the module docstring level; detailed class inventories will be added when those modules become active development targets.*
+## src/ui
