@@ -772,7 +772,7 @@ class PolynomialADMRSolver(nn.Module):
         if getattr(self, 'silicon_engine', None) is not None:
             raw_numpy = locked_state.detach().cpu().numpy()
             rounded_numpy = self.silicon_engine.apply_stochastic_rounding(raw_numpy)
-            locked_state = torch.from_numpy(scaled_numpy).float().to(states.device)
+            locked_state = torch.from_numpy(rounded_numpy).float().to(states.device)
 
         return locked_state
 
