@@ -189,6 +189,10 @@ class LegibilityTripwire(nn.Module):
                 f"This may indicate rich-club attractor bias or artificial crystallization.",
                 UserWarning
             )
+            
+        # SATURATION_ESCALATION TRIGGER: Legibility > 0.8 means the system has collapsed
+        # into a frictionless, easily decodable ML model. We must trigger an escalation.
+        saturation_escalation = selected_coherence > 0.8
         
         return {
             'warning': torch.tensor(is_warning, device=device),
@@ -199,7 +203,8 @@ class LegibilityTripwire(nn.Module):
             'selected_clustering': selected_clustering,
             'rejected_clustering': rejected_clustering,
             'is_crystallized': torch.tensor(is_crystallized, device=device),
-            'is_fractured': torch.tensor(is_fractured, device=device)
+            'is_fractured': torch.tensor(is_fractured, device=device),
+            'saturation_escalation': torch.tensor(saturation_escalation, device=device)
         }
 
     
