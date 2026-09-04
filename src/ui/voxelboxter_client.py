@@ -31,7 +31,7 @@ from src.safety.red_teaming import RedTeamProjection
 from src.core.jspace_pca_mapper import JSpacePCAMapper
 
 from src.ui.voxelboxter_simulation import (
-    StructuralGraph, RigidBody, AddonRoutine, BSplineSweepLayer, 
+    StructuralGraph, RigidBody, AddonRoutine, BSplineCompiledMod, 
     BooleanXORLayer, Role, PermissionsManager, InventoryComponent
 )
 
@@ -88,7 +88,7 @@ def fetch_telemetry_loop(state: PatchStateResource):
                         if state.mode == EngineMode.CREATION and state.fingerprint_energy > 0.5:
                             if len(state.routine.layers) < 5: # Limit layers for prototype
                                 x_end = int(state.fingerprint_energy * 10)
-                                new_layer = BSplineSweepLayer(f"EnergySweep_{x_end}", (0,0,0), (x_end, 5, x_end))
+                                new_layer = BSplineCompiledMod(f"EnergySweep_{x_end}", latent_dim=3)
                                 state.routine.add_layer(new_layer)
                                 state.graph.dirty = True # Force rebuild
                     else:
@@ -171,6 +171,39 @@ def monitor_chat_system(state: 'ResMut<PatchStateResource>'):
             
             if chat_voxel_embed.dim() == 2:
                 chat_voxel_embed = chat_voxel_embed.unsqueeze(0)
+                
+            # If the chat message is a string command (simulated by checking if it's a string, though it's typically an embed)
+            # We'll allow strings in the queue for the command parser
+            if isinstance(chat_voxel_embed, str):
+                cmd = chat_voxel_embed.strip()
+                role = state.permissions.get_role(state.local_peer_id)
+                if cmd.startswith("/addon"):
+                    if role in (Role.ADMIN, Role.BUILDER):
+                        # Trigger Addon Maker modal (simulated)
+                        logging.info("[Unified Terminal] Addon Maker modal triggered. Enter dimensions or splines.")
+                        # Example command parsing: /addon bspline 10 10 10
+                        parts = cmd.split()
+                        if len(parts) >= 2 and parts[1] == "bspline":
+                            try:
+                                # /addon bspline [latent_dim]
+                                latent_dim = int(parts[2]) if len(parts) > 2 else 3
+                                new_layer = BSplineCompiledMod(f"CompiledMod_{time.time()}", latent_dim=latent_dim)
+                                
+                                # Use the exact delta engine logic
+                                if state.routine.try_add_layer(new_layer, state.local_inventory):
+                                    state.graph.dirty = True
+                                    logging.info(f"[Unified Terminal] Added mathematically compiled B-Spline mod (Latent Dim: {latent_dim}). Mass deducted.")
+                                else:
+                                    logging.warning(f"[Unified Terminal] Insufficient mass to add compiled mod layer.")
+                            except ValueError:
+                                logging.warning("[Unified Terminal] Invalid parameters for compiled mod.")
+                    else:
+                        logging.warning("[Unified Terminal] Permission Denied. Need ADMIN or BUILDER for Addon Maker.")
+                elif cmd == "/play":
+                    switch_game_mode(state, EngineMode.PLAY)
+                elif cmd == "/create":
+                    switch_game_mode(state, EngineMode.CREATION)
+                continue # Skip oracle for explicit commands
                 
             # Maintain a rolling window for chat history (last 50 messages)
             state.chat_history.append(chat_voxel_embed)
