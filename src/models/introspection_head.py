@@ -358,3 +358,7 @@ class AggregateGeometricSelfModel(nn.Module):
         """Trigger unlearning across all aggregated self-model probes."""
         self.probe_head.unlearn_rigidity(current_time, overlap_window, decay_rate)
 
+
+# Legacy alias for backward compatibility (Rigidity Decay)
+IntrospectionHead = AggregateGeometricSelfModel
+
