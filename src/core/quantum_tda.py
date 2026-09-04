@@ -117,3 +117,4 @@ class QuantumBettiApproximator(nn.Module):
                 x0, x1 = x1, x2
             trace_est += (z * y).sum().item()
         return max(1.0, trace_est * dim_size / num_probes)
+
