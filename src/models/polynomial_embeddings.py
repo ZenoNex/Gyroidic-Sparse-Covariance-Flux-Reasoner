@@ -55,7 +55,7 @@ class PolynomialFunctionalEmbedder(nn.Module):
         
         self.config = poly_config
         self.K = poly_config.k
-        self.D = poly_config.degree + 1
+        self.D = hidden_dim // self.K # JEPA structural dimension
         self.use_text = use_text
         self.use_graph = use_graph
         self.use_num = use_num
@@ -81,8 +81,8 @@ class PolynomialFunctionalEmbedder(nn.Module):
             nn.Linear(hidden_dim, hidden_dim)
         )
         
-        # Per-functional coefficient predictors
-        # Projects to distribution over polynomial basis coefficients
+        # Per-functional structure predictors (JEPA abstract representations)
+        # Projects to topological dimensions directly
         self.coeff_heads = nn.ModuleList([
             nn.Linear(hidden_dim, self.D) for _ in range(self.K)
         ])
@@ -155,19 +155,20 @@ class PolynomialFunctionalEmbedder(nn.Module):
         fused = torch.cat(modality_features, dim=-1)
         h = self.fusion(fused)  # [batch, hidden_dim]
         
-        # Compute per-functional coefficient distributions
+        # Compute per-functional structural embeddings (JEPA)
         coeff_logits = []
-        coeff_probs = []
+        residues = []
         
         for k, head in enumerate(self.coeff_heads):
             logits_k = head(h)  # [batch, D]
-            probs_k = torch.softmax(logits_k, dim=-1)  # [batch, D]
+            # Instead of token-softmax, we use structural activation
+            res_k = torch.tanh(logits_k)  # [batch, D]
             
             coeff_logits.append(logits_k)
-            coeff_probs.append(probs_k)
+            residues.append(res_k)
         
-        # Stack into tensor: [batch, K, D]
-        residue_distributions = torch.stack(coeff_probs, dim=1)
+        # Stack into tensor: [batch, K, D] (where D is Dim // K)
+        residue_distributions = torch.stack(residues, dim=1)
         
         # Apply saturation if enabled (Directly on initial predicted residues)
         if self.use_saturation and hasattr(self.config, 'saturation_gate'):
