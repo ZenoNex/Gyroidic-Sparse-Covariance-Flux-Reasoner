@@ -51,6 +51,7 @@ from src.core.spectral_coherence_repair import SpectralCoherenceCorrector, Bezou
 from src.core.chern_simons_gasket import ChernSimonsGasket, SolitonStabilityHealer
 from src.core.love_invariant_protector import LoveInvariantProtector, SoftSaturatedGates
 from src.core.veto_subspace import VetoSubspace, VetoResult
+from src.core.legibility_audit import LegibilityTripwire
 from src.core.honest_jitter import harvest_honest_jitter, fractal_pad
 from src.surrogates.kagh_networks import KAGHBlock
 from src.surrogates.calm_predictor import CALM
@@ -320,6 +321,9 @@ class GyroidicFluxReasoner(nn.Module):
             containment_budget=self.containment_budget
         )
         
+        # Legibility Tripwire (Phase 3 Integration)
+        self.legibility_tripwire = LegibilityTripwire(hidden_dim=hidden_dim)
+        
         # Phase 4: Universal Orchestration (Deep Dynamics)
         from src.core.orchestrator import UniversalOrchestrator
         self.orchestrator = UniversalOrchestrator(dim=hidden_dim)
@@ -344,8 +348,7 @@ class GyroidicFluxReasoner(nn.Module):
         self.caq = ContextAwareQuantizer(feature_dim=hidden_dim, num_shells=33, device=device)
 
         # Output projection
-        self.output_proj = nn.Linear(hidden_dim, vocab_size)
-    
+        
     def _create_constraint_probes(self, device: torch.device):
         """
         Create constraint probe operators for each polynomial functional.
@@ -878,6 +881,14 @@ class GyroidicFluxReasoner(nn.Module):
                 # Normalize aborts (5 is threshold, so 5 -> 1.0)
                 instability_severity = min(1.0, total_aborts / 5.0)
             
+            # Evaluate legibility
+            # Assuming h is the selected embedding. For rejected, we could use a random tensor or an unselected draft.
+            # Here, we use h as selected and a zero tensor as rejected for the sake of the tripwire.
+            legibility_audit = self.legibility_tripwire(
+                selected_embeddings=h.squeeze(1) if h.dim() == 3 else h,
+                rejected_embeddings=torch.zeros_like(h.squeeze(1) if h.dim() == 3 else h)
+            )
+            
             # Veto Subspace: evaluate recovery lattice
             _abort = total_aborts if 'total_aborts' in locals() else None
             veto_result = self.veto_subspace.evaluate(
@@ -885,10 +896,19 @@ class GyroidicFluxReasoner(nn.Module):
                 covariance_aborts=_abort,
                 elipsodistrophy_atrophy=atrophy_val,
                 topological_pressure=total_topological_pressure.mean().item() if hasattr(total_topological_pressure, 'mean') else float(total_topological_pressure),
-                valence_hunger=self.orchestrator.current_hunger.item() if hasattr(self, 'orchestrator') else None
+                valence_hunger=self.orchestrator.current_hunger.item() if hasattr(self, 'orchestrator') else None,
+                legibility_escalation=legibility_audit.get('saturation_escalation', torch.tensor(False)).item()
             )
             # Store diagnostics for downstream consumers
             self._last_veto_result = veto_result
+            
+            # Freeze evolutionary trusts if escalated
+            if veto_result.status.value == "saturation_escalation":
+                self.trust_freeze_threshold = -1.0 # Forces freeze mechanism
+                self.mutation_rate = 0.0
+            else:
+                self.trust_freeze_threshold = 0.9
+                self.mutation_rate = 0.1
             
             # Chaos Defibrillator trigger: if atrophy is extremely high, inject mischief directly
             if atrophy_val >= 0.99:
@@ -964,7 +984,7 @@ class GyroidicFluxReasoner(nn.Module):
         else:
             h_out = h.mean(dim=1)
             
-        output = self.output_proj(h_out)  # [batch, 1]
+        output = h_out  # Output is now purely structural tensor representation
         
         # PHASE 1 REPAIR: Apply soliton healing to final output
         output_text = None  # In real implementation, this would be decoded text
