@@ -78,6 +78,9 @@ graph TD
 *   **Diegetic Terminal & Sovereign UI**
     *   *Implementation*: [conversational_backend_server.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/conversational_backend_server.py) & [diegetic_backend.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py)
     *   *Documentation*: [INTERFACE_LAYER.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/INTERFACE_LAYER.md)
+*   **Voxelboxter Client & Simulation**
+    *   *Implementation*: [voxelboxter_client.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_client.py) & [voxelboxter_simulation.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py)
+    *   *Role*: Unified chat/terminal UI enforcing game mode separation, and the `BSplineCompiledMod` layer for mathematically compiling dynamic addon features.
 
 ---
 
