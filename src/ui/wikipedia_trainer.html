@@ -100,22 +100,64 @@ https://en.wikipedia.org/wiki/Machine_learning"></textarea>
             <div class="panel-title">Extraction Options</div>
             <label><input type="checkbox" id="filter-noise" checked> Smart noise filtering</label><br>
             <label><input type="checkbox" id="auto-concepts" checked> Auto-detect source concepts</label><br><br>
-            <button class="btn" onclick="startExtraction()">🚀 Start Training</button>
+            <button class="btn" onclick="startExtraction()">[START] Start Training</button>
         </div>
 
         <div class="panel">
             <div class="panel-title">Training Status</div>
             <div class="log-container" id="log-container">
-                <div class="log-entry log-info">🔧 Wikipedia Knowledge Ingestion System initialized</div>
-                <div class="log-entry log-info">📚 Ready to process Wikipedia content</div>
+                <div class="log-entry log-info"> Wikipedia Knowledge Ingestion System initialized</div>
+                <div class="log-entry log-info">[DOCS] Ready to process Wikipedia content</div>
             </div>
         </div>
     </div>
 
     <script>
-        function startExtraction() {
-            addLog('🚀 Starting Wikipedia extraction...', 'info');
-            addLog('✅ System is working! HTML loaded successfully.', 'success');
+        async function startExtraction() {
+            const urlsText = document.getElementById('wiki-urls').value;
+            const filterNoise = document.getElementById('filter-noise').checked;
+            const autoConcepts = document.getElementById('auto-concepts').checked;
+            
+            if (!urlsText.trim()) {
+                addLog('[ERROR] No URLs provided.', 'error');
+                return;
+            }
+            
+            const urls = urlsText.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+            addLog(`[START] Starting extraction for ${urls.length} Wikipedia URLs...`, 'info');
+            
+            for (let i = 0; i < urls.length; i++) {
+                const url = urls[i];
+                addLog(`[PROCESSING] Fetching: ${url}`, 'info');
+                
+                try {
+                    const response = await fetch('http://localhost:8000/wikipedia-extract', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            url: url,
+                            filter_noise: filterNoise,
+                            auto_concepts: autoConcepts
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const errText = await response.text();
+                        addLog(`[ERROR] Failed to process ${url}: ${response.status} - ${errText}`, 'error');
+                        continue;
+                    }
+                    
+                    const data = await response.json();
+                    addLog(`[SUCCESS] Extracted ${data.sections_extracted || 0} sections from ${url}`, 'success');
+                    
+                } catch (err) {
+                    addLog(`[ERROR] Network error for ${url}: ${err.message}`, 'error');
+                }
+            }
+            
+            addLog('[DONE] Knowledge ingestion complete.', 'success');
         }
 
         function addLog(message, type = 'info') {
@@ -128,7 +170,7 @@ https://en.wikipedia.org/wiki/Machine_learning"></textarea>
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            addLog('🔧 System ready for Wikipedia knowledge ingestion', 'info');
+            addLog(' System ready for Wikipedia knowledge ingestion', 'info');
         });
     </script>
 </body>
