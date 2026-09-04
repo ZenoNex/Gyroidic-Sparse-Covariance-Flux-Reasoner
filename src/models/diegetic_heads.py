@@ -120,14 +120,12 @@ class ResonanceLarynx(nn.Module):
     Project topological states to symbolic sequences (Characters/Tokens).
     Uses Hebbian learning to reinforce valid communication pathways.
     """
-    def __init__(self, hidden_dim: int, vocab_size: int = 128):
+    def __init__(self, hidden_dim: int):
         super().__init__()
         self.hidden_dim = hidden_dim
-        self.vocab_size = vocab_size
         
-        # Learnable projection: Topology -> Symbols
-        # initialized with high variance to promote "babbling"
-        self.proj = nn.Linear(hidden_dim, vocab_size, bias=False)
+        # Learnable projection: Topology -> Next Topological State (JEPA)
+        self.proj = nn.Linear(hidden_dim, hidden_dim, bias=False)
         nn.init.normal_(self.proj.weight, std=0.1)
         
         # Confidence gate (how loud to speak)
@@ -146,7 +144,7 @@ class ResonanceLarynx(nn.Module):
            temperature: scalar
            
         Returns:
-           logits: [batch, vocab_size]
+           predicted_state: [batch, hidden_dim]
            confidence: [batch, 1]
         """
         # Apply logic leak protection via Chern-Simons gasket
@@ -168,9 +166,9 @@ class ResonanceLarynx(nn.Module):
         
         # Hazard Protection: Ensure temperature is never zero
         safe_temp = max(temperature, 1e-6)
-        logits = self.proj(safe_state) / safe_temp
+        predicted_state = self.proj(safe_state) / safe_temp
         conf = self.confidence(safe_state)
-        return logits, conf
+        return predicted_state, conf
         
     def hebbian_update(self, state_trace: torch.Tensor, symbol_trace: torch.Tensor, rate: float = 0.01):
         """
@@ -179,15 +177,13 @@ class ResonanceLarynx(nn.Module):
         
         Args:
             state_trace: [batch, hidden_dim] (The topological context)
-            symbol_trace: [batch, vocab_size] (The one-hot symbol produced)
+            target_state: [batch, hidden_dim] (The topological target)
             rate: Learning rate (Reward)
         """
         with torch.no_grad():
-            # Batch Hebbian update
-            # sum over batch of O * I^T
-            # symbol_trace: [B, V], state_trace: [B, H]
-            # update: [V, H]
-            update = torch.einsum('bv,bh->vh', symbol_trace, state_trace)
+            # target_state: [B, H], state_trace: [B, H]
+            # update: [H, H]
+            update = torch.einsum('bv,bh->vh', target_state, state_trace)
             
             # Normalize update by batch size
             update = update / (state_trace.shape[0] + 1e-8)
@@ -204,83 +200,48 @@ class ResonanceLarynx(nn.Module):
                           context: List[torch.Tensor], 
                           affordance_gradients: Dict[str, float],
                           quantum_state: bool = False,
-                          matrioshka_level: int = 0) -> Tuple[str, Dict]:
+                          matrioshka_level: int = 0) -> Tuple[torch.Tensor, Dict]:
         """
-        Autoregressive generation of diegetic response.
+        Autoregressive generation of diegetic response (now topological).
         Modulated by advanced physics states (System 2).
         """
-        # 1. Modulate Dynamics based on Physics
         temperature = 1.0
         if quantum_state:
-            # High temp for superposition (creative/chaotic)
             temperature = 1.5 
         
         constraint_mode = False
         if matrioshka_level >= 3:
-            # Deep quantization -> Logic/Rigid mode
             temperature = 0.5
             constraint_mode = True
             
-        # 2. Seed State from Context
         if context:
-            # Average recent context for seed
-            # context is list of [dim] tensors
-            seed = torch.stack(context[-min(len(context), 5):]).mean(dim=0).unsqueeze(0) # [1, dim]
+            seed = torch.stack(context[-min(len(context), 5):]).mean(dim=0).unsqueeze(0) 
         else:
-            # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
             seed = harvest_honest_jitter((1, self.hidden_dim), device=self.proj.weight.device, scaled=True)
             
-        # 3. Generation Loop
-        # We simulate a "Singer" - the state evolves via self-resonance
         current_state = seed
-        generated_chars = []
+        generated_states = []
         confidence_sum = 0.0
         
-        max_len = 150
-        min_len = 20
+        max_len = 60
         
         for i in range(max_len):
-            logits, conf = self.forward(current_state, temperature=temperature)
+            predicted_state, conf = self.forward(current_state, temperature=temperature)
             confidence_sum += conf.item()
             
-            # Sampling
-            probs = torch.softmax(logits, dim=-1)
+            generated_states.append(predicted_state)
             
-            if constraint_mode:
-                # Greedy decoding for rigid logic
-                char_idx = torch.argmax(probs, dim=-1).item()
-            else:
-                # Stochastic sampling
-                try:
-                    char_idx = torch.multinomial(probs, 1).item()
-                except:
-                    char_idx = torch.argmax(probs, dim=-1).item() # Fallback
-            
-            # ASCII decoding (safe range)
-            char_code = max(32, min(126, char_idx))
-            char = chr(char_code)
-            generated_chars.append(char)
-            
-            # Stop token logic (heuristic)
-            if len(generated_chars) > min_len and char in ['.', '!', '?']:
-                # Higher prob of stopping if confident
-                if conf.item() > 0.8:
-                    break
-                    
-            # 4. Diegetic State Evolution (Singing)
-            # State rotates slightly based on emitted symbol (Reaction)
             # Non-linear feedback
-            feedback = torch.tanh(self.proj.weight[char_idx].unsqueeze(0)) # [1, dim]
-            # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+            feedback = torch.tanh(predicted_state)
             current_state = 0.9 * current_state + 0.1 * feedback + 0.05 * harvest_honest_jitter(current_state.shape, device=current_state.device, scaled=True)
             
-        final_text = "".join(generated_chars)
+        final_trajectory = torch.cat(generated_states, dim=0)
         
         metrics = {
-            "avg_confidence": confidence_sum / max(len(generated_chars), 1),
-            "length": len(generated_chars),
+            "avg_confidence": confidence_sum / max(len(generated_states), 1),
+            "length": len(generated_states),
             "temperature_used": temperature,
             "mode": "CONSTRAINT" if constraint_mode else ("QUANTUM" if quantum_state else "STANDARD")
         }
         
-        return final_text, metrics
+        return final_trajectory, metrics
