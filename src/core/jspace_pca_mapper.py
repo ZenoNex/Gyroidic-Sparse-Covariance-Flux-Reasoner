@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from typing import Tuple, List
+from src.core.martinova_correlation import compute_bounded_correlation
 
 class JSpacePCAMapper:
     """
@@ -52,18 +53,21 @@ class JSpacePCAMapper:
         for k in range(self.n_components):
             x_k = X[:, k:k+1]  # [N, 1]
             
-            # PAS_h Check: Anti-Lobotomy filter using Kurtosis
-            # We want to keep non-ergodic (structured, fat-tailed) distributions
-            # and reject pure Gaussian noise (kurtosis ~ 3.0)
+            # PAS_h Check: Anti-Lobotomy filter using Martinova Correlation
+            # We want to keep structurally clustered/crystallized components (corr > 0.0)
+            # and reject spatial randomness/ergodic soup (corr ~ 0.0)
             if N > 4:
-                mean_xk = x_k.mean()
-                var_xk = x_k.var(unbiased=False)
-                if var_xk > 1e-6:
-                    kurtosis = torch.mean(((x_k - mean_xk) ** 4)) / (var_xk ** 2)
-                    # If kurtosis is low, it's ergodic noise (lobotomy risk).
-                    # We only allow it if it passes the threshold.
-                    if kurtosis < self.kurtosis_threshold - 0.5:
-                        continue # Skip this component (it's slop)
+                # Calculate the strictly bounded geometric invariant [-1, 1]
+                # x_k is [N, 1]. compute_bounded_correlation expects [..., N, d]
+                # We reshape to [1, N, 1]
+                x_k_spatial = x_k.view(1, N, 1)
+                corr = compute_bounded_correlation(x_k_spatial)
+                
+                # If correlation is near 0, it's ergodic soup (lobotomy risk).
+                # We use kurtosis_threshold (usually 3.0) scaled down as a minimum correlation bound (~0.3)
+                min_corr = self.kurtosis_threshold * 0.1
+                if corr.abs().item() < min_corr:
+                    continue # Skip this component (it's slop)
                         
             valid_components.append(k)
             
