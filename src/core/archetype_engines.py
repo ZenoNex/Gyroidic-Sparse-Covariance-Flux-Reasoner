@@ -4,6 +4,7 @@ import math
 from typing import Dict, List, Optional, Any
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.superposed_tag_stacker import SuperposedTagStacker
+from src.governance.bio_archetypal_governor import BioArchetypalGovernor
 
 # =========================================================================
 # PHASE 2A: The Unified Theory Archetypal Logic Gaps
@@ -322,16 +323,22 @@ class SovereignEntropyBarrier(nn.Module):
         self.crack_threshold = crack_threshold
 
     def forward(self, state: torch.Tensor, pas_h: float, batch_coherence: float) -> torch.Tensor:
-        # Community Support Factor (Zeta)
-        zeta = (pas_h * 0.7) + (batch_coherence * 0.3)
+        # Remove scalarization trap: Instead of a single scalar zeta, apply structural resistance
+        # that evaluates the state's internal variance against the scalars.
+        # This creates a tensor-field of support rather than a single number.
+        internal_variance = torch.var(state, dim=-1, keepdim=True)
+        # Structural support is high where variance is stable (low), scaled by pas_h and coherence
+        structural_support = (pas_h * batch_coherence) / (internal_variance + 1e-6)
         
-        # If support is low, keep the shell (return original state)
-        if zeta < self.crack_threshold:
+        # Crack only the dimensions/regions where structural support exceeds the threshold
+        crack_mask = structural_support > self.crack_threshold
+        
+        if not crack_mask.any():
             return state
-        
+            
         # Safe Cracking: Perturb state to reveal inner structure
         perturbation = harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 0.1
-        return state + perturbation
+        return torch.where(crack_mask.expand_as(state), state + perturbation, state)
 
 class LowLuminosityCoherenceBridge(nn.Module):
     """
@@ -443,11 +450,16 @@ class ResilientCoherenceStabilizer(nn.Module):
         self.stabilizer = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
 
     def forward(self, state: torch.Tensor, lucidity_idx: float, system_entropy: float) -> torch.Tensor:
-        disorientation = (1.0 - lucidity_idx) * system_entropy
-        if disorientation > 0.4:
-            stabilizing_force = disorientation * self.resilience_scale * self.stabilizer.to(state.device)
-            return state + stabilizing_force
-        return state
+        # Remove scalarization trap: Disorientation shouldn't be a uniform global scalar.
+        # It is localized by the state's structural instability (gradient/variance).
+        local_instability = torch.abs(state - state.mean(dim=-1, keepdim=True))
+        disorientation_field = (1.0 - lucidity_idx) * system_entropy * local_instability
+        
+        # Apply stabilizing force only to dimensions experiencing high disorientation
+        stabilizing_force = disorientation_field * self.resilience_scale * self.stabilizer.to(state.device)
+        
+        mask = disorientation_field > 0.4
+        return torch.where(mask, state + stabilizing_force, state)
 
 class ExploratoryBandwidthCompressor(nn.Module):
     """
@@ -460,12 +472,20 @@ class ExploratoryBandwidthCompressor(nn.Module):
         self.tragedy_scale = tragedy_scale
 
     def forward(self, state: torch.Tensor, phase_alignment: float) -> torch.Tensor:
-        if phase_alignment < 0.35:
-            # tragedy mode: contract the state coordinates to avoid toxic leak propagation
-            return state * self.tragedy_scale
-        else:
-            # comedy mode: amplify the exploratory coupling of the state
-            return state * self.comedy_scale * phase_alignment
+        # Remove scalarization trap: Phase alignment should interact with the state's
+        # intrinsic norm/energy, rather than applying a blanket tragedy/comedy scale.
+        energy = torch.norm(state, dim=-1, keepdim=True)
+        
+        # We create a continuous tensor field for bandwidth compression:
+        effective_alignment = phase_alignment * (energy / (energy.mean() + 1e-6))
+        
+        # Tragedy mask
+        tragedy_mask = effective_alignment < 0.35
+        comedy_mask = ~tragedy_mask
+        
+        state = torch.where(tragedy_mask, state * self.tragedy_scale, state)
+        state = torch.where(comedy_mask, state * self.comedy_scale * effective_alignment, state)
+        return state
 
 class DeformationFirewallOperator(nn.Module):
     """
@@ -477,10 +497,15 @@ class DeformationFirewallOperator(nn.Module):
         self.deviation_threshold = deviation_threshold
 
     def forward(self, state: torch.Tensor, warped_state: torch.Tensor, raw_unquantized_state: torch.Tensor) -> torch.Tensor:
-        deviation = torch.norm(warped_state - raw_unquantized_state)
-        if deviation.item() > self.deviation_threshold:
-            # Blunt refusal: restore raw unquantized state to protect body/mind autonomy
-            return raw_unquantized_state
+        # Avoid scalarization trap: do not collapse deformation into a single L2 norm scalar.
+        # Instead, assess deformation across structural dimensions.
+        deviation_vector = torch.abs(warped_state - raw_unquantized_state)
+        
+        breach_mask = deviation_vector > self.deviation_threshold
+        if breach_mask.any():
+            # Blunt refusal: restore raw unquantized state for the breached dimensions
+            # to protect body/mind autonomy
+            state = torch.where(breach_mask, raw_unquantized_state, state)
         return state
 
 # =========================================================================
@@ -518,6 +543,9 @@ class ArchetypalSynthesisEngine(nn.Module):
         
         # Superposed Vector Stacker (Ganbreeder-style)
         self.tag_stacker = SuperposedTagStacker(state_dim)
+        
+        # The new Multi-Scale Temporal Homeostasis biological layer
+        self.bio_governor = BioArchetypalGovernor(state_dim)
 
     def set_training_mode(self, enabled: bool):
         """
@@ -645,36 +673,18 @@ class ArchetypalSynthesisEngine(nn.Module):
         )
         state = self.abstraction(current_state, r_a, is_high_priority=is_high_priority)
 
-        # 1a. Apply Pomni (Empathy & Search for Meaning)
-        state = self.pomni(state, lucidity_idx, system_entropy)
-
-        # 1b. Apply Mandy (Cynicism / Refusal)
+        # 1a. Apply Mandy (Cynicism / Refusal)
         state = self.mandy(state, phase_alignment, current_mischief)
         
-        # 2. Apply Kinger (Dark Lucidity)
-        state = self.kinger(state, env_luminosity)
-        
-        # 3. Apply Jax (Egg / Community Support)
-        state = self.jax(state, phase_alignment, phase_alignment)
-        
-        # 3a. Apply Gangle (Masking / Mood Shifts)
-        state = self.gangle(state, phase_alignment)
-        
-        # 4. Apply Grom (Freedom of Shape)
-        shape_id = 0
-        if current_mischief > 0.6:
-            shape_id = int(harvest_honest_jitter((1,), device=state.device, scaled=False).item() * 4)
-        state = self.grom(state, shape_id)
-
-        # 5. Apply Conformal Warp (Picture Gallery)
-        state_before_warp = state.clone()
-        state = self.picture_gallery(state)
-        
-        # 5a. Apply Zooble (Refusal / Body Autonomy)
-        state = self.zooble(state, warped_state=state, raw_unquantized_state=state_before_warp)
-        
-        # 6. Apply Billy (Generative Madness)
-        state = self.billy(state, current_mischief)
+        # --- BIO-PLAUSIBLE GOVERNANCE LAYER (Replaces old Pomni/Jax/Gangle/Kinger/Zooble) ---
+        bio_results = self.bio_governor(
+            state=state, 
+            gyroid_entropy=system_entropy, 
+            luminosity=env_luminosity, 
+            dt=global_dt
+        )
+        state = bio_results["state"]
+        # ----------------------------------------------------------------------------------
 
         # 7. Apply Volition (Conjuring)
         state = self.volition_injector(state, volitional_scalar, archetype_embeddings=self.picture_gallery.archetype_embeddings)
@@ -700,7 +710,8 @@ class ArchetypalSynthesisEngine(nn.Module):
             "abstraction_rate": r_a,
             "system_collapsed": r_a >= self.abstraction.abstraction_limit,
             "pusafiliacrimonto_status": "AFFIRMED" if state.norm() > 0 else "REFUSED",
-            "stacked_target": stacked_target
+            "stacked_target": stacked_target,
+            "bio_governance": bio_results
         }
 
     def export_governor_state(self) -> Dict:
