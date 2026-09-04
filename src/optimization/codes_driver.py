@@ -157,3 +157,35 @@ class CODES:
         gate = ((avg_resonance + 1.0) / 2.0)**2
         
         return latent * gate
+
+    def tournament_gating(self, drafts: torch.Tensor, leakages: torch.Tensor) -> torch.Tensor:
+        """
+        Supports the N-parallel draft tournament loop from ADMRSolver.
+        Filters and gates the drafts based on coherence and topology leakages.
+        """
+        # drafts: [batch, num_drafts, state_dim]
+        # leakages: [batch, num_drafts]
+        batch_size, num_drafts, state_dim = drafts.shape
+        selected_drafts = torch.zeros(batch_size, state_dim, device=drafts.device)
+        
+        for i in range(batch_size):
+            best_idx = 0
+            best_pas = -1.0
+            for j in range(num_drafts):
+                draft = drafts[i, j]
+                phase = float(torch.sum(draft).item() % (2 * math.pi))
+                pas = self.compute_pas_h(phase)
+                
+                # Combine PAS and leakage (lower leakage is better)
+                score = pas - (leakages[i, j] * 0.5 if leakages.dim() > 1 else leakages[i] * 0.5)
+                
+                if score > best_pas:
+                    best_pas = score
+                    best_idx = j
+            
+            selected_drafts[i] = drafts[i, best_idx]
+            
+        return selected_drafts
+
+
+
