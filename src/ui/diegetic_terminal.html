@@ -1,4 +1,4 @@
-Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -241,11 +241,11 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
         }
 
         /* Hide all panels initially, show active */
-        .sidebar.right > div {
+        .sidebar.right>div {
             display: none;
         }
 
-        .sidebar.right > div.active-panel {
+        .sidebar.right>div.active-panel {
             display: block;
         }
 
@@ -805,18 +805,22 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
         </div>
 
         <!-- Master Commutativity Selector & User Geometric Domain Contract -->
-        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.35rem 1.25rem;background:rgba(0,0,0,0.4);border-top:1px solid var(--glass-border);font-family:var(--font-mono);font-size:0.65rem;letter-spacing:1px;width:100%;box-sizing:border-box;">
+        <div
+            style="display:flex;align-items:center;gap:0.75rem;padding:0.35rem 1.25rem;background:rgba(0,0,0,0.4);border-top:1px solid var(--glass-border);font-family:var(--font-mono);font-size:0.65rem;letter-spacing:1px;width:100%;box-sizing:border-box;">
             <span style="color:#555;">DYAD ORDER:</span>
-            <select id="commute-master" style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-blue);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;border-radius:3px;outline:none;cursor:pointer;">
+            <select id="commute-master"
+                style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-blue);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;border-radius:3px;outline:none;cursor:pointer;">
                 <option value="symmetric" selected>&#x2297; Symmetric</option>
                 <option value="media_first">Media &#x2192; Text</option>
                 <option value="text_first">Text &#x2192; Media</option>
             </select>
             <span style="color:#333;">│</span>
             <span style="color:#555;">USER CONTRACT (ALIAS):</span>
-            <input type="text" id="user-alias" value="admin" style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-magenta);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;width:100px;border-radius:3px;outline:none;letter-spacing:1px;">
+            <input type="text" id="user-alias" value="admin"
+                style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-magenta);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;width:100px;border-radius:3px;outline:none;letter-spacing:1px;">
             <span style="color:#333;">│</span>
-            <span id="creator-lock-status" style="color:var(--terminal-green);cursor:pointer;font-weight:bold;" onclick="promptCreatorAuth()">🔓 GUEST</span>
+            <span id="creator-lock-status" style="color:var(--terminal-green);cursor:pointer;font-weight:bold;"
+                onclick="promptCreatorAuth()">🔓 GUEST</span>
         </div>
     </header>
 
@@ -906,45 +910,64 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                     <input type="text" id="user-input" placeholder="Ingest symbolic residue..." autocomplete="off">
                 </div>
             </div>
-            
+
             <!-- Tab 2: Obsidian Graph -->
-            <div class="tab-pane" id="pane-graph" style="position: relative; flex-direction: column; background: #030303; flex: 1;">
-                <div style="padding: 0.5rem 1rem; display: flex; gap: 0.8rem; border-bottom: 1px solid var(--glass-border); align-items: center; justify-content: space-between; z-index: 10; flex-wrap: wrap;">
-                    <input type="text" id="graph-search" placeholder="Search fossils or tags..." style="flex: 2; min-width: 150px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none;">
-                    
-                    <div style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888;">
+            <div class="tab-pane" id="pane-graph"
+                style="position: relative; flex-direction: column; background: #030303; flex: 1;">
+                <div
+                    style="padding: 0.5rem 1rem; display: flex; gap: 0.8rem; border-bottom: 1px solid var(--glass-border); align-items: center; justify-content: space-between; z-index: 10; flex-wrap: wrap;">
+                    <input type="text" id="graph-search" placeholder="Search fossils or tags..."
+                        style="flex: 2; min-width: 150px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none;">
+
+                    <div
+                        style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888;">
                         <span>LIMIT:</span>
-                        <input type="number" id="graph-limit" value="150" min="10" max="1000" step="10" style="width: 55px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; text-align: center; outline: none;">
+                        <input type="number" id="graph-limit" value="150" min="10" max="1000" step="10"
+                            style="width: 55px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; text-align: center; outline: none;">
                     </div>
-                    
-                    <label style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888; cursor: pointer;">
-                        <input type="checkbox" id="graph-include-tags" checked style="accent-color: var(--terminal-blue); cursor: pointer;">
+
+                    <label
+                        style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888; cursor: pointer;">
+                        <input type="checkbox" id="graph-include-tags" checked
+                            style="accent-color: var(--terminal-blue); cursor: pointer;">
                         <span>NON-HIERARCHICAL TAGS</span>
                     </label>
-                    
-                    <button onclick="refreshGraph()" style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; border: 1px solid var(--terminal-blue); transition: all 0.2s;">REFRESH</button>
+
+                    <button onclick="refreshGraph()"
+                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; border: 1px solid var(--terminal-blue); transition: all 0.2s;">REFRESH</button>
                 </div>
-                <div id="graph-container" style="flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 400px; height: 100%;">
+                <div id="graph-container"
+                    style="flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 400px; height: 100%;">
                     <div id="graph-canvas-container" style="width: 100%; height: 100%; flex: 1;"></div>
-                    <div id="graph-info-overlay" style="position: absolute; bottom: 10px; left: 10px; right: 10px; background: rgba(0,0,0,0.85); border: 1px solid var(--glass-border); padding: 8px; border-radius: 6px; font-size: 0.75rem; color: #ddd; max-height: 100px; overflow-y: auto; pointer-events: auto; display: none; z-index: 100;"></div>
+                    <div id="graph-info-overlay"
+                        style="position: absolute; bottom: 10px; left: 10px; right: 10px; background: rgba(0,0,0,0.85); border: 1px solid var(--glass-border); padding: 8px; border-radius: 6px; font-size: 0.75rem; color: #ddd; max-height: 100px; overflow-y: auto; pointer-events: auto; display: none; z-index: 100;">
+                    </div>
                 </div>
             </div>
-            
+
             <!-- Tab 3: Link & Schedule Editor -->
             <div class="tab-pane" id="pane-link-editor" style="background: #050505; padding: 1rem; overflow-y: auto;">
-                <h3 style="margin-top: 0; font-family: var(--font-mono); font-size: 0.95rem; color: var(--terminal-blue); letter-spacing: 1px; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">INSTANCED MANIFOLD LINKER & SCHEDULER</h3>
+                <h3
+                    style="margin-top: 0; font-family: var(--font-mono); font-size: 0.95rem; color: var(--terminal-blue); letter-spacing: 1px; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">
+                    INSTANCED MANIFOLD LINKER & SCHEDULER</h3>
                 <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem;">
                     <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">SOURCE NODE (FOSSIL OR TAG)</label>
-                        <select id="link-source" style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;"></select>
+                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">SOURCE NODE
+                            (FOSSIL OR TAG)</label>
+                        <select id="link-source"
+                            style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;"></select>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">TARGET NODE (FOSSIL OR TAG)</label>
-                        <select id="link-target" style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;"></select>
+                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">TARGET NODE
+                            (FOSSIL OR TAG)</label>
+                        <select id="link-target"
+                            style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;"></select>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">LINK MODALITY</label>
-                        <select id="link-modality" style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;">
+                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">LINK
+                            MODALITY</label>
+                        <select id="link-modality"
+                            style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;">
                             <option value="resonance">Resonance (Co-primality Parity Check)</option>
                             <option value="shadow">Shadow Token (Voynich Exemption Bypass)</option>
                             <option value="spectral">Spectral Covariance (Chebyshev L-Cr-Cb)</option>
@@ -952,21 +975,28 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                         </select>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">TEMPORAL SCHEDULE</label>
-                        <select id="link-schedule" style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;">
+                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">TEMPORAL
+                            SCHEDULE</label>
+                        <select id="link-schedule"
+                            style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;">
                             <option value="immediate">Immediate Validation Test (Deterministic)</option>
                             <option value="next_epoch">Queue for Next Epoch training loop (Dream State)</option>
                             <option value="prime_interval">Defer to Prime Interval lock (PAS_h check)</option>
                         </select>
                     </div>
-                    
-                    <button id="btn-submit-link" style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; font-weight: bold; margin-top: 0.5rem; transition: all 0.2s; outline: none; border: 1px solid var(--terminal-blue);">
+
+                    <button id="btn-submit-link"
+                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; font-weight: bold; margin-top: 0.5rem; transition: all 0.2s; outline: none; border: 1px solid var(--terminal-blue);">
                         EXECUTE RESONANCE COHERENCE CHECK
                     </button>
-                    
+
                     <div style="margin-top: 0.5rem;">
-                        <div style="font-family: var(--font-mono); font-size: 0.65rem; color: #888; margin-bottom: 0.25rem;">DIAGNOSTIC TELEMETRY LOGGER</div>
-                        <div id="link-diagnostics-log" style="background: #000; border: 1px solid var(--glass-border); padding: 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; color: var(--terminal-green); height: 120px; overflow-y: auto; white-space: pre-wrap;">[CONSOLE] Idle. Select nodes and press button to test resonance stability.</div>
+                        <div
+                            style="font-family: var(--font-mono); font-size: 0.65rem; color: #888; margin-bottom: 0.25rem;">
+                            DIAGNOSTIC TELEMETRY LOGGER</div>
+                        <div id="link-diagnostics-log"
+                            style="background: #000; border: 1px solid var(--glass-border); padding: 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; color: var(--terminal-green); height: 120px; overflow-y: auto; white-space: pre-wrap;">
+                            [CONSOLE] Idle. Select nodes and press button to test resonance stability.</div>
                     </div>
                 </div>
             </div>
@@ -980,7 +1010,8 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                 <div class="section-title">Panel A: Dyad Ingestor</div>
 
                 <!-- Commutativity Selector -->
-                <div class="commutativity-row" title="Selects the entanglement order between the parsed modal inputs (Image/Text). Symmetric generates dual resonances.">
+                <div class="commutativity-row"
+                    title="Selects the entanglement order between the parsed modal inputs (Image/Text). Symmetric generates dual resonances.">
                     <label>ORDER</label>
                     <select class="commute-select" id="commute-image">
                         <option value="image_first">Image &#8594; Text</option>
@@ -994,14 +1025,20 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                     <div class="drop-hint">DRAG DYAD (MULTIPLE IMAGES)</div>
                     <input type="file" id="file-input" style="display: none;" accept="image/*" multiple>
                 </div>
-                <div class="section-title" title="The reasoning target buffer will contextualize the image dyad into the gyroidal network.">Manifold Buffer (A)</div>
-                <textarea id="manifold-buffer" placeholder="Reasoning target buffer for image dyad..." title="Enter text context for the image(s)"></textarea>
+                <div class="section-title"
+                    title="The reasoning target buffer will contextualize the image dyad into the gyroidal network.">
+                    Manifold Buffer (A)</div>
+                <textarea id="manifold-buffer" placeholder="Reasoning target buffer for image dyad..."
+                    title="Enter text context for the image(s)"></textarea>
                 <div class="metric-card" style="margin-bottom: 0.5rem;">
-                    <div class="metric-label" title="Source topic anchors the dyad in the topological space.">Source Topic</div>
-                    <input type="text" id="assoc-source" placeholder="e.g. Visual Signature" title="Semantic anchor for the dyad"
+                    <div class="metric-label" title="Source topic anchors the dyad in the topological space.">Source
+                        Topic</div>
+                    <input type="text" id="assoc-source" placeholder="e.g. Visual Signature"
+                        title="Semantic anchor for the dyad"
                         style="width: 100%; background: transparent; border: none; color: #fff; border-bottom: 1px solid var(--glass-border); padding: 4px 0; outline: none; font-size: 0.8rem;">
                     <button id="commit-assoc"
-                        style="width: 100%; margin-top: 1rem; background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;" title="Commits the dyad buffer into the continuous learning system">
+                        style="width: 100%; margin-top: 1rem; background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;"
+                        title="Commits the dyad buffer into the continuous learning system">
                         COMMIT DYAD ASSOCIATION
                     </button>
                 </div>
@@ -1009,10 +1046,15 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
             </div>
 
             <!-- CHAINING SYSTEM EXPLANATION -->
-            <div style="background: rgba(0, 242, 255, 0.05); border: 1px dashed var(--terminal-blue); padding: 10px; margin: 10px 0; border-radius: 4px;">
-                <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--terminal-blue); margin-bottom: 5px; font-weight: bold;">[?] CHAINING SYSTEM</div>
+            <div
+                style="background: rgba(0, 242, 255, 0.05); border: 1px dashed var(--terminal-blue); padding: 10px; margin: 10px 0; border-radius: 4px;">
+                <div
+                    style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--terminal-blue); margin-bottom: 5px; font-weight: bold;">
+                    [?] CHAINING SYSTEM</div>
                 <div style="font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; line-height: 1.4;">
-                    The Chaining System allows you to pipe the output of one Panel directly into another. By committing a Dyad (Panel A), you can utilize its topological signature as the implicit input context for Semantic Documents (Panel B) or Audio (Panel C), enabling multi-modal cross-attention.
+                    The Chaining System allows you to pipe the output of one Panel directly into another. By committing
+                    a Dyad (Panel A), you can utilize its topological signature as the implicit input context for
+                    Semantic Documents (Panel B) or Audio (Panel C), enabling multi-modal cross-attention.
                 </div>
             </div>
 
@@ -1023,7 +1065,8 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                 <div class="section-title">Panel B: Semantic Linker</div>
 
                 <!-- Commutativity Selector -->
-                <div class="commutativity-row" title="Selects the entanglement order for semantic connections. Source -> Target maps concept to buffer.">
+                <div class="commutativity-row"
+                    title="Selects the entanglement order for semantic connections. Source -> Target maps concept to buffer.">
                     <label>ORDER</label>
                     <select class="commute-select" id="commute-text">
                         <option value="source_first">Source &#8594; Target</option>
@@ -1033,7 +1076,8 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                 </div>
 
                 <div id="semantic-buffer-dropzone"
-                    style="border: 1px dashed var(--terminal-magenta); border-radius: 4px; padding: 10px; text-align: center; margin-bottom: 8px; cursor: pointer; background: rgba(255, 0, 242, 0.05); transition: border-color 0.2s;" title="Drag and drop multiple text/markdown files to populate the Target Buffer.">
+                    style="border: 1px dashed var(--terminal-magenta); border-radius: 4px; padding: 10px; text-align: center; margin-bottom: 8px; cursor: pointer; background: rgba(255, 0, 242, 0.05); transition: border-color 0.2s;"
+                    title="Drag and drop multiple text/markdown files to populate the Target Buffer.">
                     <div
                         style="font-size: 0.7rem; color: var(--terminal-magenta); pointer-events: none; margin-bottom: 2px;">
                         DRAG TARGET BUFFER (MULTIPLE FILES) HERE</div>
@@ -1044,18 +1088,21 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                 <div style="display:flex; justify-content:space-between; margin-bottom: 4px; align-items:center;">
                     <span style="font-size:0.6rem; color:#888;">TARGET BUFFER (B) (MANUAL INPUT)</span>
                 </div>
-                <textarea id="semantic-buffer" placeholder="Semantic target (Target Text)..." title="Enter the primary semantic content to ingest"
+                <textarea id="semantic-buffer" placeholder="Semantic target (Target Text)..."
+                    title="Enter the primary semantic content to ingest"
                     style="height: 120px; width: 100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); color:var(--terminal-green); font-family:var(--font-mono); font-size:0.7rem; padding:0.5rem; resize:none; outline:none; margin-bottom:0.75rem; border-radius:4px;"></textarea>
 
                 <div class="metric-card">
                     <div id="semantic-source-dropzone"
-                        style="border: 1px dashed var(--terminal-magenta); border-radius: 4px; padding: 10px; text-align: center; margin-bottom: 8px; cursor: pointer; background: rgba(255, 0, 242, 0.05); transition: border-color 0.2s;" title="Drag and drop multiple files here to set the Source Concept.">
+                        style="border: 1px dashed var(--terminal-magenta); border-radius: 4px; padding: 10px; text-align: center; margin-bottom: 8px; cursor: pointer; background: rgba(255, 0, 242, 0.05); transition: border-color 0.2s;"
+                        title="Drag and drop multiple files here to set the Source Concept.">
                         <div
                             style="font-size: 0.7rem; color: var(--terminal-magenta); pointer-events: none; margin-bottom: 2px;">
                             DRAG SOURCE CONCEPT (MULTIPLE FILES) HERE</div>
                         <div style="font-size: 0.5rem; color: #888; pointer-events: none;">.txt &bull; .md &bull; .py
                         </div>
-                        <input type="file" id="semantic-source-file" style="display:none;" accept=".txt,.md,.py" multiple>
+                        <input type="file" id="semantic-source-file" style="display:none;" accept=".txt,.md,.py"
+                            multiple>
                     </div>
                     <div class="metric-card">
                         <div
@@ -1143,7 +1190,8 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                         <div style="font-size: 1.4rem; line-height: 1; color: var(--terminal-blue);">&#128249;</div>
                         <div
                             style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">
-                            DRAG BINARY MEDIA (MULTIPLE FILES)<br><span style="color:#444;">mp4 &bull; avi &bull; gif &bull; webm</span>
+                            DRAG BINARY MEDIA (MULTIPLE FILES)<br><span style="color:#444;">mp4 &bull; avi &bull; gif
+                                &bull; webm</span>
                         </div>
                         <input type="file" id="video-file-input" style="display:none;"
                             accept="video/mp4,video/avi,video/webm,image/gif,.mp4,.avi,.webm,.gif" multiple>
@@ -1258,13 +1306,20 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
 
         <!-- Right Toolbar -->
         <div class="panel-toolbar">
-            <button class="panel-toggle-btn active" onclick="togglePanel('panel-a-container', this)" title="Panel A: Dyad Ingestor">A</button>
-            <button class="panel-toggle-btn" onclick="togglePanel('panel-b-container', this)" title="Panel B: Semantic Linker">B</button>
-            <button class="panel-toggle-btn" onclick="togglePanel('panel-c-container', this)" title="Panel C: Audio Dyad">C</button>
-            <button class="panel-toggle-btn" onclick="togglePanel('panel-d-container', this)" title="Panel D: Video Dyad">D</button>
-            <button class="panel-toggle-btn" onclick="togglePanel('panel-e-container', this)" title="Panel E: Image-Music Braid">E</button>
-            <button class="panel-toggle-btn" onclick="togglePanel('panel-f-container', this)" title="Panel F: Heterogeneous Chain">F</button>
-            <button class="panel-toggle-btn" onclick="togglePanel('panel-g-container', this)" title="Panel G: Minecraft Ingestor">G</button>
+            <button class="panel-toggle-btn active" onclick="togglePanel('panel-a-container', this)"
+                title="Panel A: Dyad Ingestor">A</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-b-container', this)"
+                title="Panel B: Semantic Linker">B</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-c-container', this)"
+                title="Panel C: Audio Dyad">C</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-d-container', this)"
+                title="Panel D: Video Dyad">D</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-e-container', this)"
+                title="Panel E: Image-Music Braid">E</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-f-container', this)"
+                title="Panel F: Heterogeneous Chain">F</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-g-container', this)"
+                title="Panel G: Minecraft Ingestor">G</button>
         </div>
     </main>
 
@@ -1274,7 +1329,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
             const sidebar = document.getElementById('right-sidebar');
             const targetPanel = document.getElementById(panelId);
             const isAlreadyActive = targetPanel.classList.contains('active-panel');
-            
+
             // If the sidebar is open and we clicked the already active panel, close it.
             if (sidebar.classList.contains('open') && isAlreadyActive) {
                 sidebar.classList.remove('open');
@@ -1332,13 +1387,13 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                     }
                 });
             });
-            
+
             // Setup submit link handler
             const btnSubmit = document.getElementById("btn-submit-link");
             if (btnSubmit) {
                 btnSubmit.addEventListener("click", executeResonanceLink);
             }
-            
+
             checkCreatorStatus();
         });
 
@@ -1364,14 +1419,14 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
         async function promptCreatorAuth() {
             const response = await fetch('/api/security/creator_status');
             const statusData = await response.json();
-            
-            let promptMsg = statusData.initialized 
+
+            let promptMsg = statusData.initialized
                 ? "Enter Sole Creator Passphrase to authorize this hardware node:"
                 : "Enter a new Sole Creator Passphrase to lock this system to this physical machine's fingerprint:";
-                
+
             const passphrase = prompt(promptMsg);
             if (!passphrase) return;
-            
+
             try {
                 const res = await fetch('/api/security/creator_login', {
                     method: 'POST',
@@ -1380,7 +1435,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                 });
                 const data = await res.json();
                 alert(data.message);
-                
+
                 const lockEl = document.getElementById('creator-lock-status');
                 if (lockEl) {
                     if (data.status === 'ok') {
@@ -1406,10 +1461,10 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
             const container = document.getElementById('graph-canvas-container');
             if (!container) return;
             container.innerHTML = '<div style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:var(--terminal-blue); font-size:0.75rem; letter-spacing:1px; z-index:100;">RE-SCANNING FIELD...</div>';
-            
+
             const limitEl = document.getElementById('graph-limit');
             const includeTagsEl = document.getElementById('graph-include-tags');
-            
+
             try {
                 // Fetch the actual index size first to see if we need a bigger graph
                 const sizeRes = await fetch(`${state.backend_url}/api/index_size`);
@@ -1420,22 +1475,22 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                         limitEl.max = Math.max(1000, sizeData.total_index);
                     }
                 }
-                
+
                 const limit = limitEl ? parseInt(limitEl.value) || 150 : 150;
                 const includeTags = includeTagsEl ? includeTagsEl.checked : true;
 
                 const response = await fetch(`${state.backend_url}/graph?limit=${limit}`);
                 const data = await response.json();
                 graphDataGlobal = data;
-                
+
                 container.innerHTML = '';
-                
+
                 // Build D3 nodes and links
                 const d3Nodes = [];
                 const d3Links = [];
                 const seenTags = new Set();
                 const fossilIdMap = new Map();
-                
+
                 // 1. Process Fossils and Live Nodes
                 data.nodes.forEach(node => {
                     const d3Node = {
@@ -1454,7 +1509,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                     };
                     d3Nodes.push(d3Node);
                     fossilIdMap.set(node.id, d3Node);
-                    
+
                     // Collect Tags
                     if (includeTags) {
                         (node.tags || []).forEach(tag => {
@@ -1470,7 +1525,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                         });
                     }
                 });
-                
+
                 // 2. Add Tag Hub Nodes
                 if (includeTags) {
                     seenTags.forEach(tag => {
@@ -1484,7 +1539,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                         });
                     });
                 }
-                
+
                 // 3. Process Resonance/Similarity Links
                 (data.links || []).forEach(link => {
                     if (fossilIdMap.has(link.source) && fossilIdMap.has(link.target)) {
@@ -1496,14 +1551,14 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                         });
                     }
                 });
-                
+
                 // 4. Set up dropdown lists in Link & Schedule Editor
                 populateLinkDropdowns(data.nodes, Array.from(seenTags));
-                
+
                 // 5. Render SVG
                 const width = container.clientWidth || 500;
                 const height = container.clientHeight || 400;
-                
+
                 // Initialize node coordinates based on Poincare coordinates projected to canvas
                 d3Nodes.forEach(d => {
                     d.x = width / 2 + (width / 2 - 40) * d.px;
@@ -1511,7 +1566,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                     d.vx = 0;
                     d.vy = 0;
                 });
-                
+
                 const svg = d3.select(container)
                     .append('svg')
                     .attr('width', '100%')
@@ -1520,9 +1575,9 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                     .call(d3.zoom().scaleExtent([0.1, 4]).on('zoom', (event) => {
                         g.attr('transform', event.transform);
                     }));
-                    
+
                 const g = svg.append('g');
-                
+
                 // Link lines
                 const link = g.append('g')
                     .selectAll('line')
@@ -1532,7 +1587,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                     .attr('stroke', d => d.type === 'tag-link' ? 'rgba(0, 255, 65, 0.15)' : 'rgba(0, 242, 255, 0.35)')
                     .attr('stroke-width', d => d.type === 'tag-link' ? 1 : 2)
                     .attr('stroke-dasharray', d => d.type === 'tag-link' ? '3,3' : 'none');
-                    
+
                 // Node groups
                 const node = g.append('g')
                     .selectAll('.node')
@@ -1545,9 +1600,9 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                         .on('start', dragstarted)
                         .on('drag', dragged)
                         .on('end', dragended));
-                        
+
                 // Draw shapes based on node type
-                node.each(function(d) {
+                node.each(function (d) {
                     const el = d3.select(this);
                     if (d.type === 'tag') {
                         el.append('rect')
@@ -1587,7 +1642,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                             .attr('stroke-width', d.locked ? 2.5 : 1.5);
                     }
                 });
-                
+
                 // Node labels
                 node.append('text')
                     .attr('dx', 14)
@@ -1603,7 +1658,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                         return '#fff';
                     })
                     .text(d => d.label.substring(0, 24) + (d.label.length > 24 ? '...' : ''));
-                    
+
                 // Click handler to show info overlay
                 node.on('click', (event, d) => {
                     event.stopPropagation();
@@ -1616,7 +1671,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                         <strong>Residue:</strong> "${d.label}"<br/>
                         <strong>Chiral Shift:</strong> ${d.chiral.toFixed(4)} | <strong>Spectral Entropy:</strong> ${d.entropy.toFixed(4)}<br/>
                         <strong>Tags:</strong> ${d.tags.join(', ') || 'none'}`;
-                        
+
                         // Populate source/target selects
                         const srcSelect = document.getElementById('link-source');
                         const tgtSelect = document.getElementById('link-target');
@@ -1630,7 +1685,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                     }
                     overlay.style.display = 'block';
                 });
-                
+
                 // Setup simulation forces
                 graphSimulation = d3.forceSimulation(d3Nodes)
                     .force('link', d3.forceLink(d3Links).id(d => d.id).distance(d => d.type === 'tag-link' ? 40 : 80))
@@ -1638,44 +1693,44 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                     .force('center', d3.forceCenter(width / 2, height / 2))
                     .force('collide', d3.forceCollide().radius(22))
                     .alphaMin(0.02); // Cool down sooner to conserve compute
-                
+
                 // Warm up simulation offline for 80 ticks to settle nodes instantly
                 for (let i = 0; i < 80; i++) {
                     graphSimulation.tick();
                 }
-                
+
                 // Register tick listener after warmup
                 graphSimulation.on('tick', ticked);
-                    
+
                 function ticked() {
                     link
                         .attr('x1', d => d.source.x)
                         .attr('y1', d => d.source.y)
                         .attr('x2', d => d.target.x)
                         .attr('y2', d => d.target.y);
-                        
+
                     node
                         .attr('transform', d => `translate(${d.x}, ${d.y})`);
                 }
-                
+
                 // Drag helper functions
                 function dragstarted(event, d) {
                     if (!event.active) graphSimulation.alphaTarget(0.3).restart();
                     d.fx = d.x;
                     d.fy = d.y;
                 }
-                
+
                 function dragged(event, d) {
                     d.fx = event.x;
                     d.fy = event.y;
                 }
-                
+
                 function dragended(event, d) {
                     if (!event.active) graphSimulation.alphaTarget(0);
                     d.fx = null;
                     d.fy = null;
                 }
-                
+
                 // Setup dynamic search filter
                 const searchInput = document.getElementById('graph-search');
                 if (searchInput) {
@@ -1686,14 +1741,14 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                             link.style('opacity', 1);
                             return;
                         }
-                        
+
                         node.style('opacity', d => {
                             const labelMatch = d.label.toLowerCase().includes(query);
                             const idMatch = d.id.toLowerCase().includes(query);
                             const tagMatch = d.tags.some(t => t.toLowerCase().includes(query));
                             return (labelMatch || idMatch || tagMatch) ? 1 : 0.15;
                         });
-                        
+
                         link.style('opacity', d => {
                             const srcNode = d3Nodes.find(n => n.id === d.source.id);
                             const tgtNode = d3Nodes.find(n => n.id === d.target.id);
@@ -1703,7 +1758,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                         });
                     });
                 }
-                
+
             } catch (e) {
                 console.error(e);
                 container.innerHTML = '<div style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:red; font-size:0.75rem;">COGNITIVE BUS DISCONNECT</div>';
@@ -1714,22 +1769,22 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
             const srcSelect = document.getElementById('link-source');
             const tgtSelect = document.getElementById('link-target');
             if (!srcSelect || !tgtSelect) return;
-            
+
             const prevSrc = srcSelect.value;
             const prevTgt = tgtSelect.value;
-            
+
             srcSelect.innerHTML = '';
             tgtSelect.innerHTML = '';
-            
+
             const createGroup = (label) => {
                 const grp = document.createElement('optgroup');
                 grp.label = label;
                 return grp;
             };
-            
+
             const fossilsGrpSrc = createGroup('FOSSIL FILES');
             const fossilsGrpTgt = createGroup('FOSSIL FILES');
-            
+
             nodes.forEach(n => {
                 const opt = document.createElement('option');
                 opt.value = n.id;
@@ -1737,10 +1792,10 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                 fossilsGrpSrc.appendChild(opt.cloneNode(true));
                 fossilsGrpTgt.appendChild(opt.cloneNode(true));
             });
-            
+
             const tagsGrpSrc = createGroup('TAG HUBS');
             const tagsGrpTgt = createGroup('TAG HUBS');
-            
+
             tags.forEach(t => {
                 const opt = document.createElement('option');
                 opt.value = 'tag_' + t;
@@ -1748,13 +1803,13 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                 tagsGrpSrc.appendChild(opt.cloneNode(true));
                 tagsGrpTgt.appendChild(opt.cloneNode(true));
             });
-            
+
             srcSelect.appendChild(fossilsGrpSrc);
             srcSelect.appendChild(tagsGrpSrc);
-            
+
             tgtSelect.appendChild(fossilsGrpTgt);
             tgtSelect.appendChild(tagsGrpTgt);
-            
+
             // Restore selection if valid
             if (Array.from(srcSelect.options).some(o => o.value === prevSrc)) {
                 srcSelect.value = prevSrc;
@@ -1770,19 +1825,19 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
             const modality = document.getElementById("link-modality").value;
             const schedule = document.getElementById("link-schedule").value;
             const logEl = document.getElementById("link-diagnostics-log");
-            
+
             if (!source || !target) {
                 logEl.innerHTML = `[ERROR] Select both a source and target node to link.`;
                 return;
             }
-            
+
             if (source === target) {
                 logEl.innerHTML = `[ERROR] Cannot link a node to itself. Identity loops are vacuum-locked.`;
                 return;
             }
-            
-            logEl.innerHTML = `[PENDING] Commencing coherence test for: ${source.substring(0,8)} <-> ${target.substring(0,8)}...\n`;
-            
+
+            logEl.innerHTML = `[PENDING] Commencing coherence test for: ${source.substring(0, 8)} <-> ${target.substring(0, 8)}...\n`;
+
             try {
                 const response = await fetch(`${state.backend_url}/api/test_resonance_link`, {
                     method: 'POST',
@@ -1790,7 +1845,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                     body: JSON.stringify({ source, target, modality, schedule })
                 });
                 const result = await response.json();
-                
+
                 if (result.success) {
                     let logMsg = `[STATUS] ${result.timestamp}\n`;
                     logMsg += `[MODALITY] ${result.modality.toUpperCase()}\n`;
@@ -1802,10 +1857,10 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                         logMsg += `[PERSISTENCE] Link saved to: ${result.saved_link_path}\n`;
                         logMsg += `[SCHEDULER] Ingestor queued background update step.\n`;
                     }
-                    
+
                     logEl.innerHTML = logMsg;
                     logEl.style.color = result.link_allowed ? 'var(--terminal-green)' : 'var(--terminal-warn)';
-                    
+
                     // Refresh graph to show the new link if written immediately
                     if (result.link_allowed) {
                         setTimeout(refreshGraph, 1000);
@@ -1992,7 +2047,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
         function handleResponse(data) {
             // Support both wrapped (hybrid_backend) and flat (diegetic_backend) formats
             const normalizedData = (data.diagnostics && data.diagnostics.iteration !== undefined) ? data.diagnostics : data;
-            
+
             if (normalizedData.diagnostics && normalizedData.diagnostics.suppress_ui) {
                 updateMetricsFromDiagnostics(data);
                 return;
@@ -2090,7 +2145,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
 
         function updateMetricsFromDiagnostics(data) {
             const normalizedData = (data.diagnostics && data.diagnostics.iteration !== undefined) ? data.diagnostics : data;
-            
+
             // Update Metrics (safely)
             if (normalizedData.iteration !== undefined) document.getElementById('stat-iteration').innerText = normalizedData.iteration;
             if (normalizedData.resonance_score !== undefined) document.getElementById('resonance-score').innerText = normalizedData.resonance_score.toFixed(4);
@@ -2278,10 +2333,10 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
         async function processImages(files) {
             if (!files || files.length === 0) return;
             document.querySelector('.drop-hint').innerText = `PROCESSING ${files.length} DYADS...`;
-            
+
             let averagedFingerprint = null;
             let loadedCount = 0;
-            
+
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 await new Promise((resolve) => {
@@ -2294,7 +2349,7 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                                 averagedFingerprint = fingerprint;
                             } else {
                                 // Average the vectors for a composite dyad
-                                for (let j=0; j<fingerprint.L.length; j++) {
+                                for (let j = 0; j < fingerprint.L.length; j++) {
                                     averagedFingerprint.L[j] = (averagedFingerprint.L[j] * loadedCount + fingerprint.L[j]) / (loadedCount + 1);
                                     averagedFingerprint.Cr[j] = (averagedFingerprint.Cr[j] * loadedCount + fingerprint.Cr[j]) / (loadedCount + 1);
                                     averagedFingerprint.Cb[j] = (averagedFingerprint.Cb[j] * loadedCount + fingerprint.Cb[j]) / (loadedCount + 1);
@@ -2308,11 +2363,11 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
                     reader.readAsDataURL(file);
                 });
             }
-            
+
             state.active_fingerprint = averagedFingerprint;
             updateRibbon(fingerprintToVector(averagedFingerprint));
             document.querySelector('.drop-hint').innerText = `COMPOSITE DYAD CAPTURED: ${files.length} IMAGES`;
-            
+
             const totalCoeffs = averagedFingerprint.L.length + averagedFingerprint.Cr.length + averagedFingerprint.Cb.length;
             appendMessage('system',
                 `⬡ COMPOSITE DYAD ARMED — ${totalCoeffs}-coeff Chebyshev fingerprint computed locally ` +
@@ -2537,59 +2592,59 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
             fileInput.onchange = async (e) => {
                 const files = e.target.files;
                 if (!files || files.length === 0) return;
-                
+
                 targetInput.value = "Reading files via Streams API...";
                 targetInput.disabled = true;
                 let combinedText = "";
                 let previewText = "";
-                
-                for(let i=0; i<files.length; i++) {
+
+                for (let i = 0; i < files.length; i++) {
                     const file = files[i];
                     if (files.length > 1) {
                         combinedText += `--- ${file.name} ---\n`;
                         previewText += `--- ${file.name} ---\n`;
                     }
-                    
-                    targetInput.value = `Streaming ${file.name} (${Math.round(file.size/1024/1024)}MB)...`;
-                    
+
+                    targetInput.value = `Streaming ${file.name} (${Math.round(file.size / 1024 / 1024)}MB)...`;
+
                     const stream = file.stream();
                     const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-                    
+
                     let chunks = [];
                     let receivedLength = 0;
                     let previewLength = 0;
-                    
+
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
-                        
+
                         chunks.push(value);
                         receivedLength += value.length;
-                        
+
                         if (previewLength < 1000) {
                             previewText += value;
                             previewLength += value.length;
                         }
-                        
+
                         if (chunks.length % 50 === 0) {
-                             targetInput.value = `Streaming ${file.name}: ${Math.round(receivedLength/1024/1024)}MB read...`;
+                            targetInput.value = `Streaming ${file.name}: ${Math.round(receivedLength / 1024 / 1024)}MB read...`;
                         }
                     }
-                    
+
                     combinedText += chunks.join('');
                     if (receivedLength > 1000) {
                         previewText = previewText.substring(0, 1000) + `\n\n... [PREVIEW END - FULL FILE LOADED IN MEMORY] ...`;
                     }
-                    
+
                     if (i < files.length - 1) {
                         combinedText += "\n\n";
                         previewText += "\n\n";
                     }
                 }
-                
+
                 state[`${targetInput.id}_payload`] = combinedText;
                 targetInput.disabled = false;
-                
+
                 if (isTextarea) {
                     targetInput.value = previewText;
                 } else {
@@ -2604,13 +2659,13 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
         async function commitSemanticLink() {
             const sourceEl = document.getElementById('semantic-source');
             const targetEl = document.getElementById('semantic-buffer');
-            
+
             let source = state['semantic-source_payload'] || sourceEl.value.trim();
             if (state['semantic-source_payload'] && !sourceEl.value.includes('[PREVIEW END')) {
                 source = sourceEl.value.trim();
                 state['semantic-source_payload'] = null;
             }
-            
+
             let target = state['semantic-buffer_payload'] || targetEl.value.trim();
             if (state['semantic-buffer_payload'] && !targetEl.value.includes('[PREVIEW END')) {
                 target = targetEl.value.trim();
@@ -3128,12 +3183,12 @@ Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
         // --- Event Listeners ---
         const consoleTabs = document.querySelectorAll('.console-tab');
         const tabPanes = document.querySelectorAll('.tab-pane');
-        
+
         consoleTabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 consoleTabs.forEach(t => t.classList.remove('active'));
                 tabPanes.forEach(p => p.classList.remove('active'));
-                
+
                 tab.classList.add('active');
                 const targetId = 'pane-' + tab.getAttribute('data-tab');
                 document.getElementById(targetId).classList.add('active');
