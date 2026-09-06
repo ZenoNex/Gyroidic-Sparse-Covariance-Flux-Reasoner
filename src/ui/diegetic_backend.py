@@ -1503,9 +1503,9 @@ class DiegeticPhysicsEngine(nn.Module):
     def process_input(
         self,
         text_input: str,
-        fingerprint: Optional[Dict] = None,
-        audio_dyad: Optional[Dict] = None,
-        video_dyad_b64: Optional[str] = None,
+        fingerprint: Optional[Union[Dict, List[Dict]]] = None,
+        audio_dyad: Optional[Union[Dict, List[Dict]]] = None,
+        video_dyad_b64: Optional[Union[str, List[str]]] = None,
         audio_b64: Optional[str] = None,
         media_chain: Optional[List[Dict]] = None,
         commutativity: str = 'symmetric',
@@ -4945,7 +4945,7 @@ class DiegeticPhysicsEngine(nn.Module):
         return collision_residues, codec_metrics
 
     
-    def _handle_dyad_ingestion(self, input_text: str, fingerprint: Optional[Dict], seed_state: torch.Tensor, audio_dyad: Optional[Dict] = None, video_dyad_b64: Optional[str] = None, audio_b64: Optional[str] = None, commutativity: str = 'symmetric') -> str:
+    def _handle_dyad_ingestion(self, input_text: str, fingerprint: Optional[Union[Dict, List[Dict]]], seed_state: torch.Tensor, audio_dyad: Optional[Union[Dict, List[Dict]]] = None, video_dyad_b64: Optional[Union[str, List[str]]] = None, audio_b64: Optional[str] = None, commutativity: str = 'symmetric') -> str:
         """Handle multi-modal dyad ingestion (Image, Audio, Video) using DyadFossilizer and GyroidicCodec."""
         # Determine modality from command prefix
         modality = "Image"
