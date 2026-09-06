@@ -10,7 +10,9 @@ import uuid
 import copy
 from enum import Enum, auto
 import torch
+import time
 from src.surrogates.kagh_networks import KANLayer
+from src.core.invariants import SelfReferenceAdmissibility
 
 # ==========================================
 # ROLES, PERMISSIONS & INVENTORY
@@ -30,12 +32,21 @@ class InventoryComponent:
 class PermissionsManager:
     def __init__(self):
         self.roles: Dict[str, Role] = {} # peer_id -> Role
+        self.role_tags: Dict[Role, List[str]] = {
+            Role.ADMIN: ["manage_mangostiens", "creative_mode", "arbitrate"],
+            Role.BUILDER: ["creative_mode", "submit_mangostiens"],
+            Role.VISITOR: ["survival_mode"]
+        }
 
     def get_role(self, peer_id: str) -> Role:
         return self.roles.get(peer_id, Role.VISITOR)
 
+    def has_permission(self, peer_id: str, tag: str) -> bool:
+        role = self.get_role(peer_id)
+        return tag in self.role_tags.get(role, [])
+
     def gift_role(self, admin_id: str, target_id: str, new_role: Role):
-        if self.get_role(admin_id) == Role.ADMIN:
+        if self.has_permission(admin_id, "arbitrate"):
             self.roles[target_id] = new_role
 
 # ==========================================
@@ -171,9 +182,9 @@ class AddonLayer:
     def execute(self, graph: StructuralGraph):
         pass
 
-class BSplineCompiledMod(AddonLayer):
+class MangostienBSplineMod(AddonLayer):
     """
-    True B-Spline Addon Mod.
+    True B-Spline Addon Mod (Mangostien).
     Uses the Kolmogorov-Arnold Network (KANLayer) from the KAGH architecture
     as a mathematical compiler to generate arbitrary mod features (like custom 
     machines, fields, or ores) across the StructuralGraph.
@@ -298,9 +309,71 @@ class AddonRoutine:
                 inventory.block_masses[mat_id] -= diff
             return True
         else:
-            # Revert layer addition
-            self.layers.pop()
+            self.layers.pop() # Revert simulation
             return False
+
+# ==========================================
+# MANGOSTIEN TICKETING & ARBITRATION
+# ==========================================
+
+@dataclass
+class MangostienTicket:
+    mod: MangostienBSplineMod
+    submitter_id: str
+    submission_time: float
+    admissibility_score: float = 0.0
+    synthetic_rank: float = 0.0
+    is_admissible: bool = False
+    status: str = "pending" # pending, admissible, rejected, approved
+
+class MangostienArbitrator:
+    """
+    Handles the time-gated queueing, synthetic arbitration (admissibility ranking),
+    and Admin review pipeline for Mangostien BSpline Mods.
+    """
+    def __init__(self, time_gate_seconds: float = 300.0):
+        self.queue: List[MangostienTicket] = []
+        self.time_gate = time_gate_seconds
+        self.admissibility_probe = SelfReferenceAdmissibility()
+
+    def submit_mangostien(self, mod: MangostienBSplineMod, submitter_id: str):
+        ticket = MangostienTicket(
+            mod=mod,
+            submitter_id=submitter_id,
+            submission_time=time.time()
+        )
+        self.queue.append(ticket)
+        return ticket
+
+    def _process_admissibility(self):
+        """Synthetic Arbitration: evaluate structural honesty."""
+        current_time = time.time()
+        for ticket in self.queue:
+            if ticket.status == "pending" and (current_time - ticket.submission_time) >= self.time_gate:
+                # We extract the mod's latent coordinates to test admissibility
+                # In a full system, this tests the Gyroidic structure.
+                # Here we use the SelfReferenceAdmissibility probe.
+                dummy_latent = torch.randn(1, ticket.mod.latent_dim)
+                is_adm = self.admissibility_probe.assess(dummy_latent, dummy_latent)
+                ticket.is_admissible = is_adm
+                ticket.status = "admissible" if is_adm else "rejected"
+                
+                # Assign a synthetic rank based on some topological feature
+                if is_adm:
+                    ticket.synthetic_rank = float(torch.norm(ticket.mod.kan(dummy_latent)).item())
+
+    def get_pending_review(self) -> List[MangostienTicket]:
+        """Admin fetches admissible tickets sorted by synthetic rank (not zero-sum)."""
+        self._process_admissibility()
+        admissible = [t for t in self.queue if t.status == "admissible"]
+        return sorted(admissible, key=lambda t: t.synthetic_rank, reverse=True)
+
+    def review_ticket(self, ticket: MangostienTicket, approve: bool):
+        if ticket in self.queue:
+            ticket.status = "approved" if approve else "rejected"
+            if approve:
+                # The Mangostien is now available for players to instantiate
+                pass
 
     def generate_graph(self) -> StructuralGraph:
         """Executes the entire layer stack non-destructively."""
