@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+Y7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U7U<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -186,6 +186,67 @@
         .sidebar.right {
             border-right: none;
             border-left: 1px solid var(--glass-border);
+            width: 0;
+            opacity: 0;
+            padding: 0;
+            transition: all 0.3s cubic-bezier(.4, 0, .2, 1);
+            overflow: hidden;
+        }
+
+        .sidebar.right.open {
+            width: var(--sidebar-width);
+            opacity: 1;
+            padding: 1rem;
+        }
+
+        /* --- Panel Toolbar --- */
+        .panel-toolbar {
+            width: 48px;
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 0;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .panel-toggle-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: #888;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .panel-toggle-btn:hover {
+            background: rgba(0, 242, 255, 0.1);
+            color: var(--terminal-blue);
+            border-color: var(--terminal-blue);
+        }
+
+        .panel-toggle-btn.active {
+            background: rgba(0, 242, 255, 0.2);
+            color: var(--terminal-blue);
+            border-color: var(--terminal-blue);
+        }
+
+        /* Hide all panels initially, show active */
+        .sidebar.right > div {
+            display: none;
+        }
+
+        .sidebar.right > div.active-panel {
+            display: block;
         }
 
         .section-title {
@@ -913,9 +974,9 @@
         </section>
 
         <!-- Right Sidebar: Data Ingestion & Associations -->
-        <aside class="sidebar right">
+        <aside class="sidebar right" id="right-sidebar">
             <!-- PANEL A: DYAD INGESTOR (IMAGE TO TEXT) -->
-            <div class="ingestor-panel">
+            <div class="ingestor-panel active-panel" id="panel-a-container">
                 <div class="section-title">Panel A: Dyad Ingestor</div>
 
                 <!-- Commutativity Selector -->
@@ -958,7 +1019,7 @@
             <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
 
             <!-- PANEL B: TEXT-TO-TEXT ASSOCIATION -->
-            <div class="association-panel">
+            <div class="association-panel" id="panel-b-container">
                 <div class="section-title">Panel B: Semantic Linker</div>
 
                 <!-- Commutativity Selector -->
@@ -1014,7 +1075,7 @@
                 <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
 
                 <!-- PANEL C: AUDIO DYAD INGESTOR -->
-                <div class="audio-panel" id="audio-panel">
+                <div class="audio-panel" id="panel-c-container">
                     <div class="section-title panel-c-title">Panel C: Audio Dyad
                         <small id="audio-status" style="color:#555;">IDLE</small>
                     </div>
@@ -1061,7 +1122,7 @@
                 <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
 
                 <!-- PANEL D: VIDEO DYAD INGESTOR -->
-                <div class="video-panel" id="video-panel">
+                <div class="video-panel" id="panel-d-container">
                     <div class="section-title">Panel D: Video Dyad
                         <small id="video-status" style="color:#555;">IDLE</small>
                     </div>
@@ -1103,7 +1164,7 @@
                 <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
 
                 <!-- PANEL E: IMAGE-MUSIC BRAID -->
-                <div class="chain-panel" id="panel-e">
+                <div class="chain-panel" id="panel-e-container">
                     <div class="section-title panel-e-title">Panel E: Image-Music Braid</div>
 
                     <div class="commutativity-row">
@@ -1126,7 +1187,7 @@
                 <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
 
                 <!-- PANEL F: HETEROGENEOUS CHAIN -->
-                <div class="chain-panel" id="panel-f">
+                <div class="chain-panel" id="panel-f-container">
                     <div class="section-title panel-f-title">Panel F: Heterogeneous Chain</div>
 
                     <div class="commutativity-row">
@@ -1154,7 +1215,7 @@
                 <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
 
                 <!-- PANEL G: MINECRAFT INGESTOR -->
-                <div class="minecraft-panel" id="panel-g">
+                <div class="minecraft-panel" id="panel-g-container">
                     <div class="section-title" style="color: #55ff55;">Panel G: Minecraft Ingestor
                         <small id="minecraft-status" style="color:#555;">IDLE</small>
                     </div>
@@ -1194,10 +1255,45 @@
                     <div id="minecraft-log" class="small-log" style="height: 120px;"></div>
                 </div>
         </aside>
+
+        <!-- Right Toolbar -->
+        <div class="panel-toolbar">
+            <button class="panel-toggle-btn active" onclick="togglePanel('panel-a-container', this)" title="Panel A: Dyad Ingestor">A</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-b-container', this)" title="Panel B: Semantic Linker">B</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-c-container', this)" title="Panel C: Audio Dyad">C</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-d-container', this)" title="Panel D: Video Dyad">D</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-e-container', this)" title="Panel E: Image-Music Braid">E</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-f-container', this)" title="Panel F: Heterogeneous Chain">F</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-g-container', this)" title="Panel G: Minecraft Ingestor">G</button>
+        </div>
     </main>
 
     <!-- JS Logic in separate tag for better separation later -->
     <script>
+        function togglePanel(panelId, btn) {
+            const sidebar = document.getElementById('right-sidebar');
+            const targetPanel = document.getElementById(panelId);
+            const isAlreadyActive = targetPanel.classList.contains('active-panel');
+            
+            // If the sidebar is open and we clicked the already active panel, close it.
+            if (sidebar.classList.contains('open') && isAlreadyActive) {
+                sidebar.classList.remove('open');
+                btn.classList.remove('active');
+                return;
+            }
+
+            // Hide all panels
+            document.querySelectorAll('.sidebar.right > div').forEach(p => p.classList.remove('active-panel'));
+            // Remove active state from all buttons
+            document.querySelectorAll('.panel-toggle-btn').forEach(b => b.classList.remove('active'));
+
+            // Show selected panel
+            targetPanel.classList.add('active-panel');
+            btn.classList.add('active');
+
+            // Open the sidebar
+            sidebar.classList.add('open');
+        }
         // Global State
         const state = {
             iteration: 0,
@@ -2401,6 +2497,10 @@
                 manifoldBuffer.value = '';
                 assocSource.value = '';
 
+                // Close Sidebar
+                document.getElementById('right-sidebar').classList.remove('open');
+                document.querySelectorAll('.panel-toggle-btn').forEach(b => b.classList.remove('active'));
+
             } catch (err) {
                 appendMessage('system', "ASSOCIATION RUPTURE. PERSISTENCE FAILED.");
             }
@@ -2552,7 +2652,13 @@
                 state['semantic-source_payload'] = null;
                 state['semantic-buffer_payload'] = null;
 
+                // Close Sidebar
+                document.getElementById('right-sidebar').classList.remove('open');
+                document.querySelectorAll('.panel-toggle-btn').forEach(b => b.classList.remove('active'));
+
             } catch (err) {
+                state['semantic-source_payload'] = null;
+                state['semantic-buffer_payload'] = null;
                 appendMessage('system', "SEMANTIC RUPTURE. PERSISTENCE FAILED.");
             }
         }
