@@ -813,6 +813,14 @@ class DiegeticPhysicsEngine(nn.Module):
         from src.core.investor_news_ingestor import InvestorNewsIngestor
         self.bonfire = BonfireNetwork(node_id="engine_node", local_url="http://localhost:8080")
         self.investor_ingestor = InvestorNewsIngestor()
+        
+        # ASD-STE100 Rules: Integrate P2P Sovereign Network & UI Pipeline
+        from src.p2p.freenet_ws_client import FreenetClient
+        from src.p2p.zk_aggregator import ZKAggregator
+        from src.p2p.bonfire_consensus import BonfireNomadicRing
+        self.freenet_client = FreenetClient(host="127.0.0.1", port=3000)
+        self.zk_aggregator = ZKAggregator()
+        self.bonfire_nomadic_ring = BonfireNomadicRing(self.freenet_client)
 
     def _idx_to_char(self, idx: int) -> str:
         """Map vocabulary index to character string."""
@@ -1106,6 +1114,15 @@ class DiegeticPhysicsEngine(nn.Module):
                         if isinstance(boundary_res, BoundaryState):
                             # Project update direction onto Bouligand tangent cone
                             direction = self.meta_polytope.project_direction(current_state, direction, boundary_res)
+                            
+                            # ASD-STE100 Rules: Intercept BoundaryState critically
+                            if boundary_res.is_critical() and hasattr(self, 'bonfire_nomadic_ring'):
+                                zk_proof = self.zk_aggregator.prove_chern_simons_invariant(current_state, current_state)
+                                self.bonfire_nomadic_ring.share_topological_signature(
+                                    local_peer_id="engine_node",
+                                    betti_numbers=[int(boundary_res.alpha), int(boundary_res.level)],
+                                    variance=float(boundary_res.crossing_energy)
+                                )
                     current_state = current_state.detach() + 0.1 * direction
             avg_loss_val = total_loss_val
             
