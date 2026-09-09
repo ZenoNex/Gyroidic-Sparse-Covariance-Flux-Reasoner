@@ -104,12 +104,7 @@ class PolynomialADMRSolver(nn.Module):
         self.snapper = RationalSnappingLayer()
 
         # 8. AlphaProof Tournament Components
-        self.hyper_ring_checker = HyperRingClosureChecker(
-            state_dim=state_dim,
-            device=device,
-            window_size=32,
-            leak_threshold=0.2
-        )
+        self.hyper_ring_checker = HyperRingClosureChecker()
         self.daquf_operator = DAQUFOperator(
             num_fossils=16,
             fossil_dim=state_dim,
