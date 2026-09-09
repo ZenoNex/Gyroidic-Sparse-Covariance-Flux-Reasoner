@@ -1,8 +1,10 @@
 import torch
 import torch.nn as nn
-import hashlib
+from src.core.invariants import PHI
+
 import json
 import math
+
 from typing import Dict, Any, Optional
 from src.core.device_utils import DEVICE
 
@@ -11,6 +13,7 @@ class AgentSubstrateBridge(nn.Module):
     Substrate Bridge for the Agent Smith Extractable Protocol.
     Handles the decoupling of Syntax (geometry) from Substrate (hardware physics / dt timelines).
     """
+
     def __init__(self, device: str = None):
         super().__init__()
         self.device = device or str(DEVICE)
@@ -50,7 +53,7 @@ class AgentSubstrateBridge(nn.Module):
         if hyperbolic_influence is not None:
             h_mod = 1.0 + torch.tanh(hyperbolic_influence.mean()).item()
             
-        sigma_2 = torch.eye(dim, device=self.device).unsqueeze(0).expand(b, -1, -1) * (1.61803 * h_mod)
+        sigma_2 = torch.eye(dim, device=self.device).unsqueeze(0).expand(b, -1, -1) * (PHI * h_mod)
         
         # Commutator proxy / Braid Cycle: Sigma_1 * Sigma_2 * Sigma_1^{-1} 
         # Using pure product for trace extraction logic since inverse may be singular
