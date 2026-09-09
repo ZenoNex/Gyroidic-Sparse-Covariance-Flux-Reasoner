@@ -35,6 +35,19 @@ class BonfireNomadicRing:
         and optionally adjusts local structural resonance (meta_state).
         """
         if not self.peer_allocations:
+            # ASD-STE100 Rules: Hardware-Sovereign Fallback
+            # Prime-ladder Chebyshev-Chebyshev oscillator simulation
+            if engine_meta_state is not None:
+                from src.core.fgrt_primitives import PrimeResonanceLadder
+                ladder = PrimeResonanceLadder(num_resonators=5)
+                ladder.to(engine_meta_state.device)
+                # Map state to [-1, 1] for Chebyshev domain
+                x_norm = torch.tanh(engine_meta_state)
+                # Apply T_p(x) = cos(p * arccos(x)) for the first prime p=2
+                p = ladder.primes[0].float()
+                oscillator = torch.cos(p * torch.acos(x_norm))
+                # Sustain local substrate stability using the oscillator
+                engine_meta_state.copy_(engine_meta_state * 0.9 + oscillator * 0.1)
             return 1.0
         
         total_k = sum(self.peer_allocations.values())
@@ -45,7 +58,7 @@ class BonfireNomadicRing:
             hedge_factor = torch.tensor([k_bar], device=engine_meta_state.device, dtype=engine_meta_state.dtype)
             if len(engine_meta_state.shape) == 2:
                 hedge_factor = hedge_factor.expand(1, engine_meta_state.size(1))
-            engine_meta_state = engine_meta_state * 0.95 + hedge_factor * 0.05
+            engine_meta_state.copy_(engine_meta_state * 0.95 + hedge_factor * 0.05)
             
         return k_bar
 
