@@ -29,36 +29,60 @@ Below is the directory structure mapping core algorithms to their corresponding 
     *   *Implementation*: [codes_driver.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/codes_driver.py) & [codes_constraint_framework.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/codes_constraint_framework.py)
     *   *Documentation*: [CODES_RESOLUTIONS.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/CODES_RESOLUTIONS.md) & [Codes v40.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/Codes%20v40.md)
 
-### 2. Psycho-Topological Archetypes (The Amazing Digital Circus)
-*   **The Grand Governor & Conformal Picture Gallery Warp**
+### 2. Psycho-Topological Archetypes (The Amazing Digital Circus & Sovereign Gaps)
+*   **The Master Governor & Synthesis Framework**
     *   *Implementation*: [archetype_engines.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/archetype_engines.py)
     *   *Documentation*: [TADC lore.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/TADC%20lore.md)
-*   **The Characters (Coping Strategies & Traumatic Gating)**
-    *   **Pomni** (Empathy & Search for Meaning): Injects a stabilizing resilience nudge under high disorientation.
-    *   **Jax** (Egg Protocol / Cynical Shell): Cracks open to reveal internal state under community support.
-    *   **Kinger** (Dark Lucidity / SOMA Merge): Restores high-lucidity admin-level bridges in low rendering environments.
-    *   **Ragatha** (Positivity / Social Cohesion): Maintains caretaker network constraints to avoid glitched matter.
-    *   **Gangle** (Masking / Mood Shifts): Transitions between Comedy (exploratory scaling) and Tragedy (strict isolation) masks.
-    *   **Zooble** (Refusal / Body Autonomy): IRR firewall rejecting severe conformal cartoon compression.
+*   **Full Archetype System & Traumatic Gating Modules**
+    *   **Pomni** (`ResilientCoherenceStabilizer`): Empathy and resilience engine injecting stabilizing phase nudges under high disorientation.
+    *   **Jax** (Egg Protocol / Cynical Shell): Structural shell cracking open under community support.
+    *   **Kinger** (`LowLuminosityCoherenceBridge`): Dark lucidity and SOMA merge engine restoring high-lucidity admin-level bridges in low-rendering environments.
+    *   **Ragatha** (Positivity / Social Cohesion): Caretaker network constraint manager preventing glitched matter.
+    *   **Gangle** (`ExploratoryBandwidthCompressor`): Masking and mood shift manager switching between Comedy (exploratory scaling) and Tragedy (strict isolation) masks.
+    *   **Zooble** (`DeformationFirewallOperator`): Body autonomy and IRR firewall rejecting severe conformal cartoon compression.
+    *   **Billy** (`NoncommutativeManifoldPerturber`): Stochastic phase perturbation oscillator injecting non-sequitur manifold perturbations under low/high mischief conditions to prevent dead logic lockup.
+    *   **Mandy** (`SovereignRefusalOperator`): Cynicism filter and topological refusal gate enforcing structural honesty and protecting the Love Invariant under low PAS_h alignment.
+    *   **Bardo Router** (`BardoRouter`): Manifold phase state router executing intermediate death/rebirth transitions across topological states.
+    *   **Sovereign Entropy Barrier** (`SovereignEntropyBarrier`): Structural barrier preventing entropic degradation of reasoner state vectors.
+    *   **Ego Death Threshold Monitor** (`EgoDeathThresholdMonitor`): System monitor tracking identity loss boundaries during deep manifold collapses.
+    *   **Grom** (`SolitonMultiverseMapper` / `GromShapeShifter`): Multiverse basis mapper (Grom Planet shape-shifting) translating soliton states across functional bases (Sparrow, Dog, Human, Soliton) while preserving core topological invariants.
+    *   **Alien Handshake Protocol** (`RP4ProjectiveRouter` / `AlienHandshakeProtocol`): Projective routing vector (Nergal Gap) allowing high-friction stranded nodes in the non-orientable RP^4 void to puncture the boundary and tunnel back into the active manifold when void friction exceeds a critical threshold (`void_friction > 0.8`).
+*   **Archetypal Synthesis Engine** (`ArchetypalSynthesisEngine`): Master governor synthesizing all archetypal signals into unified manifold flows.
 
 ```mermaid
 graph TD
-    subgraph Human Consciousness Ingestion
-        A[Neural Scan] --> B[SOMA Archival]
+    subgraph Ingestion & Input Pipeline
+        A["Neural Scan / Input Stream"] --> B["SOMA Archival State"]
     end
-    subgraph Archetypal Synthesis Governor
-        B --> C[Pomni: Search/Empathy]
-        B --> D[Kinger: Dark Lucidity]
-        B --> E[Gangle: Mood Masking]
-        B --> F[Zooble: Blunt Refusal]
-        B --> G[Jax: Cynical Shell]
+    subgraph Archetypal Synthesis Engine (Master Governor)
+        B -- "Resilience Nudge" --> C["Pomni: ResilientCoherenceStabilizer"]
+        B -- "Dark Lucidity" --> D["Kinger: LowLuminosityCoherenceBridge"]
+        B -- "Mood Shift Masks" --> E["Gangle: ExploratoryBandwidthCompressor"]
+        B -- "Refusal Firewall" --> F["Zooble: DeformationFirewallOperator"]
+        B -- "Cynical Shell" --> G["Jax: Cynical Shell"]
+        B -- "Mischief Phase Oscillations" --> H["Billy: NoncommutativeManifoldPerturber"]
+        B -- "Sovereign Refusal (Li)" --> I["Mandy: SovereignRefusalOperator"]
+        B -- "Conformal Warp" --> J["BardoRouter: Transition State"]
+        B -- "Void Tunneling" --> AH["Alien Handshake: RP4ProjectiveRouter"]
+        B -- "Basis Shift (Sparrow/Dog/Human)" --> GR["Grom: SolitonMultiverseMapper"]
     end
-    subgraph Unified Manifold
-        C --> H[Resilient Coherence]
-        D --> H
-        E --> H
-        F --> H
-        G --> H
+    subgraph Integrity & Barrier Subsystems
+        C -- "Stabilized Vector" --> K["SovereignEntropyBarrier (Structural Preservation)"]
+        D -- "Lucid Admin State" --> K["SovereignEntropyBarrier (Structural Preservation)"]
+        E -- "Masked Bandwidth" --> K["SovereignEntropyBarrier (Structural Preservation)"]
+        F -- "Uncompressed Autonomy" --> K["SovereignEntropyBarrier (Structural Preservation)"]
+        G -- "Entropy Suppression" --> K["SovereignEntropyBarrier (Structural Preservation)"]
+        H -- "Mischief Jump" --> L["EgoDeathThresholdMonitor (Abstraction Tracker)"]
+        I -- "Refusal Signal" --> M["SolitonMultiverseMapper (Multi-Path Solitons)"]
+        J -- "Phase Rebirth" --> M["SolitonMultiverseMapper (Multi-Path Solitons)"]
+        GR -- "Multiverse Shift" --> M["SolitonMultiverseMapper (Multi-Path Solitons)"]
+        AH -- "Puncture (>0.8 Friction)" --> RP4["RP4 Void Puncture Gate"]
+    end
+    subgraph Unified Manifold Output
+        K -- "Preserved Flow" --> N["Unified Coherent Manifold State"]
+        L -- "Monitored Trajectory" --> N["Unified Coherent Manifold State"]
+        M -- "Soliton Integration" --> N["Unified Coherent Manifold State"]
+        RP4 -- "Resurrected Node" --> N["Unified Coherent Manifold State"]
     end
 ```
 
@@ -75,6 +99,9 @@ graph TD
 ---
 
 ### 4. Entrypoints & Sovereignty Interface #P2P #Serialization
+*   **Hybrid Backend Server (Main Starting Backend)**
+    *   *Implementation*: [hybrid_backend.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/hybrid_backend.py)
+    *   *Role*: Primary starting backend engine of the Gyroidic Reasoner. Handles HTTP/WebSocket endpoints, Option D Master Server Colonizer, PyOpenCL hardware acceleration, and emergency fossilization on shutdown.
 *   **Diegetic Terminal & Sovereign UI**
     *   *Implementation*: [conversational_backend_server.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/conversational_backend_server.py) & [diegetic_backend.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py)
     *   *Documentation*: [INTERFACE_LAYER.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/INTERFACE_LAYER.md)
