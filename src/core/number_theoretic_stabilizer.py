@@ -16,6 +16,7 @@ import torch.nn.functional as F
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 import math
+from .invariants import get_prime_ladder, is_prime
 
 class NumberTheoreticStabilizer(nn.Module):
     """
@@ -39,7 +40,8 @@ class NumberTheoreticStabilizer(nn.Module):
         self.precision_bits = precision_bits
         
         # Prime base for modular arithmetic
-        self.primes = self._generate_prime_base(prime_base_size)
+        # Convert the tensor returned by get_prime_ladder back to a list of ints
+        self.primes = [int(p.item()) for p in get_prime_ladder(prime_base_size)]
         self.register_buffer('prime_tensor', torch.tensor(self.primes, dtype=torch.float32))
         
         # Golden ratio and other mathematical constants
@@ -54,29 +56,8 @@ class NumberTheoreticStabilizer(nn.Module):
         self.cf_coefficients = {
             'phi': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],  # Golden ratio
             'e': [2, 1, 2, 1, 1, 4, 1, 1, 6, 1],    # Euler's number
-            'sqrt2': [1, 2, 2, 2, 2, 2, 2, 2, 2, 2] # √2
+            'sqrt2': [1, 2, 2, 2, 2, 2, 2, 2, 2, 2] # 2
         }
-        
-    def _generate_prime_base(self, n: int) -> List[int]:
-        """Generate first n prime numbers."""
-        primes = []
-        candidate = 2
-        
-        while len(primes) < n:
-            is_prime = True
-            for p in primes:
-                if p * p > candidate:
-                    break
-                if candidate % p == 0:
-                    is_prime = False
-                    break
-            
-            if is_prime:
-                primes.append(candidate)
-            
-            candidate += 1
-        
-        return primes
     
     def _compute_quadratic_residues(self) -> Dict[int, List[int]]:
         """Compute quadratic residues for small primes."""
@@ -126,7 +107,7 @@ class NumberTheoreticStabilizer(nn.Module):
                                    coefficients: torch.Tensor, 
                                    target: float) -> Optional[torch.Tensor]:
         """
-        Solve linear Diophantine equation: a₁x₁ + a₂x₂ + ... + aₙxₙ = target
+        Solve linear Diophantine equation: ax + ax + ... + ax = target
         
         Uses extended Euclidean algorithm for two variables,
         then extends to multiple variables.
