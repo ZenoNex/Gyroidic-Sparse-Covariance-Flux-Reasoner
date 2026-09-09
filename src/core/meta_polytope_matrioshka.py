@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 from src.safety.red_teaming import TopologicalRefusalError
 from src.topology.homology_pressure import HomologyPressure
-
+from src.core.invariants import get_prime_ladder
 
 
 class BoundaryState:
@@ -85,18 +85,18 @@ class BoundaryState:
             result['stress_rank'] = int(torch.linalg.matrix_rank(self.stress_tensor).item())
         return result
         
+    def sanitize_payload(self):
+        """ASD-STE100 Rules: Replace NaN and Inf values with 0.0 to prevent network poisoning."""
+        if self.stress_tensor is not None:
+            self.stress_tensor = torch.nan_to_num(self.stress_tensor, nan=0.0, posinf=0.0, neginf=0.0)
+        if math.isnan(self.crossing_energy) or math.isinf(self.crossing_energy):
+            self.crossing_energy = 0.0
+        
 class MetaPolytopeMatrioshka(nn.Module):
     """
     Advanced Meta-Polytope Matrioshka system for nested quantization.
     Implements nested polytope families P_^() for fine-grained structure sensing.
     """
-    @staticmethod
-    def _generate_primes(n: int) -> List[int]:
-        """Generate the first n primes via centralized FGRT ladder to preserve Lazarus synchronization."""
-        from src.core.fgrt_primitives import PrimeResonanceLadder
-        ladder = PrimeResonanceLadder(num_resonators=n)
-        return ladder.primes.tolist()
-    
     def __init__(self, max_depth: int = 5, base_dim: int = 64, crt_moduli: List[int] = None):
         super().__init__()
         self.max_depth = max_depth
@@ -104,7 +104,10 @@ class MetaPolytopeMatrioshka(nn.Module):
 
         # Initialize CRT system with dynamically generated primes
         num_moduli = max_depth + 3
-        self.crt_moduli = crt_moduli if crt_moduli else self._generate_primes(num_moduli)
+        if crt_moduli:
+            self.crt_moduli = crt_moduli
+        else:
+            self.crt_moduli = [int(p.item()) for p in get_prime_ladder(num_moduli)]
         total_space = 1
         for m in self.crt_moduli:
             total_space *= m
