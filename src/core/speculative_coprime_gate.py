@@ -18,13 +18,14 @@ References:
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from src.core.invariants import PI
+
 from typing import Dict, Tuple, Optional
 import math
+
 from src.core.false_negative_subsystem import VoynichExemptionToken
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.legibility_audit import LegibilityTripwire
-
 
 class WassersteinOptimalTransport(nn.Module):
     """
@@ -154,7 +155,6 @@ class WassersteinOptimalTransport(nn.Module):
         wasserstein_dist = (T * C).sum()
         
         return transported, wasserstein_dist
-
 
 class CoprimeWindingTracker(nn.Module):
     """
@@ -292,7 +292,6 @@ class CoprimeWindingTracker(nn.Module):
             'parity_violations': parity_violations
         }
 
-
 class ChiralCoherenceEstimator(nn.Module):
     """
     Estimates chiral coherence using spectral asymmetry.
@@ -323,7 +322,7 @@ class ChiralCoherenceEstimator(nn.Module):
             nn.init.orthogonal_(self.chiral_proj.weight)
             # Inject a small prime-based asymmetry into the projection to ensure sector divergence
             for i in range(dim):
-                self.chiral_proj.weight.data[i] *= (1.0 + 0.05 * math.sin(i * 3.14159 / 7.0))
+                self.chiral_proj.weight.data[i] *= (1.0 + 0.05 * math.sin(i * PI / 7.0))
         
     def update_buffer(self, state: torch.Tensor):
         """Add state to sample buffer."""
@@ -414,7 +413,6 @@ class ChiralCoherenceEstimator(nn.Module):
         chiral_score = numerator / denominator
         
         return chiral_score
-
 
 class SpeculativeCoprimeGate(nn.Module):
     """
