@@ -1,6 +1,6 @@
 # The Gyroidic Sparse Covariance Flux Reasoner: System Index & Documentation Portal
 
-Welcome to the central portal of the **Gyroidic Sparse Covariance Flux Reasoner**. This index reconciles, organizes, and formalizes the relationship between the mathematical abstractions, the psychotopological archetypes, and the engineering logs of this sovereign reasoning engine.
+Welcome to the central portal of the **Gyroidic Sparse Covariance Flux Reasoner** #Gyroidic #Resonance. This index reconciles, organizes, and formalizes the relationship between the mathematical abstractions, the psychotopological archetypes, and the engineering logs of this sovereign reasoning engine #Sovereignty.
 
 > [!NOTE]
 > *“Implementation integrity is not a technical concern but a moral imperative.”*
@@ -74,7 +74,7 @@ graph TD
 
 ---
 
-### 4. Entrypoints & Sovereignty Interface
+### 4. Entrypoints & Sovereignty Interface #P2P #Serialization
 *   **Diegetic Terminal & Sovereign UI**
     *   *Implementation*: [conversational_backend_server.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/conversational_backend_server.py) & [diegetic_backend.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py)
     *   *Documentation*: [INTERFACE_LAYER.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/INTERFACE_LAYER.md)
