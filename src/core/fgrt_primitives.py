@@ -10,6 +10,7 @@ Implements the base mathematical operators for:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from src.core.invariants import PI, is_prime
 from typing import Tuple
 from src.core.honest_jitter import harvest_honest_jitter
 import time
@@ -62,6 +63,50 @@ class GyroidManifold(nn.Module):
         # In a real TPMS, K is a function of the coordinates that is never positive.
         return -grad_norm_sq / (1.0 + grad_norm_sq)
 
+class GyroidicAdmissibilityFilter(nn.Module):
+    """
+    Enforces the Speculative Exit threshold (H_{spec} < epsilon).
+    Rejects topologically invalid thoughts before they are serialized.
+    """
+    def __init__(self, epsilon: float = 0.05):
+        super().__init__()
+        self.epsilon = epsilon
+        self.gyroid = GyroidManifold()
+        
+    def forward(self, state: torch.Tensor) -> Tuple[bool, float]:
+        """
+        Evaluates Gyroidic Admissibility.
+        
+        Args:
+            state: The manifold state [batch, dim]
+            
+        Returns:
+            is_admissible: True if H_spec < epsilon
+            h_spec: The computed speculative constraint violation
+        """
+        # H_{spec} is the mean absolute violation of the Gyroid constraint
+        # Expand state to 3D groups for Gyroid if needed
+        # Assume state represents coordinates or can be reshaped
+        dim = state.shape[-1]
+        if dim < 3:
+            padded_state = F.pad(state, (0, 3 - dim))
+            g_violation = self.gyroid(padded_state)
+        else:
+            # Group into triplets and average
+            triplets = dim // 3
+            if triplets * 3 < dim:
+                state_trunc = state[..., :triplets*3]
+            else:
+                state_trunc = state
+            
+            state_reshaped = state_trunc.view(*state_trunc.shape[:-1], triplets, 3)
+            g_violation = self.gyroid(state_reshaped).mean(dim=-1)
+            
+        h_spec = g_violation.abs().mean().item()
+        is_admissible = h_spec < self.epsilon
+        
+        return is_admissible, h_spec
+
 class TorsionConnection(nn.Module):
     """
     Affine connection with Torsion field for Chiral Symmetry Breaking.
@@ -111,7 +156,7 @@ class BerryPhaseTracker(nn.Module):
         delta_phi = phase_curr - phase_prev
         
         # Wrap to [-pi, pi] to handle phase wrapping
-        delta_phi = (delta_phi + 3.14159) % (2 * 3.14159) - 3.14159
+        delta_phi = (delta_phi + PI) % (2 * PI) - PI
         
         # Accumulate mean absolute holonomy (Structural Winding)
         self.running_phase += delta_phi.abs().mean()
@@ -142,20 +187,13 @@ class PrimeResonanceLadder(nn.Module):
         self.register_buffer('repunits', repunits)
         
         # 2. Resonant Frequencies: Eq (1): f_{p_n} = 2 * pi * log(p_n)
-        frequencies = 2 * 3.14159265359 * torch.log(self.primes.float())
+        # Note: PI is an 11-decimal approximation of Pi.
+        # We multiply by 2*pi to compute the angular frequency. Because the natural logs 
+        # of primes are mathematically incommensurate, stacking these frequencies prevents 
+        # "mode-locking" and creates a rich, non-repeating Moiré interference pattern.
+        frequencies = 2 * PI * torch.log(self.primes.float())
         self.register_buffer('frequencies', frequencies)
         
-    def _is_prime(self, n: int) -> bool:
-        """Optimized deterministic primality test to avoid naive O(n√n) bottleneck."""
-        if n < 2: return False
-        if n in (2, 3): return True
-        if n % 2 == 0 or n % 3 == 0: return False
-        i = 5
-        while i * i <= n:
-            if n % i == 0 or n % (i + 2) == 0:
-                return False
-            i += 6
-        return True
 
     def _generate_hybrid_basis(self, n: int, base_n: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -169,9 +207,9 @@ class PrimeResonanceLadder(nn.Module):
         
         # Searching for Lazarus Primes
         while len(pairs) < n:
-            if self._is_prime(candidate):
+            if is_prime(candidate):
                 r_n = (candidate**base_n - 1) // (candidate - 1)
-                is_lazarus = self._is_prime(r_n)
+                is_lazarus = is_prime(r_n)
                 
                 if is_lazarus:
                     lazarus_prioritized.append((candidate, r_n))
@@ -338,7 +376,7 @@ class FibonacciResonanceEntropy(nn.Module):
         product = F_i * P_j  # [N, N]
         # Clamp product to avoid division by zero
         product = torch.clamp(product, min=1.0)
-        entropy_matrix = alpha / (torch.exp(torch.tensor(3.14159265359) / product) + 1.0)
+        entropy_matrix = alpha / (torch.exp(torch.tensor(PI) / product) + 1.0)
         self.register_buffer('entropy_matrix', entropy_matrix)
     
     def _generate_fibonacci(self, n: int) -> torch.Tensor:
@@ -392,7 +430,7 @@ class FibonacciResonanceEntropy(nn.Module):
         P_j = self.primes.float().unsqueeze(0)     # [1, N]
         product = F_i * P_j * (1.0 + hunger)       # Hunger widens the lattice
         product = torch.clamp(product, min=1.0)
-        modulated = self.alpha / (torch.exp(torch.tensor(3.14159265359) / product) + 1.0)
+        modulated = self.alpha / (torch.exp(torch.tensor(PI) / product) + 1.0)
         return modulated
 
 
@@ -420,7 +458,7 @@ class CoherentPrimeResonance(nn.Module):
         
         # Generate prime frequencies for spectral check
         ladder = PrimeResonanceLadder(num_resonators=num_primes)
-        prime_freqs = 2 * 3.14159265359 * torch.log(ladder.primes.float())
+        prime_freqs = 2 * PI * torch.log(ladder.primes.float())
         self.register_buffer('prime_freqs', prime_freqs)
     
     def check_phase_coherence(self, field_phases: torch.Tensor) -> bool:
@@ -458,7 +496,7 @@ class CoherentPrimeResonance(nn.Module):
         num_bins = field_spectrum.shape[-1]
         prime_energy = 0.0
         for pf in self.prime_freqs:
-            bin_idx = min(int(pf.item() * num_bins / (2 * 3.14159265359 * 10)), num_bins - 1)
+            bin_idx = min(int(pf.item() * num_bins / (2 * PI * 10)), num_bins - 1)
             if bin_idx < num_bins:
                 prime_energy += field_spectrum[bin_idx].item()
         
