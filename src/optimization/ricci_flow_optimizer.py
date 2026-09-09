@@ -8,6 +8,8 @@ metric and the Chern-Simons Gasket on TailSlayer hardware.
 
 import torch
 import torch.nn as nn
+from src.core.invariants import PHI, PHI_RECIPROCAL
+
 from torch.optim import Optimizer
 import warnings
 
@@ -131,7 +133,7 @@ class BouligandWillmoreGasket(nn.Module):
             is_viable_np = self.engine.evaluate_bouligand_intersection(
                 x.detach().cpu().numpy(), 
                 x.detach().cpu().numpy(), 
-                omega_i=0.618, omega_j=1.618, t=1.0
+                omega_i=PHI_RECIPROCAL, omega_j=PHI, t=1.0
             )
             # Tension is proportional to rejection rate
             rejection_rate = 1.0 - is_viable_np.mean()
@@ -141,7 +143,7 @@ class BouligandWillmoreGasket(nn.Module):
         x_flat = x.view(-1)
         # Contingent Cone geometry bounded by local variance limit
         curvature_bound = torch.abs(x_flat) + 0.1
-        phase = torch.sin(torch.tensor(0.618 - 1.618))
+        phase = torch.sin(torch.tensor(PHI_RECIPROCAL - PHI))
         flux = x_flat * phase
         viable = (torch.abs(x_flat + flux) <= curvature_bound).float()
         return 1.0 - viable.mean()
