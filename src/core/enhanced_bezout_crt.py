@@ -11,6 +11,8 @@ Implements:
 
 import torch
 import torch.nn as nn
+from src.core.invariants import PI
+
 import torch.nn.functional as F
 import numpy as np
 from typing import Dict, List, Tuple, Optional
@@ -47,13 +49,13 @@ class CrossbarIKSolver(nn.Module):
         f_primes = primes[:num_harmonics].float()
         g_primes = primes[num_harmonics:2*num_harmonics].float()
         
-        self.f = nn.Parameter(2 * 3.14159265359 * torch.log(f_primes))
-        self.g = nn.Parameter(2 * 3.14159265359 * torch.log(g_primes))
+        self.f = nn.Parameter(2 * PI * torch.log(f_primes))
+        self.g = nn.Parameter(2 * PI * torch.log(g_primes))
         
         # Phases initialized via Silicon-Native Honest Jitter (45.2)
         from src.core.honest_jitter import harvest_honest_jitter
-        self.phi = nn.Parameter(harvest_honest_jitter((num_harmonics,), scaled=False) * 2 * 3.14159265359)
-        self.psi = nn.Parameter(harvest_honest_jitter((num_harmonics,), scaled=False) * 2 * 3.14159265359)
+        self.phi = nn.Parameter(harvest_honest_jitter((num_harmonics,), scaled=False) * 2 * PI)
+        self.psi = nn.Parameter(harvest_honest_jitter((num_harmonics,), scaled=False) * 2 * PI)
         
     def solve_trajectory(self, t: torch.Tensor) -> torch.Tensor:
         """
@@ -79,7 +81,6 @@ class CrossbarIKSolver(nn.Module):
         with torch.no_grad():
             self.phi.add_(phase_shift)
             self.psi.add_(phase_shift)
-
 
 class EnhancedBezoutCRT(nn.Module):
     """
