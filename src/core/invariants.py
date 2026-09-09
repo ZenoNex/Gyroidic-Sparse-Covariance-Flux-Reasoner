@@ -18,6 +18,23 @@ import torch.nn.functional as F
 from typing import Tuple, Optional
 import math
 
+# Universal Mathematical & Topological Constants
+PI = math.pi
+PHI = (1.0 + math.sqrt(5.0)) / 2.0
+PHI_RECIPROCAL = (math.sqrt(5.0) - 1.0) / 2.0
+
+def is_prime(n: int) -> bool:
+    """Optimized deterministic primality test."""
+    if n < 2: return False
+    if n in (2, 3): return True
+    if n % 2 == 0 or n % 3 == 0: return False
+    i = 5
+    while i * i <= n:
+        if n % i == 0 or n % (i + 2) == 0:
+            return False
+        i += 6
+    return True
+
 class PhaseAlignmentInvariant(nn.Module):
     """
     PAS_h: Harmonic Phase Alignment Score.
