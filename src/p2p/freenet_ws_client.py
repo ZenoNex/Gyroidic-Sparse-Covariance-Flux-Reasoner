@@ -3,6 +3,7 @@ import json
 import websockets
 import logging
 import threading
+import hashlib
 from typing import Dict, Any, Callable
 
 logger = logging.getLogger(__name__)
@@ -77,8 +78,17 @@ class FreenetClient:
     def publish(self, contract_id: str, state: Dict[str, Any]):
         """Publish a state update (e.g. Kelly bet or encrypted Zeta) to the network."""
         if self.ws and self.loop:
+            # ASD-STE100 Rules: Deterministic Blake2s Serialization
+            serialized_state = json.dumps(state, sort_keys=True, separators=(',', ':'))
+            deterministic_id = hashlib.blake2s(serialized_state.encode('utf-8')).hexdigest()
+            payload = {
+                "type": "update", 
+                "contract_id": contract_id, 
+                "state": state,
+                "payload_id": deterministic_id
+            }
             asyncio.run_coroutine_threadsafe(
-                self.ws.send(json.dumps({"type": "update", "contract_id": contract_id, "state": state})),
+                self.ws.send(json.dumps(payload, sort_keys=True, separators=(',', ':'))),
                 self.loop
             )
         else:
