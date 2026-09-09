@@ -6,6 +6,7 @@ with Ergodic Band and prevent vowel starvation.
 """
 
 import torch
+from src.core.invariants import get_prime_ladder
 import torch.nn as nn
 from typing import Dict, Tuple, Optional
 from src.core.honest_jitter import harvest_honest_jitter, fractal_pad
@@ -380,21 +381,8 @@ class BezoutCoefficientRefresh(nn.Module):
         self.register_buffer('bezout_matrix', torch.eye(self.K, device=self.device))
 
         # Modulus tracking - initialize with dynamically generated primes to avoid trivial 1.0 collapse
-        primes = []
-        candidate = 2
-        while len(primes) < self.K:
-            is_prime = True
-            for p in primes:
-                if candidate % p == 0:
-                    is_prime = False
-                    break
-                if p * p > candidate:
-                    break
-            if is_prime:
-                primes.append(candidate)
-            candidate += 1
-        
-        self.register_buffer('moduli', torch.tensor(primes, dtype=torch.float32, device=self.device))
+        primes = get_prime_ladder(self.K).to(torch.float32).to(self.device)
+        self.register_buffer('moduli', primes)
 
         # Drift detection
         self.register_buffer('last_residues', torch.zeros(self.K, self.D, device=self.device))
