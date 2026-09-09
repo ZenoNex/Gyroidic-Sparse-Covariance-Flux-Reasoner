@@ -11,6 +11,7 @@ This is the "math-native" AI layer directly processing exponent residue differen
 
 import torch
 import torch.nn as nn
+from src.core.invariants import PI
 
 class CyclotomicTDACompressor(nn.Module):
     """
@@ -106,5 +107,5 @@ class CyclotomicTDACompressor(nn.Module):
         # Apply circular symmetry of roots of unity (circular shift)
         # This prevents "Gradient Washout" by ensuring the state remains
         # within the cyclotomic orbit.
-        shielded = torch.tanh(shielded * 3.14159) # Apply non-linear resonance
+        shielded = torch.tanh(shielded * PI) # Apply non-linear resonance
         return shielded
