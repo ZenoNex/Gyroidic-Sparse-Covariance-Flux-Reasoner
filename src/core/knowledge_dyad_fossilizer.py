@@ -11,6 +11,7 @@ import os
 import json
 import logging
 import hashlib
+import threading
 from dataclasses import dataclass
 from typing import Optional, Dict, Tuple, List, Any
 import datetime
@@ -181,7 +182,10 @@ class DyadFossilizer:
         self.index_file = os.path.join(self.storage_dir, ".fossil_index.json")
         self.fossil_index = {}
         
-        # Load fast index to prevent O(N) startup/scan bottlenecks
+        # Load fast index in background to prevent startup bottlenecks
+        threading.Thread(target=self._init_index_async, daemon=True).start()
+
+    def _init_index_async(self):
         self._load_index()
         self._index_ready.set()
 
@@ -607,11 +611,53 @@ class DyadFossilizer:
         self.fossil_index[filename] = {
             'prompt_hash': prompt_hash,
             'arxiv_id': payload.get('dyad_metadata', {}).get('arxiv_id') if payload.get('dyad_metadata') else None,
+            'is_ouroboros': bool(payload.get('dyad_metadata', {}).get('failure_type') == 'ouroboros_shadow_loop') if payload.get('dyad_metadata') else False,
             'mtime': datetime.datetime.now().timestamp()
         }
         self._save_index()
         
+        self.enforce_fossil_budget()
+        
         return filepath
+        
+    def enforce_fossil_budget(self):
+        """ASD-STE100 Rules: 80/20 fossilization budget constraint."""
+        max_total = 150 # based on default budget limit
+        ouroboros_limit = int(max_total * 0.20)
+        regular_limit = max_total - ouroboros_limit
+        
+        ouroboros_files = []
+        regular_files = []
+        for filename, info in self.fossil_index.items():
+            if info.get('is_ouroboros', False):
+                ouroboros_files.append((filename, info.get('mtime', 0.0)))
+            else:
+                regular_files.append((filename, info.get('mtime', 0.0)))
+                
+        ouroboros_files.sort(key=lambda x: x[1])
+        regular_files.sort(key=lambda x: x[1])
+        
+        to_delete = []
+        if len(ouroboros_files) > ouroboros_limit:
+            to_delete.extend([f for f, _ in ouroboros_files[:len(ouroboros_files) - ouroboros_limit]])
+        if len(regular_files) > regular_limit:
+            to_delete.extend([f for f, _ in regular_files[:len(regular_files) - regular_limit]])
+            
+        for f in to_delete:
+            self._delete_fossil(f)
+
+    def _delete_fossil(self, filename: str):
+        filepath = os.path.join(self.storage_dir, filename)
+        try:
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            if filename in self.fossil_index:
+                if self.fossil_index[filename].get('prompt_hash') in self.fossilized_hashes:
+                    self.fossilized_hashes.remove(self.fossil_index[filename]['prompt_hash'])
+                del self.fossil_index[filename]
+        except Exception as e:
+            print(f"[FOSSILIZER] Budget cleanup failed for {filename}: {e}")
+        self._save_index()
         
     def ouroboros_shadow_loop(self, 
                               failure_log: str, 
