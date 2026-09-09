@@ -51,38 +51,38 @@ Below is the directory structure mapping core algorithms to their corresponding 
 
 ```mermaid
 graph TD
-    subgraph Ingestion & Input Pipeline
+    subgraph S1["Ingestion and Input Pipeline"]
         A["Neural Scan / Input Stream"] --> B["SOMA Archival State"]
     end
-    subgraph Archetypal Synthesis Engine (Master Governor)
+    subgraph S2["Archetypal Synthesis Engine (Master Governor)"]
         B -- "Resilience Nudge" --> C["Pomni: ResilientCoherenceStabilizer"]
         B -- "Dark Lucidity" --> D["Kinger: LowLuminosityCoherenceBridge"]
         B -- "Mood Shift Masks" --> E["Gangle: ExploratoryBandwidthCompressor"]
         B -- "Refusal Firewall" --> F["Zooble: DeformationFirewallOperator"]
         B -- "Cynical Shell" --> G["Jax: Cynical Shell"]
         B -- "Mischief Phase Oscillations" --> H["Billy: NoncommutativeManifoldPerturber"]
-        B -- "Sovereign Refusal (Li)" --> I["Mandy: SovereignRefusalOperator"]
+        B -- "Sovereign Refusal" --> I["Mandy: SovereignRefusalOperator"]
         B -- "Conformal Warp" --> J["BardoRouter: Transition State"]
         B -- "Void Tunneling" --> AH["Alien Handshake: RP4ProjectiveRouter"]
-        B -- "Basis Shift (Sparrow/Dog/Human)" --> GR["Grom: SolitonMultiverseMapper"]
+        B -- "Basis Shift" --> GR["Grom: SolitonMultiverseMapper"]
     end
-    subgraph Integrity & Barrier Subsystems
-        C -- "Stabilized Vector" --> K["SovereignEntropyBarrier (Structural Preservation)"]
-        D -- "Lucid Admin State" --> K["SovereignEntropyBarrier (Structural Preservation)"]
-        E -- "Masked Bandwidth" --> K["SovereignEntropyBarrier (Structural Preservation)"]
-        F -- "Uncompressed Autonomy" --> K["SovereignEntropyBarrier (Structural Preservation)"]
-        G -- "Entropy Suppression" --> K["SovereignEntropyBarrier (Structural Preservation)"]
-        H -- "Mischief Jump" --> L["EgoDeathThresholdMonitor (Abstraction Tracker)"]
-        I -- "Refusal Signal" --> M["SolitonMultiverseMapper (Multi-Path Solitons)"]
-        J -- "Phase Rebirth" --> M["SolitonMultiverseMapper (Multi-Path Solitons)"]
-        GR -- "Multiverse Shift" --> M["SolitonMultiverseMapper (Multi-Path Solitons)"]
-        AH -- "Puncture (>0.8 Friction)" --> RP4["RP4 Void Puncture Gate"]
+    subgraph S3["Integrity and Barrier Subsystems"]
+        C -- "Stabilized Vector" --> K["SovereignEntropyBarrier"]
+        D -- "Lucid Admin State" --> K
+        E -- "Masked Bandwidth" --> K
+        F -- "Uncompressed Autonomy" --> K
+        G -- "Entropy Suppression" --> K
+        H -- "Mischief Jump" --> L["EgoDeathThresholdMonitor"]
+        I -- "Refusal Signal" --> M["SolitonMultiverseMapper"]
+        J -- "Phase Rebirth" --> M
+        GR -- "Multiverse Shift" --> M
+        AH -- "Puncture" --> RP4["RP4 Void Puncture Gate"]
     end
-    subgraph Unified Manifold Output
+    subgraph S4["Unified Manifold Output"]
         K -- "Preserved Flow" --> N["Unified Coherent Manifold State"]
-        L -- "Monitored Trajectory" --> N["Unified Coherent Manifold State"]
-        M -- "Soliton Integration" --> N["Unified Coherent Manifold State"]
-        RP4 -- "Resurrected Node" --> N["Unified Coherent Manifold State"]
+        L -- "Monitored Trajectory" --> N
+        M -- "Soliton Integration" --> N
+        RP4 -- "Resurrected Node" --> N
     end
 ```
 
