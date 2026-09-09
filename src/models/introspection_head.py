@@ -10,6 +10,8 @@ Created: January 2026
 
 import torch
 import torch.nn as nn
+from src.core.invariants import PI
+
 from typing import Dict, List, Optional
 
 # Fix import paths
@@ -19,8 +21,6 @@ if os.path.dirname(os.path.abspath(__file__)) not in sys.path:
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 if os.path.join(os.path.dirname(os.path.abspath(__file__)), "..") not in sys.path:
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-
-
 
 class GeometricSelfModelProbe(nn.Module):
     """
@@ -232,7 +232,7 @@ class GeometricSelfModelProbe(nn.Module):
                         temporal_boost = torch.exp(-time_since_last / overlap_window)
                         
                         # 3. Bouligand Polyshape Blocks: Geometric structural gating
-                        bouligand_gate = torch.sin(layer.weight * 3.14159).abs()
+                        bouligand_gate = torch.sin(layer.weight * PI).abs()
                         
                         # 4. Neuronal Excitability: Threshold readiness + temporal + geometry
                         effective_excitability = layer.neuronal_excitability * (1.0 + temporal_boost) * bouligand_gate
@@ -272,8 +272,6 @@ class GeometricSelfModelProbe(nn.Module):
                         # Excitability homeostasis
                         layer.neuronal_excitability.mul_(0.99)
                         layer.neuronal_excitability.add_(0.01 * torch.rand_like(layer.neuronal_excitability))
-
-
 
 class AggregateGeometricSelfModel(nn.Module):
     """
@@ -357,7 +355,6 @@ class AggregateGeometricSelfModel(nn.Module):
     def unlearn_rigidity(self, current_time: float = 0.0, overlap_window: float = 21600.0, decay_rate: Optional[float] = None):
         """Trigger unlearning across all aggregated self-model probes."""
         self.probe_head.unlearn_rigidity(current_time, overlap_window, decay_rate)
-
 
 # Legacy alias for backward compatibility (Rigidity Decay)
 IntrospectionHead = AggregateGeometricSelfModel
