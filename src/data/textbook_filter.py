@@ -33,7 +33,8 @@ class TextbookFilter:
     - clarity: rank is stable across rational snaps (deterministic, not chaotic)
     """
 
-    def __init__(self, state_dim: int = 512, poly_degree: int = 4, num_residues: int = 5):
+    def __init__(self, state_dim: int = 512, poly_degree: int = 4, num_residues: int = 5, engine: Any = None):
+        self.engine = engine
         # Build or receive the shared PolynomialCoprimeConfig
         self.poly_config = PolynomialCoprimeConfig(
             k=num_residues,
