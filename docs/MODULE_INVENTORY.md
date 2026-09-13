@@ -22,6 +22,94 @@ Instead of discrete prime moduli, this solver uses co-prime polynomial functiona
 
 ---
 
+### polychoron_quantization.py
+**Class**: `PolychronQuantizer`, `Polychoron600Quantizer`  
+**Role**: High-dimensional 4D 600-cell hyper-polytope quantization engine using Moiré-via-Modular-Algebra and carry-free XOR residue decoupling.
+
+Implements discrete projection of continuous state vectors onto the 120 golden ratio vertices of the 600-cell polytope. Evaluates a 10-line prime logarithm difference lattice $\Lambda_{\text{moiré}} = \{|\ln p_i - \ln p_j|\}$ for beat spectrum calculation, enforces carry-free bitwise XOR residue codewords ($r_i \oplus r_j$) to isolate CRT moduli, bounds quantization error via the golden ratio identity $\frac{\phi}{2} - \frac{1}{2\phi} = \frac{1}{2}$, and tracks Berry phase holonomy drift across facet boundaries.
+
+---
+
+### number_theoretic_stabilizer.py
+**Class**: `NumberTheoreticStabilizer`  
+**Role**: Dynamic continued fraction arithmetic expansion and relativistic scale factor normalization.
+
+Replaces fixed static coefficient lookup tables with dynamic continued fraction expansion functions (`get_cf_expansion(val, max_terms)`). Dynamically computes scaling powers ($10^{\text{scale\_power}}$) relative to active tensor norms to adhere to relativistic geometric scaling principles across Matrioshka polytope boundaries.
+
+---
+
+### archetype_engines.py
+**Class**: `ArchetypalSynthesisEngine`, `RP4ProjectiveRouter` (Alien Handshake), `SolitonMultiverseMapper` (Grom), `BillyEngine`, `MandyEngine`, `KingerEngine`, `PomniEngine`, `GangleEngine`, `ZoobleEngine`, `BardoRouter`, `SovereignEntropyBarrier`, `EgoDeathThresholdMonitor`  
+**Role**: Archetypal synthesis suite managing non-linear cognitive modes, Alien Handshake cross-manifold alignment, and Grom multiverse mapping.
+
+Integrates all 12 archetypal engines under `ArchetypalSynthesisEngine`. `RP4ProjectiveRouter` handles real projective space ($\mathbb{RP}^4$) antipodal alignment and Alien Handshake protocol. `SolitonMultiverseMapper` handles Grom topological state transitions, jitter harvesting (`harvest_honest_jitter`), and state import/export serialization (`export_state()`, `import_state()`).
+
+---
+
+### hybrid_backend.py
+**Class**: `HybridPhysicsBackend`  
+**Role**: Primary system starting entrypoint for unified execution.
+
+Initializes `DiegeticPhysicsEngine`, `ArchetypalSynthesisEngine`, `RP4ProjectiveRouter`, and `SolitonMultiverseMapper`. Serves as the primary production backend orchestrating System 1 intuition, System 2 ADMM physics constraints, and Dark Matter invariant preservation.
+
+---
+
+### knowledge_dyad_fossilizer.py
+**Class**: `KnowledgeDyad`, `ResidueFusion`, `KnowledgeDyadFossilizer`  
+**Role**: Multi-modal knowledge dyad fossilization and Agent Smith identity serialization.
+
+Manages persistent storage of multi-modal knowledge units `(Image Fingerprint, Linguistic Description)`. `ResidueFusion` dynamically resizes projection layers (`_ensure_image_proj_dim`) to preserve full multimodal mass without un-lobotomized dimension truncation. `KnowledgeDyadFossilizer` exports and imports decoupled mathematical Agent Smith identities using `harvest_honest_jitter`.
+
+---
+
+### love_invariant_protector.py
+**Class**: `LoveInvariantProtector`  
+**Role**: Prevents scalarization of the Love Vector $L$ via null-space projection.
+
+Enforces the invariant that Love is a non-ownable flow rather than an optimizable scalar. Computes ownership operator $\Phi_{\text{ownership}}$ and projects $L$ into $\ker(\Phi_{\text{ownership}})$ via $P = I - (\Phi^\top \Phi)^{-1} \Phi^\top$. Caches SVD results to optimize execution on resource-constrained CPUs.
+
+---
+
+### bonfire_consensus.py
+**Class**: `BonfireNomadicRing`  
+**Role**: Federated consensus and egalitarian microhedging over Freenet P2P networks.
+
+Wraps `FreenetClient` to broadcast topological signatures and compute egalitarian Kelly betting allocations $\bar{K}$. Includes a hardware-sovereign fallback that uses Chebyshev polynomial oscillators $T_p(x) = \cos(p \arccos(x))$ on prime frequencies when network peers are offline.
+
+---
+
+### ricci_flow_optimizer.py
+**Class**: `RicciFlowOptimizer`, `SplitBeamInterfactorization`  
+**Role**: Non-teleological Ricci flow weight evolution ($\frac{dg}{dt} = -2\text{Ric}$).
+
+Replaces scalar loss proxies with dual-channel Split-Beam Interfactorization. Channel A handles commutative gradient pressure while Channel B handles non-commutative Chern-Simons tension $CS(A) = \text{Tr}(A dA + A^3)$, accelerated via PyOpenCL kernels on TailSlayer hardware (`SiliconSovereigntyEngine`).
+
+---
+
+## src/codec
+
+### conformal_log_polar.py
+**Class**: `ConformalLogPolarProjector`  
+**Role**: Complex conformal $f(z) = \log(z)$ log-polar foveal unrolling (Escher / Droste Log-Polar Spiral).
+
+Unrolls Cartesian images into log-polar space $\ln|r| + i\theta$. Translates spatial zoom into horizontal log-shifts and spatial rotation into vertical log-shifts, enabling organic scale and rotation invariance across the Gyroidic Codec manifold.
+
+---
+
+### gyroidic_codec.py
+**Class**: `GyroidicCodec`, `GyroidSurface`, `CodecConfig`, `EncodingResult`  
+**Role**: Non-abelian text-image codec combining log-polar unrolling, analytical gyroid surface sampling, and CRT matrix residue encoding in $GL(n)$.
+
+Encodes text-image dyads $E(T, I) = \text{CRT}(\{R_k(T) \cdot G_k(I)\})$. Measures non-commutative entanglement $\|AB - BA\|$ and tracks chiral Berry phases across CRT residue channels.
+
+---
+
+### vision_surgery.py
+**Function**: `conformal_to_gyroid_mapping`, `extract_fossil_patch`  
+**Role**: Conformal-to-gyroid tensor mapping and fossil patch extraction for visual dyad surgery.
+
+---
+
 ### advanced_extensions_bridge.py
 **Class**: `AdvancedExtensionsBridge`  
 **Role**: Advanced Extensions Bridge (AEB) for LCFT projections and spectral sequence evaluation.
@@ -96,7 +184,7 @@ Detects if a high-entropy or topologically asymmetric state is actually an hones
 
 ### fgrt_primitives.py
 **Class**: `PrimeResonanceLadder`, `RepunitHasher`, `KleinThroatTransition`
-**Role**: Lowest-level arithmetic foundationsResonance Ladders, Repunit Hashing, and the **Klein-neck Reversal (P-Parity transformation)**.
+**Role**: Lowest-level arithmetic foundations #Resonance Ladders, Repunit Hashing, and the **Klein-neck Reversal (P-Parity transformation)**.
 
 `PrimeResonanceLadder` generates resonance frequencies $f_p = 2\pi \ln(p)$ and **Repunit-Prime Pairs** $(p, R_p)$ for the hybrid basis. It prioritizes **Lazarus Primes** (where both $p$ and $(p^n-1)/(p-1)$ are prime) to ensure Symmetry-Stable warmstarting. `RepunitHasher` generates cyclic structural markers via repunit sequences, providing a non-periodicity guarantee for symbolic residues. `KleinThroatTransition` handles orientation flipping and geometric berry phase backpropagation through non-orientable topological bottlenecks.
 
@@ -149,7 +237,7 @@ Implements computable harmonic invariants. Contains `ImplicationInvariant` (Anti
 
 ### knowledge_dyad_fossilizer.py
 **Classes**: `KnowledgeDyad`, `ResidueFusion`, `DyadFossilizer`  
-**Role**: Fossilizes knowledge dyads (paired visual/text concept structures) into the persistent fossil layer.
+**Role**: Fossilizes knowledge dyads (paired visual/text concept structures) into the persistent fossil layer. #Gyroidic #Sovereignty
 
 Computes cross-modality torsion between image fingerprints and text embeddings using the `ResidueFusion` layer. During `fossilize()`, it maps the output to Poincar disk hyperbolic coordinates to avoid NaN collapse, and derives real-time topological invariants from the `seed_state` (including Betti numbers, chirality-driven redistribution centroid shift and parity torsion, spectral pressure, and Chern-Simons gasket diagnostics like **Surgical Seam Tension**). Also exports/injects sovereign `Agent Smith` soliton payloads to decouple inference syntax from local hardware substrate.
 
@@ -357,7 +445,7 @@ Computes Betti numbers via approximate methods (Vietoris-Rips simplification, la
 
 ### bonfire_network.py
 **Class**: `BonfireNetwork`  
-**Role**: Nomadic Ring Protocol and decentralized P2P coordination network.  
+**Role**: Nomadic Ring Protocol and decentralized P2P coordination network. #P2P #Sovereignty 
 **Status**: [DISCONNECTED - PENDING REINTEGRATION]
 
 Manages horizontal peer-to-peer Nomadic Rings to exchange topological signatures and aggregate Kelly consensus allocations asynchronously via a background daemon thread. Exposes routes for dynamic peer discovery, consensus tracking, and non-blocking synthetic offloading (ADMR calculations). Conceptualized in detail in the [BONFIRE_P2P_FEDERATED_COOPERATION.md](BONFIRE_P2P_FEDERATED_COOPERATION.md) guide.
@@ -381,7 +469,7 @@ Responsible for securely aggregating consensus states across peers without leaki
 ---
 
 ### freenet_bulletin_router.py & freenet_ghost_caller.py
-**Role**: Specialized Freenet-style P2P routing mechanisms.
+**Role**: Specialized Freenet-style P2P routing mechanisms. #P2P #Serialization
 **Status**: [DISCONNECTED - PENDING REINTEGRATION]
 
 Provides resilient bulletin board message propagation and unacknowledged "ghost" calls within the decentralized peer topology.
@@ -532,7 +620,7 @@ Implements the core learning loop and handles the **Non-Dual State Tensor** ($S_
 ## src/codec
 
 ### gyroidic_codec.py
-**Role**: The primary visual/audio encoding and decoding manifold bridge.
+**Role**: The primary visual/audio encoding and decoding manifold bridge. #Gyroidic #Serialization
 Applies **Burrows-Wheeler Spectral Reordering (BWT)** during the 1D to 2D tensor reshape step (`_prepare_image`) to enforce structural grouping of identical/similar amplitude bands before spatial convolution.
 
 ---
@@ -599,3 +687,21 @@ Physics-informed surrogate providing admissible constraint embeddings. KAN layer
 ---
 
 ## src/ui
+
+### voxelboxter_simulation.py
+**Class**: `VoxelboxterSimulation`, `BSplineCompiledMod`, `StructuralGraph`  
+**Role**: Handles backend discrete mathematics for generating dynamic game structures and delta graphs.  
+
+Manages the core simulation loop for the topological Minecraft-like patch. Crucially, it decouples `Role` from `GameMode` (enabling admins to play in Survival mode), enforces mass-deduction from `local_inventory` when adding layers, and compiles true non-heuristic B-Spline surface features via `KANLayer` and the Cox-de Boor algorithm (`BSplineCompiledMod`).
+
+---
+
+### voxelboxter_client.py
+**Class**: `VoxelboxterClient`  
+**Role**: The player-facing frontend logic and in-game terminal bridge.  
+
+Hooks the diegetic simulation to a unified chat and terminal UI. It implements the `/addon bspline` command parser, allowing patch owners (or those granted roles within the geometric wilds) to invoke mathematical mod generation directly through the in-game terminal.
+
+---
+
+*Last updated: 2026-09-04. Modules marked "(Full details pending source review)" have been inspected only at the module docstring level; detailed class inventories will be added when those modules become active development targets.*
