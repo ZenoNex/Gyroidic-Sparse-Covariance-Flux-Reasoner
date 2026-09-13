@@ -16,7 +16,8 @@ import torch.nn.functional as F
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 import math
-from .invariants import get_prime_ladder, is_prime
+from .invariants import get_prime_ladder, is_prime, PHI, PI
+from typing import Dict, List, Tuple, Optional, Union
 
 class NumberTheoreticStabilizer(nn.Module):
     """
@@ -44,20 +45,45 @@ class NumberTheoreticStabilizer(nn.Module):
         self.primes = [int(p.item()) for p in get_prime_ladder(prime_base_size)]
         self.register_buffer('prime_tensor', torch.tensor(self.primes, dtype=torch.float32))
         
-        # Golden ratio and other mathematical constants
-        self.phi = (1 + math.sqrt(5)) / 2  # Golden ratio
+        # Golden ratio and other mathematical constants from invariants
+        self.phi = float(PHI)
         self.e = math.e
-        self.pi = math.pi
+        self.pi = float(PI)
         
         # Quadratic residue lookup for small primes
         self.quadratic_residues = self._compute_quadratic_residues()
         
-        # Continued fraction coefficients for common irrationals
+        # Dynamic continued fraction terms for irrationals
         self.cf_coefficients = {
-            'phi': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],  # Golden ratio
-            'e': [2, 1, 2, 1, 1, 4, 1, 1, 6, 1],    # Euler's number
-            'sqrt2': [1, 2, 2, 2, 2, 2, 2, 2, 2, 2] # 2
+            'phi': self.get_cf_expansion('phi'),
+            'e': self.get_cf_expansion('e'),
+            'pi': self.get_cf_expansion('pi'),
+            'sqrt2': self.get_cf_expansion('sqrt2')
         }
+        
+    def get_cf_expansion(self, val_or_name: Union[float, str], max_terms: int = 10) -> List[int]:
+        """Dynamically compute continued fraction terms for a constant or value."""
+        if isinstance(val_or_name, str):
+            named_consts = {
+                'phi': self.phi,
+                'e': self.e,
+                'pi': self.pi,
+                'sqrt2': math.sqrt(2)
+            }
+            value = named_consts.get(val_or_name, self.phi)
+        else:
+            value = float(val_or_name)
+            
+        terms = []
+        val = value
+        for _ in range(max_terms):
+            a_i = int(val)
+            terms.append(a_i)
+            rem = val - a_i
+            if abs(rem) < 1e-10:
+                break
+            val = 1.0 / rem
+        return terms
     
     def _compute_quadratic_residues(self) -> Dict[int, List[int]]:
         """Compute quadratic residues for small primes."""
@@ -119,8 +145,11 @@ class NumberTheoreticStabilizer(nn.Module):
         if n < 2:
             return None
         
-        # Convert to integers for exact arithmetic
-        scale_factor = 1000  # Scale for precision
+        # Compute dynamic scale factor relative to precision bits and non-zero coefficient magnitude
+        non_zero_coeffs = torch.abs(coefficients[coefficients != 0])
+        min_coeff = torch.min(non_zero_coeffs).item() if len(non_zero_coeffs) > 0 else 1.0
+        scale_power = min(8, max(3, int(math.ceil(-math.log10(min_coeff + 1e-12))) + (self.precision_bits // 8)))
+        scale_factor = float(10 ** scale_power)
         int_coeffs = (coefficients * scale_factor).long()
         int_target = int(target * scale_factor)
         
