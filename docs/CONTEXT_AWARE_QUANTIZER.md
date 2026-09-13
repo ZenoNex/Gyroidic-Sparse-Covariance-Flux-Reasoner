@@ -146,6 +146,20 @@ if EXTENSIONS_AVAILABLE:
 
 **Call site**: The CAQ is called during the Phase 2.5/2.6 Matrioshka processing block in `process_input`. Its emitted `BoundaryState` is stored in `_last_matrioshka_diag` and consumed by the Phase 2.7 `ZeitgeistRouter`.
 
+### SDE Solver Interface
+The current shell `_level` is packaged into the `elipsodistrophy_metrics` dictionary and passed to the ADMR solver's SDE steps. The solver uses this level to compute the recursive Matrioshka shell scale $Z = 2^{-\text{level}}$, which acts as the denominator of the slow macro-environmental envelope.
+
+---
+
+## Polychron Hybridization (Phase 19 / 2026)
+
+In the Phase 19 topology update, `ContextAwareQuantizer` is hybridized with the `PolychronQuantizer` (`src/core/polychoron_quantization.py`). While CAQ handles per-axis anisotropic scaling and Matrioshka depth switching, `PolychronQuantizer` maps continuous vectors onto the 120 vertices of the 4D 600-cell hyper-polytope using:
+
+1. **Moiré-via-Modular-Algebra Beat Spectrum**: Evaluates difference lattice $\Lambda_{\text{moiré}} = \{|\ln p_i - \ln p_j|\}$ across prime frequency channels ($p_1, \ldots, p_5$).
+2. **Carry-Free Bitwise XOR Residues**: CRT channels are decoupled using carry-free bitwise XOR operations ($r_i \oplus r_j$) to prevent channel cross-talk during modular arithmetic quantization.
+3. **$\phi$-Seesaw & Bouligand CODES Error Bounds**: Quantization error bounds adhere to the golden coordinate identity $\frac{\phi}{2} - \frac{1}{2\phi} = \frac{1}{2}$, projecting non-teleological drift onto Bouligand contingent cones $T_S(x)$ under the fourfold CODES framework.
+4. **Coherence & Holonomy Coupling**: Emits $PAS_h$ fringe contrast scores and tracks Berry phase holonomy drift $\Delta\phi^{\text{Berry}}$ during state transport across hyper-polytope facets.
+
 ---
 
 ## Related Documents
@@ -154,3 +168,5 @@ if EXTENSIONS_AVAILABLE:
 - [VETO_SUBSPACE_ARCHITECTURE 5](VETO_SUBSPACE_ARCHITECTURE.md)  BoundaryState and is_critical() threshold
 - [ZEITGEIST_ROUTER.md](ZEITGEIST_ROUTER.md)  Phase 18 consumer of the BoundaryState emitted here
 - [MATHEMATICAL_DETAILS 31.7](MATHEMATICAL_DETAILS.md)  Full BoundaryState tensor formalism
+- [PRIME_RESONANCE_LADDER.md](PRIME_RESONANCE_LADDER.md)  Prime frequency lattice and Moiré beat spectrum
+
