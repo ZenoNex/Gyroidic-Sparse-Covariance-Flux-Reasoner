@@ -139,6 +139,59 @@ class ResidueFusion(nn.Module):
         dark_matter_seed = torch.tanh(shear.mean(dim=0))
         return dark_matter_seed
 
+    def adapt_online(
+        self,
+        support_image: torch.Tensor,
+        support_text: torch.Tensor,
+        steps: int = 1,
+        lr: float = 0.01,
+        entropy: Optional[torch.Tensor] = None
+    ) -> 'ResidueFusion':
+        """
+        Perform online inner-loop adaptation (MAML step) on multimodal dyad support data.
+        Returns an adapted instance of ResidueFusion.
+        """
+        def clone_module(module):
+            import copy
+            clone = copy.copy(module)
+            clone._parameters = {}
+            for k, v in module._parameters.items():
+                if v is not None:
+                    clone._parameters[k] = nn.Parameter(v.clone(), requires_grad=v.requires_grad)
+                else:
+                    clone._parameters[k] = None
+            clone._buffers = {k: v.clone() if v is not None else None for k, v in module._buffers.items()}
+            clone._modules = {}
+            for k, v in module._modules.items():
+                if v is not None:
+                    clone._modules[k] = clone_module(v)
+                else:
+                    clone._modules[k] = None
+            return clone
+
+        adapted_fusion = clone_module(self)
+        
+        effective_lr = lr
+        if entropy is not None:
+            entropy_val = entropy.mean().item() if isinstance(entropy, torch.Tensor) else float(entropy)
+            effective_lr = lr * (1.0 + abs(entropy_val))
+            
+        optimizer = torch.optim.SGD(adapted_fusion.parameters(), lr=effective_lr)
+        
+        for p in adapted_fusion.parameters():
+            p.requires_grad_(True)
+            
+        adapted_fusion.train()
+        for step in range(steps):
+            optimizer.zero_grad()
+            residue = adapted_fusion(support_image, support_text)
+            loss = torch.norm(residue) * 0.1
+            loss.backward()
+            optimizer.step()
+            
+        return adapted_fusion
+
+
 
 class DyadFossilizer:
     """
