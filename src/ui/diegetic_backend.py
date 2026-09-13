@@ -2422,6 +2422,40 @@ class DiegeticPhysicsEngine(nn.Module):
                     s_in, s_target, steps=1, lr=0.01, entropy=entropy_val
                 )
                 
+        # Run MAML online adaptation for Polynomial ADMR Solver
+        if hasattr(self, 'admr_solver') and self.admr_solver is not None:
+            if not hasattr(self, 'admr_support_buffer'):
+                self.admr_support_buffer = []
+            if len(self.admr_support_buffer) > 0:
+                entropy_val = getattr(self, '_last_spectral_entropy', None)
+                for s_state, s_neighbors in self.admr_support_buffer:
+                    self.admr_solver = self.admr_solver.adapt_online(
+                        s_state, s_neighbors, steps=1, lr=0.01, entropy=entropy_val
+                    )
+            self.admr_support_buffer.append((
+                self.meta_state.detach().clone(),
+                kagh_input.detach().clone()
+            ))
+            if len(self.admr_support_buffer) > 4:
+                self.admr_support_buffer.pop(0)
+
+        # Run MAML online adaptation for Polynomial Functional Embedder
+        if hasattr(self, 'poly_embedder') and self.poly_embedder is not None:
+            if not hasattr(self, 'poly_embedder_support_buffer'):
+                self.poly_embedder_support_buffer = []
+            if len(self.poly_embedder_support_buffer) > 0:
+                entropy_val = getattr(self, '_last_spectral_entropy', None)
+                for s_text, s_graph, s_num in self.poly_embedder_support_buffer:
+                    self.poly_embedder = self.poly_embedder.adapt_online(
+                        s_text, s_graph, s_num, steps=1, lr=0.01, entropy=entropy_val
+                    )
+            self.poly_embedder_support_buffer.append((
+                input_tensor.detach().clone(), None, None
+            ))
+            if len(self.poly_embedder_support_buffer) > 4:
+                self.poly_embedder_support_buffer.pop(0)
+
+                
         if hasattr(self, 'meta_polytope') and self.meta_polytope is not None:
             current_state = kagh_input
             
