@@ -102,8 +102,15 @@ This law dictates how symbolic proposals from System 1 are hardened through the 
     *   **The Neglecton (Zero-Emission Anchor)**: Situated at the inner boundary of the **Annular Substrate**, it serves as an indecomposable representation in the LCFT layer. While **Semions** (computational tokens) move on the outer boundary, the Neglecton remains fixed at a parabolic singularity. It "remembers" the winding number of thoughts (braiding) around it using the **Affine Braid Group $Aff_2$**, establishing **Endogenous Memory**.
     *   **Signal Sovereignty**: Successful functional groups are **fossilized** (locked).
     *   **Torsion Field**: Measures **Contorsion $K$** and **Geometric Berry Phase** to resolve orientation blindness.
-    *   **Klein-neck Reversal**: Performs $P$-Parity transformations on logic sections.
     *   **DAQUF Solitons**: Metaphysical fossilization incorporating **Diegetic Amortization**.
+
+### 4. Primary Entrypoint & Archetypal Backend (`hybrid_backend.py`)
+*   **Role**: Primary execution orchestrator across System 1, System 2, and Dark Matter.
+*   **Component**: `hybrid_backend.py` executing `HybridPhysicsBackend`.
+### 6. Conformal Log-Polar Drost Codec & Foveal Unrolling (`src/codec/`)
+*   **Conformal Log-Polar Projector (`conformal_log_polar.py`)**: Applies Escher / Droste Log-Polar foveal unrolling $f(z) = \log(z)$ to convert spatial scale/rotation transformations into linear shifts in log-polar space ($\ln|r| + i\theta$).
+*   **Non-Abelian Gyroidic Image Codec (`gyroidic_codec.py`)**: Combines log-polar unrolling with analytical `GyroidSurface` sampling at polynomial frequencies. Encodes multimodal dyads into non-commutative CRT residue matrices in $GL(n)$ with Berry phase chiral tracking.
+*   **Deterministic Quasi-Gaussian Distribution**: Superposition of logarithmic prime frequencies along Bouligand contingent cone projections $T_S(x)$ produces a bell-shaped quasi-Gaussian probability envelope without random number generators.
 
 ---
 
@@ -726,10 +733,11 @@ The **Archetypal Synthesis Engine** (`src/core/archetype_engines.py`) represents
 
 ## 9.8 Model-Agnostic Meta-Learning (MAML) Online Inner-Loop Adaptation
 
-The system integrates native Model-Agnostic Meta-Learning (MAML) online inner-loop adaptation across three critical components:
+The system integrates native Model-Agnostic Meta-Learning (MAML) online inner-loop adaptation across four critical components:
 1. **Context-Adaptive Latent Momentum Veto (CALM)**: Adapts parameter weights online to predict and apply trajectory forcing corrections.
 2. **KAGH Speculative Drafter**: Adapts the drafting network to align with local context before generating response ghosts.
 3. **Polynomial ADMR Solver**: Meta-optimizes the transition operator $A$ using the L2 norm of the pre-projected constraint violation.
+4. **Joint Physical Functional Embedder (`PolynomialFunctionalEmbedder` & `ResidueFusion`)**: Adapts multimodal projection layers (text/graph/numerical/image) and `LearnedPrimitivePerturbation` online to align continuous physical feature spaces with discrete CRT polynomial co-prime functionals ($\phi_k$) without lobotomizing multimodal mass.
 
 ### Inner-Loop Parameter Adaptation Mechanics
 *   **Zero-Dependency Implementation**: Employs recursive parameter cloning (`clone_module`) and gradient updates using native PyTorch autograd.
@@ -739,6 +747,7 @@ The system integrates native Model-Agnostic Meta-Learning (MAML) online inner-lo
 *   **Loss Metrics**: 
     *   For CALM and KAGH, MSE loss is minimized on the sliding support buffer.
     *   For the ADMR solver, the L2 norm of the pre-projected constraint violation vector is minimized.
-*   **Straight-Through Estimators (STE)**: Used to propagate gradients through non-differentiable operations (like cyclotomic quantization and modular boundaries) to parameters.
+    *   For **Joint Physical Embeddings**, Phase Alignment Score ($\text{PAS}_h$) coherence and continuous co-primality entropy mismatch are minimized over live support buffers.
+*   **Straight-Through Estimators (STE)**: Used to propagate gradients through non-differentiable operations (like cyclotomic quantization, Matrioshka shell boundaries, and log-polar conformal unrolling) to physical embedding parameters.
 *   **Sliding Support Buffers**: Inference steps maintain a FIFO support history of the last 4 transitions to run MAML adaptation steps on live inputs.
 
