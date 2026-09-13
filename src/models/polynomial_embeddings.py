@@ -205,5 +205,63 @@ class PolynomialFunctionalEmbedder(nn.Module):
         # expected coefficients (softmax-weighted)
         return residue_distributions
 
+    def adapt_online(
+        self,
+        support_text: Optional[torch.Tensor] = None,
+        support_graph: Optional[torch.Tensor] = None,
+        support_num: Optional[torch.Tensor] = None,
+        steps: int = 1,
+        lr: float = 0.01,
+        entropy: Optional[torch.Tensor] = None
+    ) -> 'PolynomialFunctionalEmbedder':
+        """
+        Perform online inner-loop adaptation (MAML step) on support data.
+        Returns an adapted instance of PolynomialFunctionalEmbedder.
+        
+        Dynamic LR: scaled by (1.0 + entropy.mean()) if entropy is provided.
+        """
+        def clone_module(module):
+            import copy
+            clone = copy.copy(module)
+            clone._parameters = {}
+            for k, v in module._parameters.items():
+                if v is not None:
+                    clone._parameters[k] = nn.Parameter(v.clone(), requires_grad=v.requires_grad)
+                else:
+                    clone._parameters[k] = None
+            clone._buffers = {k: v.clone() if v is not None else None for k, v in module._buffers.items()}
+            clone._modules = {}
+            for k, v in module._modules.items():
+                if v is not None:
+                    clone._modules[k] = clone_module(v)
+                else:
+                    clone._modules[k] = None
+            return clone
+
+        adapted_embedder = clone_module(self)
+        
+        effective_lr = lr
+        if entropy is not None:
+            entropy_val = entropy.mean().item() if isinstance(entropy, torch.Tensor) else float(entropy)
+            effective_lr = lr * (1.0 + abs(entropy_val))
+            
+        optimizer = torch.optim.SGD(adapted_embedder.parameters(), lr=effective_lr)
+        
+        for p in adapted_embedder.parameters():
+            p.requires_grad_(True)
+            
+        adapted_embedder.train()
+        for step in range(steps):
+            optimizer.zero_grad()
+            out = adapted_embedder(support_text, support_graph, support_num)
+            residues = out['residue_distributions']
+            # PAS_h loss: maximize magnitude of expected phase alignment across functional heads
+            pas_loss = 1.0 - torch.abs(residues.mean(dim=1)).mean()
+            pas_loss.backward()
+            optimizer.step()
+            
+        return adapted_embedder
+
+
 
 from src.models.modular_embeddings import SimpleTextEncoder, SimpleGraphEncoder
