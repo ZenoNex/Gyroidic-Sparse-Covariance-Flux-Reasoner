@@ -956,3 +956,7 @@ class PolynomialADMRSolver(nn.Module):
                 
         return adapted_solver
 
+    # Alias for uniform MAML API naming across all surrogates
+    adapt_online = meta_optimize_admm_step
+
+
