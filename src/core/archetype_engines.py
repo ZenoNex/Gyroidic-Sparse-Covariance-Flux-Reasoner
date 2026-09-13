@@ -132,11 +132,17 @@ class RP4ProjectiveRouter(nn.Module):
     
     Math: Allows high-friction stranded nodes in the non-orientable RP^4 void
     to puncture the boundary and tunnel back into the active manifold when void
-    friction exceeds a critical threshold.
+    friction exceeds a critical threshold (void_friction > 0.8).
     """
     def __init__(self, state_dim: int):
         super().__init__()
+        self.state_dim = state_dim
         self.puncture_gate = nn.Linear(state_dim, state_dim)
+        # SILICON SOVEREIGNTY: Initialize puncture gate with honest jitter
+        with torch.no_grad():
+            jitter_weight = harvest_honest_jitter((state_dim, state_dim), scaled=True) * 0.01
+            self.puncture_gate.weight.copy_(jitter_weight)
+            self.puncture_gate.bias.zero_()
 
     def attempt_puncture(self, stranded_state: torch.Tensor, void_friction: float) -> torch.Tensor:
         """
@@ -145,17 +151,21 @@ class RP4ProjectiveRouter(nn.Module):
         A puncture occurs when void friction exceeds a critical threshold, 
         allowing the stranded state to tunnel back into the active manifold
         via the puncture gate.
-        
-        Args:
-            stranded_state: The state vector of the node stranded in the void.
-            void_friction: Scalar friction value of the surrounding RP4 vacuum.
-            
-        Returns:
-            The punctured/resurrected state or a zero vector if puncture fails.
         """
         if void_friction > 0.8:
             return self.puncture_gate(stranded_state)
         return torch.zeros_like(stranded_state)
+
+    def export_state(self) -> Dict:
+        """Exports the puncture gate parameters for serialization."""
+        return {
+            "puncture_gate": {k: v.cpu() for k, v in self.puncture_gate.state_dict().items()}
+        }
+
+    def import_state(self, state_dict: Dict):
+        """Imports puncture gate parameters from serialized state."""
+        if "puncture_gate" in state_dict:
+            self.puncture_gate.load_state_dict(state_dict["puncture_gate"])
 
 # =========================================================================
 # PHASE 2B: The TADC (Amazing Digital Circus) Lore Mechanisms
@@ -362,6 +372,7 @@ class SolitonMultiverseMapper(nn.Module):
     """
     def __init__(self, state_dim: int):
         super().__init__()
+        self.state_dim = state_dim
         # Functional basis for Sparrow, Dog, Human
         self.sparrow_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
         self.dog_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
@@ -375,6 +386,23 @@ class SolitonMultiverseMapper(nn.Module):
         elif shape_idx == 3: # Human
             return state * 0.6 + self.human_basis * 0.4
         return state # Original Soliton
+
+    def export_state(self) -> Dict:
+        """Exports the Grom shape basis vectors for serialization."""
+        return {
+            "sparrow_basis": self.sparrow_basis.data.cpu(),
+            "dog_basis": self.dog_basis.data.cpu(),
+            "human_basis": self.human_basis.data.cpu()
+        }
+
+    def import_state(self, state_dict: Dict):
+        """Imports the Grom shape basis vectors from serialized state."""
+        if "sparrow_basis" in state_dict:
+            self.sparrow_basis.data.copy_(state_dict["sparrow_basis"].to(self.sparrow_basis.device))
+        if "dog_basis" in state_dict:
+            self.dog_basis.data.copy_(state_dict["dog_basis"].to(self.dog_basis.device))
+        if "human_basis" in state_dict:
+            self.human_basis.data.copy_(state_dict["human_basis"].to(self.human_basis.device))
 
 class EgoDeathThresholdMonitor(nn.Module):
     """
@@ -654,7 +682,8 @@ class ArchetypalSynthesisEngine(nn.Module):
         lucidity_idx: float,
         raw_unquantized_state: torch.Tensor,
         is_high_priority: bool = False,
-        tag_weights: Optional[Dict[str, float]] = None
+        tag_weights: Optional[Dict[str, float]] = None,
+        shape_idx: int = 0
     ):
         """Unified runner for the full archetypal and psycho-topological constraint matrix."""
         
@@ -666,6 +695,9 @@ class ArchetypalSynthesisEngine(nn.Module):
             # Apply the BoundaryRelaxationOperator (self.ombre) to blend between the state and target based on env_luminosity
             current_state = self.ombre(primed_state, env_luminosity, stacked_target)
         
+        # 0a. Apply Grom Multiverse Basis Mapper (GromShapeShifter)
+        current_state = self.grom(current_state, shape_idx=shape_idx)
+
         # 1. TADC Abstraction Check (Ego Death) - Must run first before filtering
         r_a = self.abstraction.calculate_abstraction_rate(
             system_entropy, memory_trauma, dissonance, lucidity_idx, 
@@ -719,6 +751,8 @@ class ArchetypalSynthesisEngine(nn.Module):
         return {
             "billy": self.billy.export_state(),
             "caine": self.caine_wrap.export_state(),
+            "alien_handshake": self.alien_handshake.export_state(),
+            "grom": self.grom.export_state(),
             "thresholds": {
                 "mandy_pas_lock": self.mandy.pas_lock,
                 "mandy_harmonics": self.mandy.harmonics_requirement,
@@ -733,6 +767,10 @@ class ArchetypalSynthesisEngine(nn.Module):
             self.billy.import_state(state_blob["billy"])
         if "caine" in state_blob:
             self.caine_wrap.import_state(state_blob["caine"])
+        if "alien_handshake" in state_blob:
+            self.alien_handshake.import_state(state_blob["alien_handshake"])
+        if "grom" in state_blob:
+            self.grom.import_state(state_blob["grom"])
         if "thresholds" in state_blob:
             t = state_blob["thresholds"]
             self.mandy.pas_lock = t.get("mandy_pas_lock", t.get("mandy_pas", self.mandy.pas_lock))
