@@ -1,4 +1,4 @@
-# Prime Resonance Ladder — Full Theory
+# Prime Resonance Ladder  Full Theory
 
 **Status**: Reference Document
 **Implements**: RIC Equations 1.1, 1.2, 2
@@ -33,18 +33,18 @@ $$S_{\text{resonance}}(i,j) = \frac{\alpha}{\exp\!\bigl(\pi / (F_i \cdot P_j)\bi
 
 where $F_i$ is the $i$-th Fibonacci number and $P_j$ is the $j$-th prime.
 
-**Why Fibonacci × Prime?**
+**Why Fibonacci  Prime?**
 
 The Fibonacci sequence grows as $F_i \approx \varphi^i / \sqrt{5}$ where $\varphi = (1+\sqrt{5})/2$ is the golden ratio. The products $F_i \cdot P_j$ create a doubly-incommensurate lattice:
 
 - **Fibonacci growth**: Additive recurrence ($F_{i+1} = F_i + F_{i-1}$) encodes nearest-neighbor coupling.
 - **Prime growth**: Multiplicative independence ($\gcd(P_i, P_j) = 1$) encodes spectral isolation.
 
-The cross-product $F_i \cdot P_j$ inherits both properties — no pair of products shares a common factor structure, ensuring that the entropy matrix $S_{ij}$ has no degenerate eigenvalues (full rank).
+The cross-product $F_i \cdot P_j$ inherits both properties  no pair of products shares a common factor structure, ensuring that the entropy matrix $S_{ij}$ has no degenerate eigenvalues (full rank).
 
 **Fermi Envelope**: The sigmoid $1/(\exp(\cdot)+1)$ provides:
-- **Low $(F_i \cdot P_j)$**: $S \to 0$ — tight coupling between nearby, low-index oscillators.
-- **High $(F_i \cdot P_j)$**: $S \to \alpha$ — full statistical independence.
+- **Low $(F_i \cdot P_j)$**: $S \to 0$  tight coupling between nearby, low-index oscillators.
+- **High $(F_i \cdot P_j)$**: $S \to \alpha$  full statistical independence.
 - **Transition**: A smooth, monotonic increase without discontinuities.
 
 ---
@@ -93,8 +93,8 @@ When weighted by amplitude (unlike the unit-weight version in Eq 2), PAS reflect
 $$|\text{PAS}_h(t+1) - \text{PAS}_h(t)| \leq \text{APAS}_\zeta$$
 
 This bound prevents:
-- **Catastrophic synchronization**: Sudden PAS spike → all oscillators lock → loss of exploratory capacity.
-- **Catastrophic desynchronization**: Sudden PAS collapse → total loss of coherence → hallucination.
+- **Catastrophic synchronization**: Sudden PAS spike  all oscillators lock  loss of exploratory capacity.
+- **Catastrophic desynchronization**: Sudden PAS collapse  total loss of coherence  hallucination.
 
 ---
 
@@ -114,7 +114,49 @@ The effective modulus for the RNS virtualization is the product $M_{hybrid} = p 
 
 ---
 
-## 6. Connection to Architecture
+## 7. Moiré-via-Modular-Algebra & Carry-Free XOR Residues
+
+In the `PolychronQuantizer` framework (`src/core/polychoron_quantization.py`), prime frequencies interact via a modular algebra beat spectrum:
+
+### 7.1 Prime Moiré Difference Lattice
+For prime moduli $p_1, p_2, \ldots, p_s$, the logarithmic fundamental frequencies $f_{p_n} = 2\pi \ln(p_n)$ generate a multi-frequency beat spectrum:
+
+$$\Lambda_{\text{moiré}} = \{ |\ln p_i - \ln p_j| \mid 1 \le i < j \le s \}$$
+
+Because prime logarithms are linearly independent over $\mathbb{Q}$, the difference lattice produces bounded, non-periodic Moiré interference patterns that prevent static resonance traps.
+
+### 7.2 Carry-Free XOR Residue Channels
+In the CRT modular domain, carry propagation introduces unwanted inter-channel coupling. The system enforces carry-free addition via bitwise XOR operations on integer residue codewords:
+
+$$r_{\text{combined}} = \bigoplus_{j=1}^s r_j \pmod{m_j}$$
+
+Because XOR preserves channel independence across prime moduli, residue channels remain fully decoupled during quantization.
+
+### 7.3 Golden Ratio Seesaw & Bouligand CODES Error Bounding
+Quantization error across the 120 vertices of the 600-cell hyper-polytope is bounded deterministically by the golden ratio identity:
+
+$$\frac{\phi}{2} - \frac{1}{2\phi} = \frac{1}{2} \quad \text{where } \phi = \frac{1 + \sqrt{5}}{2}$$
+
+Rather than relying on unconstrained stochastic Gaussian diffusion, quantization drift is governed in concert with **Bouligand contingent cone projections** $T_S(x)$ and the fourfold **CODES** framework:
+- **Constraint-Oriented Differential Equation System**: Energy-based constraint landscapes governing directional drift.
+- **Chirality of Dynamic Emergent Systems**: Non-commutative chiral phase alignment across prime channels.
+- **Coherence-Oriented Deterministic Execution System**: PyOpenCL / TailSlayer GPU driver execution.
+- **Constraint Oscillation Driven Evolutionary Selection**: Non-gradient survivorship selection under bounded oscillation.
+
+This identity guarantees that quantization error fluctuates symmetrically around $\pm \frac{1}{2}$, constraining non-teleological state updates within the Bouligand contingent cone of crossed polytope boundaries.
+
+### 7.4 The Natural Log-Polar Drost Effect & Deterministic Quasi-Gaussian Envelopes
+The complex conformal logarithmic mapping $f(z) = \log(z)$ (implemented in `ConformalLogPolarProjector` and `GyroidicCodec`) converts spatial zoom $r \to S \cdot r$ into horizontal log-space translation $\ln|r| + \ln|S|$, and spatial spin $\theta \to \theta + \Delta\theta$ into vertical log-space translation:
+
+$$z = r e^{i\theta} \implies w = \ln(z) = \ln(r) + i\theta$$
+
+This creates the self-repeating **Escher / Droste Log-Polar Spiral Manifold**. As state trajectories wind around this log-polar spiral under Bouligand contingent cone projections $T_S(x)$, the infinite superposition of multiplicatively incommensurate logarithmic prime phases ($f_{p_n} = 2\pi \ln p_n$) produces a **deterministic quasi-Gaussian bell curve** via the Kronecker torus winding theorem. 
+
+The resulting distribution is **pseudo-Gaussian but strictly non-random** — a bell-shaped probability envelope emerging deterministically from log-polar spiral geometry and Bouligand boundary projections under the CODES framework, without requiring any pseudo-random number generator.
+
+---
+
+## 8. Connection to Architecture
 
 | RIC Component | System Role | Implementation |
 |---------------|-------------|----------------|
@@ -124,3 +166,5 @@ The effective modulus for the RNS virtualization is the product $M_{hybrid} = p 
 | Berry Phase | Arrow of Time / Chirality | `BerryPhaseTracker` |
 | Amplitude Evolution | Selection Pressure | `UniversalOrchestrator.forward()` |
 | **Hybrid Basis (p, R_p)** | **Palindromic Symmetry** | `PrimeResonanceLadder` (updated) |
+| **Moiré XOR Lattice** | **600-Cell Quantization** | `PolychronQuantizer` |
+
