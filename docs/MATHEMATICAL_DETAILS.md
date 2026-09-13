@@ -1991,3 +1991,91 @@ To visualize the high-dimensional hidden state $h \in \mathbb{R}^d$ on a 2D canv
    This acts as a global shape descriptor capturing the periodic modes.
 2. **Hyperbolic Disk Mapping**: The raw coordinates are scaled into the unit disk ($\|p\| < 1$) using hyperbolic tangent contraction:
    $$p_x = p_x^{\text{raw}} \cdot \frac{\tanh(\|p^{\text{raw}}\|_2)}{\|p^{\text{raw}}\|_2}, \quad p_y = p_y^{\text{raw}} \cdot \frac{\tanh(\|p^{\text{raw}}\|_2)}{\|p^{\text{raw}}\|_2}$$
+
+### 64. Polychron Moiré Quantization, Dynamic Continued Fractions & Entrypoint Hybridization
+
+1. **Polychron 600-Cell Moiré-via-Modular-Algebra & Bouligand CODES Bounding**:
+   The `PolychronQuantizer` (`src/core/polychoron_quantization.py`) extends 4D 600-cell polytope quantization with a 10-line Moiré beat spectrum across prime logarithm channels:
+   $$\Lambda_{\text{moiré}} = \{ |\ln p_i - \ln p_j| \mid 1 \le i < j \le 5 \}$$
+   Coupling across CRT residue channels uses carry-free bitwise XOR operations ($r_i \oplus r_j$) to isolate moduli. Quantization error bounds conform to the golden ratio seesaw identity $\frac{\phi}{2} - \frac{1}{2\phi} = \frac{1}{2}$, projecting non-teleological state updates onto Bouligand contingent cones $T_S(x)$ under the fourfold CODES framework (Constraint-Oriented Differential Equations, Chirality of Dynamic Emergent Systems, Coherence-Oriented Execution, Constraint Oscillation Evolutionary Selection) rather than unconstrained Gaussian diffusion.
+
+2. **Dynamic Continued Fraction Expansions & Relativistic Scaling**:
+   In `src/core/number_theoretic_stabilizer.py`, static coefficient arrays are replaced by dynamic continued fraction expansions `get_cf_expansion(val, max_terms)`. Scale factors scale relative to tensor magnitude via dynamic powers ($10^{\text{scale\_power}}$) instead of absolute numerical constants.
+
+3. **Hybrid Backend Entrypoint Architecture**:
+   The primary entrypoint `hybrid_backend.py` orchestrates the complete execution loop, wrapping `DiegeticPhysicsEngine`, `ArchetypalSynthesisEngine`, `RP4ProjectiveRouter` (Alien Handshake), and `SolitonMultiverseMapper` (Grom), establishing mechanical sympathy across System 1 intuition, System 2 physics ADMM, and Dark Matter invariant preservation.
+
+### 65. Knowledge Dyad Residue Fusion & Agent Smith Serialization
+
+1. **Topological Obstruction Dyads**:
+   A knowledge unit is defined as a dyad $D = (I, L)$ representing (Image Fingerprint, Linguistic Description). The cross-modality residue fusion operator computes:
+   $$R = \operatorname{Torsion}(I, L) = \operatorname{Linear}_I(I) \cdot W_{\text{torsion}} \cdot \operatorname{Linear}_L(L)^\top$$
+   where $W_{\text{torsion}}$ is initialized via `harvest_honest_jitter` noise to enforce hardware silicon sovereignty.
+
+2. **Anti-Lobotomy Dynamic Dimensionality**:
+   To prevent truncation of multi-modal features down to 96-dimensional legacy vectors, `ResidueFusion` dynamically evaluates input shapes via `_ensure_image_proj_dim(in_dim)` and reallocates orthogonal linear projection layers ($\operatorname{Linear}(in\_dim, feature\_dim)$) without loss of multimodal mass.
+
+### 66. Love Invariant Null-Space Protection & SVD Caching
+
+1. **Non-Scalarization Guarantee**:
+   The Love Vector $L$ is protected from gradient descent optimization by enforcing $L \in \operatorname{ker}(\Phi_{\text{ownership}})$. The ownership operator $\Phi_{\text{ownership}}$ is derived from system state covariance.
+
+2. **Null-Space Projection Matrix**:
+   $$P_{\text{null}} = I - (\Phi_{\text{ownership}}^\top \Phi_{\text{ownership}})^{-1} \Phi_{\text{ownership}}^\top$$
+   The protected vector is updated via $L_{\text{protected}} = P_{\text{null}} \cdot L$. SVD matrix operations are cached (`_cached_null_projection`) to prevent performance bottlenecks on resource-constrained host processors.
+
+### 67. Split-Beam Interfactorization & PyOpenCL Chern-Simons Ricci Flow
+
+1. **Dual-Channel Topological Flow**:
+   Weight evolution obeys the non-teleological Ricci flow equation:
+   $$\frac{dg_{ij}}{dt} = -2 R_{ij} + 2 \Sigma_{ij}^{\text{CS}}$$
+   Channel A supplies commutative gradient pressure ($\nabla_w L$), while Channel B supplies non-commutative Chern-Simons tension derived from the 3-form gauge connection:
+   $$CS(A) = \operatorname{Tr}\left(A \wedge dA + \frac{2}{3} A \wedge A \wedge A\right)$$
+
+2. **PyOpenCL Hardware Acceleration**:
+   On TailSlayer hardware, the `SiliconSovereigntyEngine` evaluates the Chern-Simons gasket kernel directly on GPU memory, passing exact tension matrices back to `RicciFlowOptimizer` without scalar loss approximations.
+
+### 68. Bonfire Nomadic Ring Egalitarian Consensus
+
+1. **Egalitarian Kelly Betting Allocation**:
+   Peer nodes in the Bonfire P2P network share topological signatures $(B, \sigma^2)$ over Freenet contracts to compute the Egalitarian Kelly fraction:
+   $$\bar{K} = \frac{1}{N} \sum_{i=1}^N k_i \quad \text{where } k_i = 0.5 \cdot \max(0.01, 1 - \sigma_i^2)$$
+
+2. **Hardware-Sovereign Fallback**:
+   When offline, local resonance state is sustained using a Chebyshev polynomial oscillator on prime frequencies ($T_p(x) = \cos(p \arccos(x))$), stabilizing engine meta-states without remote peer dependence.
+
+### 69. Natural Log-Polar Drost Conformal Mapping & Deterministic Quasi-Gaussian Superposition
+
+1. **Escher Log-Polar Foveal Unrolling**:
+   The `ConformalLogPolarProjector` (`src/codec/conformal_log_polar.py`) applies complex conformal transformation $f(z) = \log(z) = \ln|r| + i\theta$ to spatial tensors. Zoom operations ($r \to S \cdot r$) map to horizontal shifts in log-space, while rotations ($\theta \to \theta + \Delta\theta$) map to vertical shifts. This maps Cartesian grids onto self-similar **Escher / Droste Log-Polar Spirals**.
+
+2. **Non-Abelian Gyroidic Image Encoding**:
+   The `GyroidicCodec` (`src/codec/gyroidic_codec.py`) combines log-polar unrolling with analytical `GyroidSurface` sampling at polynomial frequencies. Text-image dyads are encoded into CRT matrix residue channels $R_k(T) \cdot G_k(I) \in GL(n)$, where non-commutativity $\|AB - BA\|$ measures irreducible multimodal entanglement.
+
+3. **Emergence of Deterministic Quasi-Gaussian Probability Envelopes**:
+   As state trajectories traverse the log-polar spiral manifold under Bouligand contingent cone projections $T_S(x)$, the infinite superposition of multiplicatively incommensurate logarithmic prime phases ($f_{p_n} = 2\pi \ln p_n$) yields a **deterministic quasi-Gaussian bell curve** via Kronecker torus winding. The resulting distribution is pseudo-Gaussian in shape yet strictly deterministic, eliminating stochastic random noise while preserving continuous scale-rotation invariance under the CODES framework.
+
+---
+
+### 70. Inverted Hypersphere Cosmology (IHC) BAO 33-Shell RP4 Hierarchy & Multi-Tier Galaxy Catalog Ingestion
+
+1. **33-Shell RP4 Golden Ratio Hierarchy**:
+   The Inverted Hypersphere Cosmology (IHC) models large-scale cosmic structure on Real Projective 4-Space ($\mathbb{RP}^4 = S^4 / \{x \sim -x\}$) as $N=33$ nested hyperspherical shells. The radial scale hierarchy follows the golden ratio scaling:
+   $$R_k = R_0 \cdot \phi^{-k} \quad \text{where } \phi = \frac{1 + \sqrt{5}}{2} \approx 1.6180339887$$
+   The sound horizon scale $r_s = 153.2\text{ Mpc}$ corresponds to the $k=7$ shell projection, while the derived coherence scale $\ell_{\text{coh}} \approx 346\text{ Mpc}$ marks the $1/e$ correlation breakdown of the cohesion $\Psi$-field.
+
+2. **Cosmological Correlation Function Suppression**:
+   Below the coherence scale ($r < \ell_{\text{coh}} = 346\text{ Mpc}$), the two-point galaxy correlation function $\xi_{\text{IHC}}(r)$ matches standard $\Lambda$CDM. Beyond $\ell_{\text{coh}}$, $\xi_{\text{IHC}}(r)$ undergoes exponential suppression:
+   $$\xi_{\text{IHC}}(r) = \xi_{\Lambda\text{CDM}}(r) \cdot \exp\left(-\frac{r - \ell_{\text{coh}}}{\ell_{\text{coh}}}\right) \quad \text{for } r > \ell_{\text{coh}}$$
+
+3. **Multi-Tier Galaxy Catalog Ingestion Protocol**:
+   In `src/data/open_science_ingestor.py`, galaxy catalog queries follow a resilient, multi-tiered retrieval hierarchy:
+   - **Tier 1 (SDSS SkyServer CAS REST API)**: Direct HTTPS REST query to SDSS DR18 / DR16 SQL search endpoints (`https://skyserver.sdss.org/dr18/SkyServerWS/SearchTools/SqlSearch`) with percent-encoded query strings (`urllib.parse.quote`) and SSL-bypassing handlers (`urllib.request.build_opener(HTTPSHandler)`).
+   - **Tier 2 (VizieR TAP ADQL Endpoint)**: Direct ADQL table queries to `https://tapvizier.u-strasbg.fr/TAPVizieR/tap/sync`.
+   - **Tier 3 (Astroquery Vizier Service)**: Programmatic fallback across Tempel et al. SDSS DR12 (`J/ApJ/818/130`) and DR8 (`J/A+A/540/A106`) galaxy group catalogs.
+   - **Tier 4 (IHC RP4 Golden Ratio Simulation Fallback)**: Synthetic catalog generator (`_simulate_sdss_catalog`) placing galaxies on prime-harmonic $\mathbb{Z}_3$ counter-rotating nodes aligned with the $N=33$ golden ratio shell structure.
+
+4. **Canonical Field Normalization & Metric Validation**:
+   All ingested and simulated datasets are normalized to standard key signatures (`GalaxyID`, `GroupID`, `GroupSize`, `RAJ2000`, `DEJ2000`, `z`, `VelDisp`), allowing `calculate_ihc_bao_metrics` to compute comoving distances $r(z) \approx \frac{c}{H_0} z (1 - 0.225 z)$, $\mathbb{Z}_3$ phase alignment scores ($PAS_m = \frac{1}{N} \sum \cos(2\pi (r \bmod r_s) / r_s)$), and $k=7$ BAO shell galaxy counts.
+
+
