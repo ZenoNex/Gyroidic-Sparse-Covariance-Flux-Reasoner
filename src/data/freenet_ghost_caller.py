@@ -1,21 +1,50 @@
 import socket
 import threading
 import uuid
+import time
 
 class FreenetGhostCaller:
     """
     Directly whispers 'Ghost' (echo test) messages across the Freenet 
     sub-substrate to detect topological latency and structural readiness.
     """
+    _last_call_time = 0.0
+
     def __init__(self, host: str = '127.0.0.1', port: int = 7509):
         self.host = host
         self.port = port
         self.broadcasted = False
 
-    def broadcast_ghost_call(self):
+    def broadcast_ghost_call(self, topological_variance: float = 0.0):
         """Asynchronously dispatches the introductory ghost call over FCPv2."""
         if self.broadcasted:
             return
+            
+        current_time = time.time()
+        if current_time - FreenetGhostCaller._last_call_time < 300.0:
+            print("[FREENET WARN] Ghost call rate limit exceeded. Meliponini pot remains closed.")
+            return
+            
+        if self.host not in ['127.0.0.1', 'localhost']:
+            print("[FREENET WARN] SSRF Protection active: Host must be local.")
+            return
+
+        # Topological Refusal (Cerumen Pot Isolation)
+        if topological_variance > 0.1:
+            print(f"[FREENET WARN] Topological variance ({topological_variance:.3f}) too high. Refusing puncture event.")
+            return
+
+        try:
+            import psutil
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            ram_percent = psutil.virtual_memory().percent
+            if cpu_percent >= 50.0 or ram_percent >= 80.0:
+                print(f"[FREENET WARN] Computational load too high (CPU: {cpu_percent}%, RAM: {ram_percent}%). Aborting broadcast.")
+                return
+        except ImportError:
+            pass
+            
+        FreenetGhostCaller._last_call_time = current_time
             
         def _run():
             try:
