@@ -2,6 +2,8 @@ import torch
 import logging
 from typing import Dict
 from .freenet_ws_client import FreenetClient
+from src.data.freenet_ghost_caller import FreenetGhostCaller
+from src.data.freenet_bulletin_router import FreenetBulletinRouter
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +15,9 @@ class BonfireNomadicRing:
     def __init__(self, freenet_client: FreenetClient, contract_id: str = "bonfire_nomadic_ring"):
         self.freenet = freenet_client
         self.contract_id = contract_id
+        
+        self.ghost_caller = FreenetGhostCaller()
+        self.bulletin_router = FreenetBulletinRouter()
         
         # Kelly Consensus state
         self.peer_allocations: Dict[str, float] = {}
@@ -79,3 +84,18 @@ class BonfireNomadicRing:
         
         self.freenet.publish(self.contract_id, payload)
         logger.info(f"[BONFIRE] Shared topological signature: Betti={betti_numbers}, Kelly={kelly_fraction:.3f}")
+
+        # Puncture Event for Cerumen Pot (Meliponini Topology)
+        # If variance is low enough, broadcast to global Freenet boards
+        if variance < 0.1:
+            self.ghost_caller.broadcast_ghost_call(topological_variance=variance)
+            
+            volume = 1000.0 * (1.0 - variance)
+            metrics = {
+                "kelly_fraction": kelly_fraction,
+                "covariance_variance": variance,
+                "betti_numbers": betti_numbers,
+                "euler_characteristic": sum([(-1)**i * b for i, b in enumerate(betti_numbers)]) if betti_numbers else 0,
+                "coprime_residue": 1
+            }
+            self.bulletin_router.broadcast_proof_of_honesty(volume=volume, mischief=0.0, metrics=metrics)
