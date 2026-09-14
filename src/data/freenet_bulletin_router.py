@@ -2,6 +2,7 @@ import socket
 import threading
 import uuid
 import datetime
+import time
 
 class FreenetBulletinRouter:
     """
@@ -9,11 +10,55 @@ class FreenetBulletinRouter:
     with the global Freenet bulletin boards (FMS & Sone).
     Generates synthetic payloads and routes them via FCPv2.
     """
+    _last_broadcast_time = 0.0
+
     def __init__(self, host: str = '127.0.0.1', port: int = 7509):
         self.host = host
         self.port = port
         self.sone_uri_base = "USK@Gyroidic-Sone-Identity"
         self.fms_board = "Gyroidic.Resonance"
+        self._fms_ssk_insert_uri = None
+        self._sone_ssk_insert_uri = None
+
+    def _ensure_identity_ssk(self):
+        """Communicates with Freenet node via FCP to generate a real SSK keypair for the router identity."""
+        if self._fms_ssk_insert_uri:
+            return True
+
+        if self.host not in ['127.0.0.1', 'localhost']:
+            return False
+
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(5.0)
+            s.connect((self.host, self.port))
+            
+            hello = "ClientHello\nName=GyroidicSSKGenerator\nExpectedVersion=2.0\nEndMessage\n"
+            s.send(hello.encode('utf-8'))
+            
+            generate = "GenerateSSK\nIdentifier=SSK-Gen-Identity\nEndMessage\n"
+            s.send(generate.encode('utf-8'))
+            
+            buffer = ""
+            while "EndMessage" not in buffer:
+                chunk = s.recv(4096).decode('utf-8', errors='ignore')
+                if not chunk:
+                    break
+                buffer += chunk
+            s.close()
+
+            for line in buffer.split('\n'):
+                if line.startswith('InsertURI='):
+                    self._fms_ssk_insert_uri = line.split('=', 1)[1].strip()
+                    self._sone_ssk_insert_uri = self._fms_ssk_insert_uri.replace("SSK@", "USK@")
+            
+            if self._fms_ssk_insert_uri:
+                print(f"[FREENET] Generated permanent SSK identity for Bulletin Router: {self._fms_ssk_insert_uri[:25]}...")
+                return True
+        except Exception as e:
+            print(f"[FREENET ERROR] Failed to generate SSK via FCP: {e}")
+            
+        return False
 
     def _generate_fms_xml(self, volume: float, mischief: float, metrics: dict = None) -> str:
         """Generates a Bonfire P2P FMS Message XML payload."""
@@ -78,7 +123,22 @@ class FreenetBulletinRouter:
 
     def broadcast_proof_of_honesty(self, volume: float, mischief: float, metrics: dict = None):
         """Asynchronously dispatches the FMS and Sone synthetic payloads over FCPv2."""
-        fms_payload = self._generate_fms_xml(volume, mischief)
+        current_time = time.time()
+        if current_time - FreenetBulletinRouter._last_broadcast_time < 60.0:
+            print("[FREENET WARN] Bulletin broadcast rate limit exceeded. Cooling down.")
+            return
+
+        if self.host not in ['127.0.0.1', 'localhost']:
+            print("[FREENET WARN] SSRF Protection active: Host must be local.")
+            return
+
+        if not self._ensure_identity_ssk():
+            print("[FREENET WARN] Could not generate or retrieve SSK identity. Aborting broadcast.")
+            return
+
+        FreenetBulletinRouter._last_broadcast_time = current_time
+
+        fms_payload = self._generate_fms_xml(volume, mischief, metrics=metrics)
         sone_payload = self._generate_sone_json(volume, metrics=metrics)
         
         def _run():
@@ -91,12 +151,13 @@ class FreenetBulletinRouter:
                 hello = "ClientHello\nName=GyroidicBulletinRouter\nExpectedVersion=2.0\nEndMessage\n"
                 s.send(hello.encode('utf-8'))
                 
-                # FMS Insert
+                # FMS Insert (Real SSK identity)
                 fms_bytes = fms_payload.encode('utf-8')
                 identifier_fms = f"FMS-Post-{uuid.uuid4().hex[:8]}"
+                fms_insert_uri = f"{self._fms_ssk_insert_uri}/fms-post-{datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:4]}"
                 put_fms = (
                     f"ClientPut\n"
-                    f"URI=KSK@fms-{uuid.uuid4().hex}\n" # Simplified for demo; real FMS uses SSK inserts for the identity's KSK queue
+                    f"URI={fms_insert_uri}\n"
                     f"Identifier={identifier_fms}\n"
                     f"Verbosity=0\n"
                     f"MaxRetries=1\n"
@@ -111,12 +172,14 @@ class FreenetBulletinRouter:
                 s.send(put_fms.encode('utf-8'))
                 s.send(fms_bytes)
                 
-                # Sone Insert (simulated FCP routing)
+                # Sone Insert (Real USK identity)
                 sone_bytes = sone_payload.encode('utf-8')
                 identifier_sone = f"Sone-Post-{uuid.uuid4().hex[:8]}"
+                # Sone uses USK with edition numbers, simulating edition 1 for now
+                sone_insert_uri = f"{self._sone_ssk_insert_uri}/Sone/1" 
                 put_sone = (
                     f"ClientPut\n"
-                    f"URI=KSK@sone-{uuid.uuid4().hex}\n" 
+                    f"URI={sone_insert_uri}\n" 
                     f"Identifier={identifier_sone}\n"
                     f"Verbosity=0\n"
                     f"MaxRetries=1\n"
