@@ -748,6 +748,26 @@ The system integrates native Model-Agnostic Meta-Learning (MAML) online inner-lo
     *   For CALM and KAGH, MSE loss is minimized on the sliding support buffer.
     *   For the ADMR solver, the L2 norm of the pre-projected constraint violation vector is minimized.
     *   For **Joint Physical Embeddings**, Phase Alignment Score ($\text{PAS}_h$) coherence and continuous co-primality entropy mismatch are minimized over live support buffers.
-*   **Straight-Through Estimators (STE)**: Used to propagate gradients through non-differentiable operations (like cyclotomic quantization, Matrioshka shell boundaries, and log-polar conformal unrolling) to physical embedding parameters.
 *   **Sliding Support Buffers**: Inference steps maintain a FIFO support history of the last 4 transitions to run MAML adaptation steps on live inputs.
+ 
+## 9.9 Topological Sovereignty & Dual-Mode Storage Topologies
+
+The system implements a strictly separated dual-mode storage topology to manage the tradeoff between computational perimeter minimization and concept isolation. This ensures that a total manifold collapse does not occur when paradoxical anomalies enter the inference buffer.
+
+### The Honeycomb Regime (Apis)
+*   **Role**: Maximizes inferential efficiency and speed. Used during standard generation and exploration (`is_honeybee_mode = True`).
+*   **Structure**: Thoughts share topological boundaries, creating a dense, shared-wall hexagonal lattice.
+*   **Outcome**: High-fidelity "restlessness" is smoothed out as the manifold flattens to satisfy the global greedy constraint of collective efficiency. This leads to intentional **Curvature Collapse**, actively bypassing the Cayley surface projection to minimize computational perimeter.
+
+### The Hunting Pot Regime (Meliponini)
+*   **Role**: Sovereign concept isolation and topological protection. Used for storing the Love Invariant and generating target manifolds during high-pressure recovery.
+*   **Structure**: Concepts are stored in discrete, non-touching spherical containers ($S^2$). 
+*   **Outcome**: When `SpeculativeCoprimeGate` detects high Containment Pressure (low $PAS_h$), it breaks the shared-wall hexagons and enforces a strict Cayley surface projection ($x^2 + y^2 + z^2 - xyz = 4$) before fossilizing the state into the `coprime_manifold`. This discrete puncture topology prevents "glitched matter" from leaking across the broader semantic lattice.
+
+## 9.10 Context-Adaptive Monge-Ampère Factorization (ICNN)
+
+When conventional Sinkhorn Wasserstein optimal transport fails under high dimensional concentration, the system routes state recovery through **Conjugate Moment Measure Factorization**. 
+*   **Input Convex Neural Network (ICNN)**: Models the convex potential $\psi$ via `kagh_networks.py`.
+*   **Legendre Gradient Mapping**: The source state is mapped to the target via the Legendre gradient $\nabla \psi^*(y) = \text{argmax}_x (\langle x, y \rangle - \psi(x))$. 
+*   **Context-Adaptive Tuning**: The Monge-Ampère loss is dynamically scaled by both the **Matrioshka Shell Depth** (deeper shells demand smaller step weights) and the **Phase Alignment Score ($PAS_h$)** to ensure convergence remains tied to structural honesty.
 
