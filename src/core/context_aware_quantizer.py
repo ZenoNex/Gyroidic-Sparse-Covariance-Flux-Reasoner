@@ -6,7 +6,7 @@ MetaPolytopeMatrioshka, realising the core quantized evolution equation:
 
     x_{t+1} = Q_{Z_t}(F(Q_{Z_t}(x_t)))
 
-from ai project report_2-2-2026.txt §3 "Matrioshka Quantized Windows".
+from ai project report_2-2-2026.txt 3 "Matrioshka Quantized Windows".
 
 Design: 
     - delta_log: [max_depth+1, dim] learnable log-space per-axis step sizes.
@@ -18,9 +18,9 @@ Design:
     - Emits BoundaryState on shell crossing (level change) for downstream veto logic.
 
 References:
-    - ai project report_2-2-2026.txt §3 (CAQ, Asymptotic Windowing)
-    - VETO_SUBSPACE_ARCHITECTURE.md §5 (BoundaryState)
-    - ADVANCED_MATHEMATICAL_EXTENSIONS.md §1 (Meta-Polytope Matrioshka)
+    - ai project report_2-2-2026.txt 3 (CAQ, Asymptotic Windowing)
+    - VETO_SUBSPACE_ARCHITECTURE.md 5 (BoundaryState)
+    - ADVANCED_MATHEMATICAL_EXTENSIONS.md 1 (Meta-Polytope Matrioshka)
 """
 
 import torch
@@ -35,17 +35,17 @@ class ContextAwareQuantizer(nn.Module):
     """
     Context-Aware Quantizer with per-axis, depth-adaptive step sizes.
 
-    The quantization step applied to axis j at shell depth ℓ is:
+    The quantization step applied to axis j at shell depth  is:
 
-        Δ_{jℓ} = exp(delta_log[ℓ, j]) * base_step / 2^ℓ
+        _{j} = exp(delta_log[, j]) * base_step / 2^
 
-    PAS anisotropy further modulates Δ:
+    PAS anisotropy further modulates :
 
-        Δ̃_{jℓ} = Δ_{jℓ} / (1 + pas_anisotropy * PAS_j)
+        _{j} = _{j} / (1 + pas_anisotropy * PAS_j)
 
-    where PAS_j ∈ [0,1] is the phase-alignment score on axis j.
-    High PAS → smaller step (finer resolution on coherent directions).
-    Low PAS  → larger step (coarse quantization on incoherent directions).
+    where PAS_j  [0,1] is the phase-alignment score on axis j.
+    High PAS  smaller step (finer resolution on coherent directions).
+    Low PAS   larger step (coarse quantization on incoherent directions).
     """
 
     def __init__(
@@ -68,15 +68,17 @@ class ContextAwareQuantizer(nn.Module):
         self.base_step = base_step
         self.pas_anisotropy = pas_anisotropy
 
-        # Per-axis, per-depth step parameters (log-space → always positive)
-        # Shape: [max_depth+1, dim]. Initialised to zero ≡ step = base_step / 2^ℓ.
-        self.delta_log = nn.Parameter(torch.zeros(max_depth + 1, dim))
+        # Per-axis, per-depth step parameters (log-space  always positive)
+        # Shape: [max_depth+5, dim]. Initialised to zero  step = base_step / 2^.
+        # Pre-allocated to max_depth + 4 + 1 to support dynamic depth scaling without
+        # replacing the nn.Parameter and resetting optimizer state.
+        self.delta_log = nn.Parameter(torch.zeros(max_depth + 5, dim))
 
         # Underlying Matrioshka quantizer (handles CRT shell switching)
         self.matrioshka = MetaPolytopeMatrioshka(max_depth=max_depth, base_dim=dim)
 
         # Persistent shell state: carried between forward() calls.
-        # Registered as plain Python ints (not buffers) — they're control flow,
+        # Registered as plain Python ints (not buffers)  they're control flow,
         # not model weights, so they don't need gradient tracking.
         self._alpha: int = 0
         self._level: int = 0
@@ -95,7 +97,7 @@ class ContextAwareQuantizer(nn.Module):
         device: torch.device,
     ) -> torch.Tensor:
         """
-        Compute the effective per-axis step tensor Δ̃ for the current level.
+        Compute the effective per-axis step tensor  for the current level.
 
         Returns:
             step: [1, dim] positive step sizes for element-wise quantisation.
@@ -113,7 +115,7 @@ class ContextAwareQuantizer(nn.Module):
             # pas_scores: [dim] scores in [0, 1]
             pas = pas_scores.to(device).view(-1)[: self.dim]
             if pas.shape[0] < self.dim:
-                # Pad with zeros (unknown coherence → no anisotropy correction)
+                # Pad with zeros (unknown coherence  no anisotropy correction)
                 pad = torch.zeros(self.dim - pas.shape[0], device=device)
                 pas = torch.cat([pas, pad])
             # Shrink step proportional to coherence
@@ -165,8 +167,8 @@ class ContextAwareQuantizer(nn.Module):
             x:            [batch, dim] state vector.
             pas_scores:   Optional [dim] per-axis Phase Alignment Scores in [0,1].
             trust_scores: Optional [dim] per-axis temporal trust scores in [0,1].
-            mischief_entropy: float mischief-dependent entropy bias.
-            voynich_token: Optional VoynichExemptionToken for opaque signatures.
+            mischief_entropy: float mischief-dependent entropy bias. Dynamically scales the maximum shell depth for entropic states.
+            voynich_token: Optional VoynichExemptionToken for opaque signatures. Passed down to the Matrioshka subsystem to soften boundaries.
         """
         device = x.device
         prev_level = self._level
@@ -175,12 +177,11 @@ class ContextAwareQuantizer(nn.Module):
         # Dynamically scale the max depth if we are in an entropic/mischief state
         dynamic_max_depth = get_mischief_dependent_shell_depth(mischief_entropy, base_depth=self.max_depth, max_depth=self.max_depth + 4)
         
-        # Ensure delta_log can support the dynamic depth (pad if necessary)
+        # Note: self.delta_log is pre-allocated up to self.max_depth + 4 to avoid
+        # mid-forward nn.Parameter reassignment which would break optimizer momentum.
         if dynamic_max_depth >= self.delta_log.size(0):
-            with torch.no_grad():
-                pad_size = dynamic_max_depth - self.delta_log.size(0) + 1
-                padding = torch.zeros(pad_size, self.dim, device=self.delta_log.device)
-                self.delta_log = nn.Parameter(torch.cat([self.delta_log, padding], dim=0))
+            # Fallback to the maximum available depth if mischief scale exceeds our pre-allocation
+            dynamic_max_depth = self.delta_log.size(0) - 1
 
         # 1. Compute per-axis step sizes
         step = self._compute_step_sizes(pas_scores, trust_scores, device)  # [1, dim]
@@ -188,11 +189,11 @@ class ContextAwareQuantizer(nn.Module):
         # 2. Quantise with per-axis steps
         q = self._quantize(x, step)  # [batch, dim]
 
-        # 3. Hand off to Matrioshka for CRT-level shell transition
-        #    matrioshka.forward returns (quantized, new_alpha, new_level)
-        #    but uses a *uniform* step internally; we have already done the
-        #    per-axis step, so we pass q (already quantised) and ignore its
-        #    quantisation result — we only want the shell transition logic.
+        # 3. Hand off to MetaPolytopeMatrioshka for CRT-level shell transition.
+        #    MetaPolytopeMatrioshka acts purely as a state machine for shell transition logic here.
+        #    It returns (quantized, new_alpha, new_level), but we have already done the
+        #    per-axis anisotropic quantization step. We pass q (already quantised) and 
+        #    discard its quantisation result.
         with torch.no_grad():
             result = self.matrioshka(
                 q, alpha=self._alpha, start_level=self._level,
@@ -204,19 +205,19 @@ class ContextAwareQuantizer(nn.Module):
                 self._alpha = result.alpha
                 self._level = result.level
 
-        # 4. Detect shell crossing → emit BoundaryState
+        # 4. Detect shell crossing  emit BoundaryState
         boundary: Optional[BoundaryState] = None
         if self._level != prev_level:
-            # Compute facet normal proxy: direction of the quantisation error
+            # Compute dominant error axis proxy: direction of the quantisation error
             error = x - q  # [batch, dim]
             direction = error.mean(dim=0)  # [dim]
             d_norm = direction / (torch.norm(direction) + 1e-8)
-            # Facet normal: unit vector in the changed dimension
-            facet_n = torch.zeros_like(d_norm)
-            facet_n[torch.argmax(torch.abs(d_norm))] = 1.0
+            # Basis vector in the dimension of maximal error
+            dominant_error_axis = torch.zeros_like(d_norm)
+            dominant_error_axis[torch.argmax(torch.abs(d_norm))] = 1.0
             boundary = BoundaryState.from_crossing(
                 state_direction=d_norm,
-                facet_normal=facet_n,
+                facet_normal=dominant_error_axis,
                 alpha=self._alpha,
                 level=self._level,
                 max_level=dynamic_max_depth,
