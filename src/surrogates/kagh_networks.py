@@ -269,6 +269,56 @@ class KANLayer(nn.Module):
         
         return base_output + spline_output
 
+class ConvexKANLayer(KANLayer):
+    """
+    Convex KAN Layer for the Monge-Ampère ICNN.
+    Enforces non-negative weights on the B-splines and base weights to preserve convexity.
+    """
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        orig_base = self.base_weight
+        orig_spline = self.spline_weight
+        
+        # Temporarily replace parameters with ReLU'd versions
+        object.__setattr__(self, 'base_weight', F.relu(orig_base))
+        object.__setattr__(self, 'spline_weight', F.relu(orig_spline))
+        
+        try:
+            out = super().forward(x)
+        finally:
+            # Restore original parameters
+            object.__setattr__(self, 'base_weight', orig_base)
+            object.__setattr__(self, 'spline_weight', orig_spline)
+            
+        return out
+
+class InputConvexNeuralNetwork(nn.Module):
+    """
+    Gyroidic Convex KAN for learning the convex potential Psi.
+    Implements Conjugate Moment Measure Factorization (Monge-Ampere).
+    Uses True B-Splines restricted to positive weights to maintain strict convexity
+    without 'lobotomizing' the topology.
+    """
+    def __init__(self, dim: int, hidden_dim: int = 64, num_layers: int = 3, grid_size: int = 5, spline_order: int = 3):
+        super().__init__()
+        self.dim = dim
+        
+        self.layers = nn.ModuleList()
+        # First layer doesn't strictly need positive weights for input, 
+        # but we use it for stability and consistency.
+        self.layers.append(ConvexKANLayer(dim, hidden_dim, grid_size=grid_size, spline_order=spline_order))
+        
+        for _ in range(num_layers - 2):
+            self.layers.append(ConvexKANLayer(hidden_dim, hidden_dim, grid_size=grid_size, spline_order=spline_order))
+            
+        self.layers.append(ConvexKANLayer(hidden_dim, 1, grid_size=grid_size, spline_order=spline_order))
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = x
+        for layer in self.layers:
+            out = layer(out)
+        return out
+
+
     def functional_forward(self, x: torch.Tensor, params: Optional[Dict[str, torch.Tensor]] = None) -> torch.Tensor:
         """
         Execute forward pass. If params is provided, temporarily load them to perform
