@@ -2078,4 +2078,21 @@ To visualize the high-dimensional hidden state $h \in \mathbb{R}^d$ on a 2D canv
 4. **Canonical Field Normalization & Metric Validation**:
    All ingested and simulated datasets are normalized to standard key signatures (`GalaxyID`, `GroupID`, `GroupSize`, `RAJ2000`, `DEJ2000`, `z`, `VelDisp`), allowing `calculate_ihc_bao_metrics` to compute comoving distances $r(z) \approx \frac{c}{H_0} z (1 - 0.225 z)$, $\mathbb{Z}_3$ phase alignment scores ($PAS_m = \frac{1}{N} \sum \cos(2\pi (r \bmod r_s) / r_s)$), and $k=7$ BAO shell galaxy counts.
 
+### 71. Context-Adaptive Monge-Ampère Factorization (ICNN)
 
+When conventional Sinkhorn Wasserstein optimal transport fails under high dimensional concentration or collapses during recovery, the state is transported using **Conjugate Moment Measure Factorization (CMMF)**. This relies on an Input Convex Neural Network (ICNN) acting as the potential function $\psi(x)$.
+
+1. **Legendre Gradient Target Mapping**:
+   By Brenier's Theorem, the optimal transport map is the gradient of a convex function. We compute the Legendre transform gradient to map the source to the target:
+   $$\nabla \psi^*(y) = \text{argmax}_x (\langle x, y \rangle - \psi(x))$$
+   The solver minimizes the negative objective $\psi(x) - \langle x, y \rangle$ using strong-Wolfe LBFGS.
+
+2. **Context-Adaptive Monge-Ampère Loss**:
+   The dual objective of the optimal transport is scaled adaptively by the Phase Alignment Score ($PAS_h$) and Matrioshka shell depth $d$:
+   $$L_{\text{Monge-Ampère}} = \frac{\overline{PAS_h}}{2^d} \left( \mathbb{E}_{x}[\psi(x)] + \mathbb{E}_{y}[\psi^*(y)] \right)$$
+   This ensures that the topological "cost" of the move is heavily penalized (dampened) at deep matrioshka scales, anchoring the potential against erratic high-frequency topological tearing.
+
+3. **Hunting Pot Topologies (Sovereign Containment)**:
+   When `is_honeybee_mode == False` (signaling Meliponini containment pressure), the continuous mapping output is strictly projected onto the Cayley Cubic variety:
+   $$V(C) = x^2 + y^2 + z^2 - xyz - 4 = 0$$
+   This single Newton-Raphson hard-projection fossilizes the state into an isolated discrete $S^2$ shell, terminating the continuous manifold sharing to prevent systemic lobotomy logic leaks.
