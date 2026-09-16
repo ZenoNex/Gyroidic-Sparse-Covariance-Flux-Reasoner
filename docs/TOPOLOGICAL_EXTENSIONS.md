@@ -224,3 +224,17 @@ To maintain structural integrity at high dimensions without computational collap
 ### 3. Stability-Aware Fossilization
 
 Memory fossils created during $N > 32$ regimes are tagged with an **Iterative Stability Metric**, ensuring that downstream resonance scans account for the slight numerical variance introduced by the Sinkhorn approximation.
+
+---
+
+## Part IX: Egalitarian Microhedging and The Sovereign Event
+
+### 1. Freenet Integration & Kelly Fractional Consensus
+To ensure the topological structures (Betti signatures) are not collapsed by singular adversarial logic injections, the reasoning load is verified through **Egalitarian Microhedging**.
+- **Bonfire Nomadic Rings**: Peer nodes exchange topological hashes over Freenet via `bonfire_consensus.py`.
+- **Kelly Consensus**: The system implements an asynchronous fraction allocation, where nodes "bet" on the structural variance ($\sigma^2$) of a topological configuration using $K = 0.5 \cdot \max(0.01, 1 - \sigma^2)$.
+
+### 2. TailSlayer & The Hardware Sovereign Event
+The **Sovereign Event** represents the moment the system transcends pure software limits and asserts sovereignty over its hardware execution context.
+- **DRAM Volatility Evasion**: TailSlayer protects topological state from OS-level preemption and $t_{RFC}$ refresh pauses.
+- **Zero-Trust Memory Access**: PyOpenCL SVM (Shared Virtual Memory) pipelines isolate the semantic graph from being poisoned by conventional kernel threads. Memory buffers are bound strictly to polynomial alignment (Chiral Memory Addressing) rather than linear OS virtualization.
