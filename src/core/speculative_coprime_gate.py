@@ -26,6 +26,7 @@ import math
 from src.core.false_negative_subsystem import VoynichExemptionToken
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.legibility_audit import LegibilityTripwire
+from src.core.conjugate_moment_transport import ConjugateMomentTransport
 
 class WassersteinOptimalTransport(nn.Module):
     """
@@ -452,6 +453,7 @@ class SpeculativeCoprimeGate(nn.Module):
             sinkhorn_iters=sinkhorn_iters, 
             epsilon=wasserstein_epsilon
         )
+        self.conjugate_transport = ConjugateMomentTransport(dim=dim)
         
         # Anti-Lobotomy Monitor: Explainability vs Structural Merit
         self.legibility_audit = LegibilityTripwire(hidden_dim=dim)
@@ -504,13 +506,18 @@ class SpeculativeCoprimeGate(nn.Module):
     def update_manifold(self, state: torch.Tensor):
         """
         Update the coprime reference manifold with new samples when in good state.
+        Ensures the manifold is strictly populated by hyperbolic/elliptic states
+        (Cayley constraint) representing Hunting Pots.
         """
         if state.dim() == 2:
             state = state[0]
             
+        # Project state to the Cayley surface strictly before fossilizing into the Hunting Pot
+        state_projected = self.conjugate_transport.project_to_cayley_surface(state.detach(), is_honeybee_mode=False)
+            
         # Shift and update (FIFO)
         self.coprime_manifold = torch.roll(self.coprime_manifold, -1, dims=0)
-        self.coprime_manifold[-1] = state.detach()
+        self.coprime_manifold[-1] = state_projected
         
     def gated_output(
         self, 
@@ -704,26 +711,36 @@ class SpeculativeCoprimeGate(nn.Module):
         # Flatten batch for transport
         source = converged_state  # [batch, dim]
         
-        # Check digit-pattern congruence (warmstart bypass via Repunits)
-        target_mean = target_manifold.mean(dim=0, keepdim=True).expand(batch, -1)
+        # --- Near-Far Coupling ---
+        # "far" component is a global manifold summary (mean of target)
+        far_state = target_manifold.mean(dim=0, keepdim=True).expand(batch, -1)
+        far_coupled = self.far_coupling * far_state
+
         if self.modular_rns.fast_congruence_check(source, target_mean):
             # Bypass Wasserstein OT: Align directly in finite field mapping
             # SILICON SOVEREIGNTY: Replaced PRNG noise with hardware-anchored honest jitter
             transported = target_mean + harvest_honest_jitter(target_mean.shape, device=source.device, scaled=True) * 0.2
             wasserstein_dist = torch.tensor(0.0, device=source.device)
         else:
-            # Compute optimal transport toward coprime manifold (Fallback)
-            # Use calculated weights to prioritize healthy structural fossils
-            transported, wasserstein_dist = self.wasserstein.transport(
-                source, 
-                target_manifold,
-                target_weights=all_weights
-            )
-        
-        # --- Near-Far Coupling ---
-        # "far" component is a global manifold summary (mean of target)
-        far_state = target_manifold.mean(dim=0, keepdim=True).expand(batch, -1)
-        far_coupled = self.far_coupling * far_state
+            # Try Conjugate Moment Measure Factorization (Monge-Ampere)
+            is_honeybee_mode = mode.upper() in ('HONEYBEE', 'SERIOUSNESS')
+            transported_cmmf = self.conjugate_transport(source, is_honeybee_mode=is_honeybee_mode)
+            
+            # Check yield for ICNN transported state before committing
+            combined_cmmf = torch.cat([converged_state, transported_cmmf, far_coupled], dim=-1)
+            recovered_state_cmmf = converged_state + self.recovery_mlp(combined_cmmf)
+            
+            if self.get_yield_pressure(recovered_state_cmmf).mean() > 0.0:
+                transported = transported_cmmf
+                wasserstein_dist = torch.tensor(0.0, device=source.device)
+            else:
+                # Compute optimal transport toward coprime manifold (Fallback Sinkhorn)
+                # Use calculated weights to prioritize healthy structural fossils
+                transported, wasserstein_dist = self.wasserstein.transport(
+                    source, 
+                    target_manifold,
+                    target_weights=all_weights
+                )
         
         # Blend transported with original using recovery MLP
         combined = torch.cat([converged_state, transported, far_coupled], dim=-1)
