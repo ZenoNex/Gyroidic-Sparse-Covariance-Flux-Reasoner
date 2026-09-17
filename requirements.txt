@@ -1,12 +1,12 @@
-torch>=1.13.1
-numpy>=1.21.6
-scipy>=1.7.3
+torch>=2.2.0
+numpy>=1.26.0
+scipy>=1.11.0
 networkx>=2.6.3
 matplotlib>=3.5.3
 scikit-learn>=1.0.2
 tqdm>=4.65.0
 requests>=2.28.0
-pyopencl>=2022.2
+pyopencl>=2023.1
 flask>=2.2.3
 flask-cors>=3.0.10
 ijson>=3.3.0
