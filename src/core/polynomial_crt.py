@@ -228,7 +228,7 @@ class PolynomialCRT(nn.Module):
         return pressure, reconstruction
 
     def compute_packing_fraction(self, residue_distributions: torch.Tensor) -> torch.Tensor:
-        """
+        r"""
         Determine packing fraction \phi based on correlation:
         -1.0 represents highly dispersed "Meliponini" pots,
         1.0 represents densely packed "Apis" lattices.
