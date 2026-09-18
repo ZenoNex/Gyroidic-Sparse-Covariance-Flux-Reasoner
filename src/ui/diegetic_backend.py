@@ -2298,6 +2298,13 @@ class DiegeticPhysicsEngine(nn.Module):
         rho_factor = _as_float(rho_factor_tensor)
         step_factor = _as_float(step_factor_tensor)
         
+        # Integrate CALM with HardwareMonitor
+        try:
+            from src.core.hardware_monitor import HardwareMonitor
+            HardwareMonitor().update_topology(abort_score, _as_float(gauge_tensor))
+        except Exception:
+            pass
+
         calm_diagnostics = {
             "abort_score": abort_score,
             "rho_factor": rho_factor,
