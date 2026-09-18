@@ -633,6 +633,33 @@ $$
 
 ---
 
+## 45. Generative Modeling via Conjugate Moment Measure Factorization (CMMF)
+
+Based on the **TO-MSR-OT-2026-CMM** technical specification, the system couples base sampling and optimal transport into a single scalar convex potential $W(z)$. 
+
+### 45.1 Conjugate Moment Measure
+Let $\rho \in \mathcal{P}_{\mathrm{ac}}(\mathbb{R}^d)$ be supported on a compact convex domain. There exists a lower semi-continuous convex potential $W: \mathbb{R}^d \to \mathbb{R}$ satisfying the Conjugate Moment Measure Factorization:
+
+$$ \rho = (\nabla W^*)_\# \mu_W, \quad \text{where } d\mu_W(x) = \frac{1}{Z_W} \exp(-W(x)) \, dx $$
+
+By applying convex duality $(\nabla W^*)^{-1} = \nabla W$, we achieve the dual push-forward:
+$$ \mu_W = (\nabla W)_\# \rho $$
+
+### 45.2 Avoiding Covariance Inversion
+Standard moment measures yield a prior dispersion that is inversely proportional to target variance (Gaussian pathology). For $\rho = \mathcal{N}(0, \Sigma)$, the conjugate potential corrects this, yielding $\mu_W = \mathcal{N}(0, \Sigma^{1/3})$. The transport map $\nabla W^*(z) = \Sigma^{2/3} z$ possesses a bounded Lipschitz constant, preventing gradient explosion.
+
+## 46. Langevin Prior and Honest Jitter
+
+Instead of using purely synthetic noise, the generative prior relies on physical silicon anomalies to generate drift.
+
+### 46.1 Langevin Monte Carlo (LMC)
+Because $W_\theta$ is convex, the base prior $\mu_{W_\theta} \propto \exp(-W_\theta)$ is log-concave. Samples $z \sim \mu_{W_\theta}$ are drawn via Unadjusted Langevin Monte Carlo:
+
+$$ z_{k+1} = z_k - \gamma \nabla W_\theta(z_k) + \sqrt{2\gamma} \, \eta_k $$
+
+### 46.2 Honest Jitter as $\eta_k$
+The noise term $\eta_k$ is sourced from `harvest_honest_jitter()`, avoiding pseudo-random algorithms (`torch.randn`). It relies directly on DRAM $t_{\text{RFC}}$ time-stalls and hardware silicon friction, substituting mathematical randomness with physical non-commutativity. The conjugate push-forward $x = \nabla W_\theta^*(z)$ then carries these topological scars into the synthetic output.
+
 ## Appendix A. Implementation State Documentation (January 2026)
 
 ### A.1 Current Polynomial Co-Prime Functional Implementation
