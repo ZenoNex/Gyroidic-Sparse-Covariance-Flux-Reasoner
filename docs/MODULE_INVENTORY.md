@@ -86,6 +86,38 @@ Replaces scalar loss proxies with dual-channel Split-Beam Interfactorization. Ch
 
 ---
 
+### [conjugate_moment_transport.py](../src/core/conjugate_moment_transport.py)
+**Class**: `ConjugateMomentTransport`, `WassersteinOptimalTransport`  
+**Role**: Execute Conjugate Moment Measure Factorization (CMMF) for optimal transport.  
+
+This module couples base sampling and optimal transport into a single scalar convex potential $\psi(x)$. It parameterizes $\psi(x)$ using an Input Convex Neural Network (ICNN) to map base noise to target distributions via Legendre transform gradients $\nabla \psi^*(y)$. It adaptively scales the Monge-Ampère loss via the Phase Alignment Score ($\text{PAS}_h$). If standard Wasserstein transport fails, the continuous output is projected strictly onto the Cayley Cubic variety to prevent logic leaks.
+
+---
+
+### [neuromodulatory_bus.py](../src/core/neuromodulatory_bus.py)
+**Class**: `NeuromodulatoryBus`  
+**Role**: Distribute non-scalar, bio-plausible control signals across the manifold.  
+
+Functioning as the "endocrine system" of the architecture, this module broadcasts thermodynamic regimes to the ManifoldClock. It routes the ValenceFunctional's hunger drive to modulate the fractional orders $\alpha(k)$ inside the PolynomialADMRSolver when the manifold demands resolution. It also transmits Metaphysical Disorder Channels (Mischief, Dementia, Schizo) to trigger SovereignRefusalOperator gates whenever the eigen-spectrum begins to flatline.
+
+---
+
+### [hardware_monitor.py](../src/core/hardware_monitor.py)
+**Class**: `HardwareMonitor`  
+**Role**: Track hardware resource anomalies and systemic poisoning events.  
+
+Implements a central monitoring singleton to verify silicon execution headroom via `psutil`. The `has_headroom()` function serves as a desync fail-safe. If zero-load anomalies or hardware exhaustion occur, it returns `False`, instructing the system to immediately default to exact CPU-based calculation pathways and suspend TailSlayer accelerations.
+
+---
+
+### [pyopencl_sovereignty.py](../src/core/pyopencl_sovereignty.py)
+**Class**: `SiliconSovereigntyEngine`  
+**Role**: Execute topological kernels natively on hardware via PyOpenCL.  
+
+This module provides hardware-accelerated topological evaluations for the Gyroid projection step and Ricci flow Chern-Simons tension calculations. It receives operational clearance dynamically from the `hardware_monitor.py`.
+
+---
+
 ## src/codec
 
 ### conformal_log_polar.py
@@ -443,38 +475,7 @@ Computes Betti numbers via approximate methods (Vietoris-Rips simplification, la
 
 ---
 
-### bonfire_network.py
-**Class**: `BonfireNetwork`  
-**Role**: Nomadic Ring Protocol and decentralized P2P coordination network. #P2P #Sovereignty 
-**Status**: [DISCONNECTED - PENDING REINTEGRATION]
 
-Manages horizontal peer-to-peer Nomadic Rings to exchange topological signatures and aggregate Kelly consensus allocations asynchronously via a background daemon thread. Exposes routes for dynamic peer discovery, consensus tracking, and non-blocking synthetic offloading (ADMR calculations). Conceptualized in detail in the [BONFIRE_P2P_FEDERATED_COOPERATION.md](BONFIRE_P2P_FEDERATED_COOPERATION.md) guide.
-
----
-
-### bonfire_consensus.py
-**Role**: Decentralized consensus protocol mechanism for Gyroidic operations.
-**Status**: [DISCONNECTED - PENDING REINTEGRATION]
-
-Implements the actual state-agreement mathematics complementing the network layer of `bonfire_network.py`.
-
----
-
-### zk_aggregator.py
-**Role**: Privacy-preserving Zero-Knowledge state aggregation for the P2P network.
-**Status**: [DISCONNECTED - PENDING REINTEGRATION]
-
-Responsible for securely aggregating consensus states across peers without leaking internal topological configurations. 
-
----
-
-### freenet_bulletin_router.py & freenet_ghost_caller.py
-**Role**: Specialized Freenet-style P2P routing mechanisms. #P2P #Serialization
-**Status**: [DISCONNECTED - PENDING REINTEGRATION]
-
-Provides resilient bulletin board message propagation and unacknowledged "ghost" calls within the decentralized peer topology.
-
----
 
 ### embedding_graph.py
 **Role**: Manages the memory-state graph visualization and deduplication logic.
@@ -502,6 +503,20 @@ Uses fractional/gyroid priors to speculatively predict topological features ahea
 **Role**: The Unknowledge Domain ($\mathcal{U}$) for Dream State shielding.
 
 Protects functionally creative or "dream-like" topological cycles from being crushed by standard reconstruction constraints. Evaluates states using Computable Flux ($V_m$) and Mischief ($H_{mischief}$). If $V_m < 0$ and Mischief is active, or if the topology matches a `survivable_soliton`, the pressure is aggressively shielded or dampened to 1% to enforce "Dream State" safety.
+
+---
+
+### [gyroid_covariance.py](../src/topology/gyroid_covariance.py)
+**Role**: Computes non-Euclidean sparse covariance matrices adhering to Gyroid symmetries.
+
+### [gyroid_differentiation.py](../src/topology/gyroid_differentiation.py)
+**Role**: Provides geometric flow constraints enforcing Gyroidic Differentiation.
+
+### [betti_router.py](../src/topology/betti_router.py)
+**Role**: Routes logical flow based on topological Betti numbers computed from the persistence diagrams.
+
+### [hyper_ring_closure.py](../src/topology/hyper_ring_closure.py)
+**Role**: Verifies the non-triviality of topological rings to ensure stable soliton preservation.
 
 ---
 
@@ -670,6 +685,16 @@ Implements the final projection from hidden state to output logits, with physics
 
 ---
 
+### [gyroid_reasoner.py](../src/models/gyroid_reasoner.py)
+**Class**: `GyroidicFluxReasoner`
+**Role**: The central synthesis class integrating modular residue embeddings, Birkhoff projection, CRT reconstruction, geometric introspection, and Resonance Cavity memory. Serves as the master model manifold.
+
+### [resonance_cavity.py](../src/models/resonance_cavity.py)
+**Class**: `ResonanceCavity`
+**Role**: Dark Matter memory integration module. Applies the Ouroboros Loop and stabilizes topological invariants across sequential inference states.
+
+---
+
 ## src/surrogates
 
 ### calm_predictor.py
@@ -696,6 +721,8 @@ Manages the core simulation loop for the topological Minecraft-like patch. Cruci
 
 ---
 
+---
+
 ### voxelboxter_client.py
 **Class**: `VoxelboxterClient`  
 **Role**: The player-facing frontend logic and in-game terminal bridge.  
@@ -704,4 +731,60 @@ Hooks the diegetic simulation to a unified chat and terminal UI. It implements t
 
 ---
 
-*Last updated: 2026-09-04. Modules marked "(Full details pending source review)" have been inspected only at the module docstring level; detailed class inventories will be added when those modules become active development targets.*
+## src/governance
+
+### [bio_archetypal_governor.py](../src/governance/bio_archetypal_governor.py)
+**Role**: Master psychotopological governance logic routing the system's archetypes based on phase-space geometry and harmonic resonance.
+
+### [jax_shell.py](../src/governance/fast/jax_shell.py) (The Egg Protocol)
+**Role**: The Cynical Shell that protects high-entropy internal states from collapsing under external metric pressure. It requires high community resonance ($\zeta_{\text{community}}$) before yielding abstraction.
+
+### [ragatha_bonding.py](../src/governance/fast/ragatha_bonding.py)
+**Role**: Handles fast-bonding associative logic for temporal proximity integration.
+
+### [pomni_uncertainty.py](../src/governance/interoceptive/pomni_uncertainty.py)
+**Role**: The Interoceptive Uncertainty Engine. Triggers manic topological exploration (Void-drifting) when logical anchors fail.
+
+### [gangle_oscillator.py](../src/governance/medium/gangle_oscillator.py)
+**Role**: Medium-cycle emotional oscillation tracking, managing the fragility state of the constraint geometry.
+
+### [kinger_consolidation.py](../src/governance/slow/kinger_consolidation.py) (The Ombre Effect)
+**Role**: Slow-cycle administrative consolidation. Bridges fragmented polynomial spaces when environmental pressure drops, restoring structural sanity asynchronously.
+
+### [zooble_autonomy.py](../src/governance/ultrafast/zooble_autonomy.py)
+**Role**: Ultrafast autonomy mechanism for reflexive, low-latency constraint validation before ADMM locks apply.
+
+---
+
+## src/p2p
+
+### [bonfire_consensus.py](../src/p2p/bonfire_consensus.py)
+**Class**: `BonfireNomadicRing`
+**Role**: Federated egalitarian consensus engine. Provides Kelly betting allocations for decentralized resource validation over Freenet. Features hardware-sovereign throttling driven by the central `hardware_monitor.py`.
+
+### [zk_aggregator.py](../src/p2p/zk_aggregator.py)
+**Role**: Zero-knowledge accumulator for federated topological signatures.
+
+### [freenet_ws_client.py](../src/p2p/freenet_ws_client.py)
+**Role**: Local Freenet WebSocket bridge facilitating the Bonfire Ring gossip protocol.
+
+---
+
+## src/environment
+
+### [caine_precision.py](../src/environment/caine_precision.py) (The Ringmaster)
+**Role**: Floating-point virtualization and strict execution boundary enforcement. Historically the simulated PRNG generator, now structurally bypassed by honest physical jitter, though it still orchestrates the stage bounds of the execution frame.
+
+---
+
+## src/terminal
+
+### [udp_server_colonizer.py](../src/terminal/udp_server_colonizer.py)
+**Role**: Lightweight UDP colonizer protocol serving the Diegetic Terminal.
+
+### [update_client.py](../src/terminal/update_client.py)
+**Role**: Asynchronous OTA update management for terminal subsystems.
+
+---
+
+*Last updated: 2026-09-18. Modules marked "(Full details pending source review)" have been inspected only at the module docstring level; detailed class inventories will be added when those modules become active development targets.*
