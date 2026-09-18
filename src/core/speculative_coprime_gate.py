@@ -18,6 +18,7 @@ References:
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from src.core.invariants import PI
 
 from typing import Dict, Tuple, Optional
@@ -27,6 +28,12 @@ from src.core.false_negative_subsystem import VoynichExemptionToken
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.legibility_audit import LegibilityTripwire
 from src.core.conjugate_moment_transport import ConjugateMomentTransport
+
+from src.core.hardware_monitor import has_headroom
+try:
+    from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+except ImportError:
+    pass
 
 class WassersteinOptimalTransport(nn.Module):
     """
@@ -492,7 +499,7 @@ class SpeculativeCoprimeGate(nn.Module):
         return logs
         
     def get_yield_pressure(self, state: torch.Tensor) -> torch.Tensor:
-        """
+        r"""
         Computes Mohr-Coulomb yield pressure (|\Sigma_shear| - mu * \Sigma_normal).
         """
         # Distinguish shear (off-diagonal) and normal (diagonal) via projection
@@ -586,6 +593,15 @@ class SpeculativeCoprimeGate(nn.Module):
         
         if is_play:
             # Bypass Wasserstein OT, run Trigonometric Unfolding
+            if HAS_TAILSLAYER and has_headroom():
+                engine = SiliconSovereigntyEngine()
+                if hasattr(engine, 'apply_gyroid_projection'):
+                    try:
+                        proj_np = engine.apply_gyroid_projection(converged_state.detach().cpu().numpy())
+                        converged_state = torch.from_numpy(proj_np).to(converged_state.device)
+                    except Exception:
+                        pass # Fallback to CPU calculation
+
             try:
                 centered = converged_state - converged_state.mean(dim=0, keepdim=True)
                 cov = (centered.T @ centered) / (converged_state.shape[0] - 1)
@@ -713,18 +729,24 @@ class SpeculativeCoprimeGate(nn.Module):
         
         # --- Near-Far Coupling ---
         # "far" component is a global manifold summary (mean of target)
-        far_state = target_manifold.mean(dim=0, keepdim=True).expand(batch, -1)
+        target_mean = target_manifold.mean(dim=0, keepdim=True)
+        far_state = target_mean.expand(batch, -1)
         far_coupled = self.far_coupling * far_state
 
         if self.modular_rns.fast_congruence_check(source, target_mean):
             # Bypass Wasserstein OT: Align directly in finite field mapping
             # SILICON SOVEREIGNTY: Replaced PRNG noise with hardware-anchored honest jitter
-            transported = target_mean + harvest_honest_jitter(target_mean.shape, device=source.device, scaled=True) * 0.2
+            transported = far_state + harvest_honest_jitter(far_state.shape, device=source.device, scaled=True) * 0.2
             wasserstein_dist = torch.tensor(0.0, device=source.device)
         else:
             # Try Conjugate Moment Measure Factorization (Monge-Ampere)
             is_honeybee_mode = mode.upper() in ('HONEYBEE', 'SERIOUSNESS')
-            transported_cmmf = self.conjugate_transport(source, is_honeybee_mode=is_honeybee_mode)
+            
+            # Apply Unadjusted Langevin Monte Carlo (LMC) drift before Legendre Transport
+            source_drifted = self.conjugate_transport.langevin_prior_drift(source, gamma=0.01, steps=5)
+            
+            # Map drifted source via Legendre gradient (\nabla \psi^*)
+            transported_cmmf = self.conjugate_transport(source_drifted, is_honeybee_mode=is_honeybee_mode)
             
             # Check yield for ICNN transported state before committing
             combined_cmmf = torch.cat([converged_state, transported_cmmf, far_coupled], dim=-1)
