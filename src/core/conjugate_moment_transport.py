@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import math
 from src.surrogates.kagh_networks import InputConvexNeuralNetwork
+from src.core.honest_jitter import harvest_honest_jitter
 
 class ConjugateMomentTransport(nn.Module):
     """
@@ -15,7 +17,7 @@ class ConjugateMomentTransport(nn.Module):
         self.icnn = InputConvexNeuralNetwork(dim=dim, hidden_dim=hidden_dim, num_layers=num_layers)
         
     def nabla_psi_star(self, y: torch.Tensor, max_iters: int = 20) -> torch.Tensor:
-        """
+        r"""
         Computes the gradient of the Legendre transform \nabla \psi^*(y).
         By Envelope Theorem, \nabla \psi^*(y) = argmax_x <x, y> - \psi(x).
         This maps the source (noise) to the target.
@@ -35,6 +37,31 @@ class ConjugateMomentTransport(nn.Module):
             
         optimizer.step(closure)
         return x.detach()
+
+    def langevin_prior_drift(self, z: torch.Tensor, gamma: float = 0.01, steps: int = 5) -> torch.Tensor:
+        """
+        Unadjusted Langevin Monte Carlo (ULA) drift to sample from the base prior \\mu_{W_\\theta}.
+        z_{k+1} = z_k - \\gamma \\nabla W_\\theta(z_k) + \\sqrt{2\\gamma} \\eta_k
+        Where \\eta_k is sourced from physical silicon anomalies via harvest_honest_jitter.
+        """
+        z_k = z.clone().detach().requires_grad_(True)
+        
+        for _ in range(steps):
+            # Evaluate convex potential W_\\theta(z_k)
+            W_z = self.icnn(z_k).sum()
+            
+            # Compute \\nabla W_\\theta(z_k)
+            grad_W = torch.autograd.grad(W_z, z_k)[0]
+            
+            # Harvest honest jitter for \\eta_k
+            eta_k = harvest_honest_jitter(z_k.shape, device=z_k.device, scaled=True)
+            
+            # Langevin update step
+            with torch.no_grad():
+                z_k = z_k - gamma * grad_W + math.sqrt(2 * gamma) * eta_k
+                z_k.requires_grad_(True)
+                
+        return z_k.detach()
 
     def trigonometric_unfolding(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -87,7 +114,7 @@ class ConjugateMomentTransport(nn.Module):
         pas_anisotropy: torch.Tensor, 
         shell_depth: int
     ) -> torch.Tensor:
-        """
+        r"""
         Computes the Context-Adaptive Monge-Ampère Loss.
         Scales the potential by the per-axis Phase Alignment Score (pas_anisotropy)
         and the Matrioshka shell depth.
