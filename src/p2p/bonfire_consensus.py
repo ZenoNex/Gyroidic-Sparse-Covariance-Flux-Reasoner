@@ -39,7 +39,11 @@ class BonfireNomadicRing:
         Calculates the Egalitarian Consensus Kelly Allocation (K_bar)
         and optionally adjusts local structural resonance (meta_state).
         """
-        if not self.peer_allocations:
+        from src.core.hardware_monitor import has_headroom
+        
+        # If hardware is constrained or poisoned, fallback to substrate stability 
+        # instead of attempting full egalitarian peer consensus.
+        if not self.peer_allocations or not has_headroom():
             # ASD-STE100 Rules: Hardware-Sovereign Fallback
             # Prime-ladder Chebyshev-Chebyshev oscillator simulation
             if engine_meta_state is not None:
