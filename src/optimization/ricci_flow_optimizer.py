@@ -19,6 +19,8 @@ try:
 except ImportError:
     HAS_TAILSLAYER = False
 
+from src.core.hardware_monitor import has_headroom
+
 class SplitBeamInterfactorization:
     """
     Manages the dual-channel flow. Separates the commutative forward pass
@@ -32,9 +34,9 @@ class SplitBeamInterfactorization:
     def compute_chern_simons_tension(self, flux_covariance: torch.Tensor, seam_width: float = 1.0) -> torch.Tensor:
         """
         Uses PyOpenCL to compute the true Chern-Simons invariant CS(A) = Tr(A dA + A A A)
-        binding the split beams.
+        binding the split beams, using PyOpenCL only when TailSlayer compute headroom is available.
         """
-        if self.engine is not None and hasattr(self.engine, 'evaluate_chern_simons_gasket'):
+        if self.engine is not None and hasattr(self.engine, 'evaluate_chern_simons_gasket') and has_headroom():
             tension_np = self.engine.evaluate_chern_simons_gasket(flux_covariance.detach().cpu().numpy(), seam_width)
             return torch.from_numpy(tension_np).to(flux_covariance.device)
         else:
