@@ -13,7 +13,10 @@ import threading
 import socketserver
 import numpy as np
 import base64
-import cgi
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", DeprecationWarning)
+    import cgi
 from src.core.invariants import compute_chirality, check_glyphlock, compute_chiral_shift
 try:
     import psutil
