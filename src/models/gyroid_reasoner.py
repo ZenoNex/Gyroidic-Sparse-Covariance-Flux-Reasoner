@@ -56,6 +56,13 @@ from src.core.honest_jitter import harvest_honest_jitter, fractal_pad
 from src.surrogates.kagh_networks import KAGHBlock
 from src.surrogates.calm_predictor import CALM
 
+from src.core.hardware_monitor import has_headroom
+try:
+    from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+    HAS_TAILSLAYER = True
+except ImportError:
+    HAS_TAILSLAYER = False
+
 
 class GyroidicFluxReasoner(nn.Module):
     """
@@ -95,6 +102,12 @@ class GyroidicFluxReasoner(nn.Module):
         use_admm: bool = True,
         admm_rho: float = 2.0,
         admm_steps: int = 50,
+        use_failure_tokens: bool = True,
+        use_phase2_closure: bool = True,
+        use_phase3_advanced: bool = True,
+        use_garbled_repair: bool = True,
+        containment_budget: float = 1.5,
+        mutation_rate: float = 0.05,
         use_saturation: bool = False,
         vocab_size: int = 50257
     ):
@@ -124,6 +137,11 @@ class GyroidicFluxReasoner(nn.Module):
         
         # Author: William Matthew Bryant
         super().__init__()
+        
+        self.engine = None
+        if HAS_TAILSLAYER and has_headroom():
+            self.engine = SiliconSovereigntyEngine()
+            
         # --- FORCED REPAIR INJECTION ---
         self.device = DEVICE
         device = self.device
