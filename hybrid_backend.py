@@ -946,6 +946,10 @@ class HybridAI:
 
         try:
             print(f"[WARMSTART] Recovering manifold from {state_path}...")
+            # Allow ZeitgeistState for safe deserialization
+            from src.core.zeitgeist_router import ZeitgeistState
+            torch.serialization.add_safe_globals([ZeitgeistState])
+            
             # Load with map_location='cpu' for cross-hardware soul-transfer
             checkpoint = torch.load(state_path, map_location='cpu')
             
