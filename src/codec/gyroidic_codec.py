@@ -339,7 +339,7 @@ class GyroidImageProjector(nn.Module):
         image_fingerprint: Optional[torch.Tensor] = None,
         audio_harmonics: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
+        r"""
         Project image to K residue matrices.
 
         Args:
