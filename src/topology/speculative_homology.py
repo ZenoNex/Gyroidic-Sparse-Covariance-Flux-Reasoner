@@ -60,7 +60,7 @@ class SpeculativeHomologyEngine(nn.Module):
         self.draft_rejects = 0
         
     def predict_draft_betti(self, x: torch.Tensor) -> Dict[int, int]:
-        """
+        r"""
         Generate 'Draft' Betti numbers using fast polynomial proxies.
         
         Instead of building a full simplicial complex, we use the roots and 
