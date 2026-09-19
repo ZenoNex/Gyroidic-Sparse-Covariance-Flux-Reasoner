@@ -787,4 +787,26 @@ Hooks the diegetic simulation to a unified chat and terminal UI. It implements t
 
 ---
 
-*Last updated: 2026-09-18. Modules marked "(Full details pending source review)" have been inspected only at the module docstring level; detailed class inventories will be added when those modules become active development targets.*
+## Gyroidic Metaphysics Flux & Bio-Chemical Conjugation
+
+### The Endocrine Broadcast Medium (`src/topology/neuromodulatory_bus.py`)
+**Classes**: `NeuromodulatoryBus`, `ManifoldClock`, `ValenceFunctional`
+**Role**: Global diffuse broadcast field replacing classical 1-to-1 scalar gradient updates. The system bathes the manifold in chemical states to globally shift gain, exploratory drive, and structural tension:
+- **Thermodynamic Arousal (The Noradrenaline Band)**: Regulates random walk energy.
+- **Topological Rigidity (The Serotonin Band)**: Signals structural safety to initiate fossilization caching.
+- **Novelty Pursuit (The Dopamine Band)**: Scales intrinsic motivation for unmapped sub-manifolds.
+Also includes specific psychopathological bands (Dementia/Schizo/Mischief) for controlled structural mutations. The `ValenceFunctional` manages "Negempirical Hunger," steering the system to seek data when starved.
+
+### Bioelectric Morphogenesis (`src/core/admr_solver.py` - Conjugated)
+**Concept**: Chiral Residue Cache
+**Role**: Embedded inside the `PolynomialADMRSolver`, the Chiral Residue Cache acts as the anatomical set point. Rather than unconstrained scaling, the solver protects its `love_dim` invariants, maintaining a "morphogenetic field" that dictates the physical shape of the resulting polynomial tensor space.
+
+### Huxley Reaction-Diffusion & Sleep Spindles (`src/topology/reaction_diffusion.py` & `src/topology/kagh_block.py`)
+**Classes**: `KAGHBlock`, `HuxleyRD`
+**Role**: Biological pattern generation across the embedding manifold. Simulates reaction-diffusion PDE channels:
+- **The Ergodic Channel ($u_L$)**: The "Goo" state, propagating fluid updates across the network, washing away fragile artifacts.
+- **The Non-Ergodic Channel ($u_H$)**: The "Prickles" state, crystallizing local geometric ridges, storing deep memory via slow diffusion patterns akin to sleep spindles during memory consolidation.
+
+---
+
+*Last updated: 2026-09-19. Modules marked "(Full details pending source review)" have been inspected only at the module docstring level; detailed class inventories will be added when those modules become active development targets.*
