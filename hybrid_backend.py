@@ -728,7 +728,7 @@ class HybridAI:
             try:
                 for module in self.engine.modules():
                     if module.__class__.__name__ in ('ObscuredBirkhoffManifold', 'BouligandBirkhoffManifold'):
-                        if hasattr(module, 'temperature') and isinstance(module.temperature, nn.Parameter):
+                        if hasattr(module, 'temperature') and isinstance(module.temperature, torch.nn.Parameter):
                             with torch.no_grad():
                                 module.temperature.copy_(torch.tensor(max(0.01, min(10.0, float(b_temp)))))
                         else:
