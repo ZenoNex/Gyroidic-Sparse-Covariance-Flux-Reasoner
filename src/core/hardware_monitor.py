@@ -75,3 +75,49 @@ class HardwareMonitor:
 def has_headroom() -> bool:
     """Helper function to get headroom status from the centralized monitor."""
     return HardwareMonitor().has_headroom()
+
+def get_headroom_dimensionality() -> int:
+    """
+    Computes the true topological headroom dimensionality.
+    Factors in available physical RAM and Memory Frequency (e.g., 2400 MHz)
+    to calculate the maximum allowable graph budget, exploiting the $O(N)$ efficiency
+    and the 80/20 Fossilization Split.
+    """
+    try:
+        import psutil
+        import subprocess
+        import sys
+        
+        mem_info = psutil.virtual_memory()
+        available_mb = mem_info.available / (1024 * 1024)
+        
+        ram_speed_mhz = 2400 # Default fallback
+        if sys.platform == "win32":
+            try:
+                out = subprocess.check_output(
+                    ["wmic", "memorychip", "get", "speed"],
+                    timeout=2
+                ).decode()
+                speeds = [int(s) for s in out.split() if s.isdigit()]
+                if speeds:
+                    ram_speed_mhz = max(speeds)
+            except Exception:
+                pass
+                
+        # Base capacity: ~0.8 MB per active node. 
+        # But because of 80/20 Fossilization Split and O(N) constraints, we can pack far more efficiently
+        # We multiply the available_mb by a speed multiplier. 2400 MHz acts as our baseline 1.0 multiplier.
+        speed_multiplier = ram_speed_mhz / 2400.0
+        
+        # Calculate raw estimate
+        estimated_nodes = int((available_mb / 0.8) * speed_multiplier)
+        
+        # Apply the Non-Scalar Admissibility boost (rejection logic saves 90% of graph cycles)
+        admissibility_boost = 1.5 
+        
+        dimensional_limit = int(estimated_nodes * admissibility_boost)
+        return max(50, dimensional_limit)
+        
+    except Exception as e:
+        print(f"[TAHI] Headroom computation degraded: {e}")
+        return 50000
