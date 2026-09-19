@@ -29,6 +29,58 @@ class LocalDatasetIngestor:
         if not self.root.exists():
             print(f" Local Dataset Root not found: {self.root}")
 
+    def _download_cifar10_if_missing(self, cifar_path):
+        import urllib.request
+        import tarfile
+        import pickle
+        import numpy as np
+        from PIL import Image
+        import csv
+        
+        csv_path = cifar_path / 'train.csv'
+        if csv_path.exists():
+            return
+            
+        print(" Downloading Multimodal Dataset (CIFAR-100) from remote source...")
+        cifar_path.mkdir(parents=True, exist_ok=True)
+        tar_path = cifar_path / 'cifar-100-python.tar.gz'
+        
+        if not tar_path.exists():
+            urllib.request.urlretrieve("https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz", tar_path)
+            
+        print(" Extracting CIFAR-100...")
+        with tarfile.open(tar_path, 'r:gz') as tar:
+            tar.extractall(path=cifar_path)
+            
+        image_dir = cifar_path / 'images'
+        image_dir.mkdir(exist_ok=True)
+        
+        meta_file = cifar_path / 'cifar-100-python' / 'meta'
+        with open(meta_file, 'rb') as f:
+            meta = pickle.load(f, encoding='bytes')
+            fine_label_names = [x.decode('utf-8') for x in meta[b'fine_label_names']]
+            
+        batch_file = cifar_path / 'cifar-100-python' / 'train'
+        
+        print(" Converting CIFAR-100 to local image structure...")
+        with open(batch_file, 'rb') as f:
+            d = pickle.load(f, encoding='bytes')
+            images = d[b'data']
+            labels = d[b'fine_labels']
+            filenames = d[b'filenames']
+            
+        with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['img', 'label'])
+            for i in range(min(5000, len(images))): # Limit to 5000 to save extraction time
+                img_name = filenames[i].decode('utf-8')
+                label = fine_label_names[labels[i]]
+                img_flat = images[i]
+                img = img_flat.reshape(3, 32, 32).transpose(1, 2, 0)
+                Image.fromarray(img).save(image_dir / img_name)
+                writer.writerow([img_name, label])
+        print(" Dataset setup complete!")
+
     def cifar10_generator(self, limit: int = 2000) -> Generator[Conversation, None, None]:
         """
         Drip-feeds CIFAR-10 images as conversational dyads (Label -> Image).
@@ -37,9 +89,14 @@ class LocalDatasetIngestor:
         image_dir = cifar_path / 'images'
         csv_path = cifar_path / 'train.csv'
         
+        self._download_cifar10_if_missing(cifar_path)
+        
         if not csv_path.exists():
-            print(f" CIFAR-10 train.csv not found at {csv_path}")
-            return
+            print(f" CIFAR-10 train.csv setup failed at {csv_path}")
+            import time
+            while True:
+                time.sleep(60)
+                yield Conversation(conversation_id="synthetic", turns=[], source="local_dataset")
 
         print(f" Initializing CIFAR-10 Drip-Feed from {image_dir}...")
         
@@ -98,10 +155,10 @@ class LocalDatasetIngestor:
             image_dir = mnist_path / 'images'
             
         if not csv_path.exists():
-            print(f"⚠️ MNIST train.csv not found at {csv_path}")
+            print(f" MNIST train.csv not found at {csv_path}")
             return
 
-        print(f"🔢 Initializing MNIST Drip-Feed from {image_dir}...")
+        print(f" Initializing MNIST Drip-Feed from {image_dir}...")
         
         count = 0
         with open(csv_path, 'r') as f:
