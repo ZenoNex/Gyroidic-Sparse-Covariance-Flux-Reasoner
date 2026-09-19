@@ -32,7 +32,7 @@ from src.topology.hyper_ring import RecurrentHyperRingConnectivity
 from src.models.resonance_cavity import ResonanceCavity
 
 class FractalMetaFunctional(nn.Module):
-    """
+    r"""
     The Fractal Meta-Functional $\mathcal{S}_\text{fractal}$.
     Orchestrates recursive meta-influence across all topological layers.
     """
