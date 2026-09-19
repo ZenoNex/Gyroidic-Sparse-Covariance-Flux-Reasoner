@@ -160,6 +160,8 @@ class GyroidicGraphManager:
         gyroid_path = os.path.join(os.getcwd(), "gyroid_state.pt")
         if os.path.exists(gyroid_path):
             try:
+                from src.core.zeitgeist_router import ZeitgeistState
+                torch.serialization.add_safe_globals([ZeitgeistState])
                 g_state = torch.load(gyroid_path, map_location='cpu')
                 iteration = g_state.get('iteration', 0)
                 
