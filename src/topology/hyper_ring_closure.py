@@ -19,7 +19,7 @@ Mathematical Foundation:
 
 import torch
 import torch.nn as nn
-from typing import Tuple, Optional, Dict
+from typing import Tuple, Optional, Dict, Union
 import numpy as np
 
 from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine, PYOPENCL_AVAILABLE
@@ -401,4 +401,21 @@ class HyperRingClosureChecker(nn.Module):
             'is_closed': is_closed,
             'is_trivial': is_trivial,
             'hyper_ring': hyper_ring
+        }
+
+    def evaluate_cohomology(self, draft_tensor: torch.Tensor) -> Dict[str, Union[bool, float]]:
+        """
+        Evaluate the topological closure of a draft state.
+        
+        Args:
+            draft_tensor: [batch, dim] state to evaluate
+            
+        Returns:
+            dict containing 'is_closed' and 'cohomology_rank'
+        """
+        norm = torch.norm(draft_tensor, dim=-1)
+        is_closed = bool((norm > self.trivial_threshold).all().item())
+        return {
+            'is_closed': is_closed,
+            'cohomology_rank': float(norm.mean().item())
         }
