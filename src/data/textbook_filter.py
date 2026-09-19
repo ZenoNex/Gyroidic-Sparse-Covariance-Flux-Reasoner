@@ -12,12 +12,14 @@ class QualityReport:
         self.dimension_gates = dimension_gates
         self.is_admissible = admissible
         self.topological_details = topological_details or {}
+        self.flags = []
         
     def to_dict(self) -> Dict[str, Any]:
         return {
             'is_admissible': self.is_admissible,
             'dimension_gates': self.dimension_gates,
-            'topological_details': {k: (v.item() if isinstance(v, torch.Tensor) else v) for k, v in self.topological_details.items()}
+            'topological_details': {k: (v.item() if isinstance(v, torch.Tensor) else v) for k, v in self.topological_details.items()},
+            'flags': self.flags
         }
 
 
