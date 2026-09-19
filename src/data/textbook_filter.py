@@ -10,12 +10,12 @@ class QualityReport:
         self.text = text
         self.source = source
         self.dimension_gates = dimension_gates
-        self.admissible = admissible
+        self.is_admissible = admissible
         self.topological_details = topological_details or {}
         
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'is_admissible': self.admissible,
+            'is_admissible': self.is_admissible,
             'dimension_gates': self.dimension_gates,
             'topological_details': {k: (v.item() if isinstance(v, torch.Tensor) else v) for k, v in self.topological_details.items()}
         }
@@ -77,7 +77,7 @@ class TextbookFilter:
         return [
             {
                 "text": t,
-                "admissible": self.assess(t, source).admissible,
+                "admissible": self.assess(t, source).is_admissible,
                 "report": self.assess(t, source).to_dict(),
             }
             for t in texts
@@ -86,7 +86,7 @@ class TextbookFilter:
     def get_statistics(self, reports: List[QualityReport]) -> Dict:
         """Aggregate stats. Interface unchanged."""
         total = len(reports)
-        passed = sum(1 for r in reports if r.admissible)
+        passed = sum(1 for r in reports if r.is_admissible)
         return {
             "total": total,
             "admissible": passed,
