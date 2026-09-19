@@ -74,23 +74,13 @@ def compute_autocorrelation(x: torch.Tensor) -> torch.Tensor:
 
 
 def _compute_fossil_budget() -> int:
-    """Dynamically computes the fossil load budget based on available RAM."""
+    """Dynamically computes the fossil load budget based on true hardware dimensionality."""
     try:
-        import psutil
-        available_mb = psutil.virtual_memory().available / (1024 * 1024)
-    except ImportError:
-        try:
-            import subprocess
-            out = subprocess.check_output(
-                ["wmic", "OS", "get", "FreePhysicalMemory"],
-                timeout=3
-            ).decode()
-            available_mb = int([x for x in out.split() if x.isdigit()][0]) / 1024
-        except Exception:
-            return 150  # safe fallback
-    # ~0.8 MB per fossil (dim=256 tensor + metadata dict)
-    estimated = int(available_mb / 0.8)
-    return max(50, min(50000, estimated))
+        from src.core.hardware_monitor import get_headroom_dimensionality
+        return get_headroom_dimensionality()
+    except Exception as e:
+        print(f"[BUDGET ERROR] Failed to compute topological headroom: {e}")
+        return 150 # safe fallback
 from urllib.parse import urlparse, parse_qs
 from typing import Dict, Any, List, Optional, Tuple, Union
 import hashlib
@@ -6275,6 +6265,8 @@ class DiegeticPhysicsEngine(nn.Module):
 
         try:
             # 1. Load Neural Weights (Non-Strict for flexibility)
+            from src.core.zeitgeist_router import ZeitgeistState
+            torch.serialization.add_safe_globals([ZeitgeistState])
             checkpoint = torch.load(STATE_PATH, map_location=self.device)
             load_result = self.load_state_dict(checkpoint, strict=False)
             
