@@ -1338,7 +1338,13 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # Restore dynamic vocabulary
         self.unicode_to_idx = state_dict.get("unicode_to_idx", {})
-        self.idx_to_unicode = state_dict.get("idx_to_unicode", [])
+        
+        idx_to_unicode_data = state_dict.get("idx_to_unicode", [])
+        if isinstance(idx_to_unicode_data, dict):
+            self.idx_to_unicode = [idx_to_unicode_data[k] for k in sorted(idx_to_unicode_data.keys())] if idx_to_unicode_data else []
+        else:
+            self.idx_to_unicode = idx_to_unicode_data
+            
         print(f"[RECOVERY] Dynamic vocabulary restored: {len(self.unicode_to_idx)} unicode/emoji characters mapped.")
 
         # 1. Restore Zeitgeist (with mode and step momentum)
@@ -6625,26 +6631,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 except Exception as e:
                     self._send_error_json(str(e))
                     return
-            
-            # Fallback for static files
-            return super().do_GET()
-        except Exception as e:
-            print(f"CRITICAL GET ERROR: {e}")
-            self._send_error_json(str(e))
-
-    def do_POST(self):
-        print(f"POST REQUEST RECEIVED: {self.path}")
-        try:
-            # --- SECURITY ENFORCEMENT ---
-            if self.path.startswith('/api/fs/'):
-                token = self.headers.get('X-Gyroidic-CSRF-Token')
-                if not token or not hmac.compare_digest(token, CSRF_TOKEN):
-                    self._send_error_json("Invalid or missing CSRF token. Request rejected.", 403)
-                    return
-            # ----------------------------
-
-
-            if self.path == '/api/fs/drives':
+            elif base_path == '/api/fs/drives':
                 drives = []
                 import os
                 if os.name == 'nt':
@@ -6662,6 +6649,23 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     drives = ["/"]
                 self._send_json({"status": "ok", "drives": drives})
                 return
+
+            # Fallback for static files
+            return super().do_GET()
+        except Exception as e:
+            print(f"CRITICAL GET ERROR: {e}")
+            self._send_error_json(str(e))
+
+    def do_POST(self):
+        print(f"POST REQUEST RECEIVED: {self.path}")
+        try:
+            # --- SECURITY ENFORCEMENT ---
+            if self.path.startswith('/api/fs/'):
+                token = self.headers.get('X-Gyroidic-CSRF-Token')
+                if not token or not hmac.compare_digest(token, CSRF_TOKEN):
+                    self._send_error_json("Invalid or missing CSRF token. Request rejected.", 403)
+                    return
+            # ----------------------------
 
             if self.path == '/api/fs/list':
                 content_len = int(self.headers.get('Content-Length', 0))
