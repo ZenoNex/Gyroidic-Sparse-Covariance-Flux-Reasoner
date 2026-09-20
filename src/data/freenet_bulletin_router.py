@@ -125,8 +125,9 @@ class FreenetBulletinRouter:
         """Asynchronously dispatches the FMS and Sone synthetic payloads over FCPv2."""
         current_time = time.time()
         if current_time - FreenetBulletinRouter._last_broadcast_time < 60.0:
-            print("[FREENET WARN] Bulletin broadcast rate limit exceeded. Cooling down.")
             return
+
+        FreenetBulletinRouter._last_broadcast_time = current_time
 
         if self.host not in ['127.0.0.1', 'localhost']:
             print("[FREENET WARN] SSRF Protection active: Host must be local.")
@@ -135,8 +136,6 @@ class FreenetBulletinRouter:
         if not self._ensure_identity_ssk():
             print("[FREENET WARN] Could not generate or retrieve SSK identity. Aborting broadcast.")
             return
-
-        FreenetBulletinRouter._last_broadcast_time = current_time
 
         fms_payload = self._generate_fms_xml(volume, mischief, metrics=metrics)
         sone_payload = self._generate_sone_json(volume, metrics=metrics)
