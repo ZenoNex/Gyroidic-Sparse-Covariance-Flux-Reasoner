@@ -6607,20 +6607,32 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             elif base_path.startswith('/api/freenet/status'):
                 try:
                     freenet_data = {"online": False, "peers": []}
-                    if ENGINE and hasattr(ENGINE, 'bonfire_network') and ENGINE.bonfire_network is not None:
-                        network = ENGINE.bonfire_network
+                    if ENGINE and hasattr(ENGINE, 'bonfire') and ENGINE.bonfire is not None:
+                        network = ENGINE.bonfire
                         freenet_data["online"] = True
-                        if hasattr(network, 'active_peers'):
+                        if hasattr(network, 'healthy_peers'):
                             freenet_data["peers"] = [
                                 {
                                     "address": str(peer),
                                     "ping_ms": 15 + (hash(peer) % 10), # Simulated ping for demo
                                     "d_wave_flux": True
                                 }
-                                for peer in list(network.active_peers)[:10]
+                                for peer in list(network.healthy_peers)[:10]
                             ]
                         elif hasattr(network, 'get_topology_status'):
                             freenet_data = network.get_topology_status()
+                    elif ENGINE and hasattr(ENGINE, 'bonfire_nomadic_ring') and ENGINE.bonfire_nomadic_ring is not None:
+                        network = ENGINE.bonfire_nomadic_ring
+                        freenet_data["online"] = True
+                        if hasattr(network, 'peer_allocations'):
+                            freenet_data["peers"] = [
+                                {
+                                    "address": str(peer),
+                                    "ping_ms": 15 + (hash(peer) % 10),
+                                    "d_wave_flux": True
+                                }
+                                for peer in network.peer_allocations.keys()
+                            ]
                     
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
