@@ -2000,7 +2000,7 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         
         # Delegate specific paths to DiegeticRequestHandler
-        if parsed_path.path in ['/graph', '/health', '/api/minecraft/scan', '/conversational-gui', '/wikipedia-trainer']:
+        if parsed_path.path in ['/graph', '/health', '/api/minecraft/scan', '/conversational-gui', '/wikipedia-trainer', '/api/index_size', '/api/splats/scan', '/api/fs/drives'] or parsed_path.path.startswith('/api/freenet/'):
             from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
             DiegeticRequestHandler.do_GET(self)
             return
@@ -2039,7 +2039,7 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         
         # Delegate specific paths to DiegeticRequestHandler
-        if parsed_path.path in ['/api/minecraft/ingest', '/wikipedia-extract', '/api/test_resonance_link', '/api/tabby_complete', '/api/tabby_generate_training']:
+        if parsed_path.path in ['/api/minecraft/ingest', '/wikipedia-extract', '/api/test_resonance_link', '/api/tabby_complete', '/api/tabby_generate_training', '/api/run_sim', '/api/analyze_sim', '/api/fs/drives'] or parsed_path.path.startswith('/api/fs/'):
             from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
             DiegeticRequestHandler.do_POST(self)
             return
