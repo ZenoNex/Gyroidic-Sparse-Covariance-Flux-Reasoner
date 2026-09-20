@@ -39,7 +39,7 @@ class FreenetGhostCaller:
             import psutil
             cpu_percent = psutil.cpu_percent(interval=0.1)
             ram_percent = psutil.virtual_memory().percent
-            if cpu_percent >= 50.0 or ram_percent >= 80.0:
+            if cpu_percent >= 98.0 or ram_percent >= 95.0:
                 print(f"[FREENET WARN] Computational load too high (CPU: {cpu_percent}%, RAM: {ram_percent}%). Aborting broadcast.")
                 return
         except ImportError:
