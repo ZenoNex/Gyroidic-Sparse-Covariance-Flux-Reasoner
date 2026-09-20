@@ -6564,6 +6564,33 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     traceback.print_exc()
                     self.send_error(500, f"Error serving HTML: {e}")
                     return
+            elif self.path.startswith('/api/freenet/status'):
+                import json
+                try:
+                    freenet_data = {"online": False, "peers": []}
+                    if ENGINE and hasattr(ENGINE, 'bonfire_network') and ENGINE.bonfire_network is not None:
+                        network = ENGINE.bonfire_network
+                        freenet_data["online"] = True
+                        if hasattr(network, 'active_peers'):
+                            freenet_data["peers"] = [
+                                {
+                                    "address": str(peer),
+                                    "ping_ms": 15 + (hash(peer) % 10), # Simulated ping for demo
+                                    "d_wave_flux": True
+                                }
+                                for peer in list(network.active_peers)[:10]
+                            ]
+                        elif hasattr(network, 'get_topology_status'):
+                            freenet_data = network.get_topology_status()
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(freenet_data).encode())
+                    return
+                except Exception as e:
+                    self._send_error_json(str(e))
+                    return
             
             # Fallback for static files
             return super().do_GET()
@@ -6884,6 +6911,60 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     
                 except Exception as e:
                     print(f"Error in Minecraft ingestion endpoint: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    self._send_error_json(str(e))
+                return
+
+            elif self.path == '/api/splats/scan':
+                print("API REQUEST: /api/splats/scan")
+                try:
+                    splats_dir = os.path.join(os.getcwd(), 'datasets', 'splats')
+                    os.makedirs(splats_dir, exist_ok=True)
+                    
+                    files = []
+                    for item in os.listdir(splats_dir):
+                        if item.lower().endswith(('.gltf', '.glb')):
+                            files.append({
+                                'name': item,
+                                'path': os.path.relpath(os.path.join(splats_dir, item), os.getcwd())
+                            })
+                    
+                    self._send_json({"status": "ok", "splats": files})
+                except Exception as e:
+                    self._send_error_json(str(e))
+                return
+                
+            elif self.path == '/api/splats/ingest':
+                print("API REQUEST: /api/splats/ingest")
+                try:
+                    content_len = int(self.headers.get('Content-Length', 0))
+                    post_body = self.rfile.read(content_len)
+                    data = json.loads(post_body.decode('utf-8'))
+                    
+                    file_path = data.get('file_path')
+                    if not file_path or not os.path.exists(file_path):
+                        self._send_error_json("Invalid splat file path")
+                        return
+                        
+                    from src.data.gltf_splat_ingestor import GltfSplatIngestionPipeline
+                    ingestor = GltfSplatIngestionPipeline(target_dim=ENGINE.poly_config.n, device=ENGINE.device.type)
+                    
+                    # Process and project splat
+                    topological_states = ingestor.process_splat_file(file_path)
+                    
+                    # Commit to manifold
+                    for i in range(topological_states.shape[0]):
+                        state = topological_states[i].unsqueeze(0)
+                        ENGINE.force_ingest_state(
+                            state=state,
+                            label=f"Splat Fragment {i} from {os.path.basename(file_path)}",
+                            tags=["3d", "splat", "gltf"]
+                        )
+                        
+                    ENGINE.save_state()
+                    self._send_json({"status": "ok", "message": f"Successfully ingested {topological_states.shape[0]} residue states from GLTF Splat."})
+                except Exception as e:
                     import traceback
                     traceback.print_exc()
                     self._send_error_json(str(e))
