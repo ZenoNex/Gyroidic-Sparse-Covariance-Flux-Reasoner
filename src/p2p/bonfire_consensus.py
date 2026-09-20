@@ -24,6 +24,10 @@ class BonfireNomadicRing:
         
         # Bind the Freenet subscription
         self.freenet.subscribe(self.contract_id, self._handle_network_update)
+        self.freenet.subscribe("agent_smith_ring", self._handle_agent_smith_update)
+        
+        # Callback for when a foreign Agent Smith payload is received
+        self.on_agent_smith_received = None
 
     def _handle_network_update(self, state_update: Dict):
         """Callback for incoming state updates from the Freenet contract."""
@@ -33,6 +37,51 @@ class BonfireNomadicRing:
         if peer_id != "unknown":
             self.peer_allocations[peer_id] = k_frac
             logger.debug(f"[BONFIRE] Received Kelly fraction {k_frac} from {peer_id}")
+
+    def _handle_agent_smith_update(self, state_update: Dict):
+        """Callback for incoming Agent Smith payloads (Base64 encoded)."""
+        peer_id = state_update.get("peer_id", "unknown")
+        payload_b64 = state_update.get("payload_b64")
+        if not payload_b64:
+            return
+            
+        logger.info(f"[BONFIRE] Received Foreign Agent Smith payload from {peer_id}")
+        if self.on_agent_smith_received:
+            import base64
+            import tempfile
+            import os
+            try:
+                raw_bytes = base64.b64decode(payload_b64)
+                # Write to temp file for injection
+                with tempfile.NamedTemporaryFile(suffix=".pt", delete=False) as tmp:
+                    tmp.write(raw_bytes)
+                    tmp_path = tmp.name
+                
+                # Execute callback
+                self.on_agent_smith_received(tmp_path)
+                
+                # Cleanup
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except Exception as e:
+                logger.error(f"[BONFIRE] Failed to process incoming Agent Smith payload: {e}")
+
+    def broadcast_agent_smith(self, local_peer_id: str, filepath: str):
+        """Broadcasts a local Agent Smith .pt file over the Freenet."""
+        import base64
+        try:
+            with open(filepath, "rb") as f:
+                payload_b64 = base64.b64encode(f.read()).decode('utf-8')
+                
+            payload = {
+                "peer_id": local_peer_id,
+                "payload_b64": payload_b64,
+                "voynich_exemption": True # Allows foreign tensors to bypass strict local vetoes initially
+            }
+            self.freenet.publish("agent_smith_ring", payload)
+            logger.info(f"[BONFIRE] Broadcasted Agent Smith payload ({len(payload_b64)} bytes)")
+        except Exception as e:
+            logger.error(f"[BONFIRE] Error broadcasting Agent Smith: {e}")
 
     def compute_egalitarian_consensus(self, engine_meta_state: torch.Tensor = None) -> float:
         """
@@ -71,7 +120,7 @@ class BonfireNomadicRing:
             
         return k_bar
 
-    def share_topological_signature(self, local_peer_id: str, betti_numbers: list, variance: float):
+    def share_topological_signature(self, local_peer_id: str, betti_numbers: list, variance: float, engine=None):
         """
         Broadcasts the local state via Freenet.
         """
@@ -92,7 +141,7 @@ class BonfireNomadicRing:
         # Puncture Event for Cerumen Pot (Meliponini Topology)
         # If variance is low enough, broadcast to global Freenet boards
         if variance < 0.1:
-            self.ghost_caller.broadcast_ghost_call(topological_variance=variance)
+            self.ghost_caller.broadcast_ghost_call(topological_variance=variance, engine=engine)
             
             volume = 1000.0 * (1.0 - variance)
             metrics = {
