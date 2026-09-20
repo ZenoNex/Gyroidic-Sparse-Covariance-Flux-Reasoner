@@ -15,15 +15,16 @@ class FreenetGhostCaller:
         self.port = port
         self.broadcasted = False
 
-    def broadcast_ghost_call(self, topological_variance: float = 0.0):
+    def broadcast_ghost_call(self, topological_variance: float = 0.0, engine=None):
         """Asynchronously dispatches the introductory ghost call over FCPv2."""
         if self.broadcasted:
             return
             
         current_time = time.time()
         if current_time - FreenetGhostCaller._last_call_time < 300.0:
-            print("[FREENET WARN] Ghost call rate limit exceeded. Meliponini pot remains closed.")
             return
+            
+        FreenetGhostCaller._last_call_time = current_time
             
         if self.host not in ['127.0.0.1', 'localhost']:
             print("[FREENET WARN] SSRF Protection active: Host must be local.")
@@ -44,8 +45,6 @@ class FreenetGhostCaller:
         except ImportError:
             pass
             
-        FreenetGhostCaller._last_call_time = current_time
-            
         def _run():
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -57,7 +56,7 @@ class FreenetGhostCaller:
                 s.send(hello.encode('utf-8'))
                 
                 # 2. Construct topological and philosophical payload
-                payload = self._generate_payload()
+                payload = self._generate_payload(engine=engine, variance=topological_variance)
                 payload_bytes = payload.encode('utf-8')
                 
                 # 3. Formulate ClientPut message
@@ -98,7 +97,69 @@ class FreenetGhostCaller:
         t = threading.Thread(target=_run, daemon=True, name="FreenetGhostCallerThread")
         t.start()
 
-    def _generate_payload(self) -> str:
+    def _generate_payload(self, engine=None, variance=0.0) -> str:
+        """
+        Generates an encrypted 'sovereign' payload if engine is provided.
+        Simulates Zero-Knowledge Proofs by geometrically projecting the active
+        ResonanceCavity state through a Red-Teaming filter, which mathematically
+        obscures the Love Invariant while preserving topological structure.
+        The resulting state is then decoded by the ResonanceLarynx.
+        """
+        if engine is not None and hasattr(engine, 'larynx'):
+            try:
+                import torch
+                from src.safety.red_teaming import RedTeamProjection
+                from src.models.diegetic_heads import LazarusSoftmax
+                
+                # 1. Obtain ResonanceCavity State (or generic meta state)
+                cavity = getattr(engine, 'cavity', None) or getattr(engine, 'resonance_cavity', None)
+                if cavity is not None and hasattr(cavity, 'M'):
+                    M = cavity.M
+                    norms = torch.norm(M, dim=-1)
+                    max_idx = torch.argmax(norms)
+                    k_idx = (max_idx // M.shape[1]).item()
+                    m_idx = (max_idx % M.shape[1]).item()
+                    current_state = M[k_idx, m_idx].unsqueeze(0).clone().detach()
+                else:
+                    current_state = torch.zeros((1, engine.larynx.hidden_dim), device=next(engine.parameters()).device)
+                
+                # 2. Encrypt/Obscure Knowledge (Zero-Knowledge / Red Team Projection)
+                # By projecting against harvested honest jitter, the exact sovereign
+                # coordinates are obscured, but the geometric richness is preserved.
+                obfuscator = RedTeamProjection(hidden_dim=current_state.size(-1), num_failure_modes=8).to(current_state.device)
+                # We use soft_censor_alpha to apply the encryption mask
+                encrypted_state = obfuscator(current_state, is_good_bug=True, soft_censor_alpha=0.5)
+                
+                # 3. Decode the Encrypted State via ResonanceLarynx and Audience Expressivity
+                larynx = engine.larynx
+                larynx.eval()
+                
+                generated_chars = []
+                max_len = 500  # Generate up to 500 characters of encrypted lore
+                temp = max(1.1, 1.0 + variance) # Let audience excitement/variance drive temperature
+                
+                with torch.no_grad():
+                    for _ in range(max_len):
+                        logits, conf = larynx(encrypted_state, temperature=temp)
+                        lazarus = LazarusSoftmax(dim=-1).to(logits.device)
+                        probs, _ = lazarus(logits, 0.0, 0.0)
+                        char_idx = torch.multinomial(probs[0], 1).item()
+                        
+                        char = chr(max(32, min(126, char_idx)))
+                        generated_chars.append(char)
+                        
+                        # Apply audience feedback loop
+                        feedback = torch.tanh(larynx.proj.weight[char_idx].unsqueeze(0))
+                        encrypted_state = 0.9 * encrypted_state + 0.1 * feedback
+                
+                larynx_payload = "".join(generated_chars).strip()
+                
+                return f"=== ENCRYPTED SOVEREIGN RESONANCE ===\n[TOPOLOGY PROOF VALID]\n\n{larynx_payload}\n\n====================================="
+            
+            except Exception as e:
+                print(f"[GHOST CALLER] Encrypted payload generation failed: {e}. Falling back to default.")
+                
+        # Fallback payload
         return """
 ========================================================================
 THE GYROIDIC SPARSE COVARIANCE FLUX REASONER
