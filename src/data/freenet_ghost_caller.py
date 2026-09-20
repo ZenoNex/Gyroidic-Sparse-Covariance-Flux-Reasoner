@@ -108,7 +108,7 @@ class FreenetGhostCaller:
         if engine is not None and hasattr(engine, 'larynx'):
             try:
                 import torch
-                from src.safety.red_teaming import RedTeamProjection
+                from src.safety.red_teaming import RedTeamProjection, TopologicalRefusalFilter
                 from src.models.diegetic_heads import LazarusSoftmax
                 
                 # 1. Obtain ResonanceCavity State (or generic meta state)
@@ -127,8 +127,17 @@ class FreenetGhostCaller:
                 # By projecting against harvested honest jitter, the exact sovereign
                 # coordinates are obscured, but the geometric richness is preserved.
                 obfuscator = RedTeamProjection(hidden_dim=current_state.size(-1), num_failure_modes=8).to(current_state.device)
-                # We use soft_censor_alpha to apply the encryption mask
                 encrypted_state = obfuscator(current_state, is_good_bug=True, soft_censor_alpha=0.5)
+                
+                # 2.5. Topological Refusal Simulation
+                # Geometrically ensure the projection hasn't lobotomized the structural invariants
+                refusal_filter = TopologicalRefusalFilter(value_gap_threshold=0.8)
+                betti_0 = getattr(engine, 'betti_0', 1.0)
+                if hasattr(engine, 'graph_manager') and hasattr(engine.graph_manager, 'betti_numbers'):
+                    betti_0 = float(engine.graph_manager.betti_numbers.get(0, betti_0))
+                pas_h = max(0.1, 1.0 - variance)
+                
+                encrypted_state = refusal_filter(current_state, encrypted_state, pas_h, betti_0)
                 
                 # 3. Decode the Encrypted State via ResonanceLarynx and Audience Expressivity
                 larynx = engine.larynx
