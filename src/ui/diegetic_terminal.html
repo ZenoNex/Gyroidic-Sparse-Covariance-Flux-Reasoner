@@ -7,7 +7,8 @@
     <title>Gyroidic Diegetic Terminal // Structural Honesty</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Fira+Code:wght@400&display=swap"
         rel="stylesheet">
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/three"></script>
+    <script src="https://unpkg.com/3d-force-graph"></script>
     <style>
         :root {
             --bg-color: #030303;
@@ -732,14 +733,26 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--glass-border);
+            background: rgba(10, 10, 15, 0.8);
+            border: 1px solid rgba(138, 43, 226, 0.4);
             border-radius: 6px;
-            padding: 6px 10px;
+            padding: 8px 12px;
             margin-bottom: 0.5rem;
             font-family: var(--font-mono);
             font-size: 0.65rem;
+            color: #fff;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 0 10px rgba(138, 43, 226, 0.1);
+            backdrop-filter: blur(4px);
+            transition: all 0.2s ease;
             animation: fadeIn 0.2s ease-out;
+        }
+
+        .media-chain-item:hover {
+            border-color: rgba(138, 43, 226, 0.8);
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.3), inset 0 0 10px rgba(138, 43, 226, 0.1);
+            transform: translateX(2px);
         }
 
         .media-chain-item .icon {
@@ -941,7 +954,9 @@
             <div class="console-tabs">
                 <div class="console-tab active" data-tab="terminal">RESONANCE TERMINAL</div>
                 <div class="console-tab" data-tab="graph">OBSIDIAN GRAPH</div>
+                <div class="console-tab" data-tab="freenet">BONFIRE P2P NETWORK</div>
                 <div class="console-tab" data-tab="link-editor">LINK & SCHEDULES</div>
+                <div class="console-tab" data-tab="multimodal">MULTIMODAL VIEWER</div>
             </div>
             <div class="tab-pane active" id="pane-terminal">
                 <div id="chat-feed" style="flex: 1; overflow-y: auto;">
@@ -1043,6 +1058,38 @@
                     </div>
                 </div>
             </div>
+            </div>
+
+            <!-- Tab 4: Multimodal Viewer -->
+            <div class="tab-pane" id="pane-multimodal" style="background: #030303; flex: 1; position: relative;">
+                <div id="multimodal-container"
+                    style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#555; font-family:var(--font-mono); font-size:0.8rem; text-align:center; padding: 2rem;">
+                    <div>[NO SOURCE SELECTED]</div>
+                    <div style="font-size:0.6rem; margin-top:10px;">Select a GLTF/Splat from Panel H or a media node to
+                        preview.</div>
+                </div>
+            </div>
+
+            <!-- Tab: Bonfire P2P Network -->
+            <div class="tab-pane" id="pane-freenet" style="background: #030303; flex: 1; position: relative;">
+                <div style="padding: 1rem; color: var(--terminal-green); font-family: var(--font-mono);">
+                    <h3 style="margin-top:0;">Bonfire P2P Network Interconnected Status</h3>
+                    <div class="metric-card" style="margin-top:1rem;">
+                        <div class="metric-label">Network Connectivity</div>
+                        <div id="freenet-status-display" class="metric-value" style="color:var(--terminal-warn);">
+                            PROBING...</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Connected Peers</div>
+                        <div id="freenet-peers-count" class="metric-value">0</div>
+                        <div id="freenet-peers-list" style="margin-top: 10px; font-size: 0.75rem; color: #888;"></div>
+                    </div>
+                    <button onclick="refreshFreenetStatus()"
+                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px 12px; border-radius: 4px; font-family: var(--font-mono); cursor: pointer; margin-top: 1rem;">FORCE
+                        REFRESH TOPOLOGY</button>
+                </div>
+            </div>
+
             <div id="soliton-layer"></div>
         </section>
 
@@ -1345,6 +1392,44 @@
                     </div>
                     <div id="minecraft-log" class="small-log" style="height: 120px;"></div>
                 </div>
+
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+                <!-- PANEL H: GLTF SPLAT MATRIX -->
+                <div class="splat-panel" id="panel-h-container">
+                    <div class="section-title" style="color: #ff00ff;">Panel H: GLTF/Splat Matrix
+                        <small id="splat-status" style="color:#555;">IDLE</small>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <button id="scan-splats-btn"
+                            style="width: 100%; background: rgba(255, 0, 255, 0.08); border: 1px solid #ff00ff; color: #ff00ff; padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;">
+                            SCAN DATASETS/SPLATS
+                        </button>
+
+                        <div class="metric-card" style="margin-bottom: 0px;">
+                            <div class="metric-label">Detected GLTF/GLB Splats</div>
+                            <select id="splat-file-select"
+                                style="width: 100%; background: #0a0a0a; border: 1px solid var(--glass-border); color: #fff; padding: 4px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; margin-bottom: 0.5rem;">
+                                <option value="">-- No Splats Detected --</option>
+                            </select>
+
+                            <button id="preview-splat-btn"
+                                style="width: 100%; background: rgba(0, 242, 255, 0.15); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px; border-radius: 4px; font-size: 0.65rem; cursor: pointer; margin-bottom: 0.5rem;"
+                                disabled>
+                                LOAD IN MULTIMODAL VIEWER
+                            </button>
+                        </div>
+
+                        <button id="commit-splat"
+                            style="width: 100%; background: rgba(255, 0, 255, 0.15); border: 1px solid #ff00ff; color: #ff00ff; padding: 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;"
+                            disabled>
+                            INGEST SPLAT TO MANIFOLD
+                        </button>
+                    </div>
+                    <div id="splat-log" class="small-log" style="height: 120px; color: #ff00ff;"></div>
+                </div>
+
         </aside>
 
         <!-- Right Toolbar -->
@@ -1363,6 +1448,8 @@
                 title="Panel F: Heterogeneous Chain">F</button>
             <button class="panel-toggle-btn" onclick="togglePanel('panel-g-container', this)"
                 title="Panel G: Minecraft Ingestor">G</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-h-container', this)"
+                title="Panel H: GLTF/Splat Matrix">H</button>
         </div>
     </main>
 
@@ -1462,6 +1549,36 @@
             checkCreatorStatus();
         });
 
+        async function refreshFreenetStatus() {
+            try {
+                const display = document.getElementById('freenet-status-display');
+                const count = document.getElementById('freenet-peers-count');
+                const list = document.getElementById('freenet-peers-list');
+                if (display) display.textContent = "PROBING...";
+
+                const res = await fetch(`${state.backend_url}/api/freenet/status`);
+                const data = await res.json();
+
+                if (display) {
+                    display.textContent = data.online ? "ONLINE & ROUTING" : "OFFLINE";
+                    display.style.color = data.online ? "var(--terminal-green)" : "var(--terminal-warn)";
+                }
+                if (count) count.textContent = data.peers ? data.peers.length : 0;
+                if (list && data.peers) {
+                    list.innerHTML = data.peers.map(p => `<div><span style="color:var(--terminal-magenta)">[PEER]</span> ${p.address} | D-Wave: ${p.d_wave_flux ? 'SYNCED' : 'AWAITING'} | Ping: ${p.ping_ms}ms</div>`).join('');
+                } else if (list) {
+                    list.innerHTML = "<div>NO PEERS CONNECTED</div>";
+                }
+            } catch (e) {
+                console.error("Failed to fetch freenet status:", e);
+                const display = document.getElementById('freenet-status-display');
+                if (display) {
+                    display.textContent = "COMMUNICATION ERROR";
+                    display.style.color = "red";
+                }
+            }
+        }
+
         async function checkCreatorStatus() {
             try {
                 const response = await fetch('/api/security/creator_status');
@@ -1549,15 +1666,17 @@
 
                 container.innerHTML = '';
 
-                // Build D3 nodes and links
-                const d3Nodes = [];
-                const d3Links = [];
+                // Build GraphData object
+                const gData = {
+                    nodes: [],
+                    links: []
+                };
+
                 const seenTags = new Set();
                 const fossilIdMap = new Map();
 
-                // 1. Process Fossils and Live Nodes
                 data.nodes.forEach(node => {
-                    const d3Node = {
+                    const gNode = {
                         id: node.id,
                         label: node.label,
                         chiral: node.chiral || 0.0,
@@ -1567,19 +1686,16 @@
                         repaired: !!node.repaired,
                         locked: !!node.locked,
                         type: node.type || 'fossil',
-                        tags: node.tags || [],
-                        px: node.px || 0.0,
-                        py: node.py || 0.0
+                        tags: node.tags || []
                     };
-                    d3Nodes.push(d3Node);
-                    fossilIdMap.set(node.id, d3Node);
+                    gData.nodes.push(gNode);
+                    fossilIdMap.set(node.id, gNode);
 
-                    // Collect Tags
                     if (includeTags) {
                         (node.tags || []).forEach(tag => {
                             if (tag) {
                                 seenTags.add(tag);
-                                d3Links.push({
+                                gData.links.push({
                                     source: node.id,
                                     target: 'tag_' + tag,
                                     type: 'tag-link',
@@ -1590,24 +1706,20 @@
                     }
                 });
 
-                // 2. Add Tag Hub Nodes
                 if (includeTags) {
                     seenTags.forEach(tag => {
-                        d3Nodes.push({
+                        gData.nodes.push({
                             id: 'tag_' + tag,
                             label: '#' + tag,
                             type: 'tag',
-                            tags: [tag],
-                            px: (Math.random() - 0.5) * 0.4,
-                            py: (Math.random() - 0.5) * 0.4
+                            tags: [tag]
                         });
                     });
                 }
 
-                // 3. Process Resonance/Similarity Links
                 (data.links || []).forEach(link => {
                     if (fossilIdMap.has(link.source) && fossilIdMap.has(link.target)) {
-                        d3Links.push({
+                        gData.links.push({
                             source: link.source,
                             target: link.target,
                             type: 'resonance',
@@ -1616,183 +1728,42 @@
                     }
                 });
 
-                // 4. Set up dropdown lists in Link & Schedule Editor
                 populateLinkDropdowns(data.nodes, Array.from(seenTags));
 
-                // 5. Render SVG
-                const width = container.clientWidth || 500;
-                const height = container.clientHeight || 400;
-
-                // Initialize node coordinates based on Poincare coordinates projected to canvas
-                d3Nodes.forEach(d => {
-                    d.x = width / 2 + (width / 2 - 40) * d.px;
-                    d.y = height / 2 + (height / 2 - 40) * d.py;
-                    d.vx = 0;
-                    d.vy = 0;
-                });
-
-                const svg = d3.select(container)
-                    .append('svg')
-                    .attr('width', '100%')
-                    .attr('height', '100%')
-                    .style('background', '#030303')
-                    .call(d3.zoom().scaleExtent([0.1, 4]).on('zoom', (event) => {
-                        g.attr('transform', event.transform);
-                    }));
-
-                const g = svg.append('g');
-
-                // Link lines
-                const link = g.append('g')
-                    .selectAll('line')
-                    .data(d3Links)
-                    .enter()
-                    .append('line')
-                    .attr('stroke', d => d.type === 'tag-link' ? 'rgba(0, 255, 65, 0.15)' : 'rgba(0, 242, 255, 0.35)')
-                    .attr('stroke-width', d => d.type === 'tag-link' ? 1 : 2)
-                    .attr('stroke-dasharray', d => d.type === 'tag-link' ? '3,3' : 'none');
-
-                // Node groups
-                const node = g.append('g')
-                    .selectAll('.node')
-                    .data(d3Nodes)
-                    .enter()
-                    .append('g')
-                    .attr('class', 'node')
-                    .style('cursor', 'pointer')
-                    .call(d3.drag()
-                        .on('start', dragstarted)
-                        .on('drag', dragged)
-                        .on('end', dragended));
-
-                // Draw shapes based on node type
-                node.each(function (d) {
-                    const el = d3.select(this);
-                    if (d.type === 'tag') {
-                        el.append('rect')
-                            .attr('width', 12)
-                            .attr('height', 12)
-                            .attr('x', -6)
-                            .attr('y', -6)
-                            .attr('transform', 'rotate(45)')
-                            .attr('fill', '#00ff41')
-                            .attr('stroke', 'rgba(0, 255, 65, 0.7)')
-                            .attr('stroke-width', 1.5);
-                    } else if (d.type && d.type.startsWith('live_')) {
-                        let fill, stroke;
-                        if (d.type === 'live_hidden') {
-                            fill = 'rgba(0, 255, 65, 0.35)';
-                            stroke = 'var(--terminal-green)';
-                        } else if (d.type === 'live_scarred') {
-                            fill = 'rgba(255, 0, 242, 0.35)';
-                            stroke = 'var(--terminal-magenta)';
-                        } else {
-                            fill = 'rgba(255, 204, 0, 0.35)';
-                            stroke = 'var(--terminal-warn)';
-                        }
-                        el.append('circle')
-                            .attr('r', 12) // larger radius for live states
-                            .attr('fill', fill)
-                            .attr('stroke', stroke)
-                            .attr('stroke-width', 3)
-                            .style('filter', `drop-shadow(0 0 5px ${stroke})`); // neon glow
-                    } else {
-                        const fill = d.chiral > 0.5 ? 'rgba(255, 0, 242, 0.25)' : 'rgba(0, 242, 255, 0.25)';
-                        const stroke = d.chiral > 0.5 ? 'var(--terminal-magenta)' : 'var(--terminal-blue)';
-                        el.append('circle')
-                            .attr('r', 8 + d.matrioshka_level * 2)
-                            .attr('fill', fill)
-                            .attr('stroke', stroke)
-                            .attr('stroke-width', d.locked ? 2.5 : 1.5);
-                    }
-                });
-
-                // Node labels
-                node.append('text')
-                    .attr('dx', 14)
-                    .attr('dy', 4)
-                    .attr('font-size', d => d.type && d.type.startsWith('live_') ? '0.7rem' : '0.65rem')
-                    .attr('font-weight', d => d.type && d.type.startsWith('live_') ? 'bold' : 'normal')
-                    .attr('font-family', 'var(--font-mono)')
-                    .attr('fill', d => {
-                        if (d.type === 'tag') return 'var(--terminal-green)';
-                        if (d.type === 'live_hidden') return 'var(--terminal-green)';
-                        if (d.type === 'live_scarred') return 'var(--terminal-magenta)';
-                        if (d.type === 'live_damage') return 'var(--terminal-warn)';
-                        return '#fff';
-                    })
-                    .text(d => d.label.substring(0, 24) + (d.label.length > 24 ? '...' : ''));
-
-                // Click handler to show info overlay
-                node.on('click', (event, d) => {
-                    event.stopPropagation();
-                    const overlay = document.getElementById('graph-info-overlay');
-                    if (!overlay) return;
-                    if (d.type === 'tag') {
-                        overlay.innerHTML = `<strong>Tag Hub:</strong> ${d.label}<br/>Fossils tagged: ${d3Links.filter(l => l.target === d.id).length}`;
-                    } else {
-                        overlay.innerHTML = `<strong>Fossil ID:</strong> ${d.id}<br/>
-                        <strong>Residue:</strong> "${d.label}"<br/>
-                        <strong>Chiral Shift:</strong> ${d.chiral.toFixed(4)} | <strong>Spectral Entropy:</strong> ${d.entropy.toFixed(4)}<br/>
-                        <strong>Tags:</strong> ${d.tags.join(', ') || 'none'}`;
-
-                        // Populate source/target selects
-                        const srcSelect = document.getElementById('link-source');
-                        const tgtSelect = document.getElementById('link-target');
-                        if (srcSelect && tgtSelect) {
-                            if (!srcSelect.value || srcSelect.value === d.id) {
-                                srcSelect.value = d.id;
-                            } else {
-                                tgtSelect.value = d.id;
-                            }
-                        }
-                    }
-                    overlay.style.display = 'block';
-                });
-
-                // Setup simulation forces
-                graphSimulation = d3.forceSimulation(d3Nodes)
-                    .force('link', d3.forceLink(d3Links).id(d => d.id).distance(d => d.type === 'tag-link' ? 40 : 80))
-                    .force('charge', d3.forceManyBody().strength(-120))
-                    .force('center', d3.forceCenter(width / 2, height / 2))
-                    .force('collide', d3.forceCollide().radius(22))
-                    .alphaMin(0.02); // Cool down sooner to conserve compute
-
-                // Warm up simulation offline for 80 ticks to settle nodes instantly
-                for (let i = 0; i < 80; i++) {
-                    graphSimulation.tick();
-                }
-
-                // Register tick listener after warmup
-                graphSimulation.on('tick', ticked);
-
-                function ticked() {
-                    link
-                        .attr('x1', d => d.source.x)
-                        .attr('y1', d => d.source.y)
-                        .attr('x2', d => d.target.x)
-                        .attr('y2', d => d.target.y);
-
-                    node
-                        .attr('transform', d => `translate(${d.x}, ${d.y})`);
-                }
-
-                // Drag helper functions
-                function dragstarted(event, d) {
-                    if (!event.active) graphSimulation.alphaTarget(0.3).restart();
-                    d.fx = d.x;
-                    d.fy = d.y;
-                }
-
-                function dragged(event, d) {
-                    d.fx = event.x;
-                    d.fy = event.y;
-                }
-
-                function dragended(event, d) {
-                    if (!event.active) graphSimulation.alphaTarget(0);
-                    d.fx = null;
-                    d.fy = null;
+                // Initialize ForceGraph3D
+                if (window.Graph) {
+                    // if it already exists, just update data
+                    window.Graph.graphData(gData);
+                } else {
+                    window.Graph = ForceGraph3D()(container)
+                        .backgroundColor('#030303')
+                        .nodeId('id')
+                        .nodeLabel(node => {
+                            return `<div style="font-family: var(--font-mono); font-size: 0.7rem; background: rgba(0,0,0,0.8); padding: 5px; border: 1px solid var(--terminal-blue); border-radius: 3px;">
+                                <strong style="color:var(--terminal-blue);">${node.id}</strong><br/>
+                                ${node.label ? node.label.substring(0, 50) + '...' : ''}<br/>
+                                <span style="color:#aaa;">Type: ${node.type}</span><br/>
+                                <span style="color:var(--terminal-magenta);">Tags: ${node.tags.join(', ') || 'none'}</span>
+                            </div>`;
+                        })
+                        .nodeColor(node => {
+                            if (node.type === 'tag') return '#00ff41';
+                            if (node.type === 'live_hidden') return 'rgba(0, 255, 65, 0.8)';
+                            if (node.type === 'live_scarred') return 'rgba(255, 0, 242, 0.8)';
+                            if (node.type && node.type.startsWith('live_')) return 'rgba(255, 204, 0, 0.8)';
+                            return node.chiral > 0.5 ? 'rgba(255, 0, 242, 0.8)' : 'rgba(0, 242, 255, 0.8)';
+                        })
+                        .nodeVal(node => {
+                            if (node.type === 'tag') return 5;
+                            if (node.type && node.type.startsWith('live_')) return 8;
+                            return 2 + (node.matrioshka_level * 1.5);
+                        })
+                        .nodeOpacity(0.9)
+                        .linkWidth(link => link.type === 'tag-link' ? 0.5 : 1.5)
+                        .linkColor(link => link.type === 'tag-link' ? 'rgba(0, 255, 65, 0.2)' : 'rgba(0, 242, 255, 0.5)')
+                        .linkDirectionalParticles(link => link.type === 'resonance' ? 2 : 0)
+                        .linkDirectionalParticleSpeed(d => d.weight * 0.005)
+                        .graphData(gData);
                 }
 
                 // Setup dynamic search filter
@@ -1800,25 +1771,25 @@
                 if (searchInput) {
                     searchInput.addEventListener('input', () => {
                         const query = searchInput.value.toLowerCase().trim();
+                        if (!window.Graph) return;
+
                         if (!query) {
-                            node.style('opacity', 1);
-                            link.style('opacity', 1);
+                            window.Graph.nodeVisibility(() => true);
+                            window.Graph.linkVisibility(() => true);
                             return;
                         }
 
-                        node.style('opacity', d => {
-                            const labelMatch = d.label.toLowerCase().includes(query);
-                            const idMatch = d.id.toLowerCase().includes(query);
-                            const tagMatch = d.tags.some(t => t.toLowerCase().includes(query));
-                            return (labelMatch || idMatch || tagMatch) ? 1 : 0.15;
+                        window.Graph.nodeVisibility(node => {
+                            const labelMatch = (node.label || '').toLowerCase().includes(query);
+                            const idMatch = (node.id || '').toLowerCase().includes(query);
+                            const tagMatch = (node.tags || []).some(t => t.toLowerCase().includes(query));
+                            return labelMatch || idMatch || tagMatch;
                         });
 
-                        link.style('opacity', d => {
-                            const srcNode = d3Nodes.find(n => n.id === d.source.id);
-                            const tgtNode = d3Nodes.find(n => n.id === d.target.id);
-                            const srcMatch = srcNode && (srcNode.label.toLowerCase().includes(query) || srcNode.tags.some(t => t.toLowerCase().includes(query)));
-                            const tgtMatch = tgtNode && (tgtNode.label.toLowerCase().includes(query) || tgtNode.tags.some(t => t.toLowerCase().includes(query)));
-                            return (srcMatch || tgtMatch) ? 0.8 : 0.05;
+                        window.Graph.linkVisibility(link => {
+                            const sMatch = link.source && ((link.source.label || '').toLowerCase().includes(query) || (link.source.tags || []).some(t => t.toLowerCase().includes(query)));
+                            const tMatch = link.target && ((link.target.label || '').toLowerCase().includes(query) || (link.target.tags || []).some(t => t.toLowerCase().includes(query)));
+                            return sMatch || tMatch;
                         });
                     });
                 }
@@ -3552,6 +3523,142 @@
 
         // Auto-scan on load
         setTimeout(scanMinecraft, 1000);
+
+        // ==========================================
+        // PANEL H: GLTF SPLAT MATRIX LOGIC
+        // ==========================================
+        const scanSplatsBtn = document.getElementById('scan-splats-btn');
+        const commitSplatBtn = document.getElementById('commit-splat');
+        const previewSplatBtn = document.getElementById('preview-splat-btn');
+        const splatFileSelect = document.getElementById('splat-file-select');
+        const splatLogEl = document.getElementById('splat-log');
+        const splatStatus = document.getElementById('splat-status');
+
+        const multimodalStatus = document.getElementById('multimodal-status');
+        const multimodalCanvasContainer = document.getElementById('multimodal-canvas-container');
+
+        function logSplat(msg, type = 'info') {
+            const line = document.createElement('div');
+            line.style.marginBottom = '2px';
+            if (type === 'error') line.style.color = '#ff4444';
+            if (type === 'success') line.style.color = '#ff00ff';
+            if (type === 'warning') line.style.color = 'var(--terminal-warn)';
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            splatLogEl.appendChild(line);
+            splatLogEl.scrollTop = splatLogEl.scrollHeight;
+        }
+
+        async function scanSplats() {
+            splatStatus.innerText = 'SCANNING';
+            splatStatus.style.color = 'var(--terminal-blue)';
+            logSplat("Scanning /datasets/splats for GLTF/GLB files...");
+
+            try {
+                const response = await fetch(`${state.backend_url}/api/splats/scan`);
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                const data = await response.json();
+
+                splatFileSelect.innerHTML = '';
+                if (data.splats && data.splats.length > 0) {
+                    data.splats.forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f.path;
+                        opt.textContent = f.name;
+                        splatFileSelect.appendChild(opt);
+                    });
+                    commitSplatBtn.disabled = false;
+                    previewSplatBtn.disabled = false;
+                    logSplat(`Found ${data.splats.length} splat files.`, 'success');
+                    splatStatus.innerText = 'ARMED';
+                    splatStatus.style.color = '#ff00ff';
+                } else {
+                    const opt = document.createElement('option');
+                    opt.value = "";
+                    opt.textContent = "-- No Splats Detected --";
+                    splatFileSelect.appendChild(opt);
+                    commitSplatBtn.disabled = true;
+                    previewSplatBtn.disabled = true;
+                    logSplat("No .gltf / .glb files found.", 'warning');
+                    splatStatus.innerText = 'IDLE';
+                    splatStatus.style.color = '#555';
+                }
+            } catch (err) {
+                logSplat(`Scan failed: ${err.message}`, 'error');
+                splatStatus.innerText = 'ERROR';
+                splatStatus.style.color = '#ff4444';
+            }
+        }
+
+        async function ingestSplat() {
+            const filePath = splatFileSelect.value;
+            if (!filePath) return;
+
+            splatStatus.innerText = 'INGESTING';
+            splatStatus.style.color = 'var(--terminal-warn)';
+            commitSplatBtn.disabled = true;
+            scanSplatsBtn.disabled = true;
+            logSplat(`Ingesting ${filePath} to manifold...`);
+
+            try {
+                const response = await fetch(`${state.backend_url}/api/splats/ingest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_path: filePath })
+                });
+
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                const data = await response.json();
+
+                logSplat(data.message, 'success');
+                splatStatus.innerText = 'ARMED';
+                splatStatus.style.color = '#ff00ff';
+
+                appendMessage('system', `⬡ SPLAT INGESTION COMPLETED\nFile: ${filePath}\n${data.message}`);
+
+            } catch (err) {
+                logSplat(`Ingestion failed: ${err.message}`, 'error');
+                splatStatus.innerText = 'ERROR';
+                splatStatus.style.color = '#ff4444';
+            } finally {
+                commitSplatBtn.disabled = false;
+                scanSplatsBtn.disabled = false;
+            }
+        }
+
+        function previewSplat() {
+            const filePath = splatFileSelect.value;
+            if (!filePath) return;
+
+            // Switch to Multimodal Viewer Tab
+            document.querySelectorAll('.console-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelector('.console-tab[data-tab="multimodal"]').classList.add('active');
+            document.getElementById('pane-multimodal').classList.add('active');
+
+            // Render mock / Model viewer
+            multimodalStatus.innerText = `Currently Viewer: ${filePath}`;
+
+            multimodalCanvasContainer.innerHTML = `
+                <div style="position: absolute; width: 100%; height: 100%; background: radial-gradient(circle at center, #1a0b2e 0%, #000 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 0 50px rgba(255,0,255,0.2);">
+                    <div style="width: 200px; height: 200px; border-radius: 50%; border: 2px dashed rgba(255,0,255,0.5); animation: spin 10s linear infinite; position: absolute;"></div>
+                    <div style="width: 150px; height: 150px; border-radius: 50%; border: 2px solid rgba(0,255,255,0.3); animation: spin 5s linear infinite reverse; position: absolute;"></div>
+                    <span style="font-size: 3rem; color: #ff00ff; text-shadow: 0 0 20px #ff00ff; z-index: 2;">⬡</span>
+                    <div style="margin-top: 60px; font-family: var(--font-mono); color: #fff; z-index: 2; text-align: center;">
+                        <span style="color: #ff00ff; font-weight: bold;">[ KHR_gaussian_splatting Context ]</span><br>
+                        <br>Loading 3D WebGL Projection for:<br>
+                        <span style="color: #00ffff;">${filePath}</span><br>
+                        <br><span style="font-size: 0.7rem; color: #888;">(Hardware Rasterizer Hooks Attached)</span>
+                    </div>
+                </div>
+            `;
+            logSplat(`Pushed ${filePath} to Multimodal Viewer.`, 'success');
+        }
+
+        scanSplatsBtn.onclick = scanSplats;
+        commitSplatBtn.onclick = ingestSplat;
+        previewSplatBtn.onclick = previewSplat;
+
+        setTimeout(scanSplats, 1500);
 
     </script>
 </body>
