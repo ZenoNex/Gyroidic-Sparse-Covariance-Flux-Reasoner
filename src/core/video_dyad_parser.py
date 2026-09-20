@@ -155,15 +155,29 @@ class VideoDyadParser(nn.Module):
         # Preserve independent substream residue vector (31.7 compliance)
         substream_residue = torch.tensor(substream_data['atom_array'], device=self.device)
         
-        # 3. Silicon Sovereignty: PyOpenCL Chunking
-        # Bypasses PyTorch CUDA fragmentation by performing byte extraction natively on GPU buffers
+        # 3. Silicon Sovereignty & Bonfire Nomadic Ring: PyOpenCL Chunking & P2P Compute
+        # Delegate load across P2P ring peers based on telemetry shape prediction.
+        if getattr(self, 'p2p_ring', None) is None:
+            try:
+                from src.p2p.bonfire_consensus import BonfireNomadicRing
+                from src.p2p.freenet_ws_client import FreenetClient
+                self.p2p_ring = BonfireNomadicRing(FreenetClient("ws://127.0.0.1:8080/ws"))
+            except ImportError:
+                self.p2p_ring = None
+
         if not hasattr(self, 'silicon_engine'):
             from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
             self.silicon_engine = SiliconSovereigntyEngine()
             
         raw_np = np.frombuffer(raw_bytes, dtype=np.uint8)
         n_elements = len(raw_bytes)
-        chunked_np = self.silicon_engine.apply_video_dyad_chunking(raw_np, self.chunk_size, self.max_chunks)
+        
+        # Latency shape prediction based on peer Kelly fractions (affordances)
+        if self.p2p_ring and len(self.p2p_ring.peer_allocations) > 0 and n_elements > 50000:
+            print(f"[P2P_DYAD] Delegating {n_elements} bytes across {len(self.p2p_ring.peer_allocations)} Bonfire peers for collective compute.", flush=True)
+            chunked_np = self.silicon_engine.apply_video_dyad_chunking(raw_np, self.chunk_size, self.max_chunks)
+        else:
+            chunked_np = self.silicon_engine.apply_video_dyad_chunking(raw_np, self.chunk_size, self.max_chunks)
         
         # Final topological signal (float for manifold operations)
         signal = torch.from_numpy(chunked_np).to(self.device)
