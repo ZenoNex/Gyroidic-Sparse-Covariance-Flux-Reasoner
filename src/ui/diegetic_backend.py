@@ -29,6 +29,10 @@ import datetime
 import urllib.request
 import hashlib
 import hmac
+import secrets
+
+# Generate a cryptographically secure token for CSRF protection on boot
+CSRF_TOKEN = secrets.token_hex(32)
 
 # Ensure PYTHONPATH includes project root for all imports
 import sys
@@ -6394,7 +6398,12 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         try:
-            if self.path == '/' or self.path == '':
+            from urllib.parse import urlparse, parse_qs
+            parsed_url = urlparse(self.path)
+            base_path = parsed_url.path
+            query = parse_qs(parsed_url.query)
+            
+            if base_path == '/' or base_path == '':
                 # Serve the diegetic terminal HTML
                 try:
                     # Use absolute path to ensure we find the file
@@ -6405,16 +6414,14 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     if not os.path.exists(terminal_path):
                         terminal_path = os.path.join('src', 'ui', 'diegetic_terminal.html')
                     
-                    print(f" Serving diegetic terminal from: {terminal_path}")
-                    print(f" File exists: {os.path.exists(terminal_path)}")
-                    
                     if not os.path.exists(terminal_path):
-                        print(f" Diegetic terminal HTML not found at {terminal_path}")
                         self.send_error(404, f"Diegetic terminal HTML not found: {terminal_path}")
                         return
                     
                     with open(terminal_path, 'r', encoding='utf-8') as f:
                         content = f.read()
+                        # Inject CSRF Token
+                        content = content.replace("</head>", f'<meta name="csrf-token" content="{CSRF_TOKEN}"></head>')
                     
                     print(f" Diegetic terminal content length: {len(content)}")
                     
@@ -6430,16 +6437,9 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     print(" Diegetic terminal served successfully")
                     return
                 except Exception as e:
-                    print(f" Error serving diegetic terminal: {e}")
-                    import traceback
-                    traceback.print_exc()
                     self.send_error(500, f"Error serving diegetic terminal: {e}")
                     return
-            elif self.path.startswith('/graph'):
-                print(f"API REQUEST: {self.path}")
-                parsed = urlparse(self.path)
-                query = parse_qs(parsed.query)
-                
+            elif base_path.startswith('/graph'):
                 try:
                     limit = int(query.get('limit', [150])[0])
                 except ValueError:
@@ -6450,15 +6450,14 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 graph_data["total_index"] = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0
                 self._send_json(graph_data)
                 return
-            elif self.path == '/api/index_size':
+            elif base_path == '/api/index_size':
                 size = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0
                 self._send_json({"total_index": size})
                 return
-            elif self.path == '/health':
-                print("API REQUEST: /health")
+            elif base_path == '/health':
                 self._send_json({"status": "hyper-ring coherent", "version": "1.9.1"})
                 return
-            elif self.path == '/ping':
+            elif base_path == '/ping':
                 self._send_json({
                     "status": "online",
                     "pid": os.getpid(),
@@ -6466,8 +6465,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 })
                 return
             
-            elif self.path == '/api/minecraft/scan':
-                print("API REQUEST: /api/minecraft/scan")
+            elif base_path == '/api/minecraft/scan':
                 try:
                     minecraft_dir = os.path.join(os.getcwd(), 'datasets', 'minecraft')
                     os.makedirs(minecraft_dir, exist_ok=True)
@@ -6514,19 +6512,22 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_error_json(str(e))
                 return
             
+            elif base_path == '/api/splats/scan':
+                self._send_json({'success': True, 'splats': [], 'status': 'no_splats'})
+                return
+            
             # --- LOCAL DATA ENDPOINTS (Phase 1) ---
-            elif self.path == '/api/local_datasets':
-                print("API REQUEST: /api/local_datasets")
+            elif base_path == '/api/local_datasets':
                 datasets = LOCAL_LOADER.scan()
                 summary = LOCAL_LOADER.get_summary()
                 self._send_json({'success': True, **summary})
                 return
             
-            elif self.path == '/api/training_status':
+            elif base_path == '/api/training_status':
                 self._send_json(TRAINING_STATE)
                 return
             
-            elif self.path == '/api/security/creator_status':
+            elif base_path == '/api/security/creator_status':
                 from src.safety.hardware_fingerprint import is_creator_initialized, get_stable_hardware_fingerprint
                 self._send_json({
                     'initialized': is_creator_initialized(),
@@ -6535,7 +6536,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 return
             
             # --- GUI SERVING ---
-            elif self.path == '/conversational-gui':
+            elif base_path == '/conversational-gui':
                 try:
                     current_dir = os.path.dirname(os.path.abspath(__file__))
                     gui_path = os.path.join(current_dir, 'conversational_web_gui.html')
@@ -6556,7 +6557,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self.send_error(500, f"Error serving conversational GUI: {e}")
                     return
             
-            elif self.path == '/wikipedia-trainer':
+            elif base_path == '/wikipedia-trainer':
                 # Serve the Wikipedia trainer HTML
                 try:
                     # Use absolute path to ensure we find the file
@@ -6596,9 +6597,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     print(f" Error serving Wikipedia trainer: {e}")
                     import traceback
                     traceback.print_exc()
-                    self.send_error(500, f"Error serving HTML: {e}")
                     return
-            elif self.path.startswith('/api/freenet/status'):
+            elif base_path.startswith('/api/freenet/status'):
                 import json
                 try:
                     freenet_data = {"online": False, "peers": []}
@@ -6635,6 +6635,92 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         print(f"POST REQUEST RECEIVED: {self.path}")
         try:
+            # --- SECURITY ENFORCEMENT ---
+            if self.path.startswith('/api/fs/'):
+                token = self.headers.get('X-Gyroidic-CSRF-Token')
+                if not token or not hmac.compare_digest(token, CSRF_TOKEN):
+                    self._send_error_json("Invalid or missing CSRF token. Request rejected.", 403)
+                    return
+            # ----------------------------
+
+
+            if self.path == '/api/fs/drives':
+                drives = []
+                import os
+                if os.name == 'nt':
+                    import string
+                    import ctypes
+                    try:
+                        bitmask = ctypes.windll.kernel32.GetLogicalDrives()
+                        for letter in string.ascii_uppercase:
+                            if bitmask & 1:
+                                drives.append(f"{letter}:\\")
+                            bitmask >>= 1
+                    except Exception:
+                        drives = ["C:\\"]
+                else:
+                    drives = ["/"]
+                self._send_json({"status": "ok", "drives": drives})
+                return
+
+            if self.path == '/api/fs/list':
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len)
+                data = json.loads(post_body.decode('utf-8'))
+                target_path = data.get("path", "")
+                
+                if not target_path or not os.path.exists(target_path):
+                    self._send_error_json("Invalid path", 400)
+                    return
+                
+                # Canonicalize
+                target_path = os.path.abspath(target_path)
+                
+                try:
+                    entries = []
+                    for entry in os.scandir(target_path):
+                        entries.append({
+                            "name": entry.name,
+                            "path": entry.path,
+                            "is_dir": entry.is_dir()
+                        })
+                    
+                    # Sort dirs first, then files
+                    entries.sort(key=lambda x: (not x['is_dir'], x['name'].lower()))
+                    self._send_json({"status": "ok", "path": target_path, "entries": entries})
+                except Exception as e:
+                    self._send_error_json(str(e), 500)
+                return
+
+            if self.path == '/api/fs/permissions':
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len)
+                data = json.loads(post_body.decode('utf-8'))
+                
+                target_path = data.get("path")
+                action = data.get("action") # 'IMMEDIATE', 'DELAY', 'DENY'
+                
+                if not target_path or not action:
+                    self._send_error_json("Missing path or action", 400)
+                    return
+                
+                perms_file = os.path.join("data", "loader_permissions.json")
+                perms = {}
+                if os.path.exists(perms_file):
+                    with open(perms_file, 'r', encoding='utf-8') as f:
+                        try:
+                            perms = json.load(f)
+                        except json.JSONDecodeError:
+                            perms = {}
+                
+                perms[target_path] = action
+                
+                with open(perms_file, 'w', encoding='utf-8') as f:
+                    json.dump(perms, f, indent=4)
+                    
+                self._send_json({"status": "ok", "path": target_path, "action": action})
+                return
+
             if self.path == '/interact':
                 print(" Processing /interact request...")
                 try:
@@ -7672,3 +7758,27 @@ def main():
     kill_port_owner(8000)
     
     # PID Tracking
+    pid_file = "diegetic_backend.pid"
+    with open(pid_file, "w") as f:
+        f.write(str(os.getpid()))
+        
+    server_address = ('127.0.0.1', 8000)
+    
+    class ThreadingSimpleServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+        daemon_threads = True
+        
+    try:
+        httpd = ThreadingSimpleServer(server_address, DiegeticHandler)
+        print(f"Server safely bound to http://{server_address[0]}:{server_address[1]}")
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        print(f"Server initialization failed: {e}")
+    finally:
+        if 'httpd' in locals():
+            httpd.server_close()
+            print("Server stopped.")
+
+if __name__ == '__main__':
+    main()
