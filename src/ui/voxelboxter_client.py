@@ -35,6 +35,11 @@ from src.ui.voxelboxter_simulation import (
     BooleanXORLayer, Role, PermissionsManager, InventoryComponent
 )
 
+try:
+    from src.scripting.node_environment import PhysicalNodeEditor
+except ImportError:
+    PhysicalNodeEditor = None
+
 API_URL = "http://localhost:1337"
 
 class EngineMode(Enum):
@@ -59,6 +64,9 @@ class PatchStateResource:
         self.fingerprint_energy = 0.0
         self.last_update = time.time()
         self.lock = threading.Lock()
+        
+        # Physical Scripting Window
+        self.node_editor = None
         
         # S-VNN Chat Monitoring
         self.chat_queue = []
@@ -183,7 +191,16 @@ def monitor_chat_system(state: 'ResMut<PatchStateResource>'):
                         logging.info("[Unified Terminal] Addon Maker modal triggered. Enter dimensions or splines.")
                         # Example command parsing: /addon bspline 10 10 10
                         parts = cmd.split()
-                        if len(parts) >= 2 and parts[1] == "bspline":
+                        if len(parts) >= 2 and parts[1] == "node":
+                            if PhysicalNodeEditor:
+                                if state.node_editor is None or not state.node_editor.running:
+                                    state.node_editor = PhysicalNodeEditor(patch_state=state)
+                                    state.node_editor.start()
+                                else:
+                                    logging.info("[Unified Terminal] Node Editor is already running.")
+                            else:
+                                logging.warning("[Unified Terminal] Node Editor not available. Install dearpygui.")
+                        elif len(parts) >= 2 and parts[1] == "bspline":
                             try:
                                 # /addon bspline [latent_dim]
                                 latent_dim = int(parts[2]) if len(parts) > 2 else 3
@@ -203,6 +220,28 @@ def monitor_chat_system(state: 'ResMut<PatchStateResource>'):
                     switch_game_mode(state, EngineMode.PLAY)
                 elif cmd == "/create":
                     switch_game_mode(state, EngineMode.CREATION)
+                elif cmd.startswith("/eval "):
+                    if role in (Role.ADMIN, Role.BUILDER):
+                        expr = cmd[6:].strip()
+                        try:
+                            # Sovereign Execution: full eval privileges
+                            res = eval(expr, {"state": state, "torch": torch, "logging": logging})
+                            logging.info(f"[Sovereign Scripting] Evaluated: {expr} -> {res}")
+                        except Exception as e:
+                            logging.error(f"[Sovereign Scripting] Eval Error: {e}")
+                    else:
+                        logging.warning("[Unified Terminal] Permission Denied. Need ADMIN or BUILDER for eval.")
+                elif cmd.startswith("/exec "):
+                    if role in (Role.ADMIN, Role.BUILDER):
+                        stmt = cmd[6:].strip()
+                        try:
+                            # Sovereign Execution: full exec privileges
+                            exec(stmt, {"state": state, "torch": torch, "logging": logging})
+                            logging.info(f"[Sovereign Scripting] Executed: {stmt}")
+                        except Exception as e:
+                            logging.error(f"[Sovereign Scripting] Exec Error: {e}")
+                    else:
+                        logging.warning("[Unified Terminal] Permission Denied. Need ADMIN or BUILDER for exec.")
                 continue # Skip oracle for explicit commands
                 
             # Maintain a rolling window for chat history (last 50 messages)
