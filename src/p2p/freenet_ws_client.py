@@ -20,6 +20,7 @@ class FreenetClient:
         self.subscriptions: Dict[str, Callable] = {}
         self.loop = None
         self.thread = None
+        self._last_log_time = 0.0
 
     async def _connect_and_listen(self):
         try:
@@ -92,4 +93,8 @@ class FreenetClient:
                 self.loop
             )
         else:
-            logger.warning("[FREENET] Cannot publish: WebSocket not connected.")
+            import time
+            current_time = time.time()
+            if current_time - self._last_log_time >= 60.0:
+                logger.warning("[FREENET] Cannot publish: WebSocket not connected.")
+                self._last_log_time = current_time
