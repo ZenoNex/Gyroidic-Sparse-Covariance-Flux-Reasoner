@@ -988,7 +988,7 @@
                     <label
                         style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888; cursor: pointer;">
                         <input type="checkbox" id="graph-include-tags" checked
-                            style="accent-color: var(--terminal-blue); cursor: pointer;">
+                            style="accent-color: var(--terminal-blue); cursor: pointer;" onchange="refreshGraph()">
                         <span>NON-HIERARCHICAL TAGS</span>
                     </label>
 
@@ -1706,13 +1706,8 @@
                 // Fetch the actual index size first to utilize full O(N) headroom
                 const sizeRes = await fetch(`${state.backend_url}/api/index_size`);
                 const sizeData = await sizeRes.json();
-                if (sizeData && sizeData.total_index) {
-                    if (limitEl && parseInt(limitEl.value) < sizeData.total_index) {
-                        limitEl.value = sizeData.total_index; // Unbounded scaling
-                    }
-                }
 
-                const limit = limitEl ? parseInt(limitEl.value) || sizeData.total_index || 50000 : 50000;
+                const limit = limitEl ? parseInt(limitEl.value) || 50000 : 50000;
                 const includeTags = includeTagsEl ? includeTagsEl.checked : true;
 
                 const response = await fetch(`${state.backend_url}/graph?limit=${limit}`);
@@ -1878,7 +1873,8 @@
             nodes.forEach(n => {
                 const opt = document.createElement('option');
                 opt.value = n.id;
-                opt.innerText = `${n.id.substring(0, 15)}... (${n.label.substring(0, 30)}...)`;
+                const labelStr = n.label || '';
+                opt.innerText = `${String(n.id).substring(0, 15)}... (${labelStr.substring(0, 30)}...)`;
                 fossilsGrpSrc.appendChild(opt.cloneNode(true));
                 fossilsGrpTgt.appendChild(opt.cloneNode(true));
             });
