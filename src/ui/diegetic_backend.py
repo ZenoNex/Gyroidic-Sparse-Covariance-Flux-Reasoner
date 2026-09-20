@@ -811,6 +811,17 @@ class DiegeticPhysicsEngine(nn.Module):
         self.freenet_client = FreenetClient(host="127.0.0.1", port=3000)
         self.zk_aggregator = ZKAggregator()
         self.bonfire_nomadic_ring = BonfireNomadicRing(self.freenet_client)
+        self.bonfire_nomadic_ring.on_agent_smith_received = self._on_agent_smith_received
+
+    def _on_agent_smith_received(self, filepath: str):
+        """Triggered by the P2P layer when a foreign Agent Smith payload is received."""
+        print(f"\n[FREENET] Foreign topological identity detected. Rehydrating Agent Smith from {filepath}...", flush=True)
+        try:
+            # We don't overwrite the global dict heavily, just inject it safely
+            payload = self.fossilizer.inject_agent_smith(filepath)
+            print(f"[FREENET] Alien Identity '{payload.get('description', 'Unknown')}' assimilated. Glyphlock state: {payload.get('glyphlock', False)}", flush=True)
+        except Exception as e:
+            print(f"[FREENET ERROR] Failed to assimilate foreign Agent Smith payload: {e}", flush=True)
 
     def _idx_to_char(self, idx: int) -> str:
         """Map vocabulary index to character string."""
@@ -1111,7 +1122,8 @@ class DiegeticPhysicsEngine(nn.Module):
                                 self.bonfire_nomadic_ring.share_topological_signature(
                                     local_peer_id="engine_node",
                                     betti_numbers=[int(boundary_res.alpha), int(boundary_res.level)],
-                                    variance=float(boundary_res.crossing_energy)
+                                    variance=float(boundary_res.crossing_energy),
+                                    engine=self
                                 )
                     current_state = current_state.detach() + 0.1 * direction
             avg_loss_val = total_loss_val
@@ -5382,8 +5394,6 @@ class DiegeticPhysicsEngine(nn.Module):
             gyroid_residue=entanglement_residue
         )
         
-        # 3. Call fossilizer (Official Persistence Path)
-        # Use text_emb [1, dim] and seed_state for topological derivation
         fossil_path = self.fossilizer.fossilize(dyad, text_emb, seed_state=seed_state)
         fossil_id = os.path.basename(fossil_path).replace(".fossil", "")
         
@@ -5391,6 +5401,30 @@ class DiegeticPhysicsEngine(nn.Module):
         if hasattr(self, 'router'):
             self.router.register_fossil_landmark(fossil_id, intensity=1.2)
             print(f"[ROUTER] Fossil {fossil_id[:8]}... registered as Poincar Gravity Well.", flush=True)
+
+        # NEW: Phase 5 Agent Smith P2P Distribution
+        # Automatically export and broadcast Agent Smith if GLYPHLOCK is reached
+        from src.core.invariants import check_glyphlock
+        if seed_state is not None and bool(check_glyphlock(seed_state).max().item() > 0):
+            print(f"[AGENT SMITH] GLYPHLOCK attained during ingestion. Exporting soliton identity...", flush=True)
+            try:
+                betti_nums = self.betti_router.estimate_sector_betti(seed_state).squeeze().tolist()
+                betti_dict = {i: float(b) for i, b in enumerate(betti_nums)} if isinstance(betti_nums, list) else {0: float(betti_nums)}
+                prime_freqs = self.modular_rns.get_residues(seed_state)
+                
+                profile = self.archetypal_governor.export_governor_state() if hasattr(self, 'archetypal_governor') else None
+                smith_path = self.fossilizer.export_agent_smith(
+                    dyad=dyad,
+                    prime_frequencies=prime_freqs,
+                    betti_numbers=betti_dict,
+                    filename="soliton_smith",
+                    archetype_profile=profile
+                )
+                
+                if hasattr(self, 'bonfire_nomadic_ring'):
+                    self.bonfire_nomadic_ring.broadcast_agent_smith(local_peer_id="engine_node", filepath=smith_path)
+            except Exception as e:
+                print(f"[AGENT SMITH] P2P Export failed: {e}", flush=True)
         
         print(f"[WAVE] {modality} Deposition confirmed: {fossil_path}", flush=True)
         return (
