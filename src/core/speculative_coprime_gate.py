@@ -32,8 +32,9 @@ from src.core.conjugate_moment_transport import ConjugateMomentTransport
 from src.core.hardware_monitor import has_headroom
 try:
     from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+    HAS_TAILSLAYER = True
 except ImportError:
-    pass
+    HAS_TAILSLAYER = False
 
 class WassersteinOptimalTransport(nn.Module):
     """
