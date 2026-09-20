@@ -957,6 +957,7 @@
                 <div class="console-tab" data-tab="freenet">BONFIRE P2P NETWORK</div>
                 <div class="console-tab" data-tab="link-editor">LINK & SCHEDULES</div>
                 <div class="console-tab" data-tab="multimodal">MULTIMODAL VIEWER</div>
+                <div class="console-tab" data-tab="fs-perms">FS & PERMS</div>
             </div>
             <div class="tab-pane active" id="pane-terminal">
                 <div id="chat-feed" style="flex: 1; overflow-y: auto;">
@@ -1067,6 +1068,60 @@
                     <div>[NO SOURCE SELECTED]</div>
                     <div style="font-size:0.6rem; margin-top:10px;">Select a GLTF/Splat from Panel H or a media node to
                         preview.</div>
+                </div>
+            </div>
+
+            <!-- Tab: FS & PERMS -->
+            <div class="tab-pane" id="pane-fs-perms" style="background: #030303; flex: 1; flex-direction: row;">
+                <!-- Left: File Browser -->
+                <div
+                    style="flex: 1; padding: 1rem; border-right: 1px solid var(--glass-border); display: flex; flex-direction: column;">
+                    <div class="section-title" style="color: var(--terminal-blue);">File System Explorer</div>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <select id="drive-select" class="commute-select" style="flex: 1;"
+                            onchange="loadFSPath(this.value)">
+                            <option value="">Select Drive...</option>
+                        </select>
+                        <input type="text" id="fs-path-input"
+                            style="flex: 3; background: var(--glass-bg); border: 1px solid var(--glass-border); color: #fff; padding: 4px; font-family: var(--font-mono); font-size: 0.8rem;"
+                            placeholder="C:\\">
+                        <button id="fs-go-btn" class="regime-btn active goo"
+                            onclick="loadFSPath(document.getElementById('fs-path-input').value)">GO</button>
+                        <button class="regime-btn"
+                            onclick="let p = document.getElementById('fs-path-input').value; let idx = p.lastIndexOf('\\'); if(idx>0) loadFSPath(p.substring(0, idx)); else if(idx===0) loadFSPath(p.substring(0, 3));">UP</button>
+                    </div>
+                    <div id="fs-tree"
+                        style="flex: 1; overflow-y: auto; font-family: var(--font-mono); font-size: 0.8rem; background: rgba(0,0,0,0.5); padding: 0.5rem; border: 1px solid var(--glass-border);">
+                        <!-- Directories and files go here -->
+                    </div>
+                </div>
+                <!-- Right: Permissions & Tools -->
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <div style="padding: 1rem; border-bottom: 1px solid var(--glass-border);">
+                        <div class="section-title" style="color: var(--terminal-warn);">Data Loader Permissions Sandbox
+                        </div>
+                        <div style="font-size: 0.7rem; color: #888; margin-bottom: 1rem;">
+                            Default policy: DENY_ALL. Select a path in the explorer to grant access.
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label" id="selected-path-label">Selected Path: NONE</div>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                <button class="regime-btn active goo" onclick="setFSPermission('IMMEDIATE')">ALLOW
+                                    (IMMEDIATE)</button>
+                                <button class="regime-btn active prickles" onclick="setFSPermission('DELAY')">ALLOW
+                                    (DELAY)</button>
+                                <button class="regime-btn"
+                                    style="background: rgba(255,0,0,0.1); color: #ff4444; border: 1px solid #ff4444;"
+                                    onclick="setFSPermission('DENY')">DENY</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column;">
+                        <div class="section-title" style="padding: 1rem 1rem 0 1rem; color: var(--terminal-magenta);">
+                            P2R3 Convert.To.It Integration</div>
+                        <iframe src="https://p2r3.github.io/convert/"
+                            style="flex: 1; border: none; width: 100%;"></iframe>
+                    </div>
                 </div>
             </div>
 
@@ -3660,6 +3715,110 @@
 
         setTimeout(scanSplats, 1500);
 
+    </script>
+
+    <script>
+        let currentFSPath = "";
+
+        function loadFSDrives() {
+            fetch('/api/fs/drives')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        const sel = document.getElementById('drive-select');
+                        sel.innerHTML = '<option value="">Select Drive...</option>';
+                        data.drives.forEach(d => {
+                            sel.innerHTML += `<option value="${d}">${d}</option>`;
+                        });
+                    }
+                });
+        }
+
+        function loadFSPath(path) {
+            if (!path) return;
+            document.getElementById('fs-path-input').value = path;
+
+            let csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+
+            fetch('/api/fs/list', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Gyroidic-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({ path: path })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        currentFSPath = data.path;
+                        document.getElementById('fs-path-input').value = data.path;
+                        const tree = document.getElementById('fs-tree');
+                        tree.innerHTML = '';
+                        data.entries.forEach(entry => {
+                            const div = document.createElement('div');
+                            div.style.padding = '4px';
+                            div.style.cursor = 'pointer';
+                            div.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                            div.style.color = entry.is_dir ? 'var(--terminal-blue)' : '#ccc';
+                            div.innerText = (entry.is_dir ? '[DIR] ' : '      ') + entry.name;
+                            div.onclick = () => {
+                                if (entry.is_dir) {
+                                    loadFSPath(entry.path);
+                                } else {
+                                    selectFSPath(entry.path);
+                                }
+                            };
+                            // Right click to select dir instead of traverse
+                            div.oncontextmenu = (e) => {
+                                e.preventDefault();
+                                selectFSPath(entry.path);
+                            };
+                            tree.appendChild(div);
+                        });
+                    } else {
+                        alert('Error loading path: ' + data.error);
+                    }
+                });
+        }
+
+        function selectFSPath(path) {
+            document.getElementById('selected-path-label').innerText = "Selected Path: " + path;
+            document.getElementById('selected-path-label').dataset.path = path;
+        }
+
+        function setFSPermission(action) {
+            const path = document.getElementById('selected-path-label').dataset.path;
+            if (!path) {
+                alert('Select a path first');
+                return;
+            }
+
+            let csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+
+            fetch('/api/fs/permissions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Gyroidic-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({ path: path, action: action })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        logToTerminal(`Permission updated: [${action}] for ${path}`, 'system');
+                        alert(`Permission ${action} set for ${path}`);
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+        }
+
+        // Load drives on startup if fs-perms tab is opened (or just on load)
+        document.addEventListener("DOMContentLoaded", () => {
+            setTimeout(loadFSDrives, 1000);
+        });
     </script>
 </body>
 
