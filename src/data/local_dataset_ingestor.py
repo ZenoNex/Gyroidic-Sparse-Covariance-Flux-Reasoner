@@ -49,8 +49,16 @@ class LocalDatasetIngestor:
             urllib.request.urlretrieve("https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz", tar_path)
             
         print(" Extracting CIFAR-100...")
-        with tarfile.open(tar_path, 'r:gz') as tar:
-            tar.extractall(path=cifar_path)
+        try:
+            with tarfile.open(tar_path, 'r:gz') as tar:
+                tar.extractall(path=cifar_path)
+        except Exception as e:
+            print(f" Corrupt archive detected ({e}). Re-downloading CIFAR-100...")
+            if tar_path.exists():
+                tar_path.unlink()
+            urllib.request.urlretrieve("https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz", tar_path)
+            with tarfile.open(tar_path, 'r:gz') as tar:
+                tar.extractall(path=cifar_path)
             
         image_dir = cifar_path / 'images'
         image_dir.mkdir(exist_ok=True)
@@ -200,11 +208,3 @@ class LocalDatasetIngestor:
                     ]
                     
                     yield Conversation(
-                        conversation_id=_stable_id("mnist", img_rel_path),
-                        turns=turns,
-                        context={'dataset': 'mnist'},
-                        source='local_dataset'
-                    )
-                    count += 1
-                except Exception as e:
-                    continue
