@@ -6605,7 +6605,6 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     traceback.print_exc()
                     return
             elif base_path.startswith('/api/freenet/status'):
-                import json
                 try:
                     freenet_data = {"online": False, "peers": []}
                     if ENGINE and hasattr(ENGINE, 'bonfire_network') and ENGINE.bonfire_network is not None:
