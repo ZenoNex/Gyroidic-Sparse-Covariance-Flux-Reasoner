@@ -84,6 +84,22 @@ class LocalDataLoader:
             data_dir = str(project_root / 'data' / 'raw')
         self.data_dir = Path(data_dir)
         self._datasets: Dict[str, DatasetInfo] = {}
+        self.perms_file = Path('data/loader_permissions.json')
+        
+    def _check_permission(self, target_path: Path) -> bool:
+        if not self.perms_file.exists():
+            return False
+        try:
+            with open(self.perms_file, 'r', encoding='utf-8') as f:
+                perms = json.load(f)
+        except Exception:
+            return False
+        
+        target_str = str(target_path.absolute())
+        for allowed_path, action in perms.items():
+            if action == 'IMMEDIATE' and target_str.startswith(str(Path(allowed_path).absolute())):
+                return True
+        return False
     
     def scan(self) -> List[DatasetInfo]:
         """Scan data/raw/ and return info about available datasets."""
@@ -168,6 +184,10 @@ class LocalDataLoader:
         
         info = self._datasets.get(dataset_name)
         if info is None:
+            return
+            
+        if not self._check_permission(Path(info.path)):
+            print(f"[SECURITY] Access denied to {dataset_name}. Update permissions in the FS & PERMS tab.")
             return
         
         count = 0
