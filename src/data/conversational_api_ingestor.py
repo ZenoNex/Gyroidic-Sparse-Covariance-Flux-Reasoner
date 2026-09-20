@@ -25,6 +25,7 @@ from typing import Dict, List, Tuple, Optional, Any, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 import numpy as np
+import traceback
 from datetime import datetime
 import hashlib
 import asyncio
@@ -1072,8 +1073,10 @@ class SovereignConversationalIngestor:
         self.engine = engine # Access to DiegeticPhysicsEngine for proper ingestion
         
         self.sovereign = SovereignIngestor(repository_root=repository_root)
+        # Use local datasets folder within the repository
+        local_datasets_path = os.path.join(repository_root, "datasets") if repository_root else "datasets"
         self.local_images = LocalDatasetIngestor(
-            datasets_root=r"D:\Users\Aweso\AppData\Local\Programs\DeepLearningStudio\data\public\datasets",
+            datasets_root=local_datasets_path,
             device=device
         )
         
@@ -1411,6 +1414,7 @@ class SovereignConversationalIngestor:
                     
             except Exception as e:
                 print(f"[INGESTOR] Engine or Fossilizer failed to process nutrient dyad: {e}")
+                print(traceback.format_exc())
                 continue
 
     def ingest_local_mirrors(self) -> List[Conversation]:
