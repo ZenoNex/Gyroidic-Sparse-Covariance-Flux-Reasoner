@@ -290,7 +290,7 @@ Applies Lattice Adaptive Shrinkage (Lasso) L1 Sparsity to silence weak signals. 
 ### legibility_audit.py
 **Classes**: `LegibilityTripwire`, `NarrativeCoherenceEstimator`  
 **Role**: Detects when the system is being selected for explainability rather than structural merit.
-**Status**: [DISCONNECTED - PENDING REINTEGRATION]
+**Status**: ACTIVE
 
 `NarrativeCoherenceEstimator` measures how closely a configuration embedding matches canonical "explainable" patterns (sparse 1-hot, block-sparse, monotonic gradient) using fixed buffer-registered templates (not trained). `LegibilityTripwire` tracks the *correlation* between selection probability and narrative coherence over a rolling window  if selected configs consistently have higher coherence than rejected ones, it raises a `UserWarning`. High coherence is a **danger signal** (Pointer #2 from Sparse Operational Pointers)  not a goal.
 
@@ -343,7 +343,7 @@ Refactored to integrate the prime-based torus with palindromic repunit symmetry 
 ### narrative_collapse.py
 **Class**: `LinguisticEntropyMonitor` (also aliased as `NarrativeCollapseDetector`)  
 **Role**: Detects "hallucination loops" where reasoning entropy collapses and trajectory linearizes.
-**Status**: [DISCONNECTED - PENDING REINTEGRATION]
+**Status**: ACTIVE
 
 Two detection signals: (1) **Entropy collapse**  softmax entropy of hidden state falls below `entropy_threshold`; flags `smoothing_warning`. (2) **Trajectory linearity**  cosine similarity between consecutive state deltas `, ` exceeds `prediction_threshold` (0.99); flags `is_linear`. Feeds into `SpeculativeHomologyEngine` to trigger Draft Rejection. Internally uses `ResidueObstructionGraph` for homological PAS_h monitoring.
 
@@ -351,9 +351,9 @@ Two detection signals: (1) **Entropy collapse**  softmax entropy of hidden state
 
 ### non_dual_coin.py
 **Role**: Enforces topological yield stress limits (Mohr-Coulomb) via non-dual physics tracking.
-**Status**: [DISCONNECTED - PENDING REINTEGRATION]
+**Status**: ACTIVE
 
-Handles advanced physics primitives regarding structural yield limits inside the manifold. Currently floating without connection to the main matrix loop or diegetic backend.
+Handles advanced physics primitives regarding structural yield limits inside the manifold. Fully integrated into the Universal Orchestrator to monitor Tripsodic Ledgers and Cerumen Pot Wallets.
 
 ---
 
@@ -469,7 +469,7 @@ Computes the conditions under which a structural component "yields" (transitions
 
 ### approximate_ph.py
 **Role**: Approximate persistent homology for computational tractability.
-**Status**: [DISCONNECTED - PENDING REINTEGRATION]
+**Status**: ACTIVE
 
 Computes Betti numbers via approximate methods (Vietoris-Rips simplification, landmark selection) rather than exact persistence diagrams. Referenced in `OPEN_QUESTIONS 9.1` as the working solution to the undecidable-homology challenge. Reduces computation from exponential (exact PH) to polynomial typical-case.
 
