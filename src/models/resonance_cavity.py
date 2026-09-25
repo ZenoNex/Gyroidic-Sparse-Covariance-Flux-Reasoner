@@ -432,7 +432,8 @@ class ResonanceCavity(nn.Module):
         refined_residues: Optional[torch.Tensor] = None,
         instability_severity: float = 0.0,
         braid_word: Optional[List[int]] = None,
-        bouligand_bubble_residual: Optional[torch.Tensor] = None
+        bouligand_bubble_residual: Optional[torch.Tensor] = None,
+        nostalgic_leak_signal: Optional[torch.Tensor] = None
     ):
         """
         Update resonance cavity memory (GDPO-enhanced + GCVE + System 2 Feedback).
@@ -448,7 +449,8 @@ class ResonanceCavity(nn.Module):
             reconstruction_pressure: Optional [batch] CRT reconstruction errors
             refined_residues: Optional [batch, K] System 2 (Physics) ground truth
             instability_severity: Normalized [0, 1] indicator of topological panic (aborts)
-            braid_word: Optional [List[int]] word for Braid Group Steering
+            braid_word: Optional[List[int]] word for Braid Group Steering
+            nostalgic_leak_signal: Optional [batch, hidden_dim] unknowledge flux signal
         
         CODES v40 Invariant: 
             Manifold Stability: 7.6. Memory updates are gated by instability 
@@ -558,8 +560,18 @@ class ResonanceCavity(nn.Module):
             excitation=multimodal_excitation
         )
         
-        # dC/dt = Gamma + lambda + eta + mischief + breather
-        dC_dt = Gamma_term + lambda_term + eta_term + mischief_noise
+        # --- UNKNOWLEDGE FLUX INTEGRATION (Nostalgic Leak) ---
+        # The Nostalgic Leak acts as an envoy, seeding new localized attractors 
+        # from unknowledge/mischief without being scalarized away.
+        leak_envoy = 0.0
+        if nostalgic_leak_signal is not None:
+            # Align dimension if needed
+            if nostalgic_leak_signal.shape[-1] != self.M[field_idx].shape[-1]:
+                nostalgic_leak_signal = fractal_pad(nostalgic_leak_signal, self.M[field_idx].shape[-1])
+            leak_envoy = nostalgic_leak_signal.mean(dim=0, keepdim=True).expand_as(self.M[field_idx])
+            
+        # dC/dt = Gamma + lambda + eta + mischief + breather + leak_envoy
+        dC_dt = Gamma_term + lambda_term + eta_term + mischief_noise + leak_envoy
         
         # Average over batch for global mode update
         breather_avg = breather_excitation.mean(dim=0, keepdim=True) # [1, hidden_dim]
