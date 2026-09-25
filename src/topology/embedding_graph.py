@@ -89,6 +89,12 @@ class GyroidicGraphManager:
             # Filter for .pt files and exclude the snapshot itself
             files = [f for f in files if f.endswith(".pt") and f != "neglecton_snapshot.pt"][:scan_limit]
             
+            if self.nodes:
+                existing_states = torch.stack([n.state for n in self.nodes])
+                existing_norms = existing_states / (torch.norm(existing_states, dim=1, keepdim=True) + 1e-8)
+            else:
+                existing_norms = torch.empty((0, self.dim))
+
             for f in files:
                 if len(self.nodes) >= limit: break
                 
@@ -119,13 +125,9 @@ class GyroidicGraphManager:
                     is_redundant = False
                     current_text = data.get('text_input', '')
                     
-                    if self.nodes:
+                    if existing_norms.shape[0] > 0:
                         e_norm = embedding / (torch.norm(embedding) + 1e-8)
-                        
-                        # Batched similarity check
-                        existing_states = torch.stack([n.state for n in self.nodes])
-                        existing_norms = existing_states / (torch.norm(existing_states, dim=1, keepdim=True) + 1e-8)
-                        sims = torch.mv(existing_norms, e_norm)
+                        sims = torch.mv(existing_norms.to(e_norm.device), e_norm)
                         
                         # Check text matches
                         identical_text_mask = torch.tensor([n.text == current_text for n in self.nodes], device=embedding.device)
@@ -143,6 +145,8 @@ class GyroidicGraphManager:
                             metrics=data
                         )
                         self.nodes.append(node)
+                        new_norm = (embedding / (torch.norm(embedding) + 1e-8)).unsqueeze(0)
+                        existing_norms = torch.cat([existing_norms.to(new_norm.device), new_norm], dim=0)
                 except Exception as e:
                     print(f"Failed to load fossil {f}: {e}")
                     
@@ -376,9 +380,20 @@ class GyroidicGraphManager:
         
         self.nodes = []
         for node_data in snapshot.get("nodes", []):
+            state = node_data.get("state")
+            if state is not None:
+                state = state.flatten()
+                if state.shape[0] > self.dim:
+                    state = state[:self.dim]
+                elif state.shape[0] < self.dim:
+                    padding = torch.zeros(self.dim - state.shape[0], device=state.device)
+                    state = torch.cat([state, padding])
+            else:
+                state = torch.zeros(self.dim)
+                
             node = KnowledgeFossilNode(
                 node_id=node_data["node_id"],
-                state=node_data["state"],
+                state=state,
                 text=node_data["text"],
                 metrics=node_data["metrics"]
             )
