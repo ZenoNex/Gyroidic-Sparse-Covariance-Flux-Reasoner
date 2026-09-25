@@ -1485,6 +1485,35 @@
                     <div id="splat-log" class="small-log" style="height: 120px; color: #ff00ff;"></div>
                 </div>
 
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+                <!-- PANEL I: UNIVERSAL TOPOLOGY CONVERTER -->
+                <div class="converter-panel" id="panel-i-container">
+                    <div class="section-title" style="color: #00f2ff;">Panel I: Universal Converter
+                        <small id="converter-status" style="color:#555;">IDLE</small>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <!-- Dropzone for any file -->
+                        <div id="universal-dropzone" style="width: 100%; height: 90px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; position: relative;">
+                            <div style="font-size: 1.4rem; color: #00f2ff;">⛬</div>
+                            <div style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">DROP ARBITRARY FILE<br>(OBJ, PDF, MP4, etc.)</div>
+                        </div>
+                        
+                        <div class="metric-card" style="margin-bottom: 0px;">
+                            <div class="metric-label">Topological Proxies</div>
+                            <div id="converter-proxies" style="font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; white-space: pre-wrap; overflow-wrap: break-word;">Awaiting extraction...</div>
+                        </div>
+
+                        <button id="commit-converter"
+                            style="width: 100%; background: rgba(0, 242, 255, 0.15); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;"
+                            disabled>
+                            INGEST TOPOLOGY TO MANIFOLD
+                        </button>
+                    </div>
+                    <div id="converter-log" class="small-log" style="height: 120px; color: #00f2ff;"></div>
+                </div>
+
         </aside>
 
         <!-- Right Toolbar -->
@@ -1505,6 +1534,8 @@
                 title="Panel G: Minecraft Ingestor">G</button>
             <button class="panel-toggle-btn" onclick="togglePanel('panel-h-container', this)"
                 title="Panel H: GLTF/Splat Matrix">H</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-i-container', this)"
+                title="Panel I: Universal Converter">I</button>
         </div>
     </main>
 
@@ -2081,6 +2112,9 @@
                     if (state.active_audio_dyad) {
                         formData.append('audio_dyad', JSON.stringify(state.active_audio_dyad));
                     }
+                    if (state.active_universal_signature) {
+                        formData.append('universal_signature', state.active_universal_signature);
+                    }
                     formData.append('media_chain', JSON.stringify(state.media_chain.map(item => ({ type: item.type, data: item.data }))));
                     formData.append('commutativity', _calculateContextualCommutativity());
                     formData.append('regime', state.regime);
@@ -2096,6 +2130,7 @@
                         fingerprint: state.active_fingerprint,
                         audio_dyad: state.active_audio_dyad,
                         video_dyad_b64: state.active_video_dyad,
+                        universal_signature: state.active_universal_signature,
                         media_chain: state.media_chain.map(item => ({ type: item.type, data: item.data })),
                         commutativity: _calculateContextualCommutativity(),
                         regime: state.regime,
@@ -3809,6 +3844,82 @@
                         alert('Error: ' + data.error);
                     }
                 });
+        }
+        // ==========================================
+        // PANEL I: UNIVERSAL TOPOLOGY CONVERTER
+        // ==========================================
+        const universalDropzone = document.getElementById('universal-dropzone');
+        const commitConverterBtn = document.getElementById('commit-converter');
+        const converterLog = document.getElementById('converter-log');
+        
+        if (universalDropzone) {
+            universalDropzone.ondragover = (e) => {
+                e.preventDefault();
+                universalDropzone.style.borderColor = 'var(--terminal-blue)';
+            };
+            universalDropzone.ondragleave = (e) => {
+                e.preventDefault();
+                universalDropzone.style.borderColor = 'rgba(0, 242, 255, 0.3)';
+            };
+            universalDropzone.ondrop = (e) => {
+                e.preventDefault();
+                universalDropzone.style.borderColor = 'rgba(0, 242, 255, 0.3)';
+                if (e.dataTransfer.files.length > 0) {
+                    processUniversalFile(e.dataTransfer.files[0]);
+                }
+            };
+            // Allow click to upload
+            const uFileInput = document.createElement('input');
+            uFileInput.type = 'file';
+            uFileInput.style.display = 'none';
+            document.body.appendChild(uFileInput);
+            universalDropzone.onclick = () => uFileInput.click();
+            uFileInput.onchange = (e) => {
+                if (e.target.files.length > 0) processUniversalFile(e.target.files[0]);
+            };
+        }
+
+        async function processUniversalFile(file) {
+            document.getElementById('converter-status').innerText = 'CONVERTING...';
+            document.getElementById('converter-proxies').innerText = `Extracting topology from: ${file.name}\nSize: ${(file.size / 1024).toFixed(1)} KB...`;
+            
+            const formData = new FormData();
+            formData.append('file', file, file.name);
+
+            try {
+                const response = await fetch('/api/convert_topology', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    document.getElementById('converter-status').innerText = 'ARMED';
+                    document.getElementById('converter-status').style.color = 'var(--terminal-green)';
+                    document.getElementById('converter-proxies').innerText = JSON.stringify(data.topology, null, 2);
+                    commitConverterBtn.disabled = false;
+                    
+                    commitConverterBtn.onclick = () => {
+                        logToTerminal(`Ingesting structural causality for [${file.name}] into manifold.`, 'system');
+                        appendMessage('system', `UNIVERSAL CONVERSION INGESTED.\nFormat: ${data.topology.format}\nSignature: ${data.topology.universal_signature}\nJitter: ${data.topology.honesty_jitter}`);
+                        
+                        // Store the signature in state so it is appended to the next /interact
+                        state.active_universal_signature = data.topology.universal_signature;
+                        
+                        commitConverterBtn.disabled = true;
+                        document.getElementById('converter-status').innerText = 'IDLE';
+                        document.getElementById('converter-status').style.color = '#555';
+                    };
+                } else {
+                    document.getElementById('converter-proxies').innerText = `Error: ${data.error || 'Unknown error'}`;
+                    document.getElementById('converter-status').innerText = 'ERROR';
+                    document.getElementById('converter-status').style.color = '#ff4444';
+                }
+            } catch (err) {
+                document.getElementById('converter-proxies').innerText = `Fetch Error: ${err}`;
+                document.getElementById('converter-status').innerText = 'ERROR';
+                document.getElementById('converter-status').style.color = '#ff4444';
+            }
         }
 
         // Load drives on startup if fs-perms tab is opened (or just on load)
