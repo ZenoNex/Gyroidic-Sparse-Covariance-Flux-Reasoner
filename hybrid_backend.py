@@ -2966,6 +2966,17 @@ def main():
     """Start the Gyroidic Backend with Governance and Persistence."""
     global AI_SYSTEM
     
+    # 0. Check for Remote Updates
+    print("\n[UPDATER] Checking for system updates...")
+    try:
+        from src.terminal import update_client
+        update_applied = update_client.main()
+        if update_applied:
+            print("[UPDATER] Update applied. Please restart the backend.")
+            sys.exit(0)
+    except Exception as e:
+        print(f"[UPDATER] Warning: Update client failed ({e}). Proceeding offline.")
+        
     # 1. Governance Startup (Interactive)
     startup_res = GovernanceManager.startup_menu()
     if isinstance(startup_res, tuple) and len(startup_res) == 2:
