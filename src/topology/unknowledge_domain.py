@@ -55,20 +55,43 @@ class NostalgicLeakFunctional(nn.Module):
         # Obstruction point o (The Apple/Mask center)
         self.register_buffer('o', torch.zeros(fossil_dim, device=device))
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, h_meta: Optional[torch.Tensor] = None, theta_leak: float = 0.7) -> torch.Tensor:
         """
         _l(x) = sum(_l * P(x)) * (1 - Vis(x))
+        Implements non-ergodic partitioning: splits the manifold if H_meta > theta_leak,
+        preserving 'dead' spaces as high-frequency solitons.
 
         Args:
             x: Input state [batch, fossil_dim]
+            h_meta: Current metaphysical entropy (scalar or batch-sized tensor)
+            theta_leak: Threshold for partitioning
         """
         # Visibility mask around obstruction o
         # Vis(x) = ( * |x - o|)
-        dist = torch.norm(x - self.o, dim=1, keepdim=True)
+        dist = torch.norm(x - self.o, dim=-1, keepdim=True)
         vis = torch.sigmoid(self.alpha * dist)
 
         # Applying the leak functional
-        leak = torch.sum(x * self.mu_l, dim=1, keepdim=True) * (1.0 - vis)
+        base_leak = torch.sum(x * self.mu_l, dim=-1, keepdim=True) * (1.0 - vis)
+
+        if h_meta is not None:
+            if isinstance(h_meta, float):
+                h_meta = torch.tensor([h_meta], device=x.device).expand(x.size(0), 1)
+            elif h_meta.dim() == 0:
+                h_meta = h_meta.unsqueeze(0).expand(x.size(0), 1)
+            elif h_meta.dim() == 1:
+                h_meta = h_meta.unsqueeze(1)
+                
+            # Non-ergodic partition mask
+            split_mask = (h_meta > theta_leak).float()
+            
+            # When partitioned, the leak acts as a non-mixing representative (soliton)
+            # Instead of blending (ergodic averaging), we apply a hard orthogonal persistence.
+            nostalgic_ghost = (1.0 - vis) * self.mu_l.mean() * 10.0
+            leak = base_leak * (1.0 - split_mask) + nostalgic_ghost * split_mask
+        else:
+            leak = base_leak
+
         return leak
 
 
