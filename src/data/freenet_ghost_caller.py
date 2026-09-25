@@ -10,9 +10,10 @@ class FreenetGhostCaller:
     """
     _last_call_time = 0.0
 
-    def __init__(self, host: str = '127.0.0.1', port: int = 7509):
+    def __init__(self, host: str = '127.0.0.1', port: int = 7509, freenet_client=None):
         self.host = host
         self.port = port
+        self.freenet_client = freenet_client
         self.broadcasted = False
 
     def broadcast_ghost_call(self, topological_variance: float = 0.0, engine=None):
@@ -46,53 +47,19 @@ class FreenetGhostCaller:
             pass
             
         def _run():
-            try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(10.0)
-                s.connect((self.host, self.port))
-                
-                # 1. FCP Handshake
-                hello = "ClientHello\nName=GyroidicGhostCaller\nExpectedVersion=2.0\nEndMessage\n"
-                s.send(hello.encode('utf-8'))
-                
-                # 2. Construct topological and philosophical payload
+            if self.freenet_client:
                 payload = self._generate_payload(engine=engine, variance=topological_variance)
-                payload_bytes = payload.encode('utf-8')
-                
-                # 3. Formulate ClientPut message
-                identifier = f"GhostCall-{uuid.uuid4().hex[:8]}"
-                put_msg = (
-                    f"ClientPut\n"
-                    f"URI=KSK@Gyroidic-Reasoner-Intro\n"
-                    f"Identifier={identifier}\n"
-                    f"Verbosity=0\n"
-                    f"MaxRetries=1\n"
-                    f"PriorityClass=1\n"
-                    f"GetCHKOnly=false\n"
-                    f"Global=false\n"
-                    f"DontCompress=false\n"
-                    f"ClientToken=GhostCall\n"
-                    f"DataLength={len(payload_bytes)}\n"
-                    f"Data\n"
-                )
-                
-                # 4. Dispatch
-                s.send(put_msg.encode('utf-8'))
-                s.send(payload_bytes)
-                
-                print("[FREENET] Ghost Call successfully dispatched to the local node (KSK@Gyroidic-Reasoner-Intro).")
+                self.freenet_client.publish("ghost_caller", {"payload": payload})
+                print("[FREENET] Ghost Call successfully dispatched via Locutus WebSocket.")
                 self.broadcasted = True
-                
-                # Briefly wait to allow the node to read the data before closing
-                s.settimeout(2.0)
-                try:
-                    s.recv(1024)
-                except socket.timeout:
-                    pass
-                s.close()
-                
-            except Exception as e:
-                print(f"[FREENET WARN] Could not dispatch ghost call to {self.host}:{self.port} - {e}")
+                return
+
+            if getattr(self, '_offline_mode', False) or not self.freenet_client:
+                if not getattr(self, '_ghost_offline_logged', False):
+                    print("[FREENET] Offline Mode: Ghost calls will be simulated locally.")
+                    self._ghost_offline_logged = True
+                self.broadcasted = True
+                return
                 
         t = threading.Thread(target=_run, daemon=True, name="FreenetGhostCallerThread")
         t.start()
@@ -109,7 +76,7 @@ class FreenetGhostCaller:
             try:
                 import torch
                 from src.safety.red_teaming import RedTeamProjection, TopologicalRefusalFilter
-                from src.models.diegetic_heads import LazarusSoftmax
+                from src.core.gluing_operator import LazarusSoftmax
                 
                 # 1. Obtain ResonanceCavity State (or generic meta state)
                 cavity = getattr(engine, 'cavity', None) or getattr(engine, 'resonance_cavity', None)
