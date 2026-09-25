@@ -16,8 +16,8 @@ class BonfireNomadicRing:
         self.freenet = freenet_client
         self.contract_id = contract_id
         
-        self.ghost_caller = FreenetGhostCaller()
-        self.bulletin_router = FreenetBulletinRouter()
+        self.ghost_caller = FreenetGhostCaller(freenet_client=self.freenet)
+        self.bulletin_router = FreenetBulletinRouter(freenet_client=self.freenet)
         
         # Kelly Consensus state
         self.peer_allocations: Dict[str, float] = {}
