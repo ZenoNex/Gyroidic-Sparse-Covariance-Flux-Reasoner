@@ -1544,7 +1544,8 @@ class DiegeticPhysicsEngine(nn.Module):
         voynich_token: Optional[Any] = None,
         performance_buffered: bool = False,
         tag_weights: Optional[Dict[str, float]] = None,
-        user_alias: Optional[str] = None
+        user_alias: Optional[str] = None,
+        universal_topology: Optional[Dict[str, Any]] = None
     ) -> dict:
         """
         Main entry point for processing an interaction.
@@ -1573,7 +1574,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 voynich_token=voynich_token,
                 performance_buffered=performance_buffered,
                 tag_weights=tag_weights,
-                user_alias=user_alias
+                user_alias=user_alias,
+                universal_topology=universal_topology
             )
         finally:
             self._is_processing = False
@@ -1822,6 +1824,21 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # 1. Embed Input (Hash Projection)
         input_tensor = self._text_to_tensor(text_input) # [1, dim]
+        
+        # 1.5 Inject Universal Topology
+        if universal_topology:
+            spectral_tensor = universal_topology.get('spectral_tensor')
+            if spectral_tensor is not None:
+                # Align tensor shape if necessary
+                st_tensor = spectral_tensor.to(self.device) if isinstance(spectral_tensor, torch.Tensor) else torch.tensor(spectral_tensor, device=self.device)
+                if st_tensor.shape[-1] != self.dim:
+                    # Pad or truncate to match engine dim
+                    if st_tensor.shape[-1] < self.dim:
+                        st_tensor = F.pad(st_tensor, (0, self.dim - st_tensor.shape[-1]))
+                    else:
+                        st_tensor = st_tensor[:, :self.dim]
+                input_tensor = 0.5 * input_tensor + 0.5 * st_tensor.view_as(input_tensor)
+                print(f"[ENGINE] Universal Topology Spectral Tensor (sig: {universal_topology.get('universal_signature')}) injected into input_tensor.", flush=True)
         
         # Jaccard similarity and Bouligand Bubble detection
         current_tokens = set(text_input.lower().split())
@@ -6736,6 +6753,68 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 self._send_json({"status": "ok", "path": target_path, "action": action})
                 return
 
+            if self.path == '/api/convert_topology':
+                print(" Processing /api/convert_topology request...")
+                try:
+                    content_len = int(self.headers.get('Content-Length', 0))
+                    post_body = self.rfile.read(content_len)
+                    
+                    # We expect multipart/form-data for file uploads
+                    content_type = self.headers.get('Content-Type', '')
+                    if content_type.startswith('multipart/form-data'):
+                        boundary = b''
+                        parts_ct = content_type.split(';')
+                        for p in parts_ct:
+                            p = p.strip()
+                            if p.startswith('boundary='):
+                                boundary = p.split('=', 1)[1].encode('utf-8')
+                        
+                        if not boundary:
+                            raise ValueError("Multipart boundary not found in headers")
+                        
+                        form_fields = parse_multipart(post_body, boundary)
+                        file_data = form_fields.get('file')
+                        
+                        if isinstance(file_data, dict) and 'content' in file_data:
+                            # Save to a temporary file
+                            import tempfile
+                            from src.data.universal_topology_converter import UniversalTopologyConverter
+                            
+                            filename = file_data.get('filename', 'unknown_file')
+                            
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
+                                tmp.write(file_data['content'])
+                                tmp_path = tmp.name
+                            
+                            try:
+                                converter = UniversalTopologyConverter()
+                                topology_data = converter.process_artifact(tmp_path)
+                                
+                                # Store the actual PyTorch tensors in the server state for ingestion
+                                # We can stash it in ENGINE or self if we maintain state. 
+                                # The UI sends 'universal_signature' during /interact to claim it.
+                                if not hasattr(self.server, 'universal_topology_cache'):
+                                    self.server.universal_topology_cache = {}
+                                
+                                sig = topology_data["universal_signature"]
+                                self.server.universal_topology_cache[sig] = topology_data
+                                
+                                ui_summary = converter.get_ui_summary(topology_data)
+                                self._send_json({"status": "ok", "topology": ui_summary})
+                            finally:
+                                if os.path.exists(tmp_path):
+                                    os.remove(tmp_path)
+                        else:
+                            self._send_error_json("No file provided in multipart request", 400)
+                    else:
+                        self._send_error_json("Expected multipart/form-data", 400)
+                except Exception as e:
+                    print(f" Error processing file conversion: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    self._send_error_json(str(e))
+                return
+
             if self.path == '/interact':
                 print(" Processing /interact request...")
                 try:
@@ -6798,9 +6877,15 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     if video_dyad_b64 == "[FILE_POINTER]":
                         video_dyad_b64 = None
                         
+                    universal_signature = data.get('universal_signature', None)
+                    universal_topology = None
+                    if universal_signature and hasattr(self.server, 'universal_topology_cache'):
+                        universal_topology = self.server.universal_topology_cache.get(universal_signature)
+                        
                     print(f" User input: '{user_text}' | commutativity={commutativity} | "
                            f"has_image={fingerprint is not None} | has_audio={audio_dyad is not None} | "
-                           f"has_video={video_dyad_b64 is not None} | alias={user_alias}")
+                           f"has_video={video_dyad_b64 is not None} | alias={user_alias} | "
+                           f"has_topology={universal_topology is not None}")
                     print(" Starting ENGINE.process_input...")
  
                     response_data = ENGINE.process_input(
@@ -6814,7 +6899,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         generate_response=data.get('generate_response', True),
                         ingestion_mode=data.get('ingestion_mode', False),
                         performance_buffered=data.get('performance_buffered', False),
-                        user_alias=user_alias
+                        user_alias=user_alias,
+                        universal_topology=universal_topology
                     )
                     self._send_json(response_data)
                 except Exception as e:
