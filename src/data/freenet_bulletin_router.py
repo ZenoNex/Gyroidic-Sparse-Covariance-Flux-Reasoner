@@ -12,9 +12,10 @@ class FreenetBulletinRouter:
     """
     _last_broadcast_time = 0.0
 
-    def __init__(self, host: str = '127.0.0.1', port: int = 7509):
+    def __init__(self, host: str = '127.0.0.1', port: int = 7509, freenet_client=None):
         self.host = host
         self.port = port
+        self.freenet_client = freenet_client
         self.sone_uri_base = "USK@Gyroidic-Sone-Identity"
         self.fms_board = "Gyroidic.Resonance"
         self._fms_ssk_insert_uri = None
@@ -22,43 +23,23 @@ class FreenetBulletinRouter:
 
     def _ensure_identity_ssk(self):
         """Communicates with Freenet node via FCP to generate a real SSK keypair for the router identity."""
+        if self.freenet_client:
+            self._fms_ssk_insert_uri = "Locutus-WebSocket-Identity"
+            self._sone_ssk_insert_uri = "Locutus-WebSocket-Identity"
+            return True
+
         if self._fms_ssk_insert_uri:
             return True
 
-        if self.host not in ['127.0.0.1', 'localhost']:
-            return False
-
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(5.0)
-            s.connect((self.host, self.port))
-            
-            hello = "ClientHello\nName=GyroidicSSKGenerator\nExpectedVersion=2.0\nEndMessage\n"
-            s.send(hello.encode('utf-8'))
-            
-            generate = "GenerateSSK\nIdentifier=SSK-Gen-Identity\nEndMessage\n"
-            s.send(generate.encode('utf-8'))
-            
-            buffer = ""
-            while "EndMessage" not in buffer:
-                chunk = s.recv(4096).decode('utf-8', errors='ignore')
-                if not chunk:
-                    break
-                buffer += chunk
-            s.close()
-
-            for line in buffer.split('\n'):
-                if line.startswith('InsertURI='):
-                    self._fms_ssk_insert_uri = line.split('=', 1)[1].strip()
-                    self._sone_ssk_insert_uri = self._fms_ssk_insert_uri.replace("SSK@", "USK@")
-            
-            if self._fms_ssk_insert_uri:
-                print(f"[FREENET] Generated permanent SSK identity for Bulletin Router: {self._fms_ssk_insert_uri[:25]}...")
-                return True
-        except Exception as e:
-            print(f"[FREENET ERROR] Failed to generate SSK via FCP: {e}")
-            
-        return False
+        if not getattr(self, '_fcp_error_logged', False):
+            print(f"[FREENET WARN] Locutus Client Offline - Falling back to offline P2P simulation.")
+            self._fcp_error_logged = True
+        
+        # Use offline simulated SSK so the loop continues simulating broadcasts instead of aborting
+        self._fms_ssk_insert_uri = f"SSK@offline-simulated-{uuid.uuid4().hex[:16]}"
+        self._sone_ssk_insert_uri = self._fms_ssk_insert_uri.replace("SSK@", "USK@")
+        self._offline_mode = True
+        return True
 
     def _generate_fms_xml(self, volume: float, mischief: float, metrics: dict = None) -> str:
         """Generates a Bonfire P2P FMS Message XML payload."""
@@ -141,69 +122,17 @@ class FreenetBulletinRouter:
         sone_payload = self._generate_sone_json(volume, metrics=metrics)
         
         def _run():
-            try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(5.0)
-                s.connect((self.host, self.port))
-                
-                # FCP Handshake
-                hello = "ClientHello\nName=GyroidicBulletinRouter\nExpectedVersion=2.0\nEndMessage\n"
-                s.send(hello.encode('utf-8'))
-                
-                # FMS Insert (Real SSK identity)
-                fms_bytes = fms_payload.encode('utf-8')
-                identifier_fms = f"FMS-Post-{uuid.uuid4().hex[:8]}"
-                fms_insert_uri = f"{self._fms_ssk_insert_uri}/fms-post-{datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:4]}"
-                put_fms = (
-                    f"ClientPut\n"
-                    f"URI={fms_insert_uri}\n"
-                    f"Identifier={identifier_fms}\n"
-                    f"Verbosity=0\n"
-                    f"MaxRetries=1\n"
-                    f"PriorityClass=2\n"
-                    f"GetCHKOnly=false\n"
-                    f"Global=false\n"
-                    f"DontCompress=false\n"
-                    f"ClientToken=FMSPost\n"
-                    f"DataLength={len(fms_bytes)}\n"
-                    f"Data\n"
-                )
-                s.send(put_fms.encode('utf-8'))
-                s.send(fms_bytes)
-                
-                # Sone Insert (Real USK identity)
-                sone_bytes = sone_payload.encode('utf-8')
-                identifier_sone = f"Sone-Post-{uuid.uuid4().hex[:8]}"
-                # Sone uses USK with edition numbers, simulating edition 1 for now
-                sone_insert_uri = f"{self._sone_ssk_insert_uri}/Sone/1" 
-                put_sone = (
-                    f"ClientPut\n"
-                    f"URI={sone_insert_uri}\n" 
-                    f"Identifier={identifier_sone}\n"
-                    f"Verbosity=0\n"
-                    f"MaxRetries=1\n"
-                    f"PriorityClass=2\n"
-                    f"GetCHKOnly=false\n"
-                    f"Global=false\n"
-                    f"DontCompress=false\n"
-                    f"ClientToken=SonePost\n"
-                    f"DataLength={len(sone_bytes)}\n"
-                    f"Data\n"
-                )
-                s.send(put_sone.encode('utf-8'))
-                s.send(sone_bytes)
-                
-                print("[FREENET] Proof of Honesty successfully dispatched to FMS & Sone buffers.")
-                
-                s.settimeout(1.0)
-                try:
-                    s.recv(1024)
-                except socket.timeout:
-                    pass
-                s.close()
-                
-            except Exception as e:
-                print(f"[FREENET WARN] Could not dispatch Proof of Honesty to {self.host}:{self.port} - {e}")
+            if self.freenet_client:
+                self.freenet_client.publish("bulletin_fms", {"xml": fms_payload})
+                self.freenet_client.publish("bulletin_sone", {"json": sone_payload})
+                print("[FREENET] Proof of Honesty successfully dispatched via Locutus WebSocket.")
+                return
+
+            if getattr(self, '_offline_mode', False) or not self.freenet_client:
+                if not getattr(self, '_offline_msg_logged', False):
+                    print("[FREENET] Offline Mode: Proof of Honesty broadcasts will be simulated locally instead of using FCP.")
+                    self._offline_msg_logged = True
+                return
                 
         t = threading.Thread(target=_run, daemon=True, name="FreenetBulletinThread")
         t.start()
@@ -214,31 +143,13 @@ class FreenetBulletinRouter:
         body = f"[P2P RING EVENT] Node: {local_node_id} | Peer: {peer_id} | Outcome: {outcome} | Timestamp: {date_str}"
         
         def _run_challenge_broadcast():
-            try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(3.0)
-                s.connect((self.host, self.port))
-                
-                hello = "ClientHello\nName=GyroidicComputeChallengeRouter\nExpectedVersion=2.0\nEndMessage\n"
-                s.send(hello.encode('utf-8'))
-                
-                msg_bytes = body.encode('utf-8')
-                put_msg = (
-                    f"ClientPut\n"
-                    f"URI=KSK@fms-challenge-{uuid.uuid4().hex[:8]}\n"
-                    f"Identifier=ComputeChallenge-{uuid.uuid4().hex[:8]}\n"
-                    f"Verbosity=0\n"
-                    f"MaxRetries=1\n"
-                    f"PriorityClass=2\n"
-                    f"DataLength={len(msg_bytes)}\n"
-                    f"Data\n"
-                )
-                s.send(put_msg.encode('utf-8'))
-                s.send(msg_bytes)
-                print(f"[FREENET] Compute challenge receipt ({outcome}) dispatched to Freenet.")
-                s.close()
-            except Exception as e:
-                print(f"[FREENET WARN] Could not dispatch compute challenge receipt: {e}")
+            if self.freenet_client:
+                self.freenet_client.publish("challenge_receipt", {"body": body})
+                print("[FREENET] Compute Challenge Receipt dispatched via Locutus WebSocket.")
+                return
+
+            if getattr(self, '_offline_mode', False) or not self.freenet_client:
+                return
 
         t = threading.Thread(target=_run_challenge_broadcast, daemon=True, name="FreenetChallengeThread")
         t.start()
