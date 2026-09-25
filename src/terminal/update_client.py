@@ -125,6 +125,8 @@ def interactive_prompt(diff, local_root):
         return
 
     print("\n[!] WARNING: You have unpushed local changes. We will review files one-by-one.")
+    print("[!] CAUTION: Selecting individual files to update risks manifold fragmentation and system stability.")
+    print("[!] Ensure you maintain consistency across the codebase.")
     
     for category, prefix in [("new", "[NEW]"), ("modified", "[MOD]")]:
         for rel_path, remote_path in diff[category]:
@@ -159,14 +161,14 @@ def main():
     
     remote_hash, msg = fetch_latest_remote_info()
     if not remote_hash:
-        sys.exit(1)
+        return False
         
     print(f"Remote Latest (main): {remote_hash} - {msg}")
     
     proceed = input("\nDo you want to stage this update for analysis? [y/N]: ").strip().lower()
     if proceed != 'y':
-        print("[*] Update aborted.")
-        sys.exit(0)
+        print("[*] Update bypassed.")
+        return False
         
     local_root = os.getcwd()
     
@@ -177,6 +179,8 @@ def main():
         interactive_prompt(diff, local_root)
 
     print("\n[*] Update session finished safely.")
+    return True
     
 if __name__ == "__main__":
-    main()
+    if not main():
+        sys.exit(1)
