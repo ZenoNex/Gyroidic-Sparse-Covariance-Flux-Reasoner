@@ -567,6 +567,12 @@ Main ADMM solver with spectral transform for the CALM predictor, enabling specul
 
 ## src/data
 
+### universal_topology_converter.py
+**Class**: `UniversalTopologyConverter`
+**Role**: Extracts topological non-obstructive embeddings from arbitrary file types (3D models, documents, media) without retaining copyrighted raw data, honoring the Output Boundary Policy. Inspired by universal file converters (`p2r3/convert`).
+
+---
+
 ### ivst_encoder.py
 **Class**: `IVSTEncoder`  
 **Role**: Independent Vector Spectral Topology (IVST) encoder for parsing structural patterns in MP4/MKV video and audio without extracting raw pixel content, bypassing standard copyright infringement and focusing on causal structural constraints (I-frames, zero-crossings).
@@ -756,6 +762,7 @@ Hooks the diegetic simulation to a unified chat and terminal UI. It implements t
 
 ---
 
+
 ## src/p2p
 
 ### [bonfire_consensus.py](../src/p2p/bonfire_consensus.py)
@@ -774,6 +781,16 @@ Hooks the diegetic simulation to a unified chat and terminal UI. It implements t
 
 ### [caine_precision.py](../src/environment/caine_precision.py) (The Ringmaster)
 **Role**: Floating-point virtualization and strict execution boundary enforcement. Historically the simulated PRNG generator, now structurally bypassed by honest physical jitter, though it still orchestrates the stage bounds of the execution frame.
+
+---
+
+## src/data
+
+### [universal_topology_converter.py](../src/data/universal_topology_converter.py)
+**Class**: `UniversalTopologyConverter`
+**Role**: Extracts structural causality and topological proxies from arbitrary media files without triggering exact extraction (copyright boundaries).
+
+Converts raw files (.txt, .pdf, .obj, .mp4) into high-dimensional phase space representations. Evaluates byte-level entropy histograms projected through a `PolynomialBasis` to form `[1, 768]` Spectral Tensors. Uses dynamic primes (`get_prime_ladder`) to form CRT Polynomial Pressure Signatures. Delegates to `IVSTEncoder` for intrinsic temporal analysis on media. Sanitizes outputs through the `OUTPUT_BOUNDARY_POLICY.md` constraints to ensure strict finite manifolds and nonobstructive logic.
 
 ---
 
@@ -809,4 +826,4 @@ Also includes specific psychopathological bands (Dementia/Schizo/Mischief) for c
 
 ---
 
-*Last updated: 2026-09-19. Modules marked "(Full details pending source review)" have been inspected only at the module docstring level; detailed class inventories will be added when those modules become active development targets.*
+*Last updated: 2026-09-21. Modules marked "(Full details pending source review)" have been inspected only at the module docstring level; detailed class inventories will be added when those modules become active development targets.*
