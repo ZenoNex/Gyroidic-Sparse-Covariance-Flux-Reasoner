@@ -82,16 +82,24 @@ class AudienceProjection(nn.Module):
     def inverse(self, audience_state: torch.Tensor, iterations: int = 5) -> torch.Tensor:
         """
         Approximate inverse Phi^-1(a) via fixed point iteration.
-        x = a - f(x)
-        Only works if Lip(f) < 1 (Banach Fixed Point Theorem).
+        x = a - f(x) * effective_k
+        Only works if Lip(f * effective_k) < 1 (Banach Fixed Point Theorem).
         """
+        if self.input_dim != self.audience_dim:
+            # Fixed point iteration requires identical dimensions
+            # Return identity fallback
+            return audience_state[..., :self.input_dim] if audience_state.shape[-1] >= self.input_dim else torch.nn.functional.pad(audience_state, (0, self.input_dim - audience_state.shape[-1]))
+            
         x = audience_state # Initial guess
         for _ in range(iterations):
-            if self.input_dim != self.audience_dim:
-                return x
+            # 1. Re-evaluate Homology-driven topological shaping for current x
+            draft_betti = self.homology_engine.predict_draft_betti(x)
+            betti_1 = draft_betti.get(1, 0)
+            effective_k = max(0.1, self.lipschitz_k * (1.0 - 0.1 * min(betti_1, 5)))
             
-            # Use Symplectic Gluing forward pass for fixed-point iteration
+            # 2. Use Symplectic Gluing forward pass for fixed-point iteration
             f_x = self.gluing_operator(x)
             
-            x = audience_state - (f_x * self.lipschitz_k)
+            # 3. Update step: x = output - f(x) * k
+            x = audience_state - (f_x * effective_k)
         return x
