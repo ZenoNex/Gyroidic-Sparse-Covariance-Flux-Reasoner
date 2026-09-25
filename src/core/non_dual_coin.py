@@ -11,7 +11,7 @@ class CerumenPotWallet(nn.Module):
     Models a wallet as an S^2 spherical cluster (Meliponini Topology).
     Balances are living covariance matrices, not sterile scalars.
     """
-    def __init__(self, dim: int = 64, device: str = 'cpu'):
+    def __init__(self, dim: int = 256, device: str = 'cpu'):
         super().__init__()
         self.dim = dim
         self.device = device
@@ -20,8 +20,16 @@ class CerumenPotWallet(nn.Module):
         self.state = nn.Parameter(torch.eye(dim, device=device) + torch.randn(dim, dim, device=device) * 0.01)
         
     def get_volume(self) -> float:
-        """Returns the scalar volume approximation of the wallet's state."""
-        return float(torch.abs(torch.det(self.state)).item())
+        """Returns the scalar volume approximation of the wallet's state (log-det to prevent underflow)."""
+        sign, logabsdet = torch.slogdet(self.state)
+        if torch.isinf(logabsdet) or torch.isnan(logabsdet):
+             # Fallback to Frobenius norm if geometrically singular
+             return float(torch.norm(self.state).item())
+        
+        # We normalize the log-determinant by the dimension and exponentiate
+        # to get an "average radius" volume approximation that resists Ergodic underflow
+        avg_log_vol = logabsdet / self.dim
+        return float(torch.exp(avg_log_vol).item())
 
 class ChernSimonsValidator:
     """
