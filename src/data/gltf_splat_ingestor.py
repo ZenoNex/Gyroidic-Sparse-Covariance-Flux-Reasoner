@@ -7,6 +7,7 @@ import os
 import json
 import struct
 import torch
+from src.core.honest_jitter import harvest_honest_jitter
 import numpy as np
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
@@ -71,7 +72,7 @@ class GltfSplatIngestionPipeline:
             if batch_size < 1: batch_size = 1
             
             # Generate residue matrices in GL(n)
-            topological_states = torch.randn((batch_size, self.target_dim, self.target_dim), device=self.device)
+            topological_states = harvest_honest_jitter((batch_size, self.target_dim, self.target_dim), device=self.device, scaled=False)
             
             # Apply orthogonal projection to simulate structural honesty of the splats
             q, r = torch.linalg.qr(topological_states)
@@ -87,7 +88,7 @@ class GltfSplatIngestionPipeline:
         except Exception as e:
             print(f"[SPLAT_INGEST] Failed to parse {path.name}: {e}")
             # Return a chaotic failure state
-            return torch.randn((1, self.target_dim, self.target_dim), device=self.device) * 0.1
+            return harvest_honest_jitter((1, self.target_dim, self.target_dim), device=self.device, scaled=False) * 0.1
 
 if __name__ == "__main__":
     # Test stub
