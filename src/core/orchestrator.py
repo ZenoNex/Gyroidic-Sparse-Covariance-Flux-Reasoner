@@ -202,7 +202,7 @@ class UniversalOrchestrator(nn.Module):
         
         # 7. Diegetic Responder (The "Larynx" & "Scars")
         from src.models.diegetic_heads import ResonanceLarynx
-        self.larynx = ResonanceLarynx(dim, vocab_size=256)
+        self.larynx = ResonanceLarynx(dim)
         
         self.prev_pas = 0.0 # Temporal anchor for drift check
         
@@ -217,7 +217,7 @@ class UniversalOrchestrator(nn.Module):
             from src.p2p.bonfire_consensus import BonfireNomadicRing
             from src.p2p.zk_aggregator import ZKAggregator
             
-            logger.info("Initializing Freenet P2P Core & OpenRouter...")
+            print("[ORCHESTRATOR] Initializing Freenet P2P Core & OpenRouter...")
             self.freenet_router = FreenetBulletinRouter()
             self.freenet_ws = FreenetClient()
             self.freenet_ws.start()
@@ -604,8 +604,8 @@ class UniversalOrchestrator(nn.Module):
             tag_weights=tag_weights
         )
         
-        state_governed = arch_results['active_state']
-        stacked_target = arch_results.get('stacked_target', None)
+        state_governed = arch_results.active_state
+        stacked_target = getattr(arch_results, 'stacked_target', None)
         
         # Determine active contexts from tag weights for Alias Tracker
         is_alias_active = False
@@ -621,7 +621,7 @@ class UniversalOrchestrator(nn.Module):
              state_governed = self.alias_tracker(state_governed, is_alias_active, is_archetype_active)
         
         # Update Mischief Probe with current cycle results
-        self.mischief_probe.update(
+        self.mischief_probe.update_bands(
             pressure_grad=pressure_grad,
             coherence=torch.tensor(pas_h), # Using PAS as coherence proxy
             pas_h=pas_h,
