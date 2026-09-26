@@ -88,7 +88,7 @@ class NarrativeCoherenceEstimator(nn.Module):
         config_norm = config_embedding / (config_embedding.norm(dim=-1, keepdim=True) + 1e-8)
         
         # Similarity to narrative templates
-        similarities = torch.mm(config_norm, self.narrative_templates.t())  # [batch, n]
+        similarities = torch.matmul(config_norm, self.narrative_templates.t())  # [..., n]
         
         # Max similarity = how well this matches ANY narrative template
         max_sim, _ = similarities.max(dim=-1)  # [batch]
