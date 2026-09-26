@@ -363,7 +363,7 @@ class GyroidicFluxReasoner(nn.Module):
         )
 
         from src.core.context_aware_quantizer import ContextAwareQuantizer
-        self.caq = ContextAwareQuantizer(feature_dim=hidden_dim, num_shells=33, device=device)
+        self.caq = ContextAwareQuantizer(dim=hidden_dim, max_depth=33)
 
         # Output projection
         
@@ -627,9 +627,12 @@ class GyroidicFluxReasoner(nn.Module):
         
         # 5. Soft Saturated Gates (prevent binary clipping)
         # Calculate PAS_h for adaptive hardening
-        pas_h_val = self.poly_config.orth_pressure_fn.entropy_estimator(
-            raw_residues.view(raw_residues.shape[0], -1)
-        )['ergodic_entropy'].item() if hasattr(self.poly_config, 'orth_pressure_fn') else 0.5
+        if hasattr(self.poly_config, 'orth_pressure_fn') and hasattr(self.poly_config.orth_pressure_fn, 'entropy_estimator'):
+            pas_h_val = self.poly_config.orth_pressure_fn.entropy_estimator(
+                raw_residues.view(raw_residues.shape[0], -1)
+            )['ergodic_entropy'].item()
+        else:
+            pas_h_val = 0.5
         
         residue_distributions = self.soft_gates.apply_soft_saturation(
             residue_distributions, pas_h_val
@@ -652,7 +655,7 @@ class GyroidicFluxReasoner(nn.Module):
                     self._create_evidence_modules(h.device)
                 
                 # Check irreducibility
-                embedding_fn = lambda r: r.reshape(-1, self.K * self.D)
+                embedding_fn = lambda r: r.reshape(r.shape[0], -1)
                 irreducibility_result = self.structural_irreducibility_checker(
                     residue=symbolic_residues,
                     embedding_fn=embedding_fn,
@@ -666,6 +669,9 @@ class GyroidicFluxReasoner(nn.Module):
                     failure_mask = failure_mask | reducible_mask
             except Exception as e:
                 # If irreducibility check fails, fail loudly (topological rupture)
+                import traceback
+                traceback.print_exc()
+                print(f"[DEBUG] e = {e}")
                 raise RuntimeError("Topological irreducibility rupture detected.") from e
         
         # 3b. Measure Selection and Containment Pressure
@@ -744,7 +750,10 @@ class GyroidicFluxReasoner(nn.Module):
         # Orchestrate logic based on current topological pressure and PAS_h
         # Calculate real PAS_h from symbolic residues
         with torch.no_grad():
-             pas_h_val = self.poly_config.orth_pressure_fn.entropy_estimator(raw_residues.view(raw_residues.shape[0], -1))['ergodic_entropy'].item()
+             if hasattr(self.poly_config, 'orth_pressure_fn') and hasattr(self.poly_config.orth_pressure_fn, 'entropy_estimator'):
+                 pas_h_val = self.poly_config.orth_pressure_fn.entropy_estimator(raw_residues.view(raw_residues.shape[0], -1))['ergodic_entropy'].item()
+             else:
+                 pas_h_val = 0.5
              # Calculate real coherence across functionals
              norm_symbols = raw_residues / (torch.norm(raw_residues, dim=-1, keepdim=True) + 1e-8)
              coherence_val = torch.norm(norm_symbols.mean(dim=1), dim=-1)
@@ -785,7 +794,10 @@ class GyroidicFluxReasoner(nn.Module):
         # Use CAQ to track Matrioshka shell depth and apply per-axis step sizes
         if hasattr(self, 'caq'):
              # Extract pas_scores for anisotropy
-             pas_scores = self.poly_config.orth_pressure_fn.entropy_estimator(raw_residues.view(raw_residues.shape[0], -1))['pas_scores'] if hasattr(self.poly_config, 'orth_pressure_fn') else None
+             if hasattr(self.poly_config, 'orth_pressure_fn') and hasattr(self.poly_config.orth_pressure_fn, 'entropy_estimator'):
+                 pas_scores = self.poly_config.orth_pressure_fn.entropy_estimator(raw_residues.view(raw_residues.shape[0], -1)).get('pas_scores')
+             else:
+                 pas_scores = None
              
              # Map hidden state to CAQ quantization
              h_quant, boundary_state = self.caq(
@@ -1056,16 +1068,17 @@ class GyroidicFluxReasoner(nn.Module):
             return
         
         modules = []
-        constraint_dim = self.K * self.D
+        actual_D = self.embedder.D if hasattr(self.embedder, 'D') else self.D
+        constraint_dim = self.K * actual_D
         
         for k in range(self.K):
             # Create evidence cluster from functional k
-            # Simplified: use identity cluster
-            evidence_cluster = torch.eye(self.D, device=device) * 0.5
-            evidence_cluster += harvest_honest_jitter((self.D, self.D), device=device, scaled=True)
+            # Use constraint_dim so the PCA initialization works correctly
+            evidence_cluster = torch.eye(constraint_dim, device=device) * 0.5
+            evidence_cluster += harvest_honest_jitter((constraint_dim, constraint_dim), device=device, scaled=True)
             
             # Projection dimension: use D (polynomial degree)
-            projection_dim = self.D
+            projection_dim = actual_D
             
             module = EvidenceModuleProjection(
                 evidence_cluster=evidence_cluster,
