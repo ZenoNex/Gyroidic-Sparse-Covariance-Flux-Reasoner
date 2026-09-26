@@ -196,7 +196,10 @@ class MetaPolytopeMatrioshka(nn.Module):
         conformal_energy = torch.norm(x_lcft, dim=-1).mean().item()
         
         # Instant level mapping (lower energy -> deeper shell)
-        target_level = int(self.max_depth * math.exp(-conformal_energy))
+        if math.isnan(conformal_energy):
+            target_level = -1
+        else:
+            target_level = int(self.max_depth * math.exp(-conformal_energy))
         level = max(0, min(self.max_depth, target_level))
         
         if total_veto > 0.8:
