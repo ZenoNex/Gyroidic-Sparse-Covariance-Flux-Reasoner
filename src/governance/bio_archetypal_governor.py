@@ -5,7 +5,7 @@ from typing import Dict, Any
 from src.core.neuromodulatory_bus import NeuromodulatoryBus
 from src.environment.caine_precision import CainePrecisionGenerator
 from src.governance.interoceptive.pomni_uncertainty import PomniUncertaintyPredictor
-from src.governance.ultrafast.zooble_autonomy import ZoobleBodySchema
+from src.governance.ultrafast.zooble_autonomy import ZoobleAutonomy
 from src.governance.fast.jax_shell import JaxShell
 from src.governance.fast.ragatha_bonding import RagathaBonding
 from src.governance.medium.gangle_oscillator import GangleOscillator
@@ -30,7 +30,7 @@ class BioArchetypalGovernor(nn.Module):
         self.pomni = PomniUncertaintyPredictor(state_dim)
         
         # Ultrafast (GABA/Body-Schema)
-        self.zooble = ZoobleBodySchema(state_dim)
+        self.zooble = ZoobleAutonomy(state_dim)
         
         # Fast (Serotonin/Oxytocin/Approach-Avoidance)
         self.jax = JaxShell(state_dim)
@@ -47,7 +47,8 @@ class BioArchetypalGovernor(nn.Module):
         state: torch.Tensor, 
         gyroid_entropy: float = 0.5, 
         luminosity: float = 1.0, 
-        dt: float = 1.0
+        dt: float = 1.0,
+        bulletin_board: Optional[Any] = None
     ) -> Dict[str, Any]:
         """
         Executes the biological cascade.
@@ -68,10 +69,41 @@ class BioArchetypalGovernor(nn.Module):
         state = self.pomni(state, gyroid_entropy, self.bus)
         
         # 3. Ultrafast: Zooble asserts body schema, potentially gating the signal (GABA)
-        state = self.zooble(state, self.bus)
+        if bulletin_board is not None:
+            raw_state = bulletin_board.read_residue()
+            if raw_state.dim() == 1 and state.dim() > 1:
+                raw_state = raw_state.unsqueeze(0).expand_as(state)
+        else:
+            raw_state = state
+            
+        state, zooble_signal = self.zooble(raw_state, state)
+        if hasattr(zooble_signal, 'is_refused') and zooble_signal.is_refused:
+            print(f"[ZOOBLE] {zooble_signal.reason}")
         
         # 4. Fast: Jax evaluates approach/avoidance, triggering panic if unsafe
-        state, panic = self.jax(state, self.bus)
+        if bulletin_board is not None:
+            from src.core.invariants import PhaseAlignmentInvariant
+            batch_tensors = bulletin_board.residue_history
+            pas_metric = PhaseAlignmentInvariant(degree=4).to(state.device)
+            surrounding_pas_h = pas_metric(batch_tensors)
+            if surrounding_pas_h.dim() == 0:
+                surrounding_pas_h = surrounding_pas_h.unsqueeze(0)
+            
+            admm_force = bulletin_board.read_force()
+            external_pressure = admm_force.norm().item()
+        else:
+            surrounding_pas_h = torch.tensor([0.5], device=state.device)
+            batch_tensors = state.unsqueeze(0) if state.dim() == 1 else state
+            external_pressure = gyroid_entropy
+            
+        state, jax_rigidity = self.jax(
+            state, 
+            surrounding_pas_h=surrounding_pas_h,
+            batch_tensors=batch_tensors,
+            internal_entropy=gyroid_entropy,
+            external_pressure=external_pressure
+        )
+        panic = jax_rigidity > 1.2
         
         # 5. Fast: Ragatha responds to Pomni's distress (Oxytocin)
         state = self.ragatha(state, self.bus)
@@ -80,7 +112,7 @@ class BioArchetypalGovernor(nn.Module):
         state, step_factor = self.gangle(state, self.bus, dt=dt)
         
         # 7. Slow: Kinger consolidates memory if it is dark (Acetylcholine)
-        state, consolidating = self.kinger(state, self.bus, luminosity)
+        state, consolidating = self.kinger(state, luminosity)
         
         return {
             "state": state,
