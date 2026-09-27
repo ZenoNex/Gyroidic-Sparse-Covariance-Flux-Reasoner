@@ -117,8 +117,9 @@ class DecoupledPolynomialCRT(nn.Module):
         # instead we use trust to bias the GDPO weights or the final reconstruction.
         
         # For GDPO, we normalize across functionals for each coefficient dimension
-        # Reshape: [batch, K, D] -> [batch*D, K]
-        expected_flat = expected_coeffs.transpose(1, 2).reshape(batch_size * self.D, self.K)
+        # Reshape: [batch, K, D] -> [batch*actual_D, K]
+        actual_D = expected_coeffs.shape[-1]
+        expected_flat = expected_coeffs.transpose(1, 2).reshape(batch_size * actual_D, self.K)
         
         # Get weights
         if self.learnable_weights:
@@ -128,7 +129,7 @@ class DecoupledPolynomialCRT(nn.Module):
         
         # Extend group_ids for all coefficient dimensions
         if group_ids is not None:
-            group_ids_extended = group_ids.unsqueeze(1).expand(batch_size, self.D).reshape(-1)
+            group_ids_extended = group_ids.unsqueeze(1).expand(batch_size, actual_D).reshape(-1)
         else:
             group_ids_extended = None
         
@@ -138,12 +139,12 @@ class DecoupledPolynomialCRT(nn.Module):
             weights,
             group_ids_extended
         )
-        # decoupled_flat: [batch*D] aggregated normalized values
+        # decoupled_flat: [batch*actual_D] aggregated normalized values
         
         # Reshape back and get per-functional decoupled values
-        decoupled_per_functional = sov_diagnostics['decoupled']  # [batch*D, K]
-        decoupled_per_functional = decoupled_per_functional.reshape(batch_size, self.D, self.K).transpose(1, 2)
-        # [batch, K, D]
+        decoupled_per_functional = sov_diagnostics['decoupled']  # [batch*actual_D, K]
+        decoupled_per_functional = decoupled_per_functional.reshape(batch_size, actual_D, self.K).transpose(1, 2)
+        # [batch, K, actual_D]
         
         # Weighted reconstruction using polynomial CRT (Trust-aware)
         reconstruction = self.poly_crt(
