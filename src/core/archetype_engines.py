@@ -2,9 +2,35 @@ import torch
 import torch.nn as nn
 import math
 from typing import Dict, List, Optional, Any
+from dataclasses import dataclass
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.superposed_tag_stacker import SuperposedTagStacker
 from src.governance.bio_archetypal_governor import BioArchetypalGovernor
+from src.governance.fast.jax_shell import JaxShell
+from src.governance.slow.kinger_consolidation import KingerConsolidation
+from src.governance.ultrafast.zooble_autonomy import ZoobleAutonomy
+
+@dataclass
+class TypedPressure:
+    domain: str
+    value: float
+    
+    def __add__(self, other):
+        raise TypeError(f"Scalarization trap! Cannot add {self.domain} pressure to {getattr(other, 'domain', type(other))}.")
+
+@dataclass
+class ArchetypeSignal:
+    active_state: torch.Tensor
+    resurrections: List[torch.Tensor]
+    localized_dt: torch.Tensor
+    abstraction_rate: float
+    system_collapsed: bool
+    pusafiliacrimonto_status: str
+    stacked_target: Optional[torch.Tensor]
+    selection_pressure: TypedPressure
+    containment_pressure: TypedPressure
+    unknowledge_pressure: TypedPressure
+    bio_governance: Any
 
 # =========================================================================
 # PHASE 2A: The Unified Theory Archetypal Logic Gaps
@@ -550,8 +576,8 @@ class ArchetypalSynthesisEngine(nn.Module):
         # UT Gaps
         self.billy = NoncommutativeManifoldPerturber(state_dim)
         self.mandy = SovereignRefusalOperator()
-        self.kinger = LowLuminosityCoherenceBridge()
-        self.jax = SovereignEntropyBarrier()
+        self.kinger = KingerConsolidation(state_dim)
+        self.jax = JaxShell(state_dim)
         self.grom = SolitonMultiverseMapper(state_dim)
         self.picture_gallery = BardoRouter(state_dim)
         self.volition_injector = VolitionalDriveInjector(state_dim)
@@ -560,7 +586,7 @@ class ArchetypalSynthesisEngine(nn.Module):
         # New TADC Archetypes
         self.pomni = ResilientCoherenceStabilizer(state_dim)
         self.gangle = ExploratoryBandwidthCompressor()
-        self.zooble = DeformationFirewallOperator()
+        self.zooble = ZoobleAutonomy(state_dim)
         
         # Original modules retained for backward compatibility
         self.grim = NonlinearHourglassDilation()
@@ -683,7 +709,8 @@ class ArchetypalSynthesisEngine(nn.Module):
         raw_unquantized_state: torch.Tensor,
         is_high_priority: bool = False,
         tag_weights: Optional[Dict[str, float]] = None,
-        shape_idx: int = 0
+        shape_idx: int = 0,
+        bulletin_board: Optional[Any] = None
     ):
         """Unified runner for the full archetypal and psycho-topological constraint matrix."""
         
@@ -692,12 +719,12 @@ class ArchetypalSynthesisEngine(nn.Module):
         if stacked_target is not None and stacked_target.norm() > 0:
             # Softly shift current state towards stacked target (acting as a primer)
             primed_state = current_state + 0.1 * stacked_target
-            # Apply the BoundaryRelaxationOperator (self.ombre) to blend between the state and target based on env_luminosity
-            current_state = self.ombre(primed_state, env_luminosity, stacked_target)
+            # Apply Kinger's Ombre Effect to bridge polynomial spaces in low luminosity
+            current_state, is_lucid = self.kinger(primed_state, env_luminosity)
         
         # 0a. Apply Grom Multiverse Basis Mapper (GromShapeShifter)
         current_state = self.grom(current_state, shape_idx=shape_idx)
-
+        
         # 1. TADC Abstraction Check (Ego Death) - Must run first before filtering
         r_a = self.abstraction.calculate_abstraction_rate(
             system_entropy, memory_trauma, dissonance, lucidity_idx, 
@@ -713,7 +740,8 @@ class ArchetypalSynthesisEngine(nn.Module):
             state=state, 
             gyroid_entropy=system_entropy, 
             luminosity=env_luminosity, 
-            dt=global_dt
+            dt=global_dt,
+            bulletin_board=bulletin_board
         )
         state = bio_results["state"]
         # ----------------------------------------------------------------------------------
@@ -735,16 +763,19 @@ class ArchetypalSynthesisEngine(nn.Module):
         # 9. Grim Time Dilation
         localized_dt = self.grim(global_dt, love_strengths)
 
-        return {
-            "active_state": state,
-            "resurrections": resurrections,
-            "localized_dt": localized_dt,
-            "abstraction_rate": r_a,
-            "system_collapsed": r_a >= self.abstraction.abstraction_limit,
-            "pusafiliacrimonto_status": "AFFIRMED" if state.norm() > 0 else "REFUSED",
-            "stacked_target": stacked_target,
-            "bio_governance": bio_results
-        }
+        return ArchetypeSignal(
+            active_state=state,
+            resurrections=resurrections,
+            localized_dt=localized_dt,
+            abstraction_rate=r_a,
+            system_collapsed=r_a >= self.abstraction.abstraction_limit,
+            pusafiliacrimonto_status="AFFIRMED" if state.norm() > 0 else "REFUSED",
+            stacked_target=stacked_target,
+            selection_pressure=TypedPressure("Selection", 1.0 - r_a),
+            containment_pressure=TypedPressure("Containment", jax_rigidity),
+            unknowledge_pressure=TypedPressure("Unknowledge", current_mischief),
+            bio_governance=bio_results
+        )
 
     def export_governor_state(self) -> Dict:
         """Packages the full archetypal ruleset state for Agent Smith protocols."""
