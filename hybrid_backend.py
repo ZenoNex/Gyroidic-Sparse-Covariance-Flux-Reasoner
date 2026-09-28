@@ -411,6 +411,10 @@ class GovernanceManager:
             udp_col = get_input("[?] Enable Option D UDP Master Server Colonizer (yes/no)", 'no', "Experimental: connects to external instances aggressively.").lower()
             config['udp_colonizer_enabled'] = udp_col in ('yes', 'y')
             
+            fnp = get_input("[?] Locutus/Freenet WebSocket Port", str(config.get('freenet_ws_port', 3000)), "The port your local Freenet node uses for WebSocket.")
+            try: config['freenet_ws_port'] = int(fnp)
+            except: config['freenet_ws_port'] = 3000
+            
         else:
             print("[INFO] Defaulting to all standard configuration values.")
 
@@ -455,7 +459,7 @@ class HybridAI:
             from src.p2p.bonfire_consensus import BonfireNomadicRing
             from src.p2p.zk_aggregator import ZKAggregator
             
-            self.p2p_ws_client = FreenetClient()
+            self.p2p_ws_client = FreenetClient(port=config.get('freenet_ws_port', None))
             self.p2p_ws_client.start() # Start async loop (disabled by default to prevent port conflicts, but wired)
             
             self.zk_aggregator = ZKAggregator()
