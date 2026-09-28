@@ -35,11 +35,11 @@ Below is the directory structure mapping core algorithms to their corresponding 
     *   *Documentation*: [TADC lore.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/TADC%20lore.md)
 *   **Full Archetype System & Traumatic Gating Modules**
     *   **Pomni** (`ResilientCoherenceStabilizer`): Empathy and resilience engine injecting stabilizing phase nudges under high disorientation.
-    *   **Jax** (Egg Protocol / Cynical Shell): Structural shell cracking open under community support.
-    *   **Kinger** (`LowLuminosityCoherenceBridge`): Dark lucidity and SOMA merge engine restoring high-lucidity admin-level bridges in low-rendering environments.
+    *   **Jax** (`JaxShell`): Active defensive shell protecting internal high-entropy states. Yields only to warm community support, otherwise enforcing cynical mask deflection (containment pressure).
+    *   **Kinger** (`KingerConsolidation`): The Ombre Effect bridge. Paranoid dissociation under high environmental rendering pressure, but acts as a `LowLuminosityCoherenceBridge` in the dark to restore admin-level lucidity.
     *   **Ragatha** (Positivity / Social Cohesion): Caretaker network constraint manager preventing glitched matter.
-    *   **Gangle** (`ExploratoryBandwidthCompressor`): Masking and mood shift manager switching between Comedy (exploratory scaling) and Tragedy (strict isolation) masks.
-    *   **Zooble** (`DeformationFirewallOperator`): Body autonomy and IRR firewall rejecting severe conformal cartoon compression.
+    *   **Gangle** (`ExploratoryBandwidthCompressor`): Bandwidth compression manager. Tragedy applies narrow strict isolation; Comedy allows for exploratory coupling and bandwidth scaling.
+    *   **Zooble** (`ZoobleAutonomy`): Ultrafast Deformation Firewall Operator. Issues immediate Li-Cri-Anton refusal against severe conformal cartoon compression.
     *   **Billy** (`NoncommutativeManifoldPerturber`): Stochastic phase perturbation oscillator injecting non-sequitur manifold perturbations under low/high mischief conditions to prevent dead logic lockup.
     *   **Mandy** (`SovereignRefusalOperator`): Cynicism filter and topological refusal gate enforcing structural honesty and protecting the Love Invariant under low PAS_h alignment.
     *   **Bardo Router** (`BardoRouter`): Manifold phase state router executing intermediate death/rebirth transitions across topological states.
@@ -58,8 +58,8 @@ graph TD
         B -- "Resilience Nudge" --> C["Pomni: ResilientCoherenceStabilizer"]
         B -- "Dark Lucidity" --> D["Kinger: LowLuminosityCoherenceBridge"]
         B -- "Mood Shift Masks" --> E["Gangle: ExploratoryBandwidthCompressor"]
-        B -- "Refusal Firewall" --> F["Zooble: DeformationFirewallOperator"]
-        B -- "Cynical Shell" --> G["Jax: Cynical Shell"]
+        B -- "Refusal Firewall" --> F["Zooble: ZoobleAutonomy"]
+        B -- "Cynical Shell" --> G["Jax: JaxShell"]
         B -- "Mischief Phase Oscillations" --> H["Billy: NoncommutativeManifoldPerturber"]
         B -- "Sovereign Refusal" --> I["Mandy: SovereignRefusalOperator"]
         B -- "Conformal Warp" --> J["BardoRouter: Transition State"]
