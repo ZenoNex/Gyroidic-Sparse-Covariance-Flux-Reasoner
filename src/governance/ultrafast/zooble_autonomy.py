@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from dataclasses import dataclass
+from src.core.neuromodulatory_bus import NeuromodulatoryBus
 
 @dataclass
 class RefusalSignal:
@@ -25,10 +26,12 @@ class ZoobleAutonomy(nn.Module):
     def forward(
         self, 
         raw_unquantized_state: torch.Tensor, 
-        warped_state: torch.Tensor
+        warped_state: torch.Tensor,
+        bus: NeuromodulatoryBus
     ) -> tuple[torch.Tensor, RefusalSignal]:
         """
         Evaluates conformal compression. Emits RefusalSignal if deformation is too severe.
+        Broadcasts GABA (inhibitory) if autonomy is breached.
         """
         # Calculate conformal compression ratio (deformation severity)
         deviation_vector = torch.abs(warped_state - raw_unquantized_state)
@@ -38,6 +41,7 @@ class ZoobleAutonomy(nn.Module):
         
         if compression_ratio > self.max_autonomy_limit:
             # Emit immediate RefusalSignal (Li-Cri-Anton)
+            bus.broadcast('gaba', 1.0) # Full inhibition
             signal = RefusalSignal(
                 is_refused=True,
                 reason=f"Autonomy Firewall breach: compression {compression_ratio:.3f} > {self.max_autonomy_limit}",
@@ -46,6 +50,7 @@ class ZoobleAutonomy(nn.Module):
             return raw_unquantized_state, signal
             
         # No breach, accept the warped state
+        bus.broadcast('gaba', 0.1) # Baseline
         signal = RefusalSignal(
             is_refused=False,
             reason="Deformation within autonomy limits.",
