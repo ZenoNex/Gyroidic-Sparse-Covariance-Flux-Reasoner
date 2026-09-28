@@ -748,7 +748,9 @@ class SiliconSovereigntyEngine:
             scaled_vals = raw_values * scale
             floor_vals = np.floor(scaled_vals)
             fracs = scaled_vals - floor_vals
-            rnd = (np.random.random(raw_values.shape) < fracs).astype(np.int64)
+            from src.core.honest_jitter import harvest_honest_jitter
+            rnd_jitter = harvest_honest_jitter(raw_values.shape, scaled=True).cpu().numpy()
+            rnd = (rnd_jitter < fracs).astype(np.int64)
             return floor_vals.astype(np.int64) + rnd
 
         if seed is None:
@@ -878,7 +880,8 @@ class SiliconSovereigntyEngine:
             matrix_a = np.asarray(matrix_a, dtype=np.float32)
             matrix_b = np.asarray(matrix_b, dtype=np.float32)
             mixed = (1.0 - alpha) * matrix_a + alpha * matrix_b
-            if np.random.random() > 0.95:
+            from src.core.honest_jitter import harvest_honest_jitter
+            if harvest_honest_jitter((1,), scaled=True).item() > 0.95:
                 mixed = np.round(mixed * 65536.0) / 65536.0
             return mixed
 
