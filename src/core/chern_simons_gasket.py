@@ -147,6 +147,10 @@ class ChernSimonsGasket(nn.Module):
             Symbolic Non-Revisability: 1.0. Anchors the gauge field to the 
             frozen polynomial basis.
         """
+        if polynomial_coeffs.dim() == 3:
+            # If batch dimension is present, take the mean across the batch
+            polynomial_coeffs = polynomial_coeffs.mean(dim=0)
+            
         K, D = polynomial_coeffs.shape
         
         # Convert polynomial coefficients to scalar indices for GCD computation
