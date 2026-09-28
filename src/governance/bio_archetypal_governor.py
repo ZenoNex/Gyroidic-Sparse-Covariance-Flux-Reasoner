@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from src.core.neuromodulatory_bus import NeuromodulatoryBus
 from src.environment.caine_precision import CainePrecisionGenerator
@@ -76,7 +76,7 @@ class BioArchetypalGovernor(nn.Module):
         else:
             raw_state = state
             
-        state, zooble_signal = self.zooble(raw_state, state)
+        state, zooble_signal = self.zooble(raw_state, state, self.bus)
         if hasattr(zooble_signal, 'is_refused') and zooble_signal.is_refused:
             print(f"[ZOOBLE] {zooble_signal.reason}")
         
@@ -101,7 +101,8 @@ class BioArchetypalGovernor(nn.Module):
             surrounding_pas_h=surrounding_pas_h,
             batch_tensors=batch_tensors,
             internal_entropy=gyroid_entropy,
-            external_pressure=external_pressure
+            external_pressure=external_pressure,
+            bus=self.bus
         )
         panic = jax_rigidity > 1.2
         
@@ -112,7 +113,7 @@ class BioArchetypalGovernor(nn.Module):
         state, step_factor = self.gangle(state, self.bus, dt=dt)
         
         # 7. Slow: Kinger consolidates memory if it is dark (Acetylcholine)
-        state, consolidating = self.kinger(state, luminosity)
+        state, consolidating = self.kinger(state, self.bus, luminosity)
         
         return {
             "state": state,
