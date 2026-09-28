@@ -1811,9 +1811,14 @@ class HybridAI:
                                                     self.engine.archetypal_governor.abstraction.abstraction_limit = new_ego_limit
                                             
                                             if hasattr(self, 'bulletin_router') and self.bulletin_router:
+                                                metrics = {
+                                                    'kelly_fraction': getattr(self, 'kelly_fraction', 0.0),
+                                                    'covariance_variance': 0.05
+                                                }
                                                 self.bulletin_router.broadcast_proof_of_honesty(
                                                     volume=self.tripsodic_ledger.global_volume,
-                                                    mischief=self.tripsodic_ledger.mischief_buffer
+                                                    mischief=self.tripsodic_ledger.mischief_buffer,
+                                                    metrics=metrics
                                                 )
                                                 print(f"[NDC] Tripsodic Expansion tick. New Volume: {self.tripsodic_ledger.global_volume:.2f} (Ego Limit: {new_ego_limit:.2f})")
                 except Exception as e:
