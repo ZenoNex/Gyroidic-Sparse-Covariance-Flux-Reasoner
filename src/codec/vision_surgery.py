@@ -58,9 +58,11 @@ class MirrorTestProbe(nn.Module):
     Checks if the surgery 'took'—i.e., if the interlaced state still resonates
     with the core gyroidic invariants.
     """
-    def __init__(self, threshold=0.8):
+    def __init__(self, cnn_dim=768, gyroid_dim=96, threshold=0.8):
         super().__init__()
         self.threshold = threshold
+        # To verify parity, we project the interlaced state back to gyroid residues
+        self.reverse_projection = nn.Linear(cnn_dim, gyroid_dim, bias=False)
         
     def forward(self, interlaced, original_gyroid_residue):
         """
@@ -72,31 +74,34 @@ class MirrorTestProbe(nn.Module):
             pas_h: [batch] Phase Alignment Score
             coherence_gate: [batch] Boolean mask (True if surgery is valid)
         """
-        # Simple projection parity check for now
-        # In a real Mirror Test, we'd check if interlaced can be decomposed 
-        # back into the original residues.
-        
         # Normalize for comparison
-        i_norm = F.normalize(interlaced, dim=-1)
-        # (This is simplified; a real PAS_h would use spectral overlap)
+        # We project the interlaced flesh back down to the bone to see if it matches
+        recovered_bone = self.reverse_projection(interlaced)
         
-        # For now, we simulate PAS_h as the cosine similarity between the 
-        # interlaced state and the projected bone.
-        # This measures how much of the 'Topological Truth' was preserved.
+        # Calculate Phase Alignment Score (PAS_h) via cosine similarity
+        pas_h = F.cosine_similarity(recovered_bone, original_gyroid_residue, dim=-1)
         
-        # We need the projection matrix to check parity, or just return a placeholder PAS_h
-        # that depends on the 'stitch_gauge' and 'jitter' magnitudes.
-        
-        # Placeholder PAS_h logic: 0.95 (High Coherence)
-        batch_size = interlaced.shape[0]
-        pas_h = torch.ones(batch_size, device=interlaced.device) * 0.95
+        # Ensure PAS_h is strictly positive for thresholding
+        pas_h = (pas_h + 1.0) / 2.0
         
         return pas_h, pas_h > self.threshold
 
-def conformal_to_gyroid_mapping(log_polar_coords: torch.Tensor) -> torch.Tensor:
+def conformal_to_gyroid_mapping(log_polar_coords: torch.Tensor, gyroid_dim: int = 96) -> torch.Tensor:
     """
     Coordinate transformation helper for Surgery Handles.
     Bridges Conformal Log-Polar image space to 3D Gyroidic residue space.
     """
-    # ... Implementation of the mapping ...
-    return log_polar_coords # Placeholder
+    # Map log-polar coordinates dynamically to high-dimensional gyroid space
+    if log_polar_coords.dim() == 1:
+        log_polar_coords = log_polar_coords.unsqueeze(0)
+        
+    in_dim = log_polar_coords.shape[-1]
+    
+    # Create deterministic mixing matrix to maintain structural integrity
+    mixing_matrix = harvest_honest_jitter((in_dim, gyroid_dim), device=log_polar_coords.device, scaled=False) / (in_dim ** 0.5)
+    
+    # Project and apply non-linear trigonometric gyroid wrapping
+    gyroid_space = torch.matmul(log_polar_coords, mixing_matrix)
+    # Apply standard gyroid equation approximation: sin(x)cos(y) + ...
+    # We use a simplified element-wise wrapping for topological closure
+    return torch.sin(gyroid_space) * torch.cos(gyroid_space.roll(1, dims=-1))
