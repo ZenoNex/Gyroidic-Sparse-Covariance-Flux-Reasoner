@@ -786,12 +786,14 @@ class PolynomialCoprimeConfig:
         
         return phi_rotated.view(*batch_shape, K)
 
-    def evaluate(self, x: torch.Tensor) -> torch.Tensor:
+    def evaluate(self, x: torch.Tensor, bonfire_network=None, veto_subspace=None) -> torch.Tensor:
         """
-        Evaluate all _k(x; _k).
+        Evaluate all _k(x; _k) using Hedged Multi-Channel Execution if Bonfire is available.
         
         Args:
             x: [batch, ...] input values
+            bonfire_network: Optional BonfireNomadicRing for federated execution.
+            veto_subspace: Optional VetoSubspace for immune validation of foreign channels.
             
         Returns:
             phi: [batch, ..., K] functional values
@@ -809,6 +811,27 @@ class PolynomialCoprimeConfig:
         # Apply saturation
         if self.use_saturation:
             phi = self.gate(phi)
+            
+        # Hedged Multi-Channel Execution via Bonfire
+        if bonfire_network is not None:
+            # Distribute channels
+            channels = {k: phi[..., k] for k in range(self.k)}
+            bonfire_network.broadcast_crt_residues("local_node", channels)
+            
+            # Re-integrate with immune checks
+            for k in range(self.k):
+                if k in bonfire_network.pending_crt_channels:
+                    foreign_tensor = bonfire_network.pending_crt_channels[k].to(self.device)
+                    # Immune Validation (VetoSubspace)
+                    if veto_subspace is not None:
+                        pressure = float(torch.abs(foreign_tensor.mean()).item())
+                        result = veto_subspace.evaluate(topological_pressure=pressure)
+                        if pressure > 0.9 or result.status.value == "budget_skipped":
+                            # Quarantined: The foreign peer injected toxic topology
+                            veto_subspace.quarantine_residue(k, reason="Agent Smith topology violation")
+                            continue # Fall back to local synthesis
+                    # Accept the validated channel
+                    phi[..., k] = foreign_tensor
             
         # Apply Hybrid LAS-Quantization (Bostick, 2026 update)
         if hasattr(self, 'quantizer') and self.quantizer is not None:
