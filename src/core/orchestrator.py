@@ -601,7 +601,8 @@ class UniversalOrchestrator(nn.Module):
             lucidity_idx=pas_h,
             raw_unquantized_state=current_state,
             is_high_priority=is_good_bug,
-            tag_weights=tag_weights
+            tag_weights=tag_weights,
+            bulletin_board=self.bulletin_board
         )
         
         state_governed = arch_results.active_state
