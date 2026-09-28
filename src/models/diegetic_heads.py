@@ -154,10 +154,10 @@ class ResonanceLarynx(nn.Module):
         else:
             safe_state = state
             
-        # Polynomial coeffs placeholder or derived from state
-        # Use only the last dimension for D, and treat K as 1 if not explicit
-        poly_placeholder = torch.ones(state.shape[0], state.shape[-1], device=state.device)
-        safe_state = self.chern_simons.plug_logic_leak(safe_state, poly_placeholder)
+        # Polynomial coeffs derived dynamically from the input state to track geometry
+        # Normalize state to use as basis coefficients
+        poly_coeffs = torch.nn.functional.normalize(state, p=2, dim=-1)
+        safe_state = self.chern_simons.plug_logic_leak(safe_state, poly_coeffs)
         
         if state.dim() == 2:
             safe_state = safe_state.squeeze(1)
