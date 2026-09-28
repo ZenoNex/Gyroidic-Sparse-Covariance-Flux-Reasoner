@@ -1,6 +1,6 @@
 # Temporal Association Training: Building System Memory
 
-**Status**: ✅ **IMPLEMENTED**  
+**Status**: [OK] **IMPLEMENTED**  
 **Date**: January 2026  
 **Purpose**: Feed the repaired Gyroidic Flux Reasoner with ordered data and associations over time
 
@@ -21,7 +21,7 @@ After successfully implementing the garbled output repair system (achieving 59.6
 
 ### The Problem with Static Training
 Traditional ML training uses shuffled, independent samples. This doesn't build:
-- **Sequential understanding** (A → B → C relationships)
+- **Sequential understanding** (A  B  C relationships)
 - **Contextual memory** (meaning depends on history)
 - **Trust evolution** (some patterns prove more reliable over time)
 - **Fossilization** (successful patterns become hardened)
@@ -49,9 +49,9 @@ The Gyroidic Flux Reasoner is designed for **ecological learning** where:
 
 **Pattern Types**:
 ```python
-# Linear: A → B → C → D
-# Branching: A → B → C, A → B → D  
-# Cyclic: A → B → C → A
+# Linear: A  B  C  D
+# Branching: A  B  C, A  B  D  
+# Cyclic: A  B  C  A
 ```
 
 ### 2. TemporalAssociationTrainer
@@ -80,24 +80,24 @@ The Gyroidic Flux Reasoner is designed for **ecological learning** where:
 Instead of teleological loss minimization, we use **survivorship pressure**:
 
 ```
-Survivorship_Pressure = Association_Inaccuracy + α × (1.0 - Coherence) - β × Mischief
+Survivorship_Pressure = Association_Inaccuracy +   (1.0 - Coherence) -   Mischief
 ```
 
 Where:
 - **Association_Inaccuracy**: `1 - cosine_similarity(residues, expected_associations)`
 - **Temporal_Coherence**: Smoothness of state transitions
-- **α**: Coherence weighting factor
+- ****: Coherence weighting factor
 
 ### Trust Scalar Evolution
 
 Trust scalars evolve based on functional performance:
 
 ```
-Trust_new = clamp(Trust_old + η × (accuracy - 0.5) × performance_bonus, 0, 1)
+Trust_new = clamp(Trust_old +   (accuracy - 0.5)  performance_bonus, 0, 1)
 ```
 
 Where:
-- **η**: Trust update rate
+- ****: Trust update rate
 - **accuracy**: Association accuracy for this functional
 - **performance_bonus**: `exp(-CRT_pressure)` (lower pressure = better performance)
 
@@ -105,7 +105,7 @@ Where:
 
 A functional becomes fossilized when:
 ```
-Trust_k > θ_fossilization  AND  consistent_performance > τ_consistency
+Trust_k > _fossilization  AND  consistent_performance > _consistency
 ```
 
 Fossilized functionals:
@@ -187,16 +187,16 @@ Epoch 5:  [0.634, 1.567, 0.445, 1.789, 0.823]  # Functional 3 fossilized
 ```
 
 ### Performance Metrics
-- **Association Accuracy**: 0.3 → 0.8+ over training
-- **Temporal Coherence**: 0.2 → 0.7+ over training  
-- **Fossilized Functionals**: 0 → 1-2 by epoch 5
+- **Association Accuracy**: 0.3  0.8+ over training
+- **Temporal Coherence**: 0.2  0.7+ over training  
+- **Fossilized Functionals**: 0  1-2 by epoch 5
 - **Repair System Stability**: Maintained throughout
 
 ### System Capabilities
 After training, the system should demonstrate:
-- **Sequential reasoning**: A → B → C understanding
+- **Sequential reasoning**: A  B  C understanding
 - **Contextual adaptation**: Same concept, different contexts
-- **Pattern completion**: Given A → B, predict C
+- **Pattern completion**: Given A  B, predict C
 - **Temporal stability**: Smooth state transitions
 - **Robust repair**: Continued garbled output handling
 
@@ -274,7 +274,7 @@ The temporal association training **maintains and enhances** the repair system:
 ### Repair Metrics Integration
 ```python
 repair_metrics = {
-    'spectral_coherence_threshold': 0.6 → 0.4,  # More adaptive
+    'spectral_coherence_threshold': 0.6  0.4,  # More adaptive
     'chern_simons_twist_energy': stable,         # Maintained
     'love_violations': decreasing,               # Improved protection
     'soliton_healing_progress': faster,          # More efficient
@@ -353,10 +353,10 @@ trust_history = [
 
 ## Status
 
-✅ **COMPLETE**: Full temporal association training system implemented  
-✅ **TESTED**: Training scripts and examples provided  
-✅ **DOCUMENTED**: Comprehensive documentation and usage guide  
-✅ **INTEGRATED**: Seamlessly works with repair system  
+[OK] **COMPLETE**: Full temporal association training system implemented  
+[OK] **TESTED**: Training scripts and examples provided  
+[OK] **DOCUMENTED**: Comprehensive documentation and usage guide  
+[OK] **INTEGRATED**: Seamlessly works with repair system  
 
 The temporal association training system is ready for deployment and should provide the Gyroidic Flux Reasoner with rich temporal understanding and robust associative memory while maintaining the effectiveness of the garbled output repair system.
 ---
@@ -367,11 +367,11 @@ The temporal association training system is ready for deployment and should prov
 
 The temporal association training system has been fully updated to comply with anti-lobotomy governance principles:
 
-**✅ Hardcoded Prime Elimination**: All instances of `[2, 3, 5, 7, 11, ...]` sequences removed
-**✅ Polynomial Co-Prime Integration**: Proper `PolynomialCoprimeConfig` usage throughout
-**✅ Placeholder Removal**: No `torch.randn()` placeholders for mathematical systems
-**✅ Evolutionary Trust Selection**: Mutation-based evolution, no gradient descent on trust
-**✅ Energy-Based Learning**: Contrastive energy shaping following EBM principles
+**[OK] Hardcoded Prime Elimination**: All instances of `[2, 3, 5, 7, 11, ...]` sequences removed
+**[OK] Polynomial Co-Prime Integration**: Proper `PolynomialCoprimeConfig` usage throughout
+**[OK] Placeholder Removal**: No `torch.randn()` placeholders for mathematical systems
+**[OK] Evolutionary Trust Selection**: Mutation-based evolution, no gradient descent on trust
+**[OK] Energy-Based Learning**: Contrastive energy shaping following EBM principles
 
 ### 6.2 Implementation Architecture
 
@@ -426,7 +426,7 @@ if containment_pressure > 0.5:  # Rescue trigger
 ```python
 class NonLobotomyTemporalTrainer:
     def train_step(self, batch):
-        # Measure survivorship pressure (Unified Equation §6.3 TAT)
+        # Measure survivorship pressure (Unified Equation 6.3 TAT)
         # alpha * (1-coh) penalizes instability; beta * mischief rewards novel thought
         survivorship_pressure = 1.0 - association_accuracy + 0.1 * (1.0 - coherence) - 0.05 * mischief
         
@@ -562,3 +562,36 @@ grep -r "trust.*backward\(\)" src/ examples/  # Trust gradient descent
 5. **Structural Integrity**: Maintain three-system architecture (Horse/Horn/Magic)
 
 This implementation represents a mature temporal association training system that fully embodies the anti-lobotomy principles while maintaining mathematical rigor and evolutionary authenticity.
+
+---
+
+## 7. System 1 / System 2 Asynchronous Integration (The Bulletin Board)
+
+### 7.1 Fast Cop / Slow Cop Decoupling
+To resolve $t_{RFC}$ stall heat caused by forcing synchronous evaluation between rapid heuristic drafting (System 1) and topological constraint verification (System 2), the architecture now implements an asynchronous **Bulletin Board** (`src/core/bulletin_board.py`).
+
+- **System 1 (Bio-Archetypal Governor / Temporal Trainer)**: Takes multiple rapid micro-steps, posting its latest "repaired" residue states to the `residue_mailbox` and `residue_history`.
+- **System 2 (Operational ADMM / Constraint Probes)**: Reads the residues, evaluates geometric constraint violations (e.g., Phase Alignment Invariant $\zeta$), and posts aggregated local constraint forces (`F_i`) back to the `force_register`.
+
+### 7.2 ADMM Real Portal Integration
+We eliminated all mock constraint tensors (`torch.tensor([0.5])`) replacing them with a live "portal" out of the ADMM loop:
+- **Survivorship Pressure Modulation**: In the `TemporalAssociationTrainer`, aggregated forces read from the Bulletin Board directly inflate survivorship pressure (`survivorship_pressure += 0.05 * posted_force.norm()`). Unresolved constraints lower survival probability.
+- **Dynamic Phase Alignment ($\zeta_{community}$)**: In the Governor, the `PhaseAlignmentInvariant` is evaluated against the `residue_history` batch dynamically retrieved from the Bulletin Board, proving true community warmth vs. systemic misalignment.
+
+### 7.3 Honest Jitter Replacing PRNGs
+All instances of pseudo-random number generation (`torch.randn`, `numpy.random`) across the codebase (`src/data`, `src/codec`, `src/core`, `src/governance`) have been strictly eradicated.
+- **`harvest_honest_jitter()`**: The system now seeds variance exclusively from real deterministic hardware state (clock cycles, memory pointers, uninitialized VRAM buffers) ensuring that "noise" is an honest projection of the physical substrate rather than synthetic algorithmic lobotomy.
+
+---
+
+## 8. Bio-Archetypal Governance Cascade
+
+The temporal trainer leverages the **Bio-Archetypal Governor** (`src/governance/bio_archetypal_governor.py`) to gate systemic responses and filter conceptual updates based on biological timescales:
+
+1. **Environment (Caine)**: Sets precision matrices based on system entropy.
+2. **Interoceptive (Pomni)**: Calculates prediction error and broadcasts Noradrenaline, dynamically shrinking temporal windows during high-surprise events.
+3. **Ultrafast (Zooble - Autonomy Firewall)**: Inspects the raw ADMM residue from the Bulletin Board. Emits an immediate *RefusalSignal* (Li-Cri-Anton constraint) if conformal compression (forced scripted lobotomy) exceeds threshold limits.
+4. **Fast (Jax - Cynical Shell)**: Evaluates approach/avoidance. `external_pressure` is drawn directly from ADMM Bulletin Board forces, hardening the network's cynical mask in hostile topologies, but yielding when community support ($\zeta_{community}$) is warm.
+5. **Medium (Kinger - Ombre Bridge)**: Bridging fragmented polynomial spaces using structural interpolation when environment luminosity drops.
+
+This continuous biological feedback forms the foundational "ego" of the Reasoner, guaranteeing that temporal associations are learned safely without violating the topology of the system's identity.
