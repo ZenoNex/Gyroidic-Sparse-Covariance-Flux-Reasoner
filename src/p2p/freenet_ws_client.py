@@ -8,12 +8,37 @@ from typing import Dict, Any, Callable
 
 logger = logging.getLogger(__name__)
 
+def get_freenet_udp_port() -> int:
+    """
+    Dynamically attempts to locate the local Freenet/Locutus UDP peer port.
+    Returns the port number if found, otherwise returns None.
+    """
+    try:
+        import psutil
+        for proc in psutil.process_iter(['name', 'pid']):
+            name = proc.info.get('name', '')
+            if name and ('java' in name.lower() or 'wrapper' in name.lower() or 'locutus' in name.lower() or 'freenet' in name.lower()):
+                try:
+                    for conn in proc.connections(kind='udp'):
+                        if conn.status == 'NONE' or conn.status == '':
+                            # UDP doesn't really have a 'LISTEN' state, check if port is bound
+                            if conn.laddr and conn.laddr.port > 0:
+                                return conn.laddr.port
+                except (psutil.AccessDenied, psutil.NoSuchProcess):
+                    continue
+    except ImportError:
+        logger.warning("[FREENET] psutil not installed, cannot auto-detect UDP port.")
+    return None
+
 class FreenetClient:
     """
     WebSocket client to connect to a local Freenet Core (Locutus) daemon.
     Manages state contracts for the Gyroidic Sparse Covariance Flux Reasoner.
     """
-    def __init__(self, host: str = "127.0.0.1", port: int = 3000):
+    def __init__(self, host: str = "127.0.0.1", port: int = None):
+        import os
+        if port is None:
+            port = int(os.environ.get("FREENET_WS_PORT", 3000))
         self.uri = f"ws://{host}:{port}/"
         self.ws = None
         self.running = False
@@ -23,20 +48,24 @@ class FreenetClient:
         self._last_log_time = 0.0
 
     async def _connect_and_listen(self):
-        try:
-            async with websockets.connect(self.uri) as ws:
-                self.ws = ws
-                logger.info(f"[FREENET] Connected to local daemon at {self.uri}")
-                while self.running:
-                    try:
-                        message = await asyncio.wait_for(ws.recv(), timeout=1.0)
-                        self._handle_message(message)
-                    except asyncio.TimeoutError:
-                        continue
-        except Exception as e:
-            logger.error(f"[FREENET] Failed to connect or lost connection: {e}")
-        finally:
-            self.ws = None
+        while self.running:
+            try:
+                async with websockets.connect(self.uri) as ws:
+                    self.ws = ws
+                    logger.info(f"[FREENET] Connected to local daemon at {self.uri}")
+                    while self.running:
+                        try:
+                            message = await asyncio.wait_for(ws.recv(), timeout=1.0)
+                            self._handle_message(message)
+                        except asyncio.TimeoutError:
+                            continue
+            except Exception as e:
+                logger.error(f"[FREENET] Failed to connect or lost connection: {e}")
+            finally:
+                self.ws = None
+            
+            if self.running:
+                await asyncio.sleep(5.0)
 
     def _handle_message(self, message: str):
         try:
