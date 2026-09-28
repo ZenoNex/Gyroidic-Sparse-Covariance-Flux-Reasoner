@@ -67,7 +67,7 @@ class MetaInvariant(nn.Module):
         num_edges = graph.number_of_edges()
         num_components = nx.number_connected_components(graph)
         
-        # H_1 dimension: β_1 = |E| - |V| + |components|
+        # H_1 dimension: _1 = |E| - |V| + |components|
         h1_dim = max(0, num_edges - num_vertices + num_components)
         
         # Weight by coherence and violations if provided
@@ -141,7 +141,7 @@ class MetaInvariant(nn.Module):
         
         Pointer #4: Coherence Loss Is a Signal, Not a Fault
         - Contraction (rate < 0) = COLLAPSE = violation (UNLESS v_m > high_water_mark)
-        - Stasis (rate ≈ 0) = acceptable
+        - Stasis (rate  0) = acceptable
         - Expansion (rate > 0) = orthogonality gain = SIGNAL (log, don't penalize)
         
         Args:
@@ -159,11 +159,11 @@ class MetaInvariant(nn.Module):
             # First step: initialize
             if isinstance(current_h1_dim, torch.Tensor):
                 if current_h1_dim.dim() == 0:
-                    self.prev_h1_dim.data[0] = current_h1_dim.item()
+                    self.prev_h1_dim.fill_(current_h1_dim.item())
                 else:
-                    self.prev_h1_dim.data[0] = current_h1_dim.mean().item()
+                    self.prev_h1_dim.fill_(current_h1_dim.mean().item())
             else:
-                self.prev_h1_dim.data[0] = float(current_h1_dim)
+                self.prev_h1_dim.fill_(float(current_h1_dim))
             
             self.step_count += 1
             return True, torch.tensor(0.0), torch.tensor(0.0)
@@ -186,7 +186,7 @@ class MetaInvariant(nn.Module):
             is_satisfied = True
             violation = 0.0
             self._log_expansion_event(rate, expected_h1, note="FORGETTING_CYCLE")
-            self.prev_h1_dim.data[0] = expected_h1
+            self.prev_h1_dim.fill_(expected_h1)
             self.step_count += 1
             return is_satisfied, torch.tensor(rate), torch.tensor(violation)
         
@@ -208,7 +208,7 @@ class MetaInvariant(nn.Module):
             violation = 0.0
         
         # Update previous value
-        self.prev_h1_dim.data[0] = expected_h1
+        self.prev_h1_dim.fill_(expected_h1)
         self.step_count += 1
         
         return is_satisfied, torch.tensor(rate), torch.tensor(violation)
