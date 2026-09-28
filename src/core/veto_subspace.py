@@ -429,6 +429,25 @@ class VetoSubspace(nn.Module):
             final_severity=final_severity,
             budget_gates=budget_gates
         )
+        
+    def quarantine_residue(self, residue_id: int, reason: str) -> VetoSignal:
+        """
+        Quarantine a specific CRT residue channel if it violates immune bounds.
+        """
+        if self.veto_mask is None:
+            self.veto_mask = torch.zeros(1024, dtype=torch.bool)
+        
+        if residue_id < len(self.veto_mask):
+            self.veto_mask[residue_id] = True
+            
+        return VetoSignal(
+            level=VetoLevel.TOPOLOGY,
+            source='quarantine',
+            severity=1.0,
+            triggered=True,
+            can_recover=True, # Recovered via Hedged execution in PolynomialCoprimeConfig
+            metadata={'quarantined_residue_id': residue_id, 'reason': reason}
+        )
     
     def forward(self, **kwargs) -> VetoResult:
         """nn.Module-compatible forward pass. Delegates to evaluate()."""
