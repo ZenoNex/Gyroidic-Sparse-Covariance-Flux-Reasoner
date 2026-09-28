@@ -2735,21 +2735,28 @@
                     let receivedLength = 0;
                     let previewLength = 0;
 
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
+                    try {
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
 
-                        chunks.push(value);
-                        receivedLength += value.length;
+                            chunks.push(value);
+                            receivedLength += value.length;
 
-                        if (previewLength < 1000) {
-                            previewText += value;
-                            previewLength += value.length;
+                            if (previewLength < 1000) {
+                                previewText += value;
+                                previewLength += value.length;
+                            }
+
+                            if (chunks.length % 50 === 0) {
+                                targetInput.value = `Streaming ${file.name}: ${Math.round(receivedLength / 1024 / 1024)}MB read...`;
+                            }
                         }
-
-                        if (chunks.length % 50 === 0) {
-                            targetInput.value = `Streaming ${file.name}: ${Math.round(receivedLength / 1024 / 1024)}MB read...`;
-                        }
+                    } catch (err) {
+                        console.warn("[Stream] Orphan stream caught and closed:", err);
+                        await reader.cancel(err);
+                    } finally {
+                        reader.releaseLock();
                     }
 
                     combinedText += chunks.join('');
