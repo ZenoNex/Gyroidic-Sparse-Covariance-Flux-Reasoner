@@ -25,6 +25,7 @@ except ImportError:
     pybevy = None
 
 import torch
+from src.core.honest_jitter import harvest_honest_jitter
 from src.safety.subversive_oracle import ResonantSVNNOracle
 from src.core.orchestrator import UniversalOrchestrator
 from src.safety.red_teaming import RedTeamProjection
@@ -255,8 +256,8 @@ def monitor_chat_system(state: 'ResMut<PatchStateResource>'):
             
             if tox_val > 0.05: # S-VNN Noise threshold
                 # Flagged for toxicity. Map to Sovereign Exemption Tokens.
-                y_tensor = torch.randn(10, 32)
-                z_tensor = torch.randn(10, 32)
+                y_tensor = harvest_honest_jitter((10, 32), scaled=False)
+                z_tensor = harvest_honest_jitter((10, 32), scaled=False)
                 u_dirs = state.pca_mapper.fit_transform(z_tensor, y_tensor)
                 
                 if u_dirs is not None and u_dirs.shape[1] > 0:
