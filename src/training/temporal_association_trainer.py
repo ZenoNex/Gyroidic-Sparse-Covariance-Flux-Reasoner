@@ -640,7 +640,7 @@ class TemporalAssociationTrainer:
             float(h_mischief),
             state=state_to_post,
             hyper_ring_status=hyper_ring_status
-        ).squeeze(0)
+        ).mean()
         
         # Backward pass
         self.optimizer.zero_grad()
