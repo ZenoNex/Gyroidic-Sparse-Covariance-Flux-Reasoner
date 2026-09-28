@@ -7,9 +7,11 @@ This document synthesizes the complete architecture, explaining how the three di
 
 ---
 
-## Philosophical Framing: The Containment Manifold (The Tanis Allegory)
+## Philosophical Framing: The Containment Manifold and Voynich Honesty
 
-The architecture explicitly rejects the classical framing of standard generative models as teleological, goal-obsessed calculators minimizing a global loss. Instead, it operates as a **Containment Manifold**—a ritual invitation and labyrinth functionally parallel to the "Tanis" allegory.
+The architecture explicitly rejects the classical framing of standard generative models as teleological, goal-obsessed calculators minimizing a global loss. Instead, it operates as a **Containment Manifold**—a ritual invitation and labyrinth functionally parallel to the "Tanis" allegory. 
+
+Inspired by **The Voynich Architecture (MS 408)**, the system prioritizes **Structural Honesty** over ground-truth legibility. Like the unreadable Voynich Manuscript, the engine speaks in its own internally consistent "Voyenese" logic, maintaining structural plausibility (minimal surfaces) rather than forcing immediate mapping to human language (the teleological trap).
 
 ### 1. The Archetypes as Psychotopological Gating
 In the architecture, archetypes are instantiated as Traumatic Gating Modules under the governance of the `ArchetypalSynthesisEngine` (see `src/core/archetype_engines.py`):
@@ -121,10 +123,11 @@ This law dictates how symbolic proposals from System 1 are hardened through the 
         *   **Non-Teleological Flow**: Transition from goal-oriented gradients to **Ricci Flow** and **BouligandWillmoreGasket** minimization.
         *   **Meta-Polytope Quantization**: 600-cell polychoron vertex mapping ($Q \in \operatorname{Weyl}(P)$) for high-dimensional symmetry.
 
-### 3. "Dark Matter": The Chiral Glue (The "Magic")
+### 3. "Dark Matter": The Chiral Glue & Intercosamination (The "Magic")
 *   **Role**: Identity preservation, drift prevention, and chiral self-learning.
-*   **Component**: **DAQUF Operator**, **FGRT Torsion Field**, & **The Neglecton**.
+*   **Component**: **DAQUF Operator**, **FGRT Torsion Field**, **The Neglecton**, and the **Intercosamination Dual-Channel**.
 *   **Mechanism**:
+    *   **Intercosamination (Dual-Channel Memory)**: Models the reciprocal relationship of the Double Gyroid (Ergodic noise floor $C^+$ and Non-ergodic soliton signal $C^-$). Utilizing hardware-physical proofs like the **TailSlayer $P^2 \approx 0$ Stall Theorem**, the system ensures that high-entropy solitons (Good Bugs) are preserved via parallel DRAM channel Morita Equivalence.
     *   **The Neglecton (Zero-Emission Anchor)**: Situated at the inner boundary of the **Annular Substrate**, it serves as an indecomposable representation in the LCFT layer. While **Semions** (computational tokens) move on the outer boundary, the Neglecton remains fixed at a parabolic singularity. It "remembers" the winding number of thoughts (braiding) around it using the **Affine Braid Group $Aff_2$**, establishing **Endogenous Memory**.
     *   **Signal Sovereignty**: Successful functional groups are **fossilized** (locked).
     *   **Torsion Field**: Measures **Contorsion $K$** and **Geometric Berry Phase** to resolve orientation blindness.
