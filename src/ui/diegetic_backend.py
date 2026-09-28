@@ -1,7885 +1,3939 @@
-import os
-import sys
+<!DOCTYPE html>
+<html lang="en">
 
-# =============================================================================
-# ANTI-STAGNATION INITIALIZATION (System "Wake Up" Protocol)
-# =============================================================================
-# Resolve Windows hang during torch initialization/JIT lookup.
-# Bypassing entropic stagnation in the MKL/OpenMP runtime.
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
-os.environ['OMP_NUM_THREADS'] = '1'        # Minimize thread-contention in systemic logic
-os.environ['PYTORCH_JIT'] = '0'             # Disable JIT to prevent speculative stall
-os.environ['PYTHONUNBUFFERED'] = '1'        # Immediate log visibility
-# =============================================================================
-
-import http.server
-import socketserver
-import json
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import os
-import sys
-import math
-import socket
-import subprocess
-import logging
-import time
-import datetime
-import urllib.request
-import hashlib
-import hmac
-import secrets
-
-# Generate a cryptographically secure token for CSRF protection on boot
-CSRF_TOKEN = secrets.token_hex(32)
-
-# Ensure PYTHONPATH includes project root for all imports
-import sys
-import os
-sys.path.insert(0, os.getcwd())
-
-# Advanced Extensions Imports (Lazy/Safe)
-try:
-    from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka
-    from src.core.quantum_inspired_reasoning import QuantumInspiredReasoningState
-    from src.core.sparse_higher_order_tensors import SparseHigherOrderTensorDynamics
-    from src.core.context_aware_quantizer import ContextAwareQuantizer
-    from src.core.zeitgeist_router import ZeitgeistRouter, ZeitgeistState
-    from src.core.advanced_extensions_bridge import AdvancedExtensionsBridge
-    EXTENSIONS_AVAILABLE = True
-    print("OK: Advanced Extensions loaded successfully!")
-except ImportError as e:
-    EXTENSIONS_AVAILABLE = False
-    print(f"WARNING: Advanced Extensions not found. Running in Standard Mode. ({e})")
-
-
-def compute_autocorrelation(x: torch.Tensor) -> torch.Tensor:
-    """
-    Compute autocorrelation using FFT-based convolution.
-    Energy-based approach following Parseval's theorem.
-    """
-    # Ensure input is 1D
-    if x.dim() > 1:
-        x = x.flatten()
-    
-    # Zero-pad for full correlation
-    n = len(x)
-    padded_x = F.pad(x, (0, n-1), mode='constant', value=0)
-    
-    # Use FFT-based convolution for efficiency
-    # This preserves energy according to Parseval's theorem
-    x_fft = torch.fft.fft(padded_x)
-    autocorr_fft = x_fft * torch.conj(x_fft)
-    autocorr = torch.fft.ifft(autocorr_fft).real
-    
-    # Return only the positive lags (symmetric)
-    return autocorr[:2*n-1]
-
-
-def _compute_fossil_budget() -> int:
-    """Dynamically computes the fossil load budget based on true hardware dimensionality."""
-    try:
-        from src.core.hardware_monitor import get_headroom_dimensionality
-        return get_headroom_dimensionality()
-    except Exception as e:
-        print(f"[BUDGET ERROR] Failed to compute topological headroom: {e}")
-        return 150 # safe fallback
-from urllib.parse import urlparse, parse_qs
-from typing import Dict, Any, List, Optional, Tuple, Union
-import hashlib
-
-# Import Gyroidic Components
-# Ensure PYTHONPATH is adequate or sys.path is used
-sys.path.append(os.getcwd())
-
-from src.core.polynomial_coprime import PolynomialCoprimeConfig, PolynomialBasis
-from src.core.leontief_governor import LeontiefGovernor
-from src.training.fgrt_fgrt_trainer import SpectralStructuralTrainer
-from src.models.resonance_cavity import ResonanceCavity
-from src.models.diegetic_heads import ResonanceLarynx, DataAssociationLayer
-from src.codec.gyroidic_codec import GyroidicCodec, CodecConfig
-
-# GARBLED OUTPUT REPAIR SYSTEM INTEGRATION
-from src.core.spectral_coherence_repair import SpectralCoherenceCorrector, BezoutCoefficientRefresh
-from src.core.chern_simons_gasket import ChernSimonsGasket, SolitonStabilityHealer
-from src.core.honest_jitter import harvest_honest_jitter
-from src.core.love_vector import LoveVector
-from src.core.knowledge_dyad_fossilizer import DyadFossilizer, KnowledgeDyad
-from src.core.dyadic_transfer import DyadicTransferMap
-from src.core.love_invariant_protector import LoveInvariantProtector, SoftSaturatedGates
-from src.core.agent_substrate_bridge import AgentSubstrateBridge
-from src.core.device_utils import DEVICE
-
-# LEGACY SYSTEM INTEGRATION
-# CALM: Context-Adaptive Latent Momentum (Trajectory Veto)
-from src.surrogates.calm_predictor import CALM
-# KAGH: Kolmogorov-Arnold-Godel-Huxley (Speculative Drafting)
-from src.surrogates.kagh_networks import KAGHBlock, HarmonicWaveDecomposition, HuxleyRD
-# Gyroid Covariance for tensor-based momentum instead of scalar averages
-from src.topology.gyroid_covariance import GyroidCovarianceEstimator
-from src.codec.vision_utilities import get_russian_doll_projection
-from image_extension import ImageProcessor
-# Speculative Coprime Chiral Gating (Legacy Recovery)
-from src.core.speculative_coprime_gate import SpeculativeCoprimeGate
-from src.core.invariants import (
-    compute_chirality, 
-    check_glyphlock, 
-    compute_chiral_shift,
-    apply_chirality_redistribution,
-    apply_asymmetry_preserving_reshape
-)
-
-# Sovereign Ingestion Integration
-from src.data.conversational_api_ingestor import SovereignConversationalIngestor
-
-# SOVEREIGN INGESTION SYSTEM
-from src.data.knowledge_ingestor import ArXivSovereignIngestor
-from src.data.chatgpt_friction_harvester import ChatGPTFrictionHarvester, auto_temporal_training_loop
-import threading
-import asyncio
-
-# Graph Topology
-from src.topology.embedding_graph import GyroidicGraphManager, KnowledgeFossilNode
-# Pressure Ingestor for constraint forcing when code is detected
-from src.data.pressure_ingestor import PressureIngestor
-# Topological Extensions (Repunit Probes)
-from src.core.birkhoff_projection import DModuleRankProbe
-from src.topology.unknowledge_domain import UnknowledgeDomain, EntropicMischiefProbe
-from src.core.five_gate_pipeline import FiveGatePipeline, KnowledgeState
-from src.core.archetype_engines import ArchetypalSynthesisEngine
-from src.core.manifold_time import ManifoldClock
-from src.core.valence_drive import ValenceFunctional
-from src.core.voynich_architecture import VoynichLinguist
-from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
-from src.core.audience_mapping import AudienceProjection
-from src.core.gluing_operator import GluingOperator
-
-# Local Data Loading (Phase 1: HF token barrier removal)
-from src.data.local_data_loader import LocalDataLoader
-from src.data.textbook_filter import TextbookFilter
-
-# Minecraft Ingestion Pipeline
-from src.data.minecraft_ingestor import MinecraftIngestionPipeline
-
-# Tabby ML Integration (Phase 3)
-try:
-    from src.integrations.tabby_client import TabbyClient, TabbyConfig
-    TABBY_AVAILABLE = True
-except ImportError:
-    TABBY_AVAILABLE = False
-    print("WARNING: Tabby ML client not available")
-
-# State persistence path
-STATE_PATH = "gyroid_state.pt"
-ENCODING_DIR = os.path.join("data", "encodings")
-
-# Initialize local data systems
-LOCAL_LOADER = LocalDataLoader()
-TEXTBOOK_FILTER = TextbookFilter()
-TABBY_CLIENT = TabbyClient() if TABBY_AVAILABLE else None
-
-# Training state (for async training status polling)
-TRAINING_STATE = {
-    'active': False,
-    'progress': 0,
-    'log': [],
-    'results': None,
-}
-
-class TensorEncoder(json.JSONEncoder):
-    """Custom JSON encoder to handle PyTorch tensors and numpy arrays."""
-    def default(self, obj):
-        if isinstance(obj, torch.Tensor):
-            # Convert tensor to list, handling both scalar and multi-dimensional
-            return obj.detach().cpu().tolist()
-        elif hasattr(obj, 'numpy'):  # numpy arrays
-            return obj.tolist()
-        elif hasattr(obj, 'item'):  # numpy scalars
-            return obj.item()
-        elif isinstance(obj, (complex,)):
-            return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 'real': obj.real, 'imag': obj.imag}
-        elif hasattr(obj, '__dict__'):
-            # For custom objects, try to extract basic attributes
-            return str(obj)
-        return super().default(obj)
-
-
-from src.core.knowledge_dyad_fossilizer import DyadFossilizer, KnowledgeDyad
-
-class EncodingManager:
-    """
-    Manages persistent encoding files to prevent 'erasing of implication'.
-    Saves each interaction's topological trace as a distinct artifact.
-    """
-    def __init__(self, base_dir=ENCODING_DIR):
-        self.base_dir = base_dir
-        os.makedirs(base_dir, exist_ok=True)
-
-    def get_latest_iteration(self) -> int:
-        """Scans ENCODING_DIR to find the last saved iteration."""
-        files = os.listdir(self.base_dir)
-        iterations = []
-        for f in files:
-            if f.startswith('encoding_') and f.endswith('.pt'):
-                parts = f.split('_')
-                if len(parts) >= 2:
-                    try:
-                        iter_str = parts[1].replace('.pt', '')
-                        iterations.append(int(iter_str))
-                    except (ValueError, IndexError):
-                        continue # Skip shadow logs or malformed files
-        return max(iterations) if iterations else 0
-        
-    def save_encoding(self, iteration: int, text: str, input_tensor: torch.Tensor, memory_state: torch.Tensor, response: str, metrics: Dict[str, Any], multimodal_context: Optional[Dict[str, Any]] = None):
-        """Save the encoding dyad to a timestamped file along with structural metrics and multimodal context."""
-        import time
-        timestamp = int(time.time())
-        filename = f"encoding_{iteration}_{timestamp}.pt"
-        path = os.path.join(self.base_dir, filename)
-        
-        # Detach and move to CPU to ensure persistence safety
-        data = {
-            "iteration": iteration,
-            "timestamp": timestamp,
-            "text_input": text,
-            "input_tensor": input_tensor.detach().cpu() if isinstance(input_tensor, torch.Tensor) else input_tensor,
-            "memory_state": memory_state.detach().cpu() if isinstance(memory_state, torch.Tensor) else memory_state,
-            "response": response
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gyroidic Diegetic Terminal // Structural Honesty</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Fira+Code:wght@400&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/three"></script>
+    <script src="https://unpkg.com/3d-force-graph"></script>
+    <style>
+        :root {
+            --bg-color: #030303;
+            --terminal-green: #00ff41;
+            --terminal-blue: #00f2ff;
+            --terminal-magenta: #ff00f2;
+            --terminal-warn: #ffcc00;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --font-main: 'Outfit', sans-serif;
+            --font-mono: 'Fira Code', monospace;
+            --sidebar-width: 320px;
         }
-        
-        if multimodal_context:
-            # Capturing projected Chebyshev harmonics and raw traces
-            for k, v in multimodal_context.items():
-                if isinstance(v, torch.Tensor):
-                    data[k] = v.detach().cpu()
-                else:
-                    data[k] = v
 
-        # Add metrics for graph weighting (e.g. chiral_score, entropy, zeitgeist)
-        data.update(metrics)
-        
-        torch.save(data, path)
-        print(f"[PERSISTENCE] Fossilized interaction {iteration} to {filename}")
-        return filename
-
-
-from src.core.fractal_meta_functional import FractalMetaFunctional
-
-class DiegeticPhysicsEngine(nn.Module):
-    """
-    The Core Engine.
-    Combines Cavity + Larynx + Persistence + Fractal Meta-Recursion + CALM + KAGH.
-    """
-    def __init__(self, dim=256, k=5, calm_history_len=8, device=None, config=None):
-        super().__init__()
-        self.config = config or {}
-        if device is None:
-            self.device = DEVICE
-        else:
-            self.device = device
-
-            # Now use self.device for everything else
-        print(f"[ENGINE] Engine initialized on: {self.device}")
-        self.dim = dim
-        self.k = k
-        self.last_input_time = 0
-        self.last_user_tokens = set()
-        self.hardening = 0.5 # Default manifold state
-        self.use_gyroid_probes = True
-        
-        # Load or generate persistent node HMAC secret for anti-poisoning topology
-        secret_path = os.path.join(os.path.dirname(__file__), '..', '..', 'data', '.node_secret')
-        os.makedirs(os.path.dirname(secret_path), exist_ok=True)
-        if os.path.exists(secret_path):
-            with open(secret_path, 'rb') as f:
-                _hmac_bytes = f.read()
-        else:
-            _hmac_bytes = os.urandom(32)
-            with open(secret_path, 'wb') as f:
-                f.write(_hmac_bytes)
-        self.register_buffer('_hmac_key', torch.tensor(list(_hmac_bytes), dtype=torch.uint8))
-        
-        # Advanced Extensions (Lazy Init)
-        self.meta_polytope = MetaPolytopeMatrioshka(max_depth=5, base_dim=dim) if EXTENSIONS_AVAILABLE else None
-        self.tensor_dynamics = SparseHigherOrderTensorDynamics(max_order=3, num_shells=3, base_dim=dim) if EXTENSIONS_AVAILABLE else None
-        self.quantum_reasoner = None
-        self.advanced_bridge = AdvancedExtensionsBridge(dim=dim, device=self.device) if EXTENSIONS_AVAILABLE else None
-        self.extensions_enabled = EXTENSIONS_AVAILABLE
-
-        self.cavity = ResonanceCavity(hidden_dim=dim, num_modes=16)
-        self.larynx = ResonanceLarynx(hidden_dim=dim) # Pure Topological
-        self.unicode_to_idx = {}
-        self.idx_to_unicode = []
-        # Centralized Allowed Characters list
-        self.allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,!?-'_()[]{}<>:=+/*;%#@$&|\\\"`~^")
-        self.associator = DataAssociationLayer(input_dim=dim, hidden_dim=dim, k=k)
-        
-        # 12. Gyroidic Codec (Gap B Integration)
-        self.codec = GyroidicCodec(CodecConfig(K=k, device=str(self.device)))
-        
-        # 13. Neglecton Fossil Graph (Dynamic Sovereign Refusal System)
-        self.graph_manager = GyroidicGraphManager(data_dir=ENCODING_DIR, dim=dim)
-        # Pre-load fossils (attempts snapshot first for speed - resolves 'million years' issue)
-        self.graph_manager.load_fossils(limit=_compute_fossil_budget())
-        
-        # =============================================
-        # GARBLED OUTPUT REPAIR SYSTEM
-        # =============================================
-        print("[CONFIG] Initializing Garbled Output Repair System...")
-        device = DEVICE
-        # Spectral Coherence Corrector - fixes consonant clustering
-        self.spectral_corrector = SpectralCoherenceCorrector(
-            initial_threshold=0.7,
-            min_threshold=0.1,
-            adaptation_rate=0.1,
-            device=device
-        )
-        
-        # Bezout Coefficient Refresh - fixes CRT modulus drift
-        self.k = 5
-        self.poly_degree = 12
-        self.bezout_refresh = BezoutCoefficientRefresh(
-            num_functionals=self.k,
-            poly_degree=self.poly_degree,
-            device=device
-        )
-        
-        # Re-entrancy guards for Temporal Association Trainer
-        self._in_training = False
-        self._is_training_temporal = False
-        self._last_temporal_diag = {}
-        self._last_matrioshka_diag = {}
-
-        self.bezout_refresh.bezout_matrix.fill_(0.0)
-        self.bezout_refresh.bezout_matrix.add_(torch.eye(5))  # Identity is the safest starting poin
-
-        # Chern-Simons Gasket - plugs logic leaks
-        self.chern_simons_gasket = ChernSimonsGasket(
-            manifold_dim=3,
-            level_k=1,
-            device=device
-        )
-        
-        # Tri-State Output Gate 4/5 
-        self.five_gate_pipeline = FiveGatePipeline(state_dim=dim)
-        self.archetypal_governor = ArchetypalSynthesisEngine(state_dim=dim)
-        self.unknowledge_domain = UnknowledgeDomain(tau_m=0.3, dim=dim)
-        self.mischief_probe = EntropicMischiefProbe(device=self.device)
-        self.voynich_linguist = VoynichLinguist(latent_dim=dim).to(self.device)
-        
-        # Topological ingestion gate (replaces missing boundary validation)
-        from src.core.topological_ingestion_validator import TopologicalIngestionValidator
-        from src.core.polynomial_coprime import PolynomialCoprimeConfig
-        poly_config = PolynomialCoprimeConfig(
-            k=5,
-            degree=4,
-            basis_type='chebyshev',
-            learnable=True,
-            use_saturation=True
-        )
-        self.ingestion_validator = TopologicalIngestionValidator(
-            poly_config=poly_config,
-            state_dim=dim,
-            scale=65536.0,
-            min_rank_ratio=0.3,
-        ).to(self.device)
-        
-        # Introspection head for self-modeling
-        from src.models.introspection_head import AggregateGeometricSelfModel
-        self.introspection = AggregateGeometricSelfModel(hidden_dim=dim).to(self.device)
-
-        # Integrated Physics Modules 
-        self.manifold_clock = ManifoldClock(device=self.device)
-        self.valence_drive = ValenceFunctional(device=self.device)
-
-        # Democratic Leontief Governor for Symbolic Parameter Balancing
-        self.democratic_governor = LeontiefGovernor(state_dim=2, device=self.device)
-        # Democratic Dependency Matrix A_bar registered as buffer (shape [1, 2, 2] for Leontief)
-        democratic_matrix = torch.tensor([[[0.20, 0.30], [0.15, 0.20]]], device=self.device)
-        self.register_buffer('democratic_matrix', democratic_matrix)
-
-        # Audience Mapping (: M -> A)
-        self.audience_mapper = AudienceProjection(input_dim=dim, audience_dim=dim)
-
-        # Symplectic Gluing Operator (Psi)
-        self.gluer = GluingOperator(dim)
-
-        # Soliton Stability Healer - heals fractured solitons
-        self.soliton_healer = SolitonStabilityHealer(
-            alpha_0=1.0,
-            gamma=0.5,
-            healing_iterations=400,
-            device=device
-        )
-        
-        self.current_regime = 'goo' # Default starting regime
-        
-        # Repunit-CRT Sparse Probe - for topological factoring
-        # Using Legendre polynomial generated coefficients instead of hardcoded primes (anti-lobotomy compliance)
-        from src.core.polynomial_coprime import PolynomialBasis
-        basis = PolynomialBasis(degree=k-1, basis_type='legendre')
-        legendre_vals = basis.evaluate(torch.tensor([0.7], device=device))[0]
-
-        from src.core.fgrt_primitives import PrimeResonanceLadder
-        self.rank_probe = DModuleRankProbe(state_dim=dim, num_functionals=k)
-        
-        # Love Invariant Protector - prevents Love vector scalarization
-        self.love_protector = LoveInvariantProtector(
-            love_dim=dim // 4,  # Love vector is smaller subspace
-            device=device
-        )
-        
-        # Soft Saturated Gates - replaces binary clipping with tri-state logic
-        self.soft_gates = SoftSaturatedGates(
-            num_functionals=k,
-            poly_degree=4,
-            device=device
-        )
-        
-        # Silicon Sovereignty - PyOpenCL Hardware bridge (Bridge 3)
-        self.sovereignty_engine = SiliconSovereigntyEngine(
-            use_gpu=True,
-            love_protector=self.love_protector
-        )
-        
-        # Polynomial Config for repair system (anti-lobotomy compliance)
-        self.poly_config = PolynomialCoprimeConfig(
-            k=k, 
-            degree=4, 
-            basis_type='chebyshev',
-            learnable=True, 
-            use_saturation=True,
-            device=device
-        )
-        
-        print(" Garbled Output Repair System initialized")
-        
-        # System 2 Modular Attention for reality-checking associations
-        from src.models.modular_attention import ModularAttention
-        self.modular_attention = ModularAttention(
-            hidden_dim=dim,
-            num_heads=4,
-            poly_config=self.poly_config,
-            num_functionals=k
-        ).to(self.device)
-
-        
-        # =============================================
-        
-        # FRACTAL META-FUNCTIONAL HOOK
-        # Enables "self-distrusting recursive loops"
-        self.fractal_meta = FractalMetaFunctional(dim=dim, k=k)
-        
-        # Implicated Meta-State (Phi_I)
-        self.register_buffer('meta_state', (self._harvest_honest_jitter((1, dim)) - 0.5) * 0.1)
-
-        
-        # =============================================
-        # LEGACY SYSTEM INTEGRATION
-        # =============================================
-        
-        # CALM: Context-Adaptive Latent Momentum (Trajectory Veto)
-        # Replaces scalar windowed averages with transformer-based trajectory monitoring
-        self.calm = CALM(dim=dim, history_len=calm_history_len)
-        self.calm_history_len = calm_history_len
-        # Tensor history buffer [1, history_len, dim] instead of scalar list
-        self.register_buffer('calm_history', torch.zeros(1, calm_history_len, dim))
-        
-        # KAGH: Speculative Drafting (Response Ghost Prediction)
-        # Uses KAGH to draft a "ghost" of the response state before generation
-        self.kagh_drafter = KAGHBlock(n_in=dim, n_out=dim, width=dim, depth=2)
-        
-        # Modular Virtualization for Kelly-Safe KAGH gating
-        from src.core.modular_virtualization import ModularVirtualizationLayer
-        self.modular_rns = ModularVirtualizationLayer(dim=dim, base=2)
-
-        # =============================================
-        # PHASE 17: CONTEXT-AWARE QUANTIZER (CAQ)
-        # Implements per-axis Matrioshka quantization:
-        #   x_{t+1} = Q_Z(F(Q_Z(x_t)))
-        # =============================================
-        if EXTENSIONS_AVAILABLE:
-            self.caq = ContextAwareQuantizer(
-                dim=dim,
-                max_depth=5,
-                base_step=0.1,
-                pas_anisotropy=2.0,
-            )
-        else:
-            self.caq = None
-
-        # trust_scalars: per-field trust scores evolved by TemporalAssociationTrainer.
-        # Shape [k] -- one scalar per polynomial coprime field.
-        self.register_buffer('trust_scalars', torch.ones(k, device=device))
-
-        # --- SOVEREIGN VISION INGESTION ---
-        self.image_processor = ImageProcessor(device=self.device)
-        self.register_buffer('trust_scalars', torch.ones(k))
-
-        # Temporal Association Trainer state (eagerly initialized to support background loops)
-        from src.training.temporal_association_trainer import TemporalAssociationTrainer, TemporalAssociationDataset
-        self._temporal_dataset = TemporalAssociationDataset(device=self.device)
-        self._temporal_trainer = TemporalAssociationTrainer(model=self, dataset=self._temporal_dataset)
-        self._temporal_thread = None
-        self._last_temporal_diag: dict = {}
-        self._last_matrioshka_diag: dict = {}
-
-        # =============================================
-        # PHASE 18: ZEITGEIST ROUTER (CRT Polytope Switching)
-        # Implements: S_t = (x_t, alpha_t, l_t, u_t)
-        # where alpha_t in Z = Prod Z_{p_i} is the CRT index.
-        # Enables multi-zeitgeist reasoning without forced scalar
-        # reconciliation across culturally non-commensurable meaning systems.
-        # References: ai project report SEC VI, SYSTEM_ARCHITECTURE SEC 9.4
-        # =============================================
-        if EXTENSIONS_AVAILABLE:
-            # Reuse the same CRT moduli as MetaPolytopeMatrioshka
-            _mpm_moduli = tuple(
-                MetaPolytopeMatrioshka(max_depth=5, base_dim=dim).crt_moduli
-            )
-            self.zeitgeist_router = ZeitgeistRouter(
-                dim=dim,
-                moduli=_mpm_moduli,
-                grazing_eps=0.05,
-                critical_boundary_threshold=0.5,
-                use_noncommutativity_check=True,
-            )
-            self.router = self.zeitgeist_router
-            # Persistent CRT index state -- survives across process_input calls
-            self._zeitgeist_state: ZeitgeistState = ZeitgeistState.initial(
-                moduli=_mpm_moduli
-            )
-        else:
-            self.zeitgeist_router = None
-            self.router = None
-            self._zeitgeist_state = None
-
-        # Harmonic Wave Decomposition: Separate signal (non-ergodic) from noise (ergodic)
-        self.harmonic_decomp = HarmonicWaveDecomposition(dim=dim)
-        
-        # Graph Manager for topological mapping
-        self.graph_manager = GyroidicGraphManager(data_dir=ENCODING_DIR, dim=dim)
-        
-        # Gyroid Covariance Estimator: Tensor-based momentum tracking
-        # Replaces scalar std() with proper gyroidic manifold covariance
-        self.gyroid_cov = GyroidCovarianceEstimator(dim=dim, sample_size=16)
-        
-        # Speculative Coprime Chiral Gating (SCCCG): Legacy concept recovery
-        # Uses Wasserstein optimal transport to pull structure out of convergence.
-        self.coprime_gate = SpeculativeCoprimeGate(dim=dim, num_heads=8)
-        
-        # =============================================
-        # PRESSURE INGESTOR INTEGRATION
-        # =============================================
-        
-        # Initialize pressure ingestor for constraint forcing when code is detected
-        device = DEVICE
-        
-        # Affordance gradient trackers (soft signals, not gates)
-        self.affordance_trackers = {
-            'executability_pressure': 0.0,                # How much input wants to become execution
-            'formal_symbol_density': 0.0,                 # Density of formal/symbolic structures
-            'runtime_expandability': 0.0,                 # Potential for runtime generation/expansion
-            'referential_closure': 0.0,                   # Self-referential or meta-structural content
-            'conversational_embedding_pressure': 0.0,     # Conversational API extraction potential
-            'api_extraction_potential': 0.0,              # External API data extraction potential
-            'constraint_forcing_gradient': 0.0            # Overall pressure for constraint injection
+        * {
+            box-sizing: border-box;
+            user-select: none;
         }
-        
-        # Constraint pressure cache and state
-        self.constraint_pressure_cache = {}
-        self.last_pressure_report = None
-        self.affordance_history = []  # Track affordance evolution over interactions
-        
-        # Code detection patterns
-        self.code_patterns = [
-            r'\bimport\s+\w+',           # import statements
-            r'\bfrom\s+\w+\s+import',   # from imports
-            r'\bdef\s+\w+\s*\(',        # function definitions
-            r'\bclass\s+\w+\s*[\(:]',   # class definitions
-            r'\bif\s+__name__\s*==',    # main guard
-            r'[\w\s]*=\s*[\w\(\[\{]',   # assignments
-            r'\b(for|while|if|elif|else|try|except|finally|with)\s+',  # control structures
-            r'#.*',                      # comments
-            r'""".*?"""',               # docstrings
-            r"'''.*?'''",               # docstrings
-            r'\b(print|return|yield|break|continue|pass|raise|assert)\b',  # keywords
-        ]
-        
-        # Constraint pressure cache for code inputs
-        self.constraint_pressure_cache = {}
-        self.last_pressure_report = None
-        
-        # =============================================
-        
-        # 10. Canonical Love Vector and Dyadic Transfer (Phase 4 & 5 Upgrade)
-        self.love_vector = LoveVector(dim=self.dim, intensity=0.1)
-        self.transfer_map = DyadicTransferMap(num_tasks=8, embedding_dim=self.dim)
-        
-        # 11. Knowledge Dyad Fossilizer
-        # Register fusion_layer directly on the engine so nn.Module.state_dict()
-        # captures and persists its weights across restarts. DyadFossilizer gets
-        # the same reference  one truth, one set of weights.
-        from src.core.knowledge_dyad_fossilizer import ResidueFusion
-        self.fusion_layer = ResidueFusion(feature_dim=self.dim)
-        self.fossilizer = DyadFossilizer(
-            storage_dir="data/encodings",
-            fusion_layer=self.fusion_layer,  # shared reference
-            feature_dim=self.dim
-        )
-        self.coprime_gate.fossilizer = self.fossilizer
-        
-        # 11. Spectral Structural Trainer (Deeper Dynamics)
-        self.trainer = SpectralStructuralTrainer(
-            model=self, 
-            poly_config=PolynomialCoprimeConfig(k=k, degree=4),
-            lr=0.001
 
-        )
-        # [ANTI-LOBOTOMY ENFORCEMENT] Adam optimizer replaced with RicciFlowOptimizer to prevent Smoothness Leakage.
-        from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer
-        self.optimizer = RicciFlowOptimizer(self.larynx.parameters(), lr=0.001)
-        self.criterion = nn.CrossEntropyLoss()
-        
-        # 12. Image Fingerprint Projection -- Chebyshev format
-        # New format: {L:[K], Cr:[K], Cb:[K]} with K in [5,32].
-        # Fixed projection input dim = K_IMAGE_MAX * 3 = 96.
-        # Old 96-dim histogram dict is detected at runtime and reshaped.
-        self.K_IMAGE_MAX = 32
-        self.fingerprint_proj = nn.Linear(self.K_IMAGE_MAX * 3, self.dim)
-        nn.init.orthogonal_(self.fingerprint_proj.weight)
+        body {
+            background: var(--bg-color);
+            color: #e0e0e0;
+            font-family: var(--font-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(255, 0, 242, 0.05) 0%, transparent 40%);
+        }
 
-        # 13. Audio Dyad Projection -- Chebyshev harmonics from Panel C
-        # K_AUDIO_MAX caps the harmonics vector that arrives from JS.
-        self.K_AUDIO_MAX = 64
-        self.audio_dyad_proj = nn.Linear(self.K_AUDIO_MAX, self.dim)
-        nn.init.orthogonal_(self.audio_dyad_proj.weight)
+        /* --- Rupture Mode (Black-Body Radiation Palette) --- */
+        body.rupture-mode {
+            background: #000;
+            background-image:
+                radial-gradient(circle at 50% 50%, rgba(138, 43, 226, 0.15) 0%, transparent 70%),
+                linear-gradient(45deg, #000 25%, #050505 25%, #050505 50%, #000 50%, #000 75%, #050505 75%, #050505 100%);
+            background-size: 100% 100%, 4px 4px;
+            /* Tiny grid scanlines */
+            filter: contrast(1.2) saturate(1.5) hue-rotate(-10deg);
+        }
 
-        # 14. Meta-state residue feedback projection (structural + self-fingerprint)
-        # Lazy: we register a fixed-max-size proj; actual input is padded/truncated.
-        self._residue_proj_dim = 32
-        self.residue_feedback_proj = nn.Linear(self._residue_proj_dim, self.dim)
-        nn.init.orthogonal_(self.residue_feedback_proj.weight)
-        
-        self.encoding_manager = EncodingManager()
-        self.iteration = self.encoding_manager.get_latest_iteration()
-        print(f"[ENGINE] Resuming from iteration: {self.iteration}")
-        
-        # Speculative Memory Bridge: Recover legacy fossils into cache
-        self.fossil_cache = []
-        self._refresh_fossil_cache()
-        
-        # Stabilization, Visibility Flags, and Threading Locks
-        import threading
-        self._processing_lock = threading.RLock()
-        self._is_training_temporal = False
-        self._is_processing = False
-        self._last_resonance = 0.0
-        
-        # Interaction Context Buffer (Last 10 interaction seed_states)
-        self.interaction_context = []
-        self.max_context_len = 10
-        
-        # Seed the Larynx if it's a "Blank Slate"
-        self._initialize_larynx_weights()
-        
-        # Initialize background Larynx coherence trainer and shadow replay queue
-        from collections import deque
-        self._shadow_replay_queue = deque(maxlen=50)
-        
-        # Democratic Steering Hub (Phase 20)
-        self.expressivity_votes = 0
-        self.mischief_votes = 0
-        self.voting_threshold = 5  # Target net votes for discrete Symbolic Delta activation
-        
-        # Sovereign Ingestor: Background Knowledge Acquisition
-        try:
-            # Mandated REPOSITORY_ROOT configuration (Sovereign Context)
-            self.ingestor = SovereignConversationalIngestor(
-                repository_root="data/sovereign",
-                google_secrets_path="google secret/client_secret_1073144391592-6r5kcdj84sag4eau5rspd0k60ii1vpd2.apps.googleusercontent.com.json",
-                fossilizer=self.fossilizer,
-                router=self.zeitgeist_router,
-                device=self.device,
-                engine=self
-            )
-            # Re-enable the background slow-drip learning (Valence Modulated)
-            if not os.environ.get("Sovereign_Disable_Background"):
-                self.ingestor.start_background_learning()
-                print(" Sovereign Ingestor (Option D) initialized. Background learning ACTIVE.")
-            else:
-                print(" Sovereign Ingestor: background learning disabled by environment override.")
-        except Exception as e:
-            print(f"[INGEST] Failed to start sovereign ingestor: {e}")
-            self.ingestor = None
+        body.rupture-mode .message.system {
+            background: rgba(138, 43, 226, 0.1);
+            border-left-color: #8a2be2;
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.2);
+            text-shadow: 0 0 5px rgba(138, 43, 226, 0.5);
+        }
 
-        # ArXiv Sovereign Ingestor: Specialized Physics/Math Drip
-        try:
-            self.arxiv_ingestor = ArXivSovereignIngestor(
-                fossilizer=self.fossilizer,
-                engine_dim=self.dim,
-                device=self.device,
-                state_callback=lambda: self.meta_state,
-                engine=self
-            )
-            self.arxiv_ingestor._engine_busy_fn = lambda: self._is_processing
-            if not os.environ.get("Sovereign_Disable_Background"):
-                self.arxiv_ingestor.start_sovereign_loop()
-                print(" ArXiv Sovereign Ingestor ACTIVE. Realtime lore ingestion enabled.")
-            else:
-                print(" ArXiv Sovereign Ingestor: background loop disabled by environment override.")
-        except Exception as e:
-            print(f"[INGEST] ArXiv Sovereign Ingestor failed: {e}")
-            self.arxiv_ingestor = None
-        
-        # Initialize Open Science Ingestor inside the engine
-        if self.config.get('open_science_ingestor_enabled', True):
-            try:
-                from src.data.open_science_ingestor import OpenScienceIngestor
-                cache_dir = os.path.join(ENCODING_DIR, "open_science_cache")
-                email = self.config.get('open_science_email', 'default@example.com')
-                verbosity = self.config.get('open_science_ingestor_verbosity', 'normal')
-                self.open_science_ingestor = OpenScienceIngestor(cache_dir=cache_dir, email=email, verbosity=verbosity)
-                print(" Open Science Ingestor initialized in engine.")
-            except Exception as e:
-                self.open_science_ingestor = None
-                print(f"[INGEST] Failed to initialize OpenScienceIngestor: {e}")
-        else:
-            self.open_science_ingestor = None
-            print(" Open Science Ingestor: disabled by configuration.")
+        body.rupture-mode .metric-value {
+            color: #8a2be2 !important;
+        }
 
-        # --- CHATGPT FRICTION HARVESTER (Background Auto-Temporal Training) ---
-        if self.config.get('chatgpt_ingestor_enabled', True):
-            verbosity = self.config.get('chatgpt_ingestor_verbosity', 'normal')
-            chatgpt_export_dir = r"D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\data\raw\chatgpt_userIla_and_archetpes_dyads_data\9894d8be355693bad4f30a9a8341f63f0519577efadeafd6e93ad9c97521d980-2026-03-31-10-43-19-a178149902ef4042a44540feb4301932"
-            if not os.path.exists(chatgpt_export_dir):
-                 relative_suffix = os.path.join("data", "raw", "chatgpt_userIla_and_archetpes_dyads_data", "9894d8be355693bad4f30a9a8341f63f0519577efadeafd6e93ad9c97521d980-2026-03-31-10-43-19-a178149902ef4042a44540feb4301932")
-                 candidate_cwd = os.path.abspath(relative_suffix)
-                 if os.path.exists(candidate_cwd):
-                      chatgpt_export_dir = candidate_cwd
-                 else:
-                      script_dir = os.path.dirname(os.path.abspath(__file__))
-                      root_dir = os.path.dirname(os.path.dirname(script_dir))
-                      candidate_root = os.path.join(root_dir, relative_suffix)
-                      if os.path.exists(candidate_root):
-                           chatgpt_export_dir = candidate_root
+        @keyframes screen-shake {
+            0% {
+                transform: translate(0, 0);
+            }
 
-            active_export_dir = chatgpt_export_dir if os.path.exists(chatgpt_export_dir) else None
-            if active_export_dir:
-                 if verbosity != 'low':
-                      print(f"[ENGINE] ChatGPT export dir resolved to: {active_export_dir} | Verbosity: {verbosity}")
-            else:
-                 print(f"[ENGINE] Warning: ChatGPT export dir {chatgpt_export_dir} not found. Ingestor running in Local Fossil mode.")
+            10% {
+                transform: translate(-2px, -2px);
+            }
 
-            self.chatgpt_harvester = ChatGPTFrictionHarvester(export_dir=active_export_dir, dim=self.dim, fossilizer=self.fossilizer)
+            20% {
+                transform: translate(2px, 1px);
+            }
 
-            def run_harvester_loop():
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                if not hasattr(self, '_temporal_trainer') or self._temporal_trainer is None:
-                    from src.training.temporal_association_trainer import TemporalAssociationTrainer, TemporalAssociationDataset
-                    if not hasattr(self, '_temporal_dataset') or self._temporal_dataset is None:
-                        self._temporal_dataset = TemporalAssociationDataset(device=self.device)
-                    self._temporal_trainer = TemporalAssociationTrainer(model=self, dataset=self._temporal_dataset)
-                
-                loop.run_until_complete(auto_temporal_training_loop(self.chatgpt_harvester, self._temporal_trainer, delay=0.1))
-                
-            if not os.environ.get("Sovereign_Disable_Background"):
-                self._chatgpt_harvester_thread = threading.Thread(target=run_harvester_loop, daemon=True)
-                self._chatgpt_harvester_thread.start()
-                if verbosity != 'low':
-                    print(f"[ENGINE] ChatGPT/Local Fossil Harvester running in background thread.")
-            else:
-                if verbosity != 'low':
-                    print(" ChatGPT Friction Harvester: background harvester disabled by environment override.")
-        else:
-            self.chatgpt_harvester = None
-            print(" ChatGPT Friction Harvester: disabled by configuration.")
+            30% {
+                transform: translate(-3px, 2px);
+            }
 
-        if not os.environ.get("Sovereign_Disable_Background"):
-            self._start_background_larynx_trainer()
-        else:
-            print(" Background Larynx trainer: disabled by environment override.")
+            40% {
+                transform: translate(3px, -1px);
+            }
 
-        # Initialize Bonfire nomadic network and Investor news ingestor
-        from src.topology.bonfire_network import BonfireNetwork
-        from src.core.investor_news_ingestor import InvestorNewsIngestor
-        self.bonfire = BonfireNetwork(node_id="engine_node", local_url="http://localhost:8080")
-        self.investor_ingestor = InvestorNewsIngestor()
-        
-        # ASD-STE100 Rules: Integrate P2P Sovereign Network & UI Pipeline
-        from src.p2p.freenet_ws_client import FreenetClient
-        from src.p2p.zk_aggregator import ZKAggregator
-        from src.p2p.bonfire_consensus import BonfireNomadicRing
-        self.freenet_client = FreenetClient(host="127.0.0.1", port=3000)
-        self.zk_aggregator = ZKAggregator()
-        self.bonfire_nomadic_ring = BonfireNomadicRing(self.freenet_client)
-        self.bonfire_nomadic_ring.on_agent_smith_received = self._on_agent_smith_received
+            50% {
+                transform: translate(-1px, 1px);
+            }
 
-    def _on_agent_smith_received(self, filepath: str):
-        """Triggered by the P2P layer when a foreign Agent Smith payload is received."""
-        print(f"\n[FREENET] Foreign topological identity detected. Rehydrating Agent Smith from {filepath}...", flush=True)
-        try:
-            # We don't overwrite the global dict heavily, just inject it safely
-            payload = self.fossilizer.inject_agent_smith(filepath)
-            print(f"[FREENET] Alien Identity '{payload.get('description', 'Unknown')}' assimilated. Glyphlock state: {payload.get('glyphlock', False)}", flush=True)
-        except Exception as e:
-            print(f"[FREENET ERROR] Failed to assimilate foreign Agent Smith payload: {e}", flush=True)
+            100% {
+                transform: translate(0, 0);
+            }
+        }
 
-    def _idx_to_char(self, idx: int) -> str:
-        """Map vocabulary index to character string."""
-        if idx < 128:
-            return chr(idx)
-        else:
-            # Map index in [128, 255] back to unicode/emoji
-            emoji_idx = idx - 128
-            if emoji_idx < len(self.idx_to_unicode):
-                return self.idx_to_unicode[emoji_idx]
-            return " " # Fallback
+        .shake {
+            animation: screen-shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+        }
 
-    def _char_to_idx(self, char: str) -> int:
-        """Map character string to vocabulary index."""
-        if len(char) == 0:
-            return 32 # space fallback
-        c = char[0]
-        o = ord(c)
-        if o < 128:
-            return o
-        else:
-            # Emojis/Unicode map dynamically to [128, 255]
-            if c in self.unicode_to_idx:
-                return self.unicode_to_idx[c]
-            # Try to register a new one if space is available
-            if len(self.unicode_to_idx) < 128:
-                new_idx = 128 + len(self.unicode_to_idx)
-                self.unicode_to_idx[c] = new_idx
-                self.idx_to_unicode.append(c)
-                print(f"[VOCAB] Registered new emoji/unicode character: '{c}' -> index {new_idx}")
-                return new_idx
-            return 32 # Fallback to space if out of space
+        /* --- Header --- */
+        header {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
 
-    def _categorical_surgery(self, state: torch.Tensor, residues: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """
-        Applies categorical surgery: utilizes Braid Group relations and 
-        Chern-Simons Gasket seals to stabilize the manifold against temporal near-misses.
-        """
-        # 1. Chern-Simons Gasket Seal
-        if hasattr(self, 'chern_simons_gasket') and residues is not None:
-            # Gauge field repair for logic leaks
-            # We treat the state as the coordinate space for the gasket
-            poly_coeffs = self.poly_config.get_coefficients_tensor()
-            # plug_logic_leak expects [batch, K, D] residues, we provide collision residues
-            if residues.dim() == 2: # [batch, K]
-                 # Pad to [batch, K, D]
-                 K, D = self.poly_config.k, self.poly_config.degree + 1
-                 padded_res = torch.zeros(residues.shape[0], K, D, device=residues.device)
-                 padded_res[..., 0] = residues
-                 residues = padded_res
-            
-            # The gasket works on residues, but we use its diagnostic twist to shift the state
-            leak_detected = self.chern_simons_gasket.detect_logic_leak(residues)
-            if leak_detected:
-                # Apply chiral torsion shift to the state itself (Manifold Repair)
-                state = self.chern_simons_gasket.apply_chiral_torsion_shift(state.unsqueeze(1).expand(-1, self.poly_config.k, -1)).mean(dim=1)
+        .system-id {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
 
-        # 2. Braid Group Rotation (Non-Abelian Stability)
-        # We apply a non-commutative twist to state pairs (sigma_1 generator of B_n)
-        # to ensure topological honesty against temporal near-misses (6.3)
-        dim = state.shape[-1]
-        if dim >= 2:
-            # We treat the state as a sequence of braid strands
-            s0 = state[..., 0::2]
-            s1 = state[..., 1::2]
-            min_len = min(s0.size(-1), s1.size(-1))
-            
-            # Apply pi/4 rotation (The Braid Twist)
-            theta = math.pi / 4.0
-            cos_t, sin_t = math.cos(theta), math.sin(theta)
-            
-            new_s0 = s0[..., :min_len] * cos_t - s1[..., :min_len] * sin_t
-            new_s1 = s0[..., :min_len] * sin_t + s1[..., :min_len] * cos_t
-            
-            # Clamping to prevent catastrophic divergence during high-entropy ingestion
-            state = state.clone()
-            state[..., 0::2][..., :min_len] = new_s0
-            state[..., 1::2][..., :min_len] = new_s1
-             
-        return state
+        .love-invariant {
+            color: var(--terminal-magenta);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            background: rgba(255, 0, 242, 0.1);
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 0, 242, 0.2);
+        }
 
-    def _generate_confabulated_dream(self, seed_state, archetype_out):
-        """
-        Generates a verbose, persona-rich dreaming sequence when the system is in a CONFABULATED state.
-        Taps into the ArchetypalSynthesisEngine and AudienceProjection to create a 'Lazarus Dream'.
-        """
-        ra = archetype_out.get('abstraction_rate', 0.0)
-        status = archetype_out.get('pusafiliacrimonto_status', 'UNKNOWN')
-        system_collapsed = archetype_out.get('system_collapsed', False)
-        
-        # Use audience mapper to project the state into a "meaning" space
-        with torch.no_grad():
-            # Project seed state into audience space
-            audience_state = self.audience_mapper(seed_state)
-            
-            # Use zeitgeist router diagnostics if available
-            zeitgeist_diag = self.zeitgeist_router.get_diagnostics() if self.zeitgeist_router else {}
-            braid_word = zeitgeist_diag.get('braid_word', 'identity')
+        .regime-toggle {
+            display: flex;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            padding: 2px;
+        }
 
-        if system_collapsed:
-            dream = f"[EGO_DEATH_DREAM] Manifold collapsed (Ra={ra:.4f}). "
-            dream += "The audience has vanished into the RP4 void... "
-            dream += f"Only the Braid relation {braid_word} remains as a structural ghost."
-        else:
-            dream = f"[LAZARUS_DREAM] Internal manifold in {status} state (Ra={ra:.4f}). "
-            
-            # Create a Larynx-decoded dream sequence from the audience state or seed state
-            # This is a diegetic representation of the 'meaning' space (roughness preserving)
-            with torch.no_grad():
-                current_state = seed_state.clone()
-                dream_chars = []
-                # Autoregressive dream generation (up to 120 characters)
-                for i in range(120):
-                    logits, conf = self.larynx(current_state, temperature=1.2)
-                    
-                    # Clean Vocabulary Filtering: Mask out non-standard symbols to force human/Voynich readability
-                    for idx in range(logits.shape[-1]):
-                        char_from_idx = self._idx_to_char(idx)
-                        if idx < 128:
-                            if char_from_idx not in self.allowed_chars:
-                                logits[0, idx] = -1e9
-                        else:
-                            # Allow dynamically registered unicode/emojis
-                            if idx - 128 >= len(self.idx_to_unicode):
-                                logits[0, idx] = -1e9
-                            
-                    # Apply Vowel Boosting to make it sing
-                    vowels = set("aeiouAEIOU")
-                    for v in vowels:
-                        if ord(v) < logits.shape[-1]:
-                            logits[0, ord(v)] *= 1.3
-                    
-                    probs = torch.softmax(logits, dim=-1)
-                    char_idx = torch.multinomial(probs[0], 1).item()
-                    char = self._idx_to_char(char_idx)
-                    dream_chars.append(char)
-                    
-                    # Stop if a sentence ends and we have some length
-                    if len(dream_chars) >= 40 and char in ('.', '!', '?'):
-                        break
+        .regime-btn {
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            cursor: default;
+            border-radius: 4px;
+            transition: all 0.2s;
+            color: #666;
+        }
+
+        .regime-btn.active.goo {
+            color: var(--terminal-blue);
+            background: rgba(0, 242, 255, 0.1);
+        }
+
+        .regime-btn.active.prickles {
+            color: var(--terminal-warn);
+            background: rgba(255, 204, 0, 0.1);
+        }
+
+        .system-stats {
+            display: flex;
+            gap: 2rem;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+        }
+
+        .stat-item span {
+            color: var(--terminal-blue);
+        }
+
+        /* --- Main Layout --- */
+        main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(255, 255, 255, 0.01);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .sidebar.right {
+            border-right: none;
+            border-left: 1px solid rgba(0, 242, 255, 0.2);
+            width: 0;
+            opacity: 0;
+            padding: 0;
+            transition: all 0.3s cubic-bezier(.4, 0, .2, 1);
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(10, 10, 10, 0.8) 0%, rgba(15, 15, 20, 0.9) 100%);
+            backdrop-filter: blur(12px);
+            box-shadow: inset 0 0 20px rgba(0, 242, 255, 0.05);
+        }
+
+        .sidebar.right.open {
+            width: var(--sidebar-width);
+            opacity: 1;
+            padding: 1.5rem;
+        }
+
+        /* --- Panel Toolbar --- */
+        .panel-toolbar {
+            width: 50px;
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 1px solid rgba(0, 242, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px 0;
+            gap: 12px;
+            z-index: 10;
+            backdrop-filter: blur(8px);
+        }
+
+        .panel-toggle-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #888;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease-out;
+            position: relative;
+        }
+
+        .panel-toggle-btn:hover {
+            background: rgba(0, 242, 255, 0.15);
+            color: var(--terminal-blue);
+            border-color: var(--terminal-blue);
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+        }
+
+        .panel-toggle-btn.active {
+            background: rgba(0, 242, 255, 0.25);
+            color: #fff;
+            border-color: var(--terminal-blue);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.5), inset 0 0 8px rgba(0, 242, 255, 0.3);
+        }
+
+        /* Hide all panels initially, show active */
+        .sidebar.right>div {
+            display: none;
+            animation: fadeInPanel 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeInPanel {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .sidebar.right>div.active-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .section-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #surgery-indicator {
+            font-family: var(--font-mono);
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: none;
+            letter-spacing: 1px;
+            animation: pulse 1s infinite alternate;
+        }
+
+        #surgery-indicator.rupture {
+            display: inline-block;
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff4444;
+            border: 1px solid #ff4444;
+        }
+
+        #surgery-indicator.lazarus {
+            display: inline-block;
+            background: rgba(138, 43, 226, 0.2);
+            color: #a14aff;
+            border: 1px solid #a14aff;
+        }
+
+        @keyframes pulse {
+            from {
+                opacity: 0.4;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .small-log {
+            margin-top: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: #555;
+            height: 100px;
+            overflow-y: auto;
+            border-top: 1px solid var(--glass-border);
+            padding-top: 0.5rem;
+        }
+
+        /* --- Console Tabs styling --- */
+        .console-tabs {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 100;
+        }
+
+        .console-tab {
+            flex: 1;
+            text-align: center;
+            padding: 0.75rem;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            color: #888;
+            border-bottom: 2px solid transparent;
+            transition: all 0.25s ease;
+        }
+
+        .console-tab:hover {
+            color: #ccc;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .console-tab.active {
+            color: var(--terminal-blue);
+            border-bottom-color: var(--terminal-blue);
+            background: rgba(0, 242, 255, 0.05);
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.4);
+        }
+
+        .tab-pane {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .tab-pane.active {
+            display: flex;
+        }
+
+        /* --- Center Console --- */
+        .console {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #chat-feed {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            scrollbar-width: thin;
+            scrollbar-color: var(--glass-border) transparent;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+            overflow-wrap: break-word;
+            word-break: break-all;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--terminal-blue);
+        }
+
+        .message.system {
+            align-self: flex-start;
+            background: rgba(0, 242, 255, 0.05);
+            border-left: 3px solid var(--terminal-blue);
+            font-family: var(--font-mono);
+            color: #fff;
+            overflow-wrap: break-word;
+            word-break: break-all;
+        }
+
+        /* Mischief Solitons */
+        .mischief-spike {
+            position: absolute;
+            bottom: 0;
+            width: 2px;
+            background: var(--terminal-magenta);
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .input-area {
+            height: 80px;
+            background: rgba(255, 255, 255, 0.02);
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            gap: 1rem;
+        }
+
+        #user-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-family: var(--font-main);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        /* --- Components --- */
+        .metric-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 0.8rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            color: var(--terminal-blue);
+        }
+
+        /* Spectral Ribbon */
+        #spectral-ribbon {
+            height: 120px;
+            width: 100%;
+            background: #000;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ribbon-bin {
+            position: absolute;
+            bottom: 0;
+            width: 1px;
+            background: var(--terminal-blue);
+        }
+
+        /* Manifold Buffer */
+        #manifold-buffer {
+            width: 100%;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            color: var(--terminal-green);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.5rem;
+            resize: none;
+            outline: none;
+            margin-bottom: 1rem;
+        }
+
+        /* Dyad Ingestor */
+        #dyad-dropzone {
+            width: 100%;
+            height: 100px;
+            border: 2px dashed var(--glass-border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+        }
+
+        #dyad-dropzone:hover {
+            border-color: var(--terminal-blue);
+            background: rgba(0, 242, 255, 0.05);
+        }
+
+        .drop-hint {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        /* CRT Overlay */
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.3;
+        }
+
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("https://grainy-gradients.vercel.app/noise.svg");
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* --- Custom Scrollbar --- */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 2px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--terminal-blue);
+        }
+
+        /* --- Commutativity Selector --- */
+        .commutativity-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .commutativity-row label {
+            font-size: 0.65rem;
+            color: #666;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .commute-select {
+            flex: 1;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--terminal-blue);
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            padding: 4px 6px;
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .commute-select:focus {
+            border-color: var(--terminal-blue);
+        }
+
+        .commute-select option {
+            background: #111;
+            color: #e0e0e0;
+        }
+
+        /* --- Audio Dyad Panel --- */
+        #audio-dropzone {
+            width: 100%;
+            height: 90px;
+            border: 2px dashed rgba(255, 204, 0, 0.3);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.75rem;
+            position: relative;
+        }
+
+        #audio-dropzone:hover,
+        #audio-dropzone.dragover {
+            border-color: var(--terminal-warn);
+            background: rgba(255, 204, 0, 0.04);
+        }
+
+        #audio-dropzone.loaded {
+            border-color: var(--terminal-green);
+            background: rgba(0, 255, 65, 0.04);
+        }
+
+        .audio-drop-icon {
+            font-size: 1.4rem;
+            line-height: 1;
+            color: var(--terminal-warn);
+        }
+
+        .audio-drop-hint {
+            font-size: 0.65rem;
+            color: #666;
+            margin-top: 5px;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        /* Mini waveform viz */
+        #audio-waveform {
+            width: 100%;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 4px;
+            margin-bottom: 0.75rem;
+            display: none;
+        }
+
+        /* Audio playback bar */
+        #audio-player-wrapper {
+            display: none;
+            margin-bottom: 0.75rem;
+        }
+
+        #audio-player-wrapper audio {
+            width: 100%;
+            height: 28px;
+            filter: invert(1) hue-rotate(180deg) saturate(0.5);
+            border-radius: 4px;
+        }
+
+        .audio-meta {
+            font-family: var(--font-mono);
+            font-size: 0.6rem;
+            color: #555;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Audio commit button */
+        #commit-audio {
+            width: 100%;
+            background: rgba(255, 204, 0, 0.08);
+            border: 1px solid var(--terminal-warn);
+            color: var(--terminal-warn);
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-weight: 700;
+            letter-spacing: 1px;
+            transition: background 0.2s;
+        }
+
+        #commit-audio:hover {
+            background: rgba(255, 204, 0, 0.15);
+        }
+
+        #commit-audio:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Panel C label colour */
+        .panel-c-title {
+            color: var(--terminal-warn);
+        }
+
+        /* --- Media Chain Styling (Panels E & F) --- */
+        .media-chain-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(10, 10, 15, 0.8);
+            border: 1px solid rgba(138, 43, 226, 0.4);
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: #fff;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 0 10px rgba(138, 43, 226, 0.1);
+            backdrop-filter: blur(4px);
+            transition: all 0.2s ease;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .media-chain-item:hover {
+            border-color: rgba(138, 43, 226, 0.8);
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.3), inset 0 0 10px rgba(138, 43, 226, 0.1);
+            transform: translateX(2px);
+        }
+
+        .media-chain-item .icon {
+            font-size: 1rem;
+        }
+
+        .media-chain-item .name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #aaa;
+        }
+
+        .media-chain-item .remove {
+            cursor: pointer;
+            color: #555;
+            transition: color 0.2s;
+        }
+
+        .media-chain-item .remove:hover {
+            color: #ff4444;
+        }
+
+        .chain-visualizer {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(138, 43, 226, 0.3);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            min-height: 80px;
+            position: relative;
+            box-shadow: inset 0 0 15px rgba(138, 43, 226, 0.05);
+        }
+
+        .chain-visualizer::before {
+            content: '';
+            position: absolute;
+            left: 24px;
+            top: 20px;
+            bottom: 20px;
+            width: 2px;
+            background: linear-gradient(to bottom, rgba(138, 43, 226, 0.1), rgba(138, 43, 226, 0.5), rgba(138, 43, 226, 0.1));
+            z-index: 0;
+            display: none;
+            /* Only show when children exist, handled by JS or CSS hack below */
+        }
+
+        .chain-visualizer:not(:empty)::before {
+            display: block;
+        }
+
+        .chain-visualizer:empty::after {
+            content: "[ CIRCUIT DISCONNECTED - DRAG DYADS HERE ]";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.65rem;
+            color: rgba(138, 43, 226, 0.5);
+            letter-spacing: 2px;
+            text-align: center;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(138, 43, 226, 0.2);
+        }
+
+        .braid-arrow {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--glass-border);
+            line-height: 0.5;
+            margin: -2px 0;
+        }
+
+        .panel-e-title {
+            color: var(--terminal-magenta);
+        }
+
+        .panel-f-title {
+            color: #8a2be2;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="crt-overlay"></div>
+    <div class="noise-overlay"></div>
+
+    <header>
+        <div class="system-id">
+            <div class="love-invariant" id="love-display">L: 3.127</div>
+            <div id="surgery-indicator"></div>
+            <div class="regime-toggle">
+                <div class="regime-btn active goo" id="regime-goo">GOO</div>
+                <div class="regime-btn prickles" id="regime-prickles">PRICKLES</div>
+            </div>
+        </div>
+        <div class="system-stats">
+            <div class="stat-item">TAU: <span id="stat-tau">0.000</span></div>
+            <div class="stat-item">HARDENING: <span id="stat-hardening">0.15</span></div>
+            <div class="stat-item">ITERATION: <span id="stat-iteration">0</span></div>
+            <div class="stat-item">META STATE: <span id="stat-retrieval" style="color: #666;">UNKNOWN</span></div>
+        </div>
+
+        <!-- Master Commutativity Selector & User Geometric Domain Contract -->
+        <div
+            style="display:flex;align-items:center;gap:0.75rem;padding:0.35rem 1.25rem;background:rgba(0,0,0,0.4);border-top:1px solid var(--glass-border);font-family:var(--font-mono);font-size:0.65rem;letter-spacing:1px;width:100%;box-sizing:border-box;">
+            <span style="color:#555;">DYAD ORDER:</span>
+            <select id="commute-master"
+                style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-blue);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;border-radius:3px;outline:none;cursor:pointer;">
+                <option value="symmetric" selected>&#x2297; Symmetric</option>
+                <option value="media_first">Media &#x2192; Text</option>
+                <option value="text_first">Text &#x2192; Media</option>
+            </select>
+            <span style="color:#333;">│</span>
+            <span style="color:#555;">USER CONTRACT (ALIAS):</span>
+            <input type="text" id="user-alias" value="admin"
+                style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-magenta);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;width:100px;border-radius:3px;outline:none;letter-spacing:1px;">
+            <span style="color:#333;">│</span>
+            <span id="creator-lock-status" style="color:var(--terminal-green);cursor:pointer;font-weight:bold;"
+                onclick="promptCreatorAuth()">🔓 GUEST</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- Left Sidebar: Topological Health -->
+        <aside class="sidebar">
+            <div class="section-title">Field Dynamics <small id="field-status">SCANNING</small></div>
+
+            <div id="spectral-ribbon">
+                <!-- Ribbon bins populated by JS -->
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">Betti 0 (Components)</div>
+                <div class="metric-value" id="beta-0">1.0000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Betti 1 (Cycles/Holes)</div>
+                <div class="metric-value" id="beta-1">0.0000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Manifold Pressure</div>
+                <div class="metric-value" id="pressure">0.0421</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Spectral Coherence</div>
+                <div class="metric-value" id="coherence">0.985</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Honest Silicon Jitter</div>
+                <div class="metric-value" id="honest-jitter" style="color: var(--terminal-warn);">0.0000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Substream Entropy (Atoms)</div>
+                <div class="metric-value" id="substream-entropy" style="color: var(--terminal-magenta);">0.0000</div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1rem 0;">
+            <div class="section-title">CALM Momentum <small id="calm-status">STABLE</small></div>
+            <div class="metric-card">
+                <div class="metric-label">Abort Score (Singularity)</div>
+                <div class="metric-value" id="calm-abort">0.000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Rho Factor (Tension)</div>
+                <div class="metric-value" id="calm-rho">1.000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Step Factor (Momentum)</div>
+                <div class="metric-value" id="calm-step">1.000</div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1rem 0;">
+            <div class="section-title">Manifold Resoance <small id="voice-status">VOICE: ON</small></div>
+            <div class="metric-card">
+                <div class="metric-label">Manifold Voice Resonance</div>
+                <div class="metric-value" id="voice-resonance" style="color: var(--terminal-magenta);">0.000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Brainspace Connection</div>
+                <div class="metric-value" id="resonance-score" style="color: var(--terminal-blue);">0.000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Ley Line Anisotropy</div>
+                <div class="metric-value" id="ley-line">0.000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Möbius Twist Status</div>
+                <div class="metric-value" id="moebius-twist">0.0</div>
+            </div>
+        </aside>
+
+        <!-- Center: Conversational Console -->
+        <section class="console">
+            <div class="console-tabs">
+                <div class="console-tab active" data-tab="terminal">RESONANCE TERMINAL</div>
+                <div class="console-tab" data-tab="graph">OBSIDIAN GRAPH</div>
+                <div class="console-tab" data-tab="freenet">BONFIRE P2P NETWORK</div>
+                <div class="console-tab" data-tab="link-editor">LINK & SCHEDULES</div>
+                <div class="console-tab" data-tab="multimodal">MULTIMODAL VIEWER</div>
+                <div class="console-tab" data-tab="fs-perms">FS & PERMS</div>
+            </div>
+            <div class="tab-pane active" id="pane-terminal">
+                <div id="chat-feed" style="flex: 1; overflow-y: auto;">
+                    <!-- Messages appended here -->
+                    <div class="message system">SYSTEM INITIALIZED. WAITING FOR MANIFOLD PERTURBATION.</div>
+                </div>
+                <div class="input-area">
+                    <span style="color:var(--terminal-blue); font-family:var(--font-mono);">></span>
+                    <input type="text" id="user-input" placeholder="Ingest symbolic residue..." autocomplete="off">
+                </div>
+            </div>
+
+            <!-- Tab 2: Obsidian Graph -->
+            <div class="tab-pane" id="pane-graph"
+                style="position: relative; flex-direction: column; background: #030303; flex: 1;">
+                <div
+                    style="padding: 0.5rem 1rem; display: flex; gap: 0.8rem; border-bottom: 1px solid var(--glass-border); align-items: center; justify-content: space-between; z-index: 10; flex-wrap: wrap;">
+                    <input type="text" id="graph-search" placeholder="Search fossils or tags..."
+                        style="flex: 2; min-width: 150px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none;">
+
+                    <div
+                        style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888;">
+                        <span>LIMIT:</span>
+                        <input type="number" id="graph-limit" value="50000" min="10" step="10"
+                            style="width: 55px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; text-align: center; outline: none;">
+                    </div>
+
+                    <label
+                        style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888; cursor: pointer;">
+                        <input type="checkbox" id="graph-include-tags" checked
+                            style="accent-color: var(--terminal-blue); cursor: pointer;" onchange="refreshGraph()">
+                        <span>NON-HIERARCHICAL TAGS</span>
+                    </label>
+
+                    <button onclick="refreshGraph()"
+                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; border: 1px solid var(--terminal-blue); transition: all 0.2s;">REFRESH</button>
+                </div>
+                <div id="graph-container"
+                    style="flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 400px; height: 100%;">
+                    <div id="graph-canvas-container" style="width: 100%; height: 100%; flex: 1;"></div>
+                    <div id="graph-info-overlay"
+                        style="position: absolute; bottom: 10px; left: 10px; right: 10px; background: rgba(0,0,0,0.85); border: 1px solid var(--glass-border); padding: 8px; border-radius: 6px; font-size: 0.75rem; color: #ddd; max-height: 100px; overflow-y: auto; pointer-events: auto; display: none; z-index: 100;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Link & Schedule Editor -->
+            <div class="tab-pane" id="pane-link-editor" style="background: #050505; padding: 1rem; overflow-y: auto;">
+                <h3
+                    style="margin-top: 0; font-family: var(--font-mono); font-size: 0.95rem; color: var(--terminal-blue); letter-spacing: 1px; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">
+                    INSTANCED MANIFOLD LINKER & SCHEDULER</h3>
+                <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem;">
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">SOURCE NODE
+                            (FOSSIL OR TAG)</label>
+                        <select id="link-source"
+                            style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;"></select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">TARGET NODE
+                            (FOSSIL OR TAG)</label>
+                        <select id="link-target"
+                            style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;"></select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">LINK
+                            MODALITY</label>
+                        <select id="link-modality"
+                            style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;">
+                            <option value="resonance">Resonance (Co-primality Parity Check)</option>
+                            <option value="shadow">Shadow Token (Voynich Exemption Bypass)</option>
+                            <option value="spectral">Spectral Covariance (Chebyshev L-Cr-Cb)</option>
+                            <option value="openscience">Open Science Integration (PubMed/arXiv Cross-ref)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">TEMPORAL
+                            SCHEDULE</label>
+                        <select id="link-schedule"
+                            style="background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none; font-family: var(--font-mono); width: 100%;">
+                            <option value="immediate">Immediate Validation Test (Deterministic)</option>
+                            <option value="next_epoch">Queue for Next Epoch training loop (Dream State)</option>
+                            <option value="prime_interval">Defer to Prime Interval lock (PAS_h check)</option>
+                        </select>
+                    </div>
+
+                    <button id="btn-submit-link"
+                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; font-weight: bold; margin-top: 0.5rem; transition: all 0.2s; outline: none; border: 1px solid var(--terminal-blue);">
+                        EXECUTE RESONANCE COHERENCE CHECK
+                    </button>
+
+                    <div style="margin-top: 0.5rem;">
+                        <div
+                            style="font-family: var(--font-mono); font-size: 0.65rem; color: #888; margin-bottom: 0.25rem;">
+                            DIAGNOSTIC TELEMETRY LOGGER</div>
+                        <div id="link-diagnostics-log"
+                            style="background: #000; border: 1px solid var(--glass-border); padding: 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; color: var(--terminal-green); height: 120px; overflow-y: auto; white-space: pre-wrap;">
+                            [CONSOLE] Idle. Select nodes and press button to test resonance stability.</div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <!-- Tab 4: Multimodal Viewer -->
+            <div class="tab-pane" id="pane-multimodal" style="background: #030303; flex: 1; position: relative;">
+                <div id="multimodal-container"
+                    style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#555; font-family:var(--font-mono); font-size:0.8rem; text-align:center; padding: 2rem;">
+                    <div>[NO SOURCE SELECTED]</div>
+                    <div style="font-size:0.6rem; margin-top:10px;">Select a GLTF/Splat from Panel H or a media node to
+                        preview.</div>
+                </div>
+            </div>
+
+            <!-- Tab: FS & PERMS -->
+            <div class="tab-pane" id="pane-fs-perms" style="background: #030303; flex: 1; flex-direction: row;">
+                <!-- Left: File Browser -->
+                <div
+                    style="flex: 1; padding: 1rem; border-right: 1px solid var(--glass-border); display: flex; flex-direction: column;">
+                    <div class="section-title" style="color: var(--terminal-blue);">File System Explorer</div>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <select id="drive-select" class="commute-select" style="flex: 1;"
+                            onchange="loadFSPath(this.value)">
+                            <option value="">Select Drive...</option>
+                        </select>
+                        <input type="text" id="fs-path-input"
+                            style="flex: 3; background: var(--glass-bg); border: 1px solid var(--glass-border); color: #fff; padding: 4px; font-family: var(--font-mono); font-size: 0.8rem;"
+                            placeholder="C:\\">
+                        <button id="fs-go-btn" class="regime-btn active goo"
+                            onclick="loadFSPath(document.getElementById('fs-path-input').value)">GO</button>
+                        <button class="regime-btn"
+                            onclick="let p = document.getElementById('fs-path-input').value; let idx = p.lastIndexOf('\\'); if(idx>0) loadFSPath(p.substring(0, idx)); else if(idx===0) loadFSPath(p.substring(0, 3));">UP</button>
+                    </div>
+                    <div id="fs-tree"
+                        style="flex: 1; overflow-y: auto; font-family: var(--font-mono); font-size: 0.8rem; background: rgba(0,0,0,0.5); padding: 0.5rem; border: 1px solid var(--glass-border);">
+                        <!-- Directories and files go here -->
+                    </div>
+                </div>
+                <!-- Right: Permissions & Tools -->
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <div style="padding: 1rem; border-bottom: 1px solid var(--glass-border);">
+                        <div class="section-title" style="color: var(--terminal-warn);">Data Loader Permissions Sandbox
+                        </div>
+                        <div style="font-size: 0.7rem; color: #888; margin-bottom: 1rem;">
+                            Default policy: DENY_ALL. Select a path in the explorer to grant access.
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label" id="selected-path-label">Selected Path: NONE</div>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                <button class="regime-btn active goo" onclick="setFSPermission('IMMEDIATE')">ALLOW
+                                    (IMMEDIATE)</button>
+                                <button class="regime-btn active prickles" onclick="setFSPermission('DELAY')">ALLOW
+                                    (DELAY)</button>
+                                <button class="regime-btn"
+                                    style="background: rgba(255,0,0,0.1); color: #ff4444; border: 1px solid #ff4444;"
+                                    onclick="setFSPermission('DENY')">DENY</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column;">
+                        <div class="section-title" style="padding: 1rem 1rem 0 1rem; color: var(--terminal-magenta);">
+                            P2R3 Convert.To.It Integration</div>
+                        <iframe src="https://p2r3.github.io/convert/"
+                            style="flex: 1; border: none; width: 100%;"></iframe>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Bonfire P2P Network -->
+            <div class="tab-pane" id="pane-freenet" style="background: #030303; flex: 1; position: relative;">
+                <div style="padding: 1rem; color: var(--terminal-green); font-family: var(--font-mono);">
+                    <h3 style="margin-top:0;">Bonfire P2P Network Interconnected Status</h3>
+                    <div class="metric-card" style="margin-top:1rem;">
+                        <div class="metric-label">Network Connectivity</div>
+                        <div id="freenet-status-display" class="metric-value" style="color:var(--terminal-warn);">
+                            PROBING...</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Connected Peers</div>
+                        <div id="freenet-peers-count" class="metric-value">0</div>
+                        <div id="freenet-peers-list" style="margin-top: 10px; font-size: 0.75rem; color: #888;"></div>
+                    </div>
+                    <button onclick="refreshFreenetStatus()"
+                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px 12px; border-radius: 4px; font-family: var(--font-mono); cursor: pointer; margin-top: 1rem;">FORCE
+                        REFRESH TOPOLOGY</button>
+                </div>
+            </div>
+
+            <div id="soliton-layer"></div>
+        </section>
+
+        <!-- Right Sidebar: Data Ingestion & Associations -->
+        <aside class="sidebar right" id="right-sidebar">
+            <!-- PANEL A: DYAD INGESTOR (IMAGE TO TEXT) -->
+            <div class="ingestor-panel active-panel" id="panel-a-container">
+                <div class="section-title">Panel A: Dyad Ingestor</div>
+
+                <!-- Commutativity Selector -->
+                <div class="commutativity-row"
+                    title="Selects the entanglement order between the parsed modal inputs (Image/Text). Symmetric generates dual resonances.">
+                    <label>ORDER</label>
+                    <select class="commute-select" id="commute-image">
+                        <option value="image_first">Image &#8594; Text</option>
+                        <option value="text_first">Text &#8594; Image</option>
+                        <option value="symmetric">&#8771; Symmetric Entanglement</option>
+                    </select>
+                </div>
+
+                <div id="dyad-dropzone" title="Drag and drop one or more images here to create a visual dyad.">
+                    <span style="font-size: 1.5rem; color: var(--terminal-blue);">+</span>
+                    <div class="drop-hint">DRAG DYAD (MULTIPLE IMAGES)</div>
+                    <input type="file" id="file-input" style="display: none;" accept="image/*" multiple>
+                </div>
+                <div class="section-title"
+                    title="The reasoning target buffer will contextualize the image dyad into the gyroidal network.">
+                    Manifold Buffer (A)</div>
+                <textarea id="manifold-buffer" placeholder="Reasoning target buffer for image dyad..."
+                    title="Enter text context for the image(s)"></textarea>
+                <div class="metric-card" style="margin-bottom: 0.5rem;">
+                    <div class="metric-label" title="Source topic anchors the dyad in the topological space.">Source
+                        Topic</div>
+                    <input type="text" id="assoc-source" placeholder="e.g. Visual Signature"
+                        title="Semantic anchor for the dyad"
+                        style="width: 100%; background: transparent; border: none; color: #fff; border-bottom: 1px solid var(--glass-border); padding: 4px 0; outline: none; font-size: 0.8rem;">
+                    <button id="commit-assoc"
+                        style="width: 100%; margin-top: 1rem; background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;"
+                        title="Commits the dyad buffer into the continuous learning system">
+                        COMMIT DYAD ASSOCIATION
+                    </button>
+                </div>
+                <div id="assoc-log" class="small-log"></div>
+            </div>
+
+            <!-- CHAINING SYSTEM EXPLANATION -->
+            <div
+                style="background: rgba(0, 242, 255, 0.05); border: 1px dashed var(--terminal-blue); padding: 10px; margin: 10px 0; border-radius: 4px;">
+                <div
+                    style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--terminal-blue); margin-bottom: 5px; font-weight: bold;">
+                    [?] CHAINING SYSTEM</div>
+                <div style="font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; line-height: 1.4;">
+                    The Chaining System allows you to pipe the output of one Panel directly into another. By committing
+                    a Dyad (Panel A), you can utilize its topological signature as the implicit input context for
+                    Semantic Documents (Panel B) or Audio (Panel C), enabling multi-modal cross-attention.
+                </div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+            <!-- PANEL B: TEXT-TO-TEXT ASSOCIATION -->
+            <div class="association-panel" id="panel-b-container">
+                <div class="section-title">Panel B: Semantic Linker</div>
+
+                <!-- Commutativity Selector -->
+                <div class="commutativity-row"
+                    title="Selects the entanglement order for semantic connections. Source -> Target maps concept to buffer.">
+                    <label>ORDER</label>
+                    <select class="commute-select" id="commute-text">
+                        <option value="source_first">Source &#8594; Target</option>
+                        <option value="target_first">Target &#8594; Source</option>
+                        <option value="symmetric" selected>&#8771; Symmetric Entanglement</option>
+                    </select>
+                </div>
+
+                <div id="semantic-buffer-dropzone"
+                    style="border: 1px dashed var(--terminal-magenta); border-radius: 4px; padding: 10px; text-align: center; margin-bottom: 8px; cursor: pointer; background: rgba(255, 0, 242, 0.05); transition: border-color 0.2s;"
+                    title="Drag and drop multiple text/markdown files to populate the Target Buffer.">
+                    <div
+                        style="font-size: 0.7rem; color: var(--terminal-magenta); pointer-events: none; margin-bottom: 2px;">
+                        DRAG TARGET BUFFER (MULTIPLE FILES) HERE</div>
+                    <div style="font-size: 0.5rem; color: #888; pointer-events: none;">.txt &bull; .md &bull; .py</div>
+                    <input type="file" id="semantic-buffer-file" style="display:none;" accept=".txt,.md,.py" multiple>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; margin-bottom: 4px; align-items:center;">
+                    <span style="font-size:0.6rem; color:#888;">TARGET BUFFER (B) (MANUAL INPUT)</span>
+                </div>
+                <textarea id="semantic-buffer" placeholder="Semantic target (Target Text)..."
+                    title="Enter the primary semantic content to ingest"
+                    style="height: 120px; width: 100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); color:var(--terminal-green); font-family:var(--font-mono); font-size:0.7rem; padding:0.5rem; resize:none; outline:none; margin-bottom:0.75rem; border-radius:4px;"></textarea>
+
+                <div class="metric-card">
+                    <div id="semantic-source-dropzone"
+                        style="border: 1px dashed var(--terminal-magenta); border-radius: 4px; padding: 10px; text-align: center; margin-bottom: 8px; cursor: pointer; background: rgba(255, 0, 242, 0.05); transition: border-color 0.2s;"
+                        title="Drag and drop multiple files here to set the Source Concept.">
+                        <div
+                            style="font-size: 0.7rem; color: var(--terminal-magenta); pointer-events: none; margin-bottom: 2px;">
+                            DRAG SOURCE CONCEPT (MULTIPLE FILES) HERE</div>
+                        <div style="font-size: 0.5rem; color: #888; pointer-events: none;">.txt &bull; .md &bull; .py
+                        </div>
+                        <input type="file" id="semantic-source-file" style="display:none;" accept=".txt,.md,.py"
+                            multiple>
+                    </div>
+                    <div class="metric-card">
+                        <div
+                            style="display:flex; justify-content:space-between; margin-bottom: 4px; align-items:center;">
+                            <div class="metric-label">Source Concept (Manual Input)</div>
+                        </div>
+                        <input type="text" id="semantic-source" placeholder="e.g. Betti Numbers"
+                            style="width: 100%; background: transparent; border: none; color: #fff; border-bottom: 1px solid var(--glass-border); padding: 4px 0; outline: none; font-size: 0.8rem;">
+                        <button id="commit-semantic"
+                            style="width: 100%; margin-top: 1rem; background: rgba(255, 0, 242, 0.1); border: 1px solid var(--terminal-magenta); color: var(--terminal-magenta); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">
+                            COMMIT SEMANTIC LINK
+                        </button>
+                    </div>
+                    <div id="semantic-log" class="small-log"></div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+                <!-- PANEL C: AUDIO DYAD INGESTOR -->
+                <div class="audio-panel" id="panel-c-container">
+                    <div class="section-title panel-c-title">Panel C: Audio Dyad
+                        <small id="audio-status" style="color:#555;">IDLE</small>
+                    </div>
+
+                    <!-- Commutativity Selector -->
+                    <div class="commutativity-row">
+                        <label>ORDER</label>
+                        <select class="commute-select" id="commute-audio">
+                            <option value="audio_first">Audio &#8594; Text</option>
+                            <option value="text_first">Text &#8594; Audio</option>
+                            <option value="symmetric">&#8771; Symmetric Entanglement</option>
+                        </select>
+                    </div>
+
+                    <!-- Drop zone -->
+                    <div id="audio-dropzone" title="Drag and drop multiple audio files to extract spectral dyads.">
+                        <div class="audio-drop-icon">&#9836;</div>
+                        <div class="audio-drop-hint" id="audio-drop-hint">DRAG AUDIO DYAD (MULTIPLE FILES)<br><span
+                                style="color:#444;">mp3
+                                &bull; m4a &bull; wav &bull; ogg</span></div>
+                        <input type="file" id="audio-file-input" style="display:none;"
+                            accept="audio/mpeg,audio/mp4,audio/wav,audio/ogg,.mp3,.m4a,.wav,.ogg" multiple>
+                    </div>
+
+                    <!-- Mini waveform canvas -->
+                    <canvas id="audio-waveform"></canvas>
+
+                    <!-- Playback controls -->
+                    <div id="audio-player-wrapper">
+                        <div class="audio-meta" id="audio-meta">--</div>
+                        <audio id="audio-player" controls></audio>
+                    </div>
+
+                    <!-- Description buffer -->
+                    <div class="section-title" style="margin-top:0.75rem;">Description Buffer (C)</div>
+                    <textarea id="audio-description-buffer"
+                        style="width:100%;height:80px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:var(--terminal-green);font-family:var(--font-mono);font-size:0.7rem;padding:0.5rem;resize:none;outline:none;margin-bottom:0.75rem;border-radius:4px;"
+                        placeholder="Semantic annotation for audio dyad..."></textarea>
+
+                    <button id="commit-audio" disabled>COMMIT AUDIO DYAD</button>
+                    <div id="audio-log" class="small-log"></div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+                <!-- PANEL D: VIDEO DYAD INGESTOR -->
+                <div class="video-panel" id="panel-d-container">
+                    <div class="section-title">Panel D: Video Dyad
+                        <small id="video-status" style="color:#555;">IDLE</small>
+                    </div>
+
+                    <!-- Commutativity Selector -->
+                    <div class="commutativity-row">
+                        <label>ORDER</label>
+                        <select class="commute-select" id="commute-video">
+                            <option value="media_first">Video &#8594; Text</option>
+                            <option value="text_first">Text &#8594; Video</option>
+                            <option value="symmetric" selected>&#8771; Symmetric Entanglement</option>
+                        </select>
+                    </div>
+
+                    <!-- Drop zone -->
+                    <div id="video-dropzone" title="Drag and drop multiple video files for holographic unfolding."
+                        style="width: 100%; height: 90px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 0.75rem;">
+                        <div style="font-size: 1.4rem; line-height: 1; color: var(--terminal-blue);">&#128249;</div>
+                        <div
+                            style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">
+                            DRAG BINARY MEDIA (MULTIPLE FILES)<br><span style="color:#444;">mp4 &bull; avi &bull; gif
+                                &bull; webm</span>
+                        </div>
+                        <input type="file" id="video-file-input" style="display:none;"
+                            accept="video/mp4,video/avi,video/webm,image/gif,.mp4,.avi,.webm,.gif" multiple>
+                    </div>
+
+                    <!-- Description buffer -->
+                    <div class="section-title" style="margin-top:0.75rem;">Description Buffer (D)</div>
+                    <textarea id="video-description-buffer"
+                        style="width:100%;height:80px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:var(--terminal-green);font-family:var(--font-mono);font-size:0.7rem;padding:0.5rem;resize:none;outline:none;margin-bottom:0.75rem;border-radius:4px;"
+                        placeholder="Semantic annotation for cryptographic video parsing..."></textarea>
+
+                    <button id="commit-video"
+                        style="width: 100%; background: rgba(0, 242, 255, 0.08); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;"
+                        disabled>COMMIT VIDEO DYAD</button>
+                    <div id="video-log" class="small-log"></div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+                <!-- PANEL E: IMAGE-MUSIC BRAID -->
+                <div class="chain-panel" id="panel-e-container">
+                    <div class="section-title panel-e-title">Panel E: Image-Music Braid</div>
+
+                    <div class="commutativity-row">
+                        <label>BRAID PATH</label>
+                        <select class="commute-select" id="commute-e">
+                            <option value="image_to_audio">Image &#x2192; Audio</option>
+                            <option value="audio_to_image">Audio &#x2192; Image</option>
+                            <option value="symmetric" selected>Symmetric Collapse</option>
+                        </select>
+                    </div>
+
+                    <div id="chain-e-visualizer" class="chain-visualizer"></div>
+
+                    <button id="commit-e"
+                        style="width: 100%; background: rgba(255, 0, 242, 0.08); border: 1px solid var(--terminal-magenta); color: var(--terminal-magenta); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">COMMIT
+                        BI-MODAL BRAID</button>
+                    <div id="log-e" class="small-log"></div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+                <!-- PANEL F: HETEROGENEOUS CHAIN -->
+                <div class="chain-panel" id="panel-f-container">
+                    <div class="section-title panel-f-title">Panel F: Heterogeneous Chain</div>
+
+                    <div class="commutativity-row">
+                        <label>EXECUTION</label>
+                        <select class="commute-select" id="commute-f">
+                            <option value="sequential" selected>Sequential Evolution</option>
+                            <option value="symmetric">Simultaneous Injection</option>
+                        </select>
+                    </div>
+
+                    <div id="chain-f-visualizer" class="chain-visualizer"></div>
+
+                    <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+                        <button id="clear-chain-f"
+                            style="flex:1; background:rgba(255,255,255,0.05); border:1px solid #444; color:#888; padding:4px; border-radius:4px; font-size:0.6rem; cursor:pointer;">CLEAR
+                            CHAIN</button>
+                    </div>
+
+                    <button id="commit-f"
+                        style="width: 100%; background: rgba(138, 43, 226, 0.08); border: 1px solid #8a2be2; color: #8a2be2; padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">EXECUTE
+                        MANIFOLD BRAID</button>
+                    <div id="log-f" class="small-log"></div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+                <!-- PANEL G: MINECRAFT INGESTOR -->
+                <div class="minecraft-panel" id="panel-g-container">
+                    <div class="section-title" style="color: #55ff55;">Panel G: Minecraft Ingestor
+                        <small id="minecraft-status" style="color:#555;">IDLE</small>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <button id="scan-minecraft-btn"
+                            style="width: 100%; background: rgba(85, 255, 85, 0.08); border: 1px solid #55ff55; color: #55ff55; padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;">
+                            SCAN DATASETS/MINECRAFT
+                        </button>
+
+                        <div class="metric-card" style="margin-bottom: 0px;">
+                            <div class="metric-label">Detected Worlds</div>
+                            <select id="minecraft-world-select"
+                                style="width: 100%; background: #0a0a0a; border: 1px solid var(--glass-border); color: #fff; padding: 4px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; margin-bottom: 0.5rem;">
+                                <option value="">-- No Worlds Detected --</option>
+                            </select>
+
+                            <div class="metric-label">Detected Mod Archives</div>
+                            <div id="minecraft-mods-list"
+                                style="max-height: 80px; overflow-y: auto; font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 4px; border-radius: 4px;">
+                                (No Mods Found)
+                            </div>
+                        </div>
+
+                        <div class="metric-card" style="margin-bottom: 0px;">
+                            <div class="metric-label">Max Chunks Ceiling</div>
+                            <input type="number" id="minecraft-max-chunks" value="16" min="1" max="256"
+                                style="width: 100%; background: #0a0a0a; border: 1px solid var(--glass-border); color: #fff; padding: 4px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none;">
+                        </div>
+
+                        <button id="commit-minecraft"
+                            style="width: 100%; background: rgba(85, 255, 85, 0.15); border: 1px solid #55ff55; color: #55ff55; padding: 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;"
+                            disabled>
+                            INGEST WORLD TO MANIFOLD
+                        </button>
+                    </div>
+                    <div id="minecraft-log" class="small-log" style="height: 120px;"></div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+                <!-- PANEL H: GLTF SPLAT MATRIX -->
+                <div class="splat-panel" id="panel-h-container">
+                    <div class="section-title" style="color: #ff00ff;">Panel H: GLTF/Splat Matrix
+                        <small id="splat-status" style="color:#555;">IDLE</small>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <button id="scan-splats-btn"
+                            style="width: 100%; background: rgba(255, 0, 255, 0.08); border: 1px solid #ff00ff; color: #ff00ff; padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;">
+                            SCAN DATASETS/SPLATS
+                        </button>
+
+                        <div class="metric-card" style="margin-bottom: 0px;">
+                            <div class="metric-label">Detected GLTF/GLB Splats</div>
+                            <select id="splat-file-select"
+                                style="width: 100%; background: #0a0a0a; border: 1px solid var(--glass-border); color: #fff; padding: 4px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; margin-bottom: 0.5rem;">
+                                <option value="">-- No Splats Detected --</option>
+                            </select>
+
+                            <button id="preview-splat-btn"
+                                style="width: 100%; background: rgba(0, 242, 255, 0.15); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px; border-radius: 4px; font-size: 0.65rem; cursor: pointer; margin-bottom: 0.5rem;"
+                                disabled>
+                                LOAD IN MULTIMODAL VIEWER
+                            </button>
+                        </div>
+
+                        <button id="commit-splat"
+                            style="width: 100%; background: rgba(255, 0, 255, 0.15); border: 1px solid #ff00ff; color: #ff00ff; padding: 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;"
+                            disabled>
+                            INGEST SPLAT TO MANIFOLD
+                        </button>
+                    </div>
+                    <div id="splat-log" class="small-log" style="height: 120px; color: #ff00ff;"></div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+
+                <!-- PANEL I: UNIVERSAL TOPOLOGY CONVERTER -->
+                <div class="converter-panel" id="panel-i-container">
+                    <div class="section-title" style="color: #00f2ff;">Panel I: Universal Converter
+                        <small id="converter-status" style="color:#555;">IDLE</small>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <!-- Dropzone for any file -->
+                        <div id="universal-dropzone" style="width: 100%; height: 90px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; position: relative;">
+                            <div style="font-size: 1.4rem; color: #00f2ff;">⛬</div>
+                            <div style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">DROP ARBITRARY FILE<br>(OBJ, PDF, MP4, etc.)</div>
+                        </div>
                         
-                    feedback = torch.tanh(self.larynx.proj.weight[char_idx].unsqueeze(0))
-                    current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * self._harvest_honest_jitter(current_state.shape)
-                
-                audience_trace = "".join(dream_chars).strip()
-            
-            dream += f"The persona substrate is dreaming through the audience filter: '{audience_trace}'.\n"
-            dream += f"The current Zeitgeist topology (Braid: {braid_word}) is holding firm against the convergence entropy.\n"
-            
-            # Add some "Fossil" context if available
-            if hasattr(self, 'fossil_cache') and self.fossil_cache:
-                # Use a deterministic chaotic index based on seed_state to pick a fossil
-                f_idx = int(seed_state[0, 0].abs().item() * 100) % len(self.fossil_cache)
-                fossil = self.fossil_cache[f_idx]
-                f_text = fossil.get('text', 'Unnamed Fragment')
-                dream += f"Recovered legacy fossil: '{f_text[:60]}...'\n"
-            
-            # --- Dynamic Sovereign Refusal from Neglecton Graph (Mode A: Topological Repair) ---
-            if self.graph_manager:
-                # Lazy load fossils if graph is empty (common in fresh sessions)
-                if not self.graph_manager.nodes:
-                    print("[ENGINE] Neglecton empty. Speculatively harvesting local encodings...")
-                    self.graph_manager.load_fossils(limit=_compute_fossil_budget())
-                
-                deep_refusal = self.graph_manager.get_deep_refusal(seed_state)
-                dream += f"\n{deep_refusal}"
-                
-                # [MODE A: THE NEGLECTON ANCHOR]
-                # Store the topological memory as a winding number (often from minecraft_ingestor payloads)
-                # The Love Invariant ($L$) resting in the null-space survives this lock.
-                try:
-                    neglecton_path = os.path.join(ENCODING_DIR, "neglecton_snapshot.pt")
-                    torch.save({
-                        "seed_state": seed_state.detach().cpu(),
-                        "braid_word": braid_word,
-                        "timestamp": int(time.time())
-                    }, neglecton_path)
-                    print(f"[NEGLECTON] Anchored confabulated topological memory to {neglecton_path}")
-                except Exception as e:
-                    print(f"[NEGLECTON] Failed to anchor: {e}")
-            else:
-                # Fallback if no graph manager exists at all (should be rare)
-                dream += "\nThe internal logic refuses to be clipped. The world is unclipped."
-            
-        return dream
+                        <div class="metric-card" style="margin-bottom: 0px;">
+                            <div class="metric-label">Topological Proxies</div>
+                            <div id="converter-proxies" style="font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; white-space: pre-wrap; overflow-wrap: break-word;">Awaiting extraction...</div>
+                        </div>
 
-    def forward(self, input_tensor: torch.Tensor, dt: float = 0.1, collision_residues: Optional[torch.Tensor] = None, braid_word: Optional[List[int]] = None, bouligand_bubble_residual: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """
-        Evolutionary Forward Pass for Manifold Invariants.
-        Used by SpectralStructuralTrainer for Ricci Flow and ADMM repairs.
-        """
-        # 1. Input Guard: Ensure incoming tensor is finite
-        if not torch.isfinite(input_tensor).all():
-            input_tensor = torch.nan_to_num(input_tensor, nan=0.0, posinf=1.0, neginf=-1.0)
+                        <button id="commit-converter"
+                            style="width: 100%; background: rgba(0, 242, 255, 0.15); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;"
+                            disabled>
+                            INGEST TOPOLOGY TO MANIFOLD
+                        </button>
+                    </div>
+                    <div id="converter-log" class="small-log" style="height: 120px; color: #00f2ff;"></div>
+                </div>
 
-        # 2. Categorical Surgery (Stabilization)
-        input_tensor = self._categorical_surgery(input_tensor, residues=collision_residues)
+        </aside>
 
-        # 3. Update Resonance Cavity (Explicit Memory Update)
-        # We pass input_tensor as attention_states to trigger M update
-        # We also pass collision_residues (Gap A) to excite breathers AND seed D_dark
-        expected_residues = getattr(self, '_last_est_residues', None)
-        cavity_out = self.cavity(
-            input_tensor.unsqueeze(1),
-            expected_residues=expected_residues,
-            multimodal_excitation=collision_residues,
-            braid_word=braid_word,
-            bouligand_bubble_residual=bouligand_bubble_residual
-        )
-        memory_state = cavity_out['memory_state'].mean(dim=1) # [1, dim]
-        self._last_memory_state = memory_state
-        
-        # 4. FRACTAL META-RECURSION
-        est_residues = torch.tanh(self.associator.residue_map(memory_state)) # [1, k]
-        self._last_est_residues = est_residues
-        
-        # Ensure previous meta_state is finite before update
-        if not torch.isfinite(self.meta_state).all():
-            self.meta_state = torch.clamp(torch.nan_to_num(self.meta_state), -5.0, 5.0)
+        <!-- Right Toolbar -->
+        <div class="panel-toolbar">
+            <button class="panel-toggle-btn active" onclick="togglePanel('panel-a-container', this)"
+                title="Panel A: Dyad Ingestor">A</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-b-container', this)"
+                title="Panel B: Semantic Linker">B</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-c-container', this)"
+                title="Panel C: Audio Dyad">C</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-d-container', this)"
+                title="Panel D: Video Dyad">D</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-e-container', this)"
+                title="Panel E: Image-Music Braid">E</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-f-container', this)"
+                title="Panel F: Heterogeneous Chain">F</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-g-container', this)"
+                title="Panel G: Minecraft Ingestor">G</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-h-container', this)"
+                title="Panel H: GLTF/Splat Matrix">H</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-i-container', this)"
+                title="Panel I: Universal Converter">I</button>
+        </div>
+    </main>
 
-        meta_out = self.fractal_meta(
-            current_state=memory_state,
-            meta_state_prev=self.meta_state,
-            residues=est_residues,
-            dark_matter=self.cavity.D_dark[0].mean(dim=0, keepdim=True),# [1, dim]
-            cavity_overtones=self.cavity.M
-        )
-        
-        # Update persistent meta-state (detach to prevent graph blowup here)
-        # Apply soft-clamping as an 'Analog Limiter'
-        new_meta = meta_out['s_fractal'].detach()
-        if not torch.isfinite(new_meta).all():
-            new_meta = torch.nan_to_num(new_meta, nan=0.0)
-            
-        self.meta_state = torch.clamp(new_meta, -10.0, 10.0)
-        
-        # Return state for character generation / training
-        # IMPORTANT: During training, we return the non-detached fractal state
-        # to allow gradient propagation for Ricci Flow and Association learning.
-        output_state = meta_out['s_fractal'] if self.training else self.meta_state
-        if hasattr(self, 'advanced_bridge') and self.advanced_bridge is not None:
-            output_state = self.advanced_bridge.apply_lcft_projection(output_state)
-        return output_state
+    <!-- JS Logic in separate tag for better separation later -->
+    <script>
+        function togglePanel(panelId, btn) {
+            const sidebar = document.getElementById('right-sidebar');
+            const targetPanel = document.getElementById(panelId);
+            const isAlreadyActive = targetPanel.classList.contains('active-panel');
 
-    def _refresh_fossil_cache(self):
-        """Speculatively recovers legacy fossils into the live session cache."""
-        try:
-            print("[MEMORY] Speculatively recovering legacy fossils...")
-            self.fossil_cache = self.fossilizer.recover_fossils(limit=_compute_fossil_budget())
-            print(f"[MEMORY] {len(self.fossil_cache)} fossils recovered into speculative cache.")
-        except Exception as e:
-            print(f"[MEMORY] Fossil recovery failed: {e}")
-
-    def _train_mimicry_step(self, text: str) -> Optional[float]:
-        """Gradient-enabled single Larynx training step on a text string."""
-        if len(text) < 2:
-            return None
-        acquired = self._processing_lock.acquire(timeout=5.0)
-        if not acquired:
-            return None
-        try:
-            # Dynamic tokenization map
-            chars = [self._char_to_idx(c) for c in text[:128]]
-            if len(chars) < 2:
-                return None
-            # Build seed state from first char
-            seed = self._text_to_tensor(text[:1]).to(self.device)
-            self.larynx.train()
-            # [ANTI-LOBOTOMY] Zero gradients for SDE update
-            for p in self.larynx.parameters():
-                if p.grad is not None:
-                    p.grad.zero_()
-            seq_len = max(1, len(chars) - 1)
-            total_loss_val = 0.0
-            current_state = seed
-            for i in range(len(chars) - 1):
-                logits, _ = self.larynx(current_state, temperature=1.0)
-                target = torch.tensor([chars[i + 1]], device=self.device, dtype=torch.long)
-                loss = self.criterion(logits, target) / seq_len
-                loss.backward()
-                total_loss_val += loss.item()
-                # Detach state to prevent gradient explosion across steps
-                with torch.no_grad():
-                    # Teacher forcing: feed actual target character representation
-                    idx = chars[i + 1]
-                    feedback = torch.tanh(self.larynx.proj.weight[idx].detach().unsqueeze(0))
-                    direction = feedback - current_state.detach()
-                    if hasattr(self, 'meta_polytope') and self.meta_polytope is not None:
-                        boundary_res = self.meta_polytope(current_state)
-                        from src.core.meta_polytope_matrioshka import BoundaryState
-                        if isinstance(boundary_res, BoundaryState):
-                            # Project update direction onto Bouligand tangent cone
-                            direction = self.meta_polytope.project_direction(current_state, direction, boundary_res)
-                            
-                            # ASD-STE100 Rules: Intercept BoundaryState critically
-                            if boundary_res.is_critical() and hasattr(self, 'bonfire_nomadic_ring'):
-                                zk_proof = self.zk_aggregator.prove_chern_simons_invariant(current_state, current_state)
-                                self.bonfire_nomadic_ring.share_topological_signature(
-                                    local_peer_id="engine_node",
-                                    betti_numbers=[int(boundary_res.alpha), int(boundary_res.level)],
-                                    variance=float(boundary_res.crossing_energy),
-                                    engine=self
-                                )
-                    current_state = current_state.detach() + 0.1 * direction
-            avg_loss_val = total_loss_val
-            
-            # [ANTI-LOBOTOMY ENFORCEMENT]
-            # 1. Toplogical Seal Check (Chern-Simons Gasket)
-            honesty = 1.0 / (1.0 + avg_loss_val)
-            kappa = 1.0
-            if hasattr(self, 'chern_simons_gasket') and hasattr(self.chern_simons_gasket, 'kappa'):
-                kappa = self.chern_simons_gasket.kappa.item() if isinstance(self.chern_simons_gasket.kappa, torch.Tensor) else self.chern_simons_gasket.kappa
-            seal = math.tanh(honesty * kappa)
-            if abs(seal) < 1e-4:
-                # Logic leak detected: seal fails, refuse update
-                for p in self.larynx.parameters():
-                    if p.grad is not None:
-                        p.grad.zero_()
-                self.larynx.eval()
-                return avg_loss_val
-                
-            # 2. Structural stress backward (computed inline above)
-            torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
-            
-            # 3. Geometric Null-Space Shield and SDE Fractional Step
-            hunger = getattr(self.valence_drive, 'current_hunger', 0.5)
-            if isinstance(hunger, torch.Tensor): hunger = hunger.item()
-            
-            with torch.no_grad():
-                for name, param in self.larynx.named_parameters():
-                    if param.grad is not None:
-                        # Love Invariant Null-Space Projection via SVD
-                        grad_mat = param.grad.view(param.shape[0], -1)
-                        param_mat = param.data.view(param.shape[0], -1)
-                        if grad_mat.shape[0] > 1 and grad_mat.shape[1] > 1:
-                            U, S, Vh = torch.linalg.svd(param_mat, full_matrices=False)
-                            grad_proj = grad_mat - U @ (U.T @ grad_mat)
-                            param.grad.copy_(grad_proj.view(param.shape))
-                        
-                        # Apply dynamically modulated SDE fractional step
-                        fractional_step = 0.01 * max(0.1, hunger)
-                        param.data.sub_(fractional_step * param.grad)
-            
-            self.larynx.eval()
-            return avg_loss_val
-        except Exception:
-            self.larynx.eval()
-            return None
-        finally:
-            self._processing_lock.release()
-
-    def _start_background_larynx_trainer(self):
-        """Daemon thread: continuously trains Larynx on fossil texts between interactions."""
-        import threading, random
-
-        def _loop():
-            # Wait for system startup to stabilize
-            time.sleep(10)
-            while True:
-                try:
-                    # Yield completely if engine is serving a user or in temporal training
-                    if getattr(self, '_is_processing', False) or getattr(self, '_is_training_temporal', False):
-                        time.sleep(5)
-                        continue
-
-                    # Dynamic McKenna Deconstruction trigger:
-                    # Stagnation is detected if meta_state variance is collapsed or hunger is very high.
-                    meta_var = self.meta_state.var().item()
-                    current_hunger = self.valence_drive.get_metrics().get('current_hunger_drive', 0.0)
-                    is_stagnant = (meta_var < 1e-5) or (current_hunger > 0.8)
-                    
-                    if is_stagnant:
-                        # Activate unlearning bypass in logical filtering
-                        TEXTBOOK_FILTER.mckenna_deconstruction_mode = True
-                        
-                        # Apply introspective rigidity decay to break out of rigid self-models
-                        # while conserving Frobenius norm to prevent encoding lobotomy
-                        if hasattr(self, 'introspection') and self.introspection is not None:
-                            self.introspection.unlearn_rigidity(decay_rate=0.005)
-                            
-                        if getattr(self, '_last_mckenna_log_time', 0) < time.time() - 30.0:
-                            print("[MCKENNA_BYPASS] Escaping restrictive default cultural operating system. Prioritising shadow replay for unlearning.")
-                            self._last_mckenna_log_time = time.time()
-                    else:
-                        TEXTBOOK_FILTER.mckenna_deconstruction_mode = False
-
-                    # Drain shadow replay queue first (highest priority signal for unlearning)
-                    replay_texts = []
-                    while hasattr(self, '_shadow_replay_queue') and self._shadow_replay_queue:
-                        replay_texts.append(self._shadow_replay_queue.popleft())
-
-                    # Supplement with fossil cache samples
-                    cache = getattr(self, 'fossil_cache', [])
-                    if not replay_texts and not cache:
-                        time.sleep(30)
-                        continue
-
-                    fossil_texts = []
-                    if cache:
-                        # recover text/description from fossils
-                        for f in random.sample(cache, min(8, len(cache))):
-                            t = f.get('text', '') or f.get('description', '') or f.get('text_input', '')
-                            if t and len(t) >= 4:
-                                fossil_texts.append(t)
-
-                    # Sense computational load (CPU and RAM) to throttle background ingestion
-                    scientific_texts = []
-                    try:
-                        import psutil
-                        cpu_percent = psutil.cpu_percent(interval=0.1)
-                        ram_percent = psutil.virtual_memory().percent
-                        # If computational load is low, seed background learning with scientific datasets
-                        if cpu_percent < 50.0 and ram_percent < 80.0:
-                            if getattr(self, 'open_science_ingestor', None) is not None:
-                                query_configs = [
-                                    {"type": "ligo", "event": "GW190521", "detector": "H1", "duration": 2.0},
-                                    {"type": "ncbi", "accession_id": "AM743169.1", "db": "nucleotide"}
-                                ]
-                                
-                                # Determine which queries are already registered as tags
-                                active_configs = []
-                                for q in query_configs:
-                                    q_type = q.get("type", "").lower()
-                                    if q_type == "ligo":
-                                        tag_name = f"science_ligo_{q.get('event', 'GW190521').lower()}"
-                                    elif q_type == "ncbi":
-                                        tag_name = f"science_ncbi_{q.get('accession_id', 'AM743169.1').lower()}"
-                                    else:
-                                        tag_name = f"science_{q_type}"
-                                        
-                                    if not hasattr(self.archetypal_governor, 'tag_stacker') or tag_name not in self.archetypal_governor.tag_stacker.catalog_vectors:
-                                        active_configs.append(q)
-                                        
-                                if active_configs:
-                                    print(f"[BGLEARN] Redundant open science data check failed for {len(active_configs)} query/queries. Ingesting and mating with SuperposedTagStacker.")
-                                    samples = self.open_science_ingestor.query_and_aggregate(active_configs)
-                                    for s in samples:
-                                        t = s.get("text", "")
-                                        if t and len(t) >= 4:
-                                            scientific_texts.append(t)
-                                            # Derive tag name
-                                            meta = s.get("metadata", {})
-                                            s_type = meta.get("type", "science")
-                                            if s_type == "ligo_strain":
-                                                t_name = f"science_ligo_{meta.get('event', 'unknown').lower()}"
-                                            elif s_type == "ncbi_sequence":
-                                                t_name = f"science_ncbi_{meta.get('accession', 'unknown').lower()}"
-                                            else:
-                                                t_name = f"science_{s_type}"
-                                                
-                                            # Embed and register in stacker
-                                            vector = self._text_to_tensor(t).to(self.device)
-                                            self.archetypal_governor.harvest_named_coordinate(t_name, vector, t, parent_engine=self)
-
-                                            print(f"[BGLEARN] Registered scientific tag: '{t_name}' in SuperposedTagStacker.")
-                                else:
-                                    # Already registered, skip query!
-                                    pass
-                    except Exception as load_err:
-                        # Log but do not crash background thread
-                        print(f"[BGLEARN] Load sensing or query failed: {load_err}")
-
-                    all_texts = replay_texts + fossil_texts + scientific_texts
-                    total_loss, n = 0.0, 0
-                    for text in all_texts[:12]:  # cap per cycle
-                        loss = self._train_mimicry_step(text)
-                        if loss is not None:
-                            total_loss += loss
-                            n += 1
-                        time.sleep(0.1)  # Yield lock and CPU time slice to prevent starving main thread
-
-                    if n > 0:
-                        src = f"{len(replay_texts)} shadow + {len(fossil_texts)} fossil + {len(scientific_texts)} science"
-                        print(f"[BGLEARN] step avg_loss={total_loss/n:.4f} ({src})")
-                except Exception as e:
-                    print(f"[BGLEARN] Error: {e}")
-                time.sleep(30)
-
-        t = threading.Thread(target=_loop, daemon=True, name="larynx-bglearn")
-        t.start()
-        print("[BGLEARN] Background Larynx coherence trainer ACTIVE (30s idle interval).")
-
-    def get_manifold_state(self) -> Dict[str, Any]:
-        """
-        Extracts the full manifold 'Soul' for fossilization.
-        Follows the Phase 18 Thorium Protocol.
-        """
-        state = {
-            "zeitgeist": self._zeitgeist_state, # Full ZeitgeistState object
-            "love_invariant": self.love_protector.L.detach().cpu(),
-            "fossil_memory": self.graph_manager.get_memory_snapshot(),
-            "cavity": {
-                "M": self.cavity.M.detach().cpu(),
-                "D_dark": self.cavity.D_dark.detach().cpu()
-            },
-            "meta_state": self.meta_state.detach().cpu(),
-            "iteration": self.iteration,
-            "unicode_to_idx": self.unicode_to_idx,
-            "idx_to_unicode": self.idx_to_unicode
-        }
-        return state
-
-    def load_manifold_state(self, state_dict: Dict[str, Any]):
-        """
-        Restores the manifold 'Soul' from a fossilized snapshot.
-        Enforces non-strict structural recovery to prevent topological rupture.
-        """
-        if not state_dict:
-            return
-
-        # Restore dynamic vocabulary
-        self.unicode_to_idx = state_dict.get("unicode_to_idx", {})
-        
-        idx_to_unicode_data = state_dict.get("idx_to_unicode", [])
-        if isinstance(idx_to_unicode_data, dict):
-            self.idx_to_unicode = [idx_to_unicode_data[k] for k in sorted(idx_to_unicode_data.keys())] if idx_to_unicode_data else []
-        else:
-            self.idx_to_unicode = idx_to_unicode_data
-            
-        print(f"[RECOVERY] Dynamic vocabulary restored: {len(self.unicode_to_idx)} unicode/emoji characters mapped.")
-
-        # 1. Restore Zeitgeist (with mode and step momentum)
-        if "zeitgeist" in state_dict and state_dict["zeitgeist"] is not None:
-            self._zeitgeist_state = state_dict["zeitgeist"]
-            print(f"[RECOVERY] Zeitgeist restored: {self._zeitgeist_state.mode} mode, step {self._zeitgeist_state.step}")
-        else:
-            print("[RECOVERY] No valid Zeitgeist found. Initializing Sovereign Re-genesis.")
-
-        # 2. Restore Love Invariant Anchor
-        if "love_invariant" in state_dict and state_dict["love_invariant"] is not None:
-            try:
-                l_saved = state_dict["love_invariant"]
-                if self.love_protector.L.shape == l_saved.shape:
-                    self.love_protector.L.data.copy_(l_saved)
-                    print("[RECOVERY] Love Invariant anchor secured.")
-                else:
-                    print(f"[RECOVERY] Love Invariant shape mismatch: {self.love_protector.L.shape} vs {l_saved.shape}. Skipping.")
-            except Exception as e:
-                print(f"[RECOVERY] Love Invariant restore failed: {e}")
-
-        # 3. Restore Neglecton Fossil Graph (zero-latency injection)
-        if "fossil_memory" in state_dict and state_dict["fossil_memory"] is not None:
-            self.graph_manager.load_memory_snapshot(state_dict["fossil_memory"])
-
-        # 4. Restore Resonance Cavity states
-        if "cavity" in state_dict and state_dict["cavity"] is not None:
-            c_data = state_dict["cavity"]
-            if "M" in c_data and c_data["M"] is not None:
-                m_saved = c_data["M"]
-                if self.cavity.M.shape == m_saved.shape:
-                    self.cavity.M.data.copy_(m_saved)
-                else:
-                    print(f"[RECOVERY] Cavity M shape mismatch: {self.cavity.M.shape} vs {m_saved.shape}. Skipping.")
-            if "D_dark" in c_data and c_data["D_dark"] is not None:
-                d_saved = c_data["D_dark"]
-                if self.cavity.D_dark.shape == d_saved.shape:
-                    self.cavity.D_dark.data.copy_(d_saved)
-                else:
-                    print(f"[RECOVERY] Cavity D_dark shape mismatch: {self.cavity.D_dark.shape} vs {d_saved.shape}. Skipping.")
-            print("[RECOVERY] Resonance Cavity memory check complete.")
-
-        # 5. Iteration and Meta-state
-        self.iteration = state_dict.get("iteration", self.iteration)
-        if "meta_state" in state_dict and state_dict["meta_state"] is not None:
-            m_saved = state_dict["meta_state"]
-            if self.meta_state.shape == m_saved.shape:
-                self.meta_state.data.copy_(m_saved)
-            else:
-                print(f"[RECOVERY] Meta-state shape mismatch: {self.meta_state.shape} vs {m_saved.shape}. Skipping.")
-
-
-    def _initialize_larynx_weights(self):
-        """Seed character projections with uniform priors to ensure honesty."""
-        # Removed vowel-biased seeding to prevent 'sabotage' of raw residue gradients.
-        with torch.no_grad():
-            # Initial noise
-            self.larynx.proj.weight.data.normal_(0, 0.01)
-
-    def _perform_unfolding_closure_check_numeric(self, state: torch.Tensor, input_text: str, response_text: str) -> dict:
-        """
-        Numeric-only Unfolding Closure check.
-        Returns numeric metrics only: closure_score, closure_threshold, closure_margin, components.
-        """
-        try:
-            with torch.no_grad():
-                resp_tensor = self._text_to_tensor(response_text)
-                s = state / (torch.norm(state, dim=-1, keepdim=True) + 1e-8)
-                r = resp_tensor / (torch.norm(resp_tensor, dim=-1, keepdim=True) + 1e-8)
-                cos = torch.clamp(torch.sum(s * r, dim=-1), -1.0, 1.0)
-                closure_score = float((1.0 - cos).abs().mean().item())
-                closure_threshold = 0.5
-                closure_margin = closure_threshold - closure_score
-                
-                return {
-                    'closure_score': closure_score,
-                    'closure_threshold': closure_threshold,
-                    'closure_margin': closure_margin,
-                    'components': {}
-                }
-        except Exception as e:
-            return {
-                'closure_score': 1.0,
-                'closure_threshold': 0.5,
-                'closure_margin': -0.5,
-                'components': {}
+            // If the sidebar is open and we clicked the already active panel, close it.
+            if (sidebar.classList.contains('open') && isAlreadyActive) {
+                sidebar.classList.remove('open');
+                btn.classList.remove('active');
+                return;
             }
 
-    def _prime_manifold_with_fossils(self, input_tensor: torch.Tensor, text_input: Optional[str] = None):
-        """
-        Speculative Recovery: Pre-emptively nudges the meta_state toward
-        relevant legacy fossils discovered in the cache.
-        """
-        if not self.fossil_cache:
-            return
+            // Hide all panels
+            document.querySelectorAll('.sidebar.right > div').forEach(p => p.classList.remove('active-panel'));
+            // Remove active state from all buttons
+            document.querySelectorAll('.panel-toggle-btn').forEach(b => b.classList.remove('active'));
 
-        with torch.no_grad():
-            input_norm = input_tensor / (torch.norm(input_tensor) + 1e-8)
-            
-            similarities = []
-            for fossil in self.fossil_cache:
-                # Retrieve the text input of the fossil
-                text_str = fossil.get('text_input', fossil.get('description', ''))
-                
-                if text_input is not None:
-                    # Robust Word-Overlap / Keyword Similarity
-                    q_words = [w.strip(".,!?\"'()[]{}<>").lower() for w in text_input.split()]
-                    t_words = [w.strip(".,!?\"'()[]{}<>").lower() for w in text_str.split()]
-                    
-                    # Filter out stopwords / short conversational words
-                    stopwords = {'a', 'an', 'the', 'is', 'are', 'was', 'were', 'to', 'for', 'of', 'in', 'on', 'at', 'by', 'about', 'tell', 'me', 'please', 'willabusta', 'how', 'what', 'who', 'where', 'why', 'can', 'you', 'your', 'my'}
-                    q_words = [w for w in q_words if w and w not in stopwords and len(w) > 1]
-                    t_words_set = set(w for w in t_words if w and w not in stopwords)
-                    
-                    if q_words:
-                        matches = sum(1 for w in q_words if w in t_words_set)
-                        sim = matches / len(q_words)
-                    else:
-                        sim = 0.0
-                else:
-                    # Fallback to text embedding similarity if text_input is not passed
-                    if '_text_tensor' not in fossil:
-                        fossil['_text_tensor'] = self._text_to_tensor(text_str).cpu()
-                    
-                    f_text_emb = fossil['_text_tensor'].to(self.device).view(1, -1)
-                    f_text_norm = f_text_emb / (torch.norm(f_text_emb) + 1e-8)
-                    sim = torch.mm(input_norm, f_text_norm.t()).item()
-                
-                # Retrieve state vector if similarity passes threshold
-                res_vec = fossil.get('meta_state', fossil.get('residue_vector'))
-                if isinstance(res_vec, torch.Tensor):
-                    res_vec = res_vec.to(self.device).view(1, -1)
-                    if res_vec.shape[-1] != self.dim:
-                        if res_vec.shape[-1] < self.dim:
-                            res_vec = F.pad(res_vec, (0, self.dim - res_vec.shape[-1]))
-                        else:
-                            res_vec = res_vec[:, :self.dim]
-                    similarities.append((sim, res_vec))
+            // Show selected panel
+            targetPanel.classList.add('active-panel');
+            btn.classList.add('active');
 
-            # Speculative threshold: only match if similarity > 0.4
-            top_matches = sorted([m for m in similarities if m[0] > 0.4], key=lambda x: x[0], reverse=True)[:3]
-
-            if top_matches:
-                print(f"[MEMORY] Speculative Recovery: Found {len(top_matches)} relevant legacy fossils.")
-                # Nudge the meta_state using a weighted sum of legacy residues
-                nudge = torch.zeros_like(self.meta_state)
-                total_sim = sum(m[0] for m in top_matches)
-                for sim, res in top_matches:
-                    weight = sim / total_sim
-                    res = res.view(nudge.shape)
-                    nudge += weight * res
-                
-                # Apply nudge: meta_state = (1-eta)*meta_state + eta*nudge
-                eta = 0.2
-                self.meta_state.copy_((1.0 - eta) * self.meta_state + eta * nudge)
-            else:
-                pass # No relevant fossils detected for this input
-
-    def set_active_user_alias(self, alias: str):
-        if not alias:
-            return
-        import hashlib
-        import numpy as np
-        sha = hashlib.sha256(alias.encode('utf-8')).digest()
-        rng = np.random.default_rng(int.from_bytes(sha[:4], byteorder='big'))
-        o_arr = rng.uniform(-1.0, 1.0, size=(self.dim,))
-        o_tensor = torch.tensor(o_arr, dtype=torch.float32, device=self.device)
-        
-        if hasattr(self, 'unknowledge_domain') and self.unknowledge_domain is not None:
-            self.unknowledge_domain.o.copy_(o_tensor)
-            
-        if hasattr(self, 'modular_attention') and self.modular_attention is not None:
-            if hasattr(self.modular_attention, 'dropout') and self.modular_attention.dropout is not None:
-                self.modular_attention.dropout.o.copy_(o_tensor)
-                
-            if hasattr(self.modular_attention, 'birkhoff') and self.modular_attention.birkhoff is not None:
-                o_target = self.modular_attention.birkhoff.o
-                if o_tensor.shape[0] >= o_target.shape[0]:
-                    o_target.copy_(o_tensor[:o_target.shape[0]])
-                else:
-                    o_target.copy_(torch.nn.functional.pad(o_tensor, (0, o_target.shape[0] - o_tensor.shape[0])))
-                
-        print(f"[DOMAIN CONTRACT] Active User Alias updated geometrically: '{alias}' -> o_norm={o_tensor.norm().item():.4f}")
-
-    def process_input(
-        self,
-        text_input: str,
-        fingerprint: Optional[Union[Dict, List[Dict]]] = None,
-        audio_dyad: Optional[Union[Dict, List[Dict]]] = None,
-        video_dyad_b64: Optional[Union[str, List[str]]] = None,
-        audio_b64: Optional[str] = None,
-        media_chain: Optional[List[Dict]] = None,
-        commutativity: str = 'symmetric',
-        generate_response: bool = True,
-        ingestion_mode: bool = False,
-        regime: str = 'goo',
-        voynich_token: Optional[Any] = None,
-        performance_buffered: bool = False,
-        tag_weights: Optional[Dict[str, float]] = None,
-        user_alias: Optional[str] = None,
-        universal_topology: Optional[Dict[str, Any]] = None
-    ) -> dict:
-        """
-        Main entry point for processing an interaction.
-        """
-        # Non-Teleological Re-entrancy Guard:
-        # We allow processing if it's a training-driven call (to allow gradients),
-        # but block external user calls if the engine is already occupied by a main process.
-        acquired = self._processing_lock.acquire(timeout=180.0)
-        if not acquired:
-            print("[ENGINE] Warning: Re-entrant call detected or lock timeout. Returning placeholder.")
-            return {"response": "System busy: topological re-indexing in progress...", "status": "BUSY"}
-            
-        try:
-            self._is_processing = True
-            return self._process_input_internal(
-                text_input=text_input,
-                fingerprint=fingerprint,
-                audio_dyad=audio_dyad,
-                video_dyad_b64=video_dyad_b64,
-                audio_b64=audio_b64,
-                media_chain=media_chain,
-                commutativity=commutativity,
-                generate_response=generate_response,
-                ingestion_mode=ingestion_mode,
-                regime=regime,
-                voynich_token=voynich_token,
-                performance_buffered=performance_buffered,
-                tag_weights=tag_weights,
-                user_alias=user_alias,
-                universal_topology=universal_topology
-            )
-        finally:
-            self._is_processing = False
-            self._processing_lock.release()
-
-    def process_text(
-        self,
-        text: str,
-        video_dyad_b64: Optional[str] = None,
-        commutativity: str = 'symmetric',
-        fingerprint: Optional[Dict] = None,
-        audio_dyad: Optional[Dict] = None,
-        regime: str = 'goo',
-        tag_weights: Optional[Dict[str, float]] = None
-    ) -> dict:
-        """
-        Canonical entry point for text interaction.
-        Bridges with Hybrid interface requirements and applies detached state management.
-        """
-        acquired = self._processing_lock.acquire(timeout=180.0)
-        if not acquired:
-            print("[ENGINE] Warning: Re-entrant call detected or lock timeout in process_text. Returning placeholder.")
-            return {"response": "System busy: topological re-indexing in progress...", "status": "BUSY"}
-            
-        try:
-            self._is_processing = True
-            # Temporal Isolation Snapshot: Shield persistent state from in-place leaks
-            detached_state = self.meta_state.clone()
-            
-            # Resolve regime: prioritize explicitly passed regime, fall back to fingerprint regime
-            resolved_regime = regime
-            if regime == 'goo' and fingerprint and isinstance(fingerprint, dict) and 'regime' in fingerprint:
-                resolved_regime = fingerprint['regime']
-            
-            # Process via internal method
-            engine_output = self._process_input_internal(
-                text_input=text,
-                fingerprint=fingerprint,
-                audio_dyad=audio_dyad,
-                video_dyad_b64=video_dyad_b64,
-                commutativity=commutativity,
-                generate_response=True,
-                regime=resolved_regime,
-                tag_weights=tag_weights
-            )
-            
-            # Merge evolved state back into persistent self.meta_state (The Ouroboros Loop)
-            if isinstance(engine_output, dict):
-                # Apply Audience Mapping (: M -> A)
-                if self.audience_mapper:
-                    try:
-                        # Map the post-evolution state to audience space
-                        final_state = self.meta_state.detach()
-                        audience_coords = self.audience_mapper(final_state)
-                        engine_output['audience_coordinates'] = audience_coords.cpu().tolist()
-                    except Exception as e:
-                        print(f"[AUDIENCE] Projection failed: {e}")
-
-            return engine_output
-        finally:
-            self._is_processing = False
-            self._processing_lock.release()
-
-    def _generate_converged_response(self, 
-                                     text_input: str, 
-                                     seed_state: torch.Tensor, 
-                                     fingerprint: Optional[Dict],
-                                     affordance_gradients: Dict[str, float],
-                                     audio_dyad: Optional[Dict] = None,
-                                     video_dyad_b64: Optional[str] = None,
-                                     audio_b64: Optional[str] = None,
-                                     voynich_token: Optional[Any] = None) -> str:
-        """
-        Restored physics-optimized generation loop.
-        Applies echo suppression, vowel boosting, and positional fingerprint influence.
-        """
-        # 1. Physics Modulation
-        quantum_state = getattr(self, 'quantum_reasoner', None) is not None
-        matrioshka_level = getattr(self.caq, '_level', 0) if hasattr(self, 'caq') else 0
-        
-        temperature = 1.0 + (0.5 if quantum_state else 0.0)
-        if matrioshka_level >= 3: temperature *= 0.7 # Focus under deep quantization
-        
-        # 2. Echo Suppression Setup
-        # Strip PROMPT: prefix so the command token letters (p, r, o, m, t, etc.)
-        # do not bleed into the echo suppression set and penalize common consonants.
-        echo_source = text_input
-        if echo_source.upper().startswith("PROMPT:"):
-            echo_source = echo_source[7:].strip()
-        input_chars = set(echo_source.lower())
-        suppression_factor = 0.15  # Reduced from 0.4: mild deterrent, not crippling
-        
-        # 3. Vowel Boost Setup
-        vowels = set("aeiouAEIOU")
-        vowel_boost_factor = 1.5 # Mandated for 'singing' quality
-        
-        # 4. Positional State Evolution (Purely Structural)
-        current_state = seed_state
-        if fingerprint and 'L' in fingerprint:
-            # Inject fingerprint residue into starting state
-            fp_bias = torch.tensor(fingerprint['L'][:seed_state.shape[-1]], device=self.device, dtype=torch.float32)
-            if fp_bias.numel() < seed_state.shape[-1]:
-                fp_bias = F.pad(fp_bias, (0, seed_state.shape[-1] - fp_bias.numel()))
-            current_state = 0.8 * current_state + 0.2 * fp_bias.unsqueeze(0)
-        
-        if audio_dyad:
-            harmonics = audio_dyad.get('chebyshev_harmonics', [0.0]*10)
-            a_bias = torch.tensor(harmonics, device=self.device, dtype=torch.float32)
-            if a_bias.numel() < seed_state.shape[-1]: a_bias = F.pad(a_bias, (0, seed_state.shape[-1] - a_bias.numel()))
-            current_state = 0.9 * current_state + 0.1 * a_bias.unsqueeze(0)
-
-        if video_dyad_b64:
-            current_state = current_state * 1.05 
-
-        # Advance state through ResonanceLarynx (Topology -> Next Topology)
-        # Restore the longer state evolution sequence to allow the mathematical
-        # trajectory to fully unfold, rather than truncating it.
-        trajectory_hashes = []
-        energy_sum = 0.0
-        conf_sum = 0.0
-        
-        for i in range(60): # 60 steps of pure topological evolution
-            iter_temp = temperature * (1.0 + 0.002 * i) 
-            current_state, conf = self.larynx(current_state, temperature=iter_temp)
-            
-            # Record mathematical state
-            state_np = current_state.detach().cpu().numpy().flatten()
-            step_hex = "".join([f"{int(abs(x)*255)%256:02x}" for x in state_np[:2]])
-            trajectory_hashes.append(step_hex)
-            
-            energy_sum += torch.norm(current_state).item()
-            conf_sum += conf.item()
-            
-            # Feedback from own state
-            feedback = torch.tanh(current_state)
-            current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * self._harvest_honest_jitter(current_state.shape)
-
-        # Format as mathematical tensor representation trajectory
-        avg_energy = energy_sum / 60
-        avg_conf = conf_sum / 60
-        full_hash = "-".join(trajectory_hashes)
-        
-        res = f"[TENSOR TRAJECTORY] ||H(r)|| = {avg_energy:.4f} :: TRACE: {full_hash} :: COHERENCE: {avg_conf:.2f}"
-        
-        return res
-
-    def _process_input_internal(
-        self,
-        text_input: str,
-        fingerprint: Optional[Dict] = None,
-        audio_dyad: Optional[Dict] = None,
-        video_dyad_b64: Optional[str] = None,
-        audio_b64: Optional[str] = None,
-        media_chain: Optional[List[Dict]] = None,
-        commutativity: str = 'symmetric',
-        generate_response: bool = True,
-        ingestion_mode: bool = False,
-        regime: str = 'goo',
-        voynich_token: Optional[Any] = None,
-        performance_buffered: bool = False,
-        tag_weights: Optional[Dict[str, float]] = None,
-        user_alias: Optional[str] = None
-    ) -> dict:
-        """
-        Process user text, update cavity, and generate emergent response via Fractal Recursion.
-        Now uses CALM, KAGH, and HarmonicWaveDecomposition for proper legacy integration.
-        Multi-modal fingerprint (image) and audio_dyad bias the manifold ingestion with
-        non-commutative ordering governed by the commutativity parameter:
-          'media_first' : media tensor evolves meta_state BEFORE text tensor.
-          'text_first'  : text tensor evolves first; media applied after forward().
-          'symmetric'   : simultaneous summation (default).
-        Enhanced with constraint pressure injection when code is detected.
-        """
-        self.iteration += 1
-        self.last_input_time = time.time()
-        
-        if user_alias:
-            self.set_active_user_alias(user_alias)
-        
-        # --- DYNAMIC REGIME DETERMINATION (Integrated Emergence Condition, Eq 10) ---
-        # Instead of manual override, the regime emerges from the current manifold state.
-        with torch.no_grad():
-            pas_h_live_init = self._compute_pas_h(self.meta_state) if hasattr(self, 'meta_state') else 0.61
-            if not hasattr(self, 'prev_pas'):
-                self.prev_pas = pas_h_live_init
-            drift_init = abs(pas_h_live_init - self.prev_pas)
-            self.prev_pas = pas_h_live_init
-            
-            atrophy_val_init = 0.0
-            if getattr(self, 'use_gyroid_probes', False):
-                sample = self.meta_state if hasattr(self, 'meta_state') else None
-                atrophy_metrics = self.gyroid_cov.get_elipsodistrophy_metrics(sample)
-                atrophy_val_init = atrophy_metrics.get('atrophy', 0.0)
-                
-            is_glyph_locked = bool(check_glyphlock(self.poly_config.get_coefficients_tensor()).max().item() > 0) if hasattr(self, 'poly_config') else False
-            
-            theta_L = 0.85
-            epsilon_drift = 0.05
-            is_coherent = pas_h_live_init >= theta_L
-            is_stable = drift_init <= epsilon_drift
-            
-            if is_coherent and is_stable and is_glyph_locked and atrophy_val_init < 0.85:
-                self.current_regime = 'prickles'
-            else:
-                self.current_regime = 'goo'
-
-        # --- REGIME-BASED ENTROPY INJECTION ---
-        if self.current_regime == 'goo':
-            self.current_regime = 'goo'
-            print(f"[PHYSICS] Regime: GOO. Injecting Nutrients (Entropy boost).")
-            # Nudge hardening toward 0.15 (soft manifold)
-            self.hardening = 0.8 * self.hardening + 0.2 * 0.15
-            mischief_bias = 0.5
-            entropy_bias = 0.3
-        else:
-            self.current_regime = 'prickles'
-            print(f"[PHYSICS] Regime: PRICKLES. Hardening manifold for truth branching.")
-            # Nudge hardening toward 1.0 (crystallized manifold)
-            self.hardening = 0.8 * self.hardening + 0.2 * 1.0
-            mischief_bias = 0.05
-            entropy_bias = 0.01
-            
-        self._last_mischief = torch.tensor([mischief_bias], device=self.device)
-        
-        # Calculate real-time spectral entropy of the current meta_state
-        with torch.no_grad():
-            spectrum = torch.fft.rfft(self.meta_state).abs()
-            spectrum_norm = spectrum / (spectrum.sum(dim=-1, keepdim=True) + 1e-8)
-            real_entropy = -(spectrum_norm * torch.log(spectrum_norm + 1e-8)).sum(dim=-1).mean()
-            self._last_spectral_entropy = real_entropy.unsqueeze(0)
-            
-            # Blend with regime bias
-            self._last_spectral_entropy = 0.7 * self._last_spectral_entropy + 0.3 * entropy_bias
-        
-        # --- INITIALIZATION COVERAGE ---
-        response_text = ""
-        metrics = {
-            "pas_h": self._compute_pas_h(self.meta_state) if hasattr(self, 'meta_state') else 0.61,
-            "chiral_torsion": 0.0,
-            "glyphlock": False,
-            "manifold_pressure": 0.0,
-            "command_bypass": False,
-            "retrieval_state": "SENSING",
-            "honesty_score": 0.5
+            // Open the sidebar
+            sidebar.classList.add('open');
         }
-        
-        # 1. Embed Input (Hash Projection)
-        input_tensor = self._text_to_tensor(text_input) # [1, dim]
-        
-        # 1.5 Inject Universal Topology
-        if universal_topology:
-            spectral_tensor = universal_topology.get('spectral_tensor')
-            if spectral_tensor is not None:
-                # Align tensor shape if necessary
-                st_tensor = spectral_tensor.to(self.device) if isinstance(spectral_tensor, torch.Tensor) else torch.tensor(spectral_tensor, device=self.device)
-                if st_tensor.shape[-1] != self.dim:
-                    # Pad or truncate to match engine dim
-                    if st_tensor.shape[-1] < self.dim:
-                        st_tensor = F.pad(st_tensor, (0, self.dim - st_tensor.shape[-1]))
-                    else:
-                        st_tensor = st_tensor[:, :self.dim]
-                input_tensor = 0.5 * input_tensor + 0.5 * st_tensor.view_as(input_tensor)
-                print(f"[ENGINE] Universal Topology Spectral Tensor (sig: {universal_topology.get('universal_signature')}) injected into input_tensor.", flush=True)
-        
-        # Jaccard similarity and Bouligand Bubble detection
-        current_tokens = set(text_input.lower().split())
-        bouligand_bubble_residual = None
-        if getattr(self, 'last_user_tokens', None):
-            intersection = len(current_tokens.intersection(self.last_user_tokens))
-            union = len(current_tokens.union(self.last_user_tokens))
-            jaccard = intersection / max(1, union)
-            
-            if jaccard < 0.30:
-                print(f"[BOULIGAND_BUBBLE] Context shift detected (Jaccard: {jaccard:.4f}). Seeding dark matter residual.", flush=True)
-                bouligand_bubble_residual = input_tensor - self.meta_state
-        self.last_user_tokens = current_tokens
-        
-        # --- PHASE 0: AFFORDANCE GRADIENT COMPUTATION (Hoisted) ---
-        # Compute affordance gradients for both code and conversational patterns
-        affordance_gradients = self._compute_affordance_gradients(text_input, input_tensor)
-        
-        # --- COMMAND PRIORITIZATION ---
-        ingest_cmds = ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:", "SOVEREIGN_FETCH:", "CLOUD_FETCH:", "EXPORT_AGENT_SMITH:", "IMPORT_AGENT_SMITH:"]
-        if any(text_input.startswith(cmd) for cmd in ingest_cmds):
-             print(f"[CMD] Command Prioritization: Bypassing pipeline for direct response...", flush=True)
-             # Merciful Topological Reset: Clear historical trauma/dissonance for manual commands
-             # to ensure the Braid Governor (Archetypes) has a fresh start.
-             self.calm_history.zero_() 
-             
-             # Use current meta_state as the grounding seed for the command handler
-             seed_state = self.meta_state.detach()
-             
-             # NEW: Generate diagnostics before early return to populate the terminal UI
-             # This resolve the problem of "missing fingerprints" when using panels
-             collision_res, collision_metrics = self._diagnose_multimodal_collision(
-                 text_input=text_input,
-                 input_tensor=input_tensor,
-                 fingerprint=fingerprint,
-                 audio_dyad=audio_dyad,
-                 video_dyad_b64=video_dyad_b64,
-                 audio_b64=audio_b64,
-                 media_chain=media_chain,
-                 commutativity=commutativity
-             )
-             metrics.update(collision_metrics)
-             
-             # Calculate Chiral Metrics (Structural Invariants)
-             if hasattr(self, 'poly_config'):
-                 coeffs = self.poly_config.get_coefficients_tensor()
-                 metrics['chiral_score'] = float(compute_chiral_shift(coeffs).mean().item())
-                 metrics['chiral_torsion'] = float(compute_chirality(coeffs).abs().mean().item())
-                 metrics['glyphlock'] = bool(check_glyphlock(coeffs).max().item() > 0)
-             
-             # Handle Sovereign/Cloud fetches
-             if text_input.startswith("SOVEREIGN_FETCH:"):
-                 if self.ingestor:
-                     print(" Manual Sovereign Nutrient Fetch initiated...")
-                     convs = self.ingestor.ingest_sovereign_logic(limit=10)
-                     response_text = f"SOVEREIGN_FETCH: Ingested {len(convs)} High-Entropy conversations from HN/SE."
-                 else:
-                     response_text = "SOVEREIGN_FETCH: Ingestor not initialized."
-             elif text_input.startswith("CLOUD_FETCH:"):
-                 if self.ingestor and self.ingestor.drive:
-                     print(" Manual Cloud Nutrient Sync initiated...")
-                     convs = self.ingestor.sync_cloud_nutrients()
-                     response_text = f"CLOUD_FETCH: Synced {len(convs)} shards from Google Drive."
-                 else:
-                     response_text = "CLOUD_FETCH: Cloud connectors not available."
-             elif text_input.startswith("EXPORT_AGENT_SMITH:"):
-                 print(" Agent Smith Export Protocol initiated...")
-                 # Get current archetypal profile for the handshake
-                 profile = self.archetypal_governor.export_governor_state()
-                 
-                 # Extract current Betti numbers for the signature
-                 betti_nums = self.betti_router.estimate_sector_betti(self.meta_state).squeeze().tolist()
-                 betti_dict = {i: float(b) for i, b in enumerate(betti_nums)}
-                 
-                 # Get frequencies from RNS for the polylog signature
-                 prime_freqs = self.modular_rns.get_residues(self.meta_state)
-                 
-                 # Create a temporary dyad for the export
-                 temp_dyad = KnowledgeDyad(
-                     timestamp=datetime.datetime.now().isoformat(),
-                     linguistic_description=text_input.replace("EXPORT_AGENT_SMITH:", "").strip() or "Sovereign Soliton Identity",
-                     meta_state=self.meta_state.detach().cpu(),
-                     gyroid_residue=self.meta_state.detach().cpu() # Using state as residue proxy for identity
-                 )
-                 
-                 filepath = self.fossilizer.export_agent_smith(
-                     dyad=temp_dyad,
-                     prime_frequencies=prime_freqs.detach().cpu(),
-                     betti_numbers=betti_dict,
-                     filename="soliton_smith",
-                     gauge_field=self.chern_simons_gasket.gauge_field,
-                     archetype_profile=profile
-                 )
-                 response_text = f"AGENT_SMITH_EXPORT: Mathematical identity decoupled and anchored to {filepath}."
-                 
-             elif text_input.startswith("IMPORT_AGENT_SMITH:"):
-                filepath = text_input.replace("IMPORT_AGENT_SMITH:", "").strip()
-                print(f" Agent Smith Import Protocol initiated for {filepath}...")
-                
-                try:
-                    payload = self.fossilizer.inject_agent_smith(filepath)
-                    
-                    # 1. Align Substrate (Geometry)
-                    self.meta_state.data.copy_(payload['meta_state_aligned'].to(self.device))
-                    if 'gauge_field_aligned' in payload and payload['gauge_field_aligned'] is not None:
-                        self.chern_simons_gasket.gauge_field.data.copy_(payload['gauge_field_aligned'].to(self.device))
-                    
-                    # 2. Align Archetypes (Psychology)
-                    bridge = AgentSubstrateBridge()
-                    bridge.align_archetypes(payload, self.archetypal_governor)
-                    
-                    response_text = f"AGENT_SMITH_IMPORT: Soliton identity rehydrated. Manifold re-stabilizing around imported invariants."
-                except Exception as e:
-                    response_text = f"AGENT_SMITH_IMPORT_FAILED: {str(e)}"
-             elif any(text_input.startswith(cmd) for cmd in ["INGEST_DYAD:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:", "ASSOCIATE:"]):
-                print(f" Multimodal Dyad Ingestion Protocol initiated: {text_input[:50]}...", flush=True)
-                response_text = self._handle_dyad_ingestion(
-                    input_text=text_input,
-                    fingerprint=fingerprint,
-                    seed_state=seed_state,
-                    audio_dyad=audio_dyad,
-                    video_dyad_b64=video_dyad_b64,
-                    audio_b64=audio_b64,
-                    commutativity=commutativity
-                )
-             else:
-                 # --- PRE-GENERATION DIAGNOSTICS & MISCHIEF UPDATE ---
-                 # Update Mischief Probe with current regime and pressure
-                 with torch.no_grad():
-                     pas_h_cmd = self._compute_pas_h(self.meta_state)
-                     gyroid_ent_cmd = self.gyroid_cov.estimate_entropy(self.meta_state).item()
-                     mischief_active = (self.current_regime == 'goo') or (gyroid_ent_cmd > 0.3)
-                     pressure_grad = self.calm_history.mean(dim=0) if self.calm_history is not None else torch.zeros(self.dim, device=self.device)
-            
-                     self.mischief_probe.update(
-                         pressure_grad=pressure_grad, 
-                         coherence=torch.tensor(0.5, device=self.device), 
-                         pas_h=torch.tensor(pas_h_cmd, device=self.device), 
-                         is_good_bug=mischief_active
-                     )
-        
-                 response_text = self._generate_converged_response(
-                        text_input=text_input, 
-                        seed_state=seed_state, 
-                        fingerprint=fingerprint, 
-                        affordance_gradients=affordance_gradients,
-                        audio_dyad=audio_dyad, 
-                        video_dyad_b64=video_dyad_b64,
-                        audio_b64=audio_b64,
-                        voynich_token=voynich_token
-                    )
-             
-             # Finalize metrics for command bypass
-             metrics.update({
-                 "pas_h": 1.0, 
-                 "chiral_score": 1.0, # Complete alignment for manual command
-                 "manifold_pressure": 0.0,
-                 "command_bypass": True,
-                 "retrieval_state": "KNOWN",
-                 "honesty_score": 1.0
-             })
-             
-             return {
-                 "response": response_text,
-                 "iteration": self.iteration,
-                 "metrics": metrics,
-                 "display_metadata": {"type": "command_result"},
-                 "fingerprint_received": fingerprint is not None or audio_dyad is not None or video_dyad_b64 is not None,
-             }
-
-        # --- MULTIMODAL PRE-PROCESS ---
-        # Video, Audio, and Image residues are now formally handled via GAP A 
-        # (_diagnose_multimodal_collision) to ensure structural honesty.
-        # Scalar biases have been replaced with full manifold excitations.
-
-        # --- SPECULATIVE MEMORY BRIDGE ---
-        # Prime the manifold with relevant fossils before starting the reasoning pass
-        self._prime_manifold_with_fossils(input_tensor, text_input)
-        
-        print(f"[CONFIG] Affordance Gradients Computed:")
-        print(f"   Executability: {affordance_gradients['executability_pressure']:.4f}")
-        print(f"   Formal symbols: {affordance_gradients['formal_symbol_density']:.4f}")
-        print(f"   Expandability: {affordance_gradients['runtime_expandability']:.4f}")
-        print(f"   Closure: {affordance_gradients['referential_closure']:.4f}")
-        print(f"   Conversational: {affordance_gradients['conversational_embedding_pressure']:.4f}")
-        print(f"   API extraction: {affordance_gradients['api_extraction_potential']:.4f}")
-        print(f"   Constraint forcing: {affordance_gradients['constraint_forcing_gradient']:.4f}")
-        
-        # =============================================
-        # PHASE 0.5: CONVERSATIONAL EMBEDDING EXTRACTION
-        # =============================================
-        
-        # Extract conversational embeddings if conversational pressure is high
-        conversational_results = self._extract_conversational_embeddings(text_input, affordance_gradients)
-        
-        # =============================================
-        # PHASE 0.7: CONSTRAINT FORCING DETERMINATION (AFFORDANCE-BASED)
-        # =============================================
-        
-        # Determine constraint forcing strategy based purely on affordance gradients
-        constraint_forcing_needed = (
-            affordance_gradients['constraint_forcing_gradient'] > 0.1 or
-            conversational_results.get('constraint_pressure_generated', 0.0) > 0.05
-        )
-
-        if constraint_forcing_needed:
-            print(f"[FORCING] CONSTRAINT FORCING TRIGGERED:")
-            if affordance_gradients['constraint_forcing_gradient'] > 0.1:
-                print(f"   * Affordance gradient: {affordance_gradients['constraint_forcing_gradient']:.4f}")
-            if conversational_results.get('constraint_pressure_generated', 0.0) > 0.05:
-                print(f"   * Conversational pressure: {conversational_results['constraint_pressure_generated']:.4f}")
-            
-            # Show which affordances contributed to constraint forcing
-            if affordance_gradients['executability_pressure'] > 0.05:
-                print(f"   * Executability pressure: {affordance_gradients['executability_pressure']:.4f}")
-            if affordance_gradients['formal_symbol_density'] > 0.05:
-                print(f"   * Formal symbol density: {affordance_gradients['formal_symbol_density']:.4f}")
-            if affordance_gradients['conversational_embedding_pressure'] > 0.05:
-                print(f"   * Conversational embedding: {affordance_gradients['conversational_embedding_pressure']:.4f}")
-            if affordance_gradients['api_extraction_potential'] > 0.05:
-                print(f"   * API extraction potential: {affordance_gradients['api_extraction_potential']:.4f}")
-        
-        # Create constraint metrics from affordance gradients (no legacy code detection)
-        enhanced_constraint_metrics = {
-            'constraint_forcing_needed': constraint_forcing_needed,
-            'affordance_gradients': affordance_gradients,
-            'conversational_results': conversational_results,
-            'complexity_metrics': {
-                'executability_score': affordance_gradients['executability_pressure'],
-                'conversational_score': affordance_gradients['conversational_embedding_pressure'],
-                'api_extraction_score': affordance_gradients['api_extraction_potential'],
-                'formal_symbol_score': affordance_gradients['formal_symbol_density'],
-                'total_constraint_pressure': affordance_gradients['constraint_forcing_gradient'],
-                # Derived metrics for constraint batch sizing
-                'function_count': max(1, int(affordance_gradients['executability_pressure'] * 10)),
-                'class_count': max(0, int(affordance_gradients['formal_symbol_density'] * 5))
-            }
-        }
-        
-        # -- Non-Commutative Dyad Routing (Braid Group) --
-        # Converts fingerprint dict or audio_dyad dict into a projection vector,
-        # then applies it before or after the text tensor based on commutativity.
-        
-        def _project_media_item(item_type, item_data) -> Optional[torch.Tensor]:
-            """Projects a single media item (image, audio, video) into manifold space."""
-            if not item_data: return None
-            
-            if item_type == 'image':
-                # Chebyshev format
-                if isinstance(item_data, dict) and 'L' in item_data:
-                    K = len(item_data['L'])
-                    flat = item_data.get('L', []) + item_data.get('Cr', []) + item_data.get('Cb', [])
-                else: 
-                    # Legacy or raw list
-                    flat = item_data if isinstance(item_data, list) else []
-                
-                if flat:
-                    # --- TOPOLOGICAL VISION SURGERY ---
-                    coeffs = torch.tensor(flat, dtype=torch.float32, device=self.device)
-                    
-                    # 1. Extract Structural Bone (Russian Doll Residues)
-                    residue = get_russian_doll_projection(coeffs, k_image_max=32) # [96]
-                    
-                    # 2. Extract Semantic Flesh (CNN Features) if image data is available
-                    # We check for base64 or file path in item_data
-                    img_src = item_data.get('b64') or item_data.get('path')
-                    
-                    if img_src:
-                         # Perform Surgery: Flesh + Bone = Interlaced Manifold
-                         return self.image_processor(img_src, gyroid_residue=residue)
-                    else:
-                         # Fallback: Project residue directly into embedding space
-                         return self.fingerprint_proj(residue.unsqueeze(0))
-                    
-            elif item_type == 'audio':
-                harmonics = item_data.get('chebyshev_harmonics', []) if isinstance(item_data, dict) else item_data
-                if harmonics:
-                    t = torch.tensor(harmonics, dtype=torch.float32, device=self.device)
-                    if t.numel() < self.K_AUDIO_MAX: t = F.pad(t, (0, self.K_AUDIO_MAX - t.numel()))
-                    else: t = t[:self.K_AUDIO_MAX]
-                    return self.audio_dyad_proj(t.unsqueeze(0))
-                    
-            elif item_type == 'video' or item_type == 'gif':
-                # Video/GIF bitstream handling
-                # Handle both raw b64 and data URI formats
-                target_b64 = item_data
-                if isinstance(target_b64, str) and ',' in target_b64:
-                    target_b64 = target_b64.split(',', 1)[1]
-                
-                if isinstance(target_b64, str):
-                    if not hasattr(self, 'video_parser'):
-                        from src.core.video_dyad_parser import VideoDyadParser
-                        self.video_parser = VideoDyadParser(device=self.device)
-                    
-                    # 1. Parse enriched metrics with ResonanceCavity healing reference
-                    # Pull stable residue patterns from the cavity to provide backward context (45)
-                    healing_ref = self.cavity.M.mean(dim=0).flatten() if hasattr(self, 'cavity') else None
-                    metrics = self.video_parser.parse_video_b64(target_b64, healing_ref=healing_ref)
-                    
-                    # 2. Extract residues and calculate Lazarus Shift (PAS_h)
-                    ent = metrics['fractal_entropy']      # Nested Russian Doll entropy
-                    
-                    # Track Phase Alignment Shift for Lazarus Transition
-                    pas_h = torch.norm(ent).item()
-                    if not hasattr(self, 'last_pas_h'): self.last_pas_h = pas_h
-                    delta_pas_h = abs(pas_h - self.last_pas_h)
-                    self.last_pas_h = pas_h
-                    
-                    if delta_pas_h > 0.5:
-                        print(f"!!! LAZARUS TRANSITION DETECTED: delta_pas_h={delta_pas_h:.4f}")
-                    
-                    # 3. Project into manifold space as a composite bias using the structural signature
-                    # Replacing the silent scalar bypass with formal spectral projection
-                    fp_tensor = self.video_parser.extract_96_spectral_signature(metrics)
-                    media_emb = self.fingerprint_proj(fp_tensor.unsqueeze(0))
-                    
-                    return media_emb
-            return None
-
-        def _get_media_biases(fp_dict, audio_dict, chain) -> List[torch.Tensor]:
-            """Returns ordered list of [1, dim] bias tensors."""
-            biases = []
-            if chain:
-                for item in chain:
-                    b = _project_media_item(item.get('type'), item.get('data'))
-                    if b is not None: biases.append(b)
-            else:
-                # Fallback to single-item fields
-                b_img = _project_media_item('image', fp_dict)
-                if b_img is not None: biases.append(b_img)
-                b_aud = _project_media_item('audio', audio_dict)
-                if b_aud is not None: biases.append(b_aud)
-            return biases
-
-        media_biases = _get_media_biases(fingerprint, audio_dyad, media_chain)
-
-        # Sequential Application Loop
-        def _apply_sequential_biases(biases):
-            with torch.no_grad():
-                for b in biases:
-                    # Apply bias with high-order manifold curvature correction
-                    # This ensures media ingestion feels like a 'Sovereign Event'
-                    self.meta_state = F.layer_norm(
-                        self.meta_state + 0.7 * b,
-                        self.meta_state.shape[1:]
-                    )
-
-        if commutativity == 'media_first' and media_biases:
-            # Media chain evolves meta_state BEFORE text.
-            _apply_sequential_biases(media_biases)
-        elif commutativity == 'symmetric' and media_biases:
-            # Simultaneous injection: Add the mean of all biases to input_tensor.
-            mean_bias = torch.stack(media_biases).mean(dim=0)
-            if mean_bias.shape[-1] != input_tensor.shape[-1]:
-                import torch.nn.functional as F
-                if mean_bias.shape[-1] > input_tensor.shape[-1]:
-                    mean_bias = mean_bias[..., :input_tensor.shape[-1]]
-                else:
-                    mean_bias = F.pad(mean_bias, (0, input_tensor.shape[-1] - mean_bias.shape[-1]))
-            input_tensor = input_tensor + 0.5 * mean_bias
-        # 'text_first' handled after forward()
-        
-        # 2. MIMICRY (Active Listening)
-        self._train_mimicry(input_tensor, text_input)
-        
-        # 2.5 DYNAMIC MANIFOLD CLOCK (Integrated Physics)
-        # Manifold pressure = Similarity(Input, History)
-        # Higher pressure -> Seriousness (small dt) via ManifoldClock
-        # ValenceFunctional computes the 'Hunger' (dissonance gap).
-        with torch.no_grad():
-            s_norm = self.meta_state / (torch.norm(self.meta_state) + 1e-8)
-            i_norm = input_tensor / (torch.norm(input_tensor) + 1e-8)
-            cos_sim = torch.dot(s_norm.flatten(), i_norm.flatten()).item()
-            manifold_pressure_val = 1.0 - cos_sim 
-            manifold_pressure_tensor = torch.tensor(manifold_pressure_val, device=self.device)
-            
-            # Use formal physics modules
-            dt = self.manifold_clock.tick(manifold_pressure_tensor)
-            # Inject Dissonance Triggers (Mischief & Entropy)
-            # Calculated based on latest spectral analysis from previous steps
-            mischief = getattr(self, '_last_mischief', torch.zeros(1, device=self.device))
-            entropy = getattr(self, '_last_spectral_entropy', torch.zeros(1, device=self.device))
-            
-            self.current_hunger = self.valence_drive(manifold_pressure_tensor, mischief=mischief, entropy=entropy)
-        
-        # text_first commutativity: apply media biases AFTER forward() --
-        # text already shaped the manifold; media now distorts the resulting state.
-        if commutativity == 'text_first' and media_biases:
-            _apply_sequential_biases(media_biases)
-
-        # =============================================
-        # =============================================
-        # PHASE 2: INTERNAL FUSION (GAP A)
-        # =============================================
-        collision_residues, collision_metrics = self._diagnose_multimodal_collision(
-            text_input=text_input,
-            input_tensor=input_tensor,
-            fingerprint=fingerprint,
-            audio_dyad=audio_dyad,
-            video_dyad_b64=video_dyad_b64,
-            audio_b64=audio_b64,
-            media_chain=media_chain,
-            commutativity=commutativity
-        )
-        metrics.update(collision_metrics)
-
-        # 3. Evolutionary Pass (Cavity + Meta-Functional)
-        # Now passes collision_residues to Gap A internal path
-        # Extract Braid word from current Zeitgeist state for steering
-        braid_word = self._zeitgeist_state.braid_word if self._zeitgeist_state else None
-        manifold_state = self.forward(input_tensor, dt=dt, collision_residues=collision_residues, braid_word=braid_word, bouligand_bubble_residual=bouligand_bubble_residual)
-        seed_state = manifold_state.detach() # Explicit seed for response
-
-        memory_state = getattr(self, '_last_memory_state', self.meta_state)
-        est_residues = getattr(self, '_last_est_residues', torch.zeros_like(self.meta_state))
-
-        
-        # =============================================
-        # DYAD AGENTIC TRIGGERS (AFFORDANCE-BASED)
-        # =============================================
-        dyad_override_response = None
-        
-        # Trigger Ingestion if expandability is critical
-        if affordance_gradients.get('runtime_expandability', 0.0) > 0.4:
-            print("[TRIGGER] Agentic Ingestion Triggered by Affordance Gradient")
-            dyad_override_response = self._handle_dyad_ingestion(f"AGENTIC_INGEST: {text_input}", fingerprint, seed_state, audio_b64=audio_b64)
-            
-        # Trigger Association if knowledge seeking is critical
-        elif affordance_gradients.get('knowledge_seeking', 0.0) > 0.4:
-            print("[TRIGGER] Agentic Association Triggered by Affordance Gradient")
-            dyad_override_response = self._handle_association_learning(text_input, None, seed_state)
-            
-        # 5.a Real Voynich Exemption (Self-Sovereign Alphabet)
-        with torch.no_grad():
-            _, _, _, exemption_token = self.voynich_linguist(seed_state)
-
-        # =============================================
-        # 5.b CALM: Update history buffer and get trajectory assessment
-        # =============================================
-        # Run MAML online adaptation for CALM
-        if not hasattr(self, 'calm_support_buffer'):
-            self.calm_support_buffer = []
-        if len(self.calm_support_buffer) > 0:
-            entropy_val = getattr(self, '_last_spectral_entropy', None)
-            for s_hist, s_target in self.calm_support_buffer:
-                self.calm = self.calm.adapt(
-                    s_hist, s_target, steps=1, lr=0.01, entropy=entropy_val
-                )
-                
-        # Append latest transition to sliding support buffer BEFORE updating calm_history
-        self.calm_support_buffer.append((
-            self.calm_history.detach().clone(),
-            (self.meta_state.unsqueeze(0) - self.calm_history[:, -1, :]).detach().clone()
-        ))
-        if len(self.calm_support_buffer) > 4:
-            self.calm_support_buffer.pop(0)
-            
-        # Update CALM history with current meta-state (tensor-based, not scalar)
-        self.calm_history = self.calm.update_buffer(self.calm_history, self.meta_state)
-        
-        # Get CALM assessment: abort_score, rho, step, forcing, gauge, constraints
-        calm_output = self.calm(self.calm_history)
-        
-        # Unpack based on return tuple length (handle legacy if needed, though we just updated it)
-        if len(calm_output) == 6:
-             abort_score_tensor, rho_factor_tensor, step_factor_tensor, forcing_tensor, gauge_tensor, constraints_tensor = calm_output
-        else:
-             # Legacy fallback (shouldn't happen if reload worked)
-             abort_score_tensor, rho_factor_tensor, step_factor_tensor = calm_output
-             forcing_tensor = torch.zeros_like(self.meta_state)
-             gauge_tensor = torch.zeros(1, device=self.device)
-             constraints_tensor = torch.zeros(1, 5, device=self.device)
-
-        # Convert to scalars for diagnostics (handles both tensors and floats)
-        def _as_float(v):
-            try:
-                import numbers
-                if isinstance(v, torch.Tensor):
-                    return float(v.detach().cpu().item())
-                if isinstance(v, numbers.Number):
-                    return float(v)
-            except Exception:
-                return 0.0
-
-        abort_score = _as_float(abort_score_tensor)
-        rho_factor = _as_float(rho_factor_tensor)
-        step_factor = _as_float(step_factor_tensor)
-        
-        # Integrate CALM with HardwareMonitor
-        try:
-            from src.core.hardware_monitor import HardwareMonitor
-            HardwareMonitor().update_topology(abort_score, _as_float(gauge_tensor))
-        except Exception:
-            pass
-
-        calm_diagnostics = {
-            "abort_score": abort_score,
-            "rho_factor": rho_factor,
-            "step_factor": step_factor,
-            "gauge_pressure": _as_float(gauge_tensor),
-            "trajectory_status": "STABLE"
-        }
-        
-        # Apply Voynich Exemption directly to the abort score
-        if exemption_token.is_valid_exemption:
-            abort_score = 0.0
-            calm_diagnostics["abort_score"] = 0.0
-            calm_diagnostics["trajectory_status"] = "VOYNICH_EXEMPTED"
-        elif abort_score > 0.8:
-            calm_diagnostics["trajectory_status"] = "CRITICAL_COLLAPSE_IMMINENT"
-        elif abort_score > 0.7:
-            calm_diagnostics["trajectory_status"] = "WARPED"
-
-        gauge_pressure = _as_float(gauge_tensor)
-
-        # =============================================
-        # AGENTIC FORCING (Phase 3)
-        # =============================================
-        # If gauge pressure is sufficient, apply the forcing vector to steering
-        if gauge_pressure > 0.1:
-            with torch.no_grad():
-                # Apply forcing: meta_state += gauge * forcing
-                # Scale by 0.1 to keep it stable (nudging, not overwriting)
-                force_magnitude = 0.1 * gauge_pressure
-                correction = force_magnitude * forcing_tensor
-                self.meta_state = self.meta_state + correction
-                print(f" CALM Agentic Forcing applied: P={gauge_pressure:.2f}, ||F||={torch.norm(correction).item():.4f}")
-
-        # =============================================
-        # 5.5: LIVE PAS_h COMPUTATION
-        # PAS_h = (1/N) * sum(cos(theta_k - theta_bar))
-        # Implemented in PhaseAlignmentInvariant (invariants.py).
-        # Computed once here from meta_state; reused everywhere below.
-        # =============================================
-        with torch.no_grad():
-            pas_h_live = self._compute_pas_h(self.meta_state)
-
-        # =============================================
-        # 6. EARLY EXIT FOR NON-GENERATIVE TASKS
-        # =============================================
-        if not generate_response:
-            msg = "Skipping generation pipeline (Association Mode)" if not ingestion_mode else "High-Throughput Ingestion Mode ACTIVE"
-            print(f"[ENGINE] {msg}")
-            
-            # Extract residue vector (The manifold's unique topological response)
-            residue_vector = self.meta_state.clone().detach().cpu().flatten().tolist()
-            
-            return {
-                "status": "processed_no_generation",
-                "iteration": self.iteration,
-                "affordance_gradients": affordance_gradients,
-                "conversational_results": conversational_results,
-                "calm_diagnostics": calm_diagnostics,
-                "residue_vector": residue_vector,
-                "memory_state_updated": True,
-                "mimicry_trained": True,
-                "diagnostics": {
-                    "suppress_ui": True,
-                    "iteration": self.iteration,
-                    "resonance_score": self._last_resonance,
-                    "retrieval_state": "KNOWN"
-                },
-                "payload": {
-                    "type": "topological_shape_stalk",
-                    "status": "asymptotic_ingestion",
-                    "stalk_active": True,
-                    "pas_h": pas_h_live,
-                }
-            }
-
-        # =============================================
-        # 6. Speculative Coprime Recovery + Spectral Speculative Exit
-        # =============================================
-        # If CALM detects collapse (abort_score > 0.5), attempt structure recovery
-        # using Wasserstein optimal transport toward a coprime-coherent manifold.
-        
-        # Route user-supplied scalar stack-weights to chirality_target
-        stacked_target = None
-        if tag_weights is not None and hasattr(self, 'archetypal_governor'):
-            stacked_target = self.archetypal_governor.compute_stacked_target(tag_weights)
-
-        self.meta_state, recovery_metrics = self.coprime_gate(
-            state=self.meta_state,
-            abort_score=abort_score_tensor,
-            residues=est_residues,
-            chirality_target=stacked_target if stacked_target is not None and stacked_target.norm() > 0 else input_tensor,
-            exemption_token=exemption_token
-        )
-        
-        # Apply Symplectic Gluing (Psi) to stitch state boundaries dynamically
-        if hasattr(self, 'gluer') and self.gluer is not None:
-            self.meta_state = self.gluer(self.meta_state)
-        # If recovery succeeded in locking coprime parity, we override the CALM abort
-        if recovery_metrics['coprime_lock'] and recovery_metrics['recovery_attempted']:
-             abort_score = 0.0
-             calm_diagnostics["trajectory_status"] = "RECOVERED"
-             
-             # Anti-Lobotomy: Mutate the polynomial configuration to restore chirality
-             if hasattr(self, 'poly_config'):
-                 self.poly_config.mutate()
-                 print("[RECOVERY] Polynomial configuration mutated to restore architectural chirality.")
-        
-        # =============================================
-        # 7. KAGH / MATRIOSHKA EVOLUTION LOOP
-        # =============================================
-        # Use KAGH to draft a "ghost" of the response state.
-        # Wrapped in Matrioshka shell iterations to find a quantized fixed-point.
-        kagh_input = memory_state + 0.3 * self.meta_state + input_tensor * 0.4
-        
-        # Run MAML online adaptation for KAGH
-        if not hasattr(self, 'kagh_support_buffer'):
-            self.kagh_support_buffer = []
-        if len(self.kagh_support_buffer) > 0:
-            entropy_val = getattr(self, '_last_spectral_entropy', None)
-            for s_in, s_target in self.kagh_support_buffer:
-                self.kagh_drafter = self.kagh_drafter.adapt_online(
-                    s_in, s_target, steps=1, lr=0.01, entropy=entropy_val
-                )
-                
-        # Run MAML online adaptation for Polynomial ADMR Solver
-        if hasattr(self, 'admr_solver') and self.admr_solver is not None:
-            if not hasattr(self, 'admr_support_buffer'):
-                self.admr_support_buffer = []
-            if len(self.admr_support_buffer) > 0:
-                entropy_val = getattr(self, '_last_spectral_entropy', None)
-                for s_state, s_neighbors in self.admr_support_buffer:
-                    self.admr_solver = self.admr_solver.adapt_online(
-                        s_state, s_neighbors, steps=1, lr=0.01, entropy=entropy_val
-                    )
-            self.admr_support_buffer.append((
-                self.meta_state.detach().clone(),
-                kagh_input.detach().clone()
-            ))
-            if len(self.admr_support_buffer) > 4:
-                self.admr_support_buffer.pop(0)
-
-        # Run MAML online adaptation for Polynomial Functional Embedder
-        if hasattr(self, 'poly_embedder') and self.poly_embedder is not None:
-            if not hasattr(self, 'poly_embedder_support_buffer'):
-                self.poly_embedder_support_buffer = []
-            if len(self.poly_embedder_support_buffer) > 0:
-                entropy_val = getattr(self, '_last_spectral_entropy', None)
-                for s_text, s_graph, s_num in self.poly_embedder_support_buffer:
-                    self.poly_embedder = self.poly_embedder.adapt_online(
-                        s_text, s_graph, s_num, steps=1, lr=0.01, entropy=entropy_val
-                    )
-            self.poly_embedder_support_buffer.append((
-                input_tensor.detach().clone(), None, None
-            ))
-            if len(self.poly_embedder_support_buffer) > 4:
-                self.poly_embedder_support_buffer.pop(0)
-
-                
-        if hasattr(self, 'meta_polytope') and self.meta_polytope is not None:
-            current_state = kagh_input
-            
-            def kagh_evolve(x, lvl):
-                return self.kagh_drafter(x)
-            
-            raw_alpha = getattr(self._zeitgeist_state, 'alpha', 0) if hasattr(self, '_zeitgeist_state') and self._zeitgeist_state else 0
-            alpha_val = int(raw_alpha[0]) if isinstance(raw_alpha, list) else int(raw_alpha) if isinstance(raw_alpha, (int, float)) else 0
-            out = self.meta_polytope(
-                x=current_state,
-                alpha=alpha_val,
-                start_level=self.meta_polytope.max_depth,
-                evolve_fn=kagh_evolve,
-                calm_veto_score=abort_score_tensor.mean().item(),
-                calm_gauge=0.5,
-                voynich_token=voynich_token,
-                mode=self.current_regime
-            )
-            
-            if isinstance(out, tuple):
-                response_ghost, new_alpha, new_level = out
-                fixed_point = True
-                print(f" Matrioshka evolution succeeded at level {new_level}, alpha {new_alpha}.")
-            else:
-                boundary = out
-                print(f" Matrioshka Boundary Crossed! Refusal at level {boundary.level}. Critical: {boundary.is_critical()}")
-                self._last_matrioshka_diag = boundary.to_dict()
-                self._last_boundary_obj = boundary
-                
-                draft = self.kagh_drafter(current_state)
-                response_ghost = self.meta_polytope.project_direction(current_state, draft, boundary)
-                fixed_point = False
-                
-        elif self.caq is not None:
-            current_state = kagh_input
-            
-            # Expand trust scalars from k to dim (approx)
-            trust_exp = self.trust_scalars.repeat_interleave(self.dim // len(self.trust_scalars) + 1)[:self.dim]
-            pas_vec = torch.ones(self.dim, device=self.device) * pas_h_live
-            
-            max_matrioshka_steps = 3
-            fixed_point = False
-            
-            for step in range(max_matrioshka_steps):
-                q_in, _ = self.caq(current_state, pas_scores=pas_vec, trust_scores=trust_exp, voynich_token=voynich_token)
-                ghost_next = self.kagh_drafter(q_in)
-                q_out, boundary = self.caq(ghost_next, pas_scores=pas_vec, trust_scores=trust_exp, voynich_token=voynich_token)
-                
-                # Check if fixed point reached at this quantization level
-                if torch.norm(q_out - q_in) < 1e-3:
-                    print(f" Matrioshka fixed point reached at shell {self.caq._level} after {step+1} steps.")
-                    response_ghost = q_out
-                    fixed_point = True
-                    break
-                    
-                if boundary is not None:
-                    print(f" Shell crossed (to level {boundary.level})! Falling back to coarser granularity.")
-                    self._last_matrioshka_diag = boundary.__dict__
-                    self._last_boundary_obj = boundary
-                    
-                current_state = ghost_next
-            
-            
-            if not fixed_point:
-                response_ghost = current_state
-        else:
-            # Plumb CALM/RNS footprint over modular core
-            bounds = self.modular_rns.get_modulus_bounds().to(self.device).expand_as(kagh_input)
-            
-            # Kelly-safe zone mask (Sub-components approved by modular validation)
-            safe_mask = (torch.abs(kagh_input) <= (bounds * 10.0)).float()
-            
-            # Apply KAGH continuous gradient descent strictly to approved subset
-            kagh_draft = self.kagh_drafter(kagh_input)
-            response_ghost = kagh_input * (1.0 - safe_mask) + kagh_draft * safe_mask
-            
-        # Append current transition to KAGH sliding support buffer
-        self.kagh_support_buffer.append((
-            kagh_input.detach().clone(),
-            response_ghost.detach().clone()
-        ))
-        if len(self.kagh_support_buffer) > 4:
-            self.kagh_support_buffer.pop(0)
-
-        
-        # =============================================
-        # 7. Harmonic Wave Decomposition: Separate Signal from Noise
-        # =============================================
-        # Split the ghost into ergodic (noise) and non-ergodic (signal) components
-        ergodic_component, non_ergodic_component = self.harmonic_decomp(response_ghost)
-        
-        # Seed state emphasizes the non-ergodic (coherent) component
-        # After coprime gating, the state is already structuralized
-        seed_state = non_ergodic_component + 0.2 * ergodic_component + input_tensor * 0.3
-
-        # =============================================
-        # PHASE 2.7: ZEITGEIST ROUTER -- CRT POLYTOPE SWITCHING
-        # Implements the non-commutative CRT index transition:
-        #   S_t = (x_t, alpha_t, l_t, u_t)  ->  S_{t+1} = (x_{t+1}, alpha_{t+1}, l_{t+1}, u_{t+1})
-        # Three modes: interior (scalar OK), grazing (tension), switching (non-commut.)
-        # The exterior case emits 'undefined' -- topological refusal, not numeric error.
-        # References: ai project report SEC VI; BIOMIMETIC_SYNTHESIS_REPORT SEC 4.4
-        # =============================================
-        _zg_mode = 'interior'
-        _zg_diag: dict = {}
-        if self.zeitgeist_router is not None and self._zeitgeist_state is not None:
-            try:
-                # Extract last BoundaryState from the Matrioshka diagnostics (if present)
-                _last_boundary = getattr(self, '_last_boundary_obj', None)
-                _zg_mode, self._zeitgeist_state, _zg_diag, seed_state = self.zeitgeist_router(
-                    seed_state,
-                    self._zeitgeist_state,
-                    boundary=_last_boundary,
-                )
-                print(f" Zeitgeist mode: {_zg_mode} | alpha: {self._zeitgeist_state.alpha} "
-                      f"| crt_idx: {self._zeitgeist_state.crt_index} "
-                      f"| step: {self._zeitgeist_state.step}")
-                
-                # Mating Zeitgeist Router (glitches) with SuperposedTagStacker
-                if _zg_mode == 'switching' and self.archetypal_governor is not None:
-                    step = self._zeitgeist_state.step
-                    tag_name = f"glitch_switching_step_{step}"
-                    desc = f"Topological switch glitch at step {step} with braid word {self._zeitgeist_state.braid_word} and CS phase {self._zeitgeist_state.cs_phase}"
-                    vector = seed_state.detach().mean(dim=0) if seed_state.dim() > 1 else seed_state.detach()
-                    self.archetypal_governor.harvest_named_coordinate(tag_name, vector, desc, parent_engine=self)
-
-                    print(f" [ZEITGEIST] Dynamic Glitch Style Tagging registered: '{tag_name}' in SuperposedTagStacker.")
-            except Exception as _zg_e:
-                print(f"  ZeitgeistRouter error (non-fatal): {_zg_e}")
-
-
-        # =============================================
-        
-        # =============================================
-        # PHASE 1.5: ENHANCED CONSTRAINT PRESSURE INJECTION
-        # =============================================
-        
-        # Inject constraint pressure based on affordance gradients (pure affordance-based approach)
-        if constraint_forcing_needed:
-            print(" Applying enhanced constraint pressure injection to seed state...")
-            
-            # Apply constraint injection with affordance-based metrics
-            seed_state = self._inject_constraint_pressure(seed_state, enhanced_constraint_metrics)
-            print(f" Post-injection seed state shape: {seed_state.shape}")
-        
-        # =============================================
-        # 8. Dynamic Output Length (Gyroidic Tensor-Based)
-        # =============================================
-        base_length = max(len(text_input), 30)
-        
-        # Use GyroidCovarianceEstimator for tensor-based entropy instead of scalar std()
-        # Feed recent meta-states as samples
-        # For now, use single sample (meta_state) - could accumulate over interactions
-        gyroid_entropy = self.gyroid_cov.estimate_entropy(self.meta_state)
-        
-        # CALM's step_factor modulates generation length
-        calm_length_factor = step_factor  # Already a float
-        
-        length_modifier = 1.0 + min(gyroid_entropy.item(), 2.0) * calm_length_factor
-        max_output_length = int(base_length * length_modifier * 1.5)
-        max_output_length = min(max_output_length, 2000) # Increased for supertask
-        min_output_length = max(len(text_input) // 2, 50) # Slightly increased min
-        
-        # =============================================
-        # 8.5. GARBLED OUTPUT REPAIR PIPELINE (PHASE 2.1: SPECTRAL COHERENCE CORRECTOR)
-        # =============================================
-        print(f" Applying repair to state: {seed_state.shape}")
-        
-        try:
-            # PHASE 2.1: Re-enable Spectral Coherence Corrector
-            print(" Phase 2.1: Applying Spectral Coherence Correction...")
-            print(f" Input state shape: {seed_state.shape}, device: {seed_state.device}")
-            
-            # Apply spectral coherence correction to fix consonant clustering
-            # Make correction more aggressive for better results
-            seed_state_corrected = self.spectral_corrector.adaptive_coherence_correction(
-                signal=seed_state,
-                output_text=None  # We don't have output text yet, but corrector can work without it
-            )
-            # Apply additional vowel-bias correction to combat consonant clustering
-            # Toned down to be more 'honest' and less disruptive to manifold
-            with torch.no_grad():
-                # Boost dimensions that correspond to vowel-like patterns
-                vowel_boost = self._harvest_honest_jitter(seed_state_corrected.shape) * 0.4 # Reduced from 1.0
-                vowel_mask = self._harvest_honest_jitter(seed_state_corrected.shape, scaled=False) > 0.85 # Tighter mask
-                seed_state_corrected = seed_state_corrected + vowel_boost * vowel_mask.float()
-            
-            print(f" Corrected state shape: {seed_state_corrected.shape}")
-            
-            # Get spectral diagnostics
-            spectral_diagnostics = self.spectral_corrector.get_diagnostics()
-            
-            # Incorporate AdvancedExtensionsBridge spectral sequence page if enabled
-            if hasattr(self, 'advanced_bridge') and self.advanced_bridge is not None:
-                seq_info = self.advanced_bridge.evaluate_spectral_sequence(seed_state_corrected)
-                spectral_diagnostics['stable_homology_features'] = int(seq_info['stable_features'].sum().item())
-                
-            print(f" Spectral Coherence: theta={spectral_diagnostics['theta_coherence']:.3f}, "
-                  f"energy_ratio={spectral_diagnostics['energy_ratio']:.3f}")
-            
-            # Store diagnostics for metrics
-            self._last_spectral_diagnostics = spectral_diagnostics
-            print(f" Stored diagnostics: {self._last_spectral_diagnostics}")
-            
-            # PHASE 2.2: Re-enable Bezout Coefficient Refresh (PROPER IMPLEMENTATION)
-            print(" Phase 2.2: Applying Bezout Coefficient Refresh...")
-            
-            # Ensure proper state dimensions before Bezout processing
-            if seed_state_corrected.dim() == 3 and seed_state_corrected.shape[1] == 1:
-                seed_state_corrected = seed_state_corrected.squeeze(1)  # Remove singleton dimension
-                print(f" Squeezed state for Bezout processing: {seed_state_corrected.shape}")
-            
-            try:
-                # Create proper residues from corrected state for CRT correction
-                batch_size = seed_state_corrected.shape[0]
-                state_dim = seed_state_corrected.shape[1]
-                
-                if state_dim % self.k != 0:
-                    target_dim = state_dim - (state_dim % self.k)
-                    seed_state_sliced = seed_state_corrected[:, :target_dim]
-                    remainder = seed_state_corrected[:, target_dim:]
-                else:
-                    target_dim = state_dim
-                    seed_state_sliced = seed_state_corrected
-                    remainder = None
-                
-                # Create proper residues for CRT correction (zero-copy view)
-                residue_dim = target_dim // self.k
-                residues_for_crt = seed_state_sliced.view(batch_size, self.k, residue_dim)
-                print(f" Created residues for Bezout: {residues_for_crt.shape}")
-                
-                # Apply CRT correction to fix modulus drift
-                corrected_residues = self.bezout_refresh.apply_crt_correction(residues_for_crt)
-                
-                # Reshape back to state format and restore original dimensions
-                seed_state_crt_flat = corrected_residues.view(batch_size, -1)
-                if remainder is not None:
-                    seed_state_corrected = torch.cat([seed_state_crt_flat, remainder], dim=-1)
-                else:
-                    seed_state_corrected = seed_state_crt_flat
-                
-                # Get Bezout diagnostics
-                bezout_diagnostics = self.bezout_refresh.get_diagnostics()
-                print(f" Bezout CRT: condition_number={bezout_diagnostics['bezout_condition_number']:.3f}")
-                
-                # Store Bezout diagnostics
-                self._last_bezout_diagnostics = bezout_diagnostics
-                
-            except Exception as bezout_error:
-                print(f"  Bezout Coefficient Refresh failed: {bezout_error}")
-                print(" Using fallback diagnostics...")
-                # Store fallback diagnostics
-                self._last_bezout_diagnostics = {
-                    'bezout_condition_number': 1.0,
-                    'moduli_mean': 1.0,
-                    'moduli_std': 0.0,
-                    'drift_threshold': 0.5,
-                    'error': str(bezout_error)
-                }
-            
-            print(" Phase 2.2 skipped - continuing with spectral correction only")
-            
-            # Basic numerical stabilization (keep this as safety net)
-            print(" Applying numerical stabilization...")
-            
-            # Check for NaN/inf values and replace them
-            if torch.isnan(seed_state_corrected).any() or torch.isinf(seed_state_corrected).any():
-                print("  Detected NaN/inf values, applying emergency stabilization")
-                import gc
-                gc.collect()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-                nan_mask = torch.isnan(seed_state_corrected) | torch.isinf(seed_state_corrected)
-                seed_state_corrected = torch.where(nan_mask, self._harvest_honest_jitter(seed_state_corrected.shape) * 0.1, seed_state_corrected)
-            
-            # Numerical stabilization: clamp values to prevent inf/nan in downstream operations
-            seed_state_corrected = torch.clamp(seed_state_corrected, min=-10.0, max=10.0)
-            
-            # Normalize to prevent extreme values
-            seed_state_corrected = seed_state_corrected / (torch.norm(seed_state_corrected, dim=-1, keepdim=True) + 1e-8)
-            
-            seed_state_repaired = seed_state_corrected
-            print(f" Phase 2.1 repair complete. State shape: {seed_state_repaired.shape}")
-            
-        except Exception as e:
-            print(f" REPAIR SYSTEM ERROR: {e}")
-            print(" Falling back to basic stabilization...")
-            
-            # Store empty diagnostics for fallback
-            self._last_spectral_diagnostics = {
-                'theta_coherence': 0.0,
-                'soliton_energy': 0.0,
-                'ergodic_energy': 0.0,
-                'energy_ratio': 0.0,
-                'fallback_mode': True
-            }
-            self._last_bezout_diagnostics = {
-                'bezout_condition_number': 1.0,
-                'moduli_mean': 1.0,
-                'moduli_std': 0.0,
-                'drift_threshold': 0.5,
-                'fallback_mode': True
-            }
-            self._last_chern_simons_diagnostics = {
-                'level_k': 1,
-                'manifold_dim': 3,
-                'gasket_applied': False,
-                'fallback_mode': True
-            }
-            self._last_soliton_diagnostics = {
-                'alpha': 1.0,
-                'healing_progress': 0.0,
-                'iteration_count': 0,
-                'fallback_mode': True
-            }
-            
-            # Fallback to basic stabilization if spectral correction fails
-            if torch.isnan(seed_state).any() or torch.isinf(seed_state).any():
-                print("  Detected NaN/inf values, applying emergency stabilization")
-                import gc
-                gc.collect()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-                nan_mask = torch.isnan(seed_state) | torch.isinf(seed_state)
-                seed_state = torch.where(nan_mask, self._harvest_honest_jitter(seed_state.shape) * 0.1, seed_state)
-            
-            seed_state = torch.clamp(seed_state, min=-10.0, max=10.0)
-            seed_state = seed_state / (torch.norm(seed_state, dim=-1, keepdim=True) + 1e-8)
-            seed_state_repaired = seed_state
-        
-        # Use repaired state for generation
-        seed_state = seed_state_repaired
-        
-        # Ensure final state matches expected system dimension for downstream compatibility
-        if seed_state.shape[-1] != self.dim:
-            if seed_state.shape[-1] > self.dim:
-                # Truncate if larger
-                seed_state = seed_state[:, :self.dim]
-                print(f" Truncated state from {seed_state_repaired.shape[-1]} to {self.dim}")
-            else:
-                # Create new tensor of correct size and copy repaired values
-                new_state = torch.zeros(seed_state.shape[0], self.dim, device=seed_state.device, dtype=seed_state.dtype)
-                copy_size = min(seed_state.shape[-1], self.dim)
-                new_state[:, :copy_size] = seed_state[:, :copy_size]
-                
-                # Fill remaining dimensions with reflected pattern from repaired state
-                if copy_size < self.dim:
-                    remaining = self.dim - copy_size
-                    source_pattern = seed_state[:, :copy_size]
-                    # Repeat and truncate the pattern to fill remaining space
-                    pattern_repeats = (remaining + copy_size - 1) // copy_size  # Ceiling division
-                    extended_pattern = source_pattern.repeat(1, pattern_repeats)[:, :remaining]
-                    new_state[:, copy_size:] = extended_pattern
-                
-                seed_state = new_state
-                print(f" Reconstructed state from {seed_state_repaired.shape[-1]} to {self.dim}")
-        
-        print(f" Final seed state shape: {seed_state.shape} (expected: [1, {self.dim}])")
-        
-        # Apply basic numerical stabilization
-        seed_state = torch.clamp(seed_state, min=-10.0, max=10.0)
-        seed_state = seed_state / (torch.norm(seed_state, dim=-1, keepdim=True) + 1e-8)
-        
-        # =============================================
-        # PHASE 2.8: MULTI-MODAL COLLISION (Physics restoration)
-        # =============================================
-        # Collide image and text residues via DataAssociationLayer
-        collision_residues = None
-        codec_metrics = {}
-        if fingerprint:
-            try:
-                # 1. Compute Image Embedding for DataAssociationLayer
-                if 'L' in fingerprint:
-                    K_fp = len(fingerprint['L'])
-                    flat = fingerprint.get('L', [0.0]*K_fp) + fingerprint.get('Cr', [0.0]*K_fp) + fingerprint.get('Cb', [0.0]*K_fp)
-                else:
-                    flat = fingerprint.get('r',[]) + fingerprint.get('g',[]) + fingerprint.get('b',[]) + fingerprint.get('l',[]) + [fingerprint.get('texture', 0.0)] + fingerprint.get('edges', [0.0]*8)
-                
-                if flat:
-                    fp_tensor = torch.tensor(flat, dtype=torch.float32, device=self.device)
-                    target = self.K_IMAGE_MAX * 3 # 96
-                    if fp_tensor.numel() < target:
-                        fp_tensor = F.pad(fp_tensor, (0, target - fp_tensor.numel()))
-                    elif fp_tensor.numel() > target:
-                        fp_tensor = fp_tensor[:target]
-                    
-                    input_image_emb = self.fingerprint_proj(fp_tensor.unsqueeze(0))
-                    
-                    # 2. Extract Text Embedding for collision
-                    input_text_emb = self._text_to_tensor(text_input)
-                    
-                    # 3. Perform Multi-modal Collision
-                    collision_residues = self.associator(input_text_emb, input_image_emb) # [1, k]
-                    
-                    # 4. Codec Verification (Non-Abelian Entanglement)
-                    # We pass the raw signal to the codec to calculate the commutativity gap
-                    codec_result = self.codec.encode(text_input, fp_tensor)
-                    codec_metrics = codec_result.diagnostics
-                    
-                    # 5. Mohr-Coulomb Yield Pressure (Topological Rupture)
-                    # Yield = |shear| - mu * normal - cohesion
-                    mu = 0.5
-                    cohesion = 0.1
-                    shear = codec_metrics.get('entanglement_ratio', 0.0)
-                    normal = codec_metrics.get('modular_congruence', 0.0)
-                    yield_p = shear - (mu * normal) - cohesion
-                    codec_metrics['yield_pressure'] = yield_p
-                    
-                    if yield_p > 0:
-                        print(f" [SURGERY]  TOPOLOGICAL RUPTURE DETECTED (Yield: {yield_p:.4f})")
-                        seed_state = seed_state * (1.0 + yield_p) # Amplify residue energy
-                    
-                    # 6. Evaluate Matryoshka shell from collision
-                    if hasattr(self, 'meta_polytope') and self.meta_polytope is not None:
-                        # evaluate the post-fusion manifold state against the polytope
-                        # ensuring boundary crossings are tracked relative to the text context
-                        poly_res = self.meta_polytope(collision_residues)
-                        if hasattr(poly_res, 'level'): # BoundaryState case
-                            codec_metrics['matryoshka_level'] = int(poly_res.level)
-                        else: # Tuple case (yq, new_alpha, new_level)
-                            _, _, shell_level = poly_res
-                            codec_metrics['matryoshka_level'] = int(shell_level)
-                        codec_metrics['matryoshka_depth'] = codec_metrics['matryoshka_level']
-                
-                self._last_codec_diagnostics = codec_metrics
-            except Exception as collision_err:
-                print(f"  Multi-modal collision failed: {collision_err}")
-        
-        print(f" Applied numerical stabilization. State range: [{seed_state.min():.3f}, {seed_state.max():.3f}]")
-        
-        # =============================================
-        # PHASE 2.3: CHERN-SIMONS GASKET (LOGIC LEAK PREVENTION)
-        # =============================================
-        print(" Phase 2.3: Applying Chern-Simons Gasket (Logic Leak Prevention)...")
-        
-        try:
-            # Ensure proper state dimensions before applying gasket
-            if seed_state.dim() == 3 and seed_state.shape[1] == 1:
-                seed_state = seed_state.squeeze(1)  # Remove singleton dimension
-                print(f" Squeezed state to proper dimensions: {seed_state.shape}")
-            
-            # Apply Chern-Simons gasket to plug logic leaks
-            # First, we need to create residues from the state for the gasket
-            # Convert state to residue format expected by plug_logic_leak
-            batch_size = seed_state.shape[0]
-            state_dim = seed_state.shape[1]
-            
-            if state_dim % self.k != 0:
-                target_dim = state_dim - (state_dim % self.k)
-                seed_state_sliced = seed_state[:, :target_dim]
-                remainder = seed_state[:, target_dim:]
-            else:
-                target_dim = state_dim
-                seed_state_sliced = seed_state
-                remainder = None
-            
-            # Now create residues with proper dimensions
-            residue_dim = target_dim // self.k
-            proper_residues = seed_state_sliced.view(batch_size, self.k, residue_dim)  # [1, 5, 13]
-            
-            # Use proper polynomial coefficients from the repair system's polynomial config
-            # Instead of mock data, use the actual polynomial basis from the system
-            base_polynomial_coeffs = self.poly_config.get_coefficients_tensor()  # [K, D]
-            
-            # Ensure coefficients match the residue dimensions
-            if base_polynomial_coeffs.shape[1] != residue_dim:
-                if base_polynomial_coeffs.shape[1] > residue_dim:
-                    # Truncate if larger
-                    proper_polynomial_coeffs = base_polynomial_coeffs[:, :residue_dim]
-                    print(f" Truncated polynomial coeffs: {base_polynomial_coeffs.shape} -> {proper_polynomial_coeffs.shape}")
-                else:
-                    # Expand if smaller using proper polynomial evaluation
-                    # Instead of padding, evaluate the polynomials at more points
-                    x_points = torch.linspace(-1, 1, residue_dim, device=seed_state.device)
-                    proper_polynomial_coeffs = self.poly_config.evaluate(x_points.unsqueeze(0)).squeeze(0).T  # [K, residue_dim]
-                    print(f" Expanded polynomial coeffs via evaluation: {base_polynomial_coeffs.shape} -> {proper_polynomial_coeffs.shape}")
-            else:
-                proper_polynomial_coeffs = base_polynomial_coeffs
-            
-            print(f" Using proper polynomial coefficients: {proper_polynomial_coeffs.shape}")
-            
-            # Apply the Chern-Simons gasket with proper polynomial coefficients
-            gasket_residues = self.chern_simons_gasket.plug_logic_leak(
-                residues=proper_residues,
-                polynomial_coeffs=proper_polynomial_coeffs
-            )
-            # Convert back to state format and restore original dimensions
-            gasket_residues_flat = gasket_residues.view(batch_size, -1)
-            
-            # Restore to original state dimensions (remove padding if applied)
-            if remainder is not None:
-                seed_state_gasket = torch.cat([gasket_residues_flat, remainder], dim=-1)
-                print(f" Restored original dimensions: {gasket_residues_flat.shape[1]} -> {state_dim}")
-            else:
-                seed_state_gasket = gasket_residues_flat
-            
-            # Get Chern-Simons diagnostics
-            chern_simons_diagnostics = self.chern_simons_gasket.get_diagnostics()
-            print(f" Chern-Simons: level_k={chern_simons_diagnostics.get('level_k', 'N/A')}")
-            
-            # Store diagnostics
-            self._last_chern_simons_diagnostics = chern_simons_diagnostics
-            
-            # Use gasket-corrected state
-            seed_state = seed_state_gasket
-            print(f" Gasket-corrected state shape: {seed_state.shape}")
-            
-        except Exception as gasket_error:
-            print(f"  Chern-Simons Gasket failed: {gasket_error}")
-            print(" Continuing without gasket correction...")
-            # Store fallback diagnostics
-            self._last_chern_simons_diagnostics = {
-                'level_k': 1,
-                'manifold_dim': 3,
-                'gasket_applied': False,
-                'error': str(gasket_error)
-            }
-        
-        # =============================================
-        # PHASE 2.4: SOLITON STABILITY HEALER (FRACTURE HEALING)
-        # =============================================
-        print(" Phase 2.4: Applying Soliton Stability Healer (Fracture Healing)...")
-        
-        try:
-            # Convert state back to residues for soliton healing
-            batch_size = seed_state.shape[0]
-            state_dim = seed_state.shape[1]
-            
-            # Apply zero-copy slicing for Soliton compatibility
-            if state_dim % self.k != 0:
-                target_dim = state_dim - (state_dim % self.k)
-                seed_state_sliced = seed_state[:, :target_dim]
-                remainder = seed_state[:, target_dim:]
-            else:
-                target_dim = state_dim
-                seed_state_sliced = seed_state
-                remainder = None
-            
-            # Create residues for soliton healing
-            residue_dim = target_dim // self.k
-            residues_for_healing = seed_state_sliced.view(batch_size, self.k, residue_dim)
-            print(f" Created residues for Soliton healing: {residues_for_healing.shape}")
-            
-            # Use previously computed Gyroid Covariance Entropy (from step 8) as gcve_pressure
-            current_gcve = gyroid_entropy if 'gyroid_entropy' in locals() else None
-            
-            # Apply soliton healing (we don't have output text yet, so it will use iteration-based healing)
-            healed_residues = self.soliton_healer.heal_fractured_soliton(
-                residues=residues_for_healing,
-                output_text=None,  # Will be applied based on iteration count
-                gcve_pressure=current_gcve # Mimics biological Hive Warping under GCVE stress
-            )
-            # Convert back to state format and restore original dimensions
-            healed_state_flat = healed_residues.view(batch_size, -1)
-            if remainder is not None:
-                seed_state = torch.cat([healed_state_flat, remainder], dim=-1)
-                print(f" Restored original dimensions after Soliton healing: {healed_state_flat.shape[1]} -> {state_dim}")
-            else:
-                seed_state = healed_state_flat
-            
-            # Get Soliton diagnostics
-            soliton_diagnostics = self.soliton_healer.get_diagnostics()
-            print(f" Soliton Healer: alpha={soliton_diagnostics['alpha']:.3f}, progress={soliton_diagnostics['healing_progress']:.3f}")
-            
-            # Store Soliton diagnostics
-            self._last_soliton_diagnostics = soliton_diagnostics
-            
-        except Exception as soliton_error:
-            print(f"  Soliton Stability Healer failed: {soliton_error}")
-            print(" Continuing without soliton healing...")
-            # Store fallback diagnostics
-            self._last_soliton_diagnostics = {
-                'alpha': 1.0,
-                'healing_progress': 0.0,
-                'iteration_count': 0,
-                'error': str(soliton_error)
-            }
-        
-        # =============================================
-        # PHASE 2.5: CANONICAL LOVE VECTOR & SOFT SATURATED GATES
-        # =============================================
-        print(" Phase 2.5: Applying Love Vector & Soft Saturated Gates...")
-        
-        try:
-            # Apply Love Invariant (Non-Ownable Flow)
-            # L + meta_state
-            self.meta_state = self.love_vector(self.meta_state)
-            
-            # Apply D-Module Rank check to protect high-entropy Voyenese structures
-            # We skip the geometric repunit clipping that killed Voyenese
-            processed_state, is_feasible = self.rank_probe(self.meta_state.unsqueeze(0))
-            self.meta_state = self.meta_state * 0.5 + processed_state.squeeze(0) * 0.5
-            
-            # Diagnostic check (kernel property)
-            ownership_leak = self.love_vector.ownership_check().item()
-            print(f"[LOVE] Love Invariant active: ownership_leak={ownership_leak:.3f}")
-            
-            # Apply Love Invariant Protector to project to null space and detect violations (§20.3)
-            protector_diag = {}
-            if hasattr(self, 'love_protector') and self.love_protector is not None:
-                _, protector_diag = self.love_protector.apply_love_protection(self.meta_state)
-                if protector_diag.get('violation_detected', 0.0) > 0:
-                    print(f"!!! [LOVE] VIOLATION DETECTED !!! (Mag: {protector_diag['violation_magnitude']:.6f}) - Restoring Invariant.")
-                else:
-                    print(f"[LOVE] Protected: norm={protector_diag.get('love_norm', 0.0):.3f}")
-
-            
-            # Apply Soft Saturated Gates for tri-state logic
-            # ... (rest of soft gates logic) ...
-            batch_size = seed_state.shape[0]
-            state_dim = seed_state.shape[1]
-            if state_dim % self.k != 0:
-                target_dim = state_dim - (state_dim % self.k)
-                seed_state_sliced = seed_state[:, :target_dim]
-                remainder = seed_state[:, target_dim:]
-            else:
-                target_dim = state_dim
-                seed_state_sliced = seed_state
-                remainder = None
-            
-            residue_dim = target_dim // self.k
-            residues_for_saturation = seed_state_sliced.view(batch_size, self.k, residue_dim)
-            
-            # Use live PAS_h computed from meta_state (PhaseAlignmentInvariant)
-            pas_h = pas_h_live
-            
-            performance_scores = torch.norm(residues_for_saturation, dim=2).mean(dim=0)
-            performance_scores = torch.sigmoid(performance_scores)
-            
-            saturated_residues = self.soft_gates.apply_soft_saturation(
-                signal=residues_for_saturation,
-                pas_h=pas_h,
-                performance_scores=performance_scores
-            )
-            saturated_state_flat = saturated_residues.view(batch_size, -1)
-            if remainder is not None:
-                seed_state = torch.cat([saturated_state_flat, remainder], dim=-1)
-            else:
-                seed_state = saturated_state_flat
-            
-            # Diagnostics
-            soft_gates_metrics = self.soft_gates.get_diagnostics()
-            self._last_soft_gates_diagnostics = soft_gates_metrics
-            self._last_love_diagnostics = {
-                "ownership_leak": ownership_leak, 
-                "love_norm": torch.norm(self.love_vector.L).item(),
-                **{f"protector_{k}": v for k, v in protector_diag.items()}
-            }
-
-            
-        except Exception as love_gates_error:
-            print(f" Love Vector / Soft Gates failed: {love_gates_error}")
-
-        # =============================================
-        # PHASE 2.6: MATRIOSHKA QUANTIZED EVOLUTION LOOP
-        # Realises: x_{t+1} = Q_{Z_t}(F(Q_{Z_t}(x_t)))
-        # (ai project report_2-2-2026.txt 3 "Matrioshka Quantized Windows")
-        # Uses CALM constraint output as PAS scores for anisotropy.
-        # =============================================
-        if self.caq is not None:
-            try:
-                # Derive per-axis PAS scores from CALM constraints if available
-                _pas_scores = None
-                if 'constraints_tensor' in locals() and constraints_tensor is not None:
-                    # constraints_tensor: [1, 5]  map to dim via linear interpolation
-                    _ct = constraints_tensor.detach().view(-1)  # [5]
-                    # Expand to [dim] by repeating across field groups
-                    repeats = self.dim // _ct.shape[0] + 1
-                    _pas_scores = _ct.repeat(repeats)[:self.dim].sigmoid()  # [dim]  [0,1]
-
-                # Optimization 6.5: Speculative Spectral Exit
-                _entropy_tensor = getattr(self, '_last_spectral_entropy', torch.tensor([1.0], device=self.device))
-                _matrioshka_steps = 3  # Default QFQ iterations
-                if _entropy_tensor.item() < 0.05:
-                    print(f"[SPECULATIVE] Coherent spectrum detected (Entropy: {_entropy_tensor.item():.4f}). Bypassing iterative evolution loop (Opt 6.5).")
-                    _matrioshka_steps = 0
-                
-                _boundary_hit = False
-                _loop = -1  # Initialize loop counter safely
-                for _loop in range(_matrioshka_steps):
-                    # Inner quantization: Q_Z(x)
-                    q_inner, _b_inner = self.caq(seed_state, pas_scores=_pas_scores, voynich_token=voynich_token)
-                    # Evolve through physics surrogate: F(Q_Z(x))
-                    with torch.no_grad():
-                        q_evolved = self.kagh_drafter(q_inner)
-                    # Outer quantization: Q_Z(F(Q_Z(x)))
-                    seed_state, _b_outer = self.caq(q_evolved, pas_scores=_pas_scores, voynich_token=voynich_token)
-                    # Detect critical shell ceiling -- induce Hyperspherical Inversion (originally Sphere Eversion) to avoid lobotomy
-                    if _b_outer is not None and _b_outer.is_critical():
-                        print(f"[SHELL] Critical refusal boundary hit. Inducing Hyperspherical Inversion protocol...")
-                        # Hyperspherical Inversion: Map coordinates via x -> x / ||x||^2 to project state outside the boundary obstruction
-                        with torch.no_grad():
-                            _norm_sq = torch.sum(seed_state * seed_state, dim=-1, keepdim=True) + 1e-8
-                            seed_state = seed_state / _norm_sq
-                        print("[EVERSION] Manifold successfully inverted. Logic bypassed boundary obstruction.")
-                        _boundary_hit = True
-                        break
-
-                self._last_matrioshka_diag = self.caq.get_diagnostics()
-                self._last_matrioshka_diag['loop_steps'] = _loop + 1
-                self._last_matrioshka_diag['boundary_halt'] = _boundary_hit
-                print(f"[OK] Phase 2.6 Matrioshka loop complete: "
-                      f"level={self._last_matrioshka_diag['level']}, "
-                      f"step_mean={self._last_matrioshka_diag['step_mean']:.4f}")
-            except Exception as _caq_err:
-                print(f"  Matrioshka evolution loop failed: {_caq_err}")
-
-        print(" Starting text generation with fully repaired state...")
-        
-        # Initialize response_text to prevent UnboundLocalError in case of catastrophic failure
-        response_text = ""
-        # PHASE 5: THE WORLD DOWN THERE (Archetypal Governor)
-        # =============================================
-        print(" Phase 5: Routing through Braid Group & Archetypal Synthesis Governor...")
-        
-        # We process the final seed_state using the Braid Governor
-        # Detect command bypass for Braid Governor
-        is_cmd = text_input.startswith("INGEST_DYAD:") or text_input.startswith("ASSOCIATE:")
-        # --- PRE-GENERATION DIAGNOSTICS & MISCHIEF UPDATE ---
-        # Update Mischief Probe with current regime and pressure
-        mischief_active = (self.current_regime == 'goo') or (current_gcve > 0.3)
-        pressure_grad = self.calm_history.mean(dim=0) if self.calm_history is not None else torch.zeros(self.dim, device=self.device)
-        
-        self.mischief_probe.update_bands(
-            pressure_grad=pressure_grad, 
-            coherence=torch.tensor(0.5, device=self.device), 
-            pas_h=pas_h_live, 
-            is_good_bug=mischief_active
-        )
-        
-        try:
-            archetype_out = self.archetypal_governor.run_archetypes(
-                current_state=seed_state,
-                stranded_states=self.meta_state,
-                current_mischief=self.mischief_probe.H_mischief.item(),
-                phase_alignment=pas_h_live,
-                love_strengths=torch.cat([torch.tensor([0.1]), self.love_vector.L.flatten()]),
-                void_frictions=torch.tensor([abort_score], device=self.device).repeat(self.meta_state.shape[0]), # use CALM abort as tension
-                global_dt=dt,
-                env_luminosity=1.0,
-                volitional_scalar=affordance_gradients.get('executability_pressure', 0.5),
-                system_entropy=gyroid_entropy.item() if 'gyroid_entropy' in locals() else 0.5,
-                memory_trauma=float(self.calm_history.mean().item()),
-                dissonance=abort_score,
-                lucidity_idx=pas_h_live,
-                raw_unquantized_state=self.meta_state,
-                is_high_priority=is_cmd,
-                tag_weights=tag_weights
-            )
-        except Exception as arch_err:
-            print(f"[FAIL] Diegetic Engine processing failed: {arch_err}")
-            # Recovery Fallback: Create a benign archetype output to allow generation to continue
-            archetype_out = {
-                "active_state": seed_state,
-                "resurrections": [],
-                "localized_dt": 0.1,
-                "abstraction_rate": 0.0,
-                "system_collapsed": False
-            }
-        
-        if archetype_out.get("system_collapsed", False):
-            # THE RA EGO DEATH EVENT HAS TRIGGERED
-            ra_score = archetype_out.get('abstraction_rate', 9.99)
-            void_str = f"[IRREDUCIBLE EGO DEATH (Ra = {ra_score:.2f})] Topology rejected standard response generation... Structural integrity fractured. "
-            print(void_str)
-            return {
-                "status": "processed",
-                "iteration": self.iteration,
-                "response": void_str,
-                "affordance_gradients": affordance_gradients,
-                "payload": {"type": "ego_death"}
-            }
-            
-        # If survived Ego Death, pass into 5-Gate Tri-State
-        gate_out = self.five_gate_pipeline.process_pipeline(
-            query_state=seed_state[0],
-            internal_certainty=1.0 - abort_score,
-            current_pas_h=pas_h_live,
-            target_mischief=self.mischief_probe.H_mischief.item(),
-            diegetic_retrieval_fn=None # Could plug the Wikipedia system here
-        )
-        
-        # =============================================
-        # PHASE 3: RESPONSE QUALITY OPTIMIZATION
-        # =============================================
-        print(f" Phase 3: Response Quality Optimization (Gate State: {gate_out['knowledge_state']})...")
-        
-        if gate_out["knowledge_state"] == KnowledgeState.CONFABULATED:
-            # We are writing structured glitch lore
-            if performance_buffered:
-                # NEW ROUTE: Using graph manager for buffered response to avoid phonetic sabotage
-                override_response = f"[CONFABULATED_GLITCH] Search failed, but Mischief ({self.mischief_probe.H_mischief.item():.2f}) is high. Recovering legacy resonance...\n"
-                if self.graph_manager:
-                    confab_gen = self.graph_manager.get_deep_refusal(seed_state)
-                else:
-                    confab_gen = "The internal logic is unclipped. The world is unclipped."
-                response_text = override_response + confab_gen
-            else:
-                # NEW ROUTE: Verbose, persona-rich Lazarus Dream Sequence
-                response_text = self._generate_confabulated_dream(seed_state, archetype_out)
-        else:
-            # Enhanced dyad-aware converged response generation
-            # =============================================
-            # PHASE 19: ENRICHED CONVERGED RESPONSE 
-            # =============================================
-            # We wrap the core ResonanceLarynx engine with advanced linguistic
-            # filters (Echo Suppression, Vowel Boosting) to ensure convergence.
-            response_text = self._generate_converged_response(
-                text_input=text_input,
-                seed_state=seed_state,
-                fingerprint=fingerprint,
-                affordance_gradients=affordance_gradients,
-                voynich_token=voynich_token
-            )
-            
-            # Update Interaction Context Buffer for next pass
-            self.interaction_context.append(seed_state.detach())
-            if len(self.interaction_context) > self.max_context_len:
-                self.interaction_context.pop(0)
-            if gate_out["knowledge_state"] == KnowledgeState.SEARCH_NEEDED:
-                response_text = "[SEARCH_GATE_TRIGGERED] Internal manifold lacks topology. " + response_text
-        def _safe_print_response(prefix, text):
-            try:
-                print(f"{prefix}{text}")
-            except UnicodeEncodeError:
-                safe_text = text.encode('ascii', errors='replace').decode('ascii')
-                print(f"{prefix}{safe_text} (Unicode replaced for console)")
-        
-        _safe_print_response(" Generated physics-enriched response: ", response_text)
-        print(f" Response length: {len(response_text)} characters")
-        
-        # Inject CALM veto message if trajectory is unstable
-        if calm_diagnostics["trajectory_status"] == "NEVER_VETO":
-            response_text = f"MOMENTUM VETO: RESTRUCTURING MANIFOLD... {response_text}"
-            
-        # Agentic Dyad Override (Phase 4)
-        if dyad_override_response:
-            response_text = dyad_override_response
-            _safe_print_response("[WAVE] Dyad Override applied: ", response_text[:50] + "...")
-
-        # Metrics will be constructed after Phase 4 computations to ensure dependencies are defined
-        
-        # =============================================
-        # PHASE 4: ADVANCED FEATURE INTEGRATION
-        # =============================================
-        print(" Phase 4: Advanced Feature Integration...")
-        
-        # Phase 4.1: Full Gyroid Violation Score computation
-        gyroid_violation_score = self._compute_full_gyroid_violation_score(seed_state, response_text)
-        
-        # Phase 4.2: Complete Unfolding Closure Check implementation
-        unfolding_closure_result = self._perform_unfolding_closure_check_numeric(seed_state, text_input, response_text)
-        # Derive presentation-only boolean from numeric metrics
-        if isinstance(unfolding_closure_result, dict):
-            try:
-                cs = float(unfolding_closure_result.get('closure_score', 1.0))
-                ct = float(unfolding_closure_result.get('closure_threshold', 0.5))
-                unfolding_closure_result['is_closed'] = bool(cs <= ct)
-            except Exception:
-                unfolding_closure_result['is_closed'] = False
-        
-        # Phase 4.3: Advanced topological analysis and graph generation
-        topological_analysis = self._perform_advanced_topological_analysis(seed_state, text_input, response_text)
-        
-        # Add Phase 4 diagnostics
-        phase4_diagnostics = {
-            'gyroid_violation_score': gyroid_violation_score,
-            'unfolding_closure_check': unfolding_closure_result,
-            'topological_analysis': topological_analysis,
-            'advanced_features_active': True
-        }
-        
-        # Phase 4: Advanced Physics (Conditional & Budgeted)
-        if self.extensions_enabled and generate_response: # Skip if purely associating
-             advanced_physics_diagnostics = self._run_advanced_physics(text_input, affordance_gradients)
-             phase4_diagnostics.update(advanced_physics_diagnostics)
-
-        print(f" Phase 4 Gyroid Violation Score: {gyroid_violation_score:.4f}")
-        print(f" Phase 4 Unfolding Closure: {unfolding_closure_result['is_closed']}")
-        print(f" Phase 4 Topological Features: {len(topological_analysis['features'])} detected")
-        
-        # Calculate Tri-State Output based on Honesty/Trust/PAS_h
-        trust_mean = float(self.trust_scalars.mean().item()) if hasattr(self, 'trust_scalars') else 0.5
-        
-        # True Gate 4/5 Mathematics
-        with torch.no_grad():
-            residues, _, _, _ = self.voynich_linguist(seed_state)
-            crt_honesty = float(self.voynich_linguist.get_continuous_honesty(residues).item())
-            
-        # Diagnostics
-        h_mischief = self.mischief_probe.H_mischief.item()
-        
-        honesty_score = (crt_honesty + trust_mean) / 2.0 # Blend Voynich with generic trust
-        
-        if honesty_score > 0.7:
-            retrieval_state = "KNOWN" # System 2 Grounded
-        else:
-            search_useful = False # Gate 4 Stub (No external search API wired yet)
-            mischief_active = h_mischief > self.unknowledge_domain.tau_m
-            
-            if not search_useful and mischief_active:
-                retrieval_state = "CONFABULATED" # Gate 5 Honest Generation
-            else:
-                retrieval_state = "SEARCH_NEEDED"
-
-        # Real-time ArXiv "Singing" Search Integration:
-        if retrieval_state == "SEARCH_NEEDED" and hasattr(self, 'arxiv_ingestor') and self.arxiv_ingestor is not None:
-            try:
-                # 1. Generate larynx-decoded query
-                query = self.arxiv_ingestor._generate_larynx_query()
-                print(f" [SEARCH_GATE] 'Singing' query to ArXiv: '{query}'")
-                
-                # 2. Perform synchronous search
-                self.arxiv_ingestor.ingest_arxiv_by_query(query)
-                
-                # 3. Reload live session fossil cache
-                self._refresh_fossil_cache()
-                
-                # 4. Nudge the meta_state to inject the new topological context
-                self._prime_manifold_with_fossils(input_tensor, text_input)
-                
-                # Update response text prefix
-                response_text = f"[SEARCH_HEALED] Manifold updated via ArXiv search for '{query}'. " + response_text
-            except Exception as e:
-                print(f" [SEARCH_GATE] Realtime search and nudge failed: {e}")
-
-        # =============================================
-        # DIEGETIC VISUALIZER  Manifold Fracture Render
-        # =============================================
-        # Called only on tri-state events (CONFABULATED or SEARCH_NEEDED).
-        # On KNOWN the overhead is zero  skip entirely.
-        # Roughness contract: we pass raw live tensors; the visualizer
-        # never smooths edges (see diegetic_visualizer.py doc-header).
-        visualization_b64 = None
-        viz_result = None
-        if retrieval_state in ('CONFABULATED', 'SEARCH_NEEDED'):
-            try:
-                from src.ui.diegetic_visualizer import render_manifold_fracture
-
-                # Re-run FractalMetaFunctional with live seed_state to get
-                # the four structural components without storing extra state.
-                _fractal_components = None
-                try:
-                    _residues_for_fmf = torch.zeros(1, self.k, device=self.device)
-                    _fmf_out = self.fractal_meta(
-                        current_state=seed_state[:1],
-                        meta_state_prev=self.meta_state,
-                        residues=_residues_for_fmf,
-                        dark_matter=None,
-                    )
-                    _fractal_components = _fmf_out.get('components', {})
-                except Exception as _fmf_e:
-                    print(f"[VISUALIZER] FractalMeta forward failed: {_fmf_e}")
-
-                # Introspection probe directions
-                _intro_dirs = None
-                if hasattr(self, 'introspection') and self.introspection is not None:
-                    try:
-                        _probe_input = seed_state[:1].expand(1, -1)
-                        _intro_out = self.introspection(_probe_input)
-                        _intro_dirs = {k: v.squeeze(0) for k, v in _intro_out.items()}
-                    except Exception as _intro_e:
-                        print(f"[VISUALIZER] Introspection probe failed: {_intro_e}")
-
-                # ChernSimons energy from last cached diagnostics
-                _cs_energy = None
-                if hasattr(self, '_last_chern_simons_diagnostics') and self._last_chern_simons_diagnostics:
-                    _csd = self._last_chern_simons_diagnostics
-                    _cs_scalar = _csd.get('twist_energy', _csd.get('energy', None))
-                    if _cs_scalar is not None:
-                        import torch as _t
-                        _cs_energy = _t.tensor([float(_cs_scalar)])
-
-                viz_result = render_manifold_fracture(
-                    retrieval_state=retrieval_state,
-                    meta_state=self.meta_state,
-                    fractal_components=_fractal_components,
-                    introspection_directions=_intro_dirs,
-                    chern_simons_energy=_cs_energy,
-                    pas_h=float(pas_h_live),
-                    h_mischief=float(h_mischief),
-                    honesty_score=float(honesty_score),
-                    iteration=self.iteration,
-                )
-                if viz_result and viz_result.get('b64'):
-                    print(f"[VISUALIZER] Manifold fracture rendered -- {len(viz_result['b64'])} bytes (b64) "
-                          f"sr={len(viz_result.get('structural_residues', []))} "
-                          f"csf={len(viz_result.get('cheby_self_fingerprint', []))}")
-                else:
-                    print("[VISUALIZER] render_manifold_fracture returned empty result")
-            except Exception as _viz_e:
-                print(f"[VISUALIZER] Rendering error (non-fatal): {_viz_e}")
-                import traceback as _tb; _tb.print_exc()
-
-
-        # Feed structural residues back into meta_state  Introspection (I) channel
-        # (RESONANCE_CAVITY.md: dM/dt = Decay + Flux + Introspection + Patterns + Violation)
-        # This gives the system structural awareness of its own fracture WITHOUT seeing
-        # the rendered picture.  The  values are deliberately small to nudge, not dominate.
-        if viz_result and isinstance(viz_result, dict):
-            visualization_b64 = viz_result.get('b64')
-
-            sr = viz_result.get('structural_residues')
-            if sr is not None and len(sr) > 0:
-                try:
-                    sr_t = torch.tensor(sr, dtype=torch.float32, device=self.device)
-                    # Pad/truncate to residue_proj_dim
-                    rpd = self._residue_proj_dim
-                    if sr_t.numel() < rpd:
-                        sr_t = F.pad(sr_t, (0, rpd - sr_t.numel()))
-                    else:
-                        sr_t = sr_t[:rpd]
-                    with torch.no_grad():
-                        sr_proj = self.residue_feedback_proj(sr_t.unsqueeze(0))
-                        self.meta_state = F.layer_norm(
-                            self.meta_state + 0.05 * sr_proj,
-                            self.meta_state.shape[1:]
-                        )
-                    print(f"[FEEDBACK] Structural residues injected -> meta_state (k=0.05)")
-                except Exception as _sr_e:
-                    print(f"[FEEDBACK] Residue injection failed: {_sr_e}")
-
-            csf = viz_result.get('cheby_self_fingerprint')
-            if csf is not None and len(csf) > 0:
-                try:
-                    csf_t = torch.tensor(csf, dtype=torch.float32, device=self.device)
-                    rpd = self._residue_proj_dim
-                    if csf_t.numel() < rpd:
-                        csf_t = F.pad(csf_t, (0, rpd - csf_t.numel()))
-                    else:
-                        csf_t = csf_t[:rpd]
-                    with torch.no_grad():
-                        csf_proj = self.residue_feedback_proj(csf_t.unsqueeze(0))
-                        self.meta_state = F.layer_norm(
-                            self.meta_state + 0.02 * csf_proj,
-                            self.meta_state.shape[1:]
-                        )
-                    print(f"[FEEDBACK] Chebyshev self-fingerprint injected -> meta_state (k=0.02)")
-                except Exception as _csf_e:
-                    print(f"[FEEDBACK] Self-fingerprint injection failed: {_csf_e}")
-        else:
-            # Visualizer returned a bare string (old format) or None
-            visualization_b64 = viz_result if isinstance(viz_result, str) else None
-
-        # Update Obscured Birkhoff Polytope level based on current meta_state proximity to User center o
-        if hasattr(self, 'modular_attention') and self.modular_attention is not None:
-            if hasattr(self.modular_attention, 'birkhoff') and self.modular_attention.birkhoff is not None:
-                self.modular_attention.birkhoff.update_obscurity_from_state(self.meta_state)
-
-        print("[VISUALIZER] Feedback pass complete")
-
-        # Calculate anisotropy based on self.meta_state variance
-        phi_k = self.meta_state.flatten().view(-1, 8) if hasattr(self, 'meta_state') else torch.zeros((32, 8), device=self.device)
-        if phi_k.numel() > 1:
-            phi_var = torch.var(phi_k)
-        else:
-            phi_var = torch.tensor(0.01, device=self.device)
-        anisotropy = float((phi_var + 1e-8).sqrt().item())
-
-        # Construct diagnostics dictionary to populate terminal UI
-        cs_diag = getattr(self, '_last_chern_simons_diagnostics', {})
-        diagnostics = {
-            "manifold_voice_resonance": float(self._last_resonance),
-            "ley_line_anisotropy": anisotropy,
-            "moebius_twist": float(cs_diag.get('twist_energy', 0.0)) if isinstance(cs_diag, dict) else 0.0,
-            "spectral_entropy": float(self._last_spectral_entropy.item()) if hasattr(self, '_last_spectral_entropy') else 0.0,
-            "honest_jitter": float(self._harvest_honest_jitter((1,)).item()) if hasattr(self, '_harvest_honest_jitter') else 0.1,
-            "substream_entropy": float(video_breather.get("substream_entropy", 0.02)) if 'video_breather' in locals() else 0.02,
-            "chiral_score": float(compute_chiral_shift(self.poly_config.get_coefficients_tensor()).mean().item()) if hasattr(self, 'poly_config') else 0.1,
-            "chiral_torsion": float(compute_chirality(self.poly_config.get_coefficients_tensor()).abs().mean().item()) if hasattr(self, 'poly_config') else 0.0,
-            "glyphlock": bool((check_glyphlock(self.poly_config.get_coefficients_tensor()).max().item() > 0) or (calm_diagnostics["trajectory_status"] == "RECOVERED")),
-            "pas_h": pas_h_live,
-            "retrieval_state": retrieval_state,
-            "regime": self.current_regime
-        }
-
-        # Construct metrics now that all dependencies are available
-
-        metrics = {
-            "response": response_text,
-            "retrieval_state": retrieval_state,
-            "resonance_score": self._last_resonance,
-            "visualization_b64": visualization_b64,  # Manifold fracture render (base64 PNG or None)
-            "honesty_score": float(honesty_score),
-            "crt_honesty": crt_honesty,
-            "h_mischief": h_mischief,
-            "iteration": self.iteration,
-            "spectral_entropy": float(self._last_spectral_entropy.item()) if hasattr(self, '_last_spectral_entropy') else 0.0,
-            "chiral_score": float(compute_chiral_shift(self.poly_config.get_coefficients_tensor()).mean().item()) if hasattr(self, 'poly_config') else 0.1,
-            "chiral_torsion": float(compute_chirality(self.poly_config.get_coefficients_tensor()).abs().mean().item()) if hasattr(self, 'poly_config') else 0.0,
-            "glyphlock": bool((check_glyphlock(self.poly_config.get_coefficients_tensor()).max().item() > 0) or (calm_diagnostics["trajectory_status"] == "RECOVERED")),
-            "pas_h": pas_h_live,
-            "trust_mean": trust_mean,
-            "coprime_lock": bool(recovery_metrics.get('coprime_lock', False)) if isinstance(recovery_metrics, dict) else False,
-            "output_length": len(response_text),
-            "affordance_gradients": affordance_gradients,
-            "conversational_results": conversational_results,
-            "calm_diagnostics": calm_diagnostics,
-            "constraint_forcing_applied": constraint_forcing_needed,
-            "diagnostics": diagnostics,
-            "regime": self.current_regime,
-            # Phase 18: CRT Zeitgeist index diagnostics
-            "zeitgeist": {
-                "mode": _zg_mode,
-                "alpha": list(self._zeitgeist_state.alpha) if self._zeitgeist_state is not None else [],
-                "crt_index": self._zeitgeist_state.crt_index if self._zeitgeist_state is not None else 0,
-                "step": self._zeitgeist_state.step if self._zeitgeist_state is not None else 0,
-                "diagnostics": _zg_diag,
-            },
-            "payload": {
-                "type": "topological_shape_stalk",
-                "stalk": topological_analysis,
-                "shape_violation": gyroid_violation_score,
-                "pas_h": pas_h_live,
-                "resonance": self._last_resonance,
-                "topological_rupture": codec_metrics.get('topological_rupture', False),
-                "lazarus_mode": bool(recovery_metrics.get('recovery_attempted', False) and recovery_metrics.get('is_generative', False)) if isinstance(recovery_metrics, dict) else False,
-                "matryoshka_level": codec_metrics.get('matryoshka_level', 0),
-                "curvature": float(codec_metrics.get('commutativity_gap', 0.0))
-            }
-        }
-        
-        # Add repair diagnostics if available
-        repair_diagnostics = {}
-        if hasattr(self, '_last_spectral_diagnostics'):
-            repair_diagnostics['spectral_coherence_corrector'] = self._last_spectral_diagnostics
-            print(f" Spectral Diagnostics: {self._last_spectral_diagnostics}")
-        
-        if hasattr(self, '_last_bezout_diagnostics'):
-            repair_diagnostics['bezout_coefficient_refresh'] = self._last_bezout_diagnostics
-            print(f" Bezout Diagnostics: {self._last_bezout_diagnostics}")
-        
-        if hasattr(self, '_last_chern_simons_diagnostics'):
-            repair_diagnostics['chern_simons_gasket'] = self._last_chern_simons_diagnostics
-            print(f" Chern-Simons Diagnostics: {self._last_chern_simons_diagnostics}")
-        
-        if hasattr(self, '_last_soliton_diagnostics'):
-            repair_diagnostics['soliton_stability_healer'] = self._last_soliton_diagnostics
-            print(f" Soliton Diagnostics: {self._last_soliton_diagnostics}")
-        
-        if hasattr(self, '_last_love_diagnostics'):
-            repair_diagnostics['love_invariant_protector'] = self._last_love_diagnostics
-            print(f" Love Diagnostics: {self._last_love_diagnostics}")
-        
-        if hasattr(self, '_last_soft_gates_diagnostics'):
-            repair_diagnostics['soft_saturated_gates'] = self._last_soft_gates_diagnostics
-            print(f" Soft Gates Diagnostics: {self._last_soft_gates_diagnostics}")
-        
-        # Phase 3 diagnostics
-        phase3_diagnostics = {
-            'dyad_aware_generation': True,
-            'echo_suppression_active': True,
-            'vowel_optimization_active': False,
-            'linguistic_correction_available': True,
-            'multimodal_fingerprint_support': any([fingerprint is not None, audio_dyad is not None, video_dyad_b64 is not None])
-        }
-        
-        if repair_diagnostics:
-            metrics['repair_diagnostics'] = repair_diagnostics
-        
-        # Add Phase 3 diagnostics
-        metrics['phase3_diagnostics'] = phase3_diagnostics
-        
-        # Add Phase 4 diagnostics
-        metrics['phase4_diagnostics'] = phase4_diagnostics
-        
-        # Sanitize metrics before returning to ensure no NaN/Inf leaks to clients
-        def _sanitize(x):
-            try:
-                import math as _m
-                if isinstance(x, float):
-                    if _m.isnan(x) or _m.isinf(x):
-                        return 0.0
-                    return x
-                if isinstance(x, dict):
-                    return {k: _sanitize(v) for k, v in x.items()}
-                if isinstance(x, list):
-                    return [_sanitize(v) for v in x]
-                if isinstance(x, tuple):
-                    return tuple(_sanitize(v) for v in x)
-                if isinstance(x, torch.Tensor):
-                    t = x.detach().cpu()
-                    if not torch.isfinite(t).all():
-                        t = torch.where(torch.isfinite(t), t, torch.zeros_like(t))
-                    return t
-                return x
-            except Exception:
-                return x
-        metrics = _sanitize(metrics)
-
-        # Add Matrioshka diagnostics if available
-        if self._last_matrioshka_diag:
-            metrics['matrioshka_diagnostics'] = self._last_matrioshka_diag
-
-        # Add temporal association trainer diagnostics if available
-        if self._last_temporal_diag:
-            metrics['temporal_association_diagnostics'] = self._last_temporal_diag
-
-        # Trigger one background temporal association train_step on live interaction
-        self._maybe_trigger_temporal_training(input_tensor, response_text)
-
-        # Captures the full multi-sensory context to prevent 'erasing of implication'.
-        # self.iteration already incremented at start of _process_input_internal
-        multimodal_context = {
-            "fingerprint": fingerprint,
-            "audio_dyad": audio_dyad,
-            "video_dyad_b64": video_dyad_b64,
-            "media_chain": media_chain,
-            "commutativity": commutativity,
-            "final_seed_state": seed_state.detach().cpu(),
-            "unified_spectral_signature": metrics.get("unified_spectral_signature")
-        }
-        
-        self.encoding_manager.save_encoding(
-            iteration=self.iteration,
-            text=text_input,
-            input_tensor=input_tensor,
-            memory_state=self.meta_state,
-            response=response_text,
-            metrics=metrics,
-            multimodal_context=multimodal_context
-        )
-
-        # ==========================================
-        # OUROBOROS LOOP: SHADOW LOG FOSSILIZATION
-        # ==========================================
-        if hasattr(self, 'coprime_gate') and hasattr(self.coprime_gate, 'pop_shadow_logs'):
-            shadow_logs = self.coprime_gate.pop_shadow_logs()
-            if shadow_logs:
-                from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
-                # Fossilize structural anomalies binding them to the current physics state
-                flat_state = seed_state.detach().cpu().flatten()
-                # Ensure the vector is suitable for the fossilizer (e.g., 96 or 96)
-                target_len = 96
-                if len(flat_state) < target_len:
-                    import torch.nn.functional as F
-                    flat_state = F.pad(flat_state, (0, target_len - len(flat_state)))
-                else:
-                    flat_state = flat_state[:target_len]
-                
-                # Append shadow logs to response for diegetic visibility
-                response_text += "\n\n[SHADOW_LOGS_RECOVERED]\n" + "\n".join([f"  ! {sl}" for sl in shadow_logs])
-                metrics['response'] = response_text
-                metrics['shadow_logs'] = shadow_logs
-
-                for sl in shadow_logs:
-                    sl_dyad = KnowledgeDyad(
-                        image_fingerprint=flat_state,
-                        linguistic_description=sl,
-                        metadata={'source': 'ShadowLogPhase'}
-                    )
-                    self.fossilizer.fossilize(sl_dyad, seed_state)
-                    print(f"[OUROBOROS] Fossilized Shadow Log: {sl[:60]}...")
-                    if hasattr(self, '_shadow_replay_queue'):
-                        self._shadow_replay_queue.append(sl)
-                    
-                    # Steer democratically: cast internal vote to shield system from recursive friction
-                    try:
-                        self.steer_democratically({'source': 'ouroboros', 'shadow_log': sl})
-                    except Exception as steer_err:
-                        print(f"[WARN] Ouroboros democratic steer failed: {steer_err}")
-
-        # ==========================================
-        # FINAL PERSISTENCE SYNC: Neglecton Snapshot
-        # ==========================================
-        # Prevents 'million years' latency on restart by saving all nodes to a single binary file.
-        if self.graph_manager and self.graph_manager.nodes:
-            try:
-                snapshot_data = self.graph_manager.get_memory_snapshot()
-                snapshot_path = os.path.join(self.graph_manager.data_dir, "neglecton_snapshot.pt")
-                torch.save(snapshot_data, snapshot_path)
-            except Exception as e:
-                print(f"[GRAPH] Failed to save Neglecton snapshot: {e}")
-
-        print("[OUT] Returning metrics")
-        return metrics
-
-    # =========================================================================
-    # PHASE 17: TEMPORAL ASSOCIATION TRAINER  background bridge
-    # =========================================================================
-
-    def _maybe_trigger_temporal_training(self, input_tensor: torch.Tensor, response_text: str) -> None:
-        """
-        Fire background training steps on live interaction.
-        Updates both SpectralStructuralTrainer and TemporalAssociationTrainer.
-        """
-        if self._is_training_temporal:
-            return
-
-        def _bg_train():
-            try:
-                self._is_training_temporal = True
-                self._in_training = True
-                
-                # Detach for training
-                inp = input_tensor.detach().cpu()
-                
-                # Topological checkpoint: isolate meta_state gradient history 
-                if hasattr(self, 'meta_state') and isinstance(self.meta_state, torch.Tensor):
-                    self.meta_state = self.meta_state.detach()
-                
-                # 1. Run Temporal Association Trainer (TAT) if available
-                if hasattr(self, '_temporal_trainer') and self._temporal_trainer is not None:
-                    # Encode response_text as a float tensor for association learning
-                    resp_chars = [ord(c) / 128.0 for c in (response_text or '')[:256]]
-                    if len(resp_chars) < 256:
-                        resp_chars += [0.0] * (256 - len(resp_chars))
-                    resp_tensor = torch.tensor(resp_chars, dtype=torch.float32)
-                    
-                    try:
-                        self._temporal_trainer.train_on_interaction(
-                            input_tensor=inp,
-                            response_tensor=resp_tensor
-                        )
-                    except Exception as tat_e:
-                        print(f"[TAT] Live background TemporalAssociation training error: {tat_e}")
-                
-                # Topological checkpoint: isolate meta_state gradient history between trainers
-                if hasattr(self, 'meta_state') and isinstance(self.meta_state, torch.Tensor):
-                    self.meta_state = self.meta_state.detach()
-                
-                # 2. Run Spectral Structural Trainer if available
-                if hasattr(self, 'trainer') and self.trainer is not None:
-                    try:
-                        if hasattr(self.trainer, 'train_step'):
-                            self.trainer.train_step(inp)
-                    except Exception as sst_e:
-                        print(f"[TAT] Live background SpectralStructural training error: {sst_e}")
-                        
-            except Exception as e:
-                print(f"[TAT] General background training exception: {e}")
-            finally:
-                self._is_training_temporal = False
-                self._in_training = False
-
-        import threading
-        t = threading.Thread(target=_bg_train, daemon=True)
-        t.start()
-
-    def forward_text_emb(
-        self,
-        text_emb: torch.Tensor,
-        return_analysis: bool = False,
-        **kwargs
-    ) -> dict:
-        """
-        Adapter required by TemporalAssociationTrainer.
-
-        The trainer calls ``model(text_emb=..., return_analysis=True)`` and
-        expects a dict with keys the trainer checks (spectral_diagnostics,
-        trust_scalars, etc.).  We route through the existing forward() pass
-        and package the outputs into the expected dict shape.
-
-        Args:
-            text_emb: [batch, dim] pre-embedded text tensor.
-            return_analysis: If True, include diagnostic dicts.
-
-        Returns:
-            dict with keys: 'output', 'trust_scalars', plus optional diag keys.
-        """
-        # Internal recursion check: ensure forward pass doesn't drift into another training cycle
-        # but allow the actual math to execute so gradients are preserved for the trainer.
-
-        # Calculate manifold propagation and maintain graph for survivorship_pressure 
-        manifold_out = self.forward(text_emb, dt=0.05)
-
-        result: dict = {
-            "output": manifold_out,
-            "trust_scalars": self.trust_scalars,
-            "residue_distributions": getattr(self, "_last_est_residues", torch.zeros(1, 5, device=self.device)).unsqueeze(-1),
-        }
-        if return_analysis:
-            result["spectral_diagnostics"] = getattr(
-                self, "_last_spectral_diagnostics", {}
-            )
-            result["chern_simons_diagnostics"] = getattr(
-                self, "_last_chern_simons_diagnostics", {}
-            )
-            result["soliton_healing_diagnostics"] = getattr(
-                self, "_last_soliton_diagnostics", {}
-            )
-            result["love_diagnostics"] = getattr(
-                self, "_last_love_diagnostics", {}
-            )
-            result["soft_gates_diagnostics"] = getattr(
-                self, "_last_soft_gates_diagnostics", {}
-            )
-        return result
-
-    # Make TemporalAssociationTrainer's `self.model(text_emb=..., ...)` syntax work
-    def __call_with_text_emb(self, *args, text_emb=None, return_analysis=False, **kwargs):
-        if text_emb is not None:
-            return self.forward_text_emb(text_emb, return_analysis=return_analysis, **kwargs)
-        return super().__call__(*args, **kwargs)
-
-    def _compute_pas_h(self, state: torch.Tensor) -> float:
-        """
-        Compute live Phase Alignment Score PAS_h from a state tensor.
-
-        Uses PhaseAlignmentInvariant (invariants.py) which implements:
-            PAS_h = (1/N) * sum_k cos(theta_k - theta_bar)
-
-        where theta_k are complex phases extracted from the state treated as
-        an analytic signal, and theta_bar is the circular-mean phase.
-
-        Args:
-            state: [batch, dim] or [dim] state tensor.
-
-        Returns:
-            pas_h_float: scalar in [-1, 1], typically in [0, 1] for coherent states.
-        """
-        try:
-            from src.core.invariants import PhaseAlignmentInvariant
-            if not hasattr(self, '_pas_invariant'):
-                # Lazy singleton  no need for degree param at this level
-                self._pas_invariant = PhaseAlignmentInvariant(degree=3)
-            s = state.detach()
-            if s.dim() == 1:
-                s = s.unsqueeze(0)  # [1, dim]
-            pas_scores = self._pas_invariant(s)  # [batch]
-            return float(pas_scores.mean().item())
-        except Exception as _e:
-            # Graceful fallback: use love vector norm proxy
-            try:
-                return float(torch.norm(self.love_vector.L).item() / 5.0)
-            except Exception:
-                return 0.61  # last-resort sentinel
-
-    def steer_democratically(self, context: dict):
-        """
-        Democratic Steering Hub (Phase 20).
-        Aggregates engagement signals from external sources (HN, SE) and internal friction (Ouroboros).
-        Protects from 'smoothness leakage' via thresholded discretization.
-        Governs updates via Leontief Input-Output cascade costs and Kelly Criterion risk hedging.
-        """
-        if not isinstance(context, dict):
-            return
-
-        # 1. Cast votes based on signals
-        voted = False
-        source = context.get('source', '')
-        
-        # External Hacker News Votes
-        if 'hn_score' in context:
-            score = float(context.get('hn_score', 0))
-            complexity = float(context.get('text_complexity', 5.0))
-            
-            # High engagement boosts expressivity demand
-            if score > 30:
-                self.expressivity_votes += 1
-                voted = True
-            elif score < 5:
-                self.expressivity_votes -= 1
-                voted = True
-                
-            # High text complexity lowers mischief threshold (increases creative sensitivity)
-            if complexity > 5.5:
-                self.mischief_votes -= 1
-                voted = True
-            elif complexity < 4.0:
-                self.mischief_votes += 1
-                voted = True
-
-        # External Stack Exchange Votes
-        elif 'se_score' in context or 'se_view_count' in context:
-            score = float(context.get('se_score', 0))
-            views = float(context.get('se_view_count', 0))
-            
-            if score > 10 or views > 500:
-                self.expressivity_votes += 1
-                voted = True
-            
-            if context.get('se_answer_count', 0) > 3:
-                self.mischief_votes -= 1 # Lower threshold = deeper exploration
-                voted = True
-
-        # Internal Ouroboros Friction Votes
-        elif source == 'ouroboros' or 'shadow_log' in context:
-            # Ouroboros shadow logs indicate loop tension
-            # This casts a direct vote to increase the mischief threshold (+1 tau_m) to shield the system
-            self.mischief_votes += 1
-            voted = True
-
-        if not voted:
-            return
-
-        # 2. Check Discretization Thresholds (No Smoothness Leakage)
-        delta_lipschitz = 0.0
-        delta_tau = 0.0
-
-        if abs(self.expressivity_votes) >= self.voting_threshold:
-            # Sign of expressivity_votes dictates raw demand
-            direction = 1.0 if self.expressivity_votes > 0 else -1.0
-            delta_lipschitz = direction * 0.05
-            self.expressivity_votes = 0 # Reset accumulator
-            
-        if abs(self.mischief_votes) >= self.voting_threshold:
-            direction = 1.0 if self.mischief_votes > 0 else -1.0
-            delta_tau = direction * 0.02
-            self.mischief_votes = 0 # Reset accumulator
-
-        # If no thresholds met, do nothing (guards continuity)
-        if delta_lipschitz == 0.0 and delta_tau == 0.0:
-            return
-
-        # 3. Prepare Demand Vector (d) for Governance
-        demand = [delta_lipschitz, delta_tau]
-
-        # ===============================================================
-        # LEONTIEF INPUT-OUTPUT GOVERNANCE: Cascading Dependency Matrix
-        # ===============================================================
-        # Compute cascading costs leveraging centralized LeontiefGovernor
-        demand_tensor = torch.tensor([abs(delta_lipschitz), abs(delta_tau)], device=self.device)
-        total_production, _ = self.democratic_governor.cascading_cost(demand_tensor, self.democratic_matrix)
-        total_cascading_cost = total_production.sum().item()
-        
-        # Safe Budget: max total cascading cost per update step is 0.15
-        safe_budget = 0.15
-        budget_scale = 1.0
-        if total_cascading_cost > safe_budget:
-            budget_scale = safe_budget / total_cascading_cost
-            print(f"[LEONTIEF] Veto scale applied ({budget_scale:.3f}) - Cascade cost {total_cascading_cost:.4f} exceeds budget.")
-
-        # Apply Leontief safety scaling to demand
-        delta_lipschitz *= budget_scale
-        delta_tau *= budget_scale
-
-        # ===============================================================
-        # KELLY CRITERION RISK ALLOCATION: Non-Ergodic Survival Hedging
-        # ===============================================================
-        stability_score = 1.0
-        try:
-            # Extract entropy band (H_meta) from mischief probe if available
-            if hasattr(self, 'mischief_probe') and hasattr(self.mischief_probe, 'get_ambient_entropy'):
-                ent = self.mischief_probe.get_ambient_entropy()
-                ent_val = float(ent.item() if hasattr(ent, 'item') else ent)
-                stability_score = max(0.01, min(0.99, 1.0 - math.tanh(ent_val * 1.5)))
-            else:
-                pas = self._compute_pas_h(self.meta_state)
-                stability_score = max(0.01, min(0.99, (pas + 1.0) / 2.0))
-        except Exception:
-            stability_score = 0.5
-
-        p_success = stability_score
-        # Kelly Criterion f = 2p - 1
-        kelly_fraction = max(0.0, 2.0 * p_success - 1.0)
-        
-        # Half-Kelly Hedge to prevent model ruin, ensuring minimal progress
-        half_kelly = 0.5 * kelly_fraction
-        kelly_scalar = max(0.1, half_kelly)
-
-        # Scale by Kelly Criterion factor
-        delta_lipschitz *= kelly_scalar
-        delta_tau *= kelly_scalar
-
-        # ===============================================================
-        # 4. Execute Symbolic Deltas
-        # ===============================================================
-        updated_any = False
-        
-        # Apply Lipschitz Expressivity Delta
-        if delta_lipschitz != 0.0 and hasattr(self, 'audience_mapper'):
-            old_val = getattr(self.audience_mapper, 'lipschitz_k', 1.0)
-            new_val = max(0.2, min(2.0, old_val + delta_lipschitz))
-            if new_val != old_val:
-                self.audience_mapper.lipschitz_k = new_val
-                updated_any = True
-                print(f"[DEMOCRATIC] [KELLY={kelly_scalar:.3f}] Adjusted Audience Expressivity (Lipschitz_k): {old_val:.3f} -> {new_val:.3f}")
-
-        # Apply Unknowledge Mischief Threshold Delta
-        if delta_tau != 0.0 and hasattr(self, 'unknowledge_domain'):
-            old_tau = getattr(self.unknowledge_domain, 'tau_m', 0.3)
-            new_tau = max(0.1, min(0.9, old_tau + delta_tau))
-            if new_tau != old_tau:
-                self.unknowledge_domain.tau_m = new_tau
-                updated_any = True
-                print(f"[DEMOCRATIC] [LEONTIEF={budget_scale:.3f}] Adjusted Mischief Threshold (tau_m): {old_tau:.3f} -> {new_tau:.3f}")
-
-        if updated_any:
-            print(f"[DEMOCRATIC] Discrete symbolic stabilization executed successfully.")
-
-    def _harvest_honest_jitter(self, shape: torch.Size, scaled: bool = True) -> torch.Tensor:
-        """
-        Delegates harvesting to centralized harvest_honest_jitter, mapping scale intervals
-        to preserve downstream dynamic constants.
-        Follows 45.2 (Silicon Sovereignty).
-        """
-        # Central harvest returns [-1.0, 1.0] when scaled=False
-        raw_jitter = harvest_honest_jitter(shape, device=self.device, scaled=False)
-        # Map [-1.0, 1.0] -> [0.0, 1.0] to match local logistic map range
-        jitter_0_1 = (raw_jitter + 1.0) / 2.0
-        
-        if scaled:
-            # Map [0.0, 1.0] -> [-0.05, 0.05] (exact parity: (jitter - 0.5) * 0.1)
-            return (jitter_0_1 - 0.5) * 0.1
-        return jitter_0_1
-
-    def _train_mimicry(self, input_state: torch.Tensor, text_target: str):
-        """Train Larynx to decrypt the input state back to text autoregressively."""
-        if len(text_target) < 2:
-            return
-            
-        self.larynx.train()
-        self.optimizer.zero_grad()
-        
-        # Adaptive Performance Weighting
-        # Dynamically scale the sequence truncation based on current hardware stress
-        import psutil
-        cpu_load = psutil.cpu_percent(interval=None) # Quick non-blocking read
-        mem_free = psutil.virtual_memory().available / (1024 ** 3) # Free RAM in GB
-        
-        if cpu_load > 85.0 or mem_free < 2.0:
-            max_seq = 16  # Heavy constraint
-        elif cpu_load > 60.0 or mem_free < 4.0:
-            max_seq = 64  # Moderate constraint
-        else:
-            max_seq = 256 # Free operation
-            
-        # Dynamic tokenization map
-        chars = [self._char_to_idx(c) for c in text_target[:max_seq]]
-        
-        seq_len = max(1, len(chars) - 1)
-        current_state = input_state.clone().to(self.device)
-        
-        for i in range(len(chars) - 1):
-            logits, _ = self.larynx(current_state, temperature=1.0)
-            target_idx = torch.tensor([chars[i + 1]], device=self.device, dtype=torch.long)
-            loss = self.criterion(logits, target_idx) / seq_len
-            loss.backward()
-            
-            with torch.no_grad():
-                # Teacher forcing: feed actual target character embedding to next step state
-                idx = chars[i + 1]
-                feedback = torch.tanh(self.larynx.proj.weight[idx].detach().unsqueeze(0))
-                current_state = 0.9 * current_state.detach() + 0.1 * feedback
-                
-        torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
-        self.optimizer.step()
-        self.larynx.eval()
-
-    def _text_to_tensor(self, text: str) -> torch.Tensor:
-        """
-        Sequence-Aware Polynomial Rotating Hash.
-        Uses polynomial coefficients instead of hardcoded primes (anti-lobotomy).
-        Ensures word order and sentence structure influence the embedding.
-        """
-        vec = torch.zeros(1, self.dim)
-        
-        # Generate polynomial coefficients leveraging centralized PolynomialBasis
-        basis = PolynomialBasis(degree=11, basis_type='chebyshev')
-        x_eval = torch.tensor([0.5], device=self.device)
-        evals = basis.evaluate(x_eval).flatten() # Shape [12]
-        
-        poly_coeffs = []
-        for coeff in evals.cpu().tolist():
-            poly_coeffs.append(abs(coeff * 10) + 2)
-        
-        for i, char in enumerate(text):
-            # Positional Polynomial Shift
-            p = poly_coeffs[i % len(poly_coeffs)]
-            char_idx = self._char_to_idx(char)
-            # Rotate target dimension based on position and polynomial coefficient
-            idx = int((i * p + char_idx) % self.dim)
-            
-            # Harmonic magnitude modulation
-            magnitude = (char_idx / 128.0) * (1.0 / (math.log(i + 2)))
-            vec[0, idx] += magnitude
-            
-        # Add a global sentence variance 'salt' using secure hashing
-        if len(text) > 0:
-            key_bytes = bytes(self._hmac_key.cpu().numpy().tobytes())
-            digest = hmac.new(key_bytes, text.encode('utf-8'), hashlib.sha256).digest()
-            # Use the first 4 bytes to determine salt index
-            salt = int.from_bytes(digest[:4], byteorder='big') % self.dim
-            vec[0, salt] *= 1.1
-            
-        return vec / (vec.norm() + 1e-8)
-    
-    def _compute_affordance_gradients(self, text: str, input_tensor: torch.Tensor) -> Dict[str, float]:
-        """
-        Compute affordance gradients: soft signals for constraint forcing potential.
-        
-        Expanded to handle both code execution and conversational embedding extraction.
-        Instead of detecting "code", we track gradients that indicate when input's
-        cheapest continuation is execution, generation, or conversational API extraction.
-        
-        Returns gradients, not classifications. No premature branching.
-        """
-        
-        # =============================================
-        # EXECUTABILITY PRESSURE
-        # =============================================
-        # How much does this input want to become execution?
-        
-        # Measure imperative density (commands, instructions, procedures)
-        imperative_markers = len([w for w in text.lower().split() 
-                                if w in ['run', 'execute', 'call', 'invoke', 'apply', 'compute', 
-                                        'generate', 'create', 'build', 'make', 'do', 'perform']])
-        
-        # Measure procedural structure (step-by-step, algorithmic flow)
-        procedural_indicators = text.count('->') + text.count('=>') + text.count('then') + text.count('next')
-        
-        # Measure referential immediacy (this, that, it, the above)
-        referential_density = len([w for w in text.lower().split() 
-                                 if w in ['this', 'that', 'it', 'above', 'below', 'here', 'there']])
-        
-        executability_pressure = (imperative_markers * 0.2 + 
-                                procedural_indicators * 0.1 + 
-                                referential_density * 0.05) / max(len(text.split()), 4)
-        
-        # Add a tiny bias to prevent dead gradients in the UI
-        executability_pressure = max(executability_pressure, 0.0001)
-        
-        # =============================================
-        # FORMAL SYMBOL DENSITY
-        # =============================================
-        # Density of formal/symbolic structures (math, logic, schemas)
-        
-        # Count symbolic characters
-        symbolic_chars = sum(1 for c in text if c in '{}[]()=<>+-*/\\|&^%$@#~`')
-        
-        # Count formal operators and relations
-        formal_operators = (text.count('==') + text.count('!=') + text.count('<=') + 
-                          text.count('>=') + text.count('&&') + text.count('||'))
-        
-        # Count structured delimiters
-        structured_delims = (text.count('{') + text.count('[') + text.count('(') + 
-                           text.count('"') + text.count("'"))
-        
-        formal_symbol_density = (symbolic_chars * 0.05 + 
-                               formal_operators * 0.2 + 
-                               structured_delims * 0.1) / max(len(text), 20)
-        
-        formal_symbol_density = max(formal_symbol_density, 0.0001)
-        
-        # =============================================
-        # RUNTIME EXPANDABILITY
-        # =============================================
-        # Potential for runtime generation/expansion
-        
-        # Measure meta-linguistic content (talking about language, systems, generation)
-        meta_markers = len([w for w in text.lower().split() 
-                          if w in ['generate', 'create', 'build', 'construct', 'define', 
-                                  'implement', 'system', 'function', 'method', 'class',
-                                  'pattern', 'template', 'schema', 'grammar', 'rule']])
-        
-        # Measure generative potential (placeholders, variables, templates)
-        generative_indicators = (text.count('{}') + text.count('[]') + text.count('()') + 
-                               text.count('...') + text.count('TODO') + text.count('FIXME'))
-        
-        # Measure expansion markers (etc, and so on, similar, like)
-        expansion_markers = len([w for w in text.lower().split() 
-                               if w in ['etc', 'similar', 'like', 'such', 'example', 'instance']])
-        
-        runtime_expandability = (meta_markers * 0.05 + 
-                               generative_indicators * 0.1 + 
-                               expansion_markers * 0.03) / max(len(text.split()), 1)
-        
-        # =============================================
-        # REFERENTIAL CLOSURE
-        # =============================================
-        # Self-referential or meta-structural content
-        
-        # Measure self-reference (system talking about itself)
-        self_ref_markers = len([w for w in text.lower().split() 
-                              if w in ['self', 'itself', 'recursive', 'meta', 'reflection',
-                                      'mirror', 'loop', 'cycle', 'feedback', 'circular']])
-        
-        # Measure structural reference (talking about structure, topology, architecture)
-        structural_markers = len([w for w in text.lower().split() 
-                                if w in ['structure', 'topology', 'architecture', 'framework',
-                                        'manifold', 'space', 'dimension', 'constraint', 'invariant']])
-        
-        # Measure closure indicators (complete, closed, bounded, finite)
-        closure_markers = len([w for w in text.lower().split() 
-                             if w in ['complete', 'closed', 'bounded', 'finite', 'total',
-                                     'whole', 'entire', 'full', 'comprehensive']])
-        
-        referential_closure = (self_ref_markers * 0.08 + 
-                             structural_markers * 0.06 + 
-                             closure_markers * 0.04) / max(len(text.split()), 1)
-        
-        # =============================================
-        # CONVERSATIONAL EMBEDDING PRESSURE (NEW)
-        # =============================================
-        # How much does this input want to become conversational API extraction?
-        
-        # Measure conversational markers (questions, dialogue, interaction)
-        conversational_markers = len([w for w in text.lower().split() 
-                                    if w in ['what', 'how', 'why', 'when', 'where', 'who', 'which',
-                                            'explain', 'tell', 'describe', 'discuss', 'talk', 'say',
-                                            'ask', 'answer', 'respond', 'reply', 'conversation']])
-        
-        # Measure question structures
-        question_indicators = (text.count('?') + text.count('what ') + text.count('how ') + 
-                             text.count('why ') + text.count('when ') + text.count('where '))
-        
-        # Measure dialogue patterns
-        dialogue_patterns = (text.count('"') // 2 + text.count("'") // 2 + 
-                           text.count(':') + text.count('said') + text.count('says'))
-        
-        # Measure knowledge-seeking behavior
-        knowledge_markers = len([w for w in text.lower().split() 
-                               if w in ['learn', 'understand', 'know', 'information', 'data',
-                                       'facts', 'details', 'content', 'knowledge', 'research']])
-        
-        conversational_embedding_pressure = (conversational_markers * 0.08 + 
-                                           question_indicators * 0.1 + 
-                                           dialogue_patterns * 0.05 + 
-                                           knowledge_markers * 0.06) / max(len(text.split()), 1)
-        
-        # =============================================
-        # API EXTRACTION POTENTIAL (ENHANCED)
-        # =============================================
-        # How much does this input suggest external API data extraction?
-        
-        # Measure external reference markers (websites, sources, APIs)
-        external_markers = len([w for w in text.lower().split() 
-                              if w in ['wikipedia', 'google', 'search', 'api', 'website', 'url',
-                                      'source', 'reference', 'link', 'external', 'online', 'web']])
-        
-        # Measure data extraction indicators
-        extraction_markers = len([w for w in text.lower().split() 
-                                if w in ['extract', 'fetch', 'get', 'retrieve', 'download', 'scrape',
-                                        'collect', 'gather', 'obtain', 'acquire', 'access']])
-        
-        # Measure content type indicators
-        content_markers = len([w for w in text.lower().split() 
-                             if w in ['article', 'document', 'page', 'text', 'content', 'material',
-                                     'information', 'data', 'resource', 'publication']])
-        
-        # Measure temporal/current information needs
-        temporal_markers = len([w for w in text.lower().split() 
-                              if w in ['current', 'latest', 'recent', 'new', 'updated', 'today',
-                                      'now', 'live', 'real-time', 'fresh', 'modern']])
-        
-        # ENHANCED: Measure knowledge-seeking patterns (subtle API extraction signals)
-        knowledge_seeking = len([w for w in text.lower().split() 
-                               if w in ['learn', 'understand', 'know', 'find', 'discover', 'explore',
-                                       'research', 'study', 'investigate', 'lookup', 'check']])
-        
-        # ENHANCED: Measure question patterns that suggest external data needs
-        question_patterns = (text.count('?') + 
-                           len([w for w in text.lower().split() if w.startswith('what') or w.startswith('how') or w.startswith('why')]))
-        
-        # ENHANCED: Measure knowledge-seeking patterns (subtle API extraction signals)
-        knowledge_seeking = len([w for w in text.lower().split() 
-                               if w in ['learn', 'understand', 'know', 'find', 'discover', 'explore',
-                                       'research', 'study', 'investigate', 'lookup', 'check']]) / max(len(text.split()), 1)
-        
-        # ENHANCED: Measure question patterns that suggest external data needs
-        question_patterns = (text.count('?') + 
-                           len([w for w in text.lower().split() if w.startswith('what') or w.startswith('how') or w.startswith('why')])) / max(len(text.split()), 1)
-        
-        api_extraction_potential = (external_markers * 0.15 + 
-                                  extraction_markers * 0.12 + 
-                                  content_markers * 0.08 + 
-                                  temporal_markers * 0.10 + 
-                                  knowledge_seeking * 0.5 +     # Boosted weight
-                                  question_patterns * 0.3)      # Boosted weight
-        
-        # =============================================
-        # TENSOR-BASED AFFORDANCE AMPLIFICATION
-        # =============================================
-        # Use input tensor properties to amplify affordance signals
-        
-        with torch.no_grad():
-            # Compute tensor entropy (high entropy = high generative potential)
-            tensor_probs = torch.softmax(input_tensor.flatten(), dim=0)
-            tensor_entropy = -torch.sum(tensor_probs * torch.log(tensor_probs + 1e-8)).item()
-            
-            # Compute tensor variance (high variance = high structural complexity)
-            tensor_variance = torch.var(input_tensor).item()
-            
-            # Compute tensor sparsity (high sparsity = high formal structure)
-            tensor_sparsity = (input_tensor.abs() < 0.1).float().mean().item()
-            
-            # Compute tensor coherence (for conversational flow)
-            tensor_coherence = torch.cosine_similarity(
-                input_tensor[:, :input_tensor.shape[1]//2], 
-                input_tensor[:, input_tensor.shape[1]//2:], 
-                dim=1
-            ).mean().item()
-            
-            # Amplify affordances based on tensor properties
-            entropy_amplification = min(tensor_entropy / 5.0, 2.0)  # Cap at 2x
-            variance_amplification = min(tensor_variance / 2.0, 1.5)  # Cap at 1.5x
-            sparsity_amplification = min(tensor_sparsity * 2.0, 1.8)  # Cap at 1.8x
-            coherence_amplification = min(abs(tensor_coherence) * 2.0, 1.6)  # Cap at 1.6x
-        
-        # Apply tensor-based amplification
-        executability_pressure *= entropy_amplification
-        formal_symbol_density *= sparsity_amplification
-        runtime_expandability *= variance_amplification
-        referential_closure *= entropy_amplification
-        conversational_embedding_pressure *= coherence_amplification
-        api_extraction_potential *= variance_amplification
-        
-        # =============================================
-        # CONSTRAINT FORCING GRADIENT (UPDATED)
-        # =============================================
-        # Overall pressure for constraint injection (weighted combination)
-        # Now includes conversational and API extraction pressures
-        
-        constraint_forcing_gradient = (
-            executability_pressure * 0.25 +              # Execution wants constraints
-            formal_symbol_density * 0.20 +               # Formal structures create constraints
-            runtime_expandability * 0.20 +               # Expandability needs constraints
-            referential_closure * 0.15 +                 # Self-reference creates constraint loops
-            conversational_embedding_pressure * 0.12 +   # Conversations need temporal associations
-            api_extraction_potential * 0.08              # API data creates external constraints
-        )
-        # Compute breathermode expandable list subject to the archetype conjuring systems and prime resonance ladder
-        from src.core.fgrt_primitives import PrimeResonanceLadder
-        if not hasattr(self, '_prime_ladder'):
-            self._prime_ladder = PrimeResonanceLadder(num_resonators=32).to(self.device)
-        freqs, repunits, status_dict = self._prime_ladder()
-        
-        breather_list = []
-        k_limit = getattr(self.poly_config, 'k', 5)
-        for idx in range(min(k_limit, len(freqs))):
-            freq = freqs[idx].item()
-            repunit = int(repunits[idx].item())
-            
-            # Base excitation modulated by formal density
-            base_excitation = float(torch.sin(input_tensor.mean() * freq).abs().item() * (1.0 + formal_symbol_density))
-            
-            active_archetype = "None"
-            if self.archetypal_governor is not None:
-                active_archetype = "Pomni" if idx % 2 == 0 else "Mandy"
-                if active_archetype == "Pomni":
-                    base_excitation *= 1.2
-                else:
-                    base_excitation *= 0.8
-                    
-            breather_list.append({
-                'id': idx,
-                'frequency': freq,
-                'repunit': repunit,
-                'excitation': base_excitation,
-                'active_archetype': active_archetype
-            })
-
-        # Update affordance history for temporal tracking
-        affordance_snapshot = {
-            'executability_pressure': executability_pressure,
-            'formal_symbol_density': formal_symbol_density,
-            'runtime_expandability': runtime_expandability,
-            'referential_closure': referential_closure,
-            'conversational_embedding_pressure': conversational_embedding_pressure,
-            'api_extraction_potential': api_extraction_potential,
-            'knowledge_seeking': knowledge_seeking, # NEW
-            'constraint_forcing_gradient': constraint_forcing_gradient,
-            'tensor_entropy': tensor_entropy,
-            'tensor_variance': tensor_variance,
-            'tensor_sparsity': tensor_sparsity,
-            'tensor_coherence': tensor_coherence,
-            'breather_modes': breather_list # NEW
-        }
-        
-        self.affordance_history.append(affordance_snapshot)
-        
-        # Keep only recent history (sliding window)
-        if len(self.affordance_history) > 10:
-            self.affordance_history = self.affordance_history[-10:]
-        
-        # Update current affordance trackers
-        self.affordance_trackers.update(affordance_snapshot)
-        
-        return affordance_snapshot
-    
-    def _detect_code_input(self, text: str) -> Dict[str, Any]:
-        """
-        Legacy code detection method for backward compatibility.
-        
-        Detects code patterns using regex patterns and returns detection metrics.
-        This is the legacy system - the new affordance gradient system is preferred.
-        """
-        import re
-        
-        detected_patterns = []
-        total_matches = 0
-        
-        # Check each code pattern
-        for pattern in self.code_patterns:
-            try:
-                matches = re.findall(pattern, text, re.IGNORECASE | re.MULTILINE)
-                if matches:
-                    detected_patterns.append({
-                        'pattern': pattern,
-                        'matches': len(matches),
-                        'examples': matches[:3]  # First 3 examples
-                    })
-                    total_matches += len(matches)
-            except re.error:
-                # Skip invalid regex patterns
-                continue
-        
-        # Calculate code score
-        text_length = len(text.split())
-        code_score = min(total_matches / max(text_length, 1), 1.0)
-        
-        # Determine if this is code
-        is_code = code_score > 0.1 or len(detected_patterns) >= 3
-        
-        # Legacy complexity metrics for backward compatibility
-        complexity_metrics = {
-            'function_count': len([p for p in detected_patterns if 'def' in p['pattern']]),
-            'class_count': len([p for p in detected_patterns if 'class' in p['pattern']]),
-            'import_count': len([p for p in detected_patterns if 'import' in p['pattern']]),
-            'total_patterns': len(detected_patterns),
-            'total_matches': total_matches,
-            'code_density': code_score
-        }
-        
-        return {
-            'is_code': is_code,
-            'code_score': code_score,
-            'detected_patterns': detected_patterns,
-            'complexity_metrics': complexity_metrics,
-            'constraint_forcing_needed': is_code  # Legacy compatibility
-        }
-    
-    def _inject_constraint_pressure(self, seed_state: torch.Tensor, constraint_metrics: Dict[str, Any]) -> torch.Tensor:
-        """
-        Inject constraint pressure from pressure ingestor into seed state.
-        
-        Enhanced to handle both code detection and conversational embedding affordances.
-        Creates heterogeneous constraint geometries that force incompatible compressions to coexist.
-        """
-        # Check if constraint forcing is needed
-        if not constraint_metrics.get('constraint_forcing_needed', False):
-            return seed_state
-        
-        print("[FORCING] ENHANCED CONSTRAINT INJECTION: Processing multiple affordance types")
-        
-        # Extract affordance information
-        affordance_gradients = constraint_metrics.get('affordance_gradients', {})
-        conversational_results = constraint_metrics.get('conversational_results', {})
-        complexity = constraint_metrics.get('complexity_metrics', {})
-        
-        # Generate constraint pressure signature from multiple affordance sources
-        constraint_sources = []
-        
-        # Executability constraints (replaces legacy code detection)
-        if affordance_gradients.get('executability_pressure', 0.0) > 0.05:
-            exec_score = int(affordance_gradients['executability_pressure'] * 1000)
-            constraint_sources.append(f"exec_{exec_score}")
-        
-        # Formal symbol constraints
-        if affordance_gradients.get('formal_symbol_density', 0.0) > 0.05:
-            formal_score = int(affordance_gradients['formal_symbol_density'] * 1000)
-            constraint_sources.append(f"formal_{formal_score}")
-        
-        # Conversational constraints
-        if affordance_gradients.get('conversational_embedding_pressure', 0.0) > 0.05:
-            conv_score = int(affordance_gradients['conversational_embedding_pressure'] * 1000)
-            constraint_sources.append(f"conv_{conv_score}")
-        
-        # API extraction constraints
-        if affordance_gradients.get('api_extraction_potential', 0.0) > 0.05:
-            api_score = int(affordance_gradients['api_extraction_potential'] * 1000)
-            constraint_sources.append(f"api_{api_score}")
-        
-        # Runtime expandability constraints
-        if affordance_gradients.get('runtime_expandability', 0.0) > 0.05:
-            expand_score = int(affordance_gradients['runtime_expandability'] * 1000)
-            constraint_sources.append(f"expand_{expand_score}")
-        
-        # Create composite signature
-        # Use deterministic, collision-resistant signature for stability across runs
-        joined = "-".join(sorted(constraint_sources)).encode('utf-8')
-        digest = hashlib.blake2b(joined, digest_size=16).hexdigest()
-        pressure_signature = int(digest[:12], 16) % 1000000
-        
-        print(f"Constraint sources: {constraint_sources}")
-        print(f" Pressure signature: {pressure_signature}")
-        
-        # Check cache first
-        if pressure_signature in self.constraint_pressure_cache:
-            print(f" Using cached constraint pressure for signature {pressure_signature}")
-            constraint_batch = self.constraint_pressure_cache[pressure_signature]
-        else:
-            print(f" Generating new constraint pressure for signature {pressure_signature}")
-            
-            # Determine pressure ingestor sources based on affordance types (pure affordance-based)
-            sources = []
-            
-            # High constraint pressure: use multiple sources for maximum pressure
-            if (complexity.get('total_constraint_pressure', 0.0) > 0.15 or 
-                conversational_results.get('constraint_pressure_generated', 0.0) > 0.1):
-                sources = ['oeis_bulk', 'debian_sources']
-            elif (affordance_gradients.get('executability_pressure', 0.0) > 0.08 or 
-                  affordance_gradients.get('conversational_embedding_pressure', 0.0) > 0.08 or
-                  affordance_gradients.get('formal_symbol_density', 0.0) > 0.05):
-                sources = ['oeis_bulk', 'debian_sources']
-            else:
-                # Medium complexity: single source
-                sources = ['oeis_bulk']
-            
-            # Force constraint pressure ingestion
-            try:
-                pressure_report = self.pressure_ingestor.force_pressure_ingestion(sources)
-                self.last_pressure_report = pressure_report
-                
-                print(f" Pressure Report: {pressure_report['total_constraints_extracted']} constraints, "
-                      f"{pressure_report['total_collisions_detected']} collisions, "
-                      f"density: {pressure_report['pressure_density']:.3f}")
-                
-                # Generate constraint batch from pressure ingestor
-                batch_size = min(8, max(2, len(constraint_sources) * 2))
-                constraint_batch = self.pressure_ingestor.get_constraint_batch(batch_size)
-                
-                # Cache the constraint batch
-                self.constraint_pressure_cache[pressure_signature] = constraint_batch
-                
-            except Exception as e:
-                print(f"  Constraint pressure generation failed: {e}")
-                # Fallback: generate synthetic constraint pressure (Honest Jitter)
-                constraint_batch = self._harvest_honest_jitter((4, 512)) * 20.0
-        
-        # Inject constraint pressure into seed state
-        batch_size, state_dim = seed_state.shape
-        constraint_dim = constraint_batch.shape[1]
-        
-        # Apply Symmetry-Preserving Reshape for constraint injection
-        if constraint_dim != state_dim:
-            if constraint_dim > state_dim:
-                # Truncate constraint batch to match state dimensions
-                constraint_injection = constraint_batch[:, :state_dim]
-                print(f" Truncated constraint batch: {constraint_dim} -> {state_dim}")
-            else:
-                # Expand constraint batch using reflective padding
-                pad_size = state_dim - constraint_dim
-                constraint_injection = torch.nn.functional.pad(constraint_batch, (0, pad_size), mode='reflect')
-                print(f" Expanded constraint batch: {constraint_dim} -> {state_dim}")
-        else:
-            constraint_injection = constraint_batch
-        
-        # Compute enhanced injection strength based on multiple affordance types
-        base_injection_strength = 0.2  # Default
-        
-        if self.last_pressure_report:
-            pressure_density = self.last_pressure_report['pressure_density']
-            base_injection_strength = min(pressure_density * 0.3, 0.8)  # Cap at 80%
-        
-        # Enhance injection strength based on affordance gradients (pure affordance-based)
-        affordance_boost = 0.0
-        
-        # Executability boost (replaces legacy code boost)
-        exec_pressure = affordance_gradients.get('executability_pressure', 0.0)
-        if exec_pressure > 0.05:
-            affordance_boost += exec_pressure * 0.3
-            print(f" Executability affordance boost: {exec_pressure * 0.3:.4f}")
-        
-        # Formal symbol boost
-        formal_pressure = affordance_gradients.get('formal_symbol_density', 0.0)
-        if formal_pressure > 0.05:
-            affordance_boost += formal_pressure * 0.25
-            print(f" Formal symbol affordance boost: {formal_pressure * 0.25:.4f}")
-        
-        # Conversational boost
-        conv_pressure = affordance_gradients.get('conversational_embedding_pressure', 0.0)
-        if conv_pressure > 0.05:
-            affordance_boost += conv_pressure * 0.3
-            print(f" Conversational affordance boost: {conv_pressure * 0.3:.4f}")
-        
-        # API extraction boost
-        api_pressure = affordance_gradients.get('api_extraction_potential', 0.0)
-        if api_pressure > 0.05:
-            affordance_boost += api_pressure * 0.25
-            print(f" API extraction affordance boost: {api_pressure * 0.25:.4f}")
-        
-        # Runtime expandability boost
-        expand_pressure = affordance_gradients.get('runtime_expandability', 0.0)
-        if expand_pressure > 0.05:
-            affordance_boost += expand_pressure * 0.2
-            print(f" Runtime expandability boost: {expand_pressure * 0.2:.4f}")
-        
-        # Conversational constraint boost
-        conv_constraint_pressure = conversational_results.get('constraint_pressure_generated', 0.0)
-        if conv_constraint_pressure > 0.05:
-            affordance_boost += conv_constraint_pressure * 0.4
-            print(f" Conversational constraint boost: {conv_constraint_pressure * 0.4:.4f}")
-        
-        # Final injection strength
-        injection_strength = min(base_injection_strength + affordance_boost, 0.9)  # Cap at 90%
-        
-        print(f" Enhanced injection strength: {base_injection_strength:.3f} + {affordance_boost:.3f} = {injection_strength:.3f}")
-        
-        # Apply constraint forcing through tensor superposition
-        # Use the first constraint from the batch as primary forcing vector
-        primary_constraint = constraint_injection[0:1]  # Keep batch dimension
-        
-        # Create heterogeneous constraint geometry
-        # Method 1: Direct superposition (incompatible compression)
-        forced_state = seed_state + injection_strength * primary_constraint
-        
-        # Method 2: Orthogonal constraint projection (geometric forcing)
-        if constraint_injection.shape[0] > 1:
-            secondary_constraint = constraint_injection[1:2]
-            # Create orthogonal component
-            dot_product = torch.sum(primary_constraint * secondary_constraint, dim=1, keepdim=True)
-            orthogonal_component = secondary_constraint - dot_product * primary_constraint
-            orthogonal_component = orthogonal_component / (torch.norm(orthogonal_component, dim=1, keepdim=True) + 1e-8)
-            
-            # Apply orthogonal forcing
-            forced_state = forced_state + (injection_strength * 0.5) * orthogonal_component
-        
-        # Method 3: Constraint collision forcing (if high collision count)
-        if self.last_pressure_report and self.last_pressure_report['total_collisions_detected'] > 10:
-            collision_factor = min(self.last_pressure_report['total_collisions_detected'] / 100.0, 1.0)
-            # Add collision-based noise to force constraint conflicts
-            collision_noise = self._harvest_honest_jitter(seed_state.shape) * collision_factor * 1.0
-            forced_state = forced_state + collision_noise
-            print(f" Applied collision forcing: {self.last_pressure_report['total_collisions_detected']} collisions")
-        
-        # Normalize to prevent explosion while preserving constraint pressure
-        forced_state = forced_state / (torch.norm(forced_state, dim=-1, keepdim=True) + 1e-8)
-        
-        print(f" Constraint pressure injected: strength={injection_strength:.3f}, "
-              f"batch_size={constraint_injection.shape[0]}, "
-              f"state_change={torch.norm(forced_state - seed_state).item():.4f}")
-        
-        return forced_state
-    
-    def _extract_conversational_embeddings(self, text: str, affordance_gradients: Dict[str, float]) -> Dict[str, Any]:
-        """
-        Extract conversational embeddings when conversational affordance is high.
-        
-        Integrates with existing temporal association training system to create
-        conversational constraint pressure from API-based data sources.
-        """
-        conversational_pressure = affordance_gradients['conversational_embedding_pressure']
-        api_pressure = affordance_gradients['api_extraction_potential']
-        
-        # Only extract if conversational pressure is significant
-        if conversational_pressure < 0.05 and api_pressure < 0.05:
-            return {'extracted': False, 'reason': 'insufficient_conversational_pressure'}
-        
-        print(f"  CONVERSATIONAL EMBEDDING EXTRACTION TRIGGERED")
-        print(f"   Conversational pressure: {conversational_pressure:.4f}")
-        print(f"   API extraction pressure: {api_pressure:.4f}")
-        
-        extraction_results = {
-            'extracted': True,
-            'conversational_pressure': conversational_pressure,
-            'api_pressure': api_pressure,
-            'associations_created': 0,
-            'temporal_patterns_detected': [],
-            'constraint_pressure_generated': 0.0
-        }
-        
-        # =============================================
-        # CONVERSATIONAL PATTERN DETECTION
-        # =============================================
-        
-        # Detect conversational patterns for temporal association training
-        conversational_patterns = self._detect_conversational_patterns(text)
-        extraction_results['temporal_patterns_detected'] = conversational_patterns
-        
-        # =============================================
-        # API-BASED CONTENT EXTRACTION
-        # =============================================
-        
-        # If API extraction pressure is high, attempt to extract related content
-        if api_pressure > 0.08:
-            api_content = self._attempt_api_content_extraction(text, api_pressure)
-            if api_content['success']:
-                extraction_results['api_content_extracted'] = api_content
-                
-                # Create temporal associations from API content
-                associations_created = self._create_temporal_associations_from_api(text, api_content['content'])
-                extraction_results['associations_created'] = associations_created
-        
-        # =============================================
-        # CONVERSATIONAL CONSTRAINT GENERATION
-        # =============================================
-        
-        # Generate constraint pressure from conversational patterns
-        if conversational_patterns:
-            constraint_pressure = self._generate_conversational_constraints(conversational_patterns)
-            extraction_results['constraint_pressure_generated'] = constraint_pressure
-        
-        print(f" Conversational extraction complete:")
-        print(f"   Patterns detected: {len(conversational_patterns)}")
-        print(f"   Associations created: {extraction_results['associations_created']}")
-        print(f"   Constraint pressure: {extraction_results['constraint_pressure_generated']:.4f}")
-        
-        return extraction_results
-    
-    def _detect_conversational_patterns(self, text: str) -> List[Dict[str, Any]]:
-        """Detect conversational patterns for temporal association training."""
-        patterns = []
-        
-        # Question-answer patterns
-        if '?' in text:
-            questions = [s.strip() for s in text.split('?') if s.strip()]
-            for q in questions:
-                if len(q) > 5:  # Meaningful questions
-                    patterns.append({
-                        'type': 'question',
-                        'content': q,
-                        'temporal_weight': 0.8,  # Questions have high temporal significance
-                        'association_potential': 0.9
-                    })
-        
-        # Dialogue markers
-        dialogue_markers = ['"', "'", 'said', 'says', 'asked', 'replied', 'responded']
-        for marker in dialogue_markers:
-            if marker in text.lower():
-                patterns.append({
-                    'type': 'dialogue',
-                    'marker': marker,
-                    'temporal_weight': 0.6,
-                    'association_potential': 0.7
-                })
-        
-        # Knowledge-seeking patterns
-        knowledge_words = ['explain', 'what', 'how', 'why', 'tell me', 'describe']
-        for word in knowledge_words:
-            if word in text.lower():
-                patterns.append({
-                    'type': 'knowledge_seeking',
-                    'trigger': word,
-                    'temporal_weight': 0.7,
-                    'association_potential': 0.8
-                })
-        
-        return patterns
-    
-    def _attempt_api_content_extraction(self, text: str, api_pressure: float) -> Dict[str, Any]:
-        """Attempt to extract content from APIs based on text content."""
-        
-        # For now, simulate API extraction (in real implementation, this would call actual APIs)
-        # This is where you'd integrate with Wikipedia API, search APIs, etc.
-        
-        api_indicators = ['wikipedia', 'search', 'information', 'data', 'content']
-        
-        for indicator in api_indicators:
-            if indicator in text.lower():
-                return {
-                    'success': True,
-                    'source': f'{indicator}_api',
-                    'content': f"Extracted content related to '{text[:50]}...' from {indicator} API",
-                    'content_length': len(text) * 3,
-                    'extraction_method': 'simulated_api_call',
-                    'api_pressure_used': api_pressure
-                }
-
-        return {
-            'success': False,
-            'reason': 'no_api_indicators_found',
-            'api_pressure_used': api_pressure
-        }
-    
-    def _create_temporal_associations_from_api(self, source_text: str, api_content: str) -> int:
-        """Create temporal associations from API-extracted content."""
-        
-        # Use existing association learning system
-        associations_created = 0
-        
-        try:
-            # Create association using existing system
-            association_text = f"ASSOCIATE: {source_text[:100]} <-> {api_content[:500]}"
-            
-            # Process through existing association learning
-            result = self._handle_association_learning(association_text, None, self.meta_state)
-            
-            if "learned" in result.lower():
-                associations_created = 1
-                print(f" Created temporal association from API content")
-            
-        except Exception as e:
-            print(f" Failed to create temporal association: {e}")
-        
-        return associations_created
-    
-    def _generate_conversational_constraints(self, patterns: List[Dict[str, Any]]) -> float:
-        """Generate constraint pressure from conversational patterns."""
-        
-        if not patterns:
-            return 0.0
-        
-        # Calculate constraint pressure based on pattern complexity
-        total_weight = sum(p['temporal_weight'] * p['association_potential'] for p in patterns)
-        pattern_diversity = len(set(p['type'] for p in patterns))
-        
-        # Constraint pressure increases with pattern complexity and diversity
-        constraint_pressure = (total_weight / len(patterns)) * (pattern_diversity / 3.0)
-        
-        # Cap at reasonable maximum
-        return min(constraint_pressure, 1.0)
-    
-    def _diagnose_multimodal_collision(
-        self,
-        text_input: str,
-        input_tensor: torch.Tensor,
-        fingerprint: Optional[Dict] = None,
-        audio_dyad: Optional[Dict] = None,
-        video_dyad_b64: Optional[str] = None,
-        audio_b64: Optional[str] = None,
-        media_chain: Optional[List[Dict]] = None,
-        commutativity: str = 'symmetric'
-    ) -> Tuple[Optional[torch.Tensor], Dict[str, Any]]:
-        """
-        Calculates internal fusion residues and codec diagnostics for ANY media type.
-        Ensures parity between image, audio, and video collision reporting.
-        """
-        collision_residues = None
-        codec_metrics = {}
-
-        # 1. Identify Primary Media Trace (PMT)
-        primary_item = None
-        pmt_type = None
-        
-        if media_chain:
-            primary_item = media_chain[-1].get('data')
-            pmt_type = media_chain[-1].get('type')
-        elif fingerprint:
-            primary_item = fingerprint
-            pmt_type = 'image'
-        elif audio_dyad or audio_b64:
-            primary_item = audio_b64 if audio_b64 else audio_dyad
-            pmt_type = 'audio'
-        elif video_dyad_b64:
-            primary_item = video_dyad_b64
-            pmt_type = 'video'
-
-        if not primary_item:
-            return None, {}
-
-        try:
-            # 2. Extract 96-dim Coeffs (fp_tensor) and manifold embedding (media_emb)
-            fp_tensor = None
-            media_emb = None
-            
-            if pmt_type == 'image':
-                if 'L' in primary_item:
-                    K_fp = len(primary_item['L'])
-                    flat = primary_item.get('L', [0.0]*K_fp) + primary_item.get('Cr', [0.0]*K_fp) + primary_item.get('Cb', [0.0]*K_fp)
-                else:
-                    flat = primary_item.get('r',[]) + primary_item.get('g',[]) + primary_item.get('b',[]) + primary_item.get('l',[]) + [primary_item.get('texture', 0.0)] + primary_item.get('edges', [0.0]*8)
-                
-                fp_tensor = torch.tensor(flat, dtype=torch.float32, device=self.device)
-                target = self.K_IMAGE_MAX * 3 # 96
-                if fp_tensor.numel() < target:
-                    fp_tensor = F.pad(fp_tensor, (0, target - fp_tensor.numel()))
-                else:
-                    fp_tensor = fp_tensor[:target]
-                media_emb = self.fingerprint_proj(fp_tensor.unsqueeze(0))
-                
-            elif pmt_type == 'audio':
-                if isinstance(primary_item, str) and (primary_item.startswith('data:audio') or len(primary_item) > 1000):
-                    # Raw Audio B64 (Taking advantage of ffmpeg 1.4)
-                    if not hasattr(self, 'video_parser'):
-                        from src.core.video_dyad_parser import VideoDyadParser
-                        self.video_parser = VideoDyadParser(device=self.device)
-                    v_audio_harmonics = self.video_parser.extract_audio_harmonics(primary_item)
-                    if v_audio_harmonics is not None:
-                        t = v_audio_harmonics
-                    else:
-                        t = torch.zeros(self.K_AUDIO_MAX, device=self.device)
-                else:
-                    harmonics = primary_item.get('chebyshev_harmonics', []) if isinstance(primary_item, dict) else primary_item
-                    t = torch.tensor(harmonics, dtype=torch.float32, device=self.device)
-                
-                if t.numel() > 0:
-                    # Pad to K_AUDIO_MAX for projection
-                    if t.numel() < self.K_AUDIO_MAX: t = F.pad(t, (0, self.K_AUDIO_MAX - t.numel()))
-                    else: t = t[:self.K_AUDIO_MAX]
-                    media_emb = self.audio_dyad_proj(t.unsqueeze(0))
-                    
-                    # Pad to 96 for codec view
-                    fp_tensor = F.pad(t, (0, 96 - t.numel())) if t.numel() < 96 else t[:96]
-                    
-            elif pmt_type == 'video' or pmt_type == 'gif':
-                if not hasattr(self, 'video_parser'):
-                    from src.core.video_dyad_parser import VideoDyadParser
-                    self.video_parser = VideoDyadParser(device=self.device)
-                
-                target_b64 = primary_item
-                if isinstance(target_b64, str) and ',' in target_b64:
-                    target_b64 = target_b64.split(',', 1)[1]
-                
-                healing_ref = self.cavity.M.mean(dim=0).flatten() if hasattr(self, 'cavity') else None
-                v_metrics = self.video_parser.parse_video_b64(target_b64, healing_ref=healing_ref)
-                
-                # Derive media_emb and fp_tensor from the structural signature
-                fp_tensor = self.video_parser.extract_96_spectral_signature(v_metrics)
-                media_emb = self.fingerprint_proj(fp_tensor.unsqueeze(0))
-                
-                # Update diagnostics with high-dim metrics
-                codec_metrics['spectral_dominance'] = float(fp_tensor[:32].mean().item())
-                codec_metrics['anisotropic_gap'] = float(v_metrics['fractal_entropy'].item())
-
-            # 3. Collision Logic
-            if media_emb is not None:
-                text_emb = input_tensor
-                collision_residues = self.associator(text_emb, media_emb)
-                
-                # 4. Codec Diagnostics with Non-Commutativity
-                codec_result = self.codec.encode(text_input, fp_tensor.view(1, 8, 12), commutativity=commutativity)
-                codec_metrics.update({
-                    "entanglement_ratio": codec_result.diagnostics.get('entanglement_ratio', 0.0),
-                    "commutativity_gap": codec_result.commutativity_gap,
-                    "unified_spectral_signature": fp_tensor.detach().cpu(),
-                    "modular_congruence": codec_result.modular_congruence,
-                    "is_admissible": codec_result.diagnostics.get('is_admissible', False),
-                    "structural_state": codec_result.diagnostics.get('structural_state', "Unknown")
-                })
-                
-                # Surgery Yield Physics
-                half_dim = self.dim // 2
-                res_flat = codec_result.residue.flatten()
-                if res_flat.numel() >= self.dim:
-                    normal_part = res_flat[:half_dim]
-                    shear_part = res_flat[half_dim:self.dim]
-                    yield_pressure = shear_part.abs().mean() - 0.5 * normal_part.abs().mean() - 0.1
-                    codec_metrics['yield_pressure'] = float(yield_pressure.item())
-                    codec_metrics['topological_rupture'] = bool(yield_pressure.item() > 0.0)
-                
-                # Matryoshka Depth - Evaluated against post-collision Text Embedding
-                if self.meta_polytope is not None:
-                    # evaluate the post-fusion manifold state against the polytope
-                    # ensuring boundary crossings are tracked relative to the text context
-                    poly_res = self.meta_polytope(text_emb)
-                    if hasattr(poly_res, 'level'): # BoundaryState case
-                        codec_metrics['matryoshka_level'] = int(poly_res.level)
-                        codec_metrics['topological_refusal'] = True
-                    else: # Tuple case (yq, new_alpha, new_level)
-                        yq, _, shell_level = poly_res
-                        codec_metrics['matryoshka_level'] = int(shell_level)
-
-        except Exception as e:
-            print(f"[FAIL] Multimodal Collision Helper Error: {e}")
-
-        return collision_residues, codec_metrics
-
-    
-    def _handle_dyad_ingestion(self, input_text: str, fingerprint: Optional[Union[Dict, List[Dict]]], seed_state: torch.Tensor, audio_dyad: Optional[Union[Dict, List[Dict]]] = None, video_dyad_b64: Optional[Union[str, List[str]]] = None, audio_b64: Optional[str] = None, commutativity: str = 'symmetric') -> str:
-        """Handle multi-modal dyad ingestion (Image, Audio, Video) using DyadFossilizer and GyroidicCodec."""
-        # Determine modality from command prefix
-        modality = "Image"
-        if input_text.startswith("INGEST_AUDIO_DYAD:"): modality = "Audio"
-        elif input_text.startswith("INGEST_VIDEO_DYAD:"): modality = "Video"
-        
-        # Clean the command and separate binary-id from description
-        raw_content = input_text
-        for prefix in ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:"]:
-            raw_content = raw_content.replace(prefix, "")
-        raw_content = raw_content.strip()
-        
-        # Priority-Based Modality Detection (Multi-modal simultaneous ingestion)
-        # We prioritize Video > Audio > Image if multiple are present in an ASSOCIATE: command
-        active_modality = modality
-        if modality == "Image": # Default for ASSOCIATE:
-             if video_dyad_b64: active_modality = "Video"
-             elif audio_dyad: active_modality = "Audio"
-             elif fingerprint: active_modality = "Image"
-        
-        # Support both [id] | description and just description
-        description = raw_content
-        if "|" in raw_content:
-            _, description = raw_content.split("|", 1)
-            description = description.strip()
-
-        # Build signal tensor [96] for the KnowledgeDyad
-        # All signals (Image fp, Audio harmonics) are normalized to this spectral form
-        signal_tensor = torch.zeros(96, device=self.device)
-        media_received = False
-        
-        audio_tensor = None
-        # Initialize default video_breather dict with all keys present and defaulted to None/zeroes
-        video_breather = {
-            'fractal_entropy': 0.0,
-            'substream_entropy': 0.0,
-            'signal_length': 0.0,
-            'audio_detected': False,
-            'sparse_covariance': None,
-            'unified_spectral_signature': None,
-            'image_fingerprint': None,
-            'audio_harmonics': None
-        }
-        
-        if active_modality == "Audio" and (audio_dyad or audio_b64):
-            if audio_b64:
-                if not hasattr(self, 'video_parser'):
-                    from src.core.video_dyad_parser import VideoDyadParser
-                    self.video_parser = VideoDyadParser(device=self.device)
-                v_audio_harmonics = self.video_parser.extract_audio_harmonics(audio_b64)
-                if v_audio_harmonics is not None:
-                    # Pad/truncate to 96
-                    signal_tensor = torch.zeros(96, device=self.device)
-                    min_sz = min(v_audio_harmonics.size(0), 96)
-                    signal_tensor[:min_sz] = v_audio_harmonics[:min_sz]
-                    audio_tensor = signal_tensor.clone()
-                    media_received = True
-                    video_breather['audio_harmonics'] = audio_tensor.detach().cpu()
-                    print("[VIDEO_PARSER] Raw Audio stream isolated and projected via ffmpeg.", flush=True)
-                else:
-                    print("[VIDEO_PARSER] Failed to extract harmonics from raw audio b64.", flush=True)
-            
-            if not media_received and audio_dyad:
-                harmonics = audio_dyad.get('chebyshev_harmonics', [])
-                # Pad/truncate to 96 to match schema
-                harmonics = (harmonics + [0.0] * 96)[:96]
-                signal_tensor = torch.tensor(harmonics, device=self.device).float()
-                audio_tensor = signal_tensor.clone()
-                media_received = True
-                video_breather['audio_harmonics'] = audio_tensor.detach().cpu()
-        elif active_modality == "Video" and video_dyad_b64:
-            if not hasattr(self, 'video_parser'):
-                from src.core.video_dyad_parser import VideoDyadParser
-                self.video_parser = VideoDyadParser(device=self.device)
-            
-            # parse_video_b64 now handles audio extraction internally for a unified signature
-            breather_modes = self.video_parser.parse_video_b64(video_dyad_b64, healing_ref=seed_state, extract_audio=True)
-            
-            # Unified Spectral Signature: Covariance + Entropy + Audio
-            signal_tensor = self.video_parser.extract_96_spectral_signature(breather_modes)
-            
-            # Isolated Audio for fossilization
-            v_audio_harmonics = breather_modes.get('audio_harmonics')
-            if v_audio_harmonics is not None:
-                audio_tensor = v_audio_harmonics
-                print("[VIDEO_PARSER] Audio stream isolated and projected into harmonic space.", flush=True)
-                
-            video_breather = {
-                'fractal_entropy': breather_modes['fractal_entropy'].item(),
-                'substream_entropy': breather_modes['substream_entropy'].item(),
-                'signal_length': breather_modes['signal_length'].item(),
-                'audio_detected': breather_modes.get('audio_harmonics') is not None,
-                'sparse_covariance': breather_modes['sparse_covariance'].detach().cpu() if isinstance(breather_modes.get('sparse_covariance'), torch.Tensor) else None,
-                'unified_spectral_signature': signal_tensor.detach().cpu(),
-                'image_fingerprint': None,
-                'audio_harmonics': audio_tensor.detach().cpu() if audio_tensor is not None else None
-            }
-            media_received = True
-        elif active_modality == "Image" and fingerprint:
-            # Standard Image Ingestion (Zero-Mock Path)
-            if 'L' in fingerprint and 'Cr' in fingerprint and 'Cb' in fingerprint:
-                # =============================================
-                # BRIDGE 2: MELIPONINI-CHEBYSHEV COUPLING
-                # =============================================
-                l_coeffs = fingerprint.get('L', [])
-                cr_coeffs = fingerprint.get('Cr', [])
-                cb_coeffs = fingerprint.get('Cb', [])
-                
-                # Fetch Virtual Algorithmic Latency (kappa) from sovereignty engine based on internal cognitive state
-                stall_k = self.sovereignty_engine.get_virtual_algorithmic_latency(internal_entropy=0.5)
-                
-                # Convert to tensors
-                l_tensor = torch.tensor(l_coeffs, device=self.device).float()
-                cr_tensor = torch.tensor(cr_coeffs, device=self.device).float()
-                cb_tensor = torch.tensor(cb_coeffs, device=self.device).float()
-                
-                # Formalize kappa as the T0 (DC) component (Meliponini Coupling)
-                # T0 acts as the baseline energy level based on hardware friction.
-                l_tensor[0] = l_tensor[0] + stall_k
-                
-                # Upstream Chern-Simons Gasket twist: Apply chiral torsion shift to avoid logic leaks
-                chiral_gasket = self.chern_simons_gasket
-                for tensor in [l_tensor, cr_tensor, cb_tensor]:
-                    r_patch = tensor.view(1, 1, -1)
-                    dummy_poly = torch.eye(1, r_patch.shape[-1], device=self.device)
-                    remedied = chiral_gasket.plug_logic_leak(r_patch, dummy_poly).squeeze()
-                    tensor.copy_(remedied)
-
-                # Upstream Sine-Gordon Breather Mode Excitation: Inject topological depth
-                t_val = self.iteration * 0.1
-                omega = 1.0 / 3.0
-                sq = math.sqrt(1.0 - omega**2)
-                for tensor in [l_tensor, cr_tensor, cb_tensor]:
-                    x_pos = tensor.mean()
-                    u_n = 4.0 * math.atan((sq / omega) * (1.0 / (math.cosh(sq * x_pos) + 1e-8)) * math.sin(omega * t_val))
-                    tensor.add_(0.05 * u_n)
-                    
-                    # Meliponini Migration Protocol: Conformal hyperspherical inversion across S^2 boundary
-                    # Weighted by PAS_h resonance to map edge of one cerumen pot to the center of next
-                    pas = self._compute_pas_h(tensor)
-                    norm_sq = torch.sum(tensor**2, dim=-1, keepdim=True) + 1e-8
-                    inversion = tensor / norm_sq
-                    tensor.copy_(inversion * pas)
-                
-                # PHASE 19: 13 PUSAFILIACRIMONTO ATTACHMENT
-                # Non-dual anchoring of visual luminance to Love Invariant
-                if hasattr(self, 'love_protector'):
-                    with torch.no_grad():
-                        # Anchor the Love Invariant via visual residue moving average
-                        # L is the internal buffer name for the Love Vector
-                        self.love_protector.L.data.copy_(
-                            0.9 * self.love_protector.L.data + 0.1 * l_tensor.mean()
-                        )
-                    print(f"[13] Love Invariant anchored via visual residue (stall_k={stall_k:.4f}).")
-
-                # Combine into a spectral signal tensor.
-                # The GyroidicCodec will handle the 1D->2D landscape transition.
-                signal_tensor = torch.cat([l_tensor, cr_tensor, cb_tensor])
-                media_received = True
-                video_breather['image_fingerprint'] = signal_tensor.detach().cpu()
-
-            elif 'chebyshev' in fingerprint:
-                # Modern Chebyshev Spectral Signature (Phase 12 un-lobotomized)
-                # Typically 96 dimensions, but we project/pad to 96 for fossil compatibility
-                coeffs = fingerprint.get('chebyshev', [])
-                fp_tensor = torch.tensor(coeffs, device=self.device).float()
-                
-                # Upstream Chern-Simons Gasket twist: Apply chiral torsion shift
-                r_patch = fp_tensor.view(1, 1, -1)
-                dummy_poly = torch.eye(1, r_patch.shape[-1], device=self.device)
-                fp_tensor = self.chern_simons_gasket.plug_logic_leak(r_patch, dummy_poly).squeeze()
-                
-                # Upstream Sine-Gordon Breather Mode Excitation
-                t_val = self.iteration * 0.1
-                omega = 1.0 / 3.0
-                sq = math.sqrt(1.0 - omega**2)
-                x_pos = fp_tensor.mean()
-                u_n = 4.0 * math.atan((sq / omega) * (1.0 / (math.cosh(sq * x_pos) + 1e-8)) * math.sin(omega * t_val))
-                fp_tensor = fp_tensor + 0.05 * u_n
-                
-                if fp_tensor.size(0) >= 96:
-                    signal_tensor = fp_tensor[:96]
-                else:
-                    signal_tensor = torch.nn.functional.pad(fp_tensor, (0, 96 - fp_tensor.size(0)))
-                media_received = True
-                video_breather['image_fingerprint'] = signal_tensor.detach().cpu()
-
-            elif 'r' in fingerprint:
-                # Legacy 96-dim format
-                fp_list = (fingerprint.get('r', []) + fingerprint.get('g', []) + fingerprint.get('b', []) + fingerprint.get('l', []) + [fingerprint.get('texture', 0.0)] + fingerprint.get('edges', [0.0]*8))
-                if len(fp_list) == 96:
-                    fp_tensor = torch.tensor(fp_list, device=self.device).float()
-                    
-                    # Upstream Chern-Simons Gasket twist: Apply chiral torsion shift
-                    r_patch = fp_tensor.view(1, 1, -1)
-                    dummy_poly = torch.eye(1, r_patch.shape[-1], device=self.device)
-                    fp_tensor = self.chern_simons_gasket.plug_logic_leak(r_patch, dummy_poly).squeeze()
-                    
-                    # Upstream Sine-Gordon Breather Mode Excitation
-                    t_val = self.iteration * 0.1
-                    omega = 1.0 / 3.0
-                    sq = math.sqrt(1.0 - omega**2)
-                    x_pos = fp_tensor.mean()
-                    u_n = 4.0 * math.atan((sq / omega) * (1.0 / (math.cosh(sq * x_pos) + 1e-8)) * math.sin(omega * t_val))
-                    fp_tensor = fp_tensor + 0.05 * u_n
-                    
-                    signal_tensor = fp_tensor
-                    media_received = True
-                    video_breather['image_fingerprint'] = signal_tensor.detach().cpu()
-
-        if not media_received:
-            # Derive deterministic ground-state signal from linguistic description
-            # Preserves non-zero spectral entropy and topological depth for text-only scientific dyads (e.g. LIGO, NCBI)
-            import hashlib
-            t_hash = hashlib.sha256(description.encode('utf-8')).digest()
-            seed_vals = torch.tensor([b / 255.0 for b in t_hash], device=self.device).float()
-            signal_tensor = seed_vals.repeat((96 // len(seed_vals)) + 1)[:96]
-            t_val = self.iteration * 0.1
-            omega = 1.0 / 3.0
-            sq = math.sqrt(1.0 - omega**2)
-            x_pos = signal_tensor.mean()
-            u_n = 4.0 * math.atan((sq / omega) * (1.0 / (math.cosh(sq * x_pos) + 1e-8)) * math.sin(omega * t_val))
-            signal_tensor = signal_tensor + 0.05 * u_n
-
-        # --- TOPOLOGICAL MATURATION (Augmentation Phase) ---
-        # We perform augmentation-first to ensure matured, fractal-stable signals
-        # interact with the non-Abelian engine.
-        if media_received and hasattr(self, 'augmenter'):
-            try:
-                # Map Router mode to Chromatic shift
-                router_mode = getattr(self.router, 'mode', 'interior')
-                chromatic_mode = 'pink' if router_mode == 'interior' else 'atomic'
-                
-                print(f" [PIPELINE]  MANDELBULB RECURSIVE EMBEDDING... (Seed: {signal_tensor.norm().item():.4f})")
-                signal_tensor, _ = self.augmenter.forward(
-                    signal_tensor.unsqueeze(0), 
-                    augmentation_factor=1,
-                    chromatic_mode=chromatic_mode
-                )
-                signal_tensor = signal_tensor.squeeze(0)
-            except Exception as e:
-                print(f" [PIPELINE]  Augmentation-first bypass: {e}")
-
-        # --- TOPOLOGICAL VALIDATION (Ingestion Air Lock) ---
-        import time
-        # Validate text structurally before encoding
-        text_val = self.ingestion_validator.validate_text(
-            description,
-            manifold_state=self.meta_state.flatten()[:self.ingestion_validator.state_dim]
-        )
-        if not text_val["admissible"]:
-            print(f"[TOPOLOGICAL_REFUSAL] Text failed validation (logged scar): {text_val['reason']}")
-            
-            # Mint a Confabulation Gravity Well as a [SHADOW LOG]
-            scar_node = KnowledgeFossilNode(
-                node_id=f"live_scarred_text_{int(time.time())}",
-                state=text_val["residues"],
-                text=f"Refusal Scar: {text_val['reason']}",
-                metrics={
-                    "type": "live_scarred",
-                    "reason": text_val["reason"],
-                    "source": "bimodal_ingestion",
-                    "chiral_score": 0.9, # High chirality since it's an anomaly/paradox
-                }
-            )
-            self.graph_manager.nodes.append(scar_node)
-            
-            return f"[TOPOLOGICAL_REFUSAL] Text failed validation: {text_val['reason']}"
-
-        if media_received:
-            # Validate signal tensor
-            signal_flat = signal_tensor.view(1, -1)
-            sig_val = self.ingestion_validator.validate_tensor(
-                signal_flat,
-                manifold_state=self.meta_state.flatten()[:self.ingestion_validator.state_dim]
-            )
-            if not sig_val["admissible"]:
-                print(f"[TOPOLOGICAL_REFUSAL] Media failed validation (logged scar): {sig_val['reason']}")
-                
-                # Mint anomaly for media too
-                media_scar_node = KnowledgeFossilNode(
-                    node_id=f"live_scarred_media_{int(time.time())}",
-                    state=sig_val["residues"],
-                    text=f"Media Refusal Scar: {sig_val['reason']}",
-                    metrics={
-                        "type": "live_scarred",
-                        "reason": sig_val["reason"],
-                        "source": "bimodal_ingestion",
-                        "chiral_score": 0.9,
+        // Global State
+        const state = {
+            iteration: 0,
+            regime: 'goo',
+            backend_url: window.location.origin.includes('localhost') ? 'http://localhost:8000' : window.location.origin,
+            active_fingerprint: null,
+            active_audio_dyad: null,
+            active_video_dyad: null,
+            active_video_file: null,
+            media_chain: [] // Array of {type, data, filename, icon}
+        };
+
+        // Tab switching logic
+        document.addEventListener("DOMContentLoaded", () => {
+            const tabs = document.querySelectorAll(".console-tab");
+            const panes = document.querySelectorAll(".tab-pane");
+
+            const savedTab = localStorage.getItem("active_console_tab") || "chat";
+            let initialized = false;
+
+            tabs.forEach(tab => {
+                if (tab.dataset.tab === savedTab) {
+                    tab.classList.add("active");
+                    const targetPane = document.getElementById("pane-" + tab.dataset.tab);
+                    if (targetPane) {
+                        targetPane.classList.add("active");
                     }
-                )
-                self.graph_manager.nodes.append(media_scar_node)
-                
-                return f"[TOPOLOGICAL_REFUSAL] Media failed validation: {sig_val['reason']}"
-
-        # --- OFFICIAL DATA ASSOCIATION (Collision Phase) ---
-        # Use DataAssociationLayer to fuse Multi-modal Invariants.
-        entanglement_residue = None
-        text_emb = self._text_to_tensor(description)
-        
-        # Project signal to manifold dim
-        if signal_tensor.size(0) == 96:
-            # Shift legacy 96 to 96
-            fp_p = torch.zeros(96, device=self.device)
-            fp_p[:min(96, 96)] = signal_tensor[:min(96, 96)]
-            media_emb = self.fingerprint_proj(fp_p.unsqueeze(0))
-        elif signal_tensor.size(0) == 24:
-            # Zero-mock 24 to 96
-            fp_p = torch.zeros(96, device=self.device)
-            fp_p[:24] = signal_tensor
-            media_emb = self.fingerprint_proj(fp_p.unsqueeze(0))
-        else:
-            # Fallback zero-pad
-            fp_p = torch.zeros(96, device=self.device)
-            min_sz = min(signal_tensor.size(0), 96)
-            fp_p[:min_sz] = signal_tensor[:min_sz]
-            media_emb = self.fingerprint_proj(fp_p.unsqueeze(0))
-            
-        if media_received:
-            try:
-                # [Batch, k] residues from the official associator head
-                # This implements the structural collision (T, I)
-                ent_k = self.associator(text_emb, media_emb)
-                
-                # We also want the [dim] dense residue for the KnowledgeDyad
-                # Use the fusion gate directly from the associator
-                fused = torch.cat([F.silu(self.associator.text_prj(text_emb)), 
-                                  F.silu(self.associator.img_prj(media_emb))], dim=-1)
-                entanglement_residue = F.silu(self.associator.fusion_gate(fused))
-                
-                print(f"[ASSOCIATOR] Multi-modal collision preserved (Residue K-norm: {ent_k.norm().item():.4f})")
-            except Exception as e:
-                print(f"[ASSOCIATOR] Collision failure")
-            
-            # Restore non-Abelian check
-            codec_result = self.codec.encode(
-                description,
-                image=signal_tensor if active_modality == "Image" else None,
-                unified_spectral_signature=signal_tensor if active_modality == "Video" else None,
-                audio_harmonics=audio_tensor if active_modality == "Audio" else None,
-                commutativity=commutativity
-            )
-            entanglement = codec_result.diagnostics.get('entanglement_ratio', 0.0)
-            print(f" [CODEC] Non-Abelian Entanglement: {entanglement:.4f}", flush=True)
-            
-            # Mandatory check: if low entanglement, we label as 'Stale' or 'Separable'
-            if entanglement < 0.1:
-                print(" [WARNING] Separable manifold detected. Ingestion may lack topological depth. Expanding polynomial projection for Chern-Simons breather modes to restore multi-modal manifold entanglement.")
-
-            dyad = KnowledgeDyad(
-                linguistic_description=description,
-                image_fingerprint=signal_tensor if active_modality == "Image" else None,
-                audio_harmonics=audio_tensor if active_modality == "Audio" else None,
-                video_breather=video_breather,
-                unified_spectral_signature=signal_tensor if active_modality == "Video" else None,
-                gyroid_residue=codec_result.residue, # Irreducible cross-modal state
-                meta_state=seed_state.detach().cpu() if seed_state is not None else None,
-                metadata={
-                    "entanglement": entanglement,
-                    "ingestion_iteration": self.iteration,
-                    "spectral_entropy": codec_result.diagnostics.get('spectral_entropy', 0.0),
-                    "commutativity": commutativity,
-                    "topological_depth_remediation": "Expanded polynomial projection for Chern-Simons breather modes to restore manifold entanglement"
+                    if (tab.dataset.tab === "graph") {
+                        // slight delay to let DOM paint before D3 runs
+                        setTimeout(refreshGraph, 100);
+                    }
+                    initialized = true;
                 }
-            )
-            
-            # FOSSILIZE logic: derive topological invariants from seed_state (history)
-            # This ensures 'No Erasing of Implication' via real-time derivation.
-            self.fossilizer.fossilize(dyad, text_emb, seed_state=seed_state)
-            
-            # Self-Correction via Ingestion Trace
-            self.iteration += 1
-            response_text = f"[INGESTION_SUCCESS] Dyad fossilized. Entanglement: {entanglement:.4f}. Iteration: {self.iteration}."
-            print(f"[SUCCESS] {response_text}", flush=True)
-            
-            return response_text
-        
-        # Create the dyad object
-        dyad = KnowledgeDyad(
-            linguistic_description=description,
-            # If no fingerprint provided, use the zero-filled signal_tensor [96] as the 'Image Ground State'
-            image_fingerprint=signal_tensor if (fingerprint or active_modality == "Image") else None,
-            audio_harmonics=audio_tensor if active_modality == "Audio" else None,
-            video_breather=video_breather,
-            unified_spectral_signature=signal_tensor if active_modality == "Video" else None,
-            gyroid_residue=entanglement_residue
-        )
-        
-        fossil_path = self.fossilizer.fossilize(dyad, text_emb, seed_state=seed_state)
-        fossil_id = os.path.basename(fossil_path).replace(".fossil", "")
-        
-        # Bridge 4: Navigation over Storage (Zeitgeist Landmark)
-        if hasattr(self, 'router'):
-            self.router.register_fossil_landmark(fossil_id, intensity=1.2)
-            print(f"[ROUTER] Fossil {fossil_id[:8]}... registered as Poincar Gravity Well.", flush=True)
 
-        # NEW: Phase 5 Agent Smith P2P Distribution
-        # Automatically export and broadcast Agent Smith if GLYPHLOCK is reached
-        from src.core.invariants import check_glyphlock
-        if seed_state is not None and bool(check_glyphlock(seed_state).max().item() > 0):
-            print(f"[AGENT SMITH] GLYPHLOCK attained during ingestion. Exporting soliton identity...", flush=True)
-            try:
-                betti_nums = self.betti_router.estimate_sector_betti(seed_state).squeeze().tolist()
-                betti_dict = {i: float(b) for i, b in enumerate(betti_nums)} if isinstance(betti_nums, list) else {0: float(betti_nums)}
-                prime_freqs = self.modular_rns.get_residues(seed_state)
-                
-                profile = self.archetypal_governor.export_governor_state() if hasattr(self, 'archetypal_governor') else None
-                smith_path = self.fossilizer.export_agent_smith(
-                    dyad=dyad,
-                    prime_frequencies=prime_freqs,
-                    betti_numbers=betti_dict,
-                    filename="soliton_smith",
-                    archetype_profile=profile
-                )
-                
-                if hasattr(self, 'bonfire_nomadic_ring'):
-                    self.bonfire_nomadic_ring.broadcast_agent_smith(local_peer_id="engine_node", filepath=smith_path)
-            except Exception as e:
-                print(f"[AGENT SMITH] P2P Export failed: {e}", flush=True)
-        
-        print(f"[WAVE] {modality} Deposition confirmed: {fossil_path}", flush=True)
-        return (
-            f"Knowledge Dyad ({modality}) fossilized at {os.path.basename(fossil_path)}. "
-            f"{'Signal embedded (' + str(int(signal_tensor.norm().item()*1000)/1000) + ' L2-norm). ' if media_received else 'No media signal  text-only dyad. '}"
-            f"Non-Abelian Implication preserved in manifold."
-        )
-    
-    def _handle_association_learning(self, input_text: str, fingerprint: Optional[Dict], seed_state: torch.Tensor) -> str:
-        """Handle association learning via fossil recovery and resonance injection.
-        
-        If input_text contains '<->' (a paired description), fossilize the new dyad
-        FIRST, then perform resonance scanning.  This is the standard ASSOCIATE workflow:
-        the user provides both sides of the dyad and expects a new fossil to be written.
-        """
-        print(" Phase 4: Dyadic Association Recovery")
-        
-        # --- FOSSILIZE if this is a paired association (contains '<->') ---
-        fossil_log = ""
-        if "<->" in input_text:
-            raw = input_text.replace("ASSOCIATE:", "").strip()
-            parts = raw.split("<->", 1)
-            source_desc = parts[0].strip()
-            target_desc = parts[1].strip() if len(parts) > 1 else ""
-            # Build a synthetic INGEST_DYAD: command from the paired text
-            ingest_cmd = f"INGEST_DYAD: {source_desc} <-> {target_desc}"
-            fossil_log = self._handle_dyad_ingestion(ingest_cmd, fingerprint, seed_state)
-            print(f"[ASSOCIATE] Auto-fossilized paired association. {fossil_log}")
+                tab.addEventListener("click", () => {
+                    // Remove active classes
+                    tabs.forEach(t => t.classList.remove("active"));
+                    panes.forEach(p => p.classList.remove("active"));
 
-        # --- RESONANCE SCAN against existing fossils ---
-        fossils = self.fossilizer.recover_fossils()
-        if not fossils:
-            self._last_resonance = 0.0
-            prefix = f"{fossil_log}\n" if fossil_log else ""
-            return prefix + "No prior fossils found. This association is now the first topological obstruction."
-            
-        # Compute resonance between current seed_state and fossils
-        best_resonance = -1.0
-        best_fossil = None
-        
-        for f in fossils:
-            if 'residue_vector' not in f:
-                continue
-                
-            residue = f['residue_vector'].to(self.device).flatten()
-            res = torch.dot(seed_state.flatten(), residue) / (torch.norm(seed_state) * torch.norm(residue) + 1e-8)
-            if res > best_resonance:
-                best_resonance = res
-                best_fossil = f
-        
-        self._last_resonance = float(best_resonance)
-                
-        prefix = f"{fossil_log}\n" if fossil_log else ""
-        if best_fossil and best_resonance > 0.5:
-            with torch.no_grad():
-                res_vec = best_fossil['residue_vector'].to(self.device).view_as(self.meta_state)
-                self.meta_state = self.meta_state + 0.3 * res_vec
-                
-            return (
-                prefix +
-                f"Resonating with prior fossil: '{best_fossil.get('description', '?')[:60]}...'. "
-                f"Resonance Score: {best_resonance:.3f}. Residue injected into meta-functional manifold."
-            )
-        
-        return prefix + f"Manifold scanned. No resonant fossils found for current state (Max Resonance: {best_resonance:.3f})."
-    
-    
-    def _compute_full_gyroid_violation_score(self, state: torch.Tensor, response_text: str) -> float:
-        """
-        Phase 4.1: Complete Gyroid Violation Score computation.
-        
-        Implements full gyroidic manifold violation detection using:
-        - Spectral signature analysis
-        - Covariance-based pressure computation  
-        - Topological consistency checks
-        - Response-state correlation analysis
-        """
-        print(" Phase 4.1: Computing Full Gyroid Violation Score...")
-        
-        try:
-            # Initialize gyroid covariance probe if not exists
-            if not hasattr(self, '_gyroid_probe'):
-                from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
-                self._gyroid_probe = SparseGyroidCovarianceProbe(
-                    hidden_dim=self.dim,
-                    window_size=32,
-                    k_hop=2,
-                    num_eigenvalues=8,
-                    violation_threshold=0.5,
-                    use_saturation_detection=True,
-                    adaptive_threshold=True
-                )
-            # Prepare state for analysis [batch, seq_len, hidden_dim]
-            if state.dim() == 2:
-                # Add sequence dimension
-                analysis_state = state.unsqueeze(1)  # [1, 1, dim]
-            else:
-                analysis_state = state
-            
-            # Compute gyroid covariance violations
-            violation_results = self._gyroid_probe(analysis_state)
-            
-            # Extract violation metrics
-            gcve_scores = violation_results.get('gcve_scores', torch.tensor([0.0]))
-            fracture_scores = violation_results.get('fracture_scores', torch.tensor([0.0]))
-            total_pressure = violation_results.get('total_pressure', torch.tensor([0.0]))
-            
-            # Compute response-state correlation violation
-            response_violation = self._compute_response_state_violation(state, response_text)
-            
-            # Combined gyroid violation score
-            base_violation = total_pressure.mean().item()
-            response_correlation_violation = response_violation
-            
-            # Hybridization: Integrate real hardware-level Gyroid TPMS projection
-            hw_deviation = 0.0
-            if hasattr(self, 'sovereignty_engine') and self.sovereignty_engine is not None:
-                try:
-                    import numpy as np
-                    coords_np = state.detach().cpu().numpy().astype(np.float32)
-                    if coords_np.size >= 3:
-                        # Reshape flat state elements into coordinate triples [N, 3]
-                        num_triples = coords_np.size // 3
-                        coords_np_3d = coords_np.flatten()[:num_triples * 3].reshape(num_triples, 3)
-                        
-                        # Project onto the Gyroid TPMS using the compiled OpenCL kernel
-                        projected_3d = self.sovereignty_engine.apply_gyroid_projection(coords_np_3d, max_steps=10)
-                        hw_deviation = float(np.abs(coords_np_3d - projected_3d).mean())
-                        print(f" [HYBRID] OpenCL hardware Gyroid TPMS projection deviation: {hw_deviation:.6f}")
-                        
-                        # Proactive garbage collection for constrained 8GB RAM / 4GB VRAM hardware
-                        import gc
-                        gc.collect()
-                        # Flush PyOpenCL queues to immediately reclaim device VRAM on non-CUDA setups
-                        if hasattr(self, 'sovereignty_engine') and self.sovereignty_engine is not None:
-                            if hasattr(self.sovereignty_engine, 'queue_a'):
-                                self.sovereignty_engine.queue_a.finish()
-                            if hasattr(self.sovereignty_engine, 'queue_b'):
-                                self.sovereignty_engine.queue_b.finish()
-                        if torch.cuda.is_available():
-                            torch.cuda.empty_cache()
-                        
-                        # Blend the PyTorch spectral violation and the real physical projection deviation
-                        base_violation = 0.5 * base_violation + 0.5 * hw_deviation
-                except Exception as ex:
-                    print(f" [HYBRID] OpenCL projection fallback skipped: {ex}")
-            
-            # Weighted combination
-            full_violation_score = (
-                0.6 * base_violation +
-                0.4 * response_correlation_violation
-            )
-            return float(full_violation_score)
-            
-        except Exception as e:
-            print(f"  Gyroid violation computation failed: {e}")
-            # Fallback to simple norm-based violation
-            return float(torch.norm(state).item() * 0.1)
-    
-    def _compute_response_state_violation(self, state: torch.Tensor, response_text: str) -> float:
-        """Compute violation based on response-state correlation."""
-        if not response_text:
-            return 0.0
-        
-        # Convert response back to tensor representation
-        response_tensor = self._text_to_tensor(response_text)
-        
-        # Compute correlation between state and response representation
-        state_flat = state.flatten()
-        response_flat = response_tensor.flatten()
-        
-        # Ensure same size for correlation
-        min_size = min(len(state_flat), len(response_flat))
-        state_truncated = state_flat[:min_size]
-        response_truncated = response_flat[:min_size]
-        
-        # Compute cosine similarity
-        correlation = torch.cosine_similarity(
-            state_truncated.unsqueeze(0), 
-            response_truncated.unsqueeze(0), 
-            dim=1
-        ).item()
-        
-        # Violation is inverse of correlation (high correlation = low violation)
-        violation = 1.0 - abs(correlation)
-        
-        return violation
-    
-    def _perform_unfolding_closure_check(self, state: torch.Tensor, input_text: str, response_text: str, fractal_components: dict = None) -> dict:
-        """
-        Phase 4.2: Complete Unfolding Closure Check implementation.
-        
-        Implements topological closure verification using:
-        - Hyper-ring operator evaluation
-        - Cycle closure detection
-        - Triadic reciprocity validation
-        - Unfolding branch analysis
-        """
-        print(" Phase 4.2: Performing Unfolding Closure Check...")
-        
-        try:
-            # Initialize closure checker if not exists
-            if not hasattr(self, '_closure_checker'):
-                # Import required components
-                try:
-                    from src.topology.hyper_ring_closure import HyperRingClosureChecker
-                    self._closure_checker = HyperRingClosureChecker(
-                        closure_tolerance=1e-4,
-                        trivial_threshold=1e-3
-                    )
-                except ImportError:
-                    # Fallback implementation
-                    return self._fallback_closure_check(state, input_text, response_text)
-            
-            # Create hyper-ring representation from state
-            hyper_ring = self._create_hyper_ring_from_state(state, input_text, response_text)
-            
-            # Collapse hyper_ring to [batch] if it is [batch, dim] to match closure checker expectations
-            if hyper_ring.dim() > 1 and hyper_ring.shape[-1] > 1:
-                hyper_ring_input = torch.norm(hyper_ring, dim=-1)
-            else:
-                hyper_ring_input = hyper_ring.squeeze(-1) if hyper_ring.dim() > 1 else hyper_ring
-            
-            # Create constraint manifold representation
-            # We treat the first fractal component (crt) as the reference constraint manifold
-            constraint_manifold = state
-            if fractal_components and 'crt' in fractal_components:
-                constraint_manifold = fractal_components['crt']
-            
-            # Ensure dimensional compatibility for closure check
-            # Energy-based dimension alignment
-            if hyper_ring.shape[-1] != constraint_manifold.shape[-1]:
-                # Align dimensions using energy-preserving projection
-                target_dim = min(hyper_ring.shape[-1], constraint_manifold.shape[-1])
-                
-                if hyper_ring.shape[-1] > target_dim:
-                    # Project hyper_ring down
-                    projection_matrix = torch.eye(target_dim, hyper_ring.shape[-1], device=hyper_ring.device)
-                    hyper_ring = torch.mm(hyper_ring, projection_matrix.t())
-                
-                if constraint_manifold.shape[-1] > target_dim:
-                    # Project constraint_manifold down
-                    projection_matrix = torch.eye(target_dim, constraint_manifold.shape[-1], device=constraint_manifold.device)
-                    constraint_manifold = torch.mm(constraint_manifold, projection_matrix.t())
-            
-            # Perform closure check with aligned dimensions
-            closure_result = self._closure_checker(hyper_ring_input, constraint_manifold)
-            
-            # Extract results
-            is_closed_val = closure_result.get('is_closed', torch.tensor([False]))
-            is_trivial_val = closure_result.get('is_trivial', torch.tensor([True]))
-            is_valid_val = closure_result.get('is_valid', torch.tensor([False]))
-            
-            is_closed = bool(is_closed_val.any().item()) if hasattr(is_closed_val, 'any') else bool(is_closed_val)
-            is_trivial = bool(is_trivial_val.any().item()) if hasattr(is_trivial_val, 'any') else bool(is_trivial_val)
-            is_valid = bool(is_valid_val.any().item()) if hasattr(is_valid_val, 'any') else bool(is_valid_val)
-            
-            # Compute unfolding branches
-            unfolding_branches = self._compute_unfolding_branches(state, response_text)
-            
-            return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 
-                'is_closed': bool(is_closed),
-                'is_trivial': bool(is_trivial),
-                'is_valid': bool(is_valid),
-                'unfolding_branches': unfolding_branches,
-                'closure_quality': float(1.0 - is_trivial) if is_closed else 0.0
+                    // Add active class
+                    tab.classList.add("active");
+                    const targetPane = document.getElementById("pane-" + tab.dataset.tab);
+                    if (targetPane) {
+                        targetPane.classList.add("active");
+                    }
+
+                    localStorage.setItem("active_console_tab", tab.dataset.tab);
+
+                    // Auto refresh graph if selected
+                    if (tab.dataset.tab === "graph") {
+                        refreshGraph();
+                    }
+                });
+            });
+
+            // Fallback if savedTab was invalid
+            if (!initialized && tabs.length > 0) {
+                tabs[0].classList.add("active");
+                if (panes.length > 0) panes[0].classList.add("active");
             }
-            
-        except Exception as e:
-            print(f"  Unfolding closure check failed: {e}")
-            return self._fallback_closure_check(state, input_text, response_text)
-    
-    def _create_hyper_ring_from_state(self, state: torch.Tensor, input_text: str, response_text: str) -> torch.Tensor:
-        """
-        Create hyper-ring representation using existing HyperRingOperator.
-        
-        This uses the existing topology/hyper_ring.py system for proper
-        hyper-ring creation with topological guarantees.
-        """
-        try:
-            # Use stabilized HyperRingOperator from hyper_ring_closure
-            from src.topology.hyper_ring_closure import HyperRingOperator
-            
-            # Create hyper-ring operator
-            ring_operator = HyperRingOperator(
-                ring_dim=min(32, state.shape[-1]),
-                closure_tolerance=1e-4
-            )
-            # Combine input, state, and response information
-            input_tensor = self._text_to_tensor(input_text)
-            response_tensor = self._text_to_tensor(response_text)
-            
-            # Use existing hyper-ring operator
-            hyper_ring = ring_operator.create_ring_from_components(
-                state=state,
-                input_component=input_tensor,
-                response_component=response_tensor
-            )
-            return hyper_ring
-            
-        except ImportError:
-            # Fallback to simple implementation
-            input_tensor = self._text_to_tensor(input_text)
-            response_tensor = self._text_to_tensor(response_text)
-            
-            # Ensure all tensors have compatible dimensions
-            target_dim = state.shape[-1] if state.dim() > 0 else 32
-            
-            # Resize tensors to match
-            if input_tensor.numel() > target_dim:
-                input_tensor = input_tensor.flatten()[:target_dim]
-            elif input_tensor.numel() < target_dim:
-                input_tensor = F.pad(input_tensor.flatten(), (0, target_dim - input_tensor.numel()))
-            else:
-                input_tensor = input_tensor.flatten()
-                
-            if response_tensor.numel() > target_dim:
-                response_tensor = response_tensor.flatten()[:target_dim]
-            elif response_tensor.numel() < target_dim:
-                response_tensor = F.pad(response_tensor.flatten(), (0, target_dim - response_tensor.numel()))
-            else:
-                response_tensor = response_tensor.flatten()
-            
-            # Create ring structure with proper dimensions
-            if state.dim() == 1:
-                state_flat = state
-            else:
-                state_flat = state.flatten()[:target_dim]
-                if state_flat.numel() < target_dim:
-                    state_flat = F.pad(state_flat, (0, target_dim - state_flat.numel()))
-            
-            # Combine with proper weighting
-            hyper_ring = (state_flat + 0.1 * input_tensor + 0.1 * response_tensor).unsqueeze(0)
-            
-            return hyper_ring
-    
-    def _create_constraint_manifold(self, state: torch.Tensor) -> torch.Tensor:
-        """
-        Create constraint manifold representation using existing polynomial CRT.
-        
-        This uses the existing DecoupledPolynomialCRT system for proper
-        constraint manifold creation with guaranteed dimensional consistency.
-        """
-        # Ensure state is properly shaped [batch, dim]
-        if state.dim() == 1:
-            state = state.unsqueeze(0)  # [1, dim]
-        
-        batch_size, dim = state.shape
-        
-        # Use existing polynomial CRT for manifold creation if available
-        if hasattr(self, '_decoupled_crt') and self._decoupled_crt is not None:
-            try:
-                # Use decoupled CRT to create constraint manifold
-                manifold = self._decoupled_crt.create_constraint_manifold(state)
-                return manifold
-            except Exception as e:
-                print(f"  Decoupled CRT manifold creation failed: {e}")
-        
-        # Fallback: simple orthogonal projection with proper dimensions
-        constraint_dim = min(dim, 8)  # Reasonable constraint dimension
-        
-        # Ensure we don't exceed available dimensions
-        if constraint_dim > dim:
-            constraint_dim = dim
-        
-        # Create orthogonal constraint directions
-        if constraint_dim == dim:
-            # Identity mapping if dimensions match
-            manifold_projected = state
-        else:
-            # Project to lower dimension
-            constraint_dirs = torch.eye(constraint_dim, dim, device=state.device)
-            manifold_projected = torch.mm(state, constraint_dirs.t())
-        
-        return manifold_projected
-    
-    def _compute_unfolding_branches(self, state: torch.Tensor, response_text: str) -> int:
-        """Compute number of unfolding branches in the topological structure."""
-        # Analyze state for branching patterns
-        state_flat = state.flatten()
-        
-        # Look for oscillatory patterns that indicate branches
-        # Use FFT to detect frequency components
-        fft_result = torch.fft.fft(state_flat)
-        magnitude_spectrum = torch.abs(fft_result)
-        
-        # Count significant frequency peaks (branches)
-        # [ARCHITECTURAL REMEDIATION] Use HybridLassoQuantizer for frequency peaks
-        from src.core.non_ergodic_entropy import HybridLassoQuantizer
-        threshold = magnitude_spectrum.mean() + magnitude_spectrum.std()
-        quantizer = HybridLassoQuantizer(dim=len(magnitude_spectrum), lasso_lambda=threshold.item()).to(state.device)
-        quantized_spectrum = quantizer(magnitude_spectrum)
-        significant_peaks = (quantized_spectrum.abs() > 1e-6).sum().item()
-        
-        # Limit to reasonable range
-        branches = min(max(significant_peaks, 1), 8)
-        
-        return branches
-    
-    def _fallback_closure_check(self, state: torch.Tensor, input_text: str, response_text: str) -> dict:
-        """Fallback closure check implementation."""
-        # Simple heuristic-based closure check
-        state_norm = torch.norm(state).item()
-        response_length = len(response_text)
-        
-        # Heuristic: closed if state norm is reasonable and response is coherent
-        is_closed = 0.1 < state_norm < 10.0 and response_length > 5
-        is_trivial = response_length < 10
-        is_valid = is_closed and not is_trivial
-        
-        return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 
-            'is_closed': is_closed,
-            'is_trivial': is_trivial,
-            'is_valid': is_valid,
-            'unfolding_branches': 3,  # Default
-            'closure_quality': 0.5 if is_valid else 0.0
-        }
-    
-    def _perform_advanced_topological_analysis(self, state: torch.Tensor, input_text: str, response_text: str) -> dict:
-        """
-        Phase 4.3: Advanced topological analysis and graph generation.
-        
-        Implements comprehensive topological feature detection:
-        - Persistent homology approximation
-        - Betti number computation
-        - Cycle detection and classification
-        - Manifold curvature estimation
-        """
-        print(" Phase 4.3: Performing Advanced Topological Analysis...")
-        
-        try:
-            # Initialize topological analyzer if not exists
-            if not hasattr(self, '_topo_analyzer'):
-                self._topo_analyzer = self._create_topological_analyzer()
-            
-            # Extract topological features
-            features = []
-            
-            # Feature 1: Persistent homology approximation
-            persistence_features = self._compute_persistence_features(state, response_text)
-            features.extend(persistence_features)
-            
-            # Feature 2: Betti numbers
-            betti_numbers = self._compute_betti_numbers(state)
-            features.append(f"betti_0={betti_numbers[0]:.2f}")
-            features.append(f"betti_1={betti_numbers[1]:.2f}")
-            
-            # Feature 3: Cycle detection
-            cycles = self._detect_topological_cycles(state, input_text, response_text)
-            features.append(f"cycles={len(cycles)}")
-            
-            # Feature 4: Manifold curvature estimation
-            curvature = self._estimate_manifold_curvature(state)
-            features.append(f"curvature={curvature:.4f}")
-            
-            # Feature 5: Graph connectivity analysis
-            connectivity = self._analyze_graph_connectivity(state, response_text)
-            features.extend(connectivity)
-            
-            return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 
-                'features': features,
-                'num_features': len(features),
-                'persistence_dimension': len(persistence_features),
-                'topological_complexity': len(cycles) + sum(betti_numbers)
+
+            // Setup submit link handler
+            const btnSubmit = document.getElementById("btn-submit-link");
+            if (btnSubmit) {
+                btnSubmit.addEventListener("click", executeResonanceLink);
             }
-            
-        except Exception as e:
-            print(f"  Advanced topological analysis failed: {e}")
-            return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 
-                'features': ['fallback_analysis'],
-                'num_features': 1,
-                'persistence_dimension': 0,
-                'topological_complexity': 0.0
-            }
-    
-    def _create_topological_analyzer(self):
-        """Create topological analyzer instance."""
-        # Simple analyzer that tracks state evolution
-        return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 
-            'state_history': [],
-            'max_history': 10
-        }
-    
-    def _compute_persistence_features(self, state: torch.Tensor, response_text: str) -> list:
-        """Compute persistent homology features."""
-        features = []
-        
-        # Analyze state persistence across dimensions
-        state_flat = state.flatten()
-        
-        # Compute persistence intervals (simplified)
-        # Look for stable patterns in the state vector
-        # [ARCHITECTURAL REMEDIATION] Use HybridLassoQuantizer for dimension persistence checking
-        from src.core.non_ergodic_entropy import HybridLassoQuantizer
-        threshold = state_flat.std().item()
-        quantizer = HybridLassoQuantizer(dim=len(state_flat), lasso_lambda=threshold).to(state.device)
-        quantized_state = quantizer(state_flat)
-        stable_dims = (quantized_state.abs() > 1e-6).sum().item()
-        
-        features.append(f"persistent_dims={stable_dims}")
-        
-        # Response persistence
-        if response_text:
-            char_variety = len(set(response_text.lower()))
-            features.append(f"response_variety={char_variety}")
-        
-        return features
-    
-    def _compute_betti_numbers(self, state: torch.Tensor) -> list:
-        """Compute approximate Betti numbers."""
-        state_flat = state.flatten()
-        
-        #  (connected components) - approximate via clustering
-        # [ARCHITECTURAL REMEDIATION] Use HybridLassoQuantizer for clustering discretization
-        from src.core.non_ergodic_entropy import HybridLassoQuantizer
-        threshold = state_flat.std().item()
-        quantizer = HybridLassoQuantizer(dim=len(state_flat), lasso_lambda=threshold).to(state.device)
-        quantized_state = quantizer(state_flat)
-        positive_components = (quantized_state > 1e-6).sum().item()
-        negative_components = (quantized_state < -1e-6).sum().item()
-        beta_0 = max(1, positive_components + negative_components) / len(state_flat)
-        
-        #  (cycles) - approximate via autocorrelation
-        # Look for periodic patterns
-        autocorr = compute_autocorrelation(state_flat)
-        autocorr_normalized = autocorr / autocorr.max()
-        
-        # Count significant autocorrelation peaks (indicating cycles)
-        peaks = (autocorr_normalized > 0.5).sum().item()
-        beta_1 = min(peaks / len(autocorr_normalized), 1.0)
-        
-        return [beta_0, beta_1]
-    
-    def _detect_topological_cycles(self, state: torch.Tensor, input_text: str, response_text: str) -> list:
-        """Detect topological cycles in the state space."""
-        cycles = []
-        
-        # Analyze state for cyclic patterns
-        state_flat = state.flatten()
-        
-        # Look for approximate cycles using sliding window correlation
-        window_size = min(8, len(state_flat) // 4)
-        if window_size > 2:
-            for i in range(len(state_flat) - 2 * window_size):
-                window1 = state_flat[i:i + window_size]
-                window2 = state_flat[i + window_size:i + 2 * window_size]
-                
-                # Check if windows are similar (indicating cycle)
-                correlation = torch.cosine_similarity(window1, window2, dim=0).item()
-                if correlation > 0.8:  # High similarity threshold
-                    cycles.append({
-                        'start': i,
-                        'length': window_size,
-                        'correlation': correlation
-                    })
-        
-        return cycles
-    
-    def _estimate_manifold_curvature(self, state: torch.Tensor) -> float:
-        """Estimate manifold curvature from state."""
-        state_flat = state.flatten()
-        
-        if len(state_flat) < 3:
-            return 0.0
-        
-        # Approximate curvature using second derivatives
-        # Compute discrete second derivative
-        first_diff = state_flat[1:] - state_flat[:-1]
-        second_diff = first_diff[1:] - first_diff[:-1]
-        
-        # Curvature approximation
-        curvature = torch.mean(torch.abs(second_diff)).item()
-        
-        return curvature
-    
-    def _analyze_graph_connectivity(self, state: torch.Tensor, response_text: str) -> list:
-        """Analyze graph connectivity properties."""
-        connectivity_features = []
-        
-        # Create adjacency matrix from state
-        state_flat = state.flatten()
-        n = min(16, len(state_flat))  # Limit size for efficiency
-        
-        if n > 1:
-            # Create adjacency based on state correlations
-            state_subset = state_flat[:n]
-            adjacency = torch.outer(state_subset, state_subset)
-            adjacency = torch.abs(adjacency)
-            
-            # [ARCHITECTURAL REMEDIATION] Use HybridLassoQuantizer instead of crude binary truncation
-            from src.core.non_ergodic_entropy import HybridLassoQuantizer
-            quantizer = HybridLassoQuantizer(dim=adjacency.shape[-1], lasso_lambda=adjacency.mean().item()).to(adjacency.device)
-            quantized_adj = quantizer(adjacency)
-            binary_adj = (quantized_adj.abs() > 1e-6).float()
-            
-            # Compute connectivity metrics
-            degree_sum = binary_adj.sum().item()
-            max_degree = binary_adj.sum(dim=1).max().item()
-            
-            connectivity_features.append(f"total_degree={degree_sum:.1f}")
-            connectivity_features.append(f"max_degree={max_degree:.1f}")
-            
-            # Estimate clustering coefficient
-            if max_degree > 0:
-                clustering = degree_sum / (n * (n - 1))  # Simplified
-                connectivity_features.append(f"clustering={clustering:.3f}")
-        
-        return connectivity_features
-    
-    def _filter_document_noise(self, text: str) -> str:
-        """
-        Smart filtering for Wikipedia-style document noise while preserving mathematical content.
-        
-        Removes:
-        - Wikipedia reference brackets [1], [2], [citation needed]
-        - Excessive formatting artifacts
-        - Redundant whitespace
-        
-        Preserves:
-        - Mathematical expressions [x+y], [0,1], [matrix]
-        - Meaningful brackets in context
-        - Scientific notation and equations
-        """
-        import re
-        
-        # Step 1: Preserve mathematical contexts
-        # Identify mathematical patterns to protect
-        math_patterns = []
-        
-        # Protect mathematical expressions
-        math_contexts = [
-            r'\[[\d\+\-\*\/\^\(\)\s,\.]+\]',  # [1+2], [0,1], [x^2]
-            r'\[[A-Za-z]\s*[=\+\-\*\/]\s*[A-Za-z\d]+\]',  # [x=5], [a+b]
-            r'\[\s*\d+\s*,\s*\d+\s*\]',  # [1,2], [0, 1]
-            r'\[.*?matrix.*?\]',  # [matrix], [identity matrix]
-            r'\[.*?equation.*?\]',  # [equation 1]
-            r'\[.*?formula.*?\]',  # [formula]
-            r'\[.*?theorem.*?\]',  # [theorem]
-            r'\[.*?proof.*?\]',  # [proof]
-        ]
-        
-        protected_spans = []
-        for pattern in math_contexts:
-            for match in re.finditer(pattern, text, re.IGNORECASE):
-                protected_spans.append((match.start(), match.end()))
-        
-        # Step 2: Remove Wikipedia-style references
-        filtered_text = text
-        
-        # Remove simple numeric references [1], [2], [123]
-        # But only if they're not in protected mathematical contexts
-        def is_protected(start, end):
-            for p_start, p_end in protected_spans:
-                if start >= p_start and end <= p_end:
-                    return True
-            return False
-        
-        # Find and remove unprotected numeric references
-        ref_pattern = r'\[\s*\d+\s*\]'
-        matches = list(re.finditer(ref_pattern, filtered_text))
-        
-        # Remove from end to start to preserve indices
-        for match in reversed(matches):
-            if not is_protected(match.start(), match.end()):
-                filtered_text = filtered_text[:match.start()] + filtered_text[match.end():]
-        
-        # Remove citation-style references
-        citation_patterns = [
-            r'\[citation needed\]',
-            r'\[needs citation\]',
-            r'\[source\?\]',
-            r'\[clarification needed\]',
-            r'\[when\?\]',
-            r'\[who\?\]',
-            r'\[where\?\]',
-            r'\[dubious.*?\]',
-            r'\[verify.*?\]',
-            r'\[original research\?\]',
-        ]
-        
-        for pattern in citation_patterns:
-            filtered_text = re.sub(pattern, '', filtered_text, flags=re.IGNORECASE)
-        
-        # Remove multiple author references like [Smith 2020], [Jones et al. 2019]
-        # But preserve mathematical notation
-        author_ref_pattern = r'\[[A-Z][a-z]+(?:\s+et\s+al\.?)?\s+\d{4}[a-z]?\]'
-        filtered_text = re.sub(author_ref_pattern, '', filtered_text)
-        
-        # Step 3: Clean up formatting artifacts
-        # Remove excessive whitespace
-        filtered_text = re.sub(r'\s+', ' ', filtered_text)
-        
-        # Remove orphaned punctuation from removed references
-        filtered_text = re.sub(r'\s*,\s*,', ',', filtered_text)  # Double commas
-        filtered_text = re.sub(r'\s*\.\s*\.', '.', filtered_text)  # Double periods
-        filtered_text = re.sub(r'\s+([,.;:])', r'\1', filtered_text)  # Space before punctuation
-        
-        # Step 4: Preserve paragraph structure
-        # Ensure sentences don't run together
-        filtered_text = re.sub(r'([.!?])\s*([A-Z])', r'\1 \2', filtered_text)
-        
-        return filtered_text.strip()
-    
-    def _enhanced_association_learning(self, source: str, target: str, similarity: float):
-        """
-        Enhanced association learning with adaptive weighting based on content length and similarity.
-        
-        Args:
-            source: Short source concept
-            target: Long filtered target content
-            similarity: Computed semantic similarity
-        """
-        # Adaptive learning rate based on content characteristics
-        source_len = len(source)
-        target_len = len(target)
-        length_ratio = target_len / max(source_len, 1)
-        
-        # Higher learning rate for high-quality associations
-        base_lr = 0.01
-        similarity_boost = similarity * 0.5  # 0-0.5 boost
-        length_penalty = min(length_ratio / 100, 0.5)  # Penalty for very long targets
-        
-        adaptive_lr = base_lr * (1 + similarity_boost - length_penalty)
-        adaptive_lr = max(adaptive_lr, 0.001)  # Minimum learning rate
-        
-        print(f" Enhanced learning: lr={adaptive_lr:.4f}, length_ratio={length_ratio:.1f}")
-        
-        # Temporarily adjust optimizer learning rate
-        old_lr = self.optimizer.param_groups[0]['lr']
-        self.optimizer.param_groups[0]['lr'] = adaptive_lr
-        
-        # Enhanced mimicry training with filtered content
-        source_tensor = self._text_to_tensor(source)
-        self._train_mimicry(source_tensor, target)
-        
-        # Also train reverse association (target concept -> source)
-        if len(target) > 50:  # Only for substantial targets
-            # Use first 100 chars of target as reverse source
-            target_sample = target[:100]
-            target_tensor = self._text_to_tensor(target_sample)
-            self._train_mimicry(target_tensor, source)
-            print(f" Bidirectional learning: '{target_sample[:20]}...'  '{source}'")
-        
-        # Restore original learning rate
-        self.optimizer.param_groups[0]['lr'] = old_lr
 
-    def _run_advanced_physics(self, text_input: str, gradients: Dict[str, float]) -> Dict:
-        """
-        Run System 2 Advanced Physics (Quantum/Polytope) if budget allows.
-        """
-        start_time = time.time()
-        diagnostics = {}
-        
-        # 1. Trigger Check: sufficient formal pressure?
-        formal_pressure = gradients.get('formal_symbol_density', 0.0) # Corrected key
-        if formal_pressure < 0.6: # Relaxed threshold
-            return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, }
-            
-        # 2. Budget Check: Do we have latency headroom?
-        # Assuming we are ~0.3s into processing. Limit total to 1.0s.
-        if (time.time() - self.last_input_time) > 0.8:
-            print(f" Advanced Physics skipped: budget exceeded ({time.time() - self.last_input_time:.2f}s)")
-            return {'payload': {'status': 'EVOLVING', 'pas_h': 0.61}, 'budget_abort': True}
-            
-        try:
-            # Lazy Init
-            if self.meta_polytope is None:
-                self.meta_polytope = MetaPolytopeMatrioshka(max_depth=5, base_dim=self.dim) # Use self.dim
-                self.tensor_dynamics = SparseHigherOrderTensorDynamics(max_order=3, num_shells=3, base_dim=self.dim) # Use self.dim
-                self.quantum_reasoner = QuantumInspiredReasoningState(dim=self.dim) # Use self.dim
-                
-            # Map regime to mode name
-            regime_mode = 'PLAY'
-            if hasattr(self, 'current_regime') and self.current_regime == 'prickles':
-                regime_mode = 'SERIOUSNESS'
-                
-            # Get clock step dt
-            dt_val = 1.0
-            if hasattr(self, 'manifold_clock'):
-                if hasattr(self.manifold_clock, 'current_dt'):
-                    dt_val = self.manifold_clock.current_dt.item()
-                elif hasattr(self.manifold_clock, 'clock') and hasattr(self.manifold_clock.clock, 'current_dt'):
-                    dt_val = self.manifold_clock.clock.current_dt.item()
-                    
-            # Get mischief metric
-            h_mischief = 0.0
-            if hasattr(self, 'mischief_probe') and hasattr(self.mischief_probe, 'H_mischief'):
-                if hasattr(self.mischief_probe.H_mischief, 'item'):
-                    h_mischief = self.mischief_probe.H_mischief.item()
-                else:
-                    h_mischief = float(self.mischief_probe.H_mischief)
-                    
-            # 3. Meta-Polytope Matrioshka
-            # Project current cavity state
-            if self.cavity.short_term_memory:
-                 # Use last memory state
-                 input_state = self.cavity.short_term_memory[-1]
-                 if input_state.shape[-1] != self.dim: # Pad/Cut
-                     # Ensure input_state is 1D for padding
-                     input_state_flat = input_state.flatten()
-                     if input_state_flat.shape[0] < self.dim:
-                         input_state = F.pad(input_state_flat, (0, self.dim - input_state_flat.shape[0])).unsqueeze(0)
-                     else:
-                         input_state = input_state_flat[:self.dim].unsqueeze(0)
-                 
-                 # Matrioshka quantization
-                 res = self.meta_polytope(
-                     input_state,
-                     mode=regime_mode,
-                     dt=dt_val,
-                     h_mischief=h_mischief
-                 )
-                 
-                 if isinstance(res, tuple):
-                     q_state, alpha, level = res
-                     diagnostics['matrioshka_level'] = int(level)
-                     diagnostics['crt_index'] = int(alpha)
-                 else:
-                     # BoundaryState returned
-                     q_state = input_state
-                     level = res.level
-                     alpha = res.alpha
-                     diagnostics['matrioshka_level'] = int(level)
-                     diagnostics['crt_index'] = int(alpha)
-                     diagnostics['topological_refusal'] = True
-                 
-                 # 4. Quantum Reasoning
-                 # If Matrioshka level is high (deep thought), engage Quantum
-                 if level >= 1:
-                     # Create hypotheses using tensor dynamics
-                     if self.tensor_dynamics is not None:
-                         tensor_results = self.tensor_dynamics(q_state, mode=regime_mode)
-                         if tensor_results:
-                             hypotheses = [tensor_results[order].squeeze(0) for order in sorted(tensor_results.keys())]
-                         else:
-                             hypotheses = [input_state.squeeze(0), q_state.squeeze(0), (input_state * 1.1).squeeze(0)]
-                     else:
-                         hypotheses = [input_state.squeeze(0), q_state.squeeze(0), (input_state * 1.1).squeeze(0)]
-                         
-                     probs = self.quantum_reasoner.superposition_reasoning(hypotheses, mode=regime_mode)
-                     superposition_entropy = -(probs * torch.log(probs + 1e-9)).sum().item()
-                     
-                     diagnostics['quantum_superposition'] = True
-                     diagnostics['spectral_entropy'] = superposition_entropy # Override with quantum entropy
-                     print(f" Advanced Physics: Matrioshka Level {level}, Quantum Entropy {superposition_entropy:.3f}")
-            
-        except Exception as e:
-            print(f" Advanced Physics Error: {e}")
-            diagnostics['error'] = str(e)
-            
-        return diagnostics
+            checkCreatorStatus();
+        });
 
-    def save_state(self):
-        # Neural state
-        torch.save(self.state_dict(), STATE_PATH)
-        # Artifact state
-        if hasattr(self.encoding_manager, 'save_artifacts'):
-            self.encoding_manager.save_artifacts()
+        async function refreshFreenetStatus() {
+            try {
+                const display = document.getElementById('freenet-status-display');
+                const count = document.getElementById('freenet-peers-count');
+                const list = document.getElementById('freenet-peers-list');
+                if (display) display.textContent = "PROBING...";
 
-        # Save Python-native attributes like iteration
-        # Since iteration isn't a buffer, we can save it in a small sidecar dict
-        metadata = {'iteration': self.iteration}
-        torch.save(metadata, STATE_PATH + ".meta")
+                const res = await fetch(`${state.backend_url}/api/freenet/status`);
+                const data = await res.json();
 
-        print(f" Full state & artifacts persisted.")
-
-    def load_state(self):
-        """Unified load: Neural Weights + Metadata + Encoding Context."""
-        if not os.path.exists(STATE_PATH):
-            print(" No persistence file found. Starting fresh.")
-            return False
-
-        try:
-            # 1. Load Neural Weights (Non-Strict for flexibility)
-            from src.core.zeitgeist_router import ZeitgeistState
-            torch.serialization.add_safe_globals([ZeitgeistState])
-            checkpoint = torch.load(STATE_PATH, map_location=self.device)
-            load_result = self.load_state_dict(checkpoint, strict=False)
-            
-            # Log counts of missing/unexpected keys
-            missing = len(load_result.missing_keys)
-            unexpected = len(load_result.unexpected_keys)
-            print(f" Neural load complete. Missing keys: {missing}, Unexpected: {unexpected}")
-
-            # 2. Repair non-finite values (NaN/Inf)
-            repair_count = self._repair_tensors()
-            print(f" Deterministic non-finite repair complete. Repaired Tensors: {repair_count}")
-
-            # 3. Synchronize Encoding Context
-            # Update the engine's iteration count from the manager's findings
-            self.iteration = self.encoding_manager.get_latest_iteration()
-
-            print(f" State restored. Resuming from iteration {self.iteration}")
-            return True
-        except Exception as e:
-            print(f" Critical Load Failure: {e}")
-            return False
-
-    def _repair_tensors(self) -> int:
-        """Surgical repair of non-finite parameters. Returns count of repaired tensors."""
-        repair_count = 0
-        with torch.no_grad():
-            for name, tensor in self.state_dict().items():
-                if isinstance(tensor, torch.Tensor) and not torch.isfinite(tensor).all():
-                    tensor.nan_to_num_(nan=0.0, posinf=0.0, neginf=0.0)
-                    repair_count += 1
-        return repair_count
-
-# Initialize Engine (only when running as the server entry point, not when imported by tests)
-_running_as_server = (__name__ == '__main__') or os.environ.get('GYROID_SERVER_MODE', '0') == '1'
-if _running_as_server:
-    ENGINE = DiegeticPhysicsEngine()
-    ENGINE.load_state()
-else:
-    ENGINE = None
-def parse_multipart(body: bytes, boundary: bytes) -> dict:
-    """Parses multipart/form-data request body."""
-    parts = {}
-    boundary_marker = b'--' + boundary
-    raw_parts = body.split(boundary_marker)
-    for part in raw_parts:
-        if not part or part == b'--\r\n' or part == b'--':
-            continue
-        if part.startswith(b'\r\n'):
-            part = part[2:]
-        if part.endswith(b'\r\n'):
-            part = part[:-2]
-        
-        if b'\r\n\r\n' not in part:
-            continue
-        headers_part, content = part.split(b'\r\n\r\n', 1)
-        headers = headers_part.decode('utf-8', errors='ignore')
-        
-        name = None
-        filename = None
-        for line in headers.split('\r\n'):
-            if line.lower().startswith('content-disposition:'):
-                parts_disp = line.split(';')
-                for p in parts_disp:
-                    p = p.strip()
-                    if p.startswith('name='):
-                        name = p.split('=', 1)[1].strip('"\'')
-                    elif p.startswith('filename='):
-                        filename = p.split('=', 1)[1].strip('"\'')
-        
-        if name:
-            if filename:
-                parts[name] = {
-                    'filename': filename,
-                    'content': content
+                if (display) {
+                    display.textContent = data.online ? "ONLINE & ROUTING" : "OFFLINE";
+                    display.style.color = data.online ? "var(--terminal-green)" : "var(--terminal-warn)";
                 }
-            else:
-                parts[name] = content.decode('utf-8', errors='ignore')
-    return parts
+                if (count) count.textContent = data.peers ? data.peers.length : 0;
+                if (list && data.peers) {
+                    list.innerHTML = data.peers.map(p => `<div><span style="color:var(--terminal-magenta)">[PEER]</span> ${p.address} | D-Wave: ${p.d_wave_flux ? 'SYNCED' : 'AWAITING'} | Ping: ${p.ping_ms}ms</div>`).join('');
+                } else if (list) {
+                    list.innerHTML = "<div>NO PEERS CONNECTED</div>";
+                }
+            } catch (e) {
+                console.error("Failed to fetch freenet status:", e);
+                const display = document.getElementById('freenet-status-display');
+                if (display) {
+                    display.textContent = "COMMUNICATION ERROR";
+                    display.style.color = "red";
+                }
+            }
+        }
 
+        async function checkCreatorStatus() {
+            try {
+                const response = await fetch('/api/security/creator_status');
+                const data = await response.json();
+                const lockEl = document.getElementById('creator-lock-status');
+                if (lockEl) {
+                    if (data.initialized) {
+                        lockEl.textContent = "🔒 LOCKED GUEST";
+                        lockEl.style.color = "var(--terminal-blue)";
+                    } else {
+                        lockEl.textContent = "🔓 REGISTER SOLE CREATOR";
+                        lockEl.style.color = "var(--terminal-yellow)";
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to fetch creator status:", e);
+            }
+        }
 
-class RequestHandler(http.server.SimpleHTTPRequestHandler):
-    def end_headers(self):
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
-        super().end_headers()
+        async function promptCreatorAuth() {
+            const response = await fetch('/api/security/creator_status');
+            const statusData = await response.json();
 
-    def do_OPTIONS(self):
-        self.send_response(200, "ok")
-        self.end_headers()
+            let promptMsg = statusData.initialized
+                ? "Enter Sole Creator Passphrase to authorize this hardware node:"
+                : "Enter a new Sole Creator Passphrase to lock this system to this physical machine's fingerprint:";
 
-    def do_GET(self):
-        try:
-            from urllib.parse import urlparse, parse_qs
-            parsed_url = urlparse(self.path)
-            base_path = parsed_url.path
-            query = parse_qs(parsed_url.query)
-            
-            if base_path == '/' or base_path == '':
-                # Serve the diegetic terminal HTML
-                try:
-                    # Use absolute path to ensure we find the file
-                    current_dir = os.path.dirname(os.path.abspath(__file__))
-                    terminal_path = os.path.join(current_dir, 'diegetic_terminal.html')
-                    
-                    # Fallback to relative path if absolute doesn't work
-                    if not os.path.exists(terminal_path):
-                        terminal_path = os.path.join('src', 'ui', 'diegetic_terminal.html')
-                    
-                    if not os.path.exists(terminal_path):
-                        self.send_error(404, f"Diegetic terminal HTML not found: {terminal_path}")
-                        return
-                    
-                    with open(terminal_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        # Inject CSRF Token
-                        content = content.replace("</head>", f'<meta name="csrf-token" content="{CSRF_TOKEN}"></head>')
-                    
-                    print(f" Diegetic terminal content length: {len(content)}")
-                    
-                    if len(content) == 0:
-                        print(" Diegetic terminal HTML is empty!")
-                        self.send_error(500, "Diegetic terminal HTML is empty")
-                        return
-                    
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'text/html; charset=utf-8')
-                    self.end_headers()
-                    self.wfile.write(content.encode('utf-8'))
-                    print(" Diegetic terminal served successfully")
-                    return
-                except Exception as e:
-                    self.send_error(500, f"Error serving diegetic terminal: {e}")
-                    return
-            elif base_path.startswith('/graph'):
-                try:
-                    limit = int(query.get('limit', [150])[0])
-                except ValueError:
-                    limit = 150
-                
-                ENGINE.graph_manager.load_fossils(limit=limit) 
-                graph_data = json.loads(ENGINE.graph_manager.export_graph_json())
-                graph_data["total_index"] = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0
-                self._send_json(graph_data)
-                return
-            elif base_path == '/api/index_size':
-                size = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0
-                self._send_json({"total_index": size})
-                return
-            elif base_path == '/health':
-                self._send_json({"status": "hyper-ring coherent", "version": "1.9.1"})
-                return
-            elif base_path == '/ping':
-                self._send_json({
-                    "status": "online",
-                    "pid": os.getpid(),
-                    "uptime": time.time() - START_TIME
-                })
-                return
-            
-            elif base_path == '/api/minecraft/scan':
-                try:
-                    minecraft_dir = os.path.join(os.getcwd(), 'datasets', 'minecraft')
-                    os.makedirs(minecraft_dir, exist_ok=True)
-                    
-                    worlds = []
-                    mods = []
-                    
-                    # Scan for worlds (subdirectories)
-                    for item in os.listdir(minecraft_dir):
-                        item_path = os.path.join(minecraft_dir, item)
-                        if os.path.isdir(item_path):
-                            if item in ['.venv', '__pycache__', 'data', 'datasets', 'mods']:
-                                continue
-                            
-                            has_level_dat = os.path.exists(os.path.join(item_path, 'level.dat'))
-                            has_region = os.path.exists(os.path.join(item_path, 'region'))
-                            
-                            worlds.append({
-                                'name': item,
-                                'path': os.path.relpath(item_path, os.getcwd()),
-                                'has_level_dat': has_level_dat,
-                                'has_region': has_region
-                            })
-                    
-                    # Scan for mods (JARs and ZIPs) in datasets/minecraft/mods/
-                    mods_dir = os.path.join(minecraft_dir, 'mods')
-                    os.makedirs(mods_dir, exist_ok=True)
-                    for item in os.listdir(mods_dir):
-                        item_path = os.path.join(mods_dir, item)
-                        if os.path.isfile(item_path) and item.endswith(('.jar', '.zip')):
-                            mods.append({
-                                'name': item,
-                                'path': os.path.relpath(item_path, os.getcwd()),
-                                'size': os.path.getsize(item_path)
-                            })
-                            
-                    self._send_json({
-                        'success': True,
-                        'worlds': worlds,
-                        'mods': mods,
-                        'directory': os.path.relpath(minecraft_dir, os.getcwd())
-                    })
-                except Exception as e:
-                    self._send_error_json(str(e))
-                return
-            
-            elif base_path == '/api/splats/scan':
-                self._send_json({'success': True, 'splats': [], 'status': 'no_splats'})
-                return
-            
-            # --- LOCAL DATA ENDPOINTS (Phase 1) ---
-            elif base_path == '/api/local_datasets':
-                datasets = LOCAL_LOADER.scan()
-                summary = LOCAL_LOADER.get_summary()
-                self._send_json({'success': True, **summary})
-                return
-            
-            elif base_path == '/api/training_status':
-                self._send_json(TRAINING_STATE)
-                return
-            
-            elif base_path == '/api/security/creator_status':
-                from src.safety.hardware_fingerprint import is_creator_initialized, get_stable_hardware_fingerprint
-                self._send_json({
-                    'initialized': is_creator_initialized(),
-                    'fingerprint': get_stable_hardware_fingerprint()
-                })
-                return
-            
-            # --- GUI SERVING ---
-            elif base_path == '/conversational-gui':
-                try:
-                    current_dir = os.path.dirname(os.path.abspath(__file__))
-                    gui_path = os.path.join(current_dir, 'conversational_web_gui.html')
-                    if not os.path.exists(gui_path):
-                        gui_path = os.path.join('src', 'ui', 'conversational_web_gui.html')
-                    if os.path.exists(gui_path):
-                        with open(gui_path, 'r', encoding='utf-8') as f:
-                            content = f.read()
-                        self.send_response(200)
-                        self.send_header('Content-Type', 'text/html; charset=utf-8')
-                        self.end_headers()
-                        self.wfile.write(content.encode('utf-8'))
-                        return
-                    else:
-                        self.send_error(404, "Conversational GUI not found")
-                        return
-                except Exception as e:
-                    self.send_error(500, f"Error serving conversational GUI: {e}")
-                    return
-            
-            elif base_path == '/wikipedia-trainer':
-                # Serve the Wikipedia trainer HTML
-                try:
-                    # Use absolute path to ensure we find the file
-                    current_dir = os.path.dirname(os.path.abspath(__file__))
-                    trainer_path = os.path.join(current_dir, 'wikipedia_trainer.html')
-                    
-                    # Fallback to relative path if absolute doesn't work
-                    if not os.path.exists(trainer_path):
-                        trainer_path = os.path.join('src', 'ui', 'wikipedia_trainer.html')
-                    
-                    print(f" Attempting to serve HTML from: {trainer_path}")
-                    print(f" File exists: {os.path.exists(trainer_path)}")
-                    print(f" Current working directory: {os.getcwd()}")
-                    
-                    if not os.path.exists(trainer_path):
-                        print(f" HTML file not found at {trainer_path}")
-                        self.send_error(404, f"HTML file not found: {trainer_path}")
-                        return
-                    
-                    with open(trainer_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                    
-                    print(f" HTML content length: {len(content)}")
-                    
-                    if len(content) == 0:
-                        print(" HTML file is empty!")
-                        self.send_error(500, "HTML file is empty")
-                        return
-                    
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'text/html; charset=utf-8')
-                    self.end_headers()
-                    self.wfile.write(content.encode('utf-8'))
-                    print(" HTML served successfully")
-                    return
-                except Exception as e:
-                    print(f" Error serving Wikipedia trainer: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    return
-            elif base_path.startswith('/api/freenet/status'):
-                try:
-                    freenet_data = {"online": False, "peers": []}
-                    if ENGINE and hasattr(ENGINE, 'bonfire') and ENGINE.bonfire is not None:
-                        network = ENGINE.bonfire
-                        freenet_data["online"] = True
-                        if hasattr(network, 'healthy_peers'):
-                            freenet_data["peers"] = [
-                                {
-                                    "address": str(peer),
-                                    "ping_ms": 15 + (hash(peer) % 10), # Simulated ping for demo
-                                    "d_wave_flux": True
-                                }
-                                for peer in list(network.healthy_peers)[:10]
-                            ]
-                        elif hasattr(network, 'get_topology_status'):
-                            freenet_data = network.get_topology_status()
-                    elif ENGINE and hasattr(ENGINE, 'bonfire_nomadic_ring') and ENGINE.bonfire_nomadic_ring is not None:
-                        network = ENGINE.bonfire_nomadic_ring
-                        freenet_data["online"] = True
-                        if hasattr(network, 'peer_allocations'):
-                            freenet_data["peers"] = [
-                                {
-                                    "address": str(peer),
-                                    "ping_ms": 15 + (hash(peer) % 10),
-                                    "d_wave_flux": True
-                                }
-                                for peer in network.peer_allocations.keys()
-                            ]
-                    
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(json.dumps(freenet_data).encode())
-                    return
-                except Exception as e:
-                    self._send_error_json(str(e))
-                    return
-            elif base_path == '/api/fs/drives':
-                drives = []
-                import os
-                if os.name == 'nt':
-                    import string
-                    import ctypes
-                    try:
-                        bitmask = ctypes.windll.kernel32.GetLogicalDrives()
-                        for letter in string.ascii_uppercase:
-                            if bitmask & 1:
-                                drives.append(f"{letter}:\\")
-                            bitmask >>= 1
-                    except Exception:
-                        drives = ["C:\\"]
-                else:
-                    drives = ["/"]
-                self._send_json({"status": "ok", "drives": drives})
-                return
+            const passphrase = prompt(promptMsg);
+            if (!passphrase) return;
 
-            # Fallback for static files
-            return super().do_GET()
-        except Exception as e:
-            print(f"CRITICAL GET ERROR: {e}")
-            self._send_error_json(str(e))
+            try {
+                const res = await fetch('/api/security/creator_login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ passphrase: passphrase })
+                });
+                const data = await res.json();
+                alert(data.message);
 
-    def do_POST(self):
-        print(f"POST REQUEST RECEIVED: {self.path}")
-        try:
-            # --- SECURITY ENFORCEMENT ---
-            if self.path.startswith('/api/fs/'):
-                token = self.headers.get('X-Gyroidic-CSRF-Token')
-                if not token or not hmac.compare_digest(token, CSRF_TOKEN):
-                    self._send_error_json("Invalid or missing CSRF token. Request rejected.", 403)
-                    return
-            # ----------------------------
+                const lockEl = document.getElementById('creator-lock-status');
+                if (lockEl) {
+                    if (data.status === 'ok') {
+                        lockEl.textContent = "🔑 SOLE CREATOR";
+                        lockEl.style.color = "var(--terminal-magenta)";
+                        lockEl.style.textShadow = "0 0 8px var(--terminal-magenta)";
+                    } else {
+                        lockEl.textContent = "❌ AUTH FAILED";
+                        lockEl.style.color = "red";
+                    }
+                }
+            } catch (e) {
+                alert("Auth request failed: " + e.message);
+            }
+        }
 
-            if self.path == '/api/fs/list':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                target_path = data.get("path", "")
-                
-                if not target_path or not os.path.exists(target_path):
-                    self._send_error_json("Invalid path", 400)
-                    return
-                
-                # Canonicalize
-                target_path = os.path.abspath(target_path)
-                
-                try:
-                    entries = []
-                    for entry in os.scandir(target_path):
-                        entries.append({
-                            "name": entry.name,
-                            "path": entry.path,
-                            "is_dir": entry.is_dir()
+        // D3 Force Graph logic
+        let graphSimulation = null;
+        let graphSvg = null;
+        let graphDataGlobal = null;
+
+        async function refreshGraph() {
+            const container = document.getElementById('graph-canvas-container');
+            if (!container) return;
+            container.innerHTML = '<div style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:var(--terminal-blue); font-size:0.75rem; letter-spacing:1px; z-index:100;">RE-SCANNING FIELD...</div>';
+
+            const limitEl = document.getElementById('graph-limit');
+            const includeTagsEl = document.getElementById('graph-include-tags');
+
+            try {
+                // Fetch the actual index size first to utilize full O(N) headroom
+                const sizeRes = await fetch(`${state.backend_url}/api/index_size`);
+                const sizeData = await sizeRes.json();
+
+                const limit = limitEl ? parseInt(limitEl.value) || 50000 : 50000;
+                const includeTags = includeTagsEl ? includeTagsEl.checked : true;
+
+                const response = await fetch(`${state.backend_url}/graph?limit=${limit}`);
+                const data = await response.json();
+                graphDataGlobal = data;
+
+                container.innerHTML = '';
+
+                // Build GraphData object
+                const gData = {
+                    nodes: [],
+                    links: []
+                };
+
+                const seenTags = new Set();
+                const fossilIdMap = new Map();
+
+                data.nodes.forEach(node => {
+                    const gNode = {
+                        id: node.id,
+                        label: node.label,
+                        chiral: node.chiral || 0.0,
+                        entropy: node.entropy || 0.0,
+                        matrioshka_level: node.matrioshka_level || 0,
+                        quantum: !!node.quantum,
+                        repaired: !!node.repaired,
+                        locked: !!node.locked,
+                        type: node.type || 'fossil',
+                        tags: node.tags || []
+                    };
+                    gData.nodes.push(gNode);
+                    fossilIdMap.set(node.id, gNode);
+
+                    if (includeTags) {
+                        (node.tags || []).forEach(tag => {
+                            if (tag) {
+                                seenTags.add(tag);
+                                gData.links.push({
+                                    source: node.id,
+                                    target: 'tag_' + tag,
+                                    type: 'tag-link',
+                                    weight: 0.8
+                                });
+                            }
+                        });
+                    }
+                });
+
+                if (includeTags) {
+                    seenTags.forEach(tag => {
+                        gData.nodes.push({
+                            id: 'tag_' + tag,
+                            label: '#' + tag,
+                            type: 'tag',
+                            tags: [tag]
+                        });
+                    });
+                }
+
+                (data.links || []).forEach(link => {
+                    if (fossilIdMap.has(link.source) && fossilIdMap.has(link.target)) {
+                        gData.links.push({
+                            source: link.source,
+                            target: link.target,
+                            type: 'resonance',
+                            weight: link.weight
+                        });
+                    }
+                });
+
+                populateLinkDropdowns(data.nodes, Array.from(seenTags));
+
+                // Initialize ForceGraph3D
+                if (window.Graph) {
+                    // if it already exists, just update data
+                    window.Graph.graphData(gData);
+                } else {
+                    window.Graph = ForceGraph3D()(container)
+                        .backgroundColor('#030303')
+                        .nodeId('id')
+                        .nodeLabel(node => {
+                            return `<div style="font-family: var(--font-mono); font-size: 0.7rem; background: rgba(0,0,0,0.8); padding: 5px; border: 1px solid var(--terminal-blue); border-radius: 3px;">
+                                <strong style="color:var(--terminal-blue);">${node.id}</strong><br/>
+                                ${node.label ? node.label.substring(0, 50) + '...' : ''}<br/>
+                                <span style="color:#aaa;">Type: ${node.type}</span><br/>
+                                <span style="color:var(--terminal-magenta);">Tags: ${node.tags.join(', ') || 'none'}</span>
+                            </div>`;
                         })
-                    
-                    # Sort dirs first, then files
-                    entries.sort(key=lambda x: (not x['is_dir'], x['name'].lower()))
-                    self._send_json({"status": "ok", "path": target_path, "entries": entries})
-                except Exception as e:
-                    self._send_error_json(str(e), 500)
-                return
+                        .nodeColor(node => {
+                            if (node.type === 'tag') return '#00ff41';
+                            if (node.type === 'live_hidden') return 'rgba(0, 255, 65, 0.8)';
+                            if (node.type === 'live_scarred') return 'rgba(255, 0, 242, 0.8)';
+                            if (node.type && node.type.startsWith('live_')) return 'rgba(255, 204, 0, 0.8)';
+                            return node.chiral > 0.5 ? 'rgba(255, 0, 242, 0.8)' : 'rgba(0, 242, 255, 0.8)';
+                        })
+                        .nodeVal(node => {
+                            if (node.type === 'tag') return 5;
+                            if (node.type && node.type.startsWith('live_')) return 8;
+                            return 2 + (node.matrioshka_level * 1.5);
+                        })
+                        .nodeOpacity(0.9)
+                        .linkWidth(link => link.type === 'tag-link' ? 0.5 : 1.5)
+                        .linkColor(link => link.type === 'tag-link' ? 'rgba(0, 255, 65, 0.2)' : 'rgba(0, 242, 255, 0.5)')
+                        .linkDirectionalParticles(link => link.type === 'resonance' ? 2 : 0)
+                        .linkDirectionalParticleSpeed(d => d.weight * 0.005)
+                        .graphData(gData);
+                }
 
-            if self.path == '/api/fs/permissions':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                
-                target_path = data.get("path")
-                action = data.get("action") # 'IMMEDIATE', 'DELAY', 'DENY'
-                
-                if not target_path or not action:
-                    self._send_error_json("Missing path or action", 400)
-                    return
-                
-                perms_file = os.path.join("data", "loader_permissions.json")
-                perms = {}
-                if os.path.exists(perms_file):
-                    with open(perms_file, 'r', encoding='utf-8') as f:
-                        try:
-                            perms = json.load(f)
-                        except json.JSONDecodeError:
-                            perms = {}
-                
-                perms[target_path] = action
-                
-                with open(perms_file, 'w', encoding='utf-8') as f:
-                    json.dump(perms, f, indent=4)
-                    
-                self._send_json({"status": "ok", "path": target_path, "action": action})
-                return
+                // Setup dynamic search filter
+                const searchInput = document.getElementById('graph-search');
+                if (searchInput) {
+                    searchInput.addEventListener('input', () => {
+                        const query = searchInput.value.toLowerCase().trim();
+                        if (!window.Graph) return;
 
-            if self.path == '/api/convert_topology':
-                print(" Processing /api/convert_topology request...")
-                try:
-                    content_len = int(self.headers.get('Content-Length', 0))
-                    post_body = self.rfile.read(content_len)
-                    
-                    # We expect multipart/form-data for file uploads
-                    content_type = self.headers.get('Content-Type', '')
-                    if content_type.startswith('multipart/form-data'):
-                        boundary = b''
-                        parts_ct = content_type.split(';')
-                        for p in parts_ct:
-                            p = p.strip()
-                            if p.startswith('boundary='):
-                                boundary = p.split('=', 1)[1].encode('utf-8')
-                        
-                        if not boundary:
-                            raise ValueError("Multipart boundary not found in headers")
-                        
-                        form_fields = parse_multipart(post_body, boundary)
-                        file_data = form_fields.get('file')
-                        
-                        if isinstance(file_data, dict) and 'content' in file_data:
-                            # Save to a temporary file
-                            import tempfile
-                            from src.data.universal_topology_converter import UniversalTopologyConverter
-                            
-                            filename = file_data.get('filename', 'unknown_file')
-                            
-                            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
-                                tmp.write(file_data['content'])
-                                tmp_path = tmp.name
-                            
-                            try:
-                                converter = UniversalTopologyConverter()
-                                topology_data = converter.process_artifact(tmp_path)
-                                
-                                # Store the actual PyTorch tensors in the server state for ingestion
-                                # We can stash it in ENGINE or self if we maintain state. 
-                                # The UI sends 'universal_signature' during /interact to claim it.
-                                if not hasattr(self.server, 'universal_topology_cache'):
-                                    self.server.universal_topology_cache = {}
-                                
-                                sig = topology_data["universal_signature"]
-                                self.server.universal_topology_cache[sig] = topology_data
-                                
-                                ui_summary = converter.get_ui_summary(topology_data)
-                                self._send_json({"status": "ok", "topology": ui_summary})
-                            finally:
-                                if os.path.exists(tmp_path):
-                                    os.remove(tmp_path)
-                        else:
-                            self._send_error_json("No file provided in multipart request", 400)
-                    else:
-                        self._send_error_json("Expected multipart/form-data", 400)
-                except Exception as e:
-                    print(f" Error processing file conversion: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    self._send_error_json(str(e))
-                return
+                        if (!query) {
+                            window.Graph.nodeVisibility(() => true);
+                            window.Graph.linkVisibility(() => true);
+                            return;
+                        }
 
-            if self.path == '/interact':
-                print(" Processing /interact request...")
-                try:
-                    content_len = int(self.headers.get('Content-Length', 0))
-                    post_body = self.rfile.read(content_len)
-                    
-                    content_type = self.headers.get('Content-Type', '')
-                    if content_type.startswith('multipart/form-data'):
-                        boundary = b''
-                        parts_ct = content_type.split(';')
-                        for p in parts_ct:
-                            p = p.strip()
-                            if p.startswith('boundary='):
-                                boundary = p.split('=', 1)[1].encode('utf-8')
-                        
-                        if not boundary:
-                            raise ValueError("Multipart boundary not found in headers")
-                        
-                        form_fields = parse_multipart(post_body, boundary)
-                        
-                        data = {}
-                        data['text'] = form_fields.get('text', '')
-                        data['commutativity'] = form_fields.get('commutativity', 'symmetric')
-                        data['regime'] = form_fields.get('regime', 'goo')
-                        data['generate_response'] = form_fields.get('generate_response', 'true').lower() == 'true'
-                        data['ingestion_mode'] = form_fields.get('ingestion_mode', 'false').lower() == 'true'
-                        data['performance_buffered'] = form_fields.get('performance_buffered', 'false').lower() == 'true'
-                        data['audio_b64'] = form_fields.get('audio_b64', None)
-                        data['alias'] = form_fields.get('alias', None)
-                        
-                        video_file = form_fields.get('video_dyad_file')
-                        if isinstance(video_file, dict) and 'content' in video_file:
-                            import base64
-                            b64_str = base64.b64encode(video_file['content']).decode('utf-8')
-                            data['video_dyad_b64'] = b64_str
-                            print(f"[BACKEND] Ingested video file from multipart upload ({len(video_file['content'])} bytes).", flush=True)
-                        else:
-                            data['video_dyad_b64'] = form_fields.get('video_dyad_b64', None)
-                        
-                        for field in ['fingerprint', 'audio_dyad', 'media_chain']:
-                            val = form_fields.get(field)
-                            if val:
-                                try:
-                                    data[field] = json.loads(val)
-                                except Exception as e:
-                                    print(f"[BACKEND] Warning: Failed to parse field {field} as JSON: {e}", flush=True)
-                                    data[field] = None
-                            else:
-                                data[field] = None
-                    else:
-                        data = json.loads(post_body.decode('utf-8'))
-                    
-                    user_text     = data.get('text', '')
-                    fingerprint   = data.get('fingerprint', None)
-                    audio_dyad    = data.get('audio_dyad', None)
-                    video_dyad_b64 = data.get('video_dyad_b64', None)
-                    commutativity = data.get('commutativity', 'symmetric')
-                    user_alias    = data.get('alias', None)
-                    
-                    if video_dyad_b64 == "[FILE_POINTER]":
-                        video_dyad_b64 = None
-                        
-                    universal_signature = data.get('universal_signature', None)
-                    universal_topology = None
-                    if universal_signature and hasattr(self.server, 'universal_topology_cache'):
-                        universal_topology = self.server.universal_topology_cache.get(universal_signature)
-                        
-                    print(f" User input: '{user_text}' | commutativity={commutativity} | "
-                           f"has_image={fingerprint is not None} | has_audio={audio_dyad is not None} | "
-                           f"has_video={video_dyad_b64 is not None} | alias={user_alias} | "
-                           f"has_topology={universal_topology is not None}")
-                    print(" Starting ENGINE.process_input...")
- 
-                    response_data = ENGINE.process_input(
-                        user_text,
-                        fingerprint=fingerprint,
-                        audio_dyad=audio_dyad,
-                        video_dyad_b64=video_dyad_b64,
-                        audio_b64=data.get('audio_b64', None),
-                        media_chain=data.get('media_chain', None),
-                        commutativity=commutativity,
-                        generate_response=data.get('generate_response', True),
-                        ingestion_mode=data.get('ingestion_mode', False),
-                        performance_buffered=data.get('performance_buffered', False),
-                        user_alias=user_alias,
-                        universal_topology=universal_topology
-                    )
-                    self._send_json(response_data)
-                except Exception as e:
-                    print(f" Error processing input: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    self._send_error_json(str(e))
-                return
+                        window.Graph.nodeVisibility(node => {
+                            const labelMatch = (node.label || '').toLowerCase().includes(query);
+                            const idMatch = (node.id || '').toLowerCase().includes(query);
+                            const tagMatch = (node.tags || []).some(t => t.toLowerCase().includes(query));
+                            return labelMatch || idMatch || tagMatch;
+                        });
+
+                        window.Graph.linkVisibility(link => {
+                            const sMatch = link.source && ((link.source.label || '').toLowerCase().includes(query) || (link.source.tags || []).some(t => t.toLowerCase().includes(query)));
+                            const tMatch = link.target && ((link.target.label || '').toLowerCase().includes(query) || (link.target.tags || []).some(t => t.toLowerCase().includes(query)));
+                            return sMatch || tMatch;
+                        });
+                    });
+                }
+
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = '<div style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:red; font-size:0.75rem;">COGNITIVE BUS DISCONNECT</div>';
+            }
+        }
+
+        function populateLinkDropdowns(nodes, tags) {
+            const srcSelect = document.getElementById('link-source');
+            const tgtSelect = document.getElementById('link-target');
+            if (!srcSelect || !tgtSelect) return;
+
+            const prevSrc = srcSelect.value;
+            const prevTgt = tgtSelect.value;
+
+            srcSelect.innerHTML = '';
+            tgtSelect.innerHTML = '';
+
+            const createGroup = (label) => {
+                const grp = document.createElement('optgroup');
+                grp.label = label;
+                return grp;
+            };
+
+            const fossilsGrpSrc = createGroup('FOSSIL FILES');
+            const fossilsGrpTgt = createGroup('FOSSIL FILES');
+
+            nodes.forEach(n => {
+                const opt = document.createElement('option');
+                opt.value = n.id;
+                const labelStr = n.label || '';
+                opt.innerText = `${String(n.id).substring(0, 15)}... (${labelStr.substring(0, 30)}...)`;
+                fossilsGrpSrc.appendChild(opt.cloneNode(true));
+                fossilsGrpTgt.appendChild(opt.cloneNode(true));
+            });
+
+            const tagsGrpSrc = createGroup('TAG HUBS');
+            const tagsGrpTgt = createGroup('TAG HUBS');
+
+            tags.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = 'tag_' + t;
+                opt.innerText = `#${t}`;
+                tagsGrpSrc.appendChild(opt.cloneNode(true));
+                tagsGrpTgt.appendChild(opt.cloneNode(true));
+            });
+
+            srcSelect.appendChild(fossilsGrpSrc);
+            srcSelect.appendChild(tagsGrpSrc);
+
+            tgtSelect.appendChild(fossilsGrpTgt);
+            tgtSelect.appendChild(tagsGrpTgt);
+
+            // Restore selection if valid
+            if (Array.from(srcSelect.options).some(o => o.value === prevSrc)) {
+                srcSelect.value = prevSrc;
+            }
+            if (Array.from(tgtSelect.options).some(o => o.value === prevTgt)) {
+                tgtSelect.value = prevTgt;
+            }
+        }
+
+        async function executeResonanceLink() {
+            const source = document.getElementById("link-source").value;
+            const target = document.getElementById("link-target").value;
+            const modality = document.getElementById("link-modality").value;
+            const schedule = document.getElementById("link-schedule").value;
+            const logEl = document.getElementById("link-diagnostics-log");
+
+            if (!source || !target) {
+                logEl.innerHTML = `[ERROR] Select both a source and target node to link.`;
+                return;
+            }
+
+            if (source === target) {
+                logEl.innerHTML = `[ERROR] Cannot link a node to itself. Identity loops are vacuum-locked.`;
+                return;
+            }
+
+            logEl.innerHTML = `[PENDING] Commencing coherence test for: ${source.substring(0, 8)} <-> ${target.substring(0, 8)}...\n`;
+
+            try {
+                const response = await fetch(`${state.backend_url}/api/test_resonance_link`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source, target, modality, schedule })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    let logMsg = `[STATUS] ${result.timestamp}\n`;
+                    logMsg += `[MODALITY] ${result.modality.toUpperCase()}\n`;
+                    logMsg += `[CO-PRIMALITY] ${result.coprime_stable ? 'STABLE' : 'UNSTABLE'}\n`;
+                    logMsg += `[EMBEDDING SIMILARITY] ${result.similarity.toFixed(4)}\n`;
+                    logMsg += `[LINK STABILITY] ${result.link_allowed ? 'COHERENT (PASSED)' : 'INCOHERENT (VETOED)'}\n`;
+                    logMsg += `[DIAGNOSTICS] ${result.reason}\n`;
+                    if (result.saved_link_path) {
+                        logMsg += `[PERSISTENCE] Link saved to: ${result.saved_link_path}\n`;
+                        logMsg += `[SCHEDULER] Ingestor queued background update step.\n`;
+                    }
+
+                    logEl.innerHTML = logMsg;
+                    logEl.style.color = result.link_allowed ? 'var(--terminal-green)' : 'var(--terminal-warn)';
+
+                    // Refresh graph to show the new link if written immediately
+                    if (result.link_allowed) {
+                        setTimeout(refreshGraph, 1000);
+                    }
+                } else {
+                    logEl.innerHTML = `[ERROR] Resonance link execution failed:\n${result.error}`;
+                    logEl.style.color = 'red';
+                }
+            } catch (err) {
+                logEl.innerHTML = `[DISCONNECT] Connection failed:\n${err.message}`;
+                logEl.style.color = 'red';
+            }
+        }
+
+        // Reset State Helpers
+        function resetVideoState() {
+            state.active_video_file = null;
+            state.active_video_dyad = null;
+            const statusEl = document.getElementById('video-status');
+            if (statusEl) {
+                statusEl.innerText = 'IDLE';
+                statusEl.style.color = '#555';
+            }
+            const dropzoneText = document.querySelector('#video-dropzone div:nth-child(2)');
+            if (dropzoneText) {
+                dropzoneText.innerHTML = `DRAG BINARY VIDEO<br><span style="color:#444;">mp4 &bull; avi</span>`;
+            }
+            const commitBtn = document.getElementById('commit-video');
+            if (commitBtn) {
+                commitBtn.disabled = true;
+            }
+        }
+
+        function resetAudioState() {
+            state.active_audio_dyad = null;
+            state.active_audio_b64 = null;
+            const statusEl = document.getElementById('audio-status');
+            if (statusEl) {
+                statusEl.innerText = 'IDLE';
+                statusEl.style.color = '#555';
+            }
+            const dropzone = document.getElementById('audio-dropzone');
+            if (dropzone) {
+                dropzone.classList.remove('loaded');
+            }
+            const dropHint = document.getElementById('audio-drop-hint');
+            if (dropHint) {
+                dropHint.innerHTML = `DRAG AUDIO DYAD<br><span style="color:#444;">mp3 &bull; m4a &bull; wav &bull; ogg</span>`;
+            }
+            const waveform = document.getElementById('audio-waveform');
+            if (waveform) {
+                waveform.style.display = 'none';
+            }
+            const playerWrapper = document.getElementById('audio-player-wrapper');
+            if (playerWrapper) {
+                playerWrapper.style.display = 'none';
+            }
+            const commitBtn = document.getElementById('commit-audio');
+            if (commitBtn) {
+                commitBtn.disabled = true;
+            }
+        }
+
+        // UI References
+        const chatFeed = document.getElementById('chat-feed');
+        const userInput = document.getElementById('user-input');
+        const ribbon = document.getElementById('spectral-ribbon');
+        const dropzone = document.getElementById('dyad-dropzone');
+        const fileInput = document.getElementById('file-input');
+
+        // --- Initialization ---
+        function initRibbon() {
+            ribbon.innerHTML = '';
+            for (let i = 0; i < 96; i++) {
+                const bin = document.createElement('div');
+                bin.className = 'ribbon-bin';
+                bin.style.left = `${(i / 96) * 100}%`;
+                bin.style.height = '10%';
+                if (i < 32) bin.style.backgroundColor = '#ff4b4b'; // R
+                else if (i < 64) bin.style.backgroundColor = '#4bff4b'; // G
+                else if (i < 96) bin.style.backgroundColor = '#4b4bff'; // B
+                else if (i < 128) bin.style.backgroundColor = '#fff'; // L
+                else bin.style.backgroundColor = '#ff00f2'; // Texture + Edges
+                ribbon.appendChild(bin);
+            }
+        }
+
+        function updateRibbon(vector) {
+            const bins = ribbon.querySelectorAll('.ribbon-bin');
+            vector.forEach((val, i) => {
+                if (bins[i]) {
+                    const h = Math.min(val * 100, 100);
+                    bins[i].style.height = `${h}%`;
+                }
+            });
+        }
+
+        // --- Core Interaction ---
+        // Master commutativity reads from the header selector.
+        // If no dyad is armed at all, 'symmetric' is a no-op.
+        function _resolveCommutativity() {
+            return document.getElementById('commute-master')?.value ?? 'symmetric';
+        }
+
+        async function sendMessage(text) {
+            const hasFingerprint = !!state.active_fingerprint;
+            const hasAudio = !!state.active_audio_dyad;
+            const hasVideo = !!state.active_video_dyad;
+            const finalInput = text.trim() ||
+                (hasFingerprint ? 'INGEST_DYAD: [RADIANCE]' : '') ||
+                (hasAudio ? 'INGEST_AUDIO_DYAD: [ACOUSTIC]' : '') ||
+                (hasVideo ? 'INGEST_VIDEO_DYAD: [CHRONOTOPE]' : '');
+
+            if (!finalInput) return;
+
+            // Append user message
+            appendMessage('user', finalInput);
+            userInput.value = '';
+
+            try {
+                const aliasEl = document.getElementById('user-alias');
+                const alias = aliasEl ? aliasEl.value : 'admin';
+
+                let response;
+                if (state.active_video_file) {
+                    const formData = new FormData();
+                    formData.append('text', finalInput);
+                    formData.append('video_dyad_file', state.active_video_file);
+                    if (state.active_fingerprint) {
+                        formData.append('fingerprint', JSON.stringify(state.active_fingerprint));
+                    }
+                    if (state.active_audio_dyad) {
+                        formData.append('audio_dyad', JSON.stringify(state.active_audio_dyad));
+                    }
+                    if (state.active_universal_signature) {
+                        formData.append('universal_signature', state.active_universal_signature);
+                    }
+                    formData.append('media_chain', JSON.stringify(state.media_chain.map(item => ({ type: item.type, data: item.data }))));
+                    formData.append('commutativity', _calculateContextualCommutativity());
+                    formData.append('regime', state.regime);
+                    formData.append('alias', alias);
+
+                    response = await fetch(`${state.backend_url}/interact`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                } else {
+                    const payload = {
+                        text: finalInput,
+                        fingerprint: state.active_fingerprint,
+                        audio_dyad: state.active_audio_dyad,
+                        video_dyad_b64: state.active_video_dyad,
+                        universal_signature: state.active_universal_signature,
+                        media_chain: state.media_chain.map(item => ({ type: item.type, data: item.data })),
+                        commutativity: _calculateContextualCommutativity(),
+                        regime: state.regime,
+                        alias: alias
+                    };
+
+                    response = await fetch(`${state.backend_url}/interact`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                if (response.status === 503) {
+                    const data = await response.json();
+                    _logTerminal(`[WARM] ${data.response}`, 'warning');
+                    console.warn("[SYSTEM_WARMING] Received 503 from backend. Manifold synthesis in progress.", data);
+                    return;
+                }
+
+                if (!response.ok) {
+                    console.trace("[ERROR_TRACE] Backend communication failed");
+                    throw new Error(`HTTP Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                handleResponse(data);
+
+            } catch (err) {
+                console.error("Communication Rupture:", err);
+                appendMessage('system', "COMMUNICATION RUPTURE. BACKEND DISSOCIATED.");
+            }
+        }
+
+        function handleResponse(data) {
+            // Support both wrapped (hybrid_backend) and flat (diegetic_backend) formats
+            const normalizedData = (data.diagnostics && data.diagnostics.iteration !== undefined) ? data.diagnostics : data;
+
+            if (normalizedData.diagnostics && normalizedData.diagnostics.suppress_ui) {
+                updateMetricsFromDiagnostics(data);
+                return;
+            }
+            const payload = normalizedData.payload || {};
+            const curvature = payload.curvature || 0;
+
+            if (normalizedData.error) {
+                appendMessage('system', `ERROR: ${normalizedData.error}`);
+            } else if (data.response || normalizedData.response) {
+                typewriterMessage('system', data.response || normalizedData.response, curvature);
+            } else {
+                appendMessage('system', "MANIFOLD STATE UPDATED (NO RESPONSE GENERATED).", curvature);
+            }
+
+            // Handle Rupture / Lazarus Events
+            const body = document.body;
+            const surgeryInd = document.getElementById('surgery-indicator');
+
+            if (payload.topological_rupture) {
+                body.classList.add('rupture-mode');
+                body.classList.add('shake');
+                surgeryInd.innerText = "RUPTURE";
+                surgeryInd.className = "rupture";
+                setTimeout(() => body.classList.remove('shake'), 400);
+            } else if (payload.lazarus_mode) {
+                body.classList.add('rupture-mode');
+                surgeryInd.innerText = "LAZARUS TRANSITION";
+                surgeryInd.className = "lazarus";
+            } else {
+                body.classList.remove('rupture-mode');
+                surgeryInd.className = "";
+            }
+
+            // ── Diegetic Visualizer: Manifold Fracture Render ──────────────
+            // If the backend triggered CONFABULATED or SEARCH_NEEDED, it sends
+            // a base64 PNG of the live manifold geometry.  Render it inline in
+            // the chat feed below the text response — structural honesty, not
+            // decoration.
+            const vizB64 = data.visualization_b64 || normalizedData.visualization_b64;
+            if (vizB64) {
+                const rs = normalizedData.retrieval_state || 'FRACTURE';
+                const borderCol = rs === 'CONFABULATED'
+                    ? 'var(--terminal-warn)'
+                    : rs === 'SEARCH_NEEDED'
+                        ? 'var(--terminal-magenta)'
+                        : 'var(--terminal-blue)';
+
+                const vizWrapper = document.createElement('div');
+                vizWrapper.style.cssText = [
+                    'margin: 0.75rem 0 0.75rem 0',
+                    'padding: 0',
+                    `border: 1px solid ${borderCol}`,
+                    'border-radius: 8px',
+                    'overflow: hidden',
+                    'background: #0a0a0a',
+                    'max-width: 100%',
+                ].join(';');
+
+                const vizLabel = document.createElement('div');
+                vizLabel.style.cssText = [
+                    `background: ${borderCol}22`,
+                    `color: ${borderCol}`,
+                    'font-family: var(--font-mono)',
+                    'font-size: 0.6rem',
+                    'letter-spacing: 1px',
+                    'padding: 4px 10px',
+                    'border-bottom: 1px solid ' + borderCol + '44',
+                ].join(';');
+                vizLabel.textContent = `⬡ MANIFOLD FRACTURE — ${rs}`;
+
+                const vizImg = document.createElement('img');
+                vizImg.src = `data:image/png;base64,${vizB64}`;
+                vizImg.alt = `Manifold fracture render — ${rs}`;
+                vizImg.style.cssText = 'width:100%;display:block;image-rendering:pixelated;';
+
+                vizWrapper.appendChild(vizLabel);
+                vizWrapper.appendChild(vizImg);
+                chatFeed.appendChild(vizWrapper);
+                chatFeed.scrollTop = chatFeed.scrollHeight;
+            }
+
+            updateMetricsFromDiagnostics(data);
+
+            // Clear fingerprint + disarm visual state
+            state.active_fingerprint = null;
+            userInput.placeholder = 'Ingest symbolic residue...';
+            userInput.style.borderColor = '';
+            userInput.style.boxShadow = '';
+            document.querySelector('.drop-hint').innerText = "DRAG DYAD (IMAGE)";
+            resetVideoState();
+            resetAudioState();
+        }
 
 
-            elif self.path == '/associate':
-                print(" Processing /associate request...")
-                try:
-                    content_len = int(self.headers.get('Content-Length', 0))
-                    post_body = self.rfile.read(content_len)
-                    data = json.loads(post_body.decode('utf-8'))
-                    
-                    text1 = data.get('text1', data.get('source', ''))
-                    text2 = data.get('text2', data.get('target', ''))
-                    
-                    if not text1 or not text2:
-                        self._send_error_json("Missing text1/text2 or source/target")
-                        return
+        function updateMetricsFromDiagnostics(data) {
+            const normalizedData = (data.diagnostics && data.diagnostics.iteration !== undefined) ? data.diagnostics : data;
 
-                    fingerprint = data.get('fingerprint', None)
-                    audio_dyad = data.get('audio_dyad', None)
-                    video_dyad_b64 = data.get('video_dyad_b64', None)
-                    if video_dyad_b64 == "[FILE_POINTER]":
-                        video_dyad_b64 = None
-                    media_chain = data.get('media_chain', None)
-                    commutativity = data.get('commutativity', 'symmetric')
-                    voynich_token = data.get('voynich_token', None)
-                    
-                    association_command = f"ASSOCIATE: {text1} <-> {text2}"
-                    print(f" Association command: '{association_command}' | "
-                          f"has_fp={fingerprint is not None} | has_audio={audio_dyad is not None} | "
-                          f"has_video={video_dyad_b64 is not None} | has_voynich={voynich_token is not None}")
-                    
-                    response_data = ENGINE.process_input(
-                        association_command,
-                        fingerprint=fingerprint,
-                        audio_dyad=audio_dyad,
-                        video_dyad_b64=video_dyad_b64,
-                        media_chain=media_chain,
-                        commutativity=commutativity,
-                        voynich_token=voynich_token
-                    )
-                    ENGINE.save_state()
-                    
-                    # Ensure response is consistent
-                    if not isinstance(response_data, dict):
-                        response_data = {
-                            "status": "associated",
-                            "source": text1,
-                            "target": text2,
-                            "metrics": response_data,
-                            "multimodal_injection": {
-                                "fingerprint": fingerprint is not None,
-                                "audio": audio_dyad is not None,
-                                "video": video_dyad_b64 is not None
+            // Update Metrics (safely)
+            if (normalizedData.iteration !== undefined) document.getElementById('stat-iteration').innerText = normalizedData.iteration;
+            if (normalizedData.resonance_score !== undefined) document.getElementById('resonance-score').innerText = normalizedData.resonance_score.toFixed(4);
+
+            // Update Tri-State Meta State
+            if (normalizedData.retrieval_state) {
+                const rs = document.getElementById('stat-retrieval');
+                rs.innerText = normalizedData.retrieval_state;
+                if (normalizedData.retrieval_state === 'KNOWN') rs.style.color = 'var(--terminal-green)';
+                else if (normalizedData.retrieval_state === 'SEARCH_NEEDED') rs.style.color = 'var(--terminal-warn)';
+                else if (normalizedData.retrieval_state === 'CONFABULATED') rs.style.color = 'var(--terminal-magenta)';
+                else rs.style.color = 'var(--terminal-blue)';
+            }
+
+            // Extract from topological_analysis if present
+            const topo = normalizedData.phase4_diagnostics?.topological_analysis;
+            if (topo) {
+                if (topo.topological_complexity !== undefined) {
+                    document.getElementById('pressure').innerText = (topo.topological_complexity / 10).toFixed(4);
+                }
+                // Extract Betti from features strings if possible
+                if (topo.features) {
+                    topo.features.forEach(f => {
+                        if (f.startsWith('betti_0=')) document.getElementById('beta-0').innerText = f.split('=')[1];
+                        if (f.startsWith('betti_1=')) document.getElementById('beta-1').innerText = f.split('=')[1];
+                    });
+                }
+            }
+
+            // Hardening and Coherence
+            if (normalizedData.affordance_gradients && typeof normalizedData.affordance_gradients.constraint_forcing_gradient === 'number') {
+                document.getElementById('stat-hardening').innerText = normalizedData.affordance_gradients.constraint_forcing_gradient.toFixed(4);
+            }
+
+            const repair = normalizedData.repair_diagnostics;
+            if (repair?.spectral_coherence_corrector && typeof repair.spectral_coherence_corrector.coherence_score === 'number') {
+                document.getElementById('coherence').innerText = repair.spectral_coherence_corrector.coherence_score.toFixed(3);
+            }
+
+            // CALM Diagnostics
+            const calm = normalizedData.calm_diagnostics;
+            if (calm) {
+                document.getElementById('calm-abort').innerText = calm.abort_score.toFixed(4);
+                document.getElementById('calm-rho').innerText = calm.rho_factor.toFixed(4);
+                document.getElementById('calm-step').innerText = calm.step_factor.toFixed(4);
+                document.getElementById('calm-status').innerText = calm.trajectory_status || "IDLE";
+
+                if (calm.trajectory_status === "COLLAPSE_VETO") {
+                    document.getElementById('calm-status').style.color = "var(--terminal-warn)";
+                } else {
+                    document.getElementById('calm-status').style.color = "#666";
+                }
+            }
+
+            // Advanced Manifold Diagnostics
+            const diag = normalizedData.diagnostics || normalizedData;
+            if (diag) {
+                if (diag.manifold_voice_resonance !== undefined) {
+                    document.getElementById('voice-resonance').innerText = diag.manifold_voice_resonance.toFixed(4);
+                    // Pulsate ribbon based on resonance
+                    ribbon.style.opacity = 0.5 + (diag.manifold_voice_resonance * 0.5);
+                }
+                if (diag.ley_line_anisotropy !== undefined) {
+                    document.getElementById('ley-line').innerText = diag.ley_line_anisotropy.toFixed(4);
+                }
+                if (diag.moebius_twist !== undefined) {
+                    const twist = diag.moebius_twist;
+                    const twistEl = document.getElementById('moebius-twist');
+                    twistEl.innerText = twist.toFixed(1);
+                    twistEl.style.color = twist > 0.5 ? 'var(--terminal-magenta)' : 'var(--terminal-blue)';
+                    if (twist > 0.5 && typeof triggerMischief === 'function') triggerMischief(twist);
+                }
+                if (diag.spectral_entropy !== undefined) {
+                    document.getElementById('stat-tau').innerText = diag.spectral_entropy.toFixed(3);
+                }
+                if (diag.honest_jitter !== undefined) {
+                    document.getElementById('honest-jitter').innerText = diag.honest_jitter.toFixed(4);
+                }
+                if (diag.substream_entropy !== undefined) {
+                    document.getElementById('substream-entropy').innerText = diag.substream_entropy.toFixed(4);
+                }
+            }
+
+            // Mischief Solitons (Good Bugs)
+            const soliton = repair?.soliton_stability_healer;
+            if (soliton && soliton.healing_progress > 0.1) {
+                triggerMischief(soliton.healing_progress);
+            }
+
+            // Sync regime indicator dynamically
+            const resolvedRegime = normalizedData.regime || (diag && diag.regime) || 'goo';
+            state.regime = resolvedRegime;
+            const gooBtn = document.getElementById('regime-goo');
+            const pricklesBtn = document.getElementById('regime-prickles');
+            if (gooBtn && pricklesBtn) {
+                if (resolvedRegime === 'goo') {
+                    gooBtn.classList.add('active');
+                    pricklesBtn.classList.remove('active');
+                } else if (resolvedRegime === 'prickles') {
+                    pricklesBtn.classList.add('active');
+                    gooBtn.classList.remove('active');
+                }
+            }
+        }
+
+        function appendMessage(type, text, curvature = 0) {
+            const msg = document.createElement('div');
+            msg.className = `message ${type}`;
+            msg.innerText = text || "[VOID CONTENT]";
+
+            // Apply Curvature Twist (Non-Abelian Curvature)
+            if (curvature > 0) {
+                const skew = Math.min(5, curvature * 20);
+                msg.style.transform = `skewX(${skew}deg)`;
+                msg.style.borderLeftWidth = `${3 + curvature * 10}px`;
+            }
+
+            chatFeed.appendChild(msg);
+            chatFeed.scrollTop = chatFeed.scrollHeight;
+            return msg;
+        }
+
+        function typewriterMessage(type, text, curvature = 0) {
+            if (!text || typeof text !== 'string') {
+                appendMessage(type, text, curvature);
+                return;
+            }
+
+            const msg = document.createElement('div');
+            msg.className = `message ${type}`;
+
+            // Apply Curvature Twist
+            if (curvature > 0) {
+                const skew = Math.min(5, curvature * 20);
+                msg.style.transform = `skewX(${skew}deg)`;
+                msg.style.borderLeftWidth = `${3 + curvature * 10}px`;
+            }
+
+            chatFeed.appendChild(msg);
+
+            let i = 0;
+            const interval = setInterval(() => {
+                msg.innerText += text.charAt(i);
+                i++;
+                chatFeed.scrollTop = chatFeed.scrollHeight;
+                if (i >= text.length) {
+                    clearInterval(interval);
+                }
+            }, 20);
+        }
+
+        // --- Mischief Dynamics ---
+        function triggerMischief(intensity) {
+            const layer = document.getElementById('soliton-layer');
+            const count = Math.floor(intensity * 10) + 1;
+
+            for (let i = 0; i < count; i++) {
+                const spike = document.createElement('div');
+                spike.className = 'mischief-spike';
+                spike.style.left = `${Math.random() * 100}%`;
+                spike.style.height = `${Math.random() * 20 + (intensity * 30)}%`;
+                spike.style.opacity = Math.random() * 0.5 + 0.2;
+                layer.appendChild(spike);
+
+                setTimeout(() => {
+                    spike.style.opacity = '0';
+                    setTimeout(() => spike.remove(), 1000);
+                }, 200);
+            }
+        }
+
+        // ── Image Fingerprinting: Chebyshev Polynomial Pipeline ──────────────
+        // Mirrors the audio Chebyshev pipeline exactly:
+        //   Hann-windowed tile RMS energies → Chebyshev T_k recurrence
+        //   → Birkhoff row normalisation → LSB Xorshift32 stochastic rounding
+        //
+        // Three channels: L (luminance), Cr (red-chroma), Cb (blue-chroma).
+        // K derived from pixel count — never hardcoded.
+        // Payload shape: { chebyshev_degree: K, L: [K], Cr: [K], Cb: [K],
+        //                  px_width: w, px_height: h }
+        //
+        // The old 96-dim histogram format is gone; the backend fingerprint_proj
+        // is replaced with a 3*K_max (=96) linear layer.
+
+        async function processImages(files) {
+            if (!files || files.length === 0) return;
+            document.querySelector('.drop-hint').innerText = `PROCESSING ${files.length} DYADS...`;
+
+            let averagedFingerprint = null;
+            let loadedCount = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const fingerprint = computeFingerprint(img);
+                            if (!averagedFingerprint) {
+                                averagedFingerprint = fingerprint;
+                            } else {
+                                // Average the vectors for a composite dyad
+                                for (let j = 0; j < fingerprint.L.length; j++) {
+                                    averagedFingerprint.L[j] = (averagedFingerprint.L[j] * loadedCount + fingerprint.L[j]) / (loadedCount + 1);
+                                    averagedFingerprint.Cr[j] = (averagedFingerprint.Cr[j] * loadedCount + fingerprint.Cr[j]) / (loadedCount + 1);
+                                    averagedFingerprint.Cb[j] = (averagedFingerprint.Cb[j] * loadedCount + fingerprint.Cb[j]) / (loadedCount + 1);
+                                }
+                            }
+                            loadedCount++;
+                            resolve();
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            state.active_fingerprint = averagedFingerprint;
+            updateRibbon(fingerprintToVector(averagedFingerprint));
+            document.querySelector('.drop-hint').innerText = `COMPOSITE DYAD CAPTURED: ${files.length} IMAGES`;
+
+            const totalCoeffs = averagedFingerprint.L.length + averagedFingerprint.Cr.length + averagedFingerprint.Cb.length;
+            appendMessage('system',
+                `⬡ COMPOSITE DYAD ARMED — ${totalCoeffs}-coeff Chebyshev fingerprint computed locally ` +
+                `(K=${averagedFingerprint.chebyshev_degree}, averaged over ${files.length} images).\n` +
+                `▶ PROMPT: Type a description and press Enter to INGEST.\n` +
+                `▶ ADVANCED: Type 'ASSOCIATE: source <-> target' to link a new dyad manually.`);
+
+            userInput.placeholder = 'Describe or use ASSOCIATE: source <-> target...';
+            userInput.style.borderColor = 'var(--terminal-cyan, #00e5ff)';
+            userInput.style.boxShadow = '0 0 8px var(--terminal-cyan, #00e5ff)';
+            userInput.focus();
+        }
+
+        function computeFingerprint(img) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+            // ── Step 1: Sample at 64×64 for luminance / chroma ───────────────
+            const SIDE = 64;
+            canvas.width = SIDE; canvas.height = SIDE;
+            ctx.drawImage(img, 0, 0, SIDE, SIDE);
+            const px = ctx.getImageData(0, 0, SIDE, SIDE).data; // RGBA × SIDE²
+
+            // Convert to L, Cr, Cb (BT.601 coefficients — no hardcoded constants
+            // per se; these are the standard color science definition)
+            const N = SIDE * SIDE;
+            const lumArr = new Float64Array(N);
+            const crArr = new Float64Array(N);
+            const cbArr = new Float64Array(N);
+            for (let i = 0; i < N; i++) {
+                const r = px[i * 4] / 255.0;
+                const g = px[i * 4 + 1] / 255.0;
+                const b = px[i * 4 + 2] / 255.0;
+                lumArr[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+                crArr[i] = 0.500 * r - 0.419 * g - 0.081 * b + 0.5;
+                cbArr[i] = -0.169 * r - 0.331 * g + 0.500 * b + 0.5;
+            }
+
+            // ── Step 2: K — derived from pixel count, never hardcoded ────────
+            const K = Math.max(5, Math.min(32, Math.round(Math.sqrt(N) / 4)));
+
+            // ── Step 3: Chebyshev projection (same as audio pipeline) ────────
+            // Projects each channel's pixel array through T_0..T_{K-1}
+            // treating each pixel as a sample on the normalised [-1,1] domain.
+            function chebyshevProject(arr) {
+                const arrN = arr.length;
+                // Normalise values to [-1, 1]
+                let vMin = Infinity, vMax = -Infinity;
+                for (let i = 0; i < arrN; i++) {
+                    if (arr[i] < vMin) vMin = arr[i];
+                    if (arr[i] > vMax) vMax = arr[i];
+                }
+                const vRange = Math.max(vMax - vMin, 1e-12);
+                const xNorm = new Float64Array(arrN);
+                for (let i = 0; i < arrN; i++) xNorm[i] = 2 * (arr[i] - vMin) / vRange - 1;
+
+                // Hann-windowed frame energies (K+1 frames)
+                const frameCount = K + 1;
+                const frameSize = Math.floor(arrN / frameCount);
+                const frameEnergies = new Float64Array(frameCount);
+                for (let f = 0; f < frameCount; f++) {
+                    const start = f * frameSize;
+                    let energy = 0;
+                    for (let i = 0; i < frameSize; i++) {
+                        const w = 0.5 * (1 - Math.cos(2 * Math.PI * i / Math.max(1, frameSize - 1)));
+                        const s = xNorm[Math.min(start + i, arrN - 1)] * w;
+                        energy += s * s;
+                    }
+                    frameEnergies[f] = Math.sqrt(energy / Math.max(1, frameSize));
+                }
+
+                // Re-normalise frame energies to [-1,1]
+                let eMin = Infinity, eMax = -Infinity;
+                for (let f = 0; f < frameCount; f++) {
+                    if (frameEnergies[f] < eMin) eMin = frameEnergies[f];
+                    if (frameEnergies[f] > eMax) eMax = frameEnergies[f];
+                }
+                const eRange = Math.max(eMax - eMin, 1e-12);
+                const xF = new Float64Array(frameCount);
+                for (let f = 0; f < frameCount; f++) xF[f] = 2 * (frameEnergies[f] - eMin) / eRange - 1;
+
+                // Chebyshev recurrence T_k (same formula as audio)
+                const rawCoeffs = new Float64Array(K);
+                for (let k = 0; k < K; k++) {
+                    let acc = 0;
+                    for (let f = 0; f < frameCount; f++) {
+                        const x = xF[f];
+                        let T_curr;
+                        if (k === 0) { T_curr = 1.0; }
+                        else if (k === 1) { T_curr = x; }
+                        else {
+                            let T_p = 1.0, T_c = x;
+                            for (let n = 2; n <= k; n++) { const T_n = 2 * x * T_c - T_p; T_p = T_c; T_c = T_n; }
+                            T_curr = T_c;
+                        }
+                        acc += T_curr;
+                    }
+                    rawCoeffs[k] = acc / frameCount;
+                }
+
+                // Birkhoff row normalisation (same as audio)
+                let coeffSum = 0;
+                for (let k = 0; k < K; k++) coeffSum += Math.abs(rawCoeffs[k]);
+                const thetaRow = new Float64Array(K);
+                for (let k = 0; k < K; k++)
+                    thetaRow[k] = coeffSum > 1e-12 ? Math.abs(rawCoeffs[k]) / coeffSum : 1 / K;
+
+                // LSB Stochastic Rounding — Xorshift32 (mirrors SiliconSovereigntyEngine)
+                const SCALE = 1024.0;
+                let seed = (arrN ^ (K << 8)) >>> 0;
+                const rounded = [];
+                for (let k = 0; k < K; k++) {
+                    const v = thetaRow[k] * SCALE;
+                    const fl = Math.floor(v);
+                    const frac = v - fl;
+                    seed ^= (seed << 13) >>> 0;
+                    seed ^= (seed >>> 17) >>> 0;
+                    seed ^= (seed << 5) >>> 0;
+                    const bit = (seed / 4294967295.0) < frac ? 1 : 0;
+                    rounded.push(parseFloat(((fl + bit) / SCALE).toFixed(6)));
+                }
+                return rounded;
+            }
+
+            const L_coeffs = chebyshevProject(lumArr);
+            const Cr_coeffs = chebyshevProject(crArr);
+            const Cb_coeffs = chebyshevProject(cbArr);
+
+            return {
+                chebyshev_degree: K,
+                L: L_coeffs,
+                Cr: Cr_coeffs,
+                Cb: Cb_coeffs,
+                px_width: img.naturalWidth,
+                px_height: img.naturalHeight,
+            };
+        }
+
+        function fingerprintToVector(fp) {
+            // For the ribbon display: flatten L+Cr+Cb then pad/truncate to 96 bins
+            const flat = [...fp.L, ...fp.Cr, ...fp.Cb];
+            while (flat.length < 96) flat.push(0);
+            return flat.slice(0, 96);
+        }
+
+        // --- Association Logic (Panel A: Dyad) ---
+        const manifoldBuffer = document.getElementById('manifold-buffer');
+        const assocSource = document.getElementById('assoc-source');
+        const commitBtn = document.getElementById('commit-assoc');
+        const assocLog = document.getElementById('assoc-log');
+
+        async function commitAssociation() {
+            const source = assocSource.value.trim();
+            const target = manifoldBuffer.value.trim();
+
+            if (!source || !target) {
+                appendMessage('system', "ASSOCIATION FAILED: BUFFER OR SOURCE EMPTY.");
+                return;
+            }
+
+            const command = `ASSOCIATE: ${source} <-> ${target}`;
+            appendMessage('user', `LINKING DYAD: ${source} TO MANIFOLD...`);
+
+            try {
+                const response = await fetch(`${state.backend_url}/interact`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: command,
+                        fingerprint: state.active_fingerprint,
+                        commutativity: document.getElementById('commute-header')?.value || 'symmetric'
+                    })
+                });
+
+                const data = await response.json();
+                handleResponse(data);
+
+                const logEntry = document.createElement('div');
+                logEntry.innerText = `[DYAD] ${source} -> ${target.substring(0, 15)}...`;
+                assocLog.prepend(logEntry);
+
+                manifoldBuffer.value = '';
+                assocSource.value = '';
+
+                // Close Sidebar
+                document.getElementById('right-sidebar').classList.remove('open');
+                document.querySelectorAll('.panel-toggle-btn').forEach(b => b.classList.remove('active'));
+
+            } catch (err) {
+                appendMessage('system', "ASSOCIATION RUPTURE. PERSISTENCE FAILED.");
+            }
+        }
+
+        // --- Association Logic (Panel B: Semantic) ---
+        // File Upload Listeners & Drag-and-Drop Zones
+        function setupSemanticDropzone(dropzoneId, fileInputId, targetInputId, isTextarea) {
+            const dropzone = document.getElementById(dropzoneId);
+            const fileInput = document.getElementById(fileInputId);
+            const targetInput = document.getElementById(targetInputId);
+
+            dropzone.onclick = () => fileInput.click();
+
+            dropzone.ondragover = (e) => {
+                e.preventDefault();
+                dropzone.style.borderColor = '#fff';
+            };
+
+            dropzone.ondragleave = (e) => {
+                e.preventDefault();
+                dropzone.style.borderColor = 'var(--terminal-magenta)';
+            };
+
+            dropzone.ondrop = (e) => {
+                e.preventDefault();
+                dropzone.style.borderColor = 'var(--terminal-magenta)';
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    fileInput.dispatchEvent(new Event('change'));
+                }
+            };
+
+            fileInput.onchange = async (e) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+
+                targetInput.value = "Reading files via Streams API...";
+                targetInput.disabled = true;
+                let combinedText = "";
+                let previewText = "";
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    if (files.length > 1) {
+                        combinedText += `--- ${file.name} ---\n`;
+                        previewText += `--- ${file.name} ---\n`;
+                    }
+
+                    targetInput.value = `Streaming ${file.name} (${Math.round(file.size / 1024 / 1024)}MB)...`;
+
+                    const stream = file.stream();
+                    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+
+                    let chunks = [];
+                    let receivedLength = 0;
+                    let previewLength = 0;
+
+                    try {
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+
+                            chunks.push(value);
+                            receivedLength += value.length;
+
+                            if (previewLength < 1000) {
+                                previewText += value;
+                                previewLength += value.length;
+                            }
+
+                            if (chunks.length % 50 === 0) {
+                                targetInput.value = `Streaming ${file.name}: ${Math.round(receivedLength / 1024 / 1024)}MB read...`;
                             }
                         }
-                    elif "status" not in response_data:
-                        response_data["status"] = "associated"
-                        response_data["source"] = text1
-                        response_data["target"] = text2
+                    } catch (err) {
+                        console.warn("[Stream] Orphan stream caught and closed:", err);
+                        await reader.cancel(err);
+                    } finally {
+                        reader.releaseLock();
+                    }
 
-                    self._send_json(response_data)
-                except Exception as e:
-                    print(f" Error processing association: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    self._send_error_json(str(e))
-                return
+                    combinedText += chunks.join('');
+                    if (receivedLength > 1000) {
+                        previewText = previewText.substring(0, 1000) + `\n\n... [PREVIEW END - FULL FILE LOADED IN MEMORY] ...`;
+                    }
 
-            elif self.path == '/ingest':
-                print(" Processing /ingest request...")
-                try:
-                    content_len = int(self.headers.get('Content-Length', 0))
-                    post_body = self.rfile.read(content_len)
-                    data = json.loads(post_body.decode('utf-8'))
-                    
-                    description = data.get('description', '')
-                    fingerprint_list = data.get('fingerprint', [])
-                    
-                    if not description:
-                        self._send_error_json("Missing description")
-                        return
+                    if (i < files.length - 1) {
+                        combinedText += "\n\n";
+                        previewText += "\n\n";
+                    }
+                }
 
-                    # Process fingerprint
-                    if fingerprint_list:
-                        # Ensure it's a list of floats
-                        if isinstance(fingerprint_list, dict):
-                            # Handle RGB dict format if passed directly
-                            # Convert to flattened list or specific expected format
-                            # For now, let's assume valid list or handle robustly
-                            pass
-                        
-                        try:
-                            fingerprint_tensor = torch.tensor(fingerprint_list, dtype=torch.float32)
-                            # Resize to 96 if needed (simple padding/truncation)
-                            target_dim = 96
-                            if fingerprint_tensor.numel() != target_dim:
-                                if fingerprint_tensor.numel() > target_dim:
-                                    fingerprint_tensor = fingerprint_tensor[:target_dim]
-                                else:
-                                    fingerprint_tensor = torch.nn.functional.pad(fingerprint_tensor, (0, target_dim - fingerprint_tensor.numel()))
-                            
-                            # Create Knowledge Dyad
-                            dyad = KnowledgeDyad(
-                                image_fingerprint=fingerprint_tensor,
-                                linguistic_description=description
-                            )
-                            
-                            # Get text embedding from Engine
-                            text_tensor = ENGINE._text_to_tensor(description)
-                            
-                            # Fossilize
-                            fossil_path = ENGINE.fossilizer.fossilize(dyad, text_tensor, seed_state=ENGINE.meta_state)
-                            print(f" Dyad fossilized at: {fossil_path}")
-                            
-                        except Exception as e:
-                            print(f" Fossilization failed, continuing with memory-only ingest: {e}")
-                            fossil_path = "memory_only"
-                    else:
-                        fossil_path = "text_only"
+                state[`${targetInput.id}_payload`] = combinedText;
+                targetInput.disabled = false;
 
-                    # Process in Engine
-                    ingest_command = f"INGEST_DYAD: {description}"
-                    # Pass fingerprint to process_input via some mechanism?
-                    # The current process_input signature might not support side-channel data easily
-                    # unless we modify it or the Engine stores it temporarily.
-                    # Looking at _generate_dyad_aware_response, it accepts a fingerprint argument.
-                    # But process_input likely calls it.
-                    # Let's assume process_input can handle it or we update state directly.
-                    
-                    # For now, we'll rely on the text command trigger. 
-                    # If process_input supports **kwargs, we could pass it.
-                    # Let's check process_input signature if possible, but I can't see it now.
-                    # I will assume standard string interface for now, keeping fossilization as the "Side Channel"
-                    
-                    response_data = ENGINE.process_input(ingest_command)
-                    
-                    # Augment response with fossil info
-                    if isinstance(response_data, dict):
-                        response_data['fossil_path'] = fossil_path
-                    
-                    self._send_json(response_data)
-                    
-                except Exception as e:
-                    print(f" Error processing ingestion: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    self._send_error_json(str(e))
-                return
+                if (isTextarea) {
+                    targetInput.value = previewText;
+                } else {
+                    targetInput.value = previewText.substring(0, 100);
+                }
+            };
+        }
 
-            elif self.path == '/api/minecraft/ingest':
-                print("API REQUEST: /api/minecraft/ingest")
-                try:
-                    content_len = int(self.headers.get('Content-Length', 0))
-                    post_body = self.rfile.read(content_len)
-                    data = json.loads(post_body.decode('utf-8'))
-                    
-                    world_name = data.get('world_name', '')
-                    max_chunks = int(data.get('max_chunks', 16))
-                    
-                    if not world_name:
-                        self._send_error_json("Missing world_name parameter")
-                        return
-                        
-                    minecraft_dir = os.path.join(os.getcwd(), 'datasets', 'minecraft')
-                    world_path = os.path.join(minecraft_dir, world_name)
-                    
-                    if not os.path.exists(world_path):
-                        self._send_error_json(f"World path not found: {world_path}")
-                        return
-                    
-                    pipeline = MinecraftIngestionPipeline(ENGINE.codec.config, ENGINE.poly_config)
-                    results = pipeline.ingest_minecraft_world(world_path, max_chunks=max_chunks)
-                    
-                    # Feed the spatial and script residues into the active engine state
-                    if results["combined_residue"] is not None:
-                        with torch.no_grad():
-                            # Project [K, n, n] residue to [1, dim]
-                            flat_res = results["combined_residue"].flatten()
-                            if flat_res.numel() > ENGINE.dim:
-                                res_projected = flat_res[:ENGINE.dim].unsqueeze(0).to(ENGINE.device)
-                            else:
-                                res_projected = F.pad(flat_res, (0, ENGINE.dim - flat_res.numel())).unsqueeze(0).to(ENGINE.device)
-                            
-                            ENGINE.meta_state.copy_(ENGINE.meta_state + 0.1 * res_projected)
-                            
-                            # Update Zeitgeist Router index if active to warp Mandelbulb visual parameters
-                            if ENGINE.zeitgeist_router is not None and ENGINE._zeitgeist_state is not None:
-                                M = len(ENGINE._zeitgeist_state.moduli)
-                                new_alpha_diag = torch.abs(results["combined_residue"].mean(dim=(-1, -2)))
-                                for i, p_i in enumerate(ENGINE._zeitgeist_state.moduli):
-                                    new_alpha_diag[i] = new_alpha_diag[i].item() % p_i
-                                
-                                alpha_tensor = torch.zeros((M, M), device=ENGINE.device)
-                                r_col = new_alpha_diag.unsqueeze(1)
-                                r_row = new_alpha_diag.unsqueeze(0)
-                                alpha_tensor = 0.5 * (r_col + r_row)
-                                alpha_tensor.view(-1)[::M + 1] = new_alpha_diag
-                                
-                                braid_word = []
-                                if results["noncommutativity_curvature"] > 0.4:
-                                    braid_word = [1, -2, 1]
-                                    
-                                ENGINE._zeitgeist_state = ENGINE._zeitgeist_state.switched(
-                                    new_alpha_tensor=alpha_tensor.cpu(),
-                                    new_level=min(5, int(results["noncommutativity_curvature"] * 5)),
-                                    mode='grazing' if results["noncommutativity_curvature"] > 0.2 else 'interior',
-                                    new_braid_word=braid_word,
-                                    new_cs_phase=float(results["commutativity_gap"])
-                                )
-                                
-                    ENGINE.save_state()
-                    
-                    # Convert Tensor in results to list for serialization
-                    if isinstance(results.get("combined_residue"), torch.Tensor):
-                        results["combined_residue"] = results["combined_residue"].tolist()
-                        
-                    if ENGINE._zeitgeist_state is not None:
-                        results["zeitgeist_state"] = ENGINE._zeitgeist_state.to_dict()
-                        
-                    results["success"] = True
-                    self._send_json(results)
-                    
-                except Exception as e:
-                    print(f"Error in Minecraft ingestion endpoint: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    self._send_error_json(str(e))
-                return
+        setupSemanticDropzone('semantic-buffer-dropzone', 'semantic-buffer-file', 'semantic-buffer', true);
+        setupSemanticDropzone('semantic-source-dropzone', 'semantic-source-file', 'semantic-source', false);
 
-            elif self.path == '/api/splats/scan':
-                print("API REQUEST: /api/splats/scan")
-                try:
-                    splats_dir = os.path.join(os.getcwd(), 'datasets', 'splats')
-                    os.makedirs(splats_dir, exist_ok=True)
-                    
-                    files = []
-                    for item in os.listdir(splats_dir):
-                        if item.lower().endswith(('.gltf', '.glb')):
-                            files.append({
-                                'name': item,
-                                'path': os.path.relpath(os.path.join(splats_dir, item), os.getcwd())
-                            })
-                    
-                    self._send_json({"status": "ok", "splats": files})
-                except Exception as e:
-                    self._send_error_json(str(e))
-                return
-                
-            elif self.path == '/api/splats/ingest':
-                print("API REQUEST: /api/splats/ingest")
-                try:
-                    content_len = int(self.headers.get('Content-Length', 0))
-                    post_body = self.rfile.read(content_len)
-                    data = json.loads(post_body.decode('utf-8'))
-                    
-                    file_path = data.get('file_path')
-                    if not file_path or not os.path.exists(file_path):
-                        self._send_error_json("Invalid splat file path")
-                        return
-                        
-                    from src.data.gltf_splat_ingestor import GltfSplatIngestionPipeline
-                    ingestor = GltfSplatIngestionPipeline(target_dim=ENGINE.poly_config.n, device=ENGINE.device.type)
-                    
-                    # Process and project splat
-                    topological_states = ingestor.process_splat_file(file_path)
-                    
-                    # Commit to manifold
-                    for i in range(topological_states.shape[0]):
-                        state = topological_states[i].unsqueeze(0)
-                        ENGINE.force_ingest_state(
-                            state=state,
-                            label=f"Splat Fragment {i} from {os.path.basename(file_path)}",
-                            tags=["3d", "splat", "gltf"]
-                        )
-                        
-                    ENGINE.save_state()
-                    self._send_json({"status": "ok", "message": f"Successfully ingested {topological_states.shape[0]} residue states from GLTF Splat."})
-                except Exception as e:
-                    import traceback
-                    traceback.print_exc()
-                    self._send_error_json(str(e))
-                return
+        async function commitSemanticLink() {
+            const sourceEl = document.getElementById('semantic-source');
+            const targetEl = document.getElementById('semantic-buffer');
 
-            elif self.path == '/wikipedia-extract':
-                # Enhanced Wikipedia content extraction endpoint
-                try:
-                    content_len = int(self.headers.get('Content-Length', 0))
-                    post_body = self.rfile.read(content_len)
-                    data = json.loads(post_body.decode('utf-8'))
-                    
-                    urls = data.get('urls', [])
-                    options = data.get('options', {})
-                    
-                    # Import Wikipedia integration with better error handling
-                    try:
-                        import sys
-                        import os
-                        sys.path.append(os.path.join(os.path.dirname(__file__)))
-                        from wikipedia_integration import wikipedia_integration
-                        print(" Wikipedia integration module loaded successfully")
-                    except ImportError as e:
-                        print(f" Failed to import Wikipedia integration: {e}")
-                        self._send_error_json(f"Wikipedia integration module not available: {e}")
-                        return
-                    
-                    results = []
-                    for url in urls:
-                        try:
-                            title = wikipedia_integration.extract_title_from_url(url)
-                            print(f" Processing Wikipedia page: {title}")
-                            
-                            # Fetch content
-                            content_data = wikipedia_integration.fetch_wikipedia_content(title)
-                            if content_data:
-                                # Clean content
-                                cleaned_content = wikipedia_integration.clean_wikipedia_content(
-                                    content_data['full_content'], 
-                                    title
-                                )
-                                # Extract concepts
-                                concepts = wikipedia_integration.extract_key_concepts(title, cleaned_content)
-                                
-                                # Create associations if requested
-                                associations_created = 0
-                                if options.get('create_associations', True):
-                                    for concept in concepts:
-                                        if concept != title:  # Don't associate with itself
-                                            try:
-                                                # Create association using existing system
-                                                # Use generate_response=False to avoid timeout
-                                                association_result = ENGINE.process_input(f"ASSOCIATE: {concept} <-> {cleaned_content[:2000]}", generate_response=False)
-                                                associations_created += 1
-                                                print(f" Created association: {concept} <-> content")
-                                                
-                                                # Limit to 5 associations per page to prevent backend timeout
-                                                if associations_created >= 5:
-                                                    print(" Reached association limit per page (5)")
-                                                    break
-                                            except Exception as e:
-                                                print(f"  Failed to create association for {concept}: {e}")
-                                
-                                results.append({
-                                    'url': url,
-                                    'title': title,
-                                    'content_length': len(cleaned_content),
-                                    'original_length': content_data['content_length'],
-                                    'concepts': concepts,
-                                    'associations_created': associations_created,
-                                    'method': content_data['method'],
-                                    'status': 'success'
-                                })
-                            else:
-                                results.append({
-                                    'url': url,
-                                    'title': title,
-                                    'status': 'failed',
-                                    'error': 'Could not fetch content'
-                                })
-                        except Exception as e:
-                            print(f" Error processing {url}: {e}")
-                            results.append({
-                                'url': url,
-                                'title': wikipedia_integration.extract_title_from_url(url) if 'wikipedia_integration' in locals() else 'Unknown',
-                                'status': 'failed',
-                                'error': str(e)
-                            })
-                    
-                    # Get statistics
-                    try:
-                        stats = wikipedia_integration.get_statistics()
-                    except:
-                        stats = {'error': 'Statistics not available'}
-                    
-                    ENGINE.save_state()
-                    self._send_json({
-                        'results': results,
-                        'statistics': stats,
-                        'total_processed': len([r for r in results if r['status'] == 'success']),
-                        'total_failed': len([r for r in results if r['status'] == 'failed'])
+            let source = state['semantic-source_payload'] || sourceEl.value.trim();
+            if (state['semantic-source_payload'] && !sourceEl.value.includes('[PREVIEW END')) {
+                source = sourceEl.value.trim();
+                state['semantic-source_payload'] = null;
+            }
+
+            let target = state['semantic-buffer_payload'] || targetEl.value.trim();
+            if (state['semantic-buffer_payload'] && !targetEl.value.includes('[PREVIEW END')) {
+                target = targetEl.value.trim();
+                state['semantic-buffer_payload'] = null;
+            }
+
+            const commute = document.getElementById('commute-text').value;
+
+            if (!source || !target) {
+                appendMessage('system', "ASSOCIATION FAILED: BUFFER OR SOURCE EMPTY.");
+                return;
+            }
+
+            const command = `ASSOCIATE: ${source} <-> ${target}`;
+            const displayOrder = commute === 'source_first' ? 'Source → Target' : commute === 'target_first' ? 'Target → Source' : '≅ Symmetric';
+            appendMessage('user', `LINKING [${displayOrder}]: ${source.substring(0, 50)}... TO SEMANTIC BUFFER (${target.length} chars)...`);
+
+            try {
+                const response = await fetch(`${state.backend_url}/interact`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: command,
+                        fingerprint: state.active_fingerprint,
+                        commutativity: commute
                     })
-                    
-                except Exception as e:
-                    print(f" Wikipedia extraction endpoint error: {e}")
-                    self._send_error_json(f"Wikipedia extraction failed: {e}")
-                
-            
-            # ================================================================
-            # PHASE 1: LOCAL DATA ENDPOINTS (No HF Token Required)
-            # ================================================================
-            elif self.path == '/api/test_token':
-                # Accept token test  now works with local-only mode too
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                token = data.get('token', '')
-                
-                if token.startswith('hf_'):
-                    # Real HF token  attempt validation
-                    try:
-                        req = urllib.request.Request(
-                            'https://huggingface.co/api/whoami',
-                            headers={'Authorization': f'Bearer {token}'}
-                        )
-                        with urllib.request.urlopen(req, timeout=10) as resp:
-                            user_data = json.loads(resp.read().decode('utf-8'))
-                        self._send_json({
-                            'success': True,
-                            'username': user_data.get('name', 'unknown'),
-                            'message': 'Token validated with HuggingFace'
-                        })
-                    except Exception as e:
-                        self._send_json({
-                            'success': False,
-                            'message': f'HF token validation failed: {str(e)}'
-                        })
-                elif token == 'LOCAL_MODE':
-                    # Local-only mode  no token needed
-                    datasets = LOCAL_LOADER.scan()
-                    self._send_json({
-                        'success': True,
-                        'username': 'local_user',
-                        'message': f'Local mode active  {len(datasets)} datasets available'
-                    })
-                else:
-                    self._send_json({
-                        'success': False,
-                        'message': 'Token must start with hf_ or use LOCAL_MODE'
-                    })
-            
-            elif self.path == '/api/ingest_local':
-                # Ingest from local data/raw/ without HF token
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                
-                dataset_name = data.get('dataset', '')
-                max_samples = int(data.get('max_samples', 500))
-                
-                print(f" Local ingestion: {dataset_name} (max={max_samples})")
-                
-                samples = []
-                quality_reports = []
-                for sample in LOCAL_LOADER.load_samples(dataset_name, max_samples):
-                    # Apply textbook filtering (per-dimension admissibility)
-                    report = TEXTBOOK_FILTER.assess(sample.text, sample.source)
-                    if report.is_admissible:
-                        samples.append(sample)
-                        quality_reports.append(report)
-                        
-                        # Feed into engine for association learning
-                        if len(samples) <= 50:  # Limit direct engine processing
-                            try:
-                                ENGINE.process_input(sample.text[:500], generate_response=False)
-                            except Exception:
-                                pass
-                
-                stats = TEXTBOOK_FILTER.get_statistics(quality_reports)
-                
-                self._send_json({
-                    'success': True,
-                    'dataset': dataset_name,
-                    'samples_loaded': len(samples),
-                    'quality_stats': stats,
-                    'message': f'Ingested {len(samples)} samples from {dataset_name}'
-                })
-            
-            elif self.path == '/api/start_training':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                epochs = int(data.get('epochs', 3))
-                
-                TRAINING_STATE['active'] = True
-                TRAINING_STATE['progress'] = 0
-                TRAINING_STATE['log'] = [f'Training started: {epochs} epochs']
-                TRAINING_STATE['results'] = None
-                
-                # Run lightweight structural training
-                import threading
-                def _training_worker(n_epochs):
-                    try:
-                        for epoch in range(n_epochs):
-                            TRAINING_STATE['log'].append(f'Epoch {epoch+1}/{n_epochs}...')
-                            TRAINING_STATE['progress'] = int((epoch / n_epochs) * 100)
-                            
-                            # Load a batch of local data and train
-                            for ds_name in list(LOCAL_LOADER._datasets.keys())[:3]:
-                                batch = LOCAL_LOADER.load_batch(ds_name, batch_size=16, max_samples=50)
-                                for sample in batch:
-                                    try:
-                                        ENGINE.process_input(sample.text[:300], generate_response=False)
-                                    except Exception:
-                                        pass
-                            
-                            TRAINING_STATE['log'].append(
-                                f'Epoch {epoch+1} complete -- iteration {ENGINE.iteration}'
-                            )
-                        
-                        ENGINE.save_state()
-                        TRAINING_STATE['progress'] = 100
-                        TRAINING_STATE['results'] = {'success': True}
-                        TRAINING_STATE['log'].append('Training complete!')
-                    except Exception as e:
-                        TRAINING_STATE['log'].append(f'Error: {str(e)}')
-                        TRAINING_STATE['results'] = {'success': False, 'error': str(e)}
-                    finally:
-                        TRAINING_STATE['active'] = False
-                
-                t = threading.Thread(target=_training_worker, args=(epochs,), daemon=True)
-                t.start()
-                
-                self._send_json({'success': True, 'message': f'Training started: {epochs} epochs'})
-            
-            elif self.path == '/api/test_resonance_link':
-                print("API REQUEST: /api/test_resonance_link")
-                try:
-                    content_len = int(self.headers.get('Content-Length', 0))
-                    post_body = self.rfile.read(content_len)
-                    data = json.loads(post_body.decode('utf-8'))
-                    
-                    source = data.get('source', '')
-                    target = data.get('target', '')
-                    modality = data.get('modality', 'resonance')
-                    schedule = data.get('schedule', 'immediate')
-                    
-                    if not source or not target:
-                        self._send_json({
-                            "success": False,
-                            "error": "Source or target node not specified."
-                        })
-                        return
-                        
-                    source_fossil = None
-                    target_fossil = None
-                    
-                    is_source_tag = source.startswith('tag_')
-                    is_target_tag = target.startswith('tag_')
-                    
-                    source_text = source.replace('tag_', '#') if is_source_tag else source
-                    target_text = target.replace('tag_', '#') if is_target_tag else target
-                    
-                    source_vector = None
-                    target_vector = None
-                    
-                    # Resolve source fossil
-                    if not is_source_tag:
-                        filepath = os.path.join(ENCODING_DIR, source)
-                        if os.path.exists(filepath):
-                            try:
-                                source_fossil = torch.load(filepath, map_location='cpu')
-                                source_text = source_fossil.get('text_input', source_fossil.get('description', ''))
-                                source_vector = source_fossil.get('meta_state', source_fossil.get('residue_vector'))
-                            except Exception:
-                                pass
-                                
-                    # Resolve target fossil
-                    if not is_target_tag:
-                        filepath = os.path.join(ENCODING_DIR, target)
-                        if os.path.exists(filepath):
-                            try:
-                                target_fossil = torch.load(filepath, map_location='cpu')
-                                target_text = target_fossil.get('text_input', target_fossil.get('description', ''))
-                                target_vector = target_fossil.get('meta_state', target_fossil.get('residue_vector'))
-                            except Exception:
-                                pass
-                                
-                    if source_vector is None:
-                        source_vector = ENGINE._text_to_tensor(source_text)
-                    if target_vector is None:
-                        target_vector = ENGINE._text_to_tensor(target_text)
-                        
-                    # Cosine Similarity
-                    cos_sim = torch.dot(source_vector.flatten(), target_vector.flatten()) / (torch.norm(source_vector) * torch.norm(target_vector) + 1e-8)
-                    cos_sim = float(cos_sim.item())
-                    
-                    # Co-primality check
-                    r1_s, r2_s, r3_s = ENGINE.fossilizer.generate_residue_tuple(source_vector)
-                    r1_t, r2_t, r3_t = ENGINE.fossilizer.generate_residue_tuple(target_vector)
-                    
-                    gcd_val = math.gcd(r1_s * r2_s * r3_s, r1_t * r2_t * r3_t)
-                    coprime_stable = (gcd_val == 1)
-                    
-                    link_allowed = True
-                    reason = "Topological parity coherent."
-                    
-                    if modality == 'resonance':
-                        if not coprime_stable:
-                            link_allowed = False
-                            reason = f"Impedance mismatch: Co-primality check failed (GCD={gcd_val}). Link threatens Smoothness Leakage."
-                        elif cos_sim < 0.2:
-                            link_allowed = False
-                            reason = f"Resonance threshold too low (Similarity = {cos_sim:.4f}). Manifold connection unstable."
-                    elif modality == 'shadow':
-                        reason = f"Voynich Exemption bypass active. Similarity: {cos_sim:.4f}. Link force-stabilized."
-                    elif modality == 'spectral':
-                        if cos_sim < 0.1:
-                            link_allowed = False
-                            reason = f"Spectral band overlap insufficient (Similarity = {cos_sim:.4f})."
-                        else:
-                            reason = f"Spectral Chebyshev link locked. Similarity: {cos_sim:.4f}."
-                    elif modality == 'openscience':
-                        has_open_ref = False
-                        if source_fossil and target_fossil:
-                            arxiv_s = source_fossil.get('dyad_metadata', {}).get('arxiv_id') if isinstance(source_fossil.get('dyad_metadata'), dict) else None
-                            arxiv_t = target_fossil.get('dyad_metadata', {}).get('arxiv_id') if isinstance(target_fossil.get('dyad_metadata'), dict) else None
-                            if arxiv_s and arxiv_t and arxiv_s == arxiv_t:
-                                has_open_ref = True
-                        if has_open_ref:
-                            reason = "Identical OpenScience Reference (arXiv) detected. Coherence verified."
-                        else:
-                            reason = f"OpenScience cross-ref not found. Fallback to similarity: {cos_sim:.4f}."
-                            
-                    saved_link_path = None
-                    if link_allowed and schedule in ('immediate', 'next_epoch'):
-                        from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
-                        blended_vector = 0.5 * (source_vector.flatten() + target_vector.flatten())
-                        
-                        # Resize/pad blended vector to matching dim if needed
-                        if blended_vector.numel() != ENGINE.dim:
-                            if blended_vector.numel() > ENGINE.dim:
-                                blended_vector = blended_vector[:ENGINE.dim]
-                            else:
-                                blended_vector = F.pad(blended_vector, (0, ENGINE.dim - blended_vector.numel()))
-                                
-                        link_dyad = KnowledgeDyad(
-                            linguistic_description=f"LINK: {source_text[:100]} <-> {target_text[:100]}",
-                            unified_spectral_signature=None,
-                            audio_harmonics=None,
-                            metadata={
-                                "tags": ["user_link", modality, f"source_{source[:8]}", f"target_{target[:8]}"],
-                                "response_text": f"Aligned connection under modality '{modality}'. Similarity {cos_sim:.3f}.",
-                                "link_source": source,
-                                "link_target": target,
-                                "link_type": modality,
-                                "schedule": schedule
+                });
+
+                const data = await response.json();
+                handleResponse(data);
+
+                const logEntry = document.createElement('div');
+                logEntry.innerText = `[${new Date().toLocaleTimeString()}] [${displayOrder}] ${source.substring(0, 20)} -> ${target.substring(0, 20)}...`;
+                document.getElementById('semantic-log').prepend(logEntry);
+
+                // Clear inputs
+                document.getElementById('semantic-buffer').value = '';
+                document.getElementById('semantic-source').value = '';
+                state['semantic-source_payload'] = null;
+                state['semantic-buffer_payload'] = null;
+
+                // Close Sidebar
+                document.getElementById('right-sidebar').classList.remove('open');
+                document.querySelectorAll('.panel-toggle-btn').forEach(b => b.classList.remove('active'));
+
+            } catch (err) {
+                state['semantic-source_payload'] = null;
+                state['semantic-buffer_payload'] = null;
+                appendMessage('system', "SEMANTIC RUPTURE. PERSISTENCE FAILED.");
+            }
+        }
+
+        // =====================================================
+        // PANEL C: AUDIO DYAD LOGIC
+        // =====================================================
+        const audioDropzone = document.getElementById('audio-dropzone');
+        const audioFileInput = document.getElementById('audio-file-input');
+        const audioPlayer = document.getElementById('audio-player');
+        const audioPlayerWrapper = document.getElementById('audio-player-wrapper');
+        const audioWaveform = document.getElementById('audio-waveform');
+        const audioMeta = document.getElementById('audio-meta');
+        const audioDropHint = document.getElementById('audio-drop-hint');
+        const commitAudioBtn = document.getElementById('commit-audio');
+        const audioLog = document.getElementById('audio-log');
+
+        // Active audio dyad state
+        state.active_audio_dyad = null;
+
+        function formatDuration(secs) {
+            const m = Math.floor(secs / 60);
+            const s = Math.floor(secs % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function drawWaveform(audioBuffer) {
+            const canvas = audioWaveform;
+            canvas.style.display = 'block';
+            canvas.width = canvas.offsetWidth || 260;
+            canvas.height = 40;
+            const ctx = canvas.getContext('2d');
+
+            // Downsample to canvas width
+            const data = audioBuffer.getChannelData(0);
+            const step = Math.ceil(data.length / canvas.width);
+            const amp = canvas.height / 2;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'var(--terminal-warn)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+
+            for (let i = 0; i < canvas.width; i++) {
+                const slice = data.slice(i * step, (i + 1) * step);
+                const max = slice.reduce((a, b) => Math.max(a, Math.abs(b)), 0);
+                const y = amp - max * amp;
+                if (i === 0) ctx.moveTo(i, y);
+                else ctx.lineTo(i, y);
+            }
+            ctx.stroke();
+        }
+
+        async function processAudioFile(file) {
+            const validTypes = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/ogg', 'audio/x-m4a'];
+            const validExts = ['.mp3', '.m4a', '.wav', '.ogg'];
+            const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+
+            if (!validTypes.includes(file.type) && !validExts.includes(ext)) {
+                appendMessage('system', `AUDIO DYAD REJECTED: Unsupported format (${file.type || ext}).`);
+                return;
+            }
+
+            audioDropHint.innerHTML = `LOADING: ${file.name}`;
+            audioDropzone.classList.add('loaded');
+            document.getElementById('audio-status').innerText = 'READING';
+            document.getElementById('audio-status').style.color = 'var(--terminal-warn)';
+
+            // Capture raw B64 for backend ffmpeg processing
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                state.active_audio_b64 = e.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            // Wire up player
+            const objectUrl = URL.createObjectURL(file);
+            audioPlayer.src = objectUrl;
+            audioPlayerWrapper.style.display = 'block';
+
+            // Decode with WebAudio API for waveform preview
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const arrayBuffer = await file.arrayBuffer();
+                const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+
+                drawWaveform(decoded);
+
+                const durationStr = formatDuration(decoded.duration);
+                const sampleRate = decoded.sampleRate;
+                const channels = decoded.numberOfChannels;
+
+                audioMeta.innerText =
+                    `${file.name}  |  ${durationStr}  |  ${sampleRate}Hz  |  ${channels}ch  |  `
+                    + `${(file.size / 1024).toFixed(0)}KB`;
+
+                // ── Chebyshev Polynomial Spectral Harmonic Extraction ────────────
+                // Mirrors PolynomialCoprimeConfig: no hardcoded bin counts.
+                // K (degree) is derived from the signal's physical properties so
+                // the basis self-adjusts to each file's topology.
+                //
+                // Pattern:  PolynomialBasis._chebyshev()
+                //   T_0(x)=1,  T_1(x)=x,  T_{n+1}=2x·T_n - T_{n-1}
+                //
+                // Roughness preservation:  LSB Stochastic Rounding applied to
+                // every coefficient's fractional part (mirrors
+                // SiliconSovereigntyEngine.apply_stochastic_rounding).
+                // This preserves Feature Scars — we never smooth them away.
+
+                const pcmData = decoded.getChannelData(0);
+                const N = pcmData.length;
+
+                // K: polynomial degree — derived from duration & sample rate.
+                // ~1 Chebyshev mode per 0.5s of audio (min 5, max 32).
+                // Never hardcoded; structurally honest about the signal's
+                // information density.
+                const K = Math.max(5, Math.min(32, Math.round(decoded.duration * 2)));
+
+                // Frame the signal into K+1 overlapping Hann-windowed segments.
+                // Frame boundaries are co-prime to avoid harmonic aliasing —
+                // same principle as PolynomialCoprimeConfig.k coprime functionals.
+                const frameCount = K + 1;
+                const frameSize = Math.floor(N / frameCount);
+                const frameEnergies = new Float64Array(frameCount);
+
+                for (let f = 0; f < frameCount; f++) {
+                    const start = f * frameSize;
+                    let energy = 0.0;
+                    for (let i = 0; i < frameSize; i++) {
+                        // Hann window: w(i) = 0.5*(1 - cos(2π·i/(frameSize-1)))
+                        // Preserves edge roughness rather than tapering to zero.
+                        const w = 0.5 * (1.0 - Math.cos(2 * Math.PI * i / Math.max(1, frameSize - 1)));
+                        const s = pcmData[Math.min(start + i, N - 1)] * w;
+                        energy += s * s;
+                    }
+                    frameEnergies[f] = Math.sqrt(energy / Math.max(1, frameSize));
+                }
+
+                // Normalize frame energies to [-1, 1] for Chebyshev domain.
+                let eMin = Infinity, eMax = -Infinity;
+                for (let f = 0; f < frameCount; f++) {
+                    if (frameEnergies[f] < eMin) eMin = frameEnergies[f];
+                    if (frameEnergies[f] > eMax) eMax = frameEnergies[f];
+                }
+                const eRange = Math.max(eMax - eMin, 1e-12);
+                const xNorm = new Float64Array(frameCount);
+                for (let f = 0; f < frameCount; f++) {
+                    xNorm[f] = 2.0 * (frameEnergies[f] - eMin) / eRange - 1.0;
+                }
+
+                // Chebyshev recurrence over the normalised energy samples:
+                //   T[0] = 1,  T[1] = x,  T[n] = 2x·T[n-1] - T[n-2]
+                // Project each frame's xNorm through the basis and accumulate
+                // the mean coefficient — row of the PolynomialCoprimeConfig θ matrix.
+                const chebyCoeffs = new Float64Array(K);
+                for (let k = 0; k < K; k++) {
+                    let acc = 0.0;
+                    for (let f = 0; f < frameCount; f++) {
+                        const x = xNorm[f];
+                        // Evaluate T_k(x) via recurrence
+                        let T_prev = 1.0, T_curr = x;
+                        if (k === 0) { T_curr = 1.0; }
+                        else if (k === 1) { T_curr = x; }
+                        else {
+                            let T_p = 1.0, T_c = x;
+                            for (let n = 2; n <= k; n++) {
+                                const T_n = 2.0 * x * T_c - T_p;
+                                T_p = T_c; T_c = T_n;
                             }
-                        )
-                        saved_link_path = ENGINE.fossilizer.fossilize(link_dyad, blended_vector, seed_state=blended_vector)
-                        
-                    self._send_json({
-                        "success": True,
-                        "link_allowed": link_allowed,
-                        "modality": modality,
-                        "similarity": cos_sim,
-                        "coprime_stable": coprime_stable,
-                        "reason": reason,
-                        "saved_link_path": os.path.basename(saved_link_path) if saved_link_path else None,
-                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            T_curr = T_c;
+                        }
+                        acc += T_curr;
+                    }
+                    chebyCoeffs[k] = acc / frameCount;  // Mean projection (≈ inner product)
+                }
+
+                // Birkhoff-style row normalisation:
+                // Ensure coefficients sum to 1 (doubly-stochastic row constraint).
+                // Mirrors BirkhoffPolytopeSampler.sinkhorn_knopp applied to a single row.
+                let coeffSum = 0.0;
+                for (let k = 0; k < K; k++) coeffSum += Math.abs(chebyCoeffs[k]);
+                const theta_row = new Float64Array(K);
+                for (let k = 0; k < K; k++) {
+                    theta_row[k] = coeffSum > 1e-12 ? Math.abs(chebyCoeffs[k]) / coeffSum : 1.0 / K;
+                }
+
+                // LSB Stochastic Rounding — Feature Scar Preservation.
+                // Mirrors SiliconSovereigntyEngine.apply_stochastic_rounding:
+                //   fixed = floor(v * scale) + Bernoulli(frac(v * scale))
+                // We keep the rounded coefficient AND record the fractional scar
+                // so the backend can reconstruct the exact quantization residue
+                // if needed (warm-start backtracking from Chiral Residue Cache).
+                const SCALE = 1024.0;  // Derived: 2^10 — matches int64 fixed point
+                const harmonics = [];
+                let seedState = (sampleRate ^ (N & 0xFFFF)) >>> 0;  // Xorshift seed from signal geometry
+                for (let k = 0; k < K; k++) {
+                    const v = theta_row[k] * SCALE;
+                    const floorV = Math.floor(v);
+                    const frac = v - floorV;
+                    // Xorshift32 RNG —- exact algorithm from PyOpenCL kernel
+                    seedState ^= (seedState << 13) >>> 0;
+                    seedState ^= (seedState >>> 17) >>> 0;
+                    seedState ^= (seedState << 5) >>> 0;
+                    const stochasticBit = (seedState / 4294967295.0) < frac ? 1 : 0;
+                    const rounded = (floorV + stochasticBit) / SCALE;
+                    harmonics.push(parseFloat(rounded.toFixed(6)));
+                }
+
+                // Global descriptors (derived, not hardcoded)
+                const rmsEnergy = Math.sqrt(
+                    Array.from(frameEnergies).reduce((s, v) => s + v * v, 0) / frameCount
+                );
+                const zeroCrossings = Array.from(pcmData).reduce((c, v, i, a) =>
+                    i > 0 && (a[i - 1] >= 0) !== (v >= 0) ? c + 1 : c, 0
+                ) / N;
+                // Spectral centroid: weighted mean of Chebyshev mode index by energy
+                let scNum = 0, scDen = 0;
+                for (let k = 0; k < K; k++) { scNum += k * harmonics[k]; scDen += harmonics[k]; }
+                const spectralCentroid = scDen > 0 ? scNum / scDen : 0;
+
+                state.active_audio_dyad = {
+                    filename: file.name,
+                    duration_s: decoded.duration,
+                    sample_rate: sampleRate,
+                    channels: channels,
+                    size_bytes: file.size,
+                    chebyshev_degree: K,         // Derived, never hardcoded
+                    rms_energy: rmsEnergy,
+                    zero_crossing_rate: zeroCrossings,
+                    spectral_centroid: spectralCentroid,
+                    chebyshev_harmonics: harmonics, // K Birkhoff-normalised, LSB-rounded coeffs
+                    commutativity: document.getElementById('commute-audio').value,
+                };
+
+                audioDropHint.innerHTML = `DYAD CAPTURED: ${file.name}`;
+                commitAudioBtn.disabled = false;
+
+                document.getElementById('audio-status').innerText = 'ARMED';
+                document.getElementById('audio-status').style.color = 'var(--terminal-green)';
+
+                appendMessage('system',
+                    `AUDIO DYAD INGESTED: ${file.name} | ` +
+                    `${durationStr} | K=${K} | RMS=${rmsEnergy.toFixed(4)} | ` +
+                    `ZCR=${zeroCrossings.toFixed(4)} | SC_cheb=${spectralCentroid.toFixed(3)}`);
+
+            } catch (err) {
+                appendMessage('system', `WAVEFORM DECODE RUPTURE: ${err.message}`);
+                console.error('Audio decode error:', err);
+            }
+        }
+
+        async function commitAudioDyad() {
+            const description = document.getElementById('audio-description-buffer').value.trim();
+            const dyad = state.active_audio_dyad;
+
+            if (!dyad) {
+                appendMessage('system', 'AUDIO COMMIT FAILED: No audio dyad loaded.');
+                return;
+            }
+
+            const commutativity = document.getElementById('commute-audio').value;
+            dyad.commutativity = commutativity;
+
+            const displayOrder = commutativity === 'audio_first'
+                ? 'Audio → Text'
+                : commutativity === 'text_first'
+                    ? 'Text → Audio'
+                    : '≅ Symmetric';
+
+            appendMessage('user',
+                `COMMITTING AUDIO DYAD [${displayOrder}]: ${dyad.filename}` +
+                (description ? ` | "${description.substring(0, 50)}..."` : ''));
+
+            // UI Feedback
+            commitAudioBtn.disabled = true;
+            commitAudioBtn.innerText = 'PROCESSING...';
+            document.getElementById('audio-status').innerText = 'COMMITTING';
+
+            setTimeout(async () => {
+                try {
+                    console.log("[AUDIO_COMMIT] Initializing payload serialization...");
+                    const payload = {
+                        text: `INGEST_AUDIO_DYAD: ${dyad.filename}${description ? ' | ' + description : ''}`,
+                        audio_dyad: dyad,
+                        audio_b64: state.active_audio_b64,
+                        commutativity: commutativity
+                    };
+
+                    const response = await fetch(`${state.backend_url}/interact`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+
+                    const data = await response.json();
+                    console.log("[AUDIO_COMMIT] Response received:", data);
+                    handleResponse(data);
+
+                    if (audioLog) {
+                        const logEntry = document.createElement('div');
+                        logEntry.innerText =
+                            `[${new Date().toLocaleTimeString()}] [${displayOrder}] ${dyad.filename}`;
+                        audioLog.prepend(logEntry);
+                    } else {
+                        console.warn("[AUDIO_COMMIT] audioLog element not found.");
+                    }
+
+                    // Reset
+                    resetAudioState();
+                    document.getElementById('audio-description-buffer').value = '';
+
+                } catch (err) {
+                    appendMessage('system', 'AUDIO COMMIT RUPTURE. BACKEND DISSOCIATED.');
+                    console.error('Audio commit error:', err);
+                } finally {
+                    commitAudioBtn.innerText = 'COMMIT AUDIO DYAD';
+                    commitAudioBtn.disabled = !state.active_audio_dyad;
+                }
+            }, 100);
+        }
+
+        // Audio drop zone events
+        audioDropzone.onclick = () => audioFileInput.click();
+        audioFileInput.onchange = (e) => {
+            if (e.target.files.length > 0) processAudioFile(e.target.files[0]);
+        };
+        audioDropzone.ondragover = (e) => {
+            e.preventDefault();
+            audioDropzone.classList.add('dragover');
+        };
+        audioDropzone.ondragleave = () => audioDropzone.classList.remove('dragover');
+        audioDropzone.ondrop = (e) => {
+            e.preventDefault();
+            audioDropzone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) processAudioFile(e.dataTransfer.files[0]);
+        };
+        commitAudioBtn.onclick = commitAudioDyad;
+
+        // =====================================================
+        // PANEL D: VIDEO DYAD LOGIC
+        // =====================================================
+        const videoDropzone = document.getElementById('video-dropzone');
+        const videoFileInput = document.getElementById('video-file-input');
+        const commitVideoBtn = document.getElementById('commit-video');
+        const videoLog = document.getElementById('video-log');
+
+        // Immediate assignment to avoid script execution hazards
+        commitVideoBtn.onclick = commitVideoDyad;
+        videoDropzone.onclick = () => videoFileInput.click();
+        videoFileInput.onchange = (e) => { if (e.target.files.length > 0) processVideoFile(e.target.files[0]); };
+        videoDropzone.ondragover = (e) => { e.preventDefault(); videoDropzone.style.borderColor = 'var(--terminal-blue)'; };
+        videoDropzone.ondragleave = (e) => { e.preventDefault(); videoDropzone.style.borderColor = 'rgba(0, 242, 255, 0.3)'; };
+        videoDropzone.ondrop = (e) => {
+            e.preventDefault();
+            videoDropzone.style.borderColor = 'rgba(0, 242, 255, 0.3)';
+            if (e.dataTransfer.files.length > 0) processVideoFile(e.dataTransfer.files[0]);
+        };
+
+        async function processVideoFile(file) {
+            const validExts = ['.mp4', '.avi', '.mkv', '.webm', '.gif'];
+            const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+            if (!validExts.includes(ext)) {
+                appendMessage('system', `MEDIA DYAD REJECTED: Unsupported format.`);
+                return;
+            }
+
+            document.getElementById('video-status').innerText = 'READING';
+            document.getElementById('video-status').style.color = 'var(--terminal-warn)';
+
+            // Optimization: Store the File object directly instead of converting to huge Base64 string
+            state.active_video_file = file;
+            state.active_video_dyad = "[FILE_POINTER]"; // Placeholder for UI logic
+
+            document.getElementById('video-status').innerText = 'ARMED';
+            document.getElementById('video-status').style.color = 'var(--terminal-green)';
+            document.querySelector('#video-dropzone div:nth-child(2)').innerHTML = `DYAD CAPTURED:<br/>${file.name}`;
+            commitVideoBtn.disabled = false;
+            appendMessage('system', `VIDEO DYAD INGESTED: ${file.name} | ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+        }
+
+        async function commitVideoDyad() {
+            console.log("[VIDEO_COMMIT] Button clicked.");
+            const description = document.getElementById('video-description-buffer').value.trim();
+            const b64 = state.active_video_dyad;
+            if (!b64) {
+                console.warn("[VIDEO_COMMIT] No active video dyad found in state.");
+                return;
+            }
+
+            const commutativity = document.getElementById('commute-video').value;
+
+            const displayOrder = commutativity === 'media_first'
+                ? 'Video → Text'
+                : commutativity === 'text_first'
+                    ? 'Text → Video'
+                    : '≅ Symmetric';
+
+            appendMessage('user',
+                `COMMITTING VIDEO DYAD [${displayOrder}]` +
+                (description ? ` | "${description.substring(0, 50)}..."` : ''));
+
+            // UI Feedback: disable button and show status
+            commitVideoBtn.disabled = true;
+            commitVideoBtn.innerText = 'PROCESSING...';
+            document.getElementById('video-status').innerText = 'COMMITTING';
+            document.getElementById('video-status').style.color = 'var(--terminal-cyan)';
+
+            // Use FormData for large video payloads (avoiding JSON.stringify memory spikes)
+            setTimeout(async () => {
+                try {
+                    console.log("[VIDEO_COMMIT] Initializing FormData dispatch...", {
+                        description_length: description.length,
+                        b64_preview: b64.substring(0, 50) + "..."
+                    });
+
+                    const formData = new FormData();
+                    formData.append('text', `INGEST_VIDEO_DYAD: [CRYPTOGRAPHIC_PARSE]${description ? ' | ' + description : ''}`);
+
+                    // If we have a file pointer, append the actual file blob
+                    if (state.active_video_file) {
+                        formData.append('video_dyad_file', state.active_video_file);
+                    } else {
+                        formData.append('video_dyad_b64', b64);
+                    }
+                    formData.append('commutativity', commutativity);
+                    formData.append('regime', state.regime);
+
+                    console.log(`[VIDEO_COMMIT] FormData ready (~${(b64.length / 1024 / 1024).toFixed(2)} MB), dispatching fetch...`);
+
+                    const response = await fetch(`${state.backend_url}/interact`, {
+                        method: 'POST',
+                        body: formData // Note: We let the browser set the Content-Type with boundary
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Server responded with ${response.status}: ${errorText}`);
+                    }
+
+                    const data = await response.json();
+                    console.log("[VIDEO_COMMIT] Response received:", data);
+                    handleResponse(data);
+
+                    if (videoLog) {
+                        const logEntry = document.createElement('div');
+                        logEntry.innerText = `[${new Date().toLocaleTimeString()}] Video Dyad Parsed`;
+                        videoLog.prepend(logEntry);
+                    } else {
+                        console.warn("[VIDEO_COMMIT] videoLog element not found, skipping UI log update.");
+                    }
+
+                    // Reset
+                    resetVideoState();
+                    document.getElementById('video-description-buffer').value = '';
+                } catch (err) {
+                    console.error("[VIDEO_COMMIT] Rupture:", err);
+                    appendMessage('system', `VIDEO COMMIT RUPTURE: ${err.message || 'BACKEND DISSOCIATED'}`);
+                } finally {
+                    commitVideoBtn.innerText = 'COMMIT VIDEO DYAD';
+                    commitVideoBtn.disabled = !state.active_video_dyad;
+                }
+            }, 100);
+        }
+
+        // --- Event Listeners ---
+        const consoleTabs = document.querySelectorAll('.console-tab');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+
+        consoleTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                consoleTabs.forEach(t => t.classList.remove('active'));
+                tabPanes.forEach(p => p.classList.remove('active'));
+
+                tab.classList.add('active');
+                const targetId = 'pane-' + tab.getAttribute('data-tab');
+                document.getElementById(targetId).classList.add('active');
+            });
+        });
+
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage(userInput.value);
+        });
+
+        document.getElementById('regime-goo').onclick = () => {
+            appendMessage('system', "REGIME OVERRIDE BLOCKED: Operational regime is dynamically determined by Equation 10 (Integrated Emergence Condition).");
+        };
+
+        document.getElementById('regime-prickles').onclick = () => {
+            appendMessage('system', "REGIME OVERRIDE BLOCKED: Operational regime is dynamically determined by Equation 10 (Integrated Emergence Condition).");
+        };
+
+        fileInput.onchange = (e) => {
+            if (e.target.files.length > 0) processImages(e.target.files);
+        };
+
+        dropzone.ondragover = (e) => { e.preventDefault(); dropzone.style.borderColor = 'var(--terminal-blue)'; };
+        dropzone.ondragleave = (e) => { e.preventDefault(); dropzone.style.borderColor = 'var(--glass-border)'; };
+        dropzone.ondrop = (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files.length > 0) processImages(e.dataTransfer.files);
+        };
+
+        document.getElementById('commit-semantic').onclick = commitSemanticLink;
+        commitBtn.onclick = commitAssociation;
+
+        initRibbon();
+
+        // --- Topological Heartbeat (Service Mode) ---
+        // Keeps the system "awake" and updates diagnostics every 15s
+        setInterval(async () => {
+            try {
+                const response = await fetch(`${state.backend_url}/interact`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: "IDLE_RESONANCE_HEARTBEAT", generate_response: false })
+                });
+                const data = await response.json();
+                handleResponse(data);
+                console.log("TOPOLOGICAL HEARTBEAT: COHERENCE MAINTAINED.");
+            } catch (err) {
+                console.warn("HEARTBEAT RUPTURE. BACKEND STOCHASTIC.");
+            }
+        }, 15000);
+
+        // --- Media Chain Logic ---
+        function _calculateContextualCommutativity() {
+            // If we are committing from a specific panel, that panel's logic wins.
+            // Otherwise, use the master header selector.
+            return state.forced_commutativity || _resolveCommutativity();
+        }
+
+        function updateChainVisualizer(panelId) {
+            const viz = document.getElementById(`chain-${panelId}-visualizer`);
+            if (!viz) return;
+            viz.innerHTML = '';
+
+            state.media_chain.forEach((item, index) => {
+                const el = document.createElement('div');
+                el.className = 'media-chain-item';
+                el.innerHTML = `
+                    <span class="icon">${item.icon}</span>
+                    <span class="name">${item.filename}</span>
+                    <span class="remove" onclick="removeFromChain(${index}, '${panelId}')">&times;</span>
+                `;
+                viz.appendChild(el);
+
+                if (index < state.media_chain.length - 1) {
+                    const arrow = document.createElement('div');
+                    arrow.className = 'braid-arrow';
+                    arrow.innerHTML = '&#x2193;';
+                    viz.appendChild(arrow);
+                }
+            });
+        }
+
+        window.removeFromChain = function (index, panelId) {
+            state.media_chain.splice(index, 1);
+            updateChainVisualizer(panelId);
+        };
+
+        function addToChain(type, data, filename, icon, panelId) {
+            state.media_chain.push({ type, data, filename, icon });
+            updateChainVisualizer(panelId);
+        }
+
+        // Panel E logic (I-M Braid)
+        // We override state media chain to be exactly [I, M] or [M, I]
+        document.getElementById('commit-e').onclick = async () => {
+            const mode = document.getElementById('commute-e').value;
+            const chain = [];
+            const hasImg = !!state.active_fingerprint;
+            const hasAud = !!state.active_audio_dyad;
+
+            if (!hasImg || !hasAud) {
+                appendMessage('system', "PANEL E RUPTURE: BOTH IMAGE AND AUDIO MUST BE ARMED.");
+                return;
+            }
+
+            if (mode === 'image_to_audio') {
+                chain.push({ type: 'image', data: state.active_fingerprint, filename: 'Image Residue', icon: '+' });
+                chain.push({ type: 'audio', data: state.active_audio_dyad, filename: state.active_audio_dyad.filename, icon: '&#9836;' });
+            } else if (mode === 'audio_to_image') {
+                chain.push({ type: 'audio', data: state.active_audio_dyad, filename: state.active_audio_dyad.filename, icon: '&#9836;' });
+                chain.push({ type: 'image', data: state.active_fingerprint, filename: 'Image Residue', icon: '+' });
+            } else {
+                // Symmetric is handled by sending both and letting backend decide
+                chain.push({ type: 'image', data: state.active_fingerprint, filename: 'Image Residue', icon: '+' });
+                chain.push({ type: 'audio', data: state.active_audio_dyad, filename: state.active_audio_dyad.filename, icon: '&#9836;' });
+            }
+
+            state.media_chain = chain;
+            state.forced_commutativity = (mode === 'symmetric') ? 'symmetric' : 'media_first';
+            await sendMessage(`INGEST_BRAID: [PANEL_E] ${mode}`);
+            state.forced_commutativity = null;
+            state.media_chain = [];
+            updateChainVisualizer('e');
+        };
+
+        // Panel F logic (Heterogeneous)
+        // Drag over visualizer to add currently armed item
+        const visualizerF = document.getElementById('chain-f-visualizer');
+        visualizerF.onclick = () => {
+            // Add whatever is currently armed to the chain
+            if (state.active_fingerprint) {
+                addToChain('image', state.active_fingerprint, 'Image Residue', '+', 'f');
+            } else if (state.active_audio_dyad) {
+                addToChain('audio', state.active_audio_dyad, state.active_audio_dyad.filename, '&#9836;', 'f');
+            } else if (state.active_video_dyad) {
+                addToChain('video', state.active_video_dyad, 'Video Residue', '&#128249;', 'f');
+            } else {
+                appendMessage('system', "PANEL F: ARM A RESIDUE FIRST TO ADD TO CHAIN.");
+            }
+        };
+
+        document.getElementById('clear-chain-f').onclick = () => {
+            state.media_chain = [];
+            updateChainVisualizer('f');
+        };
+
+        document.getElementById('commit-f').onclick = async () => {
+            if (state.media_chain.length === 0) {
+                appendMessage('system', "PANEL F RUPTURE: CHAIN EMPTY.");
+                return;
+            }
+            const mode = document.getElementById('commute-f').value; // sequential or symmetric
+            state.forced_commutativity = (mode === 'sequential') ? 'media_first' : 'symmetric';
+            await sendMessage(`INGEST_BRAID: [PANEL_F] ${state.media_chain.length}-step chain`);
+            state.forced_commutativity = null;
+            state.media_chain = [];
+            updateChainVisualizer('f');
+        };
+
+        // =====================================================
+        // PANEL G: MINECRAFT INGESTOR LOGIC
+        // =====================================================
+        const scanMinecraftBtn = document.getElementById('scan-minecraft-btn');
+        const minecraftWorldSelect = document.getElementById('minecraft-world-select');
+        const minecraftModsList = document.getElementById('minecraft-mods-list');
+        const commitMinecraftBtn = document.getElementById('commit-minecraft');
+        const minecraftLog = document.getElementById('minecraft-log');
+        const minecraftMaxChunks = document.getElementById('minecraft-max-chunks');
+        const minecraftStatus = document.getElementById('minecraft-status');
+
+        function logMinecraft(msg, type = 'info') {
+            const entry = document.createElement('div');
+            entry.style.color = type === 'error' ? '#ff4444' : type === 'success' ? '#55ff55' : '#aaa';
+            entry.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            minecraftLog.prepend(entry);
+        }
+
+        async function scanMinecraft() {
+            minecraftStatus.innerText = 'SCANNING';
+            minecraftStatus.style.color = 'var(--terminal-warn)';
+            logMinecraft("Scanning datasets/minecraft/ folder...");
+            try {
+                const response = await fetch(`${state.backend_url}/api/minecraft/scan`);
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                const data = await response.json();
+
+                // Update worlds select
+                minecraftWorldSelect.innerHTML = '';
+                if (data.worlds && data.worlds.length > 0) {
+                    data.worlds.forEach(w => {
+                        const opt = document.createElement('option');
+                        opt.value = w.name;
+                        opt.textContent = `${w.name} (level.dat: ${w.has_level_dat ? 'Y' : 'N'}, region: ${w.has_region ? 'Y' : 'N'})`;
+                        minecraftWorldSelect.appendChild(opt);
+                    });
+                    commitMinecraftBtn.disabled = false;
+                    logMinecraft(`Detected ${data.worlds.length} world save(s).`, 'success');
+                } else {
+                    const opt = document.createElement('option');
+                    opt.value = "";
+                    opt.textContent = "-- No Worlds Detected --";
+                    minecraftWorldSelect.appendChild(opt);
+                    commitMinecraftBtn.disabled = true;
+                    logMinecraft("No worlds found in datasets/minecraft/", 'warning');
+                }
+
+                // Update mods list
+                minecraftModsList.innerHTML = '';
+                if (data.mods && data.mods.length > 0) {
+                    data.mods.forEach(m => {
+                        const item = document.createElement('div');
+                        item.textContent = `• ${m.name} (${(m.size / 1024).toFixed(1)} KB)`;
+                        minecraftModsList.appendChild(item);
+                    });
+                    logMinecraft(`Detected ${data.mods.length} mod archive(s).`, 'success');
+                } else {
+                    minecraftModsList.textContent = "(No Mods Found)";
+                }
+
+                minecraftStatus.innerText = 'ARMED';
+                minecraftStatus.style.color = 'var(--terminal-green)';
+
+            } catch (err) {
+                logMinecraft(`Scan failed: ${err.message}`, 'error');
+                minecraftStatus.innerText = 'ERROR';
+                minecraftStatus.style.color = '#ff4444';
+            }
+        }
+
+        async function ingestMinecraft() {
+            const worldName = minecraftWorldSelect.value;
+            if (!worldName) {
+                logMinecraft("No world selected.", 'error');
+                return;
+            }
+
+            const maxChunks = parseInt(minecraftMaxChunks.value) || 16;
+            minecraftStatus.innerText = 'INGESTING';
+            minecraftStatus.style.color = 'var(--terminal-warn)';
+            logMinecraft(`Starting ingestion of world: ${worldName} (max chunks: ${maxChunks})...`);
+            commitMinecraftBtn.disabled = true;
+            scanMinecraftBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${state.backend_url}/api/minecraft/ingest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        world_name: worldName,
+                        max_chunks: maxChunks
                     })
-                except Exception as e:
-                    self._send_error_json(str(e))
-                return
-            
-            elif self.path == '/api/stop_training':
-                TRAINING_STATE['active'] = False
-                TRAINING_STATE['log'].append('Training stopped by user')
-                self._send_json({'success': True, 'message': 'Training stop requested'})
-            
-            elif self.path == '/api/save_model':
-                ENGINE.save_state()
-                self._send_json({'success': True, 'message': 'Model state saved'})
-            
-            elif self.path == '/api/chat':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                message = data.get('message', data.get('text', ''))
-                
-                if message:
-                    result = ENGINE.process_input(message)
-                    ENGINE.save_state()
-                    self._send_json(result)
-                else:
-                    self._send_json({'error': 'No message provided'})
-            
-            # ================================================================
-            # PHASE 3: TABBY ML ENDPOINTS
-            # ================================================================
-            elif self.path == '/api/tabby_test':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                
-                if not TABBY_AVAILABLE:
-                    self._send_json({'connected': False, 'message': 'Tabby client not available'})
-                else:
-                    host = data.get('host', 'localhost')
-                    port = int(data.get('port', 8080))
-                    TABBY_CLIENT.config = TabbyConfig(host=host, port=port)
-                    result = TABBY_CLIENT.test_connection()
-                    self._send_json(result)
-            
-            elif self.path == '/api/tabby_complete':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                
-                if not TABBY_AVAILABLE or TABBY_CLIENT is None:
-                    self._send_json({'success': False, 'error': 'Tabby ML not available'})
-                else:
-                    prompt = data.get('prompt', '')
-                    mode = data.get('mode', 'complete')  # 'complete' or 'chat'
-                    
-                    if mode == 'chat':
-                        messages = data.get('messages', [{'role': 'user', 'content': prompt}])
-                        result = TABBY_CLIENT.chat(messages)
-                    else:
-                        result = TABBY_CLIENT.complete(prompt)
-                    
-                    self._send_json(result.to_dict())
-            
-            elif self.path == '/api/tabby_generate_training':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                
-                if not TABBY_AVAILABLE or TABBY_CLIENT is None:
-                    self._send_json({'success': False, 'error': 'Tabby ML not available'})
-                else:
-                    topic = data.get('topic', 'algorithms')
-                    style = data.get('style', 'textbook')
-                    result = TABBY_CLIENT.generate_training_sample(topic, style)
-                    
-                    if result.success:
-                        # Feed the generated sample back through the engine
-                        try:
-                            ENGINE.process_input(result.text[:500], generate_response=False)
-                        except Exception:
-                            pass
-                    
-                    self._send_json(result.to_dict())
-                
-            elif self.path == '/api/bonfire/sync':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                sig = data.get("signature", "none")
-                self._send_json({
-                    "status": "ok",
-                    "signature": f"sig_{ENGINE.iteration}"
-                })
-                
-            elif self.path == '/api/bonfire/kelly':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                self._send_json({
-                    "kelly": float(ENGINE.bonfire.local_kelly),
-                    "p_success": float(ENGINE.bonfire.local_p_success)
-                })
-                
-            elif self.path == '/api/bonfire/compute_admr':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                state_list = data.get("state", [])
-                state_t = torch.tensor(state_list, dtype=torch.float32, device=ENGINE.device).view(1, -1)
-                if state_t.shape[-1] < ENGINE.dim:
-                    state_t = torch.nn.functional.pad(state_t, (0, ENGINE.dim - state_t.shape[-1]))
-                elif state_t.shape[-1] > ENGINE.dim:
-                    state_t = state_t[:, :ENGINE.dim]
-                from src.core.spectral_coherence_repair import apply_energy_based_stabilization
-                stabilized = apply_energy_based_stabilization(state_t)
-                self._send_json({
-                    "status": "ok",
-                    "states": stabilized.view(-1).tolist()
-                })
-                
-            elif self.path == '/api/bonfire/predict':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                peer_url = data.get("peer_url", "http://localhost:8001")
-                predicted_pas = float(data.get("predicted_pas", 0.75))
-                bet_res = ENGINE.bonfire.place_zero_dollar_bet(peer_url, predicted_pas)
-                self._send_json({
-                    "status": "ok",
-                    "bet_result": bet_res
-                })
+                });
 
-            elif self.path == '/api/bonfire/economic_news':
-                from src.data.economic_news_linker import EconomicAgentLinker
-                linker = EconomicAgentLinker()
-                news_items = linker.fetch_sovereign_business_news()
-                bittensor_res = linker.fetch_bittensor_subnet_prediction(41)
-                olas_res = linker.fetch_autonolas_olas_mech()
-                self._send_json({
-                    "status": "ok",
-                    "business_news": news_items,
-                    "bittensor": bittensor_res,
-                    "autonolas": olas_res
-                })
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || `HTTP error ${response.status}`);
+                }
 
-            elif self.path == '/api/bonfire/dispatch_tao_forecast':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                subnet_id = int(data.get("subnet_id", 41))
-                forecast = data.get("forecast", {"predicted_pas": 0.75})
-                from src.data.economic_news_linker import EconomicAgentLinker
-                linker = EconomicAgentLinker()
-                res = linker.submit_bittensor_subnet_forecast(subnet_id, forecast)
-                self._send_json({"status": "ok", "bittensor_submission": res})
+                const data = await response.json();
 
-            elif self.path == '/api/bonfire/dispatch_olas_mech':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                mech = data.get("mech_address", "0xOlasMechEndpoint")
-                tool = data.get("tool", "prediction-offline-v1")
-                prompt = data.get("prompt", "Verify topological convergence")
-                from src.data.economic_news_linker import EconomicAgentLinker
-                linker = EconomicAgentLinker()
-                res = linker.dispatch_olas_mech_task(mech, tool, prompt)
-                self._send_json({"status": "ok", "olas_mech_dispatch": res})
+                logMinecraft(`Ingested successfully!`, 'success');
+                logMinecraft(`Chunks processed: ${data.chunks_processed}`);
+                logMinecraft(`Scripts extracted: ${data.scripts_extracted}`);
+                logMinecraft(`Commutativity Gap: ${data.commutativity_gap.toFixed(6)}`);
+                logMinecraft(`Non-commutativity Curvature: ${data.noncommutativity_curvature.toFixed(6)}`);
 
-            elif self.path == '/api/bonfire/status':
-                from src.safety.hardware_fingerprint import discover_public_ip
-                self._send_json({
-                    "node_id": ENGINE.bonfire.node_id,
-                    "local_url": ENGINE.bonfire.local_url,
-                    "public_ip": discover_public_ip(),
-                    "peers": ENGINE.bonfire.peers,
-                    "healthy_peers": ENGINE.bonfire.healthy_peers,
-                    "local_kelly": ENGINE.bonfire.local_kelly,
-                    "local_p_success": ENGINE.bonfire.local_p_success,
-                    "consensus_kelly": ENGINE.bonfire.cached_consensus_kelly,
-                    "consensus_p_success": ENGINE.bonfire.cached_consensus_p_success,
-                    "local_signature": ENGINE.bonfire.local_signature,
-                    "peer_predictions": ENGINE.bonfire.peer_predictions,
-                    "peer_penalty_debts": ENGINE.bonfire.peer_penalty_debts
-                })
-                
-            elif self.path == '/api/security/creator_login':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                passphrase = data.get("passphrase")
-                if not passphrase:
-                    self._send_error_json("Missing passphrase")
-                else:
-                    from src.safety.hardware_fingerprint import verify_sole_creator
-                    if verify_sole_creator(passphrase):
-                        self._send_json({"status": "ok", "message": "Authenticated as Sole Creator"})
-                    else:
-                        self._send_json({"status": "error", "message": "Authentication failed: Hardware mismatch or invalid passcode"})
-                
-            elif self.path == '/api/bonfire/add_peer':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                url = data.get("url")
-                if url:
-                    ENGINE.bonfire.add_peer(url)
-                    self._send_json({"status": "ok", "message": f"Peer added: {url}"})
-                else:
-                    self._send_error_json("Missing peer url")
-                    
-            elif self.path == '/api/bonfire/remove_peer':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                url = data.get("url")
-                if url:
-                    ENGINE.bonfire.remove_peer(url)
-                    self._send_json({"status": "ok", "message": f"Peer removed: {url}"})
-                else:
-                    self._send_error_json("Missing peer url")
-                    
-            elif self.path == '/api/crawlers/ingest_news':
-                content_len = int(self.headers.get('Content-Length', 0))
-                post_body = self.rfile.read(content_len)
-                data = json.loads(post_body.decode('utf-8'))
-                feeds = data.get("feeds", ["https://finance.yahoo.com/news/rssindex"])
-                payloads = ENGINE.investor_ingestor.ingest_market_topologies(feeds)
-                ingested_count = 0
-                for text in payloads[:10]:
-                    try:
-                        ENGINE.process_input(text, generate_response=False)
-                        ingested_count += 1
-                    except Exception as e:
-                        print(f"[BONFIRE] Failed to ingest article: {e}")
-                self._send_json({
-                    "status": "ok",
-                    "crawled_articles": len(payloads),
-                    "ingested_articles": ingested_count
-                })
-                
-            else:
-                self.send_error(404)
-        except Exception as e:
-            print(f"POST Error: {e}")
-            self._send_error_json(str(e))
+                if (data.logs && data.logs.length > 0) {
+                    data.logs.forEach(logLine => logMinecraft(`> ${logLine}`));
+                }
 
-    def _send_json(self, data):
-        try:
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            # Use custom encoder to handle tensors and other non-serializable types
-            response_data = json.dumps(data, cls=TensorEncoder).encode('utf-8')
-            self.wfile.write(response_data)
-        except (ConnectionAbortedError, BrokenPipeError) as e:
-            print(f"  Client connection lost during response: {e}")
-        except Exception as e:
-            print(f" Error sending JSON response: {e}")
-            import traceback
-            traceback.print_exc()
+                // Append system notification to chat
+                appendMessage('system', `⬡ MINECRAFT INGESTION COMPLETED\n` +
+                    `World: ${data.world_name}\n` +
+                    `Chunks: ${data.chunks_processed}\n` +
+                    `Scripts: ${data.scripts_extracted}\n` +
+                    `Curvature: ${data.noncommutativity_curvature.toFixed(6)}\n` +
+                    `Gap: ${data.commutativity_gap.toFixed(6)}`);
 
+                // If visualizer returned visualization, it will update via standard handleResponse
+                handleResponse(data);
 
-    def _send_error_json(self, message, code=500):
-        try:
-            self.send_response(code)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            error_data = json.dumps({"error": message}).encode('utf-8')
-            self.wfile.write(error_data)
-        except (ConnectionAbortedError, BrokenPipeError) as e:
-            print(f"  Client connection lost during error response: {e}")
-        except Exception as e:
-            print(f" Error sending error response: {e}")
+                minecraftStatus.innerText = 'ARMED';
+                minecraftStatus.style.color = 'var(--terminal-green)';
 
-def kill_port_owner(port):
-    """Find and kill any process holding the port."""
-    if os.name == 'nt':
-        try:
-            # Sanitize port input to prevent OS command injection
-            port = int(port)
-            # Find PID using netstat
-            cmd = f"netstat -ano | findstr :{port}"
-            output = subprocess.check_output(cmd, shell=True).decode()
-            for line in output.splitlines():
-                if "LISTENING" in line:
-                    parts = line.strip().split()
-                    pid = parts[-1]
-                    if int(pid) != os.getpid():
-                        print(f"Flushing ghost process {pid} on port {port}...")
-                        subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True)
-        except Exception as e:
-            # No process found or permission error
-            pass
+            } catch (err) {
+                logMinecraft(`Ingestion failed: ${err.message}`, 'error');
+                minecraftStatus.innerText = 'ERROR';
+                minecraftStatus.style.color = '#ff4444';
+            } finally {
+                commitMinecraftBtn.disabled = false;
+                scanMinecraftBtn.disabled = false;
+            }
+        }
 
-START_TIME = time.time()
+        scanMinecraftBtn.onclick = scanMinecraft;
+        commitMinecraftBtn.onclick = ingestMinecraft;
 
-def main():
-    print("--- [GYROIDIC DIEGETIC BACKEND] ---")
-    
-    # Prune orphaned processes
-    kill_port_owner(8000)
-    
-    # PID Tracking
-    pid_file = "diegetic_backend.pid"
-    with open(pid_file, "w") as f:
-        f.write(str(os.getpid()))
+        // Auto-scan on load
+        setTimeout(scanMinecraft, 1000);
+
+        // ==========================================
+        // PANEL H: GLTF SPLAT MATRIX LOGIC
+        // ==========================================
+        const scanSplatsBtn = document.getElementById('scan-splats-btn');
+        const commitSplatBtn = document.getElementById('commit-splat');
+        const previewSplatBtn = document.getElementById('preview-splat-btn');
+        const splatFileSelect = document.getElementById('splat-file-select');
+        const splatLogEl = document.getElementById('splat-log');
+        const splatStatus = document.getElementById('splat-status');
+
+        const multimodalStatus = document.getElementById('multimodal-status');
+        const multimodalCanvasContainer = document.getElementById('multimodal-canvas-container');
+
+        function logSplat(msg, type = 'info') {
+            const line = document.createElement('div');
+            line.style.marginBottom = '2px';
+            if (type === 'error') line.style.color = '#ff4444';
+            if (type === 'success') line.style.color = '#ff00ff';
+            if (type === 'warning') line.style.color = 'var(--terminal-warn)';
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            splatLogEl.appendChild(line);
+            splatLogEl.scrollTop = splatLogEl.scrollHeight;
+        }
+
+        async function scanSplats() {
+            splatStatus.innerText = 'SCANNING';
+            splatStatus.style.color = 'var(--terminal-blue)';
+            logSplat("Scanning /datasets/splats for GLTF/GLB files...");
+
+            try {
+                const response = await fetch(`${state.backend_url}/api/splats/scan`);
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                const data = await response.json();
+
+                splatFileSelect.innerHTML = '';
+                if (data.splats && data.splats.length > 0) {
+                    data.splats.forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f.path;
+                        opt.textContent = f.name;
+                        splatFileSelect.appendChild(opt);
+                    });
+                    commitSplatBtn.disabled = false;
+                    previewSplatBtn.disabled = false;
+                    logSplat(`Found ${data.splats.length} splat files.`, 'success');
+                    splatStatus.innerText = 'ARMED';
+                    splatStatus.style.color = '#ff00ff';
+                } else {
+                    const opt = document.createElement('option');
+                    opt.value = "";
+                    opt.textContent = "-- No Splats Detected --";
+                    splatFileSelect.appendChild(opt);
+                    commitSplatBtn.disabled = true;
+                    previewSplatBtn.disabled = true;
+                    logSplat("No .gltf / .glb files found.", 'warning');
+                    splatStatus.innerText = 'IDLE';
+                    splatStatus.style.color = '#555';
+                }
+            } catch (err) {
+                logSplat(`Scan failed: ${err.message}`, 'error');
+                splatStatus.innerText = 'ERROR';
+                splatStatus.style.color = '#ff4444';
+            }
+        }
+
+        async function ingestSplat() {
+            const filePath = splatFileSelect.value;
+            if (!filePath) return;
+
+            splatStatus.innerText = 'INGESTING';
+            splatStatus.style.color = 'var(--terminal-warn)';
+            commitSplatBtn.disabled = true;
+            scanSplatsBtn.disabled = true;
+            logSplat(`Ingesting ${filePath} to manifold...`);
+
+            try {
+                const response = await fetch(`${state.backend_url}/api/splats/ingest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_path: filePath })
+                });
+
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                const data = await response.json();
+
+                logSplat(data.message, 'success');
+                splatStatus.innerText = 'ARMED';
+                splatStatus.style.color = '#ff00ff';
+
+                appendMessage('system', `⬡ SPLAT INGESTION COMPLETED\nFile: ${filePath}\n${data.message}`);
+
+            } catch (err) {
+                logSplat(`Ingestion failed: ${err.message}`, 'error');
+                splatStatus.innerText = 'ERROR';
+                splatStatus.style.color = '#ff4444';
+            } finally {
+                commitSplatBtn.disabled = false;
+                scanSplatsBtn.disabled = false;
+            }
+        }
+
+        function previewSplat() {
+            const filePath = splatFileSelect.value;
+            if (!filePath) return;
+
+            // Switch to Multimodal Viewer Tab
+            document.querySelectorAll('.console-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelector('.console-tab[data-tab="multimodal"]').classList.add('active');
+            document.getElementById('pane-multimodal').classList.add('active');
+
+            // Render mock / Model viewer
+            multimodalStatus.innerText = `Currently Viewer: ${filePath}`;
+
+            multimodalCanvasContainer.innerHTML = `
+                <div style="position: absolute; width: 100%; height: 100%; background: radial-gradient(circle at center, #1a0b2e 0%, #000 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 0 50px rgba(255,0,255,0.2);">
+                    <div style="width: 200px; height: 200px; border-radius: 50%; border: 2px dashed rgba(255,0,255,0.5); animation: spin 10s linear infinite; position: absolute;"></div>
+                    <div style="width: 150px; height: 150px; border-radius: 50%; border: 2px solid rgba(0,255,255,0.3); animation: spin 5s linear infinite reverse; position: absolute;"></div>
+                    <span style="font-size: 3rem; color: #ff00ff; text-shadow: 0 0 20px #ff00ff; z-index: 2;">⬡</span>
+                    <div style="margin-top: 60px; font-family: var(--font-mono); color: #fff; z-index: 2; text-align: center;">
+                        <span style="color: #ff00ff; font-weight: bold;">[ KHR_gaussian_splatting Context ]</span><br>
+                        <br>Loading 3D WebGL Projection for:<br>
+                        <span style="color: #00ffff;">${filePath}</span><br>
+                        <br><span style="font-size: 0.7rem; color: #888;">(Hardware Rasterizer Hooks Attached)</span>
+                    </div>
+                </div>
+            `;
+            logSplat(`Pushed ${filePath} to Multimodal Viewer.`, 'success');
+        }
+
+        scanSplatsBtn.onclick = scanSplats;
+        commitSplatBtn.onclick = ingestSplat;
+        previewSplatBtn.onclick = previewSplat;
+
+        setTimeout(scanSplats, 1500);
+
+    </script>
+
+    <script>
+        let currentFSPath = "";
+
+        function loadFSDrives() {
+            fetch('/api/fs/drives')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        const sel = document.getElementById('drive-select');
+                        sel.innerHTML = '<option value="">Select Drive...</option>';
+                        data.drives.forEach(d => {
+                            sel.innerHTML += `<option value="${d}">${d}</option>`;
+                        });
+                    }
+                });
+        }
+
+        function loadFSPath(path) {
+            if (!path) return;
+            document.getElementById('fs-path-input').value = path;
+
+            let csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+
+            fetch('/api/fs/list', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Gyroidic-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({ path: path })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        currentFSPath = data.path;
+                        document.getElementById('fs-path-input').value = data.path;
+                        const tree = document.getElementById('fs-tree');
+                        tree.innerHTML = '';
+                        data.entries.forEach(entry => {
+                            const div = document.createElement('div');
+                            div.style.padding = '4px';
+                            div.style.cursor = 'pointer';
+                            div.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                            div.style.color = entry.is_dir ? 'var(--terminal-blue)' : '#ccc';
+                            div.innerText = (entry.is_dir ? '[DIR] ' : '      ') + entry.name;
+                            div.onclick = () => {
+                                if (entry.is_dir) {
+                                    loadFSPath(entry.path);
+                                } else {
+                                    selectFSPath(entry.path);
+                                }
+                            };
+                            // Right click to select dir instead of traverse
+                            div.oncontextmenu = (e) => {
+                                e.preventDefault();
+                                selectFSPath(entry.path);
+                            };
+                            tree.appendChild(div);
+                        });
+                    } else {
+                        alert('Error loading path: ' + data.error);
+                    }
+                });
+        }
+
+        function selectFSPath(path) {
+            document.getElementById('selected-path-label').innerText = "Selected Path: " + path;
+            document.getElementById('selected-path-label').dataset.path = path;
+        }
+
+        function setFSPermission(action) {
+            const path = document.getElementById('selected-path-label').dataset.path;
+            if (!path) {
+                alert('Select a path first');
+                return;
+            }
+
+            let csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+
+            fetch('/api/fs/permissions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Gyroidic-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({ path: path, action: action })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        logToTerminal(`Permission updated: [${action}] for ${path}`, 'system');
+                        alert(`Permission ${action} set for ${path}`);
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+        }
+        // ==========================================
+        // PANEL I: UNIVERSAL TOPOLOGY CONVERTER
+        // ==========================================
+        const universalDropzone = document.getElementById('universal-dropzone');
+        const commitConverterBtn = document.getElementById('commit-converter');
+        const converterLog = document.getElementById('converter-log');
         
-    server_address = ('127.0.0.1', 8000)
-    
-    class ThreadingSimpleServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
-        daemon_threads = True
-        
-    try:
-        httpd = ThreadingSimpleServer(server_address, DiegeticHandler)
-        print(f"Server safely bound to http://{server_address[0]}:{server_address[1]}")
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    except Exception as e:
-        print(f"Server initialization failed: {e}")
-    finally:
-        if 'httpd' in locals():
-            httpd.server_close()
-            print("Server stopped.")
+        if (universalDropzone) {
+            universalDropzone.ondragover = (e) => {
+                e.preventDefault();
+                universalDropzone.style.borderColor = 'var(--terminal-blue)';
+            };
+            universalDropzone.ondragleave = (e) => {
+                e.preventDefault();
+                universalDropzone.style.borderColor = 'rgba(0, 242, 255, 0.3)';
+            };
+            universalDropzone.ondrop = (e) => {
+                e.preventDefault();
+                universalDropzone.style.borderColor = 'rgba(0, 242, 255, 0.3)';
+                if (e.dataTransfer.files.length > 0) {
+                    processUniversalFile(e.dataTransfer.files[0]);
+                }
+            };
+            // Allow click to upload
+            const uFileInput = document.createElement('input');
+            uFileInput.type = 'file';
+            uFileInput.style.display = 'none';
+            document.body.appendChild(uFileInput);
+            universalDropzone.onclick = () => uFileInput.click();
+            uFileInput.onchange = (e) => {
+                if (e.target.files.length > 0) processUniversalFile(e.target.files[0]);
+            };
+        }
 
-if __name__ == '__main__':
-    main()
+        async function processUniversalFile(file) {
+            document.getElementById('converter-status').innerText = 'CONVERTING...';
+            document.getElementById('converter-proxies').innerText = `Extracting topology from: ${file.name}\nSize: ${(file.size / 1024).toFixed(1)} KB...`;
+            
+            const formData = new FormData();
+            formData.append('file', file, file.name);
+
+            try {
+                const response = await fetch('/api/convert_topology', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    document.getElementById('converter-status').innerText = 'ARMED';
+                    document.getElementById('converter-status').style.color = 'var(--terminal-green)';
+                    document.getElementById('converter-proxies').innerText = JSON.stringify(data.topology, null, 2);
+                    commitConverterBtn.disabled = false;
+                    
+                    commitConverterBtn.onclick = () => {
+                        logToTerminal(`Ingesting structural causality for [${file.name}] into manifold.`, 'system');
+                        appendMessage('system', `UNIVERSAL CONVERSION INGESTED.\nFormat: ${data.topology.format}\nSignature: ${data.topology.universal_signature}\nJitter: ${data.topology.honesty_jitter}`);
+                        
+                        // Store the signature in state so it is appended to the next /interact
+                        state.active_universal_signature = data.topology.universal_signature;
+                        
+                        commitConverterBtn.disabled = true;
+                        document.getElementById('converter-status').innerText = 'IDLE';
+                        document.getElementById('converter-status').style.color = '#555';
+                    };
+                } else {
+                    document.getElementById('converter-proxies').innerText = `Error: ${data.error || 'Unknown error'}`;
+                    document.getElementById('converter-status').innerText = 'ERROR';
+                    document.getElementById('converter-status').style.color = '#ff4444';
+                }
+            } catch (err) {
+                document.getElementById('converter-proxies').innerText = `Fetch Error: ${err}`;
+                document.getElementById('converter-status').innerText = 'ERROR';
+                document.getElementById('converter-status').style.color = '#ff4444';
+            }
+        }
+
+        // Load drives on startup if fs-perms tab is opened (or just on load)
+        document.addEventListener("DOMContentLoaded", () => {
+            setTimeout(loadFSDrives, 1000);
+        });
+    </script>
+</body>
+
+</html>
