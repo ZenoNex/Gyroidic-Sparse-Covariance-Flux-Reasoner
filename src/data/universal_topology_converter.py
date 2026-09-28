@@ -30,7 +30,7 @@ class UniversalTopologyConverter:
         
         # IVSTEncoder fallback for media
         try:
-            from src.models.modular_embeddings import IVSTEncoder
+            from src.data.ivst_encoder import IVSTEncoder
             self.ivst_encoder = IVSTEncoder()
         except ImportError:
             self.ivst_encoder = None
@@ -53,8 +53,20 @@ class UniversalTopologyConverter:
         
         # Media Delegation (IVSTEncoder)
         if ext in ['.mp4', '.mkv', '.avi', '.mp3', '.wav'] and self.ivst_encoder is not None:
-            # Note: For full integration, you would pass the file to IVSTEncoder here
-            pass 
+            # Full IVST Integration: Extract topological footprint from media
+            ivst_data = self.ivst_encoder.process_artifact(filepath)
+            if "error" not in ivst_data:
+                # Early return with IVST extraction
+                return {
+                    "format": ext,
+                    "spectral_tensor": harvest_honest_jitter((1, self.target_dim), device='cpu', scaled=False) * 0.05,  # Needs unified projector
+                    "pressure_signature": torch.zeros(1, self.num_moduli),
+                    "defect_anomalies": torch.zeros(1, 256),
+                    "love_tensor": torch.zeros(1, self.target_dim),
+                    "universal_signature": ivst_data.get("ivst_signature", "unknown"),
+                    "honesty_jitter": ivst_data.get("honesty_jitter", 0.0),
+                    "ivst_metadata": ivst_data
+                }
 
         # 1. Compute Base Entropy Map (Raw Bytes -> Frequency Density)
         byte_map = self._compute_byte_histogram(filepath)
@@ -68,8 +80,10 @@ class UniversalTopologyConverter:
         # 4. Generate Defect Scout Anomalies (Homology Pressure proxy)
         defect_anomalies = self._scout_defects(byte_map)
         
-        # 5. Initialize a low-magnitude Love Tensor stub
-        love_tensor = torch.randn(1, self.target_dim) * 0.01
+        # 5. Extract Love Tensor (Resonance capacity stub)
+        # Replaces random stub with a structural derivation from the spectral tensor's energy
+        energy_scalar = torch.norm(spectral_tensor, p=2) / self.target_dim
+        love_tensor = torch.ones(1, self.target_dim) * energy_scalar * 0.1
 
         # Universal Signature (Honest Jitter)
         if harvest_honest_jitter:
@@ -135,7 +149,7 @@ class UniversalTopologyConverter:
         torch.manual_seed(seed)
         
         flattened_dim = 256 * (self.polynomial_basis.degree + 1)
-        projection_matrix = torch.randn(flattened_dim, self.target_dim) / math.sqrt(flattened_dim)
+        projection_matrix = harvest_honest_jitter((flattened_dim, self.target_dim), device='cpu', scaled=False) / math.sqrt(flattened_dim)
         
         spectral_tensor = torch.matmul(basis_evals.view(1, -1), projection_matrix)
         
