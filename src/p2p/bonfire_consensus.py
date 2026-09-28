@@ -22,6 +22,11 @@ class BonfireNomadicRing:
         # Kelly Consensus state
         self.peer_allocations: Dict[str, float] = {}
         
+        # ZK CRT Integration
+        from src.p2p.zk_aggregator import ZKAggregator
+        self.zk_aggregator = ZKAggregator()
+        self.pending_crt_channels: Dict[int, torch.Tensor] = {}
+        
         # Bind the Freenet subscription
         self.freenet.subscribe(self.contract_id, self._handle_network_update)
         self.freenet.subscribe("agent_smith_ring", self._handle_agent_smith_update)
@@ -37,6 +42,19 @@ class BonfireNomadicRing:
         if peer_id != "unknown":
             self.peer_allocations[peer_id] = k_frac
             logger.debug(f"[BONFIRE] Received Kelly fraction {k_frac} from {peer_id}")
+
+        # ZK CRT Integration: receive processed residue channel
+        crt_residue = state_update.get("crt_residue")
+        zk_proof = state_update.get("zk_proof")
+        channel_id = state_update.get("channel_id")
+        
+        if crt_residue is not None and zk_proof is not None and channel_id is not None:
+            # Cryptographically verify the foreign channel
+            if self.zk_aggregator.verify_proof(f"crt_channel_{channel_id}", zk_proof):
+                logger.info(f"[BONFIRE] Verified CRT Channel {channel_id} from {peer_id}")
+                self.pending_crt_channels[channel_id] = torch.tensor(crt_residue)
+            else:
+                logger.warning(f"[BONFIRE] Rejected corrupted CRT Channel {channel_id} from {peer_id}")
 
     def _handle_agent_smith_update(self, state_update: Dict):
         """Callback for incoming Agent Smith payloads (Base64 encoded)."""
@@ -82,6 +100,21 @@ class BonfireNomadicRing:
             logger.info(f"[BONFIRE] Broadcasted Agent Smith payload ({len(payload_b64)} bytes)")
         except Exception as e:
             logger.error(f"[BONFIRE] Error broadcasting Agent Smith: {e}")
+
+    def broadcast_crt_residues(self, local_peer_id: str, channels: Dict[int, torch.Tensor]):
+        """
+        Distribute CRT polynomial tasks to peers based on available Kelly Allocation.
+        """
+        for channel_id, tensor_data in channels.items():
+            payload = {
+                "peer_id": local_peer_id,
+                "channel_id": channel_id,
+                "crt_residue": tensor_data.tolist(),
+                # In a full system, we generate actual proofs here
+                "zk_proof": {"publicSignals": ["1"]}
+            }
+            self.freenet.publish("crt_federation_ring", payload)
+            logger.debug(f"[BONFIRE] Broadcasted CRT task for channel {channel_id}")
 
     def compute_egalitarian_consensus(self, engine_meta_state: torch.Tensor = None) -> float:
         """
