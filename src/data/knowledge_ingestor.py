@@ -223,12 +223,8 @@ class ArXivSovereignIngestor:
         # 3. Standalone/Headless Fallback: generate a deterministic category/content key signature
         if seed_state is None:
             try:
-                import hashlib
-                h = hashlib.sha256(content_key.encode('utf-8')).digest()
-                seed_val = int.from_bytes(h[:4], byteorder='big')
-                g = torch.Generator(device=self.device)
-                g.manual_seed(seed_val)
-                seed_state = torch.randn(self.engine_dim, device=self.device, generator=g)
+                from src.core.honest_jitter import harvest_honest_jitter
+                seed_state = harvest_honest_jitter((self.engine_dim,), device=self.device, scaled=False)
                 seed_state = seed_state / (seed_state.norm() + 1e-8)
             except Exception as e:
                 print(f"[INGEST] Failed to generate deterministic pseudo-seed: {e}")
@@ -330,12 +326,8 @@ class ArXivSovereignIngestor:
 
     def _get_category_signature(self, name: str) -> torch.Tensor:
         """Generates a deterministic, category-specific archetype signature vector in engine space."""
-        import hashlib
-        h = hashlib.sha256(name.encode('utf-8')).digest()
-        seed = int.from_bytes(h[:4], byteorder='big')
-        g = torch.Generator(device=self.device)
-        g.manual_seed(seed)
-        v = torch.randn(self.engine_dim, device=self.device, generator=g)
+        from src.core.honest_jitter import harvest_honest_jitter
+        v = harvest_honest_jitter((self.engine_dim,), device=self.device, scaled=False)
         return v / (torch.norm(v) + 1e-8)
 
     def ingest_arxiv_by_query(self, query_str: str, commutativity: str = 'symmetric'):
