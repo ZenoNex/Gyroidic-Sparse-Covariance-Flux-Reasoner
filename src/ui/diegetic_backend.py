@@ -1737,7 +1737,8 @@ class DiegeticPhysicsEngine(nn.Module):
         voynich_token: Optional[Any] = None,
         performance_buffered: bool = False,
         tag_weights: Optional[Dict[str, float]] = None,
-        user_alias: Optional[str] = None
+        user_alias: Optional[str] = None,
+        universal_topology: Optional[Dict[str, Any]] = None
     ) -> dict:
         """
         Process user text, update cavity, and generate emergent response via Fractal Recursion.
