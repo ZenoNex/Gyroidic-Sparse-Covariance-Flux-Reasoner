@@ -448,8 +448,6 @@ class HybridAI:
         from src.core.bulletin_board import BulletinBoard
         from src.data.freenet_bulletin_router import FreenetBulletinRouter
         self.bulletin_board = BulletinBoard(size=256, device=self.torch_device)
-        self.bulletin_board = BulletinBoard(size=256, device=self.torch_device)
-        self.freenet_router = FreenetBulletinRouter()
         
         # --- PHASE 2 REINTEGRATION ---
         try:
@@ -458,13 +456,16 @@ class HybridAI:
             from src.p2p.zk_aggregator import ZKAggregator
             
             self.p2p_ws_client = FreenetClient()
-            # self.p2p_ws_client.start() # Start async loop (disabled by default to prevent port conflicts, but wired)
+            self.p2p_ws_client.start() # Start async loop (disabled by default to prevent port conflicts, but wired)
             
             self.zk_aggregator = ZKAggregator()
             self.bonfire_ring = BonfireNomadicRing(freenet_client=self.p2p_ws_client)
             print("[OK] P2P Nomadic Ring (Bonfire + ZK) instantiated.")
         except Exception as e:
             print(f"[FAIL] P2P Nomadic Ring initialization failed: {e}")
+            self.p2p_ws_client = None
+            
+        self.freenet_router = FreenetBulletinRouter(freenet_client=getattr(self, 'p2p_ws_client', None))
         # -----------------------------
 
         
@@ -772,7 +773,7 @@ class HybridAI:
         # FREENET GHOST CALLER INTEGRATION
         try:
             from src.data.freenet_ghost_caller import FreenetGhostCaller
-            self.ghost_caller = FreenetGhostCaller(host='127.0.0.1', port=7509)
+            self.ghost_caller = FreenetGhostCaller(host='127.0.0.1', port=7509, freenet_client=getattr(self, 'p2p_ws_client', None))
             self.ghost_caller.broadcast_ghost_call()
             print("[OK] Freenet Ghost Caller initialized and introductory call dispatched")
         except Exception as e:
@@ -784,7 +785,7 @@ class HybridAI:
             from src.core.non_dual_coin import TripsodicLedger
             from src.data.freenet_bulletin_router import FreenetBulletinRouter
             self.tripsodic_ledger = TripsodicLedger()
-            self.bulletin_router = FreenetBulletinRouter()
+            self.bulletin_router = FreenetBulletinRouter(freenet_client=getattr(self, 'p2p_ws_client', None))
             print("[OK] Non-Dual Coin ledger and Bulletin Router initialized.")
         except Exception as e:
             print(f"[FAIL] Non-Dual Coin init failed: {e}")
