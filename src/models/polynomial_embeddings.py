@@ -55,7 +55,7 @@ class PolynomialFunctionalEmbedder(nn.Module):
         
         self.config = poly_config
         self.K = poly_config.k
-        self.D = hidden_dim // self.K # JEPA structural dimension
+        self.D = poly_config.degree + 1
         self.use_text = use_text
         self.use_graph = use_graph
         self.use_num = use_num
@@ -86,6 +86,9 @@ class PolynomialFunctionalEmbedder(nn.Module):
         self.coeff_heads = nn.ModuleList([
             nn.Linear(hidden_dim, self.D) for _ in range(self.K)
         ])
+        
+        # Bimodal Routing (evolutionary genome selection)
+        self.register_buffer('bimodal_genome', torch.randint(0, 2, (self.K,)))
         
         # Learned Primitive Perturbation (Phase 6 optimization)
         # Allows adaptive quantization grid deformation
@@ -161,18 +164,20 @@ class PolynomialFunctionalEmbedder(nn.Module):
         
         for k, head in enumerate(self.coeff_heads):
             logits_k = head(h)  # [batch, D]
-            # Instead of token-softmax, we use structural activation
-            res_k = torch.tanh(logits_k)  # [batch, D]
+            
+            # Bimodal routing (evolutionary genome selection)
+            if hasattr(self, 'bimodal_genome') and self.bimodal_genome[k] == 1 and self.use_saturation and hasattr(self.config, 'saturation_gate'):
+                # Hard mode (saturation)
+                res_k = self.config.saturation_gate(logits_k)
+            else:
+                # Soft mode
+                res_k = torch.tanh(logits_k)
             
             coeff_logits.append(logits_k)
             residues.append(res_k)
         
         # Stack into tensor: [batch, K, D] (where D is Dim // K)
         residue_distributions = torch.stack(residues, dim=1)
-        
-        # Apply saturation if enabled (Directly on initial predicted residues)
-        if self.use_saturation and hasattr(self.config, 'saturation_gate'):
-            residue_distributions = self.config.saturation_gate(residue_distributions)
         
         # Quantize to Fixed Point Operational Primitive
         # "Floating-point arithmetic introduces nondeterminism"
@@ -263,5 +268,3 @@ class PolynomialFunctionalEmbedder(nn.Module):
         return adapted_embedder
 
 
-
-from src.models.modular_embeddings import SimpleTextEncoder, SimpleGraphEncoder
