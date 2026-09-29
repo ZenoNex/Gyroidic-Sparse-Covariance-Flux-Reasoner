@@ -27,7 +27,28 @@ def get_freenet_udp_port() -> int:
                 except (psutil.AccessDenied, psutil.NoSuchProcess):
                     continue
     except ImportError:
-        logger.warning("[FREENET] psutil not installed, cannot auto-detect UDP port.")
+        pass
+    
+    # PowerShell fallback
+    import sys
+    if sys.platform == 'win32':
+        import subprocess
+        try:
+            ps_cmd = (
+                "Get-NetUDPEndpoint | Where-Object { $_.LocalAddress -eq '127.0.0.1' -or $_.LocalAddress -eq '::1' } | "
+                "Select-Object LocalPort, OwningProcess | ForEach-Object { "
+                "$proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; "
+                "if ($proc.Name -match 'java|locutus|freenet|wrapper') { $_.LocalPort } }"
+            )
+            output = subprocess.check_output(["powershell", "-Command", ps_cmd], text=True).strip()
+            if output:
+                ports = [int(p.strip()) for p in output.splitlines() if p.strip().isdigit()]
+                if ports:
+                    return ports[0]
+        except Exception as e:
+            logger.warning(f"[FREENET] PowerShell UDP port discovery failed: {e}")
+            
+    logger.warning("[FREENET] Could not auto-detect UDP port.")
     return None
 
 def get_freenet_tcp_port() -> int:
@@ -36,9 +57,9 @@ def get_freenet_tcp_port() -> int:
     It looks for 'LISTEN' state connections belonging to Locutus processes.
     Returns the port number if found, otherwise returns None.
     """
+    candidate_ports = []
     try:
         import psutil
-        candidate_ports = []
         for proc in psutil.process_iter(['name', 'pid']):
             name = proc.info.get('name', '')
             if name and ('java' in name.lower() or 'wrapper' in name.lower() or 'locutus' in name.lower() or 'freenet' in name.lower()):
@@ -49,13 +70,31 @@ def get_freenet_tcp_port() -> int:
                                 candidate_ports.append(conn.laddr.port)
                 except (psutil.AccessDenied, psutil.NoSuchProcess):
                     continue
-        
-        # If multiple TCP ports are found, we prefer the one closest to 3000 (typical WS port)
-        if candidate_ports:
-            return min(candidate_ports, key=lambda p: abs(p - 3000))
-
     except ImportError:
-        logger.warning("[FREENET] psutil not installed, cannot auto-detect TCP port.")
+        pass
+
+    # PowerShell fallback
+    import sys
+    if not candidate_ports and sys.platform == 'win32':
+        import subprocess
+        try:
+            ps_cmd = (
+                "Get-NetTCPConnection | Where-Object { $_.State -eq 'Listen' -and ($_.LocalAddress -eq '127.0.0.1' -or $_.LocalAddress -eq '::1') } | "
+                "Select-Object LocalPort, OwningProcess | ForEach-Object { "
+                "$proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; "
+                "if ($proc.Name -match 'java|locutus|freenet|wrapper') { $_.LocalPort } }"
+            )
+            output = subprocess.check_output(["powershell", "-Command", ps_cmd], text=True).strip()
+            if output:
+                ps_ports = [int(p.strip()) for p in output.splitlines() if p.strip().isdigit()]
+                candidate_ports.extend(ps_ports)
+        except Exception as e:
+            logger.warning(f"[FREENET] PowerShell TCP port discovery failed: {e}")
+
+    if candidate_ports:
+        return min(candidate_ports, key=lambda p: abs(p - 3000))
+        
+    logger.warning("[FREENET] Could not auto-detect TCP port.")
     return None
 
 class FreenetClient:
