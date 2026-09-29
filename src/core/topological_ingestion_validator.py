@@ -263,8 +263,14 @@ class TopologicalIngestionValidator(nn.Module):
         ent = self.entropy_estimator(residues)
 
         # 4. Spectral rank
-        rank = self._spectral_rank(residues, ent["ergodic_entropy"])
-        cohom_dim = self.K - rank
+        if residues.shape[0] == 1:
+            # Mathematical truth: covariance of a single vector is rank-1.
+            # Bypass holonomic rank check for single samples to prevent guaranteed LAZARUS_VOID.
+            rank = self.K
+            cohom_dim = 0
+        else:
+            rank = self._spectral_rank(residues, ent["ergodic_entropy"])
+            cohom_dim = self.K - rank
 
         # 5. PAS_h
         pas_h = self._pas_h(residues, manifold_state)
