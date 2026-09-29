@@ -66,13 +66,15 @@ class TextbookFilter:
             "clarity": result["holonomic_rank"] > 0,  # Non-zero rank = not pure noise
         }
 
-        return QualityReport(
+        report = QualityReport(
             text=text,
             source=source,
             dimension_gates=dimension_gates,
             admissible=all(dimension_gates.values()),
             topological_details=result,
         )
+        report.flags = [k for k, v in dimension_gates.items() if not v]
+        return report
 
     def filter_batch(self, texts: List[str], source: str = '') -> List[Dict]:
         """Batch filtering. Interface unchanged."""
