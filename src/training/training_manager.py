@@ -132,6 +132,20 @@ class TrainingManager:
                     
                     # Gyroid Pressure: Stress on the manifold
                     gyroid_pressure = max(0, 1.0 - pas_h) * 5.0
+
+                    # --- RE-HYBRIDIZATION: Situational Batching (Pusafiliacrimonto Dynamics) ---
+                    if hasattr(self.ai_system, 'situational_sampler'):
+                        sampler_iter = iter(self.ai_system.situational_sampler)
+                        try:
+                            situational_batch = next(sampler_iter)
+                            # Update relational scars based on gyroid pressure and mischief (jitter)
+                            pressure_tensor = torch.tensor([gyroid_pressure], device=self.ai_system.device)
+                            mischief_tensor = torch.tensor([abs(jitter)], device=self.ai_system.device)
+                            self.ai_system.situational_sampler.update_pusafiliacrimonto(
+                                situational_batch, pressure_tensor, mischief_tensor
+                            )
+                        except StopIteration:
+                            pass
                     
                     # Log significant events (Diegetic)
                     if batch == 5:
