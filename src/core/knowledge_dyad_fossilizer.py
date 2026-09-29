@@ -218,6 +218,7 @@ class DyadFossilizer:
         
         # Threading event to ensure no fossilization occurs before the index is fully ready
         self._index_ready = threading.Event()
+        self._save_lock = threading.Lock()
         
         # Topological Derivation Engines (Non-Lazy Implication Binding)
         self.homology_engine = SpeculativeHomologyEngine(feature_dim=feature_dim)
@@ -352,15 +353,24 @@ class DyadFossilizer:
                 except RuntimeError:
                     import time
                     time.sleep(0.01)
-            with open(self.index_file, "w", encoding="utf-8") as f:
-                json.dump(index_snapshot, f)
+            with self._save_lock:
+                with open(self.index_file, "w", encoding="utf-8") as f:
+                    json.dump(index_snapshot, f)
         except Exception as e:
             print(f"[FOSSILIZER] Saving fast index failed: {e}")
 
     def get_all_arxiv_ids(self) -> set:
         """Returns the set of all indexed ArXiv IDs."""
         ids = set()
-        for f, info in list(self.fossil_index.items()):
+        index_snapshot = {}
+        for _ in range(10):
+            try:
+                index_snapshot = dict(self.fossil_index)
+                break
+            except RuntimeError:
+                import time
+                time.sleep(0.01)
+        for f, info in index_snapshot.items():
             a_id = info.get('arxiv_id')
             if a_id:
                 ids.add(a_id)
@@ -703,13 +713,19 @@ class DyadFossilizer:
         filepath = os.path.join(self.storage_dir, filename)
         try:
             if os.path.exists(filepath):
-                os.remove(filepath)
+                try:
+                    os.remove(filepath)
+                except FileNotFoundError:
+                    pass
+                except PermissionError:
+                    print(f"[FOSSILIZER] Budget cleanup skipped {filename}: Access Denied (File in use)")
             if filename in self.fossil_index:
                 if self.fossil_index[filename].get('prompt_hash') in self.fossilized_hashes:
                     self.fossilized_hashes.remove(self.fossil_index[filename]['prompt_hash'])
                 del self.fossil_index[filename]
         except Exception as e:
-            print(f"[FOSSILIZER] Budget cleanup failed for {filename}: {e}")
+            if not isinstance(e, KeyError):
+                print(f"[FOSSILIZER] Budget cleanup failed for {filename}: {e}")
         self._save_index()
         
     def ouroboros_shadow_loop(self, 
