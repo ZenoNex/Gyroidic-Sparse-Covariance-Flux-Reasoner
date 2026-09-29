@@ -125,14 +125,14 @@ class GyroidicGraphManager:
                     # DEDUPLICATION: Avoid showing essentially identical nodes
                     # POLICY: If text is novel, we allow very high embedding similarity.
                     is_redundant = False
-                    current_text = data.get('text_input', '')
+                    current_text = str(data.get('text_input', ''))
                     
                     if existing_norms.shape[0] > 0:
                         e_norm = embedding / (torch.norm(embedding) + 1e-8)
                         sims = torch.mv(existing_norms.to(e_norm.device), e_norm)
                         
-                        # Check text matches
-                        identical_text_mask = torch.tensor([t == current_text for t in existing_texts], device=embedding.device)
+                        # Check text matches safely
+                        identical_text_mask = torch.tensor([str(t) == current_text for t in existing_texts], dtype=torch.bool, device=embedding.device)
                         
                         if torch.any((sims > 0.99) & identical_text_mask):
                             is_redundant = True
