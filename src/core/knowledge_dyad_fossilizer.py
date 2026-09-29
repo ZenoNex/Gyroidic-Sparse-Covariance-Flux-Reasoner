@@ -344,7 +344,7 @@ class DyadFossilizer:
             print(f"[FOSSILIZER] Rebuilding index failed: {e}")
 
     def _save_index(self):
-        """Saves current fast index to disk safely using a snapshot dictionary."""
+        """Saves current fast index to disk safely using an atomic write."""
         try:
             while True:
                 try:
@@ -354,8 +354,10 @@ class DyadFossilizer:
                     import time
                     time.sleep(0.01)
             with self._save_lock:
-                with open(self.index_file, "w", encoding="utf-8") as f:
+                tmp_file = self.index_file + ".tmp"
+                with open(tmp_file, "w", encoding="utf-8") as f:
                     json.dump(index_snapshot, f)
+                os.replace(tmp_file, self.index_file)
         except Exception as e:
             print(f"[FOSSILIZER] Saving fast index failed: {e}")
 
