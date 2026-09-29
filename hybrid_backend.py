@@ -505,11 +505,13 @@ class HybridAI:
                 from src.core.garden_statistical_attractors import InfluenceAttractor, ResonanceAttractor
                 from src.core.ley_line_tracker import LeyLineTracker
                 from src.core.invariant_optimization import LexicographicalOrderingDispatcher
+                from src.core.situational_batching import SituationalBatchSampler
                 
                 self.influence_attractor = InfluenceAttractor(num_attractors=16, feature_dim=256, device=self.torch_device)
                 self.resonance_attractor = ResonanceAttractor(num_modes=8, base_frequency=1.0, device=self.torch_device)
                 self.ley_line_tracker = LeyLineTracker(num_samples=256, alpha=1.0, beta=0.5, gamma=0.2, device=self.torch_device)
                 self.lex_dispatcher = LexicographicalOrderingDispatcher(eps=1e-5)
+                self.situational_sampler = SituationalBatchSampler(num_samples=256, batch_size=4, device=self.torch_device)
                 # -----------------------------
                 
                 print("[OK] Advanced AI components initialized (including Phase 1 Topologicals)")
@@ -2952,8 +2954,11 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
 def start_server(port):
     """Start a server on a specific port."""
     try:
-        with socketserver.TCPServer(("", port), HybridHandler) as httpd:
-            print(f"[OK] Hybrid backend running at http://localhost:{port}")
+        class ReusableThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+            allow_reuse_address = True
+            
+        with ReusableThreadedTCPServer(("127.0.0.1", port), HybridHandler) as httpd:
+            print(f"[OK] Hybrid backend running at http://127.0.0.1:{port}")
             httpd.serve_forever()
     except Exception as e:
         print(f"[FAIL] Server error on port {port}: {e}")
@@ -3057,6 +3062,20 @@ def main():
                 print(f"[OK] {message}", flush=True)
             except Exception as e:
                 print(f"[FAIL] Emergency save failed: {e}", flush=True)
+                
+            # Gracefully close background processes
+            print("[SHUTDOWN] Closing background processes and releasing ports...", flush=True)
+            try:
+                if getattr(AI_SYSTEM, 'p2p_ws_client', None):
+                    AI_SYSTEM.p2p_ws_client.stop()
+                if getattr(AI_SYSTEM, 'ghost_caller', None) and hasattr(AI_SYSTEM.ghost_caller, 'stop'):
+                    AI_SYSTEM.ghost_caller.stop()
+                if getattr(AI_SYSTEM, 'training_manager', None) and hasattr(AI_SYSTEM.training_manager, 'stop_training'):
+                    AI_SYSTEM.training_manager.stop_training()
+                if getattr(AI_SYSTEM, 'dataset_system', None) and hasattr(AI_SYSTEM.dataset_system, 'stop'):
+                    AI_SYSTEM.dataset_system.stop()
+            except Exception as e:
+                print(f"[WARN] Failed during backend process shutdown: {e}", flush=True)
         else:
             print("[WARN] AI_SYSTEM not initialized; bypassing fossilization.", flush=True)
             
@@ -3071,8 +3090,9 @@ def main():
             pyarrow.fs.finalize_s3()
         except Exception:
             pass
-        # Restore signal handler before exit if needed (though os._exit is coming)
-        os._exit(0)
+        # Execute normal sys.exit to allow proper threading cleanups instead of os._exit hard kill
+        import sys
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
