@@ -60,7 +60,8 @@ class FreenetClient:
                         except asyncio.TimeoutError:
                             continue
             except Exception as e:
-                logger.error(f"[FREENET] Failed to connect or lost connection: {e}")
+                # Freenet node is often not running, avoid spamming terminal.
+                logger.debug(f"[FREENET] Failed to connect or lost connection: {e}")
             finally:
                 self.ws = None
             
