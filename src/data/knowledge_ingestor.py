@@ -88,8 +88,22 @@ class ArXivSovereignIngestor:
     def _load_fossilized_arxiv_ids(self):
         """Builds a set of already fossilized arxiv_ids from the fast index."""
         try:
-            if self.fossilizer is not None and hasattr(self.fossilizer, 'fossil_index'):
-                for f, info in self.fossilizer.fossil_index.items():
+            if self.fossilizer is not None and hasattr(self.fossilizer, 'get_all_arxiv_ids'):
+                raw_ids = self.fossilizer.get_all_arxiv_ids()
+                for a_id in raw_ids:
+                    self.fossilized_arxiv_ids.add(self._clean_arxiv_id(a_id))
+            elif self.fossilizer is not None and hasattr(self.fossilizer, 'fossil_index'):
+                import time
+                index_copy = {}
+                # Handle concurrent modification by the fast index background builder
+                for _ in range(10):
+                    try:
+                        index_copy = dict(self.fossilizer.fossil_index)
+                        break
+                    except RuntimeError:
+                        time.sleep(0.05)
+                
+                for f, info in index_copy.items():
                     arxiv_id = info.get('arxiv_id')
                     if arxiv_id:
                         self.fossilized_arxiv_ids.add(self._clean_arxiv_id(arxiv_id))
@@ -417,7 +431,7 @@ class ArXivSovereignIngestor:
                 dyad = KnowledgeDyad(
                     image_fingerprint=multimodal_fingerprint,
                     linguistic_description=title,
-                    relevance_score=float(report.instructive),
+                    relevance_score=float(report.dimension_gates.get('instructive', 0.0)),
                     unified_spectral_signature=None,
                     audio_harmonics=None,
                     metadata={
@@ -445,7 +459,7 @@ class ArXivSovereignIngestor:
                 admitted_count += 1
                 
                 media_str = f"| MEDIA: {len(img_bytes_list)}" if len(img_bytes_list) > 0 else ""
-                q_str = f"I:{report.instructive:.2f} A:{report.algorithmic:.2f} S:{report.structural_honesty:.2f} {media_str}"
+                q_str = f"I:{float(report.dimension_gates.get('instructive', 0.0)):.2f} A:{float(report.dimension_gates.get('algorithmic', 0.0)):.2f} S:{float(report.dimension_gates.get('structural_honesty', 0.0)):.2f} {media_str}"
                 print(f" [LORE] Fossilized search match for '{query}': {title[:50]}... ({q_str})")
                 
             if admitted_count > 0:
