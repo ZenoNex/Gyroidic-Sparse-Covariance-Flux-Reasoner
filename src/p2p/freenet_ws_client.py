@@ -30,6 +30,34 @@ def get_freenet_udp_port() -> int:
         logger.warning("[FREENET] psutil not installed, cannot auto-detect UDP port.")
     return None
 
+def get_freenet_tcp_port() -> int:
+    """
+    Dynamically attempts to locate the local Freenet/Locutus TCP WebSocket port.
+    It looks for 'LISTEN' state connections belonging to Locutus processes.
+    Returns the port number if found, otherwise returns None.
+    """
+    try:
+        import psutil
+        candidate_ports = []
+        for proc in psutil.process_iter(['name', 'pid']):
+            name = proc.info.get('name', '')
+            if name and ('java' in name.lower() or 'wrapper' in name.lower() or 'locutus' in name.lower() or 'freenet' in name.lower()):
+                try:
+                    for conn in proc.connections(kind='tcp'):
+                        if conn.status == 'LISTEN':
+                            if conn.laddr and conn.laddr.port > 0:
+                                candidate_ports.append(conn.laddr.port)
+                except (psutil.AccessDenied, psutil.NoSuchProcess):
+                    continue
+        
+        # If multiple TCP ports are found, we prefer the one closest to 3000 (typical WS port)
+        if candidate_ports:
+            return min(candidate_ports, key=lambda p: abs(p - 3000))
+
+    except ImportError:
+        logger.warning("[FREENET] psutil not installed, cannot auto-detect TCP port.")
+    return None
+
 class FreenetClient:
     """
     WebSocket client to connect to a local Freenet Core (Locutus) daemon.
@@ -38,7 +66,15 @@ class FreenetClient:
     def __init__(self, host: str = "127.0.0.1", port: int = None):
         import os
         if port is None:
-            port = int(os.environ.get("FREENET_WS_PORT", 3000))
+            # 1. Check environment variable
+            env_port = os.environ.get("FREENET_WS_PORT")
+            if env_port is not None:
+                port = int(env_port)
+            else:
+                # 2. Dynamically auto-detect TCP port via psutil/OS polling
+                auto_port = get_freenet_tcp_port()
+                port = auto_port if auto_port else 3000
+                
         self.uri = f"ws://{host}:{port}/"
         self.ws = None
         self.running = False
