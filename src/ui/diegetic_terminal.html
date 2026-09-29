@@ -1495,14 +1495,19 @@
 
                     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                         <!-- Dropzone for any file -->
-                        <div id="universal-dropzone" style="width: 100%; height: 90px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; position: relative;">
+                        <div id="universal-dropzone"
+                            style="width: 100%; height: 90px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; position: relative;">
                             <div style="font-size: 1.4rem; color: #00f2ff;">⛬</div>
-                            <div style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">DROP ARBITRARY FILE<br>(OBJ, PDF, MP4, etc.)</div>
+                            <div
+                                style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">
+                                DROP ARBITRARY FILE<br>(OBJ, PDF, MP4, etc.)</div>
                         </div>
-                        
+
                         <div class="metric-card" style="margin-bottom: 0px;">
                             <div class="metric-label">Topological Proxies</div>
-                            <div id="converter-proxies" style="font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; white-space: pre-wrap; overflow-wrap: break-word;">Awaiting extraction...</div>
+                            <div id="converter-proxies"
+                                style="font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; white-space: pre-wrap; overflow-wrap: break-word;">
+                                Awaiting extraction...</div>
                         </div>
 
                         <button id="commit-converter"
@@ -1811,14 +1816,12 @@
 
                 populateLinkDropdowns(data.nodes, Array.from(seenTags));
 
-                // Initialize ForceGraph3D with High-Performance WebGL Configuration
+                // Initialize ForceGraph3D
                 if (window.Graph) {
                     // if it already exists, just update data
                     window.Graph.graphData(gData);
                 } else {
-                    window.Graph = ForceGraph3D({
-                        rendererConfig: { powerPreference: "high-performance", antialias: false, alpha: false }
-                    })(container)
+                    window.Graph = ForceGraph3D()(container)
                         .backgroundColor('#030303')
                         .nodeId('id')
                         .nodeLabel(node => {
@@ -3860,7 +3863,7 @@
         const universalDropzone = document.getElementById('universal-dropzone');
         const commitConverterBtn = document.getElementById('commit-converter');
         const converterLog = document.getElementById('converter-log');
-        
+
         if (universalDropzone) {
             universalDropzone.ondragover = (e) => {
                 e.preventDefault();
@@ -3891,7 +3894,7 @@
         async function processUniversalFile(file) {
             document.getElementById('converter-status').innerText = 'CONVERTING...';
             document.getElementById('converter-proxies').innerText = `Extracting topology from: ${file.name}\nSize: ${(file.size / 1024).toFixed(1)} KB...`;
-            
+
             const formData = new FormData();
             formData.append('file', file, file.name);
 
@@ -3901,20 +3904,20 @@
                     body: formData
                 });
                 const data = await response.json();
-                
+
                 if (data.status === 'ok') {
                     document.getElementById('converter-status').innerText = 'ARMED';
                     document.getElementById('converter-status').style.color = 'var(--terminal-green)';
                     document.getElementById('converter-proxies').innerText = JSON.stringify(data.topology, null, 2);
                     commitConverterBtn.disabled = false;
-                    
+
                     commitConverterBtn.onclick = () => {
                         logToTerminal(`Ingesting structural causality for [${file.name}] into manifold.`, 'system');
                         appendMessage('system', `UNIVERSAL CONVERSION INGESTED.\nFormat: ${data.topology.format}\nSignature: ${data.topology.universal_signature}\nJitter: ${data.topology.honesty_jitter}`);
-                        
+
                         // Store the signature in state so it is appended to the next /interact
                         state.active_universal_signature = data.topology.universal_signature;
-                        
+
                         commitConverterBtn.disabled = true;
                         document.getElementById('converter-status').innerText = 'IDLE';
                         document.getElementById('converter-status').style.color = '#555';
