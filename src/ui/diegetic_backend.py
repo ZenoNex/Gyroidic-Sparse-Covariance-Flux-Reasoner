@@ -141,6 +141,7 @@ import asyncio
 
 # Graph Topology
 from src.topology.embedding_graph import GyroidicGraphManager, KnowledgeFossilNode
+from src.topology.hyper_ring_closure import HyperRingOperator, HyperRingClosureChecker
 # Pressure Ingestor for constraint forcing when code is detected
 from src.data.pressure_ingestor import PressureIngestor
 # Topological Extensions (Repunit Probes)
@@ -436,6 +437,10 @@ class DiegeticPhysicsEngine(nn.Module):
             poly_degree=4,
             device=device
         )
+        
+        # Hyper-Ring Closure Checker (Phase 4.2)
+        self.hyper_ring_operator = HyperRingOperator()
+        self.hyper_ring_checker = HyperRingClosureChecker()
         
         # Silicon Sovereignty - PyOpenCL Hardware bridge (Bridge 3)
         self.sovereignty_engine = SiliconSovereigntyEngine(
@@ -1406,30 +1411,74 @@ class DiegeticPhysicsEngine(nn.Module):
 
     def _perform_unfolding_closure_check_numeric(self, state: torch.Tensor, input_text: str, response_text: str) -> dict:
         """
-        Numeric-only Unfolding Closure check.
-        Returns numeric metrics only: closure_score, closure_threshold, closure_margin, components.
+        Hyper-Ring Closure check (Phase 4.2 integration).
+        Uses DiscreteHyperRingCirculation and HyperRingClosureChecker.
         """
         try:
             with torch.no_grad():
                 resp_tensor = self._text_to_tensor(response_text)
-                s = state / (torch.norm(state, dim=-1, keepdim=True) + 1e-8)
-                r = resp_tensor / (torch.norm(resp_tensor, dim=-1, keepdim=True) + 1e-8)
-                cos = torch.clamp(torch.sum(s * r, dim=-1), -1.0, 1.0)
-                closure_score = float((1.0 - cos).abs().mean().item())
-                closure_threshold = 0.5
+                input_tensor = self._text_to_tensor(input_text)
+                
+                # Make shapes match
+                if input_tensor.shape != state.shape:
+                    if input_tensor.numel() == state.numel():
+                        input_tensor = input_tensor.reshape(state.shape)
+                    elif input_tensor.dim() == state.dim() and input_tensor.size(-1) != state.size(-1):
+                        proj = nn.Linear(input_tensor.size(-1), state.size(-1), device=state.device)
+                        input_tensor = proj(input_tensor)
+                    else:
+                        input_tensor = F.pad(input_tensor.flatten(), (0, max(0, state.numel() - input_tensor.numel()))).reshape(state.shape)
+                if resp_tensor.shape != state.shape:
+                    if resp_tensor.numel() == state.numel():
+                        resp_tensor = resp_tensor.reshape(state.shape)
+                    elif resp_tensor.dim() == state.dim() and resp_tensor.size(-1) != state.size(-1):
+                        proj = nn.Linear(resp_tensor.size(-1), state.size(-1), device=state.device)
+                        resp_tensor = proj(resp_tensor)
+                    else:
+                        resp_tensor = F.pad(resp_tensor.flatten(), (0, max(0, state.numel() - resp_tensor.numel()))).reshape(state.shape)
+                
+                # 1. Create the hyper-ring from components
+                hyper_ring_components = self.hyper_ring_operator.create_ring_from_components(
+                    state=state,
+                    input_component=input_tensor,
+                    response_component=resp_tensor
+                )
+                
+                # 2. Compute hyper-ring operator H(r)
+                # We use the initial state as the constraint manifold
+                hyper_ring_val = self.hyper_ring_operator(
+                    residue=hyper_ring_components,
+                    constraint_manifold=state
+                )
+                
+                # 3. Check closure conditions
+                closure_results = self.hyper_ring_checker(
+                    hyper_ring=hyper_ring_val,
+                    constraint_manifold=state
+                )
+                
+                # Calculate numeric closure score (distance from closure)
+                # 0 means perfectly closed, >0 means fracture
+                closure_score = float(hyper_ring_val.norm().item())
+                closure_threshold = self.hyper_ring_checker.closure_tolerance
                 closure_margin = closure_threshold - closure_score
                 
                 return {
                     'closure_score': closure_score,
                     'closure_threshold': closure_threshold,
                     'closure_margin': closure_margin,
+                    'is_closed': closure_results['is_closed'].item() if hasattr(closure_results['is_closed'], 'item') else bool(closure_results['is_closed']),
+                    'is_trivial': closure_results['is_trivial'].item() if hasattr(closure_results['is_trivial'], 'item') else bool(closure_results['is_trivial']),
                     'components': {}
                 }
         except Exception as e:
+            print(f"[HYPER-RING ERROR] {e}")
             return {
                 'closure_score': 1.0,
                 'closure_threshold': 0.5,
                 'closure_margin': -0.5,
+                'is_closed': False,
+                'is_trivial': True,
                 'components': {}
             }
 
