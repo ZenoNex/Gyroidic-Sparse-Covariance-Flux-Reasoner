@@ -1733,7 +1733,17 @@
         async function refreshGraph() {
             const container = document.getElementById('graph-canvas-container');
             if (!container) return;
-            container.innerHTML = '<div style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:var(--terminal-blue); font-size:0.75rem; letter-spacing:1px; z-index:100;">RE-SCANNING FIELD...</div>';
+            
+            // Show loading overlay instead of wiping container
+            let loadingOverlay = document.getElementById('graph-loading-overlay');
+            if (!loadingOverlay) {
+                loadingOverlay = document.createElement('div');
+                loadingOverlay.id = 'graph-loading-overlay';
+                loadingOverlay.style.cssText = 'position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:var(--terminal-blue); font-size:0.75rem; letter-spacing:1px; z-index:100; pointer-events: none; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px;';
+                container.appendChild(loadingOverlay);
+            }
+            loadingOverlay.innerText = 'RE-SCANNING FIELD...';
+            loadingOverlay.style.display = 'block';
 
             const limitEl = document.getElementById('graph-limit');
             const includeTagsEl = document.getElementById('graph-include-tags');
@@ -1750,7 +1760,7 @@
                 const data = await response.json();
                 graphDataGlobal = data;
 
-                container.innerHTML = '';
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
 
                 // Build GraphData object
                 const gData = {
