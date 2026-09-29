@@ -422,6 +422,8 @@ class GyroidicGraphManager:
         for n in self.nodes:
             if "ghost" in n.node_id.lower() or "live_damage" in n.node_id.lower():
                 continue
+            if n.node_id in valid_node_ids:
+                continue
             valid_node_ids.add(n.node_id)
             px, py = self.compute_poincare_projection(n.state)
             nodes_data.append({
