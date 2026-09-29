@@ -92,8 +92,10 @@ class GyroidicGraphManager:
             if self.nodes:
                 existing_states = torch.stack([n.state for n in self.nodes])
                 existing_norms = existing_states / (torch.norm(existing_states, dim=1, keepdim=True) + 1e-8)
+                existing_texts = [n.text for n in self.nodes]
             else:
                 existing_norms = torch.empty((0, self.dim))
+                existing_texts = []
 
             for f in files:
                 if len(self.nodes) >= limit: break
@@ -130,7 +132,7 @@ class GyroidicGraphManager:
                         sims = torch.mv(existing_norms.to(e_norm.device), e_norm)
                         
                         # Check text matches
-                        identical_text_mask = torch.tensor([n.text == current_text for n in self.nodes], device=embedding.device)
+                        identical_text_mask = torch.tensor([t == current_text for t in existing_texts], device=embedding.device)
                         
                         if torch.any((sims > 0.99) & identical_text_mask):
                             is_redundant = True
@@ -141,12 +143,13 @@ class GyroidicGraphManager:
                         node = KnowledgeFossilNode(
                             node_id=f,
                             state=embedding,
-                            text=data.get('text_input', ''),
+                            text=current_text,
                             metrics=data
                         )
                         self.nodes.append(node)
                         new_norm = (embedding / (torch.norm(embedding) + 1e-8)).unsqueeze(0)
                         existing_norms = torch.cat([existing_norms.to(new_norm.device), new_norm], dim=0)
+                        existing_texts.append(current_text)
                 except Exception as e:
                     print(f"Failed to load fossil {f}: {e}")
                     
