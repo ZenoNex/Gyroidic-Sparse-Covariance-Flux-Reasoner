@@ -14,6 +14,44 @@ import numpy as np
 import logging
 import math
 from typing import Tuple
+import torch
+
+def push_to_opencl(tensor: torch.Tensor, ctx: 'cl.Context') -> 'cl.Buffer':
+    """
+    Safely bridges a PyTorch CPU tensor to an OpenCL GPU buffer.
+    """
+    # 1. Enforce C-contiguous memory layout (critical for OpenCL memory mapping)
+    if not tensor.is_contiguous():
+        tensor = tensor.contiguous()
+        
+    # 2. Extract zero-copy Numpy view from the PyTorch tensor
+    np_buffer = tensor.detach().numpy()
+    
+    # 3. Bind to SiliconSovereigntyEngine context and push to GPU
+    mf = cl.mem_flags
+    cl_buf = cl.Buffer(
+        ctx, 
+        mf.READ_WRITE | mf.COPY_HOST_PTR, 
+        hostbuf=np_buffer
+    )
+    
+    return cl_buf
+
+def pull_from_opencl(queue: 'cl.CommandQueue', cl_buf: 'cl.Buffer', shape: tuple, dtype) -> torch.Tensor:
+    """
+    Reads the processed OpenCL GPU buffer back into a PyTorch CPU tensor.
+    """
+    # 1. Allocate an empty CPU tensor to receive the data
+    out_tensor = torch.empty(shape, dtype=dtype, device="cpu")
+    
+    # 2. Get the zero-copy Numpy view of the empty tensor
+    out_np = out_tensor.numpy()
+    
+    # 3. Enqueue the read from GPU directly into the tensor's memory
+    cl.enqueue_copy(queue, out_np, cl_buf).wait()
+    
+    return out_tensor
+
 
 class SiliconSovereigntyEngine:
     """
@@ -669,6 +707,38 @@ class SiliconSovereigntyEngine:
             float cs_local = a_val * da + a_val * a_val * a_val;
             seam_tension[gid] = cs_local * seam_width;
         }
+        // 16. Dyadic Transfer Protocol (Non-Abelian Gauge Field Leakage)
+        __kernel void dyadic_proficiency_transfer(
+            __global const float *task_states,        // [batch, num_tasks, dim]
+            __global const float *transfer_matrix,    // [num_tasks, num_tasks] (The T_ij Gauge Field)
+            __global const float *gating_activations, // [batch, num_tasks]
+            __global float *leaked_states,            // [batch, num_tasks, dim]
+            int num_tasks,
+            int dim
+        ) {
+            int batch_id = get_global_id(0);
+            int dest_task = get_global_id(1);
+            int d = get_global_id(2);
+            
+            // We want: leaked_state_j = state_j + sum_{i!=j} ( Gating_i * T_ij * State_i )
+            float accumulation = 0.0f;
+            
+            for(int i = 0; i < num_tasks; ++i) {
+                if (i == dest_task) continue; // Zero diagonal (pure leakage)
+                
+                float gate_i = gating_activations[batch_id * num_tasks + i];
+                float t_ij = transfer_matrix[i * num_tasks + dest_task]; // T[i, j]
+                
+                // State_i
+                float state_i_d = task_states[(batch_id * num_tasks + i) * dim + d];
+                
+                accumulation += gate_i * t_ij * state_i_d;
+            }
+            
+            // Add to original state
+            float original_state = task_states[(batch_id * num_tasks + dest_task) * dim + d];
+            leaked_states[(batch_id * num_tasks + dest_task) * dim + d] = original_state + accumulation;
+        }
         """
         
         import warnings
@@ -676,6 +746,50 @@ class SiliconSovereigntyEngine:
             warnings.simplefilter("ignore")  # NVIDIA PTX driver warns about kernel inlining  benign
             self.program = cl.Program(self.ctx, kernel_src).build()
 
+
+    def evaluate_dyadic_transfer(self, task_states: torch.Tensor, T_matrix: torch.Tensor, gating: torch.Tensor) -> torch.Tensor:
+        """
+        Executes the Dyadic Transfer Protocol (Dark Matter Leakage) securely on the silicon substrate.
+        If mapped to the Bonfire Nomadic Ring (P2P), 'task_states' represents foreign Agent Smith payloads,
+        and T_matrix is the Kelly-betting trust matrix between P2P nodes.
+        
+        Args:
+            task_states: [batch, num_tasks, dim] PyTorch tensor on CPU.
+            T_matrix: [num_tasks, num_tasks] transfer coefficients.
+            gating: [batch, num_tasks] ReLU gated proficiency scores.
+            
+        Returns:
+            leaked_states: [batch, num_tasks, dim] PyTorch tensor.
+        """
+        if self.ctx is None:
+            # Fallback to CPU einsum if OpenCL fails
+            T_masked = T_matrix * (1.0 - torch.eye(T_matrix.shape[0], device=T_matrix.device))
+            effective = task_states * gating.unsqueeze(-1)
+            return task_states + torch.einsum('bid,ij->bjd', effective, T_masked)
+            
+        batch_size, num_tasks, dim = task_states.shape
+        
+        # 1. Bridge to OpenCL (Zero-Copy Host Pointers)
+        cl_states = push_to_opencl(task_states.float(), self.ctx)
+        cl_T = push_to_opencl(T_matrix.float(), self.ctx)
+        cl_gating = push_to_opencl(gating.float(), self.ctx)
+        
+        # 2. Output buffer
+        import pyopencl as cl
+        mf = cl.mem_flags
+        cl_out = cl.Buffer(self.ctx, mf.READ_WRITE, task_states.element_size() * task_states.nelement())
+        
+        # 3. Execute Kernel
+        kernel = self._get_kernel("dyadic_proficiency_transfer")
+        global_work_size = (batch_size, num_tasks, dim)
+        
+        # Execute on primary relational queue
+        kernel(self.queue_a, global_work_size, None, 
+               cl_states, cl_T, cl_gating, cl_out, 
+               np.int32(num_tasks), np.int32(dim))
+               
+        # 4. Pull back to PyTorch (Sovereign boundary enforces graph severing)
+        return pull_from_opencl(self.queue_a, cl_out, task_states.shape, task_states.dtype)
 
     def process_crt_dual_queue(self, moduli_odd_data, moduli_even_data):
         """
