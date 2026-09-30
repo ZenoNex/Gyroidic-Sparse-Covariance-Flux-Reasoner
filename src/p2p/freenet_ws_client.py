@@ -127,7 +127,7 @@ class FreenetClient:
             try:
                 async with websockets.connect(self.uri) as ws:
                     self.ws = ws
-                    logger.info(f"[FREENET] Connected to local daemon at {self.uri}")
+                    logger.debug(f"[FREENET] Connected to local daemon at {self.uri}")
                     while self.running:
                         try:
                             message = await asyncio.wait_for(ws.recv(), timeout=1.0)
@@ -201,5 +201,5 @@ class FreenetClient:
             import time
             current_time = time.time()
             if current_time - self._last_log_time >= 60.0:
-                logger.warning("[FREENET] Cannot publish: WebSocket not connected.")
+                logger.debug("[FREENET] Cannot publish: WebSocket not connected.")
                 self._last_log_time = current_time
