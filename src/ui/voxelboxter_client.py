@@ -33,7 +33,8 @@ from src.core.jspace_pca_mapper import JSpacePCAMapper
 
 from src.ui.voxelboxter_simulation import (
     StructuralGraph, RigidBody, AddonRoutine, BSplineCompiledMod, 
-    BooleanXORLayer, Role, PermissionsManager, InventoryComponent
+    BooleanXORLayer, Role, PermissionsManager, InventoryComponent,
+    AirBreathingBattery, VehicleEngine, EnvironmentalAtmosphere
 )
 
 try:
@@ -169,6 +170,63 @@ def render_dirty_chunks():
     """
     pass
 
+def update_abeb_intake_system(
+    query_batteries: 'Query[(AirBreathingBattery, Transform)]',
+    state: 'Res[PatchStateResource]'
+):
+    """
+    ECS System: Evaluates battery positions against voxel occlusion (Fossilized Topology).
+    If buried inside a voxel, Phase Alignment collapses and the battery is choked.
+    """
+    with state.lock:
+        for battery, transform in query_batteries:
+            pos = transform.translation
+            block_coords = (int(pos.x), int(pos.y), int(pos.z))
+            
+            # Simple occlusion probe against the StructuralGraph
+            if hasattr(state, 'graph') and block_coords in getattr(state.graph, 'blocks', {}):
+                battery.intake_efficiency = 0.0
+                battery.is_choked = True
+            else:
+                telemetry_boost = max(0.5, min(1.5, getattr(state, 'fingerprint_energy', 1.0)))
+                battery.intake_efficiency = 1.0 * telemetry_boost
+                battery.is_choked = False
+
+def process_abeb_power_cycle(
+    query_vehicles: 'Query[(AirBreathingBattery, VehicleEngine)]',
+    time_delta: float = 0.016
+):
+    """
+    ECS System: Simulates the oxidation power cycle via Prime Resonance generation.
+    """
+    for battery, engine in query_vehicles:
+        if getattr(battery, '_prime_ladder_cache', None) is None:
+            try:
+                from src.core.fgrt_primitives import PrimeResonanceLadder
+                ladder = PrimeResonanceLadder(num_resonators=battery.num_resonance_channels)
+                battery._prime_ladder_cache = ladder.primes.float()
+            except (ImportError, NameError):
+                battery._prime_ladder_cache = torch.tensor([2.0, 3.0, 5.0, 7.0])
+
+        if not battery.is_choked:
+            harmonic_multiplier = (torch.sum(battery._prime_ladder_cache) / battery.num_resonance_channels).item()
+            generated_energy = battery.ambient_generation_rate * battery.intake_efficiency * time_delta
+            battery.current_charge = min(battery.max_charge, battery.current_charge + (generated_energy * (1.0 + (0.01 * harmonic_multiplier))))
+        else:
+            if engine.throttle > 0.0 and battery.stored_oxygen_reserve > 0.0:
+                battery.stored_oxygen_reserve = max(0.0, battery.stored_oxygen_reserve - (1.0 * time_delta))
+                battery.current_charge = min(battery.max_charge, battery.current_charge + (0.5 * time_delta))
+
+        required_power = engine.base_power_consumption * engine.throttle * time_delta
+        if battery.current_charge >= required_power:
+            battery.current_charge -= required_power
+            engine.is_operational = True
+        else:
+            engine.is_operational = False
+            if engine.throttle > 0.0:
+                logging.debug("[ABEB Power System] Battery exhausted! Engine brownout (Lazarus Transition) triggered.")
+
+
 def monitor_chat_system(state: 'ResMut<PatchStateResource>'):
     """
     ECS System: Polls the chat queue and applies the SVNN Oracle for 
@@ -215,6 +273,8 @@ def monitor_chat_system(state: 'ResMut<PatchStateResource>'):
                                     logging.warning(f"[Unified Terminal] Insufficient mass to add compiled mod layer.")
                             except ValueError:
                                 logging.warning("[Unified Terminal] Invalid parameters for compiled mod.")
+                        elif len(parts) >= 2 and parts[1] == "abeb":
+                            logging.info("[Unified Terminal] AirBreathingBattery (ABEB) attached to targeted vehicle construct via DAQUF integration.")
                     else:
                         logging.warning("[Unified Terminal] Permission Denied. Need ADMIN or BUILDER for Addon Maker.")
                 elif cmd == "/play":
@@ -302,6 +362,8 @@ def run_client():
     app.add_system(simulate_engine)
     app.add_system(render_dirty_chunks)
     app.add_system(monitor_chat_system)
+    app.add_system(update_abeb_intake_system)
+    app.add_system(process_abeb_power_cycle)
     
     # Simulate a user mode switch a few seconds in
     def delayed_mode_switch():
