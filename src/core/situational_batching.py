@@ -48,7 +48,7 @@ class SituationalBatchSampler(Sampler[List[int]]):
             decay: Rate at which entanglement scars fade
             boundary_threshold: T_ij for paradoxical refusal
         """
-        super().__init__(None)
+        super().__init__()
         self.num_samples = num_samples
         self.batch_size = batch_size
         self.play_ratio = play_ratio
