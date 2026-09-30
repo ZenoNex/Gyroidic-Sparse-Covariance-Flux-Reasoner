@@ -1,6 +1,15 @@
 import torch
 import os
 
+def get_torch_device(target_hardware: str) -> str:
+    """
+    Prevents PyTorch from triggering the Caffe2 legacy device panic.
+    Returns 'cpu' as the host staging ground for OpenCL targets.
+    """
+    if target_hardware.lower() == "opencl":
+        return "cpu"
+    return target_hardware
+
 def get_preferred_device():
     """
     Returns the preferred device following Silicon Sovereignty principles.
@@ -10,11 +19,11 @@ def get_preferred_device():
     """
     try:
         from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
-        # Test if the engine can be instantiated (will fail if PyOpenCL is missing or no device)
+        # Test if the engine can be instantiated
         _engine = SiliconSovereigntyEngine()
-        return 'opencl'
+        return "opencl"
     except Exception as e:
-        return torch.device('cpu')
+        return "cpu"
 
-# Unified DEVICE constant for the entire source tree
-DEVICE = get_preferred_device()
+# Unified DEVICE constant for the entire source tree, routed safely for PyTorch
+DEVICE = torch.device(get_torch_device(get_preferred_device()))
