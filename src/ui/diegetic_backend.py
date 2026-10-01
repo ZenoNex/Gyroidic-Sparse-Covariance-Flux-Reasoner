@@ -3447,15 +3447,25 @@ class DiegeticPhysicsEngine(nn.Module):
             else:
                 retrieval_state = "SEARCH_NEEDED"
 
-        # Real-time ArXiv "Singing" Search Integration:
+        # Real-time "Singing" Search Integration (Gate 5 Search Method):
         if retrieval_state == "SEARCH_NEEDED" and hasattr(self, 'arxiv_ingestor') and self.arxiv_ingestor is not None:
             try:
-                # 1. Generate larynx-decoded query
+                # 1. Generate larynx-decoded query (Ricci flow forced projection)
                 query = self.arxiv_ingestor._generate_larynx_query()
-                print(f" [SEARCH_GATE] 'Singing' query to ArXiv: '{query}'")
                 
-                # 2. Perform synchronous search
-                self.arxiv_ingestor.ingest_arxiv_by_query(query)
+                # Alternate search method based on random honest jitter to maintain non-teleology
+                from src.core.honest_jitter import harvest_honest_jitter
+                jitter = harvest_honest_jitter((1,), device=torch.device(self.device), scaled=False).item()
+                use_searxng = (jitter > 0)
+                
+                if use_searxng and hasattr(self.arxiv_ingestor, 'ingest_searxng_by_query'):
+                    print(f" [SEARCH_GATE] 'Singing' query to SearXNG (Open Web): '{query}'")
+                    self.arxiv_ingestor.ingest_searxng_by_query(query)
+                    search_source = "SearXNG Open Web"
+                else:
+                    print(f" [SEARCH_GATE] 'Singing' query to ArXiv: '{query}'")
+                    self.arxiv_ingestor.ingest_arxiv_by_query(query)
+                    search_source = "ArXiv"
                 
                 # 3. Reload live session fossil cache
                 self._refresh_fossil_cache()
@@ -3464,7 +3474,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 self._prime_manifold_with_fossils(input_tensor, text_input)
                 
                 # Update response text prefix
-                response_text = f"[SEARCH_HEALED] Manifold updated via ArXiv search for '{query}'. " + response_text
+                response_text = f"[SEARCH_HEALED] Manifold updated via {search_source} search for '{query}'. " + response_text
             except Exception as e:
                 print(f" [SEARCH_GATE] Realtime search and nudge failed: {e}")
 
