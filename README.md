@@ -52,7 +52,7 @@ source .venv/bin/activate
 ### 1. Install and Test
 ```bash
 # Install dependencies
-pip install -r requirements.txt
+python -m pip install --no-cache-dir -r requirements.txt
 
 # Test that everything works
 python test_fixes_verification.py
