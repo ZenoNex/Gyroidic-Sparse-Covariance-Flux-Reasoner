@@ -141,6 +141,10 @@ This law dictates how symbolic proposals from System 1 are hardened through the 
 *   **Non-Abelian Gyroidic Image Codec (`gyroidic_codec.py`)**: Combines log-polar unrolling with analytical `GyroidSurface` sampling at polynomial frequencies. Encodes multimodal dyads into non-commutative CRT residue matrices in $GL(n)$ with Berry phase chiral tracking.
 *   **Deterministic Quasi-Gaussian Distribution**: Superposition of logarithmic prime frequencies along Bouligand contingent cone projections $T_S(x)$ produces a bell-shaped quasi-Gaussian probability envelope without random number generators.
 
+### 7. Voxel Blockter & Vision Surgery Subsystems
+*   **Emergent Baking Engine**: Driven by the `Garden Statistical Attractors`, this engine enables players to "lock in" localized geometry (homes, character models, patch foods) via user-triggered **Fossilization**. It translates subjective attachment into topological rigidity.
+*   **Vision Surgery Objects**: Interactive artifacts that allow users to perform localized "surgery" on the Gyroidic manifold, directly altering the `Entanglement Matrix ($L_{ij}$)` to graft new diegetic meaning onto baked structures.
+
 ---
 
 ##  The Interaction Loop & Topological Ingestion
@@ -154,6 +158,7 @@ graph TD
         MCA[Minecraft MCA/NBT<br/>minecraft_ingestor.py] -->|Voxel-Text Dyads| IngRouter
         Local[Local Formats<br/>local_dataset_ingestor.py] -->|Raw Files| IngRouter
         TextB[McKenna Deconstruction<br/>textbook_filter.py] -->|Creative Prose| IngRouter
+        SearXNG[SearXNG Open Web<br/>knowledge_ingestor.py] -->|Robots.txt Compliant HTML| IngRouter
     end
 
     IngRouter -->|Validates Invariants| Val[Topological Ingestion Validator]
