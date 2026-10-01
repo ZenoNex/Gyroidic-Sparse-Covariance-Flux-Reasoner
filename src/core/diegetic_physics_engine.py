@@ -71,6 +71,23 @@ class DiegeticPhysicsEngine(nn.Module):
         # Check constraints (tire slip, structural breakage).
         admr_output = self.admr(c_sym)
         
+        # --- Stage 5.1: Carnot-Möbius Thermodynamic Ledger ---
+        # Compute thermal runaway based on ADMR topological friction.
+        if not hasattr(self, 'carnot_ledger'):
+            from src.core.carnot_mobius_ledger import CarnotMobiusLedger
+            self.carnot_ledger = CarnotMobiusLedger().to(self.device)
+            
+        # Mocking Lambda_vac and Lambda_pump from the input constraints for now
+        lambda_vac = torch.tensor([0.1], device=self.device)
+        lambda_pump = torch.norm(c_in) + 0.5 
+        
+        ledger = self.carnot_ledger(
+            lambda_vac=lambda_vac, 
+            lambda_pump=lambda_pump, 
+            admr_residues=admr_output, 
+            depth_N=10
+        )
+        
         # We invoke OperationalAdmmPrimitive via an inline forward operator for the probe.
         def _dummy_forward(x): return x
         
@@ -82,9 +99,10 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # --- Stage 6: SCCCG Recovery & Fossilization ---
         # If the ADMM solver detects a failure token (e.g., impact > shear strength),
+        # OR if Carnot-Möbius flags a thermal runaway due to stack depth exceeding Ncrit,
         # we transport the state to a fractured manifold using ConjugateMomentTransport.
         strain_limit = 5.0
-        is_rupture = torch.norm(admm_state) > strain_limit
+        is_rupture = (torch.norm(admm_state) > strain_limit) or ledger['thermal_runaway'].item()
         if is_rupture:
             # Fracture recovery
             noise = harvest_honest_jitter((1, self.state_dim), device=self.device, scaled=True)
