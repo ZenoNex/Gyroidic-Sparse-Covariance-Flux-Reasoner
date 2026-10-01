@@ -29,7 +29,7 @@ This isolates the project dependencies from your system python.
 **Windows:**
 ```bash
 # Create venv
-python -m venv .venv
+py -3.12 -m venv .venv
 
 # Activate venv
 .venv\Scripts\activate
