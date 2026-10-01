@@ -14,6 +14,12 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import json
 import logging
+import urllib.robotparser
+from urllib.parse import urlparse
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None
 from src.core.gluing_operator import LazarusSoftmax
 from src.core.knowledge_dyad_fossilizer import KnowledgeDyad, DyadFossilizer
 from src.data.textbook_filter import TextbookFilter
@@ -467,6 +473,120 @@ class ArXivSovereignIngestor:
         except Exception as e:
             print(f"[INGEST] Atom parsing error: {e}")
 
+    def ingest_searxng_by_query(self, query_str: str, searxng_url: str = "http://localhost:8080/search"):
+        """Queries a SearXNG instance for arbitrary web results, checking robots.txt before fetching."""
+        self._wait_for_rate_limit()
+        
+        # Clean query
+        cleaned_query = "".join(c if c.isalnum() or c.isspace() else "" for c in query_str).strip()
+        if not cleaned_query:
+            return
+            
+        cleaned_query = " ".join(cleaned_query.split())
+        params = {"q": cleaned_query, "format": "json"}
+        
+        try:
+            print(f"[INGEST] Performing SearXNG web search for: '{cleaned_query}'...")
+            response = requests.get(searxng_url, params=params, timeout=15)
+            if response.status_code == 200:
+                data = response.json()
+                results = data.get("results", [])
+                
+                admitted_count = 0
+                for result in results[:3]:  # Top 3 results to prevent slow crawls
+                    target_url = result.get("url")
+                    title = result.get("title", "Unknown Web Title")
+                    
+                    if not target_url or target_url in self.fossilized_arxiv_ids:
+                        continue
+                        
+                    # 1. Robots.txt Compliance Check
+                    parsed_uri = urlparse(target_url)
+                    base_url = f"{parsed_uri.scheme}://{parsed_uri.netloc}"
+                    robots_url = f"{base_url}/robots.txt"
+                    
+                    rp = urllib.robotparser.RobotFileParser()
+                    rp.set_url(robots_url)
+                    try:
+                        rp.read()
+                        if not rp.can_fetch("Gyroidic-Flux-Reasoner", target_url):
+                            print(f"[INGEST] robots.txt denied access to {target_url}. Skipping.")
+                            continue
+                    except Exception:
+                        # If robots.txt fetch fails, proceed with caution (default allow)
+                        pass
+                        
+                    # 2. Fetch and Extract Content
+                    try:
+                        headers = {'User-Agent': 'Gyroidic-Flux-Reasoner/1.0'}
+                        page_resp = requests.get(target_url, headers=headers, timeout=10)
+                        if page_resp.status_code != 200:
+                            continue
+                            
+                        # Extract text
+                        if BeautifulSoup is not None:
+                            soup = BeautifulSoup(page_resp.text, "html.parser")
+                            text_content = soup.get_text(separator=' ', strip=True)
+                        else:
+                            # Crude fallback
+                            text_content = page_resp.text
+                            
+                        # Take first 5000 chars to avoid memory bloat
+                        text_content = text_content[:5000]
+                        full_content = f"Title: {title}\nURL: {target_url}\nContent: {text_content}"
+                        
+                    except Exception as e:
+                        print(f"[INGEST] Failed to fetch {target_url}: {e}")
+                        continue
+                        
+                    # 3. Quality Gating
+                    report = self.filter.assess(full_content, source=f"searxng_{target_url}")
+                    if not report.is_admissible:
+                        print(f" [LORE] SearXNG rejected: {title[:40]}... (Flags: {', '.join(report.flags)})")
+                        continue
+                        
+                    # 4. Projection & Fossilization
+                    proj = self.projector.project_text_to_state(full_content)
+                    residue = proj['state']
+                    entropy = proj['entropy']
+                    
+                    gradients = self.processor.compute_affordance_gradients(full_content)
+                    
+                    dyad = KnowledgeDyad(
+                        image_fingerprint=None,
+                        linguistic_description=title,
+                        relevance_score=float(report.dimension_gates.get('instructive', 0.0)),
+                        unified_spectral_signature=None,
+                        audio_harmonics=None,
+                        metadata={
+                            'source_url': target_url,
+                            'query_used': cleaned_query,
+                            'quality': report.to_dict(),
+                            'affordance_gradients': gradients,
+                            'gyroid_entropy': entropy,
+                        }
+                    )
+                    
+                    seed_state = self._resolve_seed_state(title)
+                    acquired = False
+                    if self.engine is not None and hasattr(self.engine, '_processing_lock'):
+                        acquired = self.engine._processing_lock.acquire(timeout=10.0)
+                    try:
+                        self.fossilizer.fossilize(dyad, residue, seed_state=seed_state)
+                        self.fossilized_arxiv_ids.add(target_url)  # Repurposing set for unique IDs
+                    finally:
+                        if acquired:
+                            self.engine._processing_lock.release()
+                    
+                    admitted_count += 1
+                    print(f" [LORE] Fossilized SearXNG match: {title[:50]}...")
+                    
+                print(f"[INGEST] Anchored {admitted_count} SearXNG lore residues.")
+            else:
+                print(f"[INGEST] SearXNG query failed (HTTP {response.status_code}).")
+        except Exception as e:
+            print(f"[INGEST] SearXNG error: {e}")
+
     def _get_dynamic_fallback(self) -> str:
         """Dynamically extracts query terms from historical memory fossils to guide search."""
         try:
@@ -643,11 +763,15 @@ class ArXivSovereignIngestor:
                 cycle += 1
                 selected_set = "math" # Default fallback
                 try:
-                    # Alternate between set list (OAI-PMH) and search query (Atom API)
-                    if cycle % 2 == 0:
+                    # Alternate between set list (OAI-PMH), ArXiv search (Atom API), and SearXNG
+                    if cycle % 3 == 0:
                         query = self._generate_larynx_query()
-                        print(f" [INGEST] Larynx generated search query: '{query}'")
+                        print(f" [INGEST] Larynx generated search query (ArXiv): '{query}'")
                         self.ingest_arxiv_by_query(query)
+                    elif cycle % 3 == 1:
+                        query = self._generate_larynx_query()
+                        print(f" [INGEST] Larynx generated search query (SearXNG): '{query}'")
+                        self.ingest_searxng_by_query(query)
                     else:
                         # Check if we have meta-state steering active
                         current_state = None
