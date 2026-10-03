@@ -837,6 +837,164 @@
         .panel-f-title {
             color: #8a2be2;
         }
+
+        /* --- Hyperbolic Tag Stacker Bar (Ganbreeder Multi-Scalar Superposition) --- */
+        .tag-stacker-bar {
+            background: rgba(8, 10, 16, 0.88);
+            border-top: 1px solid var(--glass-border);
+            border-bottom: 1px solid rgba(0, 242, 255, 0.15);
+            padding: 8px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-family: var(--font-mono);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .tag-stacker-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: #888;
+            letter-spacing: 1px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .tag-stacker-header .title-badge {
+            color: var(--terminal-blue);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tag-chips-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .hyperbolic-tag-chip {
+            flex-shrink: 0;
+            background: rgba(18, 20, 28, 0.85);
+            border: 1px solid rgba(0, 242, 255, 0.25);
+            border-radius: 8px;
+            padding: 6px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 180px;
+            transition: box-shadow 0.15s ease, border-color 0.15s ease;
+            position: relative;
+        }
+
+        .tag-chip-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+
+        .tag-chip-name {
+            font-size: 0.7rem;
+            color: #fff;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 105px;
+        }
+
+        .gamma-select-wrap {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.65rem;
+            color: var(--terminal-magenta);
+        }
+
+        .gamma-select {
+            background: #000;
+            border: 1px solid rgba(255, 0, 242, 0.3);
+            color: var(--terminal-magenta);
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            padding: 1px 3px;
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .tag-chip-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tag-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: #222;
+            outline: none;
+            transition: background 0.2s;
+            cursor: ew-resize;
+        }
+
+        .tag-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--terminal-blue);
+            cursor: pointer;
+            box-shadow: 0 0 6px var(--terminal-blue);
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .tag-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+        }
+
+        .tag-chip-readouts {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: #aaa;
+        }
+
+        .weight-val {
+            color: var(--terminal-blue);
+            font-weight: bold;
+        }
+
+        .tension-val {
+            color: var(--terminal-warn);
+        }
+
+        .tag-remove-btn {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 0 2px;
+            line-height: 1;
+            transition: color 0.15s;
+        }
+
+        .tag-remove-btn:hover {
+            color: #ff3366;
+        }
     </style>
 </head>
 
@@ -958,12 +1116,36 @@
                 <div class="console-tab" data-tab="link-editor">LINK & SCHEDULES</div>
                 <div class="console-tab" data-tab="multimodal">MULTIMODAL VIEWER</div>
                 <div class="console-tab" data-tab="fs-perms">FS & PERMS</div>
+                <div class="console-tab" data-tab="evaluators" style="color: var(--terminal-magenta); border-bottom-color: var(--terminal-magenta);">EVALUATORS</div>
+                <div class="console-tab" data-tab="voxelboxter" style="color: #ffaa00; border-bottom-color: #ffaa00; text-shadow: 0 0 10px rgba(255, 170, 0, 0.4);">VOXELBOXTER</div>
             </div>
             <div class="tab-pane active" id="pane-terminal">
                 <div id="chat-feed" style="flex: 1; overflow-y: auto;">
                     <!-- Messages appended here -->
                     <div class="message system">SYSTEM INITIALIZED. WAITING FOR MANIFOLD PERTURBATION.</div>
                 </div>
+
+                <!-- GANBREEDER HYPERBOLIC TAG STACKER BAR -->
+                <div id="hyperbolic-tag-bar" class="tag-stacker-bar">
+                    <div class="tag-stacker-header">
+                        <div class="title-badge">
+                            <span>&#x2297;</span>
+                            <span>GANBREEDER SUPERPOSED TAG STACKER</span>
+                            <span style="font-size:0.6rem; color:#666;">(FRACTIONAL QUOTIENTS &#x3B3; &#x2208; &#x211A;)</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <select id="quick-add-tag-select" style="background:#0a0a0a; border:1px solid #333; color:var(--terminal-blue); font-family:var(--font-mono); font-size:0.65rem; padding:2px 6px; border-radius:3px; outline:none; max-width:160px;">
+                                <option value="" disabled selected>+ Select Coordinate Tag...</option>
+                            </select>
+                            <button onclick="addSelectedTag()" style="background:rgba(0,242,255,0.1); border:1px solid var(--terminal-blue); color:var(--terminal-blue); font-family:var(--font-mono); font-size:0.65rem; padding:2px 8px; border-radius:3px; cursor:pointer;">ADD</button>
+                            <button onclick="resetAllTagSliders()" style="background:rgba(255,255,255,0.05); border:1px solid #444; color:#888; font-family:var(--font-mono); font-size:0.65rem; padding:2px 6px; border-radius:3px; cursor:pointer;">RESET</button>
+                        </div>
+                    </div>
+                    <div id="tag-chips-container" class="tag-chips-container">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+                </div>
+
                 <div class="input-area">
                     <span style="color:var(--terminal-blue); font-family:var(--font-mono);">></span>
                     <input type="text" id="user-input" placeholder="Ingest symbolic residue..." autocomplete="off">
@@ -981,8 +1163,8 @@
                     <div
                         style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888;">
                         <span>LIMIT:</span>
-                        <input type="number" id="graph-limit" value="250"
-                            style="width: 55px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; text-align: center; outline: none;">
+                        <input type="number" id="graph-limit" value="5000"
+                            style="width: 65px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; text-align: center; outline: none;">
                     </div>
 
                     <label
@@ -1142,6 +1324,37 @@
                     <button onclick="refreshFreenetStatus()"
                         style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px 12px; border-radius: 4px; font-family: var(--font-mono); cursor: pointer; margin-top: 1rem;">FORCE
                         REFRESH TOPOLOGY</button>
+                </div>
+            </div>
+
+            <!-- Tab: Evaluators Dashboard -->
+            <div class="tab-pane" id="pane-evaluators" style="background: #030303; flex: 1; position: relative;">
+                <iframe src="benchmark_dashboard.html" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+
+            <!-- Tab: Voxelboxter Simulation -->
+            <div class="tab-pane" id="pane-voxelboxter" style="background: #030303; flex: 1; position: relative; padding: 2rem; display: flex; flex-direction: column;">
+                <div class="section-title" style="color: #ffaa00;">Dual Engine Sandbox</div>
+                <p style="font-family: var(--font-mono); font-size: 0.8rem; color: #aaa; margin-bottom: 2rem;">
+                    The Voxelboxter client bridges the Gyroidic Engine with a Bevy-based topological voxel renderer.<br>
+                    Booting the engine launches a separate window on the host machine.
+                </p>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                    <button id="boot-voxelboxter-btn" style="background: rgba(255, 170, 0, 0.1); border: 1px solid #ffaa00; color: #ffaa00; padding: 12px 24px; border-radius: 4px; font-family: var(--font-mono); font-size: 1rem; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 2px;">
+                        [ BOOT HOST CLIENT ]
+                    </button>
+                    <button onclick="document.getElementById('voxelboxter-logs').innerHTML = '';" style="background: rgba(255, 255, 255, 0.05); border: 1px solid #444; color: #888; padding: 12px 24px; border-radius: 4px; font-family: var(--font-mono); cursor: pointer;">
+                        CLEAR LOGS
+                    </button>
+                </div>
+
+                <div class="metric-card" style="flex: 1; display: flex; flex-direction: column;">
+                    <div class="metric-label" style="color: #ffaa00;">Operational Terminal</div>
+                    <div id="voxelboxter-logs" class="small-log" style="flex: 1; height: auto; max-height: none; background: rgba(0,0,0,0.5); padding: 1rem; font-size: 0.75rem; color: #00f0ff;">
+                        [SYSTEM] Voxelboxter interface ready.<br>
+                        [SYSTEM] Waiting for boot command...<br>
+                    </div>
                 </div>
             </div>
 
@@ -1733,7 +1946,7 @@
         async function refreshGraph() {
             const container = document.getElementById('graph-canvas-container');
             if (!container) return;
-            
+
             // Show loading overlay instead of wiping container
             let loadingOverlay = document.getElementById('graph-loading-overlay');
             if (!loadingOverlay) {
@@ -1753,7 +1966,7 @@
                 const sizeRes = await fetch(`${state.backend_url}/api/index_size`);
                 const sizeData = await sizeRes.json();
 
-                const limit = limitEl ? parseInt(limitEl.value) || 250 : 250;
+                const limit = limitEl ? parseInt(limitEl.value) || 5000 : 5000;
                 const includeTags = includeTagsEl ? includeTagsEl.checked : true;
 
                 const response = await fetch(`${state.backend_url}/graph?limit=${limit}`);
@@ -1831,7 +2044,9 @@
                     // if it already exists, just update data
                     window.Graph.graphData(gData);
                 } else {
-                    window.Graph = ForceGraph3D()(container)
+                    window.Graph = ForceGraph3D({
+                        rendererConfig: { powerPreference: "high-performance", antialias: false, alpha: false }
+                    })(container)
                         .backgroundColor('#030303')
                         .nodeId('id')
                         .nodeLabel(node => {
@@ -2090,6 +2305,187 @@
             });
         }
 
+        // =========================================================================
+        // GANBREEDER SUPERPOSED TAG STACKER (Hyperbolic Quotient Algebra)
+        // =========================================================================
+
+        // Computes non-linear weight with user-selectable quotient of hyperbolicity gamma
+        function computeHyperbolicWeight(u, gamma) {
+            if (Math.abs(gamma) < 0.001) return u; // Linear limit
+            const sign = Math.sign(u);
+            const absU = Math.abs(u);
+            return sign * (Math.sinh(gamma * absU) / (Math.sinh(gamma) || 1e-12));
+        }
+
+        // UI Handler for Tag Slider Change
+        function updateTagWeight(tagId, rawValue, gammaValue) {
+            const u = parseFloat(rawValue);      // Range: -1.0 to +1.0
+            const gamma = parseFloat(gammaValue);// User selectability quotient: 0.1 to 5.0
+            
+            const weight = computeHyperbolicWeight(u, gamma);
+            const tension = Math.cosh(gamma * u); // Dynamic curvature readout
+            
+            // Update DOM UI elements
+            const tagElem = document.getElementById(`tag-${tagId}`);
+            if (!tagElem) return;
+            tagElem.dataset.u = u.toFixed(4);
+            tagElem.dataset.gamma = gamma.toFixed(4);
+            tagElem.dataset.weight = weight.toFixed(4);
+            
+            const weightEl = tagElem.querySelector('.weight-val');
+            if (weightEl) weightEl.innerText = weight > 0 ? `+${weight.toFixed(2)}` : weight.toFixed(2);
+            const tensionEl = tagElem.querySelector('.tension-val');
+            if (tensionEl) tensionEl.innerText = `κ:${tension.toFixed(2)}`;
+            
+            // Visual flare at extreme quotient swings
+            const flareIntensity = Math.min(1.0, Math.pow(Math.abs(u), 2) * (gamma / 2.0));
+            tagElem.style.boxShadow = `0 0 ${Math.round(12 * flareIntensity * (gamma > 1 ? gamma : 1))}px rgba(255, 0, 128, ${flareIntensity})`;
+            
+            // Dynamic slider track tension styling
+            const slider = tagElem.querySelector('.tag-slider');
+            if (slider) {
+                const percent = ((u + 1.0) / 2.0) * 100;
+                let trackColor = '#00f2ff'; // Cool Cyan baseline
+                if (tension > 2.5) {
+                    trackColor = '#ff007f'; // Hyperbolic Magenta flare
+                } else if (tension > 1.35) {
+                    trackColor = '#ffcc00'; // Glowing Amber
+                }
+                slider.style.background = `linear-gradient(to right, ${trackColor} 0%, ${trackColor} ${percent}%, #222 ${percent}%, #222 100%)`;
+            }
+        }
+
+        function onTagSliderInput(tagId, rawValue) {
+            const chip = document.getElementById(`tag-${tagId}`);
+            if (!chip) return;
+            const gammaSelect = chip.querySelector('.gamma-select');
+            const gamma = gammaSelect ? gammaSelect.value : 1.0;
+            updateTagWeight(tagId, rawValue, gamma);
+        }
+
+        function onTagGammaChange(tagId, gammaValue) {
+            const chip = document.getElementById(`tag-${tagId}`);
+            if (!chip) return;
+            const slider = chip.querySelector('.tag-slider');
+            const u = slider ? slider.value : 0.0;
+            updateTagWeight(tagId, u, gammaValue);
+        }
+
+        function resetSingleTagSlider(tagId) {
+            const chip = document.getElementById(`tag-${tagId}`);
+            if (!chip) return;
+            const slider = chip.querySelector('.tag-slider');
+            const gammaSelect = chip.querySelector('.gamma-select');
+            if (slider) slider.value = 0.0;
+            updateTagWeight(tagId, 0.0, gammaSelect ? gammaSelect.value : 1.0);
+        }
+
+        function removeTagChip(tagId) {
+            const chip = document.getElementById(`tag-${tagId}`);
+            if (chip) chip.remove();
+        }
+
+        function resetAllTagSliders() {
+            document.querySelectorAll('.hyperbolic-tag-chip').forEach(chip => {
+                const tagId = chip.dataset.tagId;
+                resetSingleTagSlider(tagId);
+            });
+        }
+
+        function renderTagChip(tagId, initialU = 0.0, initialGamma = 1.0) {
+            const container = document.getElementById('tag-chips-container');
+            if (!container || document.getElementById(`tag-${tagId}`)) return;
+            
+            const chip = document.createElement('div');
+            chip.className = 'hyperbolic-tag-chip';
+            chip.id = `tag-${tagId}`;
+            chip.dataset.tagId = tagId;
+            chip.dataset.u = initialU.toString();
+            chip.dataset.gamma = initialGamma.toString();
+            chip.dataset.weight = computeHyperbolicWeight(initialU, initialGamma).toString();
+            
+            chip.innerHTML = `
+                <div class="tag-chip-top">
+                    <span class="tag-chip-name" title="${tagId}">#${tagId}</span>
+                    <div class="gamma-select-wrap">
+                        <span>γ:</span>
+                        <select class="gamma-select" onchange="onTagGammaChange('${tagId}', this.value)">
+                            <option value="0.1" ${initialGamma === 0.1 ? 'selected' : ''}>0.1</option>
+                            <option value="0.5" ${initialGamma === 0.5 ? 'selected' : ''}>0.5</option>
+                            <option value="1.0" ${initialGamma === 1.0 ? 'selected' : ''}>1.0</option>
+                            <option value="1.5" ${initialGamma === 1.5 ? 'selected' : ''}>1.5</option>
+                            <option value="2.0" ${initialGamma === 2.0 ? 'selected' : ''}>2.0</option>
+                            <option value="3.0" ${initialGamma === 3.0 ? 'selected' : ''}>3.0</option>
+                            <option value="5.0" ${initialGamma === 5.0 ? 'selected' : ''}>5.0</option>
+                        </select>
+                        <button class="tag-remove-btn" onclick="removeTagChip('${tagId}')" title="Remove coordinate">✕</button>
+                    </div>
+                </div>
+                <div class="tag-chip-controls">
+                    <input type="range" class="tag-slider" min="-1.0" max="1.0" step="0.02" value="${initialU}"
+                        oninput="onTagSliderInput('${tagId}', this.value)"
+                        ondblclick="resetSingleTagSlider('${tagId}')"
+                        title="Double click to zero out">
+                </div>
+                <div class="tag-chip-readouts">
+                    <span>α: <span class="weight-val">${initialU >= 0 ? '+' : ''}${initialU.toFixed(2)}</span></span>
+                    <span class="tension-val">κ:1.00</span>
+                </div>
+            `;
+            container.appendChild(chip);
+            updateTagWeight(tagId, initialU, initialGamma);
+        }
+
+        function addSelectedTag() {
+            const select = document.getElementById('quick-add-tag-select');
+            if (!select || !select.value) return;
+            renderTagChip(select.value, 0.25, 1.0);
+            select.value = '';
+        }
+
+        function getActiveTagWeights() {
+            const weights = {};
+            const chips = document.querySelectorAll('.hyperbolic-tag-chip');
+            chips.forEach(chip => {
+                const tagId = chip.dataset.tagId;
+                const u = parseFloat(chip.dataset.u || '0');
+                const gamma = parseFloat(chip.dataset.gamma || '1.0');
+                const weight = parseFloat(chip.dataset.weight || '0');
+                if (Math.abs(weight) > 0.0001 || Math.abs(u) > 0.0001) {
+                    weights[tagId] = {
+                        u: u,
+                        gamma: gamma,
+                        weight: weight
+                    };
+                }
+            });
+            return weights;
+        }
+
+        async function initCatalogTags() {
+            try {
+                const res = await fetch(`${state.backend_url}/api/tags`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const tags = data.tags || {};
+                    const select = document.getElementById('quick-add-tag-select');
+                    if (select) {
+                        select.innerHTML = '<option value="" disabled selected>+ Select Coordinate Tag...</option>';
+                        Object.keys(tags).forEach(tag => {
+                            const opt = document.createElement('option');
+                            opt.value = tag;
+                            opt.textContent = `${tag}`;
+                            select.appendChild(opt);
+                        });
+                    }
+                    const seeds = ['quantum_gravity', 'hyperbolic_curvature', 'birkhoff_cone'];
+                    seeds.forEach(s => renderTagChip(s, 0.0, 1.0));
+                }
+            } catch (e) {
+                ['quantum_gravity', 'hyperbolic_curvature', 'birkhoff_cone'].forEach(s => renderTagChip(s, 0.0, 1.0));
+            }
+        }
+
         // --- Core Interaction ---
         // Master commutativity reads from the header selector.
         // If no dyad is armed at all, 'symmetric' is a no-op.
@@ -2115,6 +2511,7 @@
             try {
                 const aliasEl = document.getElementById('user-alias');
                 const alias = aliasEl ? aliasEl.value : 'admin';
+                const activeTagWeights = getActiveTagWeights();
 
                 let response;
                 if (state.active_video_file) {
@@ -2134,6 +2531,9 @@
                     formData.append('commutativity', _calculateContextualCommutativity());
                     formData.append('regime', state.regime);
                     formData.append('alias', alias);
+                    if (Object.keys(activeTagWeights).length > 0) {
+                        formData.append('tag_weights', JSON.stringify(activeTagWeights));
+                    }
 
                     response = await fetch(`${state.backend_url}/interact`, {
                         method: 'POST',
@@ -2149,7 +2549,8 @@
                         media_chain: state.media_chain.map(item => ({ type: item.type, data: item.data })),
                         commutativity: _calculateContextualCommutativity(),
                         regime: state.regime,
-                        alias: alias
+                        alias: alias,
+                        tag_weights: activeTagWeights
                     };
 
                     response = await fetch(`${state.backend_url}/interact`, {
@@ -3633,6 +4034,25 @@
         setTimeout(scanMinecraft, 1000);
 
         // ==========================================
+        // LIVE STATE POLLING
+        // ==========================================
+        function pollLiveState() {
+            fetch('/api/state')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        document.getElementById('love-display').innerText = 'L: ' + data.love_invariant.toFixed(3);
+                        document.getElementById('surgery-indicator').innerText = data.surgery_indicator;
+                        document.getElementById('regime-goo').classList.toggle('active', data.regime === 'goo');
+                        document.getElementById('regime-prickles').classList.toggle('active', data.regime === 'prickles');
+                    }
+                })
+                .catch(err => console.error("Error polling state:", err));
+        }
+        setInterval(pollLiveState, 2000);
+        pollLiveState();
+
+        // ==========================================
         // PANEL H: GLTF SPLAT MATRIX LOGIC
         // ==========================================
         const scanSplatsBtn = document.getElementById('scan-splats-btn');
@@ -3944,9 +4364,51 @@
             }
         }
 
-        // Load drives on startup if fs-perms tab is opened (or just on load)
+        // Load drives and catalog tags on startup
         document.addEventListener("DOMContentLoaded", () => {
             setTimeout(loadFSDrives, 1000);
+            setTimeout(initCatalogTags, 500);
+            
+            // Voxelboxter Boot Sequence
+            const bootBtn = document.getElementById('boot-voxelboxter-btn');
+            if(bootBtn) {
+                bootBtn.addEventListener('click', async () => {
+                    const logBox = document.getElementById('voxelboxter-logs');
+                    const originalText = bootBtn.innerText;
+                    
+                    bootBtn.innerText = "[ BOOTING... ]";
+                    bootBtn.style.pointerEvents = "none";
+                    bootBtn.style.opacity = "0.7";
+                    
+                    logBox.innerHTML += `<br><span style="color:#ffaa00;">[CMD] Dispatching boot sequence to host machine...</span>`;
+                    
+                    try {
+                        const response = await fetch(`${state.backend_url}/api/voxelboxter/boot`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({})
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.status === 'ok') {
+                            logBox.innerHTML += `<br><span style="color:#00ff41;">[SUCCESS] ${data.message}</span>`;
+                        } else {
+                            logBox.innerHTML += `<br><span style="color:#ff4444;">[ERROR] ${data.message || data.error}</span>`;
+                        }
+                    } catch (err) {
+                        logBox.innerHTML += `<br><span style="color:#ff4444;">[FATAL] Network error connecting to Backend daemon: ${err.message}</span>`;
+                    }
+                    
+                    logBox.scrollTop = logBox.scrollHeight;
+                    
+                    setTimeout(() => {
+                        bootBtn.innerText = originalText;
+                        bootBtn.style.pointerEvents = "auto";
+                        bootBtn.style.opacity = "1";
+                    }, 2000);
+                });
+            }
         });
     </script>
 </body>
