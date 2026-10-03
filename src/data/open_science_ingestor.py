@@ -116,7 +116,8 @@ class OpenScienceIngestor:
         t_safe = torch.clamp(t_merger - t, min=0.01)
         
         # Base prime frequencies
-        primes = [2.0, 3.0, 5.0, 7.0]
+        from src.core.invariants import get_prime_ladder
+        primes = get_prime_ladder(4).tolist()
         strain = torch.zeros(num_samples)
         
         for idx, p in enumerate(primes):
