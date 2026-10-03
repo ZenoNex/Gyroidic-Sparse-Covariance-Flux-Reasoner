@@ -15,10 +15,17 @@ class QualityReport:
         self.flags = []
         
     def to_dict(self) -> Dict[str, Any]:
+        def _serialize_val(val):
+            if isinstance(val, torch.Tensor):
+                if val.numel() == 1:
+                    return val.item()
+                return val.detach().cpu().tolist()
+            return val
+
         return {
             'is_admissible': self.is_admissible,
             'dimension_gates': self.dimension_gates,
-            'topological_details': {k: (v.item() if isinstance(v, torch.Tensor) else v) for k, v in self.topological_details.items()},
+            'topological_details': {k: _serialize_val(v) for k, v in self.topological_details.items()},
             'flags': self.flags
         }
 
