@@ -30,6 +30,17 @@ class SuperposedTagStacker(nn.Module):
         # In-memory storage for metadata
         self.catalog_metadata = {}
 
+    @staticmethod
+    def sanitize_tag_name(tag_name: str) -> str:
+        """Sanitizes tag names for PyTorch ParameterDict compatibility (no dots or special characters)."""
+        import re
+        clean = re.sub(r'[^a-zA-Z0-9_]', '_', tag_name.strip()).lower()
+        clean = re.sub(r'_+', '_', clean).strip('_')
+        return clean or "unnamed_tag"
+
+    def __contains__(self, tag_name: str) -> bool:
+        return self.sanitize_tag_name(tag_name) in self.catalog_vectors
+
     def add_tag(self, tag_name: str, vector: torch.Tensor, context_text: str) -> Tuple[bool, QualityReport]:
         """
         Harvest a new coordinate and bind it to a semantic tag.
@@ -54,8 +65,8 @@ class SuperposedTagStacker(nn.Module):
             # Normalize vector to ensure stable scalar stacking
             vector = torch.nn.functional.normalize(vector.float(), dim=-1)
             
-            # Save to catalog
-            safe_name = tag_name.replace(" ", "_").lower()
+            # Save to catalog with sanitized name (no dots allowed in ParameterDict keys)
+            safe_name = self.sanitize_tag_name(tag_name)
             self.catalog_vectors[safe_name] = nn.Parameter(vector.to(self.device))
             self.catalog_metadata[safe_name] = report
             
@@ -79,7 +90,7 @@ class SuperposedTagStacker(nn.Module):
         Weights are unbound (can be >1 or <0), enabling hyperbolic exploration
         and feature subtraction.
         """
-        target = torch.zeros(self.state_dim, device=self.device)
+        target = torch.zeros(self.state_dim, device=self.device, dtype=torch.float64)
         
         if (tag_weights is None or len(tag_weights) == 0) and current_state is not None:
             if len(self.catalog_vectors) > 0:
@@ -106,18 +117,42 @@ class SuperposedTagStacker(nn.Module):
                 
                 tag_weights = derived_weights
             else:
-                return target
+                return target.to(torch.float32)
 
         if not tag_weights or len(self.catalog_vectors) == 0:
-            return target
+            return target.to(torch.float32)
             
-        for tag, weight in tag_weights.items():
-            safe_name = tag.replace(" ", "_").lower()
+        import math
+        for tag, val in tag_weights.items():
+            safe_name = self.sanitize_tag_name(tag)
             if safe_name in self.catalog_vectors:
-                # Linear superposition
-                target += self.catalog_vectors[safe_name] * weight
+                param = self.catalog_vectors[safe_name].to(self.device).to(torch.float64)
                 
-        return target
+                # Check if val is dictionary with user-selectable quotient gamma
+                if isinstance(val, dict):
+                    u = float(val.get('u', val.get('weight', 0.0)))
+                    gamma = float(val.get('gamma', 1.0))
+                    if abs(gamma) < 1e-4:
+                        alpha = u
+                    else:
+                        sign_u = 1.0 if u >= 0 else -1.0
+                        abs_u = abs(u)
+                        try:
+                            alpha = sign_u * (math.sinh(gamma * abs_u) / (math.sinh(gamma) + 1e-12))
+                        except OverflowError:
+                            alpha = sign_u * 10.0
+                elif isinstance(val, (int, float)):
+                    alpha = float(val)
+                else:
+                    try:
+                        alpha = float(val)
+                    except Exception:
+                        alpha = 0.0
+                        
+                # Fractional vector superposition retaining rational precision
+                target += param * alpha
+                
+        return target.to(torch.float32)
 
     def get_catalog_summary(self) -> Dict[str, Dict]:
         """Returns a summary of the currently learned coordinates."""
@@ -128,3 +163,45 @@ class SuperposedTagStacker(nn.Module):
             }
             for tag in self.catalog_vectors.keys()
         }
+
+
+class FractionalQuotientTagStacker(nn.Module):
+    """
+    Superposed Tag Stacker supporting user-selectable hyperbolic quotients (gamma)
+    and fractional quotient algebra without premature integer truncation.
+    """
+    def __init__(self, dim: int = 256, num_functionals: int = 8):
+        super().__init__()
+        self.dim = dim
+        self.num_functionals = num_functionals
+
+    def forward(self, base_vector: torch.Tensor, tags: list) -> torch.Tensor:
+        """
+        base_vector: [Batch, Dim] float/rational tensor
+        tags: list of dicts {'vector': Tensor, 'u': float, 'gamma': float}
+        """
+        import math
+        target_vector = base_vector.clone().to(torch.float64)
+        
+        for tag in tags:
+            u = float(tag.get('u', 0.0))
+            gamma = float(tag.get('gamma', 1.0))
+            tag_vec = tag['vector'].to(torch.float64)
+            
+            # 1. Apply user-selectable quotient of hyperbolicity
+            if abs(gamma) < 1e-4:
+                alpha = u
+            else:
+                sign_u = 1.0 if u >= 0 else -1.0
+                abs_u = abs(u)
+                try:
+                    alpha = sign_u * (math.sinh(gamma * abs_u) / (math.sinh(gamma) + 1e-12))
+                except OverflowError:
+                    alpha = sign_u * 10.0
+            
+            # 2. Superpose in continuous fractional vector space
+            target_vector = target_vector + alpha * tag_vec
+
+        # 3. Fractional Modular Quotient Projection
+        return target_vector.to(torch.float32)
+
