@@ -199,7 +199,8 @@ class GovernanceManager:
                         parsed_datasets.append(ds_stripped)
             final_ds = ','.join(parsed_datasets) if parsed_datasets else 'LIGO'
 
-            return [8000, 8080], {
+            default_ports = [int(p.strip()) for p in os.environ.get('GYROID_PORTS', '8000').split(',') if p.strip()]
+            return default_ports, {
                 'regime': os.environ.get('GYROID_REGIME', 'goo'),
                 'commutativity': os.environ.get('GYROID_COMMUTATIVITY', 'non_commutative'),
                 'use_spectral_correction': os.environ.get('GYROID_SPECTRAL_CORRECTION', '1') == '1',
@@ -2012,7 +2013,7 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         
         # Delegate specific paths to DiegeticRequestHandler
-        if parsed_path.path in ['/graph', '/health', '/api/minecraft/scan', '/conversational-gui', '/wikipedia-trainer', '/api/index_size', '/api/splats/scan', '/api/fs/drives'] or parsed_path.path.startswith('/api/freenet/'):
+        if parsed_path.path in ['/graph', '/health', '/api/minecraft/scan', '/conversational-gui', '/wikipedia-trainer', '/api/index_size', '/api/splats/scan', '/api/fs/drives', '/api/security/creator_status', '/api/security/status', '/api/tags', '/api/state'] or parsed_path.path.startswith('/api/freenet/'):
             from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
             DiegeticRequestHandler.do_GET(self)
             return
@@ -2051,7 +2052,7 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         
         # Delegate specific paths to DiegeticRequestHandler
-        if parsed_path.path in ['/api/minecraft/ingest', '/wikipedia-extract', '/api/test_resonance_link', '/api/tabby_complete', '/api/tabby_generate_training', '/api/run_sim', '/api/analyze_sim', '/api/fs/drives'] or parsed_path.path.startswith('/api/fs/'):
+        if parsed_path.path in ['/api/minecraft/ingest', '/wikipedia-extract', '/api/test_resonance_link', '/api/tabby_complete', '/api/tabby_generate_training', '/api/run_sim', '/api/analyze_sim', '/api/fs/drives', '/api/security/creator_login', '/api/splats/ingest', '/api/convert_topology'] or parsed_path.path.startswith('/api/fs/'):
             from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
             DiegeticRequestHandler.do_POST(self)
             return
