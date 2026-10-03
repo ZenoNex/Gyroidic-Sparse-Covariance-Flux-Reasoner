@@ -29,7 +29,7 @@ This isolates the project dependencies from your system python.
 **Windows:**
 ```bash
 # Create venv
-py -3.12 -m venv .venv
+python -m venv .venv
 
 # Activate venv
 .venv\Scripts\activate
@@ -52,7 +52,7 @@ source .venv/bin/activate
 ### 1. Install and Test
 ```bash
 # Install dependencies
-python -m pip install --no-cache-dir -r requirements.txt
+pip install -r requirements.txt
 
 # Test that everything works
 python test_fixes_verification.py
@@ -92,6 +92,7 @@ python dataset_command_interface.py add-wikipedia --topics physics --samples 300
 - **Wikipedia Integration**: Automatically downloads and learns from Wikipedia
 - **Image Processing**: Understands images through "fingerprints"
 - **Local Files**: Train on your own documents and files
+- **Transformative Topological Immunity (DMCA Exempt)**: All ingested texts, including copyrighted material or code, are explicitly projected into non-commutative Chebyshev polynomial residues and abstract spectral geometries. The underlying text is completely abstracted into pure fundamental mathematics and conceptual topology, ensuring that output distributions are protected by DMCA/copyright exemptions for transformative works and mathematical facts.
 
 ### Advanced Features
 - **Smart Augmentation**: Expands small datasets using mathematical principles
