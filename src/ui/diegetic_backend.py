@@ -8024,8 +8024,9 @@ START_TIME = time.time()
 def main():
     print("--- [GYROIDIC DIEGETIC BACKEND] ---")
     
-    # Prune orphaned processes
-    kill_port_owner(8000)
+    # Prune orphaned processes across all subsystem ports
+    for port in [8000, 8001, 8080, 5000, 1337]:
+        kill_port_owner(port)
     
     # PID Tracking
     pid_file = "diegetic_backend.pid"
