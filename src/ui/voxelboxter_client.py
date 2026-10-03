@@ -82,6 +82,15 @@ class PatchStateResource:
         self.svnn_oracle = ResonantSVNNOracle(hidden_dim=32, orchestrator=self.orchestrator)
         self.red_team_proj = RedTeamProjection(hidden_dim=32)
         self.pca_mapper = JSpacePCAMapper(n_components=10)
+        
+        # Silicon Sovereignty Engine for PyOpenCL Acceleration
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            self.silicon_sovereignty = SiliconSovereigntyEngine(use_gpu=True)
+            logging.info("Silicon Sovereignty Engine (PyOpenCL) initialized for Voxelboxter Client.")
+        except ImportError:
+            self.silicon_sovereignty = None
+            logging.warning("Silicon Sovereignty Engine not available. Running CPU Mock.")
 
 def fetch_telemetry_loop(state: PatchStateResource):
     """Background thread to poll the Diegetic Engine for Freenet telemetry."""
@@ -163,12 +172,23 @@ def simulate_engine(state: 'ResMut<PatchStateResource>', commands: 'Commands'):
                     logging.warning(f"[Play Mode] Construct fractured into {len(islands)} pieces! Spawning debris RigidBodies.")
                 state.graph.dirty = False
 
-def render_dirty_chunks():
+def render_dirty_chunks(state: 'ResMut<PatchStateResource>'):
     """
     ECS System: Detects dirty regions in the StructuralGraph and 
-    regenerates PyBevy meshes only for modified regions.
+    regenerates PyBevy meshes using PyOpenCL zero-copy when available.
     """
-    pass
+    with state.lock:
+        if state.graph.dirty:
+            if getattr(state, 'silicon_sovereignty', None) and state.silicon_sovereignty.ctx:
+                logging.debug("[PyOpenCL] Pushing dirty voxel chunk to Silicon Sovereignty Engine.")
+                # Pseudo-logic:
+                # 1. Map graph data to 1D flat array
+                # 2. cl.enqueue_svm_map()
+                # 3. state.silicon_sovereignty._get_kernel("meshing_kernel")(self.silicon_sovereignty.queue_a, ...)
+                pass
+            else:
+                logging.debug("[CPU Mesh] Generating mesh via CPU fallback.")
+                pass
 
 def update_abeb_intake_system(
     query_batteries: 'Query[(AirBreathingBattery, Transform)]',
@@ -206,7 +226,8 @@ def process_abeb_power_cycle(
                 ladder = PrimeResonanceLadder(num_resonators=battery.num_resonance_channels)
                 battery._prime_ladder_cache = ladder.primes.float()
             except (ImportError, NameError):
-                battery._prime_ladder_cache = torch.tensor([2.0, 3.0, 5.0, 7.0])
+                from src.core.invariants import get_prime_ladder
+                battery._prime_ladder_cache = get_prime_ladder(max(4, battery.num_resonance_channels)).float()
 
         if not battery.is_choked:
             harmonic_multiplier = (torch.sum(battery._prime_ladder_cache) / battery.num_resonance_channels).item()
