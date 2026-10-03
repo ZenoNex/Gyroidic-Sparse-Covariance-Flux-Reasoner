@@ -944,6 +944,14 @@ class DiegeticPhysicsEngine(nn.Module):
                 dream_chars = []
                 # Autoregressive dream generation (up to 120 characters)
                 for i in range(120):
+                    # Phase 1: Apply Spectral Coherence Repair to current state to prevent garbling
+                    if hasattr(self, 'spectral_corrector') and len(dream_chars) >= 5:
+                        # Feed the last 20 characters to detect clustering
+                        recent_text = "".join(dream_chars[-20:])
+                        current_state = self.spectral_corrector.adaptive_coherence_correction(
+                            current_state, output_text=recent_text
+                        )
+                        
                     logits, conf = self.larynx(current_state, temperature=1.2)
                     
                     # Clean Vocabulary Filtering: Mask out non-standard symbols to force human/Voynich readability
@@ -1261,7 +1269,8 @@ class DiegeticPhysicsEngine(nn.Module):
                                     else:
                                         tag_name = f"science_{q_type}"
                                         
-                                    if not hasattr(self.archetypal_governor, 'tag_stacker') or tag_name not in self.archetypal_governor.tag_stacker.catalog_vectors:
+                                    tag_safe = getattr(self.archetypal_governor.tag_stacker, 'sanitize_tag_name', lambda x: x.replace('.', '_'))(tag_name) if hasattr(self.archetypal_governor, 'tag_stacker') else tag_name
+                                    if not hasattr(self.archetypal_governor, 'tag_stacker') or tag_safe not in self.archetypal_governor.tag_stacker.catalog_vectors:
                                         active_configs.append(q)
                                         
                                 if active_configs:
@@ -3422,6 +3431,27 @@ class DiegeticPhysicsEngine(nn.Module):
         print(f" Phase 4 Gyroid Violation Score: {gyroid_violation_score:.4f}")
         print(f" Phase 4 Unfolding Closure: {unfolding_closure_result['is_closed']}")
         print(f" Phase 4 Topological Features: {len(topological_analysis['features'])} detected")
+        
+        # LIVE BENCHMARK INJECTION
+        try:
+            if not hasattr(self, '_live_topobench'):
+                from src.benchmarks.topobench_evaluator import TopoBenchEvaluator
+                from src.benchmarks.reactbench_evaluator import ReactBenchEvaluator
+                self._live_topobench = TopoBenchEvaluator(manifold_dim=3, level_k=1)
+                self._live_reactbench = ReactBenchEvaluator(k=5)
+            
+            # Evaluate live tensors
+            if len(self.interaction_context) >= 3:
+                # We need a trajectory for TopoBench
+                live_trajectory = torch.stack([s.detach().cpu().squeeze(0)[:3] for s in self.interaction_context[-3:]]).tolist()
+                topobench_score = self._live_topobench.evaluate_loop_closure(live_trajectory)
+                print(f" [LIVE TOPOBENCH] Loop Closure Twist Energy: {topobench_score:.6f}")
+                
+            # ReactBench expects the actual seed_state
+            reactbench_score = self._live_reactbench.evaluate_synthesis(seed_state.detach().cpu())
+            print(f" [LIVE REACTBENCH] Synthesis Score (Betti 1 Proxy): {reactbench_score}")
+        except Exception as e:
+            print(f" [LIVE BENCHMARK FAIL] {e}")
         
         # Calculate Tri-State Output based on Honesty/Trust/PAS_h
         trust_mean = float(self.trust_scalars.mean().item()) if hasattr(self, 'trust_scalars') else 0.5
@@ -6540,6 +6570,42 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             elif base_path == '/health':
                 self._send_json({"status": "hyper-ring coherent", "version": "1.9.1"})
                 return
+            elif base_path == '/api/tags':
+                try:
+                    summary = {}
+                    if ENGINE and hasattr(ENGINE, 'archetypal_governor') and hasattr(ENGINE.archetypal_governor, 'tag_stacker'):
+                        summary = ENGINE.archetypal_governor.tag_stacker.get_catalog_summary()
+                    default_tags = ["quantum_gravity", "birkhoff_cone", "hyperbolic_curvature", "science_gw190521", "voynich_f67r", "leylines_flux"]
+                    for d_tag in default_tags:
+                        if d_tag not in summary:
+                            summary[d_tag] = {"admissibility": True, "norm": 1.0}
+                    self._send_json({"status": "ok", "tags": summary})
+                except Exception as e:
+                    self._send_error_json(str(e), 500)
+                return
+            elif base_path == '/api/state':
+                try:
+                    love_val = 0.0
+                    surgery_state = "IDLE"
+                    regime = "goo"
+                    if ENGINE:
+                        if hasattr(ENGINE, 'config'):
+                            regime = ENGINE.config.get('regime', 'goo')
+                        if hasattr(ENGINE, 'love_vector'):
+                            love_val = float(torch.norm(ENGINE.love_vector.L).item())
+                        if hasattr(ENGINE, 'calm_diagnostics'):
+                            surgery_state = ENGINE.calm_diagnostics.get("trajectory_status", "IDLE")
+                        elif hasattr(ENGINE, 'meta_state'):
+                            surgery_state = "ACTIVE"
+                    self._send_json({
+                        "status": "ok",
+                        "love_invariant": round(love_val, 3),
+                        "surgery_indicator": surgery_state,
+                        "regime": regime
+                    })
+                except Exception as e:
+                    self._send_error_json(str(e), 500)
+                return
             elif base_path == '/ping':
                 self._send_json({
                     "status": "online",
@@ -6557,33 +6623,40 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     mods = []
                     
                     # Scan for worlds (subdirectories)
-                    for item in os.listdir(minecraft_dir):
-                        item_path = os.path.join(minecraft_dir, item)
-                        if os.path.isdir(item_path):
-                            if item in ['.venv', '__pycache__', 'data', 'datasets', 'mods']:
+                    if os.path.exists(minecraft_dir) and os.path.isdir(minecraft_dir):
+                        for item in os.listdir(minecraft_dir):
+                            item_path = os.path.join(minecraft_dir, item)
+                            try:
+                                if os.path.isdir(item_path):
+                                    if item in ['.venv', '__pycache__', 'data', 'datasets', 'mods', 'config', 'defaultconfigs', 'logs', 'crash-reports']:
+                                        continue
+                                    
+                                    has_level_dat = os.path.exists(os.path.join(item_path, 'level.dat'))
+                                    has_region = os.path.exists(os.path.join(item_path, 'region'))
+                                    
+                                    worlds.append({
+                                        'name': item,
+                                        'path': os.path.relpath(item_path, os.getcwd()),
+                                        'has_level_dat': has_level_dat,
+                                        'has_region': has_region
+                                    })
+                            except Exception:
                                 continue
-                            
-                            has_level_dat = os.path.exists(os.path.join(item_path, 'level.dat'))
-                            has_region = os.path.exists(os.path.join(item_path, 'region'))
-                            
-                            worlds.append({
-                                'name': item,
-                                'path': os.path.relpath(item_path, os.getcwd()),
-                                'has_level_dat': has_level_dat,
-                                'has_region': has_region
-                            })
                     
                     # Scan for mods (JARs and ZIPs) in datasets/minecraft/mods/
                     mods_dir = os.path.join(minecraft_dir, 'mods')
-                    os.makedirs(mods_dir, exist_ok=True)
-                    for item in os.listdir(mods_dir):
-                        item_path = os.path.join(mods_dir, item)
-                        if os.path.isfile(item_path) and item.endswith(('.jar', '.zip')):
-                            mods.append({
-                                'name': item,
-                                'path': os.path.relpath(item_path, os.getcwd()),
-                                'size': os.path.getsize(item_path)
-                            })
+                    if os.path.exists(mods_dir) and os.path.isdir(mods_dir):
+                        for item in os.listdir(mods_dir):
+                            try:
+                                item_path = os.path.join(mods_dir, item)
+                                if os.path.isfile(item_path) and item.endswith(('.jar', '.zip')):
+                                    mods.append({
+                                        'name': item,
+                                        'path': os.path.relpath(item_path, os.getcwd()),
+                                        'size': os.path.getsize(item_path)
+                                    })
+                            except Exception:
+                                continue
                             
                     self._send_json({
                         'success': True,
@@ -6592,7 +6665,13 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         'directory': os.path.relpath(minecraft_dir, os.getcwd())
                     })
                 except Exception as e:
-                    self._send_error_json(str(e))
+                    print(f"[WARN] /api/minecraft/scan error: {e}")
+                    self._send_json({
+                        'success': False,
+                        'worlds': [],
+                        'mods': [],
+                        'error': str(e)
+                    })
                 return
             
             elif base_path == '/api/splats/scan':
@@ -6914,7 +6993,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         else:
                             data['video_dyad_b64'] = form_fields.get('video_dyad_b64', None)
                         
-                        for field in ['fingerprint', 'audio_dyad', 'media_chain']:
+                        for field in ['fingerprint', 'audio_dyad', 'media_chain', 'tag_weights']:
                             val = form_fields.get(field)
                             if val:
                                 try:
@@ -6933,6 +7012,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     video_dyad_b64 = data.get('video_dyad_b64', None)
                     commutativity = data.get('commutativity', 'symmetric')
                     user_alias    = data.get('alias', None)
+                    tag_weights   = data.get('tag_weights', None)
                     
                     if video_dyad_b64 == "[FILE_POINTER]":
                         video_dyad_b64 = None
@@ -6945,6 +7025,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     print(f" User input: '{user_text}' | commutativity={commutativity} | "
                            f"has_image={fingerprint is not None} | has_audio={audio_dyad is not None} | "
                            f"has_video={video_dyad_b64 is not None} | alias={user_alias} | "
+                           f"has_tags={tag_weights is not None} | "
                            f"has_topology={universal_topology is not None}")
                     print(" Starting ENGINE.process_input...")
  
@@ -6959,6 +7040,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         generate_response=data.get('generate_response', True),
                         ingestion_mode=data.get('ingestion_mode', False),
                         performance_buffered=data.get('performance_buffered', False),
+                        tag_weights=tag_weights,
                         user_alias=user_alias,
                         universal_topology=universal_topology
                     )
@@ -7855,6 +7937,33 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     "crawled_articles": len(payloads),
                     "ingested_articles": ingested_count
                 })
+
+            elif self.path == '/api/voxelboxter/boot':
+                # Launch the PyBevy voxelboxter client asynchronously
+                import subprocess
+                import sys
+                try:
+                    python_exe = sys.executable
+                    client_path = os.path.join("src", "ui", "voxelboxter_client.py")
+                    
+                    # Store process in ENGINE or global to prevent GC, and allow tracking if needed
+                    if not hasattr(ENGINE, "voxelboxter_process"):
+                        ENGINE.voxelboxter_process = None
+                    
+                    if ENGINE.voxelboxter_process is None or ENGINE.voxelboxter_process.poll() is not None:
+                        # Process is not running, start it
+                        ENGINE.voxelboxter_process = subprocess.Popen(
+                            [python_exe, client_path],
+                            cwd=os.getcwd(),
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
+                        )
+                        self._send_json({"status": "ok", "message": "Voxelboxter Dual Engine booting..."})
+                    else:
+                        self._send_json({"status": "error", "message": "Voxelboxter is already running!"})
+                except Exception as e:
+                    self._send_error_json(f"Failed to boot Voxelboxter: {str(e)}")
                 
             else:
                 self.send_error(404)
