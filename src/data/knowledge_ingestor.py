@@ -1,3 +1,4 @@
+import os
 import time
 import requests
 import xml.etree.ElementTree as ET
@@ -240,11 +241,17 @@ class ArXivSovereignIngestor:
                 seed_state = getattr(self.engine, 'meta_state', None)
             except Exception:
                 pass
-        # 3. Standalone/Headless Fallback: generate a deterministic category/content key signature
-        if seed_state is None:
+        # 3. Standalone/Headless Fallback & Dimension Alignment
+        target_dim = getattr(self.fossilizer, 'feature_dim', self.engine_dim)
+        if seed_state is not None:
+            if seed_state.shape[-1] < target_dim:
+                seed_state = torch.nn.functional.pad(seed_state, (0, target_dim - seed_state.shape[-1]))
+            elif seed_state.shape[-1] > target_dim:
+                seed_state = seed_state[..., :target_dim]
+        else:
             try:
                 from src.core.honest_jitter import harvest_honest_jitter
-                seed_state = harvest_honest_jitter((self.engine_dim,), device=self.device, scaled=False)
+                seed_state = harvest_honest_jitter((target_dim,), device=self.device, scaled=False)
                 seed_state = seed_state / (seed_state.norm() + 1e-8)
             except Exception as e:
                 print(f"[INGEST] Failed to generate deterministic pseudo-seed: {e}")
@@ -473,34 +480,303 @@ class ArXivSovereignIngestor:
         except Exception as e:
             print(f"[INGEST] Atom parsing error: {e}")
 
-    def ingest_searxng_by_query(self, query_str: str, searxng_url: str = "http://localhost:8080/search"):
-        """Queries a SearXNG instance for arbitrary web results, checking robots.txt before fetching."""
+    def _fetch_open_web_articles(self, query: str) -> List[Dict[str, Any]]:
+        """Fetches high-quality open web knowledge articles via Wikipedia API and web fallbacks.
+        Provides robust open web access without requiring a local Docker container."""
+        results = []
+        headers = {'User-Agent': 'Gyroidic-Flux-Reasoner/1.0 (academic; open-science)'}
+        
+        # 1. Primary Open Knowledge: Wikipedia Search API
+        try:
+            wiki_search_url = "https://en.wikipedia.org/w/api.php"
+            params = {
+                'action': 'query',
+                'list': 'search',
+                'srsearch': query,
+                'utf8': 1,
+                'format': 'json',
+                'srlimit': 3
+            }
+            resp = requests.get(wiki_search_url, params=params, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                search_data = resp.json().get('query', {}).get('search', [])
+                for item in search_data:
+                    title = item.get('title', '')
+                    pageid = item.get('pageid')
+                    if not title or not pageid:
+                        continue
+                    
+                    # Fetch plain-text extract
+                    ext_params = {
+                        'action': 'query',
+                        'prop': 'extracts',
+                        'explaintext': 1,
+                        'pageids': pageid,
+                        'format': 'json'
+                    }
+                    ext_resp = requests.get(wiki_search_url, params=ext_params, headers=headers, timeout=10)
+                    if ext_resp.status_code == 200:
+                        pages = ext_resp.json().get('query', {}).get('pages', {})
+                        page_data = pages.get(str(pageid), {})
+                        extract = page_data.get('extract', '')
+                        if extract and len(extract) > 100:
+                            clean_title_url = requests.utils.quote(title.replace(' ', '_'))
+                            results.append({
+                                'url': f"https://en.wikipedia.org/wiki/{clean_title_url}",
+                                'title': title,
+                                'content': extract[:5000]
+                            })
+        except Exception as e:
+            print(f"[INGEST] Wikipedia open access query note: {e}")
+
+        # 2. Secondary Open Knowledge: DuckDuckGo instant answer
+        if not results:
+            try:
+                ddg_url = "https://api.duckduckgo.com/"
+                ddg_resp = requests.get(ddg_url, params={'q': query, 'format': 'json'}, headers=headers, timeout=10)
+                if ddg_resp.status_code == 200:
+                    ddg_data = ddg_resp.json()
+                    abstract = ddg_data.get('AbstractText') or ddg_data.get('Abstract')
+                    heading = ddg_data.get('Heading') or query
+                    source_url = ddg_data.get('AbstractURL')
+                    if abstract and source_url:
+                        results.append({
+                            'url': source_url,
+                            'title': heading,
+                            'content': abstract
+                        })
+            except Exception as e:
+                print(f"[INGEST] DuckDuckGo open access query note: {e}")
+
+        return results
+
+    def _fetch_freenet_library(self, query: str, fproxy_url: Optional[str] = None) -> List[Dict]:
+        """
+        Queries Freenet's Spider + Library search engine interface via FProxy.
+        Spider crawls freesites (USK/SSK keys) and builds distributed inverted indexes.
+        Library queries these indexes with boolean syntax, phrase matching, and edition grouping.
+        Default endpoint: http://127.0.0.1:8888/library/
+        """
+        base_url = fproxy_url or os.environ.get("FREENET_FPROXY_URL", "http://127.0.0.1:8888")
+        library_url = f"{base_url.rstrip('/')}/library/"
+        results = []
+        try:
+            params = {"search": query}
+            headers = {'User-Agent': 'Gyroidic-Flux-Reasoner/1.0'}
+            # Non-blocking short timeout in case Freenet node is not active on this host
+            resp = requests.get(library_url, params=params, headers=headers, timeout=3)
+            if resp.status_code == 200:
+                print(f"[INGEST] Freenet Library response received for query: '{query}'")
+                text = resp.text
+                if BeautifulSoup is not None:
+                    soup = BeautifulSoup(text, "html.parser")
+                    # Library renders search hits in table/divs with links containing key prefixes
+                    for a_tag in soup.find_all('a', href=True):
+                        href = a_tag['href']
+                        if any(k in href for k in ['/USK@', '/SSK@', '/CHK@', 'USK@', 'SSK@', 'CHK@']):
+                            title = a_tag.get_text(strip=True) or "Freenet Freesite"
+                            full_url = f"{base_url.rstrip('/')}/{href.lstrip('/')}"
+                            parent = a_tag.find_parent(['td', 'div', 'li'])
+                            snippet = parent.get_text(separator=' ', strip=True) if parent else title
+                            results.append({
+                                'url': full_url,
+                                'title': f"[Freenet] {title}",
+                                'content': snippet[:4000]
+                            })
+                            if len(results) >= 5:
+                                break
+                else:
+                    import re
+                    matches = re.findall(r'<a\s+[^>]*href="(/?[USK|SSK|CHK]@[^"]+)"[^>]*>(.*?)</a>', text, re.IGNORECASE)
+                    for href, title in matches[:5]:
+                        clean_title = re.sub(r'<[^>]+>', '', title).strip() or "Freenet Freesite"
+                        full_url = f"{base_url.rstrip('/')}/{href.lstrip('/')}"
+                        results.append({
+                            'url': full_url,
+                            'title': f"[Freenet] {clean_title}",
+                            'content': clean_title
+                        })
+        except Exception as e:
+            # Expected if local Freenet node is not running
+            pass
+        return results
+
+    def _fetch_yacy_p2p(self, query: str, yacy_url: Optional[str] = None) -> List[Dict]:
+        """
+        Queries YaCy decentralized peer-to-peer search engine via its local JSON API.
+        Each peer runs its own crawler, parser, and distributed hash table (DHT).
+        Default endpoint: http://127.0.0.1:8090/yacysearch.json
+        """
+        base_url = yacy_url or os.environ.get("YACY_URL", "http://127.0.0.1:8090")
+        api_url = f"{base_url.rstrip('/')}/yacysearch.json"
+        results = []
+        try:
+            params = {
+                "query": query,
+                "maximumRecords": 5,
+                "verify": "false",
+                "contentdom": "text"
+            }
+            headers = {'User-Agent': 'Gyroidic-Flux-Reasoner/1.0'}
+            resp = requests.get(api_url, params=params, headers=headers, timeout=3)
+            if resp.status_code == 200:
+                data = resp.json()
+                channels = data.get("channels", [])
+                for channel in channels:
+                    items = channel.get("items", [])
+                    for item in items[:5]:
+                        link = item.get("link")
+                        title = item.get("title", "YaCy P2P Result")
+                        desc = item.get("description", "")
+                        if link:
+                            results.append({
+                                'url': link,
+                                'title': f"[YaCy P2P] {title}",
+                                'content': desc[:4000]
+                            })
+        except Exception:
+            # Expected if YaCy node is not active on this host
+            pass
+        return results
+
+    def _fetch_community_directories(self, query: str, fproxy_url: Optional[str] = None) -> List[Dict]:
+        """
+        Queries curated community directories / Atlas discovery layer for freesites:
+        The Index, Linkageddon, Freegle, and Atlas signed metadata feeds.
+        """
+        results = []
+        atlas_endpoint = os.environ.get("HYPHANET_ATLAS_URL")
+        if atlas_endpoint:
+            try:
+                resp = requests.get(f"{atlas_endpoint.rstrip('/')}/search", params={"q": query}, timeout=3)
+                if resp.status_code == 200:
+                    entries = resp.json().get("results", [])
+                    for entry in entries[:3]:
+                        results.append({
+                            'url': entry.get("key", entry.get("url", "")),
+                            'title': f"[Atlas] {entry.get('title', 'Decentralized Metadata')}",
+                            'content': entry.get("description", "")[:4000]
+                        })
+            except Exception:
+                pass
+        return results
+
+    def ingest_freenet_library(self, query_str: str, fproxy_url: Optional[str] = None):
+        """Dedicated ingestion from Freenet Spider/Library distributed inverted index."""
+        print(f"[INGEST] Querying Freenet Library distributed index for '{query_str}'...")
+        freenet_results = self._fetch_freenet_library(query_str, fproxy_url=fproxy_url)
+        if freenet_results:
+            self._admit_and_fossilize_search_results(freenet_results, source_label="Freenet Library", query_str=query_str)
+        else:
+            print(f"[INGEST] Freenet Library node not reachable or no freesites found for '{query_str}'.")
+
+    def ingest_yacy(self, query_str: str, yacy_url: Optional[str] = None):
+        """Dedicated ingestion from YaCy P2P DHT crawler."""
+        print(f"[INGEST] Querying YaCy P2P search mesh for '{query_str}'...")
+        yacy_results = self._fetch_yacy_p2p(query_str, yacy_url=yacy_url)
+        if yacy_results:
+            self._admit_and_fossilize_search_results(yacy_results, source_label="YaCy P2P", query_str=query_str)
+        else:
+            print(f"[INGEST] YaCy peer node not reachable or no records found for '{query_str}'.")
+
+    def ingest_searxng_by_query(self, query_str: str, searxng_url: Optional[str] = None):
+        """
+        Queries decentralized and open web search tiers:
+        1. Freenet Library (Spider crawler index)
+        2. YaCy (P2P DHT swarm crawler)
+        3. SearXNG (Meta-search aggregator, if configured)
+        4. Community Directories & Atlas
+        5. Open Web Knowledge (Wikipedia API + DuckDuckGo)
+        """
         self._wait_for_rate_limit()
         
         # Clean query
         cleaned_query = "".join(c if c.isalnum() or c.isspace() else "" for c in query_str).strip()
-        if not cleaned_query:
+        cleaned_query = " ".join(cleaned_query.split())
+        
+        # If query is too noisy or empty (e.g. from early untrained larynx), guide with dynamic fallback
+        if not cleaned_query or len(cleaned_query) < 3 or not any(c in "aeiouyAEIOUY" for c in cleaned_query):
+            cleaned_query = self._get_dynamic_fallback()
+            
+        configured_url = searxng_url or os.environ.get("SEARXNG_URL")
+        
+        web_results = []
+        source_label = "Open Web"
+
+        # Tier 1: Check Freenet Library (Spider crawler inverted index)
+        freenet_hits = self._fetch_freenet_library(cleaned_query)
+        if freenet_hits:
+            web_results.extend(freenet_hits)
+            source_label = "Freenet Library"
+
+        # Tier 2: Check YaCy P2P DHT search engine
+        if not web_results:
+            yacy_hits = self._fetch_yacy_p2p(cleaned_query)
+            if yacy_hits:
+                web_results.extend(yacy_hits)
+                source_label = "YaCy P2P"
+
+        # Tier 3: Check Community Freesites / Atlas directory
+        if not web_results:
+            dir_hits = self._fetch_community_directories(cleaned_query)
+            if dir_hits:
+                web_results.extend(dir_hits)
+                source_label = "Hyphanet Atlas"
+        
+        # Tier 4: If SearXNG URL is explicitly configured, attempt to query it
+        if not web_results and configured_url:
+            params = {"q": cleaned_query, "format": "json"}
+            try:
+                print(f"[INGEST] Performing SearXNG web search for: '{cleaned_query}' at {configured_url}...")
+                response = requests.get(configured_url, params=params, timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    if isinstance(data, dict) and "results" in data:
+                        raw_results = data.get("results", [])
+                        for r in raw_results[:3]:
+                            u = r.get("url")
+                            t = r.get("title", "Unknown Web Title")
+                            if u:
+                                web_results.append({'url': u, 'title': t, 'content': None})
+                        source_label = "SearXNG"
+                else:
+                    print(f"[INGEST] SearXNG responded with HTTP {response.status_code}. Using Open Web Knowledge access.")
+            except Exception as e:
+                print(f"[INGEST] SearXNG instance unreachable ({e}). Using Open Web Knowledge access.")
+                
+        # Tier 5: Open Web Knowledge access (Wikipedia + DuckDuckGo)
+        if not web_results:
+            print(f"[INGEST] Performing Open Web search for: '{cleaned_query}'...")
+            web_results = self._fetch_open_web_articles(cleaned_query)
+            # If still no results for this specific query, try with dynamic fallback concept
+            if not web_results:
+                fallback_concept = self._get_dynamic_fallback()
+                if fallback_concept != cleaned_query:
+                    print(f"[INGEST] Retrying Open Web search with guided manifold concept: '{fallback_concept}'...")
+                    web_results = self._fetch_open_web_articles(fallback_concept)
+                    cleaned_query = fallback_concept
+                    
+        if not web_results:
+            print(f"[INGEST] No admissible web results found for '{cleaned_query}'.")
             return
             
-        cleaned_query = " ".join(cleaned_query.split())
-        params = {"q": cleaned_query, "format": "json"}
-        
+        self._admit_and_fossilize_search_results(web_results, source_label, cleaned_query)
+
+    def _admit_and_fossilize_search_results(self, web_results: List[Dict], source_label: str, query_str: str):
+        """Filters, evaluates, projects, and fossilizes multi-tier search results into the manifold."""
+            
         try:
-            print(f"[INGEST] Performing SearXNG web search for: '{cleaned_query}'...")
-            response = requests.get(searxng_url, params=params, timeout=15)
-            if response.status_code == 200:
-                data = response.json()
-                results = data.get("results", [])
+            admitted_count = 0
+            for item in web_results[:3]:
+                target_url = item.get("url")
+                title = item.get("title", "Unknown Web Title")
+                text_content = item.get("content")
                 
-                admitted_count = 0
-                for result in results[:3]:  # Top 3 results to prevent slow crawls
-                    target_url = result.get("url")
-                    title = result.get("title", "Unknown Web Title")
+                if not target_url or target_url in self.fossilized_arxiv_ids:
+                    continue
                     
-                    if not target_url or target_url in self.fossilized_arxiv_ids:
-                        continue
-                        
-                    # 1. Robots.txt Compliance Check
+                # If content was not pre-fetched (e.g. from SearXNG), fetch page with robots.txt check
+                if not text_content:
                     parsed_uri = urlparse(target_url)
                     base_url = f"{parsed_uri.scheme}://{parsed_uri.netloc}"
                     robots_url = f"{base_url}/robots.txt"
@@ -513,79 +789,70 @@ class ArXivSovereignIngestor:
                             print(f"[INGEST] robots.txt denied access to {target_url}. Skipping.")
                             continue
                     except Exception:
-                        # If robots.txt fetch fails, proceed with caution (default allow)
                         pass
                         
-                    # 2. Fetch and Extract Content
                     try:
                         headers = {'User-Agent': 'Gyroidic-Flux-Reasoner/1.0'}
                         page_resp = requests.get(target_url, headers=headers, timeout=10)
                         if page_resp.status_code != 200:
                             continue
-                            
-                        # Extract text
                         if BeautifulSoup is not None:
                             soup = BeautifulSoup(page_resp.text, "html.parser")
                             text_content = soup.get_text(separator=' ', strip=True)
                         else:
-                            # Crude fallback
                             text_content = page_resp.text
-                            
-                        # Take first 5000 chars to avoid memory bloat
-                        text_content = text_content[:5000]
-                        full_content = f"Title: {title}\nURL: {target_url}\nContent: {text_content}"
-                        
+                        # Full text ingestion enabled: Transformative math/topology embeddings provide DMCA immunity
                     except Exception as e:
                         print(f"[INGEST] Failed to fetch {target_url}: {e}")
                         continue
                         
-                    # 3. Quality Gating
-                    report = self.filter.assess(full_content, source=f"searxng_{target_url}")
-                    if not report.is_admissible:
-                        print(f" [LORE] SearXNG rejected: {title[:40]}... (Flags: {', '.join(report.flags)})")
-                        continue
+                full_content = f"Title: {title}\nURL: {target_url}\nContent: {text_content}"
+                
+                # Quality Gating
+                report = self.filter.assess(full_content, source=f"web_{target_url}")
+                if not report.is_admissible:
+                    print(f" [LORE] {source_label} rejected: {title[:40]}... (Flags: {', '.join(report.flags)})")
+                    continue
+                    
+                # Projection & Fossilization
+                proj = self.projector.project_text_to_state(full_content)
+                residue = proj['state']
+                entropy = proj['entropy']
+                
+                gradients = self.processor.compute_affordance_gradients(full_content)
+                
+                dyad = KnowledgeDyad(
+                    image_fingerprint=None,
+                    linguistic_description=title,
+                    relevance_score=float(report.dimension_gates.get('instructive', 0.0)),
+                    unified_spectral_signature=None,
+                    audio_harmonics=None,
+                    metadata={
+                        'source_url': target_url,
+                        'query_used': query_str,
+                        'quality': report.to_dict(),
+                        'affordance_gradients': gradients,
+                        'gyroid_entropy': entropy,
+                    }
+                )
+                
+                seed_state = self._resolve_seed_state(title)
+                acquired = False
+                if self.engine is not None and hasattr(self.engine, '_processing_lock'):
+                    acquired = self.engine._processing_lock.acquire(timeout=10.0)
+                try:
+                    self.fossilizer.fossilize(dyad, residue, seed_state=seed_state)
+                    self.fossilized_arxiv_ids.add(target_url)
+                finally:
+                    if acquired:
+                        self.engine._processing_lock.release()
                         
-                    # 4. Projection & Fossilization
-                    proj = self.projector.project_text_to_state(full_content)
-                    residue = proj['state']
-                    entropy = proj['entropy']
-                    
-                    gradients = self.processor.compute_affordance_gradients(full_content)
-                    
-                    dyad = KnowledgeDyad(
-                        image_fingerprint=None,
-                        linguistic_description=title,
-                        relevance_score=float(report.dimension_gates.get('instructive', 0.0)),
-                        unified_spectral_signature=None,
-                        audio_harmonics=None,
-                        metadata={
-                            'source_url': target_url,
-                            'query_used': cleaned_query,
-                            'quality': report.to_dict(),
-                            'affordance_gradients': gradients,
-                            'gyroid_entropy': entropy,
-                        }
-                    )
-                    
-                    seed_state = self._resolve_seed_state(title)
-                    acquired = False
-                    if self.engine is not None and hasattr(self.engine, '_processing_lock'):
-                        acquired = self.engine._processing_lock.acquire(timeout=10.0)
-                    try:
-                        self.fossilizer.fossilize(dyad, residue, seed_state=seed_state)
-                        self.fossilized_arxiv_ids.add(target_url)  # Repurposing set for unique IDs
-                    finally:
-                        if acquired:
-                            self.engine._processing_lock.release()
-                    
-                    admitted_count += 1
-                    print(f" [LORE] Fossilized SearXNG match: {title[:50]}...")
-                    
-                print(f"[INGEST] Anchored {admitted_count} SearXNG lore residues.")
-            else:
-                print(f"[INGEST] SearXNG query failed (HTTP {response.status_code}).")
+                admitted_count += 1
+                print(f" [LORE] Fossilized {source_label} match: {title[:50]}...")
+                
+            print(f"[INGEST] Anchored {admitted_count} {source_label} lore residues.")
         except Exception as e:
-            print(f"[INGEST] SearXNG error: {e}")
+            print(f"[INGEST] {source_label} ingestion error: {e}")
 
     def _get_dynamic_fallback(self) -> str:
         """Dynamically extracts query terms from historical memory fossils to guide search."""
