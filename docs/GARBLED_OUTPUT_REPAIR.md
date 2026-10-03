@@ -497,4 +497,14 @@ The repair system now achieves:
 - **Full polynomial co-prime integration** throughout the repair pipeline.
 - **Attractor Rehydration**: State variance is restored (std > 0) through Lazarus rehydration and IVST side-chained dropout.
 
+### 7.10 Confabulated Dream Recurrent Coherence Correction
+
+During deep abstraction states, the system invokes `_generate_confabulated_dream` to bypass the core convergence filter and allow for persona-rich Voynich outputs. Previously, this recurrent loop allowed for unbounded structural collapse leading to chaotic garbling (e.g., `nccmtsmneltcclrclcnl,tncsectsead`).
+
+**Repair Solution:**
+The `SpectralCoherenceCorrector` is now integrated directly into the autoregressive character generation loop:
+1. **Continuous Text Monitoring**: The most recent 20 generated characters are fed directly back into `adaptive_coherence_correction`.
+2. **Dynamic Band Merging**: If the text begins to cluster consonants (indicating Soliton band isolation), the coherence threshold is lowered *in real-time* over the active `current_state` tensor before generating the next logits.
+3. **Restored Permeability**: This effectively enforces readability while remaining outside the normal filtering structures, preserving the "patients denied"-style coherence inherent to the mathematical exemptions.
+
 This represents a mature, mathematically rigorous repair system that embodies the anti-lobotomy principles while maintaining effectiveness in fixing garbled outputs caused by topological fractures.
