@@ -245,7 +245,7 @@ class ArXivSovereignIngestor:
         target_dim = getattr(self.fossilizer, 'feature_dim', self.engine_dim)
         if seed_state is not None:
             if seed_state.shape[-1] < target_dim:
-                seed_state = torch.nn.functional.pad(seed_state, (0, target_dim - seed_state.shape[-1]))
+                seed_state = torch.nn.functional.pad(seed_state, (0, target_dim - seed_state.shape[-1]), mode='reflect')
             elif seed_state.shape[-1] > target_dim:
                 seed_state = seed_state[..., :target_dim]
         else:
