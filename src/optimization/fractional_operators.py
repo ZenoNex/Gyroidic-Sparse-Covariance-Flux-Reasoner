@@ -179,8 +179,8 @@ def frac_apply(
         # Adaptive Ranging: Harden alpha if coherence is imperfect
         # alpha' = alpha + gamma * (1 - coherence)
         # Less coherent -> Higher alpha -> Stronger operator application (Hardening)
-        alpha = alpha # Alpha hardening disabled for 0.61 recovery
-
+        gamma = ranging_gamma if ranging_gamma is not None else 0.5
+        alpha = alpha + gamma * (1.0 - coherence_score)
     # 2. Diagonal Search
     if isinstance(M, torch.Tensor) and M.ndim == 1:
         # Diagonal matrix represented as vector
