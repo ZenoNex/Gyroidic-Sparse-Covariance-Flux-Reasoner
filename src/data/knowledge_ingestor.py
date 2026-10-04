@@ -145,10 +145,80 @@ class ArXivSovereignIngestor:
             return set_name.replace(':', '.')
         return set_name
 
+    def _get_category_signature(self, category_name: str) -> torch.Tensor:
+        """Generates a deterministic, category-specific archetype signature vector in engine space."""
+        import hashlib
+        seed = int(hashlib.md5(category_name.encode()).hexdigest(), 16) % (2**32)
+        generator = torch.Generator(device=self.device)
+        generator.manual_seed(seed)
+        v = torch.randn(self.engine_dim, device=self.device, generator=generator)
+        return v / (torch.norm(v) + 1e-8)
+
     def ingest_latest_math(self, set_name: str = "math", commutativity: str = 'symmetric'):
-        """Fetches the latest arrivals from ArXiv using the Search API and fossilizes them into the manifold."""
+        """
+        Dynamic Meta-State Steering (Phase 18+):
+        Samples categories based on the reasoner's live meta_state trajectory instead of hardcoded cycling.
+        Maintains backwards compatibility with 'set_name' argument if steering is unavailable.
+        """
         self._wait_for_rate_limit()
-        cat = self._set_to_category(set_name)
+        
+        active_categories = [
+            'math', 'math.LO', 'physics:quant-ph', 'cs:AI',
+            'math.HO', 'physics:hist-ph', 'cs:CY', 
+            'physics:physics.soc-ph', 'cs:CL'
+        ]
+        
+        # 1. Attempt to fetch live meta_state
+        current_state = None
+        if self.state_callback is not None:
+            try:
+                current_state = self.state_callback()
+            except Exception:
+                pass
+                
+        if current_state is None and self.engine is not None and hasattr(self.engine, 'meta_state'):
+            current_state = self.engine.meta_state
+            
+        chosen_cat = set_name
+        
+        # 2. Perform Cosine Alignment and Softmax Sampling
+        if current_state is not None:
+            if current_state.dim() > 1:
+                current_state = current_state.mean(dim=0)
+            
+            from src.core.martinova_correlation import compute_bounded_correlation
+            
+            sims = []
+            for c in active_categories:
+                v = self._get_category_signature(c)
+                if current_state.shape == v.shape:
+                    sim = compute_bounded_correlation(current_state.unsqueeze(0), v.unsqueeze(0)).mean().item()
+                else:
+                    sim = 0.0
+                sims.append(sim)
+                
+            from src.core.gluing_operator import LazarusSoftmax
+            from src.core.honest_jitter import honest_multinomial
+            
+            sim_tensor = torch.tensor(sims, device=self.device)
+            # 3. Apply Equation-Driven Lazarus Softmax instead of generic scalar softmax
+            lazarus = LazarusSoftmax(dim=0).to(self.device)
+            pas_h_curr = self.engine.pas_h.mean().item() if self.engine and hasattr(self.engine, 'pas_h') and self.engine.pas_h is not None else 0.5
+            pas_h_prev = self.engine.prev_pas if self.engine and hasattr(self.engine, 'prev_pas') else 0.5
+            
+            probs, lazarus_triggered = lazarus(sim_tensor / 0.2, current_pas_h=pas_h_curr, previous_pas_h=pas_h_prev)
+            
+            if lazarus_triggered:
+                print("[INGEST] Lazarus Transition Triggered: System successfully navigated the U-curve during alignment.")
+            
+            # 4. Use Hardware-Anchored Honest Jitter multinomial instead of PRNG
+            idx = honest_multinomial(probs, num_samples=1)[0].item()
+            
+            chosen_cat = active_categories[idx]
+            prob_val = probs[idx].item()
+            print(f"[INGEST] Meta-State Topic Steering selected topic: '{chosen_cat}' (prob: {prob_val:.3f})")
+            
+        cat = self._set_to_category(chosen_cat)
         random_offset = _honest_randint(0, 10, device=self.device)
         url = f"http://export.arxiv.org/api/query?search_query=cat:{cat}&sortBy=submittedDate&sortOrder=descending&start={random_offset}&max_results=5"
         
@@ -855,25 +925,42 @@ class ArXivSovereignIngestor:
             print(f"[INGEST] {source_label} ingestion error: {e}")
 
     def _get_dynamic_fallback(self) -> str:
-        """Dynamically extracts query terms from historical memory fossils to guide search."""
+        """Dynamically extracts query terms using Fossil Gravity Wells and topological steering."""
         try:
             fossils = self.fossilizer.recover_fossils(limit=50)
             if fossils:
+                # Retrieve ValenceFunctional Hunger Drive if available
+                hunger = 1.0
+                if self.engine is not None and hasattr(self.engine, 'valence_drive'):
+                    try:
+                        metrics = self.engine.valence_drive.get_metrics()
+                        hunger = metrics.get('current_hunger_drive', 1.0)
+                    except Exception:
+                        pass
+                
+                # If hungry, we seek novel combinations (Braid Group Steering / Mischief Band)
                 for _ in range(15):
+                    # Fossil's Blake2s hash acts as a Gravity Well for trajectory
                     chosen = _honest_choice(fossils, device=self.device)
                     desc = chosen.get('text_input') or chosen.get('description', '')
                     if not desc:
                         continue
+                    
                     # Tokenize and clean
                     words = [w.strip(".,!?;:()[]{}'\"") for w in desc.split()]
                     words = [w for w in words if len(w) > 4 and w.isalpha() and w.lower() not in [
                         "about", "their", "there", "would", "could", "should", "under", "which",
                         "these", "those", "other", "after", "before", "using", "first", "second"
                     ]]
-                    if len(words) >= 2:
+                    
+                    if hunger > 0.5 and len(words) >= 3:
+                        # High hunger / Mischief: Extract a non-contiguous tri-gram (Braid Group mutation)
+                        idx1 = _honest_randint(0, len(words) - 3, device=self.device)
+                        idx2 = _honest_randint(idx1 + 1, len(words) - 1, device=self.device)
+                        return f"{words[idx1]} {words[idx2]}"
+                    elif len(words) >= 2:
                         idx = _honest_randint(0, len(words) - 2, device=self.device)
-                        query = f"{words[idx]} {words[idx+1]}"
-                        return query
+                        return f"{words[idx]} {words[idx+1]}"
                     elif len(words) == 1:
                         return words[0]
         except Exception as e:
