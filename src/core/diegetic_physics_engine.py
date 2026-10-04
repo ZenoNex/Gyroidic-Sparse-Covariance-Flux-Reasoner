@@ -60,7 +60,13 @@ class DiegeticPhysicsEngine(nn.Module):
         # --- Stage 3: System 1 Symbolic Trajectory Draft ---
         # Generate c_sym using coprime polynomials. In Voxelboxter, this is the speculative "ghost" trajectory
         # before checking terrain collisions.
-        c_sym = torch.sin(routed_c * math.pi) # Simplified polynomial Draft
+        # [REHYBRIDIZATION]: Use CODES driver for proper topological chordlock projection
+        # rather than the shallow simplified sin(x * pi) draft.
+        if not hasattr(self, 'codes_driver'):
+            from src.optimization.codes_driver import CODES
+            self.codes_driver = CODES(state_dim=self.state_dim, constraint_depth=3).to(self.device)
+            
+        c_sym = self.codes_driver.project_chordlock(routed_c)
 
         # --- Stage 4: Gyroid Violation Probes ---
         # Evaluate local violation V to dictate sparsification vs dense compute.
