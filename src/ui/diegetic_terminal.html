@@ -1333,7 +1333,7 @@
             </div>
 
             <!-- Tab: Voxelboxter Simulation -->
-            <div class="tab-pane" id="pane-voxelboxter" style="background: #030303; flex: 1; position: relative; padding: 2rem; display: flex; flex-direction: column;">
+            <div class="tab-pane" id="pane-voxelboxter" style="background: #030303; flex: 1; position: relative; padding: 2rem;">
                 <div class="section-title" style="color: #ffaa00;">Dual Engine Sandbox</div>
                 <p style="font-family: var(--font-mono); font-size: 0.8rem; color: #aaa; margin-bottom: 2rem;">
                     The Voxelboxter client bridges the Gyroidic Engine with a Bevy-based topological voxel renderer.<br>
@@ -1800,7 +1800,10 @@
             const tabs = document.querySelectorAll(".console-tab");
             const panes = document.querySelectorAll(".tab-pane");
 
-            const savedTab = localStorage.getItem("active_console_tab") || "chat";
+            tabs.forEach(t => t.classList.remove("active"));
+            panes.forEach(p => p.classList.remove("active"));
+
+            const savedTab = localStorage.getItem("active_console_tab") || "terminal";
             let initialized = false;
 
             tabs.forEach(tab => {
@@ -3725,19 +3728,6 @@
         }
 
         // --- Event Listeners ---
-        const consoleTabs = document.querySelectorAll('.console-tab');
-        const tabPanes = document.querySelectorAll('.tab-pane');
-
-        consoleTabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                consoleTabs.forEach(t => t.classList.remove('active'));
-                tabPanes.forEach(p => p.classList.remove('active'));
-
-                tab.classList.add('active');
-                const targetId = 'pane-' + tab.getAttribute('data-tab');
-                document.getElementById(targetId).classList.add('active');
-            });
-        });
 
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage(userInput.value);
