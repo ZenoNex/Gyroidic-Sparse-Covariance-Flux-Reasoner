@@ -83,7 +83,6 @@ python dataset_command_interface.py add-wikipedia --topics physics --samples 300
 
 ### Chat and Reasoning
 - **Interactive Chat**: Web-based interface for conversations
-- **Coherent Responses**: Generates human-like text without garbled output
 - **Memory Formation**: Learns and remembers from conversations
 - **Image Understanding**: Can process and describe images
 
