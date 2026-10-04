@@ -14,6 +14,8 @@ The Gyroidic AI System is a next-generation artificial intelligence that can:
 
 ##  Setting Up Your Environment
 
+download and install rustrover, Microsoft visual c++ 2022,and freenet (the collective internet platform), and download ffmpeg and add it to system environmental variables PATH attribute
+
 ### 1. Open the Terminal
 - **Windows**: Press `Win + R`, type `cmd`, and press Enter.
 - **Mac/Linux**: Open the `Terminal` app.
