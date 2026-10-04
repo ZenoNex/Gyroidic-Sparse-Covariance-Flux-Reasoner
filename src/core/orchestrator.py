@@ -169,6 +169,11 @@ class UniversalOrchestrator(nn.Module):
             self.agent_smith = _AGENT_SMITH_ENGINE
         else:
             self.agent_smith = AgentSmithEngine(device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+            
+        # Fractal Meta-Functional: Adaptive structural pressure
+        from src.core.fractal_meta_functional import FractalMetaFunctional
+        self.fractal_meta_functional = FractalMetaFunctional(dim=dim)
+        self.register_buffer('meta_state_prev', torch.zeros(1, dim))
         
         # EMA for flux prediction in deflagration scout
         self.register_buffer('expected_flux', torch.zeros(1))
@@ -442,7 +447,9 @@ class UniversalOrchestrator(nn.Module):
                 volition = self.play_volition_ratio * (2.0 if atrophy > 0.85 else 1.0)
                 if harvest_honest_jitter((1,), scaled=False).item() < volition:
                     mischief_intensity = (0.15 + 0.35 * max(0.0, atrophy - 0.5)) / self.micro_steps
-                    current_state = current_state + mischief_intensity * harvest_honest_jitter(current_state.shape, device=current_state.device, scaled=True)
+                    # Hardware-anchored Agent Smith Entropy Expansion
+                    agent_smith_jitter = self.agent_smith(current_state.shape, seed_val=atrophy, scaled=True).to(current_state.device)
+                    current_state = current_state + mischief_intensity * agent_smith_jitter
                     # Apply erosion filter (Surface weathering)
                     current_state = self.erosion_filter(current_state, pressure_grad, intensity=0.05)
 
@@ -571,6 +578,36 @@ class UniversalOrchestrator(nn.Module):
                 # We can't safely fuse the manifolds, revert to safe state
                 state_final = current_state
             
+            # Phase 19: Leontief Governance & Compute Budget
+            # Evaluate if this massive geometric update is fundamentally affordable
+            demand = (state_final - current_state).abs().mean()
+            # We construct a rough correlation transition matrix to feed the Governor
+            if state_final.dim() > 1:
+                norm_f = state_final / (state_final.norm(dim=-1, keepdim=True) + 1e-8)
+                dummy_A = norm_f.T @ norm_f
+            else:
+                dummy_A = torch.eye(self.dim, device=state_final.device) * 0.5
+                
+            is_vetoed, leontief_metrics = self.leontief.should_veto_concept(
+                demand=torch.tensor([demand], device=state_final.device), 
+                transition_matrices=dummy_A.unsqueeze(0), 
+                available_budget=1.0
+            )
+            
+            if is_vetoed:
+                print(f"[ORCHESTRATOR] Leontief Governor VETO: Spectral Radius {leontief_metrics['spectral_radius']:.3f} exceeds productive economy condition. Vetoing topological update.")
+                self.rupture_fn() # Register the veto as a rupture
+                state_final = current_state
+            
+            # Phase 20: Martinova Correlation Bound Check
+            # Prevent the manifold from collapsing into highly correlated predictable clusters
+            from src.core.martinova_correlation import compute_bounded_correlation
+            martinova_corr = compute_bounded_correlation(state_final.unsqueeze(0), state_final.unsqueeze(0))
+            if martinova_corr.mean().item() > 0.95:
+                print(f"[ORCHESTRATOR] Martinova Correlation hit {martinova_corr.mean().item():.3f}. Forcing Schizo Band dispersion event to shatter legible stagnation.")
+                # Shatter the state
+                state_final = state_final + harvest_honest_jitter(state_final.shape, device=state_final.device, scaled=True) * 0.5
+            
             # Post the corrected geometric force to the board for the next micro-round
             self.bulletin_board.post_force(state_final - state)
             self.schedule.update_board(state_final - state)
@@ -670,6 +707,34 @@ class UniversalOrchestrator(nn.Module):
         
         # Audience Mapping: Final human-readable projection
         ui_readout = self.audience_projector(state_shielded)
+        
+        # Invoke Fractal Meta-Functional to process recursive pressure
+        batch_sz = state_shielded.shape[0]
+        if self.meta_state_prev.shape[0] != batch_sz:
+            self.meta_state_prev = torch.zeros(batch_sz, self.dim, device=state_shielded.device)
+        
+        fractal_res = self.fractal_meta_functional(
+            current_state=state_shielded,
+            meta_state_prev=self.meta_state_prev,
+            residues=state_shielded[:, :5].abs() if state_shielded.dim() == 2 else torch.ones(batch_sz, 5, device=state_shielded.device)
+        )
+        state_shielded = fractal_res['s_fractal']
+        self.meta_state_prev = state_shielded.detach().clone()
+        
+        # Evaluate Coherent Prime Resonance (CPR) Constraint
+        self.cpr_satisfied = self.compute_cpr_condition(
+            field_phases=state_shielded,
+            breather_amplitudes=state_shielded,
+            field_amplitudes=state_shielded
+        )
+        
+        # Execute Structural Monitors (Anti-Scaling & Incommensurativity)
+        self.check_safety(
+            rho_def=0.1 if is_red_zone else 0.01,
+            grad_norm=actual_flux.mean().item() if actual_flux is not None else 0.0,
+            loss=atrophy,
+            veto_counts={"meta": (1 if is_red_zone else 0, 1)}
+        )
         
         # 7. Final Routing & Regime Determination (Phase 25 Braid Automata)
         regime = self.determine_regime(pas_h, abs(pas_h - self.prev_pas), state=state_shielded, atrophy=atrophy)
