@@ -77,7 +77,7 @@ class TestUnicornSynthesis(unittest.TestCase):
             system_entropy=0.9, memory_trauma=0.9, dissonance=0.9, lucidity_idx=0.1,
             raw_unquantized_state=self.dummy_state
         )
-        self.assertTrue(res_death["system_collapsed"])
+        self.assertTrue(res_death.system_collapsed)
 
         # Scenario 2: Volitional Conjuring (High Willpower)
         # Ra = 0
@@ -88,7 +88,7 @@ class TestUnicornSynthesis(unittest.TestCase):
             system_entropy=0.0, memory_trauma=0.0, dissonance=0.0, lucidity_idx=1.0,
             raw_unquantized_state=self.dummy_state
         )
-        self.assertFalse(res_conjure["system_collapsed"])
+        self.assertFalse(res_conjure.system_collapsed)
 
     def test_silicon_sovereignty(self):
         """Phase 1: Dual-command queues and LSB stochastic routing."""
