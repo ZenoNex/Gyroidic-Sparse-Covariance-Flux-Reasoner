@@ -82,18 +82,23 @@ class TrainingManager:
                 except Exception as e:
                      self.log.append(f"[WARN] Model init failed: {e}. Falling back to mock.")
                      model = None
-            else:
-                model = None
-                self.log.append("[WARN] No model available. Using mock training.")
-
-            total_steps = epochs * 10  # Mock steps per epoch
+            # Initialize real FGRT Trainer
+            fgrt_trainer = None
+            if model is not None:
+                try:
+                    from src.training.fgrt_trainer import FGRTStructuralTrainer
+                    fgrt_trainer = FGRTStructuralTrainer(model=model, lr=learning_rate)
+                    self.log.append("[BUILD] FGRTStructuralTrainer engaged. We are running live physics.")
+                except Exception as e:
+                    self.log.append(f"[WARN] FGRT initialization failed: {e}. Falling back to mock loops.")
+            
+            total_steps = epochs * 10
             current_step = 0
             
             # Theoretical Constants for Diegetic Simulation
             PAS_H_TARGET = 1.0
-            CHIRAL_BIAS = -0.5 # Left-handed gyroid preference
+            CHIRAL_BIAS = -0.5
             
-            # Phase 6: Chiral Residue Warm Start
             warm_start_chirality = None
             
             for epoch in range(epochs):
@@ -102,45 +107,58 @@ class TrainingManager:
                     
                 self.log.append(f"Epoch {epoch+1}/{epochs} initiated...")
                 
-                # Mock Batch Loop
+                # Real/Mock Batch Loop
                 for batch in range(10): 
                     if self.stop_event.is_set():
                         break
                         
-                    time.sleep(0.5) # Simulate computation
-                    
                     # Update Progress
                     current_step += 1
                     self.progress = int((current_step / total_steps) * 100)
                     
-                    # Calculate Gyroidic Metrics (Simulated or Real)
-                    # SILICON SOVEREIGNTY: Replaced np.sin/cos with hardware-anchored jitter drift.
-                    jitter = harvest_honest_jitter((1,), device=self.ai_system.device, scaled=True).item()
-                    
-                    loss = 0.5 * (1.0 - (current_step / total_steps)) + (abs(jitter) * 0.1)
+                    if fgrt_trainer is not None:
+                        # ---------------- REAL TRAINING PATH ----------------
+                        try:
+                            # Generate an honest-jitter batch to test structural resonance
+                            input_data = harvest_honest_jitter((1, 4, 16), device=self.ai_system.device, scaled=True)
+                            input_data.requires_grad_(True)
+                            
+                            metrics = fgrt_trainer.train_step(input_data)
+                            
+                            loss = metrics.get('energy', 0.5)
+                            pas_h = metrics.get('pas_h', 1.0)
+                            chiral_score = metrics.get('chiral_score', CHIRAL_BIAS)
+                            gyroid_pressure = metrics.get('gyroid_pressure', 0.0)
+                        except Exception as e:
+                            self.log.append(f"[WARN] Real training step failed: {e}. Falling back for this step.")
+                            fgrt_trainer = None
+                            continue
+                    else:
+                        # ---------------- MOCK TRAINING PATH ----------------
+                        time.sleep(0.5)
+                        jitter = harvest_honest_jitter((1,), device=self.ai_system.device, scaled=True).item()
+                        loss = 0.5 * (1.0 - (current_step / total_steps)) + (abs(jitter) * 0.1)
                     
                     # PAS_h: Phase Amplitude Stability (Hardened) - Converges to 1.0
-                    pas_h = 0.8 + (0.2 * (current_step / total_steps)) + (jitter * 0.02)
-                    
+                        pas_h = 0.8 + (0.2 * (current_step / total_steps)) + (jitter * 0.02)
+                        
                     # Chiral Score: Rotational metric (Warm Started to preserve chiral residues)
-                    if warm_start_chirality is None:
-                        chiral_score = CHIRAL_BIAS + (jitter * 0.05)
-                    else:
-                        chiral_score = warm_start_chirality * 0.99 + (jitter * 0.01)
-                    
-                    warm_start_chirality = chiral_score
+                        if warm_start_chirality is None:
+                            chiral_score = CHIRAL_BIAS + (jitter * 0.05)
+                        else:
+                            chiral_score = warm_start_chirality * 0.99 + (jitter * 0.01)
+                        warm_start_chirality = chiral_score
                     
                     # Gyroid Pressure: Stress on the manifold
-                    gyroid_pressure = max(0, 1.0 - pas_h) * 5.0
+                        gyroid_pressure = max(0, 1.0 - pas_h) * 5.0
 
                     # --- RE-HYBRIDIZATION: Situational Batching (Pusafiliacrimonto Dynamics) ---
                     if hasattr(self.ai_system, 'situational_sampler'):
                         sampler_iter = iter(self.ai_system.situational_sampler)
                         try:
                             situational_batch = next(sampler_iter)
-                            # Update relational scars based on gyroid pressure and mischief (jitter)
                             pressure_tensor = torch.tensor([gyroid_pressure], device=self.ai_system.device)
-                            mischief_tensor = torch.tensor([abs(jitter)], device=self.ai_system.device)
+                            mischief_tensor = torch.tensor([abs(loss)], device=self.ai_system.device) # Proxy for mischief
                             self.ai_system.situational_sampler.update_pusafiliacrimonto(
                                 situational_batch, pressure_tensor, mischief_tensor
                             )
