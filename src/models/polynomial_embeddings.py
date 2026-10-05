@@ -260,8 +260,12 @@ class PolynomialFunctionalEmbedder(nn.Module):
             optimizer.zero_grad()
             out = adapted_embedder(support_text, support_graph, support_num)
             residues = out['residue_distributions']
-            # PAS_h loss: maximize magnitude of expected phase alignment across functional heads
-            pas_loss = 1.0 - torch.abs(residues.mean(dim=1)).mean()
+            # Real Differentiable PAS_h loss: maximize magnitude of expected phase alignment across functional heads
+            harmonics = torch.tensor([abs(math.cos((2*n - 1) * math.pi / 12) * 10) + 1 for n in range(1, 7)], device=residues.device)
+            phase = residues.mean(dim=-1)
+            score = torch.cos(phase.unsqueeze(-1) * harmonics).mean(dim=-1)
+            pas_loss = 1.0 - score.mean()
+            
             pas_loss.backward()
             optimizer.step()
             
