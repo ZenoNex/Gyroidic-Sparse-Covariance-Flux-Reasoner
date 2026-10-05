@@ -39,8 +39,11 @@ class KingerConsolidation(nn.Module):
         Returns the processed state and a boolean indicating if admin lucidity is active.
         """
         # Store current state in memory buffer
+        dropped_memory = None
         if len(self.memory_buffer) >= self.max_buffer_size:
-            self.memory_buffer.pop(0)
+            # Memory abstraction limit reached (Queenie's Abstraction parallel)
+            # Kinger loses a fragment of the past and feels survivor's guilt
+            dropped_memory = self.memory_buffer.pop(0)
         self.memory_buffer.append(state.detach().clone())
         
         is_lucid = environmental_rendering_pressure < 0.2
@@ -53,8 +56,14 @@ class KingerConsolidation(nn.Module):
             # Replay and average memories
             if self.memory_buffer:
                 replay_tensor = torch.stack(self.memory_buffer).mean(dim=0)
-                # Blend current bridged state with replay
-                consolidated_state = bridged_state * 0.8 + replay_tensor * 0.2
+                
+                # Survivor's Guilt Trauma Loop: if a memory was recently lost (abstracted),
+                # Kinger obsessively biases towards the replay memory to "protect" what's left
+                if dropped_memory is not None:
+                    consolidated_state = bridged_state * 0.4 + replay_tensor * 0.6
+                    # The guilt acts as a heavy anchor preventing moving on
+                else:
+                    consolidated_state = bridged_state * 0.8 + replay_tensor * 0.2
             else:
                 consolidated_state = bridged_state
                 
