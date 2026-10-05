@@ -59,21 +59,39 @@ class VoynichExemptionToken:
         return None
 
     @classmethod
-    def issue_from_transversality(cls, transversality_metrics: Dict[str, torch.Tensor], threshold: float = 0.5) -> 'VoynichExemptionToken':
+    def issue_from_transversality(cls, transversality_metrics: Dict[str, torch.Tensor]) -> 'VoynichExemptionToken':
         """
-        Issues an exemption token passport if Symbolic Transversality indicates 
-        a strong, path-dependent non-commutative connection.
+        Issues an exemption token passport ONLY at Sovereign Loci: 
+        isolated Cayley cubic intersections A_1 = (±2, ±2, ±2).
         """
-        is_val = transversality_metrics.get('is_strongly_noncommutative', False)
-        norm_val = transversality_metrics.get('curvature_norm', torch.tensor(0.0))
-        c_norm = norm_val.item() if isinstance(norm_val, torch.Tensor) else float(norm_val)
+        state = transversality_metrics.get('state')
+        if state is None:
+            return cls(
+                honesty_score=0.0,
+                is_valid_exemption=False,
+                reason="State missing for Cayley check",
+                is_nutrient=False
+            )
+            
+        is_valid = False
+        c_norm = 0.0
         
-        is_valid = bool(is_val) and (c_norm > threshold)
+        if state.shape[-1] >= 3:
+            xyz = state[..., :3]
+            # Check proximity to A_1 = (±2, ±2, ±2)
+            dist = torch.abs(torch.abs(xyz) - 2.0).sum(dim=-1)
+            # Strict Sovereign Loci constraint (allow small eps for floating point)
+            is_valid_tensor = dist < 1e-4
+            is_valid = bool(is_valid_tensor.any().item())
+            
+            if is_valid:
+                x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
+                c_norm = torch.abs(x * (x**2 + y**2 + z**2 - x*y*z - 4)).mean().item()
         
         return cls(
-            honesty_score=min(c_norm, 1.0),
+            honesty_score=1.0 if is_valid else 0.0,
             is_valid_exemption=is_valid,
-            reason="Transversality passport granted" if is_valid else "Transversality rejected",
+            reason="Cayley Sovereign Loci Match" if is_valid else "Not at A_1=(±2,±2,±2)",
             is_nutrient=is_valid
         )
 
@@ -81,7 +99,7 @@ class VoynichExemptionToken:
     def issue_from_video_residue(cls, entropy_metrics: torch.Tensor, jitter: float) -> 'VoynichExemptionToken':
         """
         Calibrates high-entropy spikes as "Nutrients" if the signature 
-        is topologically sealed by SO(n) rotation. (§45 alignment)
+        is topologically sealed by SO(n) rotation. (45 alignment)
         """
         ent_val = entropy_metrics.mean().item()
         # High entropy (~ > 2.0) usually triggers a veto, but if it's 
