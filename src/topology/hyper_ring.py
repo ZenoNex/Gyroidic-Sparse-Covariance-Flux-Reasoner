@@ -46,6 +46,7 @@ class DiscreteHyperRingCirculation(nn.Module):
     ) -> Dict[str, torch.Tensor]:
         """
         Discrete line integral over constraint cycle.
+        Refactored to support IHC Base-24 Toroidal Modular Arithmetic.
         """
         n = len(constraint_cycle)
         if n < 2:
@@ -56,6 +57,9 @@ class DiscreteHyperRingCirculation(nn.Module):
             }
         
         device = constraint_cycle[0].device
+        # Use quantized Base-24 arithmetic to avoid floating point representation loss
+        # over the 33 nested toroidal shells.
+        base_modulus = 24.0
         total = torch.tensor(0.0, device=device)
         
         for i in range(n):
@@ -74,16 +78,24 @@ class DiscreteHyperRingCirculation(nn.Module):
             else:
                 contribution = phi_i.flatten().sum() * delta_C.norm()
             
-            total = total + contribution
+            # Base-24 Analog Quantization Step
+            # Map contribution to Z/24Z equivalent classes to maintain topological precision
+            quantized_contribution = torch.round(contribution * base_modulus) / base_modulus
+            total = total + quantized_contribution
+            
+        # Optional: fold global circulation into the base-24 modulo space
+        # We preserve the raw un-modulo'd sum for continuous tracking but wrap it to check phase slippage.
+        total_wrapped = torch.fmod(total, base_modulus)
         
         # Phase slippage detection: |Observed - Expected|
-        slippage = torch.abs(total - self.expected_circulation)
+        slippage = torch.abs(total_wrapped - self.expected_circulation)
         needs_refinement = slippage > self.slippage_threshold
         
-        self.prev_circulation = total.detach()
+        self.prev_circulation = total_wrapped.detach()
         
         return {
-            'circulation': total,
+            'circulation': total_wrapped,
+            'raw_circulation': total,
             'slippage': slippage,
             'needs_refinement': needs_refinement,
             'resolution': torch.tensor(n)
