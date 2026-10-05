@@ -195,7 +195,8 @@ class UniversalOrchestrator(nn.Module):
         self.anti_scaling_monitor = AntiScalingMonitor()
         self.incommensurativity_monitor = MetaInfraIntraMonitor()
         
-        # 6. Archetypal Synthesis Governor (The "Mandy/Billy" Logic)
+        # 6. Archetypal Synthesis Governor (The "Mandy/Billy" Logic / TADC)
+        from src.core.archetype_engines import ArchetypalSynthesisEngine
         self.archetype_governor = ArchetypalSynthesisEngine(dim)
         self.red_team_projector = RedTeamProjection(hidden_dim=dim)
         self.topological_refusal = TopologicalRefusalFilter(value_gap_threshold=0.5)
@@ -211,6 +212,17 @@ class UniversalOrchestrator(nn.Module):
         
         self.prev_pas = 0.0 # Temporal anchor for drift check
         
+        # 7.5 Ley Line Tracker (Topological Shortcuts / Skip-Jumps)
+        self.ley_line_tracker = None
+        
+        # 7.6 OKLab Moment Field Transport (Visual Perceptual Grounding)
+        from src.core.conjugate_moment_transport import ConjugateMomentTransport
+        self.moment_transport = ConjugateMomentTransport(dim=dim)
+        
+        # 7.7 JEPA Polynomial Functional Embedder (Predictive Abstract Representations)
+        from src.models.polynomial_embeddings import PolynomialFunctionalEmbedder
+        # Embeds state -> structurally predictive state space
+        self.jepa_embedder = PolynomialFunctionalEmbedder(input_dim=dim, hidden_dim=dim, output_dim=dim)
         # 8. P2P & External Integrations
         self.freenet_router = None
         self.freenet_ws = None
@@ -453,12 +465,57 @@ class UniversalOrchestrator(nn.Module):
                     # Apply erosion filter (Surface weathering)
                     current_state = self.erosion_filter(current_state, pressure_grad, intensity=0.05)
 
+            # OKLab Moment Transport (Visual Perceptual Grounding)
+            # Drift current_state along the perceptual prior manifold to anchor heuristics to reality
+            if self.moment_transport is not None:
+                current_state = self.moment_transport.langevin_prior_drift(current_state, steps=1)
+
+            # JEPA Predictive Abstract Representation (Topology -> Structural Future)
+            if hasattr(self, 'jepa_embedder'):
+                jepa_outputs = self.jepa_embedder(current_state)
+                if 'fused_hidden' in jepa_outputs:
+                    current_state = current_state + 0.05 * jepa_outputs['fused_hidden']
+
             # Scout for Anisotropic Ruptures (Fast Scout)
             defects = self.deflagrator.scout_defects(self.expected_flux, actual_flux)
             jump_signal = self.deflagrator.omipedial_jump(ley_potential=torch.tensor([pas_h]))
             if jump_signal.item() > 0:
                 # Anomaly amplification across holes
                 current_state = current_state + 0.02 * defects * harvest_honest_jitter(current_state.shape, device=current_state.device, scaled=True)
+
+            # Lazy-init LeyLineTracker based on sequence/batch dynamics
+            bsz = current_state.shape[0]
+            if self.ley_line_tracker is None or self.ley_line_tracker.num_samples != bsz:
+                from src.core.ley_line_tracker import LeyLineTracker
+                self.ley_line_tracker = LeyLineTracker(num_samples=bsz, device=current_state.device)
+            
+            # Topological Shortcuts (Skip-Jump Connections via Ley Lines)
+            # 1. Update Resonance Potential V(x_i)
+            flat_state = current_state.view(bsz, -1)
+            norm_state = F.normalize(flat_state, dim=-1)
+            adj = norm_state @ norm_state.T  # Relational adjacency
+            love_diff = self.love(flat_state) - flat_state
+            love_mags = torch.norm(love_diff, dim=-1)
+            flat_defects = defects.view(-1) if isinstance(defects, torch.Tensor) else torch.zeros(bsz, device=current_state.device)
+            
+            self.ley_line_tracker.update_potential(adj, love_mags, flat_defects)
+            
+            # 2. Detect MC Failure Planes (Fractures in the Manifold)
+            pressure_tensor = torch.full((bsz,), pas_h, device=current_state.device)
+            shear_mask = self.ley_line_tracker.detect_shear_planes(pressure_tensor)
+            
+            # 3. Bypass execution (Skip-Jump) along the resonance streamline
+            # SAFETY GATING: Only skip-jump if we aren't protecting a "good bug" (spontaneity)
+            # and only if the manifold isn't already structurally locked (representation).
+            if shear_mask.sum() > 0 and not is_good_bug and pas_h < getattr(self, 'theta_L', 0.85):
+                flow_probs = self.ley_line_tracker.get_preferred_flow(torch.arange(bsz, device=current_state.device))
+                # Mix state heavily towards the preferred topological resonance corridor
+                flow_mix = (flat_state.T @ flow_probs).T.view_as(current_state[0])
+                for i in range(bsz):
+                    if shear_mask[i] > 0:
+                        # Soft bypass mapping (skip-jump) protecting representation structure
+                        # Mixes 80% current state, 20% flow to preserve continuity
+                        current_state[i] = current_state[i] * 0.8 + flow_mix * 0.2
 
             # Archetype Concealment (Nostalgic Leak)
             # Injects obscured archetype coefficients into the micro-step state
@@ -580,29 +637,35 @@ class UniversalOrchestrator(nn.Module):
             
             # Phase 19: Leontief Governance & Compute Budget
             # Evaluate if this massive geometric update is fundamentally affordable
-            demand = (state_final - current_state).abs().mean()
+            demand = (state_final - current_state).abs().view(-1, self.dim).mean(dim=0)
             # We construct a rough correlation transition matrix to feed the Governor
             if state_final.dim() > 1:
                 norm_f = state_final / (state_final.norm(dim=-1, keepdim=True) + 1e-8)
-                dummy_A = norm_f.T @ norm_f
+                if norm_f.dim() == 2:
+                    dummy_A = norm_f.unsqueeze(-1) @ norm_f.unsqueeze(-2)
+                else:
+                    dummy_A = norm_f.transpose(-1, -2) @ norm_f
             else:
-                dummy_A = torch.eye(self.dim, device=state_final.device) * 0.5
+                dummy_A = torch.eye(self.dim, device=state_final.device).unsqueeze(0) * 0.5
                 
             is_vetoed, leontief_metrics = self.leontief.should_veto_concept(
-                demand=torch.tensor([demand], device=state_final.device), 
-                transition_matrices=dummy_A.unsqueeze(0), 
+                demand=demand, 
+                transition_matrices=dummy_A, 
                 available_budget=1.0
             )
             
             if is_vetoed:
                 print(f"[ORCHESTRATOR] Leontief Governor VETO: Spectral Radius {leontief_metrics['spectral_radius']:.3f} exceeds productive economy condition. Vetoing topological update.")
-                self.rupture_fn() # Register the veto as a rupture
+                self.rupture_fn(residue=torch.zeros_like(current_state), constraint_losses={0: torch.tensor([1.0], device=current_state.device)}) # Register the veto as a rupture
                 state_final = current_state
             
             # Phase 20: Martinova Correlation Bound Check
             # Prevent the manifold from collapsing into highly correlated predictable clusters
             from src.core.martinova_correlation import compute_bounded_correlation
-            martinova_corr = compute_bounded_correlation(state_final.unsqueeze(0), state_final.unsqueeze(0))
+            if state_final.dim() == 3:
+                martinova_corr = compute_bounded_correlation(state_final, state_final)
+            else:
+                martinova_corr = compute_bounded_correlation(state_final.unsqueeze(0), state_final.unsqueeze(0))
             if martinova_corr.mean().item() > 0.95:
                 print(f"[ORCHESTRATOR] Martinova Correlation hit {martinova_corr.mean().item():.3f}. Forcing Schizo Band dispersion event to shatter legible stagnation.")
                 # Shatter the state
@@ -620,26 +683,47 @@ class UniversalOrchestrator(nn.Module):
         # Evaluate Metaphysical Disorder and Persona Perturbation
         mischief_metrics = self.mischief_probe.get_metrics()
         
-        # We synthesize the TADC/UT parameters for the governor
-        # (Using defaults for luminosity/trauma unless provided via kwargs in future)
+        # We synthesize the TADC/UT parameters for the governor using purely structural honesty (No Scalarization)
+        # We pass the unresolved orphaned states (stranded geometry) and the raw force (flux tensor)
+        # instead of illegal scalar psychological states.
+        
+        # Stranded geometry: Represents the topological trauma/void directly
+        stranded_states = torch.empty((0, self.dim), device=state_final.device)
+        
+        # Flux Tensor: Represents actual rendering pressure/volition
+        flux_tensor = actual_flux if isinstance(actual_flux, torch.Tensor) else torch.tensor([actual_flux], device=state_final.device)
+        
+        # Pass optional systems if they exist in the orchestrator
+        res_cavity = getattr(self, 'resonance_cavity', None)
+        fossilizer = getattr(self, 'fossilizer', None)
+        moment_trans = getattr(self, 'moment_transport', None)
+        valence_func = getattr(self, 'valence_functional', None)
+        
+        # Privatley managed invariants for the governor submodules
+        private_invariants = {
+            'phase_alignment': pas_h,
+            'love_strengths': torch.norm(self.love.L),
+            'mischief': mischief_metrics['H_mischief']
+        }
+        
         arch_results = self.archetype_governor.run_archetypes(
             current_state=state_final,
-            stranded_states=torch.empty((0, self.dim), device=state_final.device),
+            stranded_states=stranded_states,
+            flux_tensor=flux_tensor,
             current_mischief=mischief_metrics['H_mischief'],
             phase_alignment=pas_h,
             love_strengths=torch.norm(self.love.L),
             void_frictions=torch.tensor([0.0], device=state_final.device),
             global_dt=dt,
-            env_luminosity=0.5, # Mid-level render pressure
-            volitional_scalar=0.0, # Neutral volition
-            system_entropy=atrophy,
-            memory_trauma=0.1,
-            dissonance=abs(pas_h - 0.91),
-            lucidity_idx=pas_h,
             raw_unquantized_state=current_state,
             is_high_priority=is_good_bug,
             tag_weights=tag_weights,
-            bulletin_board=self.bulletin_board
+            bulletin_board=self.bulletin_board,
+            resonance_cavity=res_cavity,
+            fossilizer=fossilizer,
+            valence_functional=valence_func,
+            moment_transport=moment_trans,
+            private_invariants=private_invariants
         )
         
         state_governed = arch_results.active_state
@@ -709,20 +793,26 @@ class UniversalOrchestrator(nn.Module):
         ui_readout = self.audience_projector(state_shielded)
         
         # Invoke Fractal Meta-Functional to process recursive pressure
-        batch_sz = state_shielded.shape[0]
+        orig_shape = state_shielded.shape
+        if state_shielded.dim() > 2:
+            flat_state = state_shielded.reshape(-1, self.dim)
+        else:
+            flat_state = state_shielded
+            
+        batch_sz = flat_state.shape[0]
         if self.meta_state_prev.shape[0] != batch_sz:
-            self.meta_state_prev = torch.zeros(batch_sz, self.dim, device=state_shielded.device)
+            self.meta_state_prev = torch.zeros(batch_sz, self.dim, device=flat_state.device)
         
         fractal_res = self.fractal_meta_functional(
-            current_state=state_shielded,
+            current_state=flat_state,
             meta_state_prev=self.meta_state_prev,
-            residues=state_shielded[:, :5].abs() if state_shielded.dim() == 2 else torch.ones(batch_sz, 5, device=state_shielded.device)
+            residues=flat_state[:, :5].abs() if flat_state.dim() == 2 else torch.ones(batch_sz, 5, device=flat_state.device)
         )
-        state_shielded = fractal_res['s_fractal']
-        self.meta_state_prev = state_shielded.detach().clone()
+        state_shielded = fractal_res['s_fractal'].view(orig_shape)
+        self.meta_state_prev = fractal_res['s_fractal'].detach().clone()
         
         # Evaluate Coherent Prime Resonance (CPR) Constraint
-        self.cpr_satisfied = self.compute_cpr_condition(
+        _ = self.compute_cpr_condition(
             field_phases=state_shielded,
             breather_amplitudes=state_shielded,
             field_amplitudes=state_shielded
