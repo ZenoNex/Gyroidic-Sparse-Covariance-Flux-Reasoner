@@ -42,20 +42,24 @@ class JaxShell(nn.Module):
         batch_std = torch.std(batch_tensors) if batch_tensors.shape[0] > 1 else torch.tensor(0.0, device=state.device)
         zeta_community = pas_mean * (1.0 - batch_std)
         
-        # External pressure INCREASES shell rigidity
-        shell_rigidity = 1.0 + external_pressure
+        # Internal shame metric: how far the internal entropy is from the 'expected' stable self
+        internal_shame = max(0.0, internal_entropy - 0.5)
         
-        if zeta_community > self.threshold_warmth and internal_entropy > self.critical_limit:
+        # External pressure and internal shame both INCREASE shell rigidity
+        # (The abrasive mask is an overcompensation to hide the vulnerable identity)
+        shell_rigidity = 1.0 + external_pressure + (internal_shame * 2.0)
+        
+        if zeta_community > self.threshold_warmth and internal_shame < self.critical_limit:
             # allow_safe_abstraction_crack()
-            # The shell yields, revealing the internal high-entropy state
+            # The community is warm and internal shame is manageable: the shell yields
             filtered_state = state + harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 0.1
             shell_rigidity = 0.1
-            bus.broadcast('serotonin', 0.8) # Feeling safe
+            bus.broadcast('serotonin', 0.8) # Feeling safe / accepted
         else:
             # enforce_cynical_mask_deflection()
-            # Apply cynical mask, amplifying rigidity
+            # Apply cynical, abrasive mask to hide identity vulnerability
             deflection = torch.tanh(self.shell_layer(state))
             filtered_state = state + deflection * shell_rigidity
-            bus.broadcast('serotonin', 0.1) # Anxious/Cynical
+            bus.broadcast('serotonin', 0.1) # Anxious/Cynical/Overcompensating
             
         return filtered_state, shell_rigidity
