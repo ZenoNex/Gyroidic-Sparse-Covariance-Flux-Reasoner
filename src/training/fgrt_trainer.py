@@ -174,4 +174,10 @@ class FGRTStructuralTrainer:
                 if p.dim() == 2 and p.shape[0] == p.shape[1]:
                     p.copy_(project_to_birkhoff(p.data))
         # --- END BIRKHOFF PROJECTION ---
-
+        
+        return {
+            "energy": energy.item(),
+            "pas_h": pas_h,
+            "chiral_score": 0.0, # Placeholder for explicit chiral tracking
+            "gyroid_pressure": float(energy.item() * max(0, 1.0 - pas_h))
+        }
