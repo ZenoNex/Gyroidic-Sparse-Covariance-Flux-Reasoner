@@ -10,6 +10,9 @@ class ConjugateMomentTransport(nn.Module):
     Conjugate Moment Measure Factorization via Convex Potentials.
     Implements optimal transport for highly concentrated states (converged/collapsed)
     using an Input Convex Neural Network (ICNN) to model the potential psi.
+    
+    Includes OKLab Moment Field projections for perceptual color mappings, 
+    teased out of the optimal transport math.
     """
     def __init__(self, dim: int, hidden_dim: int = 64, num_layers: int = 3):
         super().__init__()
@@ -58,10 +61,52 @@ class ConjugateMomentTransport(nn.Module):
             
             # Langevin update step
             with torch.no_grad():
-                z_k = z_k - gamma * grad_W + math.sqrt(2 * gamma) * eta_k
-                z_k.requires_grad_(True)
+                z_k -= gamma * grad_W
+                z_k += math.sqrt(2 * gamma) * eta_k
                 
         return z_k.detach()
+
+    def rgb_to_oklab(self, rgb: torch.Tensor) -> torch.Tensor:
+        """
+        Transforms linear RGB into the OKLab perceptual moment field space.
+        Uses the standard M1 and M2 matrices for LMS cone response.
+        """
+        # Linear RGB to LMS
+        M1 = torch.tensor([
+            [0.4122214708, 0.5363325363, 0.0514459929],
+            [0.2119034982, 0.6806995451, 0.1073969566],
+            [0.0883024619, 0.2817188376, 0.6299787005]
+        ], dtype=rgb.dtype, device=rgb.device)
+        
+        lms = torch.matmul(rgb, M1.T)
+        lms_non_linear = torch.sign(lms) * torch.pow(torch.abs(lms), 1.0/3.0)
+        
+        # LMS to OKLab
+        M2 = torch.tensor([
+            [ 0.2104542553,  0.7936177850, -0.0040720468],
+            [ 1.9779984951, -2.4285922050,  0.4505937099],
+            [ 0.0259040371,  0.7827717662, -0.8086757660]
+        ], dtype=rgb.dtype, device=rgb.device)
+        
+        return torch.matmul(lms_non_linear, M2.T)
+
+    def extract_oklab_moment_field(self, rgb_points: torch.Tensor) -> torch.Tensor:
+        """
+        Calculates the first and second moments (Mean and Covariance structure) 
+        of a point cloud's color palette in OKLab space.
+        Returns a compressed moment field descriptor suitable for transport.
+        """
+        oklab = self.rgb_to_oklab(rgb_points)
+        # First moment (Mean)
+        mu = oklab.mean(dim=-2, keepdim=True)
+        # Second moment (Covariance proxy via outer product trace)
+        centered = oklab - mu
+        cov = torch.matmul(centered.transpose(-1, -2), centered) / max(1, centered.shape[-2])
+        
+        # Flatten and concatenate the moments into a target state vector
+        # (L, a, b) + 9 covariance elements = 12-dim moment field
+        moment_field = torch.cat([mu.view(-1, 3), cov.view(-1, 9)], dim=-1)
+        return moment_field
 
     def trigonometric_unfolding(self, x: torch.Tensor) -> torch.Tensor:
         """
