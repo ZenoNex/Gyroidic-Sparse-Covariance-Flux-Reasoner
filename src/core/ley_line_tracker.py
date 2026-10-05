@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Tuple
 
 class LeyLineTracker(nn.Module):
     """
-    Computes streamlines of the preferred-flow vector l_i = ∇_M V(x_i).
+    Computes streamlines of the preferred-flow vector l_i = _M V(x_i).
     
     Resonance Potential V(x) combines relational adjacency, love 
     oscillation, and defect amplification.
@@ -48,12 +48,12 @@ class LeyLineTracker(nn.Module):
         defects: torch.Tensor
     ):
         """
-        V(x_i) = Σ α * R_ij * ||Φ_j - Φ_i||^2 + β ||L_i||^2 + γ ΔD_i
+        V(x_i) =   * R_ij * ||_j - _i||^2 +  ||L_i||^2 +  D_i
         
         Args:
             adjacency: Sparse or dense adjacency R_ij
             love_magnitudes: Magnitude of love tensors ||L_i||^2
-            defects: Sparse defect signals ΔD_i
+            defects: Sparse defect signals D_i
         """
         # Adjacency term (Influence flow)
         # Assuming adjacency contains pre-calculated squared differences
@@ -71,8 +71,10 @@ class LeyLineTracker(nn.Module):
         Identifies MC failure planes where pressure gradients are non-smooth.
         These become 'corridors of rupture' or preferred ley lines.
         """
+        if pressure.shape[0] < 2:
+            return torch.zeros_like(pressure)
         grad = torch.gradient(pressure)[0]
-        shear_magnitude = torch.norm(grad, dim=-1)
+        shear_magnitude = torch.norm(grad, dim=-1) if grad.dim() > 1 else torch.abs(grad)
         return (shear_magnitude > threshold).float()
 
     def get_preferred_flow(self, indices: torch.Tensor) -> torch.Tensor:
