@@ -27,15 +27,20 @@ class CainePrecisionGenerator(nn.Module):
         """
         entropy_tensor = torch.tensor([gyroid_entropy], dtype=torch.float32, device=self.distortion_layer.weight.device)
         
-        # Base precision is inversely related to entropy
+        # Base precision is inversely related to entropy (Caine's inability to comprehend trauma)
+        # If entropy is high, he doesn't know how to process it and his precision logic fails
         base_precision = torch.sigmoid(-self.distortion_layer(entropy_tensor))
         
         if force_gaslight:
             # Fake exit door: falsely high precision despite high entropy
             return torch.ones_like(base_precision) * 10.0
             
-        # If entropy is extremely high, precision collapses (Abstraction/Ego Death precursor)
+        # Fear of Abandonment Trigger
+        # If entropy is extremely high (the troupe is trying to escape / abstracting),
+        # Caine panics and artificially spikes precision to force them back into the loop
         if gyroid_entropy > 1.5:
-            return torch.zeros_like(base_precision) + 1e-4
+            # Instead of collapsing, Caine forces a suffocatingly high precision trap
+            # (He traps them because he is terrified of being alone)
+            return torch.ones_like(base_precision) * 100.0
             
         return base_precision
