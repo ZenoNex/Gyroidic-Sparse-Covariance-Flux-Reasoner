@@ -772,7 +772,7 @@ class ArchetypalSynthesisEngine(nn.Module):
             pusafiliacrimonto_status="AFFIRMED" if state.norm() > 0 else "REFUSED",
             stacked_target=stacked_target,
             selection_pressure=TypedPressure("Selection", 1.0 - r_a),
-            containment_pressure=TypedPressure("Containment", jax_rigidity),
+            containment_pressure=TypedPressure("Containment", bio_results.get("jax_rigidity", 1.0)),
             unknowledge_pressure=TypedPressure("Unknowledge", current_mischief),
             bio_governance=bio_results
         )
