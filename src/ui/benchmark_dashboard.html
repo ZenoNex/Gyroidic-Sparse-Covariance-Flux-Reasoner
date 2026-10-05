@@ -393,6 +393,22 @@
                 implementation of these synthesized theories.
             </div>
         </section>
+        
+        <!-- Section 3: Internal Benchmarks -->
+        <section class="glass-panel">
+            <h2>Internal Narrative Architecture Benchmarks</h2>
+            <p class="theory-desc" style="margin-bottom: 1.5rem;">
+                Validating the psycho-topological constraints: Structural Honesty, Anti-Reward Hacking, and Narrative Yield.
+            </p>
+            
+            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                <button onclick="runNarrativeBenchmark()" style="background: rgba(138, 43, 226, 0.2); border: 1px solid var(--primary); color: #fff; padding: 10px 20px; border-radius: 4px; font-family: 'Space Grotesk', sans-serif; cursor: pointer; transition: all 0.2s;">
+                    Run Narrative Yield Evaluator
+                </button>
+            </div>
+            
+            <div id="narrative-benchmark-output" style="background: rgba(0,0,0,0.8); border: 1px solid var(--glass-border); padding: 1rem; font-family: 'Fira Code', monospace; font-size: 0.85rem; color: #00f0ff; max-height: 400px; overflow-y: auto; border-radius: 8px; display: none; white-space: pre-wrap;"></div>
+        </section>
     </main>
 
     <script>
@@ -410,6 +426,27 @@
                 setTimeout(() => { bettiEl.style.color = 'var(--secondary)'; }, 200);
             }
         }, 3000);
+        
+        async function runNarrativeBenchmark() {
+            const outEl = document.getElementById('narrative-benchmark-output');
+            outEl.style.display = 'block';
+            outEl.innerText = "Initializing Narrative Yield & Anti-Collapse Suite...\nRunning tests...";
+            try {
+                const res = await fetch('http://localhost:8000/api/benchmark/narrative', { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === 'ok') {
+                        outEl.innerText = data.output;
+                    } else {
+                        outEl.innerText = "Error: " + data.message;
+                    }
+                } else {
+                    outEl.innerText = "HTTP Error: " + res.status;
+                }
+            } catch (err) {
+                outEl.innerText = "Fetch failed: " + err;
+            }
+        }
     </script>
 </body>
 
