@@ -44,10 +44,22 @@ class CODESDriver:
                 harmonic = abs(root * 10) + 1  # Scale and ensure positive
                 harmonics.append(harmonic)
         
+        # Integrate TailSlayer / Silicon Sovereignty Engine
+        
+        # We use Non-Minkowski topological Hedged Reads via OpenCL to bypass DRAM stalls.
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine, PYOPENCL_AVAILABLE
+            if PYOPENCL_AVAILABLE:
+                engine = SiliconSovereigntyEngine()
+                if engine.ctx is not None:
+                    # Actually execute the hedged read parallel accumulation
+                    return engine.compute_hedged_pas_h(phase, harmonics)
+        except ImportError:
+            pass
+
         score = 0.0
         for m in harmonics:
-            # Simple simulation: aligned if harmonics sum constructively
-            # Real hardware uses complex exponential accumulation
+            # Simple simulation fallback if hardware not available
             score += math.cos(m * phase)
         return (score / len(harmonics) + 1.0) / 2.0  # Normalize to [0, 1]
 
