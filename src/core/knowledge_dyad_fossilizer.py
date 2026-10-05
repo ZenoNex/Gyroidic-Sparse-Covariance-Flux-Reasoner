@@ -185,7 +185,14 @@ class ResidueFusion(nn.Module):
         for step in range(steps):
             optimizer.zero_grad()
             residue = adapted_fusion(support_image, support_text)
-            loss = torch.norm(residue) * 0.1
+            
+            # Replace shallow L2 norm proxy with actual CODES Constraint structural energy margin
+            from src.core.codes_constraint_framework import CODESConstraintFramework
+            codes_engine = CODESConstraintFramework(state_dim=residue.shape[-1]).to(residue.device)
+            # Add a baseline topological constraint instead of shrinking the vector
+            codes_engine.add_constraint(constraint_id=0, constraint_type='quadratic')
+            loss = codes_engine.compute_total_energy(residue).mean()
+            
             loss.backward()
             optimizer.step()
             
