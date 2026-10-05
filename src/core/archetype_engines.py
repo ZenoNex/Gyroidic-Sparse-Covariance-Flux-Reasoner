@@ -53,18 +53,22 @@ class NoncommutativeManifoldPerturber(nn.Module):
         self.oscillator_phase = nn.Parameter(harvest_honest_jitter((1,), scaled=False))
         self.mischief_gain = nn.Parameter(torch.tensor(0.1))
         
-    def forward(self, state: torch.Tensor, current_mischief: float) -> torch.Tensor:
+    def forward(self, state: torch.Tensor, current_mischief: float, private_invariants: Optional[Dict[str, Any]] = None) -> torch.Tensor:
         """
         Injects non-sequitur perturbations under low/high mischief conditions.
         
         Args:
             state: Input topological state tensor.
             current_mischief: Scalar mischief value (H_m).
+            private_invariants: Hooks for invariant systems.
             
         Returns:
             Perturbed state if conditions are met, else original state.
         """
         state = state.clone()
+        # Private invariant protection: if Billy is locked, don't perturb
+        if private_invariants is not None and private_invariants.get("billy_locked", False):
+            return state
         if current_mischief < self.mischief_threshold:
             # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
             noise = harvest_honest_jitter(state.shape, device=state.device, scaled=True)
@@ -117,10 +121,19 @@ class SovereignRefusalOperator(nn.Module):
         self.harmonics_requirement = harmonics_requirement
         self.training_mode = training_mode
 
-    def forward(self, state: torch.Tensor, phase_alignment: float, mischief_harmonics: float) -> torch.Tensor:
+    def forward(self, state: torch.Tensor, phase_alignment: float, mischief_harmonics: float, valence_functional: Optional[Any] = None) -> torch.Tensor:
         # PUSAFILIACRIMONTO Logic:
         # If the input lacks structured honesty (low PAS_h), the Refusal Operator
         # issues a Topological Refusal. This is not an error, but a boundary.
+        
+        # Hook into valence_functional for structural honesty
+        if valence_functional is not None and hasattr(valence_functional, 'evaluate'):
+            valence_score = valence_functional.evaluate(state)
+            if isinstance(valence_score, torch.Tensor):
+                valence_score = valence_score.mean().item()
+            if valence_score < -0.5:
+                phase_alignment = phase_alignment * 0.5  # Artificially lower PAS to trigger refusal
+
         if (phase_alignment < self.pas_lock) and (mischief_harmonics < self.harmonics_requirement):
             # The Refusal is an affirmation of the Love Invariant (Li).
             if phase_alignment < 0.1:
@@ -147,8 +160,14 @@ class NonlinearHourglassDilation(nn.Module):
         super().__init__()
         self.max_dilation = max_dilation
 
-    def forward(self, clock_dt: float, love_invariant_strength: torch.Tensor) -> torch.Tensor:
+    def forward(self, clock_dt: float, love_invariant_strength: torch.Tensor, resonance_cavity: Optional[Any] = None) -> torch.Tensor:
         dilation_factor = 1.0 + (self.max_dilation - 1.0) * love_invariant_strength
+        if resonance_cavity is not None and hasattr(resonance_cavity, 'get_resonance'):
+            # High resonance = deep memory = time slows down
+            res_val = resonance_cavity.get_resonance()
+            if isinstance(res_val, torch.Tensor):
+                res_val = res_val.mean()
+            dilation_factor += res_val * 5.0
         return clock_dt / dilation_factor
 
 class RP4ProjectiveRouter(nn.Module):
@@ -170,7 +189,7 @@ class RP4ProjectiveRouter(nn.Module):
             self.puncture_gate.weight.copy_(jitter_weight)
             self.puncture_gate.bias.zero_()
 
-    def attempt_puncture(self, stranded_state: torch.Tensor, void_friction: float) -> torch.Tensor:
+    def attempt_puncture(self, stranded_state: torch.Tensor, void_friction: float, moment_transport: Optional[Any] = None) -> torch.Tensor:
         """
         Attempts to puncture the RP4 Void barrier for stranded nodes.
         
@@ -179,7 +198,11 @@ class RP4ProjectiveRouter(nn.Module):
         via the puncture gate.
         """
         if void_friction > 0.8:
-            return self.puncture_gate(stranded_state)
+            punctured = self.puncture_gate(stranded_state)
+            if moment_transport is not None and hasattr(moment_transport, 'transport'):
+                # Transport the punctured state back into the active manifold
+                punctured = moment_transport.transport(punctured, destination="active_manifold")
+            return punctured
         return torch.zeros_like(stranded_state)
 
     def export_state(self) -> Dict:
@@ -252,14 +275,28 @@ class VolitionalDriveInjector(nn.Module):
             pass
         self._fossils_loaded = True
 
-    def forward(self, semantic_state: torch.Tensor, user_volition_scalar: float, archetype_embeddings: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, semantic_state: torch.Tensor, user_volition_scalar: float, archetype_embeddings: Optional[torch.Tensor] = None, fossilizer: Optional[Any] = None) -> torch.Tensor:
         if user_volition_scalar > 0.9:
             # Increment time accumulator
             self.t_accum += 0.1
             
             # Load fossils on demand to prevent startup latency
             if not self._fossils_loaded:
-                self._load_fossils()
+                if fossilizer is not None and hasattr(fossilizer, 'recover_fossils'):
+                    try:
+                        fossils = fossilizer.recover_fossils(limit=100)
+                        for payload in fossils:
+                            tags = payload.get('tags', [])
+                            breather = payload.get('video_breather')
+                            if breather and isinstance(breather, dict):
+                                for tag in tags:
+                                    if tag not in self.cached_breathers:
+                                        self.cached_breathers[tag] = breather
+                    except Exception:
+                        pass
+                else:
+                    self._load_fossils()
+                self._fossils_loaded = True
 
             # Pick a breather tag via archetype embedding similarity when available
             params = None
@@ -404,7 +441,13 @@ class SolitonMultiverseMapper(nn.Module):
         self.dog_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
         self.human_basis = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
 
-    def forward(self, state: torch.Tensor, shape_idx: int = 0) -> torch.Tensor:
+    def forward(self, state: torch.Tensor, shape_idx: int = 0, bulletin_board: Optional[Any] = None) -> torch.Tensor:
+        # Check bulletin board for global shape overrides
+        if bulletin_board is not None and hasattr(bulletin_board, 'read'):
+            override_shape = bulletin_board.read("grom_shape_override")
+            if override_shape is not None:
+                shape_idx = int(override_shape)
+
         if shape_idx == 1: # Sparrow
             return state * 0.8 + self.sparrow_basis * 0.2
         elif shape_idx == 2: # Dog
@@ -470,7 +513,10 @@ class EgoDeathThresholdMonitor(nn.Module):
             
         return r_a
 
-    def forward(self, state: torch.Tensor, r_a_score: float, is_high_priority: bool = False) -> torch.Tensor:
+    def forward(self, state: torch.Tensor, r_a_score: float, is_high_priority: bool = False, private_invariants: Optional[Dict[str, Any]] = None) -> torch.Tensor:
+        if private_invariants is not None and private_invariants.get("ego_death_immunity", False):
+            return state
+
         if r_a_score >= self.abstraction_limit and not is_high_priority:
             # Ego Death: Total collapse into glitched matter
             # Optimized on Bouligand Tangent Cone of the Birkhoff Polytope
@@ -694,25 +740,28 @@ class ArchetypalSynthesisEngine(nn.Module):
         self, 
         current_state: torch.Tensor, 
         stranded_states: torch.Tensor,
+        flux_tensor: torch.Tensor,
         current_mischief: float, 
         phase_alignment: float, 
         love_strengths: torch.Tensor,
         void_frictions: torch.Tensor,
         global_dt: float,
-        # TADC specific params
-        env_luminosity: float,
-        volitional_scalar: float,
-        system_entropy: float,
-        memory_trauma: float,
-        dissonance: float,
-        lucidity_idx: float,
         raw_unquantized_state: torch.Tensor,
         is_high_priority: bool = False,
         tag_weights: Optional[Dict[str, float]] = None,
         shape_idx: int = 0,
-        bulletin_board: Optional[Any] = None
+        bulletin_board: Optional[Any] = None,
+        resonance_cavity: Optional[Any] = None,
+        fossilizer: Optional[Any] = None,
+        valence_functional: Optional[Any] = None,
+        moment_transport: Optional[Any] = None,
+        private_invariants: Optional[Dict[str, Any]] = None
     ):
         """Unified runner for the full archetypal and psycho-topological constraint matrix."""
+        
+        # Calculate structural equivalents of legacy scalars
+        structural_entropy = stranded_states.norm(p=2).item() if stranded_states.numel() > 0 else 0.5
+        structural_volition = flux_tensor.norm().item() if flux_tensor.numel() > 0 else 0.0
         
         # 0. Apply Ganbreeder Tag Stacking Superposition
         stacked_target = self.compute_stacked_target(tag_weights, current_state)
@@ -720,34 +769,46 @@ class ArchetypalSynthesisEngine(nn.Module):
             # Softly shift current state towards stacked target (acting as a primer)
             primed_state = current_state + 0.1 * stacked_target
             # Apply Kinger's Ombre Effect to bridge polynomial spaces in low luminosity
-            current_state, is_lucid = self.kinger(primed_state, env_luminosity)
+            current_state, is_lucid = self.kinger(primed_state, bus=self.bio_governor.bus, environmental_rendering_pressure=structural_volition)
         
         # 0a. Apply Grom Multiverse Basis Mapper (GromShapeShifter)
-        current_state = self.grom(current_state, shape_idx=shape_idx)
+        current_state = self.grom(current_state, shape_idx=shape_idx, bulletin_board=bulletin_board)
+        
+        # 0b. Apply Billy (NoncommutativeManifoldPerturber)
+        current_state = self.billy(current_state, current_mischief, private_invariants=private_invariants)
         
         # 1. TADC Abstraction Check (Ego Death) - Must run first before filtering
+        # Legacy r_a used scalars. We now approximate using structural entropy and phase alignment.
         r_a = self.abstraction.calculate_abstraction_rate(
-            system_entropy, memory_trauma, dissonance, lucidity_idx, 
+            system_entropy=structural_entropy, 
+            memory_trauma=structural_entropy, 
+            dissonance=1.0 - phase_alignment, 
+            lucidity_idx=phase_alignment, 
             is_high_priority=is_high_priority
         )
-        state = self.abstraction(current_state, r_a, is_high_priority=is_high_priority)
+        state = self.abstraction(current_state, r_a, is_high_priority=is_high_priority, private_invariants=private_invariants)
 
         # 1a. Apply Mandy (Cynicism / Refusal)
-        state = self.mandy(state, phase_alignment, current_mischief)
+        state = self.mandy(state, phase_alignment, current_mischief, valence_functional=valence_functional)
         
         # --- BIO-PLAUSIBLE GOVERNANCE LAYER (Replaces old Pomni/Jax/Gangle/Kinger/Zooble) ---
         bio_results = self.bio_governor(
             state=state, 
-            gyroid_entropy=system_entropy, 
-            luminosity=env_luminosity, 
+            stranded_states=stranded_states, 
+            flux_tensor=flux_tensor, 
             dt=global_dt,
-            bulletin_board=bulletin_board
+            bulletin_board=bulletin_board,
+            resonance_cavity=resonance_cavity,
+            fossilizer=fossilizer,
+            valence_functional=valence_functional,
+            moment_transport=moment_transport,
+            private_invariants=private_invariants
         )
         state = bio_results["state"]
         # ----------------------------------------------------------------------------------
 
         # 7. Apply Volition (Conjuring)
-        state = self.volition_injector(state, volitional_scalar, archetype_embeddings=self.picture_gallery.archetype_embeddings)
+        state = self.volition_injector(state, structural_volition, archetype_embeddings=self.picture_gallery.archetype_embeddings, fossilizer=fossilizer)
         
         # 8. Apply Alien Puncture (Nergal)
         resurrections = []
@@ -756,12 +817,12 @@ class ArchetypalSynthesisEngine(nn.Module):
                 friction_val = void_frictions.item()
             else:
                 friction_val = void_frictions[min(i, void_frictions.shape[0] - 1)].item()
-            punctured = self.alien_handshake.attempt_puncture(stranded_states[i], friction_val)
+            punctured = self.alien_handshake.attempt_puncture(stranded_states[i], friction_val, moment_transport=moment_transport)
             if punctured.norm() > 0:
                 resurrections.append(punctured)
 
         # 9. Grim Time Dilation
-        localized_dt = self.grim(global_dt, love_strengths)
+        localized_dt = self.grim(global_dt, love_strengths, resonance_cavity=resonance_cavity)
 
         return ArchetypeSignal(
             active_state=state,
