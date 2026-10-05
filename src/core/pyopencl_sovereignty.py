@@ -739,6 +739,21 @@ class SiliconSovereigntyEngine:
             float original_state = task_states[(batch_id * num_tasks + dest_task) * dim + d];
             leaked_states[(batch_id * num_tasks + dest_task) * dim + d] = original_state + accumulation;
         }
+        // 17. TailSlayer Hedged Read PAS_h Accumulator
+        // Mimics multi-channel memory reads by parallelizing harmonic phase alignments
+        __kernel void hedged_pas_h_accumulation(
+            __global const float *harmonics,
+            __global float *scores,
+            float phase,
+            int num_harmonics
+        ) {
+            int gid = get_global_id(0);
+            if (gid >= num_harmonics) return;
+            
+            float m = harmonics[gid];
+            // Independent thread "read" simulating hedged non-blocking memory access
+            scores[gid] = cos(m * phase);
+        }
         """
         
         import warnings
@@ -746,7 +761,37 @@ class SiliconSovereigntyEngine:
             warnings.simplefilter("ignore")  # NVIDIA PTX driver warns about kernel inlining  benign
             self.program = cl.Program(self.ctx, kernel_src).build()
 
-
+    def compute_hedged_pas_h(self, phase: float, harmonics: list) -> float:
+        """
+        Executes the TailSlayer bypass: calculates PAS_h via parallel OpenCL threads
+        to decouple from sequential transistor gate delays and tRFC stalls.
+        """
+        if self.ctx is None:
+            return sum(math.cos(m * phase) for m in harmonics)
+            
+        import pyopencl as cl
+        import numpy as np
+        mf = cl.mem_flags
+        
+        harmonics_np = np.array(harmonics, dtype=np.float32)
+        num_harmonics = len(harmonics)
+        
+        cl_harmonics = push_to_opencl(torch.from_numpy(harmonics_np), self.ctx)
+        cl_scores = cl.Buffer(self.ctx, mf.WRITE_ONLY, harmonics_np.nbytes)
+        
+        kernel = self._get_kernel("hedged_pas_h_accumulation")
+        global_work_size = (num_harmonics,)
+        
+        # Dispatch to queue_a (representing primary channel)
+        kernel(self.queue_a, global_work_size, None,
+               cl_harmonics, cl_scores, np.float32(phase), np.int32(num_harmonics))
+               
+        # Pull back the hedged reads
+        scores_tensor = pull_from_opencl(self.queue_a, cl_scores, (num_harmonics,), torch.float32)
+        
+        # Accumulate securely and normalize [0, 1]
+        raw_score = scores_tensor.sum().item()
+        return (raw_score / num_harmonics + 1.0) / 2.0
     def evaluate_dyadic_transfer(self, task_states: torch.Tensor, T_matrix: torch.Tensor, gating: torch.Tensor) -> torch.Tensor:
         """
         Executes the Dyadic Transfer Protocol (Dark Matter Leakage) securely on the silicon substrate.
