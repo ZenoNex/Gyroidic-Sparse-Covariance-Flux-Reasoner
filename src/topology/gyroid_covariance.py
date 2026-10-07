@@ -397,6 +397,17 @@ class SparseGyroidCovarianceProbe(nn.Module):
         signatures_norm = signatures / (torch.norm(signatures, dim=1, keepdim=True) + 1e-8)
         inter_matrix = torch.mm(signatures_norm, signatures_norm.t())
         
+        # IHC: LSS Correlation Break Simulation
+        # Explicit exponential suppression factor beta modeling the LambdaCDM departure
+        # when inter-batch structural correlation attempts to span beyond the N=33 toroidal horizon.
+        # We simulate the 300 Mpc equivalent break using sequence length hop scaling.
+        seq_len = h.shape[1]
+        effective_r = seq_len * self.k_hop
+        if effective_r > 300:
+            beta = 0.05
+            suppression = torch.exp(torch.tensor(-beta * (effective_r - 300.0), device=inter_matrix.device))
+            inter_matrix = inter_matrix * suppression
+        
         return inter_matrix
     
     def scout_violations(
