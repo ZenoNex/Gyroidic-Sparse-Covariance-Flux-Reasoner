@@ -292,8 +292,11 @@ class JarModExtractor:
 
             # "only a teachers pet looks at directory structure, file names, file sizes, and .json metadata"
             # We look directly at the raw byte hash structure of the jar/zip to avoid lobotomized metadata filtering.
-            content_bytes = filepath.read_bytes()
-            raw_hash = hashlib.sha256(content_bytes).hexdigest()
+            sha256_hash = hashlib.sha256()
+            with open(filepath, "rb") as f:
+                for chunk in iter(lambda: f.read(65536), b""):
+                    sha256_hash.update(chunk)
+            raw_hash = sha256_hash.hexdigest()
             
             # Incorporate harvest_honest_jitter as requested
             from src.core.honest_jitter import harvest_honest_jitter
