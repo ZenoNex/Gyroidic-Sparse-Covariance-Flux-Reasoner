@@ -67,3 +67,13 @@ By exchanging topological invariants rather than semantic strings, the Bonfire n
 - **The Collective Dream**: The hybrid network operates as a decentralized, non-teleological simulator (the InterBrain). It allows individual nodes to "dream" in their local private coordinate zones (shielded by geometric user contracts) while maintaining structural alignment with the horizontal ring.
 
 Through this synthesis of physical simulation, cryptographic federation, and collective sense-making, the Bonfire Nomadic Rings translate competitive adversarial optimization into collaborative, organic structural resonance.
+
+---
+
+## 4. Implementation Architecture
+
+The Bonfire network bridges these theoretical paradigms directly into executable code through the following core namespaces:
+
+*   **`src/p2p/bonfire_consensus.py`**: Houses the actual mechanics of the `Fractional Kelly Consensus Protocol`. This module actively computes the egalitarian mean consensus ($\bar{K}$) across the ring, dynamically rebalancing computational representation stakes and managing the `Kelly Consensus state` updates between peers.
+*   **`src/topology/bonfire_network.py`**: The structural backbone of the Nomadic Ring. This handles the actual graph-level representation of local mint anchors and horizontal rings, dictating how nodes identify neighbors and securely sync invariant Betti signatures without full state payload broadcasts.
+*   **`src/data/freenet_bulletin_router.py` & `src/data/freenet_ghost_caller.py`**: The transport and routing layer. These modules act as the literal bridges to the Freenet bulletin boards, enabling the secure, decentralized exchange of compressed topological signatures across the wider mesh.
