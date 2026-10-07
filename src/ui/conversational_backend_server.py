@@ -507,7 +507,7 @@ def save_model():
         filename = f"conversational_model_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pt"
         
         torch.save({
-            'model_state_dict': state.model.state_dict(),
+            'model_state_dict': {k: v.detach().cpu() for k, v in state.model.state_dict().items()},
             'timestamp': datetime.now().isoformat(),
             'device': state.device
         }, filename)
