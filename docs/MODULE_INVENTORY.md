@@ -215,10 +215,10 @@ Detects if a high-entropy or topologically asymmetric state is actually an hones
 ---
 
 ### fgrt_primitives.py
-**Class**: `PrimeResonanceLadder`, `RepunitHasher`, `KleinThroatTransition`
-**Role**: Lowest-level arithmetic foundations #Resonance Ladders, Repunit Hashing, and the **Klein-neck Reversal (P-Parity transformation)**.
+**Class**: `PrimeResonanceLadder`, `RepunitHasher`, `KleinThroatTransition`, `GyroidManifold`, `CoherentPrimeResonance`, `FibonacciResonanceEntropy`, `BerryPhaseTracker`
+**Role**: Lowest-level arithmetic foundations—Resonance Ladders, Repunit Hashing, Gyroid mappings, and Geometric Berry Phase tracking.
 
-`PrimeResonanceLadder` generates resonance frequencies $f_p = 2\pi \ln(p)$ and **Repunit-Prime Pairs** $(p, R_p)$ for the hybrid basis. It prioritizes **Lazarus Primes** (where both $p$ and $(p^n-1)/(p-1)$ are prime) to ensure Symmetry-Stable warmstarting. `RepunitHasher` generates cyclic structural markers via repunit sequences, providing a non-periodicity guarantee for symbolic residues. `KleinThroatTransition` handles orientation flipping and geometric berry phase backpropagation through non-orientable topological bottlenecks.
+`PrimeResonanceLadder` generates resonance frequencies $f_p = 2\pi \ln(p)$ and **Repunit-Prime Pairs** for the hybrid basis. `GyroidManifold` evaluates constraint violation scores against the TPMS surface. `CoherentPrimeResonance` enforces the CPR gate to ensure integer homological stability before state transitions. `FibonacciResonanceEntropy` scales structural resonance. `RepunitHasher` generates cyclic structural markers. `KleinThroatTransition` handles orientation flipping and geometric berry phase backpropagation through non-orientable topological bottlenecks.
 
 ---
 
@@ -239,9 +239,26 @@ Computes the Leontief Inverse $(I - A)^{-1}$ from the ADMR solver's `K` facet-wi
 ---
 
 ### fractal_meta_functional.py
-**Role**: Implements fractal meta-recursion inside the diegetic backend's `forward()` pass.
+**Class**: `FractalMetaFunctional`
+**Role**: Implements fractal meta-recursion inside the Orchestrator's `forward()` pass.
 
-Computes multi-scale structural pressure by recursively applying the covariance estimator at different spectral granularities (adaptive fractal blocks). Connected to the "Adaptive Partitioning" concept in NOMENCLATURE 8. *(Full class name pending source review.)*
+Computes multi-scale structural pressure by recursively embedding system beliefs into itself (InverseCovariantCRT + ADMR_Residue + HyperRing_DarkMatter + Autoscillatory). Features a Collapse-Aware Normalization guard that detects spectral atrophy (variance < `DEAD_PRIME_THRESHOLD`) and injects hardware-anchored Honest Jitter to rehydrate variance and prevent Dead Prime flatlines (e.g. 0.8824 saturation). Connected to the "Adaptive Partitioning" concept in NOMENCLATURE 8.
+
+---
+
+### honest_jitter.py
+**Class**: `AgentSmithEngine`
+**Role**: Hardware-anchored entropy expansion and timing jitter harvesting.
+
+Provides the `AgentSmithEngine` protocol, avoiding PRNGs (Pseudo-Random Number Generators) in favor of deterministic Weyl sequences seeded by nanosecond memory stall latencies. This ensures the reasoner's exploratory flux (Mischief) is anchored to physical substrate friction. Includes `fractal_pad` for asymmetry-preserving tensor alignment (preventing phase-cancellation lobotomy).
+
+---
+
+### structural_monitors.py
+**Class**: `AntiScalingMonitor`, `MetaInfraIntraMonitor`, `TrustInheritanceTracker`
+**Role**: Provides critical safety monitors for Gyroidic Unknowledge and Garden Statistical Attractors.
+
+Implements the Anti-Scaling Paradox Monitor (tracks Capability vs Expressivity by monitoring the ratio of Gradient Norm / Parameter Count to detect phase space collapse) and the Meta~Infra~Intra Incommensurativity Monitor (tracks defensive veto rates across layers to ensure the system doesn't lose the ability to reason about constraints). Hooked directly into `UniversalOrchestrator.check_safety`.
 
 ---
 
