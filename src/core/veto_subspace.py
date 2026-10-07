@@ -270,23 +270,31 @@ class VetoSubspace(nn.Module):
     
     def _evaluate_budget(
         self,
-        topological_pressure: Optional[float] = None,
+        spectral_pressure: Optional[float] = None,
+        homological_pressure: Optional[float] = None,
         elapsed_seconds: Optional[float] = None
     ) -> List[VetoSignal]:
         """Evaluate budget-level gates (binary enable/disable)."""
         signals = []
         
-        if topological_pressure is not None:
+        if spectral_pressure is not None:
             signals.append(VetoSignal(
                 level=VetoLevel.BUDGET,
-                source='containment',
-                severity=min(1.0, topological_pressure / self.containment_budget),
-                triggered=topological_pressure > self.containment_budget,
-                can_recover=False,  # Budget gates don't recover, they enable
-                metadata={
-                    'pressure': topological_pressure,
-                    'budget': self.containment_budget
-                }
+                source='containment_spectral',
+                severity=min(1.0, spectral_pressure / self.containment_budget),
+                triggered=spectral_pressure > self.containment_budget,
+                can_recover=False,
+                metadata={'pressure': spectral_pressure, 'budget': self.containment_budget}
+            ))
+            
+        if homological_pressure is not None:
+            signals.append(VetoSignal(
+                level=VetoLevel.BUDGET,
+                source='containment_homological',
+                severity=min(1.0, homological_pressure / self.containment_budget),
+                triggered=homological_pressure > self.containment_budget,
+                can_recover=False,
+                metadata={'pressure': homological_pressure, 'budget': self.containment_budget}
             ))
         
         if elapsed_seconds is not None:
@@ -319,7 +327,8 @@ class VetoSubspace(nn.Module):
         voynich_slip_degradation: Optional[float] = None,
         global_performance_improvement: Optional[float] = None,
         # Budget inputs
-        topological_pressure: Optional[float] = None,
+        spectral_pressure: Optional[float] = None,
+        homological_pressure: Optional[float] = None,
         elapsed_seconds: Optional[float] = None,
         # Valence Integration
         valence_hunger: Optional[float] = None,
@@ -346,7 +355,7 @@ class VetoSubspace(nn.Module):
                                    instability_severity, covariance_aborts,
                                    elipsodistrophy_atrophy, betti_number_collapse,
                                    voynich_slip_degradation, global_performance_improvement) +
-            self._evaluate_budget(topological_pressure, elapsed_seconds)
+            self._evaluate_budget(spectral_pressure, homological_pressure, elapsed_seconds)
         )
         
         # Count active vetoes
@@ -398,10 +407,10 @@ class VetoSubspace(nn.Module):
             if status == RecoveryStatus.NO_VETO:
                 status = RecoveryStatus.MODULATED
                 
-        # Saturation Hybridization (Valence Hunger + Topological Pressure)
+        # Saturation Hybridization (Valence Hunger + Homological Pressure)
         # When both are high, we escalate beyond simple recovery to structural resolution
         if valence_hunger is not None and valence_hunger > 0.6:
-            if topological_pressure is not None and topological_pressure > 0.5:
+            if homological_pressure is not None and homological_pressure > 0.5:
                 status = RecoveryStatus.SATURATION_ESCALATION
                 
         # Legibility Tripwire: If legibility > 0.8, the system is too frictionless
