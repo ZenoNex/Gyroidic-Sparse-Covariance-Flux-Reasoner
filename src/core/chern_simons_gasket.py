@@ -448,6 +448,8 @@ class ChernSimonsGasket(nn.Module):
             'feature_scars': scar_mask
         }
 
+import math
+
 class SolitonStabilityHealer(nn.Module):
     """
     Heals fractured solitons using Drucker-Prager global plastic flow.
@@ -458,9 +460,9 @@ class SolitonStabilityHealer(nn.Module):
     
     def __init__(
         self,
-        alpha_0: float = 1.0,
-        gamma: float = 0.5,
-        healing_iterations: int = 400,
+        alpha_0: float = 1.0 / 137.0,
+        gamma: float = math.pi / 137.0,
+        healing_iterations: int = int(137.0 * math.pi),
         device: str = None
     ):
         """
@@ -655,6 +657,20 @@ class SolitonStabilityHealer(nn.Module):
             
             # Apply Drucker-Prager healing (Beehive Wax Melting)
             healed_residues = self.drucker_prager_healing(heated_residues, gcve_pressure=gcve_pressure)
+            
+            # Energy-Based Soliton Healing (EBM refinement for non-ergodic entropy preservation)
+            try:
+                if not hasattr(self, 'ebm_healer') or self.ebm_healer is None or self.ebm_healer.state_dim != residues.shape[-1]:
+                    from src.core.energy_based_soliton_healer import create_energy_based_healer
+                    self.ebm_healer = create_energy_based_healer(state_dim=residues.shape[-1]).to(self.device)
+                
+                batch_size, k, d = healed_residues.shape
+                flat_residues = healed_residues.view(-1, d)
+                ebm_healed, _ = self.ebm_healer.heal_soliton(flat_residues, iteration_count=1)
+                healed_residues = ebm_healed.view(batch_size, k, d)
+            except Exception as e:
+                # Fallback gracefully if EBM healer fails
+                pass
             
             # Update healing progress
             self.healing_progress = self.iteration_count / self.healing_iterations
