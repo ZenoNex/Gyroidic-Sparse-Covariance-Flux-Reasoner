@@ -49,7 +49,7 @@ class SpeculativeHomologyEngine(nn.Module):
         self.oracle = PersistentHomologyComputer(max_dimension=max_homology_dim)
         
         # 4. Anti-Lobotomy Monitor: Detects artificial smoothing
-        self.linguistic_monitor = LinguisticEntropyMonitor(entropy_threshold=0.01)
+        self.linguistic_monitor = LinguisticEntropyMonitor(entropy_threshold=1.0 / 137.0)
         
         # History buffer for trajectory smoothing detection
         self.register_buffer('state_history', torch.zeros(10, feature_dim))
