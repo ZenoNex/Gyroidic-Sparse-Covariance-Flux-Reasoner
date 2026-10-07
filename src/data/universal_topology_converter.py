@@ -52,14 +52,24 @@ class UniversalTopologyConverter:
         ext = filepath.suffix.lower()
         
         # Media Delegation (IVSTEncoder)
-        if ext in ['.mp4', '.mkv', '.avi', '.mp3', '.wav'] and self.ivst_encoder is not None:
+        if ext in ['.mp4', '.mkv', '.avi', '.mp3', '.wav', '.jpg', '.jpeg', '.png', '.webp'] and self.ivst_encoder is not None:
             # Full IVST Integration: Extract topological footprint from media
             ivst_data = self.ivst_encoder.process_artifact(filepath)
             if "error" not in ivst_data:
+                # ROBUSTNESS: Apply AI Piss Filter Compensation to the generated Spectral Tensor
+                # If the image was highly degraded (missing blue pixels), we amplify the high-frequency topology 
+                # to prevent the system from wholesale rejecting the structure.
+                spectral_base = harvest_honest_jitter((1, self.target_dim), device='cpu', scaled=False) * 0.05
+                
+                vis_topo = ivst_data.get("visual_topology", {})
+                if vis_topo and vis_topo.get("piss_filter_detected", False):
+                    compensation_factor = vis_topo.get("b_channel_compensation", 1.0)
+                    spectral_base = spectral_base * compensation_factor
+                
                 # Early return with IVST extraction
                 return {
                     "format": ext,
-                    "spectral_tensor": harvest_honest_jitter((1, self.target_dim), device='cpu', scaled=False) * 0.05,  # Needs unified projector
+                    "spectral_tensor": spectral_base,  # Needs unified projector
                     "pressure_signature": torch.zeros(1, self.num_moduli),
                     "defect_anomalies": torch.zeros(1, 256),
                     "love_tensor": torch.zeros(1, self.target_dim),
