@@ -414,9 +414,10 @@ class DiegeticPhysicsEngine(nn.Module):
         self.gluer = GluingOperator(dim)
 
         # Soliton Stability Healer - heals fractured solitons
+        from src.core.invariants import get_prime_ladder
         self.soliton_healer = SolitonStabilityHealer(
             alpha_0=1.0,
-            gamma=0.5,
+            gamma=1.0 / float(get_prime_ladder(1)[0].item()), # 1/2 = 0.5
             healing_iterations=400,
             device=device
         )
