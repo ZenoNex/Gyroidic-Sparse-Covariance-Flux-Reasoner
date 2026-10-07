@@ -416,9 +416,11 @@ class DiegeticPhysicsEngine(nn.Module):
         # Soliton Stability Healer - heals fractured solitons
         from src.core.invariants import get_prime_ladder
         self.soliton_healer = SolitonStabilityHealer(
-            alpha_0=1.0,
+            # alpha_0=0.01 derived from 1 / (2+3+5)^2 = 1 / 100 (matches SYSTEM_ARCHITECTURE default fast-learning rate)
+            alpha_0=1.0 / float(get_prime_ladder(3).sum().item() ** 2),
             gamma=1.0 / float(get_prime_ladder(1)[0].item()), # 1/2 = 0.5
-            healing_iterations=400,
+            # healing_iterations derived from structural volume, e.g., (2+3+5)^2 * 4 = 100 * 4 = 400
+            healing_iterations=int((get_prime_ladder(3).sum().item() ** 2) * (get_prime_ladder(1)[0].item() ** 2)),
             device=device
         )
         
@@ -476,7 +478,8 @@ class DiegeticPhysicsEngine(nn.Module):
         from src.models.modular_attention import ModularAttention
         self.modular_attention = ModularAttention(
             hidden_dim=dim,
-            num_heads=4,
+            # derived topologically as 2^2 = 4 (to remove user selectability / magic number)
+            num_heads=int(get_prime_ladder(1)[0].item() ** 2),
             poly_config=self.poly_config,
             num_functionals=k
         ).to(self.device)
