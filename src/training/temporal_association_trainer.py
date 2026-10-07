@@ -491,10 +491,23 @@ class TemporalAssociationTrainer:
             epsilon = 1e-4
             
             try:
-                X_T_X_inv = torch.inverse(torch.matmul(X.T, X) + epsilon * I)
+                from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
+                if getattr(self, '_gyroid_probe', None) is None or self._gyroid_probe.hidden_dim != h_dim:
+                    self._gyroid_probe = SparseGyroidCovarianceProbe(hidden_dim=h_dim).to(h_stack.device)
+                
+                # Topologically aware Gyroidic covariance instead of crude Euclidean X^T X silos
+                self._gyroid_probe.buffer.clear()
+                self._gyroid_probe.update_buffer(X)
+                C_X = self._gyroid_probe.compute_covariance()
+                
+                self._gyroid_probe.buffer.clear()
+                self._gyroid_probe.update_buffer(Y)
+                C_Y = self._gyroid_probe.compute_covariance()
+                
+                X_T_X_inv = torch.inverse(C_X + epsilon * I)
                 F_op = torch.matmul(X_T_X_inv, torch.matmul(X.T, Y))
                 
-                Y_T_Y_inv = torch.inverse(torch.matmul(Y.T, Y) + epsilon * I)
+                Y_T_Y_inv = torch.inverse(C_Y + epsilon * I)
                 B_op = torch.matmul(Y_T_Y_inv, torch.matmul(Y.T, X))
                 
                 if not hasattr(self, 'curvature_tracker') or self.curvature_tracker.dim != h_dim:
@@ -872,6 +885,13 @@ class TemporalAssociationTrainer:
             }
         }
         
+        def _cpu_detach_recursive(obj):
+            if isinstance(obj, torch.Tensor): return obj.detach().cpu()
+            if isinstance(obj, dict): return {k: _cpu_detach_recursive(v) for k, v in obj.items()}
+            if isinstance(obj, list): return [_cpu_detach_recursive(v) for v in obj]
+            return obj
+            
+        state = _cpu_detach_recursive(state)
         torch.save(state, filepath)
         print(f"Training state saved to {filepath}")
     
