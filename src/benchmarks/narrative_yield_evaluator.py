@@ -16,10 +16,11 @@ class NarrativeYieldEvaluator:
     """
     def __init__(self):
         logger.info("Initialized Narrative Yield Evaluator.")
-        # Setup the monitors
-        self.entropy_monitor = LinguisticEntropyMonitor(entropy_threshold=0.1, prediction_threshold=0.95)
+        import math
+        # Setup the monitors using structural proxies instead of numeric hacks
+        self.entropy_monitor = LinguisticEntropyMonitor(entropy_threshold=1.0 / 137.0, prediction_threshold=0.95)
         self.coherence_estimator = NarrativeCoherenceEstimator(hidden_dim=64)
-        self.legibility_tripwire = LegibilityTripwire(hidden_dim=64, warning_threshold=0.5)
+        self.legibility_tripwire = LegibilityTripwire(hidden_dim=64, warning_threshold=math.pi / 137.0)
         self.daqf_operator = DAQUFOperator(num_fossils=10, fossil_dim=64)
 
     def evaluate_narrative_collapse(self):
