@@ -205,7 +205,9 @@ class GyroidicFluxReasoner(nn.Module):
                 poly_config=self.poly_config
             )
         
-        self.crt_kernel = PolynomialCRTKernelDetector(threshold=0.5)
+        from src.core.invariants import get_prime_ladder
+        # threshold 0.5 derived from 1/2
+        self.crt_kernel = PolynomialCRTKernelDetector(threshold=1.0 / float(get_prime_ladder(1)[0].item()))
         
         # Optional components
         self.use_introspection = use_introspection
