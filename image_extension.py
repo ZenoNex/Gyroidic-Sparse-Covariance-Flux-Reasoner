@@ -33,26 +33,23 @@ import os
 
 class StructuralEntanglementNet(nn.Module):
     """
-    CNN Backbone for extracting "Structural Entanglement" features from image patches.
+    CNN/RNN Backbone for extracting "Structural Entanglement" features from image patches.
     
     Architecture:
     - Input: [Batch, 3, 64, 64] (RGB Patches)
-    - Conv1: 3->32, 3x3, stride 1, padding 1
-    - Pool1: 2x2
-    - Conv2: 32->64, 3x3, stride 1, padding 1
-    - Pool2: 2x2
-    - Conv3: 64->128, 3x3, stride 1, padding 1
-    - Global Average Pool
+    - Spatial CNN: 3 -> 32 -> 64 -> 128 (Conv2d + MaxPool)
+    - Temporal RNN: FeatureScarLCFTCell (Processes patches sequentially to fossilize anomalies)
     - Projection: 128 -> 768 (Embedding Dimension)
-    
-    This is a lightweight "Satellite" network designed to be trained alongside
-    the main reasoning core or frozen as a feature extractor.
     """
     def __init__(self, output_dim: int = 768):
         super().__init__()
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3, padding=1)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
         self.conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        
+        # The true recurrent FGRT layer bridging the gap!
+        from src.core.fgrt_rnn_cells import FeatureScarLCFTCell
+        self.fossilizer_rnn = FeatureScarLCFTCell(input_dim=128, hidden_dim=128)
         
         # Projection to compatible embedding space (768-dim)
         self.projection = nn.Linear(128, output_dim)
@@ -61,20 +58,31 @@ class StructuralEntanglementNet(nn.Module):
         nn.init.orthogonal_(self.projection.weight)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: [B, 3, 64, 64]
-        x = F.relu(self.conv1(x))
-        x = F.max_pool2d(x, 2) # -> [32, 32, 32]
+        # x: [Num_Tiles, 3, 64, 64]
+        # Treat tiles as a sequence for the RNN
+        B = x.size(0)
         
-        x = F.relu(self.conv2(x))
-        x = F.max_pool2d(x, 2) # -> [64, 16, 16]
+        spatial_features = []
+        for i in range(B):
+            tile = x[i:i+1] # [1, 3, 64, 64]
+            c = F.relu(self.conv1(tile))
+            c = F.max_pool2d(c, 2)
+            c = F.relu(self.conv2(c))
+            c = F.max_pool2d(c, 2)
+            c = F.relu(self.conv3(c))
+            c = F.adaptive_avg_pool2d(c, (1, 1))
+            spatial_features.append(c.view(1, 128))
+            
+        # Recurrent Fossilization Pass
+        h_t = torch.zeros(1, 128, device=x.device)
+        cerumen_pot = torch.zeros(1, 128, device=x.device)
         
-        x = F.relu(self.conv3(x))
-        # Global Average Pooling
-        x = F.adaptive_avg_pool2d(x, (1, 1)) # -> [128, 1, 1]
-        x = x.view(x.size(0), -1) # -> [B, 128]
-        
-        x = self.projection(x) # -> [B, 768]
-        return x
+        for feat in spatial_features:
+            h_t, cerumen_pot = self.fossilizer_rnn(feat, (h_t, cerumen_pot))
+            
+        # The final state contains both the temporal flow and the isolated feature scars
+        out = self.projection(h_t) # -> [1, 768]
+        return out
 
 class ImageProcessor(nn.Module):
     """
@@ -237,37 +245,53 @@ class ImageProcessor(nn.Module):
 
     def fingerprint_to_image(self, fingerprint: torch.Tensor, size: Tuple[int, int] = (64, 64)) -> Image.Image:
         """
-        Reconstruct a PIL image from a 137-dim fingerprint (Legacy support).
+        Reconstruct a PIL image from a Chebyshev Polynomial fingerprint.
         
-        Fingerprint Layout:
-        - 0-31: Red Histogram
-        - 32-63: Green Histogram
-        - 64-95: Blue Histogram
-        - 96-127: Luminance Histogram
-        - 128: Texture Intensity
-        - 129-136: Edge Features
+        The old 137-dim RGB/Luminance histogram layout has been replaced 
+        by dynamic-length Chebyshev coefficients (K LSB-stochastically-rounded 
+        Birkhoff-normalised coefficients) derived from the image's L, Cr, and Cb channels.
+        
+        For reconstruction, this method acts as an inverse Chebyshev projection.
         """
         if fingerprint.dim() > 1:
             fingerprint = fingerprint.view(-1)
             
-        # Ensure it's the correct dimension or pad/trim
-        if fingerprint.shape[0] < 137:
-            pad = torch.zeros(137 - fingerprint.shape[0], device=fingerprint.device)
-            fingerprint = torch.cat([fingerprint, pad])
-        elif fingerprint.shape[0] > 137:
-            fingerprint = fingerprint[:137]
+        K = fingerprint.shape[0]
+        if K == 0:
+            return Image.new('RGB', size)
             
         w, h = size
-        img = Image.new('RGB', (w, h))
-        pixels = img.load()
+        N = w * h
         
-        # Extract components
-        r_hist = fingerprint[0:32]
-        g_hist = fingerprint[32:64]
-        b_hist = fingerprint[64:96]
-        l_hist = fingerprint[96:128]
-        texture = fingerprint[128].item()
-        edges = fingerprint[129:137].cpu().numpy()
+        # Create normalized linear space [-1, 1] across the flattened image grid
+        x = torch.linspace(-1, 1, steps=N, device=fingerprint.device)
+        
+        # Evaluate Inverse Chebyshev projection iteratively: 
+        # T_0 = 1, T_1 = x, T_n = 2xT_{n-1} - T_{n-2}
+        y = torch.zeros_like(x)
+        T_prev2 = torch.ones_like(x)
+        y += fingerprint[0] * T_prev2
+        
+        if K > 1:
+            T_prev1 = x
+            y += fingerprint[1] * T_prev1
+            
+            for k in range(2, K):
+                T_curr = 2 * x * T_prev1 - T_prev2
+                y += fingerprint[k] * T_curr
+                T_prev2 = T_prev1
+                T_prev1 = T_curr
+                
+        # Reconstruct the 1D signal, normalize to [0, 255], and reshape to 2D
+        y_min, y_max = y.min(), y.max()
+        if y_max > y_min:
+            y = (y - y_min) / (y_max - y_min)
+        else:
+            y = torch.zeros_like(y)
+            
+        img_array = (y.view(h, w) * 255).cpu().numpy().astype('uint8')
+        img = Image.fromarray(img_array, mode='L')
+        return img.convert('RGB')
         
         # Peak color values
         r_val = torch.max(r_hist).item() * 255.0
