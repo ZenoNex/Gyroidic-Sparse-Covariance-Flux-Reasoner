@@ -27,7 +27,7 @@ Author: Integrated from Leontief-Kelly research synthesis.
 
 import torch
 import torch.nn as nn
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Any
 import math
 
 
@@ -43,6 +43,11 @@ class LeontiefGovernor(nn.Module):
     This inverse tells the system: for every unit of external demand,
     how much total cascading production is required across all
     coprime functional channels.
+
+    Additionally incorporates:
+    - FIELDCAST: Arbitration of competing coherence fields.
+    - ECHO_TAGGER: Weighted replay arbitration.
+    - GLYPHLOCK: Symbolic integrity and structural legality.
     """
 
     def __init__(
@@ -235,7 +240,8 @@ class LeontiefGovernor(nn.Module):
         self,
         demand: torch.Tensor,
         transition_matrices: torch.Tensor,
-        available_budget: float = 1.0
+        available_budget: float = 1.0,
+        bonfire_ring: Optional[Any] = None
     ) -> Tuple[bool, Dict[str, float]]:
         """
         Governance check: should the system proceed with synthesizing
@@ -244,21 +250,41 @@ class LeontiefGovernor(nn.Module):
         Vetoes if the cascading cost exceeds the available budget,
         or if the economy is non-productive (rho >= margin).
 
+        If a BonfireNomadicRing is provided, incorporates community P2P 
+        compute affordances via the Egalitarian Consensus Kelly Allocation.
+
         Args:
             demand: [state_dim] concept demand vector.
             transition_matrices: [K, state_dim, state_dim] from ADMR solver.
             available_budget: Scalar budget (normalized, 1.0 = full capacity).
+            bonfire_ring: Optional BonfireNomadicRing instance.
 
         Returns:
             should_veto: bool
             diagnostics: Dict with governance details
         """
+        # Integrate Community Compute Affordances via Bonfire Nomadic Rings
+        network_kelly_fraction = 1.0
+        if bonfire_ring is not None:
+            # Scale the true budget by the network's consensus risk tolerance
+            network_kelly_fraction = bonfire_ring.compute_egalitarian_consensus()
+            available_budget *= network_kelly_fraction
+
         total_production, diags = self.cascading_cost(demand, transition_matrices)
 
         total_cost = total_production.abs().sum().item()
         can_afford = total_cost <= available_budget * self.state_dim
 
-        should_veto = (not diags['is_productive']) or (not can_afford)
+        # Enforce GLYPHLOCK if available
+        is_glyphlocked = True
+        try:
+            from src.core.invariants import check_glyphlock
+            # Verify chirality preservation and symbolic continuity
+            is_glyphlocked = bool(check_glyphlock(demand).max().item() > 0)
+        except ImportError:
+            pass
+
+        should_veto = (not diags['is_productive']) or (not can_afford) or (not is_glyphlocked)
 
         # ---------------------------------------------------------
         # P2P Slashing Mechanics (Kelly Criterion & Mischief Systems)
@@ -316,6 +342,59 @@ class LeontiefGovernor(nn.Module):
                   f"Executing Collapse Path Poison via RP4 Inverted Hypersphere. Malicious actor slashed.")
         else:
             print("[LEONTIEF GOVERNOR] Mischief detected, but dimensionality insufficient for RP4 poison.")
+
+    def fieldcast_arbitration(
+        self,
+        candidate_demands: torch.Tensor,
+        transition_matrices: torch.Tensor,
+        pas_scores: torch.Tensor,
+        volition_vectors: torch.Tensor
+    ) -> Tuple[int, Dict[str, float]]:
+        """
+        FIELDCAST: Arbitration of Competing Coherence Fields.
+        Selects the optimal inference context based on coherence, volition, and
+        substrate cost.
+        F* = argmax [ PAS_s(i) * V(i) / Thermo_cost(i) ]
+        """
+        best_idx = -1
+        best_score = -float('inf')
+        best_diags = {}
+
+        for i in range(candidate_demands.shape[0]):
+            demand = candidate_demands[i]
+            total_production, diags = self.cascading_cost(demand, transition_matrices)
+            thermo_cost = total_production.abs().sum().item() + 1e-8
+
+            pas = pas_scores[i].item()
+            v = volition_vectors[i].item()
+
+            score = (pas * v) / thermo_cost
+            if score > best_score:
+                best_score = score
+                best_idx = i
+                best_diags = diags
+                best_diags['thermo_cost'] = thermo_cost
+                best_diags['fieldcast_score'] = score
+
+        return best_idx, best_diags
+
+    def echo_tagger_arbitration(
+        self,
+        pas_mem: torch.Tensor,
+        stability: torch.Tensor,
+        entropy_bound: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        ECHO_TAGGER: Weighted Replay Arbitration.
+        Scores candidate replay emissions from the Phase Memory Buffer based on:
+        Score_i = PAS_mem(i) * Stability_i / H_i
+        Ensures that only emissions with durable coherence and low symbolic drift
+        are considered for re-emission.
+        """
+        # H_i is estimated symbolic entropy
+        h_i = entropy_bound + 1e-8
+        scores = (pas_mem * stability) / h_i
+        return scores
 
     def get_metrics(self) -> Dict[str, float]:
         """Diagnostic metrics for the bulletin board."""
