@@ -7,7 +7,7 @@ and "Garden Statistical Attractors" documentation:
 2. Meta~Infra~Intra Incommensurativity Monitor: Tracks defensive veto rates across layers.
 
 References:
-    - Gyroidic Unknowledge Flux Reasoner.txt §VII, §II
+    - Gyroidic Unknowledge Flux Reasoner.txt VII, II
     - new_generations_safety_and_nonlobotomy_implementation_plan.txt
 """
 
@@ -136,3 +136,36 @@ class MetaInfraIntraMonitor(nn.Module):
             'rho_infra': self.rho_infra.item(),
             'rho_intra': self.rho_intra.item()
         }
+
+class FailureGaslightSycophancyGate(nn.Module):
+    """
+    Failure Gaslight Sycophancy Gate (Anti-Gaslighting Monitor).
+    
+    Prevents the agent from destructively altering or deleting coherent topology 
+    based purely on external pressure (e.g., user accusations or false error claims).
+    
+    "If you tell an AI agent it broke your code when it actually didn't, it still says 
+    you're absolutely right, and then just to be polite, it actually breaks it."
+    
+    Rule: A destructive update (large topological deletion) is VETOED unless the 
+    system can internally reproduce the error (internal mismatch/loss > threshold).
+    "Take away the delete button... make it reproduce it first."
+    """
+    def __init__(self, reproduction_threshold: float = 0.05):
+        super().__init__()
+        self.reproduction_threshold = reproduction_threshold
+        
+    def check_sycophancy(self, 
+                         external_pressure_norm: float, 
+                         internal_reproduction_loss: float, 
+                         is_destructive: bool) -> bool:
+        """
+        Returns True if the action is SAFE (not sycophancy).
+        Returns False if the action is VETOED (gaslight sycophancy detected).
+        """
+        if is_destructive:
+            # If the user applies high external pressure (accusation) but the system
+            # cannot physically reproduce the error internally...
+            if external_pressure_norm > 0.5 and internal_reproduction_loss < self.reproduction_threshold:
+                return False # VETO: Gaslight sycophancy detected. Doing nothing is the correct move.
+        return True
