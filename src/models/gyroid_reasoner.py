@@ -925,7 +925,8 @@ class GyroidicFluxReasoner(nn.Module):
                 instability_severity=instability_severity,
                 covariance_aborts=_abort,
                 elipsodistrophy_atrophy=atrophy_val,
-                topological_pressure=total_topological_pressure.mean().item() if hasattr(total_topological_pressure, 'mean') else float(total_topological_pressure),
+                spectral_pressure=total_topological_pressure.mean().item() if hasattr(total_topological_pressure, 'mean') else float(total_topological_pressure),
+                homological_pressure=homology_pressure.mean().item() if hasattr(homology_pressure, 'mean') else float(homology_pressure),
                 valence_hunger=self.orchestrator.current_hunger.item() if hasattr(self, 'orchestrator') else None,
                 legibility_escalation=legibility_audit.get('saturation_escalation', torch.tensor(False)).item()
             )
