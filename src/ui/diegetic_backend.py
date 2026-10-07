@@ -768,9 +768,9 @@ class DiegeticPhysicsEngine(nn.Module):
         # --- CHATGPT FRICTION HARVESTER (Background Auto-Temporal Training) ---
         if self.config.get('chatgpt_ingestor_enabled', True):
             verbosity = self.config.get('chatgpt_ingestor_verbosity', 'normal')
-            chatgpt_export_dir = r"D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\data\raw\chatgpt_userIla_and_archetpes_dyads_data\9894d8be355693bad4f30a9a8341f63f0519577efadeafd6e93ad9c97521d980-2026-03-31-10-43-19-a178149902ef4042a44540feb4301932"
+            chatgpt_export_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", "service_llm_archive")
             if not os.path.exists(chatgpt_export_dir):
-                 relative_suffix = os.path.join("data", "raw", "chatgpt_userIla_and_archetpes_dyads_data", "9894d8be355693bad4f30a9a8341f63f0519577efadeafd6e93ad9c97521d980-2026-03-31-10-43-19-a178149902ef4042a44540feb4301932")
+                 relative_suffix = os.path.join("data", "service_llm_archive")
                  candidate_cwd = os.path.abspath(relative_suffix)
                  if os.path.exists(candidate_cwd):
                       chatgpt_export_dir = candidate_cwd
