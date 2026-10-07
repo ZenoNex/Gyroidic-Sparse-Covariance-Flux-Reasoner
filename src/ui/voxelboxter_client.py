@@ -179,16 +179,22 @@ def render_dirty_chunks(state: 'ResMut<PatchStateResource>'):
     """
     with state.lock:
         if state.graph.dirty:
-            if getattr(state, 'silicon_sovereignty', None) and state.silicon_sovereignty.ctx:
-                logging.debug("[PyOpenCL] Pushing dirty voxel chunk to Silicon Sovereignty Engine.")
-                # Pseudo-logic:
-                # 1. Map graph data to 1D flat array
-                # 2. cl.enqueue_svm_map()
-                # 3. state.silicon_sovereignty._get_kernel("meshing_kernel")(self.silicon_sovereignty.queue_a, ...)
-                pass
-            else:
-                logging.debug("[CPU Mesh] Generating mesh via CPU fallback.")
-                pass
+            # Check if engine exists, else initialize a mock instance just for the hardware hook
+            if not hasattr(state, 'engine'):
+                from src.ui.voxelboxter_simulation import VoxelboxterEngine
+                state.engine = VoxelboxterEngine()
+            
+            # Fetch the fractal meta state from the orchestrator if available
+            fractal_state = None
+            if hasattr(state, 'orchestrator') and state.orchestrator:
+                fractal_state = state.orchestrator.get_fractal_meta_state()
+                
+            logging.debug("[PyOpenCL] Pushing dirty voxel chunk to Silicon Sovereignty Engine.")
+            
+            # Call the PyOpenCL TailSlayer Wasserstein Collapse natively
+            state.engine._deform_terrain_mesh_pybevy(fractal_meta_state=fractal_state)
+            
+            state.graph.dirty = False
 
 def update_abeb_intake_system(
     query_batteries: 'Query[(AirBreathingBattery, Transform)]',
