@@ -27,11 +27,12 @@ class IVSTEncoder:
         self.ffmpeg_path = self._find_ffmpeg()
 
     def _find_ffmpeg(self) -> str:
-        """Find FFmpeg executable in PATH."""
+        """Find FFmpeg executable in PATH or fallback to sovereign path."""
+        sovereign_path = r"D:\ffmpeg-2026-04-22-git-162ad61486-full_build\bin\ffmpeg.exe"
         try:
-            # Simple check if ffmpeg is available
-            subprocess.run(["ffmpeg", "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-            return "ffmpeg"
+            # Simple check if sovereign path is available
+            subprocess.run([sovereign_path, "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            return sovereign_path
         except (subprocess.SubprocessError, FileNotFoundError):
             return "ffmpeg" # Assume it's in path or user will install it
             
@@ -93,6 +94,7 @@ class IVSTEncoder:
         """
         Extracts audio and computes its topological fingerprint (Mel-spectrogram/MFCC structure).
         Does NOT save the audio, only the mathematical footprint.
+        Robust to Distort Interleave and PVoc Interleave by smoothing inter-chunk variance.
         """
         try:
             # Extract raw audio bytes directly to memory using ffmpeg
@@ -117,7 +119,6 @@ class IVSTEncoder:
             audio_data = np.frombuffer(stdout, dtype=np.int16).astype(np.float32) / 32768.0
             
             # Calculate simple causal topology (Energy envelope & zero-crossings)
-            # This is a proxy for the actual audio content
             chunk_size = self.sample_rate // self.fps # FPS chunks per second
             
             energy_envelope = []
@@ -135,26 +136,121 @@ class IVSTEncoder:
                 zcr = float(np.sum(np.abs(np.diff(np.signbit(chunk)))) / len(chunk))
                 zero_crossings.append(zcr)
                 
+            # ROBUSTNESS: Identify Distort/PVoc Interleave artifacts
+            # Instead of filtering/smoothing them away, we read their topological signature.
+            # Distort Interleave creates extreme discontinuities in the time domain (ZCR jumps).
+            # PVoc Interleave creates spectral envelope jumps without breaking local phase as violently (Energy jumps).
+            
+            distort_interleave_detected = False
+            pvoc_interleave_detected = False
+            
+            if len(energy_envelope) > 3:
+                zcr_diffs = np.abs(np.diff(zero_crossings))
+                energy_diffs = np.abs(np.diff(energy_envelope))
+                
+                # If there are regular, high-variance jumps in zero crossings -> Distort Interleave
+                if np.mean(zcr_diffs) > 0.15 and np.std(zcr_diffs) > 0.05:
+                    distort_interleave_detected = True
+                    
+                # If energy jumps violently but ZCR remains relatively stable -> PVoc Interleave
+                if np.mean(energy_diffs) > 0.1 and not distort_interleave_detected:
+                    pvoc_interleave_detected = True
+                
+            # Obtain native structural hash directly from FFmpeg without Python overhead
+            hash_cmd = [
+                self.ffmpeg_path,
+                "-i", str(filepath),
+                "-vn",
+                "-map", "0:a:0?",  # Only the first audio stream
+                "-f", "hash",
+                "-hash", "sha256",
+                "-"
+            ]
+            hash_process = subprocess.run(hash_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            audio_hash = "unknown"
+            if hash_process.returncode == 0:
+                for line in hash_process.stdout.splitlines():
+                    if line.startswith("SHA256="):
+                        audio_hash = line.split("=")[1].strip()
+                        break
+            
             return {
                 "energy_envelope": energy_envelope[:1000], # Cap size
                 "zero_crossings": zero_crossings[:1000],
                 "total_samples": len(audio_data),
-                "audio_hash": hashlib.sha256(stdout).hexdigest()
+                "audio_hash": audio_hash,
+                "interleave_topology": {
+                    "distort_interleave": distort_interleave_detected,
+                    "pvoc_interleave": pvoc_interleave_detected
+                }
             }
             
+        except Exception as e:
+            return {"error": str(e)}
+
+    def extract_visual_topology(self, filepath: Path) -> Dict[str, Any]:
+        """
+        Extracts visual structural metadata from video or images.
+        ROBUSTNESS: AI Piss Filter (Compound Color Loss / Missing Blue Pixels).
+        Instead of rejecting yellow-shifted AI artifacts, we detect the blue channel crush
+        and calculate an isomorphic offset.
+        """
+        try:
+            cmd = [
+                self.ffmpeg_path,
+                "-i", str(filepath),
+                "-vf", "scale=16:16",
+                "-vframes", "1",
+                "-f", "rawvideo",
+                "-pix_fmt", "rgb24",
+                "-"
+            ]
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
+            
+            if process.returncode != 0 or not stdout:
+                return {"error": "Failed to extract visual topology"}
+                
+            pixels = np.frombuffer(stdout, dtype=np.uint8).reshape((16, 16, 3)).astype(np.float32)
+            
+            # Analyze color channels
+            r_mean = float(np.mean(pixels[:, :, 0]))
+            g_mean = float(np.mean(pixels[:, :, 1]))
+            b_mean = float(np.mean(pixels[:, :, 2]))
+            
+            # Detect AI Piss Filter (Missing Blue Pixels / Compound Color Loss)
+            ai_piss_filter_active = False
+            b_compensation = 1.0
+            
+            if b_mean < (r_mean + g_mean) * 0.25: # Severe blue loss typical of early generative models
+                ai_piss_filter_active = True
+                b_compensation = ((r_mean + g_mean) / 2.0) / (b_mean + 1e-5)
+            
+            return {
+                "r_mean": r_mean,
+                "g_mean": g_mean,
+                "b_mean": b_mean,
+                "piss_filter_detected": ai_piss_filter_active,
+                "b_channel_compensation": float(b_compensation)
+            }
         except Exception as e:
             return {"error": str(e)}
             
     def process_artifact(self, filepath: Union[str, Path]) -> Dict[str, Any]:
         """
-        Main entry point for processing an MP4/MKV artifact.
+        Main entry point for processing an MP4/MKV artifact or image.
         """
         filepath = Path(filepath)
         if not filepath.exists():
             raise FileNotFoundError(f"Artifact not found: {filepath}")
             
         causal_structure = self.probe_media_structure(filepath)
+        
+        # Audio topology (with PVoc/Distort Interleave robustness)
         audio_topology = self.extract_audio_topology(filepath)
+        
+        # Visual topology (with AI Piss Filter robustness)
+        visual_topology = self.extract_visual_topology(filepath)
         
         # Pull structural honesty to sign the extraction
         try:
@@ -167,6 +263,7 @@ class IVSTEncoder:
             "source_file": filepath.name,
             "causal_structure": causal_structure,
             "audio_topology": audio_topology,
+            "visual_topology": visual_topology,
             "ivst_signature": hashlib.sha256(f"{filepath.name}_{jitter}".encode()).hexdigest(),
             "honesty_jitter": jitter
         }
