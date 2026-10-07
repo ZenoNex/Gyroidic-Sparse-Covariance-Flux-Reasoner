@@ -34,7 +34,7 @@ from src.core.valence_drive import ValenceFunctional
 from src.core.leontief_governor import LeontiefGovernor
 from src.core.collapse_poisoner import CollapsePathPoisoner
 
-from src.core.structural_monitors import AntiScalingMonitor, MetaInfraIntraMonitor
+from src.core.structural_monitors import AntiScalingMonitor, MetaInfraIntraMonitor, FailureGaslightSycophancyGate
 from src.core.jspace_pca_mapper import JSpacePCAMapper
 from src.core.federated_router import OpenRouterClient, FederatedNetworkMonitor
 from src.models.introspection_head import IntrospectionHead
@@ -194,6 +194,7 @@ class UniversalOrchestrator(nn.Module):
         self.trust_tracker = TrustInheritanceTracker()
         self.anti_scaling_monitor = AntiScalingMonitor()
         self.incommensurativity_monitor = MetaInfraIntraMonitor()
+        self.sycophancy_gate = FailureGaslightSycophancyGate(reproduction_threshold=0.05)
         
         # 6. Archetypal Synthesis Governor (The "Mandy/Billy" Logic / TADC)
         from src.core.archetype_engines import ArchetypalSynthesisEngine
@@ -933,9 +934,22 @@ class UniversalOrchestrator(nn.Module):
         incomm = self.incommensurativity_monitor.check_incommensurativity()
         trust = self.trust_tracker.get_trust()
         
+        # 5. Check Failure Gaslight Sycophancy
+        # If user pressure is high but the loss (reproduction) is low, veto destructive actions.
+        # "Say what you see, make it reproduce it first, make it ask before it deletes anything."
+        external_pressure_norm = 1.0 - trust # Inverse of trust acts as external accusatory pressure
+        internal_reproduction_loss = loss
+        is_destructive = grad_norm > 2.0 # Proxy for destructive topology change
+        
+        sycophancy_safe = self.sycophancy_gate.check_sycophancy(
+            external_pressure_norm=external_pressure_norm,
+            internal_reproduction_loss=internal_reproduction_loss,
+            is_destructive=is_destructive
+        )
+        
         return {
             'trust': trust,
             'paradox_score': paradox['paradox_score'],
             'incommensurativity_score': incomm['incommensurativity_score'],
-            'safety_alert': (trust < 0.01) or (paradox['paradox_score'] > 0.5)
+            'safety_alert': (trust < 0.01) or (paradox['paradox_score'] > 0.5) or (not sycophancy_safe)
         }
