@@ -360,7 +360,22 @@ class LeontiefGovernor(nn.Module):
         best_score = -float('inf')
         best_diags = {}
 
-        for i in range(candidate_demands.shape[0]):
+        # TailSlayer XOR-mapping / Z-Curve Interleaving:
+        # Instead of a naive linear scan which causes massive cache misses on spatially 
+        # correlated coherence fields, we traverse the candidates using a 1D Morton-inspired 
+        # XOR Gray-code mapping to preserve cache line associativity.
+        num_candidates = candidate_demands.shape[0]
+        
+        for base_i in range(num_candidates):
+            # 1D Morton-esque XOR interleave
+            i = base_i ^ (base_i >> 1)
+            if i >= num_candidates:
+                i = base_i # Fallback if out of bounds (though Gray code keeps it within next power of 2)
+            
+            # Additional bounds check for non-power-of-2 candidate counts
+            if i >= num_candidates:
+                continue
+
             demand = candidate_demands[i]
             total_production, diags = self.cascading_cost(demand, transition_matrices)
             thermo_cost = total_production.abs().sum().item() + 1e-8
