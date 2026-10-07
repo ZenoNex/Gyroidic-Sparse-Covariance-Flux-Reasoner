@@ -603,7 +603,8 @@ class TemporalAssociationTrainer:
         
         # Approximate V_m directly (Grounding for Manifold Hunger)
         # Reference: 45.2 (Silicon Sovereignty) - surfacing persistent dissonance.
-        tau_decay = 10.0
+        from src.core.invariants import get_prime_ladder
+        tau_decay = float(get_prime_ladder(3, device=self.device).sum().item()) # 2+3+5 = 10.0
         # Safe tr_c: ensure non-zero denominator to prevent 'Overflow Exceeded' (6.2)
         safe_tr_c = torch.clamp(torch.tensor(tr_c), min=1e-6).item()
         
@@ -774,7 +775,8 @@ class TemporalAssociationTrainer:
         tr_c = final_output.get('trace_c', torch.tensor([1.0], device=self.device)).mean().item()
         
         # Approximate V_m directly
-        tau_decay = 10.0
+        from src.core.invariants import get_prime_ladder
+        tau_decay = float(get_prime_ladder(3, device=self.device).sum().item()) # 2+3+5 = 10.0
         safe_tr_c = torch.clamp(torch.tensor(tr_c), min=1e-6).item()
         v_m = float(v_tensor) + (float(h_mischief) / tau_decay) - (float(l_min) / safe_tr_c)
         
