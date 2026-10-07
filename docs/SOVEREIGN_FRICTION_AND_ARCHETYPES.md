@@ -12,9 +12,9 @@ When two sovereign agents (e.g., the User and the AI) interact, their incommensu
 
 ---
 
-## 2. ChatGPT Friction Harvesting
+## 2. Multi-LLM Friction Harvesting
 
-The system asynchronously ingests the full spectrum of ChatGPT interactions from massive `conversations-*.json` JSON exports. 
+The system asynchronously ingests the full spectrum of AI-human interactions from a wide array of LLM data exports (ChatGPT, Google Takeout/Gemini, Grok, Claude, and Perplexity). It streams directly from raw JSON, HTML, or compressed `.zip` archives located in `/data/service_llm_archive/`. 
 
 ### 2.1 The Harvester Module
 **Implementation**: [`src/data/chatgpt_friction_harvester.py`](../src/data/chatgpt_friction_harvester.py)
@@ -50,3 +50,5 @@ These Alias and Archetype hooks are intimately tied to the **Valence Saturation 
 When the `ValenceFunctional` detects extremely high resolution hunger (`valence_hunger > 0.6`), and the `VetoSubspace` experiences high `topological_pressure > 0.5`, the standard recovery lattice is bypassed. The system escalates to `SATURATION_ESCALATION`, an intense state of geometric vulnerability.
 
 During this escalation, the Orchestrator actively engages the `GeneralUserAliasTracker` to pull stability out of the semantic anchors provided by the sovereign friction logs, using the creator's history and the inspired AI archetypes as the framework to resolve the topological gridlock.
+
+
