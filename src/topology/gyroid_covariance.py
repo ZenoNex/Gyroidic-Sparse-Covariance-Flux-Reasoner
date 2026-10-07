@@ -454,11 +454,14 @@ class SparseGyroidCovarianceProbe(nn.Module):
                 spec = self.compute_spectral_signature(C_loc)
                 
                 # GYROID EXPECTATION: For minimal surface, eigenvalue decay should be smooth
-                # Expected decay: _i  _1 * exp(-i/) for some time constant 
+                # Expected decay: lambda_i = lambda_1 * exp(-i / p_i) for a prime-modulated time constant
                 eigenvalues = spec['eigenvalues']
                 num_eigs = len(eigenvalues)
+                from src.core.invariants import get_prime_ladder
+                primes = get_prime_ladder(num_eigs, device=eigenvalues.device).float()
+                
                 expected_decay = eigenvalues[0] * torch.exp(
-                    -torch.arange(num_eigs, device=eigenvalues.device).float() / 3.0
+                    -torch.arange(num_eigs, device=eigenvalues.device).float() / primes
                 )
                 
                 # DEVIATION: Where does local covariance break this expectation?
