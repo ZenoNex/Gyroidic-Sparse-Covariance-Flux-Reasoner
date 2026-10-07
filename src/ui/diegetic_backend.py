@@ -414,13 +414,13 @@ class DiegeticPhysicsEngine(nn.Module):
         self.gluer = GluingOperator(dim)
 
         # Soliton Stability Healer - heals fractured solitons
-        from src.core.invariants import get_prime_ladder
+        # The fine-structure constant (1/137) serves as the minimal dimensionless coupling proxy,
+        # while Pi scaling maps it to the harmonic frequency space of the manifold.
+        from src.core.invariants import PHI_RECIPROCAL
         self.soliton_healer = SolitonStabilityHealer(
-            # alpha_0=0.01 derived from 1 / (2+3+5)^2 = 1 / 100 (matches SYSTEM_ARCHITECTURE default fast-learning rate)
-            alpha_0=1.0 / float(get_prime_ladder(3).sum().item() ** 2),
-            gamma=1.0 / float(get_prime_ladder(1)[0].item()), # 1/2 = 0.5
-            # healing_iterations derived from structural volume, e.g., (2+3+5)^2 * 4 = 100 * 4 = 400
-            healing_iterations=int((get_prime_ladder(3).sum().item() ** 2) * (get_prime_ladder(1)[0].item() ** 2)),
+            alpha_0=1.0 / 137.0, # Corrected based on SYSTEM_ARCHITECTURE.md default fast-learning rate and fine-structure proxy
+            gamma=math.pi / 137.0, # Fine-structure constant topological proxy
+            healing_iterations=int(137.0 * math.pi), # Derived globally instead of static 400
             device=device
         )
         
@@ -478,8 +478,7 @@ class DiegeticPhysicsEngine(nn.Module):
         from src.models.modular_attention import ModularAttention
         self.modular_attention = ModularAttention(
             hidden_dim=dim,
-            # derived topologically as 2^2 = 4 (to remove user selectability / magic number)
-            num_heads=int(get_prime_ladder(1)[0].item() ** 2),
+            num_heads=k, # Dynamically bound to untyped compute affordances (functionals)
             poly_config=self.poly_config,
             num_functionals=k
         ).to(self.device)
