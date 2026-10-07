@@ -675,7 +675,7 @@ Affordance Gradient Statistics:
             try:
                 import torch
                 torch.save({
-                    'model_state_dict': self.model.state_dict(),
+                    'model_state_dict': {k: v.detach().cpu() for k, v in self.model.state_dict().items()},
                     'timestamp': datetime.now().isoformat()
                 }, filename)
                 messagebox.showinfo("Success", f"Model saved to {filename}")
