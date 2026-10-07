@@ -404,9 +404,7 @@ class SparseGyroidCovarianceProbe(nn.Module):
         seq_len = h.shape[1]
         effective_r = seq_len * self.k_hop
         if effective_r > 300:
-            from src.core.invariants import get_prime_ladder
-            # Derived from prime ladder: 1 / (p_8 + 1) = 1 / (19 + 1) = 0.05
-            beta = 1.0 / float(get_prime_ladder(8, device=inter_matrix.device)[-1].item() + 1.0)
+            beta = 0.05
             suppression = torch.exp(torch.tensor(-beta * (effective_r - 300.0), device=inter_matrix.device))
             inter_matrix = inter_matrix * suppression
         
