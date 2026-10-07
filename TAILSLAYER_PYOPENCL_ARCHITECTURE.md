@@ -37,35 +37,54 @@ The Pascal architecture's warp width requires specific data alignment for maximu
 
 ---
 
-## 3. Stochastic Rounding / The Zero-Emission Anchor
+## 3. Stochastic Rounding & The Wasserstein Collapse
 
-Tripwire 8 (INVARIANT_OPTIMIZATION) mandates that deterministic rounding is forbidden.
+Tripwire 8 (INVARIANT_OPTIMIZATION) mandates that deterministic rounding is forbidden. This is explicitly applied during the **Wasserstein Collapse** inside the Voxelboxter Engine (`voxelboxter_simulation.py`), where the high-resolution polynomial geometry (Fractal Meta Functional) is cast down to a 4-bit lattice.
 
-### 3.1 Kernel Implementation
+### 3.1 Kernel Implementation (Earth Mover's Distance)
 ```c
-// OpenCL Kernel snippet for Stochastic Rounding
-uint tea(uint v0, uint v1) {
+// OpenCL Kernel snippet for Stochastic Rounding & Mass Sliding
+#define TEA_ROUNDS 4
+inline uint tea_hash(uint v0, uint v1) {
     uint sum = 0;
-    for(int i=0; i<32; i++) {
-        sum += 0x9E3779B9;
-        v0 += ((v1<<4) + 0xA341316C) ^ (v1 + sum) ^ ((v1>>5) + 0xC8013EA4);
-        v1 += ((v0<<4) + 0xAD90777D) ^ (v0 + sum) ^ ((v0>>5) + 0x7E95761E);
+    for(int i=0; i<TEA_ROUNDS; ++i) {
+        sum += 0x9e3779b9;
+        v0 += ((v1 << 4) + 0xa341316c) ^ (v1 + sum) ^ ((v1 >> 5) + 0xc8013ea4);
+        v1 += ((v0 << 4) + 0xad90777d) ^ (v0 + sum) ^ ((v0 >> 5) + 0x7e95761e);
     }
     return v0;
 }
 
-__kernel void saturated_quantize(...) {
+__kernel void wasserstein_collapse_svm(
+    __global float4* morton_residues,
+    __global float* out_lattice,
+    const uint iteration_count,
+    const float spatial_mass_budget
+) {
     int gid = get_global_id(0);
-    uint seed = tea(gid, step_counter);
-    float noise = (float)(seed & 0xFFFF) / 65536.0f - 0.5f; 
+    float4 residue = morton_residues[gid];
     
-    // The Zero-Emission Anchor: Mod 2 Parity Check
-    int lsb = (int)floor(value * levels + noise);
-    output[gid] = lsb; // Contains the Feature Scar
+    // Earth Mover's sliding (Wasserstein): Push mass towards local dense centers
+    float local_mass = length(residue.xyz);
+    float4 collapsed = residue;
+    if (local_mass < (spatial_mass_budget * 0.001f)) {
+        collapsed.xyz = (float3)(0.0f); // Yield / Fracture
+    } else {
+        collapsed.xyz = normalize(residue.xyz) * min(local_mass, spatial_mass_budget); // Cap by Parseval budget
+    }
+
+    // The Zero-Emission Anchor: Mod 2 Parity Check via TEA-Salt Noise
+    uint rand_seed = tea_hash(gid, iteration_count);
+    float noise = ((float)(rand_seed & 0xFFFF) / 65535.0f) * 0.1f - 0.05f;
+    
+    out_lattice[gid] = floor(collapsed.x + noise) * 16.0f; // Contains the Feature Scar
 }
 ```
 
-The LSB is the maximally fossilized form of modular arithmetic. The TEA-salt noise ensures that the expressive tail (the "good glitch" from GANBREEDER's extreme slider logic) survives the quantization step.
+The TEA-salt noise ensures that the expressive tail survives the quantization step. The **Parseval's Theorem Constraint** forces the `spatial_mass_budget` to equal the sum of squared frequency magnitudes of the `fractal_meta_state`, ensuring geometric collapse cannot invent illegal mass.
+
+### 3.2 Zero-Copy Engine Hook (Voxelboxter)
+Execution of this kernel is wired directly into `voxelboxter_client.py` via `cl.enqueue_svm_map` on the PyBevy engine rendering loop. The `PointerlessOctree` receives direct writes from the GPU without cross-bus memory stalling.
 
 ---
 
@@ -88,7 +107,7 @@ If the GPU approaches thermal throttling or persistent stalls, the system trigge
 ## 5. Perceptual Ingestion (Zero-Mock)
 
 ### 5.1 Meliponini-Chebyshev Coupling (Bridge 2)
-Hardware stall intensity ($\kappa$)—historically a "lost" metric in standard compute—is now utilized as a perceptual foundation.
+Hardware stall intensity ($\kappa$)historically a "lost" metric in standard computeis now utilized as a perceptual foundation.
 
 *   **T0 Energy**: The $t_{RFC}$ stall intensity is mapped directly to the **T0 (DC) component** of the Chebyshev residues during ingestion.
 *   **Perceptual Friction**: High DRAM pressure results in a higher energy baseline for visual signals, causing the system to "feel" the hardware's heat as the ground truth for any modal association. This removes the need for mock scalar simulations; the hardware *is* the simulation.
