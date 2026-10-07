@@ -113,11 +113,15 @@ Detects code vs. instruction content automatically (`_is_code`) and applies diff
 
 ---
 
-## 4. ArXiv Sovereign Lore Ingestor
+## 4. Sovereign Lore Ingestor (ArXiv + SearXNG)
 
-**Source**: [`src/data/knowledge_ingestor.py`](../src/data/knowledge_ingestor.py) (190+ lines)
+**Source**: [`src/data/knowledge_ingestor.py`](../src/data/knowledge_ingestor.py)
 
-Background slow-drip ingestion pipeline fetching high-density lore residues from ArXiv OAI-PMH.
+Background slow-drip ingestion pipeline fetching high-density lore residues from ArXiv (OAI-PMH and Atom API) and the Open Web via a privacy-preserving **SearXNG** integration (with strict `robots.txt` compliance and `BeautifulSoup` content extraction).
+
+### Fast Index Deduplication
+
+On engine startup, instead of performing a costly $O(N)$ scan of all `.pt` files and executing `torch.load` to verify previous runs, `ArXivSovereignIngestor._load_fossilized_arxiv_ids` queries the pre-existing fast `.fossil_index.json` index (`fossilizer.fossil_index`). This eliminates start-up delays entirely.
 
 ### Dynamic Meta-State Steering
 
@@ -164,11 +168,11 @@ This enables the reasoner to intuitively understand the macro-structure of data 
 
 ---
 
-## 6. ChatGPT Friction Harvester
+## 6. Multi-LLM Archive Friction Harvester
 
 **Implementation**: [`data/chatgpt_friction_harvester.py`](../src/data/chatgpt_friction_harvester.py)
 
-The `ChatGPTFrictionHarvester` mines structural resistance directly from human-AI conversational datasets. Unlike standard APIs that just extract text, this system tracks non-ergodic phenomena where conversational flow hits "friction".
+The `ChatGPTFrictionHarvester` mines structural resistance directly from human-AI conversational datasets. Originally built solely for ChatGPT exports, it now natively supports multi-LLM conversational archives, dynamically parsing exports from **Google Takeout/Gemini, Grok, Claude, and Perplexity**. It features automatic, on-the-fly recursive parsing of raw `.json`, `.html`, and `.zip` archives directly from the `/data/service_llm_archive/` directory without requiring manual extraction. Unlike standard APIs that just extract text, this system tracks non-ergodic phenomena where conversational flow hits "friction".
 
 ### Harvester Metrics
 
@@ -178,3 +182,16 @@ The `ChatGPTFrictionHarvester` mines structural resistance directly from human-A
 | **Non-Ergodic Agreement** | Identifies "smooth friction" where complex, atypical resonant cavities align naturally without triggering aborts. | Learns what healthy, non-trivial agreement looks like. |
 | **Dead-End Cliffs** | Tags interactions where massive user context results in a vacuous/dismissive AI response (`dead_end_cliff`). | Explicitly marks dead logic to prevent the system from learning it. |
 | **Jarring Subject Shifts** | Detects abrupt context switches (Bouligand Bubbles) using Jaccard bag-of-words similarity on consecutive user messages. | Highlights topological ruptures in conversational momentum. |
+
+---
+
+## 7. Open Science Ingestor
+
+**Source**: [`src/data/open_science_ingestor.py`](../src/data/open_science_ingestor.py)
+
+The `OpenScienceIngestor` integrates high-density scientific datasets (including LIGO strain streams and EuropePMC paper queries) into the reasoner's manifold.
+
+### Dynamic Modality Handling
+- **LIGO Strain Integration**: Fetches real gravitational wave strain time-series data from GWOSC APIs. If offline or missing dependencies, it falls back to a prime-ladder Chebyshev-Chebyshev oscillator simulation.
+- **EuropePMC Integration**: Retrieves full text metadata from open-access PMC literature databases for scientific text filtering.
+- **Hardware-Sovereign Fallbacks**: All ingestion failures trigger high-fidelity deterministic simulations rather than silent bypasses, preserving local substrate stability.
