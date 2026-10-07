@@ -23,6 +23,8 @@ from __future__ import annotations
 import os
 import json
 import glob
+import zipfile
+import tarfile
 import mmap
 import re
 import asyncio
@@ -222,44 +224,74 @@ class ChatGPTFrictionHarvester:
     # Source auto-detection
     # ------------------------------------------------------------------
 
-    def _conversation_source(self) -> Generator[dict, None, None]:
+    def _conversation_source(self) -> Generator[List[Tuple[str, str]], None, None]:
         """
-        Yields raw conversation dicts from whichever source is available.
-        Prefers the split JSON files (conversations-*.json) because they are
-        already pre-parsed and avoid regex scanning overhead.  Falls back to
-        the monolithic chat.html via mmap streaming.
+        Yields linearised conversations (lists of (role, text) tuples) from
+        whichever sources are available. Supports json, html, and zip files
+        containing data from ChatGPT, Gemini, Claude, Perplexity, etc.
         """
         if not self.export_dir or not os.path.exists(self.export_dir):
             return
 
-        json_files = sorted(
-            glob.glob(os.path.join(self.export_dir, "conversations-*.json"))
-        )
+        def process_json_data(data):
+            if isinstance(data, list):
+                for item in data:
+                    yield from process_json_data(item)
+            elif isinstance(data, dict):
+                if "mapping" in data:
+                    yield _linearise_mapping(data["mapping"])
+                elif "chat_messages" in data:
+                    msgs = []
+                    for m in data["chat_messages"]:
+                        role = "user" if m.get("sender") == "user" else "assistant"
+                        text = m.get("text", "")
+                        if text: msgs.append((role, text))
+                    if msgs: yield msgs
+                elif "conversation" in data or "conversationSteps" in data:
+                    steps = data.get("conversationSteps", [])
+                    if not steps and "conversation" in data and isinstance(data["conversation"], dict):
+                        steps = data["conversation"].get("conversationSteps", [])
+                    msgs = []
+                    for step in steps:
+                        for turn in step.get("turns", []):
+                            role = "user" if "USER" in str(turn.get("author", "")).upper() else "assistant"
+                            parts = turn.get("parts", [])
+                            text = "\n".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in parts)
+                            if text: msgs.append((role, text))
+                    if msgs: yield msgs
+                else:
+                    for k, v in data.items():
+                        if isinstance(v, (dict, list)):
+                            yield from process_json_data(v)
 
-        if json_files:
-            for file_path in json_files:
-                try:
-                    with open(file_path, "r", encoding="utf-8") as fh:
-                        data = json.load(fh)
-                    if isinstance(data, list):
-                        yield from data
-                    elif isinstance(data, dict):
-                        yield data
-                except Exception as e:
-                    print(f"[Harvester] Error reading {file_path}: {e}")
-            return
+        for zip_path in glob.glob(os.path.join(self.export_dir, "**", "*.zip"), recursive=True):
+            try:
+                with zipfile.ZipFile(zip_path, 'r') as z:
+                    for filename in z.namelist():
+                        if filename.endswith(".json") and "__MACOSX" not in filename:
+                            with z.open(filename) as f:
+                                try:
+                                    data = json.load(f)
+                                    yield from process_json_data(data)
+                                except Exception:
+                                    pass
+            except Exception as e:
+                print(f"[Harvester] Error reading zip {zip_path}: {e}")
+
+        for file_path in glob.glob(os.path.join(self.export_dir, "**", "*.json"), recursive=True):
+            try:
+                with open(file_path, "r", encoding="utf-8") as fh:
+                    data = json.load(fh)
+                yield from process_json_data(data)
+            except Exception:
+                pass
 
         html_path = os.path.join(self.export_dir, "chat.html")
         if os.path.exists(html_path):
-            print(f"[Harvester] No JSON files found. Streaming from {html_path} via mmap.")
-            yield from _iter_html_conversations(html_path)
-            return
-
-        print(f"[Harvester] Warning: No source files found in {self.export_dir!r}")
-
-    # ------------------------------------------------------------------
-    # Main harvest generator
-    # ------------------------------------------------------------------
+            for conv in _iter_html_conversations(html_path):
+                mapping = conv.get("mapping", {})
+                if mapping:
+                    yield _linearise_mapping(mapping)
 
     def harvest_from_fossilizer(
         self,
@@ -304,32 +336,26 @@ class ChatGPTFrictionHarvester:
         has_sources = False
         if self.export_dir and os.path.exists(self.export_dir):
             try:
-                for conv in self._conversation_source():
-                    mapping = conv.get("mapping", {})
-                    if not mapping:
+                for messages in self._conversation_source():
+                    if not messages:
                         continue
                     try:
-                        yield from self._harvest_conv(mapping)
+                        yield from self._harvest_conv(messages)
                         has_sources = True
                     except Exception as e:
-                        title = conv.get("title", "<unknown>")
-                        print(f"[Harvester] Error processing '{title}': {e}")
+                        print(f"[Harvester] Error processing conversation messages: {e}")
             except Exception as e:
-                print(f"[Harvester] Error in ChatGPT export ingestion: {e}")
+                print(f"[Harvester] Error in export ingestion: {e}")
 
         if not has_sources:
-            # Fallback to local fossils
             yield from self.harvest_from_fossilizer()
 
     def _harvest_conv(
-        self, mapping: dict
+        self, messages: List[Tuple[str, str]]
     ) -> Generator[Tuple[torch.Tensor, torch.Tensor, Dict[str, Any], str, str], None, None]:
         """
-        Harvest all user->assistant dyads from a single conversation mapping.
-        Uses the shared _linearise_mapping() DFS so tree ordering matches
-        what the viewer displays.
+        Harvest all user->assistant dyads from a linearised conversation.
         """
-        messages = _linearise_mapping(mapping)
 
         last_user_text: Optional[str] = None
         last_user_tags: Dict[str, Any] = {}
@@ -546,6 +572,14 @@ async def auto_temporal_training_loop(
                                             
                                         # Re-save the file to disk!
                                         tmp_filepath = filepath + ".tmp"
+                                        
+                                        def _cpu_detach_recursive(obj):
+                                            if isinstance(obj, torch.Tensor): return obj.detach().cpu()
+                                            if isinstance(obj, dict): return {k: _cpu_detach_recursive(v) for k, v in obj.items()}
+                                            if isinstance(obj, list): return [_cpu_detach_recursive(v) for v in obj]
+                                            return obj
+                                            
+                                        data = _cpu_detach_recursive(data)
                                         torch.save(data, tmp_filepath)
                                         os.replace(tmp_filepath, filepath)
                                         print(f"[RECOVERY] Successfully reran and upgraded semisimple file to non-semisimple topology: {filename}")
