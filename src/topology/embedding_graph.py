@@ -54,7 +54,8 @@ class GyroidicGraphManager:
         self.data_dir = data_dir
         self.dim = dim
         self.nodes: List[KnowledgeFossilNode] = []
-        self.edge_threshold = 0.7  # Similarity threshold for edge creation
+        from src.core.invariants import PHI_RECIPROCAL
+        self.edge_threshold = PHI_RECIPROCAL  # Similarity threshold for edge creation via Golden Conjugate proxy
         self.dedup_threshold = 0.9999 # Threshold for identity (to prune duplicates)
         
     def get_valid_node_count(self) -> int:
