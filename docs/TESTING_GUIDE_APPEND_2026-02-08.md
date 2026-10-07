@@ -1,4 +1,4 @@
-Testing Guide (Append) — 2026-02-08
+Testing Guide (Append)  2026-02-08
 
 Overview
 - This guide complements existing examples and tests, highlighting commands to validate recent determinism, persistence, ingestion alignment, and dimensional-handling changes.
@@ -18,11 +18,11 @@ Core persistence and stability
   - Clean return of metrics without ambiguous boolean warnings
 
 2) Additional integration/feature demos (subset from examples/)
-- `python -m examples.verify_invariants` — invariant checks
-- `python -m examples.yield_flow_demo` — yield flow behavior
-- `python -m examples.example_runner` — general runner
-- `python -m examples.example_hybrid_admm` — hybrid ADMM path
-- `python -m examples.run_low_intensity` — low-intensity validation
+- `python -m examples.verify_invariants`  invariant checks
+- `python -m examples.yield_flow_demo`  yield flow behavior
+- `python -m examples.example_runner`  general runner
+- `python -m examples.example_hybrid_admm`  hybrid ADMM path
+- `python -m examples.run_low_intensity`  low-intensity validation
 
 Frontends/backends reachability
 - Server/terminal checks (subset):
@@ -73,3 +73,15 @@ Notes
 - If tests previously relied on 768-length text embeddings for display, they will now receive 64-length states from the canonical projector; this is intended and topologically aligned.
 - All outputs should be finite; any NaN/Inf at the boundary is sanitized.
 - Non-strict state loading may log missing/unexpected keys when loading checkpoints from older versions; this is informational and expected.
+
+Evaluators and Validation Scripts
+---------------------------------
+To continuously validate the anti-lobotomy boundaries and the performance characteristics of the reasoner, the system provides an integrated benchmark suite. Ensure the following evaluators run flawlessly before merging core topological changes:
+
+1. **Benchmark Suite**:
+   - `python -m src.benchmarks.narrative_yield_evaluator`: Evaluates structural honesty in continuous narrative generation, tracking whether language collapses into highly probable/linear (lobotomized) paths.
+   - `python -m src.benchmarks.reactbench_evaluator`: Tests the agentic loop reasoning capabilities and the system's reaction to prompt disruptions without goal-collapsing.
+   - `python -m src.benchmarks.topobench_evaluator`: The primary topological stress test. Calculates Betti number stability and Gyroid violations across simulated topological tears.
+
+2. **Validation Tools**:
+   - `python -m src.tools.validate_cmmf`: Validates the `Conjugate Moment Measure Factorization` (CMMF) mapping, ensuring the potential $\psi(x)$ acts as a proper Legendre gradient map between manifolds without degenerating the input convex neural network (ICNN) constraints.
