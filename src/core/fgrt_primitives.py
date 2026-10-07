@@ -15,6 +15,26 @@ from typing import Tuple
 from src.core.honest_jitter import harvest_honest_jitter
 import time
 
+def expand_bits(v: torch.Tensor) -> torch.Tensor:
+    """
+    Expands a 10-bit integer into 30 bits by inserting 2 zeros after each bit.
+    Used for 3D Morton encoding (Z-order curve) on GPU/CPU.
+    """
+    v = v.to(torch.int32)
+    v = (v | (v << 16)) & 0x030000FF
+    v = (v | (v << 8))  & 0x0300F00F
+    v = (v | (v << 4))  & 0x030C30C3
+    v = (v | (v << 2))  & 0x09249249
+    return v
+
+def morton_encode_3d(x: torch.Tensor, y: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
+    """
+    Computes the 3D Morton code by interleaving the bits of x, y, and z.
+    Maintains spatial locality when flattening 3D coordinates to 1D indices,
+    which is critical for preventing cache misses during topological ADMM repair.
+    """
+    return expand_bits(x) | (expand_bits(y) << 1) | (expand_bits(z) << 2)
+
 class GyroidManifold(nn.Module):
     """
     Representation of the Gyroid Triply Periodic Minimal Surface (TPMS).
@@ -191,7 +211,14 @@ class PrimeResonanceLadder(nn.Module):
         # We multiply by 2*pi to compute the angular frequency. Because the natural logs 
         # of primes are mathematically incommensurate, stacking these frequencies prevents 
         # "mode-locking" and creates a rich, non-repeating Moiré interference pattern.
-        frequencies = 2 * PI * torch.log(self.primes.float())
+        base_frequencies = 2 * PI * torch.log(self.primes.float())
+        
+        # TailSlayer XOR-mapping logic: Topological Interleaving to prevent 
+        # the "Associativity Problem" across GPU memory banks.
+        indices = torch.arange(num_resonators, dtype=torch.long)
+        xor_indices = indices ^ (indices >> 1) # Gray Code mapping scrambles cache lines
+        frequencies = base_frequencies[xor_indices]
+        
         self.register_buffer('frequencies', frequencies)
         
 
