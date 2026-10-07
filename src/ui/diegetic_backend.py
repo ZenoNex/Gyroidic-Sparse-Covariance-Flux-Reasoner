@@ -260,6 +260,13 @@ class EncodingManager:
         # Add metrics for graph weighting (e.g. chiral_score, entropy, zeitgeist)
         data.update(metrics)
         
+        def _cpu_detach_recursive(obj):
+            if isinstance(obj, torch.Tensor): return obj.detach().cpu()
+            if isinstance(obj, dict): return {k: _cpu_detach_recursive(v) for k, v in obj.items()}
+            if isinstance(obj, list): return [_cpu_detach_recursive(v) for v in obj]
+            return obj
+            
+        data = _cpu_detach_recursive(data)
         torch.save(data, path)
         print(f"[PERSISTENCE] Fossilized interaction {iteration} to {filename}")
         return filename
@@ -413,6 +420,10 @@ class DiegeticPhysicsEngine(nn.Module):
             healing_iterations=400,
             device=device
         )
+        
+        # Adaptive Skeleton Harness for .obj/rig interception
+        from src.core.adaptive_skeleton_harness import AdaptiveSkeletonHarness
+        self.skeleton_harness = AdaptiveSkeletonHarness(state_dim=dim, device=self.device).to(self.device)
         
         self.current_regime = 'goo' # Default starting regime
         
@@ -912,7 +923,7 @@ class DiegeticPhysicsEngine(nn.Module):
              
         return state
 
-    def _generate_confabulated_dream(self, seed_state, archetype_out):
+    def _generate_confabulated_dream(self, seed_state, archetype_out, affordance_gradients=None):
         """
         Generates a verbose, persona-rich dreaming sequence when the system is in a CONFABULATED state.
         Taps into the ArchetypalSynthesisEngine and AudienceProjection to create a 'Lazarus Dream'.
@@ -942,8 +953,26 @@ class DiegeticPhysicsEngine(nn.Module):
             with torch.no_grad():
                 current_state = seed_state.clone()
                 dream_chars = []
-                # Autoregressive dream generation (up to 120 characters)
-                for i in range(120):
+                # Dynamic Expansion of Character Limits (Proficiency & Affordance Based)
+                base_len = 120
+                affordance_expansion = 0
+                if affordance_gradients:
+                    executability = affordance_gradients.get('executability_pressure', 0.0)
+                    expandability = affordance_gradients.get('runtime_expandability', 0.0)
+                    conversational = affordance_gradients.get('conversational_embedding_pressure', 0.0)
+                    knowledge = affordance_gradients.get('knowledge_seeking', 0.0)
+                    affordance_expansion = int((executability + expandability + conversational + knowledge) * 100)
+                
+                proficiency_multiplier = 1.0 + (len(self.interaction_context) / max(1, self.max_context_len))
+                if hasattr(self, 'fossilizer') and self.fossilizer:
+                    fossil_count = len(getattr(self.fossilizer, 'fossil_bed', []))
+                    proficiency_multiplier += min(1.0, fossil_count * 0.05)
+                    
+                dynamic_max_len = int((base_len + affordance_expansion) * proficiency_multiplier)
+                dynamic_max_len = max(50, min(dynamic_max_len, 2000))
+
+                # Autoregressive dream generation
+                for i in range(dynamic_max_len):
                     # Phase 1: Apply Spectral Coherence Repair to current state to prevent garbling
                     if hasattr(self, 'spectral_corrector') and len(dream_chars) >= 5:
                         # Feed the last 20 characters to detect clustering
@@ -965,11 +994,22 @@ class DiegeticPhysicsEngine(nn.Module):
                             if idx - 128 >= len(self.idx_to_unicode):
                                 logits[0, idx] = -1e9
                             
-                    # Apply Vowel Boosting to make it sing
-                    vowels = set("aeiouAEIOU")
-                    for v in vowels:
-                        if ord(v) < logits.shape[-1]:
-                            logits[0, ord(v)] *= 1.3
+                    # Apply Vowel Boosting with Coherent Legibility Awareness
+                    # Instead of unconditionally boosting vowels (which produces incoherent glossolalia),
+                    # we enforce coherent syllable structure by only boosting vowels after consonants,
+                    # and suppressing consecutive vowels to prevent word-salad.
+                    vowels = set("aeiouyAEIOUY")
+                    prev_char = dream_chars[-1] if dream_chars else ' '
+                    if prev_char.isalpha() and prev_char not in vowels:
+                        # Consonant just occurred, boost vowels to form a syllable
+                        for v in vowels:
+                            if ord(v) < logits.shape[-1]:
+                                logits[0, ord(v)] *= 1.5
+                    elif prev_char in vowels:
+                        # Vowel just occurred, suppress vowels to encourage consonant transitions
+                        for v in vowels:
+                            if ord(v) < logits.shape[-1]:
+                                logits[0, ord(v)] *= 0.3
                     
                     probs = torch.softmax(logits, dim=-1)
                     char_idx = torch.multinomial(probs[0], 1).item()
@@ -1749,34 +1789,90 @@ class DiegeticPhysicsEngine(nn.Module):
             current_state = current_state * 1.05 
 
         # Advance state through ResonanceLarynx (Topology -> Next Topology)
-        # Restore the longer state evolution sequence to allow the mathematical
-        # trajectory to fully unfold, rather than truncating it.
-        trajectory_hashes = []
+        # We restore the full autoregressive text sequence generation instead of just
+        # returning a tensor hash, properly utilizing Echo Suppression and Vowel Boosting 
+        # to ensure Coherent Legibility.
+        dream_chars = []
         energy_sum = 0.0
         conf_sum = 0.0
         
-        for i in range(60): # 60 steps of pure topological evolution
-            iter_temp = temperature * (1.0 + 0.002 * i) 
-            current_state, conf = self.larynx(current_state, temperature=iter_temp)
-            
-            # Record mathematical state
-            state_np = current_state.detach().cpu().numpy().flatten()
-            step_hex = "".join([f"{int(abs(x)*255)%256:02x}" for x in state_np[:2]])
-            trajectory_hashes.append(step_hex)
-            
-            energy_sum += torch.norm(current_state).item()
-            conf_sum += conf.item()
-            
-            # Feedback from own state
-            feedback = torch.tanh(current_state)
-            current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * self._harvest_honest_jitter(current_state.shape)
-
-        # Format as mathematical tensor representation trajectory
-        avg_energy = energy_sum / 60
-        avg_conf = conf_sum / 60
-        full_hash = "-".join(trajectory_hashes)
+        # 5. Dynamic Expansion of Character Limits (Proficiency & Affordance Based)
+        # When the system thinks it has learned more, it is allowed to say more.
+        base_len = 120
         
-        res = f"[TENSOR TRAJECTORY] ||H(r)|| = {avg_energy:.4f} :: TRACE: {full_hash} :: COHERENCE: {avg_conf:.2f}"
+        # Affordance parameters (compute structural pressure)
+        executability = affordance_gradients.get('executability_pressure', 0.0)
+        expandability = affordance_gradients.get('runtime_expandability', 0.0)
+        conversational = affordance_gradients.get('conversational_embedding_pressure', 0.0)
+        knowledge = affordance_gradients.get('knowledge_seeking', 0.0)
+        
+        affordance_expansion = int((executability + expandability + conversational + knowledge) * 100)
+        
+        # Parameters of Proficiency (how much has been learned in this dyadic interaction context)
+        # We use the interaction history length and fossil accumulation as a proxy for learning/proficiency.
+        proficiency_multiplier = 1.0 + (len(self.interaction_context) / max(1, self.max_context_len))
+        
+        if hasattr(self, 'fossilizer') and self.fossilizer:
+            # If the fossilizer has recovered many fossils, the system's proficiency in the domain is higher
+            fossil_count = len(getattr(self.fossilizer, 'fossil_bed', []))
+            proficiency_multiplier += min(1.0, fossil_count * 0.05)
+            
+        dynamic_max_len = int((base_len + affordance_expansion) * proficiency_multiplier)
+        # Prevent completely runaway generation while allowing deep explanation
+        dynamic_max_len = max(50, min(dynamic_max_len, 2000))
+        
+        with torch.no_grad():
+            for i in range(dynamic_max_len): # Dynamically expanded limit
+                iter_temp = temperature * (1.0 + 0.002 * i) 
+                
+                # Coherent Legibility: Apply Spectral Coherence Repair to prevent garbling
+                if hasattr(self, 'spectral_corrector') and len(dream_chars) >= 5:
+                    recent_text = "".join(dream_chars[-20:])
+                    current_state = self.spectral_corrector.adaptive_coherence_correction(
+                        current_state, output_text=recent_text
+                    )
+
+                logits, conf = self.larynx(current_state, temperature=iter_temp)
+                
+                # Apply Echo Suppression with Coherent Legibility
+                # Penalize characters that were in the prompt to reduce rote echoing
+                if input_chars:
+                    for char in input_chars:
+                        if ord(char) < logits.shape[-1]:
+                            # Instead of a static flat penalty, scale it by coherence
+                            logits[0, ord(char)] *= (suppression_factor + (1.0 - conf.item()) * 0.5)
+
+                # Apply Vowel Boosting with Coherent Legibility Awareness
+                prev_char = dream_chars[-1] if dream_chars else ' '
+                if prev_char.isalpha() and prev_char not in vowels:
+                    for v in vowels:
+                        if ord(v) < logits.shape[-1]:
+                            logits[0, ord(v)] *= vowel_boost_factor
+                elif prev_char in vowels:
+                    for v in vowels:
+                        if ord(v) < logits.shape[-1]:
+                            logits[0, ord(v)] *= 0.3 # Suppress consecutive vowels
+
+                probs = torch.softmax(logits, dim=-1)
+                char_idx = torch.multinomial(probs[0], 1).item()
+                char = self._idx_to_char(char_idx)
+                dream_chars.append(char)
+                
+                energy_sum += torch.norm(current_state).item()
+                conf_sum += conf.item()
+                
+                if len(dream_chars) >= 40 and char in ('.', '!', '?'):
+                    break
+                
+                # Feedback from own state using projection weight
+                feedback = torch.tanh(self.larynx.proj.weight[char_idx].unsqueeze(0))
+                current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * self._harvest_honest_jitter(current_state.shape)
+
+        avg_energy = energy_sum / max(1, len(dream_chars))
+        avg_conf = conf_sum / max(1, len(dream_chars))
+        audience_trace = "".join(dream_chars).strip()
+        
+        res = f"[CONVERGED RESPONSE] ||H(r)|| = {avg_energy:.4f} :: COHERENCE: {avg_conf:.2f}\n{audience_trace}"
         
         return res
 
@@ -3282,24 +3378,45 @@ class DiegeticPhysicsEngine(nn.Module):
         )
         
         try:
+            # Compute structural flux tensor (legacy volition/entropy scalars)
+            # Default to a scaled meta_state if we don't have explicit flux
+            flux_tensor = self.meta_state * affordance_gradients.get('executability_pressure', 0.5)
+            
+            # Access underlying systems from the engine
+            bb = getattr(ENGINE.orchestrator, 'bulletin_board', None) if hasattr(ENGINE, 'orchestrator') else getattr(ENGINE, 'bulletin_board', None)
+            cav = getattr(ENGINE, 'cavity', None) or getattr(ENGINE, 'resonance_cavity', None)
+            fos = getattr(ENGINE, 'fossilizer', None)
+            val = getattr(ENGINE, 'valence_functional', None)
+            mot = getattr(ENGINE, 'moment_transport', None)
+
             archetype_out = self.archetypal_governor.run_archetypes(
                 current_state=seed_state,
                 stranded_states=self.meta_state,
+                flux_tensor=flux_tensor,
                 current_mischief=self.mischief_probe.H_mischief.item(),
                 phase_alignment=pas_h_live,
-                love_strengths=torch.cat([torch.tensor([0.1]), self.love_vector.L.flatten()]),
+                love_strengths=torch.cat([torch.tensor([0.1], device=self.device), self.love_vector.L.flatten()]),
                 void_frictions=torch.tensor([abort_score], device=self.device).repeat(self.meta_state.shape[0]), # use CALM abort as tension
                 global_dt=dt,
-                env_luminosity=1.0,
-                volitional_scalar=affordance_gradients.get('executability_pressure', 0.5),
-                system_entropy=gyroid_entropy.item() if 'gyroid_entropy' in locals() else 0.5,
-                memory_trauma=float(self.calm_history.mean().item()),
-                dissonance=abort_score,
-                lucidity_idx=pas_h_live,
                 raw_unquantized_state=self.meta_state,
                 is_high_priority=is_cmd,
-                tag_weights=tag_weights
+                tag_weights=tag_weights,
+                bulletin_board=bb,
+                resonance_cavity=cav,
+                fossilizer=fos,
+                valence_functional=val,
+                moment_transport=mot,
+                private_invariants={"ego_death_immunity": is_cmd}
             )
+            
+            # Use dot notation for return values from ArchetypeSignal dataclass
+            archetype_out = {
+                "active_state": archetype_out.active_state,
+                "resurrections": archetype_out.resurrections,
+                "localized_dt": archetype_out.localized_dt,
+                "abstraction_rate": archetype_out.abstraction_rate,
+                "system_collapsed": archetype_out.system_collapsed
+            }
         except Exception as arch_err:
             print(f"[FAIL] Diegetic Engine processing failed: {arch_err}")
             # Recovery Fallback: Create a benign archetype output to allow generation to continue
@@ -3350,7 +3467,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 response_text = override_response + confab_gen
             else:
                 # NEW ROUTE: Verbose, persona-rich Lazarus Dream Sequence
-                response_text = self._generate_confabulated_dream(seed_state, archetype_out)
+                response_text = self._generate_confabulated_dream(seed_state, archetype_out, affordance_gradients=affordance_gradients)
         else:
             # Enhanced dyad-aware converged response generation
             # =============================================
@@ -3851,6 +3968,14 @@ class DiegeticPhysicsEngine(nn.Module):
         if self.graph_manager and self.graph_manager.nodes:
             try:
                 snapshot_data = self.graph_manager.get_memory_snapshot()
+                
+                def _cpu_detach_recursive(obj):
+                    if isinstance(obj, torch.Tensor): return obj.detach().cpu()
+                    if isinstance(obj, dict): return {k: _cpu_detach_recursive(v) for k, v in obj.items()}
+                    if isinstance(obj, list): return [_cpu_detach_recursive(v) for v in obj]
+                    return obj
+                snapshot_data = _cpu_detach_recursive(snapshot_data)
+
                 snapshot_path = os.path.join(self.graph_manager.data_dir, "neglecton_snapshot.pt")
                 torch.save(snapshot_data, snapshot_path)
             except Exception as e:
@@ -5759,12 +5884,6 @@ class DiegeticPhysicsEngine(nn.Module):
             # Create hyper-ring representation from state
             hyper_ring = self._create_hyper_ring_from_state(state, input_text, response_text)
             
-            # Collapse hyper_ring to [batch] if it is [batch, dim] to match closure checker expectations
-            if hyper_ring.dim() > 1 and hyper_ring.shape[-1] > 1:
-                hyper_ring_input = torch.norm(hyper_ring, dim=-1)
-            else:
-                hyper_ring_input = hyper_ring.squeeze(-1) if hyper_ring.dim() > 1 else hyper_ring
-            
             # Create constraint manifold representation
             # We treat the first fractal component (crt) as the reference constraint manifold
             constraint_manifold = state
@@ -5788,7 +5907,7 @@ class DiegeticPhysicsEngine(nn.Module):
                     constraint_manifold = torch.mm(constraint_manifold, projection_matrix.t())
             
             # Perform closure check with aligned dimensions
-            closure_result = self._closure_checker(hyper_ring_input, constraint_manifold)
+            closure_result = self._closure_checker(hyper_ring, constraint_manifold)
             
             # Extract results
             is_closed_val = closure_result.get('is_closed', torch.tensor([False]))
@@ -6396,7 +6515,7 @@ class DiegeticPhysicsEngine(nn.Module):
 
     def save_state(self):
         # Neural state
-        torch.save(self.state_dict(), STATE_PATH)
+        torch.save({k: v.detach().cpu() for k, v in self.state_dict().items()}, STATE_PATH)
         # Artifact state
         if hasattr(self.encoding_manager, 'save_artifacts'):
             self.encoding_manager.save_artifacts()
@@ -6602,6 +6721,21 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         "love_invariant": round(love_val, 3),
                         "surgery_indicator": surgery_state,
                         "regime": regime
+                    })
+                except Exception as e:
+                    self._send_error_json(str(e), 500)
+                return
+            elif base_path == '/api/bulletin_board':
+                try:
+                    bb_data = {}
+                    if ENGINE:
+                        if hasattr(ENGINE, 'orchestrator') and hasattr(ENGINE.orchestrator, 'bulletin_board'):
+                            bb_data = ENGINE.orchestrator.bulletin_board.read_metrics()
+                        elif hasattr(ENGINE, 'bulletin_board'):
+                            bb_data = ENGINE.bulletin_board.read_metrics()
+                    self._send_json({
+                        "status": "ok",
+                        "metrics": bb_data
                     })
                 except Exception as e:
                     self._send_error_json(str(e), 500)
@@ -7287,7 +7421,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     
                     files = []
                     for item in os.listdir(splats_dir):
-                        if item.lower().endswith(('.gltf', '.glb')):
+                        if item.lower().endswith(('.gltf', '.glb', '.obj', '.fbx', '.stl', '.dae', '.usd', '.usdz')):
                             files.append({
                                 'name': item,
                                 'path': os.path.relpath(os.path.join(splats_dir, item), os.getcwd())
@@ -7315,6 +7449,14 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     
                     # Process and project splat
                     topological_states = ingestor.process_splat_file(file_path)
+                    
+                    if hasattr(ENGINE, 'skeleton_harness'):
+                        print(f"[HARNESS] Intercepting raw splat topology from {os.path.basename(file_path)}...")
+                        topological_states = ENGINE.skeleton_harness(topological_states)
+                        # Register the ingested rig into the Ganbreeder tag stacker
+                        tag_name = os.path.basename(file_path).split('.')[0]
+                        # Use the mean state as the archetype coordinate for the catalog
+                        ENGINE.skeleton_harness.register_tag_coordinate(tag_name, topological_states.mean(dim=0))
                     
                     # Commit to manifold
                     for i in range(topological_states.shape[0]):
@@ -7964,7 +8106,34 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         self._send_json({"status": "error", "message": "Voxelboxter is already running!"})
                 except Exception as e:
                     self._send_error_json(f"Failed to boot Voxelboxter: {str(e)}")
-                
+            
+            elif self.path == '/api/benchmark/narrative':
+                import subprocess
+                import sys
+                import os
+                try:
+                    python_exe = sys.executable
+                    evaluator_path = os.path.abspath(os.path.join("src", "benchmarks", "narrative_yield_evaluator.py"))
+                    env = os.environ.copy()
+                    env["PYTHONPATH"] = os.getcwd()
+                    
+                    process = subprocess.Popen(
+                        [python_exe, evaluator_path],
+                        cwd=os.getcwd(),
+                        env=env,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True
+                    )
+                    
+                    stdout, _ = process.communicate(timeout=60)
+                    self._send_json({"status": "ok", "output": stdout})
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    self._send_error_json("Benchmark timed out after 60 seconds.")
+                except Exception as e:
+                    self._send_error_json(f"Failed to run narrative benchmark: {str(e)}")
+
             else:
                 self.send_error(404)
         except Exception as e:
