@@ -25,12 +25,12 @@ Core persistence and stability
 - `python -m examples.run_low_intensity`  low-intensity validation
 
 Frontends/backends reachability
-- Server/terminal checks (subset):
-  - `python test_minimal_server.py`
-  - `python test_backend_startup.py`
-  - `python test_backend_status.py`
-  - `python test_backend_simple.py`
-  - `python test_terminal_interface.py`
+- Server/terminal checks (consolidated in tests/test_live_backend.py):
+  - `python -m tests.test_live_backend` (supersedes legacy test_minimal_server.py, test_backend_startup.py, test_backend_status.py)
+  - (Legacy probes `test_backend_startup.py`, `test_backend_status.py`, `test_backend_simple.py`, `test_terminal_interface.py` are tombstoned and wrapped by test_live_backend)
+  - `python -m tests.test_algebraic_invariants` (Invariant checks)
+  - `python -m tests.test_bio_governor` (Bio-archetypal governor checks)
+  - `python -m tests.test_core_systems` (Core systems checks)
 - These validate startup, status probing, and terminal UI connections.
 
 Ingestion tests
@@ -56,18 +56,19 @@ Ingestion tests
     - `out = proj.project_multiscale_image([torch.randn(32,32), torch.randn(64,64)])`
     - Inspect fused state shape and entropy
 
-Additional test scripts (selected)
+Consolidated Test Suites and Legacy Verification
 - Dataset/ingestion workflows:
   - `python dataset_ingestion_system.py`
   - `python simple_dataset_interface.py`
   - `python dataset_command_interface.py`
   - `python run_dataset.py`
-- Stability and fixes verification:
-  - `python test_comprehensive_fixes.py`
-  - `python test_fixes_verification.py`
-  - `python test_basic_functionality.py`
-  - `python test_graph_visualization.py`
-  - `python test_advanced_extensions.py`
+- Consolidated test suites (active under tests/):
+  - `python -m tests.test_core_systems` (Core mathematical systems, archetypes, training integration, AoT non-commutativity)
+  - `python -m tests.test_algebraic_invariants` (Rational snapping, holonomic rank, Love protector, unfolding closure)
+  - `python -m tests.test_bio_governor` (Bio-archetypal governor and neuromodulatory bus synthesis)
+  - `python -m tests.test_live_backend` (Live backend servers, status probing, Neglecton graph integration)
+- Legacy root-level test scripts (Tombstoned):
+  - Scripts `test_fixes_verification.py`, `verify_archetype_flux.py`, `test_comprehensive_fixes.py`, etc., were tombstoned and superseded by the consolidated suites under `tests/`. Running them produces a deprecation notice and exits cleanly.
 
 Notes
 - If tests previously relied on 768-length text embeddings for display, they will now receive 64-length states from the canonical projector; this is intended and topologically aligned.
