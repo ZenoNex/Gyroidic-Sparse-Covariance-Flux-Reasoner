@@ -137,30 +137,34 @@ Floating summary files have been organized into the [docs/summaries/](file:///d:
 
 ---
 
-## 🎯 Verification and Test Matrix
+## Verification and Test Matrix
 
 The system includes multiple automated validation suites to ensure mathematical convergence and safety:
 
-
-*   **Archetype Flux & Clock Verification**:
-    Run `verify_archetype_flux.py` to test Pomni, Gangle, Zooble, and Kinger integration:
+*   **Core Systems and Anti-Lobotomy Invariants**:
+    Centralized suite validating MetaPolytope Matrioshka, higher-order sparse tensors, quantum reasoning, coprime gate, Martinova correlation, orchestrator returns, MANDY refusal mode, temporal training, soft saturated gates, and arrow-of-time asymmetry:
     ```powershell
-    .venv\scripts\python.exe verify_archetype_flux.py
+    $env:PYTHONPATH="."; .venv\Scripts\python.exe -u tests\test_core_systems.py
     ```
-*   **Core Systems & Anti-Lobotomy Invariants**:
-    Run `test_fixes_verification.py` to confirm ADMR and Leontief stability:
+*   **Algebraic Invariants and Closure Verification**:
+    Validates rational snapping lattice, holonomic rank entropy modulation, non-ergodic slop detection, DAQUF Option-D boost, Love invariant protection, Lazarus softmax transitions, diegetic unfolding closure, and training manager lifecycle:
     ```powershell
-    .venv\scripts\python.exe test_fixes_verification.py
+    $env:PYTHONPATH="."; .venv\Scripts\python.exe -u tests\test_algebraic_invariants.py
     ```
-*   **Multimodal & Video Dyad Ingestion**:
-    Run `test_image_integration.py` to check the 137D fingerprinting pipeline:
+*   **Bio-Archetypal Governor and Neuromodulatory Synthesis**:
+    Validates bio-governor neuromodulatory bus balance, Pomni/Jax/Gangle/Kinger dynamics, and synthesis engine integration:
     ```powershell
-    .venv\scripts\python.exe test_image_integration.py
+    $env:PYTHONPATH="."; .venv\Scripts\python.exe -u tests\test_bio_governor.py
+    ```
+*   **Live Backend and Graph Integration**:
+    Validates backend server startup, status probes, Neglecton graph integration, and repair loops:
+    ```powershell
+    $env:PYTHONPATH="."; .venv\Scripts\python.exe -u tests\test_live_backend.py
     ```
 
 ---
 
-## 🛡️ Anti-Lobotomy Policy Statement
+## Anti-Lobotomy Policy Statement
 
 This reasoner guarantees that:
 1.  **No hardcoded primes** are used; all frequencies are dynamically generated from polynomial evaluations.
