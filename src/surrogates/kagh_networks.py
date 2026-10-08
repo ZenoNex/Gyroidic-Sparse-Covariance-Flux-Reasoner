@@ -188,6 +188,10 @@ class KANLayer(nn.Module):
         return bases
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        orig_shape = x.shape
+        if x.dim() > 2:
+            x = x.view(-1, orig_shape[-1])
+
         # Linear structural residual
         base_output = F.linear(x, self.base_weight)
         
@@ -267,7 +271,10 @@ class KANLayer(nn.Module):
         # Linear combination: y = sum(w_i * b_i(x))
         spline_output = torch.einsum('bic,oic->bo', basis, q_weight)
         
-        return base_output + spline_output
+        out = base_output + spline_output
+        if len(orig_shape) > 2:
+            return out.view(*orig_shape[:-1], -1)
+        return out
 
 class ConvexKANLayer(KANLayer):
     """
