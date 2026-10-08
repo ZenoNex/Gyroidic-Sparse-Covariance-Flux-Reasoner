@@ -132,24 +132,25 @@ class PolynomialFunctionalEmbedder(nn.Module):
                 
         device = ref_tensor.device if ref_tensor is not None else torch.device("cpu")
         dtype = ref_tensor.dtype if ref_tensor is not None else torch.float32
+        prefix_shape = ref_tensor.shape[:-1] if ref_tensor is not None else (batch_size,)
 
         if self.use_text:
             if text_emb is not None:
                 modality_features.append(self.text_proj(text_emb))
             else:
-                modality_features.append(torch.zeros(batch_size, self.text_proj.out_features, device=device, dtype=dtype))
+                modality_features.append(torch.zeros(*prefix_shape, self.text_proj.out_features, device=device, dtype=dtype))
         
         if self.use_graph:
             if graph_emb is not None:
                 modality_features.append(self.graph_proj(graph_emb))
             else:
-                modality_features.append(torch.zeros(batch_size, self.graph_proj.out_features, device=device, dtype=dtype))
+                modality_features.append(torch.zeros(*prefix_shape, self.graph_proj.out_features, device=device, dtype=dtype))
         
         if self.use_num:
             if num_features is not None:
                 modality_features.append(self.num_proj(num_features))
             else:
-                modality_features.append(torch.zeros(batch_size, self.num_proj.out_features, device=device, dtype=dtype))
+                modality_features.append(torch.zeros(*prefix_shape, self.num_proj.out_features, device=device, dtype=dtype))
         
         # Fuse modalities
         if len(modality_features) == 0:
