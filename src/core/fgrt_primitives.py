@@ -216,7 +216,7 @@ class PrimeResonanceLadder(nn.Module):
         # TailSlayer XOR-mapping logic: Topological Interleaving to prevent 
         # the "Associativity Problem" across GPU memory banks.
         indices = torch.arange(num_resonators, dtype=torch.long)
-        xor_indices = indices ^ (indices >> 1) # Gray Code mapping scrambles cache lines
+        xor_indices = (indices ^ (indices >> 1)) % num_resonators # Gray Code mapping scrambles cache lines
         frequencies = base_frequencies[xor_indices]
         
         self.register_buffer('frequencies', frequencies)
