@@ -204,6 +204,10 @@ class UniversalOrchestrator(nn.Module):
         self.quantum_betti = QuantumBettiApproximator()
         self.audience_projector = AudienceProjection(input_dim=dim, audience_dim=dim)
         
+        # 6a. Recurrent Core / Feature Scar Cell
+        from src.core.fgrt_rnn_cells import FeatureScarLCFTCell
+        self.rnn_core = FeatureScarLCFTCell(input_dim=dim, hidden_dim=dim)
+        
         # 6b. General User Alias Tracking (User/AI Friction Anchor)
         self.alias_tracker = GeneralUserAliasTracker(dim)
         
@@ -223,7 +227,7 @@ class UniversalOrchestrator(nn.Module):
         # 7.7 JEPA Polynomial Functional Embedder (Predictive Abstract Representations)
         from src.models.polynomial_embeddings import PolynomialFunctionalEmbedder
         # Embeds state -> structurally predictive state space
-        self.jepa_embedder = PolynomialFunctionalEmbedder(input_dim=dim, hidden_dim=dim, output_dim=dim)
+        self.jepa_embedder = PolynomialFunctionalEmbedder(text_dim=dim, graph_dim=dim, num_dim=dim, hidden_dim=dim)
         # 8. P2P & External Integrations
         self.freenet_router = None
         self.freenet_ws = None
@@ -465,11 +469,42 @@ class UniversalOrchestrator(nn.Module):
                     current_state = current_state + mischief_intensity * agent_smith_jitter
                     # Apply erosion filter (Surface weathering)
                     current_state = self.erosion_filter(current_state, pressure_grad, intensity=0.05)
+            
+            # --- FGRT Recurrent Core (LCFT Feature Scar Cell) ---
+            # Process state through the Recurrent Topological Engine
+            if not hasattr(self, '_cerumen_pot_buffer') or self._cerumen_pot_buffer.shape != current_state.shape:
+                self._cerumen_pot_buffer = torch.zeros_like(current_state)
+            
+            # Evaluate recurrent dynamics and track topological scars
+            current_state, updated_scar = self.rnn_core(
+                current_state, (current_state, self._cerumen_pot_buffer)
+            )
+            
+            # -- Chern-Simons Topological Validation (Economic Abort) --
+            from src.core.non_dual_coin import CerumenPotWallet, transact, EconomicAbortException
+            temp_wallet = CerumenPotWallet(dim=self.dim, device=current_state.device)
+            
+            # Form the outer product of the new feature scar into the temporary wallet state
+            scar_mean = updated_scar.reshape(-1, current_state.shape[-1]).mean(dim=0)
+            if scar_mean.shape[0] != self.dim:
+                if scar_mean.shape[0] < self.dim:
+                    scar_mean = F.pad(scar_mean, (0, self.dim - scar_mean.shape[0]))
+                else:
+                    scar_mean = scar_mean[:self.dim]
+            temp_wallet.state.data = self.sys1_wallet.state.data + torch.outer(scar_mean, scar_mean)
+            
+            try:
+                # Use the existing transact() helper to fuse the temporary knot into the living wallet safely
+                _ = transact(self.sys1_wallet, temp_wallet, self.chern_simons_validator)
+            except EconomicAbortException:
+                # Topological fracture detected! Punish current state with tension
+                tension = harvest_honest_jitter(current_state.shape, device=current_state.device) * 0.15
+                current_state = current_state - tension
 
             # OKLab Moment Transport (Visual Perceptual Grounding)
             # Drift current_state along the perceptual prior manifold to anchor heuristics to reality
             if self.moment_transport is not None:
-                current_state = self.moment_transport.langevin_prior_drift(current_state, steps=1)
+                current_state = self.moment_transport.langevin_prior_drift(current_state, steps=1, coh=pas_h)
 
             # JEPA Predictive Abstract Representation (Topology -> Structural Future)
             if hasattr(self, 'jepa_embedder'):
