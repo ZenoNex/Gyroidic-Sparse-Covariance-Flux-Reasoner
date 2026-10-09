@@ -250,6 +250,23 @@ class PointerlessOctree:
             return v0;
         }
 
+        // ----------------------------------------------------
+        // Morton Encoding (Z-Order Curve) GPU Kernel
+        // Flattens 3D spatial coordinates into a 1D scalar
+        // to enable zero-copy linear memory streaming.
+        // ----------------------------------------------------
+        inline uint expand_bits(uint v) {
+            v = (v | (v << 16)) & 0x030000FF;
+            v = (v | (v <<  8)) & 0x0300F00F;
+            v = (v | (v <<  4)) & 0x030C30C3;
+            v = (v | (v <<  2)) & 0x09249249;
+            return v;
+        }
+
+        inline uint morton_interleave(uint x, uint y, uint z) {
+            return expand_bits(x) | (expand_bits(y) << 1) | (expand_bits(z) << 2);
+        }
+
         __kernel void wasserstein_collapse_svm(
             __global float4* morton_residues,
             __global float* out_lattice,
