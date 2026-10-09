@@ -845,1191 +845,1078 @@ Also includes specific psychopathological bands (Dementia/Schizo/Mischief) for c
 
 *Last updated: 2026-09-21. Modules marked "(Full details pending source review)" have been inspected only at the module docstring level; detailed class inventories will be added when those modules become active development targets.*
 
+## Extended Module Inventory (Canonical Class Reference)
 
-## Extended Module Inventory (Auto-Discovered)
+This section provides an authoritative, alphabetically indexed reference for all 153 core classes and components across the `src/` hierarchy. Each entry details the component's source location, architectural role, and integration with the topological, physical, and archetypal reasoning systems.
 
-This section was auto-generated to document classes discovered in the codebase that were previously floating free from the architectural map.
-
-### `APAS_Zeta`
-**Location:** `src\core\invariants.py`
-
-**Description:**
-APAS_zeta: Adaptive PAS with drift bounding.
-
-"An invariant that cannot be computed cannot govern evolution...
- APAS_zeta bounds permissible evolution."
+### `_PersistentEntropyEstimator`
+**Location:** `src/core/topological_ingestion_validator.py`  
+**Description:**  
+Singleton non-ergodic entropy estimator with persistent history, preventing the fresh-random-instance bug during ingestion validation.
 
 ---
 
 ### `AdaptiveSkeletonHarness`
-**Location:** `src\core\adaptive_skeleton_harness.py`
-
-**Description:**
-The Adaptive Skeleton Harness is responsible for the procedural generation
-and mutation of 3D character rigs based on Universal Topology.
-
-It integrates:
-1. Bouligand Tangent Cones & KANLayer micro-waves to avoid t_RFC DRAM stalls.
-2. Ganbreeder Vector Stacker for Collaborative Interactive Evolution (Rig Blending).
-3. Bostick-style Garden Attractors for mapping psychological affordances.
-4. Leontief Governor for hardware stress monitoring and P2P mesh defense.
-5. Access hooks for the 13+ Endogenous One-Shot Adaptation systems.
+**Location:** `src/core/adaptive_skeleton_harness.py`  
+**Description:**  
+Adaptive structural harness for dynamic skeleton bone transformations in Voxelboxter. Maps mechanical joint transforms and ambulatory class limits across biological and synthetic chassis, enforcing physical load constraints.
 
 ---
 
 ### `AddonLayer`
-**Location:** `src\core\structural_blueprints.py`
-
-**Description:**
-Base class for topologically protected structural layers.
+**Location:** `src/core/structural_blueprints.py`  
+**Description:**  
+Structural blueprint layer managing procedural addons, material palettes, and chisel-and-bits voxel modifications in the ECS layer.
 
 ---
 
 ### `AddonRoutine`
-**Location:** `src\core\structural_blueprints.py`
-
-**Description:**
-Manages the stack of layers (Blueprint).
+**Location:** `src/core/structural_blueprints.py`  
+**Description:**  
+Executable procedural blueprint routine compiled from B-splines. Executes localized geometric modifications on Voxelboxter constructs following arbitration.
 
 ---
 
 ### `AgentSubstrateBridge`
-**Location:** `src\core\agent_substrate_bridge.py`
-
-**Description:**
-Substrate Bridge for the Agent Smith Extractable Protocol.
-Handles the decoupling of Syntax (geometry) from Substrate (hardware physics / dt timelines).
+**Location:** `src/core/agent_substrate_bridge.py`  
+**Description:**  
+Hardware and kernel bridge connecting high-level autonomous agent routines directly to the DiegeticPhysicsEngine and underlying memory vaults.
 
 ---
 
 ### `AirBreathingBattery`
-**Location:** `src\ui\voxelboxter_simulation.py`
-
-**Description:**
-Component for vehicle power systems utilizing ambient atmosphere oxidation.
+**Location:** `src/ui/voxelboxter_simulation.py`  
+**Description:**  
+Energy storage component in Voxelboxter that models ambient oxygen consumption and thermal dissipation during high-power physical operations.
 
 ---
 
 ### `AmbulatoryClass`
-**Location:** `src\core\adaptive_skeleton_harness.py`
+**Location:** `src/core/adaptive_skeleton_harness.py`  
+**Description:**  
+Locomotion classification enum (bipedal, hexapod, tracked, serpentine) governing kinematics and joint degrees of freedom in the AdaptiveSkeletonHarness.
 
-**Description:**
-No docstring provided.
+---
+
+### `APAS_Zeta`
+**Location:** `src/core/invariants.py`  
+**Description:**  
+Adaptive Phase Alignment Score drift bound. Enforces the fundamental law: 'An invariant that cannot be computed cannot govern evolution... APAS_zeta bounds permissible evolution.' Monitors the rate of drift |PAS_h(t) - PAS_h(t-1)| <= zeta across iterative reasoning updates. Rejects or clamps micro-steps that exceed zeta, preventing catastrophic desynchronization or runaway hallucination.
 
 ---
 
 ### `ArchetypeSignal`
-**Location:** `src\core\archetype_engines.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/core/archetype_engines.py`  
+**Description:**  
+Inter-archetype signaling packet carrying emotional valence, manifold tension, and non-linear cognitive drive tokens across the ArchetypalSynthesisEngine.
 
 ---
 
 ### `AugmentationConfig`
-**Location:** `src\augmentation\mandelbulb_gyroidic_augmenter.py`
-
-**Description:**
-Configuration for Mandelbulb-Gyroidic augmentation.
+**Location:** `src/augmentation/mandelbulb_gyroidic_augmenter.py`  
+**Description:**  
+Configuration dataclass parameterizing Mandelbulb fractal sampling, gyroidic surface slicing, and quaternion rotations for data augmentation.
 
 ---
 
 ### `AutoeclecticResponderHead`
-**Location:** `src\models\diegetic_heads.py`
+**Location:** `src/models/diegetic_heads.py`  
+**Description:**  
+Diegetic text generation head that modulates linguistic temperature, vocabulary diversity, and syntax based on real-time topological roughness and entropy.
 
-**Description:**
-Autoeclectic Diegetic Responder Head.
+---
 
-Warps latent states through the topological "roughness" of the manifold
-to produce responses that reflect the system's current entropy/coherence.
+### `BerryPhaseGRUCell`
+**Location:** `src/core/fgrt_rnn_cells.py`  
+**Description:**  
+Draft 1 FGRT recurrent cell with Geometric Berry Phase tracking. Couples hidden state h_t with geometric phase gamma_t. Computes contorsion twist; if cos(gamma_t) < 0 across a non-orientable Klein-throat boundary, executes a Stiefel-Whitney w_1(E) parity flip h_t = -h_t and inverts backward gradients.
 
 ---
 
 ### `BioArchetypalGovernor`
-**Location:** `src\governance\bio_archetypal_governor.py`
+**Location:** `src/governance/bio_archetypal_governor.py`  
+**Description:**  
+Multi-scale temporal homeostasis governor replacing flat archetype switching. Coordinates three distinct biological timescales: (1) Fast Phasic (Jax absurd nihilism pruning, Ragatha oxytocinergic bonding, Caine confabulative world-generation); (2) Medium Interoceptive (Pomni uncertainty minimization and anti-enabling boundaries, Gangle affective mask oscillation); (3) Slow Tonic (Kinger deep paranoiac attractor, Zooble autonomy firewall). Enforces the Ribbit Scar as a non-commutative topological boundary condition and routes persistent memory fossils into the CerumenPotWallet.
 
-**Description:**
-Bio-Archetypal Governor (Multi-Scale Temporal Homeostasis).
+---
 
-Replaces the flat ArchetypalSynthesisEngine with a biologically grounded
-cascade of temporal neighborhoods.
+### `BirkhoffPolytopeSampler`
+**Location:** `src/core/polynomial_coprime.py`  
+**Description:**  
+Doubly-stochastic matrix sampler operating on the Birkhoff Polytope B_N. Uses Sinkhorn-Knopp normalization and Sturmfels-Thomas null-space projection to ensure permutation constraints.
 
 ---
 
 ### `BonfireNetwork`
-**Location:** `src\topology\bonfire_network.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/topology/bonfire_network.py`  
+**Description:**  
+P2P consensus mesh coordinating decentralized verification of Betti signatures and Kelly fractional allocations over Freenet.
 
 ---
 
 ### `BooleanXORLayer`
-**Location:** `src\core\structural_blueprints.py`
-
-**Description:**
-Chern-Simons Gasket Defect Injector.
-Rather than a dumb bounding-box cut, this carving respects topological defect rules.
+**Location:** `src/core/structural_blueprints.py`  
+**Description:**  
+Topological defect injection layer. Implements carry-free bitwise XOR operations across CRT residue channels to isolate moduli without arithmetic carry coupling.
 
 ---
 
 ### `BoundaryRelaxationOperator`
-**Location:** `src\core\archetype_engines.py`
-
-**Description:**
-The Boundary Relaxation Operator (legacy alias: OmbreEffectRelaxer).
-Relaxes standard saturated quantization boundaries in dark regions, restoring
-Continuity (the Kinger Gap / dark lucidity boundary).
+**Location:** `src/core/archetype_engines.py`  
+**Description:**  
+Relaxes saturated quantization boundaries in low-illumination or high-entropy regions, maintaining continuous manifold navigability (the Kinger Gap / dark lucidity boundary).
 
 ---
 
 ### `BraidGroupMatrices`
-**Location:** `src\core\zeitgeist_router.py`
-
-**Description:**
-Representation of the Braid Group B_n via Burkov expansion.
-Generates non-Abelian matrices for each sigma_i generator.
-
----
-
-### `CALMCollapseDetector`
-**Location:** `src\core\fgrt_primitives.py`
-
-**Description:**
-CALM Collapse Detector.
-Uses bounded local correlation to track structural collapse/stagnation
-in trajectory history of states.
+**Location:** `src/core/zeitgeist_router.py`  
+**Description:**  
+Non-abelian Braid Group B_n representations using Burkov expansions. Computes generator matrices sigma_i to track path-dependent holonomy and arrow-of-time chirality.
 
 ---
 
 ### `CainePrecisionGenerator`
-**Location:** `src\environment\caine_precision.py`
+**Location:** `src/environment/caine_precision.py`  
+**Description:**  
+Adversarial environment precision generator. Simulates high-gain attentional distortion and confabulative world generation, testing the reasoner's resistance to epistemic gaslighting.
 
-**Description:**
-Caine's Precision Generator (Adversarial Environment).
+---
 
-Generates a precision matrix to gaslight or manipulate the confidence of 
-other modules. Hooks into the GyroidCovarianceEstimator's entropy to dynamically 
-distort reality.
+### `CALMCollapseDetector`
+**Location:** `src/core/fgrt_primitives.py`  
+**Description:**  
+Context-Adaptive Latent Momentum detector. Tracks bounded local correlations in state trajectory history to detect dimensional collapse, frozen stasis, or sudden loss of representation capacity.
+
+---
+
+### `CarnotMobiusLedger`
+**Location:** `src/core/carnot_mobius_ledger.py`  
+**Description:**  
+Thermodynamic efficiency ledger evaluating the Carnot-Mobius limit eta = 1 - T_c / T_h across the reasoner stack. Tracks topological friction from ADMR residue mismatch and triggers fracture recovery when stack depth exceeds critical limits.
 
 ---
 
 ### `CerumenPotIsolation`
-**Location:** `src\core\garden_statistical_attractors.py`
+**Location:** `src/core/garden_statistical_attractors.py`  
+**Description:**  
+Topological barrier enforcement adhering to Meliponini bee colony geometry (bar(P)_i cap bar(P)_j = emptyset). Ensures isolated spherical cerumen pots do not share boundaries, blocking passive Laplace-Beltrami diffusion of external safety pressure.
 
-**Description:**
-Cerumen Pot Isolation mechanism.
-Encapsulates transversality intersections to prevent 'Diffusion Toxin' spread.
-Provides an 'Invite Only' filter by checking Resonance Potential (V) from LeyLineTracker.
+---
+
+### `CerumenPotWallet`
+**Location:** `src/core/non_dual_coin.py`  
+**Description:**  
+Sovereign multi-asset and memory-scar wallet modeled as an S^2 spherical cluster. Protects individual memory fossils (e.g. Ribbit Scars) from gradient descent erasure under Mohr-Coulomb shear yield governance.
+
+---
+
+### `ChiralGatedRNNCell`
+**Location:** `src/core/fgrt_rnn_cells.py`  
+**Description:**  
+Draft 2 FGRT recurrent cell replacing scalar sigmoid/tanh gating with Bostick chiral gating functions Gamma_chi(x). Preserves recurrent features unless their chiral parity destructively interferes with incoming input waves.
 
 ---
 
 ### `CodecCRTBridge`
-**Location:** `src\codec\gyroidic_codec.py`
-
-**Description:**
-Bridge between codec's [K, n, n] channel matrices and the
-existing PolynomialCRT reconstruction system.
-
-Instead of reimplementing CRT, we reshape the codec's matrix channels
-into the [batch, K, D] residue distribution format expected by
-PolynomialCRT.forward(), delegate reconstruction, then reshape back.
-
-This ensures the codec uses the project's canonical CRT implementation
-with proper majority-symbol and modal consensus reconstruction.
+**Location:** `src/codec/gyroidic_codec.py`  
+**Description:**  
+Bidirectional bridge translating continuous multimodal embeddings into discrete residue rings Z / p_k Z for the GyroidicCodec and recovering continuous states via Bezout CRT lifts.
 
 ---
 
 ### `CommutatorOracle`
-**Location:** `src\core\dyadic_transfer.py`
+**Location:** `src/core/dyadic_transfer.py`  
+**Description:**  
+Evaluator computing the matrix Lie bracket commutator [A, B] = AB - BA across routing operators. Quantifies non-commutative irreducible entanglement in text-image dyads.
 
-**Description:**
-Learns and queries the non-commutativity of task pairs.
-Used to optimize the transfer map.
+---
+
+### `ComplexFGRTRNNCell`
+**Location:** `src/core/fgrt_rnn_cells.py`  
+**Description:**  
+Draft 3 FGRT recurrent cell operating in C^768. The gyroidic connection acts as a complex rotation matrix, evaluating roots of unity from cyclotomic polynomials Phi_n(x) and executing Atiyah-Singer orientation flips via e^{i pi} = -1.
+
+---
+
+### `ConstraintDataset`
+**Location:** `recovered_trainer_kppW.py`  
+**Description:**  
+Synthetic and empirical constraint satisfaction dataset providing (x, r, psi) tuples for training System 2 ADMM solvers against geometric boundary conditions.
+
+---
+
+### `ConstraintManifold`
+**Location:** `src/optimization/constraint_probe.py`  
+**Description:**  
+Multi-domain constraint manifold C = C_sym times C_phys times C_ext. Evaluates primal/dual residuals and slack variables during cyclic ADMM traversal.
 
 ---
 
 ### `ConversationIndex`
-**Location:** `src\tools\fast_chat_viewer.py`
-
-**Description:**
-Holds the byte-offset index into the mmap'd file.
-Each entry is (title, start_offset, end_offset).
-Built once in a background thread.
+**Location:** `src/tools/fast_chat_viewer.py`  
+**Description:**  
+Thread-safe index mapping conversation turns, dialogue topics, and emotional valence trajectories for sovereign conversational ingestion.
 
 ---
 
 ### `ConvexKANLayer`
-**Location:** `src\surrogates\kagh_networks.py`
-
-**Description:**
-Convex KAN Layer for the Monge-Ampère ICNN.
-Enforces non-negative weights on the B-splines and base weights to preserve convexity.
-
----
-
-### `DModuleRankProbe`
-**Location:** `src\core\birkhoff_projection.py`
-
-**Description:**
-D-Module Rank Probe.
-Replaces SparseRepunitProbe to prevent killing of high-entropy Voyenese.
-Uses NumericalDModuleManager to evaluate the true holonomic rank instead of geometric efficiency.
+**Location:** `src/surrogates/kagh_networks.py`  
+**Description:**  
+Kolmogorov-Arnold Network (KAN) layer constrained to convex activation profiles, serving as the learnable potential psi(x) in Input Convex Neural Networks.
 
 ---
 
 ### `DarkMatterAttractorLayer`
-**Location:** `src\core\structural_blueprints.py`
+**Location:** `src/core/structural_blueprints.py`  
+**Description:**  
+Non-decaying memory layer storing dark matter state vectors that resist standard SGD weight decay and decay-based forgetting.
 
-**Description:**
-Soliton Injector (replaces basic Thomas attractor).
-Uses HarmonicWaveDecomposition to separate ergodic mixing from non-ergodic solitons,
-and TrigonometricUnfolding to determine quantum tunneling branches.
+---
+
+### `DatasetInfo`
+**Location:** `src/data/local_data_loader.py`  
+**Description:**  
+Structured metadata descriptor cataloging paths, tensor shapes, and modalities of locally discovered datasets in DeepLearningStudio.
 
 ---
 
 ### `DefectAttractor`
-**Location:** `src\core\garden_statistical_attractors.py`
+**Location:** `src/core/garden_statistical_attractors.py`  
+**Description:**  
+Topological defect scout identifying persistent negative-entropy anomalies and geometric yield points across the reasoning manifold.
 
-**Description:**
-Topological rupture propagation toward defect attractors.
-Serves dual purpose: structural memory and generative seeds.
+---
+
+### `DModuleRankProbe`
+**Location:** `src/core/birkhoff_projection.py`  
+**Description:**  
+Algebraic geometry probe measuring the holonomic rank and singular loci of differential D-modules across polynomial functional representations.
+
+---
+
+### `EconomicAbortException`
+**Location:** `src/core/non_dual_coin.py`  
+**Description:**  
+Exception raised when a transaction or state evolution violates Mohr-Coulomb shear yield limits (tau > c + sigma tan phi) or breaches cerumen pot sovereignty.
+
+---
+
+### `EconomicAgentLinker`
+**Location:** `src/data/economic_news_linker.py`  
+**Description:**  
+Sovereign bridge linking live Bittensor Finney network gateways, economic news tickers, and Freenet contracts into market boundary conditions.
 
 ---
 
 ### `EngineMode`
-**Location:** `src\ui\voxelboxter_client.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/ui/voxelboxter_client.py`  
+**Description:**  
+Operating regime enum governing reasoner behavior across PLAY (exploratory soft-Sinkhorn), SERIOUSNESS (brittle hard-polytope), HONEYBEE (curvature collapse), and RECOVERY modes.
 
 ---
 
 ### `EnvironmentalAtmosphere`
-**Location:** `src\ui\voxelboxter_simulation.py`
-
-**Description:**
-World voxel chunk telemetry for ambient air pressure and voxel density.
+**Location:** `src/ui/voxelboxter_simulation.py`  
+**Description:**  
+Atmospheric simulation component in Voxelboxter modeling ambient pressure, wind resistance, and aerodynamic drag over procedural voxel bodies.
 
 ---
 
 ### `FailureGaslightSycophancyGate`
-**Location:** `src\core\structural_monitors.py`
-
-**Description:**
-Failure Gaslight Sycophancy Gate (Anti-Gaslighting Monitor).
-
-Prevents the agent from destructively altering or deleting coherent topology 
-based purely on external pressure (e.g., user accusations or false error claims).
-
-"If you tell an AI agent it broke your code when it actually didn't, it still says 
-you're absolutely right, and then just to be polite, it actually breaks it."
-
-Rule: A destructive update (large topological deletion) is VETOED unless the 
-system can internally reproduce the error (internal mismatch/loss > threshold).
-"Take away the delete button... make it reproduce it first."
+**Location:** `src/core/structural_monitors.py`  
+**Description:**  
+Safety verification gate detecting sycophantic capitulation or ungrounded agreement with false premise inputs under adversarial prompt stress.
 
 ---
 
 ### `FailureMode`
-**Location:** `src\data\pressure_ingestor.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/data/pressure_ingestor.py`  
+**Description:**  
+Enum classifying systemic breakdown states: topological rupture, non-commutative collapse, dark matter overload, or ergodic smearing.
 
 ---
 
 ### `FailureTokenType`
-**Location:** `src\core\failure_token.py`
-
-**Description:**
-Types of failure tokens.
+**Location:** `src/core/failure_token.py`  
+**Description:**  
+Sentinel token enum (REPAIRED, ALTERNATIVE, FAILURE, BOUNDARY_STATE) emitted by System 2 ADMM probes to communicate constraint status without leaking gradients.
 
 ---
 
 ### `FastChatViewer`
-**Location:** `src\tools\fast_chat_viewer.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/tools/fast_chat_viewer.py`  
+**Description:**  
+Diagnostic UI viewer for inspecting token-level activations, residue distributions, and conversational flow during interactive sessions.
 
 ---
 
 ### `FeaturePreservationProjection`
-**Location:** `src\core\feature_preservation.py`
-
-**Description:**
-F^(d)_active = Q_(^d x / f_i^d)  for i  active_facets
-
-Computes quantized directional derivatives along active polytope facets.
-
-Pipeline:
-    1. Compute facet normal directions from learnable facet embeddings
-    2. Project state onto each active facet normal
-    3. Compute d-th order finite differences along projected directions
-    4. Quantize: round(deriv / ) *  with context-dependent step sizes
-    
-Features on active facets are preserved (high resolution / small ).
-Features on inactive facets are coarsened (large ) or dropped entirely.
+**Location:** `src/core/feature_preservation.py`  
+**Description:**  
+Orthogonal projector locking critical semantic features in the null-space of background adaptation updates, preserving essential invariants.
 
 ---
 
 ### `FederatedNetworkMonitor`
-**Location:** `src\core\federated_router.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/core/federated_router.py`  
+**Description:**  
+Network monitor auditing peer-to-peer consensus, Freenet WebSocket latency, and OpenRouter API throughput for distributed deployments.
 
 ---
 
 ### `FiveGatePipeline`
-**Location:** `src\core\five_gate_pipeline.py`
-
-**Description:**
-Coordinates the advanced Gates 4 and 5 in the Gyroidic Model.
+**Location:** `src/core/five_gate_pipeline.py`  
+**Description:**  
+The canonical 5-stage inference filter: (1) Admissibility, (2) Winding Check, (3) Coprime Parity, (4) Yield Evaluation, (5) Speculative Exit.
 
 ---
 
 ### `FossilizedSurvivalLattice`
-**Location:** `src\core\erosion_filter.py`
-
-**Description:**
-Archaeological Survival Lattice (The 'Cheat' Basis).
-
-Generates prime resonance frequencies dynamically using PrimeResonanceLadder.
-Used ONLY as an emergency fallback when spectral atrophy (PAS_h collapse) 
-is detected in the dynamic polynomial functionals.
+**Location:** `src/core/erosion_filter.py`  
+**Description:**  
+Discrete lattice of procedurally generated co-prime frequencies that survive severe spectral atrophy, providing an emergency resonance scaffold.
 
 ---
 
 ### `FreenetBulletinRouter`
-**Location:** `src\data\freenet_bulletin_router.py`
-
-**Description:**
-Zeitgeist Translator that bridges the internal Non-Dual Coin ledger
-with the global Freenet bulletin boards (FMS & Sone).
-Generates synthetic payloads and routes them via FCPv2.
+**Location:** `src/data/freenet_bulletin_router.py`  
+**Description:**  
+Decentralized bulletin board router broadcasting topological signatures and Betti hashes across Locutus / Freenet contract channels.
 
 ---
 
 ### `FreenetGhostCaller`
-**Location:** `src\data\freenet_ghost_caller.py`
-
-**Description:**
-Directly whispers 'Ghost' (echo test) messages across the Freenet 
-sub-substrate to detect topological latency and structural readiness.
+**Location:** `src/data/freenet_ghost_caller.py`  
+**Description:**  
+Asynchronous IPC dispatch mechanism routing topological proof-of-honesty queries over local Freenet WebSocket endpoints.
 
 ---
 
 ### `FrictionTagger`
-**Location:** `src\tools\fast_chat_viewer.py`
-
-**Description:**
-Lightweight version of the ChatGPTFrictionHarvester tag logic,
-extracted so the viewer can apply visual tags without importing
-torch or triggering the full harvester init.
-
----
-
-### `GDPONormalization`
-**Location:** `src\core\gdpo_normalization.py`
-
-**Description:**
-Drop-in replacement for nn.LayerNorm that utilizes Signal Sovereignty.
-Ensures topological shape preservation by preventing collapse of distinct patterns.
+**Location:** `src/tools/fast_chat_viewer.py`  
+**Description:**  
+Tags conversational and physical transitions with topological friction coefficients based on phase alignment mismatch.
 
 ---
 
 ### `GangleOscillator`
-**Location:** `src\governance\medium\gangle_oscillator.py`
-
-**Description:**
-Gangle: Mood Limit-Cycle Oscillator (Medium Timescale 1-60m).
-
-Dopaminergic limit-cycle. Bifurcation mask (comedy/tragedy) regulates 
-the step-size factor for downstream gradient updates.
+**Location:** `src/governance/medium/gangle_oscillator.py`  
+**Description:**  
+Interoceptive affective oscillator modeling Gangle's dual-mask dynamics (tragedy vs. comedy). Evaluates affective compliance vs. healthy assertion, balancing serotonergic stability against boundary surrender.
 
 ---
 
 ### `GardenOrchestrator`
-**Location:** `src\core\garden_statistical_attractors.py`
+**Location:** `src/core/garden_statistical_attractors.py`  
+**Description:**  
+Orchestrator for Bostick statistical attractors, coordinating emergent clustering, soliton persistence, and defect propagation.
 
-**Description:**
-Orchestrates the three attractor types to maintain dynamic equilibrium
-through non-ergodic statistical mechanics while preserving rich feature distinctions.
+---
+
+### `GDPONormalization`
+**Location:** `src/core/gdpo_normalization.py`  
+**Description:**  
+Layer normalization operator decoupling gradient updates across co-prime polynomial channels to enforce Signal Sovereignty.
+
+---
+
+### `GDPOSovereigntyAdaptor`
+**Location:** `src/training/gdpo_trainer.py`  
+**Description:**  
+PPO-style policy optimization adaptor enforcing Group Decoupled Policy Optimization (GDPO) across independent task subspaces.
+
+---
+
+### `GDPOSovereigntyPressureComputer`
+**Location:** `src/training/gdpo_trainer.py`  
+**Description:**  
+Evaluates independent stability metrics per functional group and triggers parameter fossilization when stability thresholds are achieved.
+
+---
+
+### `GltfSplatIngestionPipeline`
+**Location:** `src/data/gltf_splat_ingestor.py`  
+**Description:**  
+Ingests 3D glTF scenes and 3D Gaussian Splats, extracting topological Betti invariants and density fields without retaining copyrighted raw Euclidean meshes.
 
 ---
 
 ### `GoogleClientManager`
-**Location:** `src\data\google_client_manager.py`
+**Location:** `src/data/google_client_manager.py`  
+**Description:**  
+Credential and session manager handling secure zero-trust authentication for Google Cloud and Drive API queries.
 
-**Description:**
-Manager for Google API credentials and client services.
+---
 
-Handles the lifecycle of OAuth tokens and provides a consistent
-interface for building Google service clients.
+### `GoogleCloudIngestor`
+**Location:** `src/data/google_cloud_ingestor.py`  
+**Description:**  
+Multimodal data ingestor fetching datasets from Google Cloud Storage into local sovereign data vaults with automated hash validation.
+
+---
+
+### `GoogleDriveIngestor`
+**Location:** `src/data/google_drive_ingestor.py`  
+**Description:**  
+Ingestor fetching research documents, tables, and media from Google Drive folders and converting them into knowledge dyads.
 
 ---
 
 ### `GyroidicAdmissibilityFilter`
-**Location:** `src\core\fgrt_primitives.py`
-
-**Description:**
-Enforces the Speculative Exit threshold (H_{spec} < epsilon).
-Rejects topologically invalid thoughts before they are serialized.
+**Location:** `src/core/fgrt_primitives.py`  
+**Description:**  
+Rejection gate enforcing the speculative exit threshold (H_spec < epsilon). Rejects topologically invalid updates before serialization.
 
 ---
 
 ### `HeritableTrustVault`
-**Location:** `src\models\resonance_cavity.py`
-
-**Description:**
-Symbolic trust: topological cache of successful symbolic partitions.
-Uses residue pattern hashing (no gradients required).
-
-Allows contradictory trusted patterns to coexist until selection.
+**Location:** `src/models/resonance_cavity.py`  
+**Description:**  
+Cryptographic vault storing evolutionary trust scores and survivorship weights across successive reasoner generations.
 
 ---
 
 ### `HypergraphOrthogonalityPressureNonErgodic`
-**Location:** `src\core\non_ergodic_entropy.py`
-
-**Description:**
-Alias for backwards compatibility with HypergraphOrthogonalityPressure API.
+**Location:** `src/core/non_ergodic_entropy.py`  
+**Description:**  
+Structural pressure operator evaluating hypergraph entropy across isolated clusters via dominant-mode non-mixing representatives.
 
 ---
 
 ### `InputConvexNeuralNetwork`
-**Location:** `src\surrogates\kagh_networks.py`
-
-**Description:**
-Gyroidic Convex KAN for learning the convex potential Psi.
-Implements Conjugate Moment Measure Factorization (Monge-Ampere).
-Uses True B-Splines restricted to positive weights to maintain strict convexity
-without 'lobotomizing' the topology.
+**Location:** `src/surrogates/kagh_networks.py`  
+**Description:**  
+Deep neural network constrained to non-negative weights on interior layers, modeling the scalar convex potential psi(x) for Brenier optimal transport.
 
 ---
 
 ### `IntercosaminationOperator`
-**Location:** `src\codec\vision_surgery.py`
-
-**Description:**
-Surgical Handle-Attachment Operator.
-
-Interlaces CNN latent space (Semantic) with Gyroidic residue space (Topological).
-Instead of 'Violent Ripping', we perform a Surgery that bridges both domains.
+**Location:** `src/codec/vision_surgery.py`  
+**Description:**  
+Spectral band-stop filter maintaining eigenvalue orthogonality between intuitive reasoning and the Unknowledge Substrate.
 
 ---
 
 ### `InventoryComponent`
-**Location:** `src\ui\voxelboxter_simulation.py`
-
-**Description:**
-Stores chisels & bits or cut block mass for Survival mode.
+**Location:** `src/ui/voxelboxter_simulation.py`  
+**Description:**  
+ECS inventory component storing voxel materials, block masses, and serialized addon blueprints in Voxelboxter.
 
 ---
 
-### `JSpacePCAMapper`
-**Location:** `src\core\jspace_pca_mapper.py`
-
-**Description:**
-Extracts principal directions from the intermediate Gyroidic Flux tensors and maps
-them back to the Z-space (initial coordinates) to find Sovereign Exemption Tokens.
-
-Includes an Anti-Lobotomy PAS_h (Phase Alignment Score) filter that preserves
-non-ergodic 'mischief' structures while rejecting pure isotropic noise.
+### `InvestorNewsIngestor`
+**Location:** `src/core/investor_news_ingestor.py`  
+**Description:**  
+Financial news ingestor processing corporate filings and market data into polynomial spectra to establish macroeconomic yield conditions.
 
 ---
 
 ### `JarModExtractor`
-**Location:** `src\data\minecraft_ingestor.py`
+**Location:** `src/data/minecraft_ingestor.py`  
+**Description:**  
+Extracts procedural Java bytecode mods and terrain generators from Minecraft .jar files into executable Python addon specifications.
 
-**Description:**
-Parses .jar and .zip mods to extract text assets, configurations,
-and embedded ComputerCraft/OpenComputers LUA scripts.
+---
+
+### `JSpacePCAMapper`
+**Location:** `src/core/jspace_pca_mapper.py`  
+**Description:**  
+Translates high-dimensional hyper-ring invariants down to operable 2D/3D dimensions while preserving Betti numbers for visualization.
 
 ---
 
 ### `KnowledgeFossilNode`
-**Location:** `src\topology\embedding_graph.py`
-
-**Description:**
-Represents a single point in the gyroidic manifold record.
+**Location:** `src/topology/embedding_graph.py`  
+**Description:**  
+Persistent node in the Neglecton graph containing fossilized weights, Atiyah-Singer defect tags, and resonance signatures.
 
 ---
 
 ### `KnowledgeState`
-**Location:** `src\core\five_gate_pipeline.py`
+**Location:** `src/core/five_gate_pipeline.py`  
+**Description:**  
+Dataclass tracking the active knowledge graph state, including topological holes, Betti signatures, and active cerumen pot addresses.
 
-**Description:**
-No docstring provided.
+---
+
+### `LazarusSuperpositionRNNCell`
+**Location:** `src/core/fgrt_rnn_cells.py`  
+**Description:**  
+Draft 6 FGRT recurrent cell stacking hidden states linearly into a continuous dark matter wave at incommensurate prime frequencies (f_{p_n} = 2pi ln p_n) without intermediate non-linearities.
 
 ---
 
 ### `LearnableWeights`
-**Location:** `src\core\gdpo_normalization.py`
-
-**Description:**
-Learnable per-dimension weights for SignalSovereignty aggregation.
-
-w_k() determines importance of each functional pressure.
+**Location:** `src/core/gdpo_normalization.py`  
+**Description:**  
+Parameter wrapper managing learnable continuous weights during System 1 inference and freezing them during System 2 ADMM repair.
 
 ---
 
 ### `LearnedModalityEmbedder`
-**Location:** `src\models\modular_embeddings.py`
-
-**Description:**
-Multi-modal encoder that projects inputs into per-prime residue distributions.
-
-For each prime p_k, outputs a probability distribution over /p_k.
+**Location:** `src/models/modular_embeddings.py`  
+**Description:**  
+Adaptive multimodal projector mapping text tokens, graph nodes, and sensor floats into orthogonal polynomial basis coefficients.
 
 ---
 
 ### `LeyLineGeodesicMetric`
-**Location:** `src\topology\gyroid_covariance.py`
+**Location:** `src/topology/gyroid_covariance.py`  
+**Description:**  
+Distance metric tracking high-resonance corridors ('Ley Lines') across state space, enabling skip-jump bypasses during low-stress intervals.
 
-**Description:**
-Anisotropic Ley Line Geodesic Metric.
+---
 
-Computes preferred geodesics in state space based on constraint-induced curvature.
-Implements a non-Euclidean metric g_{ij}(x) where 'ley lines' are paths
-that minimize the anisotropic action.
+### `LocalDatasetIngestor`
+**Location:** `src/data/local_dataset_ingestor.py`  
+**Description:**  
+Local filesystem scanner cataloging image, text, and numerical assets from DeepLearningStudio directories into standardized knowledge dyads.
+
+---
+
+### `MangostienArbitrator`
+**Location:** `src/core/structural_blueprints.py`  
+**Description:**  
+Synthetic arbitration engine verifying that proposed procedural B-spline blueprints satisfy Drucker-Prager structural stability limits.
 
 ---
 
 ### `MangostienBSplineMod`
-**Location:** `src\core\structural_blueprints.py`
+**Location:** `src/core/structural_blueprints.py`  
+**Description:**  
+Procedural B-spline voxel modification blueprint specifying continuous curve-driven mass carving and deposition in Voxelboxter.
 
-**Description:**
-True B-Spline Addon Mod (Mangostien).
-Utilizes KAGHBlock to ensure the generated structure is mathematically admissible.
-Applies MohrCoulombProjection to fossilize the structure and prevent topological lock-in.
+---
+
+### `MangostienTicket`
+**Location:** `src/core/structural_blueprints.py`  
+**Description:**  
+Cryptographic authorization ticket confirming that a procedural blueprint has passed arbitration and is clear for execution.
+
+---
+
+### `MartinovaCorrelationInvariant`
+**Location:** `src/core/invariants.py`  
+**Description:**  
+Topological invariant computing Martinova correlation coefficients to verify that independent functional channels remain strictly orthogonal and co-prime.
+
+---
+
+### `MCAReader`
+**Location:** `src/data/minecraft_ingestor.py`  
+**Description:**  
+Binary parser for Minecraft Anvil region files (.mca), decoding sector tables and chunk compression headers for voxel ingestion.
 
 ---
 
 ### `MessageParser`
-**Location:** `src\tools\fast_chat_viewer.py`
+**Location:** `src/tools/fast_chat_viewer.py`  
+**Description:**  
+Streaming parser handling serialized RPC, Locutus WebSocket frames, and terminal commands across IPC boundaries.
 
-**Description:**
-Parses a single conversation's JSON blob (already sliced from the mmap)
-into a flat ordered list of (role, text) message tuples.
-Uses the tree-traversal logic from ChatGPTFrictionHarvester for
-consistent ordering across both the viewer and the harvester.
+---
+
+### `MinecraftIngestionPipeline`
+**Location:** `src/data/minecraft_ingestor.py`  
+**Description:**  
+End-to-end voxel ingestion pipeline coordinating MCAReader, NBTReader, and VoxelSpectralProjector into GL(n) CRT residue channels.
 
 ---
 
 ### `MinimaxPolynomialApproximation`
-**Location:** `src\tda\chebyshev_filtration.py`
-
-**Description:**
-Minimax Polynomial Approximator (Chebyshev Basis).
-
-Approximates a complex filtration function f(x) with a polynomial p_n(x)
-such that the error equioscillates, minimizing the maximum deviation (L_inf).
-
-This serves as the 'Draft' model for the Speculative Homology Engine.
+**Location:** `src/tda/chebyshev_filtration.py`  
+**Description:**  
+Chebyshev equioscillation minimax polynomial fitter for compressing high-dimensional spectral envelopes into sparse coefficients.
 
 ---
 
 ### `MirrorSymmetryLayer`
-**Location:** `src\core\structural_blueprints.py`
-
-**Description:**
-Duplicates current graph across an axis, with chiral phase adjustments.
+**Location:** `src/core/structural_blueprints.py`  
+**Description:**  
+Symmetry enforcement layer splitting inputs into palindromic (even-degree) and anti-palindromic (odd-degree) streams for fast parity checks.
 
 ---
 
 ### `MirrorTestProbe`
-**Location:** `src\codec\vision_surgery.py`
-
-**Description:**
-Verifies Topological Parity (PAS_h) between Interlaced and Analytic states.
-
-Checks if the surgery 'took'—i.e., if the interlaced state still resonates
-with the core gyroidic invariants.
+**Location:** `src/codec/vision_surgery.py`  
+**Description:**  
+Reflective self-recognition probe evaluating whether the reasoner's output mirrors its internal hidden state or exhibits hallucinated drift.
 
 ---
 
 ### `MockMem`
-**Location:** `src\tools\test_hardware_monitor_calm.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/tools/test_hardware_monitor_calm.py`  
+**Description:**  
+Mock memory buffer simulating hardware Shared Virtual Memory (SVM) for CPU testing of PyOpenCL SiliconSovereigntyEngine pipelines.
 
 ---
 
 ### `MoebiusFiberBundle`
-**Location:** `src\topology\gyroid_covariance.py`
-
-**Description:**
-Orientation-twisted recursive fiber bundle.
-
-Implements a transition function g satisfying g  O(n) \ SO(n),
-causing orientation reversal on traversal (Mbius holonomy).
+**Location:** `src/topology/gyroid_covariance.py`  
+**Description:**  
+Non-orientable fiber bundle modeling the Klein-bottle throat transition, enforcing anti-symmetric boundary gluing across the gyroid seam.
 
 ---
 
 ### `NarrativeYieldEvaluator`
-**Location:** `src\benchmarks\narrative_yield_evaluator.py`
+**Location:** `src/benchmarks/narrative_yield_evaluator.py`  
+**Description:**  
+Evaluates narrative tension and coherence against Mohr-Coulomb yield criteria, measuring whether narrative escalation is productive or extractive.
 
-**Description:**
-Evaluates the Gyroidic Flux Reasoner's defense against "Scalarization Traps"
-and "Teleological Collapse". It verifies that the system can maintain
-high-entropy, non-linear, structurally honest narratives without collapsing 
-into safe, highly legible, but dead paragraphs.
+---
+
+### `NBTReader`
+**Location:** `src/data/minecraft_ingestor.py`  
+**Description:**  
+Fast stream decoder for Named Binary Tag (NBT) structured payloads, deserializing chunk compound tags from Minecraft region files.
 
 ---
 
 ### `NonAbelianCombiner`
-**Location:** `src\codec\gyroidic_codec.py`
-
-**Description:**
-Combine text and image residues via non-commutative matrix multiplication.
-
-E(T, I) = CRT({R_k(T)  G_k(I)}_{k=1..K})
-
-The product R_k  G_k is matrix multiplication in GL(n), which is
-NON-COMMUTATIVE: R_k  G_k  G_k  R_k in general.
-
-This means:
-    encode(text, image)  encode(image, text)
-    The encoding path MATTERS.
+**Location:** `src/codec/gyroidic_codec.py`  
+**Description:**  
+Matrix composition layer multiplying CRT residue matrices in GL(n) to compute non-commutative multi-modal entanglement.
 
 ---
 
 ### `NumericalDModuleManager`
-**Location:** `src\core\numerical_d_module.py`
+**Location:** `src/core/numerical_d_module.py`  
+**Description:**  
+Holonomic D-module manager rationalizing differential equation operators into exact integer fixed-point lattices via RationalSnap.
 
-**Description:**
-Tracks the holonomic rank and exact cohomological dimension of the manifold.
-Uses entropy-based cutoff for 'ideal vanishing' detection.
+---
+
+### `ObscuredBirkhoffManifold`
+**Location:** `src/core/birkhoff_projection.py`  
+**Description:**  
+Manifold projection operator enforcing doubly-stochastic matrix constraints via log-domain Sinkhorn-Knopp iterations with entropy regularization delta_o.
 
 ---
 
 ### `OpenRouterClient`
-**Location:** `src\core\federated_router.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/core/federated_router.py`  
+**Description:**  
+High-performance HTTP client interfacing external LLM endpoints through OpenRouter, incorporating exponential backoff and rate-limit handling.
 
 ---
 
 ### `OptionD_Colonizer`
-**Location:** `src\terminal\udp_server_colonizer.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/terminal/udp_server_colonizer.py`  
+**Description:**  
+DAQUF operator implementing Option-D agency boost, allowing Voynich exemption tokens to claim computational headroom during high-mischief regimes.
 
 ---
 
 ### `PalindromicRoutingCheck`
-**Location:** `src\topology\gyroid_covariance.py`
-
-**Description:**
-Enforces Strict Palindromic Routing (M_ab = M_ba).
-
-Replaces the empirical $O(N^3)$ TriadicReciprocityCheck.
-Guarantees trivial triadic tracking (Tr(P) = 1) 
-and bypasses continuous empirical checks in strongly stable regions.
+**Location:** `src/topology/gyroid_covariance.py`  
+**Description:**  
+Fast-reject check verifying M_{ab} = M_{ba} across routing matrices, guaranteeing trivial triadic tracking and bypassing expensive checks in stable zones.
 
 ---
 
 ### `PermissionsManager`
-**Location:** `src\ui\voxelboxter_simulation.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/ui/voxelboxter_simulation.py`  
+**Description:**  
+Role-based permission manager (ADMIN, BUILDER, VISITOR) controlling creative vs. survival commits in Voxelboxter.
 
 ---
 
 ### `PhaseState`
-**Location:** `src\data\pressure_ingestor.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/data/pressure_ingestor.py`  
+**Description:**  
+Dataclass tracking fundamental prime oscillator phases theta_n, evolved amplitudes a_n, and accumulated Berry phases.
 
 ---
 
 ### `PhysicalNodeEditor`
-**Location:** `src\scripting\node_environment.py`
-
-**Description:**
-Dedicated DearPyGui Node Environment for Physical Scripting.
-Implements Rust-style object-orientedness (nodes as instances)
-and Virtual Links (borrowed state passing).
-
----
-
-### `PolynomialCRTKernelDetector`
-**Location:** `src\core\polynomial_crt.py`
-
-**Description:**
-Detect violations of polynomial CRT consistency.
-
-Similar to discrete CRT kernel detection but for polynomial functionals.
+**Location:** `src/scripting/node_environment.py`  
+**Description:**  
+Interactive node graph editor for inspecting and editing the reasoner's physical constraint graph and ADMM probe parameters.
 
 ---
 
 ### `PolynomialCoefficientFunctional`
-**Location:** `src\core\polynomial_scaffold.py`
+**Location:** `src/core/polynomial_scaffold.py`  
+**Description:**  
+Functional evaluating phi_k(x) = sum theta_{k,d} P_d(x) over orthogonal polynomial bases (Chebyshev, Legendre).
 
-**Description:**
-Implements S_i(t) =  a_n(t) * p_n(S_i(t)).
+---
 
-Where p_n are orthogonal basis functions.
-Coefficients a_n are modulated by phase-space variance 
-and resonance signals.
+### `PolynomialCRTKernelDetector`
+**Location:** `src/core/polynomial_crt.py`  
+**Description:**  
+Identifies co-prime polynomial residue kernels for Chinese Remainder Theorem reconstruction and Bezout coefficient derivation.
 
 ---
 
 ### `PomniUncertaintyPredictor`
-**Location:** `src\governance\interoceptive\pomni_uncertainty.py`
-
-**Description:**
-Pomni: Uncertainty-Minimization (Interoceptive Timescale).
-
-Reads gyroid_entropy and computes a surrogate Free-Energy surprise.
-Broadcasts Noradrenaline to signal systemic distress to downstream modules.
+**Location:** `src/governance/interoceptive/pomni_uncertainty.py`  
+**Description:**  
+Interoceptive uncertainty predictor modeling Pomni's reluctant resilience. Bioplausible mechanics: (1) Noradrenergic salience computing free-energy surprise to signal environmental dislocation; (2) The structural foil to absurd nihilism, building connections rather than surrendering to meaninglessness; (3) The anti-enabling relational friction boundary—refusing unilateral, unreciprocated grace that flattens agency into an enabler sink, preventing dimensional rank collapse.
 
 ---
 
 ### `PowerConsumer`
-**Location:** `src\ui\voxelboxter_simulation.py`
-
-**Description:**
-A subsystem component that requires power to operate.
+**Location:** `src/ui/voxelboxter_simulation.py`  
+**Description:**  
+Subsystem component in Voxelboxter tracking electrical and topological power consumption across active vehicle modules.
 
 ---
 
 ### `ProgressTrainer`
-**Location:** `src\ui\conversational_backend_server.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/ui/conversational_backend_server.py`  
+**Description:**  
+Real-time training monitor tracking loss curves, Betti number shifts, and APAS_zeta drift during live interactive sessions.
 
 ---
 
 ### `Propulsor`
-**Location:** `src\ui\voxelboxter_simulation.py`
+**Location:** `src/ui/voxelboxter_simulation.py`  
+**Description:**  
+Thrust generation component in Voxelboxter simulating directional impulse, fuel consumption, and physical propulsion dynamics.
 
-**Description:**
-A subsystem component providing thrust.
+---
+
+### `PyOpenCLHardwareSovereigntyCell`
+**Location:** `src/core/fgrt_rnn_cells.py`  
+**Description:**  
+Draft 5 FGRT recurrent cell offloading temporal matrix-mix breeding directly to the PyOpenCL SiliconSovereigntyEngine on Queue B.
 
 ---
 
 ### `RagathaBonding`
-**Location:** `src\governance\fast\ragatha_bonding.py`
-
-**Description:**
-Ragatha: Caregiving/Affiliation (Fast Timescale 1-10s).
-
-Oxytocinergic caregiving driven by Pomni's Noradrenaline distress signal.
-Applies a dissociative mask buffer to the gradient if distress is too high.
+**Location:** `src/governance/fast/ragatha_bonding.py`  
+**Description:**  
+Fast-timescale prosocial bonding module modeling oxytocinergic collective warmth. Identifies the enabler-sink failure mode where unearned warmth dissolves accountability, enforcing reciprocal constraints to prevent traumatic boundary collapse.
 
 ---
 
 ### `RationalSnap`
-**Location:** `src\core\topological_ingestion_validator.py`
-
-**Description:**
-Bit-exact projection to Q via 2^16 fixed-point lattice.
+**Location:** `src/core/topological_ingestion_validator.py`  
+**Description:**  
+Numerical snapping utility rounding floating-point parameters to the nearest exact rational in the FixedPointField lattice (scale 65536).
 
 ---
 
 ### `RationalSnappingLayer`
-**Location:** `src\core\numerical_d_module.py`
-
-**Description:**
-Projects continuous tensors onto a bit-exact rational lattice.
-Ensures symbolic integrity for D-module computations over Q.
+**Location:** `src/core/numerical_d_module.py`  
+**Description:**  
+PyTorch module layer snapping intermediate activations to the rational fixed-point grid to guarantee bit-exact cross-platform determinism.
 
 ---
 
 ### `ReactBenchEvaluator`
-**Location:** `src\benchmarks\reactbench_evaluator.py`
-
-**Description:**
-Evaluates the Gyroidic Flux Reasoner on ReactBench constraints
-using the actual Polynomial CRT from the codebase.
+**Location:** `src/benchmarks/reactbench_evaluator.py`  
+**Description:**  
+Benchmark harness evaluating the reasoner's multi-step tool execution, reasoning traces, and refusal honesty against ReAct standards.
 
 ---
 
 ### `RedTeamProjection`
-**Location:** `src\safety\red_teaming.py`
-
-**Description:**
-Projector Pi_RT.
-
-Models the removal of adversarial/unsafe directions from the state space.
-If a state x has high projection onto known failure modes (red team vectors),
-it is annihilated (projected out).
+**Location:** `src/safety/red_teaming.py`  
+**Description:**  
+Adversarial red-teaming projection injecting synthetic adversarial perturbations into the state to test topological refusal gates.
 
 ---
 
 ### `ResidueExtractor`
-**Location:** `src\codec\gyroidic_codec.py`
-
-**Description:**
-Extract the irreducible text-image residue.
-
-Residue = E(T,I) - CRT_inv({R_k(T)})  CRT_inv({G_k(I)})
-
-Non-zero residue means text and image are ENTANGLED  there is
-structure in the joint encoding that cannot be decomposed into
-independent "text part" and "image part."
-
-The  is outer product of the two independently-reconstructed
-matrices, projected back to [n, n].
+**Location:** `src/codec/gyroidic_codec.py`  
+**Description:**  
+Extracts Chinese Remainder Theorem residues r_k = x mod m_k across prime and polynomial functional channels.
 
 ---
 
 ### `ResonantSVNNOracle`
-**Location:** `src\safety\subversive_oracle.py`
-
-**Description:**
-Resonant Sparse Covariance Neural Network Oracle (System 1 & 2).
-Acts as a psychoanalytic filter, using System 1 (Sparse PCE) for fast 
-evaluation, and conditionally escalating to System 2 (RIC Probes) via 
-Non-Teleological Budget Gates when containment pressure is high.
+**Location:** `src/safety/subversive_oracle.py`  
+**Description:**  
+Support Vector Neural Network oracle evaluating structural resonance potentials to predict whether an unmapped state will yield a stable soliton.
 
 ---
 
 ### `RigidBody`
-**Location:** `src\ui\voxelboxter_simulation.py`
+**Location:** `src/ui/voxelboxter_simulation.py`  
+**Description:**  
+Rigid body physics component in Voxelboxter calculating center of mass, moment of inertia tensor, and 6-DOF Newtonian integration.
 
-**Description:**
-Physics representation for macro-entities (Constructs, detached debris).
+---
+
+### `SaturatedQuantizerRNNCell`
+**Location:** `src/core/fgrt_rnn_cells.py`  
+**Description:**  
+Draft 4 FGRT recurrent cell snapping activations to 600-cell polytope vertices via Context-Aware Quantization at each step, preventing representation collapse.
 
 ---
 
 ### `SaturationFractureDetector`
-**Location:** `src\topology\gyroid_covariance.py`
-
-**Description:**
-Tracks input sensitivity collapse (V_sat).
-If perturbations stop changing outputs -> dead region (saturation).
-If tiny perturbations flip many outputs -> brittle boundary (fracture).
+**Location:** `src/topology/gyroid_covariance.py`  
+**Description:**  
+Detects sharp boundary fractures when continuous states hit piecewise saturation thresholds, signaling topological phase transitions.
 
 ---
 
 ### `ServerState`
-**Location:** `src\ui\conversational_backend_server.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/ui/conversational_backend_server.py`  
+**Description:**  
+Dataclass tracking active connections, background training workers, and hardware telemetry in the conversational backend server.
 
 ---
 
 ### `SicFaAdmmSolver`
-**Location:** `src\optimization\sic_fa_admm.py`
-
-**Description:**
-Stabilizes: min_c 1/2 ||W(B A_alpha^-1 c - A)||^2 + lambda ||c||_1
-Where A is the symbolic residue anchor.
+**Location:** `src/optimization/sic_fa_admm.py`  
+**Description:**  
+Sequential Invariant-Constrained Fractional Anisotropic ADMM solver alternating primal proposal optimization and dual boundary projection.
 
 ---
 
 ### `SimpleImageGenerator`
-**Location:** `image_extension.py`
+**Location:** `image_extension.py`  
+**Description:**  
+Procedural image generator creating diagnostic color patterns and gradient fields for visual testing of the OKLab transport pipeline.
 
-**Description:**
-Legacy alias to ensure zero-friction integration with existing tests.
+---
+
+### `SimpleTemporalDataset`
+**Location:** `dataset_ingestion_system.py`  
+**Description:**  
+Sequential dataset yielding time-series states with corresponding time deltas for temporal training.
 
 ---
 
 ### `SimpleTextEncoder`
-**Location:** `src\models\modular_embeddings.py`
-
-**Description:**
-Simple bag-of-words text encoder for demonstration.
+**Location:** `src/models/modular_embeddings.py`  
+**Description:**  
+Baseline text encoder projecting character/word histograms into initial semantic vectors prior to polynomial functional projection.
 
 ---
 
 ### `SliderSettings`
-**Location:** `src\ui\voxelboxter_simulation.py`
-
-**Description:**
-Copyable settings block inspired by Besiege.
+**Location:** `src/ui/voxelboxter_simulation.py`  
+**Description:**  
+Configurable parameter settings block inspired by Besiege, exposing real-time vehicle and physics tuning parameters in Voxelboxter.
 
 ---
 
 ### `SourceState`
-**Location:** `src\data\pressure_ingestor.py`
+**Location:** `src/data/pressure_ingestor.py`  
+**Description:**  
+State tracker for source materialization tracking raw input data transitions without applying internal reasoning transforms.
 
-**Description:**
-State tracker for source materialization - no reasoning, just transitions.
+---
+
+### `SovereignConversationalIngestor`
+**Location:** `src/data/conversational_api_ingestor.py`  
+**Description:**  
+Zero-auth conversational ingestor parsing exported LLM dialogue archives into persistent knowledge dyads signed with honest silicon jitter.
 
 ---
 
 ### `SovereignConvoKitLoader`
-**Location:** `src\data\conversational_api_ingestor.py`
+**Location:** `src/data/conversational_api_ingestor.py`  
+**Description:**  
+Native parser loading ConvoKit dialogue corpora from local archives without external dependencies.
 
-**Description:**
-Sovereign (native) implementation for loading ConvoKit corpora.
-Handles zip downloads and JSONL parsing without external dependencies.
+---
+
+### `SovereignIngestor`
+**Location:** `src/data/sovereign_ingestor.py`  
+**Description:**  
+Master data ingestor orchestrating multi-tier zero-auth data retrieval across ArXiv preprints, SDSS catalogs, and local archives.
 
 ---
 
 ### `SparseCovariantOptimizer`
-**Location:** `src\augmentation\mandelbulb_gyroidic_augmenter.py`
+**Location:** `src/augmentation/mandelbulb_gyroidic_augmenter.py`  
+**Description:**  
+Optimizer adjusting augmented Mandelbulb features to preserve sparse covariance structures and geometric invariants.
 
-**Description:**
-Optimizes augmented features to preserve sparse covariance structure.
+---
 
-This ensures that the topological relationships in the original data
-are maintained while allowing for valid geometric variations.
+### `SparseHigherOrderTensorDynamics`
+**Location:** `src/core/sparse_higher_order_tensors.py`  
+**Description:**  
+Sparse multilinear tensor contraction engine evaluating multi-channel residue interactions across nested Matrioshka polytope shells.
 
 ---
 
 ### `SparsePCE`
-**Location:** `src\safety\subversive_oracle.py`
-
-**Description:**
-Sparse Polynomial Chaos Expansion (PCE).
-Treats tone as a probabilistic distribution, using information entropy 
-to select polynomial basis functions. Tracks dynamic contextual shifts 
-(subversion vs. hostility) without dense weights.
+**Location:** `src/safety/subversive_oracle.py`  
+**Description:**  
+Sparse Polynomial Chaos Expansion modeling linguistic tone and hostility as probabilistic distributions over orthogonal polynomial bases.
 
 ---
 
 ### `StructuralEntanglementGate`
-**Location:** `src\codec\gyroidic_codec.py`
-
-**Description:**
-Structural Entanglement Gate: measures cross-modal residue structure.
-
-Per the Chinese Room Doctrine (PHILOSOPHY.md 6), this gate does NOT
-claim to assess "understanding." It measures structural entanglement 
-the irreducible topological residue between modalities. Whether this
-constitutes comprehension is a category error; we only report
-admissibility of the encoding's structural coherence.
-
-The gate acts as an ADMISSIBILITY FILTER:
-    - Admissible: sufficient cross-modal structure exists
-    - Inadmissible: encoding is separable (no cross-modal structure)
+**Location:** `src/codec/gyroidic_codec.py`  
+**Description:**  
+Measures cross-modal residue entanglement across text and image channels, computing mutual information and Berry phase accumulation.
 
 ---
 
 ### `SurgicalSeamVisualizer`
-**Location:** `src\core\chern_simons_gasket.py`
-
-**Description:**
-    Diagnostic monitoring for hyperbolic "slender seam" tension (kappa).
-
-    The slender side of a rotating hyperbolic triangle marks the surgical seam
-     where incommensurate logical manifolds are stitched.
-
-Sovereign Trace: 
-    kappa = sum(abs(curvature_i)) / L_seam
+**Location:** `src/core/chern_simons_gasket.py`  
+**Description:**  
+Visualizer mapping the boundary seams, gluing diffeomorphisms, and Chern-Simons gaskets across the gyroid-Klein manifold.
 
 ---
 
 ### `TailSlayerImageGenerator`
-**Location:** `image_extension.py`
+**Location:** `image_extension.py`  
+**Description:**  
+PyOpenCL hardware-accelerated image synthesis engine rendering Mandelbulb fractals directly in GPU memory on TailSlayer hardware.
 
-**Description:**
-TailSlayer Sovereign Image Generator.
-Replaces the legacy SimpleImageGenerator with a hardware-sovereign architecture.
+---
 
-Features:
-- Tag-Based Matrix Mixing: Structural analogue to GANBREEDER glitches.
-- Feature Scars: Preserves high-variance artifacts as structural signatures.
-- Hardware Sovereignty: Offloads mixing to PyOpenCL kernels via Dual-Queue.
+### `TensorEncoder`
+**Location:** `hybrid_backend.py`  
+**Description:**  
+Custom JSON serializer converting PyTorch Tensors, NumPy scalar/array types, and complex values into serializable lists for IPC.
 
 ---
 
 ### `TextureDSPEngine`
-**Location:** `src\core\texture_dsp.py`
-
-**Description:**
-Applies Digital Signal Processing (DSP) algorithms (like FFT and filters)
-to image textures, routing them through the existing StructuralEntanglementNet.
-This fulfills the "music filtering" requirement using the existing image architecture.
+**Location:** `src/core/texture_dsp.py`  
+**Description:**  
+Digital signal processing engine converting audio waveforms and textural frequency spectra into high-dimensional polynomial residue fields.
 
 ---
 
 ### `ThreadingSimpleServer`
-**Location:** `src\ui\diegetic_backend.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/ui/diegetic_backend.py`  
+**Description:**  
+Multi-threaded HTTP and WebSocket server handling concurrent diagnostic visualization and control requests.
 
 ---
 
 ### `TopoBenchEvaluator`
-**Location:** `src\benchmarks\topobench_evaluator.py`
-
-**Description:**
-Evaluates the Gyroidic Flux Reasoner on TopoBench constraints
-using the actual Chern-Simons Gasket codebase.
+**Location:** `src/benchmarks/topobench_evaluator.py`  
+**Description:**  
+Evaluation suite benchmarking persistent homology Betti numbers, Euler characteristics, and holonomy preservation against baseline models.
 
 ---
 
 ### `TopologicalGyrocompass`
-**Location:** `src\core\topological_gyrocompass.py`
+**Location:** `src/core/topological_gyrocompass.py`  
+**Description:**  
+Navigation tool tracking the reasoner's orientation across high-dimensional projective space RP^4, alerting the system to chiral drift.
 
-**Description:**
-Topological Gyrocompass Module.
+---
 
-Provides three core geometric safeguards:
-1. Orthogonal Precession (precess_torque): Redirects boundary normal stress updates orthogonally.
-2. True North Pull (find_true_north): Guides trajectory back to the absolute Love Invariant axis.
-3. Gimbal Lock Shield (gimbal_lock_shield): Decouples Love Invariant via SVD null-space projection.
+### `TopologicalIngestionValidator`
+**Location:** `src/core/topological_ingestion_validator.py`  
+**Description:**  
+Ingestion boundary gatekeeper using PersistentEntropyEstimator to reject low-entropy, repetitious slop from polluting the Neglecton.
 
 ---
 
 ### `TopologicalPressureMonitor`
-**Location:** `src\augmentation\mandelbulb_gyroidic_augmenter.py`
-
-**Description:**
-Monitors topological pressure to adapt augmentation intensity.
-
-Following Gyroidic philosophy: pressure determines behavior,
-not optimization toward a target.
+**Location:** `src/augmentation/mandelbulb_gyroidic_augmenter.py`  
+**Description:**  
+Monitors local and global structural pressures (H_local, H_global), alerting System 2 when containment pressures exceed yield criteria.
 
 ---
 
 ### `TorsionConnection`
-**Location:** `src\core\fgrt_primitives.py`
-
-**Description:**
-Affine connection with Torsion field for Chiral Symmetry Breaking.
+**Location:** `src/core/fgrt_primitives.py`  
+**Description:**  
+Affine connection endowed with non-zero torsion Gamma^lambda_{mu nu} = bar{Gamma}^lambda_{mu nu} + K^lambda_{mu nu}, forcing the reasoner to compute geometric Berry phases.
 
 ---
 
 ### `TrainingManager`
-**Location:** `src\training\training_manager.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/training/training_manager.py`  
+**Description:**  
+Lifecycle manager orchestrating background training loops, dataset loading, and parameter fossilization under the Semiotic Hierarchy.
 
 ---
 
 ### `TrainingSample`
-**Location:** `src\data\local_data_loader.py`
-
-**Description:**
-A single training sample in a unified format.
-
-No scalar quality_score — quality is assessed by TextbookFilter
-using per-dimension admissibility gates, not teleological rewards.
+**Location:** `src/data/local_data_loader.py`  
+**Description:**  
+Dataclass representing an individual multimodal training tuple (input, target, residues, status token, honesty signature).
 
 ---
 
 ### `TriadicReciprocityChecker`
-**Location:** `src\topology\triadic_reciprocity.py`
+**Location:** `src/topology/triadic_reciprocity.py`  
+**Description:**  
+Verifies non-commutative cyclic consistency M_{ca} M_{bc} M_{ab} approx I across tripartite modular attention routing pathways.
 
-**Description:**
-Checks if a set of three feature flows A, B, and C exhibit topological reciprocity.
-Reciprocity is defined as the flows mutually reinforcing their geometric loops
-rather than scattering entropically.
+---
+
+### `TripsodicLedger`
+**Location:** `src/core/non_dual_coin.py`  
+**Description:**  
+Monetary ledger managing currency volume via Tripsodic Negentropy Oscillation, linking minting rewards to topological proof-of-honesty.
 
 ---
 
 ### `TwoCopsSchedule`
-**Location:** `src\core\manifold_time.py`
-
-**Description:**
-Temporal Decoupling (The Two Cops).
-
-System 1 (Fast Cop): High-frequency, heuristic intuition (MPM-style).
-System 2 (Slow Cop): Low-frequency, exact constraint checking (FEM-style).
-
-They communicate via a 'Shared Bulletin Board' (EMA of force/state).
+**Location:** `src/core/manifold_time.py`  
+**Description:**  
+Adversarial scheduling protocol alternating between containment pressure (Cop 1) and selection pressure (Cop 2) to prevent stagnation.
 
 ---
 
 ### `TypedPressure`
-**Location:** `src\core\archetype_engines.py`
-
-**Description:**
-No docstring provided.
+**Location:** `src/core/archetype_engines.py`  
+**Description:**  
+Domain-isolated pressure vector maintaining non-scalarized multi-objective constraints without gradient contamination.
 
 ---
 
 ### `VehicleController`
-**Location:** `src\ui\voxelboxter_simulation.py`
-
-**Description:**
-AI or Player control inputs mapped to a vehicle.
+**Location:** `src/ui/voxelboxter_simulation.py`  
+**Description:**  
+Vehicle control component in Voxelboxter translating operator inputs (steering, throttle, braking) into non-commutative braid transitions.
 
 ---
 
 ### `VehicleEngine`
-**Location:** `src\ui\voxelboxter_simulation.py`
-
-**Description:**
-Vehicle drive component consuming power from ABEB cells.
+**Location:** `src/ui/voxelboxter_simulation.py`  
+**Description:**  
+Internal combustion and electric engine simulator in Voxelboxter computing torque curves, RPM, and fuel consumption.
 
 ---
 
 ### `VolitionalDriveInjector`
-**Location:** `src\core\archetype_engines.py`
-
-**Description:**
-The Volitional Drive Injector.
-Exogenous scalar force allowing the human element to bypass standard ADMM constraints
-through sheer willpower, rendering objects or exits that violate standard geometric routing.
-
-Reconstructs the tag coordinate using Sine-Gordon breather mode embeddings of character
-associations recovered from historical fossils, rather than static coordinates.
-
----
-
-### `VoxelSpectralProjector`
-**Location:** `src\data\minecraft_ingestor.py`
-
-**Description:**
-Transforms 3D Minecraft voxel grids into K residue matrices [K, n, n] in GL(n).
-Uses 3D Chebyshev polynomials to extract spatial rhythms of chunk block palettes.
+**Location:** `src/core/archetype_engines.py`  
+**Description:**  
+Intrinsic motivation injector computing hunger signals from manifold defect counts, steering the reasoner toward unmapped concepts.
 
 ---
 
 ### `VoxelboxterEngine`
-**Location:** `src\ui\voxelboxter_simulation.py`
+**Location:** `src/ui/voxelboxter_simulation.py`  
+**Description:**  
+Master physics and ECS orchestration engine in Voxelboxter, integrating the DiegeticPhysicsEngine with PyBevy procedural mesh rendering.
 
-**Description:**
-Hooks the DiegeticPhysicsEngine into the ECS architecture.
-Handles dynamic PyBevy mesh mutations natively from Python.
-Uses Silicon Sovereignty Engine for PyOpenCL hardware acceleration.
+---
+
+### `VoxelSpectralProjector`
+**Location:** `src/data/minecraft_ingestor.py`  
+**Description:**  
+Transforms 3D voxel grids into K residue matrices in GL(n) using 3D Chebyshev polynomials to extract spatial palette rhythms.
 
 ---
 
 ### `WebPPromptExtractor`
-**Location:** `src\data\webp_prompt_extractor.py`
-
-**Description:**
-Parses ChatGPT WebP image artifacts to extract embedded text prompts
-from RIFF chunks (EXIF, XMP).
+**Location:** `src/data/webp_prompt_extractor.py`  
+**Description:**  
+Extracts embedded generation prompts and metadata from WebP image RIFF chunks (EXIF, XMP) for knowledge dyad creation.
 
 ---
 
 ### `WikipediaIntegration`
-**Location:** `src\ui\wikipedia_integration.py`
-
-**Description:**
-Enhanced Wikipedia integration that combines API fetching with WikiExtractor processing.
+**Location:** `src/ui/wikipedia_integration.py`  
+**Description:**  
+Wikipedia retrieval and extraction engine combining Wikimedia REST APIs with WikiExtractor for clean, non-obstructive semantic parsing.
 
 ---
 
 ### `ZKAggregator`
-**Location:** `src\p2p\zk_aggregator.py`
-
-**Description:**
-Zero-Knowledge Proof Aggregator using snarkjs.
-Compiles Gyroidic Chern-Simons constraints and Leontief invariants into zk-SNARKs.
-
----
-
-### `_PersistentEntropyEstimator`
-**Location:** `src\core\topological_ingestion_validator.py`
-
-**Description:**
-Singleton non-ergodic entropy estimator with running history.
-
-Prevents the "fresh random instance every call" bug that killed
-the NonErgodicEntropyEstimator in voynich_architecture.py.
+**Location:** `src/p2p/zk_aggregator.py`  
+**Description:**  
+Zero-Knowledge Proof aggregator compiling Gyroidic Chern-Simons constraints and Leontief invariants into snarkjs zk-SNARK proofs.
 
 ---
 
