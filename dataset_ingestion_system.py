@@ -55,6 +55,21 @@ from ui.wikipedia_integration import wikipedia_integration
 # Image Processor for Multimodal Support
 from image_extension import ImageProcessor
 
+# Silicon Sovereignty hardware resolution (PyOpenCL host staging / CPU substrate independence)
+try:
+    from src.core.device_utils import DEVICE, get_torch_device, get_preferred_device
+except ImportError:
+    try:
+        from core.device_utils import DEVICE, get_torch_device, get_preferred_device
+    except ImportError:
+        def get_torch_device(target_hardware: str) -> str:
+            if str(target_hardware).lower() == "opencl":
+                return "cpu"
+            return str(target_hardware)
+        def get_preferred_device() -> str:
+            return "opencl"
+        DEVICE = torch.device("cpu")
+
 # Import training examples
 sys.path.append('examples')
 from enhanced_temporal_training import NonLobotomyTemporalModel, NonLobotomyTemporalTrainer
@@ -166,6 +181,92 @@ class SovereignDynamicDataset(torch.utils.data.Dataset):
         for i in range(self.num_samples):
             yield self.__getitem__(i)
 
+class LightweightManifoldBridge(nn.Module):
+    """
+    Substrate-independent topological manifold bridge.
+    Provides deterministic canonical manifold projection and validation
+    when full DiegeticPhysicsEngine is either not requested, already active in another
+    process, or unavailable due to resource bounds (e.g. 4GB VRAM / 16GB RAM on i7-7700).
+    """
+    def __init__(self, dim: int = 256, k: int = 5, device: str = 'cpu'):
+        super().__init__()
+        self.dim = dim
+        self.k = k
+        self.device = get_torch_device(device)
+        self.iteration = 0
+        
+        # Meta-state representation
+        self.register_buffer('meta_state', torch.zeros(1, dim, device=self.device))
+        
+        # Canonical projector for deterministic polynomial projection
+        try:
+            from src.data.canonical_projection import CanonicalProjector
+            self.projector = CanonicalProjector(dim=dim, k=k, device=self.device)
+        except Exception:
+            try:
+                from data.canonical_projection import CanonicalProjector
+                self.projector = CanonicalProjector(dim=dim, k=k, device=self.device)
+            except Exception:
+                self.projector = None
+            
+        # Ingestion validator for holonomic rank and soliton entropy checks
+        try:
+            from src.core.topological_ingestion_validator import TopologicalIngestionValidator
+            from src.core.polynomial_coprime import PolynomialCoprimeConfig
+            poly_config = PolynomialCoprimeConfig(k=k, degree=4, basis_type='chebyshev', device=self.device)
+            self.validator = TopologicalIngestionValidator(poly_config=poly_config, state_dim=dim)
+        except Exception:
+            try:
+                from core.topological_ingestion_validator import TopologicalIngestionValidator
+                from core.polynomial_coprime import PolynomialCoprimeConfig
+                poly_config = PolynomialCoprimeConfig(k=k, degree=4, basis_type='chebyshev', device=self.device)
+                self.validator = TopologicalIngestionValidator(poly_config=poly_config, state_dim=dim)
+            except Exception:
+                self.validator = None
+
+    def process_input(
+        self,
+        text_input: str,
+        generate_response: bool = False,
+        ingestion_mode: bool = True,
+        **kwargs
+    ) -> Dict[str, Any]:
+        self.iteration += 1
+        diagnostics = {}
+        
+        if self.projector is not None:
+            try:
+                proj_out = self.projector.project_text_to_state(text_input)
+                new_state = proj_out['state']
+                self.meta_state.copy_(new_state)
+                diagnostics['entropy'] = proj_out.get('entropy', 0.0)
+            except Exception as e:
+                diagnostics['projector_error'] = str(e)
+        else:
+            # Deterministic text-to-tensor mapping if projector is unavailable
+            chars = [ord(c) % 256 for c in text_input[:self.dim]]
+            if len(chars) < self.dim:
+                repeat = self.dim // max(1, len(chars)) + 2
+                chars = (chars * repeat)[:self.dim]
+            t = torch.tensor(chars, dtype=torch.float32, device=self.device) / 128.0 - 1.0
+            self.meta_state.copy_(t.unsqueeze(0))
+                
+        if self.validator is not None:
+            try:
+                val_out = self.validator.validate_text(text_input, manifold_state=self.meta_state)
+                diagnostics['validation'] = val_out
+            except Exception as e:
+                diagnostics['validator_error'] = str(e)
+
+        residue_vector = self.meta_state.clone().detach().cpu().flatten().tolist()
+        return {
+            "residue_vector": residue_vector,
+            "manifold_step": self.iteration,
+            "admissible": diagnostics.get('validation', {}).get('admissible', True),
+            "diagnostics": diagnostics
+        }
+
+
 class DatasetIngestionSystem:
     """
     Main system for dataset ingestion and training.
@@ -177,24 +278,55 @@ class DatasetIngestionSystem:
     - Non-teleological flow (survivorship pressure, not loss minimization)
     """
     
-    def __init__(self, device: str = 'auto', engine: Optional[Any] = None):
-        self.device = device if device != 'auto' else ('cuda' if torch.cuda.is_available() else 'cpu')
+    def __init__(self, device: str = 'auto', engine: Optional[Any] = None, full_engine: bool = False):
+        if device == 'auto' or device is None:
+            preferred = get_preferred_device()
+            self.hardware_target = preferred
+            self.device = get_torch_device(preferred)
+        else:
+            self.hardware_target = str(device)
+            self.device = get_torch_device(str(device))
         
-        # [FULL BRIDGE] Initialize DiegeticPhysicsEngine for Manifold-Aware (Thick) Ingestion
+        # [FULL BRIDGE] Initialize Manifold Bridge for Manifold-Aware (Thick) Ingestion
         if engine is not None:
             self.engine = engine
             print(f"[INGEST] Manifold Bridge ACTIVE (reused existing engine) on {self.device}")
         else:
-            try:
-                from src.ui.diegetic_backend import DiegeticPhysicsEngine
-                self.engine = DiegeticPhysicsEngine(device=self.device)
+            # Check for existing global engine in sys.modules to avoid redundant heavy imports
+            reused_engine = None
+            db = sys.modules.get('src.ui.diegetic_backend') or sys.modules.get('ui.diegetic_backend')
+            if db is not None and getattr(db, 'ENGINE', None) is not None:
+                reused_engine = db.ENGINE
+            
+            if reused_engine is not None:
+                self.engine = reused_engine
+                print(f"[INGEST] Manifold Bridge ACTIVE (reused global engine) on {self.device}")
+            elif full_engine:
+                # Attempt to initialize DiegeticPhysicsEngine with background loops suppressed
+                try:
+                    prev_disable_bg = os.environ.get("Sovereign_Disable_Background")
+                    os.environ["Sovereign_Disable_Background"] = "1"
+                    try:
+                        from src.ui.diegetic_backend import DiegeticPhysicsEngine
+                        engine_config = {
+                            'chatgpt_ingestor_enabled': False,
+                            'open_science_ingestor_enabled': False,
+                            'sovereign_disable_background': True,
+                        }
+                        self.engine = DiegeticPhysicsEngine(device=self.device, config=engine_config)
+                        print(f"[INGEST] Manifold Bridge ACTIVE (full engine) on {self.device}")
+                    finally:
+                        if prev_disable_bg is None:
+                            os.environ.pop("Sovereign_Disable_Background", None)
+                        else:
+                            os.environ["Sovereign_Disable_Background"] = prev_disable_bg
+                except Exception as e:
+                    self.engine = LightweightManifoldBridge(dim=256, device=self.device)
+                    print(f"[INGEST] Warning: Full engine deferred ({e}). Manifold Bridge ACTIVE (lightweight fallback) on {self.device}")
+            else:
+                # Substrate-independent topological manifold bridge (lightweight default)
+                self.engine = LightweightManifoldBridge(dim=256, device=self.device)
                 print(f"[INGEST] Manifold Bridge ACTIVE on {self.device}")
-            except ImportError:
-                self.engine = None
-                print("[INGEST] Warning: DiegeticPhysicsEngine not found. Manifold-aware ingestion disabled.")
-            except Exception as e:
-                self.engine = None
-                print(f"[INGEST] Warning: Failed to initialize Manifold Bridge: {e}")
         
         self.datasets = {}
         self.models = {}
@@ -258,6 +390,7 @@ class DatasetIngestionSystem:
 
     def add_dataset_source(self, config: DatasetConfig) -> bool:
         """Add a dataset source for ingestion."""
+        self._active_config = config
         print(f"\n[DATA] Adding dataset: {config.name}")
         print(f"   Source: {config.source_type} - {config.source_path}")
         print(f"   Preprocessing: {config.preprocessing}")
@@ -1264,9 +1397,10 @@ class DatasetIngestionSystem:
         
         return samples
     
-    def _preprocess_sample(self, sample: Dict, preprocessing_type: str) -> Optional[Dict]:
+    def _preprocess_sample(self, sample: Dict, preprocessing_type: str, config: Optional[DatasetConfig] = None) -> Optional[Dict]:
         """Preprocess a single sample based on type."""
         try:
+            effective_config = config or getattr(self, '_active_config', None) or getattr(self, 'config', None)
             if preprocessing_type == 'text':
                 # Extract text content
                 text_fields = ['text', 'content', 'body', 'description', 'title']
@@ -1299,7 +1433,8 @@ class DatasetIngestionSystem:
                 
                 # [FULL BRIDGE] Manifold-Aware (Thick) Ingestion
                 residue = None
-                if getattr(self, 'config', None) and getattr(self.config, 'manifold_aware', False) and self.engine:
+                is_manifold_aware = getattr(effective_config, 'manifold_aware', False) if effective_config else False
+                if is_manifold_aware and self.engine is not None:
                     try:
                         # Extract residue vector from the manifold
                         result = self.engine.process_input(
@@ -1314,7 +1449,7 @@ class DatasetIngestionSystem:
                 metadata = {k: v for k, v in sample.items() if k not in text_fields and k != 'conversations'}
                 if residue:
                     metadata['residue_vector'] = residue
-                    metadata['manifold_step'] = self.engine.iteration
+                    metadata['manifold_step'] = getattr(self.engine, 'iteration', 0)
                 
                 return {
                     'text': text_content.strip(),
