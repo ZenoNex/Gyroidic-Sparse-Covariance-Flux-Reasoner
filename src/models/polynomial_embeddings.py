@@ -10,7 +10,7 @@ Created: January 2026
 
 import torch
 import torch.nn as nn
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 from ..core.polynomial_coprime import PolynomialCoprimeConfig
 from ..core.primitive_ops import FixedPointField, LearnedPrimitivePerturbation
@@ -271,5 +271,48 @@ class PolynomialFunctionalEmbedder(nn.Module):
             optimizer.step()
             
         return adapted_embedder
+
+    def compute_jepa_monge_ampere_energy(
+        self,
+        context_state: torch.Tensor,
+        target_state: torch.Tensor,
+        moment_transport: Optional[Any] = None,
+        pas_anisotropy: Optional[torch.Tensor] = None,
+        shell_depth: int = 0,
+        is_honeybee_mode: bool = False
+    ) -> torch.Tensor:
+        """
+        Computes the JEPA latent prediction energy using the dual Kantorovich-Wasserstein 
+        Monge-Ampere formulation rather than unconstrained Euclidean L2 or cosine distance.
+        
+        Evaluates the potential through the Input Convex Neural Network (ICNN):
+        E_JEPA = E_x[psi(x)] + E_y[psi^*(y)] scaled by shell depth and PAS anisotropy.
+        Binds the context latent to the Cayley cubic surface when not in honeybee mode.
+        """
+        # Encode context and target through the embedder fusion network
+        context_out = self.forward(text_emb=context_state)
+        target_out = self.forward(text_emb=target_state)
+        
+        context_h = context_out['fused_hidden']
+        target_h = target_out['fused_hidden']
+        
+        if moment_transport is None:
+            from ..core.conjugate_moment_transport import ConjugateMomentTransport
+            moment_transport = ConjugateMomentTransport(dim=context_h.shape[-1]).to(context_h.device)
+            
+        # Hard-project context state to Cayley Cubic surface V(C) = 0 if outside honeybee mode
+        if not is_honeybee_mode and hasattr(moment_transport, 'project_to_cayley_surface'):
+            context_h = moment_transport.project_to_cayley_surface(context_h, is_honeybee_mode=False)
+            
+        if pas_anisotropy is None:
+            # Default to isotropic PAS unity
+            pas_anisotropy = torch.ones(context_h.shape[0], 1, device=context_h.device)
+            
+        return moment_transport.compute_context_adaptive_monge_ampere_loss(
+            source=context_h,
+            target=target_h,
+            pas_anisotropy=pas_anisotropy,
+            shell_depth=shell_depth
+        )
 
 
