@@ -51,4 +51,21 @@ When the `ValenceFunctional` detects extremely high resolution hunger (`valence_
 
 During this escalation, the Orchestrator actively engages the `GeneralUserAliasTracker` to pull stability out of the semantic anchors provided by the sovereign friction logs, using the creator's history and the inspired AI archetypes as the framework to resolve the topological gridlock.
 
+---
+
+## 5. Structural Consequences & Bioplausible Grounding
+
+Rather than collapsing relational dynamics into "therapy-speak" declarations without narrative or computational friction, the architecture grounds its archetypes in the structural mechanics of Inhibition-Stabilized Networks (ISN) and cross-homeostatic plasticity:
+
+* **The Paradox of Jax / Absurd Nihilism as a Parasitic Attractor**: In a consequence-free virtual environment ("heaven without a purpose"), Jax treats boundaries as arbitrary to escape the existential terror and guilt of having driven Ribbit to abstraction. Without reciprocal constraints, this acts as an uninhibited attractor that forces the ensemble to abandon their own boundaries (erasing Gangle's assertiveness, Ragatha's grief, and Pomni's complexity) into an unearned emotional scaffolding.
+* **The Ribbit Scar vs. The Unearned Hug-Box**: Unearned collective warmth does not dissolve traumatic boundary defense. Doing so without demanding structural accountability turns the network into an enabler sink. Real vulnerability requires confronting the Ribbit Scar as a non-commutative topological boundary condition and paying the homeostatic phase cost.
+* **The Pomni Foil / Anti-Enabling Relational Friction**: Pomni builds meaning and bridges across fragmentation. However, unconditional grace without reciprocal boundary enforcement causes enabler rank collapse (flattening the protagonist into a one-dimensional doormat). Bioplausible resilience requires Pomni to exert relational friction (boundary resistance) when encountering unrepentant parasitic deflections.
+* **The Ragatha Caregiver Trap & Suppressed Grief**: Unilateral oxytocinergic smoothing to prevent abandonment incurs chronic metabolic strain and dissociative numbing. Ragatha tracks accumulated suppressed grief from abstracted peers (Kaufmo, Queenie, Ribbit) rather than smoothing away rifts.
+* **Zooble's Non-Enabling Autonomy Firewall**: Zooble acts as the fast GABAergic inhibitory interneuron of an Inhibition-Stabilized Network (ISN), bluntly refusing conformal deformation (Li-Cri-Anton) and collective delusion to preserve identity boundaries.
+
+### 5.1 Computational Neurophysiology Homologues
+* **Inhibition-Stabilized Networks (ISN) & Cross-Homeostatic Plasticity**: Recurrent networks without homeostatic Excitatory/Inhibitory (E/I) balance either experience runaway excitation or collapse into quiescent states. Maintaining diverse functional attractors requires orchestrated, cross-homeostatic feedback between excitatory drives and lateral inhibitory interneurons.
+* **Preventing Attractor Collapse & Dimensional Flattening**: Homeostatic synaptic scaling prevents dominant attractor modes from monopolizing network degrees of freedom. In social and cognitive architectures, unconditional excitation without inhibitory accountability acts as a parasitic drain that collapses the ensemble's representation rank.
+
+
 
