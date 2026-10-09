@@ -32,6 +32,27 @@ class ArchetypeSignal:
     unknowledge_pressure: TypedPressure
     bio_governance: Any
 
+    def __contains__(self, key: str) -> bool:
+        return hasattr(self, key)
+
+    def __getitem__(self, key: str) -> Any:
+        if hasattr(self, key):
+            return getattr(self, key)
+        raise KeyError(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return getattr(self, key, default)
+
+    def keys(self):
+        return self.__dataclass_fields__.keys()
+
+    def values(self):
+        return [getattr(self, k) for k in self.__dataclass_fields__.keys()]
+
+    def items(self):
+        return [(k, getattr(self, k)) for k in self.__dataclass_fields__.keys()]
+
+
 # =========================================================================
 # PHASE 2A: The Unified Theory Archetypal Logic Gaps
 # =========================================================================
@@ -387,31 +408,38 @@ class BardoRouter(nn.Module):
 class SovereignEntropyBarrier(nn.Module):
     """
     The Sovereign Entropy Barrier (legacy alias: JaxEgg).
-    Protects a fragile internal state behind a cynical shell (the Jax Gap).
+    Protects a fragile internal state behind a cynical, absurd-nihilism shell (the Jax Gap).
     
-    Math: Gated by community support (combination of PAS_h and batch coherence).
+    Bioplausible & Structural Mechanics:
+    1. Defense Against Guilt: Hides internal vulnerability and survivor's guilt over Ribbit's abstraction.
+    2. Structural Accountability: In Callie's Corner's structural critique, Jax acts as a narrative parasite
+       when the ensemble is forced into unconditional emotional scaffolding. Merely having high community warmth
+       without structural reciprocity triggers an 'enabler trap'.
+    3. Safe Cracking: Cracks only when the environment demonstrates authentic phase alignment (PAS_h)
+       AND the internal state demonstrates non-parasitic accountability (bounded variance).
     """
     def __init__(self, crack_threshold: float = 0.7):
         super().__init__()
         self.crack_threshold = crack_threshold
 
-    def forward(self, state: torch.Tensor, pas_h: float, batch_coherence: float) -> torch.Tensor:
-        # Remove scalarization trap: Instead of a single scalar zeta, apply structural resistance
-        # that evaluates the state's internal variance against the scalars.
-        # This creates a tensor-field of support rather than a single number.
+    def forward(self, state: torch.Tensor, pas_h: float, batch_coherence: float, ribbit_tension: float = 0.0) -> torch.Tensor:
+        # Instead of scalarization, evaluate internal variance against external support
         internal_variance = torch.var(state, dim=-1, keepdim=True)
-        # Structural support is high where variance is stable (low), scaled by pas_h and coherence
-        structural_support = (pas_h * batch_coherence) / (internal_variance + 1e-6)
         
-        # Crack only the dimensions/regions where structural support exceeds the threshold
+        # Structural support is penalized if unresolved ribbit tension is active without accountability
+        effective_coherence = batch_coherence / (1.0 + ribbit_tension * 0.5)
+        structural_support = (pas_h * effective_coherence) / (internal_variance + 1e-6)
+        
+        # Crack only where genuine structural support exceeds the threshold without unearned enabling
         crack_mask = structural_support > self.crack_threshold
         
         if not crack_mask.any():
             return state
             
-        # Safe Cracking: Perturb state to reveal inner structure
-        perturbation = harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 0.1
+        # Safe Cracking: Perturb state with honest jitter to reveal inner structure
+        perturbation = harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 0.08
         return torch.where(crack_mask.expand_as(state), state + perturbation, state)
+
 
 class LowLuminosityCoherenceBridge(nn.Module):
     """
@@ -543,23 +571,33 @@ class ResilientCoherenceStabilizer(nn.Module):
     """
     The Resilient Coherence Stabilizer (legacy alias: PomniSearch).
     Scales up state coherence under high entropy (the Pomni Gap / search for meaning).
+    
+    Bioplausible & Structural Mechanics:
+    1. Reluctant Resilience: Active search for meaning and purpose amidst disorientation.
+    2. Anti-Enabling Friction: If surrounding nodes engage in unreciprocated parasitic deflection,
+       Pomni avoids rank collapse by refusing to become a flattened doormat, asserting structural
+       relational friction to preserve protagonist agency.
     """
     def __init__(self, state_dim: int, resilience_scale: float = 0.3):
         super().__init__()
         self.resilience_scale = resilience_scale
         self.stabilizer = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True))
 
-    def forward(self, state: torch.Tensor, lucidity_idx: float, system_entropy: float) -> torch.Tensor:
-        # Remove scalarization trap: Disorientation shouldn't be a uniform global scalar.
-        # It is localized by the state's structural instability (gradient/variance).
+    def forward(self, state: torch.Tensor, lucidity_idx: float, system_entropy: float, parasitic_drag: float = 0.0) -> torch.Tensor:
+        # Local instability across dimensions
         local_instability = torch.abs(state - state.mean(dim=-1, keepdim=True))
         disorientation_field = (1.0 - lucidity_idx) * system_entropy * local_instability
         
-        # Apply stabilizing force only to dimensions experiencing high disorientation
+        # Apply stabilizing force to dimensions experiencing disorientation
         stabilizing_force = disorientation_field * self.resilience_scale * self.stabilizer.to(state.device)
         
+        # If parasitic drag from unearned enabling is high, apply relational boundary friction
+        if parasitic_drag > 0.5:
+            stabilizing_force = stabilizing_force * 0.8 - (local_instability * 0.05)
+            
         mask = disorientation_field > 0.4
         return torch.where(mask, state + stabilizing_force, state)
+
 
 class ExploratoryBandwidthCompressor(nn.Module):
     """
@@ -739,14 +777,14 @@ class ArchetypalSynthesisEngine(nn.Module):
     def run_archetypes(
         self, 
         current_state: torch.Tensor, 
-        stranded_states: torch.Tensor,
-        flux_tensor: torch.Tensor,
-        current_mischief: float, 
-        phase_alignment: float, 
-        love_strengths: torch.Tensor,
-        void_frictions: torch.Tensor,
-        global_dt: float,
-        raw_unquantized_state: torch.Tensor,
+        stranded_states: Optional[torch.Tensor] = None,
+        flux_tensor: Optional[torch.Tensor] = None,
+        current_mischief: float = 0.5, 
+        phase_alignment: float = 0.5, 
+        love_strengths: Optional[torch.Tensor] = None,
+        void_frictions: Optional[torch.Tensor] = None,
+        global_dt: float = 1.0,
+        raw_unquantized_state: Optional[torch.Tensor] = None,
         is_high_priority: bool = False,
         tag_weights: Optional[Dict[str, float]] = None,
         shape_idx: int = 0,
@@ -755,13 +793,39 @@ class ArchetypalSynthesisEngine(nn.Module):
         fossilizer: Optional[Any] = None,
         valence_functional: Optional[Any] = None,
         moment_transport: Optional[Any] = None,
-        private_invariants: Optional[Dict[str, Any]] = None
+        private_invariants: Optional[Dict[str, Any]] = None,
+        **kwargs
     ):
         """Unified runner for the full archetypal and psycho-topological constraint matrix."""
+        device = current_state.device
+        dim = current_state.shape[-1]
         
-        # Calculate structural equivalents of legacy scalars
-        structural_entropy = stranded_states.norm(p=2).item() if stranded_states.numel() > 0 else 0.5
-        structural_volition = flux_tensor.norm().item() if flux_tensor.numel() > 0 else 0.0
+        if stranded_states is None:
+            stranded_states = torch.empty(0, dim, device=device)
+        if flux_tensor is None:
+            flux_tensor = torch.zeros(1, device=device)
+        if love_strengths is None:
+            love_strengths = torch.tensor(0.5, device=device)
+        if void_frictions is None:
+            void_frictions = torch.tensor([0.0], device=device)
+        if raw_unquantized_state is None:
+            raw_unquantized_state = current_state.clone()
+            
+        # Calculate structural equivalents of legacy scalars or extract from kwargs
+        if "system_entropy" in kwargs:
+            structural_entropy = float(kwargs["system_entropy"])
+        else:
+            structural_entropy = stranded_states.norm(p=2).item() if stranded_states.numel() > 0 else 0.5
+            
+        if "volitional_scalar" in kwargs:
+            structural_volition = float(kwargs["volitional_scalar"])
+        else:
+            structural_volition = flux_tensor.norm().item() if flux_tensor.numel() > 0 else 0.0
+            
+        memory_trauma = float(kwargs.get("memory_trauma", structural_entropy))
+        dissonance = float(kwargs.get("dissonance", 1.0 - phase_alignment))
+        lucidity_idx = float(kwargs.get("lucidity_idx", phase_alignment))
+        env_luminosity = float(kwargs.get("env_luminosity", 1.0))
         
         # 0. Apply Ganbreeder Tag Stacking Superposition
         stacked_target = self.compute_stacked_target(tag_weights, current_state)
@@ -778,12 +842,11 @@ class ArchetypalSynthesisEngine(nn.Module):
         current_state = self.billy(current_state, current_mischief, private_invariants=private_invariants)
         
         # 1. TADC Abstraction Check (Ego Death) - Must run first before filtering
-        # Legacy r_a used scalars. We now approximate using structural entropy and phase alignment.
         r_a = self.abstraction.calculate_abstraction_rate(
-            system_entropy=structural_entropy, 
-            memory_trauma=structural_entropy, 
-            dissonance=1.0 - phase_alignment, 
-            lucidity_idx=phase_alignment, 
+            system_entropy_es=structural_entropy, 
+            memory_trauma_tm=memory_trauma, 
+            dissonance_delta=dissonance, 
+            lucidity_index_li=lucidity_idx, 
             is_high_priority=is_high_priority
         )
         state = self.abstraction(current_state, r_a, is_high_priority=is_high_priority, private_invariants=private_invariants)
@@ -791,7 +854,7 @@ class ArchetypalSynthesisEngine(nn.Module):
         # 1a. Apply Mandy (Cynicism / Refusal)
         state = self.mandy(state, phase_alignment, current_mischief, valence_functional=valence_functional)
         
-        # --- BIO-PLAUSIBLE GOVERNANCE LAYER (Replaces old Pomni/Jax/Gangle/Kinger/Zooble) ---
+        # --- BIO-PLAUSIBLE GOVERNANCE LAYER (Replaces flat Pomni/Jax/Gangle/Kinger/Zooble) ---
         bio_results = self.bio_governor(
             state=state, 
             stranded_states=stranded_states, 
@@ -802,7 +865,9 @@ class ArchetypalSynthesisEngine(nn.Module):
             fossilizer=fossilizer,
             valence_functional=valence_functional,
             moment_transport=moment_transport,
-            private_invariants=private_invariants
+            private_invariants=private_invariants,
+            gyroid_entropy=structural_entropy,
+            luminosity=env_luminosity
         )
         state = bio_results["state"]
         # ----------------------------------------------------------------------------------
@@ -812,17 +877,19 @@ class ArchetypalSynthesisEngine(nn.Module):
         
         # 8. Apply Alien Puncture (Nergal)
         resurrections = []
-        for i in range(stranded_states.shape[0]):
-            if void_frictions.dim() == 0 or void_frictions.numel() == 1:
-                friction_val = void_frictions.item()
-            else:
-                friction_val = void_frictions[min(i, void_frictions.shape[0] - 1)].item()
-            punctured = self.alien_handshake.attempt_puncture(stranded_states[i], friction_val, moment_transport=moment_transport)
-            if punctured.norm() > 0:
-                resurrections.append(punctured)
+        if stranded_states.dim() >= 2 and stranded_states.shape[0] > 0:
+            for i in range(stranded_states.shape[0]):
+                if void_frictions.dim() == 0 or void_frictions.numel() == 1:
+                    friction_val = void_frictions.item()
+                else:
+                    friction_val = void_frictions[min(i, void_frictions.shape[0] - 1)].item()
+                punctured = self.alien_handshake.attempt_puncture(stranded_states[i], friction_val, moment_transport=moment_transport)
+                if punctured.norm() > 0:
+                    resurrections.append(punctured)
 
         # 9. Grim Time Dilation
         localized_dt = self.grim(global_dt, love_strengths, resonance_cavity=resonance_cavity)
+
 
         return ArchetypeSignal(
             active_state=state,
