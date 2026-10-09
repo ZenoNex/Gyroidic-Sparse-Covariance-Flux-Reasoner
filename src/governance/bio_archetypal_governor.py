@@ -45,15 +45,18 @@ class BioArchetypalGovernor(nn.Module):
     def forward(
         self, 
         state: torch.Tensor, 
-        stranded_states: torch.Tensor, 
-        flux_tensor: torch.Tensor, 
+        stranded_states: Optional[torch.Tensor] = None, 
+        flux_tensor: Optional[torch.Tensor] = None, 
         dt: float = 1.0,
         bulletin_board: Optional[Any] = None,
         resonance_cavity: Optional[Any] = None,
         fossilizer: Optional[Any] = None,
         valence_functional: Optional[Any] = None,
         moment_transport: Optional[Any] = None,
-        private_invariants: Optional[Dict[str, Any]] = None
+        private_invariants: Optional[Dict[str, Any]] = None,
+        gyroid_entropy: Optional[float] = None,
+        luminosity: Optional[float] = None,
+        **kwargs
     ) -> Dict[str, Any]:
         """
         Executes the biological cascade.
@@ -66,12 +69,20 @@ class BioArchetypalGovernor(nn.Module):
                 - panic: Jax's panic flag
                 - consolidating: Kinger's sleep flag
                 - step_factor: Gangle's mood-driven learning rate modifier
+                - jax_rigidity: Cynical boundary strength
         """
-        # 1. Environment: Caine determines base precision based on structural trauma (stranded states)
-        structural_entropy = stranded_states.norm(p=2).item() if stranded_states.numel() > 0 else 0.5
+        # 1. Environment: Caine determines base precision based on structural trauma
+        if gyroid_entropy is not None:
+            structural_entropy = float(gyroid_entropy)
+        elif stranded_states is not None and stranded_states.numel() > 0:
+            structural_entropy = stranded_states.norm(p=2).item()
+        else:
+            structural_entropy = 0.5
+            
         precision_matrix = self.caine_precision(structural_entropy)
         
         # 2. Interoceptive: Pomni calculates surprise and broadcasts Noradrenaline
+        # Checks against enabler rank collapse
         state = self.pomni(state, structural_entropy, self.bus)
         
         # 3. Ultrafast: Zooble asserts body schema, potentially gating the signal (GABA)
@@ -100,7 +111,10 @@ class BioArchetypalGovernor(nn.Module):
         else:
             surrounding_pas_h = torch.tensor([0.5], device=state.device)
             batch_tensors = state.unsqueeze(0) if state.dim() == 1 else state
-            external_pressure = flux_tensor.norm().item() if flux_tensor.numel() > 0 else 0.5
+            if flux_tensor is not None and flux_tensor.numel() > 0:
+                external_pressure = flux_tensor.norm().item()
+            else:
+                external_pressure = 0.5
             
         state, jax_rigidity = self.jax(
             state, 
@@ -112,14 +126,22 @@ class BioArchetypalGovernor(nn.Module):
         )
         panic = jax_rigidity > 1.2
         
-        # 5. Fast: Ragatha responds to Pomni's distress (Oxytocin)
-        state = self.ragatha(state, self.bus)
+        # 5. Fast: Ragatha responds to Pomni's distress (Oxytocin & suppressed grief tracking)
+        # Passing boundary friction derived from jax_rigidity
+        boundary_friction = max(0.0, jax_rigidity - 1.0)
+        state = self.ragatha(state, self.bus, boundary_friction=boundary_friction)
         
         # 6. Medium: Gangle cycles mood, dictating the step factor (Dopamine)
         state, step_factor = self.gangle(state, self.bus, dt=dt)
         
         # 7. Slow: Kinger consolidates memory based on flux pressure (Acetylcholine)
-        luminosity_scalar = flux_tensor.norm().item() if flux_tensor.numel() > 0 else 0.5
+        if luminosity is not None:
+            luminosity_scalar = float(luminosity)
+        elif flux_tensor is not None and flux_tensor.numel() > 0:
+            luminosity_scalar = flux_tensor.norm().item()
+        else:
+            luminosity_scalar = 0.5
+            
         state, consolidating = self.kinger(state, self.bus, luminosity_scalar)
         
         return {
