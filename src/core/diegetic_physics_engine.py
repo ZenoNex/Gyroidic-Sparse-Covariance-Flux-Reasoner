@@ -75,7 +75,11 @@ class DiegeticPhysicsEngine(nn.Module):
         # --- Stage 4: Gyroid Violation Probes ---
         # Evaluate local violation V to dictate sparsification vs dense compute.
         # If the speculative trajectory intersects a voxel, V spikes.
-        violation_v = torch.norm(c_sym) * pas_h.mean()
+        # Track and terrain Betti topology (islands beta_0, tunnels/chasm loops beta_1) scales obstacle complexity.
+        b0 = track_state.get('betti_0', 1)
+        b1 = track_state.get('betti_1', 0)
+        topo_complexity = 1.0 + 0.1 * max(0, b0 - 1) + 0.25 * b1
+        violation_v = torch.norm(c_sym) * pas_h.mean() * topo_complexity
 
         # --- Stage 5: System 2 ADMM & ADMR Constraint Probes ---
         # Check constraints (tire slip, structural breakage).
@@ -136,13 +140,18 @@ class DiegeticPhysicsEngine(nn.Module):
         # In Voxelboxter, a high closure gap in a rupture state means track destruction.
         betti_shift = 0
         gap_val = closure_gap.item() if hasattr(closure_gap, 'item') else float(closure_gap)
+        new_b0 = b0
+        new_b1 = b1
         if is_rupture and gap_val > 0.5:
             betti_shift = 1 # We carved a new hole (beta_1 increase) in the terrain
+            new_b1 += 1
 
         # Return updated physics state
         return {
             "c_out": x_hat,
             "betti_shift": betti_shift,
+            "betti_0": new_b0,
+            "betti_1": new_b1,
             "pas_h": pas_h.detach(),
             "rupture": bool(is_rupture),
             "closure_gap": gap_val
