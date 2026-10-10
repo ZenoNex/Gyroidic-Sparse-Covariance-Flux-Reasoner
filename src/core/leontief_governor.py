@@ -329,7 +329,13 @@ class LeontiefGovernor(nn.Module):
             # We inject this inverted vector back into the cached Leontief inverse 
             # as a permanent topological singularity (poisoning the path), 
             # rendering the attacker's topological signature inert.
-            poison_tensor = torch.ger(inverted_rp4[:self.state_dim], inverted_rp4[:self.state_dim])
+            if self.state_dim >= 5:
+                full_rp4 = torch.zeros(self.state_dim, device=malicious_demand.device)
+                full_rp4[:5] = inverted_rp4
+                poison_tensor = torch.ger(full_rp4, full_rp4)
+            else:
+                p_vec = inverted_rp4[:self.state_dim]
+                poison_tensor = torch.ger(p_vec, p_vec)
             
             # We scale the poison by the Kelly fraction loss
             kelly_fraction = 0.5  # Heavy slash penalty
