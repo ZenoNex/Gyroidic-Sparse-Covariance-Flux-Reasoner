@@ -107,7 +107,8 @@ graph TD
     *   *Documentation*: [INTERFACE_LAYER.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/INTERFACE_LAYER.md)
 *   **Voxelboxter Client & Simulation**
     *   *Implementation*: [voxelboxter_client.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_client.py) & [voxelboxter_simulation.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py)
-    *   *Role*: Unified chat/terminal UI enforcing game mode separation, and the `BSplineCompiledMod` layer for mathematically compiling dynamic addon features.
+    *   *Documentation*: [VOXELBOXTER_NONDUAL_ECOLOGY.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/VOXELBOXTER_NONDUAL_ECOLOGY.md)
+    *   *Role*: Unified chat/terminal UI enforcing game mode separation, `BSplineCompiledMod` layer for mathematically compiling dynamic addon features, Pirangi cashew tree flora mutations, fauna ISN ecologies, and dual-scale plasticity.
 
 ---
 
