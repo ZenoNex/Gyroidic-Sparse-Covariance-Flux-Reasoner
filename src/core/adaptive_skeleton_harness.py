@@ -15,6 +15,15 @@ class AmbulatoryClass(Enum):
     CENTIPEDE = auto()
     NON_AMBULATORY = auto()
 
+class EnemySubtype(Enum):
+    NONE = auto()
+    ABSTRACTED_GLITCH = auto()       # Kaufmo/Queenie glitched matter, non-ergodic rupture
+    MANNEQUIN_INFILTRATOR = auto()   # Abel-style rigid biped, deceptive parity mask, low variance
+    EXISTENTIAL_SENTIENT = auto()    # Gummigoo-style bandit/reptile, high empathy susceptibility, syrup deformation
+    VOID_STALKER = auto()            # Cellar null entity, negative topological pressure, phase-shifting
+    DEMIURGIC_TITAN = auto()         # Mildenhall/Caine boss archetype, multi-limbed reality-distorting dt
+    FERAL_SWARM = auto()             # Theropod/quadruped chitinous scavenger, flocking vector fields
+
 class AdaptiveSkeletonHarness(nn.Module):
     """
     The Adaptive Skeleton Harness is responsible for the procedural generation
@@ -118,22 +127,59 @@ class AdaptiveSkeletonHarness(nn.Module):
         organic_noise = torch.randn_like(coordinate) * noise_scale
         return coordinate * parity_mask + organic_noise
 
+    def apply_enemy_subtype_morphology(self, coordinate: torch.Tensor, subtype: EnemySubtype) -> torch.Tensor:
+        """
+        Applies topological distortions, psychological scar amplifications,
+        and anisotropic symmetry breaking corresponding to specific enemy subtypes
+        from the TADC / SOMA / Universal Topology lore.
+        """
+        if subtype == EnemySubtype.NONE:
+            return coordinate
+
+        deformed = coordinate.clone()
+        if subtype == EnemySubtype.ABSTRACTED_GLITCH:
+            # Kaufmo/Queenie Glitched Matter: extreme non-ergodic phase noise and chaotic tearing
+            jitter = (torch.rand_like(deformed) - 0.5) * 0.45
+            mask = torch.rand_like(deformed) > 0.65
+            deformed[mask] = deformed[mask] * -1.8 + jitter[mask]
+        elif subtype == EnemySubtype.MANNEQUIN_INFILTRATOR:
+            # Abel-style rigid script: stark quantization into planar low-degree facets
+            deformed = torch.round(deformed * 4.0) / 4.0
+        elif subtype == EnemySubtype.EXISTENTIAL_SENTIENT:
+            # Gummigoo-style bandit: soft matter relaxation with visceral empathy softening
+            deformed = torch.tanh(deformed * 0.8) * 1.2
+        elif subtype == EnemySubtype.VOID_STALKER:
+            # Cellar Null Entity: negative topological pressure, projective inversion
+            deformed = -1.0 * torch.sign(deformed) * torch.log1p(torch.abs(deformed))
+        elif subtype == EnemySubtype.DEMIURGIC_TITAN:
+            # Mildenhall/Caine Boss: reality-distorting harmonic expansion across prime indices
+            scale_ladder = torch.linspace(1.0, 2.5, deformed.shape[-1], device=deformed.device)
+            deformed = deformed * scale_ladder + 0.15 * torch.sin(self.omega_micro * deformed)
+        elif subtype == EnemySubtype.FERAL_SWARM:
+            # Chitinous flocking: rotational phase permutation
+            deformed = torch.roll(deformed, shifts=2, dims=-1) * 0.9 + 0.1 * torch.randn_like(deformed)
+
+        return deformed
+
     def build_superposed_rig(
         self, 
         weights: Dict[str, float], 
         admr_transition_matrices: torch.Tensor,
         community_peer_id: Optional[str] = None,
-        ambulatory_class: AmbulatoryClass = AmbulatoryClass.BIPED
+        ambulatory_class: AmbulatoryClass = AmbulatoryClass.BIPED,
+        enemy_subtype: EnemySubtype = EnemySubtype.NONE
     ) -> Optional[torch.Tensor]:
         """
         Generates a composite skeleton coordinate via the Ganbreeder Vector Stacker,
-        incorporating psychological attractors.
+        incorporating psychological attractors and enemy subtype morphology.
         """
         # --- PHASE 1: Leontief Hardware Stress & Community Governance ---
         demand_vector = torch.zeros(self.state_dim, device=self.device)
         for tag, weight in weights.items():
             if tag in self.tag_catalog:
                 demand_vector += weight * self.tag_catalog[tag]
+        if demand_vector.norm() == 0:
+            demand_vector = torch.randn(self.state_dim, device=self.device)
                 
         available_budget = 1.0 - (psutil.virtual_memory().percent / 100.0)
         
@@ -164,7 +210,6 @@ class AdaptiveSkeletonHarness(nn.Module):
         ideal_pull = self.garden_orchestrator.influence_attractors(batched_target)
         
         # 2. Silicon Scars (Dreaded Self): Topological rupture propagation for generative defect seeds
-        # Anchored by the Bostick Chiral Gating Function inside the DefectAttractor
         scar_rupture = self.garden_orchestrator.defect_attractors(batched_target)
         
         # Apply the psychological forces
@@ -175,12 +220,63 @@ class AdaptiveSkeletonHarness(nn.Module):
         # --- PHASE 2.8: Morphological Gauge Symmetry Breaking ---
         # Apply the specific "moment-field" anisotropic symmetry breaks based on morphology
         composite_target = self.apply_morphological_gauge_symmetry(composite_target, ambulatory_class)
+
+        # --- PHASE 2.9: Enemy Subtype Topological Distortion ---
+        if enemy_subtype != EnemySubtype.NONE:
+            composite_target = self.apply_enemy_subtype_morphology(composite_target, enemy_subtype)
         
         # --- PHASE 3: Bouligand Tangent Cone & Base Mesh Smoothing ---
         composite_target = self._inject_kanlayer_micro_wave(composite_target)
         projected_skeleton = self._apply_bouligand_projection(composite_target)
         
         return projected_skeleton
+
+    def build_enemy_rig(
+        self,
+        subtype: EnemySubtype,
+        ambulatory_class: AmbulatoryClass = AmbulatoryClass.BIPED,
+        difficulty_scale: float = 1.0,
+        admr_transition_matrices: Optional[torch.Tensor] = None
+    ) -> Dict[str, Any]:
+        """
+        Constructs a complete enemy entity rig package with kinematics and combat telemetry.
+        """
+        if admr_transition_matrices is None:
+            admr_transition_matrices = torch.eye(self.state_dim, device=self.device).unsqueeze(0)
+
+        # Build base tag weight profile
+        tag_weights = {f"archetype_{subtype.name.lower()}": 1.0}
+        skeleton = self.build_superposed_rig(
+            weights=tag_weights,
+            admr_transition_matrices=admr_transition_matrices,
+            ambulatory_class=ambulatory_class,
+            enemy_subtype=subtype
+        )
+        if skeleton is None:
+            # Fallback coordinate if vetoed
+            skeleton = self.forward(torch.randn(self.state_dim, device=self.device))
+
+        # Enemy subtype attributes
+        meta = {
+            EnemySubtype.NONE: {"health": 100.0, "aggression": 0.0, "damage_type": "physical", "lore": "Neutral construct"},
+            EnemySubtype.ABSTRACTED_GLITCH: {"health": 250.0, "aggression": 0.95, "damage_type": "glitch_contagion", "lore": "Abstracted mind reduced to non-ergodic glitched matter"},
+            EnemySubtype.MANNEQUIN_INFILTRATOR: {"health": 120.0, "aggression": 0.40, "damage_type": "scripted_ballistic", "lore": "Caine-orchestrated deceptive mannequin"},
+            EnemySubtype.EXISTENTIAL_SENTIENT: {"health": 160.0, "aggression": 0.60, "damage_type": "syrup_blunt", "lore": "Sentient bandit awakening to simulated existence"},
+            EnemySubtype.VOID_STALKER: {"health": 190.0, "aggression": 0.85, "damage_type": "void_entropy", "lore": "Cellar predator thriving in negative pressure"},
+            EnemySubtype.DEMIURGIC_TITAN: {"health": 600.0, "aggression": 0.99, "damage_type": "dt_dilation", "lore": "Mildenhall creature / demiurgic administrative titan"},
+            EnemySubtype.FERAL_SWARM: {"health": 80.0, "aggression": 0.75, "damage_type": "chitin_pierce", "lore": "Coordinated swarm scavengers"}
+        }.get(subtype, {"health": 100.0, "aggression": 0.5, "damage_type": "physical", "lore": "Standard entity"})
+
+        return {
+            "skeleton": skeleton,
+            "subtype": subtype,
+            "ambulatory_class": ambulatory_class,
+            "max_health": meta["health"] * difficulty_scale,
+            "current_health": meta["health"] * difficulty_scale,
+            "aggression_index": min(1.0, meta["aggression"] * difficulty_scale),
+            "damage_type": meta["damage_type"],
+            "lore_anchor": meta["lore"]
+        }
 
     def pull_one_shot_memory(self, memory_type: str, state_vector: torch.Tensor):
         """
