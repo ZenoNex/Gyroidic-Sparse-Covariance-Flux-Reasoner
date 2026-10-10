@@ -45,6 +45,14 @@ class PolynomialADMRSolver(nn.Module):
             use_opencl: If true, utilize PyOpenCL dual-queue hardware sovereignty.
         """
         super().__init__()
+        if poly_config is None:
+            try:
+                from src.core.polynomial_coprime import PolynomialCoprimeConfig
+                poly_config = PolynomialCoprimeConfig(k=5, degree=4, basis_type='chebyshev', device=device)
+            except Exception:
+                class _MockPolyConfig:
+                    k = 5
+                poly_config = _MockPolyConfig()
         self.config = poly_config
         self.state_dim = state_dim
         self.device = device
@@ -136,8 +144,8 @@ class PolynomialADMRSolver(nn.Module):
     def forward(
         self, 
         states: torch.Tensor, 
-        neighbor_states: torch.Tensor, 
-        adjacency_weight: torch.Tensor,
+        neighbor_states: Optional[torch.Tensor] = None, 
+        adjacency_weight: Optional[torch.Tensor] = None,
         valence: Optional[torch.Tensor] = None,
         use_warm_start: bool = False
     ) -> torch.Tensor:
@@ -151,6 +159,20 @@ class PolynomialADMRSolver(nn.Module):
             valence: [batch] training hunger / valency drive
             use_warm_start: If True, injects chiral cache history to prevent full reset.
         """
+        is_1d = (states.dim() == 1)
+        if is_1d:
+            states = states.unsqueeze(0)
+
+        if neighbor_states is None:
+            neighbor_states = states.unsqueeze(1)
+        elif neighbor_states.dim() == 2 and is_1d:
+            neighbor_states = neighbor_states.unsqueeze(0)
+
+        if adjacency_weight is None:
+            adjacency_weight = torch.ones((states.shape[0], neighbor_states.shape[1]), device=states.device)
+        elif adjacency_weight.dim() == 1 and is_1d:
+            adjacency_weight = adjacency_weight.unsqueeze(0)
+
         # Warm-start logic from Chiral Residue Cache:
         # Instead of resetting $C_0$ to standard normal, we inject the cache to preserve the "Dream" continuity.
         if use_warm_start and self.cache_valid.item():
@@ -231,6 +253,8 @@ class PolynomialADMRSolver(nn.Module):
             
             projected = torch.stack(winning_drafts, dim=0)
                 
+        if is_1d and projected.dim() == 2 and projected.shape[0] == 1:
+            return projected.squeeze(0)
         return projected
 
     def fast_micro_step(
