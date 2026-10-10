@@ -301,16 +301,23 @@ class ZeitgeistRouter(nn.Module):
     def __init__(
         self,
         dim: int,
-        moduli: Tuple[int, ...],
+        moduli: Optional[Tuple[int, ...]] = None,
         grazing_eps: float = 0.05,
         critical_boundary_threshold: float = 0.5,
         use_noncommutativity_check: bool = True,
     ):
         super().__init__()
 
+        if moduli is None:
+            try:
+                from src.core.invariants import get_prime_ladder
+                moduli = tuple(int(p.item()) for p in get_prime_ladder(8))
+            except Exception:
+                moduli = (2, 3, 5, 7, 11, 13, 17, 19)
+
         self.dim = dim
         self.moduli = tuple(int(p) for p in moduli)
-        self.M = len(moduli)
+        self.M = len(self.moduli)
         self.grazing_eps = grazing_eps
         self.critical_boundary_threshold = critical_boundary_threshold
         self.use_noncommutativity_check = use_noncommutativity_check
@@ -664,7 +671,7 @@ class ZeitgeistRouter(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        state: ZeitgeistState,
+        state: Optional[ZeitgeistState] = None,
         boundary=None,                 # Optional[BoundaryState]
         tadc_kwargs: Optional[Dict] = None  # Optional dict of TADC context values
     ) -> Tuple[str, ZeitgeistState, Dict, torch.Tensor]:
@@ -683,6 +690,13 @@ class ZeitgeistRouter(nn.Module):
             diagnostics : Dict of scalar metrics for the metrics payload.
             x_steered   : The steered state tensor.
         """
+        if state is None:
+            if not hasattr(self, '_current_state') or self._current_state is None:
+                self._current_state = ZeitgeistState.initial(self.moduli)
+            state = self._current_state
+
+        is_1d = (x.dim() == 1)
+
         #  0. Archetypal Synthesis Engine (Data Transformation)  #
         if self._archetype is not None and tadc_kwargs is not None:
              # Route through the Grand Governor
@@ -708,13 +722,15 @@ class ZeitgeistRouter(nn.Module):
                  # Direct fast-track to void
                  mode = 'undefined'
                  new_state = state.switched(state.alpha_tensor, state.level, mode, boundary)
+                 self._current_state = new_state
                  diag = self._build_diagnostics(
                     torch.zeros((1, self.M), device=x.device),
                     torch.zeros((1, self.M), dtype=torch.bool, device=x.device),
                     mode, state, new_state,
                  )
                  diag["abstraction_event"] = True
-                 return mode, new_state, diag, x
+                 out_x = x.squeeze(0) if is_1d and x.dim() == 2 and x.shape[0] == 1 else x
+                 return mode, new_state, diag, out_x
 
         #  Batch normalise  #
         if x.dim() == 1:
@@ -759,10 +775,12 @@ class ZeitgeistRouter(nn.Module):
                 mode='undefined',
                 boundary=boundary,
             )
+            self._current_state = new_state
             mode = 'undefined'
             diag = self._build_diagnostics(g, grazing_mask, mode, state, new_state)
             diag["cohomological_dimension"] = cohom_dim
-            return mode, new_state, diag, x
+            out_x = x.squeeze(0) if is_1d and x.dim() == 2 and x.shape[0] == 1 else x
+            return mode, new_state, diag, out_x
 
         #  3. Mode dispatch  #
         if not any_grazing:
@@ -859,7 +877,9 @@ class ZeitgeistRouter(nn.Module):
             clock_dt=clock_dt, valence=valence, nc_curvature=nc_curvature,
             grazing_pressure=grazing_pressure,
         )
-        return mode, new_state, diag, x_steered
+        self._current_state = new_state
+        out_steered = x_steered.squeeze(0) if is_1d and x_steered.dim() == 2 and x_steered.shape[0] == 1 else x_steered
+        return mode, new_state, diag, out_steered
 
     # ------------------------------------------------------------------ #
     # Diagnostics builder                                                  #
