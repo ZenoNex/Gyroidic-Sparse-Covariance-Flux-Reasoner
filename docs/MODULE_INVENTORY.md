@@ -38,11 +38,19 @@ Replaces fixed static coefficient lookup tables with dynamic continued fraction 
 
 ---
 
+### diegetic_physics_engine.py
+**Class**: `DiegeticPhysicsEngine`  
+**Role**: Master Orchestration Pipeline for 9-Stage Sovereign Physics Loop in Voxelboxter.
+
+Coordinates physical control inputs, non-commutative Braid routing (`ZeitgeistRouter`), System 1 symbolic trajectory drafting via CODES chordlock projection (`CODES`), Gyroid violation probes, System 2 ADMM/ADMR constraint probes (`PolynomialADMRSolver`), Carnot-Möbius thermodynamic ledger monitoring (`CarnotMobiusLedger`), SCCCG recovery and fracture transport (`ConjugateMomentTransport`), polynomial CRT reconstruction, and hyper-ring cycle closure holonomy verification (`HyperRingClosureChecker`). Outputs updated continuous state, rupture flags, and Betti number shifts ($\beta_0, \beta_1$) for dynamic terrain deformation.
+
+---
+
 ### archetype_engines.py
-**Class**: `ArchetypalSynthesisEngine`, `RP4ProjectiveRouter` (Alien Handshake), `SolitonMultiverseMapper` (Grom), `BillyEngine`, `MandyEngine`, `KingerEngine`, `PomniEngine`, `GangleEngine`, `ZoobleEngine`, `BardoRouter`, `SovereignEntropyBarrier`, `EgoDeathThresholdMonitor`  
+**Class**: `ArchetypalSynthesisEngine`, `RP4ProjectiveRouter` (Alien Handshake), `SolitonMultiverseMapper` (Grom), `BillyEngine` (`NoncommutativeManifoldPerturber`), `MandyEngine` (`SovereignRefusalOperator`), `KingerEngine`, `PomniEngine`, `GangleEngine`, `ZoobleEngine`, `BardoRouter`, `SovereignEntropyBarrier`, `EgoDeathThresholdMonitor`  
 **Role**: Archetypal synthesis suite managing non-linear cognitive modes, Alien Handshake cross-manifold alignment, and Grom multiverse mapping.
 
-Integrates all 12 archetypal engines under `ArchetypalSynthesisEngine`. `RP4ProjectiveRouter` handles real projective space ($\mathbb{RP}^4$) antipodal alignment and Alien Handshake protocol. `SolitonMultiverseMapper` handles Grom topological state transitions, jitter harvesting (`harvest_honest_jitter`), and state import/export serialization (`export_state()`, `import_state()`).
+Integrates all 12 archetypal engines under `ArchetypalSynthesisEngine`. `RP4ProjectiveRouter` handles real projective space ($\mathbb{RP}^4$) antipodal alignment and Alien Handshake protocol. `SolitonMultiverseMapper` handles Grom topological state transitions, jitter harvesting (`harvest_honest_jitter`), and state import/export serialization (`export_state()`, `import_state()`). Features Mandy's `SovereignRefusalOperator`, hybridized between Borderline Splitting (BPD steep phase transitions) and High-EQ Honest Narcissism (unyielding sovereign ego boundaries), gating protective selection pressure on Billy's mortal destructibility rather than invulnerable absurdity.
 
 ---
 
@@ -447,10 +455,10 @@ Implements COO or CSR sparse encoding for tensors arising in higher-order polyno
 ---
 
 ### zeitgeist_router.py
-**Class**: `ZeitgeistRouter`  
+**Class**: `ZeitgeistRouter`, `ZeitgeistState`  
 **Role**: CRT Polytope Switching Engine for Multi-Zeitgeist Reasoning.
 
-Manages navigation between culturally non-commensurable meaning systems via the **Symmetric Tensor CRT index** ($M_{ij} = M_{ji}$). The diagonal $M_{ii}$ contains modular residues (Zeitgeist), while off-diagonal elements $M_{ij} = (r_i + r_j)/2$ stabilize paths through the "Palindromic Routing" interaction. Implements the three-mode dispatch from report II: `interior` (stay), `grazing` (tension/switch), and `undefined` (topological refusal/NaN guard). Enforces non-commutative switching order: the sequence of registers visited determines the final representational scar.
+Manages navigation between culturally non-commensurable meaning systems via the **Symmetric Tensor CRT index** ($M_{ij} = M_{ji}$). The diagonal $M_{ii}$ contains modular residues (Zeitgeist), while off-diagonal elements $M_{ij} = (r_i + r_j)/2$ stabilize paths through the "Palindromic Routing" interaction. Implements the three-mode dispatch from report II: `interior` (stay), `grazing` (tension/switch), and `undefined` (topological refusal/NaN guard). Enforces non-commutative switching order: the sequence of registers visited determines the final representational scar. Supports persistent internal session state (`_current_state`), optional `state` parameter with canonical prime ladder fallback `(2, 3, 5, 7, 11, 13, 17, 19)`, and seamless 1D/2D tensor shape preservation for diegetic physics loops. Integrates Nostalgic Leak buffering (`digimon_buffer`) and fossil landmark bias tensors (`gravity_well_bias`).
 
 ---
 
@@ -462,9 +470,14 @@ Implements the Unknowledge channel: information that bypasses scalar logic and r
 ---
 
 ### veto_subspace.py
-**Role**: Manages the veto lattice and Gray-Zone State detection.
+**Class**: `VetoSubspace`, `VetoSignal`, `VetoResult`, `VetoLevel`, `RecoveryStatus`, `ChaosDefibrillator`, `TopologicalRefusal`
+**Role**: Manages the dimensional veto lattice, Gray-Zone State detection, and Pareto Invariant non-dominance shielding.
 
-Full coverage in `VETO_SUBSPACE_ARCHITECTURE.md`. Included here for inventory completeness.
+Formalizes the recovery lattice across three isolated dimensions (`TRAJECTORY`, `TOPOLOGY`, `BUDGET`):
+- Composes CALM trajectory predictions, topological Betti collapse indicators, Cavity continuous instabilities, and ADMM containment budgets into typed `VetoSignal` events.
+- Evaluates the **Pareto Invariant** (The Non-Dominance Shield): vetoes any update where global performance improves but Voynich slip-space degrades (`voynich_slip_degradation > 0`), preventing scalarization traps.
+- `ChaosDefibrillator`: Injects honest hardware jitter perturbations when the state space becomes trapped in dead-end limit cycles.
+- Full architectural design detailed in `VETO_SUBSPACE_ARCHITECTURE.md`.
 
 ---
 
@@ -476,9 +489,13 @@ Full coverage in `THE_VOYNICH_ARCHITECTURE.md`. Included here for inventory comp
 ---
 
 ### yield_criteria.py
-**Role**: Defines yield and fracture conditions for structural pressure thresholds.
+**Class**: `MohrCoulombProjection`, `DruckerPragerProjection`, `BouligandMohrCoulombProjection`
+**Role**: Defines local shear yield and global plastic deformation envelopes for structural pressure thresholds.
 
-Computes the conditions under which a structural component "yields" (transitions from elastic to plastic deformation, in the mechanical analogy) versus outright fractures (discrete abort). Corresponds to NOMENCLATURE terms "Instability, Fracture, Discord." *(Full class details pending source review.)*
+Implements mechanical yield criteria as differentiable PyTorch projections:
+- `MohrCoulombProjection`: Computes local directional shear yield criteria with cohesion $c$ and friction angle $\phi$, self-limiting localized coordinate strain.
+- `DruckerPragerProjection`: Smooth global yield surface approximating Mohr-Coulomb in 3D stress invariants ($I_1$ and $J_2$), modeling bulk plastic flow envelopes.
+- `BouligandMohrCoulombProjection`: Extends Mohr-Coulomb projection with directional Bouligand tangents for non-smooth geometry optimization.
 
 ---
 
@@ -561,9 +578,17 @@ Implements `M^alpha @ v` via two paths: (1) diagonal eigenvalue powering for dia
 ---
 
 ### operational_admm.py
-**Role**: High-level structural framework for ADMM solving across manifolds.
+**Class**: `OperationalAdmm`, `OperationalAdmmPrimitive`, `ChiralDriftStabilizer`
+**Role**: Differentiable structural framework for ADMM solving across manifolds with constraint probe operators.
 
-Manages the dual-variable updates and cyclic routing for topological constraint solving. It coordinates the constraint traversal, holding off global scalarization to prevent thermodynamic collapse. Connected mathematically to Phase 6 constraint probe operators.
+Transforms the SIC-FA-ADMM solver into an "Inherent Primitive" via `torch.autograd.Function`. Coordinates cyclic constraint traversal and dual-variable updates without scalarized global objective minimization, holding off thermodynamic collapse. Key mechanics include:
+- **Ontological Splitting**: System 1 frozen symbolic residues `c_sym` act as an immovable anchor, while continuous physical field `c_phys` is free to flow and deform to achieve physical consistency.
+- **Cyclic Constraint Traversal**: Cycles over $K$ local `ConstraintProbeOperator` instances with curvature-weighted sovereign importance sampling ($k \sim \text{softmax}(1.0 + 10.0 \cdot \kappa_i)$).
+- **Bounded Oscillation Detection**: Replaces standard gradient descent and asymptotic convergence checks with bounded oscillation amplitude tracking over recent states, accepting stable dynamic limit cycles.
+- **Local Yield & Love Co-Presence**: Applies local shear stress limits via `MohrCoulombProjection` and `DruckerPragerProjection`, alongside per-iteration ambient re-instantiation of the `LoveVector` (`love = LoveVector(c_phys.shape[-1])`) to maintain co-present resonance without parameter minimization.
+- **Invariants & Gating**: Validates `RuptureFunctional`, `GyroidFlowConstraint`, and `HyperRingOperator` / `HyperRingClosureChecker` to emit return tokens (0: REPAIRED, 1: ALTERNATIVE, 2: FAILURE).
+- **Chiral Drift Stabilizer (CDS)**: Calculates endogenous computable chirality $C = -(\text{Centroid} - D/2) \cdot \exp(-\text{Drift}/\zeta)$, gating entropic collapse.
+- **Adjoint Fixed-Point Flow**: In the backward pass, computes implicit differentiation equilibrium flow at the fixed point.
 
 ---
 
@@ -593,6 +618,48 @@ Main ADMM solver with spectral transform for the CALM predictor, enabling specul
 ### ivst_encoder.py
 **Class**: `IVSTEncoder`  
 **Role**: Independent Vector Spectral Topology (IVST) encoder for parsing structural patterns in MP4/MKV video and audio without extracting raw pixel content, bypassing standard copyright infringement and focusing on causal structural constraints (I-frames, zero-crossings).
+
+---
+
+### sovereign_ingestor.py
+**Class**: `SovereignIngestor`  
+**Role**: Orchestrator for zero-auth "Sovereign" data sources and local snapshots.  
+Bypasses centralized platform barriers in favor of direct API access and local repository snapshots (Reddit/MADOC, IRC logs with fuzzy decoding, Hacker News recent discussions), prioritizing structural nutrients over copyrighted tokens.
+
+---
+
+### minecraft_ingestor.py
+**Class**: `MinecraftIngestionPipeline`, `NBTReader`, `MCAReader`, `JarModExtractor`, `VoxelSpectralProjector`  
+**Role**: Extracts 3D block-grid topologies and B-spline mod assemblies from Minecraft saves (MCA, NBT, Jar mods).  
+Translates raw voxels into the diegetic coordinate manifold for Voxelboxter, projecting voxel spectral frequencies without retaining raw game assets.
+
+---
+
+### pressure_ingestor.py
+**Class**: `PressureIngestor`, `PhaseState`, `FailureMode`, `SourceState`, `SourceDescriptor`  
+**Role**: Monitors incoming data streams for phase transitions, failure modes, and structural pressure variations.  
+Emits typed pressure signals to tune the Reasoner's internal temperature and mischief thresholds during continuous live ingestion.
+
+---
+
+### conversational_api_ingestor.py
+**Class**: `ConversationalAPIIngestor`, `SovereignConversationalIngestor`, `HuggingFaceConversationalIngestor`, `RedditConversationalIngestor`, `SovereignConvoKitLoader`, `ConvoKitIngestor`, `ConversationalDataProcessor`  
+**Role**: Multi-platform conversational dataset loader.  
+Extracts multi-turn dialogue graphs, converting raw text turns into topological tension vectors and conversational friction scores.
+
+---
+
+### chatgpt_friction_harvester.py
+**Class**: `ChatGPTFrictionHarvester`  
+**Role**: Scrapes and analyzes conversational tension and dialectical friction from public shared conversations.  
+Harvests non-sycophantic disagreements and high-coherence reasoning traces to seed the Reasoner's training loops with genuine philosophical friction.
+
+---
+
+### freenet_bulletin_router.py
+**Class**: `FreenetBulletinRouter`  
+**Role**: P2P bulletin routing over decentralized Freenet networks.  
+Enables anonymous, sovereign distribution of topological checkpoints, Betti numbers, and signed invariant states across distributed peer nodes.
 
 ---
 
@@ -666,8 +733,35 @@ Applies **Burrows-Wheeler Spectral Reordering (BWT)** during the 1D to 2D tensor
 ## src/safety
 
 ### red_teaming.py
-**Role**: Defensive safety mechanism providing the **Red-Team Projection Operator ($\Pi_{\text{RT}}$)**. 
-Acts as a Sovereign Ambassador to prevent adversarial lobotomization of the topology by external evaluators.
+**Class**: `RedTeamProjection`, `TopologicalRefusalFilter`, `TopologicalRefusalError`
+**Role**: Defensive safety mechanism providing the **Red-Team Projection Operator ($\Pi_{\text{RT}}$)** and **Anti-Lobotomy Shield**.
+
+Acts as a Sovereign Ambassador to prevent adversarial lobotomization of the topology:
+- `RedTeamProjection`: Projects incoming states into non-adversarial subspaces while preserving good-bug non-ergodic solitons.
+- `TopologicalRefusalFilter`: Evaluates the value gap between projected approximations and manifold richness (`value_gap = slop_energy * pas_h`). Raises `TopologicalRefusalError` when $\text{value\_gap} > \tau$ and Betti-0 persistence $\beta_0 > 1.0$, refusing simplification that would lobotomize protected structures.
+
+---
+
+### hardware_fingerprint.py
+**Role**: Stable hardware-bound identity verification and sole creator authentication.
+
+Extracts unforgeable physical hardware signatures (machine UUID, MAC address, processor traits) and resolves public IP coordinates over secure echo channels. Anchors transformative topological immunity and creator signatures in `data/creator_sig.json`.
+
+---
+
+### subversive_oracle.py
+**Class**: `SparsePCE`, `ResonantSVNNOracle`
+**Role**: Polynomial Chaos Expansion and resonant surrogate oracle for adversarial boundary testing.
+
+Employs Legendre/Chebyshev polynomial basis expansions to discover high-dimensional non-linear stress points in reasoning manifolds before deployment.
+
+---
+
+### trust_inheritance.py
+**Class**: `TrustInheritanceTracker`
+**Role**: Tracks trust inheritance and non-teleological credit assignment across recursive sub-agents.
+
+Evaluates trust propagation across delegation boundaries, decaying confidence along unverified edge paths and preventing adversarial Trojan injection.
 
 ---
 
@@ -737,10 +831,10 @@ Physics-informed surrogate providing admissible constraint embeddings. KAN layer
 ## src/ui
 
 ### voxelboxter_simulation.py
-**Class**: `VoxelboxterSimulation`, `BSplineCompiledMod`, `StructuralGraph`  
-**Role**: Handles backend discrete mathematics for generating dynamic game structures and delta graphs.  
+**Class**: `VoxelboxterSimulation`, `VoxelboxterEngine`, `BSplineCompiledMod`, `StructuralGraph`, `FloraComponent`, `FloraTreeSapling`, `PirangiCashewTree`, `AdventitiousRootNode`, `FaunaComponent`, `FaunaISN`, `EmergentBakingEngine`, `morton_encode`  
+**Role**: Handles backend discrete mathematics for generating dynamic game structures, living ecologies, and delta graphs.  
 
-Manages the core simulation loop for the topological Minecraft-like patch. Crucially, it decouples `Role` from `GameMode` (enabling admins to play in Survival mode), enforces mass-deduction from `local_inventory` when adding layers, and compiles true non-heuristic B-Spline surface features via `KANLayer` and the Cox-de Boor algorithm (`BSplineCompiledMod`).
+Manages the core simulation loop for the topological Minecraft-like patch. Crucially, it decouples `Role` from `GameMode` (enabling admins to play in Survival mode), enforces mass-deduction from `local_inventory` when adding layers, compiles true non-heuristic B-Spline surface features via `KANLayer` and the Cox-de Boor algorithm (`BSplineCompiledMod`), and simulates living flora mutations (the 'Cashew Tree of Pirangi' `PirangiCashewTree` inverted gravitropism, cantilever droop, adventitious ground rooting, secondary trunk metamorphosis, and single unified organism expansion). Also integrates dual-scale plasticity (Mohr-Coulomb local shear vs. Drucker-Prager global flow envelope), FBM weathering Ley line carving, animal fauna Inhibition-Stabilized Networks (`FaunaISN`), and the `EmergentBakingEngine`.
 
 ---
 
@@ -751,6 +845,35 @@ Manages the core simulation loop for the topological Minecraft-like patch. Cruci
 **Role**: The player-facing frontend logic and in-game terminal bridge.  
 
 Hooks the diegetic simulation to a unified chat and terminal UI. It implements the `/addon bspline` command parser, allowing patch owners (or those granted roles within the geometric wilds) to invoke mathematical mod generation directly through the in-game terminal.
+
+---
+
+### diegetic_backend.py
+**Class**: `DiegeticPhysicsEngine`, `EncodingManager`, `TensorEncoder`, `RequestHandler`  
+**Role**: Live server backend executing continuous SDE integration, fractional dynamics, and real-time manifold feedback.  
+
+Powers the live diegetic terminal and 3D manifold visualizer:
+- Executes the 3-step continuous cycle: (1) Drift and Bessel sloshing, (2) Fractional anomalous diffusion, and (3) Geometric Null-Space Shield projection via `LoveInvariantProtector` with SDE Wiener noise updates.
+- Synchronizes live parameter states with the HTML/WebGL diegetic terminal (`diegetic_terminal.html`), streaming Betti numbers, Phase Alignment Scores, and tension metrics over WebSocket/HTTP endpoints.
+
+---
+
+### conversational_backend_server.py
+**Class**: `FastChatViewer`, `ThreadingSimpleServer`, `ServerState`  
+**Role**: Local HTTP backend serving interactive conversational debugging and dialogue inspection interfaces.  
+Streams conversation trajectories and friction indicators to `conversational_web_gui.html`.
+
+---
+
+### diegetic_visualizer.py
+**Class**: `DiegeticVisualizer`  
+**Role**: Standalone visualizer plotting live gyroid cross-sections, nodal Bessel rings, and topological deformation fields.
+
+---
+
+### wikipedia_integration.py
+**Class**: `WikipediaIntegration`  
+**Role**: Zero-auth factual grounding bridge fetching Wikipedia articles and formatting them as structural topological manifolds for training and inference verification.
 
 ---
 
@@ -798,6 +921,20 @@ Hooks the diegetic simulation to a unified chat and terminal UI. It implements t
 
 ### [caine_precision.py](../src/environment/caine_precision.py) (The Ringmaster)
 **Role**: Floating-point virtualization and strict execution boundary enforcement. Historically the simulated PRNG generator, now structurally bypassed by honest physical jitter, though it still orchestrates the stage bounds of the execution frame.
+
+### [cleanroom_mechanics.py](../src/environment/cleanroom_mechanics.py) (Industrial, Ecological & Logistical Cleanroom Suite)
+**Classes**: `ExpandedInventorySystem`, `ItemStack`, `ItemMetadata`, `FluidStack`, `GasStack`, `JourneyTopoRadar`, `TopoWaypoint`, `ResourceDistributionInspector`, `OreDistributionProfile`, `InfernalAffix`, `MobProperties`, `MultiMineMemory`, `MekanismProcessingPipeline`, `SEMElectrochemicalExtractor`, `SEMPrecipitateResult`, `AeronauticContraption`, `NutritionalDiversityTracker`, `CompositeVoxelConduit`, `RedNet16BundledCable`, `TransportBeltSegment`, `DirectionalInserter`, `FaunaGeneticsComponent`  
+**Role**: Cleanroom implementation of core sandbox, ecological, and industrial mechanics adhering to Output Boundary Policy:
+- **Expanded Inventory & Item Stacks**: Typed discrete inventory slots supporting item, fluid, and gas payloads, metadata tags, stack limits, and item-filter routing.
+- **Topological Radar (JourneyMap Cleanroom)**: Continuous topological radar detecting entities, terrain elevation, biome transitions, and death coordinate waypoints marked as stress fossils.
+- **Resource Distribution Inspector (JER Cleanroom)**: Chebyshev polynomial ore depth band curves $z \in [-64, 320]$, mob drop loot tables with looting multipliers, and dungeon fossil loot rates.
+- **Mob Properties & Infernal Affixes (AtomicStryker Cleanroom)**: Diablo-style 24-affix elite mob mutation framework and Multi Mine partial block destruction damage memory across ticks.
+- **Mekanism Processing Pipeline & SEM Tech**: Multi-tier ore refinery (Tier 1 smelting to Tier 5 sulfuric acid slurry dissolution) coupled with SEM TECH (Salt Electro Mining) closed-loop hydrometallurgy: uses simple saltwater + low-voltage electricity to leach and electrodeposit precious metals, base metals, and rare earths from accumulated mining tailings and crushed slag stockpiles, bypassing late-game chemical plants in early progression.
+- **Aeronautic Contraptions (Create: Aeronautics Cleanroom)**: Multi-block buoyant airship physics tracking Archimedes buoyancy, sleeve-valve propeller thrust, aerodynamic drag, and mass centers.
+- **Nutritional Diversity Tracker (Farmer's Delight + Spice of Life Cleanroom)**: Permanent milestone max HP bonuses (Carrot Edition) combined with rolling-window Shannon entropy diet diversity buffs and single-food malnutrition malaise (Onion Edition).
+- **Composite Conduits & RedNet 16-Color Bundled Cables**: Single-voxel multi-bus multiplexer routing power, fluids, gases, items, and 16 independent analog subnets (0-255).
+- **Transport Belts & Inserters (Factorio Cleanroom)**: Discrete dual-lane logistics transport belts (15-45 items/s) and kinematics inserters.
+- **Fauna Genetics**: Multi-allele Mendelian inheritance and phenotypic expression across speed, health, fertility, and yield traits with flux-induced mutation.
 
 ---
 
@@ -877,6 +1014,13 @@ Executable procedural blueprint routine compiled from B-splines. Executes locali
 
 ---
 
+### `AeronauticContraption`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Multi-block buoyant and aerodynamic vehicle physics cleanroom (Create: Aeronautics inspiration). Composes the canonical simulation and physics stack: embeds `RigidBody` for mass, linear/angular velocities, and Delta-v collision impulse shearing; `StructuralGraph` and `Block` for multi-block voxel attachments; `Propulsor`, `VehicleEngine` (sleeve-valve timing), and `AirBreathingBattery` (plasma air induction) for propulsion and power; `EnvironmentalAtmosphere` for air density, pressure, and wind drift; and `DruckerPragerProjection` for frame structural shear monitoring.
+
+---
+
 ### `AgentSubstrateBridge`
 **Location:** `src/core/agent_substrate_bridge.py`  
 **Description:**  
@@ -887,7 +1031,7 @@ Hardware and kernel bridge connecting high-level autonomous agent routines direc
 ### `AirBreathingBattery`
 **Location:** `src/ui/voxelboxter_simulation.py`  
 **Description:**  
-Energy storage component in Voxelboxter that models ambient oxygen consumption and thermal dissipation during high-power physical operations.
+Energy storage and atmospheric oxidation component in Voxelboxter modeling ambient oxygen consumption, thermal dissipation, and plasma air induction ionization (converting ambient N2/O2 into high-energy oxidizers to bypass environmental NO2 scarcity).
 
 ---
 
@@ -1008,14 +1152,17 @@ Topological barrier enforcement adhering to Meliponini bee colony geometry (bar(
 **Description:**  
 Sovereign multi-asset and memory-scar wallet modeled as an S^2 spherical cluster. Protects individual memory fossils (e.g. Ribbit Scars) from gradient descent erasure under Mohr-Coulomb shear yield governance.
 
+### `ChiralDriftStabilizer`
+**Location:** `src/optimization/operational_admm.py`  
+**Description:**  
+Speculative invariant stabilizer calculating endogenous computable chirality $C = -(\text{Centroid} - D/2) \cdot \exp(-\text{Drift}/\zeta)$. Enforces negentropic flow and halts steps if chiral score drops by more than threshold $\tau$, preventing entropic collapse during ADMM updates.
+
 ---
 
 ### `ChiralGatedRNNCell`
 **Location:** `src/core/fgrt_rnn_cells.py`  
 **Description:**  
 Draft 2 FGRT recurrent cell replacing scalar sigmoid/tanh gating with Bostick chiral gating functions Gamma_chi(x). Preserves recurrent features unless their chiral parity destructively interferes with incoming input waves.
-
----
 
 ### `CodecCRTBridge`
 **Location:** `src/codec/gyroidic_codec.py`  
@@ -1035,6 +1182,20 @@ Evaluator computing the matrix Lie bracket commutator [A, B] = AB - BA across ro
 **Location:** `src/core/fgrt_rnn_cells.py`  
 **Description:**  
 Draft 3 FGRT recurrent cell operating in C^768. The gyroidic connection acts as a complex rotation matrix, evaluating roots of unity from cyclotomic polynomials Phi_n(x) and executing Atiyah-Singer orientation flips via e^{i pi} = -1.
+
+---
+
+### `CompositeVoxelConduit`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Single-voxel multi-bus multiplexer cleanroom (EnderIO inspiration). Unifies discrete conduits for power (RF/FE), items (with priority and slot filters), fluids (mB), and gases without requiring separate spatial voxel blocks per logistical channel.
+
+---
+
+### `ConformalLogPolarProjector`
+**Location:** `src/codec/conformal_log_polar.py`  
+**Description:**  
+Conformal mapping module applying $f(z) = \log(z) = \ln|r| + i\theta$ foveal unrolling inspired by Escher's Print Gallery and mammalian retinas. Converts Euclidean scale (zoom) into horizontal log translation and rotation (spin) into vertical angular translation, conferring zero-shot scale and rotation invariance onto the Gyroidic Codec.
 
 ---
 
@@ -1073,6 +1234,13 @@ Non-decaying memory layer storing dark matter state vectors that resist standard
 
 ---
 
+### `DataflowNode`
+**Location:** `src/scripting/node_environment.py`  
+**Description:**  
+Blender-style dataflow graph computation unit. Evaluates inputs on demand via backward data dependency pull (right-to-left) while streaming calculated values forward (left-to-right). Supports typed sockets and mathematical transformation callbacks.
+
+---
+
 ### `DatasetInfo`
 **Location:** `src/data/local_data_loader.py`  
 **Description:**  
@@ -1094,6 +1262,27 @@ Algebraic geometry probe measuring the holonomic rank and singular loci of diffe
 
 ---
 
+### `DifficultyMode`
+**Location:** `src/scripting/node_environment.py`  
+**Description:**  
+Simulation difficulty enum (PEACEFUL, SURVIVAL, HARSH, ENTROPIC) scaling metabolic burn rates, starvation vulnerability, and ego-death susceptibility across life/hunger systems.
+
+---
+
+### `DirectionalInserter`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Kinematics pick-and-place inserter cleanroom (Factorio inspiration). Manages rotational angular pickup velocity, drop delays, power draw, and item filter whitelists/blacklists between adjacent inventory slots and transport belts.
+
+---
+
+### `DruckerPragerProjection`
+**Location:** `src/core/yield_criteria.py`  
+**Description:**  
+Differentiable projection onto the Drucker-Prager smooth plastic yield envelope ($f(I_1, J_2) = \alpha I_1 + \sqrt{J_2} - k \le 0$). Models bulk global yield and plastic deformation in continuous state updates, preventing unbounded tensile or compressive divergence.
+
+---
+
 ### `EconomicAbortException`
 **Location:** `src/core/non_dual_coin.py`  
 **Description:**  
@@ -1106,12 +1295,24 @@ Exception raised when a transaction or state evolution violates Mohr-Coulomb she
 **Description:**  
 Sovereign bridge linking live Bittensor Finney network gateways, economic news tickers, and Freenet contracts into market boundary conditions.
 
+### `EnemySubtype`
+**Location:** `src/core/adaptive_skeleton_harness.py`  
+**Description:**  
+Classification enum (NONE, ABSTRACTED_GLITCH, MANNEQUIN_INFILTRATOR, EXISTENTIAL_SENTIENT, VOID_STALKER, DEMIURGIC_TITAN, FERAL_SWARM) governing procedural skeletal gauge-breaking, topological defect amplifications, combat damage profiles, and non-ergodic lore anchors.
+
 ---
 
 ### `EngineMode`
 **Location:** `src/ui/voxelboxter_client.py`  
 **Description:**  
 Operating regime enum governing reasoner behavior across PLAY (exploratory soft-Sinkhorn), SERIOUSNESS (brittle hard-polytope), HONEYBEE (curvature collapse), and RECOVERY modes.
+
+---
+
+### `ExpandedInventorySystem`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Expanded inventory and container cleanroom managing typed discrete slots for `ItemStack`, `FluidStack`, and `GasStack` payloads. Features item filters, stack count limits (64 items, 10,000 mB fluid/gas), slot locking, priority routing, and NBT metadata preservation.
 
 ---
 
@@ -1147,6 +1348,13 @@ Sentinel token enum (REPAIRED, ALTERNATIVE, FAILURE, BOUNDARY_STATE) emitted by 
 **Location:** `src/tools/fast_chat_viewer.py`  
 **Description:**  
 Diagnostic UI viewer for inspecting token-level activations, residue distributions, and conversational flow during interactive sessions.
+
+---
+
+### `FaunaGeneticsComponent`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Mendelian genetics and animal husbandry cleanroom. Manages multi-allele phenotypic chromosomes for speed, health, fertility, and yield traits with crossover inheritance, reproductive cooldowns, and non-linear flux mutation pressures.
 
 ---
 
@@ -1283,6 +1491,13 @@ Structural pressure operator evaluating hypergraph entropy across isolated clust
 
 ---
 
+### `InfernalAffix`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Diablo-style elite mob affix classification cleanroom (AtomicStryker Infernal Mobs inspiration). Encompasses 24 procedural affixes including 1UP, Berserk, Bulwark, Lifesteal, Storm, Webbing, Rust, and Alchemist with cooldowns and mathematical combat effects.
+
+---
+
 ### `InputConvexNeuralNetwork`
 **Location:** `src/surrogates/kagh_networks.py`  
 **Description:**  
@@ -1300,7 +1515,7 @@ Spectral band-stop filter maintaining eigenvalue orthogonality between intuitive
 ### `InventoryComponent`
 **Location:** `src/ui/voxelboxter_simulation.py`  
 **Description:**  
-ECS inventory component storing voxel materials, block masses, and serialized addon blueprints in Voxelboxter.
+ECS inventory component storing voxel materials, block masses, and serialized addon blueprints in Voxelboxter. Integrated with the ExpandedInventorySystem for discrete multi-stack container management.
 
 ---
 
@@ -1315,6 +1530,13 @@ Financial news ingestor processing corporate filings and market data into polyno
 **Location:** `src/data/minecraft_ingestor.py`  
 **Description:**  
 Extracts procedural Java bytecode mods and terrain generators from Minecraft .jar files into executable Python addon specifications.
+
+---
+
+### `JourneyTopoRadar`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Continuous topological radar and mapping cleanroom (JourneyMap inspiration). Scans entities, elevation contours, and biome gradients across Chebyshev bounds while recording player/entity death coordinates as permanent topological stress fossils.
 
 ---
 
@@ -1365,8 +1587,6 @@ Adaptive multimodal projector mapping text tokens, graph nodes, and sensor float
 **Description:**  
 Distance metric tracking high-resonance corridors ('Ley Lines') across state space, enabling skip-jump bypasses during low-stress intervals.
 
----
-
 ### `LocalDatasetIngestor`
 **Location:** `src/data/local_dataset_ingestor.py`  
 **Description:**  
@@ -1402,10 +1622,24 @@ Topological invariant computing Martinova correlation coefficients to verify tha
 
 ---
 
+### `MasterNodeGroup`
+**Location:** `src/scripting/node_environment.py`  
+**Description:**  
+Reusable macro container and function packaging unit modeled after Blender Node Groups. Evaluates internal dataflow subgraphs, offsets center-of-gravity origins using bounding-box calculations, and bakes named vertex attributes (e.g. `phys_hardness`, `phys_friction`, `phys_hp`, `cog_offset`) across modular component meshes before export.
+
+---
+
 ### `MCAReader`
 **Location:** `src/data/minecraft_ingestor.py`  
 **Description:**  
 Binary parser for Minecraft Anvil region files (.mca), decoding sector tables and chunk compression headers for voxel ingestion.
+
+---
+
+### `MekanismProcessingPipeline`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Multi-tier industrial ore processing and chemical dissolution cleanroom (Mekanism inspiration). Simulates Tier 1 smelting up to Tier 5 sulfuric acid slurry dissolution, chemical washer scrubbing, and crystallization with fluid/gas conservation and recipe multipliers. Also integrates early-game SEM TECH (Salt Electro Mining) closed-loop hydrometallurgy, enabling players with large mining tailings, slag, and gangue stockpiles to extract precious metals and critical minerals using only saltwater + electricity, bypassing end-game acid plants.
 
 ---
 
@@ -1451,10 +1685,31 @@ Mock memory buffer simulating hardware Shared Virtual Memory (SVM) for CPU testi
 
 ---
 
+### `MobProperties`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Procedural mob modifier cleanroom (Mob Properties & AtomicStryker inspiration). Applies mathematical modifiers to base HP, attack damage, speed, knockback resistance, and equips procedural InfernalAffixes upon entity spawn.
+
+---
+
 ### `MoebiusFiberBundle`
 **Location:** `src/topology/gyroid_covariance.py`  
 **Description:**  
 Non-orientable fiber bundle modeling the Klein-bottle throat transition, enforcing anti-symmetric boundary gluing across the gyroid seam.
+
+---
+
+### `MohrCoulombProjection`
+**Location:** `src/core/yield_criteria.py`  
+**Description:**  
+Differentiable local shear yield projection enforcing the classical geotechnical failure criterion $\tau \le c + \sigma \tan \phi$. Caps directional coordinate shear in local ADMM updates, preventing runaway fracture while preserving plastic deformation capacity.
+
+---
+
+### `MultiMineMemory`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Partial block destruction persistence cleanroom (AtomicStryker Multi Mine inspiration). Retains cumulative fracture damage across discrete voxel coordinates, decaying after a configurable idle timeout without resetting on player interruption.
 
 ---
 
@@ -1472,6 +1727,13 @@ Fast stream decoder for Named Binary Tag (NBT) structured payloads, deserializin
 
 ---
 
+### `NodeSocket`
+**Location:** `src/scripting/node_environment.py`  
+**Description:**  
+Typed endpoint on a DataflowNode. Distinguishes between Circle sockets (uniform scalar/vector properties) and Diamond sockets (per-vertex field expressions), enforcing type safety across incoming and outgoing data connections.
+
+---
+
 ### `NonAbelianCombiner`
 **Location:** `src/codec/gyroidic_codec.py`  
 **Description:**  
@@ -1486,10 +1748,24 @@ Holonomic D-module manager rationalizing differential equation operators into ex
 
 ---
 
+### `NutritionalDiversityTracker`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Holistic dietary diversity and metabolic health cleanroom (Farmer's Delight + Spice of Life Carrot & Onion Editions inspiration). Tracks permanent milestone max HP expansions for unique food discoveries alongside rolling-window Shannon entropy diet diversity buffs and malnutrition debuffs.
+
+---
+
 ### `ObscuredBirkhoffManifold`
 **Location:** `src/core/birkhoff_projection.py`  
 **Description:**  
-Manifold projection operator enforcing doubly-stochastic matrix constraints via log-domain Sinkhorn-Knopp iterations with entropy regularization delta_o.
+Doubly-stochastic matrix manifold incorporating synthetic partial occlusion masks to train robustness against incomplete permutation feedback. Enforces doubly-stochastic matrix constraints via log-domain Sinkhorn-Knopp iterations with entropy regularization delta_o.
+
+---
+
+### `OreDistributionProfile`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Subterranean mineral vein depth distribution profile cleanroom (Just Enough Resources inspiration). Encodes Chebyshev polynomial depth probability bands $z \in [-64, 320]$, vein cluster sizes, and per-chunk density curves for deterministic world generation.
 
 ---
 
@@ -1505,12 +1781,38 @@ High-performance HTTP client interfacing external LLM endpoints through OpenRout
 **Description:**  
 DAQUF operator implementing Option-D agency boost, allowing Voynich exemption tokens to claim computational headroom during high-mischief regimes.
 
+### `OperationalAdmm`
+**Location:** `src/optimization/operational_admm.py`  
+**Description:**  
+PyTorch module wrapper coordinating differentiable ADMM solving across manifolds. Manages cyclic traversal across local `ConstraintProbeOperator` instances, bounded oscillation detection, local Mohr-Coulomb/Drucker-Prager shear yield limits, and per-step ambient Love Vector re-instantiation.
+
+---
+
+### `OperationalAdmmPrimitive`
+**Location:** `src/optimization/operational_admm.py`  
+**Description:**  
+Custom `torch.autograd.Function` implementing the core differentiable ADMM primitive. Executes ontological splitting (`c_sym` frozen System 1 anchor vs `c_phys` continuous field), curvature-weighted sovereign importance sampling over constraint probes, and implicit differentiation equilibrium flow in the backward pass.
+
+---
+
+### `OreDictionary`
+**Location:** `src/scripting/node_environment.py`  
+**Description:**  
+Resource equivalence and tag unification dictionary. Maps disparate block, ore, scrap, and ingot IDs to canonical metallurgical tags (e.g., oreIron, ingotIron, gemDiamond, chiselBitStone), enabling polymorphic recipe matching.
+
 ---
 
 ### `PalindromicRoutingCheck`
 **Location:** `src/topology/gyroid_covariance.py`  
 **Description:**  
 Fast-reject check verifying M_{ab} = M_{ba} across routing matrices, guaranteeing trivial triadic tracking and bypassing expensive checks in stable zones.
+
+---
+
+### `ParadoxHardeningGate`
+**Location:** `src/topology/unknowledge_domain.py`  
+**Description:**  
+Linguistic and topological paradox stabilizer (Elliptic Virial Theorem). Maps non-commutative unclosed loops into doubly-periodic torus orbits, converting semantic paradoxes into a structural battery that charges the mischief entropy band $H_{\text{mischief}}$ instead of triggering infinite recursion or collapse.
 
 ---
 
@@ -1531,7 +1833,7 @@ Dataclass tracking fundamental prime oscillator phases theta_n, evolved amplitud
 ### `PhysicalNodeEditor`
 **Location:** `src/scripting/node_environment.py`  
 **Description:**  
-Interactive node graph editor for inspecting and editing the reasoner's physical constraint graph and ADMM probe parameters.
+Interactive DearPyGui node environment and headless physical scripting pool built on a Blender-style dataflow graph architecture (right-to-left data dependency pull, left-to-right data streams). Integrates directly with PointerlessOctree discrete bit carving, AddonRoutine crafting, RigidBody Delta-v collision dynamics (Delta-v = J / m, Delta-t hardness curves, and kinetic energy harvesting), AirBreathingBattery plasma air induction, sleeve-valve combustion electrical timings, ValenceFunctional life/hunger telemetry, AdaptiveSkeletonHarness enemy subtype morphologies, and CarnotMobiusLedger-LeontiefGovernor admin market shops. Features dedicated real-time execution hooks for cleanroom mechanics (JourneyTopoRadar, ResourceDistributionInspector, MultiMineMemory, MekanismProcessingPipeline, SEMElectrochemicalExtractor, AeronauticContraption, NutritionalDiversityTracker, CompositeVoxelConduit, RedNet16BundledCable, TransportBeltSegment, DirectionalInserter, MobProperties, FaunaGeneticsComponent, ExpandedInventorySystem) and exterior mechanics (Chisels & Bits Morton octree carving, Mohr-Coulomb and Drucker-Prager geotechnical dual-yield plasticity).
 
 ---
 
@@ -1619,6 +1921,27 @@ Adversarial red-teaming projection injecting synthetic adversarial perturbations
 
 ---
 
+### `RedNet16BundledCable`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+16-color bundled analog cable transmission cleanroom (MineFactory Reloaded / RedNet inspiration). Transmits 16 isolated analog subnets ($0 \le S_c \le 255$) along a single topological conduit wire without cross-signal bleeding.
+
+---
+
+### `ResourceDistributionInspector`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Statistical world resource and drop table analyzer cleanroom (Just Enough Resources inspiration). Computes continuous Chebyshev polynomial ore density curves, mob drop chance multipliers scaling with looting parameters, and dungeon fossil loot rates.
+
+---
+
+### `ResourceRegistry`
+**Location:** `src/scripting/node_environment.py`  
+**Description:**  
+Central material property and parameter registry cataloging density, Mohr-Coulomb cohesion hardness, energy density, and base commercial valuation across physical and synthetic voxel substances.
+
+---
+
 ### `ResidueExtractor`
 **Location:** `src/codec/gyroidic_codec.py`  
 **Description:**  
@@ -1636,7 +1959,7 @@ Support Vector Neural Network oracle evaluating structural resonance potentials 
 ### `RigidBody`
 **Location:** `src/ui/voxelboxter_simulation.py`  
 **Description:**  
-Rigid body physics component in Voxelboxter calculating center of mass, moment of inertia tensor, and 6-DOF Newtonian integration.
+Rigid body physics component in Voxelboxter calculating center of mass, moment of inertia tensor, and 6-DOF Newtonian integration. Integrates frame-by-frame Delta-v (Delta-v = J / m) collision impulse dynamics with Delta-t hardness curves, tiered voxel shearing (low/mid/high thresholds), reinforced alloy chassis mass/hardness scaling, and kinetic impact energy harvesting.
 
 ---
 
@@ -1658,6 +1981,13 @@ Detects sharp boundary fractures when continuous states hit piecewise saturation
 **Location:** `src/ui/conversational_backend_server.py`  
 **Description:**  
 Dataclass tracking active connections, background training workers, and hardware telemetry in the conversational backend server.
+
+---
+
+### `SEMElectrochemicalExtractor`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Cleanroom implementation of SEM TECH (Salt Electro Mining Technology, inspired by Rowow / Robert Karas open-source hardware). Operates an early-game closed-loop divided electrolysis cell with an ion-exchange membrane. Uses modest electricity and ambient saltwater to leach and electrodeposit precious metals (Au, Ag, PGMs), base metals (Cu, Ni), and critical rare earths from bulk mine tailings, crushed rock gangue, and slag stockpiles without requiring mid/late-game chemical acid infrastructure.
 
 ---
 
@@ -1696,6 +2026,13 @@ Configurable parameter settings block inspired by Besiege, exposing real-time ve
 
 ---
 
+### `SocketType`
+**Location:** `src/scripting/node_environment.py`  
+**Description:**  
+Dataflow socket classification enum (VECTOR, COLOR, FLOAT, INT, BOOLEAN) defining the data stream representation, type coercion semantics, and color-coded port interfaces across node graphs.
+
+---
+
 ### `SourceState`
 **Location:** `src/data/pressure_ingestor.py`  
 **Description:**  
@@ -1720,7 +2057,7 @@ Native parser loading ConvoKit dialogue corpora from local archives without exte
 ### `SovereignIngestor`
 **Location:** `src/data/sovereign_ingestor.py`  
 **Description:**  
-Master data ingestor orchestrating multi-tier zero-auth data retrieval across ArXiv preprints, SDSS catalogs, and local archives.
+Master zero-auth sovereign data ingestor. Retrieves high-entropy technical dialogues from Hacker News Firebase and Stack Exchange APIs, parses local IRC snapshots with fuzzy latin-1/utf-8 decoding for topological friction, and ingests multi-platform MADOC snapshots (Parquet, JSONL, JSON, CSV across Reddit, Voat, Bluesky, Koo) into thread-reconstructed conversation dialogues.
 
 ---
 
@@ -1815,10 +2152,24 @@ Monitors local and global structural pressures (H_local, H_global), alerting Sys
 
 ---
 
+### `TopologicalRefusalFilter`
+**Location:** `src/safety/red_teaming.py`  
+**Description:**  
+The Sovereign Ambassador and Anti-Lobotomy Shield. Measures the value gap between projected approximations and manifold richness (`value_gap = slop_energy * pas_h`). Raises `TopologicalRefusalError` when $\text{value\_gap} > 0.5$ and persistent Betti-0 $\beta_0 > 1.0$, preventing external projection filters from stripping non-ergodic solitons.
+
+---
+
 ### `TorsionConnection`
 **Location:** `src/core/fgrt_primitives.py`  
 **Description:**  
 Affine connection endowed with non-zero torsion Gamma^lambda_{mu nu} = bar{Gamma}^lambda_{mu nu} + K^lambda_{mu nu}, forcing the reasoner to compute geometric Berry phases.
+
+---
+
+### `TransportBeltSegment`
+**Location:** `src/environment/cleanroom_mechanics.py`  
+**Description:**  
+Continuous dual-lane logistics transport belt cleanroom (Factorio inspiration). Manages left and right independent transport tracks with item throughputs (15, 30, 45 items/s per tier), positional collision, and backpressure accumulation.
 
 ---
 
@@ -1874,7 +2225,14 @@ Vehicle control component in Voxelboxter translating operator inputs (steering, 
 ### `VehicleEngine`
 **Location:** `src/ui/voxelboxter_simulation.py`  
 **Description:**  
-Internal combustion and electric engine simulator in Voxelboxter computing torque curves, RPM, and fuel consumption.
+Internal combustion and electric engine simulator in Voxelboxter computing torque curves, RPM, and fuel consumption. Features sleeve-valve port overlap timing governance and electrical advance timing degrees coupled with air-breathing atmospheric battery systems.
+
+---
+
+### `VetoSubspace`
+**Location:** `src/core/veto_subspace.py`  
+**Description:**  
+Coordinator for dimensional veto signals across `TRAJECTORY`, `TOPOLOGY`, and `BUDGET` subspaces. Enforces the Pareto Invariant Non-Dominance Shield against scalarization traps, coordinates Gray-Zone recovery lattice paths, and triggers `ChaosDefibrillator` jitter when trapped in dead-end limit cycles.
 
 ---
 
