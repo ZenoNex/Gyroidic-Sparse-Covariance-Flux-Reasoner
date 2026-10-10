@@ -27,6 +27,8 @@ class DiegeticPhysicsEngine(nn.Module):
         self.optimal_transport = ConjugateMomentTransport(dim=state_dim).to(device)
         self.hyper_ring = HyperRingClosureChecker()
         self.pas = PhaseAlignmentInvariant(poly_degree=3).to(device)
+        from src.core.zeitgeist_router import ZeitgeistState
+        self.zeitgeist_state = ZeitgeistState.initial(self.router.moduli)
 
     def process_input(self, 
                       vehicle_state: Dict[str, Any], 
@@ -55,7 +57,9 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # --- Stage 2: Non-Commutative Braid Routing ---
         # The router treats steering before braking differently from braking before steering.
-        routed_c, router_metric = self.router(c_in)
+        mode, self.zeitgeist_state, router_metric, routed_c = self.router(c_in, self.zeitgeist_state)
+        if 'pas_h' not in router_metric:
+            router_metric['pas_h'] = pas_h
 
         # --- Stage 3: System 1 Symbolic Trajectory Draft ---
         # Generate c_sym using coprime polynomials. In Voxelboxter, this is the speculative "ghost" trajectory
@@ -95,9 +99,9 @@ class DiegeticPhysicsEngine(nn.Module):
         )
         
         # We invoke OperationalAdmmPrimitive via an inline forward operator for the probe.
-        def _dummy_forward(x): return x
+        def _dummy_forward(x, *args, **kwargs): return x
         
-        admm_state = OperationalAdmmPrimitive.apply(
+        admm_state, admm_status = OperationalAdmmPrimitive.apply(
             c_sym, _dummy_forward, 
             0.1, 0.01, 10, 0.5, 3, 
             None, None, False, None, 1, None
@@ -108,10 +112,13 @@ class DiegeticPhysicsEngine(nn.Module):
         # OR if Carnot-Möbius flags a thermal runaway due to stack depth exceeding Ncrit,
         # we transport the state to a fractured manifold using ConjugateMomentTransport.
         strain_limit = 5.0
-        is_rupture = (torch.norm(admm_state) > strain_limit) or ledger['thermal_runaway'].item()
+        thermal_runaway = ledger.get('thermal_runaway', False)
+        is_thermal_runaway = thermal_runaway.item() if isinstance(thermal_runaway, torch.Tensor) else bool(thermal_runaway)
+        is_failure = (admm_status.item() == 2) if hasattr(admm_status, 'item') else (admm_status == 2)
+        is_rupture = (torch.norm(admm_state) > strain_limit) or is_thermal_runaway or is_failure
         if is_rupture:
             # Fracture recovery
-            noise = harvest_honest_jitter((1, self.state_dim), device=self.device, scaled=True)
+            noise = harvest_honest_jitter(admm_state.shape, device=self.device, scaled=True)
             recovered_state = self.optimal_transport.nabla_psi_star(admm_state + noise)
         else:
             recovered_state = admm_state
@@ -122,13 +129,14 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # --- Stage 8: Hyper-Ring Cycle Closure ---
         # Relational momentum integrals to classify soliton vs collapse.
-        closure_gap = self.hyper_ring.compute_holonomy(x_hat, admr_output.mean(dim=0, keepdim=True))
+        closure_gap = self.hyper_ring.compute_holonomy(x_hat, admr_output.mean(dim=0, keepdim=True) if admr_output.dim() > 1 else admr_output)
         
         # --- Stage 9: Track Deformation & Audience Projection ---
         # Push changes to Betti numbers (beta_0, beta_1).
         # In Voxelboxter, a high closure gap in a rupture state means track destruction.
         betti_shift = 0
-        if is_rupture and closure_gap.item() > 0.5:
+        gap_val = closure_gap.item() if hasattr(closure_gap, 'item') else float(closure_gap)
+        if is_rupture and gap_val > 0.5:
             betti_shift = 1 # We carved a new hole (beta_1 increase) in the terrain
 
         # Return updated physics state
@@ -136,6 +144,6 @@ class DiegeticPhysicsEngine(nn.Module):
             "c_out": x_hat,
             "betti_shift": betti_shift,
             "pas_h": pas_h.detach(),
-            "rupture": is_rupture.item(),
-            "closure_gap": closure_gap.item()
+            "rupture": bool(is_rupture),
+            "closure_gap": gap_val
         }
