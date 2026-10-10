@@ -195,3 +195,146 @@ The `OpenScienceIngestor` integrates high-density scientific datasets (including
 - **LIGO Strain Integration**: Fetches real gravitational wave strain time-series data from GWOSC APIs. If offline or missing dependencies, it falls back to a prime-ladder Chebyshev-Chebyshev oscillator simulation.
 - **EuropePMC Integration**: Retrieves full text metadata from open-access PMC literature databases for scientific text filtering.
 - **Hardware-Sovereign Fallbacks**: All ingestion failures trigger high-fidelity deterministic simulations rather than silent bypasses, preserving local substrate stability.
+
+
+## Data Ingestion & Parsing Pipelines
+
+This section was auto-generated to document classes discovered in the codebase that were previously floating free from the architectural map.
+
+### `ConstraintDataset`
+**Location:** `src\training\trainer.py`
+
+**Description:**
+No docstring provided.
+
+---
+
+### `DatasetInfo`
+**Location:** `src\data\local_data_loader.py`
+
+**Description:**
+Metadata about a discovered local dataset.
+
+---
+
+### `GltfSplatIngestionPipeline`
+**Location:** `src\data\gltf_splat_ingestor.py`
+
+**Description:**
+No docstring provided.
+
+---
+
+### `GoogleCloudIngestor`
+**Location:** `src\data\google_cloud_ingestor.py`
+
+**Description:**
+Ingestor for Google Cloud Platform services.
+
+Provides specialized methods for BigQuery and GCS data extraction.
+
+---
+
+### `GoogleDriveIngestor`
+**Location:** `src\data\google_drive_ingestor.py`
+
+**Description:**
+Ingestor for Google Drive content.
+
+Provides functionality to list folders, filter for "Nutrient" shards,
+and download content for manifold integration.
+
+---
+
+### `InvestorNewsIngestor`
+**Location:** `src\core\investor_news_ingestor.py`
+
+**Description:**
+No docstring provided.
+
+---
+
+### `LocalDatasetIngestor`
+**Location:** `src\data\local_dataset_ingestor.py`
+
+**Description:**
+Ingestor for local assets found in DeepLearningStudio paths.
+
+---
+
+### `MCAReader`
+**Location:** `src\data\minecraft_ingestor.py`
+
+**Description:**
+Anvil region file (.mca) parser.
+Reads region file headers and decompresses specific chunk NBT compounds.
+
+---
+
+### `MinecraftIngestionPipeline`
+**Location:** `src\data\minecraft_ingestor.py`
+
+**Description:**
+Coordinates region file scans, script extractions, and spatial voxel projections.
+Fuses spatial NBT/Block parameters with textual scripts as Voxel-Text Dyads.
+
+---
+
+### `NBTReader`
+**Location:** `src\data\minecraft_ingestor.py`
+
+**Description:**
+Stream-based decoder for Named Binary Tag (NBT) format.
+Supports all tag types, lists, compounds, and array payloads.
+
+---
+
+### `SimpleTemporalDataset`
+**Location:** `src\training\enhanced_temporal_training.py`
+
+**Description:**
+Simple temporal dataset for testing.
+
+---
+
+### `SovereignConversationalIngestor`
+**Location:** `src\data\conversational_api_ingestor.py`
+
+**Description:**
+Sovereign Ingestor Hub for zero-auth and cloud-sourced data.
+
+Integrates Stack Exchange, HN, Drive, and GCP manifolds into
+the Reasoner's unified conversational pipeline.
+
+---
+
+### `SovereignIngestor`
+**Location:** `src\data\sovereign_ingestor.py`
+
+**Description:**
+Orchestrator for zero-auth "Sovereign" data sources and immutable local datasets.
+
+Bypasses centralized platform constraints in favor of direct API access (Hacker News Firebase, Stack Exchange) and local repository snapshots:
+- **IRC Log Ingestion:** Fuzzy decoding (`latin-1` / `utf-8`) preserving topological friction across unmapped IRC byte sequences.
+- **MADOC Snapshot Ingestion:** Multi-format ingestion (Parquet, JSONL, JSON, CSV) from the Multi-Platform Aggregated Dataset of Online Communities (Reddit, Voat, Bluesky, Koo). Reconstructs conversation thread hierarchies from parent-child post linkages and extracts linguistic complexity metrics under Option D.
+
+---
+
+### `TopologicalIngestionValidator`
+**Location:** `src\core\topological_ingestion_validator.py`
+
+**Description:**
+Deterministic topological gate for the ingestion boundary.
+
+Replaces:
+- TextbookFilter LSTM classifier (learned, probabilistic)
+- SparseRepunitProbe at wrong position (fixed-threshold, arithmetic)
+- Bastardized VoynichLinguist in minecraft_ingestor (zero-vector input)
+- Missing validation in diegetic_backend bimodal panels
+
+Validates by computing structural rank of data against the active
+polynomial coprime configuration. Sterile data (low rank, low soliton
+entropy, high cohomological dimension) is refused at the door.
+
+---
+
