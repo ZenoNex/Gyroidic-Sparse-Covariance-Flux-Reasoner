@@ -111,6 +111,7 @@ class OperationalAdmmPrimitive(autograd.Function):
         # Local Projections
         mc_proj = MohrCoulombProjection().to(initial_c.device)
         dp_proj = DruckerPragerProjection().to(initial_c.device)
+        love = LoveVector(initial_c.shape[-1]).to(initial_c.device)
         
         # 0. Ontological Splitting:
         # c_sym: The frozen symbolic residues from System 1 (initial guess)
