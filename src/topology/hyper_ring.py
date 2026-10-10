@@ -220,3 +220,7 @@ class RecurrentHyperRingConnectivity(nn.Module):
         # connectivity: [batch, num_p, num_p]
         flow_delta = torch.bmm(connectivity, polytope_states)
         return polytope_states + (flow_delta * dt)
+
+
+# Sovereign alias
+HyperRing = DiscreteHyperRingCirculation
