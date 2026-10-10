@@ -18,7 +18,7 @@ import os
 import json
 import requests
 import time
-from typing import List, Dict, Optional, Any, Generator
+from typing import List, Dict, Optional, Any, Generator, Union
 from pathlib import Path
 from datetime import datetime
 
@@ -239,16 +239,321 @@ class SovereignIngestor:
                 
         return conversations
 
-    def ingest_madoc_snapshot(self, sub_path: str = 'madoc') -> List[Conversation]:
+    def ingest_madoc_snapshot(
+        self,
+        sub_path: Union[str, Path] = 'madoc',
+        limit: Optional[int] = None,
+        platform_filter: Optional[str] = None,
+        explanation: Optional[str] = None
+    ) -> List[Conversation]:
         """
-        Ingest from local MADOC snapshot (stable alternative to Reddit API).
+        Ingest from local MADOC snapshot (Multi-Platform Aggregated Dataset of Online Communities).
+        Acts as an immutable, zero-auth local alternative to the live Reddit API, also covering
+        Voat, Bluesky, and Koo communities stored as Parquet, JSONL, JSON, or CSV archives.
+        Supports both directory hierarchies and explicit single-file paths.
         """
-        madoc_dir = self.root / sub_path
-        if not madoc_dir.exists():
-            print(f" MADOC Snapshot not found at {madoc_dir}")
+        raw_p = Path(sub_path)
+        if raw_p.is_absolute() and raw_p.exists():
+            target_p = raw_p
+        elif (self.root / sub_path).exists():
+            target_p = self.root / sub_path
+        elif (self.root / 'datasets' / sub_path).exists():
+            target_p = self.root / 'datasets' / sub_path
+        elif raw_p.exists():
+            target_p = raw_p
+        else:
+            print(f"[*] MADOC Snapshot path not found at {sub_path}")
             return []
 
-        print(f" Ingesting Immutable MADOC Snapshot for Silicon Sovereignty...")
-        # Implementation depends on MADOC structure (usually JSON/JSONL)
-        # Placeholder for directory-based scan
-        return [] # MADOC logic would go here
+        print(f"[*] Ingesting Immutable MADOC Snapshot from {target_p} for Silicon Sovereignty...")
+        conversations = []
+        
+        # Discover all supported MADOC dataset files
+        if target_p.is_file():
+            data_files = [target_p]
+        else:
+            data_files = list(target_p.glob('**/*.parquet')) + \
+                         list(target_p.glob('**/*.jsonl')) + \
+                         list(target_p.glob('**/*.json')) + \
+                         list(target_p.glob('**/*.csv'))
+                         
+        if not data_files:
+            print(f"[*] No Parquet, JSONL, JSON, or CSV files found in {target_p}")
+            return []
+
+        for data_file in sorted(data_files):
+            try:
+                records = self._load_madoc_file(data_file, limit=limit)
+                if not records:
+                    continue
+
+                # Process records into conversations
+                file_convs = self._parse_madoc_records(records, data_file, platform_filter=platform_filter)
+                if explanation:
+                    for c in file_convs:
+                        if isinstance(c.context, dict):
+                            c.context['user_explanation'] = explanation
+                conversations.extend(file_convs)
+                
+                if limit and len(conversations) >= limit:
+                    conversations = conversations[:limit]
+                    break
+            except Exception as e:
+                print(f"[*] Failed to process MADOC file {data_file.name}: {e}")
+                continue
+
+        print(f"[*] Successfully ingested {len(conversations)} conversations from MADOC snapshot.")
+        return conversations
+
+    def _load_madoc_file(self, file_path: Path, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Load records from a single MADOC dataset file (Parquet, JSONL, JSON, or CSV)."""
+        suffix = file_path.suffix.lower()
+        records = []
+        
+        if suffix == '.parquet':
+            try:
+                import pandas as pd
+                df = pd.read_parquet(file_path)
+                if limit:
+                    df = df.head(limit)
+                records = df.to_dict('records')
+            except ImportError:
+                print(f"[*] Warning: pandas/pyarrow not installed. Skipping parquet file {file_path.name}")
+            except Exception as pe:
+                print(f"[*] Failed reading Parquet {file_path.name}: {pe}")
+
+        elif suffix == '.jsonl':
+            with open(file_path, 'rb') as f:
+                content = self._fuzzy_decode(f.read())
+            for idx, line in enumerate(content.splitlines()):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    records.append(json.loads(line))
+                    if limit and len(records) >= limit:
+                        break
+                except json.JSONDecodeError:
+                    continue
+
+        elif suffix == '.json':
+            with open(file_path, 'rb') as f:
+                content = self._fuzzy_decode(f.read())
+            try:
+                data = json.loads(content)
+                if isinstance(data, list):
+                    records = data[:limit] if limit else data
+                elif isinstance(data, dict):
+                    if 'data' in data and isinstance(data['data'], list):
+                        records = data['data'][:limit] if limit else data['data']
+                    elif 'records' in data and isinstance(data['records'], list):
+                        records = data['records'][:limit] if limit else data['records']
+                    elif 'posts' in data and isinstance(data['posts'], list):
+                        records = data['posts'][:limit] if limit else data['posts']
+                    else:
+                        records = [data]
+            except json.JSONDecodeError as je:
+                print(f"[*] JSON decode error for {file_path.name}: {je}")
+
+        elif suffix == '.csv':
+            try:
+                import csv
+                with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+                    reader = csv.DictReader(f)
+                    for idx, row in enumerate(reader):
+                        records.append(dict(row))
+                        if limit and len(records) >= limit:
+                            break
+            except Exception as ce:
+                print(f"[*] CSV read error for {file_path.name}: {ce}")
+
+        return records
+
+    def _parse_madoc_records(
+        self,
+        records: List[Dict[str, Any]],
+        source_file: Path,
+        platform_filter: Optional[str] = None
+    ) -> List[Conversation]:
+        """
+        Parse raw MADOC records into structured Conversation and ConversationTurn objects.
+        Groups threaded comments and hierarchical replies into multi-turn dialogues.
+        """
+        conversations = []
+        
+        # Check if records are already complete conversations (e.g. ConvoKit-style format)
+        if records and 'turns' in records[0] and isinstance(records[0]['turns'], list):
+            for r in records:
+                turns = []
+                for t in r['turns']:
+                    text = t.get('text', '')
+                    if not text:
+                        continue
+                    ts = None
+                    if t.get('timestamp'):
+                        try:
+                            ts = datetime.fromisoformat(str(t['timestamp']))
+                        except Exception:
+                            ts = None
+                    turns.append(ConversationTurn(
+                        speaker_id=str(t.get('speaker_id') or t.get('author') or 'anon'),
+                        text=text,
+                        timestamp=ts,
+                        metadata=t.get('metadata')
+                    ))
+                if turns:
+                    c_id = r.get('conversation_id') or _stable_id("madoc", r.get('id', source_file.stem))
+                    conversations.append(Conversation(
+                        conversation_id=c_id,
+                        turns=turns,
+                        context=r.get('context', {'source_file': source_file.name}),
+                        source=r.get('source', 'madoc_snapshot')
+                    ))
+            return conversations
+
+        # Otherwise, group by thread root / parent to reconstruct dialogue hierarchy
+        threads: Dict[str, List[Dict[str, Any]]] = {}
+        standalone_items: List[Dict[str, Any]] = []
+
+        for item in records:
+            platform = str(item.get('platform') or 'reddit').lower()
+            if platform_filter and platform != platform_filter.lower():
+                continue
+
+            # Identify thread association
+            # MADOC schema uses post_id, parent_id, link_id, or thread_id
+            post_id = str(item.get('post_id') or item.get('id') or item.get('comment_id') or '')
+            parent_id = str(item.get('parent_id') or item.get('link_id') or item.get('root_id') or '')
+            
+            # If parent_id exists and differs from post_id, assign to thread
+            thread_key = parent_id if (parent_id and parent_id != post_id) else post_id
+            if thread_key:
+                if thread_key not in threads:
+                    threads[thread_key] = []
+                threads[thread_key].append(item)
+            else:
+                standalone_items.append(item)
+
+        # Convert grouped threads into conversations
+        for thread_id, thread_items in threads.items():
+            turns = []
+            community = 'general'
+            platform = 'madoc'
+            
+            # Sort items by timestamp if available
+            def _extract_time(x):
+                val = x.get('created_utc') or x.get('timestamp') or x.get('created_at') or 0
+                try:
+                    return float(val)
+                except Exception:
+                    return 0.0
+
+            sorted_items = sorted(thread_items, key=_extract_time)
+
+            for it in sorted_items:
+                platform = str(it.get('platform') or platform)
+                community = str(it.get('community') or it.get('subreddit') or community)
+                
+                # Extract text (check content, body, text, or title + selftext)
+                title = str(it.get('title') or '').strip()
+                body = str(it.get('content') or it.get('body') or it.get('text') or it.get('selftext') or '').strip()
+                
+                if title and body and title != body:
+                    text = f"{title}\n{body}"
+                else:
+                    text = title or body
+
+                if not text or text in ['[deleted]', '[removed]']:
+                    continue
+
+                author = str(it.get('author') or it.get('user') or it.get('user_id') or 'anon')
+                
+                # Timestamp parsing
+                raw_time = it.get('created_utc') or it.get('timestamp') or it.get('created_at')
+                dt = None
+                if raw_time is not None:
+                    try:
+                        if isinstance(raw_time, (int, float)):
+                            dt = datetime.fromtimestamp(float(raw_time))
+                        elif isinstance(raw_time, str):
+                            dt = datetime.fromisoformat(raw_time)
+                    except Exception:
+                        dt = None
+
+                score = it.get('score') or it.get('ups') or it.get('likes') or 0
+                turns.append(ConversationTurn(
+                    speaker_id=author,
+                    text=text,
+                    timestamp=dt,
+                    metadata={
+                        'item_id': it.get('id') or it.get('post_id') or it.get('comment_id'),
+                        'score': score,
+                        'platform': platform,
+                        'community': community
+                    }
+                ))
+
+            if turns:
+                # Calculate linguistic entropy / text complexity
+                all_words = " ".join(t.text for t in turns).split()
+                avg_word_len = sum(len(w) for w in all_words) / max(1, len(all_words))
+
+                conversations.append(Conversation(
+                    conversation_id=f"madoc_{platform}_{thread_id}",
+                    turns=turns,
+                    context={
+                        'platform': platform,
+                        'community': community,
+                        'thread_id': thread_id,
+                        'source_file': source_file.name,
+                        'turn_count': len(turns),
+                        'text_complexity': avg_word_len
+                    },
+                    source=f"madoc/{platform}"
+                ))
+
+        # Process standalone items
+        for it in standalone_items:
+            title = str(it.get('title') or '').strip()
+            body = str(it.get('content') or it.get('body') or it.get('text') or it.get('selftext') or '').strip()
+            if title and body and title != body:
+                text = f"{title}\n{body}"
+            else:
+                text = title or body
+
+            if not text or text in ['[deleted]', '[removed]']:
+                continue
+
+            author = str(it.get('author') or it.get('user') or 'anon')
+            platform = str(it.get('platform') or 'madoc')
+            community = str(it.get('community') or it.get('subreddit') or 'general')
+            item_id = str(it.get('id') or it.get('post_id') or '')
+            
+            raw_time = it.get('created_utc') or it.get('timestamp')
+            dt = None
+            if raw_time:
+                try:
+                    dt = datetime.fromtimestamp(float(raw_time))
+                except Exception:
+                    dt = None
+
+            turn = ConversationTurn(
+                speaker_id=author,
+                text=text,
+                timestamp=dt,
+                metadata={'platform': platform, 'community': community}
+            )
+            c_id = f"madoc_{platform}_{item_id}" if item_id else _stable_id("madoc", text[:50])
+            conversations.append(Conversation(
+                conversation_id=c_id,
+                turns=[turn],
+                context={
+                    'platform': platform,
+                    'community': community,
+                    'source_file': source_file.name,
+                    'text_complexity': len(text)
+                },
+                source=f"madoc/{platform}"
+            ))
+
+        return conversations
