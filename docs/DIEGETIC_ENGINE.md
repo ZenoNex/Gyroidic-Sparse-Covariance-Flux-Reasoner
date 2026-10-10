@@ -441,3 +441,5 @@ The documentation outlines a planned **Topological Image Surrogate** to translat
 | [GYROID_REASONER.md](GYROID_REASONER.md) | Core model architecture |
 | [PHYSICS_ADMM.md](PHYSICS_ADMM.md) | System 2 ADMM + CALM |
 | [RESONANCE_CAVITY.md](RESONANCE_CAVITY.md) | dM/dt cavity equation (source of the Introspection I term) |
+| [VOXELBOXTER_NONDUAL_ECOLOGY.md](VOXELBOXTER_NONDUAL_ECOLOGY.md) | Non-dual ecology, cleanroom industrial pipelines, and logistical systems |
+| [SCRIPTING_SYSTEMS.md](SCRIPTING_SYSTEMS.md) | Physical node environment and cleanroom visual scripting nodes |
