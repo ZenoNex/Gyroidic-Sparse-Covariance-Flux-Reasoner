@@ -24,17 +24,24 @@ import torch
 import math
 from typing import List, Tuple
 
-class CODES:
+class CODES(torch.nn.Module):
     """
     Codes Driver for GPU Coherence Simulation.
     """
     
-    def __init__(self, coherence_threshold: float = 0.75):
+    def __init__(self, coherence_threshold: float = 0.75, state_dim: int = 32, constraint_depth: int = 3, **kwargs):
+        super().__init__()
         self.coherence_threshold = coherence_threshold
+        self.state_dim = state_dim
+        self.constraint_depth = constraint_depth
         self.phase_clock = 0.0
         
         # Generate polynomial-based harmonics instead of hardcoded primes (anti-lobotomy)
         self.harmonics = self._generate_polynomial_harmonics(8)
+
+    def project_chordlock(self, latent: torch.Tensor, primes: List[int] = None) -> torch.Tensor:
+        """Alias for chordlock projection."""
+        return self.chordlock(latent, primes=primes)
     
     def _generate_polynomial_harmonics(self, num_harmonics: int) -> list:
         """Generate harmonics using polynomial basis instead of primes."""
