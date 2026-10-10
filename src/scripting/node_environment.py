@@ -247,7 +247,19 @@ class PhysicalNodeEditor:
             AeronauticContraption, FaunaGeneticsComponent,
             ExpandedInventorySystem, MobProperties,
             SEMElectrochemicalExtractor, ItemStack,
-            FluidStack, GasStack, InfernalAffix
+            FluidStack, GasStack, InfernalAffix,
+            RotationalKineticNetwork, RotationalNode,
+            ModularTool, ToolMaterial, ToolPartType, MaterialTrait, SmelterySystem,
+            RusticDelightManager, FermentationBarrel,
+            JadeRaycastInspector, FastMapBlockState,
+            WaystonesNetwork, WaystoneNode, LootrContainerManager,
+            EasyAnvilsSystem, AllTheHeadsRegistry,
+            EnchantmentIndustryPipeline, ClimateRiverSegment, RiverBiomeType,
+            CombatNouveauProfile, WeaponCategory, HotbarSwapper,
+            ProjectEEMCSolver, DiegeticCauldron,
+            DistinctPotionProfile, ActiveEffectInsight,
+            MultipartVoxelCell, SubgridRotationalWireHarness,
+            BagOfHolding, BagTier, IC2CropGenome, GiantCropCluster, FoodQualityTier
         )
         self.radar = JourneyTopoRadar()
         self.jer = ResourceDistributionInspector()
@@ -263,6 +275,27 @@ class PhysicalNodeEditor:
         self.aeronautics = AeronauticContraption(name="SovereignAirship")
         self.mob_properties = MobProperties(mob_id="sample_mob")
         self.fauna_genetics = FaunaGeneticsComponent()
+
+        # Extended Cleanroom Systems
+        self.rotational_net = RotationalKineticNetwork()
+        self.smeltery = SmelterySystem()
+        self.modular_tool = ModularTool(tool_type="pickaxe")
+        self.rustic_delight = RusticDelightManager()
+        self.fermentation_barrel = FermentationBarrel()
+        self.jade = JadeRaycastInspector()
+        self.fast_map = FastMapBlockState()
+        self.waystones = WaystonesNetwork()
+        self.waystones.register_waystone(WaystoneNode(waystone_id="spawn", name="Spawn_Sanctuary", dimension="overworld", coordinates=(0, 64, 0), is_global=True))
+        self.lootr = LootrContainerManager()
+        self.enchantment_industry = EnchantmentIndustryPipeline()
+        self.combat_nouveau = CombatNouveauProfile.create(WeaponCategory.SWORD)
+        self.hotbar_swapper = HotbarSwapper()
+        self.project_e = ProjectEEMCSolver()
+        self.cauldron = DiegeticCauldron()
+        self.wire_harness = SubgridRotationalWireHarness()
+        self.bag_of_holding = BagOfHolding(tier=BagTier.IRON)
+        self.crop_genome = IC2CropGenome()
+        self.giant_crop = GiantCropCluster()
 
         # Virtual Links and Sidechain parameters
         self.virtual_links: List[Tuple[str, str]] = []
@@ -470,8 +503,8 @@ class PhysicalNodeEditor:
         Scans subterranean entity blips and maintains death waypoints.
         """
         mock_entities = [
-            {"name": "TraderNPC", "pos": (center_pos[0] + 12.0, center_pos[1], center_pos[2] + 8.0), "is_hostile": False},
-            {"name": "EliteCreeper", "pos": (center_pos[0] - 24.0, center_pos[1] - 10.0, center_pos[2] + 15.0), "is_hostile": True},
+            {"name": "AlliedAgent", "pos": (center_pos[0] + 12.0, center_pos[1], center_pos[2] + 8.0), "is_hostile": False},
+            {"name": "ResonanceAdversary", "pos": (center_pos[0] - 24.0, center_pos[1] - 10.0, center_pos[2] + 15.0), "is_hostile": True},
             {"name": "SubterraneanDrone", "pos": (center_pos[0] + 5.0, center_pos[1] - 30.0, center_pos[2] - 18.0), "is_hostile": True}
         ]
         blips = self.radar.tick_radar(
@@ -499,7 +532,7 @@ class PhysicalNodeEditor:
         Evaluates Chebyshev polynomial density curve at altitude y.
         """
         density = self.jer.get_ore_density_at_height(material_id=material_id, y=y_height)
-        drops = self.jer.roll_mob_drops(mob_type="zombie", looting_level=looting_level)
+        drops = self.jer.roll_harvest_debris(entity_class="bipedal_adversary", looting_level=looting_level)
         return {
             "material_id": material_id,
             "y_height": y_height,
@@ -828,6 +861,334 @@ class PhysicalNodeEditor:
         }
 
     # ---------------------------------------------------------------------
+    # Extended Cleanroom Systems Hooks
+    # ---------------------------------------------------------------------
+    def hook_create_rotational_network(
+        self,
+        capacity_su: float = 2048.0,
+        stress_su: float = 512.0,
+        rpm: float = 64.0
+    ) -> Dict[str, Any]:
+        """Hook for Create Mod Rotational Kinetic Network (Stress Units, RPM, Torques)."""
+        from src.environment.cleanroom_mechanics import RotationalNode
+        motor = RotationalNode(name="waterwheel", rpm=rpm, stress_capacity_su=capacity_su, direction=1)
+        crusher = RotationalNode(name="crushing_wheel", rpm=rpm, stress_impact_su=stress_su / rpm if rpm > 0 else 0.0)
+        self.rotational_net.add_node(motor)
+        self.rotational_net.add_node(crusher)
+        return self.rotational_net.compute_network_state()
+
+    def hook_tconstruct_smeltery(
+        self,
+        tool_type: str = "pickaxe",
+        head_material: str = "cobalt",
+        handle_material: str = "wood",
+        redstone_mod: int = 2,
+        quartz_mod: int = 15
+    ) -> Dict[str, Any]:
+        """Hook for Tinkers' Construct Modular Tools and Smeltery Alloying."""
+        from src.environment.cleanroom_mechanics import ToolMaterial, ToolPartType, MaterialTrait
+        cobalt_trait = MaterialTrait(name="Lightweight", description="Swings faster", stat_multipliers={"speed_mult": 1.15})
+        wood_trait = MaterialTrait(name="Ecological", description="Regenerates durability", stat_multipliers={})
+        
+        head = ToolMaterial(name=head_material, head_durability=800, mining_speed=12.0, attack_damage=5.0, harvest_level=4, traits=[cobalt_trait])
+        handle = ToolMaterial(name=handle_material, head_durability=100, handle_modifier=1.1, traits=[wood_trait])
+        
+        self.modular_tool.tool_type = tool_type
+        self.modular_tool.parts = {ToolPartType.HEAD: head, ToolPartType.HANDLE: handle}
+        self.modular_tool.modifiers = {"redstone": redstone_mod, "quartz": quartz_mod}
+        self.modular_tool.recalculate_stats()
+        
+        # Smeltery casting test
+        self.smeltery.add_molten_fluid("molten_copper", 300.0)
+        self.smeltery.add_molten_fluid("molten_tin", 100.0)
+        bronze_cast = self.smeltery.cast_part("pickaxe_head", "molten_bronze", required_mb=288.0)
+        
+        return {
+            "tool_type": self.modular_tool.tool_type,
+            "max_durability": self.modular_tool.max_durability,
+            "mining_speed": self.modular_tool.effective_mining_speed,
+            "attack_damage": self.modular_tool.effective_attack_damage,
+            "harvest_level": self.modular_tool.harvest_level,
+            "cast_result": bronze_cast,
+            "molten_tanks": dict(self.smeltery.molten_tank)
+        }
+
+    def hook_rustic_delight(
+        self,
+        raw_beans: int = 10,
+        hot_water_mb: float = 1000.0,
+        raw_cotton: int = 5
+    ) -> Dict[str, Any]:
+        """Hook for Rustic Delight (Coffee roasting & brewing, cotton ginning)."""
+        roasted = self.rustic_delight.process_coffee_roasting(raw_beans)
+        coffee_brew = self.rustic_delight.brew_coffee(roasted, hot_water_mb)
+        strings, seeds = self.rustic_delight.gin_cotton(raw_cotton)
+        return {
+            "roasted_coffee_beans": roasted,
+            "brewed_coffee": coffee_brew,
+            "cotton_strings_yield": strings,
+            "cotton_seeds_yield": seeds
+        }
+
+    def hook_jade_raycast(
+        self,
+        block_id: int = 50,
+        block_name: str = "deepslate_iron_ore",
+        crop_age: int = 4
+    ) -> Dict[str, Any]:
+        """Hook for Jade (WAILA/HWYLA) HUD raycast inspector."""
+        data = self.jade.inspect_voxel(block_id=block_id, block_name=block_name, player_tool=self.modular_tool, crop_age=crop_age)
+        return {
+            "block_name": data.block_name,
+            "harvest_tool": data.harvest_tool,
+            "harvest_level": data.harvest_level,
+            "can_harvest": data.can_harvest,
+            "hardness": data.current_hardness,
+            "crop_growth_percent": data.crop_growth_percent
+        }
+
+    def hook_ferritecore_fastmap(
+        self,
+        property_key: str = "facing",
+        property_val: str = "north"
+    ) -> Dict[str, Any]:
+        """Hook for FerriteCore blockstate deduplication FastMap."""
+        props = {property_key: property_val, "waterlogged": False, "powered": True}
+        state_id = self.fast_map.intern_state(props)
+        mask = self.fast_map.pack_neighbor_occlusion([True, False, True, False, False, True])
+        return {
+            "interned_state_id": state_id,
+            "retrieved_props": self.fast_map.get_properties(state_id),
+            "bitpacked_occlusion_mask": mask
+        }
+
+    def hook_waystones(
+        self,
+        action: str = "warp",
+        current_pos: Tuple[int, int, int] = (0, 64, 0),
+        target_name: str = "spawn",
+        xp_level: int = 30
+    ) -> Dict[str, Any]:
+        """Hook for Waystones dimensional teleportation network."""
+        from src.environment.cleanroom_mechanics import WaystoneNode
+        self.waystones.activate_waystone("player_1", target_name)
+        warp_res = self.waystones.warp_player(
+            player_uuid="player_1",
+            current_pos=current_pos,
+            target_id=target_name,
+            current_xp_level=xp_level
+        )
+        return warp_res
+
+    def hook_lootr_containers(
+        self,
+        container_id: str = "dungeon_chest_1",
+        player_uuid: str = "player_alpha",
+        tier: int = 2
+    ) -> Dict[str, Any]:
+        """Hook for Lootr per-player unique container instancing."""
+        loot_items = self.lootr.get_or_generate_loot(container_id, player_uuid, loot_tier=tier)
+        return {
+            "container_id": container_id,
+            "player_uuid": player_uuid,
+            "item_count": len(loot_items),
+            "items": [{"id": item.item_id, "count": item.count, "name": item.metadata.display_name} for item in loot_items]
+        }
+
+    def hook_easy_anvils(
+        self,
+        current_dura: int = 50,
+        max_dura: int = 250,
+        ingots: int = 2,
+        enchants: int = 3
+    ) -> Dict[str, Any]:
+        """Hook for Easy Anvils prior work penalty elimination."""
+        from src.environment.cleanroom_mechanics import EasyAnvilsSystem
+        return EasyAnvilsSystem.calculate_repair_cost(
+            current_durability=current_dura,
+            max_durability=max_dura,
+            material_count=ingots,
+            enchantment_count=enchants
+        )
+
+    def hook_all_the_heads(
+        self,
+        subtype: EnemySubtype = EnemySubtype.VOID_STALKER,
+        ambulatory: AmbulatoryClass = AmbulatoryClass.BIPED,
+        impact_impulse_J: float = 75.0,
+        beheading_lvl: int = 2
+    ) -> Dict[str, Any]:
+        """Hook for Cranial Joint Shear rupture and trophy fossil collection."""
+        from src.environment.cleanroom_mechanics import CranialJointShearRegistry
+        head = CranialJointShearRegistry.roll_decapitation(
+            subtype=subtype,
+            ambulatory=ambulatory,
+            impact_impulse_J=impact_impulse_J,
+            beheading_level=beheading_lvl
+        )
+        return {
+            "subtype": subtype.name if hasattr(subtype, 'name') else str(subtype),
+            "ambulatory": ambulatory.name if hasattr(ambulatory, 'name') else str(ambulatory),
+            "head_dropped": head is not None,
+            "head_name": head.metadata.display_name if head else None
+        }
+
+    def hook_enchantment_industry(
+        self,
+        blank_books: int = 1,
+        book_name: str = "Efficiency V",
+        fluid_xp_mb: float = 500.0
+    ) -> Dict[str, Any]:
+        """Hook for Create: Enchantment Industry (liquid XP, book copying, hyper-enchanting)."""
+        from src.environment.cleanroom_mechanics import ItemStack
+        book_stack = ItemStack(item_id=340, count=blank_books)
+        printed, cost = self.enchantment_industry.print_enchanted_book(book_stack, book_name, fluid_xp_mb)
+        hyper_lvl, hyper_cost = self.enchantment_industry.hyper_enchant(5, 5, fluid_xp_mb - cost)
+        return {
+            "printed_book": printed.metadata.display_name if printed else None,
+            "xp_consumed_mb": cost,
+            "hyper_enchant_level": hyper_lvl,
+            "hyper_cost_mb": hyper_cost
+        }
+
+    def hook_climate_rivers(
+        self,
+        biome_type: str = "alpine_rapids",
+        slope: float = 0.05
+    ) -> Dict[str, Any]:
+        """Hook for Climate Rivers biome-specific hydrologic velocity vectors."""
+        from src.environment.cleanroom_mechanics import ClimateRiverSegment, RiverBiomeType
+        b_enum = getattr(RiverBiomeType, biome_type.upper(), RiverBiomeType.ALPINE_RAPIDS)
+        seg = ClimateRiverSegment(biome_type=b_enum, slope_gradient=slope)
+        vec = seg.compute_flow_vector()
+        return {
+            "biome": b_enum.value,
+            "slope": slope,
+            "flow_velocity_vector_mps": vec,
+            "channel_width_m": seg.channel_width_m
+        }
+
+    def hook_combat_nouveau(
+        self,
+        category_str: str = "sword",
+        charge_ratio: float = 1.0,
+        is_crit: bool = True
+    ) -> Dict[str, Any]:
+        """Hook for Combat Nouveau (Jeb combat test: weapon reach, charge, sweep interrupt)."""
+        from src.environment.cleanroom_mechanics import CombatNouveauProfile, WeaponCategory
+        w_enum = getattr(WeaponCategory, category_str.upper(), WeaponCategory.SWORD)
+        profile = CombatNouveauProfile.create(w_enum)
+        return profile.calculate_attack_strike(charge_ratio=charge_ratio, is_critical=is_crit)
+
+    def hook_hotbar_swapper(
+        self,
+        swap_row: int = 1
+    ) -> Dict[str, Any]:
+        """Hook for Hotbar Swapper / Hotbar Keybinds inventory paging."""
+        self.hotbar_swapper.swap_with_row(swap_row - 1)
+        return {
+            "active_hotbar_page": self.hotbar_swapper.active_page,
+            "hotbar_slots_occupied": sum(1 for s in self.hotbar_swapper.hotbar if s is not None)
+        }
+
+    def hook_projecte_emc(
+        self,
+        action: str = "burn",
+        item_id: str = "diamond",
+        count: int = 2,
+        player_uuid: str = "player_alpha"
+    ) -> Dict[str, Any]:
+        """Hook for ProjectE Equivalent Exchange recursive EMC solver."""
+        if action == "burn":
+            gain = self.project_e.burn_item_for_emc(player_uuid, item_id, count)
+            return {
+                "action": "burn",
+                "emc_gained": gain,
+                "current_stored_emc": self.project_e.player_emc.get(player_uuid, 0),
+                "learned_items_count": len(self.project_e.learned_items.get(player_uuid, set()))
+            }
+        else:
+            transmuted = self.project_e.transmute_item(player_uuid, item_id, count)
+            return {
+                "action": "transmute",
+                "item_transmuted": item_id,
+                "count": transmuted,
+                "current_stored_emc": self.project_e.player_emc.get(player_uuid, 0)
+            }
+
+    def hook_cauldron_brewing(
+        self,
+        reagent: str = "nether_wart",
+        stir_dir: bool = True,
+        heat_active: bool = True
+    ) -> Dict[str, Any]:
+        """Hook for Diegetic Cauldron Brewing pipeline."""
+        self.cauldron.heat_source_active = heat_active
+        self.cauldron.heat_tick(dt=2.0)
+        self.cauldron.stir(direction_cw=stir_dir)
+        state = self.cauldron.add_reagent(reagent)
+        return {
+            "cauldron_temp_k": self.cauldron.temperature_k,
+            "brew_state": state,
+            "stir_count": self.cauldron.stir_count,
+            "reagents": list(self.cauldron.added_reagents)
+        }
+
+    def hook_multipart_subgrid(
+        self,
+        side: str = "north",
+        subgrid_yaw: float = 45.0
+    ) -> Dict[str, Any]:
+        """Hook for Multipart voxel cells (vertical slabs) & subgrid bundled wire transforms."""
+        from src.environment.cleanroom_mechanics import MultipartVoxelCell
+        cell = MultipartVoxelCell(coord=(0, 64, 0))
+        placed = cell.place_vertical_slab(side=side, material_id=1)
+        wire_vec = self.wire_harness.transform_signal_vector((1.0, 0.0, 0.0), subgrid_yaw_deg=subgrid_yaw)
+        return {
+            "vertical_slab_placed": placed,
+            "sub_parts_count": len(cell.sub_parts),
+            "subgrid_wire_world_vector": wire_vec
+        }
+
+    def hook_bag_of_holding(
+        self,
+        is_nested_bag: bool = False
+    ) -> Dict[str, Any]:
+        """Hook for Bag of Holding dimensional storage & void safeguard."""
+        from src.environment.cleanroom_mechanics import ItemStack, ItemMetadata
+        item = ItemStack(item_id=999, metadata=ItemMetadata(custom_nbt={"is_bag_of_holding": is_nested_bag}))
+        res = self.bag_of_holding.insert_item(item)
+        return {
+            "bag_tier": self.bag_of_holding.tier.name,
+            "insert_result": res,
+            "is_void_collapsed": self.bag_of_holding.is_void_collapsed
+        }
+
+    def hook_crop_breeding_giant(
+        self,
+        action: str = "breed",
+        crop_species: str = "wheat",
+        g1: int = 10,
+        g2: int = 8
+    ) -> Dict[str, Any]:
+        """Hook for IC2 crop breeding genetics & 3x3 giant crop multi-blocks."""
+        from src.environment.cleanroom_mechanics import IC2CropGenome
+        partner = IC2CropGenome(crop_species=crop_species, growth=g2, gain=g2, resistance=g1)
+        offspring = self.crop_genome.cross_breed(partner)
+        
+        # Test 3x3 giant crop
+        grid = {(x, z): 7 for x in (-1, 0, 1) for z in (-1, 0, 1)}
+        can_fuse = self.giant_crop.check_and_fuse_3x3(grid, 0, 0)
+        return {
+            "parent_growth": self.crop_genome.growth,
+            "offspring_growth": offspring.growth,
+            "offspring_gain": offspring.gain,
+            "offspring_resistance": offspring.resistance,
+            "can_fuse_3x3_giant_crop": can_fuse
+        }
+
+
+    # ---------------------------------------------------------------------
     # Continuous Headless Tick
     # ---------------------------------------------------------------------
     def evaluate_tick(
@@ -897,6 +1258,26 @@ class PhysicalNodeEditor:
         rig_res = self.hook_adaptive_rig(subtype=subtype, ambulatory_class=ambulatory_class, difficulty_scale=enemy_diff)
         dy_res = self.hook_dual_yield_stress(pressure_val=dy_pressure, shear_val=dy_shear)
 
+        # Extended Cleanroom Systems
+        rot_res = self.hook_create_rotational_network()
+        tcon_res = self.hook_tconstruct_smeltery()
+        rustic_res = self.hook_rustic_delight()
+        jade_res = self.hook_jade_raycast()
+        fc_res = self.hook_ferritecore_fastmap()
+        way_res = self.hook_waystones()
+        lootr_res = self.hook_lootr_containers()
+        anvil_res = self.hook_easy_anvils()
+        heads_res = self.hook_all_the_heads()
+        ench_res = self.hook_enchantment_industry()
+        river_res = self.hook_climate_rivers()
+        combat_res = self.hook_combat_nouveau()
+        hotbar_res = self.hook_hotbar_swapper()
+        emc_res = self.hook_projecte_emc()
+        brew_res = self.hook_cauldron_brewing()
+        multi_sub_res = self.hook_multipart_subgrid()
+        bag_res = self.hook_bag_of_holding()
+        crop_res = self.hook_crop_breeding_giant()
+
         return {
             "vehicle": veh,
             "life": life,
@@ -916,7 +1297,25 @@ class PhysicalNodeEditor:
             "inventory": inv_res,
             "chisels_octree": chisel_res,
             "adaptive_rig": rig_res,
-            "dual_yield": dy_res
+            "dual_yield": dy_res,
+            "rotational_network": rot_res,
+            "tconstruct": tcon_res,
+            "rustic_delight": rustic_res,
+            "jade": jade_res,
+            "ferritecore": fc_res,
+            "waystones": way_res,
+            "lootr": lootr_res,
+            "easy_anvils": anvil_res,
+            "all_the_heads": heads_res,
+            "enchantment_industry": ench_res,
+            "climate_rivers": river_res,
+            "combat_nouveau": combat_res,
+            "hotbar_swapper": hotbar_res,
+            "projecte_emc": emc_res,
+            "cauldron_brewing": brew_res,
+            "multipart_subgrid": multi_sub_res,
+            "bag_of_holding": bag_res,
+            "crop_breeding_giant": crop_res
         }
 
     # ---------------------------------------------------------------------
@@ -1080,15 +1479,15 @@ class PhysicalNodeEditor:
                     with dpg.node_attribute(attribute_type=dpg.mvNode_Attr_Output, tag="attr_factorio_out"):
                         dpg.add_text("Logistics Throughput (Items/s)", tag="txt_factorio_status")
 
-                # 16. Mob Properties & AtomicStryker Infernal Affixes
-                with dpg.node(label="Mob Properties & Infernal Affixes", tag="node_infernal_mobs"):
+                # 16. Adversary Morphology & Affix Invariants
+                with dpg.node(label="Adversary Morphology & Affix Invariants", tag="node_infernal_mobs"):
                     with dpg.node_attribute(attribute_type=dpg.mvNode_Attr_Input):
                         dpg.add_slider_float(label="Base HP", default_value=40.0, min_value=10.0, max_value=200.0, tag="slider_mob_hp")
                         dpg.add_slider_float(label="Attack Damage", default_value=6.0, min_value=1.0, max_value=30.0, tag="slider_mob_damage")
-                        dpg.add_combo(label="Infernal Affix 1", items=["1UP", "Berserk", "Bulwark", "Lifesteal", "Storm", "Webbing", "Alchemist", "Rust"], default_value="Bulwark", tag="combo_affix_1")
-                        dpg.add_combo(label="Infernal Affix 2", items=["None", "1UP", "Berserk", "Blastoff", "Fiery", "Regen", "Sprint"], default_value="Berserk", tag="combo_affix_2")
+                        dpg.add_combo(label="Affix Invariant 1", items=["1UP", "Berserk", "Bulwark", "Lifesteal", "Storm", "Webbing", "Alchemist", "Rust"], default_value="Bulwark", tag="combo_affix_1")
+                        dpg.add_combo(label="Affix Invariant 2", items=["None", "1UP", "Berserk", "Blastoff", "Fiery", "Regen", "Sprint"], default_value="Berserk", tag="combo_affix_2")
                     with dpg.node_attribute(attribute_type=dpg.mvNode_Attr_Output, tag="attr_mob_out"):
-                        dpg.add_text("Mutated Elite Mob Out", tag="txt_mob_status")
+                        dpg.add_text("Evaluated Adversary Rig Out", tag="txt_mob_status")
 
                 # 17. AtomicStryker Multi-Mine Progressive Fracture
                 with dpg.node(label="Multi-Mine Progressive Fracture", tag="node_multi_mine"):
