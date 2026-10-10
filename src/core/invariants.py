@@ -44,10 +44,10 @@ class PhaseAlignmentInvariant(nn.Module):
     Acts as a first-class admissibility filter measuring the 'topological 
     synchronization' of field states.
     """
-    def __init__(self, degree: int):
+    def __init__(self, degree: int = 3, poly_degree: Optional[int] = None):
         super().__init__()
         # Degree is kept for compatibility, but PAS is now strictly phase-based
-        self.degree = degree
+        self.degree = poly_degree if poly_degree is not None else degree
         
     def forward(self, coeffs: torch.Tensor) -> torch.Tensor:
         """
@@ -66,10 +66,13 @@ class PhaseAlignmentInvariant(nn.Module):
                   manifold coherence.
         """
         # 1. Standardize Input [batch, N] where N is number of oscillators
-        if coeffs.dim() == 3:
-            # Flatten K and D to treat all as a pool of oscillators?
-            # Or average over K? Eq (2) sums over "elements in a set S".
-            # Let's treat (K, D) as the set S.
+        is_1d = coeffs.dim() == 1
+        if is_1d:
+            x = coeffs.unsqueeze(0)
+        elif coeffs.dim() == 3:
+            # Flatten K and D to treat all as a pool of oscillators
+            x = coeffs.reshape(coeffs.shape[0], -1)
+        elif coeffs.dim() > 3:
             x = coeffs.reshape(coeffs.shape[0], -1)
         else:
             x = coeffs
@@ -101,7 +104,7 @@ class PhaseAlignmentInvariant(nn.Module):
         alignment = torch.cos(theta - theta_bar)
         pas_h = alignment.mean(dim=1)
         
-        return pas_h
+        return pas_h.squeeze(0) if is_1d else pas_h
 
 class APAS_Zeta(nn.Module):
     """
