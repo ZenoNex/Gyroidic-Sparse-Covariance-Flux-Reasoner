@@ -277,6 +277,10 @@ Reads region file headers and decompresses specific chunk NBT compounds.
 **Description:**
 Coordinates region file scans, script extractions, and spatial voxel projections.
 Fuses spatial NBT/Block parameters with textual scripts as Voxel-Text Dyads.
+Feeds directly into the cleanroom mechanics suite ([`src/environment/cleanroom_mechanics.py`](../src/environment/cleanroom_mechanics.py)):
+- Extracted chest inventories and item compounds serialize into [`ExpandedInventorySystem`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py).
+- Paletted voxel chunk grids supply spatial ground-truth for [`ResourceDistributionInspector`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) Chebyshev depth distributions.
+- Sign posts, player death coordinates, and structural bounds populate [`JourneyTopoRadar`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) waypoints and stress fossils.
 
 ---
 
@@ -285,7 +289,7 @@ Fuses spatial NBT/Block parameters with textual scripts as Voxel-Text Dyads.
 
 **Description:**
 Stream-based decoder for Named Binary Tag (NBT) format.
-Supports all tag types, lists, compounds, and array payloads.
+Supports all tag types, lists, compounds, and array payloads, preserving full nested metadata dictionaries for [`ItemMetadata`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) and [`ItemStack`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) containers without lossy flattening.
 
 ---
 
