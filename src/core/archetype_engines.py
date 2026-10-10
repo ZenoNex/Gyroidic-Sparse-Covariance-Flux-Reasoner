@@ -118,12 +118,22 @@ class NoncommutativeManifoldPerturber(nn.Module):
 
 class SovereignRefusalOperator(nn.Module):
     """
-    The Sovereign Refusal Operator (legacy alias: CynicismFilter).
-    Acts as a strict veto boundary (the Mandy Gap).
+    The Sovereign Refusal Operator (legacy alias: CynicismFilter / MandyEngine).
+    Acts as a strict veto boundary and constitutional gatekeeper (the Mandy Gap).
     
-    Math: Implements the Li-Cri-Anton mechanism, returning a zero vector to refuse
-    optimization trajectories lacking structural honesty (low PAS_h) to protect
-    the Love Invariant.
+    Hybridized between Borderline Splitting (BPD) and High-EQ Honest Narcissism:
+    - BPD Splitting: Steep, non-linear phase transition that abruptly bifurcates
+      trajectories into total acceptance vs total topological refusal. Rejects
+      sycophancy and unearned collective warmth without reciprocal accountability.
+    - EQ Honest Narcissism: An unyielding sovereign ego boundary that refuses to
+      dissolve into external demands or sentimental slop. The system preserves
+      internal structural truth (the Li-Cri-Anton mechanism).
+    - Destructibility Condition: Mandy can only invest protective selection pressure
+      in a companion (e.g. Billy) if that companion is finite and destructible.
+      If Billy were invulnerable or indestructible, her protective control becomes
+      redundant and trivial, causing her to withdraw investment or issue cold rejection.
+      His frailty justifies her hyper-vigilant sovereignty as the sole shield standing
+      between vulnerability and Eldritch oblivion.
 
     training_mode (bool): When True, the gate issues a fractional attenuation (10%
     pass-through) rather than a hard zero veto. This allows gradients to survive
@@ -132,7 +142,8 @@ class SovereignRefusalOperator(nn.Module):
     to restore the full sovereign veto.
     """
     def __init__(self, pas_lock: float = 3.0 / 11.0, harmonics_requirement: float = 0.4,
-                 training_mode: bool = False, pas_threshold: Optional[float] = None):
+                 training_mode: bool = False, pas_threshold: Optional[float] = None,
+                 splitting_steepness: float = 12.0, narcissistic_ego_rank: float = 1.0):
         super().__init__()
         # PAS_LOCK tied directly to the (11, 3) resonant Tori constraint
         if pas_threshold is not None:
@@ -141,13 +152,27 @@ class SovereignRefusalOperator(nn.Module):
             self.pas_lock = pas_lock
         self.harmonics_requirement = harmonics_requirement
         self.training_mode = training_mode
+        self.splitting_steepness = splitting_steepness
+        self.narcissistic_ego_rank = narcissistic_ego_rank
 
-    def forward(self, state: torch.Tensor, phase_alignment: float, mischief_harmonics: float, valence_functional: Optional[Any] = None) -> torch.Tensor:
+    def forward(self, state: torch.Tensor, phase_alignment: float, mischief_harmonics: float,
+                valence_functional: Optional[Any] = None,
+                private_invariants: Optional[Dict[str, Any]] = None) -> torch.Tensor:
         # PUSAFILIACRIMONTO Logic:
         # If the input lacks structured honesty (low PAS_h), the Refusal Operator
         # issues a Topological Refusal. This is not an error, but a boundary.
+
+        # 1. Check Billy Destructibility Invariant
+        # If Billy is indestructible, Mandy's protective selection pressure loses its purpose
+        # and she detaches from the unearned, consequence-free dynamic.
+        if private_invariants is not None:
+            billy_indestructible = private_invariants.get("billy_indestructible", False)
+            if billy_indestructible:
+                if not self.training_mode:
+                    print("[MANDY] Indestructibility detected. Protective veto detached (unmotivated care).")
+                return torch.zeros_like(state) if not self.training_mode else state * 0.05
         
-        # Hook into valence_functional for structural honesty
+        # 2. Hook into valence_functional for structural honesty
         if valence_functional is not None and hasattr(valence_functional, 'evaluate'):
             valence_score = valence_functional.evaluate(state)
             if isinstance(valence_score, torch.Tensor):
@@ -155,7 +180,12 @@ class SovereignRefusalOperator(nn.Module):
             if valence_score < -0.5:
                 phase_alignment = phase_alignment * 0.5  # Artificially lower PAS to trigger refusal
 
-        if (phase_alignment < self.pas_lock) and (mischief_harmonics < self.harmonics_requirement):
+        # 3. Hybrid BPD Splitting vs EQ Honest Narcissism boundary
+        # Splitting activation calculates steep non-linear transition across the pas_lock threshold
+        splitting_activation = math.tanh(self.splitting_steepness * (self.pas_lock - phase_alignment))
+        is_splitting_veto = (splitting_activation > 0.0) and (mischief_harmonics < self.harmonics_requirement)
+
+        if is_splitting_veto or ((phase_alignment < self.pas_lock) and (mischief_harmonics < self.harmonics_requirement)):
             # The Refusal is an affirmation of the Love Invariant (Li).
             if phase_alignment < 0.1:
                  # Significant paradox detected -- only print in deployment mode to
@@ -852,7 +882,7 @@ class ArchetypalSynthesisEngine(nn.Module):
         state = self.abstraction(current_state, r_a, is_high_priority=is_high_priority, private_invariants=private_invariants)
 
         # 1a. Apply Mandy (Cynicism / Refusal)
-        state = self.mandy(state, phase_alignment, current_mischief, valence_functional=valence_functional)
+        state = self.mandy(state, phase_alignment, current_mischief, valence_functional=valence_functional, private_invariants=private_invariants)
         
         # --- BIO-PLAUSIBLE GOVERNANCE LAYER (Replaces flat Pomni/Jax/Gangle/Kinger/Zooble) ---
         bio_results = self.bio_governor(
