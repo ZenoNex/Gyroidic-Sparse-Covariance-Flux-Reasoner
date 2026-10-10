@@ -254,6 +254,14 @@ class HyperRingClosureChecker(nn.Module):
         
         # Hardware-accelerated Bouligand Contingent Cone checker
         self.engine = SiliconSovereigntyEngine() if PYOPENCL_AVAILABLE else None
+
+    def compute_holonomy(self, x: torch.Tensor, constraint: torch.Tensor) -> torch.Tensor:
+        """
+        Compute holonomy deficit / closure gap between state and constraint cycle.
+        """
+        diff = torch.norm(x - constraint, dim=-1)
+        scale = torch.norm(constraint, dim=-1) + 1e-8
+        return (diff / scale).mean()
     
     def is_in_cycle_group(
         self,
