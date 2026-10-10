@@ -476,9 +476,10 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # System 2 Modular Attention for reality-checking associations
         from src.models.modular_attention import ModularAttention
+        attn_heads = k if dim % k == 0 else max([h for h in [8, 4, 2, 1] if dim % h == 0], default=1)
         self.modular_attention = ModularAttention(
             hidden_dim=dim,
-            num_heads=k, # Dynamically bound to untyped compute affordances (functionals)
+            num_heads=attn_heads,
             poly_config=self.poly_config,
             num_functionals=k
         ).to(self.device)
@@ -6953,6 +6954,36 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     drives = ["/"]
                 self._send_json({"status": "ok", "drives": drives})
                 return
+            elif base_path == '/api/madoc/info':
+                try:
+                    from pathlib import Path
+                    from src.data.sovereign_ingestor import SovereignIngestor
+                    sovereign = SovereignIngestor()
+                    madoc_dir = sovereign.root / 'madoc'
+                    fallback_dir = sovereign.root / 'datasets' / 'madoc'
+                    active_dir = madoc_dir if madoc_dir.exists() else fallback_dir
+                    files = []
+                    if active_dir.exists():
+                        for f in active_dir.glob('**/*'):
+                            if f.is_file() and f.suffix.lower() in ('.parquet', '.jsonl', '.json', '.csv'):
+                                files.append({
+                                    'name': f.name,
+                                    'path': str(f),
+                                    'size': f.stat().st_size,
+                                    'suffix': f.suffix.lower()
+                                })
+                    self._send_json({
+                        "status": "ok",
+                        "root": str(sovereign.root),
+                        "active_dir": str(active_dir),
+                        "dir_exists": active_dir.exists(),
+                        "files": files,
+                        "supported_formats": [".parquet", ".jsonl", ".json", ".csv"],
+                        "supported_platforms": ["reddit", "voat", "bluesky", "koo"]
+                    })
+                except Exception as e:
+                    self._send_error_json(str(e))
+                return
 
             # Fallback for static files
             return super().do_GET()
@@ -7472,6 +7503,62 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         
                     ENGINE.save_state()
                     self._send_json({"status": "ok", "message": f"Successfully ingested {topological_states.shape[0]} residue states from GLTF Splat."})
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    self._send_error_json(str(e))
+                return
+
+            elif self.path == '/api/madoc/ingest':
+                print("API REQUEST: /api/madoc/ingest")
+                try:
+                    content_len = int(self.headers.get('Content-Length', 0))
+                    post_body = self.rfile.read(content_len)
+                    data = json.loads(post_body.decode('utf-8'))
+                    
+                    file_path = data.get('file_path') or data.get('path')
+                    explanation = data.get('explanation', '')
+                    platform = data.get('platform')
+                    if platform in ('all', '', None):
+                        platform = None
+                    limit = data.get('limit')
+                    if limit:
+                        try:
+                            limit = int(limit)
+                        except Exception:
+                            limit = None
+
+                    from src.data.sovereign_ingestor import SovereignIngestor
+                    from src.data.conversational_api_ingestor import SovereignConversationalIngestor
+                    
+                    sovereign = SovereignIngestor()
+                    target_path = file_path if file_path else 'madoc'
+                    convs = sovereign.ingest_madoc_snapshot(
+                        sub_path=target_path,
+                        limit=limit,
+                        platform_filter=platform,
+                        explanation=explanation
+                    )
+                    
+                    fossilized_count = 0
+                    if convs and ENGINE:
+                        ci = SovereignConversationalIngestor(engine=ENGINE, fossilizer=getattr(ENGINE, 'fossilizer', None))
+                        ci.ingest_batch(convs)
+                        fossilized_count = len(convs)
+                        if hasattr(ENGINE, 'save_state'):
+                            try:
+                                ENGINE.save_state()
+                            except Exception:
+                                pass
+
+                    self._send_json({
+                        "status": "ok",
+                        "conversations_ingested": len(convs),
+                        "fossilized_count": fossilized_count,
+                        "file_path": str(target_path),
+                        "explanation": explanation,
+                        "message": f"Successfully ingested {len(convs)} MADOC conversations into topological manifold."
+                    })
                 except Exception as e:
                     import traceback
                     traceback.print_exc()
