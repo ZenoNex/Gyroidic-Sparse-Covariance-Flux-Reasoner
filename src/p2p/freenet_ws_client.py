@@ -84,7 +84,7 @@ def get_freenet_tcp_port() -> int:
                 "$proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; "
                 "if ($proc.Name -match 'java|locutus|freenet|wrapper') { $_.LocalPort } }"
             )
-            output = subprocess.check_output(["powershell", "-Command", ps_cmd], text=True).strip()
+            output = subprocess.check_output(["powershell", "-Command", ps_cmd], text=True, timeout=2.0).strip()
             if output:
                 ps_ports = [int(p.strip()) for p in output.splitlines() if p.strip().isdigit()]
                 candidate_ports.extend(ps_ports)
