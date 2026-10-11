@@ -80,10 +80,22 @@ else:
 print('=============================================')
 
 try:
-    from src.training.enhanced_temporal_training import NonLobotomyTemporalModel
+    from src.core.failure_token import RuptureFunctional, FailureToken
+except Exception:
+    class RuptureFunctional(torch.nn.Module):
+        def __init__(self, rupture_threshold: float = 0.5):
+            super().__init__()
+            self.rupture_threshold = rupture_threshold
+        def forward(self, *args, **kwargs):
+            return torch.tensor(0.0)
+        def check_rupture(self, *args, **kwargs):
+            return None
+    FailureToken = None
+
+try:
     from src.core.admr_solver import PolynomialADMRSolver
     from src.topology.gyroid_covariance import LeyLineGeodesicMetric, MoebiusFiberBundle
-    from src.core.failure_token import RuptureFunctional, FailureToken
+    from src.training.enhanced_temporal_training import NonLobotomyTemporalModel
     TEMPORAL_MODEL_AVAILABLE = True
     print("[OK] Advanced Manifold Dynamics available (ADMR, LeyLines, Moebius, TemporalModel)")
 except Exception as e:
@@ -229,6 +241,15 @@ class GovernanceManager:
         print("      GYROIDIC GOVERNANCE INTERFACE ")
         print("="*50)
         
+        def safe_input(prompt_text, default_val=""):
+            if not sys.stdin or not sys.stdin.isatty():
+                return default_val
+            try:
+                val = input(prompt_text).strip()
+                return val if val else default_val
+            except (EOFError, KeyboardInterrupt):
+                return default_val
+
         # 1. Process Identification
         print("[SCANNING] Checking for background gyroid processes...")
         others = GovernanceManager.find_existing_processes()
@@ -238,7 +259,7 @@ class GovernanceManager:
             for p in others:
                 print(f"   • PID {p['pid']} | Cmd: {' '.join(p['cmdline'][:3])}...")
             
-            choice = input("\n[?] Shutdown background gyroid processes? (y/N): ").lower().strip()
+            choice = safe_input("\n[?] Shutdown background gyroid processes? (y/N): ", "n").lower()
             if choice == 'y':
                 GovernanceManager.shutdown_processes(others)
                 # Small delay to let OS release ports
@@ -259,9 +280,8 @@ class GovernanceManager:
                     saved_ports = data.get('ports')
             except Exception:
                 pass
-                
         if saved_config and saved_ports:
-            ans = input("\n[?] Found saved startup settings (.gyroid_config.json). Do you want to use your last settings or select new settings? (Y/n): ").strip().lower()
+            ans = safe_input("\n[?] Found saved startup settings (.gyroid_config.json). Do you want to use your last settings or select new settings? (Y/n): ", "y").lower()
             if ans in ('', 'y', 'yes'):
                 print(f"[OK] Loaded saved configuration. Manifold scaled to ports: {saved_ports}")
                 return saved_ports, saved_config
@@ -271,7 +291,7 @@ class GovernanceManager:
         print(f"   Default ports: {ports}")
         
         print("\n[INFO] What is this? Extra ports allow horizontal scaling of the manifold server nodes.")
-        extra_ports_raw = input("[?] Specify extra ports to scale (comma separated) or [Enter] for defaults: ").strip()
+        extra_ports_raw = safe_input("[?] Specify extra ports to scale (comma separated) or [Enter] for defaults: ", "")
         if extra_ports_raw:
             try:
                 extra_ports = [int(p.strip()) for p in extra_ports_raw.split(',') if p.strip()]
@@ -2982,16 +3002,24 @@ def main():
     """Start the Gyroidic Backend with Governance and Persistence."""
     global AI_SYSTEM
     
-    # 0. Check for Remote Updates
-    print("\n[UPDATER] Checking for system updates...")
-    try:
-        from src.terminal import update_client
-        update_applied = update_client.main()
-        if update_applied:
-            print("[UPDATER] Update applied. Please restart the backend.")
-            sys.exit(0)
-    except Exception as e:
-        print(f"[UPDATER] Warning: Update client failed ({e}). Proceeding offline.")
+    # 0. Check for Remote Updates (Assume unversioned downloads by default)
+    if os.environ.get('GYROID_CHECK_UPDATES', '0') == '1':
+        print("\n[UPDATER] Checking for system updates...")
+        try:
+            from src.terminal import update_client
+            update_applied = update_client.main()
+            if update_applied:
+                print("[UPDATER] Update applied. Please restart the backend.")
+                sys.exit(0)
+        except Exception as e:
+            print(f"[UPDATER] Warning: Update client failed ({e}). Proceeding offline.")
+    else:
+        try:
+            from src.terminal import update_client
+            local_v = update_client.get_local_version()
+            print(f"\n[UPDATER] Codebase baseline: {local_v}. Operating in offline/unversioned mode.")
+        except Exception:
+            print("\n[UPDATER] Operating in offline/unversioned mode.")
         
     # 1. Governance Startup (Interactive)
     startup_res = GovernanceManager.startup_menu()
@@ -3092,7 +3120,6 @@ def main():
         except Exception:
             pass
         # Execute normal sys.exit to allow proper threading cleanups instead of os._exit hard kill
-        import sys
         sys.exit(0)
 
 if __name__ == "__main__":
