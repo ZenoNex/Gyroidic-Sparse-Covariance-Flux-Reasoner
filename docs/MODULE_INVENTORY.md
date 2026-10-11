@@ -98,7 +98,7 @@ Replaces scalar loss proxies with dual-channel Split-Beam Interfactorization. Ch
 **Class**: `ConjugateMomentTransport`, `WassersteinOptimalTransport`  
 **Role**: Execute Conjugate Moment Measure Factorization (CMMF) for optimal transport.  
 
-This module couples base sampling and optimal transport into a single scalar convex potential $\psi(x)$. It parameterizes $\psi(x)$ using an Input Convex Neural Network (ICNN) to map base noise to target distributions via Legendre transform gradients $\nabla \psi^*(y)$. It adaptively scales the Monge-Ampère loss via the Phase Alignment Score ($\text{PAS}_h$). If standard Wasserstein transport fails, the continuous output is projected strictly onto the Cayley Cubic variety to prevent logic leaks.
+This module couples base sampling and optimal transport into a single scalar convex potential $\psi(x)$. It parameterizes $\psi(x)$ using an Input Convex Neural Network (ICNN) to map base noise to target distributions via Legendre transform gradients $\nabla \psi^*(y)$. It adaptively scales the Monge-Ampère loss via the Phase Alignment Score ($\text{PAS}_h$). If standard Wasserstein transport fails, the continuous output is projected strictly onto the Cayley Cubic variety to prevent logic leaks. Includes **trigonometric unfolding for Casus Irreducibilis** (cubic root degeneracy), unfolding degenerate states into three ternary chiral angles ($\theta$, $\theta + \frac{2\pi}{3}$, $\theta - \frac{2\pi}{3}$) and selecting the branch that maximizes structural negentropy.
 
 ---
 
@@ -541,16 +541,38 @@ Protects functionally creative or "dream-like" topological cycles from being cru
 ---
 
 ### [gyroid_covariance.py](../src/topology/gyroid_covariance.py)
-**Role**: Computes non-Euclidean sparse covariance matrices adhering to Gyroid symmetries.
+**Classes**: `SparseGyroidCovarianceProbe`, `SparseExplorerRouting`, `PalindromicRoutingCheck`, `GyroidCovarianceEstimator`  
+**Role**: Computes non-Euclidean sparse covariance matrices adhering to Gyroid symmetries and enforces strict Palindromic Routing ($M_{ab} = M_{ba}$), trivially guaranteeing triadic tracking ($\text{Tr}(P) = 1$) without $O(N^3)$ computational penalties.
+
+---
 
 ### [gyroid_differentiation.py](../src/topology/gyroid_differentiation.py)
-**Role**: Provides geometric flow constraints enforcing Gyroidic Differentiation.
+**Classes**: `GyroidImplicitSurface`, `GyroidFlowConstraint`, `ForbiddenSmoothingChecker`  
+**Role**: Provides geometric flow constraints enforcing Gyroidic Differentiation ($G(x) = \sin(x)\cos(y) + \sin(y)\cos(z) + \sin(z)\cos(x) = 0$). Detects forbidden smoothing trajectories and preserves high-frequency boundary ridges.
+
+---
 
 ### [betti_router.py](../src/topology/betti_router.py)
-**Role**: Routes logical flow based on topological Betti numbers computed from the persistence diagrams.
+**Classes**: `BettiRouter`  
+**Role**: Routes logical flow and execution paths based on topological Betti numbers ($\beta_0, \beta_1$) computed from persistent homology diagrams, gating regime shifts between standard reasoning and creative paraconsistency.
+
+---
+
+### [hyper_ring.py](../src/topology/hyper_ring.py)
+**Classes**: `DiscreteHyperRingCirculation`, `RecurrentHyperRingConnectivity`, `HyperRing`  
+**Role**: Implements discrete line integrals over constraint cycles $C$ with **Inverted Hypersphere Cosmology (IHC) Base-24 Toroidal Binary-Ternary Quantized Arithmetic** ($2^3 \times 3$). Boundary contributions are mapped onto $\mathbb{Z}/24\mathbb{Z}$ equivalence classes across the 33 nested toroidal shells, avoiding floating-point representation loss and adhering to the binary-ternary toroidal duality constraint. Features `RecurrentHyperRingConnectivity` with `OmipedialDeflagrator` ley-line topological shortcuts and phase slippage detection against expected circulation.
+
+---
 
 ### [hyper_ring_closure.py](../src/topology/hyper_ring_closure.py)
-**Role**: Verifies the non-triviality of topological rings to ensure stable soliton preservation.
+**Classes**: `HyperRingOperator`, `HyperRingClosureChecker`  
+**Role**: Verifies the topological closure of hyper-rings ($H(r) \in Z_1(C)$ and $[H(r)] \neq 0 \in H_1(C)$). Classifies topological states into *fracture* (non-closed), *collapse* (trivial loop), or *survivable soliton* (non-trivial cycle), ensuring stable soliton preservation without scalarized gradient minimization.
+
+---
+
+### [triadic_reciprocity.py](../src/topology/triadic_reciprocity.py)
+**Classes**: `TriadicReciprocityChecker`  
+**Role**: Validates closed 3-way feature flow reciprocity loops $(A \to B \to C \to A)$. Measures the generalized triple scalar product (volume of mutual skew-symmetric relations) across visual and linguistic flows to evaluate structural honesty and prevent collinear vector collapse.
 
 ---
 
