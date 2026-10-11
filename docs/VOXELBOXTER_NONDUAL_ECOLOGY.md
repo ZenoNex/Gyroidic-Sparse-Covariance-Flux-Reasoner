@@ -67,6 +67,19 @@ Vehicle collisions, tool chiseling, and projectile impacts interact with the vox
    $$\alpha I_1 + \sqrt{J_2} - k = 0$$
    Wraps local rupture sites in a smooth, convex yield envelope. Global vehicle momentum and terrain contour flow smoothly around fractured zones without non-manifold mesh crashes.
 
+### D. Dynamic Euler-Poincaré Algebraic Betti Numbers (`compute_terrain_betti`)
+Terrain and construct topological invariants are computed in real time without mock stubs or $O(n^3)$ persistent homology latency bottlenecks:
+1. **0-th Betti Number ($\beta_0$)**: Measures discrete connected components (terrain landmasses, floating islands, fractured debris clusters) via BFS graph search on the voxel lattice:
+   $$\beta_0 = |C|$$
+2. **1-st Betti Number ($\beta_1$)**: Measures 1-dimensional topological handles, loop tunnels, and chasms via the cubical Euler-Poincaré formula:
+   $$\chi = V - E = \beta_0 - \beta_1 \implies \beta_1 = \max(0, E - V + \beta_0)$$
+   where $V$ is the number of active voxels (0-cells) and $E$ is the number of face-sharing adjacency edges (1-cells).
+3. **Diegetic Physics Coupling**:
+   - Implemented natively on both [StructuralGraph.compute_betti_numbers](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L305-L333) and [PointerlessOctree.compute_betti_numbers](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L833-L879).
+   - Queried dynamically in `VoxelboxterEngine.tick()` via [compute_terrain_betti](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L1054-L1070) and passed as `track_state` to [DiegeticPhysicsEngine.process_input](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/diegetic_physics_engine.py#L33-L154).
+   - In Stage 4, Betti numbers scale the Gyroid violation obstacle complexity ($\text{topo\_complexity} = 1.0 + 0.1(\beta_0 - 1) + 0.25\beta_1$).
+   - In Stage 9, topological track ruptures carve dynamic voids in the [PointerlessOctree](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L796-L880), advancing $\beta_1$ and deforming PyBevy meshes.
+
 ---
 
 ## 4. Living Flora: The Cashew Tree of Pirangi Mutation
@@ -213,20 +226,20 @@ When a physical event occurs in Voxelboxter—a crash, a track fracture, a carve
 
 ---
 
-## 7. Cleanroom Mechanics Suite & Ecological Manifestation
+## 9. Cleanroom Mechanics Suite & Ecological Manifestation
 
 The cleanroom mechanics suite implemented in [cleanroom_mechanics.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) provides non-dual, mathematically grounded implementations of industrial and ecological modded gameplay systems:
 
-### 7.1 JourneyMap Topological Radar (`JourneyTopoRadar`)
+### 9.1 JourneyMap Topological Radar (`JourneyTopoRadar`)
 Real-time subterranean entity scanning and beacon distance calculation. Deconstructs Minecraft JourneyMap radar mechanics into coordinate distance matrices and persistent `TopoWaypoint` death fossilation markers.
 
-### 7.2 Just Enough Resources Depth Curves (`ResourceDistributionInspector`)
+### 9.2 Just Enough Resources Depth Curves (`ResourceDistributionInspector`)
 Replaces ad-hoc block spawn tables with true orthogonal Chebyshev polynomial curves evaluated along world depth intervals $y \in [-64, 320]$, matching [MinimaxPolynomialApproximation](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/tda/chebyshev_filtration.py#L30) equioscillation principles.
 
-### 7.3 Multi-Mine Progressive Fracture (`MultiMineMemory`)
+### 9.3 Multi-Mine Progressive Fracture (`MultiMineMemory`)
 Cleanroom implementation of AtomicStryker's Multi Mine. Remembers partially fractured voxel blocks across multiple agents, tool hits, and time ticks. When accumulated damage reaches 1.0, the block fractures from [PointerlessOctree](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L767) and deposits harvested scrap mass into [InventoryComponent](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L52).
 
-### 7.4 Mekanism Multi-Tier Metallurgical Dissolution (`MekanismProcessingPipeline`)
+### 9.4 Mekanism Multi-Tier Metallurgical Dissolution (`MekanismProcessingPipeline`)
 Models progressive 1x to 5x ore refinement:
 * **Tier 1 (Smelting):** 1x yield (Ore -> Ingot).
 * **Tier 2 (Enrichment):** 2x yield via mechanical pulverization.
@@ -235,29 +248,29 @@ Models progressive 1x to 5x ore refinement:
 * **Tier 5 (Dissolution & Crystallization):** 5x yield utilizing sulfuric acid ($H_2SO_4$) slurry synthesis.
 Monitored by [CarnotMobiusLedger](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/carnot_mobius_ledger.py#L25) to account for thermodynamic waste heat and entropy production.
 
-### 7.5 SEM TECH: Saltwater Electro Mining (`SEMElectrochemicalExtractor`)
+### 9.5 SEM TECH: Saltwater Electro Mining (`SEMElectrochemicalExtractor`)
 * **Inspiration:** SEM TECH / Rowow LLC (Robert Karas, open-source CERN-OHL-S v2).
 * **Principles:** Closed-loop hydrometallurgical leaching utilizing ambient saltwater brine ($NaCl + H_2O$) and low-voltage DC / RF electricity. Generates in-situ nascent chlorine and hypochlorite oxidizers to leach and cathode-electrodeposit gold (Au), silver (Ag), platinum group metals (PGMs), copper (Cu), nickel (Ni), and rare earth elements directly from accumulated low-grade waste tailings, slag, and gangue stockpiles.
 * **Closed-Loop Recirculation:** Recovers >95% of saline electrolyte in a closed cycle, allowing early-game players to extract high-value metals without late-game sulfuric acid plants.
 
-### 7.6 Create: Aeronautics Rigid Assemblies (`AeronauticContraption`)
+### 9.6 Create: Aeronautics Rigid Assemblies (`AeronauticContraption`)
 Eliminates duplicated kinematics by directly composing canonical [RigidBody](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L110), [Propulsor](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L140), [VehicleEngine](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L190), [AirBreathingBattery](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L170), and [EnvironmentalAtmosphere](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L210). Computes Archimedes buoyant envelope displacement ($F_{\text{buoyant}} = (\rho_{\text{air}} - \rho_{\text{gas}}) V g$) and sleeve-valve combustion propeller thrust, constrained by [DruckerPragerProjection](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/yield_criteria.py#L42) structural frame shear failure.
 
-### 7.7 Farmer's Delight & Spice of Life Nutrition (`NutritionalDiversityTracker`)
+### 9.7 Farmer's Delight & Spice of Life Nutrition (`NutritionalDiversityTracker`)
 Combines Carrot Edition (permanent milestone max HP increases as the player discovers unique foods) with Onion Edition (rolling Shannon entropy variety scoring, conferring positive buffs for diverse diets and sluggish malaise for monotonous diets).
 
-### 7.8 Single-Voxel Conduits & 16-Color Bundled Cabling (`CompositeVoxelConduit` & `RedNet16BundledCable`)
+### 9.8 Single-Voxel Conduits & 16-Color Bundled Cabling (`CompositeVoxelConduit` & `RedNet16BundledCable`)
 Enables power (FE), fluids (mB), items, and redstone signals to route through a single voxel space without collision. RedNet bundled cables isolate 16 independent analog subnets (0-255) through a single connection.
 
-### 7.9 Dual-Lane Logistics & Directional Inserters (`TransportBeltSegment` & `DirectionalInserter`)
+### 9.9 Dual-Lane Logistics & Directional Inserters (`TransportBeltSegment` & `DirectionalInserter`)
 Factorio-style item transport featuring two independent belt lanes (15 to 45 items/s throughput) and directional mechanical inserters with swing speed, filter selection, and stack capacities.
 
-### 7.10 Mendelian Animal Husbandry (`FaunaGeneticsComponent`)
+### 9.10 Mendelian Animal Husbandry (`FaunaGeneticsComponent`)
 Phenotypic inheritance with chromosomal alleles governing movement speed, jump height, and material yields, subject to crossover and ambient mutation rates.
 
 ---
 
-## 8. Node Environment Execution Hooks & Dual-Yield Interaction
+## 10. Node Environment Execution Hooks & Dual-Yield Interaction
 
 All mechanics in and outside of [cleanroom_mechanics.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) are directly wired into [node_environment.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py) via dedicated hook methods in `PhysicalNodeEditor`:
 
