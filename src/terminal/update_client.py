@@ -13,10 +13,25 @@ GITHUB_API = f"https://api.github.com/repos/{REPO}"
 ZIP_URL = f"https://github.com/{REPO}/archive/refs/heads/main.zip"
 
 def get_local_version():
+    """Returns local version baseline, defaulting to unversioned-github-download."""
     version_file = Path(".version")
     if version_file.exists():
-        return version_file.read_text().strip()
-    return "0.0.0-unknown"
+        v = version_file.read_text().strip()
+        if v and not v.startswith("0.0.0"):
+            return v
+    # Check git if available
+    try:
+        import subprocess
+        git_hash = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            text=True
+        ).strip()
+        if git_hash:
+            return f"git-{git_hash}"
+    except Exception:
+        pass
+    return "unversioned-github-download"
 
 def hash_file(filepath):
     """Compute SHA256 of a file."""
@@ -159,15 +174,24 @@ def main():
     local_version = get_local_version()
     print(f"Local Version Baseline: {local_version}")
     
+    # If stdin is non-interactive or updates disabled, do not block
+    if not sys.stdin or not sys.stdin.isatty():
+        print("[*] Non-interactive environment detected. Proceeding with current unversioned files.")
+        return False
+
     remote_hash, msg = fetch_latest_remote_info()
     if not remote_hash:
         return False
         
     print(f"Remote Latest (main): {remote_hash} - {msg}")
     
-    proceed = input("\nDo you want to stage this update for analysis? [y/N]: ").strip().lower()
+    try:
+        proceed = input("\nDo you want to stage this update for analysis? [y/N]: ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        proceed = 'n'
+
     if proceed != 'y':
-        print("[*] Update bypassed.")
+        print("[*] Update bypassed. Proceeding with local unversioned files.")
         return False
         
     local_root = os.getcwd()
