@@ -1,194 +1,209 @@
 
-import threading
-import time
-import torch
+#Spectral Structural Trainer: Non-Teleological Optimization via Spectral Coherence.
+
+#Integrates Ricci Flow, Polynomial ADMR, and SIC-FA-ADMM into a spectral 
+#stabilization loop. 
+
+
 import sys
 import os
-import numpy as np
-from src.core.honest_jitter import harvest_honest_jitter
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-try:
-    from .enhanced_temporal_training import NonLobotomyTemporalModel
-    MODEL_AVAILABLE = True
-except (ImportError, ValueError):
-    try:
-        from src.training.enhanced_temporal_training import NonLobotomyTemporalModel
-        MODEL_AVAILABLE = True
-    except ImportError:
-        MODEL_AVAILABLE = False
-        print("[WARN] NonLobotomyTemporalModel not found in source tree. Using mock training.")
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from typing import Dict, List, Optional, Tuple
 
-class TrainingManager:
-    def __init__(self, ai_system):
-        self.ai_system = ai_system
-        self.is_training = False
-        self.stop_event = threading.Event()
-        self.training_thread = None
-        self.progress = 0
-        self.log = []
-        self.results = None
-        self.metrics_history = []
-        
-    def start_training(self, epochs: int, learning_rate: float = 0.001):
-        if self.is_training:
-            return False, "Training already in progress"
-            
-        self.is_training = True
-        self.stop_event.clear()
-        self.progress = 0
-        self.log = []
-        self.results = None
-        self.metrics_history = []
-        
-        self.log.append(f"[START] Starting training: {epochs} epochs...")
-        
-        self.training_thread = threading.Thread(
-            target=self._training_loop,
-            args=(epochs, learning_rate),
-            daemon=True
+from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer, WillmoreEnergy
+from src.core.fgrt_primitives import GyroidManifold, BerryPhaseTracker
+from src.optimization.sic_fa_admm import SicFaAdmmSolver
+from src.core.polynomial_coprime import PolynomialCoprimeConfig
+from src.core.admr_solver import PolynomialADMRSolver
+from src.core.codes_constraint_framework import CODESConstraintFramework
+from src.models.resonance_cavity import ResonanceCavity
+from src.core.invariants import PhaseAlignmentInvariant
+from src.core.birkhoff_projection import project_to_birkhoff
+
+# Fix import paths
+import sys
+import os
+if os.path.dirname(os.path.abspath(__file__)) not in sys.path:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+if os.path.join(os.path.dirname(os.path.abspath(__file__)), "..") not in sys.path:
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+
+class SpectralStructuralTrainer:
+    """
+    Trainer that uses Spectral Speculative Decoding and Ricci Flow to align
+    states with the polynomial manifold.
+    """
+    def __init__(
+        self,
+        model: nn.Module,
+        poly_config: PolynomialCoprimeConfig,
+        lr: float = 1e-4,
+        torsion_weight: float = 0.1,
+        spectral_threshold: float = 1.0
+    ):
+        self.model = model
+        self.config = poly_config
+        self.optimizer = RicciFlowOptimizer(
+            model.parameters(), 
+            lr=lr, 
+            torsion_weight=torsion_weight
         )
-        self.training_thread.start()
-        return True, "Training started"
+        self.willmore = WillmoreEnergy()
+        self.phase_tracker = BerryPhaseTracker()
+        self.gyroid = GyroidManifold()
+        self.pas_metric = PhaseAlignmentInvariant(degree=poly_config.degree)
         
-    def stop_training(self):
-        if self.is_training:
-            self.stop_event.set()
-            return True, "Stopping training..."
-        return False, "No training active"
+        # 1. Polynomial ADMR for state reconciliation
+        self.admr = PolynomialADMRSolver(
+            poly_config=poly_config,
+            state_dim=model.dim 
+        )
         
-    def get_status(self):
-        return {
-            'active': self.is_training,
-            'progress': self.progress,
-            'log': self.log[-10:] if self.log else [],
-            'results': self.results,
-            'metrics': self.metrics_history[-1] if self.metrics_history else None
-        }
+        # 2. System 2 Probe: SIC-FA-ADMM
+        self.system2_probe = SicFaAdmmSolver(
+            dim=model.dim, # state_dim
+            max_iters=50,
+            admissibility_threshold=spectral_threshold
+        )
+        
+        # 3. Formal System 2 Constraints (RIC/CODES)
+        # These are used for calculating the formal Survivorship Pressure (6.3)
+        self.ric = ResonanceCavity(hidden_dim=model.dim, num_modes=64, poly_config=poly_config)
+        self.codes = CODESConstraintFramework(state_dim=model.dim)
+        
+        # Seed CODES with standard formal constraints
+        self.codes.add_constraint(0, constraint_type='quadratic')
+        self.codes.add_constraint(1, constraint_type='harmonic')
+        self.codes.add_constraint(2, constraint_type='polynomial_coprime')
+        
+      
+        self.prev_output = None
 
-    def _training_loop(self, epochs, learning_rate):
-        try:
-            self.log.append("[INIT] Initializing training resources...")
-            
-            # Initialize Model or use existing
-            if self.ai_system.temporal_model:
-                model = self.ai_system.temporal_model
-                self.log.append("[OK] Used existing temporal model.")
-            elif MODEL_AVAILABLE:
-                 # Instantiate a fresh one if needed, though we prefer the global one
-                self.log.append("[BUILD] Instantiating new NonLobotomyTemporalModel (this may take a moment)...")
-                try:
-                    model = NonLobotomyTemporalModel().to(self.ai_system.device)
-                    self.log.append("[OK] Model instantiated successfully.")
-                except Exception as e:
-                     self.log.append(f"[WARN] Model init failed: {e}. Falling back to mock.")
-                     model = None
-            # Initialize real FGRT Trainer
-            fgrt_trainer = None
-            if model is not None:
-                try:
-                    from src.training.fgrt_trainer import FGRTStructuralTrainer
-                    fgrt_trainer = FGRTStructuralTrainer(model=model, lr=learning_rate)
-                    self.log.append("[BUILD] FGRTStructuralTrainer engaged. We are running live physics.")
-                except Exception as e:
-                    self.log.append(f"[WARN] FGRT initialization failed: {e}. Falling back to mock loops.")
-            
-            total_steps = epochs * 10
-            current_step = 0
-            
-            # Theoretical Constants for Diegetic Simulation
-            PAS_H_TARGET = 1.0
-            CHIRAL_BIAS = -0.5
-            
-            warm_start_chirality = None
-            
-            for epoch in range(epochs):
-                if self.stop_event.is_set():
-                    break
-                    
-                self.log.append(f"Epoch {epoch+1}/{epochs} initiated...")
-                
-                # Real/Mock Batch Loop
-                for batch in range(10): 
-                    if self.stop_event.is_set():
-                        break
-                        
-                    # Update Progress
-                    current_step += 1
-                    self.progress = int((current_step / total_steps) * 100)
-                    
-                    if fgrt_trainer is not None:
-                        # ---------------- REAL TRAINING PATH ----------------
-                        try:
-                            # Generate an honest-jitter batch to test structural resonance
-                            input_data = harvest_honest_jitter((1, 4, 16), device=self.ai_system.device, scaled=True)
-                            input_data.requires_grad_(True)
-                            
-                            metrics = fgrt_trainer.train_step(input_data)
-                            
-                            loss = metrics.get('energy', 0.5)
-                            pas_h = metrics.get('pas_h', 1.0)
-                            chiral_score = metrics.get('chiral_score', CHIRAL_BIAS)
-                            gyroid_pressure = metrics.get('gyroid_pressure', 0.0)
-                        except Exception as e:
-                            self.log.append(f"[WARN] Real training step failed: {e}. Falling back for this step.")
-                            fgrt_trainer = None
-                            continue
-                    else:
-                        # ---------------- MOCK TRAINING PATH ----------------
-                        time.sleep(0.5)
-                        jitter = harvest_honest_jitter((1,), device=self.ai_system.device, scaled=True).item()
-                        loss = 0.5 * (1.0 - (current_step / total_steps)) + (abs(jitter) * 0.1)
-                    
-                    # PAS_h: Phase Amplitude Stability (Hardened) - Converges to 1.0
-                        pas_h = 0.8 + (0.2 * (current_step / total_steps)) + (jitter * 0.02)
-                        
-                    # Chiral Score: Rotational metric (Warm Started to preserve chiral residues)
-                        if warm_start_chirality is None:
-                            chiral_score = CHIRAL_BIAS + (jitter * 0.05)
-                        else:
-                            chiral_score = warm_start_chirality * 0.99 + (jitter * 0.01)
-                        warm_start_chirality = chiral_score
-                    
-                    # Gyroid Pressure: Stress on the manifold
-                        gyroid_pressure = max(0, 1.0 - pas_h) * 5.0
+    def train_step(self, input_data: torch.Tensor) -> Dict[str, float]:
+        """Performs a non-teleological training step with spectral gating.
 
-                    # --- RE-HYBRIDIZATION: Situational Batching (Pusafiliacrimonto Dynamics) ---
-                    if hasattr(self.ai_system, 'situational_sampler'):
-                        sampler_iter = iter(self.ai_system.situational_sampler)
-                        try:
-                            situational_batch = next(sampler_iter)
-                            pressure_tensor = torch.tensor([gyroid_pressure], device=self.ai_system.device)
-                            mischief_tensor = torch.tensor([abs(loss)], device=self.ai_system.device) # Proxy for mischief
-                            self.ai_system.situational_sampler.update_pusafiliacrimonto(
-                                situational_batch, pressure_tensor, mischief_tensor
-                            )
-                        except StopIteration:
-                            pass
-                    
-                    # Log significant events (Diegetic)
-                    if batch == 5:
-                         self.log.append(f"  [Epoch {epoch+1}] PAS_h: {pas_h:.4f} | Gyroid Pressure: {gyroid_pressure:.4f}")
-                    
-                    self.metrics_history.append({
-                        "loss": loss,
-                        "pas_h": pas_h,
-                        "chiral_score": chiral_score,
-                        "gyroid_pressure": gyroid_pressure,
-                        "epoch": epoch + 1
-                    })
+        Architecture follows PHYSICS_ADMM.md §2.1 Cyclic Constraint Traversal:
+            For each constraint k: P_k: r -> argmin_{c in C_k} L_k(r, c)
+        Each probe is isolated — no cross-domain gradient contamination.
 
-                self.log.append(f"[OK] Epoch {epoch+1} completed. Loss: {loss:.4f}")
+        Mischief is a local strain tolerance modifier (NonDualProbe §5.1),
+        NOT a negative loss term. It gates how tightly coherence is enforced.
+        This is the anti-scalarization mandated by INVARIANT_OPTIMIZATION.md Tripwire 3.
+        """
 
-            if not self.stop_event.is_set():
-                self.results = {"success": True, "final_loss": loss}
-                self.log.append("[SUCCESS] Training completed successfully.")
-            else:
-                 self.results = {"success": False, "message": "Stopped by user"}
-                 self.log.append("[STOP] Training stopped.")
+        # ------------------------------------------------------------------ #
+        # 1. System 1: Heuristic Proposal                                     #
+        # ------------------------------------------------------------------ #
+        # Forward pass — zero_grad happens per-probe below
+        self.optimizer.zero_grad()
+        output = self.model(input_data)
 
-        except Exception as e:
-            self.log.append(f"[ERR] Error during training: {str(e)}")
-            self.results = {"success": False, "error": str(e)}
-        finally:
-            self.is_training = False
+        # ------------------------------------------------------------------ #
+        # 2. Spectral Speculative Check (Wager #4, EFFICIENCY doc)            #
+        # Does the proposal exhibit Soliton structure?                         #
+        # ------------------------------------------------------------------ #
+        output_freq = torch.fft.rfft(output)
+        power = torch.abs(output_freq) ** 2
+        power_norm = power / (power.sum(dim=-1, keepdim=True) + 1e-8)
+        spectral_entropy = -(power_norm * torch.log(power_norm + 1e-8)).sum(dim=-1).mean()
 
+        # Group Relative Sparsity baseline
+        l1_norms = torch.norm(output, p=1, dim=-1)
+        batch_avg_l1 = l1_norms.mean().item() + 1e-8
+
+        # ------------------------------------------------------------------ #
+        # 3. System 2 Gate: Trust System 1 or invoke geometric repair         #
+        # ------------------------------------------------------------------ #
+        proposal = output
+        if spectral_entropy > self.system2_probe.admissibility_threshold:
+            lambda_grs = self.system2_probe.lambda_sparse * (l1_norms.mean() / batch_avg_l1)
+            repaired_output = self.system2_probe.solve(
+                forward_op=lambda x: x,
+                anchor=output.detach(),
+                M_alpha_op=None,
+                lambda_sparse_override=lambda_grs.item()
+            )
+            recon_loss = F.mse_loss(proposal, repaired_output.detach())
+            output = repaired_output
+        else:
+            recon_loss = torch.tensor(0.0, device=output.device, requires_grad=False)
+
+        # ------------------------------------------------------------------ #
+        # 4. Compute Invariants (read-only diagnostics, no grad)              #
+        # ------------------------------------------------------------------ #
+        pas_h = self.pas_metric(
+            output.unsqueeze(1) if output.dim() == 2 else output
+        ).mean().item()
+
+        # Mischief: measure of novelty relative to RIC resonant baseline.
+        # Per NonDualProbe §5.1: mischief is a TOLERANCE MODIFIER, not a loss.
+        # High mischief -> loosen coherence enforcement; low mischief -> tighten.
+        # It is NOT subtracted from a scalar aggregate — that would be scalarization.
+        with torch.no_grad():
+            resonance_data = self.ric.query(proposal.detach())
+            coherence_scalar = resonance_data['resonance_scores'].mean().item()
+            mischief_tolerance = (1.0 - coherence_scalar) * spectral_entropy.item()
+        # beta_mischief governs how much mischief expands the coherence tolerance
+        beta_mischief = 0.05
+        alpha_coh = 0.1
+
+        # ------------------------------------------------------------------ #
+        # 5. CYCLIC CONSTRAINT PROBES — each probe is a sovereign domain      #
+        #                                                                      #
+        # Probe ordering follows PHYSICS_ADMM.md §2.2:                        #
+        #   k=0: Reconstruction (association inaccuracy)                       #
+        #   k=1: Coherence (NonDualProbe — mischief gates tolerance)          #
+        #   k=2: CODES formal constrainment energy                             #
+        #   k=3: Topological curvature (optional)                              #
+        #                                                                      #
+        # Each probe uses a detached anchor for its internal computation.      #
+        # Gradients flow only through the probe's own forward—no cross-leak.  #
+        # ------------------------------------------------------------------ #
+
+        probe_log = {}  # For diagnostics
+
+        # --- Probe k=0: Reconstruction / Association Inaccuracy ---
+        # P_0: r -> argmin_{c in C_0} |output - repaired|^2
+        # Enforces that System 1 output stays close to the repair anchor.
+        if recon_loss.requires_grad:
+            self.optimizer.zero_grad()
+            recon_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+            self.optimizer.step()
+        probe_log['recon_loss'] = recon_loss.item()
+
+        # Birkhoff projection after each probe step (mandatory per GDPO pattern)
+        with torch.no_grad():
+            for p in self.model.parameters():
+                if p.dim() == 2 and p.shape[0] == p.shape[1]:
+                    p.copy_(project_to_birkhoff(p.data))
+
+        # --- Probe k=1: Coherence — gated by mischief tolerance (NonDualProbe) ---
+        # Per PHYSICS_ADMM.md §5.1: penalty = max(strain - beta * H_mischief, 0)
+        # This makes mischief a *strain tolerance* gate, not a scalar reward to subtract.
+        # Re-query coherence with fresh graph on current proposal (not detached)
+        self.optimizer.zero_grad()
+        resonance_data_live = self.ric.query(proposal)
+        coherence_live = resonance_data_live['resonance_scores'].mean()
+        raw_coherence_strain = alpha_coh * (1.0 - coherence_live)
+        # Apply mischief tolerance gate: allow more strain if system is mischievous
+        coherence_probe_pressure = torch.clamp(
+            raw_coherence_strain - beta_mischief * mischief_tolerance, min=0.0
+        )
+        if coherence_probe_pressure.requires_grad:
+            coherence_probe_pressure.backward()
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+
+# Legacy aliases for backward compatibility (Phase 3 -> Phase 4 transition)
+StructuralAdaptor = SpectralStructuralTrainer
+
+class ConstraintDataset:
+    pass
+
+def collate_fn(*args, **kwargs):
+    pass
