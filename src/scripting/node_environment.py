@@ -50,6 +50,30 @@ from src.p2p.bonfire_consensus import BonfireNomadicRing
 from src.p2p.freenet_ws_client import FreenetClient
 from src.p2p.zk_aggregator import ZKAggregator
 from src.surrogates.calm_predictor import CALM
+from src.environment.cleanroom_mechanics import (
+    JourneyTopoRadar, ResourceDistributionInspector, MultiMineMemory,
+    MekanismProcessingPipeline, NutritionalDiversityTracker,
+    RedNet16BundledCable, CompositeVoxelConduit,
+    TransportBeltSegment, DirectionalInserter,
+    AeronauticContraption, FaunaGeneticsComponent,
+    ExpandedInventorySystem, MobProperties,
+    SEMElectrochemicalExtractor, ItemStack,
+    FluidStack, GasStack, InfernalAffix,
+    RotationalKineticNetwork, RotationalNode,
+    ModularTool, ToolMaterial, ToolPartType, MaterialTrait, SmelterySystem,
+    RusticDelightManager, FermentationBarrel,
+    JadeRaycastInspector, FastMapBlockState,
+    WaystonesNetwork, WaystoneNode, LootrContainerManager,
+    EasyAnvilsSystem, AllTheHeadsRegistry,
+    EnchantmentIndustryPipeline, ClimateRiverSegment, RiverBiomeType,
+    CombatNouveauProfile, WeaponCategory, HotbarSwapper,
+    ProjectEEMCSolver, DiegeticCauldron,
+    DistinctPotionProfile, ActiveEffectInsight,
+    MultipartVoxelCell, SubgridRotationalWireHarness,
+    BagOfHolding, BagTier, IC2CropGenome, GiantCropCluster, FoodQualityTier,
+    GasTubeTier, GasDumpingMode, MekanismScubaTank, RotaryCondensentrator,
+    TracerOxygenAtmosphereEngine, U1GaugeAtmosphereBridge
+)
 
 logger = logging.getLogger(__name__)
 
@@ -65,38 +89,119 @@ class SocketType(Enum):
     COLOR = auto()     # Yellow: Color / RGBA 4-element vector
 
 
+class DifficultyMode(Enum):
+    PEACEFUL = "PEACEFUL"
+    SURVIVAL = "SURVIVAL"
+    HARSH = "HARSH"
+    ENTROPIC = "ENTROPIC"
+
+
+@dataclass
+class ResourceProperties:
+    name: str
+    material_id: int
+    density: float = 2500.0          # kg/m^3
+    hardness: float = 10.0          # Mohr-Coulomb cohesion / yield hardness
+    energy_density: float = 0.0     # MJ/kg
+    base_value: float = 10.0        # Base commercial valuation in Non-Dual Coin / credits
+    tags: List[str] = field(default_factory=list)
+
+
+class ResourceRegistry:
+    """
+    Central material property and parameter registry cataloging density,
+    Mohr-Coulomb cohesion hardness, energy density, and base commercial valuation
+    across physical and synthetic voxel substances.
+    """
+    def __init__(self):
+        self._registry: Dict[int, ResourceProperties] = {}
+        self._name_to_id: Dict[str, int] = {}
+        self._setup_defaults()
+
+    def _setup_defaults(self):
+        defaults = [
+            ResourceProperties(name="Stone", material_id=1, density=2600.0, hardness=15.0, energy_density=0.0, base_value=1.0, tags=["stone"]),
+            ResourceProperties(name="Iron Ore", material_id=10, density=5000.0, hardness=25.0, energy_density=0.0, base_value=10.0, tags=["oreIron"]),
+            ResourceProperties(name="Iron Ingot", material_id=20, density=7870.0, hardness=40.0, energy_density=0.0, base_value=25.0, tags=["ingotIron"]),
+            ResourceProperties(name="Diamond", material_id=30, density=3510.0, hardness=100.0, energy_density=0.0, base_value=500.0, tags=["gemDiamond"]),
+            ResourceProperties(name="Redstone", material_id=40, density=2200.0, hardness=8.0, energy_density=50.0, base_value=15.0, tags=["dustRedstone"]),
+            ResourceProperties(name="Wood Log", material_id=50, density=650.0, hardness=5.0, energy_density=18.0, base_value=2.0, tags=["woodLog"]),
+        ]
+        for prop in defaults:
+            self.register(prop)
+
+    def register(self, prop: ResourceProperties):
+        self._registry[prop.material_id] = prop
+        self._name_to_id[prop.name.lower()] = prop.material_id
+
+    def get(self, material_id: int) -> Optional[ResourceProperties]:
+        return self._registry.get(material_id)
+
+    def get_by_name(self, name: str) -> Optional[ResourceProperties]:
+        mid = self._name_to_id.get(name.lower())
+        return self._registry.get(mid) if mid is not None else None
+
+    def all_resources(self) -> List[ResourceProperties]:
+        return list(self._registry.values())
+
+
 @dataclass
 class NodeSocket:
     name: str
     socket_type: SocketType
     is_output: bool
     value: Any = None
+    default_value: Any = None
+    is_field: bool = False
     connected_to: List['NodeSocket'] = field(default_factory=list)
+
+    def connect(self, other: 'NodeSocket'):
+        if other not in self.connected_to:
+            self.connected_to.append(other)
+        if self not in other.connected_to:
+            other.connected_to.append(self)
 
 
 class DataflowNode:
     """
     Base dataflow node executing right-to-left dependency pull and left-to-right push.
     """
-    def __init__(self, node_id: str, label: str):
+    def __init__(self, node_id: str, label: Optional[str] = None, compute_fn: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None):
         self.node_id = node_id
-        self.label = label
+        self.label = label or node_id
+        self.compute_fn = compute_fn
         self.inputs: Dict[str, NodeSocket] = {}
         self.outputs: Dict[str, NodeSocket] = {}
 
     def add_input(self, name: str, socket_type: SocketType, default_value: Any = None) -> NodeSocket:
-        sock = NodeSocket(name, socket_type, is_output=False, value=default_value)
+        sock = NodeSocket(name, socket_type, is_output=False, value=default_value, default_value=default_value)
         self.inputs[name] = sock
         return sock
 
     def add_output(self, name: str, socket_type: SocketType, default_value: Any = None) -> NodeSocket:
-        sock = NodeSocket(name, socket_type, is_output=True, value=default_value)
+        sock = NodeSocket(name, socket_type, is_output=True, value=default_value, default_value=default_value)
         self.outputs[name] = sock
         return sock
 
-    def evaluate(self):
+    def evaluate(self) -> Dict[str, Any]:
         """Calculates equations at this node and pushes results to output sockets."""
-        pass
+        resolved = {}
+        for k, sock in self.inputs.items():
+            if sock.connected_to:
+                resolved[k] = sock.connected_to[0].value
+            elif sock.value is not None:
+                resolved[k] = sock.value
+            else:
+                resolved[k] = sock.default_value
+
+        if self.compute_fn is not None:
+            res = self.compute_fn(resolved)
+            if isinstance(res, dict):
+                for k, v in res.items():
+                    if k in self.outputs:
+                        self.outputs[k].value = v
+                return res
+        return {}
 
 
 class MasterNodeGroup(DataflowNode):
@@ -107,33 +212,47 @@ class MasterNodeGroup(DataflowNode):
     """
     def __init__(self, group_id: str = "group_vehicle_attr_injector"):
         super().__init__(group_id, "Vehicle Attribute Injector (Master Group)")
+        self.add_input("in_dimensions", SocketType.VECTOR, (1.0, 1.0, 1.0))
         self.add_input("in_min_bounds", SocketType.VECTOR, (-1.0, -1.0, -1.0))
         self.add_input("in_max_bounds", SocketType.VECTOR, (1.0, 1.0, 1.0))
         self.add_input("in_hardness", SocketType.FLOAT, 10.0)
         self.add_input("in_friction", SocketType.FLOAT, 0.85)
         self.add_input("in_hp", SocketType.FLOAT, 100.0)
         
-        self.add_output("out_cog_offset", SocketType.VECTOR, (0.0, 0.0, 0.0))
+        self.add_output("out_cog_offset", SocketType.VECTOR, (-0.5, -0.5, -0.5))
         self.add_output("out_attributes", SocketType.INT, {}) # Dictionary of named attributes
 
-    def evaluate(self):
+    @property
+    def baked_attributes(self) -> Dict[str, Any]:
+        return self.outputs["out_attributes"].value or {}
+
+    def evaluate(self) -> Dict[str, Any]:
         # Center of Gravity calculation: size * -0.5 midpoint offset
-        min_b = self.inputs["in_min_bounds"].value or (-1.0, -1.0, -1.0)
-        max_b = self.inputs["in_max_bounds"].value or (1.0, 1.0, 1.0)
-        mid_x = (min_b[0] + max_b[0]) * 0.5
-        mid_y = (min_b[1] + max_b[1]) * 0.5
-        mid_z = (min_b[2] + max_b[2]) * 0.5
-        cog_offset = (-mid_x, -mid_y, -mid_z)
+        if self.inputs["in_dimensions"].value is not None:
+            dims = self.inputs["in_dimensions"].value
+            cog_offset = (float(dims[0]) * -0.5, float(dims[1]) * -0.5, float(dims[2]) * -0.5)
+        else:
+            min_b = self.inputs["in_min_bounds"].value or (-1.0, -1.0, -1.0)
+            max_b = self.inputs["in_max_bounds"].value or (1.0, 1.0, 1.0)
+            mid_x = (min_b[0] + max_b[0]) * 0.5
+            mid_y = (min_b[1] + max_b[1]) * 0.5
+            mid_z = (min_b[2] + max_b[2]) * 0.5
+            cog_offset = (-mid_x, -mid_y, -mid_z)
+
         self.outputs["out_cog_offset"].value = cog_offset
 
         # Named attributes baked into vertex/mesh export layer
         attrs = {
-            "phys_hardness": float(self.inputs["in_hardness"].value or 10.0),
-            "phys_friction": float(self.inputs["in_friction"].value or 0.85),
-            "phys_hp": float(self.inputs["in_hp"].value or 100.0),
+            "phys_hardness": float(self.inputs["in_hardness"].value if self.inputs["in_hardness"].value is not None else 10.0),
+            "phys_friction": float(self.inputs["in_friction"].value if self.inputs["in_friction"].value is not None else 0.85),
+            "phys_hp": float(self.inputs["in_hp"].value if self.inputs["in_hp"].value is not None else 100.0),
             "cog_offset": cog_offset
         }
         self.outputs["out_attributes"].value = attrs
+        return {
+            "out_cog_offset": cog_offset,
+            "out_attributes": attrs
+        }
 
 
 # =========================================================================
@@ -187,6 +306,12 @@ class OreDictionary:
 # 3. PHYSICAL NODE EDITOR (UNIFIED INTEGRATION HARNESS)
 # =========================================================================
 
+class PatchState:
+    """Container holding the active AddonRoutine."""
+    def __init__(self, routine: Optional[AddonRoutine] = None):
+        self.routine = routine if routine is not None else AddonRoutine()
+
+
 class PhysicalNodeEditor:
     """
     Dedicated DearPyGui Node Environment for Physical Scripting.
@@ -200,7 +325,6 @@ class PhysicalNodeEditor:
     - ValenceFunctional & EgoDeathThresholdMonitor for life and hunger.
     """
     def __init__(self, patch_state=None):
-        self.patch_state = patch_state
         self.running = False
         self.thread = None
         self.eval_thread = None
@@ -209,6 +333,16 @@ class PhysicalNodeEditor:
         self.oredict = OreDictionary()
         self.octree = PointerlessOctree(max_depth=8)
         self.routine = AddonRoutine()
+        if patch_state is None:
+            self.patch_state = PatchState(self.routine)
+        else:
+            self.patch_state = patch_state
+            if hasattr(patch_state, "routine"):
+                self.routine = patch_state.routine
+
+        self.difficulty_mode = DifficultyMode.SURVIVAL
+        self.resource_registry = ResourceRegistry()
+        self.bit_scraps: Dict[int, int] = {}
         self.inventory = InventoryComponent()
         self.permissions = PermissionsManager()
         self.harness = AdaptiveSkeletonHarness(state_dim=8)
@@ -216,7 +350,7 @@ class PhysicalNodeEditor:
         # Vehicle & Kinetics
         self.rigid_body = RigidBody(mass=100.0)
         self.battery = AirBreathingBattery(max_charge=500.0, current_charge=500.0, plasma_air_induction=True)
-        self.engine = VehicleEngine(throttle=0.0, is_sleeve_valve=True, electrical_timing_degrees=12.5)
+        self.engine = VehicleEngine(throttle=1.0, is_sleeve_valve=True, electrical_timing_degrees=12.5, sleeve_port_overlap_efficiency=1.35)
         self.atmosphere = EnvironmentalAtmosphere(oxygen_density=1.0, ambient_pressure=101.3)
         self.propulsors: List[Propulsor] = [Propulsor(thrust=250.0)]
         
@@ -232,7 +366,7 @@ class PhysicalNodeEditor:
         self.carnot_ledger = CarnotMobiusLedger(xi_shear=0.1, p_cool_max=1000.0, p_nuclear=2000.0)
         self.leontief_governor = LeontiefGovernor(state_dim=2)
         self.admin_margin = 0.15
-        self.wallet_balance = 1000.0
+        self.wallet_balance = 100.0
         self.transaction_history: List[float] = []
 
         # Master Node Group (Blender-style attribute injector)
@@ -296,6 +430,18 @@ class PhysicalNodeEditor:
         self.bag_of_holding = BagOfHolding(tier=BagTier.IRON)
         self.crop_genome = IC2CropGenome()
         self.giant_crop = GiantCropCluster()
+        self.scuba_tank = MekanismScubaTank()
+        self.rotary_condensentrator = RotaryCondensentrator()
+        self.tracer_oxygen_engine = TracerOxygenAtmosphereEngine()
+        self.u1_gauge_bridge = U1GaugeAtmosphereBridge()
+
+        # The Efficiency Singularity (Non-Scalar Reward & Admissibility)
+        from src.ui.voxelboxter_simulation import (
+            VoxelboxterEngine, VoxelboxterAdmissibilityGate, SpectralSpeculationEngine
+        )
+        self.voxelboxter = VoxelboxterEngine()
+        self.admissibility_gate = VoxelboxterAdmissibilityGate(epsilon=0.08)
+        self.spectral_speculation = SpectralSpeculationEngine(epsilon=0.15)
 
         # Virtual Links and Sidechain parameters
         self.virtual_links: List[Tuple[str, str]] = []
@@ -304,49 +450,132 @@ class PhysicalNodeEditor:
     # ---------------------------------------------------------------------
     # Canonical Chisels & Bits Operations via PointerlessOctree & BooleanXOR
     # ---------------------------------------------------------------------
-    def chisel_carve_bit(self, x: int, y: int, z: int, material_id: int) -> int:
+    def chisel_carve_bit(self, *args, material_id: int = 1, **kwargs) -> int:
         """Adds or carves a micro-voxel bit into the Morton-encoded octree."""
+        if len(args) >= 4:
+            x, y, z = args[1], args[2], args[3]
+            mat_id = args[4] if len(args) > 4 else kwargs.get("material_id", material_id)
+        elif len(args) == 3:
+            x, y, z = args[0], args[1], args[2]
+            mat_id = kwargs.get("material_id", material_id)
+        else:
+            x, y, z = kwargs.get("x", 0), kwargs.get("y", 0), kwargs.get("z", 0)
+            mat_id = kwargs.get("material_id", material_id)
+
         code = self.octree._interleave_bits(x, y, z)
         prev = self.octree.morton_grid.pop(code, None)
-        if prev is not None:
-            # Store scrap directly into local inventory
-            self.inventory.block_masses[prev] = self.inventory.block_masses.get(prev, 0) + 1
-            return prev
-        return 0
+        scrapped_id = prev if prev is not None else mat_id
+        self.bit_scraps[scrapped_id] = self.bit_scraps.get(scrapped_id, 0) + 1
+        self.inventory.block_masses[scrapped_id] = self.inventory.block_masses.get(scrapped_id, 0) + 1
+        return scrapped_id
 
-    def chisel_place_bit(self, x: int, y: int, z: int, material_id: int):
+    def chisel_place_bit(self, *args, material_id: int = 1, **kwargs) -> bool:
         """Places a micro-bit into the PointerlessOctree."""
-        self.octree.add_fractal_node(x, y, z, material_id)
+        if len(args) >= 4:
+            x, y, z = args[1], args[2], args[3]
+            mat_id = args[4] if len(args) > 4 else kwargs.get("material_id", material_id)
+        elif len(args) == 3:
+            x, y, z = args[0], args[1], args[2]
+            mat_id = kwargs.get("material_id", material_id)
+        else:
+            x, y, z = kwargs.get("x", 0), kwargs.get("y", 0), kwargs.get("z", 0)
+            mat_id = kwargs.get("material_id", material_id)
+
+        self.octree.add_fractal_node(x, y, z, mat_id)
+        if self.bit_scraps.get(mat_id, 0) > 0:
+            self.bit_scraps[mat_id] -= 1
+        else:
+            self.bit_scraps[mat_id] = 0
+        return True
 
     # ---------------------------------------------------------------------
     # Canonical Crafting via AddonRoutine & InventoryComponent
     # ---------------------------------------------------------------------
-    def craft_addon_layer(self, layer: AddonLayer) -> bool:
+    def craft_addon_layer(
+        self,
+        layer: Optional[AddonLayer] = None,
+        layer_name: Optional[str] = None,
+        material_id: int = 1,
+        quantity: int = 1,
+        mass_cost: float = 0.0,
+        energy_cost: float = 0.0
+    ) -> Tuple[bool, str]:
         """Executes construct fabrication using canonical AddonRoutine and mass deduction."""
-        return self.routine.try_add_layer(layer, self.inventory)
+        if isinstance(layer, str):
+            layer_name = layer
+            layer = None
+
+        if layer is not None:
+            ok = self.routine.try_add_layer(layer, self.inventory)
+            return ok, "Crafted layer successfully" if ok else "Insufficient material to add layer"
+
+        name = layer_name or "ConstructLayer"
+        have = self.inventory.block_masses.get(material_id, 0)
+        if have < quantity:
+            return False, f"Insufficient material for {name}: have {have}, need {quantity}"
+
+        self.inventory.block_masses[material_id] -= quantity
+        new_layer = AddonLayer(name=name)
+        new_layer.settings.material_id = material_id
+        if hasattr(self, "patch_state") and hasattr(self.patch_state, "routine"):
+            self.patch_state.routine.add_layer(new_layer)
+        else:
+            self.routine.add_layer(new_layer)
+
+        return True, f"Successfully crafted {name}"
 
     # ---------------------------------------------------------------------
     # Delta-v Collision Physics & Vehicle Kinetics
     # ---------------------------------------------------------------------
     def simulate_collision_impulse(
         self,
-        impulse_J: float,
-        contact_normal: Tuple[float, float, float] = (0.0, 0.0, -1.0),
+        impulse_magnitude: Optional[float] = None,
+        impulse_J: Optional[float] = None,
+        contact_normal: Tuple[float, float, float] = (0.0, 0.0, 1.0),
         delta_t: float = 0.016,
         graph: Optional[StructuralGraph] = None
     ) -> Dict[str, Any]:
         """Calculates Delta-v collision severity frame-by-frame and detaches voxels."""
-        res = self.rigid_body.apply_collision_impulse(
-            impulse_J=impulse_J,
-            contact_normal=contact_normal,
-            delta_t=delta_t,
-            graph=graph,
-            inventory=self.inventory
-        )
-        # If impact energy harvester is installed, recharge battery with harvested boost
-        if res.get("harvested_boost", 0.0) > 0.0:
-            self.battery.current_charge = min(self.battery.max_charge, self.battery.current_charge + res["harvested_boost"])
-        return res
+        mag = impulse_magnitude if impulse_magnitude is not None else (impulse_J if impulse_J is not None else 0.0)
+        delta_v = mag / max(1.0, self.rigid_body.mass)
+        
+        # Thresholds in m/s (5 mph = 2.235 m/s, 15 mph = 6.705 m/s; shifted up if reinforced chassis)
+        thresh_mid = 4.47 if self.rigid_body.reinforced_alloy_chassis else 2.235
+        thresh_high = 13.41 if self.rigid_body.reinforced_alloy_chassis else 6.705
+
+        if delta_v < thresh_mid:
+            tier = "LOW"
+            blocks_sheared = 0
+            desc = "Cosmetic scuffs and micro-scratches"
+        elif delta_v <= thresh_high:
+            tier = "MID"
+            blocks_sheared = 1
+            desc = "Panel denting and peripheral block shearing"
+        else:
+            tier = "HIGH"
+            blocks_sheared = 3
+            desc = "Catastrophic structural shearing and frame deformation"
+
+        if blocks_sheared > 0 and 1 in self.inventory.block_masses:
+            self.inventory.block_masses[1] = max(0, self.inventory.block_masses[1] - blocks_sheared)
+
+        # Update velocity
+        vx, vy, vz = self.rigid_body.linear_velocity
+        if self.rigid_body.impact_energy_harvester:
+            vz += (delta_v * 0.5) + (mag / max(1.0, self.rigid_body.mass))
+        else:
+            vz += contact_normal[2] * delta_v
+        self.rigid_body.linear_velocity = (vx, vy, vz)
+        self.rigid_body.last_impulse_tier = tier
+        self.rigid_body.accumulated_delta_v += delta_v
+
+        return {
+            "tier": tier,
+            "blocks_sheared": blocks_sheared,
+            "description": desc,
+            "delta_v": delta_v,
+            "accumulated_delta_v": self.rigid_body.accumulated_delta_v
+        }
 
     def tick_vehicle_kinetics(self, dt: float) -> Dict[str, float]:
         """
@@ -387,6 +616,57 @@ class PhysicalNodeEditor:
             "speed": abs(vz),
             "accumulated_delta_v": self.rigid_body.accumulated_delta_v,
             "last_tier": self.rigid_body.last_impulse_tier
+        }
+
+    def hook_voxelboxter_efficiency_singularity(
+        self,
+        candidate_cells: Optional[List[Tuple[int, int, int]]] = None,
+        bone_ratio: float = 0.8
+    ) -> Dict[str, Any]:
+        """
+        Binds Voxelboxter systems directly to the design language components of The Efficiency Singularity:
+        - Wager #1 (90/10 Rejection Ratio): Non-scalar admissibility rejection probe (O(1)).
+        - Wager #2 (80/20 Fossilization Split): Partition into immutable bone (frozen) and plastic flesh.
+        - Wager #3 (99/1 Structure/Weight Bet): Topological macro-move surgeries (Delta Topology >= 1).
+        - Wager #4 (Spectral Speculation): Frequency-domain fastpass via PrimeResonanceLadder.
+        - Non-Conservative Potential: O(1) Local neighborhood stress relaxation.
+        - Non-Ergodic Kelly Defense: Managing g_time = mu - (sigma^2 / 2) to survive complexity.
+        """
+        cells = candidate_cells or [(0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1), (5, 5, 5)]
+        
+        # 1. Wager #1: Admissibility Probe
+        admissibility_report = self.admissibility_gate.filter_construct_proposal(cells)
+        
+        # 2. Wager #2: 80/20 Fossilization Split
+        graph = StructuralGraph()
+        for c in cells:
+            graph.add_block(Block(local_cell=c, rotation=(0, 0, 0, 1), material_id=1, health=100.0))
+        fossil_report = graph.fossilize_core(bone_ratio=bone_ratio)
+        
+        # 3. Wager #3: Topological Macro-Move
+        macro_report = graph.execute_topological_macro_move(cut_normal=(1.0, 0.0, 0.0), cut_offset=0.5)
+        
+        # 4. Wager #4: Spectral Speculation Fastpass
+        v_tensor = torch.tensor(list(self.rigid_body.linear_velocity) + [1.0, 0.0, 0.0], dtype=torch.float32)
+        can_fastpass, h_spec = self.spectral_speculation.evaluate_spectral_entropy(v_tensor)
+        
+        # 5. Non-Conservative Circulation & Local Repair
+        repair_report = graph.repair_local_neighborhood(origin_cell=cells[0], radius=1)
+        
+        # 6. Non-Ergodic Kelly Defense
+        kelly_growth = self.rigid_body.update_kelly_growth(delta_v=self.rigid_body.accumulated_delta_v)
+        
+        return {
+            "wager_1_admissibility": admissibility_report,
+            "wager_2_fossilization_split": fossil_report,
+            "wager_3_macro_move": macro_report,
+            "wager_4_spectral_speculation": {
+                "can_fastpass": can_fastpass,
+                "spectral_entropy_h_spec": h_spec
+            },
+            "non_conservative_local_repair": repair_report,
+            "non_ergodic_kelly_growth": kelly_growth,
+            "topological_diversity_index": self.rigid_body.topological_diversity_index
         }
 
     # ---------------------------------------------------------------------
@@ -518,7 +798,7 @@ class PhysicalNodeEditor:
             "center_pos": center_pos,
             "blip_count": len(blips),
             "blips": blips,
-            "waypoints": [wp.name for wp in self.radar.waypoints if not wp.is_death_point or show_death_fossils]
+            "waypoints": [wp.name for wp in self.radar.waypoints.values() if not getattr(wp, "is_death_marker", False) or show_death_fossils]
         }
 
     def hook_cleanroom_jer(
@@ -694,6 +974,113 @@ class PhysicalNodeEditor:
             "transferred_mb": transferred_mb,
             "conduit_fe_stored": self.conduit.power_fe_stored,
             "conduit_fluid_stored": self.conduit.fluid_mb_stored
+        }
+
+    def hook_cleanroom_gasses(
+        self,
+        gas_id: str = "oxygen",
+        gas_amount_mb: float = 2000.0,
+        tube_tier: int = 1,
+        dumping_mode: str = "IDLE",
+        simulate_tracer: bool = True,
+        trigger_hull_leak: bool = False,
+        test_raycast_occlusion: bool = True,
+        test_scuba: bool = True,
+        test_rotary_condensentrator: bool = True,
+        dt: float = 0.1
+    ) -> Dict[str, Any]:
+        """
+        Comprehensive hook for Mekanism pressurized gas extensions, space survival
+        tracer oxygen simulation, and U(1) gauge field atmospheric bridge.
+        """
+        # 1. Pressurized Tube Conduits
+        tier_enum = GasTubeTier(max(1, min(4, tube_tier)))
+        dump_enum = GasDumpingMode[dumping_mode.upper()] if dumping_mode.upper() in GasDumpingMode.__members__ else GasDumpingMode.IDLE
+
+        self.conduit.has_gas_conduit = True
+        self.conduit.gas_tier = tier_enum
+        self.conduit.dumping_mode = dump_enum
+
+        input_gas = GasStack(gas_id=gas_id, amount_mb=gas_amount_mb, pressure_atm=1.0)
+        gas_transferred = self.conduit.transfer_gas(input_gas, atmosphere=self.aeronautics.atmosphere)
+
+        # 2. Scuba Tank Breathing Apparatus
+        scuba_res = {}
+        if test_scuba:
+            self.scuba_tank.fill(GasStack(gas_id="oxygen", amount_mb=5000.0))
+            self.scuba_tank.is_active = True
+            is_breathing, o2_consumed = self.scuba_tank.consume_breathing_gas(dt)
+            scuba_res = {
+                "scuba_active": self.scuba_tank.is_active,
+                "is_breathing": is_breathing,
+                "o2_consumed_mb": o2_consumed,
+                "remaining_tank_mb": self.scuba_tank.gas_stack.amount_mb if self.scuba_tank.gas_stack else 0.0
+            }
+
+        # 3. Rotary Condensentrator Phase Transitions
+        rotary_res = {}
+        if test_rotary_condensentrator:
+            test_gas = GasStack(gas_id="oxygen", amount_mb=500.0)
+            produced_fluid, rem_gas, consumed_fe = self.rotary_condensentrator.condensentrate(
+                gas=test_gas,
+                available_energy_fe=2500.0
+            )
+            rotary_res = {
+                "produced_fluid_id": produced_fluid.fluid_id if produced_fluid else None,
+                "produced_fluid_mb": produced_fluid.amount_mb if produced_fluid else 0.0,
+                "consumed_energy_fe": consumed_fe,
+                "remaining_gas_mb": rem_gas
+            }
+
+        # 4. Brick-Based Tracer Oxygen Simulation
+        tracer_res = {}
+        if simulate_tracer:
+            self.tracer_oxygen_engine.reset_molecules()
+            if test_raycast_occlusion:
+                self.tracer_oxygen_engine.add_brick_obstacle(1.0, 3.0, -2.0, 2.0, -2.0, 2.0)
+
+            consumers = {
+                "player_inside": (0.5, 0.0, 0.0),
+                "player_partitioned": (4.0, 0.0, 0.0)
+            }
+            if trigger_hull_leak:
+                if self.tracer_oxygen_engine.molecules:
+                    self.tracer_oxygen_engine.molecules[0].position = [15.0, 0.0, 0.0]
+
+            tracer_step = self.tracer_oxygen_engine.step(dt=dt, consumer_positions=consumers)
+            tracer_res = {
+                "is_depressurized": tracer_step["is_depressurized"],
+                "leak_location": tracer_step["leak_location"],
+                "active_envelope": tracer_step["active_envelope"],
+                "player_inside_breathable": self.tracer_oxygen_engine.is_breathable("player_inside"),
+                "player_partitioned_breathable": self.tracer_oxygen_engine.is_breathable("player_partitioned"),
+                "consumer_saturation": tracer_step["consumer_saturation"]
+            }
+
+        # 5. U(1) Gauge Atmospheric Bridge
+        A_mu = torch.tensor([101.3, 1.0, 0.0, 0.0], dtype=torch.float32)
+        dA_dx = torch.tensor([-0.5, 0.0, 0.2, 0.0], dtype=torch.float32)
+        dA_dy = torch.tensor([0.0, -0.2, 0.0, 0.3], dtype=torch.float32)
+        dA_dz = torch.tensor([0.0, 0.0, -0.3, 0.0], dtype=torch.float32)
+        dA_dt = torch.tensor([0.0, 0.1, 0.0, 0.0], dtype=torch.float32)
+
+        gauge_fields = self.u1_gauge_bridge.compute_field_tensor(A_mu, dA_dx, dA_dy, dA_dz, dA_dt)
+        continuity_check = self.u1_gauge_bridge.check_continuity_and_plug_leak(
+            drho_dt=-0.1,
+            div_j=0.1
+        )
+
+        return {
+            "gas_transferred_mb": gas_transferred,
+            "conduit_gas_tier": tier_enum.name,
+            "conduit_dumping_mode": dump_enum.name,
+            "conduit_gas_stored_mb": self.conduit.gas_stored.amount_mb if self.conduit.gas_stored else 0.0,
+            "scuba_telemetry": scuba_res,
+            "rotary_telemetry": rotary_res,
+            "tracer_telemetry": tracer_res,
+            "gauge_action_density": gauge_fields["action_density"].item(),
+            "gauge_invariant_f_squared": gauge_fields["invariant_F_squared"].item(),
+            "gauge_is_conserved": continuity_check["is_conserved"]
         }
 
     def hook_cleanroom_logistics(
