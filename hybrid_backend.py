@@ -337,14 +337,14 @@ class GovernanceManager:
         print("      SYSTEM PARAMETER CONFIGURATION")
         print("="*50)
         
-        mode_choice = input("[?] Select configuration mode:\n  [1] Predefined Template\n  [2] Custom Configuration\n  [3] Default All (Skip)\nChoice [1/2/3]: ").strip()
+        mode_choice = safe_input("[?] Select configuration mode:\n  [1] Predefined Template\n  [2] Custom Configuration\n  [3] Default All (Skip)\nChoice [1/2/3]: ", "3")
         
         if mode_choice == "1":
             print("\n--- TEMPLATES ---")
             print("  [A] Sovereign Mode (High telemetry, aggressive ingestion, all logic paths active)")
             print("  [B] Lightweight Mode (Suppressed narration, no background lore, fast processing)")
             print("  [C] KAGH Dyslexic Mode (High erosion, chaos enabled, unpredictable)")
-            tpl = input("Choose template [A/B/C]: ").strip().upper()
+            tpl = safe_input("Choose template [A/B/C]: ", "B").upper()
             
             if tpl == "A":
                 config['chatgpt_ingestor_enabled'] = True
@@ -375,7 +375,7 @@ class GovernanceManager:
             def get_input(prompt_text, default_val, desc=""):
                 if desc:
                     print(f"\nINFO: {desc}")
-                ans = input(f"{prompt_text} [Default: {default_val}]: ").strip()
+                ans = safe_input(f"{prompt_text} [Default: {default_val}]: ", default_val)
                 return ans if ans else default_val
 
             spec = get_input("[?] Enable spectral correction (yes/no)", 'yes' if config['use_spectral_correction'] else 'no', "Corrects topological errors in real-time.").lower()
