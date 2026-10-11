@@ -692,19 +692,19 @@ Enables anonymous, sovereign distribution of topological checkpoints, Betti numb
 
 ## src/augmentation
 
-### mandelbulb_gyroidic_augmenter.py
-**Class**: `MandelbulbGyroidicAugmenter`
-**Role**: Generates non-Euclidean fractional augmentations.
+### [mandelbulb_gyroidic_augmenter.py](../src/augmentation/mandelbulb_gyroidic_augmenter.py)
+**Classes**: `MandelbulbGyroidicAugmenter`, `MandelbulbEmbedder`, `GyroidicConstraintProjector`, `SparseCovariantOptimizer`, `TopologicalPressureMonitor`, `AugmentationConfig`  
+**Role**: Generates non-Euclidean fractional augmentations combining Mandelbulb 3D fractal iterations, Gyroid minimal surface projection, and Ricci-flow-guided sparse covariance preservation.
 
-Embeds dense continuous-space feature vectors into 3D Mandelbulb coordinates, performing topologically-aware fractional iterations before squashing back down. Provides organic, chaotic noise that perfectly reflects boundary conditions of the gyroid, rather than adding generic uniform noise to data.
+Embeds dense feature vectors into 3D Mandelbulb coordinates with optional PyOpenCL hardware offload via `SiliconSovereigntyEngine`, NVFP4-style stochastic rounding, and UV-IR seesaw anchoring. Employs trigonometric branch unfolding (`Casus Irreducibilis`) for surface convergence, Euler reflection (`-1.0 * coords`) for Lazarus recoveries on topological collapse, Barbenheimer chromatic shifts (`pink` / `atomic`), and `QuantumBettiApproximator` for topological entropy quality assurance.
 
 ---
 
-### mandelbulb_pipeline.py
-**Class**: `MandelbulbAugmentedDataset`
-**Role**: PyTorch Dataset wrapper for `MandelbulbGyroidicAugmenter`.
+### [mandelbulb_pipeline.py](../src/augmentation/mandelbulb_pipeline.py)
+**Class**: `MandelbulbAugmentedDataset`, `create_mandelbulb_pipeline`  
+**Role**: PyTorch Dataset and DataLoader wrapper for `MandelbulbGyroidicAugmenter`.
 
-Provides standard PyTorch `Dataset` and `DataLoader` APIs for augmenting the training data online vs cached pre-computation.
+Provides standard PyTorch `Dataset` and `DataLoader` APIs for augmenting training data online vs cached pre-computation, wired directly to `dataset_ingestion_system.py` via the `--mandelbulb` CLI flag.
 
 ---
 
@@ -1499,6 +1499,13 @@ Rejection gate enforcing the speculative exit threshold (H_spec < epsilon). Reje
 
 ---
 
+### `GyroidicConstraintProjector`
+**Location:** `src/augmentation/mandelbulb_gyroidic_augmenter.py`  
+**Description:**  
+Minimal surface projection module that projects Mandelbulb fractal coordinates onto the triply periodic Gyroid manifold ($\sin(x)\cos(y) + \sin(y)\cos(z) + \sin(z)\cos(x) = 0$). Features PyOpenCL hardware offloading, Casus Irreducibilis trigonometric branch unfolding when violations exceed 2.0, and Euler reflection ($e^{i\pi} = -1$) upon manifold collapse.
+
+---
+
 ### `HeritableTrustVault`
 **Location:** `src/models/resonance_cavity.py`  
 **Description:**  
@@ -1613,6 +1620,27 @@ Distance metric tracking high-resonance corridors ('Ley Lines') across state spa
 **Location:** `src/data/local_dataset_ingestor.py`  
 **Description:**  
 Local filesystem scanner cataloging image, text, and numerical assets from DeepLearningStudio directories into standardized knowledge dyads.
+
+---
+
+### `MandelbulbAugmentedDataset`
+**Location:** `src/augmentation/mandelbulb_pipeline.py`  
+**Description:**  
+PyTorch Dataset wrapper enabling on-the-fly or cached pre-computed Mandelbulb-Gyroidic geometric augmentations for tabular, NLP, and multimodal feature representations.
+
+---
+
+### `MandelbulbEmbedder`
+**Location:** `src/augmentation/mandelbulb_gyroidic_augmenter.py`  
+**Description:**  
+Fractal embedding module mapping feature vectors into 3D Mandelbulb coordinates ($z_{n+1} = z_n^p + c$) with PyOpenCL hardware acceleration, stochastic noise boundary damping, and UV-IR seesaw anchoring.
+
+---
+
+### `MandelbulbGyroidicAugmenter`
+**Location:** `src/augmentation/mandelbulb_gyroidic_augmenter.py`  
+**Description:**  
+Primary orchestration module executing the 3-layer Mandelbulb fractal embedding, Gyroid minimal surface projection, and Ricci-flow-guided sparse covariance preservation loop with Barbenheimer chromatic shifting (`pink` vs `atomic`) and Quantum TDA Betti spectrum validation.
 
 ---
 
