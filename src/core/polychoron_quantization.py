@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from itertools import permutations, product
-from typing import Dict
+from typing import Dict, Optional
 
 
 class Polychoron600Quantizer(nn.Module):
@@ -92,11 +92,13 @@ class PolychronQuantizer(nn.Module):
     3. Geometric Layer (phi-Seesaw): 600-cell golden coordinates (phi/2 - 1/(2*phi) = 1/2) bounding quantization drift.
     4. Fringe-Contrast Head & Holonomy: Computes PAS_h phase alignment and updates BerryPhaseTracker.
     """
-    def __init__(self, num_channels: int = 4, prime_base_size: int = 5):
+    def __init__(self, num_channels: int = 4, prime_base_size: int = 5, input_dim: Optional[int] = None):
         super().__init__()
         from src.core.invariants import get_prime_ladder, PHI, PI
         from src.core.fgrt_primitives import BerryPhaseTracker
         
+        if input_dim is not None:
+            num_channels = input_dim
         self.num_channels = num_channels
         self.quantizer = Polychoron600Quantizer()
         
