@@ -9,6 +9,7 @@ Integrates dual-regime plasticity into the information flow:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Optional
 
 class MohrCoulombProjection(nn.Module):
     """
@@ -54,7 +55,7 @@ class DruckerPragerProjection(nn.Module):
         self.alpha = alpha
         self.k = k
 
-    def forward(self, pressure: torch.Tensor) -> torch.Tensor:
+    def forward(self, pressure: torch.Tensor, load: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Projects pressure onto the DP yield surface.
          I1 + sqrt(J2) - k = 0
