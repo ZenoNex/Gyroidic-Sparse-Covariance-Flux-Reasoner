@@ -178,12 +178,16 @@ class AddonRoutine:
     def add_layer(self, layer: AddonLayer):
         self.layers.append(layer)
 
-    def generate_graph(self, gcve_pressure: Optional[torch.Tensor] = None) -> StructuralGraph:
-        """Executes the entire layer stack non-destructively."""
-        graph = StructuralGraph()
+    def execute(self, graph: StructuralGraph, gcve_pressure: Optional[torch.Tensor] = None) -> StructuralGraph:
+        """Executes the entire layer stack on an existing StructuralGraph."""
         for layer in self.layers:
             layer.execute(graph, gcve_pressure=gcve_pressure)
         return graph
+
+    def generate_graph(self, gcve_pressure: Optional[torch.Tensor] = None) -> StructuralGraph:
+        """Executes the entire layer stack non-destructively."""
+        graph = StructuralGraph()
+        return self.execute(graph, gcve_pressure=gcve_pressure)
         
     def try_add_layer(self, layer: AddonLayer, inventory: InventoryComponent, gcve_pressure: Optional[torch.Tensor] = None) -> bool:
         """
