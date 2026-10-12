@@ -373,13 +373,49 @@ class ChiralCoherenceEstimator(nn.Module):
             
         samples = self.sample_buffer[:n_filled]
         
-        # Apply chiral projection
-        chiral_samples = self.chiral_proj(samples)
-        
-        # Split into positive and negative sectors
+        # Check compute affordance headroom for Fractal Brillouin / Bouligand Zone superposition
+        use_soc_proj = False
+        try:
+            from src.core.hardware_monitor import has_compute_affordance
+            use_soc_proj = has_compute_affordance()
+        except Exception:
+            use_soc_proj = True
+            
         half = self.dim // 2
-        positive_sector = chiral_samples[:, :half]
-        negative_sector = chiral_samples[:, half:2*half]
+        
+        if use_soc_proj and self.dim >= 2:
+            # Rashba-Dresselhaus Helical Basis Projection across Paired Momentum Coordinates
+            # Treats adjacent dimensions as (k_x, k_y) momentum pairs
+            k_x = samples[:, 0:2*half:2]
+            k_y = samples[:, 1:2*half:2]
+            
+            # Superposition across recursive Fractal Brillouin / Bouligand Zones (Df = 2.58)
+            d_f = 2.58
+            alpha_0 = 0.15
+            beta_0 = 0.15
+            
+            omega_x = torch.zeros_like(k_x)
+            omega_y = torch.zeros_like(k_y)
+            
+            # Recursive scale depth superposition (Matrioshka shells l in {0, 1, 2})
+            for ell in range(3):
+                scale_ell = 2.0 ** (-ell * (d_f - 2.0))
+                k_x_ell = k_x * (2.0 ** (-ell))
+                k_y_ell = k_y * (2.0 ** (-ell))
+                
+                omega_x = omega_x + scale_ell * (alpha_0 * k_y_ell + beta_0 * k_x_ell)
+                omega_y = omega_y + scale_ell * (-alpha_0 * k_x_ell - beta_0 * k_y_ell)
+                
+            theta = torch.atan2(omega_y, omega_x)
+            
+            # Helical dispersion eigenstates
+            positive_sector = k_x * torch.cos(theta / 2.0) - k_y * torch.sin(theta / 2.0)
+            negative_sector = k_x * torch.sin(theta / 2.0) + k_y * torch.cos(theta / 2.0)
+        else:
+            # Fallback under constrained compute affordances
+            chiral_samples = self.chiral_proj(samples)
+            positive_sector = chiral_samples[:, :half]
+            negative_sector = chiral_samples[:, half:2*half]
         
         # Compute covariance eigenvalues for each sector
         def get_eigenvalues(x):
