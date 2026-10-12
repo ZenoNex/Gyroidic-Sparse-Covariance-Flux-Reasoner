@@ -13,7 +13,7 @@ from src.core.fgrt_primitives import PrimeResonanceLadder
 # Draft 1: The "Berry-Phase Modulated" GRU (Minimal Integration)
 # -----------------------------------------------------------------------------
 class BerryPhaseGRUCell(nn.Module):
-    """
+    r"""
     A standard GRU cell augmented with a topological phase tracker.
     Instead of just a hidden state, it tracks (h_t, \gamma_t) where \gamma_t 
     is the Geometric Berry Phase. If \cos(\gamma_t) drops below 0, it applies 
@@ -70,7 +70,7 @@ class ChiralGatedRNNCell(nn.Module):
 # Draft 3: Complex-Valued FGRT RNN (Native Phase Tracking)
 # -----------------------------------------------------------------------------
 class ComplexFGRTRNNCell(nn.Module):
-    """
+    r"""
     Hidden state exists in C^768. The Gyroidic connection acts as a complex rotation.
     Atiyah-Singer index flips occur naturally when state rotates through e^{i\pi}.
     """
@@ -151,6 +151,10 @@ class PyOpenCLHardwareSovereigntyCell(nn.Module):
         x_proj = self.proj(x)
         
         try:
+            from src.core.hardware_monitor import HardwareMonitor
+            if not HardwareMonitor.get_instance().has_compute_affordance():
+                raise RuntimeError("Compute affordance veto: thermal runaway or headroom exhaustion.")
+
             # Offload to OpenCL: Convert to numpy for the SiliconSovereigntyEngine
             h_np = h_prev.detach().cpu().numpy()
             x_np = x_proj.detach().cpu().numpy()
