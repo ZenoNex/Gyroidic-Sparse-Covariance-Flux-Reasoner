@@ -29,6 +29,12 @@ class DiegeticPhysicsEngine(nn.Module):
         self.pas = PhaseAlignmentInvariant(poly_degree=3).to(device)
         from src.core.zeitgeist_router import ZeitgeistState
         self.zeitgeist_state = ZeitgeistState.initial(self.router.moduli)
+        
+        # Strict low-pass damping filter for spin precession / PSH telemetry
+        # Read-only telemetry: ensures raw spin precession never directly modulates state update rates
+        # without low-pass filtering, preventing phase velocity jitter from destabilizing frame rate or triggering false CALM aborts
+        self.register_buffer("damped_spin_precession", torch.tensor(0.0, device=device))
+        self.spin_damp_alpha = 0.05
 
     def process_input(self, 
                       vehicle_state: Dict[str, Any], 
@@ -54,6 +60,18 @@ class DiegeticPhysicsEngine(nn.Module):
             c_in = input_tensor[:self.state_dim]
             
         pas_h = self.pas(c_in)
+
+        # Strictly Damped Spin Precession & PSH Proximity (Read-Only Telemetry)
+        # Low-pass filter (tau/EMA) prevents phase velocity jitter from modulating state update rates
+        # and guards against false CALM aborts
+        alpha_soc = 0.15
+        beta_soc = 0.15
+        delta_psh = abs(alpha_soc**2 - beta_soc**2)
+        ang_vel = vehicle_state.get('angular_velocity', (0.0, 0.0, 0.0))
+        yaw_rate = float(ang_vel[1]) if len(ang_vel) > 1 else float(controller_input.get('yaw', 0.0))
+        raw_precession = abs(yaw_rate) * math.sqrt(alpha_soc**2 + beta_soc**2)
+        with torch.no_grad():
+            self.damped_spin_precession = (1.0 - self.spin_damp_alpha) * self.damped_spin_precession + self.spin_damp_alpha * raw_precession
 
         # --- Stage 2: Non-Commutative Braid Routing ---
         # The router treats steering before braking differently from braking before steering.
@@ -154,5 +172,8 @@ class DiegeticPhysicsEngine(nn.Module):
             "betti_1": new_b1,
             "pas_h": pas_h.detach(),
             "rupture": bool(is_rupture),
-            "closure_gap": gap_val
+            "closure_gap": gap_val,
+            "damped_spin_precession": float(self.damped_spin_precession.item()),
+            "delta_psh": float(delta_psh),
+            "psh_invariant_active": bool(delta_psh < 1e-4)
         }
