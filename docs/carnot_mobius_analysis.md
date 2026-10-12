@@ -159,3 +159,26 @@ When thermal runaway or depleted margins are broadcast, the entire compute affor
   Classifies thermal runaway as structural rupture ($is\_rupture$), engaging optimal transport $\nabla\psi^*$ to dissipate excessive contortion energy.
 - **`StructuralEnergyMonitor` ([energy_monitor.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/energy_monitor.py#L114)):**
   Monitors inverse coordinate temperature $\beta = 1 / (dt_{\text{ratio}} + \epsilon)$ and free energy $F_{\text{topo}}$, flagging topological thermal runaway when entropy diverges.
+- **`PyOpenCLHardwareSovereigntyCell` ([fgrt_rnn_cells.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/fgrt_rnn_cells.py#L142)):**
+  Queries `get_typed_affordance(ComputeAffordanceType.GPU_SOVEREIGN)`, vetoing OpenCL Queue B kernel dispatch and safely falling back to CPU mixing when the GPU sovereign gauge is depleted or under thermal runaway.
+
+### 5.4 Typed Compute Affordance & Cross-Type Gauges
+To eliminate scalarization traps across disparate computational regimes, compute affordances are strongly typed:
+
+| Affordance Type | Target Domain | Gauge Formula $G \in [0, 1]$ | Primary Gate |
+|---|---|---|---|
+| `SILICON` | Host CPU & RAM | $0.6 \cdot \text{CPU}_{\text{headroom}} + 0.4 \cdot \text{RAM}_{\text{headroom}}$ | CPU $< 90\%$ (or $65\%$ under heat) |
+| `THERMAL` | Carnot-Möbius thermodynamics | $\text{Margin}_{\text{thermal}} = \frac{P_{\text{cool, max}} - P_{\text{waste}}}{P_{\text{cool, max}}}$ | $\text{Margin} \ge 0.05 \land \neg\text{runaway}$ |
+| `GPU_SOVEREIGN` | PyOpenCL Queue B | $G_{\text{silicon}} \cdot G_{\text{thermal}}$ | Margin $\ge 0.15 \land \neg\text{runaway}$ |
+| `TOPOLOGICAL` | CALM predictor stability | $(1 - S_{\text{abort}}) \cdot 0.7 + G_{\text{calm}} \cdot 0.3$ | $S_{\text{abort}} < 0.85$ |
+| `P2P_MESH` | Bonfire nomadic rings | Mesh peer budget | Peer budget $> 0.10$ |
+| `DIEGETIC` | Kinematics & conversation | $G_{\text{silicon}} \cdot \max(0.2, G_{\text{thermal}})$ | Silicon admissible $\land \neg\text{runaway}$ |
+| `ALGORITHMIC` | Second-order verification | $G_{\text{silicon}} \cdot G_{\text{thermal}} \cdot \max(0.1, 1 - S_{\text{abort}})$ | Multi-domain simultaneously clear |
+
+#### Cross-Type Gauge Couplings (`gauge_between`)
+Domain transformations are governed by directional transfer couplings:
+- $\text{gauge}_{\text{thermal} \to \text{gpu}} = G_{\text{thermal}}$: Drops to $0.0$ immediately upon thermal runaway, shielding GPU queues.
+- $\text{gauge}_{\text{thermal} \to \text{algorithmic}} = G_{\text{thermal}}^2$: Quadratically throttles expensive verification checks before physical limits are reached.
+- $\text{gauge}_{\text{topo} \to \text{algorithmic}} = \max(0, 1 - S_{\text{abort}})$: Suppresses non-critical tasks during topological rupture.
+- $\text{gauge}_{\text{silicon} \to \text{p2p}} = \min(G_{\text{silicon}}, G_{\text{p2p}})$: Harmonizes local physical constraints with distributed consensus budgets.
+
