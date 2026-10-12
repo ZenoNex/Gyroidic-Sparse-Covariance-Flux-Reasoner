@@ -325,6 +325,54 @@ class JourneyTopoRadar:
                 blips.append(blip)
         return blips
 
+    def tick_radar_topological(
+        self,
+        entities: List[Dict[str, Any]],
+        player_pos: Tuple[float, float, float] = (0.0, 64.0, 0.0),
+        player_depth: int = 0,
+        player_complexity: float = 0.0,
+        radar_radius: int = 64
+    ) -> List[Dict[str, Any]]:
+        """
+        Topological Radar Sweep with L'Hôpital Regularization:
+        Evaluates peer and fauna entities across disparate recursive fractal depths
+        and Matrioshka shell layers using the R^m continuous embedding theorem.
+        """
+        from src.p2p.bonfire_consensus import FractalDiscontinuityEmbedding
+        embedder = FractalDiscontinuityEmbedding()
+        
+        player_emb = embedder.embed_state(
+            position=player_pos,
+            recursion_depth=player_depth,
+            complexity=player_complexity
+        )
+        
+        blips = []
+        for e in entities:
+            pos = e.get("pos", (0.0, 0.0, 0.0))
+            depth = e.get("recursion_depth", 0)
+            complexity = e.get("complexity", 0.0)
+            
+            entity_emb = embedder.embed_state(
+                position=pos,
+                recursion_depth=depth,
+                complexity=complexity
+            )
+            
+            sightline = embedder.compute_topological_sightline(
+                player_emb, entity_emb, horizon_radius=float(radar_radius)
+            )
+            
+            if sightline["has_sightline"]:
+                blip = dict(e)
+                blip["topological_distance"] = sightline["embedded_distance"]
+                blip["sightline_transmission"] = sightline["transmission"]
+                blip["scale_delta"] = sightline["scale_delta"]
+                blip["altitude_diff"] = pos[1] - player_pos[1]
+                blips.append(blip)
+                
+        return blips
+
 
 # =========================================================================
 # 3. RESOURCE DISTRIBUTION INSPECTOR (JER CLEANROOM)
