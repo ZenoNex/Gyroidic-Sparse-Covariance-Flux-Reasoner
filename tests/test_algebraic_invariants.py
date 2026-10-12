@@ -239,6 +239,29 @@ def _test_training_manager_lifecycle():
     print(f"  active={status['active']}, progress={status['progress']}%")
 
 
+def _test_voynich_split_sub_pairs():
+    """VoynichLinguist.split_sub_pairs generates exact 2n prefix-suffix handshake partitions."""
+    from src.core.voynich_architecture import VoynichLinguist
+    
+    # Empty string boundary
+    empty_pairs = VoynichLinguist.split_sub_pairs("")
+    assert empty_pairs == [("", "")], f"Expected [('', '')], got {empty_pairs}"
+    
+    # 18-character canonical test string from docstring
+    s = "Isotremoptememally"
+    pairs = VoynichLinguist.split_sub_pairs(s)
+    assert len(pairs) == 36, f"Expected 36 pairs for 18-char string, got {len(pairs)}"
+    
+    # Verify Cycle 1 ends with (s, "")
+    assert pairs[len(s) - 1] == (s, ""), f"Cycle 1 termination mismatch: {pairs[len(s)-1]}"
+    # Verify Cycle 2 begins with ("", s)
+    assert pairs[len(s)] == ("", s), f"Cycle 2 initiation mismatch: {pairs[len(s)]}"
+    
+    # Verify all partitions reconstruct original string
+    for prefix, suffix in pairs:
+        assert prefix + suffix == s, f"Reconstruction failed for ({prefix}, {suffix})"
+
+
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
@@ -250,6 +273,7 @@ TESTS = [
     ("DAQUF Voynich Option-D Boost",        _test_daquf_voynich_token_mischief_boost,  20),
     ("Love Invariant Protector",            _test_love_invariant_protector,            20),
     ("Lazarus Softmax Transitions",         _test_lazarus_softmax_transitions,         15),
+    ("Voynich Sub-Pairs Partitioning",      _test_voynich_split_sub_pairs,             10),
     ("Diegetic Unfolding Closure Check",    _test_diegetic_unfolding_closure_check,   120),
     ("TrainingManager Lifecycle",           _test_training_manager_lifecycle,          60),
 ]
