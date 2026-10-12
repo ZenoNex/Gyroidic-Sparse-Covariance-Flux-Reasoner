@@ -51,7 +51,8 @@ class ChiralGatedRNNCell(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int, num_attractors: int = 8):
         super().__init__()
         self.hidden_dim = hidden_dim
-        self.chiral_vectors = nn.Parameter(torch.randn(num_attractors, hidden_dim) * 0.1)
+        # Silicon Sovereignty: hardware-anchored jitter initialization
+        self.chiral_vectors = nn.Parameter(harvest_honest_jitter((num_attractors, hidden_dim)) * 0.1)
         self.W_x = nn.Linear(input_dim, hidden_dim)
         self.W_h = nn.Linear(hidden_dim, hidden_dim)
 
@@ -176,8 +177,8 @@ class PyOpenCLHardwareSovereigntyCell(nn.Module):
             alpha = 0.5
             mixed = (1.0 - alpha) * h_prev + alpha * x_proj
         
-        # Inject honest jitter/scars naturally
-        scars = torch.randn_like(mixed) * 0.18 * (mixed > 0.88).float()
+        # Inject honest jitter/scars naturally via hardware entropy
+        scars = harvest_honest_jitter(mixed.shape, device=mixed.device) * 0.18 * (mixed > 0.88).float()
         h_t = torch.clamp(mixed + scars, -1.0, 1.0)
         return h_t
 
