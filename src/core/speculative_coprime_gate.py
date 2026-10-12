@@ -376,8 +376,8 @@ class ChiralCoherenceEstimator(nn.Module):
         # Check compute affordance headroom for Fractal Brillouin / Bouligand Zone superposition
         use_soc_proj = False
         try:
-            from src.core.hardware_monitor import has_compute_affordance
-            use_soc_proj = has_compute_affordance()
+            from src.core.hardware_monitor import has_compute_affordance, ComputeAffordanceType
+            use_soc_proj = has_compute_affordance(ComputeAffordanceType.TOPOLOGICAL)
         except Exception:
             use_soc_proj = True
             
