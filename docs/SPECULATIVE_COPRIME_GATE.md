@@ -7,19 +7,19 @@
 
 ## 1. Overview
 
-When the system detects structural collapse — low chiral score, broken coprime parity, or CALM abort — the SCCCG module attempts **speculative recovery** via optimal transport rather than emitting a failure token.
+When the system detects structural collapse  low chiral score, broken coprime parity, or CALM abort  the SCCCG module attempts **speculative recovery** via optimal transport rather than emitting a failure token.
 
 ```mermaid
 graph LR
     S["state [B, dim]"] --> WT["CoprimeWindingTracker<br/>gcd(w_k, p_k) = 1?"]
-    S --> CE["ChiralCoherenceEstimator<br/>C = Σ(λ⁺ - λ⁻)/(λ⁺ + λ⁻)"]
+    S --> CE["ChiralCoherenceEstimator<br/>C = ( - )/( + )"]
     A["abort_score"] --> DEC{Needs Recovery?}
     WT --> DEC
     CE --> DEC
     DEC -->|No| GATE["Dimensional Gating<br/>+ update manifold"]
-    DEC -->|Yes| WOT["WassersteinOT<br/>Sinkhorn transport<br/>→ coprime manifold"]
-    WOT --> MLP["Recovery MLP<br/>[state ∥ transported ∥ far]"]
-    MLP --> YLD["Yield Check<br/>(MC: |τ| - μσ - c)"]
+    DEC -->|Yes| WOT["WassersteinOT<br/>Sinkhorn transport<br/> coprime manifold"]
+    WOT --> MLP["Recovery MLP<br/>[state  transported  far]"]
+    MLP --> YLD["Yield Check<br/>(MC: || -  - c)"]
     YLD --> GATE
 ```
 
@@ -32,15 +32,15 @@ graph LR
 
 ## 2. WassersteinOptimalTransport
 
-Approximates the W₂ distance using Sinkhorn iterations with entropic regularization.
+Approximates the W distance using Sinkhorn iterations with entropic regularization.
 
 $$W_\varepsilon(P, Q) = \min_T \langle T, C \rangle - \varepsilon H(T)$$
 
 | Method | Input | Output |
 |--------|-------|--------|
-| `compute_cost_matrix(source, target)` | `[n, dim]`, `[m, dim]` | `C [n, m]` — chiral-modulated squared distances |
-| `sinkhorn(C, a, b)` | cost matrix + marginals | `T [n, m]` — optimal transport plan |
-| `transport(source, target)` | `[n, dim]`, `[m, dim]` | `(transported [n, dim], W₂ scalar)` |
+| `compute_cost_matrix(source, target)` | `[n, dim]`, `[m, dim]` | `C [n, m]`  chiral-modulated squared distances |
+| `sinkhorn(C, a, b)` | cost matrix + marginals | `T [n, m]`  optimal transport plan |
+| `transport(source, target)` | `[n, dim]`, `[m, dim]` | `(transported [n, dim], W scalar)` |
 
 The cost modulator is a learnable linear layer (initialized to identity) that emphasizes asymmetric dimensions in the transport cost.
 
@@ -54,9 +54,9 @@ $$\gcd(w_k, p_k) = 1 \quad \forall k$$
 
 | Step | Computation |
 |------|-------------|
-| Project | `head_proj(state)` → `[B, 2·num_heads]` (sin/cos pairs) |
-| Phase | `atan2(sin, cos)` → phases per head |
-| Winding | Accumulate `phase / 2π` over time |
+| Project | `head_proj(state)`  `[B, 2num_heads]` (sin/cos pairs) |
+| Phase | `atan2(sin, cos)`  phases per head |
+| Winding | Accumulate `phase / 2` over time |
 | GCD check | Quantize winding to integer, check `gcd(w_k, p_k) == 1` |
 
 **Anti-lobotomy**: `p_k` values use Legendre polynomial coefficients `P_k(0.7)` instead of hardcoded primes.
@@ -67,19 +67,32 @@ Returns:
 
 ---
 
-## 4. ChiralCoherenceEstimator
+## 4. ChiralCoherenceEstimator (Rashba-Dresselhaus Spectral Splitting)
 
-Estimates chiral coherence via spectral asymmetry of the covariance matrix:
+Estimates chiral coherence via spectral asymmetry of the covariance matrix across helical sectors:
 
 $$C = \frac{\sum_i |\lambda_i^+ - \lambda_i^-|}{\sum_i (\lambda_i^+ + \lambda_i^-)}$$
+
+### Rashba-Dresselhaus Helical Basis Grounding
+The decomposition into positive ($\lambda_i^+$) and negative ($\lambda_i^-$) chiral eigenvalues is mathematically isomorphic to the energy dispersion splitting of linear **Rashba-Dresselhaus Spin-Orbit Coupling (SOC)**:
+$$H_{\text{SOC}} = \vec{\Omega}(\vec{k}) \cdot \vec{\sigma} = (\alpha k_y + \beta k_x)\sigma_x + (-\alpha k_x - \beta k_y)\sigma_y$$
+$$E_\pm(\vec{k}) = E_0(\vec{k}) \pm |\vec{\Omega}(\vec{k})| = E_0(\vec{k}) \pm \sqrt{(\alpha^2 + \beta^2)k^2 + 2\alpha\beta(k_x^2 - k_y^2)}$$
+
+- **Structural Inversion Asymmetry (Rashba $\alpha$)**: Represents the external gradient of the input signal/prompt breaking reflection symmetry.
+- **Bulk Inversion Asymmetry (Dresselhaus $\beta$)**: Represents the intrinsic non-centrosymmetric geometry of the co-prime polynomial basis.
+- **2x2 Pauli Block Projection**: Replacing the crude heuristic index cut (`[:half]`) with an explicit $2 \times 2$ block projection using Pauli matrices $\vec{\sigma}$ and local gradient $\vec{k}$ eliminates artificial index-order artifacts and prevents false negative recoveries.
+- **Fractal Brillouin / Bouligand Zone Superposition**: Momentum space is modeled as a recursive fractal zone ($D_f \approx 2.58$). The system superposes momentum across nested Matrioshka scales $\ell \in \{0, 1, 2\}$, where $\vec{k}^{(\ell)} = 2^{-\ell}\vec{k}$ and coupling strength scales as $2^{-\ell(D_f - 2.0)}$:
+  $$\vec{\Omega}_{total}(\vec{k}) = \sum_{\ell=0}^{L-1} 2^{-\ell(D_f - 2.0)} \vec{\Omega}^{(\ell)}(\vec{k}^{(\ell)})$$
+- **Compute Affordance Gating**: The multi-scale fractal superposition is strictly gated by `has_headroom()`. Under low-latency or high-load conditions, the estimator falls back to base sector projection, ensuring the evaluative gate remains zero-overhead and strictly bounded $C \in [-1, 1]$.
 
 | Regime | Method |
 |--------|--------|
 | Buffer < 4 samples | FFT spectral flux asymmetry (low/high frequency power ratio) |
-| Buffer ≥ 4 samples | Eigenvalue decomposition of positive/negative sector covariances |
+| Buffer $\ge$ 4 samples (Low Affordance) | Chiral projection matrix split into base positive/negative sectors |
+| Buffer $\ge$ 4 samples (`has_headroom()`) | 3-scale Fractal Brillouin Pauli superposition with helical eigenstates |
 
-High chiral score = strong asymmetric structure (healthy).
-Low chiral score = symmetric/collapsed (triggers recovery).
+High chiral score = strong asymmetric helical structure (healthy).
+Low chiral score = symmetric/collapsed band structure (triggers recovery).
 
 ---
 
@@ -91,7 +104,7 @@ Combines all three sub-modules plus Mohr-Coulomb yield checking and dimensional 
 
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
-| `dim` | — | State dimensionality |
+| `dim` |  | State dimensionality |
 | `num_heads` | 8 | Coprime winding heads |
 | `recovery_threshold` | 0.1 | Minimum chiral score before recovery |
 | `sinkhorn_iters` | 20 | Sinkhorn iterations for OT |
@@ -99,20 +112,20 @@ Combines all three sub-modules plus Mohr-Coulomb yield checking and dimensional 
 
 ### 5.2 Speculative Recovery Pipeline
 
-1. **Transport**: Sinkhorn OT moves collapsed state → coprime reference manifold
-2. **Near-Far Coupling**: Far component = mean of target manifold × learned coupling ε
-3. **Recovery MLP**: `[state ∥ transported ∥ far]` → recovery delta
-4. **Yield Check**: MC yield `|τ| - μσ - c > 0` confirms rupture is generative
-5. **Dimensional Gating**: Suppress dimensions with parity violations (×0.1)
+1. **Transport**: Sinkhorn OT moves collapsed state  coprime reference manifold
+2. **Near-Far Coupling**: Far component = mean of target manifold  learned coupling 
+3. **Recovery MLP**: `[state  transported  far]`  recovery delta
+4. **Yield Check**: MC yield `|| -  - c > 0` confirms rupture is generative
+5. **Dimensional Gating**: Suppress dimensions with parity violations (0.1)
 6. **Manifold Update**: If generative, FIFO-update reference manifold
 
 ### 5.3 Forward Decision Tree
 
 ```
-if abort_score > 0.5 OR chiral_score < threshold OR ¬coprime_lock:
-    → speculative_recovery(state)
+if abort_score > 0.5 OR chiral_score < threshold OR coprime_lock:
+     speculative_recovery(state)
 else:
-    → update_manifold(state) + gated_output(state)
+     update_manifold(state) + gated_output(state)
 ```
 
 ---
@@ -136,10 +149,11 @@ else:
 
 | Doc | Section |
 |-----|---------|
-| [MATHEMATICAL_DETAILS.md](MATHEMATICAL_DETAILS.md) | §18.2 Coprime Parity |
-| [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md) | §7.3 Chiral Drift Optimizer |
-| [PHYSICS_ADMM.md](PHYSICS_ADMM.md) | §3.2 CALM Predictor (abort signal source) |
-| [KAGH_NETWORKS.md](KAGH_NETWORKS.md) | §6 Gödel Logic Gate (related saturated gating) |
+| [MATHEMATICAL_DETAILS.md](../../02_math_physics_topology/MATHEMATICAL_DETAILS.md) | 18.2 Coprime Parity & 73 Topological Gyrocompass |
+| [TOPOLOGICAL_EXTENSIONS.md](../../02_math_physics_topology/TOPOLOGICAL_EXTENSIONS.md) | Part X: Topological Gyrocompass & Precessional Safeguards |
+| [INVARIANT_OPTIMIZATION.md](../../02_math_physics_topology/INVARIANT_OPTIMIZATION.md) | 7.3 Chiral Drift Optimizer |
+| [PHYSICS_ADMM.md](../../02_math_physics_topology/PHYSICS_ADMM.md) | 3.2 CALM Predictor (abort signal source) |
+| [KAGH_NETWORKS.md](KAGH_NETWORKS.md) | 6 Gödel Logic Gate (related saturated gating) |
 
 ---
 
