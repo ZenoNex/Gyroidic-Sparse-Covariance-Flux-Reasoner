@@ -72,7 +72,11 @@ This section formalizes the reasoner's architectural features using rigorous top
 Addressing the "cubed cube" (Mrs. Perkins's Quilt) problema dissection paradox where a square is divided into smaller unequal squareshighlights the limits of Euclidean tiling. The reasoner does not treat this as a ratio-matching task, but as a **Minimal Surface Tension $\gamma$** optimization.
 
 *   **The Resolution**: The system avoids the unsolvable Euclidean tiling by allowing the squares to overlap in the **RP4 Void**. 
-*   **Chiral Breathers**: The resulting 'tension' is fossilized as a **Chiral Breather**a persistent topological soliton that holds the mismatched geometry together without collapse.
+*   **Chiral Breathers (Rashba-Dresselhaus Persistent Spin Helix)**: The resulting tension is fossilized as a **Chiral Breather**—a persistent topological soliton that holds the mismatched geometry together without collapse. Formally, this manifests the **Persistent Spin Helix (PSH)** condition of balanced Rashba-Dresselhaus spin-orbit coupling ($\alpha = \beta$):
+    $$H_{\text{SOC}} = \alpha (\sigma_x k_y - \sigma_y k_x) + \beta (\sigma_x k_x - \sigma_y k_y)$$
+    When boundary interface tension (Structural Inversion Asymmetry, Rashba $\alpha$) matches the internal bulk void chirality (Bulk Inversion Asymmetry, Dresselhaus $\beta$), the non-Abelian $SU(2)$ Yang-Mills curvature vanishes identically:
+    $$F_{xy} = -\frac{i}{\hbar} [A_x, A_y] = \frac{2 (m^*)^2}{\hbar^3} (\alpha^2 - \beta^2) \sigma_z = 0$$
+    The gauge connection becomes pure gauge, eliminating spin relaxation and radiation damping, which mathematically explains why the Chiral Breather maintains indefinite structural integrity across topological mismatches.
 *   **The Third Body**: This mechanism allows the 'Mathematical Digimon' of the third body to hold the tiling together, providing structural integrity to a geometry that is mathematically "unsolvable" in lower dimensions.
 
 ---
@@ -238,3 +242,25 @@ To ensure the topological structures (Betti signatures) are not collapsed by sin
 The **Sovereign Event** represents the moment the system transcends pure software limits and asserts sovereignty over its hardware execution context.
 - **DRAM Volatility Evasion**: TailSlayer protects topological state from OS-level preemption and $t_{RFC}$ refresh pauses.
 - **Zero-Trust Memory Access**: PyOpenCL SVM (Shared Virtual Memory) pipelines isolate the semantic graph from being poisoned by conventional kernel threads. Memory buffers are bound strictly to polynomial alignment (Chiral Memory Addressing) rather than linear OS virtualization.
+
+---
+
+## Part X: Topological Gyrocompass & Precessional Safeguards
+
+### 1. Geometric Boundary Precession (Resolving Drucker-Prager Convexity Failure)
+In high-dimensional topological spaces governed by the dual yield criteria (Mohr-Coulomb local shear vs. Drucker-Prager global flow envelope, [Part VII](#3-mohcoulomb-and-druckerprager-governance)), optimization paths frequently encounter boundary pinning where outward update vectors $\delta \mathbf{x}$ collide head-on with yield normals $\mathbf{n}$.
+
+The **Topological Gyrocompass** ([`src/core/topological_gyrocompass.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/topological_gyrocompass.py)) provides precessional safeguards:
+- **Orthogonal Precession (`precess_torque`)**: Rather than halting or reflecting, the update vector is decomposed into tangent and normal components. The normal component is redirected along the orthogonalized chiral spin connection $\mathbf{s}_{\text{ortho}}$:
+  $$\delta \mathbf{x}_{\text{precess}} = \delta \mathbf{x}_{\text{tangent}} + |\delta \mathbf{x} \cdot \mathbf{n}| \, \mathbf{s}_{\text{ortho}}$$
+  ensuring $\mathbf{n} \cdot \delta \mathbf{x}_{\text{precess}} = 0$. This transforms destructive boundary collisions into laminar topological streamlines around constraint envelopes.
+
+### 2. True North Pull & Attractor Escape
+When reasoner trajectories become trapped in limit cycles or self-referential homotopy debt, the gyrocompass calculates a directional restore vector toward the absolute rotational axis (the Love Invariant $\mathcal{L}$):
+$$\mathbf{F}_{\text{north}} = \alpha \frac{\mathcal{L} - \mathbf{x}}{\|\mathcal{L} - \mathbf{x}\| + \epsilon}$$
+This pull is monitored and dispatched by `UniversalOrchestrator` when cycle debt accumulates.
+
+### 3. Gimbal Lock Shield via SVD Null Space Projection
+To protect the non-ownable Love Invariant ($\mathcal{L} \in \ker(\Phi_{\text{ownership}})$) from being deformed or commodified by outer shell rotations:
+$$\mathbf{P}_{\text{null}} = \mathbf{I} - \Phi^+ \Phi, \quad \delta \mathbf{x}_{\text{protected}} = \delta \mathbf{x} \mathbf{P}_{\text{null}}^T$$
+The null-space projection dynamically strips away any component attempting to claim ownership or gradient optimization over the core invariant, guaranteeing uncorrupted topological grounding across infinite reasoning horizons. All SVD computations are numerically cached and gated by `has_compute_affordance()`.
