@@ -290,7 +290,43 @@ Residue $r$ is structurally irreducible iff:
 
 No single-face embedding exists.
 
-### 7.6 Continuous Co-Primality (Phase 3)
+### 7.6 Gyroidic Differentiation (Phase 3)
+
+The embedding flow $\nabla_{\text{flow}} \Phi(r)$ must be strictly perpendicular to the Gyroid normal vector field $\nabla G(x)$, where $G(x) = \sin(x)\cos(y) + \sin(y)\cos(z) + \sin(z)\cos(x) = 0$:
+
+$$
+\langle \nabla_{\text{flow}} \Phi(r), \nabla G(x) \rangle = 0
+$$
+
+To prevent trivial gradient identities, finite difference stencils evaluate actual functional mappings:
+1. **Directional Derivative Stencil**: When an explicit representation map $\Phi: \mathcal{R} \to \mathbb{R}^3$ is provided:
+   $$
+   \nabla_{\mathbf{u}} \Phi(r) = \frac{\Phi(r + \delta \hat{\mathbf{u}}) - \Phi(r - \delta \hat{\mathbf{u}})}{2\delta} \cdot s\left(\frac{\|\Delta \Phi\|}{2\delta}\right)
+   $$
+   with unit perturbation $\hat{\mathbf{u}} = r / \|r\|$.
+2. **Trajectory Tangent Flow**: For sequential trajectory embeddings $[B, T, 3]$, path velocities are computed via central differences:
+   $$
+   \mathbf{v}_t = \frac{x_{t+1} - x_{t-1}}{2}
+   $$
+3. **Hamiltonian Skew-Symmetric Tangent Stencils**: For point cloud coordinates in $\mathbb{R}^3$, the surface functional $G$ is evaluated at displaced axial coordinates $x \pm \delta \mathbf{e}_i$ ($i \in \{0, 1, 2\}$) to construct the Hamiltonian tangent flow:
+   $$
+   \mathbf{v} = J \nabla G = \begin{pmatrix} -\partial_y G \\ \partial_x G - \partial_z G \\ \partial_y G \end{pmatrix}
+   $$
+   Because $J = -J^T$, $\langle \mathbf{v}, \nabla G \rangle \equiv 0$ holds analytically on the Gyroid manifold.
+
+**L'Hôpital Discontinuity Regularization**: Finite difference derivatives across discontinuous fractures are scaled by:
+$$
+s(c) = \frac{\log(c + 1)}{c}, \qquad \lim_{c \to 0} s(c) = 1.0
+$$
+damping unbounded gradient explosions near non-Euclidean phase boundaries.
+
+**Forbidden Smoothing Barrier**: A candidate smoothing path $\gamma: [0, 1] \to \mathcal{C}$ between two similar embeddings $\Phi(r_1) \sim \Phi(r_2)$ is forbidden if it lies entirely within the gyroid-orthogonal tangent distribution $G^\perp$:
+$$
+\text{Forbidden} \iff \forall t \in [0, 1]: \quad \langle \dot{\gamma}(t), \nabla G(\gamma(t)) \rangle = 0 \quad \text{and} \quad \dot{\gamma}(t)^T \mathcal{H}_G(\gamma(t)) \dot{\gamma}(t) = 0
+$$
+where $\mathcal{H}_G$ is the Gyroid Hessian. This prevents spurious gradient descents from bypassing the true homological obstacles.
+
+### 7.7 Continuous Co-Primality (Phase 3)
 
 Entropy pressure: $E(r_i, r_j) = H(r_i + r_j) - H(r_i) - H(r_j)$
 
@@ -298,7 +334,7 @@ Uses **discrete entropy quantization** (binary outcomes, bincount, log2) - no co
 
 Asymptotic independence: $\lim_{t\to\infty} \text{Cov}(r_i^{(t)}, r_j^{(t)}) = 0$
 
-### 7.7 Meta-Invariant (Phase 3)
+### 7.8 Meta-Invariant (Phase 3)
 
 Topology expansion constraint:
 
@@ -308,7 +344,7 @@ $$
 
 Prevents topology collapse toward a single basin.
 
-### 7.8 Legacy Formulation (Backward Compatible)
+### 7.9 Legacy Formulation (Backward Compatible)
 
 The original formulation is still supported:
 
@@ -318,7 +354,7 @@ $$
 
 *   **Logic**: System 2 ignores the failed target $c^0$ once initialized. It can only find a physical realization that *agrees* with the symbols, or report failure.
 
-### 7.9 Repair Trace Compression
+### 7.10 Repair Trace Compression
 System 2 updates are returned as **Symbolic Deltas** $\Delta c_{\text{sym}}$ rather than full gradients. This prevents "smoothness leakage" from the repair loop back into the saturated symbolic layer.
 
 See [PHYSICS_ADMM.md](PHYSICS_ADMM.md) for full details.
