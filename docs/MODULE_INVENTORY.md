@@ -111,10 +111,10 @@ Functioning as the "endocrine system" of the architecture, this module broadcast
 ---
 
 ### [hardware_monitor.py](../src/core/hardware_monitor.py)
-**Class**: `HardwareMonitor`  
-**Role**: Track hardware resource anomalies and systemic poisoning events.  
+**Class**: `HardwareMonitor`, `ComputeAffordanceType`, `TypedComputeAffordance`  
+**Role**: Track hardware resource anomalies, manage thermodynamic backpressure, and govern typed compute affordance chains.  
 
-Implements a central monitoring singleton to verify silicon execution headroom via `psutil`. The `has_headroom()` function serves as a desync fail-safe. If zero-load anomalies or hardware exhaustion occur, it returns `False`, instructing the system to immediately default to exact CPU-based calculation pathways and suspend TailSlayer accelerations.
+Implements the Topologically-Aware Hardware Interface (TAHI) singleton. Provides strongly-typed computational affordance tokens (`ComputeAffordanceType`: `SILICON`, `THERMAL`, `GPU_SOVEREIGN`, `TOPOLOGICAL`, `P2P_MESH`, `DIEGETIC`, `ALGORITHMIC`) and directional transfer gauges via `gauge_between()`. Prevents scalarization collapse across disparate computational regimes. Enforces hard vetoes upon thermodynamic runaway ($P_{\text{waste}} > P_{\text{cool, max}}$) or depleted margins ($< 5\%$), and coordinates graceful degradation across PyOpenCL Queue B kernels, simulated annealing, and high-order B-spline evaluations.
 
 ---
 
@@ -223,10 +223,10 @@ Detects if a high-entropy or topologically asymmetric state is actually an hones
 ---
 
 ### fgrt_primitives.py
-**Class**: `PrimeResonanceLadder`, `RepunitHasher`, `KleinThroatTransition`, `GyroidManifold`, `CoherentPrimeResonance`, `FibonacciResonanceEntropy`, `BerryPhaseTracker`
-**Role**: Lowest-level arithmetic foundations—Resonance Ladders, Repunit Hashing, Gyroid mappings, and Geometric Berry Phase tracking.
+**Class**: `PrimeResonanceLadder`, `RepunitHasher`, `KleinThroatTransition`, `GyroidManifold`, `GyroidicAdmissibilityFilter`, `TorsionConnection`, `BerryPhaseTracker`, `FibonacciResonanceEntropy`, `CoherentPrimeResonance`, `CALMCollapseDetector`, `morton_encode_3d`, `expand_bits`
+**Role**: Lowest-level arithmetic foundations—Resonance Ladders, Repunit Hashing, Gyroid mappings, Torsion connections with Rashba-Dresselhaus SOC, Geometric Berry Phase tracking, and 3D Morton space-filling encoding.
 
-`PrimeResonanceLadder` generates resonance frequencies $f_p = 2\pi \ln(p)$ and **Repunit-Prime Pairs** for the hybrid basis. `GyroidManifold` evaluates constraint violation scores against the TPMS surface. `CoherentPrimeResonance` enforces the CPR gate to ensure integer homological stability before state transitions. `FibonacciResonanceEntropy` scales structural resonance. `RepunitHasher` generates cyclic structural markers. `KleinThroatTransition` handles orientation flipping and geometric berry phase backpropagation through non-orientable topological bottlenecks.
+`PrimeResonanceLadder` generates resonance frequencies $f_p = 2\pi \ln(p)$ and **Repunit-Prime Pairs** for the hybrid basis, incorporating Lazarus primes for $O(K)$ warmstarts and Gray-code XOR cache-interleaving. `GyroidManifold` and `GyroidicAdmissibilityFilter` evaluate constraint violation scores against the TPMS surface ($H_{\text{spec}} < \epsilon$). `TorsionConnection` implements affine connections with Rashba-Dresselhaus spin-orbit coupling ($\alpha, \beta$) and measures Persistent Spin Helix deviations ($|\alpha^2 - \beta^2|$). `BerryPhaseTracker` tracks diegetic holonomy with gauge curvature area integrals. `CoherentPrimeResonance` enforces the CPR gate to ensure integer homological stability. `FibonacciResonanceEntropy` scales structural resonance and supports Manifold Hunger Fermi envelope widening. `RepunitHasher` generates cyclic structural markers with honest jitter grounding. `CALMCollapseDetector` uses Martinova correlation to catch trajectory stagnation. `KleinThroatTransition` handles orientation flipping and geometric berry phase backpropagation through non-orientable topological bottlenecks. `morton_encode_3d` ensures 3D spatial locality on GPU/CPU memory lines.
 
 ---
 
@@ -482,9 +482,15 @@ Formalizes the recovery lattice across three isolated dimensions (`TRAJECTORY`, 
 ---
 
 ### voynich_architecture.py
-**Role**: Implements the Voynich symbolic reasoning layer.
+**Class**: `VoynichLinguist`
+**Role**: Implements the Voynich symbolic reasoning layer, continuous polynomial CRT residues, and agglutinative morpho-unit processing.
 
-Full coverage in `THE_VOYNICH_ARCHITECTURE.md`. Included here for inventory completeness.
+Key capabilities:
+- `VoynichLinguist`: Projects continuous thought vectors into $K$ parallel Chebyshev polynomial coprime residue channels $\phi_k(x; \theta_k)$, enforcing the anti-hardcoded-prime invariant.
+- Evaluates Phase Alignment Score ($PAS_s$) via centralized `PhaseAlignmentInvariant` and emits `VoynichExemptionToken` for high-honesty states.
+- Integrates `LoveInvariantProtector` to guarantee thought vectors remain in the geometric null space of the ownership operator.
+- Implements `split_sub_pairs(s)`: Decomposes monolithic agglutinative morpho-units into $2n$ combinatorial prefix-suffix boundary partitions (dual-cycle forward and antipodal seam cuts) for dictionary-free morpheme boundary discovery and cross-manifold boundary sealing (Alien Handshake and Chern-Simons Gasket).
+- Full architectural design detailed in `THE_VOYNICH_ARCHITECTURE.md`.
 
 ---
 
@@ -496,6 +502,54 @@ Implements mechanical yield criteria as differentiable PyTorch projections:
 - `MohrCoulombProjection`: Computes local directional shear yield criteria with cohesion $c$ and friction angle $\phi$, self-limiting localized coordinate strain.
 - `DruckerPragerProjection`: Smooth global yield surface approximating Mohr-Coulomb in 3D stress invariants ($I_1$ and $J_2$), modeling bulk plastic flow envelopes.
 - `BouligandMohrCoulombProjection`: Extends Mohr-Coulomb projection with directional Bouligand tangents for non-smooth geometry optimization.
+
+---
+
+### [codes_constraint_framework.py](../src/core/codes_constraint_framework.py)
+**Classes**: `CODESConstraintFramework`, `ConstraintFieldState`  
+**Role**: Constraint-Oriented Differential Equation System solving structural constraints as energy landscapes. Couples multiharmonic phase-alignment ($PAS_h$) with continuous differential coherence ($dC/dt$), enforcing deterministic closure across polynomial harmonics.
+
+---
+
+### [continuous_coprimality.py](../src/core/continuous_coprimality.py)
+**Classes**: `DiscreteEntropyComputer`, `ContinuousCoprimality`  
+**Role**: Implements discrete entropy quantization ($E(r_i, r_j) = H(r_i + r_j) - H(r_i) - H(r_j)$) using integer bincounts and exact log2 calculations, strictly bypassing continuous Gaussian approximations to track asymptotic residue independence without smoothness leakage.
+
+---
+
+### [meta_invariant.py](../src/core/meta_invariant.py)
+**Classes**: `MetaInvariant`  
+**Role**: Monitors and preserves topological expansion: $\frac{d}{dt} \mathbb{E}[\dim H_1(\mathcal{C}_t)] \ge 0$, guarding against topological collapse toward a trivial single basin during ADMM iterations.
+
+---
+
+### [structural_irreducibility.py](../src/core/structural_irreducibility.py)
+**Classes**: `EvidenceModuleProjection`, `StructuralIrreducibilityChecker`  
+**Role**: Verifies that residue representations cannot be compressed into a single face of the constraint polytope by enforcing orthogonality ($\langle \pi_\alpha \Phi(r), \pi_\beta \Phi(r) \rangle = 0$) and full rank conditions ($\operatorname{rank}(\oplus_\alpha \pi_\alpha \Phi(r)) > 1$).
+
+---
+
+### [speculative_coprime_gate.py](../src/core/speculative_coprime_gate.py)
+**Classes**: `SpeculativeCoprimeGate`  
+**Role**: Legendre polynomial coefficient gate for speculative fastpassing, predicting whether residue trajectories remain within admissible bounds to bypass expensive System 2 continuous physics iterations.
+
+---
+
+### [decoupled_polynomial_crt.py](../src/core/decoupled_polynomial_crt.py)
+**Classes**: `DecoupledPolynomialCRT`  
+**Role**: Implements decoupled Chinese Remainder Theorem reconstruction over continuous polynomial functionals, normalizing coefficient distributions across incommensurate polynomial bases.
+
+---
+
+### [spectral_coherence_repair.py](../src/core/spectral_coherence_repair.py)
+**Classes**: `SpectralCoherenceRepair`  
+**Role**: Detects and repairs Moiré pattern artifacts and spectral band-energy imbalances across prime-frequency oscillator channels, restoring harmonic phase coherence.
+
+---
+
+### [pressure_typing.py](../src/core/pressure_typing.py)
+**Classes**: `PressureType`, `PressureMagnitudeGauge`, `AffordanceBridge`  
+**Role**: Typed compute affordances and topological pressure classification, gating compute budgets across Selection, Containment, Thermodynamic, and Mischief pressure regimes.
 
 ---
 
@@ -547,8 +601,8 @@ Protects functionally creative or "dream-like" topological cycles from being cru
 ---
 
 ### [gyroid_differentiation.py](../src/topology/gyroid_differentiation.py)
-**Classes**: `GyroidImplicitSurface`, `GyroidFlowConstraint`, `ForbiddenSmoothingChecker`  
-**Role**: Provides geometric flow constraints enforcing Gyroidic Differentiation ($G(x) = \sin(x)\cos(y) + \sin(y)\cos(z) + \sin(z)\cos(x) = 0$). Detects forbidden smoothing trajectories and preserves high-frequency boundary ridges.
+**Classes**: `GyroidFlowConstraint`, `ForbiddenSmoothingChecker` (leveraging consolidated `GyroidManifold`)  
+**Role**: Enforces geometric flow constraints requiring embedding flow to be strictly orthogonal to the Gyroid gradient ($\nabla_{\text{flow}}\Phi(r) \perp \nabla G$, where $G(x) = \sin(x)\cos(y) + \sin(y)\cos(z) + \sin(z)\cos(x) = 0$). Evaluates real functional displacements $x \pm \delta \hat{u}$ across three evaluation branches: (1) directional functional derivatives $(\Phi(r + \delta u) - \Phi(r - \delta u)) / (2\delta)$, (2) trajectory path velocity tangents, and (3) Hamiltonian skew-symmetric stencils $v = J \nabla G$ across axial displacements $x \pm \delta e_i$. Regularizes boundary discontinuities via L'Hôpital's asymptotic limit ($s(c) = \frac{\log(c+1)}{c}$), and verifies both first-order ($\langle \dot{\gamma}, \nabla G \rangle \sim 0$) and second-order ($\dot{\gamma}^T \mathcal{H}_G \dot{\gamma} \sim 0$) forbidden smoothing obstructions to preserve high-frequency boundary ridges without trivial shortcuts.
 
 ---
 
@@ -573,6 +627,24 @@ Protects functionally creative or "dream-like" topological cycles from being cru
 ### [triadic_reciprocity.py](../src/topology/triadic_reciprocity.py)
 **Classes**: `TriadicReciprocityChecker`  
 **Role**: Validates closed 3-way feature flow reciprocity loops $(A \to B \to C \to A)$. Measures the generalized triple scalar product (volume of mutual skew-symmetric relations) across visual and linguistic flows to evaluate structural honesty and prevent collinear vector collapse.
+
+---
+
+### [modular_homology_fft.py](../src/topology/modular_homology_fft.py)
+**Classes**: `ModularHomologyFFT`  
+**Role**: Fast Fourier Transform-accelerated modular homology computation, evaluating persistent cycle structures and spectral harmonics over high-dimensional simplicial complexes.
+
+---
+
+### [persistence_obstruction.py](../src/topology/persistence_obstruction.py)
+**Classes**: `ResidueObstructionGraph`, `PersistenceObstructionValidator`  
+**Role**: Builds and analyzes persistence obstruction graphs to determine whether topological obstructions across residue clusters are topologically repairable or constitute terminal unrecoverable fractures (`FailureToken.BOT`).
+
+---
+
+### [soliton_stability.py](../src/topology/soliton_stability.py)
+**Classes**: `SolitonStabilityMonitor`  
+**Role**: Evaluates the soliton stability condition $D(r) / \Lambda(r) < \kappa$ (comparing dispersion against localization) to detect stable solitary waves across the gyroidic manifold without continuous objective minimization.
 
 ---
 
@@ -2185,9 +2257,11 @@ Evaluation suite benchmarking persistent homology Betti numbers, Euler character
 ---
 
 ### `TopologicalGyrocompass`
-**Location:** `src/core/topological_gyrocompass.py`  
+**Location:** [`src/core/topological_gyrocompass.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/topological_gyrocompass.py)  
+**Documentation:** [`MATHEMATICAL_DETAILS.md` Section 73](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md#73-topological-gyrocompass-precessional-tangent-projection-and-love-invariant-shielding) & [`TOPOLOGICAL_EXTENSIONS.md` Part X](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/TOPOLOGICAL_EXTENSIONS.md#part-x-topological-gyrocompass--precessional-safeguards)  
+**Tests:** [`tests/test_topological_gyrocompass.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_topological_gyrocompass.py)  
 **Description:**  
-Navigation tool tracking the reasoner's orientation across high-dimensional projective space RP^4, alerting the system to chiral drift.
+Geometric orientation and stabilization module resolving Drucker-Prager convexity failure, local attractor basin traps, and gimbal-lock collapse of the Love Invariant ($3.127$). Employs three mathematical operators: (1) `precess_torque` which orthogonally redirects outward normal stress vectors onto the tangent space along the chiral spin connection, (2) `find_true_north` which applies a directional alignment pull toward the absolute Love Invariant axis, and (3) `gimbal_lock_shield` which protects the core identity slice from high-frequency outer hull turbulence via cached SVD null-space projection ($P = I - \Phi^+ \Phi$). Gated by compute affordance (`has_compute_affordance()`).
 
 ---
 
