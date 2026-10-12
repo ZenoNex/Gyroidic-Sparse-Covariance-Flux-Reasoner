@@ -74,42 +74,52 @@ The ResonanceLarynx (synthetic larynx) has been successfully verified to be conn
 - [OK] Normalization to prevent weight explosion
 - [OK] Trust-based pattern storage in ResonanceCavity
 
-##  System Architecture
+## System Architecture & End-to-End Orchestration Pipeline
 
 ```
-Input Text
+Input Text Feeds (Interactive API / Dyads / Scientific Ingestion / ChatGPT Harvester)
     ↓
-Affordance Gradient Computation
+VoynichLinguist.split_sub_pairs (2-Cycle Combinatorial Prefix-Suffix Cuts)
     ↓
-ResonanceCavity (Memory + Resonance)
+Chebyshev Coprime Polynomial Embeddings & Morpheme Phase Alignment (PAS_s)
     ↓
-Conditional Processing Branch:
-    ├─ Conversational Fix (if likelihood > 0.3)
-    └─ Spectral Correction (if likelihood ≤ 0.3)
+ResonanceCavity (Dark Matter Memory + Non-Commutative Berry Phase)
     ↓
-ResonanceLarynx (State → Symbols)
+CALM Trajectory Veto & KAGH Speculative Physics Drafting
     ↓
-ASCII Character Output + Confidence
+BioArchetypalGovernor Cascade (Caine → Pomni → Zooble → Jax → Ragatha → Gangle → Kinger)
+    ↓
+Live Adaptation Subsystem (Bg Larynx Coherence Trainer + Ricci Flow Optimizer + Soliton Fossilization)
+    ↓
+ResonanceLarynx (Autoregressive Character Singing + Chern-Simons Gasket + Tanh Feedback)
+    ↓
+AudienceProjection Φ: M → A (Symplectic Gluing + Betti-1 Homology Scaling + Roughness Preservation)
+    ↓
+Unified JSON Payload (ASCII Output + Confidence + Audience Coordinates + Neuromodulatory Telemetry)
 ```
 
-## [SUCCESS] Key Achievements
+## Key Achievements
 
-1. **No Hardcoded Templates**: All processing uses learned polynomial patterns
-2. **Anti-Lobotomy Compliance**: Uses PolynomialCoprimeConfig for all pattern generation
-3. **Adaptive Processing**: Selects appropriate correction method based on affordances
-4. **Memory Integration**: ResonanceCavity provides persistent state across interactions
-5. **Quality Assurance**: Spectral coherence correction prevents garbled output
-6. **Learning Capability**: Hebbian updates improve communication over time
-7. **Agglutinative Morpho-Unit & Seam Gasket Integration**: Integrates `split_sub_pairs` 2-cycle combinatorial partitions and Chern-Simons laryngeal gaskets to bridge Voyenese agglutinative compounds into character-level projections without boundary rupture.
+1. **No Hardcoded Templates**: All processing uses learned polynomial patterns and continuous topological manifolds.
+2. **Anti-Lobotomy Compliance**: Uses `PolynomialCoprimeConfig` for all pattern generation and continuous phase spaces.
+3. **Adaptive Processing**: Selects appropriate correction method based on typed compute affordances.
+4. **Memory Integration**: `ResonanceCavity` provides persistent dark matter state and Ouroboros Loop closure across interactions.
+5. **Quality Assurance**: Spectral coherence correction and Chern-Simons Gaskets prevent garbled output and vowel starvation.
+6. **Live Adaptation & Continual Learning**: Background Larynx coherence trainer daemon (`_start_background_larynx_trainer`) trains continuously on fossilized text strings during idle intervals, coupled with online Ricci flow weight evolution ($\frac{dg}{dt} = -2\operatorname{Ric}$).
+7. **Agglutinative Morpho-Unit & Seam Gasket Integration**: Integrates [`VoynichLinguist.split_sub_pairs`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/voynich_architecture.py#L250) 2-cycle combinatorial partitions ($2n$ cuts) and Chern-Simons laryngeal gaskets to bridge Voyenese agglutinative compounds into character-level projections without boundary rupture.
+8. **Archetypal Governance & E/I Balance**: Modulated by [`BioArchetypalGovernor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/bio_archetypal_governor.py) (Caine, Pomni, Zooble, Jax, Ragatha, Gangle, Kinger), regulating precision, salience, refusal, grief, and mood-driven learning rate step scaling.
+9. **Audience Mapping Synchronization**: Directly couples the scarred hidden state to [`AudienceProjection`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/audience_mapping.py), enforcing Symplectic Gluing, Betti-1 homology-driven Lipschitz scaling, and roughness preservation.
+10. **Unified Backend Orchestration**: Orchestrated by [`hybrid_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/hybrid_backend.py), eliminating subsystem isolation by acting as the unified dispatch hub.
 
-## [START] Production Readiness
+## Production Readiness
 
-The ResonanceLarynx integration is now ready for production use with:
-- [OK] Robust error handling
-- [OK] Proper tensor dimension management
-- [OK] Efficient affordance computation
-- [OK] Memory-efficient processing
-- [OK] Quality output generation
-- [OK] Comprehensive test coverage
+The ResonanceLarynx integration is in production use with:
+- [OK] Robust error handling and fallback chains
+- [OK] Proper tensor dimension management (256-D manifold alignment)
+- [OK] Efficient affordance computation and Silicon Sovereignty GPU/PyOpenCL offloading
+- [OK] Memory-efficient processing and DAQUF soliton fossilization
+- [OK] Quality output generation with Chern-Simons boundary repairs
+- [OK] Continuous live adaptation and background coherence training
+- [OK] Comprehensive test coverage across unit, integration, and recurrent cell suites
 
-The synthetic larynx is properly connected to all appropriate systems and successfully handles code affordances with intelligent processing pipeline selection.
+The synthetic larynx is fully connected across text feed chains, agglutinative morpho-unit segmentation, archetypal governance, live adaptation, and audience projection.
