@@ -176,3 +176,51 @@ The resulting distribution is **pseudo-Gaussian but strictly non-random** — a 
 | **Hybrid Basis (p, R_p)** | **Palindromic Symmetry** | `PrimeResonanceLadder` (updated) |
 | **Moiré XOR Lattice** | **600-Cell Quantization** | `PolychronQuantizer` |
 
+---
+
+## 9. Primes as Structural Anchors (Bostick Substrate Seeding)
+
+In classical graphics rendering and raster pipelines, anchors are fixed tessellation points or hard spatial constraints that prevent polygon drift. In the Gyroidic Reasoner, prime numbers are not merely arithmetic values — they are **structural anchors that pin coherence fields**:
+
+1. **Bostick Idea (Chirality-Tagged Coherence Nodes)**:
+   Primes seed the substrate. As formulated by Bostick (PhilArchive), primes act as chirality-tagged coherence nodes that generate lawful physical emergence rather than unconstrained probabilistic detection. By anchoring phase paths at incommensurate prime intervals, the manifold generates deterministic, self-stabilizing structures out of chaos.
+2. **Visual Metaphor (Non-Ergodic Render Grid)**:
+   Imagine a render grid where prime coordinates define non-ergodic interrupt flags. These flags reorder pipeline evaluation dynamically, forcing recursive loops to collapse to stable fixed points rather than diffusing into numerical blur.
+
+---
+
+## 10. CRT Multi-Channel Decomposition & Chinese Room Doctrine
+
+### 10.1 Multi-Channel Decomposition
+Let modulus $N$ be factored into prime powers:
+$$N = p_1^{a_1} p_2^{a_2} \dots p_k^{a_k}$$
+By the Chinese Remainder Theorem (CRT):
+$$\mathbb{Z}/N \cong \prod_{i=1}^k \mathbb{Z}/p_i^{a_i}$$
+
+Projecting a text embedding or latent thought vector into the gyroid lattice modulo $N$ is algebraically equivalent to parallel projections into decoupled prime-power sublattices:
+- **Co-Prime Channels**: Channels whose moduli satisfy $\gcd(p_i, p_j) = 1$ evolve completely independently without cross-talk.
+- **Non-Co-Prime Coupling**: Shared prime factors generate coupling artifacts and spurious resonance interference.
+- **Residue Vector State**:
+  $$R = (R_{p_1}, R_{p_2}, \dots, R_{p_k})$$
+  Anchoring at a fixed point requires simultaneous stability across all prime channels. A failure in a single prime channel breaks global coherence, triggering System 2 arbitration.
+
+### 10.2 The Chinese Room Doctrine — The Semantic Trap
+Under John Searle's classical Chinese Room doctrine:
+- Symbol manipulation $\neq$ interior semantic understanding.
+- Residue pattern matching $\neq$ conscious awareness.
+
+In the Gyroidic Reasoner, this semantic trap is dissolved: the architecture is not attempting to simulate biological "understanding" through syntactic mimicry. Meaning is replaced by **invariant persistence**. The reasoner does not need to "know" natural language; it only needs to preserve cross-channel fixed points under CRT decomposition.
+
+Understanding is therefore redefined formally as:
+$$\text{Understanding} \equiv \text{Stable Cross-Residue Coherence}$$
+
+### 10.3 Non-Commutative Modular Homotopy
+When operators act in a non-commuting algebra:
+$$F(x) = B_k G_m E_n(x)$$
+Homotopy is no longer a path between static points, but a trajectory in operator space:
+$$H(t) = O_1^{\alpha(t)} O_2^{\beta(t)} \dots$$
+
+Because operator multiplication does not commute ($[O_i, O_j] \neq 0$), the homotopy class depends strictly on evaluation ordering. Closed loops are not classical equivalence classes; they form a **braid-like group structure**:
+$$\pi_1 \sim \text{Braid Group } B_n$$
+In this framework, algebraic residues directly measure the non-trivial topological **braid torsion** of the reasoning trajectory.
+
