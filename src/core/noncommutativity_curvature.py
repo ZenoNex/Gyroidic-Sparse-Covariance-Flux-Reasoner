@@ -121,6 +121,27 @@ class NonCommutativityCurvature(nn.Module):
         # Threshold check
         is_strong = relative_curvature > self.curvature_threshold
         
+        # Rashba-Dresselhaus Persistent Spin Helix (PSH) balance metric:
+        # Measures |alpha^2 - beta^2| from block-diagonal antisymmetric curvature components
+        if kappa.dim() == 2:
+            d = kappa.shape[0]
+            half = d // 2
+            if half > 0:
+                diag_pairs = torch.stack([torch.abs(kappa[2*j, 2*j+1]) for j in range(half)])
+                delta_psh = diag_pairs.mean()
+            else:
+                delta_psh = torch.tensor(0.0, device=kappa.device)
+        else:
+            d = kappa.shape[-1]
+            half = d // 2
+            if half > 0:
+                diag_pairs = torch.stack([torch.abs(kappa[..., 2*j, 2*j+1]) for j in range(half)], dim=-1)
+                delta_psh = diag_pairs.mean()
+            else:
+                delta_psh = torch.tensor(0.0, device=kappa.device)
+                
+        is_psh_balanced = (delta_psh < 0.05).item() if isinstance(delta_psh < 0.05, torch.Tensor) else bool(delta_psh < 0.05)
+
         return {
             'kappa': kappa,
             'curvature_norm': curvature_norm,
@@ -128,7 +149,9 @@ class NonCommutativityCurvature(nn.Module):
             'is_strongly_noncommutative': is_strong,
             'curvature_ema': self.curvature_ema,
             'relative_curvature': relative_curvature,
-            'max_observed': self.max_observed
+            'max_observed': self.max_observed,
+            'delta_psh': delta_psh,
+            'is_psh_balanced': is_psh_balanced
         }
     
     def compute_wedge_components(
