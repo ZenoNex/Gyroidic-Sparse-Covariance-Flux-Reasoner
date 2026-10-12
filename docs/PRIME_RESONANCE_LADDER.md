@@ -106,11 +106,19 @@ In the Phase 18 refactor, the `PrimeResonanceLadder` no longer emits solitary pr
 The ladder prioritizes primes $p$ that satisfy the **Lazarus condition**: $R_p = (p^n - 1) / (p - 1)$ is also prime for some small $n$. 
 
 Lazarus primes provide:
-- **Maximum Symmetry**: The repunit $R_p$ acts as a geometric mirror for prime $p$.
-- **Symmetry-Stable Warmstarting**: $O(K)$ faster convergence by initializing in the stable zone.
+- **Maximum Symmetry**: The repunit $R_p$ acts as a geometric mirror for prime $p$, establishing a palindromic baseline for commutative paths.
+- **Symmetry-Stable Warmstarting**: $O(K)$ faster convergence by initializing in the stable zone without floating-point drift.
 
-### 5.2 Hybrid Modulus
-The effective modulus for the RNS virtualization is the product $M_{hybrid} = p \cdot R_p$. This product prevents non-commutative drift during high-pressure polytope switches.
+### 5.2 Hybrid Modulus and Non-Commutative Compatibility
+The baseline modulus for symmetric RNS virtualization is the composite product $M_{hybrid} = p \cdot R_p$.
+
+> [!IMPORTANT]
+> **Reframing the "Drift Prevention" Blind Rule:**
+> Stating that $M_{hybrid}$ unconditionally "prevents non-commutative drift" is an oversimplification that risks acting as a blind rule. Non-commutativity ($[Op_A, Op_B] \ne 0$) and Berry phase winding ($\Delta \phi$) are essential geometric properties of sovereign reasoning and physical dynamics, not bugs to be blindly suppressed.
+> 
+> In actual execution:
+> 1. **Symmetric Modes**: $M_{hybrid} = p \cdot R_p$ acts as an $O(1)$ fastpass for commutative algebraic flows and discrete voxel indexing.
+> 2. **Chiral and Non-Commutative Regimes**: When non-commutativity curvature $\kappa > 0$ or when `VoynichLinguist` generates encrypted, high-entropy representations, the system disengages the repunit palindromic mirror. It switches to `legacy_mode` (pure prime field $\mathbb{Z}/p\mathbb{Z}$) or consumes a `VoynichExemptionToken` to ensure non-commutative structures are preserved rather than falsely snapped.
 
 ---
 
