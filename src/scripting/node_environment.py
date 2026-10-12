@@ -72,7 +72,8 @@ from src.environment.cleanroom_mechanics import (
     MultipartVoxelCell, SubgridRotationalWireHarness,
     BagOfHolding, BagTier, IC2CropGenome, GiantCropCluster, FoodQualityTier,
     GasTubeTier, GasDumpingMode, MekanismScubaTank, RotaryCondensentrator,
-    TracerOxygenAtmosphereEngine, U1GaugeAtmosphereBridge
+    TracerOxygenAtmosphereEngine, U1GaugeAtmosphereBridge,
+    ModularWeaponBayesianNetwork, WeaponComponentConfig, ArmorConfig
 )
 
 logger = logging.getLogger(__name__)
@@ -762,11 +763,15 @@ class PhysicalNodeEditor:
         vol = sum(self.transaction_history[-10:]) if self.transaction_history else 10.0
         admr_res = torch.tensor([min(2.0, vol / 500.0)])
         metrics = self.carnot_ledger(torch.tensor(1.0), torch.tensor(5.0), admr_res, depth_N=4)
+        from src.core.hardware_monitor import has_compute_affordance, get_thermal_affordance, get_affordance_gauges
         return {
             "eta_stack": metrics["eta_stack"].item(),
             "p_waste": metrics["p_waste"].item(),
             "thermal_runaway": bool(metrics["thermal_runaway"]),
-            "market_friction": metrics["topological_friction"].item()
+            "market_friction": metrics["topological_friction"].item(),
+            "has_compute_affordance": has_compute_affordance(),
+            "thermal_affordance": get_thermal_affordance(),
+            "affordance_gauges": get_affordance_gauges()
         }
 
     # ---------------------------------------------------------------------
@@ -1182,6 +1187,30 @@ class PhysicalNodeEditor:
             "used_slots": len(self.expanded_inventory.slots),
             "fluid_tanks": {k: v.amount_mb for k, v in self.expanded_inventory.fluid_tanks.items()},
             "gas_tanks": {k: v.amount_mb for k, v in self.expanded_inventory.gas_tanks.items()}
+        }
+
+    def hook_modular_weapon_bayesian_network(
+        self,
+        barrel: str = "B1",
+        ammo: str = "A1",
+        attachment: str = "T1",
+        weather: str = "W1",
+        location: str = "Chest",
+        dr_flat: float = 0.0,
+        p_armor_reduction: float = 0.0
+    ) -> Dict[str, Any]:
+        """
+        Hook for Cleanroom #11: Modular Weapon Bayesian Network & D-Wave Annealing Arbitration.
+        """
+        net = ModularWeaponBayesianNetwork()
+        cfg = WeaponComponentConfig(barrel=barrel, ammo=ammo, attachment=attachment, weather=weather, location=location)
+        armor = ArmorConfig(dr_flat=dr_flat, p_armor_reduction=p_armor_reduction)
+        damage_res = net.compute_damage_analytic(cfg, armor)
+        best_cfg, min_energy = net.solve_qubo_simulated_annealing(steps=25)
+        return {
+            "analytic_damage": damage_res,
+            "qubo_ground_state": best_cfg.tolist(),
+            "qubo_min_energy": min_energy
         }
 
     # ---------------------------------------------------------------------
