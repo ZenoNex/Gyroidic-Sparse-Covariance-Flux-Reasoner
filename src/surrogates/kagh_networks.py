@@ -276,6 +276,26 @@ class KANLayer(nn.Module):
             return out.view(*orig_shape[:-1], -1)
         return out
 
+    def functional_forward(self, x: torch.Tensor, params: Optional[Dict[str, torch.Tensor]] = None) -> torch.Tensor:
+        """
+        Execute forward pass. If params is provided, temporarily load them to perform
+        the forward pass, then restore the original parameters.
+        """
+        if params is None:
+            return self.forward(x)
+
+        orig_params = {k: v.data.clone() for k, v in self.named_parameters()}
+        try:
+            for name, param in self.named_parameters():
+                if name in params:
+                    param.data.copy_(params[name].data)
+            return self.forward(x)
+        finally:
+            for name, param in self.named_parameters():
+                if name in orig_params:
+                    param.data.copy_(orig_params[name])
+
+
 class ConvexKANLayer(KANLayer):
     """
     Convex KAN Layer for the Monge-Ampère ICNN.
@@ -614,12 +634,14 @@ class KAGHBlock(nn.Module):
                 if name in orig_params:
                     param.data.copy_(orig_params[name])
 
-    def adapt_online(self, support_states: torch.Tensor, support_targets: torch.Tensor, steps: int = 1, lr: float = 0.01, entropy: Optional[torch.Tensor] = None) -> 'KAGHBlock':
+    def adapt_online(self, support_states: torch.Tensor, support_targets: torch.Tensor, steps: int = 1, lr: float = 0.01, entropy: Optional[torch.Tensor] = None, psh_delta: Optional[Union[float, torch.Tensor]] = None) -> 'KAGHBlock':
         """
         Perform online inner-loop adaptation (MAML step) on support data.
         Returns an adapted instance of KAGHBlock.
         
         Dynamic LR: scaled by (1.0 + entropy.mean()) if entropy is provided.
+        PSH Proximity Modulation: If psh_delta is provided, scaled by exp(-abs(psh_delta)),
+        strictly bounded between [0.1, 1.0] to avoid freezing gradient adaptation.
         """
         def clone_module(module):
             import copy
@@ -645,6 +667,15 @@ class KAGHBlock(nn.Module):
         if entropy is not None:
             entropy_val = entropy.mean().item()
             effective_lr = lr * (1.0 + abs(entropy_val))
+
+        if psh_delta is not None:
+            if isinstance(psh_delta, torch.Tensor):
+                delta_val = psh_delta.mean().item()
+            else:
+                delta_val = float(psh_delta)
+            # Modulate by PSH proximity scalar exp(-|alpha^2 - beta^2|), bounded in [0.1, 1.0]
+            psh_scale = max(0.1, min(1.0, math.exp(-abs(delta_val))))
+            effective_lr = effective_lr * psh_scale
             
         optimizer = torch.optim.SGD(adapted_block.parameters(), lr=effective_lr)
         
