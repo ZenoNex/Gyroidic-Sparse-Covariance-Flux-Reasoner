@@ -13,6 +13,13 @@ This document specifies the results of the deep codebase audit searching for str
 ## 2. The Voynich-Blindness Problem
 The overarching theme across the codebase is that **Symmetric/Analytic Efficient Gates** (like Repunits and Betti projections) expect the "thought" to be transparently geometric. When the `VoynichLinguist` is active, the thought is encrypted into a continuous functional residue. Symmetry is broken intentionally, but the structural honesty remains high. The gates are "Voynich-Blind."
 
+### 2.1 Agglutinative Morpho-Units as False-Negative Drivers
+A primary driver of Voynich-blindness is the morphological structure of Voyenese symbolic output. Rather than producing whitespace-delimited Indo-European word tokens, the reasoner produces monolithic **agglutinative morpho-units**—concatenated compounds where roots, prefixes, and suffixes fuse without whitespace delimiters (e.g., `'Isotremoptememally'`).
+
+- **The Failure Mode**: Conventional gating filters (e.g., CALM entropy predictors, Repunit Congruence checks, and BPE-style tokenizers) interpret these unbroken agglutinative strings as random noise bursts or severe topological fractures.
+- **The Solution via `split_sub_pairs`**: To verify structural validity without resorting to a rigid external vocabulary dictionary, [`VoynichLinguist.split_sub_pairs`](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/voynich_architecture.py#L249) computes a combinatorial 2-cycle boundary cut sweep ($2n$ ordered partitions).
+- **Morpheme Boundary Phase Alignment**: By evaluating continuous Phase Alignment ($PAS_s$) across sub-pair cuts $\Phi(s[:k]) \oplus \Phi(s[k:])$, the system confirms that the agglutinative compound possesses genuine internal morphological grammar rather than degenerate consonant chatter, justifying the issuance of the `VoynichExemptionToken`.
+
 ## 3. Blueprint: The False Negatives Subsystem (Shadow Token Phase)
 To fix this, we have moved away from hacking each gate individually with mechanical overrides. Instead, we use mathematical routing and Continuous Dark Matter Superposition.
 
