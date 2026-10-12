@@ -151,9 +151,10 @@ class PyOpenCLHardwareSovereigntyCell(nn.Module):
         x_proj = self.proj(x)
         
         try:
-            from src.core.hardware_monitor import HardwareMonitor
-            if not HardwareMonitor.get_instance().has_compute_affordance():
-                raise RuntimeError("Compute affordance veto: thermal runaway or headroom exhaustion.")
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            gpu_affordance = HardwareMonitor.get_instance().get_typed_affordance(ComputeAffordanceType.GPU_SOVEREIGN)
+            if not gpu_affordance:
+                raise RuntimeError(f"Compute affordance veto: {gpu_affordance.affordance_type.value} gauge depleted ({gpu_affordance.gauge:.2f}).")
 
             # Offload to OpenCL: Convert to numpy for the SiliconSovereigntyEngine
             h_np = h_prev.detach().cpu().numpy()
