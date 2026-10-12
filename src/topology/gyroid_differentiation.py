@@ -17,6 +17,7 @@ import torch
 import torch.nn as nn
 from typing import Optional, Tuple, Dict
 import numpy as np
+import math
 from src.core.fgrt_primitives import GyroidManifold
 
 
@@ -42,35 +43,94 @@ class GyroidFlowConstraint(nn.Module):
         embedding: torch.Tensor,
         embedding_fn: Optional[callable] = None
     ) -> torch.Tensor:
-        """
-        Compute flow gradient _flow (r).
+        r"""
+        Compute flow gradient \nabla_flow (r).
         
-        Args:
-            residue: [batch, ...] residue tensor
-            embedding: [batch, dim] or [batch, 3] embedding
-            embedding_fn: Optional function to compute embedding from residue
-            
-        Returns:
-            grad_flow: [batch, dim] or [batch, 3] flow gradient
+        Evaluates the actual transformation function at x \pm \delta:
+        1. When embedding_fn is provided: Evaluates central difference directional
+           derivatives of embedding_fn across residue perturbations:
+           (\Phi(r + \delta \cdot u) - \Phi(r - \delta \cdot u)) / (2\delta).
+        2. When embedding represents a trajectory [batch, seq_len, 3]: Computes
+           the trajectory velocity tangents along the path via central differences.
+        3. When embedding is a point cloud [batch, 3]: Evaluates the Gyroid surface
+           function G at displaced stencils x \pm \delta \cdot e_i to compute the
+           Hamiltonian tangent flow (v = J \nabla G), regularized via L'Hôpital's limit.
         """
+        delta = 1e-4
+
+        # Case 1: An explicit embedding function Phi(r) is provided
         if embedding_fn is not None:
-            # Compute embedding from residue
-            embedding = embedding_fn(residue)
-        
-        # Flow gradient: gradient of embedding with respect to constraint flow
-        # Simplified: use finite differences or autograd
-        if embedding.requires_grad:
-            # Use autograd
-            grad_flow = torch.autograd.grad(
-                embedding.sum(), embedding, create_graph=True, retain_graph=True
-            )[0]
-        else:
-            # Use finite differences (approximate)
-            delta = 1e-5
-            embedding_perturbed = embedding + delta
-            grad_flow = (embedding_perturbed - embedding) / delta
-        
-        return grad_flow
+            r_norm = torch.norm(residue, dim=-1, keepdim=True)
+            u = torch.where(
+                r_norm > 1e-6,
+                residue / (r_norm + 1e-8),
+                torch.ones_like(residue) / math.sqrt(max(1, residue.shape[-1]))
+            )
+            r_plus = residue + delta * u
+            r_minus = residue - delta * u
+            emb_plus = embedding_fn(r_plus)
+            emb_minus = embedding_fn(r_minus)
+
+            diff = emb_plus - emb_minus
+            diff_ratio = diff.abs() / (2.0 * delta)
+            # L'Hôpital regularizer for boundary discontinuities: lim_{c -> 0} log(c + 1) / c = 1.0
+            h_scale = torch.where(
+                diff_ratio > 1e-6,
+                torch.log(diff_ratio + 1.0) / (diff_ratio + 1e-8),
+                torch.ones_like(diff_ratio)
+            )
+            return (diff / (2.0 * delta)) * h_scale
+
+        # Case 2: Embedding is a trajectory along time/path dimension [batch, seq_len, 3]
+        if embedding.dim() == 3 and embedding.shape[1] > 1:
+            tangents = torch.zeros_like(embedding)
+            tangents[:, 1:-1] = (embedding[:, 2:] - embedding[:, :-2]) / 2.0
+            tangents[:, 0] = embedding[:, 1] - embedding[:, 0]
+            tangents[:, -1] = embedding[:, -1] - embedding[:, -2]
+            return tangents
+
+        # Case 3: Embedding points in R^3 evaluated through Gyroid manifold stencils
+        # We evaluate the Gyroid function G at actual displacements x \pm delta * e_i
+        # to construct the Hamiltonian tangent flow v = J \nabla G (where J is skew-symmetric).
+        # This guarantees <v, \nabla G> = 0 analytically on the manifold.
+        orig_shape = embedding.shape
+        emb_3d = embedding.view(-1, 3)
+
+        # Basis vectors e_0, e_1, e_2
+        e0 = torch.tensor([1.0, 0.0, 0.0], device=embedding.device, dtype=embedding.dtype)
+        e1 = torch.tensor([0.0, 1.0, 0.0], device=embedding.device, dtype=embedding.dtype)
+        e2 = torch.tensor([0.0, 0.0, 1.0], device=embedding.device, dtype=embedding.dtype)
+
+        # Evaluate G(x + delta) and G(x - delta) along each axis
+        g_x_plus = self.gyroid(emb_3d + delta * e0)
+        g_x_minus = self.gyroid(emb_3d - delta * e0)
+        dg_dx = (g_x_plus - g_x_minus) / (2.0 * delta)
+
+        g_y_plus = self.gyroid(emb_3d + delta * e1)
+        g_y_minus = self.gyroid(emb_3d - delta * e1)
+        dg_dy = (g_y_plus - g_y_minus) / (2.0 * delta)
+
+        g_z_plus = self.gyroid(emb_3d + delta * e2)
+        g_z_minus = self.gyroid(emb_3d - delta * e2)
+        dg_dz = (g_z_plus - g_z_minus) / (2.0 * delta)
+
+        # Skew-symmetric Hamiltonian flow: J * \nabla G = (-dg_dy, dg_dx - dg_dz, dg_dy)
+        # By construction, <J \nabla G, \nabla G> = 0
+        v_x = -dg_dy
+        v_y = dg_dx - dg_dz
+        v_z = dg_dy
+
+        raw_flow = torch.stack([v_x, v_y, v_z], dim=-1)
+
+        # Apply L'Hôpital regularization across discontinuous fractures
+        flow_mag = raw_flow.abs()
+        h_scale = torch.where(
+            flow_mag > 1e-6,
+            torch.log(flow_mag + 1.0) / (flow_mag + 1e-8),
+            torch.ones_like(flow_mag)
+        )
+        grad_flow = raw_flow * h_scale
+        return grad_flow.view(orig_shape)
     
     def check_constraint(
         self,
