@@ -23,8 +23,7 @@ This document serves as the formal bridge between the theoretical architecture o
 **Codebase Implementation**:
 - `src/optimization/codes_driver.py`: 
   - **AURA_OUT Gating** (`auraout_gating`): Simulates warp-level predication. It calculates `PAS_h` based on polynomial harmonics, and suppresses (sets to zero) any tensor that fails the coherence threshold.
-  - **TEMPOLOCK** (`tempolock`): Temporal prime gating. Uses a Legendre polynomial-based sieve instead of strict primes to organically gate operations across temporal intervals.
-  - **CHORDLOCK** (`chordlock`): Phase resonance gating that gates structural solitons by their harmonic alignment.
+  - **TEMPOLOCK** (`tempolock`): Temporal prime gating. Uses a Legendre polynomial-based sieve instead of strict primes to organically gate operations across temporal intervals.222(`chordlock`): Phase resonance gating that gates structural solitons by their harmonic alignment.
 - `src/core/gluing_operator.py` and `src/core/archetype_engines.py`: Contains explicit scalar logic for `pas_lock = 3.0 / 11.0`, defining the topological tolerance bounds for resonance.
 
 ## Phases VI & VII: Deterministic Closure (Sections 49-54)
@@ -32,5 +31,5 @@ This document serves as the formal bridge between the theoretical architecture o
 **Theory**: Proves the mathematical equivalence between Harmonic phase-alignment ($PAS_h$) and continuous Differential coherence ($dC/dt$). Closes the loop by returning law to perception.
 **Codebase Implementation**:
 - `src/core/codes_constraint_framework.py`: The **Constraint-Oriented Differential Equation System**. This framework solves structural constraints as energy landscapes (differential) using Co-Prime systems and polynomial configurations.
-- `src/topology/gyroid_differentiation.py`: Specifically enforces the gyroid continuous constraints ($\nabla_{flow} \perp G$).
+- `src/topology/gyroid_differentiation.py`: Enforces gyroid continuous constraints ($\nabla_{\text{flow}} \Phi(r) \perp \nabla G$) and second-order forbidden smoothing barriers. Evaluates real functional stencils across directional perturbations, trajectory velocity tangents, and skew-symmetric Hamiltonian flows ($v = J \nabla G$), dynamically regularized near fracture boundaries via L'Hôpital limits $s(c) = \frac{\log(c+1)}{c}$.
 - **The Listening Point**: Implemented practically in `src/ui/diegetic_backend.py` (e.g., `MIMICRY (Active Listening)` mode), where the observation of the manifold's own state (the structural readout) organically informs the constraint solver, collapsing the separation between the physical execution state and the perceptual evaluation state.
