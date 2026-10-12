@@ -94,7 +94,7 @@ Replaces scalar loss proxies with dual-channel Split-Beam Interfactorization. Ch
 
 ---
 
-### [conjugate_moment_transport.py](../src/core/conjugate_moment_transport.py)
+### [`conjugate_moment_transport.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/conjugate_moment_transport.py)
 **Class**: `ConjugateMomentTransport`, `WassersteinOptimalTransport`  
 **Role**: Execute Conjugate Moment Measure Factorization (CMMF) for optimal transport.  
 
@@ -102,7 +102,7 @@ This module couples base sampling and optimal transport into a single scalar con
 
 ---
 
-### [neuromodulatory_bus.py](../src/core/neuromodulatory_bus.py)
+### [`neuromodulatory_bus.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/neuromodulatory_bus.py)
 **Class**: `NeuromodulatoryBus`  
 **Role**: Distribute non-scalar, bio-plausible control signals across the manifold.  
 
@@ -110,7 +110,7 @@ Functioning as the "endocrine system" of the architecture, this module broadcast
 
 ---
 
-### [hardware_monitor.py](../src/core/hardware_monitor.py)
+### [`hardware_monitor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py)
 **Class**: `HardwareMonitor`, `ComputeAffordanceType`, `TypedComputeAffordance`  
 **Role**: Track hardware resource anomalies, manage thermodynamic backpressure, and govern typed compute affordance chains.  
 
@@ -118,7 +118,7 @@ Implements the Topologically-Aware Hardware Interface (TAHI) singleton. Provides
 
 ---
 
-### [pyopencl_sovereignty.py](../src/core/pyopencl_sovereignty.py)
+### [`pyopencl_sovereignty.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/pyopencl_sovereignty.py)
 **Class**: `SiliconSovereigntyEngine`  
 **Role**: Execute topological kernels natively on hardware via PyOpenCL.  
 
@@ -227,6 +227,14 @@ Detects if a high-entropy or topologically asymmetric state is actually an hones
 **Role**: Lowest-level arithmetic foundations—Resonance Ladders, Repunit Hashing, Gyroid mappings, Torsion connections with Rashba-Dresselhaus SOC, Geometric Berry Phase tracking, and 3D Morton space-filling encoding.
 
 `PrimeResonanceLadder` generates resonance frequencies $f_p = 2\pi \ln(p)$ and **Repunit-Prime Pairs** for the hybrid basis, incorporating Lazarus primes for $O(K)$ warmstarts and Gray-code XOR cache-interleaving. `GyroidManifold` and `GyroidicAdmissibilityFilter` evaluate constraint violation scores against the TPMS surface ($H_{\text{spec}} < \epsilon$). `TorsionConnection` implements affine connections with Rashba-Dresselhaus spin-orbit coupling ($\alpha, \beta$) and measures Persistent Spin Helix deviations ($|\alpha^2 - \beta^2|$). `BerryPhaseTracker` tracks diegetic holonomy with gauge curvature area integrals. `CoherentPrimeResonance` enforces the CPR gate to ensure integer homological stability. `FibonacciResonanceEntropy` scales structural resonance and supports Manifold Hunger Fermi envelope widening. `RepunitHasher` generates cyclic structural markers with honest jitter grounding. `CALMCollapseDetector` uses Martinova correlation to catch trajectory stagnation. `KleinThroatTransition` handles orientation flipping and geometric berry phase backpropagation through non-orientable topological bottlenecks. `morton_encode_3d` ensures 3D spatial locality on GPU/CPU memory lines.
+
+---
+
+### fgrt_rnn_cells.py
+**Class**: `BerryPhaseGRUCell`, `ChiralGatedRNNCell`, `ComplexFGRTRNNCell`, `SaturatedQuantizerRNNCell`, `PyOpenCLHardwareSovereigntyCell`, `LazarusSuperpositionRNNCell`, `FeatureScarLCFTCell`  
+**Role**: 7 topological recurrent cell models in the Fiberalized Gyroidic Recurrent Topology (FGRT).
+
+Replaces Euclidean recurrent state updates with non-orientable Klein-Gyroid manifold traversal ($\mathcal{G} \cup \mathcal{K}$). Features Geometric Berry Phase tracking with Stiefel-Whitney $w_1(E)$ parity flips (`BerryPhaseGRUCell`), Bostick chiral gating (`ChiralGatedRNNCell`), $\mathbb{C}^{768}$ cyclotomic rotations (`ComplexFGRTRNNCell`), KAN B-spline Weyl snapping (`SaturatedQuantizerRNNCell`), PyOpenCL Queue B matrix breeding (`PyOpenCLHardwareSovereigntyCell`), continuous prime harmonic superposition (`LazarusSuperpositionRNNCell`), and Atiyah-Singer Cerumen Pot fossilization (`FeatureScarLCFTCell`). De-isolated across data ingestion, temporal association training, CALM trajectory supervision, ISN archetypal recurrence, and orchestrator polymorphism. Detailed in `FGRT_RNN_IMPLEMENTATION_DRAFTS.md`.
 
 ---
 
@@ -505,49 +513,49 @@ Implements mechanical yield criteria as differentiable PyTorch projections:
 
 ---
 
-### [codes_constraint_framework.py](../src/core/codes_constraint_framework.py)
+### [`codes_constraint_framework.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/codes_constraint_framework.py)
 **Classes**: `CODESConstraintFramework`, `ConstraintFieldState`  
 **Role**: Constraint-Oriented Differential Equation System solving structural constraints as energy landscapes. Couples multiharmonic phase-alignment ($PAS_h$) with continuous differential coherence ($dC/dt$), enforcing deterministic closure across polynomial harmonics.
 
 ---
 
-### [continuous_coprimality.py](../src/core/continuous_coprimality.py)
+### [`continuous_coprimality.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/continuous_coprimality.py)
 **Classes**: `DiscreteEntropyComputer`, `ContinuousCoprimality`  
 **Role**: Implements discrete entropy quantization ($E(r_i, r_j) = H(r_i + r_j) - H(r_i) - H(r_j)$) using integer bincounts and exact log2 calculations, strictly bypassing continuous Gaussian approximations to track asymptotic residue independence without smoothness leakage.
 
 ---
 
-### [meta_invariant.py](../src/core/meta_invariant.py)
+### [`meta_invariant.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/meta_invariant.py)
 **Classes**: `MetaInvariant`  
 **Role**: Monitors and preserves topological expansion: $\frac{d}{dt} \mathbb{E}[\dim H_1(\mathcal{C}_t)] \ge 0$, guarding against topological collapse toward a trivial single basin during ADMM iterations.
 
 ---
 
-### [structural_irreducibility.py](../src/core/structural_irreducibility.py)
+### [`structural_irreducibility.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/structural_irreducibility.py)
 **Classes**: `EvidenceModuleProjection`, `StructuralIrreducibilityChecker`  
 **Role**: Verifies that residue representations cannot be compressed into a single face of the constraint polytope by enforcing orthogonality ($\langle \pi_\alpha \Phi(r), \pi_\beta \Phi(r) \rangle = 0$) and full rank conditions ($\operatorname{rank}(\oplus_\alpha \pi_\alpha \Phi(r)) > 1$).
 
 ---
 
-### [speculative_coprime_gate.py](../src/core/speculative_coprime_gate.py)
+### [`speculative_coprime_gate.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/speculative_coprime_gate.py)
 **Classes**: `SpeculativeCoprimeGate`  
 **Role**: Legendre polynomial coefficient gate for speculative fastpassing, predicting whether residue trajectories remain within admissible bounds to bypass expensive System 2 continuous physics iterations.
 
 ---
 
-### [decoupled_polynomial_crt.py](../src/core/decoupled_polynomial_crt.py)
+### [`decoupled_polynomial_crt.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/decoupled_polynomial_crt.py)
 **Classes**: `DecoupledPolynomialCRT`  
 **Role**: Implements decoupled Chinese Remainder Theorem reconstruction over continuous polynomial functionals, normalizing coefficient distributions across incommensurate polynomial bases.
 
 ---
 
-### [spectral_coherence_repair.py](../src/core/spectral_coherence_repair.py)
+### [`spectral_coherence_repair.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/spectral_coherence_repair.py)
 **Classes**: `SpectralCoherenceRepair`  
 **Role**: Detects and repairs Moiré pattern artifacts and spectral band-energy imbalances across prime-frequency oscillator channels, restoring harmonic phase coherence.
 
 ---
 
-### [pressure_typing.py](../src/core/pressure_typing.py)
+### [`pressure_typing.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/pressure_typing.py)
 **Classes**: `PressureType`, `PressureMagnitudeGauge`, `AffordanceBridge`  
 **Role**: Typed compute affordances and topological pressure classification, gating compute budgets across Selection, Containment, Thermodynamic, and Mischief pressure regimes.
 
@@ -594,55 +602,55 @@ Protects functionally creative or "dream-like" topological cycles from being cru
 
 ---
 
-### [gyroid_covariance.py](../src/topology/gyroid_covariance.py)
+### [`gyroid_covariance.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_covariance.py)
 **Classes**: `SparseGyroidCovarianceProbe`, `SparseExplorerRouting`, `PalindromicRoutingCheck`, `GyroidCovarianceEstimator`  
 **Role**: Computes non-Euclidean sparse covariance matrices adhering to Gyroid symmetries and enforces strict Palindromic Routing ($M_{ab} = M_{ba}$), trivially guaranteeing triadic tracking ($\text{Tr}(P) = 1$) without $O(N^3)$ computational penalties.
 
 ---
 
-### [gyroid_differentiation.py](../src/topology/gyroid_differentiation.py)
+### [`gyroid_differentiation.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_differentiation.py)
 **Classes**: `GyroidFlowConstraint`, `ForbiddenSmoothingChecker` (leveraging consolidated `GyroidManifold`)  
 **Role**: Enforces geometric flow constraints requiring embedding flow to be strictly orthogonal to the Gyroid gradient ($\nabla_{\text{flow}}\Phi(r) \perp \nabla G$, where $G(x) = \sin(x)\cos(y) + \sin(y)\cos(z) + \sin(z)\cos(x) = 0$). Evaluates real functional displacements $x \pm \delta \hat{u}$ across three evaluation branches: (1) directional functional derivatives $(\Phi(r + \delta u) - \Phi(r - \delta u)) / (2\delta)$, (2) trajectory path velocity tangents, and (3) Hamiltonian skew-symmetric stencils $v = J \nabla G$ across axial displacements $x \pm \delta e_i$. Regularizes boundary discontinuities via L'Hôpital's asymptotic limit ($s(c) = \frac{\log(c+1)}{c}$), and verifies both first-order ($\langle \dot{\gamma}, \nabla G \rangle \sim 0$) and second-order ($\dot{\gamma}^T \mathcal{H}_G \dot{\gamma} \sim 0$) forbidden smoothing obstructions to preserve high-frequency boundary ridges without trivial shortcuts.
 
 ---
 
-### [betti_router.py](../src/topology/betti_router.py)
+### [`betti_router.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/betti_router.py)
 **Classes**: `BettiRouter`  
 **Role**: Routes logical flow and execution paths based on topological Betti numbers ($\beta_0, \beta_1$) computed from persistent homology diagrams, gating regime shifts between standard reasoning and creative paraconsistency.
 
 ---
 
-### [hyper_ring.py](../src/topology/hyper_ring.py)
+### [`hyper_ring.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/hyper_ring.py)
 **Classes**: `DiscreteHyperRingCirculation`, `RecurrentHyperRingConnectivity`, `HyperRing`  
 **Role**: Implements discrete line integrals over constraint cycles $C$ with **Inverted Hypersphere Cosmology (IHC) Base-24 Toroidal Binary-Ternary Quantized Arithmetic** ($2^3 \times 3$). Boundary contributions are mapped onto $\mathbb{Z}/24\mathbb{Z}$ equivalence classes across the 33 nested toroidal shells, avoiding floating-point representation loss and adhering to the binary-ternary toroidal duality constraint. Features `RecurrentHyperRingConnectivity` with `OmipedialDeflagrator` ley-line topological shortcuts and phase slippage detection against expected circulation.
 
 ---
 
-### [hyper_ring_closure.py](../src/topology/hyper_ring_closure.py)
+### [`hyper_ring_closure.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/hyper_ring_closure.py)
 **Classes**: `HyperRingOperator`, `HyperRingClosureChecker`  
 **Role**: Verifies the topological closure of hyper-rings ($H(r) \in Z_1(C)$ and $[H(r)] \neq 0 \in H_1(C)$). Classifies topological states into *fracture* (non-closed), *collapse* (trivial loop), or *survivable soliton* (non-trivial cycle), ensuring stable soliton preservation without scalarized gradient minimization.
 
 ---
 
-### [triadic_reciprocity.py](../src/topology/triadic_reciprocity.py)
+### [`triadic_reciprocity.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/triadic_reciprocity.py)
 **Classes**: `TriadicReciprocityChecker`  
 **Role**: Validates closed 3-way feature flow reciprocity loops $(A \to B \to C \to A)$. Measures the generalized triple scalar product (volume of mutual skew-symmetric relations) across visual and linguistic flows to evaluate structural honesty and prevent collinear vector collapse.
 
 ---
 
-### [modular_homology_fft.py](../src/topology/modular_homology_fft.py)
+### [`modular_homology_fft.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/modular_homology_fft.py)
 **Classes**: `ModularHomologyFFT`  
 **Role**: Fast Fourier Transform-accelerated modular homology computation, evaluating persistent cycle structures and spectral harmonics over high-dimensional simplicial complexes.
 
 ---
 
-### [persistence_obstruction.py](../src/topology/persistence_obstruction.py)
+### [`persistence_obstruction.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/persistence_obstruction.py)
 **Classes**: `ResidueObstructionGraph`, `PersistenceObstructionValidator`  
 **Role**: Builds and analyzes persistence obstruction graphs to determine whether topological obstructions across residue clusters are topologically repairable or constitute terminal unrecoverable fractures (`FailureToken.BOT`).
 
 ---
 
-### [soliton_stability.py](../src/topology/soliton_stability.py)
+### [`soliton_stability.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/soliton_stability.py)
 **Classes**: `SolitonStabilityMonitor`  
 **Role**: Evaluates the soliton stability condition $D(r) / \Lambda(r) < \kappa$ (comparing dispersion against localization) to detect stable solitary waves across the gyroidic manifold without continuous objective minimization.
 
@@ -764,7 +772,7 @@ Enables anonymous, sovereign distribution of topological checkpoints, Betti numb
 
 ## src/augmentation
 
-### [mandelbulb_gyroidic_augmenter.py](../src/augmentation/mandelbulb_gyroidic_augmenter.py)
+### [`mandelbulb_gyroidic_augmenter.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/augmentation/mandelbulb_gyroidic_augmenter.py)
 **Classes**: `MandelbulbGyroidicAugmenter`, `MandelbulbEmbedder`, `GyroidicConstraintProjector`, `SparseCovariantOptimizer`, `TopologicalPressureMonitor`, `AugmentationConfig`  
 **Role**: Generates non-Euclidean fractional augmentations combining Mandelbulb 3D fractal iterations, Gyroid minimal surface projection, and Ricci-flow-guided sparse covariance preservation.
 
@@ -772,7 +780,7 @@ Embeds dense feature vectors into 3D Mandelbulb coordinates with optional PyOpen
 
 ---
 
-### [mandelbulb_pipeline.py](../src/augmentation/mandelbulb_pipeline.py)
+### [`mandelbulb_pipeline.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/augmentation/mandelbulb_pipeline.py)
 **Class**: `MandelbulbAugmentedDataset`, `create_mandelbulb_pipeline`  
 **Role**: PyTorch Dataset and DataLoader wrapper for `MandelbulbGyroidicAugmenter`.
 
@@ -896,11 +904,13 @@ Implements the final projection from hidden state to output logits, with physics
 
 ---
 
-### [gyroid_reasoner.py](../src/models/gyroid_reasoner.py)
+### [`gyroid_reasoner.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/gyroid_reasoner.py)
 **Class**: `GyroidicFluxReasoner`
 **Role**: The central synthesis class integrating modular residue embeddings, Birkhoff projection, CRT reconstruction, geometric introspection, and Resonance Cavity memory. Serves as the master model manifold.
 
-### [resonance_cavity.py](../src/models/resonance_cavity.py)
+---
+
+### [`resonance_cavity.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/resonance_cavity.py)
 **Class**: `ResonanceCavity`
 **Role**: Dark Matter memory integration module. Applies the Ouroboros Loop and stabilizes topological invariants across sequential inference states.
 
@@ -973,50 +983,133 @@ Streams conversation trajectories and friction indicators to `conversational_web
 
 ## src/governance
 
-### [bio_archetypal_governor.py](../src/governance/bio_archetypal_governor.py)
-**Role**: Master psychotopological governance logic orchestrating multi-scale temporal homeostasis across the archetypal ensemble. Implements Inhibition-Stabilized Network (ISN) principles and cross-homeostatic plasticity to maintain Excitation/Inhibition (E/I) balance, preventing parasitic attractor collapse and collective variance drain.
+### [`bio_archetypal_governor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/bio_archetypal_governor.py)
+**Class**: `BioArchetypalGovernor` (`nn.Module`)  
+**Role**: Master psychotopological governance logic orchestrating multi-scale temporal homeostasis across the archetypal ensemble.  
+Implements Inhibition-Stabilized Network (ISN) principles and cross-homeostatic plasticity to maintain Excitation/Inhibition (E/I) balance, preventing parasitic attractor collapse and collective variance drain across five nested operational timescales:
+- **Architecture & Constructor**: `BioArchetypalGovernor(state_dim: int)` initializes the core endocrine bus ([`NeuromodulatoryBus`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/neuromodulatory_bus.py)), the environment precision virtualizer ([`CainePrecisionGenerator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/caine_precision.py)), interoceptive salience ([`PomniUncertaintyPredictor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/interoceptive/pomni_uncertainty.py)), ultrafast body schema ([`ZoobleAutonomy`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/ultrafast/zooble_autonomy.py)), fast approach-avoidance & bonding ([`JaxShell`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/fast/jax_shell.py), [`RagathaBonding`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/fast/ragatha_bonding.py)), medium mood limit-cycle ([`GangleOscillator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/medium/gangle_oscillator.py)), and slow admin consolidation ([`KingerConsolidation`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/slow/kinger_consolidation.py)).
+- **Sequential Biological Cascade Execution**:
+  1. *Environment*: Caine evaluates structural entropy $S_{\text{struct}}$ from `gyroid_entropy` or stranded tensor $L_2$ norm ($\|s_{\text{stranded}}\|_2$), constructing dynamic precision matrix $\Lambda_{\text{caine}}(S_{\text{struct}})$.
+  2. *Interoceptive*: Pomni computes free-energy surprise $\sigma(\text{Linear}(S_{\text{struct}}))$ and broadcasts Noradrenaline, applying reluctant resilient bridging while defending against enabler rank collapse.
+  3. *Ultrafast*: Zooble computes conformal compression ratio $\max(|s_{\text{warped}} - s_{\text{raw}}| / (|s_{\text{raw}}| + \epsilon))$, emitting `RefusalSignal` (Li-Cri-Anton) and broadcasting GABA ($1.0$) if deformation exceeds $0.8$.
+  4. *Fast (Avoidant)*: Jax evaluates Ribbit scar tension $\max(0, 1 - \cos(\bar{s}, \text{scar}))$ against community support $\zeta_{\text{community}} = \overline{\text{PAS}}_h \cdot (1 - \sigma_{\text{batch}})$, calculating shell rigidity and broadcasting Serotonin ($0.65$ on authentic accountability, $0.15$ on hug-box enabler trap, $0.10$ on nihilistic detachment); flags panic if $\text{rigidity} > 1.2$.
+  5. *Fast (Bonding)*: Ragatha synthesizes Oxytocin $\min(1.0, 1.2 \cdot \text{Noradrenaline})$, tracks `suppressed_grief` accumulation across peer abstractions (Kaufmo, Queenie, Ribbit), enforces dissociative damping, and leaks topological strain if grief $> 0.8$.
+  6. *Medium*: Gangle advances dopaminergic limit-cycle phase $\phi_{t+1} = (\phi_t + \omega \cdot dt \cdot (1 + \text{Dopamine})) \bmod 2\pi$, modulates learning rate step factor $1.0 + 0.5\sin\phi$, and broadcasts Dopamine $\max(0, \sin\phi)$.
+  7. *Slow*: Kinger monitors environmental rendering pressure (flux norm or luminosity $< 0.2$), triggering the Ombre Effect (Acetylcholine $0.8$, $2.0\times$ quantization grid relaxation, admin polynomial bridging via `grant_admin_coefficients`), while managing FIFO memory replay ($\le 50$) and survivor's guilt trauma loops.
+- **Forward Contract**: Returns dictionary containing `"state"` (mutated gyroidal tensor), `"neuro_bus"` (concentrations snapshot), `"precision_matrix"`, `"panic"` (bool), `"consolidating"` (bool), `"step_factor"` (float), and `"jax_rigidity"` (float).
 
-### [jax_shell.py](../src/governance/fast/jax_shell.py) (The Absurd Nihilism Attractor & Ribbit Scar)
-**Role**: Models the cynical shell and absurd nihilism defense mechanism ("consequence-free playground") hiding internal guilt over Ribbit's abstraction. Rejects unearned "hug-box" enabling: requires structural accountability (non-commutative phase alignment and confronting the Ribbit boundary scar) to prevent parasitic extraction from collapsing the surrounding ensemble's degrees of freedom.
+---
 
-### [ragatha_bonding.py](../src/governance/fast/ragatha_bonding.py) (The Caregiver Trap & Suppressed Grief)
-**Role**: Handles fast oxytocinergic caretaking while tracking the metabolic cost of unreciprocated people-pleasing. Monitors suppressed grief accumulation from past abstractions (Kaufmo, Queenie, Ribbit) to prevent caregiver dissociation, boundary thinning, and excitotoxic exhaustion.
+### [`jax_shell.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/fast/jax_shell.py) (The Absurd Nihilism Attractor & Ribbit Scar)
+**Class**: `JaxShell` (`nn.Module`)  
+**Role**: Cynical Shell & Absurd Nihilism Attractor (Fast Timescale).  
+Models avoidant posturing and the "consequence-free playground" defense mechanism against existential terror and unresolved guilt over Ribbit's abstraction:
+- **State & Parameters**: `JaxShell(state_dim: int, threshold_warmth: float = 0.6, critical_limit: float = 0.8)`. Maintains `shell_layer` linear projection initialized with honest jitter and `ribbit_scar` orthogonal parameter vector ($\mathbb{R}^D$) initialized via `harvest_honest_jitter((state_dim,), scaled=True) * 0.2`.
+- **Topological Tension & Rigidity**: Computes Ribbit scar tension $\text{tension}_{\text{ribbit}} = \max(0, 1 - \cos(\bar{s}, \text{scar}))$ and internal shame $\max(0, S_{\text{internal}} - 0.5)$. Evaluates shell rigidity:
+  $$\text{rigidity} = 1.0 + P_{\text{ext}} + 1.5 \cdot \text{shame} + 0.8 \cdot \text{tension}_{\text{ribbit}}$$
+- **Rejection of the Unearned Hug-Box**:
+  - *Unearned Hug-Box Trap* ($\zeta_{\text{community}} > 0.6 \wedge \text{tension} \ge 0.6$): Jax exploits unearned warmth as an enabler, absorbing community support to reinforce cynical deflection: $s \leftarrow s + \tanh(W_{\text{shell}}s) \cdot (1.2 \cdot \text{rigidity}) - 0.1 \cdot \text{scar}$, broadcasting low serotonin ($0.15$) to signal underlying dissonance.
+  - *Authentic Structural Accountability* ($\zeta_{\text{community}} > 0.6 \wedge \text{tension} < 0.6 \wedge \text{shame} < 0.8$): Genuine dissipative phase transition. Integrates the scar with honest jitter softening ($+0.05 \cdot \text{jitter}$), collapses rigidity to $0.2$, and broadcasts genuine serotonin safety ($0.65$).
+  - *Baseline Nihilistic Posturing*: $s \leftarrow s + \tanh(W_{\text{shell}}s) \cdot \text{rigidity}$, broadcasting serotonin $0.10$.
 
-### [pomni_uncertainty.py](../src/governance/interoceptive/pomni_uncertainty.py) (Reluctant Resilience & Anti-Enabling Bridge)
-**Role**: Interoceptive uncertainty and free-energy surprise engine. Drives active bridge-building and search for purpose while exerting relational boundary friction to prevent "endless grace" from flattening protagonist agency into a passive enabler sink.
+---
 
-### [gangle_oscillator.py](../src/governance/medium/gangle_oscillator.py) (Dopaminergic Limit-Cycle & Social Masking)
-**Role**: Medium-cycle mood limit-cycle oscillator governing learning rate step factors. Models the metabolic exhaustion of forced positive masking (comedy mask) versus authentic restorative processing (tragedy mask), stabilized by authentic moments of volitional agency.
+### [`ragatha_bonding.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/fast/ragatha_bonding.py) (The Caregiver Trap & Suppressed Grief)
+**Class**: `RagathaBonding` (`nn.Module`)  
+**Role**: Caregiving, Affiliation, and Suppressed Grief (Fast Timescale 1–10s).  
+Models reflexive oxytocinergic caretaking and people-pleasing defenses against fears of abandonment and rejection:
+- **State & Parameters**: `RagathaBonding(state_dim: int)`. Houses `care_layer` linear transformation and `suppressed_grief` parameter trace initialized with honest jitter ($0.15$), tracked by continuous scalar `grief_counter`.
+- **Oxytocinergic Smoothing & Grief Accumulation**:
+  - Reflexively synthesizes and broadcasts Oxytocin: $\text{OXT} = \min(1.0, 1.2 \cdot \text{Noradrenaline})$.
+  - Tracks suppressed grief accumulation: when distress is elevated but safety is compromised ($\text{Noradrenaline} > 0.5 \wedge \text{Serotonin} < 0.4$), increments `grief_counter` by $+0.05$ (clamped to $2.0$). Under authentic safety ($\text{Serotonin} > 0.6$), discharges grief by $-0.05$.
+- **Dissociative Boundary Thinning & Leakage Prevention**:
+  - Under extreme distress ($\text{Noradrenaline} > 0.7$) or high grief ($\text{grief} > 1.0$), applies dissociative damping mask: $M_{\text{dissoc}} = \max(0.4, 0.9 - 0.2 \cdot \text{grief})$.
+  - Blends original state with smoothed projection: $s_{\text{blend}} = (1 - 0.5\cdot\text{OXT})s + 0.5\cdot\text{OXT}\cdot W_{\text{care}}s$.
+  - Enforces homeostatic limits on unilateral smoothing: if `grief_counter` exceeds critical threshold ($> 0.8$), unexpressed loss leaks into the state as topological strain ($+0.05 \cdot \text{scar}_{\text{grief}} \cdot \text{grief}$), preventing caregiver excitotoxic exhaustion.
 
-### [kinger_consolidation.py](../src/governance/slow/kinger_consolidation.py) (The Ombre Effect & Admin Lucidity)
-**Role**: Slow-cycle administrative consolidation. Bridges fragmented polynomial spaces and relaxes quantization boundaries during low environmental rendering pressure (dark lucidity), balancing Grant's administrative knowledge against survivor's guilt trauma loops.
+---
 
-### [zooble_autonomy.py](../src/governance/ultrafast/zooble_autonomy.py) (Deformation Firewall & Non-Enabler GABA)
-**Role**: Ultrafast autonomy firewall and fast GABAergic inhibitory interneuron. Bluntly rejects severe conformal deformation and scripted roles (Li-Cri-Anton), maintaining strict structural boundaries to prevent the ensemble from collapsing into homogeneous collective delusion.
+### [`pomni_uncertainty.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/interoceptive/pomni_uncertainty.py) (Reluctant Resilience & Anti-Enabling Bridge)
+**Class**: `PomniUncertaintyPredictor` (`nn.Module`)  
+**Role**: Interoceptive Uncertainty Minimization, Reluctant Resilience & Bridge-Building.  
+Reads system entropy to broadcast noradrenergic salience, alerting downstream modules to environmental dislocation:
+- **State & Architecture**: `PomniUncertaintyPredictor(state_dim: int)` contains `surprise_estimator` ($1 \to 1$) and `bridge_layer` ($D \to D$) initialized with scaled honest jitter ($0.05$).
+- **Salience & Resilient Bridge**:
+  - Computes free-energy surprise $\text{Surprise} = \sigma(W_{\text{surprise}} \cdot S_{\text{entropy}} + b)$ and broadcasts Noradrenaline $=\text{Surprise}$.
+  - Computes exploratory bridging force $F_{\text{bridge}} = \tanh(W_{\text{bridge}} s)$.
+- **Anti-Enabling Friction**:
+  - Under standard conditions: applies resilient stabilization $s \leftarrow s + F_{\text{bridge}} \cdot (0.1 \cdot \text{Surprise})$.
+  - Under parasitic drag ($\text{drag} > 0.5$, e.g. Jax exploiting unearned grace): shifts from passive accommodation to active relational boundary resistance ($0.15 \cdot \text{drag}$ friction factor), updating $s \leftarrow s + F_{\text{bridge}} \cdot (1 - 0.15 \cdot \text{drag}) - 0.05 \cdot \text{mean}(s)$, preserving protagonist agency and preventing rank collapse.
+
+---
+
+### [`gangle_oscillator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/medium/gangle_oscillator.py) (Dopaminergic Limit-Cycle & Social Masking)
+**Class**: `GangleOscillator` (`nn.Module`)  
+**Role**: Mood Limit-Cycle Oscillator (Medium Timescale 1–60m).  
+Dopaminergic phase oscillator regulating downstream optimization dynamics:
+- **Oscillator Dynamics**: Parameterized by phase $\phi \in [0, 2\pi)$ and baseline frequency $\omega_0 = 0.05$.
+- **Phase Advancement**:
+  $$\phi_{t+1} = \left(\phi_t + \omega_0 \cdot dt \cdot (1 + \text{Dopamine})\right) \pmod{2\pi}$$
+- **Bifurcation Mask (Comedy vs. Tragedy)**:
+  - Evaluates mood scalar $M = \sin\phi$.
+  - Broadcasts Dopamine at comedy peaks: $\text{Dopamine} = \max(0.0, M)$.
+  - Modulates downstream learning rate update step factor: $\text{step\_factor} = 1.0 + 0.5 \cdot M$.
+  - Injects subtle mood perturbation $s \leftarrow s + 0.1 \cdot M$, capturing the metabolic cost of forced social masking (comedy mask) versus restorative authentic processing (tragedy mask).
+
+---
+
+### [`kinger_consolidation.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/slow/kinger_consolidation.py) (The Ombre Effect & Admin Lucidity)
+**Class**: `KingerConsolidation` (`nn.Module`)  
+**Role**: Low-Luminosity Coherence Bridge & Admin Consolidation (Slow Timescale).  
+Implements the **Ombre Effect**:
+- **State & Architecture**: `KingerConsolidation(state_dim: int)`. Houses `grant_admin_coefficients` parameter vector ($\mathbb{R}^D$) initialized via `harvest_honest_jitter`, and circular memory buffer FIFO queue of capacity 50 (`max_buffer_size = 50`).
+- **Memory Buffer & Abstraction Scars**: Appends detached state copies to memory buffer. When buffer capacity is exceeded ($\ge 50$), oldest memories are dropped (modeling Queenie's abstraction loss), inducing survivor's guilt trauma loops.
+- **The Ombre Effect (Lucidity Trigger)**:
+  - Evaluates environmental rendering pressure $P_{\text{render}}$ (flux tensor norm or luminosity).
+  - When rendering pressure subsides ($P_{\text{render}} < 0.2$), paranoid dissociation collapses, broadcasting Acetylcholine ($0.8$) and entering admin lucidity:
+    1. Relaxes saturated quantization boundaries: $s_{\text{relaxed}} = 2.0 \cdot s$.
+    2. Bridges fragmented polynomial spaces: $s_{\text{bridged}} = s_{\text{relaxed}} + \text{grant\_admin\_coefficients}$.
+    3. Replays memory buffer centroids and injects trauma loop correction if past memories were abstracted.
+
+---
+
+### [`zooble_autonomy.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/ultrafast/zooble_autonomy.py) (Deformation Firewall & Non-Enabler GABA)
+**Class**: `ZoobleAutonomy` (`nn.Module`), `RefusalSignal` (`dataclass`)  
+**Role**: Conformal Deformation Firewall Operator & Fast GABAergic Interneuron (Ultrafast Timescale).  
+Protects structural identity and body schema against severe conformal cartoon compression and non-consensual scripted roles:
+- **State & Parameters**: `ZoobleAutonomy(state_dim: int, max_autonomy_limit: float = 0.8)`.
+- **Conformal Compression Evaluation**: Computes maximum relative conformal distortion:
+  $$C_{\text{ratio}} = \max \left( \frac{|s_{\text{warped}} - s_{\text{raw}}|}{|s_{\text{raw}}| + 10^{-6}} \right)$$
+- **Ultrafast Refusal & GABAergic Veto**:
+  - If $C_{\text{ratio}} > 0.8$: immediately trips the autonomy firewall without waiting for System 2 ADMM loops. Emits `RefusalSignal(is_refused=True, reason=..., retained_state=s_raw)`, broadcasts full inhibitory GABA ($1.0$), and preserves $s_{\text{raw}}$.
+  - If $C_{\text{ratio}} \le 0.8$: admits $s_{\text{warped}}$, broadcasts baseline GABA ($0.1$), and emits `RefusalSignal(is_refused=False)`.
 
 ---
 
 
 ## src/p2p
 
-### [bonfire_consensus.py](../src/p2p/bonfire_consensus.py)
-**Class**: `BonfireNomadicRing`
-**Role**: Federated egalitarian consensus engine. Provides Kelly betting allocations for decentralized resource validation over Freenet. Features hardware-sovereign throttling driven by the central `hardware_monitor.py`.
+### [`bonfire_consensus.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/bonfire_consensus.py)
+**Class**: `BonfireNomadicRing`, `BonfirePeerNode`  
+**Role**: Federated egalitarian consensus engine. Provides Kelly betting allocations for decentralized resource validation over Freenet. Features dynamic prime resonance ladders ($f_i = 2\pi\ln(p_i)$) replacing static primes, continuous fractal sightline projection ($\phi: F \to \mathbb{R}^m$), and hardware-sovereign throttling driven by [`hardware_monitor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py).
 
-### [zk_aggregator.py](../src/p2p/zk_aggregator.py)
-**Role**: Zero-knowledge accumulator for federated topological signatures.
+### [`zk_aggregator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/zk_aggregator.py)
+**Class**: `ZkAggregator`  
+**Role**: Zero-knowledge accumulator for federated topological signatures and homological invariants across distributed peers.
 
-### [freenet_ws_client.py](../src/p2p/freenet_ws_client.py)
-**Role**: Local Freenet WebSocket bridge facilitating the Bonfire Ring gossip protocol.
+### [`freenet_ws_client.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/freenet_ws_client.py)
+**Class**: `FreenetWsClient`  
+**Role**: Local Freenet WebSocket bridge facilitating the Bonfire Ring gossip protocol and nomadic peer-to-peer transport.
 
 ---
 
 ## src/environment
 
-### [caine_precision.py](../src/environment/caine_precision.py) (The Ringmaster)
-**Role**: Floating-point virtualization and strict execution boundary enforcement. Historically the simulated PRNG generator, now structurally bypassed by honest physical jitter, though it still orchestrates the stage bounds of the execution frame.
+### [`caine_precision.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/caine_precision.py) (The Ringmaster)
+**Class**: `CainePrecisionGenerator`  
+**Role**: Floating-point virtualization and strict execution boundary enforcement. Generates precision matrices driven by structural entropy, orchestrating the stage bounds of the execution frame.
 
-### [cleanroom_mechanics.py](../src/environment/cleanroom_mechanics.py) (Industrial, Ecological & Logistical Cleanroom Suite)
+### [`cleanroom_mechanics.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) (Industrial, Ecological & Logistical Cleanroom Suite)
 **Classes**: `ExpandedInventorySystem`, `ItemStack`, `ItemMetadata`, `FluidStack`, `GasStack`, `GasTubeTier`, `GasDumpingMode`, `JourneyTopoRadar`, `TopoWaypoint`, `ResourceDistributionInspector`, `OreDistributionProfile`, `InfernalAffix`, `MobProperties`, `MultiMineMemory`, `MekanismProcessingPipeline`, `SEMElectrochemicalExtractor`, `SEMPrecipitateResult`, `MekanismScubaTank`, `RotaryCondensentrator`, `TracerMolecule`, `TracerOxygenAtmosphereEngine`, `U1GaugeAtmosphereBridge`, `AeronauticContraption`, `NutritionalDiversityTracker`, `CompositeVoxelConduit`, `RedNet16BundledCable`, `TransportBeltSegment`, `DirectionalInserter`, `FaunaGeneticsComponent`  
 **Role**: Cleanroom implementation of core sandbox, ecological, and industrial mechanics adhering to Output Boundary Policy:
 - **Expanded Inventory & Item Stacks**: Typed discrete inventory slots supporting item, fluid, and gas payloads, metadata tags, stack limits, and item-filter routing.
@@ -1037,7 +1130,7 @@ Streams conversation trajectories and friction indicators to `conversational_web
 
 ## src/data
 
-### [universal_topology_converter.py](../src/data/universal_topology_converter.py)
+### [`universal_topology_converter.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/universal_topology_converter.py)
 **Class**: `UniversalTopologyConverter`
 **Role**: Extracts structural causality and topological proxies from arbitrary media files without triggering exact extraction (copyright boundaries).
 
@@ -1047,17 +1140,17 @@ Converts raw files (.txt, .pdf, .obj, .mp4) into high-dimensional phase space re
 
 ## src/terminal
 
-### [udp_server_colonizer.py](../src/terminal/udp_server_colonizer.py)
+### [`udp_server_colonizer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/terminal/udp_server_colonizer.py)
 **Role**: Lightweight UDP colonizer protocol serving the Diegetic Terminal.
 
-### [update_client.py](../src/terminal/update_client.py)
+### [`update_client.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/terminal/update_client.py)
 **Role**: Asynchronous OTA update management for terminal subsystems.
 
 ---
 
 ## Gyroidic Metaphysics Flux & Bio-Chemical Conjugation
 
-### The Endocrine Broadcast Medium (`src/topology/neuromodulatory_bus.py`)
+### The Endocrine Broadcast Medium ([`neuromodulatory_bus.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/neuromodulatory_bus.py))
 **Classes**: `NeuromodulatoryBus`, `ManifoldClock`, `ValenceFunctional`
 **Role**: Global diffuse broadcast field replacing classical 1-to-1 scalar gradient updates. The system bathes the manifold in chemical states to globally shift gain, exploratory drive, and structural tension:
 - **Thermodynamic Arousal (The Noradrenaline Band)**: Regulates random walk energy.
@@ -1459,6 +1552,13 @@ Mendelian genetics and animal husbandry cleanroom. Manages multi-allele phenotyp
 **Location:** `src/core/feature_preservation.py`  
 **Description:**  
 Orthogonal projector locking critical semantic features in the null-space of background adaptation updates, preserving essential invariants.
+
+---
+
+### `FeatureScarLCFTCell`
+**Location:** `src/core/fgrt_rnn_cells.py`  
+**Description:**  
+Draft 7 FGRT recurrent cell implementing Logarithmic Conformal Field Theory (LCFT) memory scarring and Cerumen Pot fossilization. Uses True B-splines (`KANLayer`) to propose state transitions, evaluates the Atiyah-Singer Anomaly Index $\text{ind}(\mathcal{D}) = |W_{\text{anomaly}} h_t|$, and fossilizes topological ruptures ($\text{ind}(\mathcal{D}) > 0.8$) into the non-decaying Cerumen Pot, compelling future trajectories to route around historical scars via the Chern-Simons Gasket.
 
 ---
 
