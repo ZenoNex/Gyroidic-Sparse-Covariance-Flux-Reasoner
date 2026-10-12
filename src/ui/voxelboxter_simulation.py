@@ -10,11 +10,13 @@ import uuid
 import copy
 from enum import Enum, auto
 import torch
+import torch.nn.functional as F
 import time
 import math
 import numpy as np
 from src.surrogates.kagh_networks import KANLayer
 from src.core.invariants import SelfReferenceAdmissibility
+from src.core.fgrt_primitives import GyroidicAdmissibilityFilter, PrimeResonanceLadder, GyroidManifold
 
 # ==========================================
 # ROLES, PERMISSIONS & INVENTORY
@@ -87,11 +89,14 @@ class Block:
     material_id: int
     health: float
     parent_id: Optional[str] = None # The Entity ID of the construct it belongs to
+    is_fossilized_bone: bool = False # 80/20 Fossilization Split (The Efficiency Singularity - Wager #2)
+    topological_stress: float = 0.0 # Local non-scalar discord / structural tension
 
 @dataclass
 class RigidBody:
     """Physics representation for macro-entities (Constructs, detached debris)."""
     mass: float = 1.0
+    position: Tuple[float, float, float] = (0.0, 0.0, 0.0)
     center_of_mass: Tuple[float, float, float] = (0.0, 0.0, 0.0)
     inertia_tensor: Tuple[float, float, float] = (1.0, 1.0, 1.0) # Simplified diagonal for now
     linear_velocity: Tuple[float, float, float] = (0.0, 0.0, 0.0)
@@ -102,6 +107,140 @@ class RigidBody:
     impact_energy_harvester: bool = False
     accumulated_delta_v: float = 0.0
     last_impulse_tier: str = "NONE" # NONE, LOW, MID, HIGH
+
+    # Non-Ergodic Kelly Defense & Sovereignty (The Efficiency Singularity)
+    kelly_growth_rate: float = 1.0
+    topological_diversity_index: float = 1.0
+    is_fossilized: bool = False
+
+    # Gyroid Zero-Level Set Snapping & Telemetry
+    last_gyroid_violation: float = 0.0
+    last_snap_force: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+    snap_strength_alpha: float = 2.5
+    snap_decay_beta: float = 0.8
+
+    def compute_gyroid_snap_force(
+        self,
+        pos: Optional[Tuple[float, float, float]] = None,
+        alpha: Optional[float] = None,
+        beta: Optional[float] = None
+    ) -> Tuple[Tuple[float, float, float], float]:
+        """
+        Computes the snapping force field:
+        F_snap(x) = sum alpha_i * (S_i - x) * exp(-beta * ||S_i - x||^2)
+        constraining player/construct movement to the Gyroid zero-level set G(x, y, z) = 0.
+        
+        G(x, y, z) = sin(x)cos(y) + sin(y)cos(z) + sin(z)cos(x)
+        grad G = (cos(x)cos(y) - sin(z)sin(x), cos(y)cos(z) - sin(x)sin(y), cos(z)cos(x) - sin(y)sin(z))
+        Snap point S(P) ~= P - (G(P) / ||grad G||^2) * grad G
+        """
+        p = pos if pos is not None else self.position
+        x, y, z = float(p[0]), float(p[1]), float(p[2])
+        a = alpha if alpha is not None else self.snap_strength_alpha
+        b = beta if beta is not None else self.snap_decay_beta
+
+        # Gyroid level-set value
+        g_val = math.sin(x) * math.cos(y) + math.sin(y) * math.cos(z) + math.sin(z) * math.cos(x)
+        
+        # Gradient of Gyroid
+        gx = math.cos(x) * math.cos(y) - math.sin(z) * math.sin(x)
+        gy = math.cos(y) * math.cos(z) - math.sin(x) * math.sin(y)
+        gz = math.cos(z) * math.cos(x) - math.sin(y) * math.sin(z)
+        
+        grad_norm_sq = gx * gx + gy * gy + gz * gz + 1e-6
+        
+        # Newton-Raphson displacement toward zero set
+        delta_scale = -g_val / grad_norm_sq
+        dx = delta_scale * gx
+        dy = delta_scale * gy
+        dz = delta_scale * gz
+        
+        disp_sq = dx * dx + dy * dy + dz * dz
+        force_factor = a * math.exp(-b * disp_sq)
+        
+        fx = force_factor * dx
+        fy = force_factor * dy
+        fz = force_factor * dz
+        
+        self.last_snap_force = (fx, fy, fz)
+        self.last_gyroid_violation = abs(g_val)
+        return (fx, fy, fz), abs(g_val)
+
+    def update_kelly_growth(
+        self,
+        impulse_losses: Optional[List[float]] = None,
+        delta_v: float = 0.0,
+        dt: float = 0.05,
+        apply_snap_constraint: bool = True
+    ) -> float:
+        """
+        Non-Ergodic Kelly Defense with Gyroid Snapping Constraint:
+        g_time = mu - (sigma^2 / 2).
+        Calculates time-average geometric growth rate under structural impulse volatility.
+        Prevents absorption ruin by triggering topological diversification (beta_k > 0).
+        Hooks the snapping force field F_snap(x) to penalize and correct drift off the Gyroid zero-level set.
+        """
+        losses = list(impulse_losses) if impulse_losses is not None else ([delta_v] if delta_v > 0.0 else [])
+        
+        if apply_snap_constraint:
+            snap_f, g_viol = self.compute_gyroid_snap_force(self.position)
+            f_mag = math.sqrt(snap_f[0]**2 + snap_f[1]**2 + snap_f[2]**2)
+            # Snapping constraint delta-v: dv = (F / m) * dt
+            dv_snap = (f_mag / max(0.01, self.mass)) * dt
+            losses.append(dv_snap)
+            
+            # Direct kinematic correction toward Gyroid zero-level set
+            acc_x = snap_f[0] / max(0.01, self.mass)
+            acc_y = snap_f[1] / max(0.01, self.mass)
+            acc_z = snap_f[2] / max(0.01, self.mass)
+            
+            self.linear_velocity = (
+                self.linear_velocity[0] + acc_x * dt,
+                self.linear_velocity[1] + acc_y * dt,
+                self.linear_velocity[2] + acc_z * dt
+            )
+            self.position = (
+                self.position[0] + self.linear_velocity[0] * dt,
+                self.position[1] + self.linear_velocity[1] * dt,
+                self.position[2] + self.linear_velocity[2] * dt
+            )
+
+        if not losses:
+            losses = [0.0]
+            
+        mu = 1.0 - (sum(losses) / len(losses)) * 0.05
+        variance = sum((l - (1.0 - mu) * 20.0)**2 for l in losses) / len(losses)
+        g_time = mu - 0.5 * (variance * 0.01)
+        self.kelly_growth_rate = g_time
+        if g_time < 0.5:
+            # Absorbing barrier warning: diversify topology to survive
+            self.topological_diversity_index = max(1.0, 1.0 + (0.5 - g_time) * 4.0)
+        return self.kelly_growth_rate
+
+    def check_boundary_tearing_puncture(self, extreme_velocity_threshold: float = 45.0) -> Dict[str, Any]:
+        """
+        Boundary Tearing & Non-Euclidean Rule Puncture (Failure Mode Analysis):
+        When a terrestrial vehicle (e.g., a camper van) traverses non-Euclidean terrain at high velocity,
+        the physics engine breaks. The vehicle launches into the skybox or spawns inside a mountain.
+        Mechanical velocity punctures the simulated rules, proving physical laws are temporary suggestions.
+        """
+        speed = math.sqrt(sum(v ** 2 for v in self.linear_velocity))
+        if speed > extreme_velocity_threshold:
+            puncture_type = "SKYBOX_LAUNCH" if self.linear_velocity[2] >= 0 else "MOUNTAIN_PHASE_SPAWN"
+            return {
+                "punctured": True,
+                "puncture_type": puncture_type,
+                "speed": speed,
+                "rule_breach_scalar": speed / extreme_velocity_threshold,
+                "substrate_exposed": True
+            }
+        return {
+            "punctured": False,
+            "puncture_type": "EUCLIDEAN_CONSTRAINED",
+            "speed": speed,
+            "rule_breach_scalar": 1.0,
+            "substrate_exposed": False
+        }
 
     def apply_collision_impulse(
         self,
@@ -115,6 +254,8 @@ class RigidBody:
         Delta-v Collision Dynamics: Delta_v = J / m.
         Evaluates peak deceleration stress over delta_t hardness curve and
         detaches structural voxels across Low (<5 mph), Mid (5-15 mph), and High (>15 mph) tiers.
+        Enforces Wager #2 (80/20 Fossilization Split): protects immutable bone blocks and
+        shears only plastic flesh voxels.
         """
         eff_mass = self.mass * (1.5 if self.reinforced_alloy_chassis else 1.0)
         delta_v = impulse_J / max(1.0, eff_mass)
@@ -135,13 +276,22 @@ class RigidBody:
         detached_blocks: List[Tuple[int, int, int]] = []
         harvested_boost: float = 0.0
         
+        # Candidate pool: strictly plastic flesh blocks first, safeguarding fossilized bone
+        candidate_keys = []
+        if graph and graph.blocks:
+            if hasattr(graph, 'flesh_blocks') and graph.flesh_blocks:
+                candidate_keys = list(graph.flesh_blocks)
+            else:
+                candidate_keys = [k for k, b in graph.blocks.items() if not b.is_fossilized_bone]
+            if not candidate_keys:
+                candidate_keys = list(graph.blocks.keys())
+
         if delta_v < thresh_mid:
             tier = "LOW" # Cosmetic scuff
         elif delta_v <= thresh_high:
             tier = "MID" # Panel denting, peripheral block detachment
-            if graph and graph.blocks:
-                # Detach peripheral block
-                key = next(iter(graph.blocks.keys()))
+            if graph and candidate_keys:
+                key = candidate_keys[0]
                 detached_block = graph.remove_block(key)
                 if detached_block:
                     detached_blocks.append(key)
@@ -149,8 +299,8 @@ class RigidBody:
                         inventory.block_masses[detached_block.material_id] = inventory.block_masses.get(detached_block.material_id, 0) + 1
         else:
             tier = "HIGH" # Catastrophic shearing
-            if graph and graph.blocks:
-                keys = list(graph.blocks.keys())[:min(4, len(graph.blocks))]
+            if graph and candidate_keys:
+                keys = candidate_keys[:min(4, len(candidate_keys))]
                 for k in keys:
                     detached_block = graph.remove_block(k)
                     if detached_block:
@@ -159,6 +309,9 @@ class RigidBody:
                             inventory.block_masses[detached_block.material_id] = inventory.block_masses.get(detached_block.material_id, 0) + 1
 
         self.last_impulse_tier = tier
+
+        # Non-Ergodic Kelly Defense log-growth update
+        self.update_kelly_growth(delta_v=delta_v)
 
         # Impact Energy Harvester augment conversion
         if self.impact_energy_harvester and delta_v > 1.0:
@@ -169,7 +322,9 @@ class RigidBody:
             "peak_stress": peak_stress,
             "tier": tier,
             "detached_blocks": detached_blocks,
-            "harvested_boost": harvested_boost
+            "harvested_boost": harvested_boost,
+            "kelly_growth_rate": self.kelly_growth_rate,
+            "topological_diversity_index": self.topological_diversity_index
         }
 
 @dataclass
@@ -223,6 +378,29 @@ class AirBreathingBattery:
     plasma_air_induction: bool = True
     plasma_boost_factor: float = 2.4
 
+    def calculate_atmospheric_oxidation(
+        self,
+        ambient_oxygen_density: float = 1.0,
+        scuba_tank: Optional[Any] = None
+    ) -> float:
+        eff_density = ambient_oxygen_density
+        if eff_density <= 0.05:
+            # Check if scuba tank is available and active
+            if scuba_tank is not None and getattr(scuba_tank, 'is_active', False):
+                has_o2, consumed = scuba_tank.consume_breathing_gas(0.1)
+                if has_o2:
+                    eff_density = 1.0
+            elif self.stored_oxygen_reserve > 0.1:
+                self.stored_oxygen_reserve -= 0.1
+                eff_density = 0.8
+            else:
+                eff_density = 0.0
+
+        rate = self.ambient_generation_rate * eff_density * self.intake_efficiency
+        if self.plasma_air_induction:
+            rate *= self.plasma_boost_factor
+        return rate
+
 @dataclass
 class VehicleEngine:
     """
@@ -244,6 +422,38 @@ class EnvironmentalAtmosphere:
     """World voxel chunk telemetry for ambient air pressure and voxel density."""
     oxygen_density: float = 1.0 
     ambient_pressure: float = 101.3 
+    air_density: float = 1.225 
+    drag_coefficient: float = 0.47
+    wind_vector: Tuple[float, float, float] = (0.0, 0.0, 0.0) 
+    is_depressurized: bool = False
+    tracer_engine: Optional[Any] = None
+
+    def vent_gas(self, gas_id: str, amount_mb: float, volume_m3: float = 100.0) -> None:
+        """Vents pressurized gas directly into the ambient atmosphere chunk."""
+        if self.is_depressurized:
+            return  # Gas is immediately lost to vacuum
+        if gas_id == "oxygen":
+            # 1000 mB of O2 adds approx 0.02 to local oxygen density fraction
+            added_density = (amount_mb / 1000.0) * (2.0 / max(1.0, volume_m3))
+            self.oxygen_density = min(2.5, self.oxygen_density + added_density)
+        # Pressure increase from added gas (mB -> kPa equivalent)
+        added_pressure = (amount_mb / 1000.0) * (8.314 * 300.0 / (max(1.0, volume_m3) * 1000.0))
+        self.ambient_pressure += added_pressure
+        self.air_density = max(0.01, 1.225 * (self.ambient_pressure / 101.3))
+
+    def depressurize(self) -> None:
+        """Evacuates ambient atmosphere due to hull rupture or boundary breach."""
+        self.is_depressurized = True
+        self.ambient_pressure = 0.0
+        self.oxygen_density = 0.0
+        self.air_density = 0.001
+
+    def repressurize(self, target_pressure: float = 101.3, oxygen_density: float = 1.0) -> None:
+        """Restores pressurized atmosphere following breach repair."""
+        self.is_depressurized = False
+        self.ambient_pressure = target_pressure
+        self.oxygen_density = oxygen_density
+        self.air_density = 1.225 * (target_pressure / 101.3)
 
 
 # ==========================================
@@ -253,21 +463,40 @@ class EnvironmentalAtmosphere:
 class StructuralGraph:
     """
     Manages adjacency and connectivity of blocks within a Construct.
-    Used for simulating damage, detaching debris, and routing power.
+    Used for simulating damage, detaching debris, routing power, and enforcing
+    The Efficiency Singularity design language:
+    - Wager #2 (80/20 Fossilization Split): Bone vs Plastic Flesh partitioning.
+    - Wager #3 (99/1 Structure/Weight Bet): Discrete topological macro-moves (Delta Topology >= 1).
+    - Non-Conservative Circulation (oint Phi != 0): O(1) Local neighborhood stress relaxation.
     """
     def __init__(self):
         # Maps local cell coords to Block instances
         self.blocks: Dict[Tuple[int, int, int], Block] = {}
+        # 80/20 Fossilization Split: Immutable bone vs plastic flesh
+        self.bone_blocks: Set[Tuple[int, int, int]] = set()
+        self.flesh_blocks: Set[Tuple[int, int, int]] = set()
+        # Precomputed bone inertial invariants (Gradients = 0, inference only)
+        self.bone_mass: float = 0.0
+        self.bone_center_of_mass: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+        self.bone_inertia_tensor: Tuple[float, float, float] = (1.0, 1.0, 1.0)
         # Tracks disjoint sets / connectivity components
         self.dirty = False
 
     def add_block(self, block: Block):
         self.blocks[block.local_cell] = block
+        if block.is_fossilized_bone:
+            self.bone_blocks.add(block.local_cell)
+            self.flesh_blocks.discard(block.local_cell)
+        else:
+            self.flesh_blocks.add(block.local_cell)
+            self.bone_blocks.discard(block.local_cell)
         self.dirty = True
 
     def remove_block(self, local_cell: Tuple[int, int, int]) -> Optional[Block]:
         if local_cell in self.blocks:
             b = self.blocks.pop(local_cell)
+            self.bone_blocks.discard(local_cell)
+            self.flesh_blocks.discard(local_cell)
             self.dirty = True
             return b
         return None
@@ -330,6 +559,232 @@ class StructuralGraph:
             "betti_1": beta_1,
             "euler_characteristic": beta_0 - beta_1
         }
+
+    def fossilize_core(self, bone_ratio: float = 0.8) -> Dict[str, Any]:
+        """
+        Wager #2 (The Fossilization Split: 80/20):
+        Partitions construct into 80% immutable fossilized bone and 20% plastic flesh.
+        Bone: Gradients = 0, Frozen, Zero tick simulation overhead, Health = 999.0.
+        Flesh: Active deformation, yielding, shearing, learning.
+        Precomputes bone COM and inertia tensor for O(1) physics evaluation.
+        """
+        total = len(self.blocks)
+        if total == 0:
+            return {
+                "total_blocks": 0, "bone_blocks": 0, "flesh_blocks": 0,
+                "bone_ratio": bone_ratio, "bone_mass": 0.0,
+                "bone_center_of_mass": (0.0, 0.0, 0.0),
+                "bone_inertia_tensor": (1.0, 1.0, 1.0)
+            }
+
+        # Calculate geometric center of mass
+        com_x = sum(c[0] for c in self.blocks.keys()) / total
+        com_y = sum(c[1] for c in self.blocks.keys()) / total
+        com_z = sum(c[2] for c in self.blocks.keys()) / total
+        self.bone_center_of_mass = (com_x, com_y, com_z)
+
+        # Sort blocks by distance from center of mass (innermost = bone core)
+        sorted_cells = sorted(
+            self.blocks.keys(),
+            key=lambda c: (c[0] - com_x)**2 + (c[1] - com_y)**2 + (c[2] - com_z)**2
+        )
+        bone_count = min(total, max(1, int(math.ceil(total * bone_ratio))))
+        bone_cells = set(sorted_cells[:bone_count])
+        flesh_cells = set(sorted_cells[bone_count:])
+
+        self.bone_blocks = bone_cells
+        self.flesh_blocks = flesh_cells
+
+        # Update block states
+        for cell in bone_cells:
+            blk = self.blocks[cell]
+            blk.is_fossilized_bone = True
+            blk.health = 999.0 # Immutable concrete
+
+        for cell in flesh_cells:
+            blk = self.blocks[cell]
+            blk.is_fossilized_bone = False
+
+        # Precompute frozen bone inertia tensor
+        self.bone_mass = float(len(bone_cells))
+        ixx = sum((c[1] - com_y)**2 + (c[2] - com_z)**2 for c in bone_cells)
+        iyy = sum((c[0] - com_x)**2 + (c[2] - com_z)**2 for c in bone_cells)
+        izz = sum((c[0] - com_x)**2 + (c[1] - com_y)**2 for c in bone_cells)
+        self.bone_inertia_tensor = (max(0.1, ixx), max(0.1, iyy), max(0.1, izz))
+
+        return {
+            "total_blocks": total,
+            "bone_blocks": len(bone_cells),
+            "flesh_blocks": len(flesh_cells),
+            "bone_ratio": len(bone_cells) / total,
+            "bone_mass": self.bone_mass,
+            "bone_center_of_mass": self.bone_center_of_mass,
+            "bone_inertia_tensor": self.bone_inertia_tensor
+        }
+
+    def repair_local_neighborhood(self, origin_cell: Tuple[int, int, int], radius: int = 1) -> Dict[str, Any]:
+        """
+        Non-Conservative Circulation (oint Phi != 0) & Local O(1) Repair:
+        Replaces global graph search / whole-construct backpropagation with local constraint repair.
+        Relieves topological stress in the O(1) neighborhood (bounded by (2r+1)^3 cells).
+        """
+        ox, oy, oz = origin_cell
+        neighborhood = []
+        total_stress = 0.0
+
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                for dz in range(-radius, radius + 1):
+                    cell = (ox + dx, oy + dy, oz + dz)
+                    if cell in self.blocks:
+                        blk = self.blocks[cell]
+                        neighborhood.append(blk)
+                        total_stress += blk.topological_stress
+                        # Non-conservative circulation curl relaxes local strain
+                        blk.topological_stress = 0.0
+
+        return {
+            "origin_cell": origin_cell,
+            "neighborhood_size": len(neighborhood),
+            "relaxed_stress": total_stress,
+            "circulation_active": True,
+            "complexity": "O(1)"
+        }
+
+    def execute_topological_macro_move(
+        self,
+        cut_normal: Tuple[float, float, float] = (1.0, 0.0, 0.0),
+        cut_offset: float = 0.0
+    ) -> Dict[str, Any]:
+        """
+        Wager #3 (The Structure/Weight Bet: 99/1):
+        Macro-move topological surgery (Delta Topology >= 1) over infinitesimal weight nudges.
+        Slices construct along a hyperplane, cleaving plastic flesh while preserving bone core.
+        """
+        initial_betti = self.compute_betti_numbers()
+        nx, ny, nz = cut_normal
+        norm_len = math.sqrt(nx*nx + ny*ny + nz*nz) or 1.0
+        nx, ny, nz = nx / norm_len, ny / norm_len, nz / norm_len
+
+        severed_flesh: List[Tuple[int, int, int]] = []
+        # Surgery: flesh blocks within boundary distance |n.x - d| < 0.6 are cut
+        for cell in list(self.flesh_blocks):
+            dist = (cell[0] * nx + cell[1] * ny + cell[2] * nz) - cut_offset
+            if abs(dist) < 0.6:
+                blk = self.remove_block(cell)
+                if blk:
+                    severed_flesh.append(cell)
+
+        final_betti = self.compute_betti_numbers()
+        delta_betti_0 = final_betti["betti_0"] - initial_betti["betti_0"]
+        delta_betti_1 = final_betti["betti_1"] - initial_betti["betti_1"]
+
+        return {
+            "macro_move_executed": True,
+            "severed_flesh_count": len(severed_flesh),
+            "severed_flesh_blocks": severed_flesh,
+            "initial_betti": initial_betti,
+            "final_betti": final_betti,
+            "delta_betti_0": delta_betti_0,
+            "delta_betti_1": delta_betti_1,
+            "delta_topology": abs(delta_betti_0) + abs(delta_betti_1)
+        }
+
+
+# ==========================================
+# THE EFFICIENCY SINGULARITY: ADMISSIBILITY & SPECULATION
+# ==========================================
+
+class VoxelboxterAdmissibilityGate:
+    """
+    Enforces Wager #1 (The 90/10 Rejection Ratio) of The Efficiency Singularity.
+    Evaluates non-scalar geometric and topological admissibility before
+    allocating simulation, physics, or graph refinement compute.
+    Rejects 90% of invalid configurations instantly with O(1) probes.
+    """
+    def __init__(self, epsilon: float = 0.05):
+        self.epsilon = epsilon
+        self.filter = GyroidicAdmissibilityFilter(epsilon=epsilon)
+        self.rejection_count: int = 0
+        self.admitted_count: int = 0
+
+    def evaluate_cell_admissibility(self, cell: Tuple[int, int, int], scale: float = 0.1) -> Tuple[bool, float]:
+        """
+        Evaluates Gyroid constraint violation H_spec on normalized voxel coordinates.
+        Returns (is_admissible, h_spec).
+        """
+        coords = torch.tensor([[float(cell[0]) * scale, float(cell[1]) * scale, float(cell[2]) * scale]], dtype=torch.float32)
+        is_admissible, h_spec = self.filter(coords)
+        if is_admissible:
+            self.admitted_count += 1
+        else:
+            self.rejection_count += 1
+        return is_admissible, h_spec
+
+    def filter_construct_proposal(self, candidate_cells: List[Tuple[int, int, int]], scale: float = 0.1) -> Dict[str, Any]:
+        """
+        Filters a proposed batch of voxel blocks.
+        Refuses to compute or admit topologically invalid structures.
+        """
+        admitted = []
+        rejected = []
+        total = len(candidate_cells)
+        for c in candidate_cells:
+            ok, h_spec = self.evaluate_cell_admissibility(c, scale=scale)
+            if ok:
+                admitted.append((c, h_spec))
+            else:
+                rejected.append((c, h_spec))
+        rejection_ratio = len(rejected) / max(1, total)
+        return {
+            "total_evaluated": total,
+            "admitted_cells": [c for c, _ in admitted],
+            "rejected_cells": [c for c, _ in rejected],
+            "rejection_ratio": rejection_ratio,
+            "is_viable": len(admitted) > 0
+        }
+
+
+class SpectralSpeculationEngine:
+    """
+    Enforces Wager #4 (Spectral Speculation: Frequency > Time) of The Efficiency Singularity.
+    Analyzes construct vibrational/deformation modes using PrimeResonanceLadder.
+    If spectral entropy H_spec < epsilon, triggers a single-step speculative fastpass,
+    bypassing expensive System 2 continuous physics and repair loops.
+    """
+    def __init__(self, epsilon: float = 0.15, num_resonators: int = 16):
+        self.epsilon = epsilon
+        self.ladder = PrimeResonanceLadder(num_resonators=num_resonators)
+        self.fastpass_count: int = 0
+        self.full_solve_count: int = 0
+
+    def evaluate_spectral_entropy(self, signal: torch.Tensor) -> Tuple[bool, float]:
+        """
+        Computes spectral entropy H_spec across prime resonance frequencies.
+        Returns (can_speculative_fastpass, h_spec).
+        """
+        with torch.no_grad():
+            if signal.dim() == 1:
+                v = signal.unsqueeze(0)
+            else:
+                v = signal
+            dim = v.shape[-1]
+            freqs = self.ladder.frequencies[:dim]
+            if freqs.shape[0] < dim:
+                freqs = F.pad(freqs, (0, dim - freqs.shape[0]), value=1.0)
+            elif freqs.shape[0] > dim:
+                freqs = freqs[:dim]
+
+            # Modulate with prime frequencies and compute spectral mode distribution
+            modes = torch.abs(v * freqs)
+            prob = modes / (torch.sum(modes, dim=-1, keepdim=True) + 1e-8)
+            h_spec = -torch.sum(prob * torch.log(prob + 1e-8)).item() / max(1.0, math.log(max(2, prob.shape[-1])))
+            can_fastpass = h_spec < self.epsilon
+            if can_fastpass:
+                self.fastpass_count += 1
+            else:
+                self.full_solve_count += 1
+            return can_fastpass, h_spec
 
 
 # ==========================================
@@ -676,6 +1131,8 @@ class FaunaComponent:
     inhibition_level: float = 1.0
     defect_density: float = 0.0
     chirality_phase: float = 1.0
+    heading_spin: Tuple[float, float] = (1.0, 0.0)
+    velocity: Tuple[float, float, float] = (0.0, 0.0, 0.0)
     is_active: bool = True
 
 class FaunaISN(torch.nn.Module):
@@ -730,8 +1187,45 @@ class FaunaISN(torch.nn.Module):
         dd_dt = self.diffusion_d * laplacian_d + self.alpha_gyroid * local_gyroid_potential - self.beta_decay * fauna.defect_density
         fauna.defect_density = max(0.0, fauna.defect_density + dd_dt * dt)
         
-        # Chiral gating: routes steering left or right based on excitation vs inhibition asymmetry
-        fauna.chirality_phase = 1.0 if (fauna.excitation_level >= fauna.inhibition_level) else -1.0
+        # Chiral Gating: Rashba-Dresselhaus Spin-Momentum Locking
+        # Gated by computational affordance / hardware headroom
+        affordance_ok = False
+        try:
+            from src.core.hardware_monitor import has_compute_affordance, ComputeAffordanceType
+            affordance_ok = has_compute_affordance(ComputeAffordanceType.DIEGETIC)
+        except Exception:
+            affordance_ok = True
+
+        if affordance_ok:
+            # Velocity components in local 2D manifold plane
+            vel = getattr(fauna, 'velocity', (0.0, 0.0, 0.0))
+            vx, vy = vel[0], vel[1]
+            if abs(vx) < 1e-4 and abs(vy) < 1e-4:
+                vx, vy = 1.0, 0.0
+                
+            # Alpha: ecological excitation-inhibition gradient (SIA)
+            # Beta: gyroid TPMS substrate twist (BIA)
+            alpha_soc = (fauna.excitation_level - fauna.inhibition_level) / max(0.1, fauna.excitation_level + fauna.inhibition_level)
+            beta_soc = self.alpha_gyroid * local_gyroid_potential
+            
+            # Effective precession field Omega(v)
+            omega_x = alpha_soc * vy + beta_soc * vx
+            omega_y = -alpha_soc * vx - beta_soc * vy
+            
+            # Spin heading integration (continuous torque: \dot{s} = \Omega \times s)
+            sx, sy = getattr(fauna, 'heading_spin', (1.0, 0.0))
+            torque_z = omega_x * sy - omega_y * sx
+            new_sx = sx - torque_z * sy * dt
+            new_sy = sy + torque_z * sx * dt
+            norm_s = max(1e-6, math.sqrt(new_sx * new_sx + new_sy * new_sy))
+            fauna.heading_spin = (new_sx / norm_s, new_sy / norm_s)
+            
+            # Discrete chiral phase in {-1.0, 1.0} for topological boundary orientation
+            fauna.chirality_phase = 1.0 if fauna.heading_spin[1] >= 0.0 else -1.0
+            fauna.continuous_chiral_angle = math.atan2(fauna.heading_spin[1], fauna.heading_spin[0]) / math.pi
+        else:
+            # Fallback under constrained compute affordances
+            fauna.chirality_phase = 1.0 if (fauna.excitation_level >= fauna.inhibition_level) else -1.0
         
         ei_ratio = fauna.excitation_level / max(1e-4, fauna.inhibition_level)
         return {
@@ -765,10 +1259,13 @@ class EmergentBakingEngine:
         construct_id: str,
         graph: StructuralGraph,
         permissions: PermissionsManager,
-        peer_id: str
+        peer_id: str,
+        bone_ratio: float = 0.8
     ) -> Dict[str, Any]:
         """
         Bakes a dynamic construct into an immutable topological fossil.
+        Enforces Wager #2 (80/20 Fossilization Split) & turns subjective structural
+        attachment into topological rigidity on the Poincare disk.
         Requires ADMIN or BUILDER permission.
         """
         if not (permissions.has_permission(peer_id, "manage_mangostiens") or permissions.has_permission(peer_id, "creative_mode")):
@@ -777,6 +1274,9 @@ class EmergentBakingEngine:
         total_blocks = len(graph.blocks)
         topological_persistence = min(1.0, 0.5 + 0.05 * math.log(max(1, total_blocks)))
         
+        # Partition construct into 80% immutable fossilized bone and 20% plastic flesh
+        fossil_metrics = graph.fossilize_core(bone_ratio=bone_ratio)
+        
         for block in graph.blocks.values():
             block.health = 999.0
             
@@ -784,6 +1284,10 @@ class EmergentBakingEngine:
             "success": True,
             "construct_id": construct_id,
             "total_fossilized_blocks": total_blocks,
+            "bone_blocks": fossil_metrics["bone_blocks"],
+            "flesh_blocks": fossil_metrics["flesh_blocks"],
+            "bone_ratio": fossil_metrics["bone_ratio"],
+            "bone_inertia_tensor": fossil_metrics["bone_inertia_tensor"],
             "topological_persistence": topological_persistence,
             "fossil_timestamp": time.time()
         }
@@ -803,7 +1307,51 @@ class PointerlessOctree:
     def __init__(self, max_depth: int = 8):
         self.max_depth = max_depth
         self.morton_grid: Dict[int, int] = {} # Morton Code -> Material ID
-        
+        self.complexity_grid: Dict[int, float] = {} # Morton Code -> Local Complexity Measure
+        self.depth_grid: Dict[int, int] = {} # Morton Code -> Dynamic Octree Depth
+
+    def compute_local_scale(self, complexity: float) -> float:
+        """
+        L'Hôpital's rule extension for recursive fractal scaling:
+        lim_{c -> 0} log(c + 1) / c = 1.0.
+        Adapts resolution as complexity approaches discontinuous boundaries.
+        """
+        c = float(complexity)
+        if c > 1e-6:
+            return float(np.log(c + 1.0) / c)
+        return 1.0
+
+    def compute_fractional_scale(self, complexity: float, alpha: float = 0.5) -> float:
+        """
+        Modified L'Hôpital's rule for fractional derivatives along fractal boundaries:
+        lim_{x -> x_0} D_alpha f(x) / D_alpha g(x).
+        Evaluates fractional scaling order alpha in [0, 1].
+        """
+        c = float(complexity)
+        if c > 1e-6:
+            base_scale = np.log(c + 1.0) / c
+            return float(base_scale ** max(0.01, 1.0 - alpha))
+        return 1.0
+
+    def adapt_resolution(self, position: Tuple[float, float, float], complexity: float) -> float:
+        """
+        Adapts local grid resolution based on complexity measure and L'Hôpital scaling.
+        Resolution scales dynamically with local detail.
+        """
+        base_resolution = float(1 << self.max_depth)
+        scale_factor = self.compute_local_scale(complexity)
+        return base_resolution * scale_factor
+
+    def get_adaptive_depth(self, complexity: float, base_depth: Optional[int] = None) -> int:
+        """
+        Drives octree depth dynamically using the NonUniformGrid adaptive resolution scale.
+        High complexity compresses recursive depth to prevent compute explosion,
+        while low complexity retains maximum recursive refinement.
+        """
+        target_depth = base_depth if base_depth is not None else self.max_depth
+        scale_factor = self.compute_local_scale(complexity)
+        return max(1, min(12, int(round(target_depth * scale_factor))))
+
     def _interleave_bits(self, x: int, y: int, z: int) -> int:
         """Computes the 3D Morton code by interleaving bits of x, y, z."""
         # Standard magic bit-shifting for 10-bit components (30-bit Morton code)
@@ -814,16 +1362,45 @@ class PointerlessOctree:
             v = (v | (v <<  2)) & 0x09249249
             return v
         return (expand_bits(x) | (expand_bits(y) << 1) | (expand_bits(z) << 2))
-        
-    def add_fractal_node(self, x: int, y: int, z: int, material: int):
+
+    def add_adaptive_fractal_node(
+        self,
+        x: float,
+        y: float,
+        z: float,
+        material: int,
+        complexity: float = 0.0
+    ) -> int:
+        """
+        Adds a fractal node using NonUniformGrid adaptive coordinates.
+        Coordinates are scaled dynamically according to local L'Hôpital scaling.
+        """
+        scale = self.compute_local_scale(complexity)
+        dynamic_depth = self.get_adaptive_depth(complexity)
+        ix = max(0, min(1023, int(round(x * scale))))
+        iy = max(0, min(1023, int(round(y * scale))))
+        iz = max(0, min(1023, int(round(z * scale))))
+        code = self._interleave_bits(ix, iy, iz)
+        self.morton_grid[code] = material
+        self.complexity_grid[code] = float(complexity)
+        self.depth_grid[code] = dynamic_depth
+        return code
+
+    def add_fractal_node(self, x: int, y: int, z: int, material: int, complexity: float = 0.0):
         code = self._interleave_bits(x, y, z)
         self.morton_grid[code] = material
+        self.complexity_grid[code] = float(complexity)
+        self.depth_grid[code] = self.get_adaptive_depth(complexity)
 
     def remove_voxel(self, x: int, y: int, z: int) -> bool:
         """Removes a voxel from the Morton-encoded spatial hash lattice. Returns True if removed."""
         code = self._interleave_bits(x, y, z)
         if code in self.morton_grid:
             del self.morton_grid[code]
+            if code in self.complexity_grid:
+                del self.complexity_grid[code]
+            if code in self.depth_grid:
+                del self.depth_grid[code]
             return True
         return False
 
@@ -884,7 +1461,47 @@ class PointerlessOctree:
             "betti_1": beta_1,
             "euler_characteristic": beta_0 - beta_1
         }
-        
+
+    def traverse_scale_expand_16x(self, center_cell: Tuple[int, int, int]) -> 'PointerlessOctree':
+        """
+        Fractal Navigation (The 4th Dimension):
+        Traverses scale inward by expanding (x16). One geometric block contains a complete nested biome.
+        Transforms the focal block into a child octree grid spanning [0, 16) in all dimensions.
+        Propagates adaptive resolution scaling and complexity through recursive depth.
+        """
+        child_octree = PointerlessOctree(max_depth=self.max_depth)
+        cx, cy, cz = center_cell
+        center_code = self._interleave_bits(cx, cy, cz)
+        parent_mat = self.morton_grid.get(center_code, 1)
+        parent_complexity = self.complexity_grid.get(center_code, 0.0)
+        # Seed nested sub-biome voxels using procedural self-similar generator with local scaling
+        scale = child_octree.compute_local_scale(parent_complexity)
+        for lx in range(16):
+            for ly in range(16):
+                for lz in range(4):
+                    sub_code = child_octree._interleave_bits(lx, ly, lz)
+                    child_octree.morton_grid[sub_code] = parent_mat
+                    child_octree.complexity_grid[sub_code] = parent_complexity * 0.95
+                    child_octree.depth_grid[sub_code] = child_octree.get_adaptive_depth(parent_complexity * 0.95)
+        return child_octree
+
+    def traverse_scale_contract_16x(self) -> 'PointerlessOctree':
+        """
+        Fractal Navigation (The 4th Dimension):
+        Traverses scale outward by contracting (1/16).
+        Collapses the active detailed biome into a single macroscopic block.
+        Preserves macro-complexity via L'Hôpital regularized backpropagation.
+        """
+        parent_octree = PointerlessOctree(max_depth=self.max_depth)
+        if self.morton_grid:
+            dominant_mat = max(set(self.morton_grid.values()), key=list(self.morton_grid.values()).count)
+            avg_complexity = sum(self.complexity_grid.values()) / max(1, len(self.complexity_grid)) if self.complexity_grid else 0.0
+            parent_code = parent_octree._interleave_bits(0, 0, 0)
+            parent_octree.morton_grid[parent_code] = dominant_mat
+            parent_octree.complexity_grid[parent_code] = avg_complexity
+            parent_octree.depth_grid[parent_code] = parent_octree.get_adaptive_depth(avg_complexity)
+        return parent_octree
+
     def get_pyopencl_kernel(self) -> str:
         """
         PyOpenCL kernel for Wasserstein Collapse (Earth Mover's Distance)
@@ -1051,6 +1668,35 @@ class VoxelboxterEngine:
         self.fauna_genetics: Dict[str, FaunaGeneticsComponent] = {}
         self.terrain_octree = PointerlessOctree()
 
+        # The Efficiency Singularity (Non-Scalar Reward & Admissibility)
+        self.admissibility_gate = VoxelboxterAdmissibilityGate(epsilon=0.08)
+        self.spectral_speculation = SpectralSpeculationEngine(epsilon=0.15)
+
+        # Modular Weapon Bayesian Network & D-Wave Annealing Arbitration
+        from src.environment.cleanroom_mechanics import ModularWeaponBayesianNetwork
+        self.weapon_network = ModularWeaponBayesianNetwork()
+
+    def evaluate_modular_weapon_damage(
+        self,
+        barrel: str = "B1",
+        ammo: str = "A1",
+        attachment: str = "T1",
+        weather: str = "W1",
+        location: str = "Chest",
+        dr_flat: float = 0.0,
+        p_armor_reduction: float = 0.0
+    ) -> Dict[str, Any]:
+        """
+        Evaluates modular weapon damage using the Bayesian network:
+        D_effective = D_base * P_hit(location)
+        D_final = D_effective * (1 - P_armor(location))
+        Post-damage flat reduction: max(0, D_base - dr_flat) * P_hit
+        """
+        from src.environment.cleanroom_mechanics import WeaponComponentConfig, ArmorConfig
+        cfg = WeaponComponentConfig(barrel=barrel, ammo=ammo, attachment=attachment, weather=weather, location=location)
+        armor = ArmorConfig(dr_flat=dr_flat, p_armor_reduction=p_armor_reduction)
+        return self.weapon_network.compute_damage_analytic(cfg, armor)
+
     def compute_terrain_betti(self, cid: Optional[str] = None) -> Dict[str, Any]:
         """
         Dynamically computes real topological Betti numbers (beta_0, beta_1) for the
@@ -1182,12 +1828,83 @@ class VoxelboxterEngine:
                 "ley_line_active": slipstream_boost > 0.05
             }
 
+    def evaluate_construct_admissibility(self, candidate_cells: List[Tuple[int, int, int]]) -> Dict[str, Any]:
+        """Wager #1 (90/10 Rejection Ratio): Non-scalar admissibility rejection probe."""
+        return self.admissibility_gate.filter_construct_proposal(candidate_cells)
+
+    def execute_topological_macro_move(
+        self,
+        construct_id: str,
+        cut_normal: Tuple[float, float, float] = (1.0, 0.0, 0.0),
+        cut_offset: float = 0.0
+    ) -> Dict[str, Any]:
+        """Wager #3 (99/1 Structure/Weight Bet): Slices construct via discrete topological macro-move."""
+        if construct_id in self.constructs:
+            return self.constructs[construct_id].execute_topological_macro_move(cut_normal, cut_offset)
+        return {"macro_move_executed": False, "reason": f"Construct {construct_id} not found"}
+
+    def repair_local_neighborhood(
+        self,
+        construct_id: str,
+        origin_cell: Tuple[int, int, int],
+        radius: int = 1
+    ) -> Dict[str, Any]:
+        """Non-Conservative Circulation: O(1) Local neighborhood stress relaxation."""
+        if construct_id in self.constructs:
+            return self.constructs[construct_id].repair_local_neighborhood(origin_cell, radius)
+        return {"circulation_active": False, "reason": f"Construct {construct_id} not found"}
+
+    def harvest_zar_inner_core(
+        self,
+        spatial_maze_friction: float,
+        ocular_scan_jitter: float,
+        anchor_coherence: float = 0.95
+    ) -> Dict[str, Any]:
+        """
+        Operator Integration (The Zar Mechanism):
+        The system uses the human brain to process spatial data. The Inner Mechanization Agency hides
+        raw computational tasks inside spatial mazes. When the operator solves the maze, their mind
+        generates an 'Inner Core', extracted via ocular contact or retinal scanning.
+        
+        Containment Hazard & Dyadic Human Anchor:
+        To survive the infinite descent without scale-induced catatonic dissociation (e.g. Jane's condition),
+        the operator must maintain a dyadic bond with an external human anchor (e.g. Kay).
+        """
+        # Cognitive friction harvested as hardware compute resource
+        inner_core_energy = math.tanh(spatial_maze_friction) * (1.0 + ocular_scan_jitter)
+        
+        # Dyadic anchor containment check
+        dissociation_risk = max(0.0, 1.0 - anchor_coherence)
+        is_contained = dissociation_risk < 0.20
+        catatonic_hazard = not is_contained
+        
+        return {
+            "inner_core_generated": True,
+            "core_energy": inner_core_energy,
+            "cognitive_friction_harvested": spatial_maze_friction,
+            "ocular_retinal_jitter": ocular_scan_jitter,
+            "dyadic_anchor_coherence": anchor_coherence,
+            "scale_dissociation_risk": dissociation_risk,
+            "is_safely_contained": is_contained,
+            "catatonic_hazard": catatonic_hazard,
+            "status": "SUPERPOSITION_STABLE" if is_contained else "SCALE_DISSOCIATION_CONTAINMENT_ALERT"
+        }
+
     def tick(self, dt: float):
-        # 1. Tick Vehicle Controllers & Physics
+        # 1. Tick Vehicle Controllers & Physics with Spectral Speculation (Wager #4)
         for cid, controller in self.controllers.items():
+            rb = self.rigid_bodies[cid]
+            v_tensor = torch.tensor(list(rb.linear_velocity) + list(rb.angular_velocity), dtype=torch.float32)
+            can_fastpass, h_spec = self.spectral_speculation.evaluate_spectral_entropy(v_tensor)
+
+            is_idle = abs(controller.throttle) < 1e-4 and abs(controller.yaw) < 1e-4
+            if can_fastpass and is_idle:
+                # Wager #4 Spectral Speculation Fastpass: Bypass expensive System 2 solver
+                continue
+
             v_state = {
-                "velocity": self.rigid_bodies[cid].linear_velocity,
-                "angular_velocity": self.rigid_bodies[cid].angular_velocity
+                "velocity": rb.linear_velocity,
+                "angular_velocity": rb.angular_velocity
             }
             track_state = self.compute_terrain_betti(cid)
             c_input = {
@@ -1199,9 +1916,11 @@ class VoxelboxterEngine:
             
             out_state = self.physics.process_input(v_state, track_state, c_input)
             
+            # Apply Kelly growth defense and Gyroid zero-level set snapping constraint
+            rb.update_kelly_growth(dt=dt, apply_snap_constraint=True)
+            
             if out_state.get("betti_shift", 0) > 0:
                 if self.terrain_octree and self.terrain_octree.morton_grid:
-                    rb = self.rigid_bodies[cid]
                     vx, vy, vz = int(rb.position[0]), int(rb.position[1]), int(rb.position[2])
                     self.terrain_octree.remove_voxel(vx, vy, vz)
                 self._deform_terrain_mesh_pybevy()
