@@ -107,6 +107,28 @@ class StructuralEnergyMonitor(nn.Module):
             'E_offending': self.E_offending.item(),
             'energy_gap': self.get_gap(),
             'free_energy': self.free_energy.item(),
-            'temperature_inv': self.beta.item()
+            'temperature_inv': self.beta.item(),
+            'thermal_runaway': float(self.check_topological_thermal_runaway())
         }
+
+    def check_topological_thermal_runaway(self, beta_crit: float = 0.05, free_energy_crit: float = 100.0) -> bool:
+        """
+        Evaluates whether the topological free energy or coordinate temperature has entered thermal runaway.
+        When coordinate time accelerates (dt_ratio >> 1) or energy diverges, beta drops below beta_crit.
+        Broadcasts to HardwareMonitor to throttle compute affordance.
+        """
+        is_runaway = bool(self.beta.item() < beta_crit or abs(self.free_energy.item()) > free_energy_crit)
+        if is_runaway:
+            try:
+                from src.core.hardware_monitor import HardwareMonitor
+                p_waste_est = float(abs(self.free_energy.item()) * 10.0)
+                HardwareMonitor().update_thermodynamics(
+                    p_waste=p_waste_est,
+                    p_cool_max=500.0,
+                    thermal_runaway=True,
+                    source="structural_energy_monitor"
+                )
+            except Exception:
+                pass
+        return is_runaway
 
