@@ -135,9 +135,9 @@ class FGRTStructuralTrainer:
              energy = energy + 1.0 * violation
         
         # Check Forbidden Smoothing (Periodically or always if cheap)
-        from src.core.hardware_monitor import HardwareMonitor
+        from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
         hw = HardwareMonitor.get_instance()
-        if self.prev_output is not None and self.prev_output.shape == output.shape and hw.has_compute_affordance():
+        if self.prev_output is not None and self.prev_output.shape == output.shape and hw.has_compute_affordance(ComputeAffordanceType.ALGORITHMIC):
             # Check smooth path from prev to current
             # This is expensive, so maybe we only do it if violation is high or randomly?
             # For now, we compute it but don't hard-block, just add to energy
