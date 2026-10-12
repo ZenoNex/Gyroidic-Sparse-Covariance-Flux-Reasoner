@@ -159,7 +159,17 @@ The model will automatically:
 
 **Phase 3: Advanced Constraints**
 - Structural irreducibility checks (`StructuralIrreducibilityChecker`)
-- Gyroidic differentiation constraints (`GyroidFlowConstraint`)
+- Gyroidic differentiation constraints (`GyroidFlowConstraint`, `ForbiddenSmoothingChecker`):
+  - **Orthogonality Requirement**: Enforces $\nabla_{\text{flow}} \Phi(r) \perp \nabla G$, where $G(x) = \sin(x)\cos(y) + \sin(y)\cos(z) + \sin(z)\cos(x) = 0$.
+  - **Exact Stencil Evaluation**:
+    1. *Functional Directional Derivatives*: When an explicit transformation $\Phi$ is provided, evaluates central difference directional derivatives across normalized residue perturbations:
+       $$\nabla_u \Phi(r) = \frac{\Phi(r + \delta \hat{u}) - \Phi(r - \delta \hat{u})}{2\delta} \cdot s\left(\frac{\|\Delta \Phi\|}{2\delta}\right)$$
+    2. *Trajectory Velocity Tangents*: When embeddings represent a temporal sequence $[B, T, 3]$, computes central difference path tangents $v_t = \frac{x_{t+1} - x_{t-1}}{2}$.
+    3. *Hamiltonian Tangent Flow*: For coordinate point clouds in $\mathbb{R}^3$, evaluates $G(x \pm \delta e_i)$ across displaced axial stencils to construct the skew-symmetric flow:
+       $$\mathbf{v} = J \nabla G = \begin{pmatrix} -\partial_y G \\ \partial_x G - \partial_z G \\ \partial_y G \end{pmatrix}$$
+       Because $J = -J^T$, this guarantees $\langle \mathbf{v}, \nabla G \rangle \equiv 0$ analytically on the Gyroid manifold.
+  - **L'Hôpital Boundary Regularization**: Scales finite differences by $s(c) = \frac{\log(c + 1)}{c}$ (with $\lim_{c \to 0} s(c) = 1.0$), damping derivative explosion across discontinuous fractures.
+  - **Forbidden Smoothing Barrier**: Checks both first-order ($\langle \dot{\gamma}, \nabla G \rangle < \epsilon$) and second-order ($\dot{\gamma}^T \mathcal{H}_G \dot{\gamma} < \epsilon$) conditions along candidate paths $\gamma: [0, 1] \to \mathcal{C}$ between similar embeddings, halting artificial smoothing through topological ridges.
 - Continuous co-primality (discrete entropy quantization)
 - Meta-invariant monitoring (`MetaInvariant`)
 
