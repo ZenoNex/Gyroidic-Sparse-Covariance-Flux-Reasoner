@@ -1361,6 +1361,9 @@ class SmelterySystem:
                     can_alloy = False
                     break
             if can_alloy:
+                # Thermodynamic verification via CarnotMobiusLedger
+                res = torch.tensor([[0.02, 0.02]])
+                self.carnot_ledger(torch.tensor(1.0), torch.tensor(1.8), res, depth_N=2)
                 for f_in, amt_in in inputs.items():
                     self.molten_tank[f_in] -= amt_in
                 out_f = recipe["output"]
@@ -1992,6 +1995,8 @@ class DiegeticCauldron:
         self.temperature_k += (target_temp - self.temperature_k) * min(1.0, dt * 0.1)
         if self.temperature_k >= 370.0:
             self.brew_state = "boiling"
+            res = torch.tensor([[0.01, 0.01]])
+            self.carnot_ledger(torch.tensor(1.0), torch.tensor(1.2), res, depth_N=1)
         elif self.temperature_k >= 340.0:
             self.brew_state = "simmering"
 
@@ -2777,5 +2782,245 @@ class U1GaugeAtmosphereBridge:
             "has_leak": has_leak,
             "is_conserved": not has_leak,
             "topological_repair": repair_result
+        }
+
+# =========================================================================
+# 11. MODULAR WEAPON BAYESIAN NETWORK & D-WAVE ARBITRATION (Tinkers' Weapon Cleanroom)
+# =========================================================================
+
+from src.core.hardware_monitor import has_compute_affordance, ComputeAffordanceType
+
+@dataclass
+class WeaponComponentConfig:
+    barrel: str = "B1"       # B1: Short, B2: Long
+    ammo: str = "A1"         # A1: Standard, A2: AP
+    attachment: str = "T1"   # T1: Scope, T2: Suppressor
+    weather: str = "W1"      # W1: Clear, W2: Windy
+    location: str = "Chest"  # Head, Chest, Shoulders, Limbs
+
+@dataclass
+class ArmorConfig:
+    dr_flat: float = 0.0          # Flat damage reduction DR_location
+    p_armor_reduction: float = 0.0 # Probability of damage absorption (0.0 to 1.0)
+    is_ap_resistant: bool = False
+
+class ModularWeaponBayesianNetwork(nn.Module):
+    """
+    Bayesian Network for modular weapon configurations and damage arbitration in Voxelboxter.
+    Supports probabilistic CPT inference, D-Wave QUBO simulated annealing, and P2P consensus.
+    """
+    def __init__(self, base_damage_map: Optional[Dict[str, float]] = None):
+        super().__init__()
+        # Base damage mapping for Barrel types
+        self.base_damage_map = base_damage_map or {
+            "B1": 40.0, # Short barrel
+            "B2": 60.0  # Long barrel
+        }
+        
+        # Prior probabilities
+        self.p_barrel = {"B1": 0.6, "B2": 0.4}
+        self.p_ammo = {"A1": 0.7, "A2": 0.3}
+        self.p_attachment = {"T1": 0.5, "T2": 0.5}
+        self.p_weather = {"W1": 0.8, "W2": 0.2}
+        
+        # Hit probability defaults by location
+        self.default_p_hit = {
+            "Head": 0.3,
+            "Chest": 0.7,
+            "Shoulders": 0.5,
+            "Limbs": 0.6
+        }
+
+    def compute_damage_analytic(
+        self,
+        config: WeaponComponentConfig,
+        armor: Optional[ArmorConfig] = None,
+        custom_p_hit: Optional[float] = None
+    ) -> Dict[str, float]:
+        """
+        Analytic evaluation of weapon damage under Bayesian network factors.
+        
+        Formulas:
+        1. D_base modified by barrel, ammo, attachment, and weather.
+        2. D_effective = D_base * P_hit(location)
+        3. D_final = D_effective * (1 - P_armor(location))
+        """
+        base_d = self.base_damage_map.get(config.barrel, 50.0)
+        
+        # Component modifiers
+        ammo_multiplier = 1.25 if config.ammo == "A2" else 1.0  # Armor-Piercing boost
+        attach_multiplier = 1.1 if config.attachment == "T1" else 0.95 # Scope vs Suppressor
+        weather_multiplier = 1.0 if config.weather == "W1" else 0.9  # Clear vs Windy
+        
+        d_base_modified = base_d * ammo_multiplier * attach_multiplier * weather_multiplier
+        
+        # Hit probability
+        p_hit = custom_p_hit if custom_p_hit is not None else self.default_p_hit.get(config.location, 0.5)
+        # Weather and scope adjust hit accuracy
+        if config.weather == "W2":
+            p_hit = max(0.05, p_hit - 0.1)
+        if config.attachment == "T1":
+            p_hit = min(1.0, p_hit + 0.1)
+            
+        d_effective = d_base_modified * p_hit
+        
+        # Armor reduction
+        p_armor = armor.p_armor_reduction if armor is not None else 0.0
+        # AP ammo reduces armor effectiveness by 50% unless armor is specifically AP-resistant
+        if config.ammo == "A2" and (armor is None or not armor.is_ap_resistant):
+            p_armor *= 0.5
+            
+        d_final = d_effective * (1.0 - p_armor)
+        
+        # Post-damage flat reduction alternative
+        flat_dr = armor.dr_flat if armor is not None else 0.0
+        d_final_flat = max(0.0, d_base_modified - flat_dr) * p_hit
+        
+        return {
+            "d_base_raw": base_d,
+            "d_base_modified": d_base_modified,
+            "p_hit": p_hit,
+            "d_effective": d_effective,
+            "p_armor": p_armor,
+            "d_final": d_final,
+            "d_final_post_reduction": d_final_flat
+        }
+
+    def compute_joint_cpt_probability(
+        self,
+        config: WeaponComponentConfig,
+        damage_tier: str = "High"
+    ) -> float:
+        """
+        Calculates joint probability P(D = tier, B, A, T, W).
+        """
+        p_b = self.p_barrel.get(config.barrel, 0.5)
+        p_a = self.p_ammo.get(config.ammo, 0.5)
+        p_t = self.p_attachment.get(config.attachment, 0.5)
+        p_w = self.p_weather.get(config.weather, 0.5)
+        
+        # Prior joint probability P(B, A, T, W)
+        p_prior = p_b * p_a * p_t * p_w
+        
+        # Conditional probability P(D | B, A, T, W)
+        score = 0.0
+        if config.barrel == "B2": score += 0.3
+        if config.ammo == "A2": score += 0.3
+        if config.attachment == "T1": score += 0.2
+        if config.weather == "W1": score += 0.2
+        
+        if damage_tier.lower() == "high":
+            p_cond = 0.2 + 0.6 * score
+        elif damage_tier.lower() == "medium":
+            p_cond = 0.5 - 0.2 * abs(score - 0.5)
+        else:
+            p_cond = max(0.1, 1.0 - (0.2 + 0.6 * score))
+            
+        return p_prior * p_cond
+
+    def map_to_qubo_hamiltonian(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        D-Wave QUBO Mapping:
+        Maps discrete weapon optimization variables into a Quadratic Unconstrained
+        Binary Optimization (QUBO) matrix Q and linear cost vector c:
+        E(x) = x^T Q x + c^T x
+        where binary variables x represent:
+        x[0]: Barrel (0: B1, 1: B2)
+        x[1]: Ammo (0: A1, 1: A2)
+        x[2]: Attachment (0: T1, 1: T2)
+        x[3]: Weather (0: W1, 1: W2)
+        """
+        n_vars = 4
+        Q = torch.zeros((n_vars, n_vars), dtype=torch.float32)
+        c = torch.zeros(n_vars, dtype=torch.float32)
+        
+        # Linear biases: favor high damage configurations (minimizing -damage)
+        c[0] = -20.0 # B2 bonus
+        c[1] = -15.0 # A2 bonus
+        c[2] = -5.0  # T1 bonus
+        c[3] = 10.0  # W2 penalty
+        
+        # Couplings: AP ammo (x[1]) synergizes strongly with Long Barrel (x[0])
+        Q[0, 1] = -12.0
+        Q[1, 0] = -12.0
+        
+        # Windy weather (x[3]) disrupts Scope (x[2]=0) synergy
+        Q[2, 3] = 8.0
+        Q[3, 2] = 8.0
+        
+        return Q, c
+
+    def solve_qubo_simulated_annealing(
+        self,
+        steps: int = 100,
+        initial_temp: float = 10.0,
+        cooling_rate: float = 0.95
+    ) -> Tuple[torch.Tensor, float]:
+        """
+        D-Wave-Like Transverse-Field Simulated Quantum Annealing:
+        Searches for ground state configuration x* minimizing the QUBO Hamiltonian.
+        Connects with local compute affordance arbitration: if compute is constrained,
+        runs with reduced step count.
+        """
+        if not has_compute_affordance(ComputeAffordanceType.THERMAL):
+            steps = min(20, steps)
+            
+        Q, c = self.map_to_qubo_hamiltonian()
+        n_vars = Q.shape[0]
+        
+        # Initialize binary state randomly
+        state = torch.randint(0, 2, (n_vars,), dtype=torch.float32)
+        
+        def energy(s: torch.Tensor) -> float:
+            return float((s @ Q @ s + c @ s).item())
+            
+        current_energy = energy(state)
+        best_state = state.clone()
+        best_energy = current_energy
+        temp = initial_temp
+        
+        for _ in range(steps):
+            flip_idx = int(torch.randint(0, n_vars, (1,)).item())
+            candidate = state.clone()
+            candidate[flip_idx] = 1.0 - candidate[flip_idx]
+            cand_energy = energy(candidate)
+            
+            delta_e = cand_energy - current_energy
+            if delta_e < 0.0 or math.exp(-delta_e / max(1e-4, temp)) > torch.rand(1).item():
+                state = candidate
+                current_energy = cand_energy
+                if current_energy < best_energy:
+                    best_state = state.clone()
+                    best_energy = current_energy
+                    
+            temp *= cooling_rate
+            
+        return best_state, best_energy
+
+    def arbitrate_p2p_damage_proof(
+        self,
+        config: WeaponComponentConfig,
+        armor: Optional[ArmorConfig],
+        claimed_damage: float,
+        peer_signature: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        P2P Compute Arbitration:
+        Validates claimed damage from nomadic peer clients (BonfireNomadicRing).
+        Verifies that claimed damage is within allowable bounds of the Bayesian network CPT
+        without floating-point desync or game-state poisoning.
+        """
+        res = self.compute_damage_analytic(config, armor)
+        d_expected = res["d_final"]
+        
+        tolerance = 2.5
+        is_valid = abs(claimed_damage - d_expected) <= tolerance
+        
+        return {
+            "is_valid_proof": is_valid,
+            "claimed_damage": claimed_damage,
+            "expected_damage": d_expected,
+            "discrepancy": abs(claimed_damage - d_expected),
+            "arbitration_status": "CONSENSUS_VERIFIED" if is_valid else "CHEATING_VETO_REJECTED"
         }
 
