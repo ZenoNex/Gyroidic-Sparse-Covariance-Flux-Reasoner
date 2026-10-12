@@ -110,7 +110,7 @@ The formalism introduces several critical concepts that transform System 2 from 
   ```python
   class HyperRingOperator(nn.Module):
       """
-      H(r) = ∮_C ∇_top Φ(r)
+      H(r) = _C _top (r)
       """
       def forward(self, residue: torch.Tensor, constraint_manifold: torch.Tensor):
           # Compute topological gradient
@@ -183,7 +183,7 @@ The formalism introduces several critical concepts that transform System 2 from 
   ) -> bool:
       """
       Check: <pi_alpha Phi(r), pi_beta Phi(r)> = 0 for alpha != beta
-      and rank(⊕_alpha pi_alpha Phi(r)) > 1
+      and rank(_alpha pi_alpha Phi(r)) > 1
       """
       projections = [pi(Phi(r)) for pi in evidence_modules]
       
@@ -306,7 +306,7 @@ The formalism introduces several critical concepts that transform System 2 from 
   ```python
   class SolitonStability(nn.Module):
       """
-      D(r) = ∫_C |∇Φ(r)|^2 dμ
+      D(r) = _C |(r)|^2 d
       """
       def compute_dispersion(
           self, 
@@ -335,7 +335,7 @@ The formalism introduces several critical concepts that transform System 2 from 
       eta: float = 0.5
   ) -> torch.Tensor:
       """
-      Lambda(r) = sup_{U subset C} mu(U) s.t. ∫_U |Phi(r)|^2 dμ >= eta
+      Lambda(r) = sup_{U subset C} mu(U) s.t. _U |Phi(r)|^2 d >= eta
       """
       # Find largest region U where energy >= eta
       # Use greedy or optimization-based approach
@@ -374,73 +374,44 @@ The formalism introduces several critical concepts that transform System 2 from 
 
 ### Required Changes
 
-**7.1 Gyroid Implicit Surface**
-- **New File**: `src/topology/gyroid_differentiation.py`
-- **Implementation**:
-  ```python
-  class GyroidImplicitSurface(nn.Module):
-      """
-      G(x) = sin(x)cos(y) + sin(y)cos(z) + sin(z)cos(x) = 0
-      """
-      def forward(self, x: torch.Tensor) -> torch.Tensor:
-          # x: [batch, 3] or [batch, seq_len, 3]
-          sin_x, cos_x = torch.sin(x[..., 0]), torch.cos(x[..., 0])
-          sin_y, cos_y = torch.sin(x[..., 1]), torch.cos(x[..., 1])
-          sin_z, cos_z = torch.sin(x[..., 2]), torch.cos(x[..., 2])
-          
-          G = sin_x * cos_y + sin_y * cos_z + sin_z * cos_x
-          return G
-      
-      def gradient(self, x: torch.Tensor) -> torch.Tensor:
-          """∇G(x)"""
-          x.requires_grad_(True)
-          G = self.forward(x)
-          grad_G = torch.autograd.grad(G, x, create_graph=True)[0]
-          return grad_G
-  ```
+**7.1 Gyroid Implicit Surface Representation**
+- **File**: `src/topology/gyroid_differentiation.py` (consolidating `GyroidManifold` from `src.core.fgrt_primitives`)
+- **Mathematical Form**:
+  $$G(x) = \sin(x)\cos(y) + \sin(y)\cos(z) + \sin(z)\cos(x) = 0$$
+- **Gradient**: Evaluated analytically or via autograd on $\mathbb{R}^3$ coordinates.
 
-**7.2 Flow Constraint Enforcement**
-- **Implementation**:
+**7.2 Flow Constraint Enforcement (`GyroidFlowConstraint`)**
+- **Constraint**: $\nabla_{\text{flow}}\Phi(r) \perp \nabla G$
+- **Implementation Architecture**:
   ```python
   class GyroidFlowConstraint(nn.Module):
-      """
-      ∇_flow Φ(r) ⟂ ∇G
-      """
-      def __init__(self):
-          self.gyroid = GyroidImplicitSurface()
-          
-      def check_constraint(
+      def __init__(self, tolerance: float = 1e-4):
+          super().__init__()
+          self.gyroid = GyroidManifold()
+          self.tolerance = tolerance
+
+      def compute_flow_gradient(
           self,
           residue: torch.Tensor,
-          embedding: torch.Tensor
+          embedding: torch.Tensor,
+          embedding_fn: Optional[callable] = None
       ) -> torch.Tensor:
-          """
-          Check: <∇_flow Φ(r), ∇G> = 0
-          """
-          grad_flow = self.compute_flow_gradient(residue, embedding)
-          grad_G = self.gyroid.gradient(embedding)
-          
-          dot_product = torch.sum(grad_flow * grad_G, dim=-1)
-          return torch.abs(dot_product)  # Should be ~0
+          # Evaluates actual functional displacements at x \pm \delta:
+          # 1. embedding_fn present: Directional derivatives along unit residue perturbation u = r / ||r||
+          #    scaled by L'Hopital regularizer s(c) = log(c + 1) / c.
+          # 2. Sequence trajectory [B, T, 3]: Path velocity tangents (x_{t+1} - x_{t-1}) / 2.
+          # 3. Coordinate point cloud [B, 3]: Hamiltonian skew-symmetric flow v = J \nabla G
+          #    across displaced axial stencils x \pm \delta e_i, analytically satisfying <v, \nabla G> = 0.
+          ...
   ```
 
-**7.3 Forbidden Smoothing Condition**
-- **Implementation**:
-  ```python
-  def check_forbidden_smoothing(
-      self,
-      residue_1: torch.Tensor,
-      residue_2: torch.Tensor
-  ) -> bool:
-      """
-      Check: NOT exists gamma: [0,1] -> C s.t.
-      Phi(r1) ~ Phi(r2) and gamma subset G^perp
-      """
-      # Check if smooth path exists in gyroid-orthogonal space
-      # If yes, return True (forbidden)
-      # If no, return False (allowed)
-      ...
-  ```
+**7.3 Forbidden Smoothing Barrier (`ForbiddenSmoothingChecker`)**
+- **Condition**: $\neg \exists \gamma: [0, 1] \to \mathcal{C}$ such that $\Phi(r_1) \sim \Phi(r_2)$ and $\gamma \subset G^\perp$.
+- **Verification**:
+  - Sample intermediate points along candidate trajectory $\gamma(t)$.
+  - Evaluate first-order perpendicularity: $|\langle \dot{\gamma}(t), \nabla G(\gamma(t)) \rangle| < \text{tolerance}$.
+  - Evaluate second-order curvature barrier: $|\dot{\gamma}(t)^T \mathcal{H}_G(\gamma(t)) \dot{\gamma}(t)| < \text{tolerance}$.
+  - If both hold throughout the path, the shortcut through $G^\perp$ is flagged as forbidden (`is_forbidden = True`).
 
 **7.4 Integration with Constraint Probe**
 - **File**: `src/optimization/operational_admm.py`
@@ -489,7 +460,7 @@ The formalism introduces several critical concepts that transform System 2 from 
       time_steps: int = 100
   ) -> bool:
       """
-      Check: lim_{t->∞} Cov(r_i^(t), r_j^(t)) = 0
+      Check: lim_{t->} Cov(r_i^(t), r_j^(t)) = 0
       """
       covariances = []
       for t in range(time_steps):
@@ -524,7 +495,7 @@ The formalism introduces several critical concepts that transform System 2 from 
   ```python
   class RuptureFunctional(nn.Module):
       """
-      R(r) = 1 if exists k: L_k(r, c_k) = ∞
+      R(r) = 1 if exists k: L_k(r, c_k) = 
       R(r) = 0 otherwise
       """
       def forward(
@@ -543,7 +514,7 @@ The formalism introduces several critical concepts that transform System 2 from 
 
 **9.2 Failure Token Emission**
 - **File**: `src/optimization/operational_admm.py`
-- **Change**: On `R(r) = 1`, emit `⊥` token (not error, not gradient, not repair)
+- **Change**: On `R(r) = 1`, emit `` token (not error, not gradient, not repair)
 - **Implementation**:
   ```python
   if rupture_functional(residue, constraint_losses) == 1:
@@ -556,7 +527,7 @@ The formalism introduces several critical concepts that transform System 2 from 
 - **Implementation**:
   ```python
   class FailureToken:
-      BOT = "⊥"
+      BOT = ""
       REPAIRED = "repaired"
       ALTERNATIVE = "alternative"
       
@@ -625,13 +596,13 @@ The formalism introduces several critical concepts that transform System 2 from 
 5. **Persistence Obstruction Graph** (Section 5)
 6. **Soliton Stability** (Section 6)
 
-### Phase 3: Advanced Constraints ✅ COMPLETE (January 2026)
+### Phase 3: Advanced Constraints [OK] COMPLETE (January 2026)
 7. **Structural Irreducibility** (Section 4) - Implemented in `structural_irreducibility.py`
 8. **Gyroidic Differentiation** (Section 7) - Implemented in `gyroid_differentiation.py`
 9. **Continuous Co-Primality** (Section 8) - Implemented in `polynomial_coprime.py`
 10. **Meta-Invariant** (Section 10) - Implemented in `meta_invariant.py`
 
-### Phase 4: Sparse Operational Pointers ✅ COMPLETE (January 2026)
+### Phase 4: Sparse Operational Pointers [OK] COMPLETE (January 2026)
 11. **Rejection-Only Selection** - `trainer.py` (Pointer #1)
 12. **Legibility Audit** - `legibility_audit.py` (Pointer #2)
 13. **Saturation-Gated Fossilization** - `polynomial_coprime.py` (Pointer #3)
@@ -677,19 +648,19 @@ The formalism introduces several critical concepts that transform System 2 from 
 
 > **All questions resolved as of January 18, 2026**
 
-1. ✅ **Performance**: Use **approximate PH** (Ripser-style, trigger-based). Exactness is epistemically misleading.
+1. [OK] **Performance**: Use **approximate PH** (Ripser-style, trigger-based). Exactness is epistemically misleading.
    - Implemented: `ApproximatePHProbe` in `src/topology/approximate_ph.py`
 
-2. ✅ **Hyper-Ring Computation**: **Discrete always.** Adaptive resolution on phase slippage.
+2. [OK] **Hyper-Ring Computation**: **Discrete always.** Adaptive resolution on phase slippage.
    - Implemented: `DiscreteHyperRingCirculation` in `src/topology/hyper_ring.py`
 
-3. ✅ **Evidence Modules**: **Tripartite** (data + architectural + adversarial). Must disagree internally.
+3. [OK] **Evidence Modules**: **Tripartite** (data + architectural + adversarial). Must disagree internally.
    - Implemented: `TripartiteEvidenceModule` in `src/core/evidence_modules.py`
 
-4. ✅ **Soliton Threshold**: **Relational κ(t) = μ + λσ**, never learned. λ is architectural temperament.
+4. [OK] **Soliton Threshold**: **Relational (t) =  + **, never learned.  is architectural temperament.
    - Implemented: `RelationalKappa` in `src/core/relational_kappa.py`
 
-5. ✅ **Meta-Invariant Enforcement**: **Poison collapse paths**, don't force expansion.
+5. [OK] **Meta-Invariant Enforcement**: **Poison collapse paths**, don't force expansion.
    - Implemented: `CollapsePathPoisoner` in `src/core/collapse_poisoner.py`
 
 ---
@@ -699,12 +670,12 @@ The formalism introduces several critical concepts that transform System 2 from 
 **PHASES 1-6 COMPLETE**
 
 All implementation phases finished:
-- Phase 1: Core Constraint Probe ✅
-- Phase 2: Topological Guarantees ✅
-- Phase 3: Advanced Constraints ✅
-- Phase 4: Sparse Operational Pointers ✅
-- Phase 5: Structural Design Decisions ✅
-- Phase 6: Non-Ergodic Fractal Entropy ✅
+- Phase 1: Core Constraint Probe [OK]
+- Phase 2: Topological Guarantees [OK]
+- Phase 3: Advanced Constraints [OK]
+- Phase 4: Sparse Operational Pointers [OK]
+- Phase 5: Structural Design Decisions [OK]
+- Phase 6: Non-Ergodic Fractal Entropy [OK]
 
 ### Phase 6: Non-Ergodic Fractal Entropy (January 18, 2026)
 
