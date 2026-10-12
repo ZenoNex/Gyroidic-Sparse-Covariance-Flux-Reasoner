@@ -21,7 +21,7 @@ Our audit of the documentation (`docs/` and `vault_docs/`) confirms the deep int
 
 ### B. Virtualization of Floating Point into Modular Algebra
 *   **Status**: [OK] Implemented in `src/core/modular_virtualization.py`.
-*   **Integration**: `ModularVirtualizationLayer` achieves direct virtualization of floating-point states into a hybrid finite field (Residue Number System). It explicitly protects the modular boundary using the `p * R_p` composite modulus and performs zero-cost invalid trajectory rejection via `repunit_crt_sparse_probe`.
+*   **Integration**: `ModularVirtualizationLayer` achieves direct virtualization of floating-point states into a hybrid finite field (Residue Number System). It protects the modular boundary using the `p * R_p` composite modulus for symmetric warmstart paths, while employing `legacy_mode` and `VoynichExemptionToken` overrides to prevent acting as a blind rule against chiral and non-commutative dynamics.
 
 ---
 
@@ -36,5 +36,5 @@ The system now fully implements the harmonized virtualization layer:
     *   Modular coordinates propagate through FGRT. In the event of persistent violation, `topological_refusal_snap` is called, anchoring back to valid Birkhoff polytope signatures.
 
 ### Completed Artifacts
-*   [NEW] `src/core/modular_virtualization.py` - Full hybrid RNS logic.
-*   [UPDATED] `src/core/fgrt_primitives.py` - Lazarus Prime prioritized Repunit generators.
+*  `src/core/modular_virtualization.py` - Full hybrid RNS logic.
+*  `src/core/fgrt_primitives.py` - Lazarus Prime prioritized Repunit generators.
