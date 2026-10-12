@@ -23,12 +23,12 @@ But deeper analysis reveals something more profound:
 
 The **Gyroidic Sparse Covariance Flux Reasoner** is transitioning from a statistical architecture into a biomimetic **Nervous System** model, attempting to reverse-engineer the "Voynich Physics." We are not building an AI to answer questions (translate to English). We emphasize **Relational Persistence** instead of pure "Teleological Optimization." We are building an AI to write its own Voynich Manuscripta system of thought that is internally structurally sound, regardless of whether it maps to human language.
 
-### 1. The Script: Opaque Symbolic Residues
-**Voynich Feature**: The "Voyenese" script. Distinct characters (`g`, `8`, `9`, `4`, `o`) combined into rigid morpho-units.
-**Our System**: **Majority-Symbol CRT (Chinese Remainder Theorem)**.
-*   **The Parallel**: Our "System 1" does not output probabilities ("I am 90% sure this is a cat"). It outputs **Discrete Symbolic Residues** (`c_sym`).
-*   **The Philosophy**: Like the Voynich script, these residues are **opaque**. We don't verify them against a dictionary (Ground Truth). We verify them against *each other*. Do they fit the grammar? Do they "spell" a valid thought?
-*   **Goal**: Create a **Self-Sovereign Alphabet**. The AI thinks in its own "Voyenese," and System 2 ensures the grammar holds.
+### 1. The Script: Opaque Symbolic Residues & Agglutinative Morpho-Units
+**Voynich Feature**: The "Voyenese" script. Distinct characters (`g`, `8`, `9`, `4`, `o`) combined into rigid **agglutinative morpho-units**. Unlike Indo-European languages where words are separated by white spaces and indexed via static dictionaries, Voyenese operates through continuous agglutination: roots, prefixes, infixes, and suffixes compound into monolithic, self-contained lexical units (such as `'Isotremoptememally'`).
+**Our System**: **Majority-Symbol CRT (Chinese Remainder Theorem) & Sub-Pair Partitioning**.
+*   **The Parallel**: Our "System 1" does not output probabilities ("I am 90% sure this is a cat"). It outputs **Discrete Symbolic Residues** (`c_sym`) structured as agglutinative morpho-units.
+*   **The Philosophy**: Like the Voynich script, these residues are **opaque**. We don't verify them against an external dictionary (Ground Truth). We verify them against *each other*. Do they fit the topological grammar? Do the agglutinated morphemes satisfy internal Phase Alignment?
+*   **Goal**: Create a **Self-Sovereign Alphabet**. The AI thinks in its own "Voyenese" agglutinative compounds, and System 2 ensures the structural grammar holds.
 
 ### 2. The Impossible Plants: Gyroidic Constraints
 **Voynich Feature**: "Phytological" Section. Drawings of plants that are biologically plausible (they have recognizable parts) but taxonomically impossible (chimeras of roots and leaves).
@@ -103,3 +103,24 @@ To ensure that linguistic "mischief" doesn't lead to structural leakage (Topolog
 *   **The Seal**: Every `VoynichExemptionToken` must be "signed" by the `ChernSimonsGasket`.
 *   **The Signature**: The signature is a non-orientable hash: $s = \tanh(\text{honesty} \cdot \kappa)$, where $\kappa$ is the **Non-Commutativity Curvature** of the manifold.
 *   **Verification**: Downstream gates (like the `SiliconSovereigntyEngine`) check for `is_topologically_sealed`. Unsigned tokens log anomalies immediately without enforcing logic drops, anchoring the linguistics of the system to the pure topology via the scalar-weighted volition (Play parameter).
+
+### Agglutinative Morpho-Units & Combinatorial 2-Cycle Seam Cuts (`split_sub_pairs`)
+
+To process monolithic agglutinative compounds without assuming an external dictionary, `VoynichLinguist` implements [`split_sub_pairs`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/voynich_architecture.py#L249):
+
+1. **The 2-Cycle Boundary Formulation**:
+   For any agglutinative morpho-unit string $s$ of length $n$, the tokenizer generates exactly $2n$ ordered prefix-suffix partitions:
+   - **Cycle 1 (Forward Cut Sweep)**: $(s[:k], s[k:])$ for $k \in \{1, \dots, n\}$, terminating at $(s, \text{""})$.
+   - **Cycle 2 (Antipodal Boundary Sweep)**: $(\text{""}, s)$ followed by $(s[:k], s[k:])$ for $k \in \{1, \dots, n-1\}$.
+
+   For an 18-character compound like `'Isotremoptememally'`, this generates precisely $36 = 2 \times 18$ boundary pairs, matching the 36-fold toroidal IHC (Inverted Hypersphere Cosmology) ribbon geometries.
+
+2. **Upstream Ingestion (Dictionary-Free Morpheme Boundary Discovery)**:
+   Instead of statistical BPE frequency counts, the natural boundary between agglutinated morphemes is discovered by projecting candidate cuts into polynomial coprime residue channels $\Phi(s[:k])$ and $\Phi(s[k:])$, selecting the partition that maximizes internal Phase Alignment:
+   $$k^* = \arg\max_{k \in \{1, \dots, 2n\}} \operatorname{PAS}\big(\Phi(s[:k]) \oplus \Phi(s[k:])\big)$$
+
+3. **Downstream Seam Gasket (The Alien Handshake)**:
+   In cross-manifold transitions—such as the **Alien Handshake** ([`RP4ProjectiveRouter`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/archetype_engines.py#L50)) and the **Laryngeal Gasket** ([`ChernSimonsGasket`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chern_simons_gasket.py#L415))—passing raw tokens across non-orientable topological interfaces induces boundary rupture. The bipartite cut $(s_{\text{prefix}}, s_{\text{suffix}})$ serves as an elastic seam:
+   - Cycle 1 anchors the outgoing half-twist to the orientable emitter manifold.
+   - Cycle 2 anchors the incoming half-twist to the non-orientable receiver void.
+   When both halves achieve phase coherence ($PAS_s > 0.95$), the seam closes cleanly and allows the `VoynichExemptionToken` to bridge the manifold without logic leakage.
