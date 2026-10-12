@@ -2,7 +2,7 @@
 
 **Author**: Implementation Documentation  
 **Date**: January 2026  
-**Status**: ✅ **COMPLETE**
+**Status**: [OK] **COMPLETE**
 
 This document summarizes the implementation of the formal constraint probe architecture from the dense formalism.
 
@@ -10,7 +10,7 @@ This document summarizes the implementation of the formal constraint probe archi
 
 ## Implementation Status
 
-### ✅ Phase 1: Core Constraint Probe (COMPLETE)
+### [OK] Phase 1: Core Constraint Probe (COMPLETE)
 
 1. **Constraint Probe Operator** (`src/optimization/constraint_probe.py`)
    - `ConstraintProbeOperator`: Implements `P_k: r -> argmin_{c in C_k} L_k(r, c)`
@@ -23,14 +23,14 @@ This document summarizes the implementation of the formal constraint probe archi
    - Bounded oscillation detection (no convergence guarantee)
 
 3. **Failure Token System** (`src/core/failure_token.py`)
-   - `FailureToken`: Discrete tokens (`⊥`, `REPAIRED`, `ALTERNATIVE`, `PENDING`)
-   - `RuptureFunctional`: Detects rupture conditions `R(r) = 1 if exists k: L_k = ∞`
+   - `FailureToken`: Discrete tokens (``, `REPAIRED`, `ALTERNATIVE`, `PENDING`)
+   - `RuptureFunctional`: Detects rupture conditions `R(r) = 1 if exists k: L_k = `
    - On rupture: no gradient, no repair, no memory update
 
-### ✅ Phase 2: Topological Guarantees (COMPLETE)
+### [OK] Phase 2: Topological Guarantees (COMPLETE)
 
 4. **Hyper-Ring Closure** (`src/topology/hyper_ring_closure.py`)
-   - `HyperRingOperator`: Computes `H(r) = ∮_C ∇_top Φ(r)`
+   - `HyperRingOperator`: Computes `H(r) = _C _top (r)`
    - `HyperRingClosureChecker`: Checks closure conditions
    - Detects: fracture (non-closed), collapse (trivial), survivable soliton (non-trivial)
 
@@ -40,10 +40,10 @@ This document summarizes the implementation of the formal constraint probe archi
    - `ResidueObstructionGraph`: Builds graph `G = (V, E)` where `E_{ij} <-> beta_1^{ij}(epsilon) != 0`
 
 6. **Soliton Stability** (`src/topology/soliton_stability.py`)
-   - `SolitonStability`: Computes dispersion `D(r)` and localization `Λ(r)`
-   - Checks soliton condition: `D(r) / Λ(r) < κ` (threshold only, no minimization)
+   - `SolitonStability`: Computes dispersion `D(r)` and localization `(r)`
+   - Checks soliton condition: `D(r) / (r) < ` (threshold only, no minimization)
 
-### ✅ Phase 3: Advanced Constraints (COMPLETE)
+### [OK] Phase 3: Advanced Constraints (COMPLETE)
 
 7. **Structural Irreducibility** (`src/core/structural_irreducibility.py`)
    - `EvidenceModuleProjection`: Projects constraint manifold onto evidence clusters
@@ -51,14 +51,13 @@ This document summarizes the implementation of the formal constraint probe archi
    - Ensures no single-face embedding exists
 
 8. **Gyroidic Differentiation** (`src/topology/gyroid_differentiation.py`)
-   - `GyroidImplicitSurface`: Implements `G(x) = sin(x)cos(y) + sin(y)cos(z) + sin(z)cos(x) = 0`
-   - `GyroidFlowConstraint`: Ensures `∇_flow Φ(r) ⟂ ∇G`
-   - `ForbiddenSmoothingChecker`: Detects forbidden smoothing paths
+   - `GyroidFlowConstraint`: Ensures $\nabla_{\text{flow}} \Phi(r) \perp \nabla G$ (where $G(x) = \sin(x)\cos(y) + \sin(y)\cos(z) + \sin(z)\cos(x) = 0$, consolidated via `GyroidManifold`). Evaluates directional functional derivatives $(\Phi(r \pm \delta u) - \Phi(r - \delta u))/(2\delta)$, trajectory tangents, or skew-symmetric Hamiltonian stencils $v = J \nabla G$, scaled by L'Hôpital regularizer $s(c) = \frac{\log(c+1)}{c}$.
+   - `ForbiddenSmoothingChecker`: Enforces both first-order ($\langle \dot{\gamma}, \nabla G \rangle \sim 0$) and second-order ($\dot{\gamma}^T \mathcal{H}_G \dot{\gamma} \sim 0$) barrier checks along paths in $G^\perp$ to halt artificial smoothing through gyroid fracture boundaries.
 
 9. **Continuous Co-Primality** (`src/core/continuous_coprimality.py`)
    - `DiscreteEntropyComputer`: Uses discrete entropy quantization (binary outcomes, bincount, log2)
    - `ContinuousCoprimality`: Computes `E(r_i, r_j) = H(r_i + r_j) - H(r_i) - H(r_j)`
-   - Checks asymptotic independence: `lim_{t->∞} Cov(r_i^(t), r_j^(t)) = 0`
+   - Checks asymptotic independence: `lim_{t->} Cov(r_i^(t), r_j^(t)) = 0`
    - **No continuous approximations** - proper discrete quantization
 
 10. **Meta-Invariant** (`src/core/meta_invariant.py`)
@@ -72,7 +71,7 @@ This document summarizes the implementation of the formal constraint probe archi
 ### Entropy Quantization
 
 All entropy computations use **discrete quantization**:
-- Binary outcomes: `values > 0` → discrete outcomes
+- Binary outcomes: `values > 0`  discrete outcomes
 - Integer keys: Powers of 2 for encoding
 - Discrete probabilities: Bincount for frequency estimation
 - Entropy: log2 for discrete entropy computation
@@ -98,19 +97,19 @@ All entropy computations use **discrete quantization**:
 
 ```
 src/
-├── core/
-│   ├── failure_token.py              # Phase 1: Failure tokens
-│   ├── structural_irreducibility.py   # Phase 3: Structural irreducibility
-│   ├── continuous_coprimality.py     # Phase 3: Continuous co-primality
-│   └── meta_invariant.py             # Phase 3: Meta-invariant
-├── optimization/
-│   ├── constraint_probe.py           # Phase 1: Constraint probe operators
-│   └── operational_admm.py            # Phase 1: Cyclic traversal integration
-└── topology/
-    ├── hyper_ring_closure.py         # Phase 2: Hyper-ring closure
-    ├── persistence_obstruction.py   # Phase 2: Persistence obstruction graph
-    ├── soliton_stability.py          # Phase 2: Soliton stability
-    └── gyroid_differentiation.py      # Phase 3: Gyroidic differentiation
+ core/
+    failure_token.py              # Phase 1: Failure tokens
+    structural_irreducibility.py   # Phase 3: Structural irreducibility
+    continuous_coprimality.py     # Phase 3: Continuous co-primality
+    meta_invariant.py             # Phase 3: Meta-invariant
+ optimization/
+    constraint_probe.py           # Phase 1: Constraint probe operators
+    operational_admm.py            # Phase 1: Cyclic traversal integration
+ topology/
+     hyper_ring_closure.py         # Phase 2: Hyper-ring closure
+     persistence_obstruction.py   # Phase 2: Persistence obstruction graph
+     soliton_stability.py          # Phase 2: Soliton stability
+     gyroid_differentiation.py      # Phase 3: Gyroidic differentiation
 ```
 
 ---
