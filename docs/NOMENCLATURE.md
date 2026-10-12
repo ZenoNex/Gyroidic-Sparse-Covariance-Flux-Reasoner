@@ -92,8 +92,8 @@ The project rejects the "Optimization as Learning" metaphor in favor of **"Syste
 
 ### 7. Advanced Constraints (Phase 3)
 - **Structural Irreducibility**: Ensures no single-face embedding exists via evidence module orthogonality.
-- **Gyroidic Differentiation**: Flow constraint $\nabla_{\text{flow}} \Phi(r) \perp \nabla G$ (perpendicular to gyroid gradient).
-- **Forbidden Smoothing**: Detects if smooth path exists in gyroid-orthogonal space (forbidden).
+- **Gyroidic Differentiation**: Flow constraint $\nabla_{\text{flow}} \Phi(r) \perp \nabla G$ (perpendicular to gyroid gradient), evaluated via directional functional stencils or skew-symmetric Hamiltonian flows ($v = J \nabla G$) regularized across boundaries by L'Hôpital limits.
+- **Forbidden Smoothing**: Detects if smooth path exists in gyroid-orthogonal space via first- and second-order barriers ($\langle \dot{\gamma}, \nabla G \rangle \sim 0$ and $\dot{\gamma}^T \mathcal{H}_G \dot{\gamma} \sim 0$) (forbidden).
 - **Continuous Co-Primality**: Entropy-based independence $E(r_i, r_j) = H(r_i + r_j) - H(r_i) - H(r_j)$ (discrete quantization).
 - **Meta-Invariant**: Topology expansion constraint $\frac{d}{dt} E_r[\dim H_1(C_t)] \ge 0$ (prevents collapse).
 
