@@ -245,3 +245,29 @@ class VoynichLinguist(nn.Module):
             'orthogonality': self.poly_config.orthogonality_pressure(),
             'coprimality': self.poly_config.co_primality_pressure()
         }
+
+    @staticmethod
+    def split_sub_pairs(s: str) -> List[Tuple[str, str]]:
+        """
+        Splits an input string into symmetric sub-pairs for intermodule tokenization
+        and cross-boundary handshake.
+        
+        Generates two canonical prefix-suffix partitions:
+        Cycle 1: (s[:k], s[k:]) for k in 1..len(s) (ending with (s, ''))
+        Cycle 2: ('', s) followed by (s[:k], s[k:]) for k in 1..len(s)-1
+        
+        For an 18-character string like 'Isotremoptememally', this generates
+        exactly 36 possible sub-pairs representing all forward and boundary cuts.
+        """
+        n = len(s)
+        if n == 0:
+            return [("", "")]
+            
+        pairs: List[Tuple[str, str]] = []
+        for k in range(1, n + 1):
+            pairs.append((s[:k], s[k:]))
+        pairs.append(("", s))
+        for k in range(1, n):
+            pairs.append((s[:k], s[k:]))
+            
+        return pairs
