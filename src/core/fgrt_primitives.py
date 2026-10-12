@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from src.core.invariants import PI, is_prime
-from typing import Tuple
+from typing import Tuple, Optional, Dict, Any, Union
 from src.core.honest_jitter import harvest_honest_jitter
 import time
 
@@ -129,21 +129,44 @@ class GyroidicAdmissibilityFilter(nn.Module):
 
 class TorsionConnection(nn.Module):
     """
-    Affine connection with Torsion field for Chiral Symmetry Breaking.
+    Affine connection with Torsion field for Chiral Symmetry Breaking,
+    parameterized via Rashba-Dresselhaus Spin-Orbit Coupling.
     """
-    def __init__(self, dim: int):
+    def __init__(self, dim: int, alpha: float = 0.05, beta: float = 0.05):
         super().__init__()
-        # Torsion tensor T^k_{ij} (antisymmetric in i, j)
-        # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
-        self.torsion = nn.Parameter(harvest_honest_jitter((dim, dim, dim), scaled=True) * 0.01)
+        self.dim = dim
+        self.alpha = nn.Parameter(torch.tensor(alpha, dtype=torch.float32))
+        self.beta = nn.Parameter(torch.tensor(beta, dtype=torch.float32))
+        
+        # Base antisymmetric torsion tensor initialized with honest jitter
+        init_torsion = harvest_honest_jitter((dim, dim, dim), scaled=True) * 0.01
+        
+        # Embed Rashba-Dresselhaus SU(2) Pauli blocks across adjacent coordinate pairs
+        # A_x = -alpha * sigma_y + beta * sigma_x
+        # A_y =  alpha * sigma_x - beta * sigma_y
+        half = dim // 2
+        for j in range(half):
+            idx0 = 2 * j
+            idx1 = 2 * j + 1
+            # sigma_x: anti-diagonal, sigma_y: real antisymmetric representation
+            init_torsion[idx0, idx0, idx1] += float(-alpha)
+            init_torsion[idx0, idx1, idx0] += float(alpha)
+            init_torsion[idx0, idx0, idx0] += float(beta)
+            init_torsion[idx1, idx0, idx0] += float(alpha)
+            init_torsion[idx1, idx0, idx1] += float(-beta)
+            init_torsion[idx1, idx1, idx0] += float(beta)
+            
+        self.torsion = nn.Parameter(init_torsion)
+
+    def get_psh_delta(self) -> torch.Tensor:
+        """Returns |alpha^2 - beta^2|, measuring deviation from Persistent Spin Helix."""
+        return torch.abs(self.alpha ** 2 - self.beta ** 2)
 
     def forward(self, x: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         """
         Computes the covariant derivative update with torsion.
         nabla_v x = v * grad(x) + T(v, x)
         """
-        # Simplified implementation: T(v, x) = sum_{ijk} v_i x_j T^k_{ij}
-        # We'll use einsum for the torsion contraction
         tx = torch.einsum('...i,...j,ijk->...k', v, x, self.torsion)
         return tx
 
@@ -155,10 +178,12 @@ class BerryPhaseTracker(nn.Module):
         super().__init__()
         self.register_buffer('running_phase', torch.zeros(1))
 
-    def update(self, prev_state: torch.Tensor, current_state: torch.Tensor):
+    def update(self, prev_state: torch.Tensor, current_state: torch.Tensor, torsion: Optional['TorsionConnection'] = None):
         """
         Computes Diegetic Holonomy: Geometric Phase shift across state transition.
-        Interprets state as N/2 complex pairs: z = x_2k + i*x_{2k+1}
+        Interprets state as N/2 complex pairs: z = x_2k + i*x_{2k+1}.
+        If torsion is provided, aligns computed Berry holonomies Delta phi with the
+        physical gauge curvature solid angle swept by the state vector.
         """
         # Ensure even dimension for complex pairing
         dim = prev_state.shape[-1]
@@ -175,6 +200,12 @@ class BerryPhaseTracker(nn.Module):
         # Geometric Phase jump (Holonomy)
         delta_phi = phase_curr - phase_prev
         
+        if torsion is not None:
+            # Physical solid angle swept by state vector under (alpha, beta) gauge curvature
+            psh_delta = torsion.get_psh_delta()
+            area_element = (z_prev[..., 0] * z_curr[..., 1] - z_prev[..., 1] * z_curr[..., 0])
+            delta_phi = delta_phi + 0.5 * psh_delta * area_element
+
         # Wrap to [-pi, pi] to handle phase wrapping
         delta_phi = (delta_phi + PI) % (2 * PI) - PI
         
