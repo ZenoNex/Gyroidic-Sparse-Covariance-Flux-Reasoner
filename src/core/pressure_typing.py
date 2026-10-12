@@ -65,3 +65,13 @@ class StructuralPressure:
         if isinstance(other, (int, float, torch.Tensor)):
             return StructuralPressure(self.value / other, self.domain)
         raise TypeError(f"Cannot divide StructuralPressure by {type(other)}.")
+
+# Re-export typed compute affordance primitives for unified domain-typing interface
+from src.core.hardware_monitor import (
+    ComputeAffordanceType,
+    TypedComputeAffordance,
+    has_compute_affordance,
+    get_typed_affordance,
+    get_affordance_gauges,
+    gauge_between
+)
