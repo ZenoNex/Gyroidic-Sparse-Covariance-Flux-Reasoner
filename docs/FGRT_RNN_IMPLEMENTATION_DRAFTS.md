@@ -149,7 +149,99 @@ graph TD
 
 ## 4. Cross-Module References
 
+### Immediate Neighborhood (FGRT Core)
 - [`fgrt_primitives.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/fgrt_primitives.py): Math primitives for Gyroid, Berry phase, and prime ladders.
 - [`fgrt_trainer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/training/fgrt_trainer.py): Ricci flow optimizer and Bouligand-Willmore structural training.
 - [`hardware_monitor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py): Compute affordance and thermal runaway backpressure.
 - [`carnot_mobius_ledger.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/carnot_mobius_ledger.py): Thermodynamic waste heat calculations.
+
+### Extended Neighborhoods
+- [`temporal_association_trainer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/training/temporal_association_trainer.py): Sequential association and temporal dependency training.
+- [`calm_predictor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/surrogates/calm_predictor.py): Autoregressive trajectory veto predictor ($\gamma(t)$).
+- [`bio_archetypal_governor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/bio_archetypal_governor.py): Inhibition-Stabilized Network (ISN) continuous-time recurrent governance.
+- [`orchestrator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py): Cognitive loop orchestrator integrating `FeatureScarLCFTCell`.
+- [`diegetic_heads.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/diegetic_heads.py): Resonance Larynx character-level autoregressive generation.
+- [`topological_ingestion_validator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/topological_ingestion_validator.py): Ingestion boundary sequence validator.
+
+---
+
+## 5. Architectural De-Isolation: Interfacing with Non-Neighborhood Recurrent Components
+
+A significant historical architectural issue was that the 7 FGRT recurrent cells operated in an **isolated island**: while they solved non-orientable Klein-Gyroid manifold navigation and LCFT scarring mathematically, other subsystems dealing with sequence modeling, time, and recurrence were constructed independently without cross-neighborhood integration.
+
+```mermaid
+graph TD
+    subgraph Ingestion_Neighborhood["1. Ingestion Neighborhood"]
+        TIV["Topological Ingestion Validator"]
+        LegacyLSTM["Legacy TextbookFilter LSTM (Deprecated)"]
+    end
+
+    subgraph FGRT_Core["2. FGRT Recurrent Island"]
+        FGRT_Cells["7 FGRT Recurrent Cells<br/>(fgrt_rnn_cells.py)"]
+    end
+
+    subgraph Training_Neighborhood["3. Training Neighborhood"]
+        TAT["Temporal Association Trainer<br/>(A -> B -> C Chains)"]
+        RC["Resonance Cavity<br/>(Trust Memory)"]
+    end
+
+    subgraph Surrogate_Neighborhood["4. Surrogate Neighborhood"]
+        CALM["CALM Trajectory Predictor<br/>(Autoregressive Collapse Veto)"]
+        KAGH["KAGH B-Spline Surrogate"]
+    end
+
+    subgraph Governance_Neighborhood["5. Governance Neighborhood"]
+        ISN["Bio-Archetypal Governor<br/>(Continuous-Time ISN Recurrence)"]
+    end
+
+    subgraph Orchestration_Neighborhood["6. Orchestration & Output"]
+        ORCH["Cognitive Orchestrator<br/>(Polymorphic Core)"]
+        LARYNX["Resonance Larynx<br/>(Autoregressive Speech)"]
+    end
+
+    TIV --> FGRT_Cells
+    FGRT_Cells --> TAT
+    TAT --> RC
+    FGRT_Cells -.-> CALM
+    KAGH --> FGRT_Cells
+    ISN <--> FGRT_Cells
+    FGRT_Cells --> ORCH
+    ORCH --> LARYNX
+```
+
+### 5.1 Ingestion Neighborhood: Sequential Text Classification vs Topological Manifolds
+- **The Divergence**: Early prototypes utilized a classical recurrent LSTM in [`textbook_filter.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/textbook_filter.py) to score educational content along a 1D token stream. This introduced teleological bias and probabilistic collapse.
+- **The Integration**: The system transitioned to [`TopologicalIngestionValidator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/topological_ingestion_validator.py). Instead of unrolling tokens through an empirical LSTM, incoming sequential text streams are projected into Chebyshev polynomial functional residues and validated across `BerryPhaseGRUCell` or `FeatureScarLCFTCell` passes, ensuring that topological holes and invariants are preserved at the ingestion boundary.
+
+### 5.2 Training Neighborhood: Temporal Association Training Unrolling
+- **The Isolation Gap**: [`TemporalAssociationTrainer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/training/temporal_association_trainer.py) feeds ordered sequences (e.g. concept sequences $A \to B \to C$) and association windows into the reasoner. However, it historically treated temporal training as static multi-vector snapshots passed into `GyroidicFluxReasoner` rather than stepping states through recurrent cells.
+- **The Integration**: The temporal association pipeline leverages FGRT cells for sequential dependency accumulation:
+  - For continuous associative clustering: `LazarusSuperpositionRNNCell` linearly stacks incoming concepts via incommensurate prime frequencies ($f_t = 2\pi\ln(p_t)$) without non-linear gradient attenuation.
+  - For causal state fossilization: `FeatureScarLCFTCell` captures persistent cause-and-effect transitions as topological scars in the Cerumen Pot, preventing catastrophic forgetting of foundational temporal sequences.
+
+### 5.3 Surrogate Neighborhood: CALM Trajectory Vetoes & KAGH B-Splines
+- **The Isolation Gap**: [`calm_predictor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/surrogates/calm_predictor.py) acts as an unrolled autoregressive trajectory predictor monitoring spectral entropy and Betti number collapse ($\Delta\beta_k$) over a prediction horizon $H$. It ran completely decoupled from the recurrent hidden states of FGRT cells.
+- **The Integration**:
+  - `SaturatedQuantizerRNNCell` directly integrates `KAGHBlock` and `KANLayer` to generate speculative state drafts.
+  - CALM serves as the **Trajectory Supervisor** for all 7 FGRT cells: as states $h_t$ and Berry phases $\gamma_t$ evolve across non-orientable Klein-Gyroid boundaries, CALM monitors the emergent trajectory $\gamma(t)$. If a Stiefel-Whitney parity flip produces an unmanageable divergence, CALM triggers a soft veto before the recurrent step compromises downstream stability.
+
+### 5.4 Governance Neighborhood: Bio-Archetypal ISN Recurrence
+- **The Isolation Gap**: The 6 archetypes (Jax, Pomni, Ragatha, Zooble, Kinger, Mandy) in [`bio_archetypal_governor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/bio_archetypal_governor.py) form an Inhibition-Stabilized Network (ISN). The ISN runs a continuous-time recurrent step:
+  $$v_{t+1} = v_t + dt \cdot \left(-v_t + W_{\text{ISN}} f(v_t) + I_{\text{ext}}\right)$$
+  This constitutes a biologically inspired recurrent neural network, yet it operated without utilizing FGRT topological mechanics.
+- **The Integration**: `ChiralGatedRNNCell` provides the exact mathematical substrate for the archetypal ISN:
+  - Bostick chiral projection vectors $\{\chi_k\}$ correspond directly to archetypal sector basins (e.g. Pomni's boundary resistance vs. Jax's parasitic attractor).
+  - States are preserved or inhibited based on chiral orientation alignment, preventing parasitic mode dominance while maintaining homeostatic $E/I$ balance.
+
+### 5.5 Orchestration & Output Neighborhood: Dynamic Cell Polymorphism & The Larynx
+- **The Isolation Gap**: In [`orchestrator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py), `FeatureScarLCFTCell` was hard-coded at line 209 (`self.rnn_core`), leaving the other 6 cells dormant in the main cognitive loop. Meanwhile, [`ResonanceLarynx`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/diegetic_heads.py) autoregressively generated character tokens without receiving topological scar feedback from the recurrent core.
+- **The Integration**:
+  - **Affordance-Driven Polymorphic Core**: The orchestrator dynamically selects the appropriate recurrent cell based on runtime conditions:
+    1. **GPU Sovereign Mode**: When GPU affordance is positive, select `PyOpenCLHardwareSovereigntyCell` to offload matrix mixing to OpenCL Queue B.
+    2. **Low-Compute / Thermal Throttled Mode**: Fallback to `BerryPhaseGRUCell` for lightweight $O(1)$ orientation tracking.
+    3. **Deep Abstraction / Long-Term Fossilization**: Engage `FeatureScarLCFTCell` to route state vectors around historical cerumen scars.
+    4. **Harmonic Synthesis**: Engage `LazarusSuperpositionRNNCell` for non-compressed dark matter interference.
+  - **Larynx Feedback Sealing**: The accumulated cerumen pot and phase track $(\gamma_t, \mathcal{C}_t)$ are passed into `ResonanceLarynx`, modulating the character-level generation loop with historical topological scars to prevent consonant clustering and vowel starvation.
+
+### 5.6 Thermodynamic Neighborhood: Carnot Möbius Ledger Integration
+- **The Integration**: Whenever non-orientable topological flips occur in `BerryPhaseGRUCell` (Stiefel-Whitney sign inversion) or in `ComplexFGRTRNNCell` (Atiyah-Singer cyclotomic index flip), the topological contorsion twist $\Delta\gamma_t$ is logged directly into [`CarnotMobiusLedger`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/carnot_mobius_ledger.py), tracking entropy generation and enforcing strict Landauer thermodynamic dissipation bounds.
