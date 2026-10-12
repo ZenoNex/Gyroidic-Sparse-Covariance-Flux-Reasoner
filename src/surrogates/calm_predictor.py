@@ -12,6 +12,7 @@ system's topological "larynx".
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import math
 from typing import Tuple, List, Dict, Optional, Union
 from src.core.honest_jitter import fractal_pad
 
@@ -152,12 +153,14 @@ class CALM(nn.Module):
                 if name in orig_params:
                     param.data.copy_(orig_params[name])
 
-    def adapt(self, support_history: torch.Tensor, support_targets: Union[torch.Tensor, Dict[str, torch.Tensor]], steps: int = 1, lr: float = 0.01, entropy: Optional[torch.Tensor] = None) -> 'CALM':
+    def adapt(self, support_history: torch.Tensor, support_targets: Union[torch.Tensor, Dict[str, torch.Tensor]], steps: int = 1, lr: float = 0.01, entropy: Optional[torch.Tensor] = None, psh_delta: Optional[Union[float, torch.Tensor]] = None) -> 'CALM':
         """
         Perform online inner-loop adaptation (MAML step) on support data.
         Returns an adapted instance of CALM.
         
         Dynamic LR: scaled by (1.0 + entropy.mean()) if entropy is provided.
+        PSH Proximity Modulation: If psh_delta is provided, scaled by exp(-abs(psh_delta)),
+        strictly bounded between [0.1, 1.0] to avoid freezing gradient adaptation.
         """
         def clone_module(module):
             import copy
@@ -183,6 +186,15 @@ class CALM(nn.Module):
         if entropy is not None:
             entropy_val = entropy.mean().item()
             effective_lr = lr * (1.0 + abs(entropy_val))
+
+        if psh_delta is not None:
+            if isinstance(psh_delta, torch.Tensor):
+                delta_val = psh_delta.mean().item()
+            else:
+                delta_val = float(psh_delta)
+            # Modulate by PSH proximity scalar exp(-|alpha^2 - beta^2|), bounded in [0.1, 1.0]
+            psh_scale = max(0.1, min(1.0, math.exp(-abs(delta_val))))
+            effective_lr = effective_lr * psh_scale
             
         optimizer = torch.optim.SGD(adapted_model.parameters(), lr=effective_lr)
         
