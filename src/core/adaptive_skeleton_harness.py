@@ -304,12 +304,10 @@ class AdaptiveSkeletonHarness(nn.Module):
         Checks local memory/CPU budgets and inspects Bonfire nomadic ring peer status.
         Gates expensive Agent Smith retrieval and structural algebra compilation.
         """
-        mem_avail = 1.0 - (psutil.virtual_memory().percent / 100.0)
-        cpu_avail = 1.0 - (psutil.cpu_percent(interval=0.0) / 100.0)
-        local_affordance = max(0.05, mem_avail * 0.7 + cpu_avail * 0.3)
-        p2p_affordance = self.p2p_mesh_affordance
+        from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+        hw = HardwareMonitor.get_instance()
 
-        # Check collective peer budget if peer network provided or check bonfire peers file
+        p2p_affordance = self.p2p_mesh_affordance
         if peer_network is not None and hasattr(peer_network, 'get_collective_compute_budget'):
             try:
                 p2p_affordance = peer_network.get_collective_compute_budget()
@@ -323,14 +321,26 @@ class AdaptiveSkeletonHarness(nn.Module):
                         p2p_affordance = min(1.0, 0.5 + 0.1 * len(peers_data))
             except Exception:
                 pass
+        hw.update_p2p_mesh(p2p_affordance)
 
-        combined_budget = min(local_affordance, p2p_affordance)
+        silicon_aff = hw.get_typed_affordance(ComputeAffordanceType.SILICON)
+        thermal_aff = hw.get_typed_affordance(ComputeAffordanceType.THERMAL)
+        p2p_aff = hw.get_typed_affordance(ComputeAffordanceType.P2P_MESH)
+
+        # Cross-type gauge transformation coupling between Silicon and P2P mesh
+        cross_coupling = hw.gauge_between(ComputeAffordanceType.SILICON, ComputeAffordanceType.P2P_MESH)
+        combined_budget = min(silicon_aff.gauge, p2p_aff.gauge) * cross_coupling
+
         return {
-            "local_affordance": local_affordance,
-            "p2p_affordance": p2p_affordance,
+            "local_affordance": silicon_aff.gauge,
+            "p2p_affordance": p2p_aff.gauge,
             "combined_budget": combined_budget,
-            "can_deep_retrieve": combined_budget > 0.15,
-            "can_structural_compile": combined_budget > 0.10
+            "cross_gauge_coupling": cross_coupling,
+            "thermal_runaway": hw.thermal_runaway,
+            "thermal_margin": hw.thermal_margin,
+            "gauges": hw.get_affordance_gauges(),
+            "can_deep_retrieve": (combined_budget > 0.15) and (not hw.thermal_runaway),
+            "can_structural_compile": (combined_budget > 0.10) and (not hw.thermal_runaway)
         }
 
     def retrieve_agent_smith_fossil(
