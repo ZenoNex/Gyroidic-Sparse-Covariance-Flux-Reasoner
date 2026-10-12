@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import math
 
+from typing import Dict, Tuple, Optional, Any
+
 class CarnotMobiusLedger(nn.Module):
     """
     Computes the Carnot-Möbius Efficiency Limit for the Gyroidic Stack.
@@ -48,6 +50,22 @@ class CarnotMobiusLedger(nn.Module):
         # 4. Thermodynamic Ledger
         p_waste = self.p_nuclear * (1.0 - eta_stack)
         thermal_runaway = p_waste > self.p_cool_max
+
+        # 4.1 Broadcast directly to Centralized HardwareMonitor / Compute Affordance Chain
+        try:
+            from src.core.hardware_monitor import HardwareMonitor
+            p_w_scalar = float(p_waste.item() if isinstance(p_waste, torch.Tensor) else p_waste)
+            runaway_bool = bool(thermal_runaway.item() if isinstance(thermal_runaway, torch.Tensor) else thermal_runaway)
+            eta_scalar = float(eta_stack.item() if isinstance(eta_stack, torch.Tensor) else eta_stack)
+            HardwareMonitor().update_thermodynamics(
+                p_waste=p_w_scalar,
+                p_cool_max=float(self.p_cool_max),
+                thermal_runaway=runaway_bool,
+                eta_stack=eta_scalar,
+                source="carnot_mobius"
+            )
+        except Exception:
+            pass
         
         # 5. Critical Depth calculation (N_crit)
         # N_crit = (1 / (xi * sigma_eps_sq)) * ln(eta_ideal / (1 - (P_cool_max / P_nuclear)))
@@ -67,4 +85,98 @@ class CarnotMobiusLedger(nn.Module):
             "thermal_runaway": thermal_runaway,
             "n_crit": n_crit,
             "topological_friction": sigma_eps_sq
+        }
+
+
+class GENIUSOperator(nn.Module):
+    """
+    GENIUS Contortion Operator: Scale-Deformed Feedback Transformation Law.
+    
+    Formalizes the GENIUS contortion operator:
+    Psi = (g_{mu nu}, K^alpha_{beta gamma}, T_{mu nu}, R)
+    G[Psi] = ( dK/ds + div(T) + F(R) ) (x) J
+    
+    Where:
+    - dK/ds: scale evolution of contortion tensor across renormalization scale s
+    - div(T): anisotropic stress leakage into Riemannian geometry (divergence of stress tensor)
+    - F(R): resonance feedback functional from the Carnot-Mobius / IHC acoustic cavity
+    - J: angular tensor topology coupling (rotational gyro-precession operator)
+    
+    Measures mutual deformation of geometry, stress, resonance, and rotation across scale:
+    'Reality = self-referential deformation of constraint.'
+    """
+    def __init__(self, dim: int = 16, resonance_coupling: float = 0.1):
+        super().__init__()
+        self.dim = dim
+        self.resonance_coupling = resonance_coupling
+        
+        # Angular tensor topology coupling J (antisymmetric angular momentum generator)
+        J_raw = torch.zeros(dim, dim)
+        half = dim // 2
+        for i in range(half):
+            J_raw[2 * i, 2 * i + 1] = -1.0
+            J_raw[2 * i + 1, 2 * i] = 1.0
+        self.register_buffer("J_coupling", J_raw)
+
+    def forward(
+        self,
+        contortion_K: torch.Tensor,
+        stress_T: torch.Tensor,
+        resonance_R: torch.Tensor,
+        scale_ds: float = 0.05
+    ) -> Dict[str, torch.Tensor]:
+        """
+        Applies G[Psi] transformation law.
+        
+        Args:
+            contortion_K: [..., dim] or [..., dim, dim, dim] contortion tensor
+            stress_T: [..., dim] or [..., dim, dim] anisotropic stress tensor
+            resonance_R: [..., dim] or [..., 1] spectral resonance scalar/vector
+            scale_ds: Scale increment ds
+            
+        Returns:
+            Dict containing:
+            - 'dK_ds': scale evolution rate of contortion
+            - 'div_T': stress leakage into geometry
+            - 'F_R': resonance feedback term
+            - 'linear_sum': combined linear deformation
+            - 'deformation_tensor': G[Psi] = (dK/ds + div(T) + F(R)) @ J
+        """
+        # 1. Scale evolution of contortion dK/ds
+        if contortion_K.dim() > 1 and contortion_K.shape[-1] == self.dim:
+            dK_ds = contortion_K * (1.0 / max(1e-4, scale_ds)) * 0.01
+        else:
+            dK_ds = contortion_K * 0.1
+            
+        # 2. Anisotropic stress leakage into geometry div(T)
+        if stress_T.dim() >= 2 and stress_T.shape[-1] == self.dim and stress_T.shape[-2] == self.dim:
+            div_T = torch.sum(stress_T, dim=-2)
+        else:
+            div_T = stress_T
+            
+        # 3. Resonance feedback term F(R)
+        F_R = torch.tanh(resonance_R) * self.resonance_coupling
+        if F_R.shape[-1] != self.dim:
+            F_R = F_R.expand(*F_R.shape[:-1], self.dim)
+            
+        # Ensure compatible shape [..., dim]
+        if dK_ds.dim() > div_T.dim():
+            dK_proj = dK_ds.view(*div_T.shape)
+        else:
+            dK_proj = dK_ds
+            
+        linear_deformation = dK_proj + div_T + F_R
+        
+        # 4. Angular tensor topology coupling (x) J
+        if linear_deformation.dim() == 1:
+            deformation_tensor = linear_deformation @ self.J_coupling
+        else:
+            deformation_tensor = torch.matmul(linear_deformation, self.J_coupling)
+            
+        return {
+            "dK_ds": dK_ds,
+            "div_T": div_T,
+            "F_R": F_R,
+            "linear_sum": linear_deformation,
+            "deformation_tensor": deformation_tensor
         }
