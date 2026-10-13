@@ -16,7 +16,7 @@ RIC-SRI Integration (Equations 1-10):
 
 import torch
 import torch.nn as nn
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, Any
 
 from src.core.love_vector import LoveVector
 from src.core.failure_token import FailureToken, RuptureFunctional
@@ -1003,3 +1003,50 @@ class UniversalOrchestrator(nn.Module):
             'incommensurativity_score': incomm['incommensurativity_score'],
             'safety_alert': (trust < 0.01) or (paradox['paradox_score'] > 0.5) or (not sycophancy_safe)
         }
+
+    def check_veto(self, level: Any) -> bool:
+        """
+        Check if an operational veto is currently triggered at the specified VetoLevel.
+        For VetoLevel.BUDGET, queries memory pressure and Leontief capacity.
+        """
+        from src.core.veto_subspace import VetoLevel
+        level_val = level.value if hasattr(level, 'value') else str(level).lower()
+        if level_val == VetoLevel.BUDGET.value:
+            mem = psutil.virtual_memory().percent
+            return mem > 98.0
+        return False
+
+    def resolve_containment_pressure(self, x: torch.Tensor, chat_history: Any = None) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        System 2 deep containment resolution for Resonant S-VNN Oracle.
+        When containment pressure spikes in System 1, probes structural depth,
+        non-commutative curvature, and Relational Kappa soliton admissibility.
+        If topologically coherent (Sovereign Exemption), toxicity is suppressed
+        and subversion is boosted.
+        """
+        with torch.no_grad():
+            x_flat = x.view(-1, x.shape[-1]) if x.dim() > 1 else x.unsqueeze(0)
+            target_dim = self.dim
+            if x_flat.shape[-1] != target_dim:
+                if x_flat.shape[-1] < target_dim:
+                    x_pad = F.pad(x_flat, (0, target_dim - x_flat.shape[-1]))
+                else:
+                    x_pad = x_flat[..., :target_dim]
+            else:
+                x_pad = x_flat
+
+            outer = x_pad.unsqueeze(-1) @ x_pad.unsqueeze(-2)
+            curv = self.curvature_engine.compute_curvature(outer, outer)
+            depth = curv.get('relative_curvature', torch.tensor(1.0)).mean()
+
+            kappa_res = self.relational_kappa(depth.unsqueeze(0))
+            is_soliton = kappa_res.get('is_soliton', torch.tensor(False)).item()
+
+            if is_soliton or depth.item() > 0.3:
+                subversion = torch.norm(x_pad) * (1.0 + depth)
+                toxicity = torch.tensor(0.01, device=x.device)
+            else:
+                subversion = torch.norm(x_pad) * 0.5
+                toxicity = depth
+
+            return subversion, toxicity
