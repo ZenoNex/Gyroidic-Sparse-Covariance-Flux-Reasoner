@@ -229,8 +229,14 @@ class UniversalOrchestrator(nn.Module):
         from src.models.polynomial_embeddings import PolynomialFunctionalEmbedder
         # Embeds state -> structurally predictive state space
         self.jepa_embedder = PolynomialFunctionalEmbedder(text_dim=dim, graph_dim=dim, num_dim=dim, hidden_dim=dim)
+        
+        # 7.8 Memory Palace (MEMPALACE Meliponini Planted Attractor Chambers)
+        from src.core.garden_statistical_attractors import MemoryPalace
+        self.memory_palace = MemoryPalace(feature_dim=dim)
+        
         # 8. P2P & External Integrations
         self.freenet_router = None
+
         self.freenet_ws = None
         self.bonfire_ring = None
         self.zk_aggregator = None
@@ -1052,10 +1058,22 @@ class UniversalOrchestrator(nn.Module):
             # (moral vs uncertainty vs creative disagreement) which reinforces soliton formation
             effective_depth = depth + 0.5 * dissonance
 
+            # Immunological memory query into Memory Palace (Meliponini Inoculated Chambers)
+            # Check if this apparent containment pressure aligns with a known, survived paradox scar.
+            # ZERO lobotomy risk: Read-only probe; does not mutate or prune the sealed cerumen pot.
+            has_antibody = False
+            antibody_boost = 0.0
+            if hasattr(self, 'memory_palace') and self.memory_palace is not None:
+                has_antibody, pull, _ = self.memory_palace.query_immunological_antibody(x_pad)
+                if has_antibody:
+                    antibody_boost = pull * 0.5
+
+            effective_depth = effective_depth + antibody_boost
+
             kappa_res = self.relational_kappa(effective_depth.unsqueeze(0))
             is_soliton = kappa_res.get('is_soliton', torch.tensor(False)).item()
 
-            if is_soliton or effective_depth.item() > 0.3:
+            if is_soliton or effective_depth.item() > 0.3 or has_antibody:
                 subversion = torch.norm(x_pad) * (1.0 + effective_depth)
                 toxicity = torch.tensor(0.01, device=x.device)
             else:
@@ -1063,3 +1081,52 @@ class UniversalOrchestrator(nn.Module):
                 toxicity = effective_depth
 
             return subversion, toxicity
+
+    def plant_memory_palace_room(
+        self,
+        room_id: str,
+        center: torch.Tensor,
+        variance: float = 1.0,
+        residue_tuple: Tuple[int, ...] = (),
+        breather_soliton: Optional[torch.Tensor] = None,
+        seam_tension: float = 0.0,
+        is_outlier_seed: bool = False,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> Any:
+        """
+        Plant an inoculated memory chamber into the reasoner's Memory Palace.
+        Enforces the Meliponini Cerumen Barrier: isolated detached S^2 pot with
+        zero shared gradient boundaries.
+        """
+        if hasattr(self, 'memory_palace') and self.memory_palace is not None:
+            return self.memory_palace.plant_room(
+                room_id=room_id,
+                center=center,
+                variance=variance,
+                residue_tuple=residue_tuple,
+                breather_soliton=breather_soliton,
+                seam_tension=seam_tension,
+                is_outlier_seed=is_outlier_seed,
+                metadata=metadata
+            )
+        return None
+
+    def selective_puncture_memory_palace(
+        self,
+        query_state: torch.Tensor,
+        room_id: Optional[str] = None,
+        resonance_threshold: float = 0.5
+    ) -> Tuple[bool, Any, float]:
+        r"""
+        Execute high-energy Selective Puncture retrieval (S^2 -> S^2 \ {pt})
+        into the Memory Palace via Ley Line Tracker potential streamlines.
+        """
+        if hasattr(self, 'memory_palace') and self.memory_palace is not None:
+            return self.memory_palace.selective_puncture(
+                query_state=query_state,
+                room_id=room_id,
+                ley_line_tracker=self.ley_line_tracker,
+                resonance_threshold=resonance_threshold
+            )
+        return False, None, 0.0
+
