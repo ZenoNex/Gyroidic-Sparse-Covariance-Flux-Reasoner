@@ -349,7 +349,7 @@ The DearPyGui [`PhysicalNodeEditor`](file:///d:/programming/python/Gyroidic%20Sp
 
 ## Interactive DearPyGui Node Reference
 
-The GUI interface registered in [`_setup_nodes`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L1720) exposes 21 tangible visual nodes:
+The GUI interface registered in [`_setup_nodes`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L1720) exposes 23 tangible visual nodes:
 
 1. **`BSpline Mod Generator` (`node_bspline`):** Emits B-Spline latent tensor vectors parameterized by `Latent Dim` and `Resolution`.
 2. **`Dark Matter Attractor` (`node_dark_matter`):** Emits dark matter fossil layers parameterized by `Iterations` and `Time Step`.
@@ -372,4 +372,7 @@ The GUI interface registered in [`_setup_nodes`](file:///d:/programming/python/G
 19. **`Animal Husbandry & Genetics` (`node_fauna_genetics`):** Mutation rate modulating Mendelian inheritance.
 20. **`Chisels & Bits Micro-Octree` (`node_chisels_octree`):** 3D bit coordinates ($X, Y, Z \in [0, 15]$) for sub-voxel placement and carving.
 21. **`Geotechnical Dual-Yield (MC & DP)` (`node_dual_yield`):** Hydrostatic pressure and shear stress sliders outputting Mohr-Coulomb and Drucker-Prager plastic flow limits.
+22. **`Universal AI Reasoner & Orchestrator` (`node_ai_reasoner`):** Binds live Betti numbers ($\beta_0, \beta_1$), Carnot shear stress, and mass energy into [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py), outputting multiharmonic $\text{PAS}_h$, Seriousness/Play regime codes, and SLERP/LERP navigation vectors.
+23. **`8x8 Hessian Curvature & D4 Decombiner (Silicon)` (`node_curvature_ledger`):** Dispatches on-chip OpenCL `__local` SRAM kernels on discrete GPU (NVIDIA GTX 1050 Ti), computing Bouligand kink intensity ($\|H^+ - H^-\|_F$), Morse minimal surface trace ($\operatorname{Tr}(H) \approx 0$), cyclotomic phase coherence, and Coxeter $D_4$ fundamental Weyl chamber states directly inside the dataflow graph.
+
 
