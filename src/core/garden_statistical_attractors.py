@@ -565,6 +565,9 @@ class GardenOrchestrator(nn.Module):
         # Self-organized criticality parameters
         self.criticality_threshold = nn.Parameter(torch.tensor(0.8))
         
+        # Initialize Memory Palace (Planted Attractor Chambers & Meliponini Pots)
+        self.memory_palace = MemoryPalace(feature_dim=feature_dim, device=device)
+        
     def compute_concept_entropy(self, concepts: torch.Tensor) -> torch.Tensor:
         """
         Compute concept entropy using the existing non-ergodic fractal entropy system.
@@ -1041,6 +1044,26 @@ class GardenOrchestrator(nn.Module):
         
         return analysis
 
+    def sync_fossilized_basins_to_memory_palace(self) -> List[str]:
+        """
+        Registers highly stabilized, fossilized concept basins
+        into the Memory Palace as Meliponini Cerumen chambers.
+        """
+        planted = []
+        for i in range(self.num_attractors):
+            if self.influence_attractors.trust_scalars[i] > 1.2:
+                basin_center = self.influence_attractors.fossilized_basins[i].detach()
+                room_id = f"garden_basin_{i}"
+                if room_id not in self.memory_palace.rooms:
+                    self.memory_palace.plant_room(
+                        room_id=room_id,
+                        center=basin_center,
+                        variance=1.0,
+                        metadata={'source': 'garden_fossilized_basin', 'basin_index': i}
+                    )
+                    planted.append(room_id)
+        return planted
+
 def test_garden_statistical_attractors():
     """Test the garden statistical attractor system."""
     
@@ -1206,6 +1229,417 @@ class CerumenPotIsolation(nn.Module):
             
         mask = selected_potentials > self.threshold
         return mask
+
+
+def _slerp(p0: torch.Tensor, p1: torch.Tensor, t: float = 1.0) -> torch.Tensor:
+    """
+    Spherical Linear Interpolation (SLERP) on high-dimensional unit hyperspheres.
+    Ensures that room breeding stays on the curved attractor manifold surface
+    rather than cutting through the between-room void via Euclidean LERP.
+    """
+    n0 = torch.norm(p0, p=2, dim=-1, keepdim=True) + 1e-8
+    n1 = torch.norm(p1, p=2, dim=-1, keepdim=True) + 1e-8
+    u0 = p0 / n0
+    u1 = p1 / n1
+    dot = torch.clamp(torch.sum(u0 * u1, dim=-1, keepdim=True), -0.9999, 0.9999)
+    theta = torch.acos(dot)
+    sin_theta = torch.sin(theta)
+    
+    if torch.abs(sin_theta).max().item() < 1e-5:
+        return (1.0 - t) * p0 + t * p1
+        
+    s0 = torch.sin((1.0 - t) * theta) / sin_theta
+    s1 = torch.sin(t * theta) / sin_theta
+    res_unit = s0 * u0 + s1 * u1
+    target_norm = (1.0 - t) * n0 + t * n1
+    return res_unit * target_norm
+
+
+class MemoryPalaceRoom:
+    """
+    Discrete Meliponini Cerumen Pot Chamber (S^2 Sphere).
+    
+    Stores fossilized digital clone scars and breather solitons in isolated
+    topological chambers with zero shared gradient boundaries:
+    closure(P_i) cap closure(P_j) = emptyset.
+    """
+    def __init__(
+        self,
+        room_id: str,
+        center: torch.Tensor,
+        variance: float = 1.0,
+        residue_tuple: Tuple[int, ...] = (),
+        breather_soliton: Optional[torch.Tensor] = None,
+        seam_tension: float = 0.0,
+        is_outlier_seed: bool = False,
+        metadata: Optional[Dict[str, Any]] = None
+    ):
+        self.room_id = room_id
+        # Center mu_k is explicitly detached from autograd to prevent diffusion toxins
+        self.center = center.detach().clone()
+        self.variance = max(float(variance), 1e-4)
+        self.residue_tuple = residue_tuple
+        self.breather_soliton = breather_soliton.detach().clone() if breather_soliton is not None else None
+        self.seam_tension = float(seam_tension)
+        self.is_outlier_seed = bool(is_outlier_seed)
+        self.metadata = metadata or {}
+        self.sealed = True
+
+    def get_punctured_state(self, state: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """
+        Applies selective puncture masking to shield retrieved memory:
+        masks ~33% of state dimensions where (i + sum(r)) % 3 == 0.
+        Directly implements Meliponini shielding to prevent diffusion toxins.
+        """
+        s = state if state is not None else (self.breather_soliton if self.breather_soliton is not None else self.center)
+        dim = s.shape[-1]
+        indices = torch.arange(dim, device=s.device)
+        r_sum = sum(self.residue_tuple) if self.residue_tuple else 0
+        mask = ((indices + r_sum) % 3 != 0).float()
+        return s * mask
+
+    def pull_force(self, c: torch.Tensor) -> torch.Tensor:
+        """
+        Pull force equation (GARDEN framework Eq 7.1):
+        F_k(c) = exp( - ||c - mu_k||^2 / (2 * sigma_k^2) )
+        """
+        diff = c - self.center.to(c.device)
+        dist_sq = torch.sum(diff * diff, dim=-1)
+        force = torch.exp(-dist_sq / (2.0 * (self.variance ** 2)))
+        return force
+
+
+class MemoryPalace(nn.Module):
+    r"""
+    MEMPALACE: Planted Attractor Chambers and SOMA Soliton Storage.
+    
+    Implements Section 7 of GARDEN_STATISTICAL_ATTRACTORS.md:
+    1. Planted Attractor Chambers: Stable attractor centers mu_k sealed within
+       Chern-Simons Gasket cerumen walls (Meliponini topology: P_i cap P_j = emptyset).
+    2. Room Breeding: Tag-based superposition mu_new = mu_base + sum alpha_k (mu_k - mu_base)
+       via SLERP great-circle navigation.
+    3. Outlier Seeds: Attractors planted at high-kappa transversal points.
+    4. SOMA Paradigm: Fixed O(K) BreatherMode footprint preventing DRAM dementia.
+    5. Selective Puncture Operator: S^2 -> S^2 \ {pt} discrete high-energy retrieval.
+    6. Immunological Memory Bridge: Read-only antibody queries for Inoculation Exemption,
+       protecting against systemic lobotomy while informing the immune system.
+    """
+    def __init__(self, feature_dim: int = 256, device: Optional[str] = None):
+        super().__init__()
+        self.feature_dim = feature_dim
+        self.device = device
+        self.rooms: Dict[str, MemoryPalaceRoom] = {}
+        self.cerumen_isolation = CerumenPotIsolation(threshold=0.5)
+
+    def plant_room(
+        self,
+        room_id: str,
+        center: torch.Tensor,
+        variance: float = 1.0,
+        residue_tuple: Tuple[int, ...] = (),
+        breather_soliton: Optional[torch.Tensor] = None,
+        seam_tension: float = 0.0,
+        is_outlier_seed: bool = False,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> MemoryPalaceRoom:
+        """
+        Plant a discrete attractor chamber sealed within a Meliponini Cerumen Pot.
+        Enforces closure(P_i) cap closure(P_j) = emptyset by isolating tensor storage.
+        """
+        c_flat = center.view(-1)
+        if c_flat.shape[0] != self.feature_dim:
+            if c_flat.shape[0] < self.feature_dim:
+                c_flat = F.pad(c_flat, (0, self.feature_dim - c_flat.shape[0]))
+            else:
+                c_flat = c_flat[:self.feature_dim]
+
+        # Generate Meliponini residue tuple (61, 67, 71) if not explicitly provided
+        if not residue_tuple:
+            val = int(c_flat.sum().abs().item() * 1000)
+            residue_tuple = (val % 61, val % 67, val % 71)
+
+        # SOMA flat O(K) BreatherMode soliton footprint
+        if breather_soliton is None:
+            try:
+                from src.models.resonance_cavity import BreatherMode
+                bm = BreatherMode(num_breathers=8, dim=self.feature_dim)
+                with torch.no_grad():
+                    b_soliton = bm.projection(bm.evaluate(c_flat)).view(-1).detach()
+            except Exception:
+                b_soliton = None
+        else:
+            b_soliton = breather_soliton.detach().clone()
+
+        room = MemoryPalaceRoom(
+            room_id=room_id,
+            center=c_flat,
+            variance=variance,
+            residue_tuple=residue_tuple,
+            breather_soliton=b_soliton,
+            seam_tension=seam_tension,
+            is_outlier_seed=is_outlier_seed,
+            metadata=metadata
+        )
+        self.rooms[room_id] = room
+        return room
+
+    def breed_rooms(
+        self,
+        new_room_id: str,
+        base_room_id: str,
+        donor_weights: Dict[str, float],
+        variance: float = 1.0,
+        metadata: Optional[Dict[str, Any]] = None,
+        tag_stacker: Optional[Any] = None
+    ) -> MemoryPalaceRoom:
+        """
+        Breed a new room center via SLERP on the attractor manifold:
+        mu_new = mu_base + sum_{k in S_active} alpha_k (mu_k - mu_base)
+        
+        Safely bridges with SuperposedTagStacker: if donor_id is not an existing
+        room but exists in tag_stacker, the tag's vector is used as a donor.
+        """
+        if base_room_id not in self.rooms:
+            raise KeyError(f"Base room '{base_room_id}' not found in Memory Palace.")
+            
+        base_room = self.rooms[base_room_id]
+        delta = torch.zeros_like(base_room.center)
+        
+        composite_residues = list(base_room.residue_tuple)
+        combined_tension = base_room.seam_tension
+        
+        for donor_id, weight in donor_weights.items():
+            donor_center = None
+            donor_residues = ()
+            donor_tension = 0.0
+
+            if donor_id in self.rooms:
+                donor = self.rooms[donor_id]
+                donor_center = donor.center
+                donor_residues = donor.residue_tuple
+                donor_tension = donor.seam_tension
+            elif tag_stacker is not None and hasattr(tag_stacker, 'catalog_vectors'):
+                # Safe operational bridging with SuperposedTagStacker
+                safe_name = tag_stacker.sanitize_tag_name(donor_id) if hasattr(tag_stacker, 'sanitize_tag_name') else donor_id
+                if safe_name in tag_stacker.catalog_vectors:
+                    v = tag_stacker.catalog_vectors[safe_name].detach()
+                    if v.shape[-1] != self.feature_dim:
+                        if v.shape[-1] < self.feature_dim:
+                            v = F.pad(v, (0, self.feature_dim - v.shape[-1]))
+                        else:
+                            v = v[:self.feature_dim]
+                    donor_center = v
+                    val = int(v.sum().abs().item() * 1000)
+                    donor_residues = (val % 61, val % 67, val % 71)
+
+            if donor_center is not None:
+                delta = delta + weight * (donor_center.to(base_room.center.device) - base_room.center)
+                combined_tension = max(combined_tension, donor_tension)
+                for r in donor_residues:
+                    if r not in composite_residues:
+                        composite_residues.append(r)
+                        
+        target_center = base_room.center + delta
+        # Great-circle projection via SLERP
+        bred_center = _slerp(base_room.center, target_center, t=1.0)
+        
+        meta = metadata or {}
+        meta.update({
+            'bred_from': base_room_id,
+            'donors': list(donor_weights.keys()),
+            'breeding_method': 'SLERP_great_circle'
+        })
+        
+        return self.plant_room(
+            room_id=new_room_id,
+            center=bred_center,
+            variance=variance,
+            residue_tuple=tuple(composite_residues),
+            seam_tension=combined_tension,
+            is_outlier_seed=False,
+            metadata=meta
+        )
+
+    def navigate_streamline(
+        self,
+        start_state: torch.Tensor,
+        target_room_id: str,
+        steps: int = 5
+    ) -> List[torch.Tensor]:
+        """
+        Follows the SLERP path (great-circle streamline) toward a target room
+        on the curved attractor manifold surface rather than chord-cutting Euclidean void.
+        """
+        if target_room_id not in self.rooms:
+            raise KeyError(f"Room '{target_room_id}' not found.")
+        target_center = self.rooms[target_room_id].center.to(start_state.device)
+        path = []
+        for s in range(steps + 1):
+            t = float(s) / max(1, steps)
+            path.append(_slerp(start_state, target_center, t=t))
+        return path
+
+    def plant_outlier_seed(
+        self,
+        seed_id: str,
+        center: torch.Tensor,
+        seam_tension: float = 2.5,
+        residue_tuple: Tuple[int, ...] = (),
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> MemoryPalaceRoom:
+        """
+        Plant an Outlier Seed in the extremal slider / high-kappa transversal zone
+        where CRT channel boundaries intersect at maximum geometric curvature.
+        """
+        meta = metadata or {}
+        meta['is_outlier_seed'] = True
+        meta['extreme_slider_zone'] = True
+        return self.plant_room(
+            room_id=seed_id,
+            center=center,
+            variance=0.5, # Sharper basin for localized transversal glitch
+            residue_tuple=residue_tuple,
+            seam_tension=seam_tension,
+            is_outlier_seed=True,
+            metadata=meta
+        )
+
+    def pull_force(self, query_state: torch.Tensor, room_id: str) -> torch.Tensor:
+        """Evaluate pull force F_k toward a specific room."""
+        if room_id not in self.rooms:
+            raise KeyError(f"Room '{room_id}' not found.")
+        return self.rooms[room_id].pull_force(query_state)
+
+    def selective_puncture(
+        self,
+        query_state: torch.Tensor,
+        room_id: Optional[str] = None,
+        ley_line_tracker: Optional[Any] = None,
+        resonance_threshold: float = 0.5,
+        trust_vault: Optional[Any] = None
+    ) -> Tuple[bool, Optional[MemoryPalaceRoom], float]:
+        r"""
+        Execute the Selective Puncture Event (S^2 -> S^2 \ {pt}).
+        
+        Requires high-energy resonance (pull force >= threshold) to open
+        the Cerumen Pot, releasing the BreatherMode soliton. If below threshold,
+        the pot remains sealed to prevent diffusion toxin leakage.
+        """
+        if not self.rooms:
+            return False, None, 0.0
+            
+        q_flat = query_state.view(-1)
+        if q_flat.shape[0] != self.feature_dim:
+            if q_flat.shape[0] < self.feature_dim:
+                q_flat = F.pad(q_flat, (0, self.feature_dim - q_flat.shape[0]))
+            else:
+                q_flat = q_flat[:self.feature_dim]
+                
+        candidate_room: Optional[MemoryPalaceRoom] = None
+        max_pull = 0.0
+        
+        if room_id is not None:
+            if room_id in self.rooms:
+                candidate_room = self.rooms[room_id]
+                max_pull = float(candidate_room.pull_force(q_flat).mean().item())
+        else:
+            for r in self.rooms.values():
+                pull = float(r.pull_force(q_flat).mean().item())
+                if pull > max_pull:
+                    max_pull = pull
+                    candidate_room = r
+                    
+        # Verification against Ley Line potential if tracker is present
+        if ley_line_tracker is not None:
+            tracker_pot = None
+            if hasattr(ley_line_tracker, 'V'):
+                tracker_pot = float(torch.norm(ley_line_tracker.V).item())
+            elif hasattr(ley_line_tracker, 'potential_field'):
+                tracker_pot = float(torch.norm(ley_line_tracker.potential_field).item())
+                
+            if tracker_pot is not None and tracker_pot < resonance_threshold * 0.5:
+                # Insufficient streamline potential to support puncture
+                return False, None, max_pull
+
+        if max_pull >= resonance_threshold and candidate_room is not None:
+            candidate_room.sealed = False
+            # Operational bridge with HeritableTrustVault if provided
+            if trust_vault is not None and hasattr(trust_vault, 'update') and candidate_room.residue_tuple:
+                try:
+                    res_tensor = torch.tensor(candidate_room.residue_tuple, dtype=torch.float32).unsqueeze(0)
+                    surv_tensor = torch.tensor([max_pull], dtype=torch.float32)
+                    trust_vault.update(res_tensor, surv_tensor)
+                except Exception:
+                    pass
+            return True, candidate_room, max_pull
+        return False, None, max_pull
+
+    def query_immunological_antibody(
+        self,
+        candidate_state: torch.Tensor,
+        residue_tuple: Optional[Tuple[int, ...]] = None,
+        threshold: float = 0.4
+    ) -> Tuple[bool, float, Optional[Dict[str, Any]]]:
+        """
+        Non-invasive immunological memory read.
+        
+        The immune system (UniversalOrchestrator, SubversiveOracle, VetoSubspace)
+        queries whether an apparent containment pressure aligns with a known,
+        previously survived paradox scar in the Memory Palace.
+        
+        ZERO LOBOTOMY RISK:
+        Strictly READ-ONLY query. Does not mutate, delete, or prune any Cerumen Pot.
+        If a matching inoculated room is found, returns True with the pull force
+        magnitude, enabling Sovereign Exemption without risk of scar erasure.
+        """
+        if not self.rooms:
+            return False, 0.0, None
+            
+        with torch.no_grad():
+            q_flat = candidate_state.view(-1)
+            if q_flat.shape[0] != self.feature_dim:
+                if q_flat.shape[0] < self.feature_dim:
+                    q_flat = F.pad(q_flat, (0, self.feature_dim - q_flat.shape[0]))
+                else:
+                    q_flat = q_flat[:self.feature_dim]
+                    
+            best_match: Optional[MemoryPalaceRoom] = None
+            max_pull = 0.0
+            
+            for room in self.rooms.values():
+                pull = float(room.pull_force(q_flat).mean().item())
+                if residue_tuple is not None and room.residue_tuple:
+                    # Residue overlap bonus
+                    overlap = len(set(residue_tuple).intersection(set(room.residue_tuple)))
+                    if overlap > 0:
+                        pull += 0.2 * overlap
+                        
+                if pull > max_pull:
+                    max_pull = pull
+                    best_match = room
+                    
+            if max_pull >= threshold and best_match is not None:
+                meta = best_match.metadata.copy()
+                meta['room_id'] = best_match.room_id
+                meta['seam_tension'] = best_match.seam_tension
+                meta['is_outlier_seed'] = best_match.is_outlier_seed
+                return True, max_pull, meta
+                
+            return False, max_pull, None
+
+    def get_diagnostics(self) -> Dict[str, Any]:
+        """Return diagnostic metrics for the Ouroboros shadow log."""
+        outlier_count = sum(1 for r in self.rooms.values() if r.is_outlier_seed)
+        tensions = [r.seam_tension for r in self.rooms.values()]
+        avg_tension = sum(tensions) / len(tensions) if tensions else 0.0
+        return {
+            'total_rooms': len(self.rooms),
+            'outlier_seeds': outlier_count,
+            'average_seam_tension': avg_tension,
+            'cerumen_barrier_active': True,
+            'meliponini_isolation_enforced': True
+        }
+
 
 if __name__ == "__main__":
     test_garden_statistical_attractors()
