@@ -11,9 +11,11 @@ reaction catalysts, and narrative yield anti-collapse constraints:
 from src.benchmarks.topobench_evaluator import TopoBenchEvaluator
 from src.benchmarks.reactbench_evaluator import ReactBenchEvaluator
 from src.benchmarks.narrative_yield_evaluator import NarrativeYieldEvaluator
+from src.benchmarks.ai_reasoner_evaluator import AIReasonerEvaluator
 
 __all__ = [
     "TopoBenchEvaluator",
     "ReactBenchEvaluator",
     "NarrativeYieldEvaluator",
+    "AIReasonerEvaluator",
 ]
