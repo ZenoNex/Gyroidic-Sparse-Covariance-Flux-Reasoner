@@ -203,6 +203,14 @@ Concurrently integrated into the main forward pass and garbled output repair pip
 
 Implements the operator : M  A defined in the Garden Statistical Attractors design. Uses spectral normalization on all linear layers to enforce Lipschitz constant  1, and a residual skip connection (`y = f(x) + x`) to approximate homeomorphism (continuous, bijective). An approximate inverse `` is provided via fixed-point iteration (Banach theorem, valid when `Lip(f) < 1`). The key requirement it enforces is *roughness preservation*: topological singularities (sharp features, discontinuities) in the manifold are transmitted into audience space rather than smoothed away. In the backend, it projects the "detached" hidden state snapshot to the user-facing audience space for each interaction.
 
+### chern_simons_gasket.py
+**Class**: `ChernSimonsGasket`, `SurgicalSeamVisualizer`, `SolitonStabilityHealer`  
+**Role**: Topological twist repair for logic leaks at symbolic-geometric boundaries, hyperbolic surgical seam tension monitoring, and Drucker-Prager soliton healing.
+
+- **`ChernSimonsGasket`**: Plugs logic leaks where discrete symbolic data transitions to continuous geometric reasoning. Initializes a non-Abelian connection 1-form gauge field $\mathcal{A}$ via polynomial coprime coefficients and winding numbers. In [`chern_simons_action(loop_path)`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chern_simons_gasket.py#L197), evaluates the discrete loop line integral using midpoint rule discretization: $\mathbf{A}(x_{\text{mid}}) = \frac{1}{2}\mathcal{A}_{:d,:d} x_{\text{mid}}$, $I_{\text{line}} = \sum \langle \mathbf{A}(x_{\text{mid}}), dx[:d] \rangle$, scaled by level $k$: $S_{\text{CS}} = \frac{k}{4\pi} I_{\text{line}}$. Incorporates dynamic boundary dimension truncation $d = \min(\operatorname{len}(dx), d_{\text{manifold}}, \operatorname{shape}_0(\mathcal{A}))$ to guarantee numerical stability across varying residue and latent dimensions. In [`detect_logic_leak()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chern_simons_gasket.py#L239), evaluates twist energy $E_{\text{twist}} = |S_{\text{CS}}|$ against threshold $\tau$ and checks variance $\operatorname{Var}(\text{residues}) > 2.0$ to catch phase flattening or structural tearing, triggering $90^\circ$ chiral torsion shifts via `apply_chiral_torsion_shift()` and `plug_logic_leak()`.
+- **`SurgicalSeamVisualizer`**: Monitors hyperbolic slender seam tension $\kappa = \frac{\operatorname{std}(\text{residues})}{\|\mathbf{g}\| + 10^{-8}}$ along the rotating hyperbolic triangle boundary to detect when symbolic and geometric manifolds diverge beyond surgical stitch capacity, tracking status transitions between `stable`, `tension`, and `rupture`.
+- **`SolitonStabilityHealer`**: Detects fractured solitons and guides recovery through Drucker-Prager global plastic flow without erasing local Mohr-Coulomb directional rupture planes.
+
 ---
 
 ### collapse_poisoner.py
@@ -2412,9 +2420,9 @@ Measures cross-modal residue entanglement across text and image channels, comput
 ---
 
 ### `SurgicalSeamVisualizer`
-**Location:** `src/core/chern_simons_gasket.py`  
+**Location:** [`src/core/chern_simons_gasket.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chern_simons_gasket.py#L14)  
 **Description:**  
-Visualizer mapping the boundary seams, gluing diffeomorphisms, and Chern-Simons gaskets across the gyroid-Klein manifold.
+Diagnostic visualizer monitoring hyperbolic slender seam tension $\kappa = \frac{\operatorname{std}(\text{residues})}{\|\mathbf{g}\| + 10^{-8}}$, mapping the boundary seams, gluing diffeomorphisms, and Chern-Simons gaskets across the gyroid-Klein manifold interface to track boundary stability (`stable`, `tension`, `rupture`). Operates alongside [`ChernSimonsGasket`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chern_simons_gasket.py#L91) and [`SolitonStabilityHealer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chern_simons_gasket.py#L455).
 
 ---
 
