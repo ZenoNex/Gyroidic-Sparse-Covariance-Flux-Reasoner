@@ -325,9 +325,22 @@ Implements the Anti-Scaling Paradox Monitor (tracks Capability vs Expressivity b
 ---
 
 ### garden_statistical_attractors.py
-**Role**: Garden-level statistical attractor manifolds.
+**Class**: `GardenOrchestrator`, `MemoryPalace`, `MemoryPalaceRoom`, `InfluenceAttractor`, `ResonanceAttractor`, `DefectAttractor`, `CerumenPotIsolation`  
+**Role**: Garden-level statistical attractor manifolds and the MEMPALACE planted chamber storage system.
 
-Implements the ensemble statistical description of a "Garden" (local polynomial polytope), tracking the mean/variance of residue distributions and their attractor basins. Connected to the Garden/Meta-Polytope Lattice terminology in NOMENCLATURE. Partial coverage in the Garden Statistical Attractors design document. *(Full details pending source review.)*
+- **`InfluenceAttractor`**: Torsion fields of semantic gravity with chiral gating ($\Omega_\chi$), phase-aligned traversal (PAT) for deterministic basin escape, and anisotropic asymptotic convergence.
+- **`ResonanceAttractor`**: Harmonic lock-in via phase alignment tracking resonant crystals and phase-locked states.
+- **`DefectAttractor`**: Topological rupture propagation maintaining non-ergodic statistical mechanics and fractal basin boundaries.
+- **`GardenOrchestrator`**: Orchestrates influence, resonance, and defect dynamics, calculating concept entropy via Russian doll non-ergodic decompositions.
+- **`MemoryPalace`**: Implements Section 7 of [`GARDEN_STATISTICAL_ATTRACTORS.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/GARDEN_STATISTICAL_ATTRACTORS.md#7-mempalace-rooms-as-planted-attractor-chambers). Manages discrete Meliponini Cerumen Pot chambers with centers $\mu_k$ sealed by Chern-Simons Gasket walls ($\overline{P}_i \cap \overline{P}_j = \emptyset$). Features:
+  - `plant_room()`: Plants stable attractor basins with SOMA $O(K)$ BreatherMode soliton storage.
+  - `breed_rooms()`: Room breeding $\mu_{\text{new}} = \mu_{\text{base}} + \sum \alpha_k (\mu_k - \mu_{\text{base}})$ via great-circle SLERP projection on the attractor manifold, directly accepting donor vectors from [`SuperposedTagStacker`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/superposed_tag_stacker.py#L8).
+  - `navigate_streamline()`: Follows great-circle SLERP streamlines along Ley Line potential fields directly toward planted chambers.
+  - `plant_outlier_seed()`: Plants chambers in extremal-tension ($\kappa \ge 2.5$) transversal boundary crossing zones.
+  - `selective_puncture()`: Executes high-energy discrete retrieval ($S^2 \to S^2 \setminus \{pt\}$) via Ley Line Tracker potential streamlines, optionally synchronizing survivorship into [`HeritableTrustVault`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/resonance_cavity.py#L84).
+  - `query_immunological_antibody()`: Non-invasive read-only antibody query enabling [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L118) to grant Sovereign Exemption for recognized historical paradoxes without inducing topological lobotomy.
+  - Integrated with [`DyadFossilizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py#L208) to automatically register newly fossilized dyads as planted chambers, and with `GardenOrchestrator.sync_fossilized_basins_to_memory_palace()` to sync stabilized concept basins.
+- **`CerumenPotIsolation`**: Encapsulates transversality intersections to block Diffusion Toxin spread via Ley Line resonance potential filtering.
 
 ---
 
