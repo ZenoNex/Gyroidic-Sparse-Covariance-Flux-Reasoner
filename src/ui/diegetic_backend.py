@@ -8235,7 +8235,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 except Exception as e:
                     self._send_error_json(f"Failed to boot Voxelboxter: {str(e)}")
             
-            elif self.path in ('/api/benchmark/topobench', '/api/benchmark/reactbench', '/api/benchmark/narrative', '/api/benchmark/all'):
+            elif self.path in ('/api/benchmark/topobench', '/api/benchmark/reactbench', '/api/benchmark/narrative', '/api/benchmark/aireasoner', '/api/benchmark/all'):
                 import io
                 import contextlib
                 import time
@@ -8257,6 +8257,11 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                             evaluator = NarrativeYieldEvaluator()
                             report = evaluator.run_suite()
                             suite_name = "NarrativeYieldEvaluator"
+                        elif self.path == '/api/benchmark/aireasoner':
+                            from src.benchmarks.ai_reasoner_evaluator import AIReasonerEvaluator
+                            evaluator = AIReasonerEvaluator()
+                            report = evaluator.run_suite()
+                            suite_name = "AIReasonerEvaluator"
                         else:  # /api/benchmark/all
                             from src.benchmarks.run_all_benchmarks import BenchmarkSuiteRunner
                             runner = BenchmarkSuiteRunner()
@@ -8283,6 +8288,56 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     })
                 except Exception as e:
                     self._send_error_json(f"Failed to execute benchmark {self.path}: {str(e)}")
+
+            elif self.path == '/api/curvature/hessian_8x8':
+                try:
+                    content_len = int(self.headers.get('Content-Length', 0))
+                    post_body = self.rfile.read(content_len) if content_len > 0 else b'{}'
+                    data = json.loads(post_body.decode('utf-8')) if post_body else {}
+                    state = data.get("state")
+                    if state is None:
+                        if 'ENGINE' in globals() and ENGINE is not None and hasattr(ENGINE, 'get_topological_state'):
+                            state = ENGINE.get_topological_state()
+                        else:
+                            state = [0.1 * i for i in range(8)]
+                    from src.core.hessian_8x8_curvature_ledger import Hessian8x8CurvatureLedger
+                    ledger_calc = Hessian8x8CurvatureLedger(
+                        delta_h=float(data.get("delta_h", 1e-3)),
+                        dt=float(data.get("dt", 1.0))
+                    )
+                    ledger = ledger_calc.compute_ledger(
+                        state=state,
+                        compute_bouligand=bool(data.get("compute_bouligand", True))
+                    )
+                    self._send_json({"status": "ok", "ledger": ledger.to_dict()})
+                except Exception as e:
+                    self._send_error_json(f"Hessian 8x8 analysis failed: {str(e)}")
+
+            elif self.path == '/api/trajectory/decombine_8x8':
+                try:
+                    content_len = int(self.headers.get('Content-Length', 0))
+                    post_body = self.rfile.read(content_len) if content_len > 0 else b'{}'
+                    data = json.loads(post_body.decode('utf-8')) if post_body else {}
+                    board = data.get("board")
+                    budget = int(data.get("budget", 200000))
+                    max_preimages = int(data.get("max_preimages_per_step", 64))
+                    use_coxeter = bool(data.get("use_coxeter_d4", True))
+                    from src.core.hessian_8x8_curvature_ledger import Trajectory8x8Decombiner
+                    decombiner = Trajectory8x8Decombiner(
+                        budget=budget,
+                        max_preimages_per_step=max_preimages,
+                        use_coxeter_d4=use_coxeter
+                    )
+                    if board is None:
+                        demo_board = [[0] * 8 for _ in range(8)]
+                        demo_board[0][0] = 8
+                        demo_board[0][1] = 2
+                        res = decombiner.decombine_trajectory(demo_board)
+                    else:
+                        res = decombiner.decombine_trajectory(board)
+                    self._send_json({"status": "ok", "decombination": res})
+                except Exception as e:
+                    self._send_error_json(f"Trajectory decombination failed: {str(e)}")
 
             else:
                 self.send_error(404)
