@@ -198,62 +198,33 @@ class CODESConstraintFramework(nn.Module):
             current_state = current_state.squeeze(0)
         
         # Compute diagnostics
+        hessian_diagnostics = self.compute_boundary_curvature_ledger(current_state)
         diagnostics = {
             'final_energy': energy_history[-1] if energy_history else 0.0,
             'energy_reduction': energy_history[0] - energy_history[-1] if len(energy_history) > 1 else 0.0,
             'convergence_steps': len(energy_history),
             'converged': convergence_history[-1] < self.convergence_threshold if convergence_history else False,
-            'stability_score': self._compute_stability_score(current_state),
+            'stability_score': hessian_diagnostics.get('stability_score', 1.0),
+            'hessian_8x8_ledger': hessian_diagnostics,
             'constraint_satisfaction': self._compute_constraint_satisfaction(current_state)
         }
         
         return current_state, diagnostics
     
+    def compute_boundary_curvature_ledger(self, state: torch.Tensor) -> Dict:
+        """
+        Compute full 8x8 Hessian curvature ledger with Coxeter D_4 gauge quotienting,
+        Bouligand directional kinks, cyclotomic roots of unity harmonics, and spectral decomposition.
+        """
+        if not hasattr(self, '_hessian_engine') or self._hessian_engine is None:
+            from src.core.hessian_8x8_curvature_ledger import Hessian8x8CurvatureLedger
+            self._hessian_engine = Hessian8x8CurvatureLedger(state_dim=self.state_dim, device=str(state.device))
+        return self._hessian_engine(state, self.compute_energy_gradient)
+
     def _compute_stability_score(self, state: torch.Tensor) -> float:
         """Compute stability score based on energy landscape curvature (8x8 Hessian Trick)."""
-        # 8x8 Hessian Trick (boundary-curvature ledger)
-        # Instead of a full O(d^2) Hessian, we extract an 8x8 boundary-curvature ledger
-        # from the state's most active dimensions to compute principal curvatures.
-        grad = self.compute_energy_gradient(state)
-        
-        dim = state.shape[-1]
-        if dim > 8:
-            # Extract top 8 most active dimensions based on gradient magnitude
-            _, top_indices = torch.topk(torch.abs(grad.flatten()), min(8, grad.numel()))
-            top_indices = top_indices % dim
-        else:
-            top_indices = torch.arange(dim, device=state.device)
-            
-        # Finite difference to compute 8x8 Hessian on active boundary
-        k = len(top_indices)
-        hessian_8x8 = torch.zeros((k, k), device=state.device)
-        delta = 1e-4
-        
-        for i in range(k):
-            idx = top_indices[i]
-            perturbed_state = state.clone()
-            if perturbed_state.dim() == 1:
-                perturbed_state[idx] += delta
-            else:
-                perturbed_state[..., idx] += delta
-                
-            grad_perturbed = self.compute_energy_gradient(perturbed_state)
-            grad_diff = (grad_perturbed - grad) / delta
-            
-            if grad_diff.dim() == 1:
-                hessian_8x8[i, :] = grad_diff[top_indices]
-            else:
-                hessian_8x8[i, :] = grad_diff[..., top_indices].mean(dim=0)
-                
-        # Symmetrize the ledger
-        hessian_8x8 = 0.5 * (hessian_8x8 + hessian_8x8.T)
-        
-        # Stability is inversely proportional to maximum curvature (spectral radius)
-        # using the Frobenius norm of the 8x8 ledger as a proxy
-        curvature_proxy = torch.norm(hessian_8x8, p='fro').item()
-        stability = 1.0 / (1.0 + curvature_proxy + torch.norm(grad).item())
-        
-        return stability
+        ledger = self.compute_boundary_curvature_ledger(state)
+        return float(ledger.get('stability_score', 1.0))
     
     def _compute_constraint_satisfaction(self, state: torch.Tensor) -> Dict:
         """Compute how well each constraint is satisfied."""
