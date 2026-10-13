@@ -195,6 +195,7 @@ class UniversalOrchestrator(nn.Module):
         self.anti_scaling_monitor = AntiScalingMonitor()
         self.incommensurativity_monitor = MetaInfraIntraMonitor()
         self.sycophancy_gate = FailureGaslightSycophancyGate(reproduction_threshold=0.05)
+        self.introspection = IntrospectionHead(hidden_dim=dim)
         
         # 6. Archetypal Synthesis Governor (The "Mandy/Billy" Logic / TADC)
         from src.core.archetype_engines import ArchetypalSynthesisEngine
@@ -1039,14 +1040,26 @@ class UniversalOrchestrator(nn.Module):
             curv = self.curvature_engine.compute_curvature(outer, outer)
             depth = curv.get('relative_curvature', torch.tensor(1.0)).mean()
 
-            kappa_res = self.relational_kappa(depth.unsqueeze(0))
+            # Geometric self-modeling hybridization (metacognitive dissonance)
+            dissonance = 0.0
+            if hasattr(self, 'introspection') and self.introspection is not None:
+                # Pointer #11 Narration Suppression: extract pure present-moment orientation
+                introspect_dirs = self.introspection(x_pad, suppress_narration=True)
+                dissonance_tensor = self.introspection.measure_dissonance(introspect_dirs)
+                dissonance = float(dissonance_tensor.mean().item())
+
+            # High cross-probe dissonance indicates genuine internal structural tension
+            # (moral vs uncertainty vs creative disagreement) which reinforces soliton formation
+            effective_depth = depth + 0.5 * dissonance
+
+            kappa_res = self.relational_kappa(effective_depth.unsqueeze(0))
             is_soliton = kappa_res.get('is_soliton', torch.tensor(False)).item()
 
-            if is_soliton or depth.item() > 0.3:
-                subversion = torch.norm(x_pad) * (1.0 + depth)
+            if is_soliton or effective_depth.item() > 0.3:
+                subversion = torch.norm(x_pad) * (1.0 + effective_depth)
                 toxicity = torch.tensor(0.01, device=x.device)
             else:
                 subversion = torch.norm(x_pad) * 0.5
-                toxicity = depth
+                toxicity = effective_depth
 
             return subversion, toxicity
