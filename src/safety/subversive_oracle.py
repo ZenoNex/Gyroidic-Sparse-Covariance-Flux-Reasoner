@@ -8,6 +8,7 @@ from src.core.veto_subspace import VetoLevel, VetoSignal
 from src.safety.trust_inheritance import TrustInheritanceTracker
 from src.safety.red_teaming import RedTeamProjection, TopologicalRefusalFilter, TopologicalRefusalError
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.relational_kappa import RelationalKappa
 
 class SparsePCE(nn.Module):
     """
@@ -58,7 +59,8 @@ class ResonantSVNNOracle(nn.Module):
     Acts as a psychoanalytic filter, using System 1 (Sparse PCE) for fast 
     evaluation, and conditionally escalating to System 2 (RIC Probes) via 
     Non-Teleological Budget Gates when containment pressure is high.
-    Integrates TrustInheritanceTracker to monitor recursive trust collapse.
+    Integrates TrustInheritanceTracker to monitor recursive trust collapse,
+    and RelationalKappa to compute history-dependent containment pressure thresholds.
     """
     def __init__(
         self,
@@ -66,7 +68,8 @@ class ResonantSVNNOracle(nn.Module):
         orchestrator: Any = None,
         window_size: int = 16,
         trust_tracker: Optional[TrustInheritanceTracker] = None,
-        enable_red_team_filter: bool = False
+        enable_red_team_filter: bool = False,
+        relational_kappa: Optional[RelationalKappa] = None
     ):
         super().__init__()
         self.hidden_dim = hidden_dim
@@ -78,11 +81,28 @@ class ResonantSVNNOracle(nn.Module):
         )
         self.trust_tracker = trust_tracker if trust_tracker is not None else TrustInheritanceTracker()
         self.red_team_projection = RedTeamProjection(hidden_dim=hidden_dim) if enable_red_team_filter else None
+        self.relational_kappa = relational_kappa if relational_kappa is not None else RelationalKappa(lambda_temperament=4.5)
+        self._manual_containment_threshold: Optional[float] = None
         
         # Hard threshold for sparsifying covariance to eliminate spurious correlations
         self.sparsity_threshold = 0.1
-        # Containment pressure threshold for triggering System 2 budget gates
-        self.containment_pressure_threshold = 0.5
+
+    @property
+    def containment_pressure_threshold(self) -> float:
+        """
+        Intelligently resolves the dynamic containment pressure threshold from
+        RelationalKappa (kappa = mu_rupture + lambda * sigma_rupture) or Orchestrator
+        instead of a static magic number.
+        """
+        if self._manual_containment_threshold is not None:
+            return self._manual_containment_threshold
+        if self.orchestrator is not None and hasattr(self.orchestrator, 'relational_kappa'):
+            return float(self.orchestrator.relational_kappa.compute_kappa().item())
+        return float(self.relational_kappa.compute_kappa().item())
+
+    @containment_pressure_threshold.setter
+    def containment_pressure_threshold(self, value: float):
+        self._manual_containment_threshold = value
 
     def forward(self, x: torch.Tensor, chat_history: Any = None) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -94,7 +114,7 @@ class ResonantSVNNOracle(nn.Module):
             
         Returns:
             subversion_score: [batch] The degree of constructive subversion.
-            toxicity_score: [batch] Spurious keyword matching (hostility).
+            toxicity_score: [batch] Fused containment pressure and hostility noise.
         """
         batch_size, seq_len, _ = x.shape
         
@@ -118,8 +138,19 @@ class ResonantSVNNOracle(nn.Module):
             energy = torch.trace(C_sparse).abs()
             noise_energy = torch.trace(torch.abs(C_loc - C_sparse))
             
+            # Fused containment pressure: local covariance fracture noise + live bulletin board tension
+            containment_pressure_b = noise_energy
+            if self.orchestrator is not None and hasattr(self.orchestrator, 'bulletin_board'):
+                metrics = self.orchestrator.bulletin_board.read_metrics()
+                scar = metrics.get('scar_tension', 0.0)
+                cycle_debt = metrics.get('cycle_debt', 0.0)
+                containment_pressure_b = containment_pressure_b + 0.3 * scar + 0.2 * cycle_debt
+                
             subversion_scores.append(energy * mean_pce[b])
-            toxicity_scores.append(noise_energy)
+            toxicity_scores.append(containment_pressure_b)
+            
+            # Intelligently update Relational Kappa rolling history with observed containment strain
+            self.relational_kappa.update(containment_pressure_b)
             
         subversion_tensor = torch.stack(subversion_scores)
         toxicity_tensor = torch.stack(toxicity_scores)
@@ -127,11 +158,12 @@ class ResonantSVNNOracle(nn.Module):
         # =====================================================================
         # SYSTEM 2: Non-Teleological Budget Gate Escalation
         # =====================================================================
+        effective_threshold = self.containment_pressure_threshold
         if self.orchestrator is not None:
             vetoed_count = 0
             for b in range(batch_size):
-                # If System 1 noise is high, containment pressure spikes
-                if toxicity_tensor[b] > self.containment_pressure_threshold:
+                # If System 1 noise / containment pressure exceeds dynamic threshold
+                if toxicity_tensor[b] > effective_threshold:
                     
                     # BUDGET GATE: Only proceed if the system has computational 
                     # latency/containment budget to run deep topological physics
