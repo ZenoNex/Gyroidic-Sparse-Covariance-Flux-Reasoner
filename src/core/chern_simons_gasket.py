@@ -222,12 +222,14 @@ class ChernSimonsGasket(nn.Module):
             x_curr = loop_path[i]
             x_next = loop_path[i + 1]
             dx = x_next - x_curr
+            x_mid = 0.5 * (x_curr + x_next)
             
-            # Gauge field at current point (simplified evaluation)
-            A_curr = self.gauge_field.mean(dim=0)  # Average over components
+            # Non-Abelian connection 1-form A(x) = 0.5 * gauge_field * x
+            d = min(len(dx), self.manifold_dim, self.gauge_field.shape[0])
+            A_curr = 0.5 * torch.matmul(self.gauge_field[:d, :d], x_mid[:d])
             
             # Add contribution to line integral
-            line_integral += torch.dot(A_curr[:len(dx)], dx)
+            line_integral += torch.dot(A_curr, dx[:d])
         
         # Chern-Simons action (simplified 3D case)
         cs_action = (self.level_k / (4 * math.pi)) * line_integral
