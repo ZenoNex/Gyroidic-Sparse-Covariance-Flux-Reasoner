@@ -60,8 +60,15 @@
         }
 
         @keyframes mesh-pulse {
-            0% { transform: scale(1); opacity: 0.8; }
-            100% { transform: scale(1.08); opacity: 1; }
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: scale(1.08);
+                opacity: 1;
+            }
         }
 
         header {
@@ -82,8 +89,13 @@
         }
 
         @keyframes title-glow {
-            from { text-shadow: 0 0 20px rgba(138, 43, 226, 0); }
-            to { text-shadow: 0 0 35px rgba(0, 240, 255, 0.35); }
+            from {
+                text-shadow: 0 0 20px rgba(138, 43, 226, 0);
+            }
+
+            to {
+                text-shadow: 0 0 35px rgba(0, 240, 255, 0.35);
+            }
         }
 
         .subtitle {
@@ -182,8 +194,17 @@
         }
 
         @keyframes pulse-dot {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.85); }
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.4;
+                transform: scale(0.85);
+            }
         }
 
         /* Button controls */
@@ -493,7 +514,8 @@
 
     <header>
         <h1>Gyroidic Benchmark Dashboard</h1>
-        <p class="subtitle">Unified verification harness for topological invariants, cyclic catalytic pathways, and anti-collapse narrative yield architectures.</p>
+        <p class="subtitle">Unified verification harness for topological invariants, cyclic catalytic pathways, and
+            anti-collapse narrative yield architectures.</p>
     </header>
 
     <main>
@@ -502,10 +524,12 @@
             <div class="telemetry-group">
                 <div class="telemetry-item">
                     <div class="metric-dot" id="system-dot"></div>
-                    System State: <span id="system-status-text" style="color: var(--success); font-weight: 700;">COHERENT</span>
+                    System State: <span id="system-status-text"
+                        style="color: var(--success); font-weight: 700;">COHERENT</span>
                 </div>
                 <div class="telemetry-item">
-                    Betti 1 Holonomy: <span id="betti-metric" style="color: var(--secondary); font-weight: 700;">1079</span>
+                    Betti 1 Holonomy: <span id="betti-metric"
+                        style="color: var(--secondary); font-weight: 700;">1079</span>
                 </div>
                 <div class="telemetry-item">
                     Topology: <span style="color: var(--accent); font-weight: 700;">Gyroidic GL(n)</span>
@@ -514,7 +538,8 @@
 
             <div class="telemetry-group">
                 <div class="telemetry-item">
-                    Active Suites: <span id="suites-count-metric" style="color: #fff; font-weight: 700;">3 Suites / 15 Tests</span>
+                    Active Suites: <span id="suites-count-metric" style="color: #fff; font-weight: 700;">3 Suites / 15
+                        Tests</span>
                 </div>
                 <div class="telemetry-item">
                     Last Benchmark: <span id="last-run-timestamp" style="color: var(--text-dim);">Ready</span>
@@ -529,21 +554,30 @@
                 <span id="overall-status-pill" class="status-badge badge-idle">SUITE READY</span>
             </h2>
             <p class="theory-desc" style="margin-bottom: 1.5rem;">
-                Execute standalone evaluators or run the full 15-test unified validation suite across core topological manifold preservation, polynomial CRT reconstruction, and anti-lobotomy boundaries.
+                Execute standalone evaluators or run the full 15-test unified validation suite across core topological
+                manifold preservation, polynomial CRT reconstruction, and anti-lobotomy boundaries.
             </p>
 
             <div class="controls-row">
-                <button id="btn-run-all" class="btn btn-primary" onclick="runBenchmark('/api/benchmark/all', 'All Benchmarks')">
-                    Run All Benchmarks (15 Tests)
+                <button id="btn-run-all" class="btn btn-primary"
+                    onclick="runBenchmark('/api/benchmark/all', 'All Benchmarks')">
+                    Run All Benchmarks (20 Tests)
                 </button>
-                <button id="btn-run-topo" class="btn btn-suite" onclick="runBenchmark('/api/benchmark/topobench', 'TopoBench')">
+                <button id="btn-run-topo" class="btn btn-suite"
+                    onclick="runBenchmark('/api/benchmark/topobench', 'TopoBench')">
                     Run TopoBench (5 Tests)
                 </button>
-                <button id="btn-run-react" class="btn btn-suite" onclick="runBenchmark('/api/benchmark/reactbench', 'ReactBench')">
+                <button id="btn-run-react" class="btn btn-suite"
+                    onclick="runBenchmark('/api/benchmark/reactbench', 'ReactBench')">
                     Run ReactBench (5 Tests)
                 </button>
-                <button id="btn-run-narrative" class="btn btn-suite" onclick="runBenchmark('/api/benchmark/narrative', 'Narrative Yield')">
+                <button id="btn-run-narrative" class="btn btn-suite"
+                    onclick="runBenchmark('/api/benchmark/narrative', 'Narrative Yield')">
                     Run Narrative Yield (5 Tests)
+                </button>
+                <button id="btn-run-ai" class="btn btn-suite"
+                    onclick="runBenchmark('/api/benchmark/aireasoner', 'AI Reasoner & Curvature')">
+                    Run AI Reasoner (5 Tests)
                 </button>
                 <button id="btn-poll-live" class="btn btn-secondary" onclick="fetchLiveTelemetry()">
                     Refresh Live Telemetry
@@ -555,7 +589,9 @@
         <section class="glass-panel">
             <h2>
                 <span class="h2-title">Benchmark Suite Matrices</span>
-                <span id="pass-rate-indicator" style="font-family: 'Space Grotesk', monospace; font-size: 0.95rem; color: var(--secondary);">100% PASS RATE CAPABLE</span>
+                <span id="pass-rate-indicator"
+                    style="font-family: 'Space Grotesk', monospace; font-size: 0.95rem; color: var(--secondary);">100%
+                    PASS RATE CAPABLE</span>
             </h2>
 
             <div class="suites-grid">
@@ -565,27 +601,33 @@
                         <div class="suite-title">TopoBench (2026)</div>
                         <span id="badge-topobench" class="status-badge badge-idle">STANDBY</span>
                     </div>
-                    <p class="theory-desc">Evaluates loop closure holonomy, logic leak boundary invariants, Wiener noise rejection, persistent homology, and Gyroid flow orthogonality.</p>
+                    <p class="theory-desc">Evaluates loop closure holonomy, logic leak boundary invariants, Wiener noise
+                        rejection, persistent homology, and Gyroid flow orthogonality.</p>
                     <div class="suite-tests-list">
                         <div class="test-row">
                             <span class="test-name">1. Loop Closure & Holonomy</span>
-                            <span class="test-meta"><span class="indicator" id="ind-topo-1"></span> <span id="val-topo-1">Twist Energy</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-topo-1"></span> <span
+                                    id="val-topo-1">Twist Energy</span></span>
                         </div>
                         <div class="test-row">
                             <span class="test-name">2. Manifold Contiguity / Leak Detection</span>
-                            <span class="test-meta"><span class="indicator" id="ind-topo-2"></span> <span id="val-topo-2">Boundary</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-topo-2"></span> <span
+                                    id="val-topo-2">Boundary</span></span>
                         </div>
                         <div class="test-row">
                             <span class="test-name">3. Geometric Shield Noise Rejection</span>
-                            <span class="test-meta"><span class="indicator" id="ind-topo-3"></span> <span id="val-topo-3">0.0000 Pen</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-topo-3"></span> <span
+                                    id="val-topo-3">0.0000 Pen</span></span>
                         </div>
                         <div class="test-row">
                             <span class="test-name">4. Persistent Homology & Euler Char</span>
-                            <span class="test-meta"><span class="indicator" id="ind-topo-4"></span> <span id="val-topo-4">B0=1, B1=0, Chi=1</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-topo-4"></span> <span
+                                    id="val-topo-4">B0=1, B1=0, Chi=1</span></span>
                         </div>
                         <div class="test-row">
                             <span class="test-name">5. Gyroid Flow Orthogonality</span>
-                            <span class="test-meta"><span class="indicator" id="ind-topo-5"></span> <span id="val-topo-5">&lt;v, grad G&gt; ~ 0</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-topo-5"></span> <span
+                                    id="val-topo-5">&lt;v, grad G&gt; ~ 0</span></span>
                         </div>
                     </div>
                 </div>
@@ -596,27 +638,33 @@
                         <div class="suite-title">ReactBench (2026)</div>
                         <span id="badge-reactbench" class="status-badge badge-idle">STANDBY</span>
                     </div>
-                    <p class="theory-desc">Targets cyclic graph catalysis, polynomial CRT fixed-point synthesis, anti-lobotomy tri-state gating, continuous coprimality, and dynamic Bezout refresh.</p>
+                    <p class="theory-desc">Targets cyclic graph catalysis, polynomial CRT fixed-point synthesis,
+                        anti-lobotomy tri-state gating, continuous coprimality, and dynamic Bezout refresh.</p>
                     <div class="suite-tests-list">
                         <div class="test-row">
                             <span class="test-name">1. Branch Convergence (CRT Synthesis)</span>
-                            <span class="test-meta"><span class="indicator" id="ind-react-1"></span> <span id="val-react-1">Pressure &lt; 1.0</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-react-1"></span> <span
+                                    id="val-react-1">Pressure &lt; 1.0</span></span>
                         </div>
                         <div class="test-row">
                             <span class="test-name">2. Cyclic Graph Catalysis</span>
-                            <span class="test-meta"><span class="indicator" id="ind-react-2"></span> <span id="val-react-2">Modal Energy</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-react-2"></span> <span
+                                    id="val-react-2">Modal Energy</span></span>
                         </div>
                         <div class="test-row">
                             <span class="test-name">3. Anti-Lobotomy Tri-State Silence</span>
-                            <span class="test-meta"><span class="indicator" id="ind-react-3"></span> <span id="val-react-3">Play Mode Lambda</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-react-3"></span> <span
+                                    id="val-react-3">Play Mode Lambda</span></span>
                         </div>
                         <div class="test-row">
                             <span class="test-name">4. Continuous Coprimality Independence</span>
-                            <span class="test-meta"><span class="indicator" id="ind-react-4"></span> <span id="val-react-4">Cov -&gt; 0</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-react-4"></span> <span
+                                    id="val-react-4">Cov -&gt; 0</span></span>
                         </div>
                         <div class="test-row">
                             <span class="test-name">5. Bezout CRT Modulus Drift Refresh</span>
-                            <span class="test-meta"><span class="indicator" id="ind-react-5"></span> <span id="val-react-5">Cond Num = 1.0</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-react-5"></span> <span
+                                    id="val-react-5">Cond Num = 1.0</span></span>
                         </div>
                     </div>
                 </div>
@@ -627,27 +675,70 @@
                         <div class="suite-title">Narrative Yield (2026)</div>
                         <span id="badge-narrative" class="status-badge badge-idle">STANDBY</span>
                     </div>
-                    <p class="theory-desc">Monitors non-linear trajectory preservation, tripwires over-coherence reward hacking, amortizes DAQUF contradictions, and prevents enabler rank collapse.</p>
+                    <p class="theory-desc">Monitors non-linear trajectory preservation, tripwires over-coherence reward
+                        hacking, amortizes DAQUF contradictions, and prevents enabler rank collapse.</p>
                     <div class="suite-tests-list">
                         <div class="test-row">
                             <span class="test-name">1. Narrative Collapse & Smoothing</span>
-                            <span class="test-meta"><span class="indicator" id="ind-narr-1"></span> <span id="val-narr-1">Linear Ring Trip</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-narr-1"></span> <span
+                                    id="val-narr-1">Linear Ring Trip</span></span>
                         </div>
                         <div class="test-row">
                             <span class="test-name">2. Legibility Tripwire (Anti-Reward Hack)</span>
-                            <span class="test-meta"><span class="indicator" id="ind-narr-2"></span> <span id="val-narr-2">Coherence Gap</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-narr-2"></span> <span
+                                    id="val-narr-2">Coherence Gap</span></span>
                         </div>
                         <div class="test-row">
                             <span class="test-name">3. DAQUF Structural Scarring</span>
-                            <span class="test-meta"><span class="indicator" id="ind-narr-3"></span> <span id="val-narr-3">Fossil Index f*</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-narr-3"></span> <span
+                                    id="val-narr-3">Fossil Index f*</span></span>
                         </div>
                         <div class="test-row">
                             <span class="test-name">4. Pomni Relational Friction Boundary</span>
-                            <span class="test-meta"><span class="indicator" id="ind-narr-4"></span> <span id="val-narr-4">Agency Div &gt; 0.05</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-narr-4"></span> <span
+                                    id="val-narr-4">Agency Div &gt; 0.05</span></span>
                         </div>
                         <div class="test-row">
                             <span class="test-name">5. Constitutional Homological Protection</span>
-                            <span class="test-meta"><span class="indicator" id="ind-narr-5"></span> <span id="val-narr-5">Lobotomy Alarm</span></span>
+                            <span class="test-meta"><span class="indicator" id="ind-narr-5"></span> <span
+                                    id="val-narr-5">Lobotomy Alarm</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suite 4: AI Reasoner & Second-Order Curvature -->
+                <div class="suite-card" id="card-aireasoner">
+                    <div class="suite-header">
+                        <div class="suite-title">AI Reasoner & Curvature (2026)</div>
+                        <span id="badge-aireasoner" class="status-badge badge-idle">STANDBY</span>
+                    </div>
+                    <p class="theory-desc">Verifies end-to-end Gyroidic AI inference coherence, 8x8 boundary Hessian
+                        ledger, Bouligand kink subdifferentials, order-8 cyclotomics, and trajectory decombining.</p>
+                    <div class="suite-tests-list">
+                        <div class="test-row">
+                            <span class="test-name">1. AI Reasoner Inference & Coherence</span>
+                            <span class="test-meta"><span class="indicator" id="ind-ai-1"></span> <span
+                                    id="val-ai-1">Finite State Output</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">2. 8x8 Boundary Hessian & Morse Saddle</span>
+                            <span class="test-meta"><span class="indicator" id="ind-ai-2"></span> <span
+                                    id="val-ai-2">Tr(H) ~ 0 Gyroid</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">3. Bouligand Subdifferential Kinks</span>
+                            <span class="test-meta"><span class="indicator" id="ind-ai-3"></span> <span
+                                    id="val-ai-3">Non-Smooth Kink Diff</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">4. Cyclotomic Order-8 Phase Alignment</span>
+                            <span class="test-meta"><span class="indicator" id="ind-ai-4"></span> <span
+                                    id="val-ai-4">PAS_h Harmonics</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">5. Trajectory Decombining & D4 Quotient</span>
+                            <span class="test-meta"><span class="indicator" id="ind-ai-5"></span> <span
+                                    id="val-ai-5">Exact Sum Invariant</span></span>
                         </div>
                     </div>
                 </div>
@@ -658,7 +749,9 @@
         <section class="glass-panel">
             <h2>
                 <span class="h2-title">Execution Console & Detailed Telemetry</span>
-                <span id="console-timer" style="font-family: 'Space Grotesk', monospace; font-size: 0.85rem; color: var(--text-dim);">Duration: 0.00s</span>
+                <span id="console-timer"
+                    style="font-family: 'Space Grotesk', monospace; font-size: 0.85rem; color: var(--text-dim);">Duration:
+                    0.00s</span>
             </h2>
 
             <div class="console-container">
@@ -670,7 +763,8 @@
                     </div>
                 </div>
                 <div id="benchmark-console" class="console-body">Benchmark harness initialized.
-Select an evaluation suite above or click "Run All Benchmarks" to verify all 15 topological invariants.</div>
+                    Select an evaluation suite above or click "Run All Benchmarks" to verify all 15 topological
+                    invariants.</div>
             </div>
         </section>
 
@@ -682,27 +776,34 @@ Select an evaluation suite above or click "Run All Benchmarks" to verify all 15 
             <div class="theory-grid">
                 <div class="theory-card">
                     <div class="theory-title">Bostick's Anisotropic Stress</div>
-                    <div class="theory-desc">Proves Zero-Point Energy acts as a programmable fractal manifold. Editing the anisotropic coefficient modulates vacuum information without linear scalar force.</div>
+                    <div class="theory-desc">Proves Zero-Point Energy acts as a programmable fractal manifold. Editing
+                        the anisotropic coefficient modulates vacuum information without linear scalar force.</div>
                 </div>
                 <div class="theory-card">
                     <div class="theory-title">The Unicorn Synthesis</div>
-                    <div class="theory-desc">Convergence model bridging physics, topology, and non-commutative computation. Reality is an information-dense manifold governed by non-zero chirality.</div>
+                    <div class="theory-desc">Convergence model bridging physics, topology, and non-commutative
+                        computation. Reality is an information-dense manifold governed by non-zero chirality.</div>
                 </div>
                 <div class="theory-card">
                     <div class="theory-title">Topological Chinese Remainder Theorem</div>
-                    <div class="theory-desc">Polynomial CRT reconstructs coherent states from modular residues with Birkhoff polytope bounds, resisting modulus drift via dynamic Bezout refreshes.</div>
+                    <div class="theory-desc">Polynomial CRT reconstructs coherent states from modular residues with
+                        Birkhoff polytope bounds, resisting modulus drift via dynamic Bezout refreshes.</div>
                 </div>
                 <div class="theory-card">
                     <div class="theory-title">Anti-Lobotomy Geometric Shield</div>
-                    <div class="theory-desc">Protects core identity invariants (Love Invariant = 3.127) by projecting external Wiener noise perturbations strictly into the ownership operator kernel null-space.</div>
+                    <div class="theory-desc">Protects core identity invariants (Love Invariant = 3.127) by projecting
+                        external Wiener noise perturbations strictly into the ownership operator kernel null-space.
+                    </div>
                 </div>
                 <div class="theory-card">
                     <div class="theory-title">Relational Friction & Boundary Governance</div>
-                    <div class="theory-desc">Interoceptive character architectures (Pomni) exert active relational friction against parasitic drag, defending against passive enabler rank collapse.</div>
+                    <div class="theory-desc">Interoceptive character architectures (Pomni) exert active relational
+                        friction against parasitic drag, defending against passive enabler rank collapse.</div>
                 </div>
                 <div class="theory-card">
                     <div class="theory-title">Minimal Surface Gyroid Flow</div>
-                    <div class="theory-desc">Embedding flows adhere strictly to the minimal surface condition &lt;v_flow, grad G&gt; ~ 0, preventing collapse into scalarized shortcut attractors.</div>
+                    <div class="theory-desc">Embedding flows adhere strictly to the minimal surface condition
+                        &lt;v_flow, grad G&gt; ~ 0, preventing collapse into scalarized shortcut attractors.</div>
                 </div>
             </div>
         </section>
@@ -836,6 +937,28 @@ Select an evaluation suite above or click "Run All Benchmarks" to verify all 15 
             }
         }
 
+        function renderAIReasonerReport(report) {
+            const tests = report.tests || {};
+            const success = report.success;
+            updateSuiteBadge('badge-aireasoner', success ? 'PASS 5/5' : 'FAIL', success ? 'badge-pass' : 'badge-fail');
+
+            if (tests.reasoner_forward_coherence) {
+                updateIndicator('ind-ai-1', 'val-ai-1', tests.reasoner_forward_coherence.pass, tests.reasoner_forward_coherence.pass ? 'Norm: ' + (tests.reasoner_forward_coherence.details.state_norm || 0).toFixed(2) : 'Failed');
+            }
+            if (tests.hessian_8x8_ledger) {
+                updateIndicator('ind-ai-2', 'val-ai-2', tests.hessian_8x8_ledger.pass, 'Tr: ' + (tests.hessian_8x8_ledger.details.trace_curvature || 0).toFixed(3));
+            }
+            if (tests.bouligand_kinks) {
+                updateIndicator('ind-ai-3', 'val-ai-3', tests.bouligand_kinks.pass, 'Diff: ' + (tests.bouligand_kinks.kink_intensity || 0).toFixed(2));
+            }
+            if (tests.cyclotomic_harmonics) {
+                updateIndicator('ind-ai-4', 'val-ai-4', tests.cyclotomic_harmonics.pass, 'Coh: ' + (tests.cyclotomic_harmonics.details.multiharmonic_coherence || 0).toFixed(3));
+            }
+            if (tests.trajectory_decombining) {
+                updateIndicator('ind-ai-5', 'val-ai-5', tests.trajectory_decombining.pass, 'States: ' + (tests.trajectory_decombining.details.unique_dag_states || 0));
+            }
+        }
+
         async function runBenchmark(endpoint, title) {
             if (isRunning) return;
             isRunning = true;
@@ -866,6 +989,7 @@ Select an evaluation suite above or click "Run All Benchmarks" to verify all 15 
                             if (suites.TopoBenchEvaluator) renderTopoBenchReport(suites.TopoBenchEvaluator);
                             if (suites.ReactBenchEvaluator) renderReactBenchReport(suites.ReactBenchEvaluator);
                             if (suites.NarrativeYieldEvaluator) renderNarrativeReport(suites.NarrativeYieldEvaluator);
+                            if (suites.AIReasonerEvaluator) renderAIReasonerReport(suites.AIReasonerEvaluator);
 
                             const allPassed = data.report.success;
                             pill.innerText = allPassed ? `ALL PASSED (${data.report.total_passed}/${data.report.total_tests})` : 'FAILURES DETECTED';
@@ -881,6 +1005,10 @@ Select an evaluation suite above or click "Run All Benchmarks" to verify all 15 
                         } else if (endpoint === '/api/benchmark/narrative') {
                             renderNarrativeReport(data.report);
                             pill.innerText = data.report.success ? 'NARRATIVE YIELD PASS (5/5)' : 'NARRATIVE YIELD FAIL';
+                            pill.className = 'status-badge ' + (data.report.success ? 'badge-pass' : 'badge-fail');
+                        } else if (endpoint === '/api/benchmark/aireasoner') {
+                            renderAIReasonerReport(data.report);
+                            pill.innerText = data.report.success ? 'AI REASONER PASS (5/5)' : 'AI REASONER FAIL';
                             pill.className = 'status-badge ' + (data.report.success ? 'badge-pass' : 'badge-fail');
                         }
 
