@@ -699,9 +699,10 @@ class GyroidicFluxReasoner(nn.Module):
         )
         cycles = self.crt_kernel.find_cycles(constraint_graph)
         
-        # 3d. Introspection (for Coherence)
+        # 3d. Introspection (for Coherence & Cross-Probe Dissonance)
         introspection_results = {}
         introspection_coherence = None
+        introspection_dissonance = None
         if self.use_introspection:
             h_pooled = h.squeeze(1) if h.shape[1] == 1 else h.mean(dim=1)
             introspection_results = self.introspection(h_pooled, gcve_pressure=total_topological_pressure)
@@ -710,6 +711,10 @@ class GyroidicFluxReasoner(nn.Module):
                 introspection_coherence = self.introspection.probe_head.compute_coherence(
                     moral_directions
                 )
+            # Cross-probe structural dissonance: internal conflict driving soliton formation
+            if hasattr(self.introspection, 'measure_dissonance') and len(introspection_results) > 1:
+                introspection_dissonance = self.introspection.measure_dissonance(introspection_results).mean()
+                introspection_results['dissonance'] = introspection_dissonance
 
         # 3e. Pressure Calculations
         # CRT Consistency Pressure
@@ -1122,3 +1127,11 @@ class GyroidicFluxReasoner(nn.Module):
                 'reconstruction': results['reconstruction'],
                 'confidence': confidence
             }
+
+    def unlearn_rigidity(self, current_time: float = 0.0, overlap_window: float = 21600.0, decay_rate: Optional[float] = None):
+        """
+        Trigger engram-based unlearning of rigidity across geometric self-modeling probes.
+        """
+        if self.use_introspection and hasattr(self, 'introspection') and self.introspection is not None:
+            self.introspection.unlearn_rigidity(current_time=current_time, overlap_window=overlap_window, decay_rate=decay_rate)
+
