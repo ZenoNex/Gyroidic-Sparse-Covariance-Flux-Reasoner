@@ -28,3 +28,10 @@ This logic should be integrated directly into `image_extension.py` (as a `Conjug
 5. **The Mandelbulb Substrate Clock:** The `CC-THEORY-001` manual explicitly mentions a 96-unit Clock machine tied by the Chinese Remainder Theorem. We ALREADY have this: it's the `PrimeResonanceLadder`! We can tie the output of the Resonance Ladder to the `coh` (coherence) scalar, which natively controls the sheet-spacing and breathing of the final colored image.
 
 By mapping the Gyroidic Reasoner's internal topological scars (from the FGRT RNN) into the $K$ Gaussian valleys of the OKLab measure, the output UI will physically "breathe" the AI's internal state without any explicit rendering code!
+
+## 3. Option D: Emergent Substrate Degrees of Freedom
+In accordance with the 7 Ontological Angles of Emergence (Artem Yashin's contraption analysis):
+- **Prescribed vs. Emergent**: Rather than prescribing top-down visual filters or post-processing shaders ("skip arrows"), the visual layer emerges directly from the mathematical state of the substrate.
+- **Turing Complete Toybox**: The combination of Morton Z-order memory layout, Prime Resonance Ladders ($CRT$), and OKLab convex potentials forms a substrate where color, geometry, and cognition are mathematically identical fields.
+- **The Non-Dual Coupling**: When an AI reasoner encounters an epistemic Bouligand kink ($\|H^+ - H^-\|_F > 0$) or a topological collapse ($\Delta \beta_1 > 0$), the OKLab Gaussian valleys deform, the Pointerless Octree fractures along Mohr-Coulomb shear planes, and the voxel terrain physically registers the cognitive scar without external glue code.
+
