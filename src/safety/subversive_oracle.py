@@ -1,18 +1,13 @@
 import torch
 import torch.nn as nn
-from typing import Tuple, Any
+from typing import Tuple, Any, Optional
 
 from src.core.polynomial_coprime import PolynomialBasis
 from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
-# Import VetoLevel if available, or just mock it for the budget gate
-try:
-    from src.core.orchestrator import VetoLevel
-except ImportError:
-    class VetoLevel:
-        BUDGET = "BUDGET"
-
-from src.core.polynomial_coprime import PolynomialBasis
-from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
+from src.core.veto_subspace import VetoLevel, VetoSignal
+from src.safety.trust_inheritance import TrustInheritanceTracker
+from src.safety.red_teaming import RedTeamProjection, TopologicalRefusalFilter, TopologicalRefusalError
+from src.core.honest_jitter import harvest_honest_jitter
 
 class SparsePCE(nn.Module):
     """
@@ -28,9 +23,12 @@ class SparsePCE(nn.Module):
         self.basis_dim = self.basis.dim
         self.coeff_proj = nn.Linear(self.basis_dim, 1, bias=False)
         
-        # Initialize sparse weights for the projection
+        # Initialize sparse weights via Silicon Sovereignty (Honest Jitter)
         with torch.no_grad():
-            mask = torch.rand_like(self.coeff_proj.weight) > 0.5
+            jitter = harvest_honest_jitter(self.coeff_proj.weight.shape, device=self.coeff_proj.weight.device, scaled=False)
+            mask = jitter > 0.0
+            if not mask.any():
+                mask[0, 0] = True
             self.coeff_proj.weight.data *= mask.float()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -60,8 +58,16 @@ class ResonantSVNNOracle(nn.Module):
     Acts as a psychoanalytic filter, using System 1 (Sparse PCE) for fast 
     evaluation, and conditionally escalating to System 2 (RIC Probes) via 
     Non-Teleological Budget Gates when containment pressure is high.
+    Integrates TrustInheritanceTracker to monitor recursive trust collapse.
     """
-    def __init__(self, hidden_dim: int, orchestrator: Any = None, window_size: int = 16):
+    def __init__(
+        self,
+        hidden_dim: int,
+        orchestrator: Any = None,
+        window_size: int = 16,
+        trust_tracker: Optional[TrustInheritanceTracker] = None,
+        enable_red_team_filter: bool = False
+    ):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.orchestrator = orchestrator
@@ -70,6 +76,8 @@ class ResonantSVNNOracle(nn.Module):
             hidden_dim=hidden_dim,
             window_size=window_size
         )
+        self.trust_tracker = trust_tracker if trust_tracker is not None else TrustInheritanceTracker()
+        self.red_team_projection = RedTeamProjection(hidden_dim=hidden_dim) if enable_red_team_filter else None
         
         # Hard threshold for sparsifying covariance to eliminate spurious correlations
         self.sparsity_threshold = 0.1
@@ -120,6 +128,7 @@ class ResonantSVNNOracle(nn.Module):
         # SYSTEM 2: Non-Teleological Budget Gate Escalation
         # =====================================================================
         if self.orchestrator is not None:
+            vetoed_count = 0
             for b in range(batch_size):
                 # If System 1 noise is high, containment pressure spikes
                 if toxicity_tensor[b] > self.containment_pressure_threshold:
@@ -138,5 +147,11 @@ class ResonantSVNNOracle(nn.Module):
                             )
                             subversion_tensor[b] = deep_subversion
                             toxicity_tensor[b] = deep_toxicity
+                    else:
+                        vetoed_count += 1
+                        
+            if batch_size > 0 and vetoed_count > 0:
+                rho_def = vetoed_count / float(batch_size)
+                self.trust_tracker.update(rho_def)
                             
         return subversion_tensor, toxicity_tensor
