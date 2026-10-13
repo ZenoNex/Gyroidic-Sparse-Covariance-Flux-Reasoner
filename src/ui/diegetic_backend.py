@@ -3558,19 +3558,43 @@ class DiegeticPhysicsEngine(nn.Module):
             if not hasattr(self, '_live_topobench'):
                 from src.benchmarks.topobench_evaluator import TopoBenchEvaluator
                 from src.benchmarks.reactbench_evaluator import ReactBenchEvaluator
+                from src.benchmarks.narrative_yield_evaluator import NarrativeYieldEvaluator
                 self._live_topobench = TopoBenchEvaluator(manifold_dim=3, level_k=1)
-                self._live_reactbench = ReactBenchEvaluator(k=5)
+                self._live_reactbench = ReactBenchEvaluator(k=4, degree=2)
+                self._live_narrative = NarrativeYieldEvaluator()
+                self._last_live_benchmarks = {}
             
             # Evaluate live tensors
+            topobench_data = {}
             if len(self.interaction_context) >= 3:
                 # We need a trajectory for TopoBench
                 live_trajectory = torch.stack([s.detach().cpu().squeeze(0)[:3] for s in self.interaction_context[-3:]]).tolist()
-                topobench_score = self._live_topobench.evaluate_loop_closure(live_trajectory)
-                print(f" [LIVE TOPOBENCH] Loop Closure Twist Energy: {topobench_score:.6f}")
+                closed_pass, twist_energy = self._live_topobench.evaluate_loop_closure(live_trajectory)
+                topobench_data = {"is_closed": closed_pass, "twist_energy": twist_energy}
+                print(f" [LIVE TOPOBENCH] Loop Closure: {closed_pass}, Twist Energy: {twist_energy:.6f}")
                 
-            # ReactBench expects the actual seed_state
-            reactbench_score = self._live_reactbench.evaluate_synthesis(seed_state.detach().cpu())
-            print(f" [LIVE REACTBENCH] Synthesis Score (Betti 1 Proxy): {reactbench_score}")
+            # ReactBench branch convergence check using slice from seed_state
+            seed_slice = seed_state.detach().cpu().flatten()[:6].tolist()
+            if len(seed_slice) >= 6:
+                branch_a = seed_slice[:3]
+                branch_b = seed_slice[3:6]
+            else:
+                branch_a = [0.2, 0.4, 0.6]
+                branch_b = [0.22, 0.45, 0.55]
+            react_pass, react_pressure = self._live_reactbench.evaluate_branch_convergence(branch_a, branch_b)
+            print(f" [LIVE REACTBENCH] Branch Convergence: {react_pass}, Synthesis Pressure: {react_pressure:.4f}")
+            
+            # Narrative Yield collapse defense check
+            narr_pass, narr_flags = self._live_narrative.evaluate_narrative_collapse()
+            print(f" [LIVE NARRATIVE] Narrative Collapse Defense: {narr_pass}")
+            
+            self._last_live_benchmarks = {
+                "topobench": topobench_data,
+                "reactbench": {"convergence_pass": react_pass, "reconstruction_pressure": react_pressure},
+                "narrative": {"collapse_defense_pass": narr_pass},
+                "timestamp": time.time()
+            }
+            phase4_diagnostics['live_benchmarks'] = self._last_live_benchmarks
         except Exception as e:
             print(f" [LIVE BENCHMARK FAIL] {e}")
         
@@ -6985,6 +7009,20 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_error_json(str(e))
                 return
 
+            elif base_path == '/api/benchmark/status':
+                try:
+                    live_benchmarks = getattr(ENGINE, '_last_live_benchmarks', {}) if ('ENGINE' in globals() and ENGINE is not None) else {}
+                    suite_results = getattr(ENGINE, '_last_suite_results', {}) if ('ENGINE' in globals() and ENGINE is not None) else {}
+                    self._send_json({
+                        "status": "ok",
+                        "live_benchmarks": live_benchmarks,
+                        "suite_results": suite_results,
+                        "timestamp": time.time()
+                    })
+                except Exception as e:
+                    self._send_error_json(str(e))
+                return
+
             # Fallback for static files
             return super().do_GET()
         except Exception as e:
@@ -8197,32 +8235,54 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 except Exception as e:
                     self._send_error_json(f"Failed to boot Voxelboxter: {str(e)}")
             
-            elif self.path == '/api/benchmark/narrative':
-                import subprocess
-                import sys
-                import os
+            elif self.path in ('/api/benchmark/topobench', '/api/benchmark/reactbench', '/api/benchmark/narrative', '/api/benchmark/all'):
+                import io
+                import contextlib
+                import time
                 try:
-                    python_exe = sys.executable
-                    evaluator_path = os.path.abspath(os.path.join("src", "benchmarks", "narrative_yield_evaluator.py"))
-                    env = os.environ.copy()
-                    env["PYTHONPATH"] = os.getcwd()
+                    capture_buffer = io.StringIO()
+                    with contextlib.redirect_stdout(capture_buffer):
+                        if self.path == '/api/benchmark/topobench':
+                            from src.benchmarks.topobench_evaluator import TopoBenchEvaluator
+                            evaluator = TopoBenchEvaluator(manifold_dim=3, level_k=1)
+                            report = evaluator.run_suite()
+                            suite_name = "TopoBenchEvaluator"
+                        elif self.path == '/api/benchmark/reactbench':
+                            from src.benchmarks.reactbench_evaluator import ReactBenchEvaluator
+                            evaluator = ReactBenchEvaluator(k=4, degree=2)
+                            report = evaluator.run_suite()
+                            suite_name = "ReactBenchEvaluator"
+                        elif self.path == '/api/benchmark/narrative':
+                            from src.benchmarks.narrative_yield_evaluator import NarrativeYieldEvaluator
+                            evaluator = NarrativeYieldEvaluator()
+                            report = evaluator.run_suite()
+                            suite_name = "NarrativeYieldEvaluator"
+                        else:  # /api/benchmark/all
+                            from src.benchmarks.run_all_benchmarks import BenchmarkSuiteRunner
+                            runner = BenchmarkSuiteRunner()
+                            report = runner.run_all()
+                            suite_name = "BenchmarkSuiteRunner"
+
+                    output_text = capture_buffer.getvalue()
                     
-                    process = subprocess.Popen(
-                        [python_exe, evaluator_path],
-                        cwd=os.getcwd(),
-                        env=env,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
-                        text=True
-                    )
-                    
-                    stdout, _ = process.communicate(timeout=60)
-                    self._send_json({"status": "ok", "output": stdout})
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    self._send_error_json("Benchmark timed out after 60 seconds.")
+                    if 'ENGINE' in globals() and ENGINE is not None:
+                        if not hasattr(ENGINE, '_last_suite_results') or not isinstance(ENGINE._last_suite_results, dict):
+                            ENGINE._last_suite_results = {}
+                        ENGINE._last_suite_results[suite_name] = report
+                        ENGINE._last_suite_results['last_run'] = {
+                            'suite': suite_name,
+                            'timestamp': time.time(),
+                            'success': report.get('success', False)
+                        }
+
+                    self._send_json({
+                        "status": "ok",
+                        "suite": suite_name,
+                        "report": report,
+                        "output": output_text
+                    })
                 except Exception as e:
-                    self._send_error_json(f"Failed to run narrative benchmark: {str(e)}")
+                    self._send_error_json(f"Failed to execute benchmark {self.path}: {str(e)}")
 
             else:
                 self.send_error(404)
