@@ -876,6 +876,17 @@ class UniversalOrchestrator(nn.Module):
         # Modulate Leontief Governor based on hardware race
         self.leontief.spectral_safety_margin = max(0.8, min(0.99, 0.95 + (braid_race_delta / 1000000.0)))
         
+        # Second-Order Silicon Curvature Ledger in OpenCL Local-Memory SRAM
+        state_flat_np = state_shielded.detach().cpu().numpy().flatten()
+        (
+            _h_sym,
+            _kink_diff,
+            _stab_score,
+            kink_norm,
+            trace_morse,
+            regime_code,
+            pas_cyclotomic
+        ) = self.silicon_engine.compute_fused_hessian_8x8(state_flat_np)
         
         k_bar = 1.0
         if self.bonfire_ring is not None:
@@ -899,7 +910,11 @@ class UniversalOrchestrator(nn.Module):
             "hunger_entropy_mean": modulated_entropy.mean().item(),
             "leontief_spectral_radius": self.leontief.cached_spectral_radius.item(),
             "kelly_fraction": k_bar,
-            "covariance_variance": actual_flux.var().item() if 'actual_flux' in locals() and actual_flux is not None else 0.05
+            "covariance_variance": actual_flux.var().item() if 'actual_flux' in locals() and actual_flux is not None and actual_flux.numel() > 1 else 0.05,
+            "hessian_trace": float(trace_morse),
+            "bouligand_kink": float(kink_norm),
+            "hessian_regime": int(regime_code),
+            "pas_cyclotomic": float(pas_cyclotomic)
         }
         self.bulletin_board.post_metrics(board_metrics)
         
