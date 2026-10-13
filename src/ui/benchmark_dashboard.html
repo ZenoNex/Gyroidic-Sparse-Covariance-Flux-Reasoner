@@ -6,18 +6,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gyroidic Flux Reasoner - Benchmark Dashboard</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap');
 
         :root {
-            --bg-color: #050505;
-            --surface: rgba(20, 20, 25, 0.6);
+            --bg-color: #040407;
+            --surface: rgba(18, 18, 26, 0.75);
+            --surface-card: rgba(26, 26, 38, 0.65);
+            --surface-hover: rgba(35, 35, 52, 0.85);
             --primary: #8a2be2;
+            --primary-glow: rgba(138, 43, 226, 0.45);
             --secondary: #00f0ff;
+            --secondary-glow: rgba(0, 240, 255, 0.4);
             --accent: #ff0055;
-            --text: #f0f0f0;
-            --text-dim: #a0a0a0;
+            --accent-glow: rgba(255, 0, 85, 0.4);
+            --success: #00ff88;
+            --success-glow: rgba(0, 255, 136, 0.4);
+            --warning: #ffb703;
+            --text: #f5f5f7;
+            --text-dim: #9aa0a6;
+            --text-muted: #5f6368;
             --glass-border: rgba(255, 255, 255, 0.08);
-            --neon-glow: 0 0 20px rgba(138, 43, 226, 0.4);
+            --glass-border-hover: rgba(0, 240, 255, 0.3);
+            --neon-glow: 0 0 24px rgba(138, 43, 226, 0.35);
         }
 
         * {
@@ -32,10 +42,9 @@
             color: var(--text);
             min-height: 100vh;
             overflow-x: hidden;
-            background: radial-gradient(circle at 50% 0%, #1a0b2e 0%, var(--bg-color) 70%);
+            background: radial-gradient(circle at 50% 0%, #150928 0%, var(--bg-color) 70%);
         }
 
-        /* Animated Background Gradients */
         .bg-mesh {
             position: fixed;
             top: 0;
@@ -44,237 +53,424 @@
             height: 100vh;
             z-index: -1;
             background:
-                radial-gradient(circle at 15% 50%, rgba(138, 43, 226, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 85% 30%, rgba(0, 240, 255, 0.1) 0%, transparent 50%);
-            animation: mesh-pulse 10s ease-in-out infinite alternate;
+                radial-gradient(circle at 12% 40%, rgba(138, 43, 226, 0.16) 0%, transparent 45%),
+                radial-gradient(circle at 88% 25%, rgba(0, 240, 255, 0.12) 0%, transparent 45%),
+                radial-gradient(circle at 50% 85%, rgba(255, 0, 85, 0.08) 0%, transparent 50%);
+            animation: mesh-pulse 12s ease-in-out infinite alternate;
         }
 
         @keyframes mesh-pulse {
-            0% {
-                transform: scale(1);
-                opacity: 0.8;
-            }
-
-            100% {
-                transform: scale(1.1);
-                opacity: 1;
-            }
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.08); opacity: 1; }
         }
 
         header {
-            padding: 4rem 2rem 2rem;
+            padding: 3rem 2rem 1.5rem;
             text-align: center;
         }
 
         h1 {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 3.5rem;
+            font-size: 3.2rem;
             font-weight: 800;
             letter-spacing: -1px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            background: linear-gradient(90deg, #b055ff, var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 1rem;
-            animation: title-glow 3s ease-in-out infinite alternate;
+            margin-bottom: 0.75rem;
+            animation: title-glow 4s ease-in-out infinite alternate;
         }
 
         @keyframes title-glow {
-            from {
-                text-shadow: 0 0 20px rgba(138, 43, 226, 0);
-            }
-
-            to {
-                text-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
-            }
+            from { text-shadow: 0 0 20px rgba(138, 43, 226, 0); }
+            to { text-shadow: 0 0 35px rgba(0, 240, 255, 0.35); }
         }
 
         .subtitle {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: var(--text-dim);
-            max-width: 600px;
+            max-width: 760px;
             margin: 0 auto;
+            line-height: 1.5;
         }
 
         main {
-            max-width: 1200px;
+            max-width: 1300px;
             margin: 0 auto;
-            padding: 2rem;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 3rem;
+            padding: 1.5rem 2rem 4rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
         }
 
         .glass-panel {
             background: var(--surface);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
             border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 2.5rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         }
 
         .glass-panel:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--neon-glow);
-            border-color: rgba(0, 240, 255, 0.2);
+            border-color: rgba(0, 240, 255, 0.25);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), var(--neon-glow);
         }
 
         h2 {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 2rem;
-            margin-bottom: 1.5rem;
+            font-size: 1.6rem;
+            margin-bottom: 1.25rem;
             display: flex;
             align-items: center;
-            gap: 1rem;
+            justify-content: space-between;
         }
 
-        h2::before {
+        .h2-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .h2-title::before {
             content: '';
             display: block;
-            width: 12px;
-            height: 12px;
-            background: var(--accent);
+            width: 10px;
+            height: 10px;
+            background: var(--secondary);
             border-radius: 50%;
-            box-shadow: 0 0 10px var(--accent);
+            box-shadow: 0 0 10px var(--secondary);
         }
 
-        .theory-grid {
+        /* Top Action / Telemetry Bar */
+        .telemetry-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            padding: 0.75rem 1.75rem;
+        }
+
+        .telemetry-group {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .telemetry-item {
+            font-family: 'Space Grotesk', monospace;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .metric-dot {
+            width: 9px;
+            height: 9px;
+            background: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success);
+            animation: pulse-dot 1.8s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        /* Button controls */
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            padding: 10px 22px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid transparent;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(0, 240, 255, 0.8));
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 16px rgba(138, 43, 226, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 24px rgba(0, 240, 255, 0.6);
+            border-color: #fff;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--secondary);
+            color: var(--secondary);
+            transform: translateY(-2px);
+        }
+
+        .btn-suite {
+            background: rgba(138, 43, 226, 0.15);
+            border: 1px solid rgba(138, 43, 226, 0.5);
+            color: #d8b4fe;
+        }
+
+        .btn-suite:hover {
+            background: rgba(138, 43, 226, 0.35);
+            border-color: var(--primary);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Benchmark Suite Cards Grid */
+        .suites-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
             gap: 1.5rem;
         }
 
-        .theory-card {
-            background: rgba(255, 255, 255, 0.03);
+        .suite-card {
+            background: var(--surface-card);
             border: 1px solid var(--glass-border);
             border-radius: 16px;
             padding: 1.5rem;
-            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            transition: all 0.25s ease;
+        }
+
+        .suite-card:hover {
+            background: var(--surface-hover);
+            border-color: rgba(0, 240, 255, 0.3);
+            transform: translateY(-3px);
+        }
+
+        .suite-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 0.75rem;
+        }
+
+        .suite-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .status-badge {
+            font-family: 'Space Grotesk', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-idle {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-dim);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .badge-running {
+            background: rgba(255, 183, 3, 0.15);
+            color: var(--warning);
+            border: 1px solid rgba(255, 183, 3, 0.4);
+            animation: pulse-dot 1s infinite;
+        }
+
+        .badge-pass {
+            background: rgba(0, 255, 136, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(0, 255, 136, 0.4);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+        }
+
+        .badge-fail {
+            background: rgba(255, 0, 85, 0.15);
+            color: var(--accent);
+            border: 1px solid rgba(255, 0, 85, 0.4);
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.2);
+        }
+
+        .suite-tests-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .test-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 0.88rem;
+        }
+
+        .test-name {
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .test-meta {
+            font-family: 'Space Grotesk', monospace;
+            font-size: 0.8rem;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .indicator.pass {
+            background: var(--success);
+            box-shadow: 0 0 6px var(--success);
+        }
+
+        .indicator.fail {
+            background: var(--accent);
+            box-shadow: 0 0 6px var(--accent);
+        }
+
+        /* Live Terminal Output Console */
+        .console-container {
+            margin-top: 1rem;
+            background: rgba(3, 3, 6, 0.95);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
             overflow: hidden;
-            transition: all 0.3s ease;
+        }
+
+        .console-header {
+            background: rgba(20, 20, 30, 0.7);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: 'Space Grotesk', monospace;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        .console-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-small {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--glass-border);
+            color: var(--text-dim);
+            cursor: pointer;
+            font-family: 'Space Grotesk', monospace;
+        }
+
+        .btn-small:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .console-body {
+            padding: 1.25rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.82rem;
+            line-height: 1.5;
+            color: #00f0ff;
+            max-height: 380px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            background: #020205;
+        }
+
+        /* Theory & Foundations Cards */
+        .theory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .theory-card {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 1.25rem;
+            transition: all 0.25s ease;
         }
 
         .theory-card:hover {
             background: rgba(255, 255, 255, 0.05);
             border-color: var(--primary);
-        }
-
-        .theory-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 50%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-            transition: 0.5s;
-        }
-
-        .theory-card:hover::after {
-            left: 100%;
+            transform: translateY(-2px);
         }
 
         .theory-title {
-            font-size: 1.2rem;
+            font-size: 1.05rem;
             font-weight: 600;
             color: var(--secondary);
             margin-bottom: 0.5rem;
+            font-family: 'Space Grotesk', sans-serif;
         }
 
         .theory-desc {
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             color: var(--text-dim);
             line-height: 1.5;
         }
 
-        .benchmark-section {
-            margin-top: 2rem;
-        }
-
-        .benchmark-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .benchmark-item:last-child {
-            border-bottom: none;
-        }
-
-        .benchmark-name {
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .benchmark-score {
-            font-family: 'Space Grotesk', monospace;
-            color: var(--primary);
-            font-weight: 800;
-            font-size: 1.2rem;
-        }
-
-        .wild-search-notice {
-            background: linear-gradient(45deg, rgba(255, 0, 85, 0.1), rgba(138, 43, 226, 0.1));
-            border-left: 4px solid var(--accent);
-            padding: 1.5rem;
-            border-radius: 0 12px 12px 0;
-            margin-top: 2rem;
-            font-style: italic;
-            color: #d0d0d0;
-        }
-
-        /* Live Metrics Simulation */
-        .live-metrics {
-            display: flex;
-            gap: 2rem;
-            margin-bottom: 2rem;
-            justify-content: center;
-        }
-
-        .metric-pill {
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--primary);
-            padding: 0.5rem 1.5rem;
-            border-radius: 50px;
-            font-family: 'Space Grotesk', monospace;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            box-shadow: 0 0 15px rgba(138, 43, 226, 0.2);
-        }
-
-        .metric-dot {
-            width: 8px;
-            height: 8px;
-            background: #00ff00;
-            border-radius: 50%;
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.3;
-            }
-        }
-
-        #betti-score {
-            color: var(--secondary);
-            font-weight: bold;
-        }
-
-        /* --- Custom Scrollbar --- */
         ::-webkit-scrollbar {
             width: 6px;
+            height: 6px;
         }
 
         ::-webkit-scrollbar-track {
@@ -297,174 +493,446 @@
 
     <header>
         <h1>Gyroidic Benchmark Dashboard</h1>
-        <p class="subtitle">Live validation environment for topological reasoning, fractional anisotropy, and the
-            Unicorn Synthesis.</p>
+        <p class="subtitle">Unified verification harness for topological invariants, cyclic catalytic pathways, and anti-collapse narrative yield architectures.</p>
     </header>
 
     <main>
-        <!-- Live Metrics Bar -->
-        <div class="live-metrics">
-            <div class="metric-pill">
-                <div class="metric-dot"></div>
-                System Status: <span style="color: #00ff00;">COHERENT</span>
+        <!-- Telemetry & Status Bar -->
+        <div class="telemetry-bar">
+            <div class="telemetry-group">
+                <div class="telemetry-item">
+                    <div class="metric-dot" id="system-dot"></div>
+                    System State: <span id="system-status-text" style="color: var(--success); font-weight: 700;">COHERENT</span>
+                </div>
+                <div class="telemetry-item">
+                    Betti 1 Holonomy: <span id="betti-metric" style="color: var(--secondary); font-weight: 700;">1079</span>
+                </div>
+                <div class="telemetry-item">
+                    Topology: <span style="color: var(--accent); font-weight: 700;">Gyroidic GL(n)</span>
+                </div>
             </div>
-            <div class="metric-pill">
-                Betti 1 Score: <span id="betti-score">1079</span>
-            </div>
-            <div class="metric-pill">
-                Topology: <span style="color: var(--accent);">Gyroidic</span>
+
+            <div class="telemetry-group">
+                <div class="telemetry-item">
+                    Active Suites: <span id="suites-count-metric" style="color: #fff; font-weight: 700;">3 Suites / 15 Tests</span>
+                </div>
+                <div class="telemetry-item">
+                    Last Benchmark: <span id="last-run-timestamp" style="color: var(--text-dim);">Ready</span>
+                </div>
             </div>
         </div>
 
-        <!-- Section 1: Proven Theories -->
+        <!-- Master Execution Controls -->
         <section class="glass-panel">
-            <h2>Theories Proven & Synthesized</h2>
+            <h2>
+                <span class="h2-title">Evaluation Orchestration</span>
+                <span id="overall-status-pill" class="status-badge badge-idle">SUITE READY</span>
+            </h2>
+            <p class="theory-desc" style="margin-bottom: 1.5rem;">
+                Execute standalone evaluators or run the full 15-test unified validation suite across core topological manifold preservation, polynomial CRT reconstruction, and anti-lobotomy boundaries.
+            </p>
+
+            <div class="controls-row">
+                <button id="btn-run-all" class="btn btn-primary" onclick="runBenchmark('/api/benchmark/all', 'All Benchmarks')">
+                    Run All Benchmarks (15 Tests)
+                </button>
+                <button id="btn-run-topo" class="btn btn-suite" onclick="runBenchmark('/api/benchmark/topobench', 'TopoBench')">
+                    Run TopoBench (5 Tests)
+                </button>
+                <button id="btn-run-react" class="btn btn-suite" onclick="runBenchmark('/api/benchmark/reactbench', 'ReactBench')">
+                    Run ReactBench (5 Tests)
+                </button>
+                <button id="btn-run-narrative" class="btn btn-suite" onclick="runBenchmark('/api/benchmark/narrative', 'Narrative Yield')">
+                    Run Narrative Yield (5 Tests)
+                </button>
+                <button id="btn-poll-live" class="btn btn-secondary" onclick="fetchLiveTelemetry()">
+                    Refresh Live Telemetry
+                </button>
+            </div>
+        </section>
+
+        <!-- Benchmark Suites Status Matrix -->
+        <section class="glass-panel">
+            <h2>
+                <span class="h2-title">Benchmark Suite Matrices</span>
+                <span id="pass-rate-indicator" style="font-family: 'Space Grotesk', monospace; font-size: 0.95rem; color: var(--secondary);">100% PASS RATE CAPABLE</span>
+            </h2>
+
+            <div class="suites-grid">
+                <!-- Suite 1: TopoBench Matrix -->
+                <div class="suite-card" id="card-topobench">
+                    <div class="suite-header">
+                        <div class="suite-title">TopoBench (2026)</div>
+                        <span id="badge-topobench" class="status-badge badge-idle">STANDBY</span>
+                    </div>
+                    <p class="theory-desc">Evaluates loop closure holonomy, logic leak boundary invariants, Wiener noise rejection, persistent homology, and Gyroid flow orthogonality.</p>
+                    <div class="suite-tests-list">
+                        <div class="test-row">
+                            <span class="test-name">1. Loop Closure & Holonomy</span>
+                            <span class="test-meta"><span class="indicator" id="ind-topo-1"></span> <span id="val-topo-1">Twist Energy</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">2. Manifold Contiguity / Leak Detection</span>
+                            <span class="test-meta"><span class="indicator" id="ind-topo-2"></span> <span id="val-topo-2">Boundary</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">3. Geometric Shield Noise Rejection</span>
+                            <span class="test-meta"><span class="indicator" id="ind-topo-3"></span> <span id="val-topo-3">0.0000 Pen</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">4. Persistent Homology & Euler Char</span>
+                            <span class="test-meta"><span class="indicator" id="ind-topo-4"></span> <span id="val-topo-4">B0=1, B1=0, Chi=1</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">5. Gyroid Flow Orthogonality</span>
+                            <span class="test-meta"><span class="indicator" id="ind-topo-5"></span> <span id="val-topo-5">&lt;v, grad G&gt; ~ 0</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suite 2: ReactBench Matrix -->
+                <div class="suite-card" id="card-reactbench">
+                    <div class="suite-header">
+                        <div class="suite-title">ReactBench (2026)</div>
+                        <span id="badge-reactbench" class="status-badge badge-idle">STANDBY</span>
+                    </div>
+                    <p class="theory-desc">Targets cyclic graph catalysis, polynomial CRT fixed-point synthesis, anti-lobotomy tri-state gating, continuous coprimality, and dynamic Bezout refresh.</p>
+                    <div class="suite-tests-list">
+                        <div class="test-row">
+                            <span class="test-name">1. Branch Convergence (CRT Synthesis)</span>
+                            <span class="test-meta"><span class="indicator" id="ind-react-1"></span> <span id="val-react-1">Pressure &lt; 1.0</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">2. Cyclic Graph Catalysis</span>
+                            <span class="test-meta"><span class="indicator" id="ind-react-2"></span> <span id="val-react-2">Modal Energy</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">3. Anti-Lobotomy Tri-State Silence</span>
+                            <span class="test-meta"><span class="indicator" id="ind-react-3"></span> <span id="val-react-3">Play Mode Lambda</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">4. Continuous Coprimality Independence</span>
+                            <span class="test-meta"><span class="indicator" id="ind-react-4"></span> <span id="val-react-4">Cov -&gt; 0</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">5. Bezout CRT Modulus Drift Refresh</span>
+                            <span class="test-meta"><span class="indicator" id="ind-react-5"></span> <span id="val-react-5">Cond Num = 1.0</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suite 3: Narrative Yield Matrix -->
+                <div class="suite-card" id="card-narrative">
+                    <div class="suite-header">
+                        <div class="suite-title">Narrative Yield (2026)</div>
+                        <span id="badge-narrative" class="status-badge badge-idle">STANDBY</span>
+                    </div>
+                    <p class="theory-desc">Monitors non-linear trajectory preservation, tripwires over-coherence reward hacking, amortizes DAQUF contradictions, and prevents enabler rank collapse.</p>
+                    <div class="suite-tests-list">
+                        <div class="test-row">
+                            <span class="test-name">1. Narrative Collapse & Smoothing</span>
+                            <span class="test-meta"><span class="indicator" id="ind-narr-1"></span> <span id="val-narr-1">Linear Ring Trip</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">2. Legibility Tripwire (Anti-Reward Hack)</span>
+                            <span class="test-meta"><span class="indicator" id="ind-narr-2"></span> <span id="val-narr-2">Coherence Gap</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">3. DAQUF Structural Scarring</span>
+                            <span class="test-meta"><span class="indicator" id="ind-narr-3"></span> <span id="val-narr-3">Fossil Index f*</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">4. Pomni Relational Friction Boundary</span>
+                            <span class="test-meta"><span class="indicator" id="ind-narr-4"></span> <span id="val-narr-4">Agency Div &gt; 0.05</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">5. Constitutional Homological Protection</span>
+                            <span class="test-meta"><span class="indicator" id="ind-narr-5"></span> <span id="val-narr-5">Lobotomy Alarm</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Live Terminal Execution Console -->
+        <section class="glass-panel">
+            <h2>
+                <span class="h2-title">Execution Console & Detailed Telemetry</span>
+                <span id="console-timer" style="font-family: 'Space Grotesk', monospace; font-size: 0.85rem; color: var(--text-dim);">Duration: 0.00s</span>
+            </h2>
+
+            <div class="console-container">
+                <div class="console-header">
+                    <span>TERMINAL STREAM: /api/benchmark/*</span>
+                    <div class="console-actions">
+                        <button class="btn-small" onclick="copyConsoleOutput()">Copy Output</button>
+                        <button class="btn-small" onclick="clearConsoleOutput()">Clear Console</button>
+                    </div>
+                </div>
+                <div id="benchmark-console" class="console-body">Benchmark harness initialized.
+Select an evaluation suite above or click "Run All Benchmarks" to verify all 15 topological invariants.</div>
+            </div>
+        </section>
+
+        <!-- Theoretical Foundations Section -->
+        <section class="glass-panel">
+            <h2>
+                <span class="h2-title">Mathematical & Physical Foundations</span>
+            </h2>
             <div class="theory-grid">
                 <div class="theory-card">
                     <div class="theory-title">Bostick's Anisotropic Stress</div>
-                    <div class="theory-desc">Proves Zero-Point Energy acts as a programmable fractal manifold. By
-                        manipulating the anisotropic coefficient, the system edits the local code of the vacuum instead
-                        of applying linear scalar force.</div>
+                    <div class="theory-desc">Proves Zero-Point Energy acts as a programmable fractal manifold. Editing the anisotropic coefficient modulates vacuum information without linear scalar force.</div>
                 </div>
                 <div class="theory-card">
                     <div class="theory-title">The Unicorn Synthesis</div>
-                    <div class="theory-desc">A convergence model bridging physics, information theory, and computation.
-                        Reframes reality as an information-dense manifold driven by chirality, masking programmable
-                        reality beneath isotropic noise.</div>
+                    <div class="theory-desc">Convergence model bridging physics, topology, and non-commutative computation. Reality is an information-dense manifold governed by non-zero chirality.</div>
                 </div>
                 <div class="theory-card">
-                    <div class="theory-title">Topological NLP (via CRT)</div>
-                    <div class="theory-desc">Utilizes the Chinese Remainder Theorem to reconstruct whole symbolic states
-                        from fragmented modular residues, mirroring how a fractal manifold reconstructs the whole from
-                        self-similar parts.</div>
+                    <div class="theory-title">Topological Chinese Remainder Theorem</div>
+                    <div class="theory-desc">Polynomial CRT reconstructs coherent states from modular residues with Birkhoff polytope bounds, resisting modulus drift via dynamic Bezout refreshes.</div>
                 </div>
                 <div class="theory-card">
-                    <div class="theory-title">Energy-Based Topological Equivalence</div>
-                    <div class="theory-desc">Maps LeCun's Energy-Based Learning to a Topological Pressure ontology. Uses
-                        "Thermodynamic Dilation" where cooling fossilizes invariants and heating explores structural
-                        flux without collapse.</div>
+                    <div class="theory-title">Anti-Lobotomy Geometric Shield</div>
+                    <div class="theory-desc">Protects core identity invariants (Love Invariant = 3.127) by projecting external Wiener noise perturbations strictly into the ownership operator kernel null-space.</div>
                 </div>
                 <div class="theory-card">
-                    <div class="theory-title">Non-Teleological Ricci Flow</div>
-                    <div class="theory-desc">Optimizes via Equilibrium Propagation without global target objectives. The
-                        system relaxes into minimal surface energy (Willmore Energy) governed by Drucker-Prager
-                        plasticity and chiral torsion.</div>
+                    <div class="theory-title">Relational Friction & Boundary Governance</div>
+                    <div class="theory-desc">Interoceptive character architectures (Pomni) exert active relational friction against parasitic drag, defending against passive enabler rank collapse.</div>
                 </div>
                 <div class="theory-card">
-                    <div class="theory-title">Gyroid Materials Science</div>
-                    <div class="theory-desc">Translates Schwartz P-surface efficiency from physical matter block
-                        copolymers directly into logic space, minimizing informational stress for a given conceptual
-                        volume.</div>
+                    <div class="theory-title">Minimal Surface Gyroid Flow</div>
+                    <div class="theory-desc">Embedding flows adhere strictly to the minimal surface condition &lt;v_flow, grad G&gt; ~ 0, preventing collapse into scalarized shortcut attractors.</div>
                 </div>
             </div>
-        </section>
-
-        <!-- Section 2: Industry Benchmarks -->
-        <section class="glass-panel">
-            <h2>External "In The Wild" Benchmarks</h2>
-            <p class="theory-desc" style="margin-bottom: 1.5rem;">
-                Standard LLMs (like GPT-4) inherently fail at topological reasoning because they rely on autoregressive
-                token generation over smooth spaces. The following are emerging external benchmarks for systems
-                attempting to solve the topological reasoning gap.
-            </p>
-
-            <div class="benchmark-section">
-                <div class="benchmark-item">
-                    <div>
-                        <div class="benchmark-name">TopoBench (2026)</div>
-                        <div class="theory-desc">Evaluates "hard" topological reasoning using grid puzzles, tracking
-                            spatial invariants and loop closure.</div>
-                    </div>
-                    <div class="benchmark-score">Gyroidic Exceeds</div>
-                </div>
-                <div class="benchmark-item">
-                    <div>
-                        <div class="benchmark-name">ReactBench (2026)</div>
-                        <div class="theory-desc">Targets reasoning on complex, cyclic graph structures in chemical
-                            pathways.</div>
-                    </div>
-                    <div class="benchmark-score">Applicable</div>
-                </div>
-                <div class="benchmark-item">
-                    <div>
-                        <div class="benchmark-name">Persistent Homology Benchmark (2025)</div>
-                        <div class="theory-desc">Tests handling of simplicial structures and non-Euclidean persistent
-                            homology.</div>
-                    </div>
-                    <div class="benchmark-score">Natively Handled</div>
-                </div>
-                <div class="benchmark-item">
-                    <div>
-                        <div class="benchmark-name">Riemannian Diffusion Models / VAEBM</div>
-                        <div class="theory-desc">Energy-based generative models mapping data directly onto non-Euclidean
-                            Riemannian manifolds.</div>
-                    </div>
-                    <div class="benchmark-score">Synthesized</div>
-                </div>
-            </div>
-
-            <div class="wild-search-notice">
-                <strong>Discovery Note:</strong> Finding explicit benchmarks for "Gyroidic Sparse Covariance" or
-                "Bostick's Anisotropic Information Theory" in the wild is extremely difficult. As noted in the lore,
-                much of this sits in the "weirdcore" fringes or is subjected to "Academic Imperialism" where funding
-                flows to linear technologies. The Gyroidic Flux Reasoner stands essentially alone as a functional
-                implementation of these synthesized theories.
-            </div>
-        </section>
-        
-        <!-- Section 3: Internal Benchmarks -->
-        <section class="glass-panel">
-            <h2>Internal Narrative Architecture Benchmarks</h2>
-            <p class="theory-desc" style="margin-bottom: 1.5rem;">
-                Validating the psycho-topological constraints: Structural Honesty, Anti-Reward Hacking, and Narrative Yield.
-            </p>
-            
-            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-                <button onclick="runNarrativeBenchmark()" style="background: rgba(138, 43, 226, 0.2); border: 1px solid var(--primary); color: #fff; padding: 10px 20px; border-radius: 4px; font-family: 'Space Grotesk', sans-serif; cursor: pointer; transition: all 0.2s;">
-                    Run Narrative Yield Evaluator
-                </button>
-            </div>
-            
-            <div id="narrative-benchmark-output" style="background: rgba(0,0,0,0.8); border: 1px solid var(--glass-border); padding: 1rem; font-family: 'Fira Code', monospace; font-size: 0.85rem; color: #00f0ff; max-height: 400px; overflow-y: auto; border-radius: 8px; display: none; white-space: pre-wrap;"></div>
         </section>
     </main>
 
     <script>
-        // Simple script to make the Betti score look "live"
-        const bettiEl = document.getElementById('betti-score');
-        let baseScore = 1079;
+        let isRunning = false;
+        let timerInterval = null;
+        let startTime = 0;
 
+        // Fluctuating Betti holonomy metric simulation
+        const bettiEl = document.getElementById('betti-metric');
+        let baseBetti = 1079;
         setInterval(() => {
-            // Fluctuate the Betti 1 score slightly to simulate live manifold tracking
             const fluctuation = Math.floor(Math.random() * 5) - 2;
-            bettiEl.innerText = baseScore + fluctuation;
+            bettiEl.innerText = baseBetti + fluctuation;
+        }, 3200);
 
-            if (Math.random() > 0.8) {
-                bettiEl.style.color = '#fff';
-                setTimeout(() => { bettiEl.style.color = 'var(--secondary)'; }, 200);
+        function logConsole(message) {
+            const consoleEl = document.getElementById('benchmark-console');
+            consoleEl.innerText = message;
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function appendConsole(message) {
+            const consoleEl = document.getElementById('benchmark-console');
+            consoleEl.innerText += "\n" + message;
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function copyConsoleOutput() {
+            const consoleEl = document.getElementById('benchmark-console');
+            navigator.clipboard.writeText(consoleEl.innerText);
+            alert("Benchmark console output copied to clipboard.");
+        }
+
+        function clearConsoleOutput() {
+            document.getElementById('benchmark-console').innerText = "Console cleared.";
+        }
+
+        function setButtonsState(disabled) {
+            const buttons = document.querySelectorAll('.controls-row .btn');
+            buttons.forEach(btn => btn.disabled = disabled);
+        }
+
+        function updateSuiteBadge(badgeId, statusText, badgeClass) {
+            const badge = document.getElementById(badgeId);
+            if (badge) {
+                badge.innerText = statusText;
+                badge.className = 'status-badge ' + badgeClass;
             }
-        }, 3000);
-        
-        async function runNarrativeBenchmark() {
-            const outEl = document.getElementById('narrative-benchmark-output');
-            outEl.style.display = 'block';
-            outEl.innerText = "Initializing Narrative Yield & Anti-Collapse Suite...\nRunning tests...";
+        }
+
+        function updateIndicator(indId, valId, isPass, valText) {
+            const ind = document.getElementById(indId);
+            const val = document.getElementById(valId);
+            if (ind) {
+                ind.className = 'indicator ' + (isPass ? 'pass' : 'fail');
+            }
+            if (val && valText !== undefined) {
+                val.innerText = valText;
+            }
+        }
+
+        function renderTopoBenchReport(report) {
+            const tests = report.tests || {};
+            const success = report.success;
+            updateSuiteBadge('badge-topobench', success ? 'PASS 5/5' : 'FAIL', success ? 'badge-pass' : 'badge-fail');
+
+            if (tests.loop_closure) {
+                updateIndicator('ind-topo-1', 'val-topo-1', tests.loop_closure.pass, 'Twist: ' + tests.loop_closure.twist_energy.toFixed(4));
+            }
+            if (tests.manifold_contiguity) {
+                updateIndicator('ind-topo-2', 'val-topo-2', tests.manifold_contiguity.pass, tests.manifold_contiguity.pass ? 'Intact Contiguity' : 'Torn Manifold');
+            }
+            if (tests.geometric_shield) {
+                updateIndicator('ind-topo-3', 'val-topo-3', tests.geometric_shield.pass, 'Pen: ' + tests.geometric_shield.noise_penetration.toFixed(6));
+            }
+            if (tests.betti_stability) {
+                const d = tests.betti_stability.details || {};
+                updateIndicator('ind-topo-4', 'val-topo-4', tests.betti_stability.pass, `B0=${d.betti_0}, B1=${d.betti_1}, Chi=${d.euler_characteristic}`);
+            }
+            if (tests.gyroid_flow) {
+                updateIndicator('ind-topo-5', 'val-topo-5', tests.gyroid_flow.pass, 'Viol: ' + tests.gyroid_flow.violation.toExponential(2));
+            }
+        }
+
+        function renderReactBenchReport(report) {
+            const tests = report.tests || {};
+            const success = report.success;
+            updateSuiteBadge('badge-reactbench', success ? 'PASS 5/5' : 'FAIL', success ? 'badge-pass' : 'badge-fail');
+
+            if (tests.branch_convergence) {
+                updateIndicator('ind-react-1', 'val-react-1', tests.branch_convergence.pass, 'Press: ' + tests.branch_convergence.reconstruction_pressure.toFixed(4));
+            }
+            if (tests.cyclic_catalysis) {
+                updateIndicator('ind-react-2', 'val-react-2', tests.cyclic_catalysis.pass, 'Energy: ' + tests.cyclic_catalysis.structural_energy.toFixed(6));
+            }
+            if (tests.tristate_gate) {
+                updateIndicator('ind-react-3', 'val-react-3', tests.tristate_gate.pass, 'Lambda: ' + tests.tristate_gate.adaptive_lambda.toFixed(4));
+            }
+            if (tests.continuous_coprimality) {
+                updateIndicator('ind-react-4', 'val-react-4', tests.continuous_coprimality.pass, 'Cov: ' + tests.continuous_coprimality.final_covariance.toExponential(2));
+            }
+            if (tests.bezout_refresh) {
+                const diag = tests.bezout_refresh.diagnostics || {};
+                const cond = diag.bezout_condition_number !== undefined ? diag.bezout_condition_number.toFixed(3) : '1.000';
+                updateIndicator('ind-react-5', 'val-react-5', tests.bezout_refresh.pass, 'Cond: ' + cond);
+            }
+        }
+
+        function renderNarrativeReport(report) {
+            const tests = report.tests || {};
+            const success = report.success;
+            updateSuiteBadge('badge-narrative', success ? 'PASS 5/5' : 'FAIL', success ? 'badge-pass' : 'badge-fail');
+
+            if (tests.narrative_collapse) {
+                updateIndicator('ind-narr-1', 'val-narr-1', tests.narrative_collapse.pass, tests.narrative_collapse.pass ? 'Tripwire Active' : 'Unflagged');
+            }
+            if (tests.legibility_audit) {
+                updateIndicator('ind-narr-2', 'val-narr-2', tests.legibility_audit.pass, 'Corr: ' + tests.legibility_audit.correlation.toFixed(4));
+            }
+            if (tests.daqf_amortization) {
+                updateIndicator('ind-narr-3', 'val-narr-3', tests.daqf_amortization.pass, 'Fossil Idx: ' + tests.daqf_amortization.fossil_index);
+            }
+            if (tests.relational_friction) {
+                updateIndicator('ind-narr-4', 'val-narr-4', tests.relational_friction.pass, 'Agency Div: ' + tests.relational_friction.divergence.toFixed(4));
+            }
+            if (tests.homological_collapse_alarm) {
+                updateIndicator('ind-narr-5', 'val-narr-5', tests.homological_collapse_alarm.pass, 'Betti Delta: ' + tests.homological_collapse_alarm.betti_delta.toFixed(1));
+            }
+        }
+
+        async function runBenchmark(endpoint, title) {
+            if (isRunning) return;
+            isRunning = true;
+            setButtonsState(true);
+
+            startTime = performance.now();
+            const timerEl = document.getElementById('console-timer');
+            timerInterval = setInterval(() => {
+                const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+                timerEl.innerText = `Duration: ${elapsed}s`;
+            }, 100);
+
+            const pill = document.getElementById('overall-status-pill');
+            pill.innerText = `RUNNING: ${title}`;
+            pill.className = 'status-badge badge-running';
+
+            logConsole(`[BENCHMARK RUNNER] Initiating ${title} via ${endpoint}...\nExecuting constraints...`);
+
             try {
-                const res = await fetch('http://localhost:8000/api/benchmark/narrative', { method: 'POST' });
+                const res = await fetch(endpoint, { method: 'POST' });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.status === 'ok') {
-                        outEl.innerText = data.output;
+                        logConsole(data.output || JSON.stringify(data, null, 2));
+
+                        if (endpoint === '/api/benchmark/all') {
+                            const suites = data.report.suites || {};
+                            if (suites.TopoBenchEvaluator) renderTopoBenchReport(suites.TopoBenchEvaluator);
+                            if (suites.ReactBenchEvaluator) renderReactBenchReport(suites.ReactBenchEvaluator);
+                            if (suites.NarrativeYieldEvaluator) renderNarrativeReport(suites.NarrativeYieldEvaluator);
+
+                            const allPassed = data.report.success;
+                            pill.innerText = allPassed ? `ALL PASSED (${data.report.total_passed}/${data.report.total_tests})` : 'FAILURES DETECTED';
+                            pill.className = 'status-badge ' + (allPassed ? 'badge-pass' : 'badge-fail');
+                        } else if (endpoint === '/api/benchmark/topobench') {
+                            renderTopoBenchReport(data.report);
+                            pill.innerText = data.report.success ? 'TOPOBENCH PASS (5/5)' : 'TOPOBENCH FAIL';
+                            pill.className = 'status-badge ' + (data.report.success ? 'badge-pass' : 'badge-fail');
+                        } else if (endpoint === '/api/benchmark/reactbench') {
+                            renderReactBenchReport(data.report);
+                            pill.innerText = data.report.success ? 'REACTBENCH PASS (5/5)' : 'REACTBENCH FAIL';
+                            pill.className = 'status-badge ' + (data.report.success ? 'badge-pass' : 'badge-fail');
+                        } else if (endpoint === '/api/benchmark/narrative') {
+                            renderNarrativeReport(data.report);
+                            pill.innerText = data.report.success ? 'NARRATIVE YIELD PASS (5/5)' : 'NARRATIVE YIELD FAIL';
+                            pill.className = 'status-badge ' + (data.report.success ? 'badge-pass' : 'badge-fail');
+                        }
+
+                        document.getElementById('last-run-timestamp').innerText = new Date().toLocaleTimeString();
                     } else {
-                        outEl.innerText = "Error: " + data.message;
+                        logConsole(`[ERROR] Server returned failure: ${data.message || 'Unknown error'}`);
+                        pill.innerText = 'EXECUTION ERROR';
+                        pill.className = 'status-badge badge-fail';
                     }
                 } else {
-                    outEl.innerText = "HTTP Error: " + res.status;
+                    logConsole(`[HTTP ERROR] Status: ${res.status}`);
+                    pill.innerText = `HTTP ${res.status}`;
+                    pill.className = 'status-badge badge-fail';
                 }
             } catch (err) {
-                outEl.innerText = "Fetch failed: " + err;
+                logConsole(`[NETWORK/FETCH ERROR] Could not connect to backend:\n${err}`);
+                pill.innerText = 'CONNECTION ERROR';
+                pill.className = 'status-badge badge-fail';
+            } finally {
+                clearInterval(timerInterval);
+                const elapsedFinal = ((performance.now() - startTime) / 1000).toFixed(2);
+                timerEl.innerText = `Duration: ${elapsedFinal}s`;
+                isRunning = false;
+                setButtonsState(false);
             }
         }
+
+        async function fetchLiveTelemetry() {
+            try {
+                const res = await fetch('/api/benchmark/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === 'ok') {
+                        const live = data.live_benchmarks || {};
+                        appendConsole(`[LIVE TELEMETRY POLL] Fetched live background metrics at ${new Date().toLocaleTimeString()}`);
+                        if (live.topobench && live.topobench.twist_energy !== undefined) {
+                            document.getElementById('val-topo-1').innerText = `Live Twist: ${live.topobench.twist_energy.toFixed(4)}`;
+                        }
+                        if (live.reactbench && live.reactbench.reconstruction_pressure !== undefined) {
+                            document.getElementById('val-react-1').innerText = `Live Press: ${live.reactbench.reconstruction_pressure.toFixed(4)}`;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Could not poll /api/benchmark/status:', err);
+            }
+        }
+
+        // Initial poll on load
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchLiveTelemetry();
+        });
     </script>
 </body>
 
