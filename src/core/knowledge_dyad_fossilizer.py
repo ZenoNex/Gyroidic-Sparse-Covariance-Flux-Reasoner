@@ -209,7 +209,8 @@ class DyadFossilizer:
     def __init__(self, 
                  storage_dir: str = "data/encodings",
                  fusion_layer: Optional[ResidueFusion] = None,
-                 feature_dim: int = 512):
+                 feature_dim: int = 512,
+                 memory_palace: Optional[Any] = None):
         """
         Initialize the DyadFossilizer.
 
@@ -217,11 +218,13 @@ class DyadFossilizer:
             storage_dir: Directory path for persisting serialized .pt files.
             fusion_layer: Optional explicit ResidueFusion module.
             feature_dim: Base dimensionality for target embeddings.
+            memory_palace: Optional MemoryPalace instance for Meliponini chamber registration.
         """
         self.storage_dir = storage_dir
         os.makedirs(self.storage_dir, exist_ok=True)
         self.feature_dim = feature_dim
         self.fusion_layer = fusion_layer or ResidueFusion(feature_dim=feature_dim)
+        self.memory_palace = memory_palace
         
         # Threading event to ensure no fossilization occurs before the index is fully ready
         self._index_ready = threading.Event()
@@ -689,6 +692,21 @@ class DyadFossilizer:
         self._save_index()
         
         self.enforce_fossil_budget()
+
+        # 6. Automatic Memory Palace Chamber Registration (Meliponini Sovereignty)
+        if hasattr(self, 'memory_palace') and self.memory_palace is not None:
+            try:
+                room_center = seed_state if seed_state is not None else s_state_redistributed
+                self.memory_palace.plant_room(
+                    room_id=f"fossil_{prompt_hash[:16]}",
+                    center=room_center.detach().cpu().view(-1),
+                    variance=1.0,
+                    residue_tuple=(r1, r2, r3),
+                    seam_tension=float(seam_tension),
+                    metadata={'prompt_hash': prompt_hash, 'tags': tags, 'filename': filename, 'source': 'dyad_fossilizer'}
+                )
+            except Exception:
+                pass
         
         return filepath
         
