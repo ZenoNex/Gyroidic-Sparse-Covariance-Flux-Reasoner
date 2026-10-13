@@ -126,7 +126,40 @@ How existing Python components map to the PyOpenCL environment:
 | Larynx Generation | Character-level singing | Parallel Wavelet Synthesis via OpenCL FFTs |
 | Mischief Injection | CPU-side perturb | Async OpenCL PRNG kernel |
 | Veto Check | CPU CALM predictor | Async event loop; `kernel flush` on abort |
+| 8x8 Hessian Ledger | CPU finite-difference loop | `fused_hessian_8x8_ledger` in `__local` SRAM on GTX 1050 Ti |
+| Trajectory Decombiner | Python recursive DAG search | `fused_trajectory_8x8_decombiner_d4` on-chip Coxeter reduction |
 
 ---
 
-**References:** [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md), [INTERCOSAMINATION_THEORY.md](INTERCOSAMINATION_THEORY.md), `src/core/admr_solver.py`
+**References:** [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md), [INTERCOSAMINATION_THEORY.md](INTERCOSAMINATION_THEORY.md), `src/core/admr_solver.py`, `src/core/pyopencl_sovereignty.py`
+
+
+## Hardware Sovereignty & OpenCL Implementations
+
+This section was auto-generated to document classes discovered in the codebase that were previously floating free from the architectural map.
+
+### `GDPOSovereigntyAdaptor`
+**Location:** `src\training\gdpo_trainer.py`
+
+**Description:**
+PPO-style structural adaptor with GDPO sovereignty pressures.
+
+Total objective:
+    J() = E[min(^GDPO, clip()^GDPO)] - KL(_ || _ref)
+
+Where ^GDPO uses decoupled multi-pressure normalization.
+
+---
+
+### `GDPOSovereigntyPressureComputer`
+**Location:** `src\training\gdpo_trainer.py`
+
+**Description:**
+Computes GDPO-style decoupled sovereignty pressures from multi-pressure rollouts.
+
+Key difference from standard GRPO:
+    - GRPO: Normalize sum of pressures  collapse
+    - GDPO: Normalize each pressure separately, then aggregate  sovereignty preserved
+
+---
+
