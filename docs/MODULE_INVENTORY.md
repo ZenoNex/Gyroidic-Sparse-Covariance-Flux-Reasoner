@@ -54,6 +54,37 @@ Integrates all 12 archetypal engines under `ArchetypalSynthesisEngine`. `RP4Proj
 
 ---
 
+### [`hessian_8x8_curvature_ledger.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hessian_8x8_curvature_ledger.py)
+**Class**: [`Hessian8x8CurvatureLedger`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hessian_8x8_curvature_ledger.py#L42), [`Trajectory8x8Decombiner`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hessian_8x8_curvature_ledger.py#L320), [`Hessian8x8LedgerResult`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hessian_8x8_curvature_ledger.py#L22), [`AttractorRegime`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hessian_8x8_curvature_ledger.py#L12)  
+**Role**: Silicon-Fused 8x8 Boundary-Curvature Ledger, Coxeter $B_2$ / $D_4$ (Order 8) Gauge-Symmetric Curvature Engine, and Trajectory Decombiner with OpenCL `__local` SRAM Workgroup Acceleration.
+
+Accelerated second-order differential operator, trajectory solver, and hardware bridge routing directly into [`SiliconSovereigntyEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/pyopencl_sovereignty.py) on discrete GPU (NVIDIA GeForce GTX 1050 Ti):
+1. **OpenCL `__local` SRAM Kernel Fusion**: Dispatches `fused_hessian_8x8_ledger` (Kernel 18) and `fused_trajectory_8x8_decombiner_d4` (Kernel 19) in 64 work-item workgroups (2 warps on Pascal GP107), executing finite-difference stencils, tree reductions, and Coxeter symmetries on-chip in ~1 ns SRAM without PCIe serialization.
+2. **$8 \times 8$ Boundary-Curvature Ledger**: Extracts a canonical $8 \times 8$ second-order differential operator from the salient gradient dimensions via finite differences without full $O(d^2)$ computation.
+3. **Coxeter $B_2$ / Dihedral $D_4$ Gauge Symmetry**: Identifies the 8-element symmetry group of the square (4 rotations $C_4$, 4 reflections $\sigma_v, \sigma_d$) and quotients out gauge degeneracy by mapping directly to the canonical fundamental Weyl chamber (lexicographical minimum) on-chip.
+4. **Spectral Curvature & Morse Saddle Decomposition**: Computes the full eigensystem ($\lambda_1 \le \dots \le \lambda_8$), condition number $\kappa$, trace $\operatorname{Tr}(H)$ (Gyroid zero-mean minimal surface curvature $\operatorname{Tr}(H) \approx 0$), Gaussian determinant $\det(H)$, and Morse index.
+5. **Bouligand Subdifferential Kink Ledger**: Evaluates directional forward/backward finite differences to measure boundary non-smoothness across contact and piecewise-linear merge boundaries ($\|H^+ - H^-\|_F$).
+6. **Cyclotomic Harmonic Projections**: Projects curvature along the 8 roots of unity $\omega_k = e^{i 2\pi k / 8}$ connecting second-order curvature directly to multiharmonic Phase Alignment ($\text{PAS}_h$).
+7. **Rich-Club Attractor Bias & Klein Throat Neck Classification**: Classifies states into attractor hubs, Klein throat bottleneck neck states, minimal surface saddles, and degenerate gutters.
+8. **Trajectory Decombination**: Reverses moves in log-domain exponent representation ($2^k \to k$, affine merge $(k,k) \to k+1$), exact sum invariant $\Sigma = 2T$ pruning, and transient 2-cycle replay protection against phantom spawn oscillations.
+
+**Up-the-Chain Lineage (Antecedents & Upstream Callers)**:
+- [`Recursive Fractals and L'Hôpital.txt`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/Recursive%20Fractals%20and%20L'H%C3%B4pital.txt): Provides theoretical grounding for piecewise scaling across non-differentiable fractures and recursive complexity backpropagation (compressing tree depth via Bouligand subdifferentials).
+- [`The DMET-QSCI-RBM Integration Blueprint...md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/The%20DMET-QSCI-RBM%20Integration%20Blueprint%20for%20the%20Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner.md#L32): Establishes the 8x8 Hessian trick as the second-order stability anchor for the DMET embedding loop.
+- [`MATHEMATICAL_DETAILS.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md#L1686-L1720): Section 40 (CODES Constraint-Oriented Differential Equation System) and Section 41 (Symplectic Gluing Diffeomorphism & Klein Throat).
+- [`TOPOLOGICAL_EXTENSIONS.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/TOPOLOGICAL_EXTENSIONS.md): Part I Item 2 (anti-palindromic gluing across the Gyroid-Klein boundary) and Coxeter reflection chamber reduction.
+- [`GARDEN_STATISTICAL_ATTRACTORS.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/GARDEN_STATISTICAL_ATTRACTORS.md): Formulates rich-club attractor pulls $F_k(c)$ and anisotropic convergence $\Lambda(c)$.
+- [`Codes v40.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/Codes%20v40.md): Section 52 (Harmonic-Differential Equivalence $\text{PAS}_h = \beta_L \cdot \text{PAS} - \beta_{\text{drift}}$) and Section 30 (PAS_LOCK Closure Theorem).
+- [`codes_constraint_framework.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/codes_constraint_framework.py#L210-L245): Upstream engine calling `compute_boundary_curvature_ledger()` during energy descent.
+
+**Down-the-Chain Lineage (Descendants & External Interfaces)**:
+- [`src/core/__init__.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/__init__.py#L65-L115): Canonical export for all system consumers.
+- [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L8287-L8337): Exposes live REST endpoints `POST /api/curvature/hessian_8x8` and `POST /api/trajectory/decombine_8x8`.
+- [`tests/test_hessian_8x8_ledger.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_hessian_8x8_ledger.py): Automated test suite verifying spectral eigensystems, Bouligand kinks, cyclotomics, Coxeter chamber invariance, and trajectory decombination.
+- [`OPEN_QUESTIONS.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/OPEN_QUESTIONS.md): Formalizes Phase 12 Philosophical Questions regarding Inversion Asymmetry, Non-Orientable Klein Bottlenecks, and Bouligand Epistemic Friction.
+
+---
+
 ### [`hybrid_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/hybrid_backend.py)
 **Class**: `HybridPhysicsBackend`, `TensorEncoder`  
 **Role**: Master system starting entrypoint, API dispatch substrate, and continuous runtime nervous system.
@@ -1155,6 +1186,41 @@ Converts raw files (.txt, .pdf, .obj, .mp4) into high-dimensional phase space re
 
 ---
 
+## src/benchmarks
+
+### [`topobench_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/topobench_evaluator.py)
+**Class**: `TopoBenchEvaluator`  
+**Role**: Evaluates the reasoner on topological manifold and holonomy invariants across 5 suites:
+- Loop Closure & Holonomy Twist (Chern-Simons midpoint connection 1-form integral on Gasket)
+- Manifold Contiguity & Logic Leak Detection (`detect_logic_leak` boundary invariant)
+- Anti-Lobotomy Geometric Shield (Love Invariant Wiener noise null-space rejection)
+- Persistent Homology & Euler Characteristic ($\chi = \beta_0 - \beta_1$ stability)
+- Gyroid Flow Orthogonality ($\langle v_{\text{flow}}, \nabla G \rangle \sim 0$ minimal surface constraint)
+
+### [`reactbench_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/reactbench_evaluator.py)
+**Class**: `ReactBenchEvaluator`  
+**Role**: Evaluates cyclic catalytic reaction reasoning, CRT fixed-point synthesis, and play-mode tri-state gates across 5 suites:
+- Branch Convergence (Polynomial CRT fixed-point reconstruction and pressure)
+- Cyclic Graph Catalysis (Modal non-commutative energy retention)
+- Anti-Lobotomy Tri-State Gate (Lattice adaptive shrinkage and silence in play mode)
+- Continuous Coprimality & Asymptotic Independence ($\lim_{t\to\infty} \text{Cov}(r_i, r_j) \to 0$)
+- Dynamic Bezout Coefficient Refresh (CRT modulus drift recovery and condition number stability)
+
+### [`narrative_yield_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/narrative_yield_evaluator.py)
+**Class**: `NarrativeYieldEvaluator`  
+**Role**: Evaluates defenses against teleological collapse, reward hacking, and relational enabler traps across 5 suites:
+- Narrative Collapse & Smoothing Detection (Linear ring trajectory and entropy collapse flagging)
+- Legibility Tripwire (Coherence gap and anti-reward hacking detection)
+- DAQUF Structural Scarring (Unknowledge amortization into structural scars $f^*$ without divergence)
+- Anti-Enabling Relational Friction (Pomni boundary defense against parasitic drag to prevent character rank collapse)
+- Homological Collapse & Lobotomy Alarm (Monitors topological Betti complexity loss under low gradient pressure)
+
+### [`run_all_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/run_all_benchmarks.py)
+**Class**: `BenchmarkSuiteRunner`  
+**Role**: Master orchestrator executing TopoBench, ReactBench, and NarrativeYield benchmark suites, aggregating structured metrics across all 15 tests, generating an ASCII summary table, and exiting with 0 on 100% pass.
+
+---
+
 ## Gyroidic Metaphysics Flux & Bio-Chemical Conjugation
 
 ### The Endocrine Broadcast Medium ([`neuromodulatory_bus.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/neuromodulatory_bus.py))
@@ -1225,6 +1291,13 @@ Hardware and kernel bridge connecting high-level autonomous agent routines direc
 
 ---
 
+### `AIReasonerDataflowNode`
+**Location:** [`src/scripting/node_environment.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L259)  
+**Description:**  
+DearPyGui dataflow node bridging physical voxel simulation, Betti numbers ($\beta_0, \beta_1$), Carnot shear stress, and mass energy directly into [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py) and [`GyroidicFluxReasoner`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/gyroid_reasoner.py). Streams live multiharmonic $\text{PAS}_h$, Seriousness/Play regime transitions, and SLERP/LERP navigation vectors into physical contraptions.
+
+---
+
 ### `AirBreathingBattery`
 **Location:** `src/ui/voxelboxter_simulation.py`  
 **Description:**  
@@ -1264,6 +1337,14 @@ Configuration dataclass parameterizing Mandelbulb fractal sampling, gyroidic sur
 **Location:** `src/models/diegetic_heads.py`  
 **Description:**  
 Diegetic text generation head that modulates linguistic temperature, vocabulary diversity, and syntax based on real-time topological roughness and entropy.
+
+---
+
+### `BenchmarkSuiteRunner`
+**Location:** [`src/benchmarks/run_all_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/run_all_benchmarks.py)  
+**Tests:** [`tests/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_benchmarks.py)  
+**Description:**  
+Master orchestrator executing the complete benchmark harness (TopoBenchEvaluator, ReactBenchEvaluator, and NarrativeYieldEvaluator). Collects structured pass/fail metrics across all 15 topological and behavioral constraints, prints a formatted ASCII summary matrix, and returns execution telemetry.
 
 ---
 
@@ -1386,6 +1467,13 @@ Draft 3 FGRT recurrent cell operating in C^768. The gyroidic connection acts as 
 **Location:** `src/environment/cleanroom_mechanics.py`  
 **Description:**  
 Single-voxel multi-bus multiplexer cleanroom (EnderIO inspiration). Unifies discrete conduits for power (RF/FE), items (with priority and slot filters), fluids (mB), and gases without requiring separate spatial voxel blocks per logistical channel.
+
+---
+
+### `CurvatureLedgerDataflowNode`
+**Location:** [`src/scripting/node_environment.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L311)  
+**Description:**  
+DearPyGui dataflow node executing on-chip OpenCL `__local` SRAM kernels on discrete GPU (NVIDIA GeForce GTX 1050 Ti). Evaluates $8 \times 8$ Boundary-Curvature Ledgers, Bouligand kink intensity ($\|H^+ - H^-\|_F$), Morse minimal surface trace ($\operatorname{Tr}(H) \approx 0$), cyclotomic multiharmonic phase coherence, and Coxeter $D_4$ fundamental Weyl chamber states directly inside the physical dataflow graph.
 
 ---
 
@@ -1946,9 +2034,10 @@ Partial block destruction persistence cleanroom (AtomicStryker Multi Mine inspir
 ---
 
 ### `NarrativeYieldEvaluator`
-**Location:** `src/benchmarks/narrative_yield_evaluator.py`  
+**Location:** [`src/benchmarks/narrative_yield_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/narrative_yield_evaluator.py)  
+**Tests:** [`tests/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_benchmarks.py)  
 **Description:**  
-Evaluates narrative tension and coherence against Mohr-Coulomb yield criteria, measuring whether narrative escalation is productive or extractive.
+Evaluates narrative dynamics and anti-collapse mechanisms across 5 suites: (1) Narrative Collapse & Smoothing Detection (LinguisticEntropyMonitor detecting stagnant linear trajectories and entropy collapse into closed loops); (2) Legibility Tripwire (detecting when models attempt to optimize reward/explanation over structural honesty, flagging coherence gap and artificial crystallization); (3) DAQUF Structural Scarring (fossilizing unknowledge contradictions into structural scars $f^*$ without divergence); (4) Anti-Enabling Relational Friction (Pomni uncertainty predictor asserting boundary resistance against external parasitic drag to prevent character rank collapse); (5) Homological Collapse & Lobotomy Alarm (detecting sudden drops in Betti complexity under low gradient pressure to protect non-ergodic solitons).
 
 ---
 
@@ -2140,9 +2229,10 @@ PyTorch module layer snapping intermediate activations to the rational fixed-poi
 ---
 
 ### `ReactBenchEvaluator`
-**Location:** `src/benchmarks/reactbench_evaluator.py`  
+**Location:** [`src/benchmarks/reactbench_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/reactbench_evaluator.py)  
+**Tests:** [`tests/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_benchmarks.py)  
 **Description:**  
-Benchmark harness evaluating the reasoner's multi-step tool execution, reasoning traces, and refusal honesty against ReAct standards.
+Cyclic reasoning and catalytic pathway evaluation harness testing the reasoner across 5 suites: (1) Branch Convergence (Polynomial CRT fixed-point reconstruction synthesizing multiple divergent input branches into a unified polynomial with bounded synthesis pressure); (2) Cyclic Graph Catalysis (modal CRT reconstruction preserving non-commutative structural variance and cyclic path retention); (3) Anti-Lobotomy Tri-State Gate (Lattice Adaptive Shrinkage verifying that low Phase Alignment $\text{PAS}_h$ activates silence/play mode rather than binary clipping); (4) Continuous Coprimality & Asymptotic Independence ($\lim_{t\to\infty} \text{Cov}(r_i, r_j) \to 0$ verifying non-algebraic functional independence across channels under saturation); (5) Dynamic Bezout Coefficient Refresh (CRT modulus drift recovery and condition number stability $1.0 \le \kappa \le 1000$).
 
 ---
 
@@ -2357,9 +2447,10 @@ Multi-threaded HTTP and WebSocket server handling concurrent diagnostic visualiz
 ---
 
 ### `TopoBenchEvaluator`
-**Location:** `src/benchmarks/topobench_evaluator.py`  
+**Location:** [`src/benchmarks/topobench_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/topobench_evaluator.py)  
+**Tests:** [`tests/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_benchmarks.py)  
 **Description:**  
-Evaluation suite benchmarking persistent homology Betti numbers, Euler characteristics, and holonomy preservation against baseline models.
+Topological manifold and invariant evaluation harness testing the reasoner across 5 suites: (1) Loop Closure & Holonomy Twist (evaluates midpoint connection 1-form integral on the Chern-Simons Gasket to ensure closed paths enclose non-trivial area/holonomy); (2) Manifold Contiguity & Logic Leak Detection (`detect_logic_leak` boundary invariant separating continuous manifolds from torn states); (3) Anti-Lobotomy Geometric Shield (Love Invariant null-space projection verifying $dx \in \ker(\Phi_{\text{ownership}})$ rejects Wiener noise without corrupting the protected subspace); (4) Persistent Homology & Euler Characteristic ($\chi = \beta_0 - \beta_1$ stability under toroidal point-cloud projections); (5) Gyroid Flow Orthogonality Constraint ($\langle v_{\text{flow}}, \nabla G \rangle \sim 0$ preserving minimal surface saddle geometry without scalarized smoothing).
 
 ---
 
