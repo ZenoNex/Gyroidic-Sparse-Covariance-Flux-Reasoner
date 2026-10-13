@@ -256,6 +256,99 @@ class MasterNodeGroup(DataflowNode):
         }
 
 
+class AIReasonerDataflowNode(DataflowNode):
+    """
+    Dataflow node bridging physical voxel simulation, Betti numbers, and shear stress
+    into the UniversalOrchestrator and GyroidicFluxReasoner.
+    """
+    def __init__(self, node_id: str = "node_ai_reasoner"):
+        super().__init__(node_id, "Universal AI Reasoner & Orchestrator")
+        self.add_input("in_b0", SocketType.FLOAT, 1.0)
+        self.add_input("in_b1", SocketType.FLOAT, 0.0)
+        self.add_input("in_xi_shear", SocketType.FLOAT, 0.1)
+        self.add_input("in_energy", SocketType.FLOAT, 1.0)
+        
+        self.add_output("out_pas_h", SocketType.FLOAT, 1.0)
+        self.add_output("out_regime_code", SocketType.INT, 0)
+        self.add_output("out_betti_1", SocketType.FLOAT, 0.0)
+        self.add_output("out_nav_code", SocketType.INT, 0)
+
+    def evaluate(self) -> Dict[str, Any]:
+        from src.core.orchestrator import UniversalOrchestrator
+        if not hasattr(self, '_orchestrator'):
+            self._orchestrator = UniversalOrchestrator()
+            
+        b0 = float(self.inputs["in_b0"].value if self.inputs["in_b0"].value is not None else 1.0)
+        b1 = float(self.inputs["in_b1"].value if self.inputs["in_b1"].value is not None else 0.0)
+        shear = float(self.inputs["in_xi_shear"].value if self.inputs["in_xi_shear"].value is not None else 0.1)
+        energy = float(self.inputs["in_energy"].value if self.inputs["in_energy"].value is not None else 1.0)
+        
+        state_tensor = torch.tensor([b0, b1, shear, energy, 1.0, 0.0, 0.0, 0.0], dtype=torch.float32)
+        res = self._orchestrator.step(state_tensor)
+        
+        pas_h = float(res.get("pas_h", 1.0))
+        regime = str(res.get("regime", "PLAY"))
+        regime_code = 1 if regime == "SERIOUSNESS" else 0
+        nav_mode = str(res.get("nav_mode", "LERP"))
+        nav_code = 1 if nav_mode == "SLERP" else 0
+        
+        self.outputs["out_pas_h"].value = pas_h
+        self.outputs["out_regime_code"].value = regime_code
+        self.outputs["out_betti_1"].value = b1
+        self.outputs["out_nav_code"].value = nav_code
+        
+        return {
+            "out_pas_h": pas_h,
+            "out_regime_code": regime_code,
+            "out_betti_1": b1,
+            "out_nav_code": nav_code
+        }
+
+
+class CurvatureLedgerDataflowNode(DataflowNode):
+    """
+    Dataflow node bridging on-chip OpenCL __local SRAM 8x8 Hessian curvature
+    and Coxeter D4 decombination into the physical dataflow graph.
+    """
+    def __init__(self, node_id: str = "node_curvature_ledger"):
+        super().__init__(node_id, "8x8 Hessian Curvature & D4 Decombiner (Silicon)")
+        self.add_input("in_state_8", SocketType.VECTOR, (1.0, 0.5, -0.2))
+        self.add_input("in_delta_h", SocketType.FLOAT, 1e-3)
+        
+        self.add_output("out_trace_morse", SocketType.FLOAT, 0.0)
+        self.add_output("out_bouligand_kink", SocketType.FLOAT, 0.0)
+        self.add_output("out_cyclotomic_pas", SocketType.FLOAT, 1.0)
+        self.add_output("out_attractor_regime", SocketType.INT, 0)
+
+    def evaluate(self) -> Dict[str, Any]:
+        from src.core.hessian_8x8_curvature_ledger import Hessian8x8CurvatureLedger
+        if not hasattr(self, '_ledger'):
+            self._ledger = Hessian8x8CurvatureLedger()
+            
+        vec = self.inputs["in_state_8"].value or (1.0, 0.5, -0.2)
+        delta_h = float(self.inputs["in_delta_h"].value if self.inputs["in_delta_h"].value is not None else 1e-3)
+        
+        t_state = torch.tensor(list(vec) + [0.0] * max(0, 8 - len(vec)), dtype=torch.float32)[:8]
+        ledger_res = self._ledger.compute_ledger(t_state)
+        
+        trace = float(ledger_res.trace_curvature)
+        kink = float(ledger_res.bouligand_kink_intensity)
+        pas_h = float(ledger_res.multiharmonic_coherence)
+        regime = int(ledger_res.attractor_regime.name == "attractor_hub")
+        
+        self.outputs["out_trace_morse"].value = trace
+        self.outputs["out_bouligand_kink"].value = kink
+        self.outputs["out_cyclotomic_pas"].value = pas_h
+        self.outputs["out_attractor_regime"].value = regime
+        
+        return {
+            "out_trace_morse": trace,
+            "out_bouligand_kink": kink,
+            "out_cyclotomic_pas": pas_h,
+            "out_attractor_regime": regime
+        }
+
+
 # =========================================================================
 # 2. ORE DICTIONARY & CANONICAL UNIFICATION
 # =========================================================================
