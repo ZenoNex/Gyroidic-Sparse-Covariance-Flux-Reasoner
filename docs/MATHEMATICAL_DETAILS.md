@@ -637,7 +637,34 @@ Preserving the closed 2-form $\omega$ representing the "energy" of the track.
 
 ### 20.2 Chern-Simons Gasket
 A **Chern-Simons term** at the boundary tracks the twist as data moves between dimensions:
-$$ S_{CS} = \frac{k}{4\pi} \int_{\Sigma} \operatorname{Tr}(A \wedge dA + \frac{2}{3} A \wedge A \wedge A) $$
+$$ S_{CS} = \frac{k}{4\pi} \int_{\Sigma} \operatorname{Tr}\left(A \wedge dA + \frac{2}{3} A \wedge A \wedge A\right) $$
+
+#### 20.2.1 Discrete Midpoint Line Integral & Holonomy Action
+In discrete residue loop evaluations ([`ChernSimonsGasket.chern_simons_action`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chern_simons_gasket.py#L197)), the continuous 3D Chern-Simons action on hypersurface $\Sigma$ reduces along boundary cycles $\gamma = \partial \Sigma$ to the line integral of the non-Abelian connection 1-form $\mathbf{A}$:
+$$ S_{\text{CS}}(\gamma) = \frac{k}{4\pi} \oint_\gamma \mathbf{A}(\mathbf{x}) \cdot d\mathbf{x} $$
+
+For a discretized trajectory of coordinates $\{\mathbf{x}_i\}_{i=0}^{N-1}$ in residue space:
+1. **Midpoint & Tangent Discretization**:
+   $$d\mathbf{x}_i = \mathbf{x}_{i+1} - \mathbf{x}_i, \quad \mathbf{x}_{\text{mid}, i} = \frac{1}{2}(\mathbf{x}_i + \mathbf{x}_{i+1})$$
+2. **Non-Abelian Connection 1-Form Evaluation**:
+   $$\mathbf{A}_i = \frac{1}{2} \mathcal{A}_{:d, :d} \cdot \mathbf{x}_{\text{mid}, i}[:d]$$
+   where $\mathcal{A}$ is the registered gauge field tensor buffer initialized from polynomial coprime coefficients and winding numbers.
+3. **Dynamic Dimension Truncation**:
+   $$d = \min(\operatorname{len}(d\mathbf{x}_i), d_{\text{manifold}}, \operatorname{shape}_0(\mathcal{A}))$$
+   This boundary truncation guarantees mathematical consistency across varying residue slice dimensions and hidden manifold representations, avoiding tensor shape mismatches.
+4. **Line Integral Accumulation**:
+   $$I_{\text{line}} = \sum_{i=0}^{N-2} \langle \mathbf{A}_i, d\mathbf{x}_i[:d] \rangle$$
+5. **Quantized Chern-Simons Action**:
+   $$S_{\text{CS}} = \left( \frac{k}{4\pi} \right) I_{\text{line}}$$
+   where $k \in \mathbb{Z}^+$ (`level_k`) scales the chiral topological twist strength.
+
+#### 20.2.2 Topological Twist Energy & Logic Leak Invariant
+The resulting action measures the topological "charge" or holonomy of the loop:
+- **Twist Energy**: $E_{\text{twist}} = |S_{\text{CS}}|$.
+- **CODES v40 Invariant 10.3 (Non-Teleological Repair)**: The Chern-Simons action provides an intrinsic geometric pressure signal required to trigger boundary repair without an external teleological loss target.
+- **Logic Leak Condition ([`detect_logic_leak`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chern_simons_gasket.py#L239))**: A logic leak occurs when either $E_{\text{twist}} < \tau_{\text{threshold}}$ (trivial topology / phase flattening where the loop loses its topological identity) or $\operatorname{Var}(\text{residues}) > 2.0$ (boundary chaos and structural rupture). When triggered, a $90^\circ$ chiral torsion shift is applied to restore boundary integrity.
+- **Loop Closure Benchmarking**: Evaluated in [`TopoBenchEvaluator.evaluate_loop_closure`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/topobench_evaluator.py#L64) to confirm that closed latent trajectories enclose non-zero twist energy ($|S_{\text{CS}}| > 10^{-4}$), certifying continuous contiguity without symbolic information dissipation.
+
 
 ## 21. Non-Teleological Optimization (Ricci Flow)
 
@@ -1698,7 +1725,31 @@ $$L = \max(0, m + E(x^+) - E(x^-))$$
 
 Where $x^+$ are positive (satisfying) states and $x^-$ are negative (violating) states.
 
-**Stability**: A curvature-based stability score is computed from the Hessian trace of the energy landscape. Number-theoretic stabilization uses the existing polynomial co-prime system.
+**Stability & Second-Order Curvature Ledger ([`Hessian8x8CurvatureLedger`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hessian_8x8_curvature_ledger.py#L42))**:
+Rather than computing an intractable $O(d^2)$ full Hessian, CODES extracts an $8 \times 8$ boundary-curvature ledger $H \in \mathbb{R}^{8 \times 8}$ from the most active and divergent gradient dimensions via central finite differences:
+$$H_{ij} = \frac{\nabla_j E(x + h e_i) - \nabla_j E(x)}{h}$$
+Symmetrized as $H_{\text{sym}} = \frac{1}{2}(H + H^T)$.
+
+1. **Spectral Eigensystem & Minimal Surface Equilibrium**:
+   Diagonalizing $H_{\text{sym}} = V \Lambda V^T$ yields eigenvalues $\lambda_1 \le \dots \le \lambda_8$. The system evaluates:
+   - Condition number: $\kappa = \frac{\max |\lambda_i|}{\min |\lambda_i| + \epsilon}$
+   - Mean curvature proxy (Trace): $\operatorname{Tr}(H) = \sum_{i=1}^8 \lambda_i$
+   - Gaussian curvature proxy: $\det(H) = \prod_{i=1}^8 \lambda_i$
+   - Morse saddle index: number of strictly negative eigenvalues $i_{\text{Morse}} = \#\{\lambda_i < 0\}$
+   - **Gyroid Minimal Surface Condition**: $\operatorname{Tr}(H) \approx 0$ with $i_{\text{Morse}} \ge 2$, certifying a saddle-point equilibrium where local tension balances mean curvature.
+
+2. **Bouligand Subdifferential Kink Tensor**:
+   Across non-smooth piecewise contact or merge boundaries (where classical derivatives fracture), directional forward and backward derivatives diverge:
+   $$H^+_{ij} = \frac{\nabla_j E(x + h e_i) - \nabla_j E(x)}{h}, \quad H^-_{ij} = \frac{\nabla_j E(x) - \nabla_j E(x - h e_i)}{h}$$
+   The Bouligand kink intensity $\|H^+ - H^-\|_F$ penalizes non-smooth fractures and damps velocity updates:
+   $$\text{Stability Score} = \frac{1}{1 + \|H_{\text{sym}}\|_F + 0.5 \cdot \|H^+ - H^-\|_F + \|\nabla E(x)\|}$$
+
+3. **Coxeter $B_2$ / Dihedral $D_4$ Gauge Symmetry**:
+   On the square $8 \times 8$ lattice, rotations by $90^\circ$ and axis reflections form the order-8 dihedral group $D_4$. Every state belongs to an 8-element gauge orbit; quotienting to the lexicographically minimal representative in the fundamental Weyl chamber eliminates artificial multiplicity and cuts search DAG size by $8\times$.
+
+4. **Order-8 Cyclotomic Projections**:
+   Projecting diagonal curvature entries along 8th roots of unity $\omega_k = e^{i 2\pi k / 8}$ establishes direct bridge to multiharmonic Phase Alignment ($\text{PAS}_h$):
+   $$\Phi_k = \sum_{j=1}^8 H_{jj} \cdot e^{i 2\pi j k / 8}$$
 
 ---
 
