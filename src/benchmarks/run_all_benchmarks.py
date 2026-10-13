@@ -12,6 +12,7 @@ if _project_root not in sys.path:
 from src.benchmarks.topobench_evaluator import TopoBenchEvaluator
 from src.benchmarks.reactbench_evaluator import ReactBenchEvaluator
 from src.benchmarks.narrative_yield_evaluator import NarrativeYieldEvaluator
+from src.benchmarks.ai_reasoner_evaluator import AIReasonerEvaluator
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,12 +26,14 @@ class BenchmarkSuiteRunner:
     - TopoBench: Holonomy, Contiguity, Geometric Shield, Homology, Gyroid Flow
     - ReactBench: Convergence, Cyclic Catalysis, Tri-State, Coprimality, Bezout Refresh
     - NarrativeYield: Collapse Detection, Legibility Audit, DAQUF Amortization, Relational Friction, Homological Protection
+    - AIReasoner: Forward Inference Coherence, 8x8 Hessian Ledger, Bouligand Kinks, Cyclotomics, Trajectory Decombining
     """
     def __init__(self, device: str = 'cpu'):
         self.device = device
         self.topobench = TopoBenchEvaluator(device=device)
         self.reactbench = ReactBenchEvaluator(device=device)
         self.narrative = NarrativeYieldEvaluator(device=device)
+        self.aireasoner = AIReasonerEvaluator(device=device)
 
     def run_all(self) -> Dict[str, Any]:
         """
@@ -43,19 +46,24 @@ class BenchmarkSuiteRunner:
         suite_reports = {}
         
         # 1. Execute TopoBench
-        logger.info(">>> Executing Suite 1/3: TopoBenchEvaluator")
+        logger.info(">>> Executing Suite 1/4: TopoBenchEvaluator")
         topo_res = self.topobench.run_suite()
         suite_reports['TopoBenchEvaluator'] = topo_res
         
         # 2. Execute ReactBench
-        logger.info(">>> Executing Suite 2/3: ReactBenchEvaluator")
+        logger.info(">>> Executing Suite 2/4: ReactBenchEvaluator")
         react_res = self.reactbench.run_suite()
         suite_reports['ReactBenchEvaluator'] = react_res
         
         # 3. Execute NarrativeYield
-        logger.info(">>> Executing Suite 3/3: NarrativeYieldEvaluator")
+        logger.info(">>> Executing Suite 3/4: NarrativeYieldEvaluator")
         narr_res = self.narrative.run_suite()
         suite_reports['NarrativeYieldEvaluator'] = narr_res
+        
+        # 4. Execute AIReasoner
+        logger.info(">>> Executing Suite 4/4: AIReasonerEvaluator")
+        ai_res = self.aireasoner.run_suite()
+        suite_reports['AIReasonerEvaluator'] = ai_res
         
         elapsed = time.time() - start_time
         
