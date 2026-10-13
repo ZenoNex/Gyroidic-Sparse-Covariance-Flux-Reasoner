@@ -1132,14 +1132,18 @@
                         <div class="title-badge">
                             <span>&#x2297;</span>
                             <span>GANBREEDER SUPERPOSED TAG STACKER</span>
-                            <span style="font-size:0.6rem; color:#666;">(FRACTIONAL QUOTIENTS &#x3B3; &#x2208; &#x211A;)</span>
+                            <span style="font-size:0.6rem; color:#666;">(FRACTIONAL QUOTIENTS &#x3B3; &#x2208;
+                                &#x211A;)</span>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <select id="quick-add-tag-select" style="background:#0a0a0a; border:1px solid #333; color:var(--terminal-blue); font-family:var(--font-mono); font-size:0.65rem; padding:2px 6px; border-radius:3px; outline:none; max-width:160px;">
+                            <select id="quick-add-tag-select"
+                                style="background:#0a0a0a; border:1px solid #333; color:var(--terminal-blue); font-family:var(--font-mono); font-size:0.65rem; padding:2px 6px; border-radius:3px; outline:none; max-width:160px;">
                                 <option value="" disabled selected>+ Select Coordinate Tag...</option>
                             </select>
-                            <button onclick="addSelectedTag()" style="background:rgba(0,242,255,0.1); border:1px solid var(--terminal-blue); color:var(--terminal-blue); font-family:var(--font-mono); font-size:0.65rem; padding:2px 8px; border-radius:3px; cursor:pointer;">ADD</button>
-                            <button onclick="resetAllTagSliders()" style="background:rgba(255,255,255,0.05); border:1px solid #444; color:#888; font-family:var(--font-mono); font-size:0.65rem; padding:2px 6px; border-radius:3px; cursor:pointer;">RESET</button>
+                            <button onclick="addSelectedTag()"
+                                style="background:rgba(0,242,255,0.1); border:1px solid var(--terminal-blue); color:var(--terminal-blue); font-family:var(--font-mono); font-size:0.65rem; padding:2px 8px; border-radius:3px; cursor:pointer;">ADD</button>
+                            <button onclick="resetAllTagSliders()"
+                                style="background:rgba(255,255,255,0.05); border:1px solid #444; color:#888; font-family:var(--font-mono); font-size:0.65rem; padding:2px 6px; border-radius:3px; cursor:pointer;">RESET</button>
                         </div>
                     </div>
                     <div id="tag-chips-container" class="tag-chips-container">
@@ -1301,16 +1305,24 @@
 
                         <!-- Computer-Wide MADOC Ingestion Hook -->
                         <div class="metric-card" style="margin-top: 0.8rem; border-color: rgba(0, 242, 255, 0.35);">
-                            <div class="metric-label" style="color: var(--terminal-blue);">COMPUTER-WIDE MADOC INGESTION HOOK</div>
+                            <div class="metric-label" style="color: var(--terminal-blue);">COMPUTER-WIDE MADOC INGESTION
+                                HOOK</div>
                             <div style="font-size: 0.68rem; color: #aaa; margin: 4px 0 6px 0; line-height: 1.3;">
-                                Ingest selected path across any connected drive (C:\, D:\, etc.) into the Topological Manifold via pyarrow/pandas as an immutable MADOC snapshot (.parquet, .jsonl, .json, .csv).
+                                Ingest selected path across any connected drive (C:\, D:\, etc.) into the Topological
+                                Manifold via pyarrow/pandas as an immutable MADOC snapshot (.parquet, .jsonl, .json,
+                                .csv).
                             </div>
-                            <textarea id="fs-madoc-explanation" placeholder="Optional user explanation / provenance notes for this corpus..." style="width: 100%; height: 46px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: #fff; font-family: var(--font-mono); font-size: 0.7rem; padding: 4px; box-sizing: border-box; margin-bottom: 6px; border-radius: 3px; outline: none;"></textarea>
+                            <textarea id="fs-madoc-explanation"
+                                placeholder="Optional user explanation / provenance notes for this corpus..."
+                                style="width: 100%; height: 46px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: #fff; font-family: var(--font-mono); font-size: 0.7rem; padding: 4px; box-sizing: border-box; margin-bottom: 6px; border-radius: 3px; outline: none;"></textarea>
                             <div style="display: flex; gap: 0.5rem;">
-                                <button class="regime-btn active goo" style="flex: 1;" onclick="loadSelectedFSAsMADOC()">
+                                <button class="regime-btn active goo" style="flex: 1;"
+                                    onclick="loadSelectedFSAsMADOC()">
                                     LOAD SELECTED AS MADOC CORPUS
                                 </button>
-                                <button class="regime-btn" style="flex: 1; border-color: var(--terminal-blue); color: var(--terminal-blue);" onclick="loadSelectedFSAsMADOCBulk()">
+                                <button class="regime-btn"
+                                    style="flex: 1; border-color: var(--terminal-blue); color: var(--terminal-blue);"
+                                    onclick="loadSelectedFSAsMADOCBulk()">
                                     BULK INGEST DIRECTORY AS MADOC
                                 </button>
                             </div>
@@ -1351,7 +1363,8 @@
             </div>
 
             <!-- Tab: Voxelboxter Simulation -->
-            <div class="tab-pane" id="pane-voxelboxter" style="background: #030303; flex: 1; position: relative; padding: 2rem;">
+            <div class="tab-pane" id="pane-voxelboxter"
+                style="background: #030303; flex: 1; position: relative; padding: 2rem;">
                 <div class="section-title" style="color: #ffaa00;">Dual Engine Sandbox</div>
                 <p style="font-family: var(--font-mono); font-size: 0.8rem; color: #aaa; margin-bottom: 2rem;">
                     The Voxelboxter client bridges the Gyroidic Engine with a Bevy-based topological voxel renderer.<br>
@@ -1359,17 +1372,20 @@
                 </p>
 
                 <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-                    <button id="boot-voxelboxter-btn" style="background: rgba(255, 170, 0, 0.1); border: 1px solid #ffaa00; color: #ffaa00; padding: 12px 24px; border-radius: 4px; font-family: var(--font-mono); font-size: 1rem; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 2px;">
+                    <button id="boot-voxelboxter-btn"
+                        style="background: rgba(255, 170, 0, 0.1); border: 1px solid #ffaa00; color: #ffaa00; padding: 12px 24px; border-radius: 4px; font-family: var(--font-mono); font-size: 1rem; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 2px;">
                         [ BOOT HOST CLIENT ]
                     </button>
-                    <button onclick="document.getElementById('voxelboxter-logs').innerHTML = '';" style="background: rgba(255, 255, 255, 0.05); border: 1px solid #444; color: #888; padding: 12px 24px; border-radius: 4px; font-family: var(--font-mono); cursor: pointer;">
+                    <button onclick="document.getElementById('voxelboxter-logs').innerHTML = '';"
+                        style="background: rgba(255, 255, 255, 0.05); border: 1px solid #444; color: #888; padding: 12px 24px; border-radius: 4px; font-family: var(--font-mono); cursor: pointer;">
                         CLEAR LOGS
                     </button>
                 </div>
 
                 <div class="metric-card" style="flex: 1; display: flex; flex-direction: column;">
                     <div class="metric-label" style="color: #ffaa00;">Operational Terminal</div>
-                    <div id="voxelboxter-logs" class="small-log" style="flex: 1; height: auto; max-height: none; background: rgba(0,0,0,0.5); padding: 1rem; font-size: 0.75rem; color: #00f0ff;">
+                    <div id="voxelboxter-logs" class="small-log"
+                        style="flex: 1; height: auto; max-height: none; background: rgba(0,0,0,0.5); padding: 1rem; font-size: 0.75rem; color: #00f0ff;">
                         [SYSTEM] Voxelboxter interface ready.<br>
                         [SYSTEM] Waiting for boot command...<br>
                     </div>
@@ -1377,19 +1393,28 @@
             </div>
 
             <!-- Tab: MADOC Ingestion -->
-            <div class="tab-pane" id="pane-madoc" style="background: #030303; flex: 1; position: relative; padding: 1.5rem; overflow-y: auto;">
-                <div class="section-title" style="color: var(--terminal-blue); font-size: 1rem; margin-bottom: 0.25rem;">
+            <div class="tab-pane" id="pane-madoc"
+                style="background: #030303; flex: 1; position: relative; padding: 1.5rem; overflow-y: auto;">
+                <div class="section-title"
+                    style="color: var(--terminal-blue); font-size: 1rem; margin-bottom: 0.25rem;">
                     MADOC IMMUTABLE CORPUS INGESTION
                 </div>
-                <div style="font-family: var(--font-mono); font-size: 0.72rem; color: #888; margin-bottom: 1.25rem; line-height: 1.4;">
-                    Multi-Platform Aggregated Dataset of Online Communities (Zenodo 14637314). Topologically distills immutable snapshots across Reddit, Voat, Bluesky, and Koo stored in Apache Parquet (.parquet), JSONL, JSON, and CSV archives directly into the Gyroidic Resonance Cavity without live API token boundaries.
+                <div
+                    style="font-family: var(--font-mono); font-size: 0.72rem; color: #888; margin-bottom: 1.25rem; line-height: 1.4;">
+                    Multi-Platform Aggregated Dataset of Online Communities (Zenodo 14637314). Topologically distills
+                    immutable snapshots across Reddit, Voat, Bluesky, and Koo stored in Apache Parquet (.parquet),
+                    JSONL, JSON, and CSV archives directly into the Gyroidic Resonance Cavity without live API token
+                    boundaries.
                 </div>
 
                 <!-- Format & Architecture Explanation Dropdown -->
                 <div class="metric-card" style="margin-bottom: 1rem; border-color: rgba(0, 242, 255, 0.25);">
-                    <div class="metric-label" style="color: var(--terminal-blue);">MADOC FORMAT & PLATFORM SPECIFICATION</div>
-                    <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 0.5rem; margin-bottom: 0.75rem;">
-                        <select id="madoc-format-dropdown" class="commute-select" style="flex: 2; padding: 6px;" onchange="updateMadocFormatExplanation()">
+                    <div class="metric-label" style="color: var(--terminal-blue);">MADOC FORMAT & PLATFORM SPECIFICATION
+                    </div>
+                    <div
+                        style="display: flex; gap: 0.75rem; align-items: center; margin-top: 0.5rem; margin-bottom: 0.75rem;">
+                        <select id="madoc-format-dropdown" class="commute-select" style="flex: 2; padding: 6px;"
+                            onchange="updateMadocFormatExplanation()">
                             <option value="overview">Overview: What is MADOC & Why Silicon Sovereignty?</option>
                             <option value="parquet">Apache Parquet (.parquet) - Zero-Copy Binary Columnar</option>
                             <option value="jsonl">JSON Lines (.jsonl) - Streamed Thread Hierarchies</option>
@@ -1403,54 +1428,71 @@
                     </div>
 
                     <!-- Dynamic Explanation Card -->
-                    <div id="madoc-format-explanation-card" style="background: rgba(0,0,0,0.6); border: 1px solid var(--glass-border); border-radius: 4px; padding: 0.75rem; font-family: var(--font-mono); font-size: 0.72rem; color: #ccc; line-height: 1.5; min-height: 90px;">
+                    <div id="madoc-format-explanation-card"
+                        style="background: rgba(0,0,0,0.6); border: 1px solid var(--glass-border); border-radius: 4px; padding: 0.75rem; font-family: var(--font-mono); font-size: 0.72rem; color: #ccc; line-height: 1.5; min-height: 90px;">
                         Loading format explanation...
                     </div>
                 </div>
 
                 <!-- User Explanation Input -->
                 <div class="metric-card" style="margin-bottom: 1rem;">
-                    <div class="metric-label" style="color: var(--terminal-green);">USER EXPLANATION & PROVENANCE CONTEXT</div>
+                    <div class="metric-label" style="color: var(--terminal-green);">USER EXPLANATION & PROVENANCE
+                        CONTEXT</div>
                     <div style="font-size: 0.68rem; color: #777; margin: 4px 0 6px 0;">
-                        Specify why this dataset is ingested, its conceptual provenance, or reasoning constraints. Stored in conversation context and fossilized into persistent Knowledge Dyad metadata.
+                        Specify why this dataset is ingested, its conceptual provenance, or reasoning constraints.
+                        Stored in conversation context and fossilized into persistent Knowledge Dyad metadata.
                     </div>
-                    <textarea id="madoc-user-explanation" placeholder="Enter provenance notes, reasoning objectives, or user context explanation for this MADOC ingestion snapshot..." style="width: 100%; height: 70px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: #fff; font-family: var(--font-mono); font-size: 0.75rem; padding: 8px; box-sizing: border-box; resize: vertical; border-radius: 4px; outline: none;"></textarea>
+                    <textarea id="madoc-user-explanation"
+                        placeholder="Enter provenance notes, reasoning objectives, or user context explanation for this MADOC ingestion snapshot..."
+                        style="width: 100%; height: 70px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: #fff; font-family: var(--font-mono); font-size: 0.75rem; padding: 8px; box-sizing: border-box; resize: vertical; border-radius: 4px; outline: none;"></textarea>
                 </div>
 
                 <!-- File Selection, Limits, & Controls -->
                 <div class="metric-card" style="margin-bottom: 1rem;">
                     <div class="metric-label" style="color: var(--terminal-warn);">INGESTION TARGET & FILTERING</div>
                     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
-                        <input type="text" id="madoc-target-path" placeholder="Path: e.g. datasets/madoc, data/sovereign/reddit.parquet, or D:\datasets\madoc" style="flex: 3; min-width: 220px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 6px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none;">
-                        <select id="madoc-platform-filter" class="commute-select" style="flex: 1; min-width: 120px; padding: 6px;">
+                        <input type="text" id="madoc-target-path"
+                            placeholder="Path: e.g. datasets/madoc, data/sovereign/reddit.parquet, or D:\datasets\madoc"
+                            style="flex: 3; min-width: 220px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 6px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none;">
+                        <select id="madoc-platform-filter" class="commute-select"
+                            style="flex: 1; min-width: 120px; padding: 6px;">
                             <option value="all">All Platforms</option>
                             <option value="reddit">Reddit</option>
                             <option value="voat">Voat</option>
                             <option value="bluesky">Bluesky</option>
                             <option value="koo">Koo</option>
                         </select>
-                        <div style="display: flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 0.7rem; color: #888;">
+                        <div
+                            style="display: flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 0.7rem; color: #888;">
                             <span>LIMIT:</span>
-                            <input type="number" id="madoc-record-limit" value="500" style="width: 65px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 4px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; text-align: center; outline: none;">
+                            <input type="number" id="madoc-record-limit" value="500"
+                                style="width: 65px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 4px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; text-align: center; outline: none;">
                         </div>
                     </div>
 
                     <!-- Drag & Drop Zone -->
-                    <div id="madoc-dropzone" style="margin-top: 0.75rem; width: 100%; height: 80px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-sizing: border-box;">
-                        <div style="font-size: 1.2rem; color: var(--terminal-blue); font-family: var(--font-mono);">[+]</div>
-                        <div style="font-size: 0.7rem; color: #888; font-family: var(--font-mono); margin-top: 4px;">DROP MADOC FILE (.parquet, .jsonl, .json, .csv) OR CLICK TO BROWSE</div>
-                        <input type="file" id="madoc-file-browser" style="display: none;" accept=".parquet,.jsonl,.json,.csv">
+                    <div id="madoc-dropzone"
+                        style="margin-top: 0.75rem; width: 100%; height: 80px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-sizing: border-box;">
+                        <div style="font-size: 1.2rem; color: var(--terminal-blue); font-family: var(--font-mono);">[+]
+                        </div>
+                        <div style="font-size: 0.7rem; color: #888; font-family: var(--font-mono); margin-top: 4px;">
+                            DROP MADOC FILE (.parquet, .jsonl, .json, .csv) OR CLICK TO BROWSE</div>
+                        <input type="file" id="madoc-file-browser" style="display: none;"
+                            accept=".parquet,.jsonl,.json,.csv">
                     </div>
 
                     <!-- Action Buttons -->
                     <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem; flex-wrap: wrap;">
-                        <button id="btn-ingest-madoc" onclick="ingestMadocSnapshot()" style="flex: 2; background: rgba(0, 242, 255, 0.15); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 8px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; font-weight: bold; transition: all 0.2s;">
+                        <button id="btn-ingest-madoc" onclick="ingestMadocSnapshot()"
+                            style="flex: 2; background: rgba(0, 242, 255, 0.15); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 8px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; font-weight: bold; transition: all 0.2s;">
                             INGEST MADOC SNAPSHOT
                         </button>
-                        <button id="btn-bulk-ingest-madoc" onclick="bulkIngestMadocSnapshot()" style="flex: 2; background: rgba(0, 255, 102, 0.12); border: 1px solid var(--terminal-green); color: var(--terminal-green); padding: 8px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; font-weight: bold; transition: all 0.2s;">
+                        <button id="btn-bulk-ingest-madoc" onclick="bulkIngestMadocSnapshot()"
+                            style="flex: 2; background: rgba(0, 255, 102, 0.12); border: 1px solid var(--terminal-green); color: var(--terminal-green); padding: 8px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; font-weight: bold; transition: all 0.2s;">
                             BULK INGEST ALL DISCOVERED
                         </button>
-                        <button onclick="scanMadocDirectory()" style="flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid #555; color: #bbb; padding: 8px 12px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">
+                        <button onclick="scanMadocDirectory()"
+                            style="flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid #555; color: #bbb; padding: 8px 12px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">
                             SCAN DIRECTORY
                         </button>
                     </div>
@@ -1458,15 +1500,20 @@
 
                 <!-- Discovered Files & Diagnostics -->
                 <div class="metric-card" style="flex: 1; display: flex; flex-direction: column;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <div class="metric-label" style="color: var(--terminal-magenta);">DISCOVERED FILES & INGESTION TELEMETRY</div>
-                        <button onclick="document.getElementById('madoc-telemetry-log').innerText = '[LOG] Cleared.';" style="background: transparent; border: none; color: #666; font-family: var(--font-mono); font-size: 0.65rem; cursor: pointer;">CLEAR</button>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <div class="metric-label" style="color: var(--terminal-magenta);">DISCOVERED FILES & INGESTION
+                            TELEMETRY</div>
+                        <button onclick="document.getElementById('madoc-telemetry-log').innerText = '[LOG] Cleared.';"
+                            style="background: transparent; border: none; color: #666; font-family: var(--font-mono); font-size: 0.65rem; cursor: pointer;">CLEAR</button>
                     </div>
-                    <div id="madoc-discovered-list" style="max-height: 80px; overflow-y: auto; font-family: var(--font-mono); font-size: 0.7rem; color: #aaa; margin-bottom: 0.5rem; padding: 4px; background: rgba(0,0,0,0.3); border-radius: 3px;">
+                    <div id="madoc-discovered-list"
+                        style="max-height: 80px; overflow-y: auto; font-family: var(--font-mono); font-size: 0.7rem; color: #aaa; margin-bottom: 0.5rem; padding: 4px; background: rgba(0,0,0,0.3); border-radius: 3px;">
                         Awaiting scan or ingestion trigger...
                     </div>
-                    <div id="madoc-telemetry-log" class="small-log" style="height: 140px; background: #000; border: 1px solid var(--glass-border); padding: 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; color: var(--terminal-green); overflow-y: auto; white-space: pre-wrap;">
-[TELEMETRY] MADOC Ingestor Ready. Select a format specification or path above.
+                    <div id="madoc-telemetry-log" class="small-log"
+                        style="height: 140px; background: #000; border: 1px solid var(--glass-border); padding: 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; color: var(--terminal-green); overflow-y: auto; white-space: pre-wrap;">
+                        [TELEMETRY] MADOC Ingestor Ready. Select a format specification or path above.
                     </div>
                 </div>
             </div>
@@ -1855,10 +1902,12 @@
 
                     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                         <div style="font-family: var(--font-mono); font-size: 0.65rem; color: #888;">
-                            Zero-auth multi-platform dataset ingestion (Parquet/JSONL/JSON/CSV) into topological manifold.
+                            Zero-auth multi-platform dataset ingestion (Parquet/JSONL/JSON/CSV) into topological
+                            manifold.
                         </div>
 
-                        <select id="panel-j-format-select" class="commute-select" style="width: 100%; padding: 4px;" onchange="updatePanelJExplanation()">
+                        <select id="panel-j-format-select" class="commute-select" style="width: 100%; padding: 4px;"
+                            onchange="updatePanelJExplanation()">
                             <option value="parquet">Apache Parquet (.parquet)</option>
                             <option value="jsonl">JSON Lines (.jsonl)</option>
                             <option value="json">Standard JSON (.json)</option>
@@ -1869,19 +1918,25 @@
                             <option value="koo">Koo Archive</option>
                         </select>
 
-                        <div id="panel-j-format-blurb" style="font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; background: rgba(0,0,0,0.4); padding: 6px; border-radius: 4px; border: 1px solid var(--glass-border);">
-                            Apache Parquet: Columnar binary storage with snappy/zstd compression. Loaded via pyarrow/pandas.
+                        <div id="panel-j-format-blurb"
+                            style="font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; background: rgba(0,0,0,0.4); padding: 6px; border-radius: 4px; border: 1px solid var(--glass-border);">
+                            Apache Parquet: Columnar binary storage with snappy/zstd compression. Loaded via
+                            pyarrow/pandas.
                         </div>
 
-                        <input type="text" id="panel-j-path" placeholder="Path: e.g. datasets/madoc" style="width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); color: #fff; font-family: var(--font-mono); font-size: 0.7rem; padding: 4px; box-sizing: border-box;">
+                        <input type="text" id="panel-j-path" placeholder="Path: e.g. datasets/madoc"
+                            style="width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); color: #fff; font-family: var(--font-mono); font-size: 0.7rem; padding: 4px; box-sizing: border-box;">
 
-                        <textarea id="panel-j-explanation" placeholder="User explanation / provenance notes..." style="width: 100%; height: 50px; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); color: #fff; font-family: var(--font-mono); font-size: 0.7rem; padding: 4px; box-sizing: border-box;"></textarea>
+                        <textarea id="panel-j-explanation" placeholder="User explanation / provenance notes..."
+                            style="width: 100%; height: 50px; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); color: #fff; font-family: var(--font-mono); font-size: 0.7rem; padding: 4px; box-sizing: border-box;"></textarea>
 
-                        <button id="commit-panel-j" onclick="commitPanelJMADOC()" style="width: 100%; background: rgba(0, 242, 255, 0.15); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;">
+                        <button id="commit-panel-j" onclick="commitPanelJMADOC()"
+                            style="width: 100%; background: rgba(0, 242, 255, 0.15); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;">
                             INGEST MADOC TO MANIFOLD
                         </button>
                     </div>
-                    <div id="panel-j-log" class="small-log" style="height: 90px; color: var(--terminal-green); margin-top: 8px;"></div>
+                    <div id="panel-j-log" class="small-log"
+                        style="height: 90px; color: var(--terminal-green); margin-top: 8px;"></div>
                 </div>
 
         </aside>
@@ -2478,26 +2533,26 @@
         function updateTagWeight(tagId, rawValue, gammaValue) {
             const u = parseFloat(rawValue);      // Range: -1.0 to +1.0
             const gamma = parseFloat(gammaValue);// User selectability quotient: 0.1 to 5.0
-            
+
             const weight = computeHyperbolicWeight(u, gamma);
             const tension = Math.cosh(gamma * u); // Dynamic curvature readout
-            
+
             // Update DOM UI elements
             const tagElem = document.getElementById(`tag-${tagId}`);
             if (!tagElem) return;
             tagElem.dataset.u = u.toFixed(4);
             tagElem.dataset.gamma = gamma.toFixed(4);
             tagElem.dataset.weight = weight.toFixed(4);
-            
+
             const weightEl = tagElem.querySelector('.weight-val');
             if (weightEl) weightEl.innerText = weight > 0 ? `+${weight.toFixed(2)}` : weight.toFixed(2);
             const tensionEl = tagElem.querySelector('.tension-val');
             if (tensionEl) tensionEl.innerText = `κ:${tension.toFixed(2)}`;
-            
+
             // Visual flare at extreme quotient swings
             const flareIntensity = Math.min(1.0, Math.pow(Math.abs(u), 2) * (gamma / 2.0));
             tagElem.style.boxShadow = `0 0 ${Math.round(12 * flareIntensity * (gamma > 1 ? gamma : 1))}px rgba(255, 0, 128, ${flareIntensity})`;
-            
+
             // Dynamic slider track tension styling
             const slider = tagElem.querySelector('.tag-slider');
             if (slider) {
@@ -2552,7 +2607,7 @@
         function renderTagChip(tagId, initialU = 0.0, initialGamma = 1.0) {
             const container = document.getElementById('tag-chips-container');
             if (!container || document.getElementById(`tag-${tagId}`)) return;
-            
+
             const chip = document.createElement('div');
             chip.className = 'hyperbolic-tag-chip';
             chip.id = `tag-${tagId}`;
@@ -2560,7 +2615,7 @@
             chip.dataset.u = initialU.toString();
             chip.dataset.gamma = initialGamma.toString();
             chip.dataset.weight = computeHyperbolicWeight(initialU, initialGamma).toString();
-            
+
             chip.innerHTML = `
                 <div class="tag-chip-top">
                     <span class="tag-chip-name" title="${tagId}">#${tagId}</span>
@@ -2657,10 +2712,10 @@
             if (trimmed.startsWith('/bulk madoc') || trimmed.startsWith('/madoc') || trimmed.startsWith('INGEST_MADOC:')) {
                 appendMessage('user', trimmed);
                 userInput.value = '';
-                
+
                 let targetPath = '';
                 let explanation = '';
-                
+
                 if (trimmed.startsWith('/bulk madoc')) {
                     const rest = trimmed.replace('/bulk madoc', '').trim();
                     const parts = rest.split(/\s+(.+)/);
@@ -4610,7 +4665,7 @@
             if (type === 'error') color = '#ff4444';
             if (type === 'warn') color = 'var(--terminal-warn)';
             if (type === 'highlight') color = 'var(--terminal-blue)';
-            
+
             const line = document.createElement('div');
             line.style.color = color;
             line.innerHTML = `[${timeStr}] ${msg}`;
@@ -4624,7 +4679,7 @@
                 const res = await fetch(`${state.backend_url}/api/madoc/info`);
                 if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
                 const data = await res.json();
-                
+
                 const listEl = document.getElementById('madoc-discovered-list');
                 if (listEl) {
                     if (data.files && data.files.length > 0) {
@@ -4633,7 +4688,7 @@
                             const item = document.createElement('div');
                             item.style.padding = '2px 0';
                             item.style.cursor = 'pointer';
-                            item.innerHTML = `<span style="color:var(--terminal-blue); font-weight:bold;">[${f.suffix}]</span> ${f.name} <span style="color:#666;">(${(f.size/1024).toFixed(1)} KB)</span>`;
+                            item.innerHTML = `<span style="color:var(--terminal-blue); font-weight:bold;">[${f.suffix}]</span> ${f.name} <span style="color:#666;">(${(f.size / 1024).toFixed(1)} KB)</span>`;
                             item.onclick = () => {
                                 document.getElementById('madoc-target-path').value = f.path;
                                 logMadocTelemetry(`Selected target snapshot: ${f.name}`);
@@ -4701,7 +4756,7 @@
             logMadocTelemetry("Executing bulk ingestion pass across all discovered MADOC snapshots...", "highlight");
             const explanation = (document.getElementById('madoc-user-explanation')?.value || '').trim();
             const limit = parseInt(document.getElementById('madoc-record-limit')?.value || '1000', 10);
-            
+
             try {
                 const res = await fetch(`${state.backend_url}/api/madoc/ingest`, {
                     method: 'POST',
@@ -4883,29 +4938,29 @@
                     }
                 };
             }
-            
+
             // Voxelboxter Boot Sequence
             const bootBtn = document.getElementById('boot-voxelboxter-btn');
-            if(bootBtn) {
+            if (bootBtn) {
                 bootBtn.addEventListener('click', async () => {
                     const logBox = document.getElementById('voxelboxter-logs');
                     const originalText = bootBtn.innerText;
-                    
+
                     bootBtn.innerText = "[ BOOTING... ]";
                     bootBtn.style.pointerEvents = "none";
                     bootBtn.style.opacity = "0.7";
-                    
+
                     logBox.innerHTML += `<br><span style="color:#ffaa00;">[CMD] Dispatching boot sequence to host machine...</span>`;
-                    
+
                     try {
                         const response = await fetch(`${state.backend_url}/api/voxelboxter/boot`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({})
                         });
-                        
+
                         const data = await response.json();
-                        
+
                         if (data.status === 'ok') {
                             logBox.innerHTML += `<br><span style="color:#00ff41;">[SUCCESS] ${data.message}</span>`;
                         } else {
@@ -4914,9 +4969,9 @@
                     } catch (err) {
                         logBox.innerHTML += `<br><span style="color:#ff4444;">[FATAL] Network error connecting to Backend daemon: ${err.message}</span>`;
                     }
-                    
+
                     logBox.scrollTop = logBox.scrollHeight;
-                    
+
                     setTimeout(() => {
                         bootBtn.innerText = originalText;
                         bootBtn.style.pointerEvents = "auto";
