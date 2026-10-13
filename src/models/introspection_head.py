@@ -221,7 +221,8 @@ class GeometricSelfModelProbe(nn.Module):
                     if isinstance(layer, nn.Linear):
                         # Initialize Intrinsic Excitability and Engram Trackers
                         if not hasattr(layer, 'neuronal_excitability'):
-                            layer.register_buffer('neuronal_excitability', torch.rand_like(layer.weight))
+                            raw_init = harvest_honest_jitter(layer.weight.shape, device=layer.weight.device, scaled=False)
+                            layer.register_buffer('neuronal_excitability', (raw_init + 1.0) * 0.5)
                             layer.register_buffer('last_engram_activation', torch.zeros_like(layer.weight))
                             
                         # 1. Sparsity: Engrams are remarkably sparse (2-6%). We target ~5%.
@@ -269,9 +270,10 @@ class GeometricSelfModelProbe(nn.Module):
                         if new_norm > 1e-8:
                             layer.weight.mul_(orig_norm / new_norm)
                             
-                        # Excitability homeostasis
+                        # Excitability homeostasis via hardware-anchored Honest Jitter
                         layer.neuronal_excitability.mul_(0.99)
-                        layer.neuronal_excitability.add_(0.01 * torch.rand_like(layer.neuronal_excitability))
+                        homeo_drift = (harvest_honest_jitter(layer.neuronal_excitability.shape, device=layer.neuronal_excitability.device, scaled=False) + 1.0) * 0.5
+                        layer.neuronal_excitability.add_(0.01 * homeo_drift)
 
 class AggregateGeometricSelfModel(nn.Module):
     """
