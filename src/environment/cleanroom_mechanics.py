@@ -3017,7 +3017,9 @@ class ModularWeaponBayesianNetwork(nn.Module):
         n_vars = Q.shape[0]
         
         # Initialize binary state randomly
-        state = torch.randint(0, 2, (n_vars,), dtype=torch.float32)
+        # SILICON SOVEREIGNTY: Replace PRNG state initialization via Honest Jitter bits
+        raw_bits = harvest_honest_jitter((n_vars,), scaled=False)
+        state = (raw_bits > 0.0).float()
         
         def energy(s: torch.Tensor) -> float:
             return float((s @ Q @ s + c @ s).item())
@@ -3027,14 +3029,16 @@ class ModularWeaponBayesianNetwork(nn.Module):
         best_energy = current_energy
         temp = initial_temp
         
-        for _ in range(steps):
-            flip_idx = int(torch.randint(0, n_vars, (1,)).item())
+        for step in range(steps):
+            jitter_scalar = harvest_honest_jitter((1,), scaled=False).item()
+            flip_idx = int(abs(jitter_scalar * 1000000.0 + step * 31)) % n_vars
             candidate = state.clone()
             candidate[flip_idx] = 1.0 - candidate[flip_idx]
             cand_energy = energy(candidate)
             
             delta_e = cand_energy - current_energy
-            if delta_e < 0.0 or math.exp(-delta_e / max(1e-4, temp)) > torch.rand(1).item():
+            acceptance_thresh = (harvest_honest_jitter((1,), scaled=False).item() + 1.0) * 0.5
+            if delta_e < 0.0 or math.exp(-delta_e / max(1e-4, temp)) > acceptance_thresh:
                 state = candidate
                 current_energy = cand_energy
                 if current_energy < best_energy:
