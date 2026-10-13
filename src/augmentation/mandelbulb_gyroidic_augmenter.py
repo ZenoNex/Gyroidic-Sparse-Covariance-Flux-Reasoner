@@ -130,10 +130,10 @@ class MandelbulbEmbedder(nn.Module):
         c = coords.clone()  # Use original coordinates as the constant
         
         # Stochastic Rounding (NVFP4-style) to prevent "dumping topology"
-        # Instead of a hard clamp (which creates 'Dead Logic'), we add a pseudo-random 
-        # salt that averages to zero, followed by a soft tanh bound to preserve the 'tails'.
-        salt_z = (torch.rand_like(z) - 0.5) * 0.1
-        salt_c = (torch.rand_like(c) - 0.5) * 0.1
+        # Instead of a hard clamp (which creates 'Dead Logic'), we add a hardware-grounded
+        # Honest Jitter salt that averages to zero, followed by a soft tanh bound to preserve the 'tails'.
+        salt_z = harvest_honest_jitter(z.shape, device=z.device, scaled=False) * 0.05
+        salt_c = harvest_honest_jitter(c.shape, device=c.device, scaled=False) * 0.05
         
         z = 5.0 * torch.tanh((z + salt_z) / 5.0)
         c = 5.0 * torch.tanh((c + salt_c) / 5.0)
