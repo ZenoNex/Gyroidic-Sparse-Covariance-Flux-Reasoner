@@ -195,16 +195,16 @@ class LegibilityTripwire(nn.Module):
         saturation_escalation = selected_coherence > 0.8
         
         return {
-            'warning': torch.tensor(is_warning, device=device),
+            'warning': torch.as_tensor(is_warning, device=device),
             'coherence_gap': coherence_gap,
             'correlation': correlation,
             'selected_coherence': selected_coherence,
             'rejected_coherence': rejected_coherence,
             'selected_clustering': selected_clustering,
             'rejected_clustering': rejected_clustering,
-            'is_crystallized': torch.tensor(is_crystallized, device=device),
-            'is_fractured': torch.tensor(is_fractured, device=device),
-            'saturation_escalation': torch.tensor(saturation_escalation, device=device)
+            'is_crystallized': torch.as_tensor(is_crystallized, device=device),
+            'is_fractured': torch.as_tensor(is_fractured, device=device),
+            'saturation_escalation': torch.as_tensor(saturation_escalation, device=device)
         }
 
     
