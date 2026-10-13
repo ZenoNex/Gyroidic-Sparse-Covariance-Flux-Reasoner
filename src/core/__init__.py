@@ -64,6 +64,15 @@ try:
 except ImportError:
     TripsodicLedger = None
 
+try:
+    from .hessian_8x8_curvature_ledger import (
+        Hessian8x8CurvatureLedger,
+        Trajectory8x8Decombiner
+    )
+except ImportError:
+    Hessian8x8CurvatureLedger = None
+    Trajectory8x8Decombiner = None
+
 __all__ = [
     # Core polynomial system
     'PolynomialBasis',
@@ -103,5 +112,7 @@ __all__ = [
     'FiveGatePipeline',
     'ConjugateMomentTransport',
     'TripsodicLedger',
+    'Hessian8x8CurvatureLedger',
+    'Trajectory8x8Decombiner',
 ]
 
