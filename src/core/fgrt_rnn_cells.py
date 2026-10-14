@@ -245,3 +245,71 @@ class FeatureScarLCFTCell(nn.Module):
         h_t = h_t * (1.0 - scar_presence) + cerumen_pot * scar_presence
         
         return h_t, cerumen_pot
+
+
+# -----------------------------------------------------------------------------
+# Unified Polymorphic Recurrent Cell & Factory
+# -----------------------------------------------------------------------------
+class UnifiedFGRTRNNCell(nn.Module):
+    """
+    Polymorphic dispatcher for FGRT recurrent cells.
+    Allows UniversalOrchestrator to dynamically route between:
+      - 'feature_scar': B-Spline KAGH memory with Cerumen Pot fossilization
+      - 'opencl': Hardware-sovereign PyOpenCL matrix breeding kernel offload
+      - 'berry_phase': Holonomy-sensitive GRU with Stiefel-Whitney parity flips
+      - 'chiral': Chiral gated attractor network
+    """
+    def __init__(self, input_dim: int, hidden_dim: int, regime: str = 'feature_scar'):
+        super().__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.regime = regime
+        
+        # Instantiate sub-cells
+        self.feature_scar_cell = FeatureScarLCFTCell(input_dim, hidden_dim)
+        self.opencl_cell = PyOpenCLHardwareSovereigntyCell(input_dim, hidden_dim)
+        self.berry_cell = BerryPhaseGRUCell(input_dim, hidden_dim)
+        self.chiral_cell = ChiralGatedRNNCell(input_dim, hidden_dim)
+        
+        self.register_buffer('gamma_buffer', torch.zeros(1, 1))
+
+    def set_regime(self, regime: str):
+        """Switch active recurrence regime without resetting parameters."""
+        valid_regimes = {'feature_scar', 'opencl', 'berry_phase', 'chiral'}
+        if regime not in valid_regimes:
+            raise ValueError(f"Unknown regime '{regime}'. Choose from {valid_regimes}")
+        self.regime = regime
+
+    def forward(self, x: torch.Tensor, state: tuple) -> tuple:
+        h_prev, cerumen_pot = state
+        
+        if self.regime == 'opencl':
+            h_t = self.opencl_cell(x, h_prev)
+            # Track scars via hardware entropy spikes
+            scar_spike = (torch.abs(h_t) > 0.88).float()
+            updated_scar = cerumen_pot + scar_spike * h_t
+            return h_t, updated_scar
+            
+        elif self.regime == 'berry_phase':
+            if self.gamma_buffer.shape[0] != x.shape[0]:
+                self.gamma_buffer = torch.zeros(x.shape[0], 1, device=x.device)
+            h_t, gamma = self.berry_cell(x, (h_prev, self.gamma_buffer))
+            self.gamma_buffer = gamma.detach()
+            # Stiefel-Whitney parity scars
+            parity_scar = (torch.cos(gamma) < 0.0).float()
+            updated_scar = cerumen_pot + parity_scar * h_t
+            return h_t, updated_scar
+            
+        elif self.regime == 'chiral':
+            h_t = self.chiral_cell(x, h_prev)
+            updated_scar = cerumen_pot
+            return h_t, updated_scar
+            
+        else: # Default: 'feature_scar'
+            return self.feature_scar_cell(x, state)
+
+
+def create_fgrt_rnn_cell(cell_type: str = 'feature_scar', input_dim: int = 64, hidden_dim: int = 64) -> UnifiedFGRTRNNCell:
+    """Factory creating a unified polymorphic FGRT RNN cell."""
+    return UnifiedFGRTRNNCell(input_dim=input_dim, hidden_dim=hidden_dim, regime=cell_type)
+
