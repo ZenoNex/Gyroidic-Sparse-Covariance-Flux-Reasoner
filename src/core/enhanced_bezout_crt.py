@@ -39,7 +39,7 @@ class CrossbarIKSolver(nn.Module):
         self.b = nn.Parameter(torch.ones(num_harmonics) / num_harmonics)
         
         # Sovereign Basis Initialization (RIC Eq 1.1 compliant)
-        from src.core.fgrt_primitives import PrimeResonanceLadder
+        from src.core.invariants import PrimeResonanceLadder
         # Use a large enough ladder to pick distinct prime harmonics
         ladder = PrimeResonanceLadder(num_resonators=num_harmonics * 4)
         primes = ladder.primes
