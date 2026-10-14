@@ -83,6 +83,21 @@ class ArXivSovereignIngestor:
         self.projector = CanonicalProjector(dim=engine_dim, device=self.device)
         self.processor = ConversationalDataProcessor(device=self.device)
 
+        # Category corpus covering mathematics, physics, computing, biology, and socio-economic overlays
+        self.categories: List[str] = [
+            "math", "physics:quant-ph", "cs:AI", "math.LO", "math.HO",
+            "physics:hist-ph", "cs:CY", "physics:physics.soc-ph", "cs:CL",
+            "q-bio.NC", "cs:HC", "econ:TH", "q-fin:GN"
+        ]
+
+    def expand_categories(self, new_categories: List[str]) -> List[str]:
+        """Dynamically expands scientific category corpus."""
+        for cat in new_categories:
+            cat_clean = cat.strip()
+            if cat_clean and cat_clean not in self.categories:
+                self.categories.append(cat_clean)
+        return self.categories
+
     def _wait_for_rate_limit(self):
         """Ensures compliance with ArXiv's anti-crawling policies."""
         now = time.time()
@@ -162,11 +177,7 @@ class ArXivSovereignIngestor:
         """
         self._wait_for_rate_limit()
         
-        active_categories = [
-            'math', 'math.LO', 'physics:quant-ph', 'cs:AI',
-            'math.HO', 'physics:hist-ph', 'cs:CY', 
-            'physics:physics.soc-ph', 'cs:CL'
-        ]
+        active_categories = self.categories
         
         # 1. Attempt to fetch live meta_state
         current_state = None
@@ -1098,19 +1109,7 @@ class ArXivSovereignIngestor:
         """Starts the background ingestion thread with dynamic Meta-State Topic Steering."""
         def _loop():
             # Complete category corpus covering heavy science + humanities/social overlaps
-            sets = [
-                # Hard Science / Logic / Topology
-                "math", "physics:quant-ph", "cs:AI", "math.LO", "math.HO", 
-                # Humanities & Societal Overlaps (Harder to find, but critical)
-                "physics:hist-ph",           # History and Philosophy of Physics (Deep Philosophy)
-                "cs:CY",                     # Computers and Society (Digital Humanities/Ethics)
-                "physics:physics.soc-ph",    # Sociophysics (Mathematical Sociology)
-                "cs:CL",                     # Computation and Language (Computational Linguistics / Philosophy)
-                "q-bio.NC",                  # Neurons and Cognition (Cognitive Science)
-                "cs:HC",                     # Human-Computer Interaction (Sociotechnical)
-                "econ:TH",                   # Theoretical Economics
-                "q-fin:GN",                  # General Finance (Economic Humanities)
-            ]
+            sets = self.categories
             
             cycle = 0
             while True:
