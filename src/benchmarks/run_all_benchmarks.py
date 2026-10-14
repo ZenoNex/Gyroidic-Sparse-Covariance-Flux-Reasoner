@@ -13,6 +13,9 @@ from src.benchmarks.topobench_evaluator import TopoBenchEvaluator
 from src.benchmarks.reactbench_evaluator import ReactBenchEvaluator
 from src.benchmarks.narrative_yield_evaluator import NarrativeYieldEvaluator
 from src.benchmarks.ai_reasoner_evaluator import AIReasonerEvaluator
+from src.benchmarks.chordlock_evaluator import ChordlockEvaluator
+from src.benchmarks.memory_palace_evaluator import MemoryPalaceEvaluator
+from src.benchmarks.topological_singularity_evaluator import TopologicalSingularityEvaluator
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,6 +30,9 @@ class BenchmarkSuiteRunner:
     - ReactBench: Convergence, Cyclic Catalysis, Tri-State, Coprimality, Bezout Refresh
     - NarrativeYield: Collapse Detection, Legibility Audit, DAQUF Amortization, Relational Friction, Homological Protection
     - AIReasoner: Forward Inference Coherence, 8x8 Hessian Ledger, Bouligand Kinks, Cyclotomics, Trajectory Decombining
+    - Chordlock: Harmonic Closure, Coherent Prime Resonance, Lattice Scaling, Hedged Read Path, Chiral Unfolding
+    - MemoryPalace: High-D Spatial Isolation, SLERP Soliton Breeding, Outlier Resilience, Puncture Invariance, CRT Compression
+    - TopologicalSingularity: Octree Multiplexing, Coprime Bypass, Mechanical Shear, Necrotic Stagnation, Push-Forward Luminance
     """
     def __init__(self, device: str = 'cpu'):
         self.device = device
@@ -34,6 +40,9 @@ class BenchmarkSuiteRunner:
         self.reactbench = ReactBenchEvaluator(device=device)
         self.narrative = NarrativeYieldEvaluator(device=device)
         self.aireasoner = AIReasonerEvaluator(device=device)
+        self.chordlock = ChordlockEvaluator(device=device)
+        self.memory_palace = MemoryPalaceEvaluator(device=device)
+        self.topological_singularity = TopologicalSingularityEvaluator(device=device)
 
     def run_all(self) -> Dict[str, Any]:
         """
@@ -41,29 +50,44 @@ class BenchmarkSuiteRunner:
         and returns aggregated report dictionary.
         """
         start_time = time.time()
-        logger.info("Initiating Comprehensive Benchmark Evaluation across all suites...")
+        logger.info("Initiating Comprehensive Benchmark Evaluation across all 7 suites...")
         
         suite_reports = {}
         
         # 1. Execute TopoBench
-        logger.info(">>> Executing Suite 1/4: TopoBenchEvaluator")
+        logger.info(">>> Executing Suite 1/7: TopoBenchEvaluator")
         topo_res = self.topobench.run_suite()
         suite_reports['TopoBenchEvaluator'] = topo_res
         
         # 2. Execute ReactBench
-        logger.info(">>> Executing Suite 2/4: ReactBenchEvaluator")
+        logger.info(">>> Executing Suite 2/7: ReactBenchEvaluator")
         react_res = self.reactbench.run_suite()
         suite_reports['ReactBenchEvaluator'] = react_res
         
         # 3. Execute NarrativeYield
-        logger.info(">>> Executing Suite 3/4: NarrativeYieldEvaluator")
+        logger.info(">>> Executing Suite 3/7: NarrativeYieldEvaluator")
         narr_res = self.narrative.run_suite()
         suite_reports['NarrativeYieldEvaluator'] = narr_res
         
         # 4. Execute AIReasoner
-        logger.info(">>> Executing Suite 4/4: AIReasonerEvaluator")
+        logger.info(">>> Executing Suite 4/7: AIReasonerEvaluator")
         ai_res = self.aireasoner.run_suite()
         suite_reports['AIReasonerEvaluator'] = ai_res
+
+        # 5. Execute Chordlock
+        logger.info(">>> Executing Suite 5/7: ChordlockEvaluator")
+        chord_res = self.chordlock.run_suite()
+        suite_reports['ChordlockEvaluator'] = chord_res
+
+        # 6. Execute MemoryPalace
+        logger.info(">>> Executing Suite 6/7: MemoryPalaceEvaluator")
+        mem_res = self.memory_palace.run_suite()
+        suite_reports['MemoryPalaceEvaluator'] = mem_res
+
+        # 7. Execute TopologicalSingularity
+        logger.info(">>> Executing Suite 7/7: TopologicalSingularityEvaluator")
+        sing_res = self.topological_singularity.run_suite()
+        suite_reports['TopologicalSingularityEvaluator'] = sing_res
         
         elapsed = time.time() - start_time
         
