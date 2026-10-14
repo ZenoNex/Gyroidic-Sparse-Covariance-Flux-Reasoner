@@ -131,6 +131,12 @@ class UniversalOrchestrator(nn.Module):
         # 2. Dynamics & Asymptotics
         self.mischief_probe = EntropicMischiefProbe()
         self.quantizer = Polychoron600Quantizer()
+        from src.core.feature_preservation import FeaturePreservationProjection
+        self.feature_preservation = FeaturePreservationProjection(dim=dim)
+        
+        from src.topology.unknowledge_domain import ParadoxHardeningGate
+        self.paradox_gate = ParadoxHardeningGate()
+        
         self.deflagrator = OmipedialDeflagrator()
         
         # 2b. Valence Drive (Manifold Hunger)
@@ -205,12 +211,17 @@ class UniversalOrchestrator(nn.Module):
         self.quantum_betti = QuantumBettiApproximator()
         self.audience_projector = AudienceProjection(input_dim=dim, audience_dim=dim)
         
-        # 6a. Recurrent Core / Feature Scar Cell
-        from src.core.fgrt_rnn_cells import FeatureScarLCFTCell
-        self.rnn_core = FeatureScarLCFTCell(input_dim=dim, hidden_dim=dim)
+        # 6a. Recurrent Core / Feature Scar Cell (Dynamic Polymorphic Cell Factory)
+        from src.core.fgrt_rnn_cells import create_fgrt_rnn_cell
+        self.rnn_core = create_fgrt_rnn_cell(cell_type='feature_scar', input_dim=dim, hidden_dim=dim)
         
         # 6b. General User Alias Tracking (User/AI Friction Anchor)
         self.alias_tracker = GeneralUserAliasTracker(dim)
+        
+        # 6c. Dyadic Non-Commutative Transfer Map & Commutator Oracle
+        from src.core.dyadic_transfer import DyadicTransferMap, CommutatorOracle
+        self.dyadic_transfer = DyadicTransferMap(num_tasks=8, embedding_dim=dim)
+        self.commutator_oracle = CommutatorOracle(self.dyadic_transfer)
         
         # 7. Diegetic Responder (The "Larynx" & "Scars")
         from src.models.diegetic_heads import ResonanceLarynx
@@ -433,6 +444,29 @@ class UniversalOrchestrator(nn.Module):
         self.shadow_logs.clear()
         return logs
 
+    def set_rnn_regime(self, regime: str):
+        """
+        Dynamically toggle the recurrence regime of the FGRT recurrent core.
+        Regimes: 'feature_scar', 'opencl', 'berry_phase', 'chiral'
+        """
+        if hasattr(self.rnn_core, 'set_regime'):
+            self.rnn_core.set_regime(regime)
+        else:
+            from src.core.fgrt_rnn_cells import create_fgrt_rnn_cell
+            self.rnn_core = create_fgrt_rnn_cell(cell_type=regime, input_dim=self.dim, hidden_dim=self.dim)
+
+    def track_dyadic_leakage(
+        self, 
+        task_states: torch.Tensor, 
+        gating: torch.Tensor
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
+        """
+        Transfers proficiency across task dyads and computes non-commutative leakage report.
+        """
+        leaked_states = self.dyadic_transfer(task_states, gating)
+        report = self.commutator_oracle.get_leakage_report()
+        return leaked_states, report
+
     def forward(
         self, 
         state: torch.Tensor, 
@@ -459,6 +493,7 @@ class UniversalOrchestrator(nn.Module):
         current_state = state.clone()
         
         for micro_idx in range(self.micro_steps):
+            prev_micro_state = current_state.clone()
             # Evaluate Local "Mischief" (Entropy/Erosion)
             drift_micro = 0.05 * (micro_idx + 1) # Synthetic drift proxy for micro-steps
             needs_erosion = (drift_micro > 0.05 and pas_h < 0.85) or (atrophy > 0.85)
@@ -486,6 +521,19 @@ class UniversalOrchestrator(nn.Module):
             current_state, updated_scar = self.rnn_core(
                 current_state, (current_state, self._cerumen_pot_buffer)
             )
+            
+            # Paradox Hardening Gate: evaluate unclosed oscillations and charge mischief probe
+            if micro_idx > 0:
+                forward_transit = current_state - prev_micro_state
+                reverse_transit = prev_micro_state - state
+                stabilized_state, boosted_mischief, is_paradox = self.paradox_gate.evaluate_paradox(
+                    forward_transit=forward_transit,
+                    reverse_transit=reverse_transit,
+                    current_mischief=self.mischief_probe.H_mischief
+                )
+                if is_paradox:
+                    current_state = current_state + 0.1 * stabilized_state.to(current_state.device)
+                    self.mischief_probe.H_mischief.copy_(boosted_mischief.to(self.mischief_probe.device))
             
             # -- Chern-Simons Topological Validation (Economic Abort) --
             from src.core.non_dual_coin import CerumenPotWallet, transact, EconomicAbortException
@@ -615,7 +663,10 @@ class UniversalOrchestrator(nn.Module):
                 pull = self.gyrocompass.find_true_north(state_sync, self.love.L)
                 state_sync = state_sync + pull
             
-            # Apply 600-Cell Quantization (Lattice Gating)
+            # Apply 600-Cell Quantization (Lattice Gating) with Feature Preservation Projection
+            flat_sync = state_sync.reshape(-1, self.dim) if state_sync.dim() > 1 else state_sync.unsqueeze(0)
+            preservation_report = self.feature_preservation(flat_sync)
+            
             if state_sync.shape[-1] >= 4:
                 quantized_4d = self.quantizer(state_sync[..., :4])
                 state_quant = state_sync.clone()
@@ -624,6 +675,13 @@ class UniversalOrchestrator(nn.Module):
                 padded = F.pad(state_sync, (0, 4 - state_sync.shape[-1]))
                 quantized_4d = self.quantizer(padded)
                 state_quant = quantized_4d[..., :state_sync.shape[-1]]
+                
+            # Reconstruct boundary facet derivatives so quantization does not obliterate manifold ridges
+            if preservation_report.get('active_facets'):
+                for f_idx in preservation_report['active_facets']:
+                    normal = F.normalize(self.feature_preservation.facet_normals[f_idx], dim=-1).to(state_quant.device)
+                    q_deriv = preservation_report['preserved_features'][f_idx][1].mean()
+                    state_quant = state_quant + 0.02 * q_deriv * normal.view_as(state_quant)
             
             # Apply Topological Twist (Gluing Operator Psi)
             target_dim = self.gluer.dim if hasattr(self.gluer, 'dim') else 4
