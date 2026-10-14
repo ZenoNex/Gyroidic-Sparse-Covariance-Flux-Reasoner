@@ -13,7 +13,7 @@ except ImportError:
 import numpy as np
 import logging
 import math
-from typing import Tuple
+from typing import Tuple, Optional, Dict, Any
 import torch
 
 def push_to_opencl(tensor: torch.Tensor, ctx: 'cl.Context') -> 'cl.Buffer':
@@ -754,6 +754,196 @@ class SiliconSovereigntyEngine:
             // Independent thread "read" simulating hedged non-blocking memory access
             scores[gid] = cos(m * phase);
         }
+
+        // 18. Fused 8x8 Boundary Hessian & Bouligand Kink Ledger
+        // Workgroup size: (8, 8) = 64 work-items.
+        // Executes finite-difference boundary evaluation, Bouligand kink detection,
+        // Morse minimal surface trace, and cyclotomic harmonic projection entirely in local SRAM.
+        __kernel void fused_hessian_8x8_ledger(
+            __global const float *state,               // [8]
+            __global const float *grad,                // [8]
+            __global const float *perturbed_grads_fwd, // [8, 8] forward perturbed gradient responses
+            __global const float *perturbed_grads_bwd, // [8, 8] backward perturbed gradient responses
+            __global float *out_hessian,               // [8, 8]
+            __global float *out_kink_diff,             // [8, 8]
+            __global float *out_scalars,               // [5]: 0: stability, 1: kink_intensity, 2: trace, 3: regime, 4: pas_h
+            float delta_h
+        ) {
+            __local float l_H_fwd[8][8];
+            __local float l_H_bwd[8][8];
+            __local float l_kink[64];
+            __local float l_diag[8];
+            __local float l_cyclotomic_real[8];
+            __local float l_cyclotomic_imag[8];
+
+            int i = get_local_id(0); // 0..7
+            int j = get_local_id(1); // 0..7
+            int lid = i * 8 + j;     // 0..63
+
+            float g_j = grad[j];
+            float g_fwd = perturbed_grads_fwd[i * 8 + j];
+            float g_bwd = perturbed_grads_bwd[i * 8 + j];
+
+            float diff_fwd = (g_fwd - g_j) / delta_h;
+            float diff_bwd = (g_j - g_bwd) / delta_h;
+
+            l_H_fwd[i][j] = diff_fwd;
+            l_H_bwd[i][j] = diff_bwd;
+
+            float sym_h = 0.5f * (diff_fwd + diff_bwd);
+            out_hessian[lid] = sym_h;
+
+            float k_val = diff_fwd - diff_bwd;
+            out_kink_diff[lid] = k_val;
+            l_kink[lid] = k_val * k_val;
+
+            barrier(CLK_LOCAL_MEM_FENCE);
+
+            // Parallel reduction of kink Frobenius norm squared across 64 threads
+            for (int s = 32; s > 0; s >>= 1) {
+                if (lid < s) {
+                    l_kink[lid] += l_kink[lid + s];
+                }
+                barrier(CLK_LOCAL_MEM_FENCE);
+            }
+            float kink_norm = sqrt(l_kink[0]);
+
+            // Trace Tr(H)
+            if (j == 0) {
+                l_diag[i] = out_hessian[i * 8 + i];
+            }
+            barrier(CLK_LOCAL_MEM_FENCE);
+
+            // Cyclotomic Order-8 Phase Projections (omega_k = exp(i 2pi k / 8))
+            if (j == 0) {
+                int k = i; // harmonic index 0..7
+                float sum_r = 0.0f;
+                float sum_im = 0.0f;
+                for (int m = 0; m < 8; m++) {
+                    float theta = 2.0f * 3.141592653589793f * (float)(k * m) / 8.0f;
+                    sum_r += l_diag[m] * cos(theta);
+                    sum_im += l_diag[m] * sin(theta);
+                }
+                l_cyclotomic_real[k] = sum_r;
+                l_cyclotomic_imag[k] = sum_im;
+            }
+            barrier(CLK_LOCAL_MEM_FENCE);
+
+            if (lid == 0) {
+                float tr = 0.0f;
+                for (int m = 0; m < 8; m++) tr += l_diag[m];
+
+                // Cyclotomic coherence pas_h
+                float total_mag = 0.0f;
+                for (int k = 0; k < 8; k++) {
+                    total_mag += sqrt(l_cyclotomic_real[k] * l_cyclotomic_real[k] + l_cyclotomic_imag[k] * l_cyclotomic_imag[k]);
+                }
+                float pas_h = total_mag / (8.0f + 1e-6f);
+                pas_h = 1.0f / (1.0f + exp(-pas_h)); // Sigmoid normalized [0, 1]
+
+                // Regime classification
+                int regime = 0; // minimal_surface_saddle
+                if (kink_norm >= 2.0f) {
+                    regime = 2; // bouligand_fracture_kink
+                } else if (fabs(tr) < 0.1f) {
+                    regime = 0; // minimal_surface_saddle
+                } else if (tr > 10.0f) {
+                    regime = 1; // rich_club_attractor_hub
+                } else if (tr < -5.0f) {
+                    regime = 3; // klein_throat_neck
+                } else {
+                    regime = 4; // degenerate_gutter
+                }
+
+                float stab = 1.0f / (1.0f + 0.5f * kink_norm + fabs(tr));
+
+                out_scalars[0] = stab;
+                out_scalars[1] = kink_norm;
+                out_scalars[2] = tr;
+                out_scalars[3] = (float)regime;
+                out_scalars[4] = pas_h;
+            }
+        }
+
+        // 19. Fused Coxeter D4 Trajectory Decombiner
+        // Workgroup size: 64 work-items (mapping to the 64 cells of an 8x8 board).
+        // Evaluates Coxeter D4 dihedral orbit (4 rotations, 4 reflections) in local SRAM
+        // and prunes non-physical pre-images via tile sum invariant Sigma = 2T.
+        __kernel void fused_trajectory_8x8_decombiner_d4(
+            __global const uchar *in_board,      // [64] input board (log2 exponents)
+            __global uchar *out_canonical_board, // [64] lexicographical minimum Weyl chamber board
+            __global uint *out_sum_invariant,    // [1] sum Sigma = sum(2^val)
+            __global int *out_is_valid           // [1] validity flag (1 if valid, 0 if pruned)
+        ) {
+            __local uchar l_board[64];
+            __local uchar l_transformed[8][64]; // 8 dihedral representations
+            __local uint l_tile_sums[64];
+            __local int l_lex_min_idx;
+
+            int lid = get_local_id(0); // 0..63
+            int r = lid / 8;
+            int c = lid % 8;
+
+            uchar val = in_board[lid];
+            l_board[lid] = val;
+
+            // Tile sum contribution: 2^val if val > 0 else 0
+            l_tile_sums[lid] = (val > 0 && val < 31) ? (1U << val) : 0U;
+
+            // Generate 8 D4 representations simultaneously in local memory
+            // g0: Identity
+            l_transformed[0][lid] = val;
+            // g1: Rotate 90 deg clockwise (r, c) -> (c, 7 - r)
+            l_transformed[1][c * 8 + (7 - r)] = val;
+            // g2: Rotate 180 deg (r, c) -> (7 - r, 7 - c)
+            l_transformed[2][(7 - r) * 8 + (7 - c)] = val;
+            // g3: Rotate 270 deg (r, c) -> (7 - c, r)
+            l_transformed[3][(7 - c) * 8 + r] = val;
+            // g4: Horizontal reflection (r, c) -> (r, 7 - c)
+            l_transformed[4][r * 8 + (7 - c)] = val;
+            // g5: Vertical reflection (r, c) -> (7 - r, c)
+            l_transformed[5][(7 - r) * 8 + c] = val;
+            // g6: Main diagonal reflection (r, c) -> (c, r)
+            l_transformed[6][c * 8 + r] = val;
+            // g7: Anti-diagonal reflection (r, c) -> (7 - c, 7 - r)
+            l_transformed[7][(7 - c) * 8 + (7 - r)] = val;
+
+            barrier(CLK_LOCAL_MEM_FENCE);
+
+            // Parallel tree reduction of tile sum invariant across 64 threads
+            for (int s = 32; s > 0; s >>= 1) {
+                if (lid < s) {
+                    l_tile_sums[lid] += l_tile_sums[lid + s];
+                }
+                barrier(CLK_LOCAL_MEM_FENCE);
+            }
+
+            // Master thread finds lexicographically minimal representation in SRAM
+            if (lid == 0) {
+                int min_g = 0;
+                for (int g = 1; g < 8; g++) {
+                    for (int k = 0; k < 64; k++) {
+                        uchar a = l_transformed[min_g][k];
+                        uchar b = l_transformed[g][k];
+                        if (b < a) {
+                            min_g = g;
+                            break;
+                        } else if (b > a) {
+                            break;
+                        }
+                    }
+                }
+                l_lex_min_idx = min_g;
+                out_sum_invariant[0] = l_tile_sums[0];
+                // Invariant check: tile sum must be even and > 0 for a valid board
+                out_is_valid[0] = ((l_tile_sums[0] & 1U) == 0 && l_tile_sums[0] > 0) ? 1 : 0;
+            }
+            barrier(CLK_LOCAL_MEM_FENCE);
+
+            // Copy out canonical representation in parallel
+            int best_g = l_lex_min_idx;
+            out_canonical_board[lid] = l_transformed[best_g][lid];
+        }
         """
         
         import warnings
@@ -1372,31 +1562,26 @@ class SiliconSovereigntyEngine:
     def apply_gyroid_projection(self, coords, max_steps=20, tolerance=1e-3, seed=None):
         """Execute Gyroid minimal surface projection."""
         if self.ctx is None:
-            # CPU Mock gyroid
-            coords_np = np.asarray(coords, dtype=np.float32).copy()
-            for i in range(coords_np.size // 3):
-                offset = i * 3
-                x = np.clip(coords_np[offset], -3.0, 3.0)
-                y = np.clip(coords_np[offset + 1], -3.0, 3.0)
-                z = np.clip(coords_np[offset + 2], -3.0, 3.0)
-                for step in range(max_steps):
-                    sx, cx = math.sin(x), math.cos(x)
-                    sy, cy = math.sin(y), math.cos(y)
-                    sz, cz = math.sin(z), math.cos(z)
-                    violation = sx*cy + sy*cz + sz*cx
-                    if abs(violation) < tolerance * 10.0:
-                        break
-                    gx = cx*cy - sz*sx
-                    gy = -sx*sy + cy*cz
-                    gz = -sy*sz + cz*cx
-                    g_norm = math.sqrt(gx*gx + gy*gy + gz*gz) + 1e-8
-                    gx /= g_norm; gy /= g_norm; gz /= g_norm
-                    step_size = np.clip(0.1 * violation, -0.5, 0.5)
-                    x = np.clip(x - step_size * gx, -5.0, 5.0)
-                    y = np.clip(y - step_size * gy, -5.0, 5.0)
-                    z = np.clip(z - step_size * gz, -5.0, 5.0)
-                coords_np[offset:offset+3] = [x, y, z]
-            return coords_np
+            # CPU execution: Vectorized minimal surface projection via canonical GyroidManifold
+            from src.core.fgrt_primitives import GyroidManifold
+            coords_arr = np.asarray(coords, dtype=np.float32)
+            orig_shape = coords_arr.shape
+            coords_flat = coords_arr.reshape(-1, 3).copy()
+            coords_t = torch.from_numpy(coords_flat)
+            coords_t = torch.clamp(coords_t, -3.0, 3.0)
+            
+            manifold = GyroidManifold(scale=1.0)
+            for _ in range(max_steps):
+                violation = manifold(coords_t)
+                if torch.max(torch.abs(violation)) < tolerance * 10.0:
+                    break
+                grad = manifold.gradient(coords_t)
+                g_norm = torch.norm(grad, dim=-1, keepdim=True) + 1e-8
+                grad_unit = grad / g_norm
+                step_size = torch.clamp(0.1 * violation.unsqueeze(-1), -0.5, 0.5)
+                coords_t = torch.clamp(coords_t - step_size * grad_unit, -5.0, 5.0)
+                
+            return coords_t.detach().cpu().numpy().reshape(orig_shape)
 
         if seed is None:
             from src.core.honest_jitter import harvest_honest_jitter
@@ -1423,9 +1608,8 @@ class SiliconSovereigntyEngine:
     def apply_erosion_fbm(self, state, pressure_grad_normalized, octaves=4, persistence=0.5, lacunarity=2.0, intensity=0.1, primes=None):
         """Execute Topological Erosion FBM."""
         if primes is None:
-            from src.core.fgrt_primitives import PrimeResonanceLadder
-            ladder = PrimeResonanceLadder(num_resonators=8)
-            primes = ladder.primes.detach().cpu().numpy().astype(np.float32)
+            from src.core.invariants import get_prime_ladder
+            primes = get_prime_ladder(8).detach().cpu().numpy().astype(np.float32)
         else:
             primes = np.asarray(primes, dtype=np.float32)
 
@@ -1616,6 +1800,181 @@ class SiliconSovereigntyEngine:
         cl.enqueue_barrier(self.queue_a)
         cl.enqueue_copy(self.queue_a, seam_tension, tension_buf, is_blocking=True)
         return seam_tension
+
+    def compute_fused_hessian_8x8(
+        self,
+        state: np.ndarray,
+        grad: Optional[np.ndarray] = None,
+        perturbed_grads_fwd: Optional[np.ndarray] = None,
+        perturbed_grads_bwd: Optional[np.ndarray] = None,
+        delta_h: float = 1e-3
+    ) -> Tuple[np.ndarray, np.ndarray, float, float, float, int, float]:
+        """
+        Executes fused 8x8 Boundary Hessian, Bouligand Kink, and Cyclotomic PAS_h directly in GPU local memory.
+        
+        Returns:
+            hessian_8x8: [8, 8] symmetric second-order curvature tensor
+            kink_diff: [8, 8] directional kink matrix H^+ - H^-
+            stability_score: scalar stability factor
+            kink_intensity: Frobenius norm ||H^+ - H^-||_F
+            trace: Morse minimal-surface trace Tr(H)
+            regime: Attractor regime enum code
+            pas_h: Multi-harmonic cyclotomic coherence in [0, 1]
+        """
+        state_arr = np.asarray(state, dtype=np.float32).reshape(-1)
+        if len(state_arr) < 8:
+            state_padded = np.zeros(8, dtype=np.float32)
+            state_padded[:len(state_arr)] = state_arr
+            state = state_padded
+        else:
+            state = state_arr[:8]
+
+        if grad is None:
+            grad = state.copy()
+        else:
+            grad_arr = np.asarray(grad, dtype=np.float32).reshape(-1)
+            if len(grad_arr) < 8:
+                grad_padded = np.zeros(8, dtype=np.float32)
+                grad_padded[:len(grad_arr)] = grad_arr
+                grad = grad_padded
+            else:
+                grad = grad_arr[:8]
+
+        if perturbed_grads_fwd is None:
+            fwd = np.tile(grad, (8, 1)) + delta_h * np.eye(8, dtype=np.float32)
+        else:
+            fwd = np.asarray(perturbed_grads_fwd, dtype=np.float32).reshape(8, 8)
+
+        if perturbed_grads_bwd is None:
+            bwd = np.tile(grad, (8, 1)) - delta_h * np.eye(8, dtype=np.float32)
+        else:
+            bwd = np.asarray(perturbed_grads_bwd, dtype=np.float32).reshape(8, 8)
+
+        if self.ctx is None:
+            # CPU Fallback
+            h_fwd = (fwd - grad) / delta_h
+            h_bwd = (grad - bwd) / delta_h
+            sym_h = 0.5 * (h_fwd + h_bwd)
+            kink_diff = h_fwd - h_bwd
+            kink_intensity = float(np.linalg.norm(kink_diff, ord='fro'))
+            trace = float(np.trace(sym_h))
+            stability = float(1.0 / (1.0 + 0.5 * kink_intensity + abs(trace)))
+            
+            # Cyclotomic Order-8 harmonics
+            diag = np.diag(sym_h)
+            harmonics = [np.sum(diag * np.exp(1j * 2.0 * np.pi * k * np.arange(8) / 8.0)) for k in range(8)]
+            mags = [abs(h) for h in harmonics]
+            pas_h = float(1.0 / (1.0 + np.exp(-np.mean(mags))))
+            
+            regime = 0
+            if kink_intensity >= 2.0:
+                regime = 2
+            elif abs(trace) < 0.1:
+                regime = 0
+            elif trace > 10.0:
+                regime = 1
+            elif trace < -5.0:
+                regime = 3
+            else:
+                regime = 4
+                
+            return sym_h, kink_diff, stability, kink_intensity, trace, regime, pas_h
+
+        import pyopencl as cl
+        mf = cl.mem_flags
+
+        out_hessian = np.zeros((8, 8), dtype=np.float32)
+        out_kink_diff = np.zeros((8, 8), dtype=np.float32)
+        out_scalars = np.zeros(5, dtype=np.float32)
+
+        buf_state = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=state)
+        buf_grad = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=grad)
+        buf_fwd = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=fwd)
+        buf_bwd = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=bwd)
+        buf_out_h = cl.Buffer(self.ctx, mf.WRITE_ONLY, out_hessian.nbytes)
+        buf_out_k = cl.Buffer(self.ctx, mf.WRITE_ONLY, out_kink_diff.nbytes)
+        buf_out_s = cl.Buffer(self.ctx, mf.WRITE_ONLY, out_scalars.nbytes)
+
+        kernel = self._get_kernel('fused_hessian_8x8_ledger')
+        kernel(
+            self.queue_a, (8, 8), (8, 8),
+            buf_state, buf_grad, buf_fwd, buf_bwd,
+            buf_out_h, buf_out_k, buf_out_s, np.float32(delta_h)
+        )
+        cl.enqueue_barrier(self.queue_a)
+        cl.enqueue_copy(self.queue_a, out_hessian, buf_out_h)
+        cl.enqueue_copy(self.queue_a, out_kink_diff, buf_out_k)
+        cl.enqueue_copy(self.queue_a, out_scalars, buf_out_s, is_blocking=True)
+
+        stability = float(out_scalars[0])
+        kink_intensity = float(out_scalars[1])
+        trace = float(out_scalars[2])
+        regime = int(round(out_scalars[3]))
+        pas_h = float(out_scalars[4])
+
+        return out_hessian, out_kink_diff, stability, kink_intensity, trace, regime, pas_h
+
+    def compute_fused_trajectory_d4(
+        self,
+        board: np.ndarray
+    ) -> Tuple[np.ndarray, int, bool]:
+        """
+        Executes Coxeter D4 dihedral orbit reduction and sum invariant check in GPU local memory.
+        
+        Args:
+            board: [8, 8] or [64] array of tile log2 exponents
+            
+        Returns:
+            canonical_board: [8, 8] lexicographically minimal fundamental Weyl chamber state
+            sum_invariant: int Sigma = sum(2^val)
+            is_valid: bool (True if even and non-zero)
+        """
+        arr = np.asarray(board, dtype=np.uint8).reshape(-1)
+        if len(arr) != 64:
+            raise ValueError(f"Board must contain 64 tiles, got {len(arr)}")
+
+        if self.ctx is None:
+            # CPU Fallback
+            b_2d = arr.reshape(8, 8)
+            # 8 D4 transformations
+            transforms = [
+                b_2d,
+                np.rot90(b_2d, -1),
+                np.rot90(b_2d, -2),
+                np.rot90(b_2d, -3),
+                np.fliplr(b_2d),
+                np.flipud(b_2d),
+                b_2d.T,
+                np.fliplr(np.flipud(b_2d)).T
+            ]
+            canon = min(transforms, key=lambda m: tuple(m.reshape(-1)))
+            sum_inv = int(sum((1 << int(v)) for v in arr if 0 < v < 31))
+            is_valid = bool((sum_inv & 1) == 0 and sum_inv > 0)
+            return canon, sum_inv, is_valid
+
+        import pyopencl as cl
+        mf = cl.mem_flags
+
+        out_canon = np.zeros(64, dtype=np.uint8)
+        out_sum = np.zeros(1, dtype=np.uint32)
+        out_valid = np.zeros(1, dtype=np.int32)
+
+        buf_in = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=arr)
+        buf_out_c = cl.Buffer(self.ctx, mf.WRITE_ONLY, out_canon.nbytes)
+        buf_out_s = cl.Buffer(self.ctx, mf.WRITE_ONLY, out_sum.nbytes)
+        buf_out_v = cl.Buffer(self.ctx, mf.WRITE_ONLY, out_valid.nbytes)
+
+        kernel = self._get_kernel('fused_trajectory_8x8_decombiner_d4')
+        kernel(
+            self.queue_a, (64,), (64,),
+            buf_in, buf_out_c, buf_out_s, buf_out_v
+        )
+        cl.enqueue_barrier(self.queue_a)
+        cl.enqueue_copy(self.queue_a, out_canon, buf_out_c)
+        cl.enqueue_copy(self.queue_a, out_sum, buf_out_s)
+        cl.enqueue_copy(self.queue_a, out_valid, buf_out_v, is_blocking=True)
+
+        return out_canon.reshape(8, 8), int(out_sum[0]), bool(out_valid[0] == 1)
 
 # Expose standard execution hook
 def create_engine():
