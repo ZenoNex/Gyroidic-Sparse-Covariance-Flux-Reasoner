@@ -1312,6 +1312,34 @@ class MemoryPalaceRoom:
         force = torch.exp(-dist_sq / (2.0 * (self.variance ** 2)))
         return force
 
+    def compress_necrotic_well(
+        self,
+        well_coordinates: torch.Tensor,
+        moduli: Tuple[int, int, int] = (61, 67, 71)
+    ) -> Tuple[int, int, int]:
+        """
+        Compresses an isolated necrotic well into a CRT residue tuple (r_61, r_67, r_71).
+        Implements the Meliponini cerumen barrier to completely sever the interior coordinates
+        from the active autograd tape.
+        """
+        # Meliponini cerumen barrier: sever interior coordinates from the active autograd tape
+        severed = well_coordinates.detach().clone().requires_grad_(False)
+        self.center = severed
+        
+        # CRT residue compression: compute invariant residue hash against moduli (61, 67, 71)
+        r_list = []
+        for p in moduli:
+            p_val = float(p)
+            coord_scalar = float(torch.norm(severed * p_val).item())
+            r_p = int(round(coord_scalar)) % p
+            r_list.append(r_p)
+            
+        self.residue_tuple = tuple(r_list)
+        self.sealed = True
+        self.metadata["necrotic_quarantine"] = True
+        self.metadata["meliponini_cerumen_barrier"] = True
+        return self.residue_tuple
+
 
 class MemoryPalace(nn.Module):
     r"""
