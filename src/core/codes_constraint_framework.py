@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from typing import Dict, List, Tuple, Optional, Callable
+from typing import Dict, List, Tuple, Optional, Callable, Any
 from src.core.honest_jitter import harvest_honest_jitter
 
 class CODESConstraintFramework(nn.Module):
@@ -80,6 +80,10 @@ class CODESConstraintFramework(nn.Module):
             learnable=True,
             device = str(DEVICE)
         )
+        
+        # Chern-Simons gasket for coprime bypass routing when F_void > 0.80
+        from src.core.chern_simons_gasket import ChernSimonsGasket
+        self.chern_simons_gasket = ChernSimonsGasket(manifold_dim=state_dim, device=str(DEVICE))
         
     def add_constraint(self, constraint_id: int, constraint_type: str = 'quadratic'):
         """Add a new constraint to the system."""
@@ -147,18 +151,51 @@ class CODESConstraintFramework(nn.Module):
         energy = self.compute_total_energy(state)
         
         grad = torch.autograd.grad(energy.sum(), state, create_graph=True)[0]
-        
         return grad
+
+    def monitor_void_friction(
+        self,
+        state: torch.Tensor,
+        f_void: float,
+        poly_coeffs: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
+        """
+        Monitors void friction F_void. If F_void > 0.80, triggers routing through coprime
+        bypass channels via the Chern-Simons gasket rather than getting trapped in the well.
+        """
+        bypassed = False
+        routed_state = state
+        
+        if f_void > 0.80:
+            bypassed = True
+            if poly_coeffs is None:
+                poly_coeffs = self.polynomial_config.evaluate(state)
+                
+            batch_size = state.shape[0] if state.dim() > 1 else 1
+            state_2d = state.view(batch_size, -1)
+            k_dim = self.polynomial_config.k
+            state_3d = state_2d.unsqueeze(1).expand(-1, k_dim, -1)
+            
+            repaired = self.chern_simons_gasket.plug_logic_leak(state_3d, poly_coeffs)
+            routed_state = repaired.mean(dim=1).view_as(state)
+            
+        return routed_state, {
+            "f_void": f_void,
+            "coprime_bypass_active": bypassed,
+            "trap_averted": bypassed,
+            "gasket_diagnostics": self.chern_simons_gasket.get_diagnostics() if bypassed else {}
+        }
     
-    def evolve_state(self, state: torch.Tensor, num_steps: int = 10) -> Tuple[torch.Tensor, Dict]:
+    def evolve_state(self, state: torch.Tensor, num_steps: int = 10, f_void: float = 0.0) -> Tuple[torch.Tensor, Dict]:
         """
         Evolve state using constraint-oriented differential equations.
+        If F_void > 0.80, routes state through coprime bypass channels via Chern-Simons gasket.
         
         Implements damped gradient descent:
-        dx/dt = -E(x) - (dx/dt)
-        
-        Where E(x) is total constraint energy and  is damping.
+        dx/dt = -grad(E(x)) - gamma * (dx/dt)
         """
+        # Monitor void friction and route through coprime bypass if trapped in well (F_void > 0.80)
+        state, bypass_diag = self.monitor_void_friction(state, f_void)
         original_shape = state.shape
         if state.dim() == 1:
             state = state.unsqueeze(0)
