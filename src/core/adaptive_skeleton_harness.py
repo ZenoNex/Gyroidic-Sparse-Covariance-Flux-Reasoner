@@ -10,12 +10,12 @@ from src.core.leontief_governor import LeontiefGovernor
 from src.core.garden_statistical_attractors import GardenOrchestrator
 from enum import Enum, auto
 
-from src.core.invariants import get_prime_ladder, PI, PHI
+from src.core.invariants import get_prime_ladder, PI, PHI, PrimeResonanceLadder
 from src.core.modular_virtualization import ModularVirtualizationLayer
 from src.core.knowledge_dyad_fossilizer import DyadFossilizer
 from src.core.chern_simons_gasket import ChernSimonsGasket
 from src.core.agent_substrate_bridge import AgentSubstrateBridge
-from src.core.fgrt_primitives import PrimeResonanceLadder, morton_encode_3d
+from src.core.fgrt_primitives import morton_encode_3d
 from src.core.honest_jitter import harvest_honest_jitter
 from src.ui.voxelboxter_simulation import morton_encode, StructuralGraph, Block, RigidBody
 from src.core.structural_blueprints import AddonRoutine, MangostienBSplineMod, BooleanXORLayer
@@ -67,8 +67,8 @@ class AdaptiveSkeletonHarness(nn.Module):
         # The catalogue of topological coordinate tags (Ganbreeder Vector Stacker)
         self.tag_catalog: Dict[str, torch.Tensor] = {}
         
-        # Base KANLayer-style basis parameters
-        self.basis_weights = nn.Parameter(torch.randn(state_dim, state_dim))
+        # Base KANLayer-style basis parameters via Silicon Sovereignty
+        self.basis_weights = nn.Parameter(harvest_honest_jitter((state_dim, state_dim), scaled=True) * 10.0)
         
         # High-frequency micro-wave carrier for Bouligand projection
         self.omega_micro = 137.0  # Fine-structure constant derived frequency
@@ -157,7 +157,7 @@ class AdaptiveSkeletonHarness(nn.Module):
         else:
             noise_scale = 0.01
 
-        organic_noise = torch.randn_like(coordinate) * noise_scale
+        organic_noise = harvest_honest_jitter(coordinate.shape, device=coordinate.device, scaled=True) * (noise_scale * 100.0)
         return coordinate * parity_mask + organic_noise
 
     def apply_enemy_subtype_morphology(self, coordinate: torch.Tensor, subtype: EnemySubtype) -> torch.Tensor:
@@ -171,9 +171,10 @@ class AdaptiveSkeletonHarness(nn.Module):
 
         deformed = coordinate.clone()
         if subtype == EnemySubtype.ABSTRACTED_GLITCH:
-            # Kaufmo/Queenie Glitched Matter: extreme non-ergodic phase noise and chaotic tearing
-            jitter = (torch.rand_like(deformed) - 0.5) * 0.45
-            mask = torch.rand_like(deformed) > 0.65
+            # Kaufmo/Queenie Glitched Matter: extreme non-ergodic phase noise and chaotic tearing via Silicon Sovereignty
+            raw_jitter = harvest_honest_jitter(deformed.shape, device=deformed.device, scaled=False)
+            jitter = raw_jitter * 0.225
+            mask = raw_jitter > 0.30
             deformed[mask] = deformed[mask] * -1.8 + jitter[mask]
         elif subtype == EnemySubtype.MANNEQUIN_INFILTRATOR:
             # Abel-style rigid script: stark quantization into planar low-degree facets
@@ -190,7 +191,8 @@ class AdaptiveSkeletonHarness(nn.Module):
             deformed = deformed * scale_ladder + 0.15 * torch.sin(self.omega_micro * deformed)
         elif subtype == EnemySubtype.FERAL_SWARM:
             # Chitinous flocking: rotational phase permutation
-            deformed = torch.roll(deformed, shifts=2, dims=-1) * 0.9 + 0.1 * torch.randn_like(deformed)
+            feral_jitter = harvest_honest_jitter(deformed.shape, device=deformed.device, scaled=True) * 10.0
+            deformed = torch.roll(deformed, shifts=2, dims=-1) * 0.9 + 0.1 * feral_jitter
 
         return deformed
 
@@ -215,7 +217,7 @@ class AdaptiveSkeletonHarness(nn.Module):
             if tag in self.tag_catalog:
                 demand_vector += weight * self.tag_catalog[tag]
         if demand_vector.norm() == 0:
-            demand_vector = torch.randn(self.state_dim, device=self.device)
+            demand_vector = harvest_honest_jitter((self.state_dim,), device=self.device, scaled=True) * 10.0
                 
         available_budget = 1.0 - (psutil.virtual_memory().percent / 100.0)
         
@@ -580,7 +582,7 @@ class AdaptiveSkeletonHarness(nn.Module):
                 enemy_subtype=enemy_subtype
             )
             if skeleton is None:
-                skeleton = self.forward(torch.randn(self.state_dim, device=self.device))
+                skeleton = self.forward(harvest_honest_jitter((self.state_dim,), device=self.device, scaled=True) * 10.0)
 
         morton_keys = []
         fossil_info = {}
@@ -641,7 +643,7 @@ class AdaptiveSkeletonHarness(nn.Module):
         )
         if skeleton is None:
             # Fallback coordinate if vetoed
-            skeleton = self.forward(torch.randn(self.state_dim, device=self.device))
+            skeleton = self.forward(harvest_honest_jitter((self.state_dim,), device=self.device, scaled=True) * 10.0)
 
         # Enemy subtype attributes
         meta = {
