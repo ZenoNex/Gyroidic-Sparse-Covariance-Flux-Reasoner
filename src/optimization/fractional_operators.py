@@ -21,53 +21,7 @@ import torch.nn as nn
 from typing import Optional, Callable, Union, Tuple
 import math
 
-class CODESDriver:
-    """
-    Simulates the CODES (Coherence-Oriented Deterministic Execution System) driving layer.
-    
-    In a real GPU environment, this would interface with the fractional warp scheduler.
-    Here, it simulates coherence gating based on phase alignment.
-    """
-    
-    @staticmethod
-    def compute_pas_h(phase: float, harmonics: list = None) -> float:
-        """
-        Compute Multiharmonic Phase Alignment Score (PAS_h).
-        Uses polynomial-based harmonics instead of hardcoded primes (anti-lobotomy).
-        """
-        if harmonics is None:
-            # Generate polynomial-based harmonics using Chebyshev roots
-            harmonics = []
-            for n in range(1, 7):  # Generate 6 harmonics
-                # Use Chebyshev polynomial roots scaled to positive integers
-                root = math.cos((2*n - 1) * math.pi / (2 * 6))  # Chebyshev root
-                harmonic = abs(root * 10) + 1  # Scale and ensure positive
-                harmonics.append(harmonic)
-        
-        # Integrate TailSlayer / Silicon Sovereignty Engine
-        
-        # We use Non-Minkowski topological Hedged Reads via OpenCL to bypass DRAM stalls.
-        try:
-            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine, PYOPENCL_AVAILABLE
-            if PYOPENCL_AVAILABLE:
-                engine = SiliconSovereigntyEngine()
-                if engine.ctx is not None:
-                    # Actually execute the hedged read parallel accumulation
-                    return engine.compute_hedged_pas_h(phase, harmonics)
-        except ImportError:
-            pass
-
-        score = 0.0
-        for m in harmonics:
-            # Simple simulation fallback if hardware not available
-            score += math.cos(m * phase)
-        return (score / len(harmonics) + 1.0) / 2.0  # Normalize to [0, 1]
-
-    @staticmethod
-    def is_coherent(phase: float, threshold: float = 0.75) -> bool:
-        """AURAOUT gating: only proceed if coherent."""
-        pas = CODESDriver.compute_pas_h(phase)
-        return pas >= threshold
+from src.optimization.codes_driver import CODES, CODESDriver
 
 def lanczos_iteration(
     mv_func: Callable[[torch.Tensor], torch.Tensor],
