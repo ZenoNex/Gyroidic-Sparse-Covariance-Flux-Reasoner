@@ -20,15 +20,20 @@ class CarnotMobiusLedger(nn.Module):
                 lambda_vac: torch.Tensor, 
                 lambda_pump: torch.Tensor, 
                 admr_residues: torch.Tensor,
-                depth_N: int) -> dict:
+                depth_N: int,
+                uncirculated_capital: Optional[torch.Tensor] = None,
+                stagnation_velocity: Optional[float] = None) -> dict:
         """
         Calculates the stack efficiency and flags thermal runaway.
+        Tracks uncirculated capital/potential as stack depth N.
         
         Args:
             lambda_vac: Base vacuum spectral density (Cold Sink)
             lambda_pump: Pumped highly excited state (Hot Reservoir)
             admr_residues: The phase mismatches (nabla epsilon_n) at boundaries. Shape: [N, ...]
             depth_N: The stack depth (N_crit check)
+            uncirculated_capital: Uncirculated capital/potential tensor added to stack depth N
+            stagnation_velocity: Rate of capital velocity flow (near 0 indicates terminal stagnation)
         """
         # 1. Ideal Carnot Geometric Efficiency
         # eta_ideal = 1 - (Lambda_vac / Lambda_pump)
@@ -43,30 +48,20 @@ class CarnotMobiusLedger(nn.Module):
         # Average boundary perturbation variance
         sigma_eps_sq = nabla_eps_sq.mean()
         
+        # Track uncirculated capital/potential as stack depth N
+        effective_depth_N = depth_N
+        if uncirculated_capital is not None:
+            capital_potential = float(torch.norm(uncirculated_capital).item())
+            effective_depth_N = depth_N + max(1, int(round(capital_potential)))
+
         # 3. Stack Efficiency
         # eta_stack = eta_ideal * exp(-N * xi * sigma_eps_sq)
-        eta_stack = eta_ideal * torch.exp(-depth_N * self.xi_shear * sigma_eps_sq)
+        eta_stack = eta_ideal * torch.exp(-effective_depth_N * self.xi_shear * sigma_eps_sq)
         
         # 4. Thermodynamic Ledger
         p_waste = self.p_nuclear * (1.0 - eta_stack)
         thermal_runaway = p_waste > self.p_cool_max
 
-        # 4.1 Broadcast directly to Centralized HardwareMonitor / Compute Affordance Chain
-        try:
-            from src.core.hardware_monitor import HardwareMonitor
-            p_w_scalar = float(p_waste.item() if isinstance(p_waste, torch.Tensor) else p_waste)
-            runaway_bool = bool(thermal_runaway.item() if isinstance(thermal_runaway, torch.Tensor) else thermal_runaway)
-            eta_scalar = float(eta_stack.item() if isinstance(eta_stack, torch.Tensor) else eta_stack)
-            HardwareMonitor().update_thermodynamics(
-                p_waste=p_w_scalar,
-                p_cool_max=float(self.p_cool_max),
-                thermal_runaway=runaway_bool,
-                eta_stack=eta_scalar,
-                source="carnot_mobius"
-            )
-        except Exception:
-            pass
-        
         # 5. Critical Depth calculation (N_crit)
         # N_crit = (1 / (xi * sigma_eps_sq)) * ln(eta_ideal / (1 - (P_cool_max / P_nuclear)))
         cooling_ratio = self.p_cool_max / self.p_nuclear
@@ -77,12 +72,45 @@ class CarnotMobiusLedger(nn.Module):
             # Safe log
             log_arg = log_arg.clamp(min=1e-6)
             n_crit = (1.0 / (self.xi_shear * sigma_eps_sq + 1e-8)) * torch.log(log_arg)
+
+        n_crit_val = float(n_crit.item() if isinstance(n_crit, torch.Tensor) else n_crit)
+        
+        # Trigger irreversible N_crit thermal runaway flag when uncirculated potential stagnates
+        is_stagnant = False
+        if stagnation_velocity is not None and abs(stagnation_velocity) < 1e-4:
+            is_stagnant = True
+        elif uncirculated_capital is not None and effective_depth_N >= n_crit_val:
+            is_stagnant = True
+
+        irreversible_n_crit_runaway = False
+        if (effective_depth_N >= n_crit_val) or (is_stagnant and effective_depth_N > 0.8 * n_crit_val):
+            irreversible_n_crit_runaway = True
+            thermal_runaway = torch.tensor(True, device=eta_stack.device if isinstance(eta_stack, torch.Tensor) else 'cpu')
+
+        # 4.1 Broadcast directly to Centralized HardwareMonitor / Compute Affordance Chain
+        try:
+            from src.core.hardware_monitor import HardwareMonitor
+            p_w_scalar = float(p_waste.item() if isinstance(p_waste, torch.Tensor) else p_waste)
+            runaway_bool = bool(thermal_runaway.item() if isinstance(thermal_runaway, torch.Tensor) else thermal_runaway)
+            eta_scalar = float(eta_stack.item() if isinstance(eta_stack, torch.Tensor) else eta_stack)
+            HardwareMonitor().update_thermodynamics(
+                p_waste=p_w_scalar,
+                p_cool_max=float(self.p_cool_max),
+                thermal_runaway=runaway_bool or irreversible_n_crit_runaway,
+                eta_stack=eta_scalar,
+                source="carnot_mobius"
+            )
+        except Exception:
+            pass
             
         return {
             "eta_ideal": eta_ideal,
             "eta_stack": eta_stack,
             "p_waste": p_waste,
             "thermal_runaway": thermal_runaway,
+            "irreversible_n_crit_runaway": irreversible_n_crit_runaway,
+            "effective_depth_n": effective_depth_N,
+            "effective_depth_N": effective_depth_N,
             "n_crit": n_crit,
             "topological_friction": sigma_eps_sq
         }
