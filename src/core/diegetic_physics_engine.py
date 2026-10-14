@@ -29,12 +29,36 @@ class DiegeticPhysicsEngine(nn.Module):
         self.pas = PhaseAlignmentInvariant(poly_degree=3).to(device)
         from src.core.zeitgeist_router import ZeitgeistState
         self.zeitgeist_state = ZeitgeistState.initial(self.router.moduli)
+
+        # Geotechnical yield criteria & PointerlessOctree substrate
+        from src.ui.voxelboxter_simulation import PointerlessOctree
+        from src.core.yield_criteria import MohrCoulombProjection, DruckerPragerProjection
+        self.terrain_octree = PointerlessOctree(max_depth=8)
+        self.mohr_coulomb = MohrCoulombProjection(friction_angle=30.0, cohesion=0.8).to(device)
+        self.drucker_prager = DruckerPragerProjection(alpha=0.2, k=1.0).to(device)
+        self.initialize_spatial_metric()
         
         # Strict low-pass damping filter for spin precession / PSH telemetry
         # Read-only telemetry: ensures raw spin precession never directly modulates state update rates
         # without low-pass filtering, preventing phase velocity jitter from destabilizing frame rate or triggering false CALM aborts
         self.register_buffer("damped_spin_precession", torch.tensor(0.0, device=device))
         self.spin_damp_alpha = 0.05
+
+    def initialize_spatial_metric(self, spatial_metric_data: Optional[Dict[str, Any]] = None):
+        """
+        Maps spatial metric data directly into the PointerlessOctree before the 9-stage physics loop begins.
+        """
+        if spatial_metric_data is None:
+            for x in range(3):
+                for y in range(3):
+                    for z in range(2):
+                        self.terrain_octree.add_adaptive_fractal_node(float(x), float(y), float(z), material=1, complexity=0.2)
+        else:
+            rent = float(spatial_metric_data.get("land_rent_density", 1.0))
+            for x in range(3):
+                for y in range(3):
+                    complexity = rent * (1.0 + 0.1 * (x + y))
+                    self.terrain_octree.add_adaptive_fractal_node(float(x), float(y), 0.0, material=2 if rent > 1.5 else 1, complexity=complexity)
 
     def process_input(self, 
                       vehicle_state: Dict[str, Any], 
@@ -130,15 +154,25 @@ class DiegeticPhysicsEngine(nn.Module):
         )
 
         # --- Stage 6: SCCCG Recovery & Fossilization ---
-        # If the ADMM solver detects a failure token (e.g., impact > shear strength),
-        # OR if Carnot-Möbius flags a thermal runaway due to stack depth exceeding Ncrit,
-        # we transport the state to a fractured manifold using ConjugateMomentTransport.
+        # Inject Mohr-Coulomb / Drucker-Prager yield criterion evaluation on stress tensor
+        stress_tensor = admm_state.view(-1, 1) @ admm_state.view(1, -1) if admm_state.dim() == 1 else admm_state
+        normal_load = torch.norm(c_in) + 1.0
+        
+        mc_yield = self.mohr_coulomb(stress_tensor[:2, :2] if stress_tensor.shape[0] >= 2 else stress_tensor, normal_load)
+        dp_envelope = self.drucker_prager(stress_tensor[:3, :3] if stress_tensor.shape[0] >= 3 else stress_tensor)
+        yield_exceeded = bool((mc_yield > 0.8).any().item()) or bool((dp_envelope > 1.2).any().item())
+
         strain_limit = 5.0
         thermal_runaway = ledger.get('thermal_runaway', False)
         is_thermal_runaway = thermal_runaway.item() if isinstance(thermal_runaway, torch.Tensor) else bool(thermal_runaway)
         is_failure = (admm_status.item() == 2) if hasattr(admm_status, 'item') else (admm_status == 2)
-        is_rupture = (torch.norm(admm_state) > strain_limit) or is_thermal_runaway or is_failure
+        is_rupture = (torch.norm(admm_state) > strain_limit) or is_thermal_runaway or is_failure or yield_exceeded
+        
+        sheared_voxels = 0
         if is_rupture:
+            # Physical shear of voxels in the PointerlessOctree upon exceeding yield limit
+            sheared_voxels = self.terrain_octree.shear_voxels(stress_tensor, yield_limit=1.0)
+            
             # Fracture recovery
             noise = harvest_honest_jitter(admm_state.shape, device=self.device, scaled=True)
             recovered_state = self.optimal_transport.nabla_psi_star(admm_state + noise)
@@ -155,14 +189,16 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # --- Stage 9: Track Deformation & Audience Projection ---
         # Push changes to Betti numbers (beta_0, beta_1).
-        # In Voxelboxter, a high closure gap in a rupture state means track destruction.
+        # In Voxelboxter, a high closure gap in a rupture state or yield exceedance
+        # shears voxels in PointerlessOctree and increments Betti number (Delta beta_1 = 1).
+        octree_betti = self.terrain_octree.compute_betti_numbers()
         betti_shift = 0
         gap_val = closure_gap.item() if hasattr(closure_gap, 'item') else float(closure_gap)
-        new_b0 = b0
-        new_b1 = b1
-        if is_rupture and gap_val > 0.5:
-            betti_shift = 1 # We carved a new hole (beta_1 increase) in the terrain
-            new_b1 += 1
+        new_b0 = octree_betti.get("betti_0", b0)
+        new_b1 = max(b1, octree_betti.get("betti_1", b1))
+        if is_rupture and (gap_val > 0.5 or yield_exceeded):
+            betti_shift = 1 # We carved a new hole (Delta beta_1 = 1) in the terrain
+            new_b1 = max(new_b1, b1 + 1)
 
         # Return updated physics state
         return {
