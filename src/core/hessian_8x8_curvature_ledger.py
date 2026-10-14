@@ -155,9 +155,10 @@ class Hessian8x8CurvatureLedger(nn.Module):
         
         if grad_fn is None:
             def default_grad_fn(x: torch.Tensor) -> torch.Tensor:
-                sx = torch.sin(x)
-                cx = torch.cos(x)
-                if x.numel() >= 3:
+                xf = x.flatten()
+                if xf.numel() >= 3:
+                    sx = torch.sin(xf)
+                    cx = torch.cos(xf)
                     fx = sx[0] * cx[1] + sx[1] * cx[2] + sx[2] * cx[0]
                     return torch.autograd.grad(fx, x, create_graph=False)[0] if x.requires_grad else torch.zeros_like(x)
                 return torch.zeros_like(x)
