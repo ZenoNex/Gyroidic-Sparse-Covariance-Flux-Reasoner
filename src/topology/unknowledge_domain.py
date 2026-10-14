@@ -278,7 +278,8 @@ class UnknowledgeDomain(nn.Module):
         v_m: torch.Tensor,
         h_mischief: float,
         state: Optional[torch.Tensor] = None,
-        hyper_ring_status: Optional[str] = None
+        hyper_ring_status: Optional[str] = None,
+        velocity_flow: Optional[Any] = None
     ) -> torch.Tensor:
         """
         Determine if the current state is shielded by the Unknowledge Domain.
@@ -288,16 +289,23 @@ class UnknowledgeDomain(nn.Module):
             h_mischief: Mischief score (H_mischief)
             state: Optional state tensor to check proximity to o
             hyper_ring_status: Topology status string, e.g., 'survivable_soliton'
+            velocity_flow: Optional velocity flow magnitude tensor or float
 
         Returns:
             A boolean tensor mask indicating which elements are shielded.
         """
-        # U = {X | V_m < 0, H_mischief > tau_m}
-        # Handle type mismatch gracefully if v_m is float/int
+        # U = {X | V_m < 0, H_mischief > tau_m} or terminal stagnation (zero-velocity flow)
         if not isinstance(v_m, torch.Tensor):
             v_m = torch.tensor(v_m, device=self.o.device)
             
         shielded = (v_m < 0) & (h_mischief > self.tau_m)
+
+        if velocity_flow is not None:
+            if isinstance(velocity_flow, torch.Tensor):
+                stagnant = (torch.norm(velocity_flow, dim=-1) < 1e-4)
+            else:
+                stagnant = torch.tensor(float(velocity_flow) < 1e-4, device=v_m.device)
+            shielded = shielded | stagnant
 
         # Proximity shield to user's private obstruction point o:
         if state is not None and hasattr(self, 'o') and self.o is not None:
@@ -329,7 +337,46 @@ class UnknowledgeDomain(nn.Module):
             else:
                 shielded = True
 
+        # Zero-velocity flow check (terminal stagnation -> Unknowledge pocket)
+        if velocity_flow is not None:
+            if isinstance(velocity_flow, torch.Tensor):
+                v_norm = torch.norm(velocity_flow, dim=-1)
+                stagnant_mask = v_norm < 1e-4
+                shielded = shielded | stagnant_mask
+            elif float(velocity_flow) < 1e-4:
+                shielded = shielded | True
+
         return shielded
+
+    def classify_domain(
+        self,
+        v_m: torch.Tensor,
+        h_mischief: float,
+        velocity_flow: Optional[torch.Tensor] = None,
+        state: Optional[torch.Tensor] = None
+    ) -> Dict[str, Any]:
+        """
+        Classifies regional domains. Flags regions with zero-velocity flow
+        (terminal stagnation) as 'Unknowledge' pockets.
+        """
+        is_stagnant = False
+        if velocity_flow is not None:
+            if isinstance(velocity_flow, torch.Tensor):
+                is_stagnant = bool((torch.norm(velocity_flow, dim=-1) < 1e-4).any().item())
+            else:
+                is_stagnant = float(velocity_flow) < 1e-4
+                
+        shielded = self.is_shielded(v_m, h_mischief, state=state, velocity_flow=velocity_flow)
+        is_unknowledge = bool(shielded.any().item() if isinstance(shielded, torch.Tensor) else shielded)
+        
+        return {
+            "is_unknowledge_pocket": is_unknowledge or is_stagnant,
+            "terminal_stagnation": is_stagnant,
+            "stagnant": is_stagnant,
+            "shielded_mask": shielded,
+            "domain_classification": "Unknowledge" if (is_unknowledge or is_stagnant) else "Standard",
+            "classification": "Unknowledge" if (is_unknowledge or is_stagnant) else "Standard"
+        }
 
     def apply_shielding(
         self,
