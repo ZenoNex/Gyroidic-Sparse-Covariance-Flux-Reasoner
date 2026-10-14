@@ -192,7 +192,7 @@ class BreatherMode(nn.Module):
     
     def _generate_primes(self, n: int) -> torch.Tensor:
         """Generates the first n primes via centralized FGRT ladder to preserve Lazarus synchronization."""
-        from src.core.fgrt_primitives import PrimeResonanceLadder
+        from src.core.invariants import PrimeResonanceLadder
         ladder = PrimeResonanceLadder(num_resonators=n)
         return ladder.primes
     
@@ -661,7 +661,7 @@ class ResonanceCavity(nn.Module):
             Asymmetry Seeds Resonance: 10.1. The harmonic field is the 
             macroscopic projection of the cavity's chiral asymmetric state.
         """
-        from src.core.fgrt_primitives import PrimeResonanceLadder
+        from src.core.invariants import PrimeResonanceLadder
         
         if field_idx >= self.K:
             field_idx = 0
