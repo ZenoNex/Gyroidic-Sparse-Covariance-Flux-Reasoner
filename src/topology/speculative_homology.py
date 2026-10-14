@@ -91,13 +91,12 @@ class SpeculativeHomologyEngine(nn.Module):
         # We treat y_pred as a 1D sequence of adjacencies and apply modular homology approx
         if not hasattr(self, 'fast_homology_approx'):
             from src.topology.modular_homology_fft import CyclotomicTDACompressor
-            from src.core.fgrt_primitives import PrimeResonanceLadder
+            from src.core.invariants import get_prime_ladder
             from src.core.honest_jitter import harvest_honest_jitter
             
             # Phase 17+18 Silicon Sovereignty: Deriving p from hardware jitter
             # Adheres to 1.1 of Implementation Integrity Guide.
-            ladder = PrimeResonanceLadder(num_resonators=32).to(x.device)
-            primes = ladder.primes
+            primes = get_prime_ladder(32, device=x.device)
             jitter = harvest_honest_jitter((1,), device=x.device, scaled=False)
             p_idx = int(jitter[0].item() * len(primes)) % len(primes)
             p_selected = int(primes[p_idx].item())
