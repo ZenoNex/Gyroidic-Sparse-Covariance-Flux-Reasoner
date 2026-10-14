@@ -412,14 +412,14 @@ class TrigonometricUnfolding(nn.Module):
         self.dim = dim
         self.tau_decay = nn.Parameter(torch.tensor(0.1))
         
-    def forward(self, u_h: torch.Tensor, gcve_pressure: torch.Tensor, chirality: torch.Tensor) -> torch.Tensor:
+    def forward(self, u_h: torch.Tensor, gcve_pressure: Optional[torch.Tensor] = None, chirality: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         u_h: [batch, features] non-ergodic component
-        gcve_pressure: [batch] Gyroid violation
+        gcve_pressure: [batch] Gyroid violation (or None to derive from variance)
         chirality: [batch] Global chirality index
         """
         if gcve_pressure is None:
-            return u_h
+            gcve_pressure = torch.var(u_h, dim=-1)
             
         # 1. Compute Phase Parameter phi (Triple-Angle expansion phase)
         # cos(3phi) = [3V - tr(C)/tau] / [2 * (-det(PAS))^1.5]
@@ -442,8 +442,8 @@ class TrigonometricUnfolding(nn.Module):
             amp = 2 * torch.sqrt(lambda_min_proxy / 3.0 + 1e-8)
             cos_term = torch.cos(phi + 2 * math.pi * k / 3.0)
             # Chiral shift: k * chi (Simplified interaction)
-            shift = torch.exp(-torch.abs(chirality) * k) if chirality is not None else 1.0
-            branches.append(amp.unsqueeze(-1) * cos_term.unsqueeze(-1) * u_h * shift.unsqueeze(-1))
+            shift = torch.exp(-torch.abs(chirality) * k).unsqueeze(-1) if chirality is not None else 1.0
+            branches.append(amp.unsqueeze(-1) * cos_term.unsqueeze(-1) * u_h * shift)
             
         # 3. Triple-Angle Branch Selection (originally referred to as Negentropic Branch Selection)
         # Select k that maximizes energy in the logic structure (argmax of branch norms)
