@@ -11,7 +11,7 @@ _project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from src.core.hybrid_backend import HybridPhysicsBackend
+from src.ui.diegetic_backend import HybridPhysicsBackend
 from src.ui.voxelboxter_simulation import PointerlessOctree
 from src.core.zeitgeist_router import ZeitgeistRouter, ZeitgeistState
 from src.core.codes_constraint_framework import CODESConstraintFramework
