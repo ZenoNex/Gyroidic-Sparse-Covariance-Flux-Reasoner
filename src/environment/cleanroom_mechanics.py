@@ -45,7 +45,8 @@ from src.core.archetype_engines import BardoRouter, RP4ProjectiveRouter, EgoDeat
 from src.core.chern_simons_gasket import ChernSimonsGasket
 from src.p2p.zk_aggregator import ZKAggregator
 from src.data.minecraft_ingestor import NBTReader, get_block_registry_code
-from src.core.fgrt_primitives import PrimeResonanceLadder, morton_encode_3d, GyroidicAdmissibilityFilter
+from src.core.invariants import PrimeResonanceLadder
+from src.core.fgrt_primitives import morton_encode_3d, GyroidicAdmissibilityFilter
 from src.core.structural_blueprints import BooleanXORLayer, MangostienBSplineMod
 from src.topology.hyper_ring import HyperRing
 from src.core.valence_drive import ValenceFunctional
