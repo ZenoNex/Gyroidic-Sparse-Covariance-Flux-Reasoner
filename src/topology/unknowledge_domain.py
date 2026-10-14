@@ -21,7 +21,7 @@ References:
 
 import torch
 import torch.nn as nn
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Any
 from src.core.honest_jitter import harvest_honest_jitter
 
 
@@ -455,10 +455,12 @@ class UnknowledgeDomain(nn.Module):
         self,
         v_m: Optional[torch.Tensor] = None,
         h_mischief: Optional[float] = None,
-        eigenvalues: Optional[torch.Tensor] = None
+        eigenvalues: Optional[torch.Tensor] = None,
+        probe: Optional[Any] = None
     ) -> Dict[str, float]:
         """
         Aggregate diagnostic payload for logging / VetoSubspace integration.
+        Directly engages ChaosDefibrillator when spectral atrophy exceeds 0.99.
         """
         diag = {}
         if v_m is not None:
@@ -466,7 +468,14 @@ class UnknowledgeDomain(nn.Module):
         if h_mischief is not None:
             diag['h_mischief'] = h_mischief
         if eigenvalues is not None:
-            diag.update(self.get_elipsodistrophy_metrics(eigenvalues))
+            elipso_metrics = self.get_elipsodistrophy_metrics(eigenvalues)
+            diag.update(elipso_metrics)
+            if elipso_metrics.get('trigger_defibrillator', False):
+                from src.core.veto_subspace import ChaosDefibrillator
+                if not hasattr(self, 'defibrillator') or self.defibrillator is None:
+                    self.defibrillator = ChaosDefibrillator()
+                defib_flag = self.defibrillator(atrophy=elipso_metrics['atrophy'], probe=probe)
+                diag['defibrillator_active'] = defib_flag
         return diag
 
 # ---------------------------------------------------------------------------
