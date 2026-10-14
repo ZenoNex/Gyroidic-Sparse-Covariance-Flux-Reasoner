@@ -12,10 +12,16 @@ from src.benchmarks.topobench_evaluator import TopoBenchEvaluator
 from src.benchmarks.reactbench_evaluator import ReactBenchEvaluator
 from src.benchmarks.narrative_yield_evaluator import NarrativeYieldEvaluator
 from src.benchmarks.ai_reasoner_evaluator import AIReasonerEvaluator
+from src.benchmarks.chordlock_evaluator import ChordlockEvaluator
+from src.benchmarks.memory_palace_evaluator import MemoryPalaceEvaluator
+from src.benchmarks.topological_singularity_evaluator import TopologicalSingularityEvaluator
 
 __all__ = [
     "TopoBenchEvaluator",
     "ReactBenchEvaluator",
     "NarrativeYieldEvaluator",
     "AIReasonerEvaluator",
+    "ChordlockEvaluator",
+    "MemoryPalaceEvaluator",
+    "TopologicalSingularityEvaluator",
 ]
