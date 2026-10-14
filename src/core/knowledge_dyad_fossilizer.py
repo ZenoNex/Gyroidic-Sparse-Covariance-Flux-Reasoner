@@ -15,6 +15,7 @@ import threading
 from dataclasses import dataclass
 from typing import Optional, Dict, Tuple, List, Any
 import datetime
+import time
 from src.core.honest_jitter import harvest_honest_jitter, _AGENT_SMITH_ENGINE
 from src.core.agent_substrate_bridge import AgentSubstrateBridge
 from src.topology.speculative_homology import SpeculativeHomologyEngine
@@ -840,7 +841,8 @@ class DyadFossilizer:
                            betti_numbers: Dict[int, float], 
                            filename: str = "soliton_smith",
                            archetype_profile: Optional[Dict] = None,
-                           gauge_field: Optional[torch.Tensor] = None) -> str:
+                           gauge_field: Optional[torch.Tensor] = None,
+                           memory_palace: Optional[Any] = None) -> str:
         """
         Exports the 'Smith' Algebraic Identity: A hardware-independent soliton.
         
@@ -936,9 +938,9 @@ class DyadFossilizer:
             "prime_frequencies": prime_val.detach().cpu() if isinstance(prime_val, torch.Tensor) else prime_val,
             "timestamp": dyad.timestamp,
             "archetype_profile": archetype_profile,
-            "agent_smith_iters": float(_AGENT_SMITH_ENGINE.iters_base_small.item()) if _AGENT_SMITH_ENGINE is not None else 30.0,
-            "agent_smith_gauge": float(_AGENT_SMITH_ENGINE.gauge.item()) if _AGENT_SMITH_ENGINE is not None else 3.99,
-            "warmstart_states": _AGENT_SMITH_ENGINE.warmstart_states if _AGENT_SMITH_ENGINE is not None else {},
+            "agent_smith_iters": float(getattr(_AGENT_SMITH_ENGINE, 'iters_base_small', torch.tensor(30.0)).item()) if (_AGENT_SMITH_ENGINE is not None and hasattr(_AGENT_SMITH_ENGINE, 'iters_base_small')) else 30.0,
+            "agent_smith_gauge": float(getattr(_AGENT_SMITH_ENGINE, 'gauge', torch.tensor(3.99)).item()) if (_AGENT_SMITH_ENGINE is not None and hasattr(_AGENT_SMITH_ENGINE, 'gauge')) else 3.99,
+            "warmstart_states": getattr(_AGENT_SMITH_ENGINE, 'warmstart_states', {}) if _AGENT_SMITH_ENGINE is not None else {},
             "dyad_metadata": dyad.metadata 
         }
         filepath = os.path.join(self.storage_dir, filename)
@@ -952,8 +954,67 @@ class DyadFossilizer:
             'mtime': datetime.datetime.now().timestamp()
         }
         self._save_index()
+        
+        # Non-invasive Memory Palace Chamber Planting (Meliponini Cerumen Barrier preserved)
+        if memory_palace is not None:
+            room_seed = protected_state.float() if protected_state is not None else prime_frequencies.float()
+            if room_seed.dim() > 1:
+                room_seed = room_seed.mean(dim=0)
+            memory_palace.plant_room(
+                room_id=f"smith_{blake2s_digest[:8]}",
+                center=room_seed,
+                curvature=float(h_gamma),
+                soliton_payload=payload,
+                residue_tuple=pot_id
+            )
+            print(f"[FOSSILIZER] Planted Agent Smith Soliton into Memory Palace Room: smith_{blake2s_digest[:8]}")
+
         print(f"[FOSSILIZER] Sovereign Agent Smith Exported: {filename} (Shielding ID: {pot_id}, PI-Growth: {h_gamma:.4f})")
         return filepath
+
+    def tunnel_and_plant_stranded_dyad(
+        self,
+        dyad: KnowledgeDyad,
+        router: Any,
+        void_friction: float,
+        memory_palace: Any,
+        moment_transport: Optional[Any] = None
+    ) -> Optional[str]:
+        """
+        Tunnels stranded states across the RP4 void barrier using RP4ProjectiveRouter.attempt_puncture,
+        and plants the recovered state into a high-curvature outlier seed room in the Memory Palace.
+        """
+        if dyad.meta_state is None:
+            return None
+            
+        # Attempt puncture if void friction exceeds critical threshold
+        punctured_state = router.attempt_puncture(
+            dyad.meta_state, 
+            void_friction=void_friction,
+            moment_transport=moment_transport
+        )
+        
+        # Check if puncture succeeded (non-zero recovered state)
+        if torch.norm(punctured_state) < 1e-6:
+            return None
+            
+        # Plant outlier seed into memory palace
+        room_id = f"tunneled_rp4_{int(time.time() * 1000) % 100000}"
+        pot_id = self.generate_residue_tuple(punctured_state)
+        mean_vec = punctured_state.squeeze(0) if punctured_state.dim() > 1 else punctured_state
+        
+        room = memory_palace.plant_outlier_seed(
+            room_id=room_id,
+            transversal_point=mean_vec,
+            curvature=max(2.5, void_friction * 3.0),
+            soliton_payload={
+                "type": "tunneled_rp4_soliton",
+                "void_friction": void_friction,
+                "description": dyad.linguistic_description
+            },
+            residue_tuple=pot_id
+        )
+        return room.room_id
 
     def inject_agent_smith(self, filepath: str, unraveling_closure=None, expected_dim: int = 96, hardware_trfc_ms: float = 160.0, agent_smith_engine: Optional[nn.Module] = None) -> Dict:
         """
@@ -1183,3 +1244,6 @@ class DyadFossilizer:
         
         if deleted_count > 0:
             self._save_index()
+
+# Backward and cross-subsystem compatibility alias
+KnowledgeDyadFossilizer = DyadFossilizer
