@@ -649,16 +649,12 @@ class PolynomialCoprimeConfig:
         """
         if not hasattr(self, '_cyclotomic_shield'):
             from src.topology.modular_homology_fft import CyclotomicTDACompressor
-            from src.core.fgrt_primitives import PrimeResonanceLadder
+            from src.core.invariants import get_prime_ladder
             
             # Phase 17+18 Silicon Sovereignty:
-            # All prime-like sequences now generated from polynomial evaluations or ladders.
+            # All prime-like sequences now generated from canonical RIC PrimeResonanceLadder.
             # No hardcoded primes permitted (Implementation Integrity Guide 1).
-            if not hasattr(self, '_prime_ladder'):
-                self._prime_ladder = PrimeResonanceLadder(num_resonators=32).to(self.device)
-            
-            # Extract dynamically generated primes (including Lazarus-prioritized)
-            primes = self._prime_ladder.primes
+            primes = get_prime_ladder(32, device=self.device)
             
             # Select p using hardware-anchored entropy (honest jitter)
             # Reference: 45.2 (Silicon Sovereignty)
