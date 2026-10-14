@@ -20,83 +20,148 @@ Manages:
 Author: William Matthew Bryant
 """
 
-import torch
 import math
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Union, Any, Dict
+import torch
+import torch.nn as nn
 
-class CODES(torch.nn.Module):
+from src.core.fgrt_primitives import PrimeResonanceLadder, CoherentPrimeResonance
+from src.core.polychoron_quantization import PolychronQuantizer
+from src.surrogates.kagh_networks import TrigonometricUnfolding
+
+
+class CODES(nn.Module):
     """
     Codes Driver for GPU Coherence Simulation.
+    Unified GPU simulation layer incorporating TailSlayer OpenCL hedged reads,
+    canonical PrimeResonanceLadder frequencies, CPR gating, and System 2 KAGH unfolding.
     """
     
-    def __init__(self, coherence_threshold: float = 0.75, state_dim: int = 32, constraint_depth: int = 3, **kwargs):
+    def __init__(
+        self,
+        coherence_threshold: float = 0.618,
+        state_dim: int = 32,
+        constraint_depth: int = 3,
+        **kwargs
+    ):
         super().__init__()
+        # Threshold aligned to golden ratio / Love Vector baseline (0.618)
         self.coherence_threshold = coherence_threshold
         self.state_dim = state_dim
         self.constraint_depth = constraint_depth
         self.phase_clock = 0.0
+        self.t = 0.0
         
-        # Generate polynomial-based harmonics instead of hardcoded primes (anti-lobotomy)
-        self.harmonics = self._generate_polynomial_harmonics(8)
+        # 1. Canonical Prime Resonance Ladder (harmonic frequencies, Lazarus primes, repunits)
+        self.ladder = PrimeResonanceLadder(num_resonators=max(state_dim, 8))
+        
+        # 2. Canonical Coherent Prime Resonance (RIC Eq 7: PAS_h, breather alignment, spectral purity)
+        self.cpr = CoherentPrimeResonance(
+            theta_cpr=coherence_threshold,
+            num_primes=min(state_dim, 20)
+        )
+        
+        # 3. Canonical Per-Prime Phase Clocking from PolychronQuantizer
+        self.quantizer = PolychronQuantizer(prime_base_size=min(state_dim, 16), input_dim=4)
+        self.register_buffer(
+            'phase_clocks',
+            torch.zeros(len(self.quantizer.frequencies), dtype=torch.float32)
+        )
+        
+        # 4. Canonical System 2 KAGH Trigonometric Unfolding Operator
+        self.unfolder = TrigonometricUnfolding(dim=state_dim)
+        
+        # Expose canonical harmonics from PrimeResonanceLadder
+        self.harmonics = self.ladder.primes.float().tolist()
 
-    def project_chordlock(self, latent: torch.Tensor, primes: List[int] = None) -> torch.Tensor:
+    def update_phase_clock(self, external_flux: Union[float, torch.Tensor]) -> float:
+        """
+        Advance internal phase clock modulated by external flux (e.g. Love Vector rhythm),
+        wired to the canonical per-prime phase clocking from PolychronQuantizer.
+        """
+        if isinstance(external_flux, torch.Tensor):
+            flux_val = float(external_flux.detach().mean().item())
+        else:
+            flux_val = float(external_flux)
+            
+        self.t += flux_val
+        # Canonical per-prime phase clocking: theta_k(t) = (t * f_{p_k}) mod 2*pi
+        device = self.quantizer.frequencies.device
+        t_tensor = torch.tensor(self.t, device=device, dtype=torch.float32)
+        phase_clocks = torch.fmod(t_tensor * self.quantizer.frequencies, 2.0 * self.quantizer.pi)
+        self.phase_clocks = phase_clocks
+        
+        # Wire self.phase_clock to canonical phase clocking
+        self.phase_clock = float(phase_clocks.mean().item() % (2.0 * math.pi))
+        return self.phase_clock
+
+    def chiral_branches(
+        self,
+        state: torch.Tensor,
+        gcve_pressure: Optional[torch.Tensor] = None,
+        chirality: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """
+        Ternary Chiral Branch Selection for Casus Irreducibilis (cubic degeneracy).
+        Delegates directly to TrigonometricUnfolding from kagh_networks.py
+        (the canonical System 2 KAGH component) ensuring a single authoritative operator.
+        """
+        dim = state.shape[-1]
+        if self.unfolder.dim != dim:
+            self.unfolder = TrigonometricUnfolding(dim=dim).to(state.device)
+        return self.unfolder(state, gcve_pressure=gcve_pressure, chirality=chirality)
+
+    def project_chordlock(self, latent: torch.Tensor, primes: Optional[List[int]] = None) -> torch.Tensor:
         """Alias for chordlock projection."""
         return self.chordlock(latent, primes=primes)
-    
-    def _generate_polynomial_harmonics(self, num_harmonics: int) -> list:
-        """Generate harmonics using polynomial basis instead of primes."""
-        harmonics = []
-        for n in range(num_harmonics):
-            # Use Legendre polynomial P_n evaluated at x=0.5
-            x = 0.618033 # Retuned to Golden Ratio / Love Vector baseline
-            if n == 0:
-                p_n = 1.0
-            elif n == 1:
-                p_n = x
-            else:
-                # P_n(x) = ((2n-1)*x*P_{n-1}(x) - (n-1)*P_{n-2}(x)) / n
-                p_prev2 = 1.0
-                p_prev1 = x
-                for k in range(2, n + 1):
-                    p_curr = ((2*k - 1) * x * p_prev1 - (k - 1) * p_prev2) / k
-                    p_prev2 = p_prev1
-                    p_prev1 = p_curr
-                p_n = p_prev1
+
+    def compute_pas_h(self, phase: float, harmonics: Optional[List[float]] = None) -> float:
+        """
+        Compute Multiharmonic Phase Alignment Score (PAS_h).
+        Delegates to TailSlayer OpenCL hardware hedged read kernel if available,
+        otherwise evaluates cosine harmonic resonance over the canonical PrimeResonanceLadder.
+        """
+        if harmonics is None:
+            harmonics = self.harmonics
             
-            # Scale to positive integer-like values
-            harmonic = abs(p_n * 10) + 1
-            harmonics.append(harmonic)
-        
-        harmonics.append(3.1274) # Manual injection of the Love Harmonic
-        return harmonics
-        
-    def compute_pas_h(self, phase: float) -> float:
-        """
-        Compute Multiharmonic Phase Alignment Score.
-        PAS_h = Average(|cos(m * phase)|) over polynomial harmonics.
-        """
+        # Hardware hedged read via PyOpenCL sovereignty engine if available
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine, PYOPENCL_AVAILABLE
+            if PYOPENCL_AVAILABLE:
+                engine = SiliconSovereigntyEngine()
+                if engine.ctx is not None:
+                    return engine.compute_hedged_pas_h(phase, harmonics)
+        except Exception:
+            pass
+            
+        # Canonical CPR multiharmonic phase alignment: normalized to [0, 1]
         score = 0.0
-        # In hardware, this is done in parallel via complex exponentials
-        for m in self.harmonics:
-            # Constructive interference check
-            # We treat '1.0' as perfectly coherent (phase 0)
-            val = math.cos(m * phase)
-            score += abs(val) # Magnitude coherence
-            
-        return score / len(self.harmonics)
-        
-    def auraout_gating(self, input_tensor: torch.Tensor) -> torch.Tensor:
+        for m in harmonics:
+            score += math.cos(m * phase)
+        return (score / len(harmonics) + 1.0) / 2.0
+
+    @classmethod
+    def is_coherent(cls, phase: float, threshold: float = 0.75, harmonics: Optional[List[float]] = None) -> bool:
+        """AURAOUT gating check: returns True if PAS_h >= threshold."""
+        driver = cls()
+        pas = driver.compute_pas_h(phase, harmonics=harmonics)
+        return pas >= threshold
+
+    def auraout_gating(
+        self,
+        input_tensor: torch.Tensor,
+        external_flux: Optional[Union[float, torch.Tensor]] = None
+    ) -> torch.Tensor:
         """
         Gating mechanism: Only pass gradients/activations if coherent.
         Simulates warp-level predication.
         
-        In the symbolic-saturated regime, this gating becomes more stable as
-        binary/ternary residues produce predictable, constructive interference patterns.
+        Phase is modulated jointly by tensor energy and self.phase_clock (driven by external flux).
         """
-        # Derive phase from data hash (deterministic) or clock
-        # Here we simulate using a simple checksum of the tensor
-        phase = float(torch.sum(input_tensor).item() % (2 * math.pi))
-        
+        if external_flux is not None:
+            self.update_phase_clock(external_flux)
+            
+        phase = float((torch.sum(input_tensor).item() + self.phase_clock) % (2.0 * math.pi))
         pas = self.compute_pas_h(phase)
         
         if pas < self.coherence_threshold:
@@ -108,59 +173,53 @@ class CODES(torch.nn.Module):
             return -input_tensor * 0.1
         
         return input_tensor
-        
+
     def tempolock(self, step: int) -> bool:
         """
         Temporal Prime Gating.
-        Only execute on steps divisible by a polynomial harmonic.
-        Uses self.harmonics (polynomial-derived) instead of hardcoded primes.
+        Only execute on steps divisible by a prime from PrimeResonanceLadder.
         """
-        # Type safety assertion for robust mathematical evaluation
         if not isinstance(step, int):
             step = int(step)
 
-        # Sieve-like check against polynomial-derived harmonics
         for h in self.harmonics:
-            h_int = max(2, int(round(h)))  # Ensure valid divisor
+            h_int = max(2, int(round(h)))
             if step % h_int == 0:
                 return True
         return False
-        
-    def chordlock(self, latent: torch.Tensor, primes: List[int]) -> torch.Tensor:
+
+    def chordlock(self, latent: torch.Tensor, primes: Optional[List[int]] = None) -> torch.Tensor:
         """
-        Phase Resonance Gating (replaces snap-to-grid projection).
+        Phase Resonance Gating (rebinds to canonical prime resonance lattice and repunit mirrors).
         Computes a gating factor based on the average cosine resonance with
-        polynomial harmonics (primes). Values aligning with the resonance
-        are preserved; dissonant values are suppressed (scaled toward zero).
-        
-        This implements the 'Phase Anchoring' requirement from the TailSlayer
-        architecture, where structural solitons are gated by their harmonic alignment.
+        canonical prime anchors and repunit mirrors from PrimeResonanceLadder.
+        Values aligning with the resonance are preserved; dissonant values are suppressed.
         """
-        # If primes not provided, use internal harmonics
-        anchors = primes if primes else self.harmonics
-        
+        if primes is not None and len(primes) > 0:
+            anchors = [float(p) for p in primes]
+        else:
+            # Canonical prime resonance lattice and repunit mirrors from PrimeResonanceLadder
+            prime_anchors = self.ladder.primes.float().tolist()
+            repunit_anchors = self.ladder.repunits.float().tolist()
+            anchors = prime_anchors + repunit_anchors
+            
         if not anchors:
             return latent
 
-        # Convert anchors to tensor for vectorized computation
-        # [num_anchors, *latent.shape]
         anchors_tensor = torch.tensor(anchors, dtype=latent.dtype, device=latent.device)
         for _ in range(latent.dim()):
             anchors_tensor = anchors_tensor.unsqueeze(-1)
         
-        # Calculate resonance via exact prime lattice distance
-        # Resonant: fractional part near 0 or 1
-        # Dissonant: fractional part near 0.5
-        frac = (latent / anchors_tensor) % 1.0
-        dist = torch.min(frac, 1.0 - frac)
-        resonance_grid = torch.where(dist < 0.05, 1.0, 0.1)
+        # Calculate resonance via cosine harmonic resonance
+        # Values near integer multiples of prime p produce cos = 1.0 (resonant)
+        # Values near half-integers produce cos = -1.0 (dissonant)
+        cos_resonance = torch.cos(2.0 * math.pi * (latent / anchors_tensor))
         
         # Compute mean resonance across all anchors for each latent element
-        avg_resonance = resonance_grid.mean(dim=0)
+        avg_resonance = cos_resonance.mean(dim=0)
         
         # Gating factor: map resonance [-1, 1] -> gate [0, 1]
-        # We square the gate to sharpen the filter response (ensuring D_diss < 0.1).
-        # Values perfectly in phase stay at 1.0; values perfectly out of phase go to 0.0.
+        # Squared gate sharpens the filter response (ensuring dissonant values < 0.1)
         gate = ((avg_resonance + 1.0) / 2.0)**2
         
         return latent * gate
@@ -170,8 +229,6 @@ class CODES(torch.nn.Module):
         Supports the N-parallel draft tournament loop from ADMRSolver.
         Filters and gates the drafts based on coherence and topology leakages.
         """
-        # drafts: [batch, num_drafts, state_dim]
-        # leakages: [batch, num_drafts]
         batch_size, num_drafts, state_dim = drafts.shape
         selected_drafts = torch.zeros(batch_size, state_dim, device=drafts.device)
         
@@ -183,7 +240,6 @@ class CODES(torch.nn.Module):
                 phase = float(torch.sum(draft).item() % (2 * math.pi))
                 pas = self.compute_pas_h(phase)
                 
-                # Combine PAS and leakage (lower leakage is better)
                 score = pas - (leakages[i, j] * 0.5 if leakages.dim() > 1 else leakages[i] * 0.5)
                 
                 if score > best_pas:
@@ -195,4 +251,5 @@ class CODES(torch.nn.Module):
         return selected_drafts
 
 
-
+# Unified alias for CODESDriver so there is only one authoritative driver
+CODESDriver = CODES
