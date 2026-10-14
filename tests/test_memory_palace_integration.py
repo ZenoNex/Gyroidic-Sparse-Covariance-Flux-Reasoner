@@ -258,3 +258,130 @@ def test_garden_orchestrator_basin_sync_to_memory_palace():
     assert "garden_basin_0" in garden.memory_palace.rooms
     assert garden.memory_palace.rooms["garden_basin_0"].metadata["source"] == "garden_fossilized_basin"
 
+
+def test_meliponini_crt_residue_tuple_generation_and_masking():
+    """Verify default CRT prime moduli (61, 67, 71) and 33% dimension masking on unsealed states."""
+    palace = MemoryPalace(feature_dim=32)
+    center = torch.ones(32) * 123.456
+    
+    # Plant room without explicit residue tuple to verify Meliponini generation
+    room = palace.plant_room("room_crt_test", center=center)
+    
+    assert len(room.residue_tuple) == 3
+    # Check that moduli are within [0, 60], [0, 66], [0, 70]
+    assert 0 <= room.residue_tuple[0] < 61
+    assert 0 <= room.residue_tuple[1] < 67
+    assert 0 <= room.residue_tuple[2] < 71
+    
+    # Selective puncture unsealing
+    puncture_ok, punctured_room, pull = palace.selective_puncture(
+        query_state=center,
+        room_id="room_crt_test",
+        resonance_threshold=0.5
+    )
+    assert puncture_ok is True
+    # Masked state should have ~33% dimensions zeroed
+    punctured_state = punctured_room.get_punctured_state(center)
+    zero_count = (punctured_state == 0.0).sum().item()
+    assert zero_count > 0, "Selective puncture must zero out ~33% of dimensions to prevent diffusion toxins"
+
+
+def test_breather_mode_soliton_packet_storage():
+    """Verify BreatherMode soliton integration and O(K) VRAM packet serialization."""
+    from src.models.resonance_cavity import BreatherMode
+    
+    palace = MemoryPalace(feature_dim=16)
+    breather = BreatherMode(num_breathers=4, dim=16)
+    
+    room = palace.plant_room(
+        room_id="room_breather",
+        center=torch.randn(16),
+        breather_soliton=breather
+    )
+    
+    assert room.breather_soliton is not None
+    assert "breather_soliton" in room.metadata
+    assert room.metadata["breather_soliton"]["num_modes"] == 4
+    
+    # Generate packet through palace helper
+    soliton_t = palace.generate_breather_soliton(room.room_id, t=0.5)
+    assert soliton_t is not None
+    assert isinstance(soliton_t, torch.Tensor)
+    assert soliton_t.shape[-1] == 4
+
+
+def test_universal_orchestrator_subsystem_bridges():
+    """Verify UniversalOrchestrator regimes, paradox hardening, dyadic leakage, and feature preservation."""
+    orchestrator = UniversalOrchestrator(dim=16)
+    
+    # Test setting RNN regime
+    orchestrator.set_rnn_regime("chiral")
+    assert orchestrator.rnn_core.regime == "chiral"
+    
+    # Test dyadic leakage tracking
+    task_states = torch.randn(1, 8, 16)
+    gating = torch.ones(1, 8)
+    leaked_states, report = orchestrator.track_dyadic_leakage(task_states=task_states, gating=gating)
+    assert leaked_states.shape == task_states.shape
+    assert isinstance(report, dict)
+    
+    # Test step execution with System 1 and System 2 through forward()
+    state = torch.randn(1, 16)
+    out_state, regime, routing, stacked_target = orchestrator.forward(
+        state=state,
+        pressure_grad=torch.randn(1, 16),
+        pas_h=0.7, # triggers system 2 sync
+        coherence=torch.tensor([0.9]),
+        atrophy=0.9
+    )
+    assert out_state.shape == state.shape
+    assert isinstance(regime, str)
+
+
+def test_knowledge_dyad_fossilizer_export_and_tunnel():
+    """Verify KnowledgeDyadFossilizer exports into MemoryPalace and tunnels stranded RP4 states."""
+    import tempfile
+    from src.core.knowledge_dyad_fossilizer import KnowledgeDyadFossilizer, KnowledgeDyad
+    from src.core.archetype_engines import RP4ProjectiveRouter
+    
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        fossilizer = KnowledgeDyadFossilizer(storage_dir=tmp_dir)
+        palace = MemoryPalace(feature_dim=16)
+        
+        # Create a mock KnowledgeDyad
+        dyad = KnowledgeDyad(
+            timestamp=12345678.0,
+            linguistic_description="paradoxical_quantum_knot",
+            meta_state=torch.randn(1, 16)
+        )
+        prime_freqs = torch.tensor([2.0, 3.0, 5.0, 7.0])
+        betti = {0: 1.0, 1: 2.0}
+        
+        # Test export_agent_smith with memory_palace planting
+        filepath = fossilizer.export_agent_smith(
+            dyad=dyad,
+            prime_frequencies=prime_freqs,
+            betti_numbers=betti,
+            filename="smith_test.pt",
+            memory_palace=palace
+        )
+        assert filepath.endswith(".pt")
+        # Ensure room got planted in palace
+        assert len(palace.rooms) == 1
+        planted_room = next(iter(palace.rooms.values()))
+        assert planted_room.room_id.startswith("smith_")
+        assert planted_room.soliton_payload["type"] == "soliton_smith"
+        
+        # Test tunnel_and_plant_stranded_dyad via RP4ProjectiveRouter
+        router = RP4ProjectiveRouter(state_dim=16)
+        tunneled_id = fossilizer.tunnel_and_plant_stranded_dyad(
+            dyad=dyad,
+            router=router,
+            void_friction=0.95, # > 0.8 triggers puncture
+            memory_palace=palace
+        )
+        assert tunneled_id is not None
+        assert tunneled_id in palace.rooms
+        assert palace.rooms[tunneled_id].is_outlier_seed is True
+
+
