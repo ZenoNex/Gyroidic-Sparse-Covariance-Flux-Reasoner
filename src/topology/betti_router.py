@@ -10,8 +10,10 @@ import torch.nn as nn
 from typing import Dict, Tuple, Optional
 
 from src.topology.modular_homology_fft import CyclotomicTDACompressor
-from src.core.fgrt_primitives import PrimeResonanceLadder
+from src.core.invariants import PrimeResonanceLadder
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine, PYOPENCL_AVAILABLE
+import math
 
 class BettiRouter(nn.Module):
     """
@@ -34,6 +36,9 @@ class BettiRouter(nn.Module):
         # Bias projection: Betti density -> sector bias
         self.bias_proj = nn.Linear(1, num_sectors)
         nn.init.orthogonal_(self.bias_proj.weight)
+        
+        # Hardware-accelerated Bouligand Contingent Cone checker
+        self.engine = SiliconSovereigntyEngine() if PYOPENCL_AVAILABLE else None
         
     def estimate_sector_betti(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -75,6 +80,35 @@ class BettiRouter(nn.Module):
              
         bias = self.bias_proj_v2(betti_densities)
         
+        # If OpenCL Bouligand kernel is available, strictly veto invalid paths (traffic jam physics)
+        if self.engine is not None:
+            # Check viability using fixed irrationals
+            omega_i = math.sqrt(2)
+            omega_j = (1.0 + math.sqrt(5)) / 2.0  # Golden ratio
+            t_pseudo = torch.norm(x).item()
+            
+            # Use betti_densities as the incoming flux vector against state x
+            state_i = x.detach().cpu().flatten()
+            state_j = betti_densities.detach().cpu().flatten()
+            
+            # Align dimension sizes
+            if state_j.shape[0] > state_i.shape[0]:
+                state_j = state_j[:state_i.shape[0]]
+            elif state_j.shape[0] < state_i.shape[0]:
+                state_j = torch.nn.functional.pad(state_j, (0, state_i.shape[0] - state_j.shape[0]))
+                
+            opencl_mask = self.engine.evaluate_bouligand_intersection(
+                state_i, state_j, omega_i, omega_j, t_pseudo
+            )
+            
+            # Reshape back to bias shape (assume matching num_sectors)
+            # Take the first num_sectors elements of the mask
+            mask_subset = opencl_mask[:self.num_sectors]
+            mask_tensor = torch.from_numpy(mask_subset).to(bias.device)
+            
+            # Hard-veto rejected sectors by setting them to negative infinity
+            bias = torch.where(mask_tensor, bias, torch.full_like(bias, -float('inf')))
+            
         return bias
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
