@@ -1,11 +1,173 @@
 import torch
 import logging
-from typing import Dict
+import math
+import time
+import numpy as np
+from typing import Dict, List, Tuple, Any, Optional
 from .freenet_ws_client import FreenetClient
 from src.data.freenet_ghost_caller import FreenetGhostCaller
 from src.data.freenet_bulletin_router import FreenetBulletinRouter
 
 logger = logging.getLogger(__name__)
+
+class FractalDiscontinuityEmbedding:
+    """
+    Embedding Theorem for Discontinuous Fractals:
+    phi: F -> R^m where m >= 2 * dim_H(F) + sum_{j=1}^k omega_j
+    
+    Embeds a player's discontinuous fractal state (position across Matrioshka shell depths,
+    local fractal complexity c, and discontinuity orders omega_j) into a continuous
+    m-dimensional Euclidean manifold R^m.
+    
+    Enables players situated at disparate recursive fractal depths to calculate
+    consistent topological sightlines and mutual line-of-sight without Cartesian artifacts.
+    """
+    def __init__(
+        self,
+        base_hausdorff_dim: float = 2.7298,
+        default_discontinuities: Optional[List[float]] = None,
+        ladder: Optional[Any] = None
+    ):
+        self.base_hausdorff_dim = base_hausdorff_dim
+        self.default_discontinuities = default_discontinuities or [0.25, 0.50]
+        self._ladder = ladder
+
+    def get_prime_ladder(self, required_resonators: int = 16):
+        """
+        Dynamically acquires or scales PrimeResonanceLadder.
+        Adheres to anti-lobotomy guidelines: no hardcoded prime sequences.
+        Generates incommensurate frequencies f_{p_n} = 2*pi*log(p_n) via Lazarus prime-repunit basis.
+        """
+        if self._ladder is None or self._ladder.num_resonators < required_resonators:
+            from src.core.invariants import PrimeResonanceLadder
+            self._ladder = PrimeResonanceLadder(num_resonators=max(required_resonators, 16))
+        return self._ladder
+
+    @property
+    def primes(self) -> List[int]:
+        """Dynamically exposed primes from PrimeResonanceLadder (non-hardcoded)."""
+        ladder = self.get_prime_ladder(16)
+        return ladder.primes.tolist()
+
+    def compute_embedding_dimension(self, complexity: float, discontinuity_orders: Optional[List[float]] = None) -> int:
+        """
+        Calculates minimum continuous embedding dimension m:
+        m >= 2 * dim_H(F) + sum omega_j
+        """
+        discont = discontinuity_orders if discontinuity_orders is not None else self.default_discontinuities
+        omega_sum = sum(discont)
+        # L'Hôpital scaling for fractal dimension correction factor phi(Delta)
+        scale_mod = float(np.log(complexity + 1.0) / complexity) if complexity > 1e-6 else 1.0
+        dim_h = 2.0 + (self.base_hausdorff_dim - 2.0) * scale_mod
+        m = max(6, int(math.ceil(2.0 * dim_h + omega_sum)))
+        return m
+
+    def compute_ambient_dimension(self, discontinuity_orders: Optional[List[float]] = None) -> int:
+        """
+        Shared ambient dimension for the P2P visibility manifold.
+        Since log(c + 1) / c <= 1 for all c >= 0, the local bound
+        2 * dim_H(F) + sum omega_j is maximized at c -> 0 (L'Hôpital limit = 1).
+        Using this supremum guarantees every peer satisfies the embedding bound
+        while all peers share the same R^m, so coordinates remain aligned.
+        """
+        return self.compute_embedding_dimension(0.0, discontinuity_orders)
+
+    def embed_state(
+        self,
+        position: Tuple[float, float, float],
+        recursion_depth: int = 0,
+        complexity: float = 0.0,
+        discontinuity_orders: Optional[List[float]] = None,
+        time_tick: float = 0.0
+    ) -> Dict[str, Any]:
+        """
+        Computes the continuous embedding vector phi(P, depth, complexity) in the shared R^m.
+        The local (complexity-dependent) minimum dimension is reported separately.
+        """
+        discont = discontinuity_orders if discontinuity_orders is not None else self.default_discontinuities
+        m = self.compute_ambient_dimension(discont)
+        local_m = self.compute_embedding_dimension(complexity, discont)
+        
+        # Matrioshka scale contraction factor (2^-depth)
+        scale_contract = 2.0 ** (-float(recursion_depth))
+        px, py, pz = position
+        
+        coords = [0.0] * m
+        # 0..2: Scale-contracted spatial coordinates
+        coords[0] = px * scale_contract
+        coords[1] = py * scale_contract
+        coords[2] = pz * scale_contract
+        
+        # 3..4: Scale phase on S^1 torus
+        scale_phase = 2.0 * math.pi * ((recursion_depth % 16) / 16.0)
+        coords[3] = math.cos(scale_phase)
+        coords[4] = math.sin(scale_phase)
+        
+        # 5: Local complexity measure regularized by L'Hôpital limit
+        scale_lhopital = float(np.log(complexity + 1.0) / complexity) if complexity > 1e-6 else 1.0
+        if m > 5:
+            coords[5] = float(complexity) * scale_lhopital
+            
+        # 6..m-1: High-dimensional harmonic phases along prime resonance frequencies
+        num_harmonic = m - 6
+        if num_harmonic > 0:
+            ladder = self.get_prime_ladder(num_harmonic)
+            freqs = ladder.frequencies.cpu().tolist()
+            for idx in range(6, m):
+                h_idx = idx - 6
+                freq = freqs[h_idx % len(freqs)]
+                omega = discont[h_idx % len(discont)] if discont else 0.0
+                coords[idx] = math.cos(freq * time_tick + omega)
+            
+        return {
+            "embedding": coords,
+            "dimension": m,
+            "local_dimension": local_m,
+            "recursion_depth": recursion_depth,
+            "complexity": complexity,
+            "scale_factor": scale_lhopital,
+            "discontinuity_sum": sum(discont)
+        }
+
+    def compute_topological_sightline(
+        self,
+        emb_a: Dict[str, Any],
+        emb_b: Dict[str, Any],
+        horizon_radius: float = 50.0
+    ) -> Dict[str, Any]:
+        """
+        Computes mutual visibility / topological sightline between two players in R^m.
+        Applies L'Hôpital limit across inter-scale complexity boundaries.
+        """
+        vec_a = emb_a.get("embedding", [])
+        vec_b = emb_b.get("embedding", [])
+        dim = max(len(vec_a), len(vec_b))
+        if dim == 0:
+            return {"has_sightline": False, "transmission": 0.0, "embedded_distance": float('inf')}
+            
+        va_padded = vec_a + [0.0] * (dim - len(vec_a))
+        vb_padded = vec_b + [0.0] * (dim - len(vec_b))
+        
+        dist_sq = sum((x - y) ** 2 for x, y in zip(va_padded, vb_padded))
+        dist_m = math.sqrt(dist_sq)
+        
+        # L'Hôpital fractional transmission across complexity delta
+        ca = emb_a.get("complexity", 0.0)
+        cb = emb_b.get("complexity", 0.0)
+        delta_c = abs(ca - cb)
+        scale_trans = float(np.log(delta_c + 1.0) / delta_c) if delta_c > 1e-6 else 1.0
+        
+        # Decay transmission over embedded distance in R^m
+        transmission = math.exp(-dist_m / max(1.0, horizon_radius)) * scale_trans
+        has_sightline = dist_m <= horizon_radius and transmission > 0.01
+        
+        return {
+            "has_sightline": has_sightline,
+            "transmission": float(transmission),
+            "embedded_distance": float(dist_m),
+            "scale_delta": abs(emb_a.get("recursion_depth", 0) - emb_b.get("recursion_depth", 0)),
+            "complexity_delta": float(delta_c)
+        }
 
 class BonfireNomadicRing:
     """
@@ -26,10 +188,15 @@ class BonfireNomadicRing:
         from src.p2p.zk_aggregator import ZKAggregator
         self.zk_aggregator = ZKAggregator()
         self.pending_crt_channels: Dict[int, torch.Tensor] = {}
+
+        # Embedding & Sightline Engine (Fractal Discontinuity Embedding phi: F -> R^m)
+        self.embedding_engine = FractalDiscontinuityEmbedding()
+        self.peer_embedded_states: Dict[str, Dict[str, Any]] = {}
         
         # Bind the Freenet subscription
         self.freenet.subscribe(self.contract_id, self._handle_network_update)
         self.freenet.subscribe("agent_smith_ring", self._handle_agent_smith_update)
+        self.freenet.subscribe("bonfire_sightline_ring", self._handle_sightline_update)
         
         # Callback for when a foreign Agent Smith payload is received
         self.on_agent_smith_received = None
@@ -129,13 +296,10 @@ class BonfireNomadicRing:
             # ASD-STE100 Rules: Hardware-Sovereign Fallback
             # Prime-ladder Chebyshev-Chebyshev oscillator simulation
             if engine_meta_state is not None:
-                from src.core.fgrt_primitives import PrimeResonanceLadder
-                ladder = PrimeResonanceLadder(num_resonators=5)
-                ladder.to(engine_meta_state.device)
                 # Map state to [-1, 1] for Chebyshev domain
                 x_norm = torch.tanh(engine_meta_state)
                 # Apply T_p(x) = cos(p * arccos(x)) for the first prime p=2
-                p = ladder.primes[0].float()
+                p = float(self.primes[0]) if self.primes else 2.0
                 oscillator = torch.cos(p * torch.acos(x_norm))
                 # Sustain local substrate stability using the oscillator
                 engine_meta_state.copy_(engine_meta_state * 0.9 + oscillator * 0.1)
@@ -185,3 +349,64 @@ class BonfireNomadicRing:
                 "coprime_residue": 1
             }
             self.bulletin_router.broadcast_proof_of_honesty(volume=volume, mischief=0.0, metrics=metrics)
+
+    def _handle_sightline_update(self, state_update: Dict):
+        """Callback for incoming embedded peer states for sightline calculation."""
+        peer_id = state_update.get("peer_id", "unknown")
+        if peer_id != "unknown":
+            self.peer_embedded_states[peer_id] = state_update
+            logger.debug(f"[BONFIRE] Received embedded state from {peer_id} (dim={state_update.get('dimension')})")
+
+    def broadcast_peer_embedded_state(
+        self,
+        local_peer_id: str,
+        position: Tuple[float, float, float],
+        recursion_depth: int = 0,
+        complexity: float = 0.0,
+        betti_numbers: Optional[list] = None,
+        variance: float = 0.0,
+        discontinuity_orders: Optional[list] = None
+    ) -> Dict[str, Any]:
+        """
+        Projects local state using the embedding map phi: F -> R^m and broadcasts across P2P mesh.
+        Ensures peers at varying scale depths can project onto shared visibility manifolds.
+        """
+        embedded = self.embedding_engine.embed_state(
+            position=position,
+            recursion_depth=recursion_depth,
+            complexity=complexity,
+            discontinuity_orders=discontinuity_orders,
+            time_tick=time.time()
+        )
+        payload = {
+            "peer_id": local_peer_id,
+            "betti_numbers": betti_numbers or [1, 0],
+            "variance": variance,
+            **embedded
+        }
+        self.peer_embedded_states[local_peer_id] = payload
+        self.freenet.publish("bonfire_sightline_ring", payload)
+        logger.info(f"[BONFIRE] Broadcasted R^{embedded['dimension']} embedded state for {local_peer_id}")
+        return payload
+
+    def compute_peer_sightline(
+        self,
+        local_peer_id: str,
+        remote_peer_id: str,
+        horizon_radius: float = 50.0
+    ) -> Dict[str, Any]:
+        """
+        Calculates topological sightline and mutual visibility in R^m between two peers across scales.
+        """
+        emb_a = self.peer_embedded_states.get(local_peer_id)
+        emb_b = self.peer_embedded_states.get(remote_peer_id)
+        if not emb_a or not emb_b:
+            return {
+                "has_sightline": False,
+                "reason": "Missing embedded peer state in mesh",
+                "transmission": 0.0,
+                "embedded_distance": float('inf')
+            }
+        return self.embedding_engine.compute_topological_sightline(
+            emb_a, emb_b, horizon_radius=horizon_radius
+        )
