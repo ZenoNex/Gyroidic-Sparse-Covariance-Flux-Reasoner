@@ -351,7 +351,9 @@ def compute_polylog_signature(coeffs: torch.Tensor, s: float = 2.0) -> torch.Ten
     Returns:
         signature: The polylog functional signature [Batch, D].
     """
-    if coeffs.dim() == 2:
+    if coeffs.dim() == 1:
+        coeffs = coeffs.unsqueeze(0).unsqueeze(1) # [1, 1, D]
+    elif coeffs.dim() == 2:
         coeffs = coeffs.unsqueeze(1) # [B, 1, D]
         
     # Standardize to [B, D] by mean-manifold reduction
