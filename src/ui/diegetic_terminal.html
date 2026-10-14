@@ -1939,6 +1939,57 @@
                         style="height: 90px; color: var(--terminal-green); margin-top: 8px;"></div>
                 </div>
 
+                <!-- PANEL R: RSS FEED INGESTOR -->
+                <div class="ingestor-panel" id="panel-r-container">
+                    <div class="section-title" style="color: var(--terminal-warn);">Panel R: RSS Feed Ingestor</div>
+                    <div class="metric-row">
+                        <span class="metric-label">STATUS</span>
+                        <span class="metric-value" id="panel-r-status" style="color: var(--terminal-green);">READY</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">VALENCE HUNGER</span>
+                        <span class="metric-value" id="rss-hunger-val" style="color: var(--terminal-magenta);">0.000</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">HUNGER PROD THRESHOLD</span>
+                        <span class="metric-value" style="color: var(--terminal-blue);">0.600</span>
+                    </div>
+
+                    <div style="font-size: 0.65rem; color: var(--text-muted); margin: 6px 0;">
+                        User-selected RSS feeds with automated injection triggered by Valence & Hunger dissonance.
+                    </div>
+
+                    <div style="margin-top: 8px;">
+                        <input type="text" id="panel-r-url" placeholder="https://example.com/feed.xml"
+                            style="width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); color: #fff; font-family: var(--font-mono); font-size: 0.7rem; padding: 4px; box-sizing: border-box; margin-bottom: 4px;">
+                        <input type="text" id="panel-r-name" placeholder="Feed Name (optional)..."
+                            style="width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); color: #fff; font-family: var(--font-mono); font-size: 0.7rem; padding: 4px; box-sizing: border-box; margin-bottom: 6px;">
+
+                        <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+                            <button onclick="addRssFeedFromUI()"
+                                style="flex: 1; background: rgba(255, 170, 0, 0.15); border: 1px solid var(--terminal-warn); color: var(--terminal-warn); padding: 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 700;">
+                                + ADD FEED
+                            </button>
+                            <button onclick="loadRssFeeds()"
+                                style="background: rgba(255, 255, 255, 0.08); border: 1px solid var(--glass-border); color: #ccc; padding: 6px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">
+                                REFRESH
+                            </button>
+                        </div>
+
+                        <div class="metric-label" style="color: var(--terminal-blue); margin-bottom: 4px;">REGISTERED RSS FEEDS</div>
+                        <div id="rss-feed-list" style="max-height: 140px; overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 4px; padding: 4px; margin-bottom: 8px; font-size: 0.65rem;">
+                            <div style="color: var(--text-muted); padding: 4px;">Loading feeds...</div>
+                        </div>
+
+                        <button id="btn-ingest-rss-now" onclick="triggerRssIngestFromUI()"
+                            style="width: 100%; background: rgba(0, 255, 65, 0.15); border: 1px solid var(--terminal-green); color: var(--terminal-green); padding: 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 700; letter-spacing: 1px;">
+                            INGEST ACTIVE FEEDS NOW
+                        </button>
+                    </div>
+                    <div id="panel-r-log" class="small-log"
+                        style="height: 80px; color: var(--terminal-warn); margin-top: 8px;"></div>
+                </div>
+
         </aside>
 
         <!-- Right Toolbar -->
@@ -1963,6 +2014,8 @@
                 title="Panel I: Universal Converter">I</button>
             <button class="panel-toggle-btn" onclick="togglePanel('panel-j-container', this)"
                 title="Panel J: MADOC Ingestor">J</button>
+            <button class="panel-toggle-btn" onclick="togglePanel('panel-r-container', this)"
+                title="Panel R: RSS Feed Ingestor" style="color: var(--terminal-warn); font-weight: bold;">R</button>
         </div>
     </main>
 
@@ -2707,6 +2760,58 @@
 
         async function sendMessage(text) {
             const trimmed = (text || '').trim();
+
+            // Terminal /rss Command Handler
+            if (trimmed.startsWith('/rss')) {
+                appendMessage('user', trimmed);
+                userInput.value = '';
+                const parts = trimmed.split(/\s+/);
+                const subcmd = parts[1] || 'help';
+                if (subcmd === 'list') {
+                    try {
+                        const res = await fetch(`${state.backend_url}/api/rss/feeds`);
+                        const d = await res.json();
+                        const feedList = (d.feeds || []).map(f => `• [${f.enabled ? 'ACTIVE' : 'OFF'}] ${f.name || f.url} (${f.url})`).join('\n');
+                        appendMessage('system', `[RSS FEEDS - HUNGER: ${Number(d.current_hunger || 0).toFixed(3)}]\n${feedList || '(No feeds registered)'}`);
+                    } catch (e) {
+                        appendMessage('system', `[RSS ERROR] ${e.message}`);
+                    }
+                    return;
+                } else if (subcmd === 'add' && parts[2]) {
+                    const url = parts[2];
+                    const name = parts.slice(3).join(' ') || '';
+                    try {
+                        const res = await fetch(`${state.backend_url}/api/rss/feeds`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'add', url: url, name: name })
+                        });
+                        const d = await res.json();
+                        appendMessage('system', `[RSS FEED ADDED] ${url}`);
+                        if (window.loadRssFeeds) window.loadRssFeeds();
+                    } catch (e) {
+                        appendMessage('system', `[RSS ERROR] ${e.message}`);
+                    }
+                    return;
+                } else if (subcmd === 'ingest') {
+                    appendMessage('system', '[RSS] Prodding manual feed ingestion into manifold...');
+                    try {
+                        const res = await fetch(`${state.backend_url}/api/rss/ingest`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({})
+                        });
+                        const d = await res.json();
+                        appendMessage('system', `[RSS INGESTED] ${d.ingested_articles} articles integrated (Hunger: ${Number(d.current_hunger || 0).toFixed(3)})`);
+                    } catch (e) {
+                        appendMessage('system', `[RSS ERROR] ${e.message}`);
+                    }
+                    return;
+                } else {
+                    appendMessage('system', `[RSS COMMANDS]\n/rss list - List configured feeds and hunger status\n/rss add <url> [name] - Register a new RSS feed\n/rss ingest - Ingest active RSS feeds into manifold`);
+                    return;
+                }
+            }
 
             // Terminal Mode / Bulk MADOC Ingestion Command Handler
             if (trimmed.startsWith('/bulk madoc') || trimmed.startsWith('/madoc') || trimmed.startsWith('INGEST_MADOC:')) {
@@ -4979,6 +5084,128 @@
                     }, 2000);
                 });
             }
+
+            // Panel R: RSS Feed Ingestion & Valence Hunger Connectors
+            window.loadRssFeeds = async function() {
+                const listEl = document.getElementById('rss-feed-list');
+                const hungerEl = document.getElementById('rss-hunger-val');
+                const logEl = document.getElementById('panel-r-log');
+                if (logEl) logEl.innerHTML += `<div>[RSS] Fetching configured feeds & hunger metrics...</div>`;
+                try {
+                    const res = await fetch(`${state.backend_url}/api/rss/feeds`);
+                    const data = await res.json();
+                    if (data.status === 'ok') {
+                        if (hungerEl) hungerEl.innerText = Number(data.current_hunger || 0).toFixed(3);
+                        if (listEl) {
+                            if (!data.feeds || data.feeds.length === 0) {
+                                listEl.innerHTML = `<div style="color:var(--text-muted); padding:4px;">No RSS feeds registered.</div>`;
+                            } else {
+                                listEl.innerHTML = data.feeds.map(f => `
+                                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; padding:2px 4px; background:rgba(255,255,255,0.03); border-radius:2px;">
+                                        <label style="display:flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; cursor:pointer;">
+                                            <input type="checkbox" ${f.enabled ? 'checked' : ''} onchange="toggleRssFeedFromUI('${f.url}', this.checked)">
+                                            <span style="color:${f.enabled ? 'var(--terminal-green)' : 'var(--text-muted)'};" title="${f.url}">${f.name || f.url}</span>
+                                        </label>
+                                        <button onclick="removeRssFeedFromUI('${f.url}')" style="background:transparent; border:none; color:var(--terminal-red); cursor:pointer; font-size:0.65rem; padding:0 4px;">✕</button>
+                                    </div>
+                                `).join('');
+                            }
+                        }
+                    }
+                } catch (e) {
+                    if (logEl) logEl.innerHTML += `<div style="color:var(--terminal-red);">[ERROR] Failed to load feeds: ${e.message}</div>`;
+                }
+            };
+
+            window.addRssFeedFromUI = async function() {
+                const urlInput = document.getElementById('panel-r-url');
+                const nameInput = document.getElementById('panel-r-name');
+                const logEl = document.getElementById('panel-r-log');
+                const url = (urlInput?.value || '').trim();
+                const name = (nameInput?.value || '').trim();
+                if (!url) {
+                    if (logEl) logEl.innerHTML += `<div style="color:var(--terminal-warn);">[WARN] Please provide feed URL</div>`;
+                    return;
+                }
+                try {
+                    const res = await fetch(`${state.backend_url}/api/rss/feeds`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'add', url: url, name: name })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'ok') {
+                        if (urlInput) urlInput.value = '';
+                        if (nameInput) nameInput.value = '';
+                        if (logEl) logEl.innerHTML += `<div style="color:var(--terminal-green);">[OK] Added feed: ${url}</div>`;
+                        loadRssFeeds();
+                    }
+                } catch (e) {
+                    if (logEl) logEl.innerHTML += `<div style="color:var(--terminal-red);">[ERROR] Add failed: ${e.message}</div>`;
+                }
+            };
+
+            window.removeRssFeedFromUI = async function(url) {
+                try {
+                    await fetch(`${state.backend_url}/api/rss/feeds`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'remove', url: url })
+                    });
+                    loadRssFeeds();
+                } catch (e) {
+                    console.error('Failed to remove feed', e);
+                }
+            };
+
+            window.toggleRssFeedFromUI = async function(url, enabled) {
+                try {
+                    await fetch(`${state.backend_url}/api/rss/feeds`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'toggle', url: url, enabled: enabled })
+                    });
+                    loadRssFeeds();
+                } catch (e) {
+                    console.error('Failed to toggle feed', e);
+                }
+            };
+
+            window.triggerRssIngestFromUI = async function() {
+                const btn = document.getElementById('btn-ingest-rss-now');
+                const logEl = document.getElementById('panel-r-log');
+                const hungerEl = document.getElementById('rss-hunger-val');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerText = 'INGESTING FEEDS...';
+                }
+                if (logEl) logEl.innerHTML += `<div>[INGEST] Crawling user RSS feeds via robots.txt and steering manifold...</div>`;
+                try {
+                    const res = await fetch(`${state.backend_url}/api/rss/ingest`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({})
+                    });
+                    const data = await res.json();
+                    if (data.status === 'ok') {
+                        if (logEl) logEl.innerHTML += `<div style="color:var(--terminal-green);">[SUCCESS] Ingested ${data.ingested_articles} articles from ${data.crawled_articles} items.</div>`;
+                        if (hungerEl) hungerEl.innerText = Number(data.current_hunger || 0).toFixed(3);
+                        appendMessage('system', `PANEL R: RSS Feed Ingestion complete. Ingested ${data.ingested_articles} articles into manifold.`);
+                    } else {
+                        if (logEl) logEl.innerHTML += `<div style="color:var(--terminal-red);">[ERROR] ${data.error || 'Ingest failed'}</div>`;
+                    }
+                } catch (e) {
+                    if (logEl) logEl.innerHTML += `<div style="color:var(--terminal-red);">[ERROR] Network error: ${e.message}</div>`;
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerText = 'INGEST ACTIVE FEEDS NOW';
+                    }
+                }
+            };
+
+            // Auto-load RSS feeds into Panel R
+            setTimeout(loadRssFeeds, 1000);
         });
     </script>
 </body>
