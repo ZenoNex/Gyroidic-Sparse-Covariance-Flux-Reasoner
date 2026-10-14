@@ -600,7 +600,7 @@ class HybridAI:
         # UNICORN SYNTHESIS: MULTIPLEXED SPATIAL, SCIENTIFIC & FINANCIAL FEEDS
         # =========================================================
         try:
-            from src.core.hybrid_backend import HybridPhysicsBackend
+            from src.ui.diegetic_backend import HybridPhysicsBackend
             self.physics_backend = HybridPhysicsBackend(state_dim=256, device=self.torch_device)
             spatial_payload = self.physics_backend.fetch_spatial_land_value()
             if self.engine:
@@ -612,6 +612,26 @@ class HybridAI:
         except Exception as e:
             print(f"[FAIL] Multiplexed Feed Substrate initialization failed: {e}")
             self.physics_backend = None
+
+        # Valence & Hunger Initial Bootup Feed Ingestion
+        if self.engine and hasattr(self.engine, 'valence_drive'):
+            try:
+                init_hunger = self.engine.valence_drive.get_metrics().get('current_hunger_drive', 1.0)
+                print(f"[BOOT] Evaluating Initial Valence Hunger Drive: {init_hunger:.3f}")
+                if init_hunger > 0.0 and hasattr(self.engine, 'investor_ingestor'):
+                    user_feeds = self.engine.investor_ingestor.get_active_feed_urls()
+                    print(f"[BOOT] Valence Hunger prodding auto-injection of {len(user_feeds)} user RSS feed(s)...")
+                    boot_payloads = self.engine.investor_ingestor.fetch_financial_feeds(
+                        feeds=user_feeds, state=getattr(self.engine, 'meta_state', None)
+                    )
+                    ingested_boot = 0
+                    for payload in boot_payloads[:6]:
+                        if payload and not payload.startswith("Equities flux neutral"):
+                            self.engine.process_input(payload, generate_response=False)
+                            ingested_boot += 1
+                    print(f"[OK] Ingested {ingested_boot} RSS feed item(s) on bootup into manifold via Valence/Hunger prodding.")
+            except Exception as boot_err:
+                print(f"[WARN] Bootup Valence RSS feed ingestion bypassed: {boot_err}")
         
         self.iteration_count = 0
         
@@ -2090,6 +2110,10 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 self._send_json({'active': False, 'progress': 0, 'log': [], 'results': None})
         elif parsed_path.path == '/api/local_datasets':
             self._handle_local_datasets()
+        elif parsed_path.path == '/api/rss/feeds':
+            from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
+            DiegeticRequestHandler.do_GET(self)
+            return
         else:
             super().do_GET()
     
@@ -2098,7 +2122,7 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         
         # Delegate specific paths to DiegeticRequestHandler
-        if parsed_path.path in ['/api/minecraft/ingest', '/wikipedia-extract', '/api/test_resonance_link', '/api/tabby_complete', '/api/tabby_generate_training', '/api/run_sim', '/api/analyze_sim', '/api/fs/drives', '/api/security/creator_login', '/api/splats/ingest', '/api/convert_topology'] or parsed_path.path.startswith('/api/fs/'):
+        if parsed_path.path in ['/api/minecraft/ingest', '/wikipedia-extract', '/api/test_resonance_link', '/api/tabby_complete', '/api/tabby_generate_training', '/api/run_sim', '/api/analyze_sim', '/api/fs/drives', '/api/security/creator_login', '/api/splats/ingest', '/api/convert_topology', '/api/rss/feeds', '/api/rss/ingest'] or parsed_path.path.startswith('/api/fs/'):
             from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
             DiegeticRequestHandler.do_POST(self)
             return
