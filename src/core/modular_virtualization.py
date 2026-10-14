@@ -8,7 +8,8 @@ for cyclic overflow prevention boundaries.
 
 import torch
 import torch.nn as nn
-from src.core.fgrt_primitives import RepunitHasher, PrimeResonanceLadder
+from src.core.invariants import PrimeResonanceLadder
+from src.core.fgrt_primitives import RepunitHasher
 from src.core.primitive_ops import stochastic_round
 from typing import Optional
 
