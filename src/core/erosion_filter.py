@@ -26,7 +26,7 @@ class FossilizedSurvivalLattice:
     is detected in the dynamic polynomial functionals.
     """
     def __init__(self, device: str = 'cpu'):
-        from src.core.fgrt_primitives import PrimeResonanceLadder
+        from src.core.invariants import PrimeResonanceLadder
         self.ladder = PrimeResonanceLadder(num_resonators=8).to(device)
         self.survival_event_logged = False
 
