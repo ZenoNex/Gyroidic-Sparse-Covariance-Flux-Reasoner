@@ -595,6 +595,23 @@ class HybridAI:
         except Exception as e:
              print(f"[FAIL] Diegetic Engine connection failed: {e}")
              self.engine = None
+
+        # =========================================================
+        # UNICORN SYNTHESIS: MULTIPLEXED SPATIAL, SCIENTIFIC & FINANCIAL FEEDS
+        # =========================================================
+        try:
+            from src.core.hybrid_backend import HybridPhysicsBackend
+            self.physics_backend = HybridPhysicsBackend(state_dim=256, device=self.torch_device)
+            spatial_payload = self.physics_backend.fetch_spatial_land_value()
+            if self.engine:
+                if hasattr(self.engine, 'initialize_spatial_metric'):
+                    self.engine.initialize_spatial_metric(spatial_payload['spatial_metric'])
+                if hasattr(self.engine, 'terrain_octree') and self.engine.terrain_octree:
+                    self.physics_backend.map_to_pointerless_octree(self.engine.terrain_octree, spatial_payload)
+            print("[OK] Multiplexed Spatial/Financial/Scientific Feed Substrate initialized.")
+        except Exception as e:
+            print(f"[FAIL] Multiplexed Feed Substrate initialization failed: {e}")
+            self.physics_backend = None
         
         self.iteration_count = 0
         
@@ -1849,6 +1866,15 @@ class HybridAI:
                                                     metrics=metrics
                                                 )
                                                 print(f"[NDC] Tripsodic Expansion tick. New Volume: {self.tripsodic_ledger.global_volume:.2f} (Ego Limit: {new_ego_limit:.2f})")
+
+                        # Multiplex Spatial/Financial/Scientific feeds into PointerlessOctree
+                        if hasattr(self, 'physics_backend') and self.physics_backend:
+                            feed_payload = self.physics_backend.multiplex_feed_chain()
+                            if self.engine:
+                                if hasattr(self.engine, 'initialize_spatial_metric'):
+                                    self.engine.initialize_spatial_metric(feed_payload['spatial_metric'])
+                                if hasattr(self.engine, 'terrain_octree') and self.engine.terrain_octree:
+                                    self.physics_backend.map_to_pointerless_octree(self.engine.terrain_octree, feed_payload['spatial'])
                 except Exception as e:
                     print(f"[WARN] Background Scientific Learning iteration failed: {e}")
                 
