@@ -25,7 +25,8 @@ from typing import List, Tuple, Optional, Union, Any, Dict
 import torch
 import torch.nn as nn
 
-from src.core.fgrt_primitives import PrimeResonanceLadder, CoherentPrimeResonance
+from src.core.invariants import PrimeResonanceLadder
+from src.core.fgrt_primitives import CoherentPrimeResonance
 from src.core.polychoron_quantization import PolychronQuantizer
 from src.surrogates.kagh_networks import TrigonometricUnfolding
 
