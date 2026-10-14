@@ -21,7 +21,7 @@ class ConjugateMomentTransport(nn.Module):
         self.icnn = InputConvexNeuralNetwork(dim=dim, hidden_dim=hidden_dim, num_layers=num_layers)
         
         # CC-THEORY-001 Integration: Mandelbulb Substrate Clock (96-unit tied by CRT)
-        from src.core.fgrt_primitives import PrimeResonanceLadder
+        from src.core.invariants import PrimeResonanceLadder
         self.clock = PrimeResonanceLadder(num_resonators=96)
         
     def nabla_psi_star(self, y: torch.Tensor, max_iters: int = 20) -> torch.Tensor:
