@@ -12,7 +12,8 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 from src.optimization.codes_driver import CODES, CODESDriver
-from src.core.fgrt_primitives import PrimeResonanceLadder, CoherentPrimeResonance
+from src.core.invariants import PrimeResonanceLadder
+from src.core.fgrt_primitives import CoherentPrimeResonance
 from src.surrogates.kagh_networks import TrigonometricUnfolding
 
 logging.basicConfig(level=logging.INFO)
