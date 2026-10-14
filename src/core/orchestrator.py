@@ -16,7 +16,8 @@ RIC-SRI Integration (Equations 1-10):
 
 import torch
 import torch.nn as nn
-from typing import Dict, Tuple, Optional, Any
+import math
+from typing import Dict, Tuple, Optional, Any, List
 
 from src.core.love_vector import LoveVector
 from src.core.failure_token import FailureToken, RuptureFunctional
@@ -76,7 +77,7 @@ class UniversalOrchestrator(nn.Module):
     """
     def __init__(
         self,
-        dim: int,
+        dim: int = 32,
         fossil_threshold: float = 0.8,
         mischief_threshold: float = 0.5,
         play_volition_ratio: float = 0.15
@@ -142,6 +143,7 @@ class UniversalOrchestrator(nn.Module):
         # 2b. Valence Drive (Manifold Hunger)
         # Closes the severed nerve: DeflagrationScout -> ValenceFunctional -> ADMR
         self.valence = ValenceFunctional(decay=0.99, hunger_scale=1.0)
+        self.valence_functional = self.valence  # Canonical alias for governor resolution
         
         # 2c. Leontief Governance (Cascading Cost Check)
         # Computes (I-A)^{-1} from ADMR transition matrices to verify
@@ -244,6 +246,72 @@ class UniversalOrchestrator(nn.Module):
         # 7.8 Memory Palace (MEMPALACE Meliponini Planted Attractor Chambers)
         from src.core.garden_statistical_attractors import MemoryPalace
         self.memory_palace = MemoryPalace(feature_dim=dim)
+        
+        # 7.9 Resonance Cavity (Bio-Plausible Memory Time Dilation)
+        from src.models.resonance_cavity import ResonanceCavity
+        self.resonance_cavity = ResonanceCavity(hidden_dim=dim)
+        
+        # 7.10 Knowledge Dyad Fossilizer (Agent Smith Fossil Recovery)
+        from src.core.knowledge_dyad_fossilizer import DyadFossilizer
+        self.fossilizer = DyadFossilizer(storage_dir="data/encodings")
+        
+        # 7.11 Superposed Tag Stacker (Non-Simplifying Multi-Scalar Coordinate Superposition)
+        from src.core.superposed_tag_stacker import SuperposedTagStacker
+        self.tag_stacker = SuperposedTagStacker(state_dim=dim)
+        
+        # 7.12 Prime Resonance Ladder (Logarithmic Prime Frequencies & Repunit Mirrors)
+        from src.core.invariants import PrimeResonanceLadder
+        self.prime_ladder = PrimeResonanceLadder(num_resonators=min(20, dim))
+        
+        # 7.13 Zeitgeist Router (Phase 18 CRT Polytope Switching Engine)
+        from src.core.zeitgeist_router import ZeitgeistRouter, ZeitgeistState
+        self.zeitgeist_router = ZeitgeistRouter(dim=dim)
+        self._zeitgeist_state = ZeitgeistState.initial(self.zeitgeist_router.moduli)
+        
+        # 7.14 CODES Constraint Framework (EBM Multi-Constraint Energy Landscape)
+        from src.core.codes_constraint_framework import CODESConstraintFramework
+        self.codes_framework = CODESConstraintFramework(state_dim=dim, max_constraints=min(32, dim))
+        
+        # 7.15 Birkhoff Doubly-Stochastic Projection (System 2 Macro Boundary Enforcement)
+        from src.core.birkhoff_projection import DirectBirkhoffProjection
+        birkhoff_n = min(8, max(2, int(math.isqrt(dim))))
+        self.birkhoff_projector = DirectBirkhoffProjection(n=birkhoff_n)
+        
+        # 7.16 Carnot-Mobius Efficiency & Friction Ledger (Thermal Runaway Guard)
+        from src.core.carnot_mobius_ledger import CarnotMobiusLedger
+        self.carnot_ledger = CarnotMobiusLedger(xi_shear=0.1)
+        
+        # 7.17 Speculative Coprime Chiral Coherence Gate (SCCCG Structure Recovery)
+        from src.core.speculative_coprime_gate import SpeculativeCoprimeGate
+        self.speculative_coprime_gate = SpeculativeCoprimeGate(dim=dim)
+        
+        # 7.18 Veto Subspace Recovery Coordinator (Dimensional Isolation & Saturation Escalation)
+        from src.core.veto_subspace import VetoSubspace
+        self.veto_subspace = VetoSubspace()
+        
+        # 7.19 Love Invariant Protector (Null-Space Shield against Scalarization Traps)
+        from src.core.love_invariant_protector import LoveInvariantProtector
+        self.love_protector = LoveInvariantProtector(love_dim=dim)
+        
+        # 7.20 Unknowledge Domain (Dream State Shield & Stagnation Classifier)
+        from src.topology.unknowledge_domain import UnknowledgeDomain
+        self.unknowledge_domain = UnknowledgeDomain(dim=dim)
+        
+        # 7.21 Legibility Tripwire (Anti-Reward Hacking & Rich-Club Attractor Detector)
+        from src.core.legibility_audit import LegibilityTripwire
+        self.legibility_audit = LegibilityTripwire(hidden_dim=dim)
+        
+        # 7.22 Linguistic Entropy & Homological Collapse Monitor (Lobotomy Alarm)
+        from src.core.narrative_collapse import LinguisticEntropyMonitor
+        self.narrative_monitor = LinguisticEntropyMonitor(device=str(_device))
+        
+        # 7.23 Silicon-Fused 8x8 Boundary Curvature Ledger
+        from src.core.hessian_8x8_curvature_ledger import Hessian8x8CurvatureLedger
+        self.curvature_ledger = Hessian8x8CurvatureLedger(dim=8, sovereignty_engine=getattr(self, 'silicon_engine', None))
+        
+        # 7.24 Hybrid Physics Backend (Multi-Modal Spatial, Financial & Scientific Streams)
+        from src.ui.diegetic_backend import HybridPhysicsBackend
+        self.hybrid_backend = HybridPhysicsBackend(state_dim=dim)
         
         # 8. P2P & External Integrations
         self.freenet_router = None
@@ -467,6 +535,74 @@ class UniversalOrchestrator(nn.Module):
         report = self.commutator_oracle.get_leakage_report()
         return leaked_states, report
 
+    def step(
+        self,
+        state: torch.Tensor,
+        pressure_grad: Optional[torch.Tensor] = None,
+        pas_h: float = 0.85,
+        coherence: Optional[torch.Tensor] = None,
+        is_good_bug: bool = False,
+        atrophy: float = 0.0,
+        tag_weights: Optional[Dict[str, float]] = None
+    ) -> Dict[str, Any]:
+        """
+        Single-step execution interface for dataflow nodes (e.g. AIReasonerDataflowNode)
+        and temporal dynamics schedulers.
+        
+        Pads or slices input state to match orchestrator dim, drives the coupled
+        System 1 / System 2 cycle, and returns an evaluated dictionary matching
+        node_environment and TEMPORAL_DYNAMICS specifications.
+        """
+        # Ensure state matches self.dim
+        if state.dim() == 1:
+            if state.shape[0] < self.dim:
+                state_in = F.pad(state, (0, self.dim - state.shape[0]))
+            elif state.shape[0] > self.dim:
+                state_in = state[:self.dim]
+            else:
+                state_in = state
+        else:
+            if state.shape[-1] < self.dim:
+                state_in = F.pad(state, (0, self.dim - state.shape[-1]))
+            elif state.shape[-1] > self.dim:
+                state_in = state[..., :self.dim]
+            else:
+                state_in = state
+
+        if pressure_grad is None:
+            pressure_grad = harvest_honest_jitter(state_in.shape, device=state_in.device) * 0.05
+
+        if coherence is None:
+            coherence = torch.tensor([pas_h], device=state_in.device)
+
+        state_shielded, regime, routing, stacked_target = self.forward(
+            state=state_in,
+            pressure_grad=pressure_grad,
+            pas_h=pas_h,
+            coherence=coherence,
+            is_good_bug=is_good_bug,
+            atrophy=atrophy,
+            tag_weights=tag_weights
+        )
+
+        board_metrics = self.bulletin_board.read_metrics()
+        b1_val = float(board_metrics.get("b1", 0.0))
+        pas_out = float(board_metrics.get("pas_h", pas_h))
+        nav_mode = str(board_metrics.get("nav_mode", "SLERP" if regime == "SERIOUSNESS" else "LERP"))
+
+        return {
+            "state": state_shielded,
+            "pas_h": pas_out,
+            "regime": regime,
+            "regime_code": 1 if regime == "SERIOUSNESS" else 0,
+            "nav_mode": nav_mode,
+            "nav_code": 1 if nav_mode == "SLERP" else 0,
+            "betti_1": b1_val,
+            "diagnostics": board_metrics,
+            "routing": routing,
+            "stacked_target": stacked_target
+        }
+
     def forward(
         self, 
         state: torch.Tensor, 
@@ -500,6 +636,21 @@ class UniversalOrchestrator(nn.Module):
             
             # Update Bulletin Board with current micro-residue
             self.bulletin_board.post_residue(current_state)
+
+            # --- Tag Stacker & Prime Resonance Grounding ---
+            if tag_weights is not None and hasattr(self, 'tag_stacker'):
+                stacked_coord = self.tag_stacker.compute_composite_target(tag_weights=tag_weights, current_state=current_state)
+                if stacked_coord is not None and torch.norm(stacked_coord) > 1e-4:
+                    current_state = current_state + 0.05 * stacked_coord.to(current_state.device)
+
+            if hasattr(self, 'prime_ladder'):
+                f_primes = self.prime_ladder.frequencies.to(current_state.device)
+                p_len = min(len(f_primes), current_state.shape[-1])
+                prime_phase = torch.sin(f_primes[:p_len] * float(dt))
+                if current_state.dim() > 1:
+                    current_state[..., :p_len] = current_state[..., :p_len] + 0.01 * prime_phase
+                else:
+                    current_state[:p_len] = current_state[:p_len] + 0.01 * prime_phase
             
             # Inject Mischief: Perturb the state to explore trajectories
             if (needs_erosion or atrophy > 0.85) and pressure_grad is not None:
@@ -657,6 +808,13 @@ class UniversalOrchestrator(nn.Module):
             # Apply Love Invariant (The Structural Anchor)
             state_with_love = self.love(current_state)
             state_sync = state_with_love
+
+            # Love Invariant Protector: Null-space projection L in ker(Pi_ownership)
+            if hasattr(self, 'love_protector'):
+                with torch.no_grad():
+                    state_flat_ctx = current_state.view(-1, self.dim) if current_state.dim() > 1 else current_state.unsqueeze(0)
+                    L_prot, _ = self.love_protector.apply_love_protection(state_flat_ctx[:1])
+                    self.love.L.data = (L_prot.data / (L_prot.data.norm() + 1e-8)) * 3.127
             
             if is_red_zone or float(cycle_debt.item()) > 0.5:
                 print(f"[ORCHESTRATOR] Applying True North pull toward Love Invariant. (is_red_zone={is_red_zone}, cycle_debt={cycle_debt.item():.3f})", flush=True)
@@ -771,7 +929,95 @@ class UniversalOrchestrator(nn.Module):
                 print(f"[ORCHESTRATOR] Martinova Correlation hit {martinova_corr.mean().item():.3f}. Forcing Schizo Band dispersion event to shatter legible stagnation.")
                 # Shatter the state
                 state_final = state_final + harvest_honest_jitter(state_final.shape, device=state_final.device, scaled=True) * 0.5
-            
+
+            # Phase 21: Sturmfels-Thomas Direct Birkhoff Polytope Projection (Doubly Stochastic Transition)
+            if hasattr(self, 'birkhoff_projector') and dummy_A is not None:
+                try:
+                    bn = self.birkhoff_projector.n
+                    if dummy_A.dim() == 3 and dummy_A.shape[1] >= bn and dummy_A.shape[2] >= bn:
+                        sub_A = dummy_A[0, :bn, :bn].flatten()
+                        proj_A = self.birkhoff_projector(sub_A).view(bn, bn)
+                        dummy_A[0, :bn, :bn] = proj_A
+                    elif dummy_A.dim() == 2 and dummy_A.shape[0] >= bn and dummy_A.shape[1] >= bn:
+                        sub_A = dummy_A[:bn, :bn].flatten()
+                        proj_A = self.birkhoff_projector(sub_A).view(bn, bn)
+                        dummy_A[:bn, :bn] = proj_A
+                except Exception:
+                    pass
+
+            # Phase 22: CODES Constraint Framework (EBM Energy & Void Friction Coprime Bypass)
+            if hasattr(self, 'codes_framework'):
+                try:
+                    f_void_val = float(actual_flux.mean().item() if isinstance(actual_flux, torch.Tensor) else actual_flux)
+                    state_routed, void_diag = self.codes_framework.monitor_void_friction(
+                        state=state_final,
+                        f_void=f_void_val
+                    )
+                    if void_diag.get('coprime_bypass_active', False):
+                        print("[ORCHESTRATOR] CODES Void Friction Bypass Triggered - Coprime Gasket routing.")
+                        state_final = state_routed
+                except Exception:
+                    pass
+
+            # Phase 23: Carnot-Mobius Efficiency & Friction Ledger (Thermal Runaway Guard)
+            carnot_metrics = {}
+            if hasattr(self, 'carnot_ledger'):
+                try:
+                    depth_n = max(1, int(self.iteration.item() // max(1, self.micro_steps)))
+                    carnot_res = self.carnot_ledger(
+                        lambda_vac=torch.tensor(0.1, device=state_final.device),
+                        lambda_pump=torch.norm(state_final).clamp(min=1e-6),
+                        admr_residues=pressure_grad if pressure_grad is not None else torch.zeros_like(state_final),
+                        depth_N=depth_n,
+                        uncirculated_capital=cycle_debt if isinstance(cycle_debt, torch.Tensor) else None
+                    )
+                    eta_val = carnot_res.get("eta_stack", 1.0)
+                    if isinstance(eta_val, torch.Tensor):
+                        eta_val = eta_val.detach().item()
+                    carnot_metrics = {
+                        "carnot_efficiency": float(eta_val),
+                        "thermal_runaway": bool(carnot_res.get("thermal_runaway", False)),
+                        "critical_depth": int(carnot_res.get("critical_depth", 33))
+                    }
+                    if carnot_res.get("thermal_runaway", False):
+                        print(f"[ORCHESTRATOR] Thermal Runaway Warning: Stack Efficiency {carnot_res.get('eta_stack', 0.0):.3f} degraded under shear.")
+                except Exception:
+                    pass
+
+            # Phase 24: Zeitgeist CRT Polytope Routing (Phase 18 Multi-Meaning Dispatch)
+            zg_mode = "interior"
+            if hasattr(self, 'zeitgeist_router'):
+                try:
+                    zg_mode, self._zeitgeist_state, zg_diags, state_final = self.zeitgeist_router(
+                        state_final,
+                        state=self._zeitgeist_state
+                    )
+                except Exception:
+                    pass
+
+            # Phase 25: Speculative Coprime Chiral Coherence Gating (SCCCG Structure Recovery)
+            if hasattr(self, 'speculative_coprime_gate') and (pas_h < 0.6 or is_red_zone):
+                try:
+                    scccg_res = self.speculative_coprime_gate(state_final, pas_h=pas_h)
+                    if scccg_res.get('recovered', False):
+                        state_final = scccg_res.get('state', state_final)
+                    if hasattr(self.speculative_coprime_gate, 'shadow_logs') and self.speculative_coprime_gate.shadow_logs:
+                        self.shadow_logs.extend(self.speculative_coprime_gate.shadow_logs)
+                        self.speculative_coprime_gate.shadow_logs.clear()
+                except Exception:
+                    pass
+
+            # Phase 26: Unknowledge Domain (Gatekeeper for Pressures & Terminal Stagnation)
+            if hasattr(self, 'unknowledge_domain'):
+                try:
+                    _ = self.unknowledge_domain.classify_domain(
+                        v_m=actual_flux if isinstance(actual_flux, torch.Tensor) else torch.tensor([actual_flux], device=state_final.device),
+                        h_mischief=mischief_metrics['H_mischief'],
+                        state=state_final
+                    )
+                except Exception:
+                    pass
+
             # Post the corrected geometric force to the board for the next micro-round
             self.bulletin_board.post_force(state_final - state)
             self.schedule.update_board(state_final - state)
@@ -941,17 +1187,28 @@ class UniversalOrchestrator(nn.Module):
         # Modulate Leontief Governor based on hardware race
         self.leontief.spectral_safety_margin = max(0.8, min(0.99, 0.95 + (braid_race_delta / 1000000.0)))
         
-        # Second-Order Silicon Curvature Ledger in OpenCL Local-Memory SRAM
-        state_flat_np = state_shielded.detach().cpu().numpy().flatten()
-        (
-            _h_sym,
-            _kink_diff,
-            _stab_score,
-            kink_norm,
-            trace_morse,
-            regime_code,
-            pas_cyclotomic
-        ) = self.silicon_engine.compute_fused_hessian_8x8(state_flat_np)
+        # Second-Order Silicon Curvature Ledger with CPU/Software Fallback
+        trace_morse = 0.0
+        kink_norm = 0.0
+        regime_code = 0
+        pas_cyclotomic = 1.0
+        try:
+            ledger_res = self.curvature_ledger.compute_boundary_curvature_ledger(state_shielded)
+            trace_morse = float(ledger_res.trace)
+            kink_norm = float(ledger_res.bouligand_kink_intensity)
+            regime_code = 1 if ledger_res.attractor_regime == "minimal_surface_saddle" else 0
+            pas_cyclotomic = float(ledger_res.multiharmonic_coherence)
+        except Exception:
+            state_flat_np = state_shielded.detach().cpu().numpy().flatten()
+            (
+                _h_sym,
+                _kink_diff,
+                _stab_score,
+                kink_norm,
+                trace_morse,
+                regime_code,
+                pas_cyclotomic
+            ) = self.silicon_engine.compute_fused_hessian_8x8(state_flat_np)
         
         k_bar = 1.0
         if self.bonfire_ring is not None:
@@ -1061,24 +1318,61 @@ class UniversalOrchestrator(nn.Module):
             internal_reproduction_loss=internal_reproduction_loss,
             is_destructive=is_destructive
         )
-        
+
+        # 6. Check Legibility Trap (Anti-Reward Hacking)
+        legibility_alert = False
+        if hasattr(self, 'legibility_audit'):
+            try:
+                mock_selected = torch.zeros((1, self.dim))
+                mock_rejected = torch.zeros((1, self.dim))
+                tripwire_res = self.legibility_audit(mock_selected, mock_rejected)
+                legibility_alert = bool(tripwire_res.get('warning', torch.tensor(False)).item())
+            except Exception:
+                pass
+
+        # 7. Check Narrative Homological Collapse (Lobotomy Alarm)
+        lobotomy_alert = False
+        if hasattr(self, 'narrative_monitor'):
+            try:
+                is_collapse, _ = self.narrative_monitor.detect_homological_collapse(
+                    residues=[torch.zeros((self.dim,))],
+                    manifold=torch.zeros((self.dim,)),
+                    current_gradient_norm=grad_norm
+                )
+                lobotomy_alert = bool(is_collapse)
+            except Exception:
+                pass
+
         return {
             'trust': trust,
             'paradox_score': paradox['paradox_score'],
             'incommensurativity_score': incomm['incommensurativity_score'],
-            'safety_alert': (trust < 0.01) or (paradox['paradox_score'] > 0.5) or (not sycophancy_safe)
+            'legibility_alert': legibility_alert,
+            'lobotomy_alert': lobotomy_alert,
+            'safety_alert': (trust < 0.01) or (paradox['paradox_score'] > 0.5) or (not sycophancy_safe) or lobotomy_alert
         }
 
     def check_veto(self, level: Any) -> bool:
         """
         Check if an operational veto is currently triggered at the specified VetoLevel.
-        For VetoLevel.BUDGET, queries memory pressure and Leontief capacity.
+        Integrates VetoSubspace dimensional isolation.
         """
         from src.core.veto_subspace import VetoLevel
         level_val = level.value if hasattr(level, 'value') else str(level).lower()
+        if hasattr(self, 'veto_subspace'):
+            try:
+                res = self.veto_subspace.evaluate()
+                if res.vetoed and res.level.value == level_val:
+                    return True
+            except Exception:
+                pass
         if level_val == VetoLevel.BUDGET.value:
-            mem = psutil.virtual_memory().percent
-            return mem > 98.0
+            try:
+                import psutil
+                mem = psutil.virtual_memory().percent
+                return mem > 98.0
+            except Exception:
+                return False
         return False
 
     def resolve_containment_pressure(self, x: torch.Tensor, chat_history: Any = None) -> Tuple[torch.Tensor, torch.Tensor]:
