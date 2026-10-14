@@ -92,6 +92,71 @@ _K_SELF_FP_MAX = 32
 # Public entry point
 # 
 
+def brenier_pushforward(coords: np.ndarray, potential: np.ndarray, kappa: float = 0.15) -> np.ndarray:
+    """
+    Brenier push-forward gradient shift: T(x) = x + kappa * \\nabla W(x).
+    Displaces coordinates along the gradient of the potential/void-friction landscape.
+    """
+    grad_y, grad_x = np.gradient(potential)
+    displaced_x = coords[..., 0] + kappa * grad_x
+    displaced_y = coords[..., 1] + kappa * grad_y
+    return np.stack([displaced_x, displaced_y], axis=-1)
+
+
+def srgb_to_oklab(rgb: np.ndarray) -> np.ndarray:
+    """Convert sRGB [0, 1] to OKLab (L, a, b)."""
+    mask = rgb > 0.04045
+    linear_rgb = np.where(mask, ((rgb + 0.055) / 1.055) ** 2.4, rgb / 12.92)
+    l = 0.4122214708 * linear_rgb[..., 0] + 0.5363325363 * linear_rgb[..., 1] + 0.0514459929 * linear_rgb[..., 2]
+    m = 0.2119034982 * linear_rgb[..., 0] + 0.6806995451 * linear_rgb[..., 1] + 0.1073969566 * linear_rgb[..., 2]
+    s = 0.0883024619 * linear_rgb[..., 0] + 0.2817188376 * linear_rgb[..., 1] + 0.6299787005 * linear_rgb[..., 2]
+    l_ = np.cbrt(np.maximum(l, 0.0))
+    m_ = np.cbrt(np.maximum(m, 0.0))
+    s_ = np.cbrt(np.maximum(s, 0.0))
+    L = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_
+    a = 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_
+    b = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_
+    return np.stack([L, a, b], axis=-1)
+
+
+def oklab_to_srgb(lab: np.ndarray) -> np.ndarray:
+    """Convert OKLab (L, a, b) back to sRGB [0, 1]."""
+    L, a, b = lab[..., 0], lab[..., 1], lab[..., 2]
+    l_ = L + 0.3963377774 * a + 0.2158037573 * b
+    m_ = L - 0.1055613458 * a - 0.0638541728 * b
+    s_ = L - 0.0894841775 * a - 1.2914855480 * b
+    l = l_ ** 3
+    m = m_ ** 3
+    s = s_ ** 3
+    r_lin = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s
+    g_lin = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s
+    b_lin = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
+    linear = np.stack([r_lin, g_lin, b_lin], axis=-1)
+    linear = np.clip(linear, 0.0, 1.0)
+    mask = linear > 0.0031308
+    srgb = np.where(mask, 1.055 * (linear ** (1.0 / 2.4)) - 0.055, 12.92 * linear)
+    return np.clip(srgb, 0.0, 1.0)
+
+
+def apply_oklab_luminance_absorption(rgb: np.ndarray, void_friction: float = 0.0, curvature: float = 0.0) -> np.ndarray:
+    """
+    Applies OKLab perceptual luminance absorption and flattened variance in gravity/void wells.
+    L' = L * exp(-alpha * (void_friction + curvature))
+    a' = a * exp(-beta * (void_friction + curvature))
+    b' = b * exp(-beta * (void_friction + curvature))
+    """
+    intensity = float(void_friction) + float(curvature)
+    if intensity <= 0.01:
+        return rgb
+    lab = srgb_to_oklab(rgb)
+    alpha = 0.35
+    beta = 0.55
+    lab[..., 0] *= math.exp(-alpha * intensity)
+    lab[..., 1] *= math.exp(-beta * intensity)
+    lab[..., 2] *= math.exp(-beta * intensity)
+    return oklab_to_srgb(lab)
+
+
 def render_manifold_fracture(
     *,
     retrieval_state: str,
@@ -103,6 +168,8 @@ def render_manifold_fracture(
     h_mischief: float = 0.0,
     honesty_score: float = 0.5,
     iteration: int = 0,
+    spatial_metric: Optional[Any] = None,
+    void_friction: float = 0.0,
 ) -> Dict[str, Any]:
     """
     Generate a base64-encoded PNG, extract structural residues and a
@@ -217,9 +284,30 @@ def render_manifold_fracture(
         side = max(1, int(math.ceil(math.sqrt(dim))))
         padded = np.zeros(side * side); padded[:dim] = meta_np
         grid = padded.reshape(side, side)
-        ax_meta.imshow(grid, cmap=_mood_cmap, aspect='auto', interpolation='none',
-                       norm=Normalize(vmin=grid.min(), vmax=grid.max()))
-        ax_meta.set_title('S_meta(t1)', color=_mood, fontsize=8, fontfamily=_FONT)
+
+        # Land rent curvature / void friction potential field W(x)
+        curvature_scale = float(void_friction)
+        if spatial_metric is not None:
+            sm_arr = _safe_to_numpy(spatial_metric)
+            if sm_arr.size > 0:
+                curvature_scale += float(max(0.0, np.mean(np.diag(sm_arr)) - 1.0))
+
+        if curvature_scale > 0.05:
+            # Brenier push-forward T(x) = x + kappa * \nabla W(x)
+            y_coords, x_coords = np.mgrid[0:side, 0:side].astype(np.float64)
+            coords = np.stack([x_coords, y_coords], axis=-1)
+            displaced_coords = brenier_pushforward(coords, grid, kappa=0.15 * min(2.0, curvature_scale))
+            shift_x = int(np.clip(np.round(np.mean(displaced_coords[..., 0] - coords[..., 0])), -2, 2))
+            shift_y = int(np.clip(np.round(np.mean(displaced_coords[..., 1] - coords[..., 1])), -2, 2))
+            deformed_grid = np.roll(np.roll(grid, shift=shift_x, axis=1), shift=shift_y, axis=0)
+            ax_meta.imshow(deformed_grid, cmap=_mood_cmap, aspect='auto', interpolation='none',
+                           norm=Normalize(vmin=deformed_grid.min(), vmax=deformed_grid.max()))
+            ax_meta.set_title(f'S_meta(t-1) [Brenier Shift \u03ba={0.15*min(2.0, curvature_scale):.2f}]',
+                           color=_mood, fontsize=8, fontfamily=_FONT)
+        else:
+            ax_meta.imshow(grid, cmap=_mood_cmap, aspect='auto', interpolation='none',
+                           norm=Normalize(vmin=grid.min(), vmax=grid.max()))
+            ax_meta.set_title('S_meta(t-1)', color=_mood, fontsize=8, fontfamily=_FONT)
         ax_meta.set_xticks([]); ax_meta.set_yticks([])
         _style_spine(ax_meta, _mood)
 
@@ -302,13 +390,36 @@ def render_manifold_fracture(
                      fontsize=10, color=_mood, fontfamily=_FONT, y=0.96,
                      path_effects=[pe.withStroke(linewidth=2, foreground=_DARK_BG)])
 
-        #  7. Encode PNG 
+        #  7. Encode PNG with OKLab perceptual luminance absorption in gravity/void wells
         buf = io.BytesIO()
         fig.savefig(buf, format='png', dpi=110, bbox_inches='tight',
                     facecolor=_DARK_BG, edgecolor='none')
         plt.close(fig)
         buf.seek(0)
-        png_bytes = buf.read()
+
+        if curvature_scale > 0.05:
+            try:
+                img_rgba = plt.imread(buf)
+                rgb_absorbed = apply_oklab_luminance_absorption(
+                    img_rgba[:, :, :3],
+                    void_friction=void_friction,
+                    curvature=curvature_scale
+                )
+                if img_rgba.shape[2] == 4:
+                    final_rgba = np.dstack([rgb_absorbed, img_rgba[:, :, 3]])
+                else:
+                    final_rgba = rgb_absorbed
+                buf_absorbed = io.BytesIO()
+                plt.imsave(buf_absorbed, final_rgba, format='png')
+                buf_absorbed.seek(0)
+                png_bytes = buf_absorbed.read()
+            except Exception as _ok_e:
+                print(f"[VISUALIZER] OKLab filtering fallback: {_ok_e}")
+                buf.seek(0)
+                png_bytes = buf.read()
+        else:
+            png_bytes = buf.read()
+
         result["b64"] = base64.b64encode(png_bytes).decode('utf-8')
 
         #  8. Chebyshev self-fingerprint of rendered PNG luminance 
