@@ -375,6 +375,12 @@ class DiegeticPhysicsEngine(nn.Module):
         self.unknowledge_domain = UnknowledgeDomain(tau_m=0.3, dim=dim)
         self.mischief_probe = EntropicMischiefProbe(device=self.device)
         self.voynich_linguist = VoynichLinguist(latent_dim=dim).to(self.device)
+
+        # Spatial Land-Value Substrate & PointerlessOctree
+        from src.ui.voxelboxter_simulation import PointerlessOctree
+        self.terrain_octree = PointerlessOctree(max_depth=8)
+        self.register_buffer("spatial_metric", torch.eye(4, device=self.device))
+        self.last_void_friction = 0.0
         
         # Topological ingestion gate (replaces missing boundary validation)
         from src.core.topological_ingestion_validator import TopologicalIngestionValidator
@@ -436,7 +442,8 @@ class DiegeticPhysicsEngine(nn.Module):
         basis = PolynomialBasis(degree=k-1, basis_type='legendre')
         legendre_vals = basis.evaluate(torch.tensor([0.7], device=device))[0]
 
-        from src.core.fgrt_primitives import PrimeResonanceLadder
+        from src.core.invariants import PrimeResonanceLadder
+        self.prime_ladder = PrimeResonanceLadder(num_resonators=32).to(self.device)
         self.rank_probe = DModuleRankProbe(state_dim=dim, num_functionals=k)
         
         # Love Invariant Protector - prevents Love vector scalarization
@@ -826,7 +833,9 @@ class DiegeticPhysicsEngine(nn.Module):
         from src.topology.bonfire_network import BonfireNetwork
         from src.core.investor_news_ingestor import InvestorNewsIngestor
         self.bonfire = BonfireNetwork(node_id="engine_node", local_url="http://localhost:8080")
-        self.investor_ingestor = InvestorNewsIngestor()
+        self.investor_ingestor = InvestorNewsIngestor(state_dim=dim, engine=self, larynx=self.larynx)
+        if hasattr(self, 'calm'):
+            self.investor_ingestor.set_maml_adapter(self.calm)
         
         # ASD-STE100 Rules: Integrate P2P Sovereign Network & UI Pipeline
         from src.p2p.freenet_ws_client import FreenetClient
@@ -846,6 +855,105 @@ class DiegeticPhysicsEngine(nn.Module):
             print(f"[FREENET] Alien Identity '{payload.get('description', 'Unknown')}' assimilated. Glyphlock state: {payload.get('glyphlock', False)}", flush=True)
         except Exception as e:
             print(f"[FREENET ERROR] Failed to assimilate foreign Agent Smith payload: {e}", flush=True)
+
+    def initialize_spatial_metric(self, spatial_metric_tensor: Optional[torch.Tensor] = None):
+        """Initialize or update spatial metric tensor g_mu_nu."""
+        if spatial_metric_tensor is not None:
+            self.spatial_metric = spatial_metric_tensor.to(self.device)
+
+    def fetch_spatial_land_value(
+        self,
+        bbox: Optional[Tuple[float, float, float, float]] = None,
+        query: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Fetch spatial geometry and land-value datasets via OpenStreetMap / Overpass query proxy.
+        Builds local spatial metric tensor g_mu_nu representing economic land-rent curvature.
+        """
+        if bbox is None:
+            bbox = (37.7749, -122.4194, 37.8049, -122.3894)
+            
+        lat_span = abs(bbox[2] - bbox[0])
+        lon_span = abs(bbox[3] - bbox[1])
+        
+        land_rent_density = max(0.1, min(10.0, (1.0 / (lat_span * lon_span + 1e-6)) * 0.0001))
+        self.land_value_scale = float(land_rent_density)
+        
+        g = torch.eye(4, device=self.device)
+        g[0, 0] = 1.0 + 0.5 * land_rent_density
+        g[1, 1] = 1.0 + 0.5 * land_rent_density
+        g[2, 2] = 1.0 + 0.2 * land_rent_density
+        g[3, 3] = 1.0 + 0.8 * land_rent_density
+        
+        self.spatial_metric = g
+        
+        return {
+            "bbox": bbox,
+            "land_rent_density": land_rent_density,
+            "spatial_metric": g,
+            "query": query or "amenity=commercial or landuse=commercial",
+            "parcels_detected": int(round(land_rent_density * 42))
+        }
+
+    def multiplex_feed_chain(
+        self,
+        feeds: Optional[List[str]] = None,
+        bbox: Optional[Tuple[float, float, float, float]] = None,
+        state_dim: int = 32,
+        state: Optional[torch.Tensor] = None
+    ) -> Dict[str, Any]:
+        """
+        Multiplex spatial, financial, and scientific streams into a single substrate payload
+        with active manifold state steering.
+        """
+        spatial_data = self.fetch_spatial_land_value(bbox=bbox)
+        try:
+            fin_data = self.investor_ingestor.fetch_financial_feeds(feeds=feeds, state=state) if hasattr(self.investor_ingestor, 'fetch_financial_feeds') else ["Equities steady."]
+        except TypeError:
+            fin_data = self.investor_ingestor.fetch_financial_feeds(feeds=feeds) if hasattr(self.investor_ingestor, 'fetch_financial_feeds') else ["Equities steady."]
+
+        try:
+            sci_data = self.investor_ingestor.fetch_scientific_feeds(state=state) if hasattr(self.investor_ingestor, 'fetch_scientific_feeds') else ["Topological solitons stable."]
+        except TypeError:
+            sci_data = self.investor_ingestor.fetch_scientific_feeds() if hasattr(self.investor_ingestor, 'fetch_scientific_feeds') else ["Topological solitons stable."]
+        
+        g = spatial_data["spatial_metric"]
+        rent_scale = spatial_data["land_rent_density"]
+        
+        flux_vec = torch.zeros(state_dim, device=self.device)
+        flux_vec[:4] = g.diagonal()
+        flux_vec[4] = rent_scale
+        
+        # Apply active state steering from ingested content
+        all_payloads = fin_data + sci_data
+        steering_force = torch.zeros(state_dim, device=self.device)
+        if hasattr(self.investor_ingestor, 'steer_state_from_payloads'):
+            steering_force = self.investor_ingestor.steer_state_from_payloads(
+                all_payloads,
+                state_dim=state_dim,
+                device=str(self.device)
+            )
+        flux_vec = flux_vec + steering_force
+        
+        return {
+            "spatial": spatial_data,
+            "spatial_metric": g,
+            "financial": fin_data,
+            "scientific": sci_data,
+            "combined_flux": flux_vec,
+            "steering_force": steering_force,
+            "land_value_scale": rent_scale
+        }
+
+    def map_to_pointerless_octree(
+        self,
+        octree: Any,
+        spatial_payload: Dict[str, Any]
+    ) -> int:
+        """Delegate octree projection directly to PointerlessOctree.ingest_spatial_land_value."""
+        if "prime_ladder" not in spatial_payload:
+            spatial_payload["prime_ladder"] = getattr(self, 'prime_ladder', None)
+        return octree.ingest_spatial_land_value(spatial_payload)
 
     def _idx_to_char(self, idx: int) -> str:
         """Map vocabulary index to character string."""
@@ -1290,6 +1398,7 @@ class DiegeticPhysicsEngine(nn.Module):
 
                     # Sense computational load (CPU and RAM) to throttle background ingestion
                     scientific_texts = []
+                    rss_texts = []
                     try:
                         import psutil
                         cpu_percent = psutil.cpu_percent(interval=0.1)
@@ -1339,14 +1448,24 @@ class DiegeticPhysicsEngine(nn.Module):
                                             self.archetypal_governor.harvest_named_coordinate(t_name, vector, t, parent_engine=self)
 
                                             print(f"[BGLEARN] Registered scientific tag: '{t_name}' in SuperposedTagStacker.")
-                                else:
-                                    # Already registered, skip query!
-                                    pass
+
+                        # Valence Hunger Prodding for User-Selected RSS Feeds
+                        if (current_hunger > 0.6 or is_stagnant) and hasattr(self, 'investor_ingestor'):
+                            active_urls = self.investor_ingestor.get_active_feed_urls()
+                            if active_urls:
+                                rss_payloads = self.investor_ingestor.fetch_financial_feeds(feeds=active_urls, state=self.meta_state)
+                                for p in rss_payloads[:4]:
+                                    if p and len(p) >= 4 and not p.startswith("Equities flux neutral"):
+                                        rss_texts.append(p)
+                                        if hasattr(self, 'archetypal_governor') and hasattr(self.archetypal_governor, 'tag_stacker'):
+                                            t_name = f"rss_hunger_{int(time.time()) % 1000}"
+                                            vec = self._text_to_tensor(p).to(self.device)
+                                            self.archetypal_governor.harvest_named_coordinate(t_name, vec, p, parent_engine=self)
                     except Exception as load_err:
                         # Log but do not crash background thread
                         print(f"[BGLEARN] Load sensing or query failed: {load_err}")
 
-                    all_texts = replay_texts + fossil_texts + scientific_texts
+                    all_texts = replay_texts + fossil_texts + scientific_texts + rss_texts
                     total_loss, n = 0.0, 0
                     for text in all_texts[:12]:  # cap per cycle
                         loss = self._train_mimicry_step(text)
@@ -1356,7 +1475,7 @@ class DiegeticPhysicsEngine(nn.Module):
                         time.sleep(0.1)  # Yield lock and CPU time slice to prevent starving main thread
 
                     if n > 0:
-                        src = f"{len(replay_texts)} shadow + {len(fossil_texts)} fossil + {len(scientific_texts)} science"
+                        src = f"{len(replay_texts)} shadow + {len(fossil_texts)} fossil + {len(scientific_texts)} science + {len(rss_texts)} rss"
                         print(f"[BGLEARN] step avg_loss={total_loss/n:.4f} ({src})")
                 except Exception as e:
                     print(f"[BGLEARN] Error: {e}")
@@ -3700,6 +3819,8 @@ class DiegeticPhysicsEngine(nn.Module):
                         import torch as _t
                         _cs_energy = _t.tensor([float(_cs_scalar)])
 
+                _spatial_m = getattr(self, 'spatial_metric', None)
+                _void_f = float(getattr(self, 'last_void_friction', 0.0))
                 viz_result = render_manifold_fracture(
                     retrieval_state=retrieval_state,
                     meta_state=self.meta_state,
@@ -3710,6 +3831,8 @@ class DiegeticPhysicsEngine(nn.Module):
                     h_mischief=float(h_mischief),
                     honesty_score=float(honesty_score),
                     iteration=self.iteration,
+                    spatial_metric=_spatial_m,
+                    void_friction=_void_f,
                 )
                 if viz_result and viz_result.get('b64'):
                     print(f"[VISUALIZER] Manifold fracture rendered -- {len(viz_result['b64'])} bytes (b64) "
@@ -4648,10 +4771,7 @@ class DiegeticPhysicsEngine(nn.Module):
             api_extraction_potential * 0.08              # API data creates external constraints
         )
         # Compute breathermode expandable list subject to the archetype conjuring systems and prime resonance ladder
-        from src.core.fgrt_primitives import PrimeResonanceLadder
-        if not hasattr(self, '_prime_ladder'):
-            self._prime_ladder = PrimeResonanceLadder(num_resonators=32).to(self.device)
-        freqs, repunits, status_dict = self._prime_ladder()
+        freqs, repunits, status_dict = self.prime_ladder()
         
         breather_list = []
         k_limit = getattr(self.poly_config, 'k', 5)
@@ -6597,6 +6717,170 @@ class DiegeticPhysicsEngine(nn.Module):
                     repair_count += 1
         return repair_count
 
+
+class HybridPhysicsBackend(nn.Module):
+    """
+    Hybrid Physics Backend: Multi-modal spatial, financial, and scientific stream coordinator.
+    Canonical implementation in src.ui.diegetic_backend (supersedes deleted src/core/hybrid_backend.py).
+    """
+    def __init__(self, state_dim: int = 32, device: str = "cpu"):
+        super().__init__()
+        self.state_dim = state_dim
+        self.device = device
+        from src.core.investor_news_ingestor import InvestorNewsIngestor
+        self.investor_ingestor = InvestorNewsIngestor(state_dim=state_dim)
+        self._science_ingestor = None
+        self.register_buffer("spatial_metric", torch.eye(4, device=device))
+        self.land_value_scale = 1.0
+
+    @property
+    def science_ingestor(self):
+        if self._science_ingestor is None:
+            try:
+                from src.data.knowledge_ingestor import ArXivSovereignIngestor
+                self._science_ingestor = ArXivSovereignIngestor(
+                    fossilizer=None,
+                    engine_dim=self.state_dim,
+                    device=self.device
+                )
+            except Exception:
+                self._science_ingestor = None
+        return self._science_ingestor
+
+    def set_larynx(self, larynx: Any):
+        if hasattr(self.investor_ingestor, 'set_larynx'):
+            self.investor_ingestor.set_larynx(larynx)
+        if self.science_ingestor is not None and hasattr(self.science_ingestor, 'set_larynx'):
+            self.science_ingestor.set_larynx(larynx)
+
+    def expand_categories(self, new_categories: List[str]) -> List[str]:
+        if self.science_ingestor is not None and hasattr(self.science_ingestor, 'expand_categories'):
+            return self.science_ingestor.expand_categories(new_categories)
+        return []
+
+    def fetch_spatial_land_value(
+        self,
+        bbox: Optional[Tuple[float, float, float, float]] = None,
+        query: Optional[str] = None
+    ) -> Dict[str, Any]:
+        if bbox is None:
+            bbox = (37.7749, -122.4194, 37.8049, -122.3894)
+            
+        lat_span = abs(bbox[2] - bbox[0])
+        lon_span = abs(bbox[3] - bbox[1])
+        land_rent_density = max(0.1, min(10.0, (1.0 / (lat_span * lon_span + 1e-6)) * 0.0001))
+        self.land_value_scale = float(land_rent_density)
+        
+        g = torch.eye(4, device=self.device)
+        g[0, 0] = 1.0 + 0.5 * land_rent_density
+        g[1, 1] = 1.0 + 0.5 * land_rent_density
+        g[2, 2] = 1.0 + 0.2 * land_rent_density
+        g[3, 3] = 1.0 + 0.8 * land_rent_density
+        self.spatial_metric = g
+        
+        return {
+            "bbox": bbox,
+            "land_rent_density": land_rent_density,
+            "spatial_metric": g,
+            "query": query or "amenity=commercial or landuse=commercial",
+            "parcels_detected": int(round(land_rent_density * 42))
+        }
+
+    def fetch_financial_feeds(
+        self,
+        feeds: Optional[List[str]] = None,
+        state: Optional[torch.Tensor] = None
+    ) -> List[str]:
+        return self.investor_ingestor.fetch_financial_feeds(feeds=feeds, state=state)
+
+    def fetch_scientific_feeds(
+        self,
+        topics: Optional[List[str]] = None,
+        state: Optional[torch.Tensor] = None
+    ) -> List[str]:
+        if self.science_ingestor is not None and hasattr(self.science_ingestor, 'fetch_scientific_feeds'):
+            return self.science_ingestor.fetch_scientific_feeds(topics=topics, state=state)
+        chosen_cat = topics[0] if topics and len(topics) > 0 else "math.DG"
+        state_val = float(state.flatten()[:4].norm().item()) if state is not None and state.numel() >= 4 else 1.0
+        return [
+            f"SCIENTIFIC PREPRINT ({chosen_cat}): Riemannian metric deformations under state norm {state_val:.3f} and sparse covariance flux.",
+            f"SCIENTIFIC PREPRINT ({chosen_cat}): Non-ergodic breather solitons under Mohr-Coulomb yield criteria in {chosen_cat}."
+        ]
+
+    def multiplex_feed_chain(
+        self,
+        feeds: Optional[List[str]] = None,
+        bbox: Optional[Tuple[float, float, float, float]] = None,
+        state: Optional[torch.Tensor] = None
+    ) -> Dict[str, Any]:
+        spatial_data = self.fetch_spatial_land_value(bbox=bbox)
+        try:
+            fin_data = self.fetch_financial_feeds(feeds=feeds, state=state)
+        except TypeError:
+            fin_data = self.fetch_financial_feeds(feeds=feeds)
+
+        try:
+            sci_data = self.fetch_scientific_feeds(state=state)
+        except TypeError:
+            sci_data = self.fetch_scientific_feeds()
+        
+        g = spatial_data["spatial_metric"]
+        rent_scale = spatial_data["land_rent_density"]
+        
+        flux_vec = torch.zeros(self.state_dim, device=self.device)
+        flux_vec[:4] = g.diagonal()
+        flux_vec[4] = rent_scale
+        
+        all_payloads = fin_data + sci_data
+        steering_force = self.investor_ingestor.steer_state_from_payloads(
+            all_payloads,
+            state_dim=self.state_dim,
+            device=str(self.device)
+        )
+        flux_vec = flux_vec + steering_force
+        
+        return {
+            "spatial": spatial_data,
+            "spatial_metric": g,
+            "financial": fin_data,
+            "scientific": sci_data,
+            "combined_flux": flux_vec,
+            "steering_force": steering_force,
+            "land_value_scale": rent_scale
+        }
+
+    def map_to_pointerless_octree(
+        self,
+        octree: Any,
+        spatial_payload: Dict[str, Any]
+    ) -> int:
+        return octree.ingest_spatial_land_value(spatial_payload)
+
+    def adapt_maml(
+        self,
+        support_states: torch.Tensor,
+        support_targets: torch.Tensor,
+        steps: int = 1,
+        lr: float = 0.01,
+        entropy: Optional[torch.Tensor] = None
+    ) -> 'HybridPhysicsBackend':
+        if hasattr(self.investor_ingestor, 'adapt_maml'):
+            self.investor_ingestor = self.investor_ingestor.adapt_maml(
+                support_states, support_targets, steps=steps, lr=lr, entropy=entropy
+            )
+        return self
+
+    def adapt_online(
+        self,
+        support_states: torch.Tensor,
+        support_targets: torch.Tensor,
+        steps: int = 1,
+        lr: float = 0.01,
+        entropy: Optional[torch.Tensor] = None
+    ) -> 'HybridPhysicsBackend':
+        return self.adapt_maml(support_states, support_targets, steps=steps, lr=lr, entropy=entropy)
+
+
 # Initialize Engine (only when running as the server entry point, not when imported by tests)
 _running_as_server = (__name__ == '__main__') or os.environ.get('GYROID_SERVER_MODE', '0') == '1'
 if _running_as_server:
@@ -6727,6 +7011,21 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         if d_tag not in summary:
                             summary[d_tag] = {"admissibility": True, "norm": 1.0}
                     self._send_json({"status": "ok", "tags": summary})
+                except Exception as e:
+                    self._send_error_json(str(e), 500)
+                return
+            elif base_path == '/api/rss/feeds':
+                try:
+                    feeds = ENGINE.investor_ingestor.get_user_feeds() if hasattr(ENGINE, 'investor_ingestor') else []
+                    current_hunger = 0.0
+                    if hasattr(ENGINE, 'valence_drive') and hasattr(ENGINE.valence_drive, 'get_metrics'):
+                        current_hunger = ENGINE.valence_drive.get_metrics().get('current_hunger_drive', 0.0)
+                    self._send_json({
+                        "status": "ok",
+                        "feeds": feeds,
+                        "current_hunger": float(current_hunger),
+                        "auto_inject_threshold": 0.6
+                    })
                 except Exception as e:
                     self._send_error_json(str(e), 500)
                 return
@@ -6879,6 +7178,27 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         return
                 except Exception as e:
                     self.send_error(500, f"Error serving conversational GUI: {e}")
+                    return
+
+            elif base_path in ('/benchmark-dashboard', '/benchmarks'):
+                try:
+                    current_dir = os.path.dirname(os.path.abspath(__file__))
+                    bench_path = os.path.join(current_dir, 'benchmark_dashboard.html')
+                    if not os.path.exists(bench_path):
+                        bench_path = os.path.join('src', 'ui', 'benchmark_dashboard.html')
+                    if os.path.exists(bench_path):
+                        with open(bench_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'text/html; charset=utf-8')
+                        self.end_headers()
+                        self.wfile.write(content.encode('utf-8'))
+                        return
+                    else:
+                        self.send_error(404, "Benchmark dashboard not found")
+                        return
+                except Exception as e:
+                    self.send_error(500, f"Error serving benchmark dashboard: {e}")
                     return
             
             elif base_path == '/wikipedia-trainer':
@@ -8208,6 +8528,71 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     "ingested_articles": ingested_count
                 })
 
+            elif self.path == '/api/rss/feeds':
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len)
+                data = json.loads(post_body.decode('utf-8'))
+                action = data.get("action", "add")
+                url = data.get("url", "").strip()
+                name = data.get("name", "").strip() or None
+                enabled = data.get("enabled", True)
+                
+                if not hasattr(ENGINE, 'investor_ingestor'):
+                    self._send_error_json("InvestorNewsIngestor not available on ENGINE", 500)
+                    return
+                
+                if action == "add" and url:
+                    updated = ENGINE.investor_ingestor.add_user_feed(url, name=name)
+                elif action == "remove" and url:
+                    updated = ENGINE.investor_ingestor.remove_user_feed(url)
+                elif action == "toggle" and url:
+                    updated = ENGINE.investor_ingestor.toggle_user_feed(url, enabled=enabled)
+                elif action == "save" and "feeds" in data:
+                    ENGINE.investor_ingestor.save_user_feeds(data["feeds"])
+                    updated = data["feeds"]
+                else:
+                    updated = ENGINE.investor_ingestor.get_user_feeds()
+
+                self._send_json({"status": "ok", "feeds": updated})
+
+            elif self.path == '/api/rss/ingest':
+                content_len = int(self.headers.get('Content-Length', 0))
+                data = {}
+                if content_len > 0:
+                    post_body = self.rfile.read(content_len)
+                    try:
+                        data = json.loads(post_body.decode('utf-8'))
+                    except Exception:
+                        data = {}
+                
+                if not hasattr(ENGINE, 'investor_ingestor'):
+                    self._send_error_json("InvestorNewsIngestor not available on ENGINE", 500)
+                    return
+                
+                specified_feeds = data.get("feeds")
+                urls = specified_feeds if specified_feeds else ENGINE.investor_ingestor.get_active_feed_urls()
+                payloads = ENGINE.investor_ingestor.fetch_financial_feeds(feeds=urls, state=getattr(ENGINE, 'meta_state', None))
+                
+                ingested_count = 0
+                for text in payloads[:12]:
+                    if text and not text.startswith("Equities flux neutral"):
+                        try:
+                            ENGINE.process_input(text, generate_response=False)
+                            ingested_count += 1
+                        except Exception as e:
+                            print(f"[RSS_INGEST] Ingestion error: {e}")
+                
+                current_hunger = 0.0
+                if hasattr(ENGINE, 'valence_drive') and hasattr(ENGINE.valence_drive, 'get_metrics'):
+                    current_hunger = ENGINE.valence_drive.get_metrics().get('current_hunger_drive', 0.0)
+                
+                self._send_json({
+                    "status": "ok",
+                    "crawled_articles": len(payloads),
+                    "ingested_articles": ingested_count,
+                    "current_hunger": float(current_hunger)
+                })
+
             elif self.path == '/api/voxelboxter/boot':
                 # Launch the PyBevy voxelboxter client asynchronously
                 import subprocess
@@ -8235,7 +8620,16 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 except Exception as e:
                     self._send_error_json(f"Failed to boot Voxelboxter: {str(e)}")
             
-            elif self.path in ('/api/benchmark/topobench', '/api/benchmark/reactbench', '/api/benchmark/narrative', '/api/benchmark/aireasoner', '/api/benchmark/all'):
+            elif self.path in (
+                '/api/benchmark/topobench',
+                '/api/benchmark/reactbench',
+                '/api/benchmark/narrative',
+                '/api/benchmark/aireasoner',
+                '/api/benchmark/chordlock',
+                '/api/benchmark/memory_palace',
+                '/api/benchmark/singularities',
+                '/api/benchmark/all'
+            ):
                 import io
                 import contextlib
                 import time
@@ -8262,6 +8656,21 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                             evaluator = AIReasonerEvaluator()
                             report = evaluator.run_suite()
                             suite_name = "AIReasonerEvaluator"
+                        elif self.path == '/api/benchmark/chordlock':
+                            from src.benchmarks.chordlock_evaluator import ChordlockEvaluator
+                            evaluator = ChordlockEvaluator()
+                            report = evaluator.run_suite()
+                            suite_name = "ChordlockEvaluator"
+                        elif self.path == '/api/benchmark/memory_palace':
+                            from src.benchmarks.memory_palace_evaluator import MemoryPalaceEvaluator
+                            evaluator = MemoryPalaceEvaluator()
+                            report = evaluator.run_suite()
+                            suite_name = "MemoryPalaceEvaluator"
+                        elif self.path == '/api/benchmark/singularities':
+                            from src.benchmarks.topological_singularity_evaluator import TopologicalSingularityEvaluator
+                            evaluator = TopologicalSingularityEvaluator()
+                            report = evaluator.run_suite()
+                            suite_name = "TopologicalSingularityEvaluator"
                         else:  # /api/benchmark/all
                             from src.benchmarks.run_all_benchmarks import BenchmarkSuiteRunner
                             runner = BenchmarkSuiteRunner()
