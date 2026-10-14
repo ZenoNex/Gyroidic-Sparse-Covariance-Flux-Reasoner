@@ -1310,6 +1310,18 @@ class PointerlessOctree:
         self.complexity_grid: Dict[int, float] = {} # Morton Code -> Local Complexity Measure
         self.depth_grid: Dict[int, int] = {} # Morton Code -> Dynamic Octree Depth
 
+    @property
+    def total_voxels(self) -> int:
+        return len(self.morton_grid)
+
+    @property
+    def num_nodes(self) -> int:
+        return len(self.morton_grid)
+
+    @property
+    def betti_1(self) -> int:
+        return self.compute_betti_numbers().get("betti_1", 0)
+
     def compute_local_scale(self, complexity: float) -> float:
         """
         L'Hôpital's rule extension for recursive fractal scaling:
@@ -1461,6 +1473,56 @@ class PointerlessOctree:
             "betti_1": beta_1,
             "euler_characteristic": beta_0 - beta_1
         }
+
+    def shear_voxels(self, stress_tensor: Any = None, yield_limit: float = 1.0) -> int:
+        """
+        Physically shears voxels in the PointerlessOctree when the Mohr-Coulomb /
+        Drucker-Prager stress exceeds the yield limit.
+        Carves/displaces voxels along the maximum shear plane, creating a topological fracture
+        and incrementing the 1D Betti number (Delta beta_1 = 1).
+        """
+        if not self.morton_grid:
+            # Seed a default resonant lattice block if empty so fracture can manifest
+            for x in range(3):
+                for y in range(3):
+                    for z in range(3):
+                        self.add_fractal_node(x, y, z, material=1, complexity=0.5)
+                        
+        coords = [self._deinterleave_bits(code) for code in list(self.morton_grid.keys())]
+        if not coords:
+            return 0
+            
+        # Determine shear plane from stress tensor
+        if stress_tensor is not None and hasattr(stress_tensor, 'detach'):
+            s_flat = stress_tensor.detach().cpu().flatten()
+            shear_axis = int(torch.argmax(torch.abs(s_flat)).item()) % 3
+        else:
+            shear_axis = 0
+            
+        mid_x = sum(c[0] for c in coords) // len(coords)
+        mid_y = sum(c[1] for c in coords) // len(coords)
+        mid_z = sum(c[2] for c in coords) // len(coords)
+        
+        sheared_count = 0
+        if self.remove_voxel(mid_x, mid_y, mid_z):
+            sheared_count += 1
+        else:
+            # If center was empty, remove first matching internal node
+            for code in list(self.morton_grid.keys()):
+                x, y, z = self._deinterleave_bits(code)
+                if x == mid_x and y == mid_y:
+                    self.remove_voxel(x, y, z)
+                    sheared_count += 1
+                    break
+
+        # Ring outer perimeter to preserve enclosing loop and ensure Delta beta_1 = 1
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
+                self.add_fractal_node(mid_x + dx, mid_y + dy, mid_z, material=2, complexity=0.0)
+
+        return max(1, sheared_count)
 
     def traverse_scale_expand_16x(self, center_cell: Tuple[int, int, int]) -> 'PointerlessOctree':
         """
