@@ -538,8 +538,7 @@
 
             <div class="telemetry-group">
                 <div class="telemetry-item">
-                    Active Suites: <span id="suites-count-metric" style="color: #fff; font-weight: 700;">3 Suites / 15
-                        Tests</span>
+                    Active Suites: <span id="suites-count-metric" style="color: #fff; font-weight: 700;">7 Suites / 35 Tests</span>
                 </div>
                 <div class="telemetry-item">
                     Last Benchmark: <span id="last-run-timestamp" style="color: var(--text-dim);">Ready</span>
@@ -554,14 +553,15 @@
                 <span id="overall-status-pill" class="status-badge badge-idle">SUITE READY</span>
             </h2>
             <p class="theory-desc" style="margin-bottom: 1.5rem;">
-                Execute standalone evaluators or run the full 15-test unified validation suite across core topological
-                manifold preservation, polynomial CRT reconstruction, and anti-lobotomy boundaries.
+                Execute standalone evaluators or run the full 35-test unified validation suite across core topological
+                manifold preservation, polynomial CRT reconstruction, anti-lobotomy boundaries, prime resonance chordlock,
+                soliton memory palace breeding, and 5-layer topological singularity mitigation.
             </p>
 
             <div class="controls-row">
                 <button id="btn-run-all" class="btn btn-primary"
                     onclick="runBenchmark('/api/benchmark/all', 'All Benchmarks')">
-                    Run All Benchmarks (20 Tests)
+                    Run All Benchmarks (35 Tests)
                 </button>
                 <button id="btn-run-topo" class="btn btn-suite"
                     onclick="runBenchmark('/api/benchmark/topobench', 'TopoBench')">
@@ -578,6 +578,18 @@
                 <button id="btn-run-ai" class="btn btn-suite"
                     onclick="runBenchmark('/api/benchmark/aireasoner', 'AI Reasoner & Curvature')">
                     Run AI Reasoner (5 Tests)
+                </button>
+                <button id="btn-run-chord" class="btn btn-suite"
+                    onclick="runBenchmark('/api/benchmark/chordlock', 'Chordlock & Prime Resonance')">
+                    Run Chordlock (5 Tests)
+                </button>
+                <button id="btn-run-mem" class="btn btn-suite"
+                    onclick="runBenchmark('/api/benchmark/memory_palace', 'Memory Palace & Solitons')">
+                    Run Memory Palace (5 Tests)
+                </button>
+                <button id="btn-run-sing" class="btn btn-suite"
+                    onclick="runBenchmark('/api/benchmark/singularities', 'Topological Singularities')">
+                    Run Singularities (5 Tests)
                 </button>
                 <button id="btn-poll-live" class="btn btn-secondary" onclick="fetchLiveTelemetry()">
                     Refresh Live Telemetry
@@ -742,6 +754,114 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Suite 5: Chordlock & Prime Resonance -->
+                <div class="suite-card" id="card-chordlock">
+                    <div class="suite-header">
+                        <div class="suite-title">Chordlock & Prime Resonance (2026)</div>
+                        <span id="badge-chordlock" class="status-badge badge-idle">STANDBY</span>
+                    </div>
+                    <p class="theory-desc">Verifies harmonic phase closure, coherent prime resonance ladders, multi-prime repunit scaling, hardware hedged read path execution, and trigonometric chiral unfolding.</p>
+                    <div class="suite-tests-list">
+                        <div class="test-row">
+                            <span class="test-name">1. Chordlock Identity & Harmonic Closure</span>
+                            <span class="test-meta"><span class="indicator" id="ind-chord-1"></span> <span
+                                    id="val-chord-1">Phase Delta &lt; 0.1</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">2. Coherent Prime Resonance Alignment</span>
+                            <span class="test-meta"><span class="indicator" id="ind-chord-2"></span> <span
+                                    id="val-chord-2">Resonance Coh &gt; 0.7</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">3. Multi-Prime Resonance Lattice Scaling</span>
+                            <span class="test-meta"><span class="indicator" id="ind-chord-3"></span> <span
+                                    id="val-chord-3">Lattice Ratios Preserved</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">4. Hardware Hedged Read Path Fallback</span>
+                            <span class="test-meta"><span class="indicator" id="ind-chord-4"></span> <span
+                                    id="val-chord-4">CPU/GPU Parity</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">5. Chiral Trigonometric Unfolding</span>
+                            <span class="test-meta"><span class="indicator" id="ind-chord-5"></span> <span
+                                    id="val-chord-5">Orthogonality &gt; 0.3</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suite 6: Memory Palace & SOMA Solitons -->
+                <div class="suite-card" id="card-memorypalace">
+                    <div class="suite-header">
+                        <div class="suite-title">Memory Palace & SOMA Solitons (2026)</div>
+                        <span id="badge-memorypalace" class="status-badge badge-idle">STANDBY</span>
+                    </div>
+                    <p class="theory-desc">Evaluates high-dimensional spatial isolation, SLERP soliton room breeding, outlier seed resilience, selective puncture invariance, and necrotic well CRT compression.</p>
+                    <div class="suite-tests-list">
+                        <div class="test-row">
+                            <span class="test-name">1. Room Planting & Spatial Isolation</span>
+                            <span class="test-meta"><span class="indicator" id="ind-mem-1"></span> <span
+                                    id="val-mem-1">d_eff &ge; 20 (d_eff=20.0)</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">2. SLERP Soliton Room Breeding</span>
+                            <span class="test-meta"><span class="indicator" id="ind-mem-2"></span> <span
+                                    id="val-mem-2">Nonlinear Arc Midpoint</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">3. Outlier Seed Resilience</span>
+                            <span class="test-meta"><span class="indicator" id="ind-mem-3"></span> <span
+                                    id="val-mem-3">Dist Stable under 0.95 Noise</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">4. Selective Puncture Invariance</span>
+                            <span class="test-meta"><span class="indicator" id="ind-mem-4"></span> <span
+                                    id="val-mem-4">&Delta;B1 &le; 1 Homology</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">5. Necrotic Well CRT Compression</span>
+                            <span class="test-meta"><span class="indicator" id="ind-mem-5"></span> <span
+                                    id="val-mem-5">Zero Divergence CRT Sink</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suite 7: Topological Singularities (5-Layer) -->
+                <div class="suite-card" id="card-singularities">
+                    <div class="suite-header">
+                        <div class="suite-title">Topological Singularities (5-Layer)</div>
+                        <span id="badge-singularities" class="status-badge badge-idle">STANDBY</span>
+                    </div>
+                    <p class="theory-desc">Validates complete 5-layer mitigation against rent-seeking parasitic extraction: Octree multiplexing, coprime bypass, mechanical shear, quarantine stagnation, and push-forward absorption.</p>
+                    <div class="suite-tests-list">
+                        <div class="test-row">
+                            <span class="test-name">1. Layer 1: Substrate Octree Multiplexing</span>
+                            <span class="test-meta"><span class="indicator" id="ind-sing-1"></span> <span
+                                    id="val-sing-1">Occupancy &gt; 1</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">2. Layer 2: Void Friction Coprime Bypass</span>
+                            <span class="test-meta"><span class="indicator" id="ind-sing-2"></span> <span
+                                    id="val-sing-2">GCD=1 &amp; R_eff &lt; R_void</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">3. Layer 3: Mechanical Shear (&Delta;&beta;1 = 1)</span>
+                            <span class="test-meta"><span class="indicator" id="ind-sing-3"></span> <span
+                                    id="val-sing-3">&Delta;Betti1 = 1 Exact</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">4. Layer 4: Necrotic Stagnation Quarantine</span>
+                            <span class="test-meta"><span class="indicator" id="ind-sing-4"></span> <span
+                                    id="val-sing-4">Zero-Velocity Trapping</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">5. Layer 5: Brenier Push-Forward Luminance</span>
+                            <span class="test-meta"><span class="indicator" id="ind-sing-5"></span> <span
+                                    id="val-sing-5">Luminance Drop &gt; 0.2</span></span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -804,6 +924,18 @@
                     <div class="theory-title">Minimal Surface Gyroid Flow</div>
                     <div class="theory-desc">Embedding flows adhere strictly to the minimal surface condition
                         &lt;v_flow, grad G&gt; ~ 0, preventing collapse into scalarized shortcut attractors.</div>
+                </div>
+                <div class="theory-card">
+                    <div class="theory-title">Prime Resonance Chordlock Lattice</div>
+                    <div class="theory-desc">Repunit mirror lattices and coprime harmonic phase laddering bound the manifold within unitary phase delta &lt; 0.1, preventing non-harmonic dispersion.</div>
+                </div>
+                <div class="theory-card">
+                    <div class="theory-title">SOMA Soliton Memory Palace</div>
+                    <div class="theory-desc">Solitonic rooms embedded across hyperspheres preserve memory invariants under 95% Wiener noise and nonlinear SLERP breeding without puncture interference.</div>
+                </div>
+                <div class="theory-card">
+                    <div class="theory-title">5-Layer Singularity Dissipation</div>
+                    <div class="theory-desc">Combines octree spatial multiplexing, coprime bypass, mechanical shear (&Delta;&beta;1 = 1), zero-velocity necrotic traps, and OKLab luminance absorption to neutralize rent-seeking extraction.</div>
                 </div>
             </div>
         </section>
@@ -959,6 +1091,72 @@
             }
         }
 
+        function renderChordlockReport(report) {
+            const tests = report.tests || {};
+            const success = report.success;
+            updateSuiteBadge('badge-chordlock', success ? 'PASS 5/5' : 'FAIL', success ? 'badge-pass' : 'badge-fail');
+
+            if (tests.chordlock_identity) {
+                updateIndicator('ind-chord-1', 'val-chord-1', tests.chordlock_identity.pass, 'Delta: ' + (tests.chordlock_identity.phase_delta || 0).toFixed(4));
+            }
+            if (tests.coherent_prime_resonance) {
+                updateIndicator('ind-chord-2', 'val-chord-2', tests.coherent_prime_resonance.pass, 'Coh: ' + (tests.coherent_prime_resonance.coherence || 0).toFixed(3));
+            }
+            if (tests.multi_prime_lattice) {
+                updateIndicator('ind-chord-3', 'val-chord-3', tests.multi_prime_lattice.pass, 'Points: ' + (tests.multi_prime_lattice.lattice_points || 0));
+            }
+            if (tests.hardware_hedged_read) {
+                updateIndicator('ind-chord-4', 'val-chord-4', tests.hardware_hedged_read.pass, 'Dev: ' + (tests.hardware_hedged_read.active_device || 'CPU'));
+            }
+            if (tests.chiral_unfolding) {
+                updateIndicator('ind-chord-5', 'val-chord-5', tests.chiral_unfolding.pass, 'Orth: ' + (tests.chiral_unfolding.orthogonality || 0).toFixed(3));
+            }
+        }
+
+        function renderMemoryPalaceReport(report) {
+            const tests = report.tests || {};
+            const success = report.success;
+            updateSuiteBadge('badge-memorypalace', success ? 'PASS 5/5' : 'FAIL', success ? 'badge-pass' : 'badge-fail');
+
+            if (tests.spatial_isolation) {
+                updateIndicator('ind-mem-1', 'val-mem-1', tests.spatial_isolation.pass, 'd_eff: ' + (tests.spatial_isolation.effective_dimension || 0).toFixed(1));
+            }
+            if (tests.slerp_breeding) {
+                updateIndicator('ind-mem-2', 'val-mem-2', tests.slerp_breeding.pass, 'Arc Diff: ' + (tests.slerp_breeding.arc_midpoint_diff || 0).toFixed(4));
+            }
+            if (tests.outlier_resilience) {
+                updateIndicator('ind-mem-3', 'val-mem-3', tests.outlier_resilience.pass, 'Dist: ' + (tests.outlier_resilience.dist_outlier || 0).toFixed(3));
+            }
+            if (tests.selective_puncture) {
+                updateIndicator('ind-mem-4', 'val-mem-4', tests.selective_puncture.pass, '&Delta;B1: ' + (tests.selective_puncture.betti_delta !== undefined ? tests.selective_puncture.betti_delta : 0));
+            }
+            if (tests.necrotic_well_crt) {
+                updateIndicator('ind-mem-5', 'val-mem-5', tests.necrotic_well_crt.pass, 'Div: ' + (tests.necrotic_well_crt.flow_divergence || 0).toFixed(4));
+            }
+        }
+
+        function renderSingularitiesReport(report) {
+            const tests = report.tests || {};
+            const success = report.success;
+            updateSuiteBadge('badge-singularities', success ? 'PASS 5/5' : 'FAIL', success ? 'badge-pass' : 'badge-fail');
+
+            if (tests.layer1_octree_multiplexing) {
+                updateIndicator('ind-sing-1', 'val-sing-1', tests.layer1_octree_multiplexing.pass, 'Occ: ' + (tests.layer1_octree_multiplexing.occupancy_count || 0));
+            }
+            if (tests.layer2_void_friction_bypass) {
+                updateIndicator('ind-sing-2', 'val-sing-2', tests.layer2_void_friction_bypass.pass, 'R_eff: ' + (tests.layer2_void_friction_bypass.effective_radius || 0).toFixed(3));
+            }
+            if (tests.layer3_mechanical_shear) {
+                updateIndicator('ind-sing-3', 'val-sing-3', tests.layer3_mechanical_shear.pass, '&Delta;B1: ' + (tests.layer3_mechanical_shear.betti_1_delta !== undefined ? tests.layer3_mechanical_shear.betti_1_delta : 1));
+            }
+            if (tests.layer4_necrotic_stagnation) {
+                updateIndicator('ind-sing-4', 'val-sing-4', tests.layer4_necrotic_stagnation.pass, 'Vel: ' + (tests.layer4_necrotic_stagnation.final_velocity || 0).toExponential(2));
+            }
+            if (tests.layer5_pushforward_luminance) {
+                updateIndicator('ind-sing-5', 'val-sing-5', tests.layer5_pushforward_luminance.pass, 'Drop: ' + (tests.layer5_pushforward_luminance.luminance_drop || 0).toFixed(3));
+            }
+        }
+
         async function runBenchmark(endpoint, title) {
             if (isRunning) return;
             isRunning = true;
@@ -990,6 +1188,9 @@
                             if (suites.ReactBenchEvaluator) renderReactBenchReport(suites.ReactBenchEvaluator);
                             if (suites.NarrativeYieldEvaluator) renderNarrativeReport(suites.NarrativeYieldEvaluator);
                             if (suites.AIReasonerEvaluator) renderAIReasonerReport(suites.AIReasonerEvaluator);
+                            if (suites.ChordlockEvaluator) renderChordlockReport(suites.ChordlockEvaluator);
+                            if (suites.MemoryPalaceEvaluator) renderMemoryPalaceReport(suites.MemoryPalaceEvaluator);
+                            if (suites.TopologicalSingularityEvaluator) renderSingularitiesReport(suites.TopologicalSingularityEvaluator);
 
                             const allPassed = data.report.success;
                             pill.innerText = allPassed ? `ALL PASSED (${data.report.total_passed}/${data.report.total_tests})` : 'FAILURES DETECTED';
@@ -1009,6 +1210,18 @@
                         } else if (endpoint === '/api/benchmark/aireasoner') {
                             renderAIReasonerReport(data.report);
                             pill.innerText = data.report.success ? 'AI REASONER PASS (5/5)' : 'AI REASONER FAIL';
+                            pill.className = 'status-badge ' + (data.report.success ? 'badge-pass' : 'badge-fail');
+                        } else if (endpoint === '/api/benchmark/chordlock') {
+                            renderChordlockReport(data.report);
+                            pill.innerText = data.report.success ? 'CHORDLOCK PASS (5/5)' : 'CHORDLOCK FAIL';
+                            pill.className = 'status-badge ' + (data.report.success ? 'badge-pass' : 'badge-fail');
+                        } else if (endpoint === '/api/benchmark/memory_palace') {
+                            renderMemoryPalaceReport(data.report);
+                            pill.innerText = data.report.success ? 'MEMORY PALACE PASS (5/5)' : 'MEMORY PALACE FAIL';
+                            pill.className = 'status-badge ' + (data.report.success ? 'badge-pass' : 'badge-fail');
+                        } else if (endpoint === '/api/benchmark/singularities') {
+                            renderSingularitiesReport(data.report);
+                            pill.innerText = data.report.success ? 'SINGULARITIES PASS (5/5)' : 'SINGULARITIES FAIL';
                             pill.className = 'status-badge ' + (data.report.success ? 'badge-pass' : 'badge-fail');
                         }
 
