@@ -7,7 +7,7 @@ import numpy as np
 from src.surrogates.kagh_networks import KANLayer, KAGHBlock
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
-from src.core.fgrt_primitives import PrimeResonanceLadder
+from src.core.invariants import PrimeResonanceLadder
 
 # -----------------------------------------------------------------------------
 # Draft 1: The "Berry-Phase Modulated" GRU (Minimal Integration)
