@@ -1272,7 +1272,9 @@ class MemoryPalaceRoom:
         breather_soliton: Optional[torch.Tensor] = None,
         seam_tension: float = 0.0,
         is_outlier_seed: bool = False,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        curvature: float = 0.0,
+        soliton_payload: Optional[Dict[str, Any]] = None
     ):
         self.room_id = room_id
         # Center mu_k is explicitly detached from autograd to prevent diffusion toxins
@@ -1280,9 +1282,11 @@ class MemoryPalaceRoom:
         self.variance = max(float(variance), 1e-4)
         self.residue_tuple = residue_tuple
         self.breather_soliton = breather_soliton.detach().clone() if breather_soliton is not None else None
-        self.seam_tension = float(seam_tension)
+        self.seam_tension = float(max(seam_tension, curvature))
+        self.curvature = float(curvature)
         self.is_outlier_seed = bool(is_outlier_seed)
         self.metadata = metadata or {}
+        self.soliton_payload = soliton_payload or {}
         self.sealed = True
 
     def get_punctured_state(self, state: Optional[torch.Tensor] = None) -> torch.Tensor:
@@ -1337,10 +1341,13 @@ class MemoryPalace(nn.Module):
         center: torch.Tensor,
         variance: float = 1.0,
         residue_tuple: Tuple[int, ...] = (),
-        breather_soliton: Optional[torch.Tensor] = None,
+        breather_soliton: Optional[Any] = None,
         seam_tension: float = 0.0,
         is_outlier_seed: bool = False,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        curvature: float = 0.0,
+        soliton_payload: Optional[Dict[str, Any]] = None,
+        breather_module: Optional[Any] = None
     ) -> MemoryPalaceRoom:
         """
         Plant a discrete attractor chamber sealed within a Meliponini Cerumen Pot.
@@ -1359,7 +1366,9 @@ class MemoryPalace(nn.Module):
             residue_tuple = (val % 61, val % 67, val % 71)
 
         # SOMA flat O(K) BreatherMode soliton footprint
-        if breather_soliton is None:
+        target_breather = breather_soliton if breather_soliton is not None else breather_module
+        stored_breather_module = None
+        if target_breather is None:
             try:
                 from src.models.resonance_cavity import BreatherMode
                 bm = BreatherMode(num_breathers=8, dim=self.feature_dim)
@@ -1367,8 +1376,23 @@ class MemoryPalace(nn.Module):
                     b_soliton = bm.projection(bm.evaluate(c_flat)).view(-1).detach()
             except Exception:
                 b_soliton = None
+        elif isinstance(target_breather, torch.Tensor):
+            b_soliton = target_breather.detach().clone()
         else:
-            b_soliton = breather_soliton.detach().clone()
+            # BreatherMode nn.Module or similar callable
+            stored_breather_module = target_breather
+            try:
+                with torch.no_grad():
+                    b_soliton = stored_breather_module.projection(stored_breather_module.evaluate(c_flat)).view(-1).detach()
+            except Exception:
+                b_soliton = None
+
+        room_meta = dict(metadata or {})
+        if stored_breather_module is not None:
+            room_meta["breather_soliton"] = {
+                "num_modes": getattr(stored_breather_module, "num_breathers", 8),
+                "dim": getattr(stored_breather_module, "dim", self.feature_dim)
+            }
 
         room = MemoryPalaceRoom(
             room_id=room_id,
@@ -1378,10 +1402,28 @@ class MemoryPalace(nn.Module):
             breather_soliton=b_soliton,
             seam_tension=seam_tension,
             is_outlier_seed=is_outlier_seed,
-            metadata=metadata
+            metadata=room_meta,
+            curvature=curvature,
+            soliton_payload=soliton_payload
         )
         self.rooms[room_id] = room
         return room
+
+    def generate_breather_soliton(self, room_id: str, t: float = 0.0) -> Optional[torch.Tensor]:
+        """Generates localized BreatherMode soliton packet for the specified room."""
+        if room_id not in self.rooms:
+            return None
+        room = self.rooms[room_id]
+        try:
+            from src.models.resonance_cavity import BreatherMode
+            num_breathers = 8
+            if "breather_soliton" in room.metadata and "num_modes" in room.metadata["breather_soliton"]:
+                num_breathers = room.metadata["breather_soliton"]["num_modes"]
+            bm = BreatherMode(num_breathers=num_breathers, dim=self.feature_dim)
+            with torch.no_grad():
+                return bm.evaluate(room.center, t=t).detach()
+        except Exception:
+            return room.breather_soliton
 
     def breed_rooms(
         self,
@@ -1481,27 +1523,39 @@ class MemoryPalace(nn.Module):
 
     def plant_outlier_seed(
         self,
-        seed_id: str,
-        center: torch.Tensor,
+        seed_id: Optional[str] = None,
+        center: Optional[torch.Tensor] = None,
         seam_tension: float = 2.5,
         residue_tuple: Tuple[int, ...] = (),
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        room_id: Optional[str] = None,
+        transversal_point: Optional[torch.Tensor] = None,
+        curvature: Optional[float] = None,
+        soliton_payload: Optional[Dict[str, Any]] = None,
+        breather_module: Optional[Any] = None,
     ) -> MemoryPalaceRoom:
         """
         Plant an Outlier Seed in the extremal slider / high-kappa transversal zone
         where CRT channel boundaries intersect at maximum geometric curvature.
         """
+        target_id = seed_id or room_id or f"outlier_{len(self.rooms)}"
+        target_center = center if center is not None else transversal_point
+        if target_center is None:
+            target_center = torch.randn(self.feature_dim)
+        target_tension = curvature if curvature is not None else seam_tension
         meta = metadata or {}
         meta['is_outlier_seed'] = True
         meta['extreme_slider_zone'] = True
         return self.plant_room(
-            room_id=seed_id,
-            center=center,
+            room_id=target_id,
+            center=target_center,
             variance=0.5, # Sharper basin for localized transversal glitch
             residue_tuple=residue_tuple,
-            seam_tension=seam_tension,
+            seam_tension=target_tension,
             is_outlier_seed=True,
-            metadata=meta
+            metadata=meta,
+            soliton_payload=soliton_payload,
+            breather_module=breather_module
         )
 
     def pull_force(self, query_state: torch.Tensor, room_id: str) -> torch.Tensor:
