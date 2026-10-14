@@ -227,13 +227,8 @@ def process_abeb_power_cycle(
     """
     for battery, engine in query_vehicles:
         if getattr(battery, '_prime_ladder_cache', None) is None:
-            try:
-                from src.core.fgrt_primitives import PrimeResonanceLadder
-                ladder = PrimeResonanceLadder(num_resonators=battery.num_resonance_channels)
-                battery._prime_ladder_cache = ladder.primes.float()
-            except (ImportError, NameError):
-                from src.core.invariants import get_prime_ladder
-                battery._prime_ladder_cache = get_prime_ladder(max(4, battery.num_resonance_channels)).float()
+            from src.core.invariants import get_prime_ladder
+            battery._prime_ladder_cache = get_prime_ladder(max(4, battery.num_resonance_channels)).float()
 
         if not battery.is_choked:
             harmonic_multiplier = (torch.sum(battery._prime_ladder_cache) / battery.num_resonance_channels).item()
