@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 from typing import Dict, Optional, Tuple
 import math
-from src.core.fgrt_primitives import PrimeResonanceLadder
+from src.core.invariants import PrimeResonanceLadder
 
 
 class ManifoldClock(nn.Module):
