@@ -540,7 +540,12 @@ class ZeitgeistRouter(nn.Module):
                 
         return current
 
-    def temporal_inverse_kinematics(self, state: ZeitgeistState, x: torch.Tensor) -> torch.Tensor:
+    def temporal_inverse_kinematics(
+        self,
+        state: ZeitgeistState,
+        x: torch.Tensor,
+        spatial_metric: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Modulates state steering based on non-Abelian Braid word and Chern-Simons phase.
         Enforces path-dependent geometry on the manifold transition.
@@ -548,8 +553,14 @@ class ZeitgeistRouter(nn.Module):
         # Calculate steering force from Braid Word length
         word_pressure = len(state.braid_word) / (self.M * 2.0 + 1e-8)
         
-        # Chern-Simons Phase rotation (Topological shift)
-        phase = state.cs_phase
+        f_void = getattr(self, '_current_f_void', 0.0)
+        if spatial_metric is not None and isinstance(spatial_metric, torch.Tensor):
+            g_diag = torch.diagonal(spatial_metric) if spatial_metric.dim() >= 2 else spatial_metric
+            rent_curvature = (torch.norm(g_diag) - 2.0).clamp(min=0.0)
+            f_void = max(f_void, float(torch.tanh(rent_curvature * 0.5).item()))
+        
+        # Chern-Simons Phase rotation + geodesic deflection when approaching high-rent boundary
+        phase = state.cs_phase + f_void * (math.pi * 0.5)
         rotation = torch.tensor([
             [math.cos(phase), -math.sin(phase)],
             [math.sin(phase), math.cos(phase)]
@@ -561,8 +572,8 @@ class ZeitgeistRouter(nn.Module):
             x_steer = x.clone()
             x_steer[..., :2] = torch.matmul(x[..., :2], rotation)
             
-            # Apply word pressure as a damping factor
-            damping = 1.0 - 0.2 * torch.tanh(torch.tensor(word_pressure))
+            # Apply word pressure and void friction as damping factor
+            damping = 1.0 - 0.2 * torch.tanh(torch.tensor(word_pressure + f_void))
             return x_steer * damping
             
         return x
@@ -698,7 +709,20 @@ class ZeitgeistRouter(nn.Module):
         is_1d = (x.dim() == 1)
 
         #  0. Archetypal Synthesis Engine (Data Transformation)  #
+        # Read spatial metric tensor g_mu_nu to compute land-rent curvature and scale up F_void
+        f_void_val = 0.0
+        spatial_metric = tadc_kwargs.get('spatial_metric', None) if tadc_kwargs else None
+        if spatial_metric is None and boundary is not None:
+            spatial_metric = getattr(boundary, 'spatial_metric', None)
+        if spatial_metric is not None and isinstance(spatial_metric, torch.Tensor):
+            g_diag = torch.diagonal(spatial_metric) if spatial_metric.dim() >= 2 else spatial_metric
+            rent_curvature = (torch.norm(g_diag) - 2.0).clamp(min=0.0)
+            f_void_val = float(torch.tanh(rent_curvature * 0.5).item())
+        self._current_f_void = f_void_val
+
         if self._archetype is not None and tadc_kwargs is not None:
+             base_friction = tadc_kwargs.get('friction', torch.tensor([0.0], device=x.device))
+             void_frictions_scaled = base_friction * (1.0 + f_void_val * 2.0) + f_void_val
              # Route through the Grand Governor
              arch_results = self._archetype.run_archetypes(
                  current_state=x,
@@ -706,7 +730,7 @@ class ZeitgeistRouter(nn.Module):
                  current_mischief=tadc_kwargs.get('mischief', 0.5),
                  phase_alignment=tadc_kwargs.get('pas_h', 0.5),
                  love_strengths=tadc_kwargs.get('love', torch.tensor([1.0], device=x.device)),
-                 void_frictions=tadc_kwargs.get('friction', torch.tensor([0.0], device=x.device)),
+                 void_frictions=void_frictions_scaled,
                  global_dt=1.0,
                  env_luminosity=tadc_kwargs.get('luminosity', 1.0),
                  volitional_scalar=tadc_kwargs.get('volition', 0.0),
@@ -921,6 +945,7 @@ class ZeitgeistRouter(nn.Module):
             'cs_phase': new_state.cs_phase,
             'word_length': len(new_state.braid_word),
             'gasket_tension': len(new_state.braid_word) / self.M,
+            'f_void': getattr(self, '_current_f_void', 0.0),
             # Serialised state for payload
         }
         d['state'] = new_state.to_dict()
