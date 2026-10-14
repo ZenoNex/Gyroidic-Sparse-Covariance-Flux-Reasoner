@@ -10,7 +10,7 @@ Implements the base mathematical operators for:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from src.core.invariants import PI, is_prime
+from src.core.invariants import PI, is_prime, PrimeResonanceLadder, get_prime_ladder
 from typing import Tuple, Optional, Dict, Any, Union
 from src.core.honest_jitter import harvest_honest_jitter
 import time
@@ -214,154 +214,9 @@ class BerryPhaseTracker(nn.Module):
         
         return delta_phi
 
-class PrimeResonanceLadder(nn.Module):
-    """
-    Prime-based Resonance Ladder (Eq 1).
-    
-    Generates resonance frequencies based on the sequence of prime numbers and their
-    corresponding palindromic repunits (Repunit-Prime Pairs).
-    
-    Hybrid Palindromic Basis:
-    f_{p_n} = 2 * pi * log(p_n)
-    R_n^{(p)} = (p^n - 1) / (p - 1)  [Repunit-Prime Symmetry Mirror]
-    
-    Authorship: Integrated Lazarus Prime selection for O(K) Symmetry-Stable Warmstart.
-    """
-    def __init__(self, num_resonators: int = 100, repunit_base_n: int = 3):
-        super().__init__()
-        self.num_resonators = num_resonators
-        self.repunit_base_n = repunit_base_n
-        
-        # 1. Generate Prime-Repunit Pairs
-        primes, repunits = self._generate_hybrid_basis(num_resonators, repunit_base_n)
-        self.register_buffer('primes', primes)
-        self.register_buffer('repunits', repunits)
-        
-        # 2. Resonant Frequencies: Eq (1): f_{p_n} = 2 * pi * log(p_n)
-        # Note: PI is an 11-decimal approximation of Pi.
-        # We multiply by 2*pi to compute the angular frequency. Because the natural logs 
-        # of primes are mathematically incommensurate, stacking these frequencies prevents 
-        # "mode-locking" and creates a rich, non-repeating Moiré interference pattern.
-        base_frequencies = 2 * PI * torch.log(self.primes.float())
-        
-        # TailSlayer XOR-mapping logic: Topological Interleaving to prevent 
-        # the "Associativity Problem" across GPU memory banks.
-        indices = torch.arange(num_resonators, dtype=torch.long)
-        xor_indices = (indices ^ (indices >> 1)) % num_resonators # Gray Code mapping scrambles cache lines
-        frequencies = base_frequencies[xor_indices]
-        
-        self.register_buffer('frequencies', frequencies)
-        
-
-    def _generate_hybrid_basis(self, n: int, base_n: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Generates the first n prime-repunit pairs.
-        Prioritizes Lazarus Primes (where p and R_n(p) are both prime)
-        to simulate the "TailSlayer Bypass" (First-to-Finish).
-        """
-        pairs = []
-        lazarus_prioritized = []
-        candidate = 2
-        
-        # Searching for Lazarus Primes
-        while len(pairs) < n:
-            if is_prime(candidate):
-                r_n = (candidate**base_n - 1) // (candidate - 1)
-                is_lazarus = is_prime(r_n)
-                
-                if is_lazarus:
-                    lazarus_prioritized.append((candidate, r_n))
-                
-                if len(lazarus_prioritized) + len(pairs) >= n:
-                    # Fill the rest with non-lazarus primes if needed
-                    break
-                pairs.append((candidate, r_n))
-            candidate += 1
-            
-        # Combine: Lazarus Primes come first to ensure O(K) warmstart
-        all_pairs = lazarus_prioritized + pairs
-        all_pairs = all_pairs[:n]
-        
-        primes_list = [p[0] for p in all_pairs]
-        repunits_list = [p[1] for p in all_pairs]
-        
-        return (torch.tensor(primes_list, dtype=torch.long), 
-                torch.tensor(repunits_list, dtype=torch.long))
-
-    def forward(self) -> Tuple[torch.Tensor, torch.Tensor, dict]:
-        """
-        Returns:
-            frequencies: [num_resonators] resonance frequencies
-            repunits: [num_resonators] palindromic repunit mirrors
-            hardware_status: Dict containing TailSlayer bypass signals
-        """
-        # Attempt to detect actual hardware status if SiliconSovereigntyEngine is active
-        # In a real scenario, this would check a global or passed-in engine instance
-        # For the stabilization, we use a more sophisticated simulation if real engine isn't found
-        
-        queue_b_finished_first = False
-        signal = "Virtual Algorithmic Latency Stall Detected"
-        
-        try:
-            # Check for PyOpenCL availability
-            import pyopencl as cl
-            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
-            
-            # Since we don't hold a persistent engine here, we simulate the sensing
-            # of the dual-queue architecture described in pyopencl_sovereignty.py
-            # SILICON SOVEREIGNTY: Replaced PRNG and 0.3 threshold with deterministic parity
-            # based on true hardware timing resolution.
-            queue_b_finished_first = bool(time.perf_counter_ns() % 2 == 1)  # Sovereign Tailslayer probe
-            if queue_b_finished_first:
-                signal = "Chern-Simons Sync Barrier Complete (Hardware Bypass Active)"
-        except ImportError:
-            # Fallback for CPU-only environments
-            queue_b_finished_first = False
-            signal = "CPU Fallback: Hardware Bypass Unavailable"
-        
-        status = {
-            'tail_slayer_bypass': queue_b_finished_first,
-            'signal': signal,
-            'lsb_parity_ready': True,
-            'sovereignty_mode': 'active' if queue_b_finished_first else 'stalled'
-        }
-        
-        return self.frequencies, self.repunits, status
-
-    def _generate_repunits(self, base: int = 10) -> torch.Tensor:
-        """
-        Legacy repunit generator for backward compatibility.
-        """
-        repunits = []
-        for n in range(1, self.num_resonators + 1):
-            r = (base**n - 1) // (base - 1)
-            repunits.append(r)
-        return torch.tensor(repunits, dtype=torch.float32)
-
-    
-    def get_fibonacci_entropy(self, alpha: float = 1.0) -> dict:
-        """
-        Bridge to FibonacciResonanceEntropy.
-        
-        Returns both the prime frequencies and the Fibonacci-scaled
-        entropy matrix, providing a unified resonance descriptor.
-        
-        Args:
-            alpha: Saturation parameter for entropy (default 1.0)
-            
-        Returns:
-            Dictionary with:
-                - 'frequencies': [N] prime resonance frequencies
-                - 'entropy_matrix': [N, N] FibonacciPrime entropy coupling
-        """
-        entropy = FibonacciResonanceEntropy(
-            num_oscillators=self.num_resonators,
-            alpha=alpha
-        )
-        return {
-            'frequencies': self.frequencies,
-            'entropy_matrix': entropy.forward()
-        }
+# PrimeResonanceLadder is canonically defined upstream in src.core.invariants.
+# Re-exported here for backwards compatibility.
+__all_primitives__ = ["PrimeResonanceLadder"]
 
 
 class RepunitHasher(nn.Module):
