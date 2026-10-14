@@ -15,8 +15,8 @@ import time
 import math
 import numpy as np
 from src.surrogates.kagh_networks import KANLayer
-from src.core.invariants import SelfReferenceAdmissibility
-from src.core.fgrt_primitives import GyroidicAdmissibilityFilter, PrimeResonanceLadder, GyroidManifold
+from src.core.invariants import SelfReferenceAdmissibility, PrimeResonanceLadder
+from src.core.fgrt_primitives import GyroidicAdmissibilityFilter, GyroidManifold
 
 # ==========================================
 # ROLES, PERMISSIONS & INVENTORY
@@ -1403,6 +1403,73 @@ class PointerlessOctree:
         self.morton_grid[code] = material
         self.complexity_grid[code] = float(complexity)
         self.depth_grid[code] = self.get_adaptive_depth(complexity)
+
+    def ingest_spatial_land_value(
+        self,
+        spatial_payload: Dict[str, Any]
+    ) -> int:
+        """
+        Projects non-scalar spatial land-value, Riemannian metric curvature (g_mu_nu),
+        and prime harmonic distributions into the PointerlessOctree.
+        
+        Applies Mohr-Coulomb / Drucker-Prager mechanical shear and voxel fracturing
+        when extractive land-rent singularities exceed yield thresholds.
+        """
+        # 1. Extract 4x4 spatial metric tensor or fallback to scaled identity
+        g = spatial_payload.get("spatial_metric")
+        if g is None or not hasattr(g, "shape"):
+            rent_scale = float(spatial_payload.get("land_value_scale", 1.0))
+            g = torch.eye(4) * rent_scale
+        elif hasattr(g, "detach"):
+            g = g.detach().cpu()
+            
+        spatial_3x3 = g[:3, :3] if g.shape[0] >= 3 and g.shape[1] >= 3 else torch.eye(3)
+        volumetric_trace = float(torch.trace(spatial_3x3).item() / 3.0)
+        
+        # 2. Compute deviatoric stress tensor: sigma_ij = g_ij - (1/3)*Tr(g)*delta_ij
+        deviatoric_stress = spatial_3x3 - volumetric_trace * torch.eye(3)
+        max_shear = float(torch.max(torch.abs(deviatoric_stress)).item())
+        
+        # 3. Prime harmonic spatial modulation via canonical Resonance Intelligence Core (RIC)
+        ric_ladder = spatial_payload.get("prime_ladder")
+        if ric_ladder is None:
+            from src.core.invariants import PrimeResonanceLadder
+            ric_ladder = PrimeResonanceLadder(num_resonators=16)
+        primes = [int(p.item()) for p in ric_ladder.primes[:3]]
+        nodes_added = 0
+        grid_dim = 4
+        
+        for x in range(grid_dim):
+            # Prime harmonic modulation on spatial coordinates
+            harm_x = sum(math.cos(2.0 * math.pi * x / p) / p for p in primes)
+            for y in range(grid_dim):
+                harm_y = sum(math.cos(2.0 * math.pi * y / p) / p for p in primes)
+                for z in range(2):
+                    harm_z = sum(math.sin(2.0 * math.pi * (z + 1) / p) / p for p in primes)
+                    
+                    # Local non-scalar complexity combines trace curvature + anisotropic harmonic drift
+                    local_complexity = max(0.01, volumetric_trace * (1.0 + 0.15 * (harm_x + harm_y + harm_z)))
+                    
+                    # Material assignment based on non-scalar tensor state:
+                    # 3: Sheared/extractive singularity zone, 2: Bedrock/core, 1: Coherent resonant substrate
+                    if max_shear > 1.2 or local_complexity > 3.0:
+                        mat_id = 3
+                    elif volumetric_trace > 1.8:
+                        mat_id = 2
+                    else:
+                        mat_id = 1
+                        
+                    fx = float(x) + 0.1 * harm_x
+                    fy = float(y) + 0.1 * harm_y
+                    fz = float(z) + 0.05 * harm_z
+                    self.add_adaptive_fractal_node(fx, fy, fz, material=mat_id, complexity=local_complexity)
+                    nodes_added += 1
+                    
+        # 4. Trigger mechanical shear and topological fracturing if shear stress exceeds yield limit
+        if max_shear >= 1.0:
+            self.shear_voxels(stress_tensor=deviatoric_stress, yield_limit=1.0)
+            
+        return nodes_added
 
     def remove_voxel(self, x: int, y: int, z: int) -> bool:
         """Removes a voxel from the Morton-encoded spatial hash lattice. Returns True if removed."""
