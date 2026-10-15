@@ -359,61 +359,98 @@ This law dictates how symbolic proposals from System 1 are hardened through the 
 
 ##  The Interaction Loop & Topological Ingestion
 
-**Topological Ingestion Boundary**: The system now begins all interactions through the `open_science_ingestor.py` pipeline (e.g., querying SDSS or VizieR), which mathematically validates that incoming data preserves $PAS_h$ and $L$ invariants *before* it can enter System 1.
+**Topological Ingestion Boundary**: Ingestors feed System 1 through `TopologicalIngestionValidator` (`src/core/topological_ingestion_validator.py`), which checks that incoming data preserves $PAS_h$ and $L$ invariants *before* it can enter System 1. Validator call sites verified: `minecraft_ingestor.py`, `textbook_filter.py`, `ui/diegetic_backend.py`. There is no standalone "Ingestion Router" class.
+
+> Diagram audited against `src/` on 2026-10-15. Repair-chain ordering and Veto inputs are taken from MODULE_INVENTORY descriptions, not call traces.
 
 ```mermaid
 graph TD
-    subgraph "Data Input Systems (Ingestion Layer)"
-        LIGO[LIGO Strain Simulation<br/>open_science_ingestor.py] -->|Strain Data| IngRouter{Ingestion Router}
-        MCA[Minecraft MCA/NBT<br/>minecraft_ingestor.py] -->|Voxel-Text Dyads| IngRouter
-        Local[Local Formats<br/>local_dataset_ingestor.py] -->|Raw Files| IngRouter
-        TextB[McKenna Deconstruction<br/>textbook_filter.py] -->|Creative Prose| IngRouter
-        SearXNG[SearXNG Open Web<br/>knowledge_ingestor.py] -->|Robots.txt Compliant HTML| IngRouter
+    subgraph Entry
+        HB[hybrid_backend.py HybridAI] --> DPE[DiegeticPhysicsEngine<br/>ui/diegetic_backend.py]
+        GFR[GyroidicFluxReasoner<br/>models/gyroid_reasoner.py] --> ORCH[UniversalOrchestrator<br/>core/orchestrator.py]
     end
 
-    IngRouter -->|Validates Invariants| Val[Topological Ingestion Validator]
-    Val -->|L-Invariant & PAS_h checks| Input
+    subgraph "Ingestion Layer"
+        LIGO[open_science_ingestor.py]
+        MCA[minecraft_ingestor.py] --> Val
+        TextB[textbook_filter.py] --> Val
+        Local[local_dataset_ingestor.py]
+        ArX[ArXivSovereignIngestor + SearXNG<br/>knowledge_ingestor.py]
+        Conv[SovereignConversationalIngestor]
+        News[InvestorNewsIngestor]
+        Val[TopologicalIngestionValidator]
+    end
+    DPE --> Val
+    Val --> Input
+    LIGO --> Input
+    Local --> Input
+    ArX --> Input
+    Conv --> Input
+    News --> Input
 
     subgraph "System 1 (Intuition Manifold)"
-        Input --> PolyEmbed[Polynomial Embedder<br/>polynomial_embeddings.py]
-        PolyEmbed -->|Chebyshev/Legendre Basis| Trans[Transformer]
-        Trans --> Birkhoff[BouligandBirkhoffManifold<br/>birkhoff_projection.py]
+        Input --> PolyEmbed[PolynomialFunctionalEmbedder]
+        PolyEmbed --> Trans[ModularTransformerLayer]
+        Trans --> CODES[CODES chordlock<br/>codes_driver.py]
+        CODES --> Birkhoff[DirectBirkhoffProjection / BouligandBirkhoffManifold]
         Birkhoff --> Anchors[Symbolic Residues C_sym]
-        Anchors -.->|"B-Derivative Backprop"| Birkhoff
+        STS[SuperposedTagStacker] --> Trans
     end
 
-    subgraph "System 2 (Physics Solver & Metapolytopes)"
-        Anchors -- "Anchor" --> ADMM[Operational ADMM / SIC-FA-ADMM]
-        ADMM --> SDE[Fractional SDE Flow]
-        
+    subgraph "System 2 (Solver and Metapolytopes)"
+        Anchors --> ADMM[OperationalAdmm + ChiralDriftStabilizer<br/>/ SIC-FA-ADMM]
+        ADMM --> SDE[PolynomialADMRSolver fractional SDE<br/>Love null-space embedded]
         SDE --> BCheck{Boundary Contact?}
-        BCheck -- "Critical Facet" --> BSent[BoundaryState Sentinel<br/>meta_polytope_matrioshka.py]
-        BSent --> Inversion[Hyperspherical Inversion]
-        Inversion --> SDE
-        
-        BCheck -- "Facet Glide" --> BouligandProj[Bouligand Tangent Cone Projection]
-        BouligandProj --> SDE
-        
-        BCheck -- "No Contact" --> LoveProj[Love Vector Null-space Projection]
-        LoveProj --> SDE
-        
-        SDE --> KAGH[KAGH Surrogate<br/>kagh_networks.py]
-        KAGH -- "Consistency" --> ADMM
+        BCheck -- Critical Facet --> BSent[BoundaryState<br/>meta_polytope_matrioshka.py] --> SDE
+        BCheck -- Facet Glide --> BouligandProj[Bouligand Tangent Cone] --> SDE
+        SDE --> KAGH[KAGHBlock] -- Consistency --> ADMM
+        SDE --> CALM[CALM predictor]
+        Leon[LeontiefGovernor] -.-> SDE
     end
 
-    subgraph "Dark Matter (Invariants & TDA)"
-        SDE -- "Veto?" --> CDO[Chiral Drift Opt<br/>codes_driver.py]
-        CDO -- "Accept/Abort" --> FinalState
-        GCVE[Gyroid Probe<br/>gyroid_covariance.py] -- "Pressure" --> FluxAlign[Flux Warping]
-        FluxAlign --> FGRT[FGRT Flow]
-        FGRT -- "Ricci Update" --> Trans
-        FGRT -- "Chiral Flip" --> Trans
-        
-        TDA[Approximate PH<br/>approximate_ph.py] -->|Betti Numbers| BettiRouter[Betti Router]
-        BettiRouter --> FinalState
+    subgraph "Veto and Safety"
+        SDE --> Veto[VetoSubspace]
+        CALM --> Veto
+        SCG[SpeculativeCoprimeGate] --> Veto
+        LIP[LoveInvariantProtector] --> Veto
+        Leg[LegibilityTripwire + LinguisticEntropyMonitor] --> Veto
     end
 
-    FinalState --> CRT[CRT Reconstruction<br/>gyroidic_codec.py]
+    subgraph "Repair"
+        Veto -- Rupture --> CSG[ChernSimonsGasket]
+        CSG --> SCC[SpectralCoherenceCorrector]
+        SCC --> SSH[SolitonStabilityHealer]
+        SSH --> CMT[ConjugateMomentTransport]
+        CMT --> SDE
+    end
+
+    subgraph "Dark Matter (Invariants and TDA)"
+        GCVE[SparseGyroidCovarianceProbe] -- Pressure --> FGRT[FGRT cells]
+        FGRT --> Trans
+        TDA[approximate_ph.py] --> Betti[BettiRouter] --> ZR[ZeitgeistRouter]
+        Hess[Hessian8x8CurvatureLedger] --> CML[CarnotMobiusLedger]
+        SSE[SiliconSovereigntyEngine] -.-> Hess
+        Ricci[RicciFlowOptimizer] -.->|training| Trans
+    end
+
+    subgraph "Memory"
+        DF[DyadFossilizer + ResidueFusion] <--> MP[MemoryPalace]
+        RC[ResonanceCavity]
+    end
+
+    Veto -- Accept --> CRT[PolynomialCRT / DecoupledPolynomialCRT]
+    ZR --> CRT
+    CRT --> HRC[HyperRingClosureChecker]
+    HRC --> DF
+    HRC --> Lar[ResonanceLarynx + LazarusSoftmax]
+    Lar --> Aud[AudienceProjection]
+
+    subgraph "MAML Online Adaptation"
+        CALM -.adapt.-> CALM
+        KAGH -.adapt_online.-> KAGH
+        DF -.adapt_online.-> DF
+        PolyEmbed -.adapt_online.-> PolyEmbed
+    end
 ```
 
 ---
