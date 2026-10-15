@@ -2,6 +2,10 @@ import pytest
 from src.benchmarks.topobench_evaluator import TopoBenchEvaluator
 from src.benchmarks.reactbench_evaluator import ReactBenchEvaluator
 from src.benchmarks.narrative_yield_evaluator import NarrativeYieldEvaluator
+from src.benchmarks.ai_reasoner_evaluator import AIReasonerEvaluator
+from src.benchmarks.chordlock_evaluator import ChordlockEvaluator
+from src.benchmarks.memory_palace_evaluator import MemoryPalaceEvaluator
+from src.benchmarks.topological_singularity_evaluator import TopologicalSingularityEvaluator
 from src.benchmarks.run_all_benchmarks import BenchmarkSuiteRunner, run_all_benchmarks
 
 def test_topobench_evaluator():
@@ -40,9 +44,58 @@ def test_narrative_yield_evaluator():
     assert results["tests"]["relational_friction"]["pass"] is True
     assert results["tests"]["homological_collapse_alarm"]["pass"] is True
 
+def test_ai_reasoner_evaluator():
+    evaluator = AIReasonerEvaluator(device="cpu")
+    results = evaluator.run_suite()
+    assert results["success"] is True
+    assert results["passed_count"] == 5
+    assert results["total_count"] == 5
+    assert results["tests"]["reasoner_forward_coherence"]["pass"] is True
+    assert results["tests"]["hessian_8x8_ledger"]["pass"] is True
+    assert results["tests"]["bouligand_kinks"]["pass"] is True
+    assert results["tests"]["cyclotomic_harmonics"]["pass"] is True
+    assert results["tests"]["trajectory_decombining"]["pass"] is True
+
+def test_chordlock_evaluator():
+    evaluator = ChordlockEvaluator(device="cpu")
+    results = evaluator.run_suite()
+    assert results["success"] is True
+    assert results["passed_count"] == 5
+    assert results["total_count"] == 5
+    assert results["tests"]["chordlock_identity"]["pass"] is True
+    assert results["tests"]["coherent_prime_resonance"]["pass"] is True
+    assert results["tests"]["multi_prime_lattice"]["pass"] is True
+    assert results["tests"]["hardware_hedged_read"]["pass"] is True
+    assert results["tests"]["chiral_unfolding"]["pass"] is True
+
+def test_memory_palace_evaluator():
+    evaluator = MemoryPalaceEvaluator(device="cpu")
+    results = evaluator.run_suite()
+    assert results["success"] is True
+    assert results["passed_count"] == 5
+    assert results["total_count"] == 5
+    assert results["tests"]["spatial_isolation"]["pass"] is True
+    assert results["tests"]["slerp_breeding"]["pass"] is True
+    assert results["tests"]["outlier_resilience"]["pass"] is True
+    assert results["tests"]["selective_puncture"]["pass"] is True
+    assert results["tests"]["necrotic_well_crt"]["pass"] is True
+
+def test_topological_singularity_evaluator():
+    evaluator = TopologicalSingularityEvaluator(device="cpu")
+    results = evaluator.run_suite()
+    assert results["success"] is True
+    assert results["passed_count"] == 5
+    assert results["total_count"] == 5
+    assert results["tests"]["layer1_octree_multiplexing"]["pass"] is True
+    assert results["tests"]["layer2_void_friction_bypass"]["pass"] is True
+    assert results["tests"]["layer3_mechanical_shear"]["pass"] is True
+    assert results["tests"]["layer4_necrotic_stagnation"]["pass"] is True
+    assert results["tests"]["layer5_pushforward_luminance"]["pass"] is True
+
 def test_unified_benchmark_runner():
     report = run_all_benchmarks(device="cpu")
     assert report["success"] is True
-    assert report["total_passed"] == 15
-    assert report["total_tests"] == 15
-    assert len(report["suites"]) == 3
+    assert report["total_passed"] == report["total_tests"]
+    assert report["total_passed"] == 35
+    assert report["total_tests"] == 35
+    assert len(report["suites"]) == 7
