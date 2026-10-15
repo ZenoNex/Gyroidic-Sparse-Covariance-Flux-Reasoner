@@ -1,5 +1,202 @@
 # System Architecture: The "Unicorn" Synthesis
+## 1. Module-to-Module Interaction (package level)
+```mermaid
+flowchart LR
+    HB["hybrid_backend.py"]
+    subgraph src
+        UI["src/ui"]
+        CORE["src/core"]
+        MODELS["src/models"]
+        TOPO["src/topology"]
+        SURR["src/surrogates"]
+        OPT["src/optimization"]
+        DATA["src/data"]
+        TRAIN["src/training"]
+        CODEC["src/codec"]
+        P2P["src/p2p"]
+        TERM["src/terminal"]
+        INTEG["src/integrations"]
+        GOV["src/governance"]
+        SAFE["src/safety"]
+        BENCH["src/benchmarks"]
+        AUG["src/augmentation"]
+        ENV["src/environment"]
+        TDA["src/tda"]
+        SCRIPT["src/scripting"]
+        TOOLS["src/tools"]
+    end
+    HB --> CORE
+    HB --> UI
+    HB --> DATA
+    HB --> TRAIN
+    HB --> MODELS
+    HB --> TERM
+    UI --> CORE
+    UI --> MODELS
+    UI --> TOPO
+    UI --> SURR
+    UI --> DATA
+    UI --> TRAIN
+    UI --> CODEC
+    UI --> INTEG
+    MODELS --> CORE
+    MODELS --> TOPO
+    MODELS --> OPT
+    MODELS --> SURR
+    CORE --> MODELS
+    CORE --> TOPO
+    CORE --> UI
+    CORE --> DATA
+    CORE --> P2P
+    DATA --> CORE
+```
+## 2. Module-to-Module Interaction (file level, key hubs)
+```mermaid
+flowchart TD
+    HB["hybrid_backend.py"]
+    DB["ui/diegetic_backend.py"]
+    ORCH["core/orchestrator.py"]
+    GR["models/gyroid_reasoner.py"]
+    KI["data/knowledge_ingestor.py"]
+    KDF["core/knowledge_dyad_fossilizer.py"]
+    HJ["core/honest_jitter.py"]
+    INV["core/invariants.py"]
+    FT["core/failure_token.py"]
+    ADMR["core/admr_solver.py"]
+    AUD["core/audience_mapping.py"]
+    STS["core/superposed_tag_stacker.py"]
+    UDP["terminal/udp_server_colonizer.py"]
+    TM["training/training_manager.py"]
+    ETT["training/enhanced_temporal_training.py"]
+    FBR["data/freenet_bulletin_router.py"]
+    FGC["data/freenet_ghost_caller.py"]
+    CALMF["surrogates/calm_predictor.py"]
+    KAGH["surrogates/kagh_networks.py"]
+    GC["topology/gyroid_covariance.py"]
+    CSG["core/chern_simons_gasket.py"]
+    LIP["core/love_invariant_protector.py"]
+    CODES["core/codes_constraint_framework.py"]
+    GLUE["core/gluing_operator.py"]
+    DH["models/diegetic_heads.py"]
+    PE["models/polynomial_embeddings.py"]
+    RC["models/resonance_cavity.py"]
+    CODEC["codec/gyroidic_codec.py"]
+    P2P["p2p/*"]
 
+    HB --> INV & AUD & STS & UDP & FT & ADMR & ETT & TM & FBR & FGC
+    HB --> DB
+    DB --> KDF & KI & CALMF & KAGH & GC & CSG & LIP & DH & RC & CODEC & GLUE & AUD & HJ & INV
+    ORCH --> DB & KDF & CODES & DH & PE & RC & STS & INV & LIP & HJ & FBR & P2P
+    GR --> ORCH
+    GR --> CALMF & KAGH & GC & CSG & LIP & PE & RC & HJ
+    KI --> GLUE & HJ
+    KDF --> HJ & GC & LIP & CSG & CODES
+```
+## 3. Class-to-Class Interaction
+```mermaid
+classDiagram
+    direction LR
+    class HybridHandler {
+        hybrid_backend.py
+        http.server handler
+    }
+    class HybridAI {
+        hybrid_backend.py
+    }
+    class GovernanceManager {
+        hybrid_backend.py
+    }
+    class DiegeticRequestHandler {
+        ui/diegetic_backend.RequestHandler
+    }
+    class HybridPhysicsBackend {
+        ui/diegetic_backend.py
+    }
+    class DiegeticPhysicsEngine {
+        ui/diegetic_backend.py
+    }
+    class UniversalOrchestrator {
+        core/orchestrator.py
+    }
+    class GyroidicFluxReasoner {
+        models/gyroid_reasoner.py
+    }
+    class TrainingManager
+    class FreenetBulletinRouter
+    class OptionD_Colonizer
+    class AudienceProjection
+    class SuperposedTagStacker
+    class RuptureFunctional
+    class PolynomialADMRSolver
+    class DyadFossilizer
+    class ResidueFusion {
+        adapt_online()
+    }
+    class ArXivSovereignIngestor
+    class ResonanceLarynx
+    class LazarusSoftmax
+    class CALM {
+        adapt()
+    }
+    class KAGHBlock {
+        adapt_online()
+    }
+    class PolynomialFunctionalEmbedder {
+        adapt_online()
+    }
+    class ResonanceCavity
+    class SparseGyroidCovarianceProbe
+    class ChernSimonsGasket
+    class LoveInvariantProtector
+    class CODESConstraintFramework
+    class CarnotMobiusLedger
+    class ZeitgeistRouter
+    class GyroidicCodec
+
+    HybridHandler --> HybridAI : serves
+    HybridHandler ..> DiegeticRequestHandler : delegates routes
+    HybridAI --> GovernanceManager
+    HybridAI --> HybridPhysicsBackend : lazy import
+    HybridAI --> DiegeticPhysicsEngine : lazy import
+    HybridAI --> TrainingManager
+    HybridAI --> FreenetBulletinRouter
+    HybridAI ..> RuptureFunctional
+    HybridAI ..> PolynomialADMRSolver
+    HybridAI ..> OptionD_Colonizer
+    HybridAI ..> AudienceProjection
+    HybridAI ..> SuperposedTagStacker
+    HybridPhysicsBackend --> DiegeticPhysicsEngine
+    DiegeticPhysicsEngine --> DyadFossilizer
+    DiegeticPhysicsEngine --> ResidueFusion
+    DiegeticPhysicsEngine --> ArXivSovereignIngestor
+    DiegeticPhysicsEngine --> ResonanceLarynx
+    DiegeticPhysicsEngine --> CALM
+    DiegeticPhysicsEngine --> KAGHBlock
+    DiegeticPhysicsEngine --> ResonanceCavity
+    DiegeticPhysicsEngine --> ChernSimonsGasket
+    DiegeticPhysicsEngine --> LoveInvariantProtector
+    DiegeticPhysicsEngine --> ZeitgeistRouter
+    DiegeticPhysicsEngine --> GyroidicCodec
+    ArXivSovereignIngestor ..> LazarusSoftmax
+    GyroidicFluxReasoner --> UniversalOrchestrator
+    GyroidicFluxReasoner --> CALM
+    GyroidicFluxReasoner --> KAGHBlock
+    GyroidicFluxReasoner --> PolynomialFunctionalEmbedder
+    GyroidicFluxReasoner --> ResonanceCavity
+    GyroidicFluxReasoner --> SparseGyroidCovarianceProbe
+    UniversalOrchestrator --> HybridPhysicsBackend
+    UniversalOrchestrator --> DyadFossilizer
+    UniversalOrchestrator --> ResonanceLarynx
+    UniversalOrchestrator --> PolynomialFunctionalEmbedder
+    UniversalOrchestrator --> CODESConstraintFramework
+    UniversalOrchestrator --> CarnotMobiusLedger
+    UniversalOrchestrator --> ZeitgeistRouter
+    UniversalOrchestrator --> SuperposedTagStacker
+    DyadFossilizer --> SparseGyroidCovarianceProbe
+    DyadFossilizer --> ChernSimonsGasket
+    DyadFossilizer --> LoveInvariantProtector
+    DyadFossilizer ..> CODESConstraintFramework
+```
 **Gyroidic Sparse Covariance Flux Reasoner**
 *A Hybrid Neural-Physical Reasoning Engine*
 
