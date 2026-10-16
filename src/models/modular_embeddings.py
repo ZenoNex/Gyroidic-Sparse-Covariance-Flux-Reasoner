@@ -1,9 +1,6 @@
 """
 Modular residue embeddings for multi-modal inputs.
 
-DEPRECATED: Use polynomial_embeddings.py instead for the January 2026 hybridized architecture.
-This file remains as legacy code for Phase 1-5 compatibility.
-
 Author: William Matthew Bryant
 Created: January 2026 (Deprecated)
 """
@@ -227,3 +224,10 @@ class SimpleGraphEncoder(nn.Module):
         """
         node_embeds = self.encoder(node_features)  # [batch, num_nodes, output_dim]
         return node_embeds.mean(dim=1)  # [batch, output_dim]
+
+
+def get_canonical_embedder(**kwargs):
+    """Bridge to the canonical polynomial functional embedder."""
+    from src.models.polynomial_embeddings import PolynomialFunctionalEmbedder
+    return PolynomialFunctionalEmbedder(**kwargs)
+
