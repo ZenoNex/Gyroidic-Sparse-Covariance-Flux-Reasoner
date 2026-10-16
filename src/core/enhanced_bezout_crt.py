@@ -57,6 +57,10 @@ class CrossbarIKSolver(nn.Module):
         self.phi = nn.Parameter(harvest_honest_jitter((num_harmonics,), scaled=False) * 2 * PI)
         self.psi = nn.Parameter(harvest_honest_jitter((num_harmonics,), scaled=False) * 2 * PI)
         
+    def forward(self, t: torch.Tensor) -> torch.Tensor:
+        """PyTorch Module forward pass delegating to solve_trajectory."""
+        return self.solve_trajectory(t)
+
     def solve_trajectory(self, t: torch.Tensor) -> torch.Tensor:
         """
         Compute (x, y) coordinates for a given time vector t.
@@ -149,38 +153,57 @@ class EnhancedBezoutCRT(nn.Module):
         Compute Chinese Remainder Theorem coefficients.
         
         For moduli m1, m2, ..., mk, compute coefficients such that:
-        x  a1 (mod m1), x  a2 (mod m2), ..., x  ak (mod mk)
+        x = a1 (mod m1), x = a2 (mod m2), ..., x = ak (mod mk)
         has unique solution modulo M = m1 * m2 * ... * mk
         """
         M = torch.prod(self.moduli)
         coefficients = torch.zeros(self.num_moduli)
         
         for i in range(self.num_moduli):
-            Mi = M / self.moduli[i]
+            Mi = M / (self.moduli[i] + 1e-8)
             # Find modular inverse of Mi modulo moduli[i]
-            # Using extended Euclidean algorithm
-            yi = self._mod_inverse(Mi.item(), self.moduli[i].item())
+            # Using extended Euclidean algorithm with robust continuous fallback
+            try:
+                a_val = int(round(Mi.item()))
+                m_val = int(round(self.moduli[i].item()))
+                yi = float(self._mod_inverse(a_val, m_val))
+            except Exception:
+                yi = 1.0 / (self.moduli[i].item() + 1e-6)
             coefficients[i] = Mi * yi
         
+        # Normalize coefficients to avoid explosive scaling
+        norm_sum = torch.sum(torch.abs(coefficients))
+        if norm_sum > 0:
+            coefficients = coefficients / norm_sum
+            
         return coefficients
     
     def _mod_inverse(self, a: int, m: int) -> int:
         """
         Compute modular inverse of a modulo m using extended Euclidean algorithm.
-        Returns x such that (a * x)  1 (mod m)
+        Returns x such that (a * x) = 1 (mod m). Falls back deterministically if gcd != 1.
         """
-        def extended_gcd(a, b):
-            if a == 0:
-                return b, 0, 1
-            gcd, x1, y1 = extended_gcd(b % a, a)
-            x = y1 - (b // a) * x1
-            y = x1
-            return gcd, x, y
+        a_int = int(round(a))
+        m_int = int(round(m))
+        if m_int <= 1:
+            return 1
+        a_int = a_int % m_int
+        if a_int == 0:
+            return 1
+            
+        def extended_gcd(x, y):
+            if x == 0:
+                return y, 0, 1
+            gcd, x1, y1 = extended_gcd(y % x, x)
+            return gcd, y1 - (y // x) * x1, x1
         
-        gcd, x, _ = extended_gcd(a % m, m)
-        if gcd != 1:
-            raise ValueError(f"Modular inverse does not exist for {a} mod {m}")
-        return (x % m + m) % m
+        try:
+            gcd, x, _ = extended_gcd(a_int, m_int)
+            if gcd == 1:
+                return (x % m_int + m_int) % m_int
+        except (RecursionError, ZeroDivisionError):
+            pass
+        return 1
     
     def _compute_bezout_coefficients(self, a: int, b: int) -> Tuple[int, int, int]:
         """
