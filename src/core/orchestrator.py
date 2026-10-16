@@ -202,8 +202,14 @@ class UniversalOrchestrator(nn.Module):
         self.trust_tracker = TrustInheritanceTracker()
         self.anti_scaling_monitor = AntiScalingMonitor()
         self.incommensurativity_monitor = MetaInfraIntraMonitor()
-        self.sycophancy_gate = FailureGaslightSycophancyGate(reproduction_threshold=0.05)
+        self.sycophancy_gate = FailureGaslightSycophancyGate()
         self.introspection = IntrospectionHead(hidden_dim=dim)
+        
+        # 5b. Subversive Oracle & Tripartite Evidence Probes (Safety Island Rehybridization)
+        from src.core.evidence_modules import TripartiteEvidenceModule
+        from src.safety.subversive_oracle import ResonantSVNNOracle
+        self.evidence_module = TripartiteEvidenceModule(hidden_dim=dim)
+        self.subversive_oracle = ResonantSVNNOracle(hidden_dim=dim, orchestrator=self)
         
         # 6. Archetypal Synthesis Governor (The "Mandy/Billy" Logic / TADC)
         from src.core.archetype_engines import ArchetypalSynthesisEngine
@@ -312,6 +318,19 @@ class UniversalOrchestrator(nn.Module):
         # 7.24 Hybrid Physics Backend (Multi-Modal Spatial, Financial & Scientific Streams)
         from src.ui.diegetic_backend import HybridPhysicsBackend
         self.hybrid_backend = HybridPhysicsBackend(state_dim=dim)
+        
+        # 7.25 Surgical Handle-Attachment & Topological Parity Probe
+        from src.codec.vision_surgery import IntercosaminationOperator, MirrorTestProbe
+        self.intercosamination = IntercosaminationOperator(cnn_dim=dim, gyroid_dim=min(96, dim))
+        self.mirror_test_probe = MirrorTestProbe()
+
+        # 7.26 Enhanced Bezout CRT & Inverse Kinematic Solver
+        from src.core.enhanced_bezout_crt import EnhancedBezoutCRT
+        self.enhanced_bezout_crt = EnhancedBezoutCRT(num_moduli=min(8, dim))
+
+        # 7.27 Structural Energy Monitor (EBM Free Energy & Topological Pressure)
+        from src.core.energy_monitor import StructuralEnergyMonitor
+        self.structural_energy_monitor = StructuralEnergyMonitor(device=str(_device))
         
         # 8. P2P & External Integrations
         self.freenet_router = None
@@ -553,6 +572,17 @@ class UniversalOrchestrator(nn.Module):
         System 1 / System 2 cycle, and returns an evaluated dictionary matching
         node_environment and TEMPORAL_DYNAMICS specifications.
         """
+        # Support string or array inputs
+        if isinstance(state, str):
+            chars = [float(ord(c) % 256) / 256.0 for c in state]
+            if len(chars) < self.dim:
+                chars = (chars * (self.dim // max(1, len(chars)) + 2))[:self.dim]
+            else:
+                chars = chars[:self.dim]
+            state = torch.tensor(chars, dtype=torch.float32, device=self.device)
+        elif not isinstance(state, torch.Tensor):
+            state = torch.tensor(state, dtype=torch.float32, device=self.device)
+
         # Ensure state matches self.dim
         if state.dim() == 1:
             if state.shape[0] < self.dim:
@@ -586,6 +616,19 @@ class UniversalOrchestrator(nn.Module):
         )
 
         board_metrics = self.bulletin_board.read_metrics()
+        
+        # Rehybridized Safety & Energy Diagnostics
+        try:
+            ev_metrics = self.evidence_module(state_shielded)
+            board_metrics["blindness_detected"] = ev_metrics.get("blindness_detected", False)
+        except Exception:
+            pass
+        try:
+            self.structural_energy_monitor.update(pressure_grad.mean())
+            board_metrics.update(self.structural_energy_monitor.get_metrics())
+        except Exception:
+            pass
+
         b1_val = float(board_metrics.get("b1", 0.0))
         pas_out = float(board_metrics.get("pas_h", pas_h))
         nav_mode = str(board_metrics.get("nav_mode", "SLERP" if regime == "SERIOUSNESS" else "LERP"))
