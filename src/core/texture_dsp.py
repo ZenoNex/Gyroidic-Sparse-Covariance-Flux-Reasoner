@@ -1,7 +1,16 @@
 import torch
 import numpy as np
 from scipy import fftpack
-from image_extension import ImageProcessor, StructuralEntanglementNet
+import sys
+import os
+
+try:
+    from image_extension import ImageProcessor, StructuralEntanglementNet
+except ImportError:
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if root_dir not in sys.path:
+        sys.path.insert(0, root_dir)
+    from image_extension import ImageProcessor, StructuralEntanglementNet
 
 class TextureDSPEngine:
     """
