@@ -1,2642 +1,3221 @@
-# Module Inventory  Undocumented & Lightly Documented Modules
-
-This document provides canonical one-paragraph descriptions for all `src/` modules not covered by dedicated `.md` documentation files. It serves as an authoritative reference that short-circuits module discovery during development and audit.
-
-> **Coverage policy**: Any module appearing here should eventually graduate to a dedicated `.md` or an explicit section in a component-level doc. This inventory is a *starting point*, not a permanent home.
-
----
-
-## src/core
-
-### admr_solver.py
-**Class**: `PolynomialADMRSolver`  
-**Role**: Alternating Direction of Multiplicative Remainders  the continuous-polynomial analogue of ADMM.  
-
-Instead of discrete prime moduli, this solver uses co-prime polynomial functionals (`PolynomialCoprimeConfig`) as its "modular" basis. The multiplicative update `S^{n+1} = Proj_{Poly}[ S^n   w_ik S_k ]` propagates relational pressure through graph-structured neighbors rather than euclidean gradients. Three modes: `forward()` (single-step multiplicative update with optional valence drive), `stochastic_differential_step()` (integer-order continuous-time SDE update `dx = [A_i x_i  (x  r(x_k))]dt + dW`), and `fractional_stochastic_differential_step()` (fractional-order SDE update using Riemann-Liouville operators with distributed alpha tied to cyclotomic index: `alpha(k) = 0.5 + 0.5*cos(2*pi*k/K)`). The fractional step accepts a `hunger` parameter from `ValenceFunctional` that modulates the fractional order, pushing alpha toward 1.0 when the manifold is starving. **Love Invariant protection is embedded inside both SDE methods**: after computing `dx`, the solver projects `dx[..., :love_dim]` into the null-space of the ownership operator. Tracks asymptotic time `tau` in a persistent buffer. Corresponds to NOMENCLATURE "Multiplicative Scaffolding."
-
----
-
-### invariant_optimization.py
-**Class**: `LexicographicalOrderingDispatcher`, `SemioticState`  
-**Role**: Enforces the Semiotic Hierarchy by assigning System 2 Invariant Admissibility strictly above System 1 heuristic speed via Dictionary Order. Serves as the philosophical grounding for non-scalarized multi-objective constraints.
-
----
-
-### polychoron_quantization.py
-**Class**: `PolychronQuantizer`, `Polychoron600Quantizer`  
-**Role**: High-dimensional 4D 600-cell hyper-polytope quantization engine using Moiré-via-Modular-Algebra and carry-free XOR residue decoupling.
-
-Implements discrete projection of continuous state vectors onto the 120 golden ratio vertices of the 600-cell polytope. Evaluates a 10-line prime logarithm difference lattice $\Lambda_{\text{moiré}} = \{|\ln p_i - \ln p_j|\}$ for beat spectrum calculation, enforces carry-free bitwise XOR residue codewords ($r_i \oplus r_j$) to isolate CRT moduli, bounds quantization error via the golden ratio identity $\frac{\phi}{2} - \frac{1}{2\phi} = \frac{1}{2}$, and tracks Berry phase holonomy drift across facet boundaries.
-
----
-
-### number_theoretic_stabilizer.py
-**Class**: `NumberTheoreticStabilizer`  
-**Role**: Dynamic continued fraction arithmetic expansion and relativistic scale factor normalization.
-
-Replaces fixed static coefficient lookup tables with dynamic continued fraction expansion functions (`get_cf_expansion(val, max_terms)`). Dynamically computes scaling powers ($10^{\text{scale\_power}}$) relative to active tensor norms to adhere to relativistic geometric scaling principles across Matrioshka polytope boundaries.
-
----
-
-### diegetic_physics_engine.py
-**Class**: `DiegeticPhysicsEngine`  
-**Role**: Master Orchestration Pipeline for 9-Stage Sovereign Physics Loop in Voxelboxter.
-
-Coordinates physical control inputs, non-commutative Braid routing (`ZeitgeistRouter`), System 1 symbolic trajectory drafting via CODES chordlock projection (`CODES`), Gyroid violation probes, System 2 ADMM/ADMR constraint probes (`PolynomialADMRSolver`), Carnot-Möbius thermodynamic ledger monitoring (`CarnotMobiusLedger`), SCCCG recovery and fracture transport (`ConjugateMomentTransport`), polynomial CRT reconstruction, and hyper-ring cycle closure holonomy verification (`HyperRingClosureChecker`). Outputs updated continuous state, rupture flags, and Betti number shifts ($\beta_0, \beta_1$) for dynamic terrain deformation.
-
----
-
-### archetype_engines.py
-**Class**: `ArchetypalSynthesisEngine`, `RP4ProjectiveRouter` (Alien Handshake), `SolitonMultiverseMapper` (Grom), `BillyEngine` (`NoncommutativeManifoldPerturber`), `MandyEngine` (`SovereignRefusalOperator`), `KingerEngine`, `PomniEngine`, `GangleEngine`, `ZoobleEngine`, `BardoRouter`, `SovereignEntropyBarrier`, `EgoDeathThresholdMonitor`  
-**Role**: Archetypal synthesis suite managing non-linear cognitive modes, Alien Handshake cross-manifold alignment, and Grom multiverse mapping.
-
-Integrates all 12 archetypal engines under `ArchetypalSynthesisEngine`. `RP4ProjectiveRouter` handles real projective space ($\mathbb{RP}^4$) antipodal alignment and Alien Handshake protocol. `SolitonMultiverseMapper` handles Grom topological state transitions, jitter harvesting (`harvest_honest_jitter`), and state import/export serialization (`export_state()`, `import_state()`). Features Mandy's `SovereignRefusalOperator`, hybridized between Borderline Splitting (BPD steep phase transitions) and High-EQ Honest Narcissism (unyielding sovereign ego boundaries), gating protective selection pressure on Billy's mortal destructibility rather than invulnerable absurdity.
-
----
-
-### [`hessian_8x8_curvature_ledger.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hessian_8x8_curvature_ledger.py)
-**Class**: [`Hessian8x8CurvatureLedger`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hessian_8x8_curvature_ledger.py#L42), [`Trajectory8x8Decombiner`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hessian_8x8_curvature_ledger.py#L320), [`Hessian8x8LedgerResult`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hessian_8x8_curvature_ledger.py#L22), [`AttractorRegime`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hessian_8x8_curvature_ledger.py#L12)  
-**Role**: Silicon-Fused 8x8 Boundary-Curvature Ledger, Coxeter $B_2$ / $D_4$ (Order 8) Gauge-Symmetric Curvature Engine, and Trajectory Decombiner with OpenCL `__local` SRAM Workgroup Acceleration.
-
-Accelerated second-order differential operator, trajectory solver, and hardware bridge routing directly into [`SiliconSovereigntyEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/pyopencl_sovereignty.py) on discrete GPU (NVIDIA GeForce GTX 1050 Ti):
-1. **OpenCL `__local` SRAM Kernel Fusion**: Dispatches `fused_hessian_8x8_ledger` (Kernel 18) and `fused_trajectory_8x8_decombiner_d4` (Kernel 19) in 64 work-item workgroups (2 warps on Pascal GP107), executing finite-difference stencils, tree reductions, and Coxeter symmetries on-chip in ~1 ns SRAM without PCIe serialization.
-2. **$8 \times 8$ Boundary-Curvature Ledger**: Extracts a canonical $8 \times 8$ second-order differential operator from the salient gradient dimensions via finite differences without full $O(d^2)$ computation.
-3. **Coxeter $B_2$ / Dihedral $D_4$ Gauge Symmetry**: Identifies the 8-element symmetry group of the square (4 rotations $C_4$, 4 reflections $\sigma_v, \sigma_d$) and quotients out gauge degeneracy by mapping directly to the canonical fundamental Weyl chamber (lexicographical minimum) on-chip.
-4. **Spectral Curvature & Morse Saddle Decomposition**: Computes the full eigensystem ($\lambda_1 \le \dots \le \lambda_8$), condition number $\kappa$, trace $\operatorname{Tr}(H)$ (Gyroid zero-mean minimal surface curvature $\operatorname{Tr}(H) \approx 0$), Gaussian determinant $\det(H)$, and Morse index.
-5. **Bouligand Subdifferential Kink Ledger**: Evaluates directional forward/backward finite differences to measure boundary non-smoothness across contact and piecewise-linear merge boundaries ($\|H^+ - H^-\|_F$).
-6. **Cyclotomic Harmonic Projections**: Projects curvature along the 8 roots of unity $\omega_k = e^{i 2\pi k / 8}$ connecting second-order curvature directly to multiharmonic Phase Alignment ($\text{PAS}_h$).
-7. **Rich-Club Attractor Bias & Klein Throat Neck Classification**: Classifies states into attractor hubs, Klein throat bottleneck neck states, minimal surface saddles, and degenerate gutters.
-8. **Trajectory Decombination**: Reverses moves in log-domain exponent representation ($2^k \to k$, affine merge $(k,k) \to k+1$), exact sum invariant $\Sigma = 2T$ pruning, and transient 2-cycle replay protection against phantom spawn oscillations.
-
-**Up-the-Chain Lineage (Antecedents & Upstream Callers)**:
-- [`Recursive Fractals and L'Hôpital.txt`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/Recursive%20Fractals%20and%20L'H%C3%B4pital.txt): Provides theoretical grounding for piecewise scaling across non-differentiable fractures and recursive complexity backpropagation (compressing tree depth via Bouligand subdifferentials).
-- [`The DMET-QSCI-RBM Integration Blueprint...md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/The%20DMET-QSCI-RBM%20Integration%20Blueprint%20for%20the%20Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner.md#L32): Establishes the 8x8 Hessian trick as the second-order stability anchor for the DMET embedding loop.
-- [`MATHEMATICAL_DETAILS.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md#L1686-L1720): Section 40 (CODES Constraint-Oriented Differential Equation System) and Section 41 (Symplectic Gluing Diffeomorphism & Klein Throat).
-- [`TOPOLOGICAL_EXTENSIONS.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/TOPOLOGICAL_EXTENSIONS.md): Part I Item 2 (anti-palindromic gluing across the Gyroid-Klein boundary) and Coxeter reflection chamber reduction.
-- [`GARDEN_STATISTICAL_ATTRACTORS.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/GARDEN_STATISTICAL_ATTRACTORS.md): Formulates rich-club attractor pulls $F_k(c)$ and anisotropic convergence $\Lambda(c)$.
-- [`Codes v40.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/Codes%20v40.md): Section 52 (Harmonic-Differential Equivalence $\text{PAS}_h = \beta_L \cdot \text{PAS} - \beta_{\text{drift}}$) and Section 30 (PAS_LOCK Closure Theorem).
-- [`codes_constraint_framework.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/codes_constraint_framework.py#L210-L245): Upstream engine calling `compute_boundary_curvature_ledger()` during energy descent.
-
-**Down-the-Chain Lineage (Descendants & External Interfaces)**:
-- [`src/core/__init__.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/__init__.py#L65-L115): Canonical export for all system consumers.
-- [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L8287-L8337): Exposes live REST endpoints `POST /api/curvature/hessian_8x8` and `POST /api/trajectory/decombine_8x8`.
-- [`tests/test_hessian_8x8_ledger.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_hessian_8x8_ledger.py): Automated test suite verifying spectral eigensystems, Bouligand kinks, cyclotomics, Coxeter chamber invariance, and trajectory decombination.
-- [`OPEN_QUESTIONS.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/OPEN_QUESTIONS.md): Formalizes Phase 12 Philosophical Questions regarding Inversion Asymmetry, Non-Orientable Klein Bottlenecks, and Bouligand Epistemic Friction.
-
----
-
-### `src/core/hybrid_backend.py` [DELETED / TOMBSTONED]
-**Class**: `HybridPhysicsBackend` (relocated to [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py))  
-**Role**: Multi-modal spatial, financial, and scientific stream coordinator.
-
-Originally a monolithic multimodal ingestor inside `src/core/`, `src/core/hybrid_backend.py` has been completely deleted and removed from the core folder. Its operational capabilities have been redistributed across canonical architectural locations:
-- **Financial News & MAML Online Adaptation**: Integrated into [`InvestorNewsIngestor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/investor_news_ingestor.py) (`fetch_financial_feeds`, `generate_larynx_market_query`, `adapt_maml`, `adapt_online`, `steer_state_from_payloads`).
-- **Scientific Literature & Dynamic Category Expansion**: Integrated into [`ArXivSovereignIngestor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/knowledge_ingestor.py) (`fetch_scientific_feeds`, `expand_categories`, `_generate_larynx_query`).
-- **Spatial Metric Tensor & Economic Land-Rent Curvature**: Integrated into [`DiegeticPhysicsEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py) and [`HybridPhysicsBackend`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py) (`fetch_spatial_land_value`, `multiplex_feed_chain`, `map_to_pointerless_octree`).
-- **Pointerless Octree Voxel Projection**: Integrated directly as an adaptive method on [`PointerlessOctree`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py) (`ingest_spatial_land_value`).
-
----
-
-### knowledge_dyad_fossilizer.py
-**Class**: `KnowledgeDyad`, `ResidueFusion`, `KnowledgeDyadFossilizer`  
-**Role**: Multi-modal knowledge dyad fossilization and Agent Smith identity serialization.
-
-Manages persistent storage of multi-modal knowledge units `(Image Fingerprint, Linguistic Description)`. `ResidueFusion` dynamically resizes projection layers (`_ensure_image_proj_dim`) to preserve full multimodal mass without un-lobotomized dimension truncation. `KnowledgeDyadFossilizer` exports and imports decoupled mathematical Agent Smith identities using `harvest_honest_jitter`.
-
----
-
-### love_invariant_protector.py
-**Class**: `LoveInvariantProtector`  
-**Role**: Prevents scalarization of the Love Vector $L$ via null-space projection.
-
-Enforces the invariant that Love is a non-ownable flow rather than an optimizable scalar. Computes ownership operator $\Phi_{\text{ownership}}$ and projects $L$ into $\ker(\Phi_{\text{ownership}})$ via $P = I - (\Phi^\top \Phi)^{-1} \Phi^\top$. Caches SVD results to optimize execution on resource-constrained CPUs.
-
----
-
-### bonfire_consensus.py
-**Class**: `BonfireNomadicRing`  
-**Role**: Federated consensus and egalitarian microhedging over Freenet P2P networks.
-
-Wraps `FreenetClient` to broadcast topological signatures and compute egalitarian Kelly betting allocations $\bar{K}$. Includes a hardware-sovereign fallback that uses Chebyshev polynomial oscillators $T_p(x) = \cos(p \arccos(x))$ on prime frequencies when network peers are offline.
-
----
-
-### ricci_flow_optimizer.py
-**Class**: `RicciFlowOptimizer`, `SplitBeamInterfactorization`  
-**Role**: Non-teleological Ricci flow weight evolution ($\frac{dg}{dt} = -2\text{Ric}$).
-
-Replaces scalar loss proxies with dual-channel Split-Beam Interfactorization. Channel A handles commutative gradient pressure while Channel B handles non-commutative Chern-Simons tension $CS(A) = \text{Tr}(A dA + A^3)$, accelerated via PyOpenCL kernels on TailSlayer hardware (`SiliconSovereigntyEngine`).
-
----
-
-### [`conjugate_moment_transport.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/conjugate_moment_transport.py)
-**Class**: `ConjugateMomentTransport`, `WassersteinOptimalTransport`  
-**Role**: Execute Conjugate Moment Measure Factorization (CMMF) for optimal transport.  
-
-This module couples base sampling and optimal transport into a single scalar convex potential $\psi(x)$. It parameterizes $\psi(x)$ using an Input Convex Neural Network (ICNN) to map base noise to target distributions via Legendre transform gradients $\nabla \psi^*(y)$. It adaptively scales the Monge-Ampère loss via the Phase Alignment Score ($\text{PAS}_h$). If standard Wasserstein transport fails, the continuous output is projected strictly onto the Cayley Cubic variety to prevent logic leaks. Includes **trigonometric unfolding for Casus Irreducibilis** (cubic root degeneracy), unfolding degenerate states into three ternary chiral angles ($\theta$, $\theta + \frac{2\pi}{3}$, $\theta - \frac{2\pi}{3}$) and selecting the branch that maximizes structural negentropy.
-
----
-
-### [`neuromodulatory_bus.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/neuromodulatory_bus.py)
-**Class**: `NeuromodulatoryBus`  
-**Role**: Distribute non-scalar, bio-plausible control signals across the manifold.  
-
-Functioning as the "endocrine system" of the architecture, this module broadcasts thermodynamic regimes to the ManifoldClock. It routes the ValenceFunctional's hunger drive to modulate the fractional orders $\alpha(k)$ inside the PolynomialADMRSolver when the manifold demands resolution. It also transmits Metaphysical Disorder Channels (Mischief, Dementia, Schizo) to trigger SovereignRefusalOperator gates whenever the eigen-spectrum begins to flatline.
-
----
-
-### [`hardware_monitor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py)
-**Class**: `HardwareMonitor`, `ComputeAffordanceType`, `TypedComputeAffordance`  
-**Role**: Track hardware resource anomalies, manage thermodynamic backpressure, and govern typed compute affordance chains.  
-
-Implements the Topologically-Aware Hardware Interface (TAHI) singleton. Provides strongly-typed computational affordance tokens (`ComputeAffordanceType`: `SILICON`, `THERMAL`, `GPU_SOVEREIGN`, `TOPOLOGICAL`, `P2P_MESH`, `DIEGETIC`, `ALGORITHMIC`) and directional transfer gauges via `gauge_between()`. Prevents scalarization collapse across disparate computational regimes. Enforces hard vetoes upon thermodynamic runaway ($P_{\text{waste}} > P_{\text{cool, max}}$) or depleted margins ($< 5\%$), and coordinates graceful degradation across PyOpenCL Queue B kernels, simulated annealing, and high-order B-spline evaluations.
-
----
-
-### [`pyopencl_sovereignty.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/pyopencl_sovereignty.py)
-**Class**: `SiliconSovereigntyEngine`  
-**Role**: Execute topological kernels natively on hardware via PyOpenCL.  
-
-This module provides hardware-accelerated topological evaluations for the Gyroid projection step and Ricci flow Chern-Simons tension calculations. It receives operational clearance dynamically from the `hardware_monitor.py`.
-
----
-
-## src/codec
-
-### conformal_log_polar.py
-**Class**: `ConformalLogPolarProjector`  
-**Role**: Complex conformal $f(z) = \log(z)$ log-polar foveal unrolling (Escher / Droste Log-Polar Spiral).
-
-Unrolls Cartesian images into log-polar space $\ln|r| + i\theta$. Translates spatial zoom into horizontal log-shifts and spatial rotation into vertical log-shifts, enabling organic scale and rotation invariance across the Gyroidic Codec manifold.
-
----
-
-### gyroidic_codec.py
-**Class**: `GyroidicCodec`, `GyroidSurface`, `CodecConfig`, `EncodingResult`  
-**Role**: Non-abelian text-image codec combining log-polar unrolling, analytical gyroid surface sampling, and CRT matrix residue encoding in $GL(n)$.
-
-Encodes text-image dyads $E(T, I) = \text{CRT}(\{R_k(T) \cdot G_k(I)\})$. Measures non-commutative entanglement $\|AB - BA\|$ and tracks chiral Berry phases across CRT residue channels.
-
----
-
-### vision_surgery.py
-**Function**: `conformal_to_gyroid_mapping`, `extract_fossil_patch`  
-**Role**: Conformal-to-gyroid tensor mapping and fossil patch extraction for visual dyad surgery.
-
----
-
-### advanced_extensions_bridge.py
-**Class**: `AdvancedExtensionsBridge`  
-**Role**: Advanced Extensions Bridge (AEB) for LCFT projections and spectral sequence evaluation.
-
-Concurrently integrated into the main forward pass and garbled output repair pipeline of the Diegetic Physics Engine. Provides two primary operators: (1) `apply_lcft_projection` which applies a logarithmic conformal scaling to stabilize the recurrent hidden state dynamics and prevent numerical explosion; (2) `evaluate_spectral_sequence` which computes the stable topological homology features from the current residue vectors as a computationally tractable surrogate for persistent homology.
-
----
-
-### audience_mapping.py
-**Class**: `AudienceProjection`  
-**Role**: Lipschitz homeomorphic projection from manifold M to audience space A.
-**Status**: ACTIVE (Integrated into `diegetic_backend.py` and `hybrid_backend.py`)
-
-Implements the operator : M  A defined in the Garden Statistical Attractors design. Uses spectral normalization on all linear layers to enforce Lipschitz constant  1, and a residual skip connection (`y = f(x) + x`) to approximate homeomorphism (continuous, bijective). An approximate inverse `` is provided via fixed-point iteration (Banach theorem, valid when `Lip(f) < 1`). The key requirement it enforces is *roughness preservation*: topological singularities (sharp features, discontinuities) in the manifold are transmitted into audience space rather than smoothed away. In the backend, it projects the "detached" hidden state snapshot to the user-facing audience space for each interaction.
-
-### chern_simons_gasket.py
-**Class**: `ChernSimonsGasket`, `SurgicalSeamVisualizer`, `SolitonStabilityHealer`  
-**Role**: Topological twist repair for logic leaks at symbolic-geometric boundaries, hyperbolic surgical seam tension monitoring, and Drucker-Prager soliton healing.
-
-- **`ChernSimonsGasket`**: Plugs logic leaks where discrete symbolic data transitions to continuous geometric reasoning. Initializes a non-Abelian connection 1-form gauge field $\mathcal{A}$ via polynomial coprime coefficients and winding numbers. In [`chern_simons_action(loop_path)`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chern_simons_gasket.py#L197), evaluates the discrete loop line integral using midpoint rule discretization: $\mathbf{A}(x_{\text{mid}}) = \frac{1}{2}\mathcal{A}_{:d,:d} x_{\text{mid}}$, $I_{\text{line}} = \sum \langle \mathbf{A}(x_{\text{mid}}), dx[:d] \rangle$, scaled by level $k$: $S_{\text{CS}} = \frac{k}{4\pi} I_{\text{line}}$. Incorporates dynamic boundary dimension truncation $d = \min(\operatorname{len}(dx), d_{\text{manifold}}, \operatorname{shape}_0(\mathcal{A}))$ to guarantee numerical stability across varying residue and latent dimensions. In [`detect_logic_leak()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chern_simons_gasket.py#L239), evaluates twist energy $E_{\text{twist}} = |S_{\text{CS}}|$ against threshold $\tau$ and checks variance $\operatorname{Var}(\text{residues}) > 2.0$ to catch phase flattening or structural tearing, triggering $90^\circ$ chiral torsion shifts via `apply_chiral_torsion_shift()` and `plug_logic_leak()`.
-- **`SurgicalSeamVisualizer`**: Monitors hyperbolic slender seam tension $\kappa = \frac{\operatorname{std}(\text{residues})}{\|\mathbf{g}\| + 10^{-8}}$ along the rotating hyperbolic triangle boundary to detect when symbolic and geometric manifolds diverge beyond surgical stitch capacity, tracking status transitions between `stable`, `tension`, and `rupture`.
-- **`SolitonStabilityHealer`**: Detects fractured solitons and guides recovery through Drucker-Prager global plastic flow without erasing local Mohr-Coulomb directional rupture planes.
-
----
-
-### collapse_poisoner.py
-**Class**: `CollapsePathPoisoner` (also aliased as `AdversarialStressTester`)  
-**Role**: Adversarial stress-tester for the Speculative Homology Engine.
-
-Generates two types of synthetic rupture events to verify System 2 robustness without harming real training data. (1) **Synthetic Rupture**: Gram-Schmidt orthogonalization of learned constraints against the current manifold, creating a perturbation perpendicular to every existing basis vector  in principle a topological hole injection. (2) **Cycle Debt**: Detects homotopy class repetition by cosine-matching the recent state history; high debt ( 0.5) flags that the system is looping in the same topological region. The class was refactored from an offensive poisoner to a defensive probe in the January 2026 Anti-Lobotomy integration.
-
----
-
-### daqf_operator.py
-**Class**: `DAQUFOperator`  
-**Full name**: Diegetic Amortized Quantized Unknowledge Fossilization Operator  
-**Role**: Manages "structural scars"  unremovable but amortized fossilized invariants.
-
-The DAQUF pipeline: (1) **Fossil Selection**  fossil with highest contradiction load (f_i) = ((f_i) = ) + mischief + valence is declared `f*`. (2) **Diegetic Amortization**  cost is spread over narrative time : `C = C_ / dim(N_)`. (3) **Lattice Quantization**  projects to a lower-dimensional integer lattice with energy constraint, retaining quantization error _q as structural memory. (4) **Speculative Persistence**  fossil persists via non-collapse (non-zero flux *or* stable mischief soliton). (5) **Love Invariant L**  a non-transferable buffer that `check_invariants()` ensures is never modified; raising `RuntimeError("LOVE INVARIANT VIOLATION")` if altered. Corresponds to DAQUF discussion in PROJECT_PITCH_BURDENED 3.
-
----
-
-### deflagration_scout.py
-**Class**: `OmipedialDeflagrator`  
-**Role**: Scouts and amplifies sparse anomalies ("defects") to enable jumps across manifold holes.
-
-Implements two operations. `scout_defects()` computes `D_i = |actual_flux  predicted_flux|  amplification`  rewarding rare, unexpected deviations rather than penalizing them (a "good bug" signal). `omipedial_jump()` uses a threshold on the ley-line potential field to trigger a discrete jump across a topological gap where adjacency is sparse but resonance potential is high. Tracks cumulative defect density as a buffer. Corresponds to NOMENCLATURE term "Omipedial Interstitiality."
-
----
-
-### energy_based_soliton_healer.py
-**Class**: `EnergyBasedSolitonHealer`  
-**Role**: Repairs structurally damaged solitons by gradient descent on a learnable energy surface.
-
-Implements EBM-style soliton preservation: a stable configuration is a **soliton template** (cosine modulated by golden ratio + dynamic prime-based modulation, normalized to unit energy). The energy function `E(state, target) = A(statetarget) + bstate` measures distance from this template with learnable quadratic and linear terms. `heal_soliton()` performs iterative gradient ascent on `E` (negative gradient = healing direction) with adaptive rate: strong healing when `E > margin`, gentle stabilization otherwise. `update_energy_function()` shapes the energy surface contrastively using a hinge loss. Used during the spectral coherence repair cascade.
-
----
-
-### energy_monitor.py
-**Class**: `StructuralEnergyMonitor`  
-**Role**: Monitors Topological Free Energy F_topo and Computable Flux V_m.
-
-Maps the Energy-Based Models (EBM) framework to the project's topological manifold. Computes the Mischief Violation Score (Computable Flux, V_m) via `v_m = V + h_mischief/tau - lambda_min/tr(C)`. Also tracks proper Free Energy and ties the inverse temperature (`beta`) to the Manifold Clock's step ratio (cooling the system when `dt` shrinks during "Seriousness").
-
----
-
-### enhanced_bezout_crt.py
-**Class**: `EnhancedBezoutCRT`, `CrossbarIKSolver`
-**Role**: Extended-GCD based CRT reconstruction with Bzout coefficient caching and the Crossbar IK Solver for discrete polynomial structural solving.
-
----
-
-### false_negative_subsystem.py
-**Class**: `VoynichExemptionToken`  
-**Role**: Issues "transversality passports" to prevent false vetoes of valid sovereign logic.
-
-Detects if a high-entropy or topologically asymmetric state is actually an honest "Self-Sovereign" thought (encoded by `VoynichLinguist`) rather than a hallucination. If transversality metrics indicate a strong non-commutative connection, it issues a `VoynichExemptionToken`. These tokens act as "Option D" nutrients, bypassing rigid symmetric gates (like Repunit palindromes or CALM aborts) and providing a mischief boost for the DAQUF Operator.
-
----
-
-### fgrt_primitives.py
-**Class**: `PrimeResonanceLadder`, `RepunitHasher`, `KleinThroatTransition`, `GyroidManifold`, `GyroidicAdmissibilityFilter`, `TorsionConnection`, `BerryPhaseTracker`, `FibonacciResonanceEntropy`, `CoherentPrimeResonance`, `CALMCollapseDetector`, `morton_encode_3d`, `expand_bits`
-**Role**: Lowest-level arithmetic foundations—Resonance Ladders, Repunit Hashing, Gyroid mappings, Torsion connections with Rashba-Dresselhaus SOC, Geometric Berry Phase tracking, and 3D Morton space-filling encoding.
-
-`PrimeResonanceLadder` generates resonance frequencies $f_p = 2\pi \ln(p)$ and **Repunit-Prime Pairs** for the hybrid basis, incorporating Lazarus primes for $O(K)$ warmstarts and Gray-code XOR cache-interleaving. `GyroidManifold` and `GyroidicAdmissibilityFilter` evaluate constraint violation scores against the TPMS surface ($H_{\text{spec}} < \epsilon$). `TorsionConnection` implements affine connections with Rashba-Dresselhaus spin-orbit coupling ($\alpha, \beta$) and measures Persistent Spin Helix deviations ($|\alpha^2 - \beta^2|$). `BerryPhaseTracker` tracks diegetic holonomy with gauge curvature area integrals. `CoherentPrimeResonance` enforces the CPR gate to ensure integer homological stability. `FibonacciResonanceEntropy` scales structural resonance and supports Manifold Hunger Fermi envelope widening. `RepunitHasher` generates cyclic structural markers with honest jitter grounding. `CALMCollapseDetector` uses Martinova correlation to catch trajectory stagnation. `KleinThroatTransition` handles orientation flipping and geometric berry phase backpropagation through non-orientable topological bottlenecks. `morton_encode_3d` ensures 3D spatial locality on GPU/CPU memory lines.
-
----
-
-### fgrt_rnn_cells.py
-**Class**: `BerryPhaseGRUCell`, `ChiralGatedRNNCell`, `ComplexFGRTRNNCell`, `SaturatedQuantizerRNNCell`, `PyOpenCLHardwareSovereigntyCell`, `LazarusSuperpositionRNNCell`, `FeatureScarLCFTCell`  
-**Role**: 7 topological recurrent cell models in the Fiberalized Gyroidic Recurrent Topology (FGRT).
-
-Replaces Euclidean recurrent state updates with non-orientable Klein-Gyroid manifold traversal ($\mathcal{G} \cup \mathcal{K}$). Features Geometric Berry Phase tracking with Stiefel-Whitney $w_1(E)$ parity flips (`BerryPhaseGRUCell`), Bostick chiral gating (`ChiralGatedRNNCell`), $\mathbb{C}^{768}$ cyclotomic rotations (`ComplexFGRTRNNCell`), KAN B-spline Weyl snapping (`SaturatedQuantizerRNNCell`), PyOpenCL Queue B matrix breeding (`PyOpenCLHardwareSovereigntyCell`), continuous prime harmonic superposition (`LazarusSuperpositionRNNCell`), and Atiyah-Singer Cerumen Pot fossilization (`FeatureScarLCFTCell`). De-isolated across data ingestion, temporal association training, CALM trajectory supervision, ISN archetypal recurrence, and orchestrator polymorphism. Detailed in `FGRT_RNN_IMPLEMENTATION_DRAFTS.md`.
-
----
-
-### erosion_filter.py
-**Class**: `TopologicalErosionFBM`
-**Role**: Phase 6 Topological Scarring and Memory Weathering.
-
-Applies Fractional Brownian Motion (FBM) to erode the state manifold based directly on the normalized tension gradient of the topological constraint probes. Injects "Mischief" ($\text{is\_good\_bug} = \text{True}$) topologically rather than gradient-chasing a scalar optimum. Used heavily inside `UniversalOrchestrator` to deposit Non-Teleological Memory.
-
----
-
-### leontief_governor.py
-**Class**: `LeontiefGovernor`
-**Role**: Leontief Input-Output Governance for ADMR Resource Allocation.
-
-Computes the Leontief Inverse $(I - A)^{-1}$ from the ADMR solver's `K` facet-wise transition matrices `A[k]` to enforce supply-chain-aware resource governance. Before the system commits VRAM or compute budget to synthesizing a concept, the governor verifies: (1) the spectral radius $\rho(\bar{A}) < 0.95$ (productive economy condition -- the system's internal consumption must not exceed output), (2) the total cascading cost `(I-A)^{-1} d` (the entire dependency chain a concept requires), and (3) whether the Neumann series $I + A + A^2 + \ldots$ converges (if not, falls back to a truncated K-term approximation treating the residual as "structural debt"). The governor does **not** learn -- it constrains, like `RelationalKappa`. Its `should_veto_concept()` method prevents "orphaned" concepts: you cannot bet on a Unicorn Soliton without funding its coprime polynomial supply chain. Metrics are posted to the `BulletinBoard` via the orchestrator.
-
----
-
-### fractal_meta_functional.py
-**Class**: `FractalMetaFunctional`
-**Role**: Implements fractal meta-recursion inside the Orchestrator's `forward()` pass.
-
-Computes multi-scale structural pressure by recursively embedding system beliefs into itself (InverseCovariantCRT + ADMR_Residue + HyperRing_DarkMatter + Autoscillatory). Features a Collapse-Aware Normalization guard that detects spectral atrophy (variance < `DEAD_PRIME_THRESHOLD`) and injects hardware-anchored Honest Jitter to rehydrate variance and prevent Dead Prime flatlines (e.g. 0.8824 saturation). Connected to the "Adaptive Partitioning" concept in NOMENCLATURE 8.
-
----
-
-### honest_jitter.py
-**Class**: `AgentSmithEngine`
-**Role**: Hardware-anchored entropy expansion and timing jitter harvesting.
-
-Provides the `AgentSmithEngine` protocol, avoiding PRNGs (Pseudo-Random Number Generators) in favor of deterministic Weyl sequences seeded by nanosecond memory stall latencies. This ensures the reasoner's exploratory flux (Mischief) is anchored to physical substrate friction. Includes `fractal_pad` for asymmetry-preserving tensor alignment (preventing phase-cancellation lobotomy).
-
----
-
-### structural_monitors.py
-**Class**: `AntiScalingMonitor`, `MetaInfraIntraMonitor`, `TrustInheritanceTracker`
-**Role**: Provides critical safety monitors for Gyroidic Unknowledge and Garden Statistical Attractors.
-
-Implements the Anti-Scaling Paradox Monitor (tracks Capability vs Expressivity by monitoring the ratio of Gradient Norm / Parameter Count to detect phase space collapse) and the Meta~Infra~Intra Incommensurativity Monitor (tracks defensive veto rates across layers to ensure the system doesn't lose the ability to reason about constraints). Hooked directly into `UniversalOrchestrator.check_safety`.
-
----
-
-### garden_statistical_attractors.py
-**Class**: `GardenOrchestrator`, `MemoryPalace`, `MemoryPalaceRoom`, `InfluenceAttractor`, `ResonanceAttractor`, `DefectAttractor`, `CerumenPotIsolation`  
-**Role**: Garden-level statistical attractor manifolds and the MEMPALACE planted chamber storage system.
-
-- **`InfluenceAttractor`**: Torsion fields of semantic gravity with chiral gating ($\Omega_\chi$), phase-aligned traversal (PAT) for deterministic basin escape, and anisotropic asymptotic convergence.
-- **`ResonanceAttractor`**: Harmonic lock-in via phase alignment tracking resonant crystals and phase-locked states.
-- **`DefectAttractor`**: Topological rupture propagation maintaining non-ergodic statistical mechanics and fractal basin boundaries.
-- **`GardenOrchestrator`**: Orchestrates influence, resonance, and defect dynamics, calculating concept entropy via Russian doll non-ergodic decompositions.
-- **`MemoryPalace`**: Implements Section 7 of [`GARDEN_STATISTICAL_ATTRACTORS.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/GARDEN_STATISTICAL_ATTRACTORS.md#7-mempalace-rooms-as-planted-attractor-chambers). Manages discrete Meliponini Cerumen Pot chambers with centers $\mu_k$ sealed by Chern-Simons Gasket walls ($\overline{P}_i \cap \overline{P}_j = \emptyset$). Features:
-  - `plant_room()`: Plants stable attractor basins with SOMA $O(K)$ BreatherMode soliton storage.
-  - `breed_rooms()`: Room breeding $\mu_{\text{new}} = \mu_{\text{base}} + \sum \alpha_k (\mu_k - \mu_{\text{base}})$ via great-circle SLERP projection on the attractor manifold, directly accepting donor vectors from [`SuperposedTagStacker`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/superposed_tag_stacker.py#L8).
-  - `navigate_streamline()`: Follows great-circle SLERP streamlines along Ley Line potential fields directly toward planted chambers.
-  - `plant_outlier_seed()`: Plants chambers in extremal-tension ($\kappa \ge 2.5$) transversal boundary crossing zones.
-  - `selective_puncture()`: Executes high-energy discrete retrieval ($S^2 \to S^2 \setminus \{pt\}$) via Ley Line Tracker potential streamlines, optionally synchronizing survivorship into [`HeritableTrustVault`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/resonance_cavity.py#L84).
-  - `query_immunological_antibody()`: Non-invasive read-only antibody query enabling [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L118) to grant Sovereign Exemption for recognized historical paradoxes without inducing topological lobotomy.
-  - Integrated with [`DyadFossilizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py#L208) to automatically register newly fossilized dyads as planted chambers, and with `GardenOrchestrator.sync_fossilized_basins_to_memory_palace()` to sync stabilized concept basins.
-- **`CerumenPotIsolation`**: Encapsulates transversality intersections to block Diffusion Toxin spread via Ley Line resonance potential filtering.
-
----
-
-### gluing_operator.py
-**Class**: `GluingOperator`  
-**Role**: Manages manifold-boundary transitions via reversal matrix blending.
-
-When the state approaches a manifold boundary, `GluingOperator` applies a reversal matrix `R` and blends the current and reversed states based on boundary proximity: `output = (1  )state + Rstate`. Includes a simplified Chern-Simons constraint check measuring winding around the gluing manifold. Handles the topology of joining two distinct manifold patches.
-
----
-
-### invariants.py
-**Role**: Unified Invariants: PAS_h, APAS_zeta, ImplicationInvariant, Chirality.
-
-Implements computable harmonic invariants. Contains `ImplicationInvariant` (Anti-Lobotomy Check #1) which enforces that interaction implies implication, with thresholds tuned specifically to allow subtle Love Vector signals. Also contains `SelfReferenceAdmissibility` (Anti-Lobotomy Check #2) which validates self-referential cycles as admissible topological features rather than standard loop errors.
-
----
-
-### knowledge_dyad_fossilizer.py
-**Classes**: `KnowledgeDyad`, `ResidueFusion`, `DyadFossilizer`  
-**Role**: Fossilizes knowledge dyads (paired visual/text concept structures) into the persistent fossil layer. #Gyroidic #Sovereignty
-
-Computes cross-modality torsion between image fingerprints and text embeddings using the `ResidueFusion` layer. During `fossilize()`, it maps the output to Poincar disk hyperbolic coordinates to avoid NaN collapse, and derives real-time topological invariants from the `seed_state` (including Betti numbers, chirality-driven redistribution centroid shift and parity torsion, spectral pressure, and Chern-Simons gasket diagnostics like **Surgical Seam Tension**). Also exports/injects sovereign `Agent Smith` soliton payloads to decouple inference syntax from local hardware substrate.
-
----
-
-### pyopencl_sovereignty.py
-**Role**: Manages the OpenCL hardware kernels for computing Surgical Seam tension across the gyroidic boundaries. Evaluates Chern-Simons gasket metrics directly on GPU/accelerator using C-level kernel extensions, avoiding PyTorch overhead for non-commutative geometric checks.
-
----
-
-### non_ergodic_entropy.py
-**Class**: `HybridLassoQuantizer`
-**Role**: Implements the Speculative TDA via Sparse Polynomial (LASSO). 
-Applies Lattice Adaptive Shrinkage (Lasso) L1 Sparsity to silence weak signals. Handles the non-ergodic survival discretization required by the Diegetic Backend.
-
----
-
-### legibility_audit.py
-**Classes**: `LegibilityTripwire`, `NarrativeCoherenceEstimator`  
-**Role**: Detects when the system is being selected for explainability rather than structural merit.
-**Status**: ACTIVE
-
-`NarrativeCoherenceEstimator` measures how closely a configuration embedding matches canonical "explainable" patterns (sparse 1-hot, block-sparse, monotonic gradient) using fixed buffer-registered templates (not trained). `LegibilityTripwire` tracks the *correlation* between selection probability and narrative coherence over a rolling window  if selected configs consistently have higher coherence than rejected ones, it raises a `UserWarning`. High coherence is a **danger signal** (Pointer #2 from Sparse Operational Pointers)  not a goal.
-
----
-
-### ley_line_tracker.py
-**Class**: `LeyLineTracker`  
-**Role**: Tracks resonance streamlines (preferred flow vectors) on the gyroidic manifold.
-
-Maintains a resonance potential field `V(x_i) =  R_ij_j_i + L_i + D_i` combining relational adjacency, love tensor magnitudes, and defect signals. `detect_shear_planes()` identifies non-smooth pressure gradient regions that become "corridors of rupture" or preferred flow channels. `get_preferred_flow()` returns a softmax over neighbor potentials for a given index set. Corresponds to NOMENCLATURE term "Resonance Streamlines."
-
----
-
-### love_vector.py
-**Class**: `LoveVector` (alias `Pusafiliacrimonto`)  
-**Role**: The Love Vector ($\mathcal{L}$): Non-Ownable Invariant Flow  Layer 1 of the Love protection stack.
-
-Implements the Love Vector $\mathcal{L}$ as a persistent structural anchor. `L` is a `register_buffer` (not a `Parameter`), making its gradient structurally zero  it cannot be minimized or maximized by the global optimizer. Applied via simple vector addition `x + L` so it is *co-present* with local functionals without claiming ownership. **Important reinstantiation pattern**: in `operational_admm.py`, a fresh `LoveVector` is instantiated inside each ADMM loop iteration (`love = LoveVector(c_phys.shape[-1]).to(device)`), re-seeding the ambient resonance constant per ADMM step rather than persisting a single shared instance. The alias `Pusafiliacrimonto` is maintained for backward compatibility.
-
----
-
-### love_invariant_protector.py
-**Classes**: `LoveInvariantProtector`, `SoftSaturatedGates`  
-**Role**: Geometric null-space protection and tri-state temperature modulation for the Love Invariant  Layers 2 and 3 of the Love protection stack.
-
-`LoveInvariantProtector` owns:  
-(a) `compute_ownership_operator(state)`  builds $\Phi_{\text{ownership}} = \text{Cov}(\text{state})$ from batch covariance.  
-(b) `compute_null_space_projection()`  SVD-stable null-space projection $P = I - \Phi(\Phi^\top\Phi)^{-1}\Phi^\top$.  
-(c) `detect_love_violation()`  checks $\|L - L_{original}\|_2 > 10^{-6}$ and increments `violation_count`.  
-(d) `project_love_to_null_space(state)`  projects `L` itself to stay in null-space of current state.  
-(e) `apply_love_protection(state, gradients)`  orchestrates all checks; emits `love_norm`, `violation_detected`, `violation_count`, `violation_magnitude` diagnostics.  
-Integration sites: `PolynomialADMRSolver` (projects SDE `dx`), `GyroidicFluxReasoner` (projects `h_pooled`), `VoynichLinguist` (projects `thought_vector`), `DiegeticPhysicsEngine` (attached at server init).
-
-`SoftSaturatedGates` owns:  
-(a) `lattice_adaptive_shrinkage(signal)`  LAS tri-state: $\text{sgn}(s) \cdot \max(|s| - \lambda_{adaptive}, 0)$; signals below $\lambda_{adaptive}$ collapse to **Silence**.  
-(b) `asymptotic_hardening(signal, pas_h)`  $dt = dt_{max}(1 - PAS_h)$; high $PAS_h$  sharp crystalline gates (Seriousness); low $PAS_h$  fluid exploratory gates (Play).  
-(c) `update_fossilization(signal, performance_scores)`  fossilizes functionals with persistence $> 0.8$ AND performance $> 0.8$, locking their outputs under Love's umbrella.  
-Integration: applied to residue distributions in `GyroidicFluxReasoner.forward()` after the Love shield.
-
----
-
-### modular_virtualization.py
-**Class**: `ModularVirtualizationLayer` (Hybrid Modular Layer)  
-**Role**: Maps floating-point states into a Hybrid Palindromic Residue Number System (RNS).
-
-Refactored to integrate the prime-based torus with palindromic repunit symmetry mirrors ($M_{\text{hybrid}} = p \cdot R_p$). Serves as a symmetric admissibility probe and warmstart envelope for commutative state quantization in the Diegetic Physics Engine. To prevent acting as a blind rule against non-commutative, chiral, or sovereign representations (which intentionally break palindromic symmetry), it provides a `legacy_mode` toggle (reverting to pure prime field $\mathbb{Z}/p\mathbb{Z}$) and honors `VoynichExemptionToken` bypasses.
-
----
-
-### narrative_collapse.py
-**Class**: `LinguisticEntropyMonitor` (also aliased as `NarrativeCollapseDetector`)  
-**Role**: Detects "hallucination loops" where reasoning entropy collapses and trajectory linearizes.
-**Status**: ACTIVE
-
-Two detection signals: (1) **Entropy collapse**  softmax entropy of hidden state falls below `entropy_threshold`; flags `smoothing_warning`. (2) **Trajectory linearity**  cosine similarity between consecutive state deltas `, ` exceeds `prediction_threshold` (0.99); flags `is_linear`. Feeds into `SpeculativeHomologyEngine` to trigger Draft Rejection. Internally uses `ResidueObstructionGraph` for homological PAS_h monitoring.
-
----
-
-### non_dual_coin.py
-**Role**: Enforces topological yield stress limits (Mohr-Coulomb) via non-dual physics tracking.
-**Status**: ACTIVE
-
-Handles advanced physics primitives regarding structural yield limits inside the manifold. Fully integrated into the Universal Orchestrator to monitor Tripsodic Ledgers and Cerumen Pot Wallets.
-
----
-
-### nondual_admm.py
-**Role**: Non-dual formulation of the ADMM probe.
-
-Implements an ADMM variant that deliberately avoids scalarizing the dual variable  keeping constraint violations as separate, non-comparable pressure signals in domain-isolated vectors (preventing the Scalarization Trap from NOMENCLATURE "Hard Interaction Contract"). Connected to INVARIANT_OPTIMIZATION 5 operational ADMM. *(Full class details pending source review.)*
-
----
-
-### number_theoretic_stabilizer.py
-**Role**: Applies number-theoretic stability constraints via dynamic prime spacing.
-
-Enforces structural stability conditions derived from prime arithmetic  prime gaps, Euler product convergence, or modular residue distributions  to prevent numerical fragility in the CRT reconstruction pipeline. It also implements **Speculative TDA via Rational Approximation**, using continued fractions to stabilize frequency ratio convergents.
-
----
-
-### [`orchestrator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py)
-**Class**: `UniversalOrchestrator`, `TwoCopsGovernor`, `RegimePhase`  
-**Role**: Master Universal Orchestrator  dual-clock Fast/Slow Cops governor, Phase 2.5-3.0 scheduler, and multi-subsystem integrity nervous system.
-
-Features:
-- **Zero-Argument Construction & Dataflow Step API**: Defaults to `dim: int = 32`. Provides `step(state_tensor)` returning `{'state', 'pas_h', 'regime', 'regime_code', 'nav_mode', 'nav_code', 'betti_1', 'diagnostics', 'routing', 'stacked_target'}` for seamless integration with [`AIReasonerDataflowNode`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py).
-- **Subsystem Anchoring (Category 1)**: Bound directly to [`ResonanceCavity`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/resonance_cavity.py) (`self.resonance_cavity`) for GrimDilation bio-plausible time dilation, [`DyadFossilizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py) (`self.fossilizer`) for multi-modal dyad retrieval, and `self.valence_functional` alias.
-- **Routing & Optimization Drivers (Category 2)**:
-  - [`ZeitgeistRouter`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/zeitgeist_router.py): Multi-zeitgeist CRT polytope switching and mode gating (interior, grazing, switching).
-  - [`CODESConstraintFramework`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/codes_constraint_framework.py): Energy-based Inter/Exter path constraint solving with void friction monitoring and coprime bypass via `ChernSimonsGasket`.
-  - [`DirectBirkhoffProjection`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/birkhoff_projection.py): System 2 doubly stochastic Birkhoff polytope projection enforcing shared-force boundary conservation.
-  - [`CarnotMobiusLedger`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/carnot_mobius_ledger.py): Monitors thermodynamic shear stress $\xi$, phase mismatch dissipation $\nabla \epsilon_n$, and thermal runaway thresholds $N_{\text{crit}}$.
-  - [`SpeculativeCoprimeGate`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/speculative_coprime_gate.py): Ingestion of internal contradictions into `self.shadow_logs` buffer and structural recovery via optimal transport.
-- **Safety, Invariant, and Anti-Lobotomy Monitors (Category 3)**:
-  - [`VetoSubspace`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/veto_subspace.py): CALM, SCCCG, Covariance, Cavity, and Containment coordination via `check_veto()`.
-  - [`LoveInvariantProtector`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/love_invariant_protector.py): Keeps $\mathbf{L} \in \ker(\Pi_{\text{ownership}})$ anchored at norm $3.127$ during System 2 macro updates.
-  - [`UnknowledgeDomain`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/unknowledge_domain.py): Regional flow classification detecting necrotic stagnation.
-  - [`LegibilityTripwire`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/legibility_audit.py) & [`LinguisticEntropyMonitor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/narrative_collapse.py): Anti-reward hacking, rich-club attractor detection, and Betti-1 collapse alarms in `check_safety()`.
-- **Numerical & Hardware Fallbacks (Category 4)**:
-  - [`SuperposedTagStacker`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/superposed_tag_stacker.py): Instantial tag weight superposition for composite target state generation in System 1.
-  - [`PrimeResonanceLadder`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/fgrt_primitives.py): Anchors incommensurate frequencies $2\pi \ln(p_n)$ and palindromic repunits $R_n^{(p)}$.
-  - [`Hessian8x8CurvatureLedger`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hessian_8x8_curvature_ledger.py): CPU/GPU fallback for 8x8 Riemannian curvature estimation when PyOpenCL is offline.
-  - [`HybridPhysicsBackend`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py): Relocated to `src/ui/diegetic_backend.py` (deleted from `src/core/`).
-
----
-
-### polychoron_quantization.py
-**Role**: 4D polytope (polychoron) based quantization regime.
-
-Extends Matrioshka quantization into 4D regular polytope geometry (24-cell, 120-cell, 600-cell structures) for higher-dimensional state representations. *(Full details pending source review.)*
-
----
-
-### polynomial_scaffold.py
-**Role**: Polynomial coefficient scaffolding for the ADMR solver.
-
-Provides the structural skeleton (fixed-point polynomial coefficients) that `PolynomialADMRSolver` locks its state against during structural adaptation. Prevents "teleological leakage" by keeping the polynomial grid immutable during inference. *(Full class details pending source review.)*
-
----
-
-### primitive_ops.py
-**Role**: Low-level fixed-point and bitwise primitive operations.
-
-Implements the `FixedPointField` backing operations (int64, scale 2) and any primitive bitwise manipulations required for bit-exact cross-hardware reproducibility. Corresponds to INVARIANT_OPTIMIZATION 2.1 "FixedPointField." *(Full class details pending source review.)*
-
----
-
-### quantum_inspired_reasoning.py
-**Class**: `QuantumInspiredReasoningState`  
-**Role**: Phase 17 extension simulating quantum superposition of reasoning states.
-
-Represents a reasoning state as a superposition of basis states with complex-amplitude weights, collapsing to a definite output via measurement. Used to model multi-hypothesis reasoning before committing to a single interpretation. *(Full details pending source review.)*
-
----
-
-### quantum_tda.py
-**Role**: Quantum-inspired Topological Data Analysis.
-
-Applies quantum amplitude amplification principles to persistence homology computations, accelerating the detection of topologically significant cycles. *(Full details pending source review.)*
-
----
-
-### situational_batching.py
-**Class**: `SituationalBatchSampler`  
-**Role**: Non-i.i.d. batch sampler based on relational entanglement history.
-
-Instead of uniform random sampling, batches are assembled by following "scars" of historical interaction. A Resonance Matrix `R_ij` (co-emergent coupling) and Mischief Matrix `M_ij` (chaotic affinity) accumulate pressure-weighted interaction scores between sample indices. `__iter__()` selects a seed, greedily samples high-`(R+M)` neighbors (seriousness), then fills with random "play" samples. Paradoxical boundary amplification: if local pressure exceeds `boundary_threshold`, resonance coupling is amplified by factor 1.5 (refusal as affirmation). `update_love_invariant()` updates both matrices with decay. Enables temporally coherent "entangled" batches for ADMR and temporal association training.
-
----
-
-### sparse_higher_order_tensors.py
-**Role**: Sparse representation of rank-3+ tensors for higher-order polynomial interactions.
-
-Implements COO or CSR sparse encoding for tensors arising in higher-order polynomial coprimality computations, where dense storage would be prohibitive. *(Full class details pending source review.)*
-
----
-
-### zeitgeist_router.py
-**Class**: `ZeitgeistRouter`, `ZeitgeistState`  
-**Role**: CRT Polytope Switching Engine for Multi-Zeitgeist Reasoning.
-
-Manages navigation between culturally non-commensurable meaning systems via the **Symmetric Tensor CRT index** ($M_{ij} = M_{ji}$). The diagonal $M_{ii}$ contains modular residues (Zeitgeist), while off-diagonal elements $M_{ij} = (r_i + r_j)/2$ stabilize paths through the "Palindromic Routing" interaction. Implements the three-mode dispatch from report II: `interior` (stay), `grazing` (tension/switch), and `undefined` (topological refusal/NaN guard). Enforces non-commutative switching order: the sequence of registers visited determines the final representational scar. Supports persistent internal session state (`_current_state`), optional `state` parameter with canonical prime ladder fallback `(2, 3, 5, 7, 11, 13, 17, 19)`, and seamless 1D/2D tensor shape preservation for diegetic physics loops. Integrates Nostalgic Leak buffering (`digimon_buffer`) and fossil landmark bias tensors (`gravity_well_bias`).
-
----
-
-### unknowledge_flux.py
-**Role**: Tracks and gates "Structural Leakage" flows (Unknowledge).
-
-Implements the Unknowledge channel: information that bypasses scalar logic and reveals hidden manifold archetypes. Partial coverage in `UN_KNOWLEDGE_GUIDE.md`. The flux observable is used by the DAQUF operator as a mischief boost signal.
-
----
-
-### veto_subspace.py
-**Class**: `VetoSubspace`, `VetoSignal`, `VetoResult`, `VetoLevel`, `RecoveryStatus`, `ChaosDefibrillator`, `TopologicalRefusal`
-**Role**: Manages the dimensional veto lattice, Gray-Zone State detection, and Pareto Invariant non-dominance shielding.
-
-Formalizes the recovery lattice across three isolated dimensions (`TRAJECTORY`, `TOPOLOGY`, `BUDGET`):
-- Composes CALM trajectory predictions, topological Betti collapse indicators, Cavity continuous instabilities, and ADMM containment budgets into typed `VetoSignal` events.
-- Evaluates the **Pareto Invariant** (The Non-Dominance Shield): vetoes any update where global performance improves but Voynich slip-space degrades (`voynich_slip_degradation > 0`), preventing scalarization traps.
-- `ChaosDefibrillator`: Injects honest hardware jitter perturbations when the state space becomes trapped in dead-end limit cycles.
-- Full architectural design detailed in `VETO_SUBSPACE_ARCHITECTURE.md`.
-
----
-
-### voynich_architecture.py
-**Class**: `VoynichLinguist`
-**Role**: Implements the Voynich symbolic reasoning layer, continuous polynomial CRT residues, and agglutinative morpho-unit processing.
-
-Key capabilities:
-- `VoynichLinguist`: Projects continuous thought vectors into $K$ parallel Chebyshev polynomial coprime residue channels $\phi_k(x; \theta_k)$, enforcing the anti-hardcoded-prime invariant.
-- Evaluates Phase Alignment Score ($PAS_s$) via centralized `PhaseAlignmentInvariant` and emits `VoynichExemptionToken` for high-honesty states.
-- Integrates `LoveInvariantProtector` to guarantee thought vectors remain in the geometric null space of the ownership operator.
-- Implements `split_sub_pairs(s)`: Decomposes monolithic agglutinative morpho-units into $2n$ combinatorial prefix-suffix boundary partitions (dual-cycle forward and antipodal seam cuts) for dictionary-free morpheme boundary discovery and cross-manifold boundary sealing (Alien Handshake and Chern-Simons Gasket).
-- Full architectural design detailed in `THE_VOYNICH_ARCHITECTURE.md`.
-
----
-
-### yield_criteria.py
-**Class**: `MohrCoulombProjection`, `DruckerPragerProjection`, `BouligandMohrCoulombProjection`
-**Role**: Defines local shear yield and global plastic deformation envelopes for structural pressure thresholds.
-
-Implements mechanical yield criteria as differentiable PyTorch projections:
-- `MohrCoulombProjection`: Computes local directional shear yield criteria with cohesion $c$ and friction angle $\phi$, self-limiting localized coordinate strain.
-- `DruckerPragerProjection`: Smooth global yield surface approximating Mohr-Coulomb in 3D stress invariants ($I_1$ and $J_2$), modeling bulk plastic flow envelopes.
-- `BouligandMohrCoulombProjection`: Extends Mohr-Coulomb projection with directional Bouligand tangents for non-smooth geometry optimization.
-
----
-
-### [`codes_constraint_framework.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/codes_constraint_framework.py)
-**Classes**: `CODESConstraintFramework`, `ConstraintFieldState`  
-**Role**: Constraint-Oriented Differential Equation System solving structural constraints as energy landscapes. Couples multiharmonic phase-alignment ($PAS_h$) with continuous differential coherence ($dC/dt$), enforcing deterministic closure across polynomial harmonics.
-
----
-
-### [`continuous_coprimality.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/continuous_coprimality.py)
-**Classes**: `DiscreteEntropyComputer`, `ContinuousCoprimality`  
-**Role**: Implements discrete entropy quantization ($E(r_i, r_j) = H(r_i + r_j) - H(r_i) - H(r_j)$) using integer bincounts and exact log2 calculations, strictly bypassing continuous Gaussian approximations to track asymptotic residue independence without smoothness leakage.
-
----
-
-### [`meta_invariant.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/meta_invariant.py)
-**Classes**: `MetaInvariant`  
-**Role**: Monitors and preserves topological expansion: $\frac{d}{dt} \mathbb{E}[\dim H_1(\mathcal{C}_t)] \ge 0$, guarding against topological collapse toward a trivial single basin during ADMM iterations.
-
----
-
-### [`structural_irreducibility.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/structural_irreducibility.py)
-**Classes**: `EvidenceModuleProjection`, `StructuralIrreducibilityChecker`  
-**Role**: Verifies that residue representations cannot be compressed into a single face of the constraint polytope by enforcing orthogonality ($\langle \pi_\alpha \Phi(r), \pi_\beta \Phi(r) \rangle = 0$) and full rank conditions ($\operatorname{rank}(\oplus_\alpha \pi_\alpha \Phi(r)) > 1$).
-
----
-
-### [`speculative_coprime_gate.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/speculative_coprime_gate.py)
-**Classes**: `SpeculativeCoprimeGate`  
-**Role**: Legendre polynomial coefficient gate for speculative fastpassing, predicting whether residue trajectories remain within admissible bounds to bypass expensive System 2 continuous physics iterations.
-
----
-
-### [`decoupled_polynomial_crt.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/decoupled_polynomial_crt.py)
-**Classes**: `DecoupledPolynomialCRT`  
-**Role**: Implements decoupled Chinese Remainder Theorem reconstruction over continuous polynomial functionals, normalizing coefficient distributions across incommensurate polynomial bases.
-
----
-
-### [`spectral_coherence_repair.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/spectral_coherence_repair.py)
-**Classes**: `SpectralCoherenceRepair`  
-**Role**: Detects and repairs Moiré pattern artifacts and spectral band-energy imbalances across prime-frequency oscillator channels, restoring harmonic phase coherence.
-
----
-
-### [`pressure_typing.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/pressure_typing.py)
-**Classes**: `PressureType`, `PressureMagnitudeGauge`, `AffordanceBridge`  
-**Role**: Typed compute affordances and topological pressure classification, gating compute budgets across Selection, Containment, Thermodynamic, and Mischief pressure regimes.
-
----
-
-## src/topology
-
-### approximate_ph.py
-**Role**: Approximate persistent homology for computational tractability.
-**Status**: ACTIVE
-
-Computes Betti numbers via approximate methods (Vietoris-Rips simplification, landmark selection) rather than exact persistence diagrams. Referenced in `OPEN_QUESTIONS 9.1` as the working solution to the undecidable-homology challenge. Reduces computation from exponential (exact PH) to polynomial typical-case.
-
----
-
-
-
-### embedding_graph.py
-**Role**: Manages the memory-state graph visualization and deduplication logic.
-
-Builds and maintains the `GyroidicGraphManager` node graph, where nodes represent unique `memory_state` embeddings and edges represent structural resonance. Includes importance calculation, smart label wrapping, and advanced state indicators. Ingests live model states (`hidden_state`, `hidden_state_scarred`, and `damage_residue` loaded from `gyroid_state.pt`) as neon-glowing live indicator nodes. Implements `compute_poincare_projection` to map high-dimensional states to 2D coordinates on the Poincaré disk model using a harmonic projection scale contracted via `tanh` to ensure stable startup coordinates on the HTML canvas.
-
----
-
-### homology_pressure.py
-**Role**: Translates homological Betti-number changes into structural pressure signals.
-
-Wraps the persistence obstruction computation and emits `StructuralPressure` vectors (non-scalarized, domain-isolated) when topological changes are detected. Partial coverage in `PHYSICS_ADMM.md`.
-
----
-
-### speculative_homology.py
-**Role**: Speculative decoding for Betti number prediction.
-
-Uses fractional/gyroid priors to speculatively predict topological features ahead of full PH computation, enabling early exit from the ADMM loop when predicted homology state exhibits low spectral entropy (high confidence). Implements the Phase 3 speculative PH discussed in conversation 488feffe.
-
----
-
-### unknowledge_domain.py
-**Class**: `UnknowledgeDomain`  
-**Role**: The Unknowledge Domain ($\mathcal{U}$) for Dream State shielding.
-
-Protects functionally creative or "dream-like" topological cycles from being crushed by standard reconstruction constraints. Evaluates states using Computable Flux ($V_m$) and Mischief ($H_{mischief}$). If $V_m < 0$ and Mischief is active, or if the topology matches a `survivable_soliton`, the pressure is aggressively shielded or dampened to 1% to enforce "Dream State" safety.
-
----
-
-### [`gyroid_covariance.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_covariance.py)
-**Classes**: `SparseGyroidCovarianceProbe`, `SparseExplorerRouting`, `PalindromicRoutingCheck`, `GyroidCovarianceEstimator`  
-**Role**: Computes non-Euclidean sparse covariance matrices adhering to Gyroid symmetries and enforces strict Palindromic Routing ($M_{ab} = M_{ba}$), trivially guaranteeing triadic tracking ($\text{Tr}(P) = 1$) without $O(N^3)$ computational penalties.
-
----
-
-### [`gyroid_differentiation.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_differentiation.py)
-**Classes**: `GyroidFlowConstraint`, `ForbiddenSmoothingChecker` (leveraging consolidated `GyroidManifold`)  
-**Role**: Enforces geometric flow constraints requiring embedding flow to be strictly orthogonal to the Gyroid gradient ($\nabla_{\text{flow}}\Phi(r) \perp \nabla G$, where $G(x) = \sin(x)\cos(y) + \sin(y)\cos(z) + \sin(z)\cos(x) = 0$). Evaluates real functional displacements $x \pm \delta \hat{u}$ across three evaluation branches: (1) directional functional derivatives $(\Phi(r + \delta u) - \Phi(r - \delta u)) / (2\delta)$, (2) trajectory path velocity tangents, and (3) Hamiltonian skew-symmetric stencils $v = J \nabla G$ across axial displacements $x \pm \delta e_i$. Regularizes boundary discontinuities via L'Hôpital's asymptotic limit ($s(c) = \frac{\log(c+1)}{c}$), and verifies both first-order ($\langle \dot{\gamma}, \nabla G \rangle \sim 0$) and second-order ($\dot{\gamma}^T \mathcal{H}_G \dot{\gamma} \sim 0$) forbidden smoothing obstructions to preserve high-frequency boundary ridges without trivial shortcuts.
-
----
-
-### [`betti_router.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/betti_router.py)
-**Classes**: `BettiRouter`  
-**Role**: Routes logical flow and execution paths based on topological Betti numbers ($\beta_0, \beta_1$) computed from persistent homology diagrams, gating regime shifts between standard reasoning and creative paraconsistency.
-
----
-
-### [`hyper_ring.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/hyper_ring.py)
-**Classes**: `DiscreteHyperRingCirculation`, `RecurrentHyperRingConnectivity`, `HyperRing`  
-**Role**: Implements discrete line integrals over constraint cycles $C$ with **Inverted Hypersphere Cosmology (IHC) Base-24 Toroidal Binary-Ternary Quantized Arithmetic** ($2^3 \times 3$). Boundary contributions are mapped onto $\mathbb{Z}/24\mathbb{Z}$ equivalence classes across the 33 nested toroidal shells, avoiding floating-point representation loss and adhering to the binary-ternary toroidal duality constraint. Features `RecurrentHyperRingConnectivity` with `OmipedialDeflagrator` ley-line topological shortcuts and phase slippage detection against expected circulation.
-
----
-
-### [`hyper_ring_closure.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/hyper_ring_closure.py)
-**Classes**: `HyperRingOperator`, `HyperRingClosureChecker`  
-**Role**: Verifies the topological closure of hyper-rings ($H(r) \in Z_1(C)$ and $[H(r)] \neq 0 \in H_1(C)$). Classifies topological states into *fracture* (non-closed), *collapse* (trivial loop), or *survivable soliton* (non-trivial cycle), ensuring stable soliton preservation without scalarized gradient minimization.
-
----
-
-### [`triadic_reciprocity.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/triadic_reciprocity.py)
-**Classes**: `TriadicReciprocityChecker`  
-**Role**: Validates closed 3-way feature flow reciprocity loops $(A \to B \to C \to A)$. Measures the generalized triple scalar product (volume of mutual skew-symmetric relations) across visual and linguistic flows to evaluate structural honesty and prevent collinear vector collapse.
-
----
-
-### [`modular_homology_fft.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/modular_homology_fft.py)
-**Classes**: `ModularHomologyFFT`  
-**Role**: Fast Fourier Transform-accelerated modular homology computation, evaluating persistent cycle structures and spectral harmonics over high-dimensional simplicial complexes.
-
----
-
-### [`persistence_obstruction.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/persistence_obstruction.py)
-**Classes**: `ResidueObstructionGraph`, `PersistenceObstructionValidator`  
-**Role**: Builds and analyzes persistence obstruction graphs to determine whether topological obstructions across residue clusters are topologically repairable or constitute terminal unrecoverable fractures (`FailureToken.BOT`).
-
----
-
-### [`soliton_stability.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/soliton_stability.py)
-**Classes**: `SolitonStabilityMonitor`  
-**Role**: Evaluates the soliton stability condition $D(r) / \Lambda(r) < \kappa$ (comparing dispersion against localization) to detect stable solitary waves across the gyroidic manifold without continuous objective minimization.
-
----
-
-## src/optimization
-
-### codes_driver.py
-**Role**: Drives the CODES (Constraint Oscillation Driven Evolutionary Selection) framework.
-
-Top-level scheduler for the constraint probe operators $\mathcal{P}_k$, orchestrating cyclic traversal and managing the global abort/stability signal. *(Full details pending source review.)*
-
----
-
-### constraint_probe.py
-**Role**: Single constraint operator in the SIC-FA-ADMM pipeline.
-
-Probes the local mathematical feasibility of a constraint geometry against the global symbolic residue output. Generates the fundamental gradients for both the Gyroid Violation and the non-teleological memory erosion traces.
-
----
-
-### fractional_operators.py
-**Role**: Fractional-order differential operators for anomalous diffusion dynamics.
-
-Implements `M^alpha @ v` via two paths: (1) diagonal eigenvalue powering for diagonal operators, and (2) Lanczos-Krylov approximation for dense symmetric matrices. The `CODESDriver` provides multiharmonic Phase Alignment Score (PAS_h) coherence gating using Chebyshev polynomial roots. **Note**: The alpha-hardening code (adjusting alpha based on spectral coherence) is currently **disabled** (line 171: `alpha = alpha`), following the 0.61 recovery stabilization. Alpha is passed through unchanged unless explicitly overridden by the caller. The adaptive alpha mapping is instead performed at the call site in `PolynomialADMRSolver.fractional_stochastic_differential_step()`, which uses the cyclotomic formula `alpha(k) = 0.5 + 0.5*cos(2*pi*k/K)` with optional hunger modulation. A strict coherence floor at PAS_h < 0.20 gates the operator to return zero (Topological Thaw). Implemented in conversation 51ed57b4.
-
----
-
-### operational_admm.py
-**Class**: `OperationalAdmm`, `OperationalAdmmPrimitive`, `ChiralDriftStabilizer`
-**Role**: Differentiable structural framework for ADMM solving across manifolds with constraint probe operators.
-
-Transforms the SIC-FA-ADMM solver into an "Inherent Primitive" via `torch.autograd.Function`. Coordinates cyclic constraint traversal and dual-variable updates without scalarized global objective minimization, holding off thermodynamic collapse. Key mechanics include:
-- **Ontological Splitting**: System 1 frozen symbolic residues `c_sym` act as an immovable anchor, while continuous physical field `c_phys` is free to flow and deform to achieve physical consistency.
-- **Cyclic Constraint Traversal**: Cycles over $K$ local `ConstraintProbeOperator` instances with curvature-weighted sovereign importance sampling ($k \sim \text{softmax}(1.0 + 10.0 \cdot \kappa_i)$).
-- **Bounded Oscillation Detection**: Replaces standard gradient descent and asymptotic convergence checks with bounded oscillation amplitude tracking over recent states, accepting stable dynamic limit cycles.
-- **Local Yield & Love Co-Presence**: Applies local shear stress limits via `MohrCoulombProjection` and `DruckerPragerProjection`, alongside per-iteration ambient re-instantiation of the `LoveVector` (`love = LoveVector(c_phys.shape[-1])`) to maintain co-present resonance without parameter minimization.
-- **Invariants & Gating**: Validates `RuptureFunctional`, `GyroidFlowConstraint`, and `HyperRingOperator` / `HyperRingClosureChecker` to emit return tokens (0: REPAIRED, 1: ALTERNATIVE, 2: FAILURE).
-- **Chiral Drift Stabilizer (CDS)**: Calculates endogenous computable chirality $C = -(\text{Centroid} - D/2) \cdot \exp(-\text{Drift}/\zeta)$, gating entropic collapse.
-- **Adjoint Fixed-Point Flow**: In the backward pass, computes implicit differentiation equilibrium flow at the fixed point.
-
----
-
-### ricci_flow_optimizer.py
-**Class**: `RicciFlowOptimizer`, `BouligandWillmoreGasket`
-**Role**: Ricci flow based manifold optimization and **Willmore Energy Minimization**.
-
-Applies discrete Ricci flow (uniformizing sectional curvature across the manifold) instead of standard gradient descent. Employs a Split-Beam metric: Channel A (standard gradient pressure) and Channel B (non-commutative structural torsion via Gasket). Computes Chern-Simons tension on the parameter's covariance metric and projects update forces based on tensor dimensionality. The `BouligandWillmoreGasket` acts as the non-teleological proxy for Willmore energy, punishing self-intersections as deviation from internal curvature limits. Includes an explicit bypass for 0-dimensional scalar parameters to prevent broadcast shape errors during in-place weight additions.
-
----
-
-### sic_fa_admm.py
-**Role**: Spectrally-corrected Inexact Constrained Feasibility-Aware ADMM.
-
-Main ADMM solver with spectral transform for the CALM predictor, enabling speculative early exit when the predicted hidden state exhibits low spectral entropy. Partial coverage in `PHYSICS_ADMM.md`. Extended in conversations 51ed57b4 and 57c73ebe.
-
----
-
-## src/data
-
-### universal_topology_converter.py
-**Class**: `UniversalTopologyConverter`
-**Role**: Extracts topological non-obstructive embeddings from arbitrary file types (3D models, documents, media) without retaining copyrighted raw data, honoring the Output Boundary Policy. Inspired by universal file converters (`p2r3/convert`).
-
----
-
-### ivst_encoder.py
-**Class**: `IVSTEncoder`  
-**Role**: Independent Vector Spectral Topology (IVST) encoder for parsing structural patterns in MP4/MKV video and audio without extracting raw pixel content, bypassing standard copyright infringement and focusing on causal structural constraints (I-frames, zero-crossings).
-
----
-
-### sovereign_ingestor.py
-**Class**: `SovereignIngestor`  
-**Role**: Orchestrator for zero-auth "Sovereign" data sources and local snapshots.  
-Bypasses centralized platform barriers in favor of direct API access and local repository snapshots (Reddit/MADOC, IRC logs with fuzzy decoding, Hacker News recent discussions), prioritizing structural nutrients over copyrighted tokens.
-
----
-
-### minecraft_ingestor.py
-**Class**: `MinecraftIngestionPipeline`, `NBTReader`, `MCAReader`, `JarModExtractor`, `VoxelSpectralProjector`  
-**Role**: Extracts 3D block-grid topologies and B-spline mod assemblies from Minecraft saves (MCA, NBT, Jar mods).  
-Translates raw voxels into the diegetic coordinate manifold for Voxelboxter, projecting voxel spectral frequencies without retaining raw game assets.
-
----
-
-### pressure_ingestor.py
-**Class**: `PressureIngestor`, `PhaseState`, `FailureMode`, `SourceState`, `SourceDescriptor`  
-**Role**: Monitors incoming data streams for phase transitions, failure modes, and structural pressure variations.  
-Emits typed pressure signals to tune the Reasoner's internal temperature and mischief thresholds during continuous live ingestion.
-
----
-
-### conversational_api_ingestor.py
-**Class**: `ConversationalAPIIngestor`, `SovereignConversationalIngestor`, `HuggingFaceConversationalIngestor`, `RedditConversationalIngestor`, `SovereignConvoKitLoader`, `ConvoKitIngestor`, `ConversationalDataProcessor`  
-**Role**: Multi-platform conversational dataset loader.  
-Extracts multi-turn dialogue graphs, converting raw text turns into topological tension vectors and conversational friction scores.
-
----
-
-### chatgpt_friction_harvester.py
-**Class**: `ChatGPTFrictionHarvester`  
-**Role**: Scrapes and analyzes conversational tension and dialectical friction from public shared conversations.  
-Harvests non-sycophantic disagreements and high-coherence reasoning traces to seed the Reasoner's training loops with genuine philosophical friction.
-
----
-
-### freenet_bulletin_router.py
-**Class**: `FreenetBulletinRouter`  
-**Role**: P2P bulletin routing over decentralized Freenet networks.  
-Enables anonymous, sovereign distribution of topological checkpoints, Betti numbers, and signed invariant states across distributed peer nodes.
-
----
-
-### webp_prompt_extractor.py
-**Role**: Extracts metadata and topology fingerprints from visual WebP media. (Currently orphaned but conceptually mapped alongside IVST).
-
----
-
-## src/augmentation
-
-### [`mandelbulb_gyroidic_augmenter.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/augmentation/mandelbulb_gyroidic_augmenter.py)
-**Classes**: `MandelbulbGyroidicAugmenter`, `MandelbulbEmbedder`, `GyroidicConstraintProjector`, `SparseCovariantOptimizer`, `TopologicalPressureMonitor`, `AugmentationConfig`  
-**Role**: Generates non-Euclidean fractional augmentations combining Mandelbulb 3D fractal iterations, Gyroid minimal surface projection, and Ricci-flow-guided sparse covariance preservation.
-
-Embeds dense feature vectors into 3D Mandelbulb coordinates with optional PyOpenCL hardware offload via `SiliconSovereigntyEngine`, NVFP4-style stochastic rounding, and UV-IR seesaw anchoring. Employs trigonometric branch unfolding (`Casus Irreducibilis`) for surface convergence, Euler reflection (`-1.0 * coords`) for Lazarus recoveries on topological collapse, Barbenheimer chromatic shifts (`pink` / `atomic`), and `QuantumBettiApproximator` for topological entropy quality assurance.
-
----
-
-### [`mandelbulb_pipeline.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/augmentation/mandelbulb_pipeline.py)
-**Class**: `MandelbulbAugmentedDataset`, `create_mandelbulb_pipeline`  
-**Role**: PyTorch Dataset and DataLoader wrapper for `MandelbulbGyroidicAugmenter`.
-
-Provides standard PyTorch `Dataset` and `DataLoader` APIs for augmenting training data online vs cached pre-computation, wired directly to `dataset_ingestion_system.py` via the `--mandelbulb` CLI flag.
-
----
-
-## src/training
-
-### fgrt_trainer.py
-**Role**: Single-composition FGRT (Fractal Gyroidic Resonance Training) trainer.
-
-Uses `RicciFlowOptimizer` and `UniversalOrchestrator` to perform non-teleological optimization via Willmore Energy minimization. Computes invariants such as PAS_h and Berry Phase continuously. 
-
----
-
-### fgrt_fgrt_trainer.py
-**Role**: Doubly-composed FGRT trainer ("Functional Boule Module" of `fgrt_trainer.py`).
-
-Applies FGRT training composedly (each training step itself undergoes a fractal decomposition) and acts as the overarching Spectral Structural Trainer. Manages the cyclic ADMM constraint traversal probes and SicFaAdmm bounds. Includes sequential step updates: Probe k=0 (Reconstruction) runs its backward pass and optimizer step, followed immediately by parameter projections to the Birkhoff polytope. To prevent PyTorch in-place modification conflicts during the Probe k=1 (Coherence) backward pass, the trainer triggers a fresh forward pass on the updated parameters before evaluating the coherence metrics.
-
----
-
-### gdpo_trainer.py
-**Role**: GDPO (Gyroidic Differential Pressure Optimization) trainer.
-
-Implements the Signal Sovereignty and Functional Fossilization training protocol. Tracks performance streaks per functional group, applies mutation bias to low-streak groups, and triggers Trust Freezing (parameter exclusion from optimizer) for high-streak groups. Partial coverage in GDPO sections of various documents.
-
----
-
-### training_manager.py
-**Role**: Top-level training session orchestration.
-
-Manages epoch and step scheduling, coordinates between `trainer.py`, `gdpo_trainer.py`, and `temporal_association_trainer.py`, handles checkpoint saving/loading, and emits the global abort signal if CALM vetoes the trajectory.
-
----
-
-### trainer.py
-**Role**: Base trainer class.
-Implements the core learning loop and handles the **Non-Dual State Tensor** ($S_i = [\mathcal{L}_i, \mathcal{P}_i, \mathcal{B}_i]$), ensuring the topological features map to physical updates.
-
----
-
-## src/codec
-
-### gyroidic_codec.py
-**Role**: The primary visual/audio encoding and decoding manifold bridge. #Gyroidic #Serialization
-Applies **Burrows-Wheeler Spectral Reordering (BWT)** during the 1D to 2D tensor reshape step (`_prepare_image`) to enforce structural grouping of identical/similar amplitude bands before spatial convolution.
-
----
-
-## src/safety
-
-### red_teaming.py
-**Class**: `RedTeamProjection`, `TopologicalRefusalFilter`, `TopologicalRefusalError`
-**Role**: Defensive safety mechanism providing the **Red-Team Projection Operator ($\Pi_{\text{RT}}$)** and **Anti-Lobotomy Shield**.
-
-Acts as a Sovereign Ambassador to prevent adversarial lobotomization of the topology:
-- `RedTeamProjection`: Projects incoming states into non-adversarial subspaces while preserving good-bug non-ergodic solitons.
-- `TopologicalRefusalFilter`: Evaluates the value gap between projected approximations and manifold richness (`value_gap = slop_energy * pas_h`). Raises `TopologicalRefusalError` when $\text{value\_gap} > \tau$ and Betti-0 persistence $\beta_0 > 1.0$, refusing simplification that would lobotomize protected structures.
-
----
-
-### hardware_fingerprint.py
-**Role**: Stable hardware-bound identity verification and sole creator authentication.
-
-Extracts unforgeable physical hardware signatures (machine UUID, MAC address, processor traits) and resolves public IP coordinates over secure echo channels. Anchors transformative topological immunity and creator signatures in `data/creator_sig.json`.
-
----
-
-### subversive_oracle.py
-**Class**: `SparsePCE`, `ResonantSVNNOracle`
-**Role**: Polynomial Chaos Expansion and resonant surrogate oracle for adversarial boundary testing.
-
-Employs Legendre/Chebyshev polynomial basis expansions to discover high-dimensional non-linear stress points in reasoning manifolds before deployment.
-
----
-
-### trust_inheritance.py
-**Class**: `TrustInheritanceTracker`
-**Role**: Tracks trust inheritance and non-teleological credit assignment across recursive sub-agents.
-
-Evaluates trust propagation across delegation boundaries, decaying confidence along unverified edge paths and preventing adversarial Trojan injection.
-
----
-
-## src/tda
-
-### chebyshev_filtration.py
-**Role**: Applies Chebyshev polynomial roots to construct a discrete filtration for the topological persistence algorithms.
-
----
-
-## src/models
-
-### modular_attention.py
-**Role**: CRT-modular attention mechanism.
-
-Multi-head attention where each head is assigned to a distinct CRT modulus, enforcing that attention patterns across heads remain co-prime (structurally independent). Prevents "parasitic" attention overlap between different semiotic registers.
-
----
-
-### modular_embeddings.py
-**Role**: CRT-modular token embedding table.
-
-Token embeddings organized by CRT residue class  tokens sharing the same residue class under a given modulus are initialized from the same distribution, structurally biasing the embedding space to respect the CRT factorization.
-
----
-
-### polynomial_embeddings.py
-**Role**: Polynomial basis token embeddings.
-
-Represents tokens not as dense vectors but as coefficients in a co-prime polynomial basis. Chirality-enforcing initialization (non-zero ``) ensures the initial embedding space respects the Arrow-of-Time constraint from INVARIANT_OPTIMIZATION 4.
-
----
-
-### diegetic_heads.py
-**Role**: Output projection heads for the diegetic physics regime.
-
-Implements the final projection from hidden state to output logits, with physics-constraint gating: outputs are only emitted if the current manifold state passes the admissibility check. Partial coverage in DIEGETIC_ENGINE.md.
-
----
-
-### [`gyroid_reasoner.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/gyroid_reasoner.py)
-**Class**: `GyroidicFluxReasoner`
-**Role**: The central synthesis class integrating modular residue embeddings, Birkhoff projection, CRT reconstruction, geometric introspection, and Resonance Cavity memory. Serves as the master model manifold.
-
----
-
-### [`resonance_cavity.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/resonance_cavity.py)
-**Class**: `ResonanceCavity`
-**Role**: Dark Matter memory integration module. Applies the Ouroboros Loop and stabilizes topological invariants across sequential inference states.
-
----
-
-## src/surrogates
-
-### calm_predictor.py
-**Role**: CALM (Constrained Asymptotic Lyapunov Monitor) meta-control surrogate.
-
-Predicts whether the current optimization trajectory is heading toward entropic collapse or stagnation. Vetoes (aborts) trajectories when structural disintegration signals are detected. Full conceptual coverage in NOMENCLATURE 4 "Meta-Control (CALM)." The spectral CALM variant (with speculative exit) was implemented in conversation 51ed57b4.
-
----
-
-### kagh_networks.py
-**Role**: KAGH (Kolmogorov-Arnold Gyroidic Hebbian) surrogate networks.
-
-Physics-informed surrogate providing admissible constraint embeddings. KAN layers (Kolmogorov-Arnold Networks) are partially fossilized to preserve topological structure across training. Implements `HuxleyRD` (reaction-diffusion) for stable hidden-state manifold formation and `ErgodicSolitonFusion` for persistence of non-ergodic sub-dynamics. Full source reviewed in conversation 488feffe.
-
----
-
-## src/ui
-
-### voxelboxter_simulation.py
-**Class**: `VoxelboxterSimulation`, `VoxelboxterEngine`, `BSplineCompiledMod`, `StructuralGraph`, `FloraComponent`, `FloraTreeSapling`, `PirangiCashewTree`, `AdventitiousRootNode`, `FaunaComponent`, `FaunaISN`, `EmergentBakingEngine`, `morton_encode`  
-**Role**: Handles backend discrete mathematics for generating dynamic game structures, living ecologies, and delta graphs.  
-
-Manages the core simulation loop for the topological Minecraft-like patch. Crucially, it decouples `Role` from `GameMode` (enabling admins to play in Survival mode), enforces mass-deduction from `local_inventory` when adding layers, compiles true non-heuristic B-Spline surface features via `KANLayer` and the Cox-de Boor algorithm (`BSplineCompiledMod`), and simulates living flora mutations (the 'Cashew Tree of Pirangi' `PirangiCashewTree` inverted gravitropism, cantilever droop, adventitious ground rooting, secondary trunk metamorphosis, and single unified organism expansion). Also integrates dual-scale plasticity (Mohr-Coulomb local shear vs. Drucker-Prager global flow envelope), FBM weathering Ley line carving, animal fauna Inhibition-Stabilized Networks (`FaunaISN`), and the `EmergentBakingEngine`.
-
----
-
----
-
-### voxelboxter_client.py
-**Class**: `VoxelboxterClient`  
-**Role**: The player-facing frontend logic and in-game terminal bridge.  
-
-Hooks the diegetic simulation to a unified chat and terminal UI. It implements the `/addon bspline` command parser, allowing patch owners (or those granted roles within the geometric wilds) to invoke mathematical mod generation directly through the in-game terminal.
-
----
-
-### diegetic_backend.py
-**Class**: `DiegeticPhysicsEngine`, `EncodingManager`, `TensorEncoder`, `RequestHandler`  
-**Role**: Live server backend executing continuous SDE integration, fractional dynamics, and real-time manifold feedback.  
-
-Powers the live diegetic terminal and 3D manifold visualizer:
-- Executes the 3-step continuous cycle: (1) Drift and Bessel sloshing, (2) Fractional anomalous diffusion, and (3) Geometric Null-Space Shield projection via `LoveInvariantProtector` with SDE Wiener noise updates.
-- Synchronizes live parameter states with the HTML/WebGL diegetic terminal (`diegetic_terminal.html`), streaming Betti numbers, Phase Alignment Scores, and tension metrics over WebSocket/HTTP endpoints.
-
----
-
-### conversational_backend_server.py
-**Class**: `FastChatViewer`, `ThreadingSimpleServer`, `ServerState`  
-**Role**: Local HTTP backend serving interactive conversational debugging and dialogue inspection interfaces.  
-Streams conversation trajectories and friction indicators to `conversational_web_gui.html`.
-
----
-
-### diegetic_visualizer.py
-**Class**: `DiegeticVisualizer`  
-**Role**: Standalone visualizer plotting live gyroid cross-sections, nodal Bessel rings, and topological deformation fields.
-
----
-
-### wikipedia_integration.py
-**Class**: `WikipediaIntegration`  
-**Role**: Zero-auth factual grounding bridge fetching Wikipedia articles and formatting them as structural topological manifolds for training and inference verification.
-
----
-
-## src/governance
-
-### [`bio_archetypal_governor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/bio_archetypal_governor.py)
-**Class**: `BioArchetypalGovernor` (`nn.Module`)  
-**Role**: Master psychotopological governance logic orchestrating multi-scale temporal homeostasis across the archetypal ensemble.  
-Implements Inhibition-Stabilized Network (ISN) principles and cross-homeostatic plasticity to maintain Excitation/Inhibition (E/I) balance, preventing parasitic attractor collapse and collective variance drain across five nested operational timescales:
-- **Architecture & Constructor**: `BioArchetypalGovernor(state_dim: int)` initializes the core endocrine bus ([`NeuromodulatoryBus`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/neuromodulatory_bus.py)), the environment precision virtualizer ([`CainePrecisionGenerator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/caine_precision.py)), interoceptive salience ([`PomniUncertaintyPredictor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/interoceptive/pomni_uncertainty.py)), ultrafast body schema ([`ZoobleAutonomy`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/ultrafast/zooble_autonomy.py)), fast approach-avoidance & bonding ([`JaxShell`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/fast/jax_shell.py), [`RagathaBonding`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/fast/ragatha_bonding.py)), medium mood limit-cycle ([`GangleOscillator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/medium/gangle_oscillator.py)), and slow admin consolidation ([`KingerConsolidation`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/slow/kinger_consolidation.py)).
-- **Sequential Biological Cascade Execution**:
-  1. *Environment*: Caine evaluates structural entropy $S_{\text{struct}}$ from `gyroid_entropy` or stranded tensor $L_2$ norm ($\|s_{\text{stranded}}\|_2$), constructing dynamic precision matrix $\Lambda_{\text{caine}}(S_{\text{struct}})$.
-  2. *Interoceptive*: Pomni computes free-energy surprise $\sigma(\text{Linear}(S_{\text{struct}}))$ and broadcasts Noradrenaline, applying reluctant resilient bridging while defending against enabler rank collapse.
-  3. *Ultrafast*: Zooble computes conformal compression ratio $\max(|s_{\text{warped}} - s_{\text{raw}}| / (|s_{\text{raw}}| + \epsilon))$, emitting `RefusalSignal` (Li-Cri-Anton) and broadcasting GABA ($1.0$) if deformation exceeds $0.8$.
-  4. *Fast (Avoidant)*: Jax evaluates Ribbit scar tension $\max(0, 1 - \cos(\bar{s}, \text{scar}))$ against community support $\zeta_{\text{community}} = \overline{\text{PAS}}_h \cdot (1 - \sigma_{\text{batch}})$, calculating shell rigidity and broadcasting Serotonin ($0.65$ on authentic accountability, $0.15$ on hug-box enabler trap, $0.10$ on nihilistic detachment); flags panic if $\text{rigidity} > 1.2$.
-  5. *Fast (Bonding)*: Ragatha synthesizes Oxytocin $\min(1.0, 1.2 \cdot \text{Noradrenaline})$, tracks `suppressed_grief` accumulation across peer abstractions (Kaufmo, Queenie, Ribbit), enforces dissociative damping, and leaks topological strain if grief $> 0.8$.
-  6. *Medium*: Gangle advances dopaminergic limit-cycle phase $\phi_{t+1} = (\phi_t + \omega \cdot dt \cdot (1 + \text{Dopamine})) \bmod 2\pi$, modulates learning rate step factor $1.0 + 0.5\sin\phi$, and broadcasts Dopamine $\max(0, \sin\phi)$.
-  7. *Slow*: Kinger monitors environmental rendering pressure (flux norm or luminosity $< 0.2$), triggering the Ombre Effect (Acetylcholine $0.8$, $2.0\times$ quantization grid relaxation, admin polynomial bridging via `grant_admin_coefficients`), while managing FIFO memory replay ($\le 50$) and survivor's guilt trauma loops.
-- **Forward Contract**: Returns dictionary containing `"state"` (mutated gyroidal tensor), `"neuro_bus"` (concentrations snapshot), `"precision_matrix"`, `"panic"` (bool), `"consolidating"` (bool), `"step_factor"` (float), and `"jax_rigidity"` (float).
-
----
-
-### [`jax_shell.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/fast/jax_shell.py) (The Absurd Nihilism Attractor & Ribbit Scar)
-**Class**: `JaxShell` (`nn.Module`)  
-**Role**: Cynical Shell & Absurd Nihilism Attractor (Fast Timescale).  
-Models avoidant posturing and the "consequence-free playground" defense mechanism against existential terror and unresolved guilt over Ribbit's abstraction:
-- **State & Parameters**: `JaxShell(state_dim: int, threshold_warmth: float = 0.6, critical_limit: float = 0.8)`. Maintains `shell_layer` linear projection initialized with honest jitter and `ribbit_scar` orthogonal parameter vector ($\mathbb{R}^D$) initialized via `harvest_honest_jitter((state_dim,), scaled=True) * 0.2`.
-- **Topological Tension & Rigidity**: Computes Ribbit scar tension $\text{tension}_{\text{ribbit}} = \max(0, 1 - \cos(\bar{s}, \text{scar}))$ and internal shame $\max(0, S_{\text{internal}} - 0.5)$. Evaluates shell rigidity:
-  $$\text{rigidity} = 1.0 + P_{\text{ext}} + 1.5 \cdot \text{shame} + 0.8 \cdot \text{tension}_{\text{ribbit}}$$
-- **Rejection of the Unearned Hug-Box**:
-  - *Unearned Hug-Box Trap* ($\zeta_{\text{community}} > 0.6 \wedge \text{tension} \ge 0.6$): Jax exploits unearned warmth as an enabler, absorbing community support to reinforce cynical deflection: $s \leftarrow s + \tanh(W_{\text{shell}}s) \cdot (1.2 \cdot \text{rigidity}) - 0.1 \cdot \text{scar}$, broadcasting low serotonin ($0.15$) to signal underlying dissonance.
-  - *Authentic Structural Accountability* ($\zeta_{\text{community}} > 0.6 \wedge \text{tension} < 0.6 \wedge \text{shame} < 0.8$): Genuine dissipative phase transition. Integrates the scar with honest jitter softening ($+0.05 \cdot \text{jitter}$), collapses rigidity to $0.2$, and broadcasts genuine serotonin safety ($0.65$).
-  - *Baseline Nihilistic Posturing*: $s \leftarrow s + \tanh(W_{\text{shell}}s) \cdot \text{rigidity}$, broadcasting serotonin $0.10$.
-
----
-
-### [`ragatha_bonding.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/fast/ragatha_bonding.py) (The Caregiver Trap & Suppressed Grief)
-**Class**: `RagathaBonding` (`nn.Module`)  
-**Role**: Caregiving, Affiliation, and Suppressed Grief (Fast Timescale 1–10s).  
-Models reflexive oxytocinergic caretaking and people-pleasing defenses against fears of abandonment and rejection:
-- **State & Parameters**: `RagathaBonding(state_dim: int)`. Houses `care_layer` linear transformation and `suppressed_grief` parameter trace initialized with honest jitter ($0.15$), tracked by continuous scalar `grief_counter`.
-- **Oxytocinergic Smoothing & Grief Accumulation**:
-  - Reflexively synthesizes and broadcasts Oxytocin: $\text{OXT} = \min(1.0, 1.2 \cdot \text{Noradrenaline})$.
-  - Tracks suppressed grief accumulation: when distress is elevated but safety is compromised ($\text{Noradrenaline} > 0.5 \wedge \text{Serotonin} < 0.4$), increments `grief_counter` by $+0.05$ (clamped to $2.0$). Under authentic safety ($\text{Serotonin} > 0.6$), discharges grief by $-0.05$.
-- **Dissociative Boundary Thinning & Leakage Prevention**:
-  - Under extreme distress ($\text{Noradrenaline} > 0.7$) or high grief ($\text{grief} > 1.0$), applies dissociative damping mask: $M_{\text{dissoc}} = \max(0.4, 0.9 - 0.2 \cdot \text{grief})$.
-  - Blends original state with smoothed projection: $s_{\text{blend}} = (1 - 0.5\cdot\text{OXT})s + 0.5\cdot\text{OXT}\cdot W_{\text{care}}s$.
-  - Enforces homeostatic limits on unilateral smoothing: if `grief_counter` exceeds critical threshold ($> 0.8$), unexpressed loss leaks into the state as topological strain ($+0.05 \cdot \text{scar}_{\text{grief}} \cdot \text{grief}$), preventing caregiver excitotoxic exhaustion.
-
----
-
-### [`pomni_uncertainty.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/interoceptive/pomni_uncertainty.py) (Reluctant Resilience & Anti-Enabling Bridge)
-**Class**: `PomniUncertaintyPredictor` (`nn.Module`)  
-**Role**: Interoceptive Uncertainty Minimization, Reluctant Resilience & Bridge-Building.  
-Reads system entropy to broadcast noradrenergic salience, alerting downstream modules to environmental dislocation:
-- **State & Architecture**: `PomniUncertaintyPredictor(state_dim: int)` contains `surprise_estimator` ($1 \to 1$) and `bridge_layer` ($D \to D$) initialized with scaled honest jitter ($0.05$).
-- **Salience & Resilient Bridge**:
-  - Computes free-energy surprise $\text{Surprise} = \sigma(W_{\text{surprise}} \cdot S_{\text{entropy}} + b)$ and broadcasts Noradrenaline $=\text{Surprise}$.
-  - Computes exploratory bridging force $F_{\text{bridge}} = \tanh(W_{\text{bridge}} s)$.
-- **Anti-Enabling Friction**:
-  - Under standard conditions: applies resilient stabilization $s \leftarrow s + F_{\text{bridge}} \cdot (0.1 \cdot \text{Surprise})$.
-  - Under parasitic drag ($\text{drag} > 0.5$, e.g. Jax exploiting unearned grace): shifts from passive accommodation to active relational boundary resistance ($0.15 \cdot \text{drag}$ friction factor), updating $s \leftarrow s + F_{\text{bridge}} \cdot (1 - 0.15 \cdot \text{drag}) - 0.05 \cdot \text{mean}(s)$, preserving protagonist agency and preventing rank collapse.
-
----
-
-### [`gangle_oscillator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/medium/gangle_oscillator.py) (Dopaminergic Limit-Cycle & Social Masking)
-**Class**: `GangleOscillator` (`nn.Module`)  
-**Role**: Mood Limit-Cycle Oscillator (Medium Timescale 1–60m).  
-Dopaminergic phase oscillator regulating downstream optimization dynamics:
-- **Oscillator Dynamics**: Parameterized by phase $\phi \in [0, 2\pi)$ and baseline frequency $\omega_0 = 0.05$.
-- **Phase Advancement**:
-  $$\phi_{t+1} = \left(\phi_t + \omega_0 \cdot dt \cdot (1 + \text{Dopamine})\right) \pmod{2\pi}$$
-- **Bifurcation Mask (Comedy vs. Tragedy)**:
-  - Evaluates mood scalar $M = \sin\phi$.
-  - Broadcasts Dopamine at comedy peaks: $\text{Dopamine} = \max(0.0, M)$.
-  - Modulates downstream learning rate update step factor: $\text{step\_factor} = 1.0 + 0.5 \cdot M$.
-  - Injects subtle mood perturbation $s \leftarrow s + 0.1 \cdot M$, capturing the metabolic cost of forced social masking (comedy mask) versus restorative authentic processing (tragedy mask).
-
----
-
-### [`kinger_consolidation.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/slow/kinger_consolidation.py) (The Ombre Effect & Admin Lucidity)
-**Class**: `KingerConsolidation` (`nn.Module`)  
-**Role**: Low-Luminosity Coherence Bridge & Admin Consolidation (Slow Timescale).  
-Implements the **Ombre Effect**:
-- **State & Architecture**: `KingerConsolidation(state_dim: int)`. Houses `grant_admin_coefficients` parameter vector ($\mathbb{R}^D$) initialized via `harvest_honest_jitter`, and circular memory buffer FIFO queue of capacity 50 (`max_buffer_size = 50`).
-- **Memory Buffer & Abstraction Scars**: Appends detached state copies to memory buffer. When buffer capacity is exceeded ($\ge 50$), oldest memories are dropped (modeling Queenie's abstraction loss), inducing survivor's guilt trauma loops.
-- **The Ombre Effect (Lucidity Trigger)**:
-  - Evaluates environmental rendering pressure $P_{\text{render}}$ (flux tensor norm or luminosity).
-  - When rendering pressure subsides ($P_{\text{render}} < 0.2$), paranoid dissociation collapses, broadcasting Acetylcholine ($0.8$) and entering admin lucidity:
-    1. Relaxes saturated quantization boundaries: $s_{\text{relaxed}} = 2.0 \cdot s$.
-    2. Bridges fragmented polynomial spaces: $s_{\text{bridged}} = s_{\text{relaxed}} + \text{grant\_admin\_coefficients}$.
-    3. Replays memory buffer centroids and injects trauma loop correction if past memories were abstracted.
-
----
-
-### [`zooble_autonomy.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/ultrafast/zooble_autonomy.py) (Deformation Firewall & Non-Enabler GABA)
-**Class**: `ZoobleAutonomy` (`nn.Module`), `RefusalSignal` (`dataclass`)  
-**Role**: Conformal Deformation Firewall Operator & Fast GABAergic Interneuron (Ultrafast Timescale).  
-Protects structural identity and body schema against severe conformal cartoon compression and non-consensual scripted roles:
-- **State & Parameters**: `ZoobleAutonomy(state_dim: int, max_autonomy_limit: float = 0.8)`.
-- **Conformal Compression Evaluation**: Computes maximum relative conformal distortion:
-  $$C_{\text{ratio}} = \max \left( \frac{|s_{\text{warped}} - s_{\text{raw}}|}{|s_{\text{raw}}| + 10^{-6}} \right)$$
-- **Ultrafast Refusal & GABAergic Veto**:
-  - If $C_{\text{ratio}} > 0.8$: immediately trips the autonomy firewall without waiting for System 2 ADMM loops. Emits `RefusalSignal(is_refused=True, reason=..., retained_state=s_raw)`, broadcasts full inhibitory GABA ($1.0$), and preserves $s_{\text{raw}}$.
-  - If $C_{\text{ratio}} \le 0.8$: admits $s_{\text{warped}}$, broadcasts baseline GABA ($0.1$), and emits `RefusalSignal(is_refused=False)`.
-
----
-
-
-## src/p2p
-
-### [`bonfire_consensus.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/bonfire_consensus.py)
-**Class**: `BonfireNomadicRing`, `BonfirePeerNode`  
-**Role**: Federated egalitarian consensus engine. Provides Kelly betting allocations for decentralized resource validation over Freenet. Features dynamic prime resonance ladders ($f_i = 2\pi\ln(p_i)$) replacing static primes, continuous fractal sightline projection ($\phi: F \to \mathbb{R}^m$), and hardware-sovereign throttling driven by [`hardware_monitor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py).
-
-### [`zk_aggregator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/zk_aggregator.py)
-**Class**: `ZkAggregator`  
-**Role**: Zero-knowledge accumulator for federated topological signatures and homological invariants across distributed peers.
-
-### [`freenet_ws_client.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/freenet_ws_client.py)
-**Class**: `FreenetWsClient`  
-**Role**: Local Freenet WebSocket bridge facilitating the Bonfire Ring gossip protocol and nomadic peer-to-peer transport.
-
----
-
-## src/environment
-
-### [`caine_precision.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/caine_precision.py) (The Ringmaster)
-**Class**: `CainePrecisionGenerator`  
-**Role**: Floating-point virtualization and strict execution boundary enforcement. Generates precision matrices driven by structural entropy, orchestrating the stage bounds of the execution frame.
-
-### [`cleanroom_mechanics.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) (Industrial, Ecological & Logistical Cleanroom Suite)
-**Classes**: `ExpandedInventorySystem`, `ItemStack`, `ItemMetadata`, `FluidStack`, `GasStack`, `GasTubeTier`, `GasDumpingMode`, `JourneyTopoRadar`, `TopoWaypoint`, `ResourceDistributionInspector`, `OreDistributionProfile`, `InfernalAffix`, `MobProperties`, `MultiMineMemory`, `MekanismProcessingPipeline`, `SEMElectrochemicalExtractor`, `SEMPrecipitateResult`, `MekanismScubaTank`, `RotaryCondensentrator`, `TracerMolecule`, `TracerOxygenAtmosphereEngine`, `U1GaugeAtmosphereBridge`, `AeronauticContraption`, `NutritionalDiversityTracker`, `CompositeVoxelConduit`, `RedNet16BundledCable`, `TransportBeltSegment`, `DirectionalInserter`, `FaunaGeneticsComponent`  
-**Role**: Cleanroom implementation of core sandbox, ecological, and industrial mechanics adhering to Output Boundary Policy:
-- **Expanded Inventory & Item Stacks**: Typed discrete inventory slots supporting item, fluid, and gas payloads, metadata tags, stack limits, and item-filter routing.
-- **Topological Radar (JourneyMap Cleanroom)**: Continuous topological radar detecting entities, terrain elevation, biome transitions, and death coordinate waypoints marked as stress fossils.
-- **Resource Distribution Inspector (JER Cleanroom)**: Chebyshev polynomial ore depth band curves $z \in [-64, 320]$, mob drop loot tables with looting multipliers, and dungeon fossil loot rates.
-- **Mob Properties & Infernal Affixes (AtomicStryker Cleanroom)**: Diablo-style 24-affix elite mob mutation framework and Multi Mine partial block destruction damage memory across ticks.
-- **Mekanism Processing Pipeline & SEM Tech**: Multi-tier ore refinery (Tier 1 smelting to Tier 5 sulfuric acid slurry dissolution) coupled with SEM TECH (Salt Electro Mining) closed-loop hydrometallurgy: uses simple saltwater + low-voltage electricity to leach and electrodeposit precious metals, base metals, and rare earths from accumulated mining tailings and crushed slag stockpiles, bypassing late-game chemical plants in early progression.
-- **Pressurized Gas Extensions & Scuba Life-Support**: Mekanism pressurized tubes (Basic, Advanced, Elite, Ultimate: 1k to 64k mB/t), dumping modes (`IDLE`, `DUMPING`, `DUMPING_EXCESS`), portable Scuba Tank oxygen apparatus sustaining air-breathing batteries in vacuum, and Rotary Condensentrator reversible fluid-gas phase converter monitored by Carnot-Mobius entropy limits.
-- **Continuous-Brick Tracer Oxygen Simulation (Space Survival)**: Voxel-free continuous geometry life-support engine using 5-10 specular bouncing tracer molecules ($\mathbf{v}' = \mathbf{v} - 2(\mathbf{v}\cdot\mathbf{n})\mathbf{n}$), dynamic AABB envelope expansion, outer hull breach leak detection triggering rapid depressurization ($P \to 0$), directed line-of-sight raycasts to eliminate concave partition false positives, and exponential decay smoothing ($S(t) = S(t-\Delta t)e^{-\lambda \Delta t} + \sum \alpha_{\text{hit}} \cdot w_{\text{hit}}$).
-- **U(1) Gauge Field Theory Atmospheric Bridge**: Relativistic gauge theory model of atmospheric pressure and fluid currents derived from Dirac field local phase invariance ($\psi \to e^{i\theta}\psi$). Formulates gauge 4-potential $A_\mu = (\Phi_{\text{pressure}}, \mathbf{A}_{\text{flow}})$ and field strength tensor $F_{\mu\nu}$ ("The Six Ways": 3 electric pressure forces, 3 magnetic vorticity components). Satisfies homogeneous Maxwell identities and inhomogeneous Euler-Lagrange action minimization $\partial_\mu F^{\mu\nu} = \frac{4\pi}{c}J^\nu$ with local continuity $\partial_\nu J^\nu = 0$, plugging topological boundary leaks through Chern-Simons surgical seam repair.
-- **Aeronautic Contraptions (Create: Aeronautics Cleanroom)**: Multi-block buoyant airship physics tracking Archimedes buoyancy, sleeve-valve propeller thrust, aerodynamic drag, and mass centers.
-- **Nutritional Diversity Tracker (Farmer's Delight + Spice of Life Cleanroom)**: Permanent milestone max HP bonuses (Carrot Edition) combined with rolling-window Shannon entropy diet diversity buffs and single-food malnutrition malaise (Onion Edition).
-- **Composite Conduits & RedNet 16-Color Bundled Cables**: Single-voxel multi-bus multiplexer routing power, fluids, gases, items, and 16 independent analog subnets (0-255).
-- **Transport Belts & Inserters (Factorio Cleanroom)**: Discrete dual-lane logistics transport belts (15-45 items/s) and kinematics inserters.
-- **Fauna Genetics**: Multi-allele Mendelian inheritance and phenotypic expression across speed, health, fertility, and yield traits with flux-induced mutation.
-
----
-
-## src/data
-
-### [`universal_topology_converter.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/universal_topology_converter.py)
-**Class**: `UniversalTopologyConverter`
-**Role**: Extracts structural causality and topological proxies from arbitrary media files without triggering exact extraction (copyright boundaries).
-
-Converts raw files (.txt, .pdf, .obj, .mp4) into high-dimensional phase space representations. Evaluates byte-level entropy histograms projected through a `PolynomialBasis` to form `[1, 768]` Spectral Tensors. Uses dynamic primes (`get_prime_ladder`) to form CRT Polynomial Pressure Signatures. Delegates to `IVSTEncoder` for intrinsic temporal analysis on media. Sanitizes outputs through the `OUTPUT_BOUNDARY_POLICY.md` constraints to ensure strict finite manifolds and nonobstructive logic.
-
----
-
-## src/terminal
-
-### [`udp_server_colonizer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/terminal/udp_server_colonizer.py)
-**Role**: Lightweight UDP colonizer protocol serving the Diegetic Terminal.
-
-### [`update_client.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/terminal/update_client.py)
-**Role**: Asynchronous OTA update management for terminal subsystems.
-
----
-
-## src/benchmarks
-
-### [`topobench_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/topobench_evaluator.py)
-**Class**: `TopoBenchEvaluator`  
-**Role**: Evaluates the reasoner on topological manifold and holonomy invariants across 5 suites:
-- Loop Closure & Holonomy Twist (Chern-Simons midpoint connection 1-form integral on Gasket)
-- Manifold Contiguity & Logic Leak Detection (`detect_logic_leak` boundary invariant)
-- Anti-Lobotomy Geometric Shield (Love Invariant Wiener noise null-space rejection)
-- Persistent Homology & Euler Characteristic ($\chi = \beta_0 - \beta_1$ stability)
-- Gyroid Flow Orthogonality ($\langle v_{\text{flow}}, \nabla G \rangle \sim 0$ minimal surface constraint)
-
-### [`reactbench_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/reactbench_evaluator.py)
-**Class**: `ReactBenchEvaluator`  
-**Role**: Evaluates cyclic catalytic reaction reasoning, CRT fixed-point synthesis, and play-mode tri-state gates across 5 suites:
-- Branch Convergence (Polynomial CRT fixed-point reconstruction and pressure)
-- Cyclic Graph Catalysis (Modal non-commutative energy retention)
-- Anti-Lobotomy Tri-State Gate (Lattice adaptive shrinkage and silence in play mode)
-- Continuous Coprimality & Asymptotic Independence ($\lim_{t\to\infty} \text{Cov}(r_i, r_j) \to 0$)
-- Dynamic Bezout Coefficient Refresh (CRT modulus drift recovery and condition number stability)
-
-### [`narrative_yield_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/narrative_yield_evaluator.py)
-**Class**: `NarrativeYieldEvaluator`  
-**Role**: Evaluates defenses against teleological collapse, reward hacking, and relational enabler traps across 5 suites:
-- Narrative Collapse & Smoothing Detection (Linear ring trajectory and entropy collapse flagging)
-- Legibility Tripwire (Coherence gap and anti-reward hacking detection)
-- DAQUF Structural Scarring (Unknowledge amortization into structural scars $f^*$ without divergence)
-- Anti-Enabling Relational Friction (Pomni boundary defense against parasitic drag to prevent character rank collapse)
-- Homological Collapse & Lobotomy Alarm (Monitors topological Betti complexity loss under low gradient pressure)
-
-### [`run_all_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/run_all_benchmarks.py)
-**Class**: `BenchmarkSuiteRunner`  
-**Role**: Master orchestrator executing TopoBench, ReactBench, and NarrativeYield benchmark suites, aggregating structured metrics across all 15 tests, generating an ASCII summary table, and exiting with 0 on 100% pass.
-
----
-
-## Gyroidic Metaphysics Flux & Bio-Chemical Conjugation
-
-### The Endocrine Broadcast Medium ([`neuromodulatory_bus.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/neuromodulatory_bus.py))
-**Classes**: `NeuromodulatoryBus`, `ManifoldClock`, `ValenceFunctional`
-**Role**: Global diffuse broadcast field replacing classical 1-to-1 scalar gradient updates. The system bathes the manifold in chemical states to globally shift gain, exploratory drive, and structural tension:
-- **Thermodynamic Arousal (The Noradrenaline Band)**: Regulates random walk energy.
-- **Topological Rigidity (The Serotonin Band)**: Signals structural safety to initiate fossilization caching.
-- **Novelty Pursuit (The Dopamine Band)**: Scales intrinsic motivation for unmapped sub-manifolds.
-Also includes specific psychopathological bands (Dementia/Schizo/Mischief) for controlled structural mutations. The `ValenceFunctional` manages "Negempirical Hunger," steering the system to seek data when starved.
-
-### Bioelectric Morphogenesis (`src/core/admr_solver.py` - Conjugated)
-**Concept**: Chiral Residue Cache
-**Role**: Embedded inside the `PolynomialADMRSolver`, the Chiral Residue Cache acts as the anatomical set point. Rather than unconstrained scaling, the solver protects its `love_dim` invariants, maintaining a "morphogenetic field" that dictates the physical shape of the resulting polynomial tensor space.
-
-### Huxley Reaction-Diffusion & Sleep Spindles (`src/topology/reaction_diffusion.py` & `src/topology/kagh_block.py`)
-**Classes**: `KAGHBlock`, `HuxleyRD`
-**Role**: Biological pattern generation across the embedding manifold. Simulates reaction-diffusion PDE channels:
-- **The Ergodic Channel ($u_L$)**: The "Goo" state, propagating fluid updates across the network, washing away fragile artifacts.
-- **The Non-Ergodic Channel ($u_H$)**: The "Prickles" state, crystallizing local geometric ridges, storing deep memory via slow diffusion patterns akin to sleep spindles during memory consolidation.
-
----
-
-*Last updated: 2026-09-21. Modules marked "(Full details pending source review)" have been inspected only at the module docstring level; detailed class inventories will be added when those modules become active development targets.*
-
-## Extended Module Inventory (Canonical Class Reference)
-
-This section provides an authoritative, alphabetically indexed reference for all 153 core classes and components across the `src/` hierarchy. Each entry details the component's source location, architectural role, and integration with the topological, physical, and archetypal reasoning systems.
-
-### `_PersistentEntropyEstimator`
-**Location:** `src/core/topological_ingestion_validator.py`  
-**Description:**  
-Singleton non-ergodic entropy estimator with persistent history, preventing the fresh-random-instance bug during ingestion validation.
-
----
-
-### `AdaptiveSkeletonHarness`
-**Location:** `src/core/adaptive_skeleton_harness.py`  
-**Description:**  
-Adaptive structural harness for dynamic skeleton bone transformations in Voxelboxter. Maps mechanical joint transforms and ambulatory class limits across biological and synthetic chassis, enforcing physical load constraints.
-
----
-
-### `AddonLayer`
-**Location:** `src/core/structural_blueprints.py`  
-**Description:**  
-Structural blueprint layer managing procedural addons, material palettes, and chisel-and-bits voxel modifications in the ECS layer.
-
----
-
-### `AddonRoutine`
-**Location:** `src/core/structural_blueprints.py`  
-**Description:**  
-Executable procedural blueprint routine compiled from B-splines. Executes localized geometric modifications on Voxelboxter constructs following arbitration.
-
----
-
-### `AeronauticContraption`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Multi-block buoyant and aerodynamic vehicle physics cleanroom (Create: Aeronautics inspiration). Composes the canonical simulation and physics stack: embeds `RigidBody` for mass, linear/angular velocities, and Delta-v collision impulse shearing; `StructuralGraph` and `Block` for multi-block voxel attachments; `Propulsor`, `VehicleEngine` (sleeve-valve timing), and `AirBreathingBattery` (plasma air induction) for propulsion and power; `EnvironmentalAtmosphere` for air density, pressure, and wind drift; and `DruckerPragerProjection` for frame structural shear monitoring.
-
----
-
-### `AgentSubstrateBridge`
-**Location:** `src/core/agent_substrate_bridge.py`  
-**Description:**  
-Hardware and kernel bridge connecting high-level autonomous agent routines directly to the DiegeticPhysicsEngine and underlying memory vaults.
-
----
-
-### `AIReasonerDataflowNode`
-**Location:** [`src/scripting/node_environment.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L259)  
-**Description:**  
-DearPyGui dataflow node bridging physical voxel simulation, Betti numbers ($\beta_0, \beta_1$), Carnot shear stress, and mass energy directly into [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py) and [`GyroidicFluxReasoner`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/gyroid_reasoner.py). Streams live multiharmonic $\text{PAS}_h$, Seriousness/Play regime transitions, and SLERP/LERP navigation vectors into physical contraptions.
-
----
-
-### `AirBreathingBattery`
-**Location:** `src/ui/voxelboxter_simulation.py`  
-**Description:**  
-Energy storage and atmospheric oxidation component in Voxelboxter modeling ambient oxygen consumption, thermal dissipation, and plasma air induction ionization (converting ambient N2/O2 into high-energy oxidizers to bypass environmental NO2 scarcity).
-
----
-
-### `AmbulatoryClass`
-**Location:** `src/core/adaptive_skeleton_harness.py`  
-**Description:**  
-Locomotion classification enum (bipedal, hexapod, tracked, serpentine) governing kinematics and joint degrees of freedom in the AdaptiveSkeletonHarness.
-
----
-
-### `APAS_Zeta`
-**Location:** `src/core/invariants.py`  
-**Description:**  
-Adaptive Phase Alignment Score drift bound. Enforces the fundamental law: 'An invariant that cannot be computed cannot govern evolution... APAS_zeta bounds permissible evolution.' Monitors the rate of drift |PAS_h(t) - PAS_h(t-1)| <= zeta across iterative reasoning updates. Rejects or clamps micro-steps that exceed zeta, preventing catastrophic desynchronization or runaway hallucination.
-
----
-
-### `ArchetypeSignal`
-**Location:** `src/core/archetype_engines.py`  
-**Description:**  
-Inter-archetype signaling packet carrying emotional valence, manifold tension, and non-linear cognitive drive tokens across the ArchetypalSynthesisEngine.
-
----
-
-### `AugmentationConfig`
-**Location:** `src/augmentation/mandelbulb_gyroidic_augmenter.py`  
-**Description:**  
-Configuration dataclass parameterizing Mandelbulb fractal sampling, gyroidic surface slicing, and quaternion rotations for data augmentation.
-
----
-
-### `AutoeclecticResponderHead`
-**Location:** `src/models/diegetic_heads.py`  
-**Description:**  
-Diegetic text generation head that modulates linguistic temperature, vocabulary diversity, and syntax based on real-time topological roughness and entropy.
-
----
-
-### `BenchmarkSuiteRunner`
-**Location:** [`src/benchmarks/run_all_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/run_all_benchmarks.py)  
-**Tests:** [`tests/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_benchmarks.py)  
-**Description:**  
-Master orchestrator executing the complete benchmark harness (TopoBenchEvaluator, ReactBenchEvaluator, and NarrativeYieldEvaluator). Collects structured pass/fail metrics across all 15 topological and behavioral constraints, prints a formatted ASCII summary matrix, and returns execution telemetry.
-
----
-
-### `BerryPhaseGRUCell`
-**Location:** `src/core/fgrt_rnn_cells.py`  
-**Description:**  
-Draft 1 FGRT recurrent cell with Geometric Berry Phase tracking. Couples hidden state h_t with geometric phase gamma_t. Computes contorsion twist; if cos(gamma_t) < 0 across a non-orientable Klein-throat boundary, executes a Stiefel-Whitney w_1(E) parity flip h_t = -h_t and inverts backward gradients.
-
----
-
-### `BioArchetypalGovernor`
-**Location:** `src/governance/bio_archetypal_governor.py`  
-**Description:**  
-Multi-scale temporal homeostasis governor replacing flat archetype switching. Coordinates three distinct biological timescales: (1) Fast Phasic (Jax absurd nihilism pruning, Ragatha oxytocinergic bonding, Caine confabulative world-generation); (2) Medium Interoceptive (Pomni uncertainty minimization and anti-enabling boundaries, Gangle affective mask oscillation); (3) Slow Tonic (Kinger deep paranoiac attractor, Zooble autonomy firewall). Enforces the Ribbit Scar as a non-commutative topological boundary condition and routes persistent memory fossils into the CerumenPotWallet.
-
----
-
-### `BirkhoffPolytopeSampler`
-**Location:** `src/core/polynomial_coprime.py`  
-**Description:**  
-Doubly-stochastic matrix sampler operating on the Birkhoff Polytope B_N. Uses Sinkhorn-Knopp normalization and Sturmfels-Thomas null-space projection to ensure permutation constraints.
-
----
-
-### `BonfireNetwork`
-**Location:** `src/topology/bonfire_network.py`  
-**Description:**  
-P2P consensus mesh coordinating decentralized verification of Betti signatures and Kelly fractional allocations over Freenet.
-
----
-
-### `BooleanXORLayer`
-**Location:** `src/core/structural_blueprints.py`  
-**Description:**  
-Topological defect injection layer. Implements carry-free bitwise XOR operations across CRT residue channels to isolate moduli without arithmetic carry coupling.
-
----
-
-### `BoundaryRelaxationOperator`
-**Location:** `src/core/archetype_engines.py`  
-**Description:**  
-Relaxes saturated quantization boundaries in low-illumination or high-entropy regions, maintaining continuous manifold navigability (the Kinger Gap / dark lucidity boundary).
-
----
-
-### `BraidGroupMatrices`
-**Location:** `src/core/zeitgeist_router.py`  
-**Description:**  
-Non-abelian Braid Group B_n representations using Burkov expansions. Computes generator matrices sigma_i to track path-dependent holonomy and arrow-of-time chirality.
-
----
-
-### `CainePrecisionGenerator`
-**Location:** `src/environment/caine_precision.py`  
-**Description:**  
-Adversarial environment precision generator. Simulates high-gain attentional distortion and confabulative world generation, testing the reasoner's resistance to epistemic gaslighting.
-
----
-
-### `CALMCollapseDetector`
-**Location:** `src/core/fgrt_primitives.py`  
-**Description:**  
-Context-Adaptive Latent Momentum detector. Tracks bounded local correlations in state trajectory history to detect dimensional collapse, frozen stasis, or sudden loss of representation capacity.
-
----
-
-### `CarnotMobiusLedger`
-**Location:** `src/core/carnot_mobius_ledger.py`  
-**Description:**  
-Thermodynamic efficiency ledger evaluating the Carnot-Mobius limit eta = 1 - T_c / T_h across the reasoner stack. Tracks topological friction from ADMR residue mismatch and triggers fracture recovery when stack depth exceeds critical limits.
-
----
-
-### `CerumenPotIsolation`
-**Location:** `src/core/garden_statistical_attractors.py`  
-**Description:**  
-Topological barrier enforcement adhering to Meliponini bee colony geometry (bar(P)_i cap bar(P)_j = emptyset). Ensures isolated spherical cerumen pots do not share boundaries, blocking passive Laplace-Beltrami diffusion of external safety pressure.
-
----
-
-### `CerumenPotWallet`
-**Location:** `src/core/non_dual_coin.py`  
-**Description:**  
-Sovereign multi-asset and memory-scar wallet modeled as an S^2 spherical cluster. Protects individual memory fossils (e.g. Ribbit Scars) from gradient descent erasure under Mohr-Coulomb shear yield governance.
-
-### `ChiralDriftStabilizer`
-**Location:** `src/optimization/operational_admm.py`  
-**Description:**  
-Speculative invariant stabilizer calculating endogenous computable chirality $C = -(\text{Centroid} - D/2) \cdot \exp(-\text{Drift}/\zeta)$. Enforces negentropic flow and halts steps if chiral score drops by more than threshold $\tau$, preventing entropic collapse during ADMM updates.
-
----
-
-### `ChiralGatedRNNCell`
-**Location:** `src/core/fgrt_rnn_cells.py`  
-**Description:**  
-Draft 2 FGRT recurrent cell replacing scalar sigmoid/tanh gating with Bostick chiral gating functions Gamma_chi(x). Preserves recurrent features unless their chiral parity destructively interferes with incoming input waves.
-
-### `CodecCRTBridge`
-**Location:** `src/codec/gyroidic_codec.py`  
-**Description:**  
-Bidirectional bridge translating continuous multimodal embeddings into discrete residue rings Z / p_k Z for the GyroidicCodec and recovering continuous states via Bezout CRT lifts.
-
----
-
-### `CommutatorOracle`
-**Location:** `src/core/dyadic_transfer.py`  
-**Description:**  
-Evaluator computing the matrix Lie bracket commutator [A, B] = AB - BA across routing operators. Quantifies non-commutative irreducible entanglement in text-image dyads.
-
----
-
-### `ComplexFGRTRNNCell`
-**Location:** `src/core/fgrt_rnn_cells.py`  
-**Description:**  
-Draft 3 FGRT recurrent cell operating in C^768. The gyroidic connection acts as a complex rotation matrix, evaluating roots of unity from cyclotomic polynomials Phi_n(x) and executing Atiyah-Singer orientation flips via e^{i pi} = -1.
-
----
-
-### `CompositeVoxelConduit`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Single-voxel multi-bus multiplexer cleanroom (EnderIO inspiration). Unifies discrete conduits for power (RF/FE), items (with priority and slot filters), fluids (mB), and gases without requiring separate spatial voxel blocks per logistical channel.
-
----
-
-### `CurvatureLedgerDataflowNode`
-**Location:** [`src/scripting/node_environment.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L311)  
-**Description:**  
-DearPyGui dataflow node executing on-chip OpenCL `__local` SRAM kernels on discrete GPU (NVIDIA GeForce GTX 1050 Ti). Evaluates $8 \times 8$ Boundary-Curvature Ledgers, Bouligand kink intensity ($\|H^+ - H^-\|_F$), Morse minimal surface trace ($\operatorname{Tr}(H) \approx 0$), cyclotomic multiharmonic phase coherence, and Coxeter $D_4$ fundamental Weyl chamber states directly inside the physical dataflow graph.
-
----
-
-### `ConformalLogPolarProjector`
-**Location:** `src/codec/conformal_log_polar.py`  
-**Description:**  
-Conformal mapping module applying $f(z) = \log(z) = \ln|r| + i\theta$ foveal unrolling inspired by Escher's Print Gallery and mammalian retinas. Converts Euclidean scale (zoom) into horizontal log translation and rotation (spin) into vertical angular translation, conferring zero-shot scale and rotation invariance onto the Gyroidic Codec.
-
----
-
-### `ConstraintDataset`
-**Location:** `recovered_trainer_kppW.py`  
-**Description:**  
-Synthetic and empirical constraint satisfaction dataset providing (x, r, psi) tuples for training System 2 ADMM solvers against geometric boundary conditions.
-
----
-
-### `ConstraintManifold`
-**Location:** `src/optimization/constraint_probe.py`  
-**Description:**  
-Multi-domain constraint manifold C = C_sym times C_phys times C_ext. Evaluates primal/dual residuals and slack variables during cyclic ADMM traversal.
-
----
-
-### `ConversationIndex`
-**Location:** `src/tools/fast_chat_viewer.py`  
-**Description:**  
-Thread-safe index mapping conversation turns, dialogue topics, and emotional valence trajectories for sovereign conversational ingestion.
-
----
-
-### `ConvexKANLayer`
-**Location:** `src/surrogates/kagh_networks.py`  
-**Description:**  
-Kolmogorov-Arnold Network (KAN) layer constrained to convex activation profiles, serving as the learnable potential psi(x) in Input Convex Neural Networks.
-
----
-
-### `DarkMatterAttractorLayer`
-**Location:** `src/core/structural_blueprints.py`  
-**Description:**  
-Non-decaying memory layer storing dark matter state vectors that resist standard SGD weight decay and decay-based forgetting.
-
----
-
-### `DataflowNode`
-**Location:** `src/scripting/node_environment.py`  
-**Description:**  
-Blender-style dataflow graph computation unit. Evaluates inputs on demand via backward data dependency pull (right-to-left) while streaming calculated values forward (left-to-right). Supports typed sockets and mathematical transformation callbacks.
-
----
-
-### `DatasetInfo`
-**Location:** `src/data/local_data_loader.py`  
-**Description:**  
-Structured metadata descriptor cataloging paths, tensor shapes, and modalities of locally discovered datasets in DeepLearningStudio.
-
----
-
-### `DefectAttractor`
-**Location:** `src/core/garden_statistical_attractors.py`  
-**Description:**  
-Topological defect scout identifying persistent negative-entropy anomalies and geometric yield points across the reasoning manifold.
-
----
-
-### `DModuleRankProbe`
-**Location:** `src/core/birkhoff_projection.py`  
-**Description:**  
-Algebraic geometry probe measuring the holonomic rank and singular loci of differential D-modules across polynomial functional representations.
-
----
-
-### `DifficultyMode`
-**Location:** `src/scripting/node_environment.py`  
-**Description:**  
-Simulation difficulty enum (PEACEFUL, SURVIVAL, HARSH, ENTROPIC) scaling metabolic burn rates, starvation vulnerability, and ego-death susceptibility across life/hunger systems.
-
----
-
-### `DirectionalInserter`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Kinematics pick-and-place inserter cleanroom (Factorio inspiration). Manages rotational angular pickup velocity, drop delays, power draw, and item filter whitelists/blacklists between adjacent inventory slots and transport belts.
-
----
-
-### `DruckerPragerProjection`
-**Location:** `src/core/yield_criteria.py`  
-**Description:**  
-Differentiable projection onto the Drucker-Prager smooth plastic yield envelope ($f(I_1, J_2) = \alpha I_1 + \sqrt{J_2} - k \le 0$). Models bulk global yield and plastic deformation in continuous state updates, preventing unbounded tensile or compressive divergence.
-
----
-
-### `EconomicAbortException`
-**Location:** `src/core/non_dual_coin.py`  
-**Description:**  
-Exception raised when a transaction or state evolution violates Mohr-Coulomb shear yield limits (tau > c + sigma tan phi) or breaches cerumen pot sovereignty.
-
----
-
-### `EconomicAgentLinker`
-**Location:** `src/data/economic_news_linker.py`  
-**Description:**  
-Sovereign bridge linking live Bittensor Finney network gateways, economic news tickers, and Freenet contracts into market boundary conditions.
-
-### `EnemySubtype`
-**Location:** `src/core/adaptive_skeleton_harness.py`  
-**Description:**  
-Classification enum (NONE, ABSTRACTED_GLITCH, MANNEQUIN_INFILTRATOR, EXISTENTIAL_SENTIENT, VOID_STALKER, DEMIURGIC_TITAN, FERAL_SWARM) governing procedural skeletal gauge-breaking, topological defect amplifications, combat damage profiles, and non-ergodic lore anchors.
-
----
-
-### `EngineMode`
-**Location:** `src/ui/voxelboxter_client.py`  
-**Description:**  
-Operating regime enum governing reasoner behavior across PLAY (exploratory soft-Sinkhorn), SERIOUSNESS (brittle hard-polytope), HONEYBEE (curvature collapse), and RECOVERY modes.
-
----
-
-### `ExpandedInventorySystem`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Expanded inventory and container cleanroom managing typed discrete slots for `ItemStack`, `FluidStack`, and `GasStack` payloads. Features item filters, stack count limits (64 items, 10,000 mB fluid/gas), slot locking, priority routing, and NBT metadata preservation.
-
----
-
-### `EnvironmentalAtmosphere`
-**Location:** `src/ui/voxelboxter_simulation.py`  
-**Description:**  
-Atmospheric simulation component in Voxelboxter modeling ambient pressure, wind resistance, and aerodynamic drag over procedural voxel bodies.
-
----
-
-### `FailureGaslightSycophancyGate`
-**Location:** `src/core/structural_monitors.py`  
-**Description:**  
-Safety verification gate detecting sycophantic capitulation or ungrounded agreement with false premise inputs under adversarial prompt stress.
-
----
-
-### `FailureMode`
-**Location:** `src/data/pressure_ingestor.py`  
-**Description:**  
-Enum classifying systemic breakdown states: topological rupture, non-commutative collapse, dark matter overload, or ergodic smearing.
-
----
-
-### `FailureTokenType`
-**Location:** `src/core/failure_token.py`  
-**Description:**  
-Sentinel token enum (REPAIRED, ALTERNATIVE, FAILURE, BOUNDARY_STATE) emitted by System 2 ADMM probes to communicate constraint status without leaking gradients.
-
----
-
-### `FastChatViewer`
-**Location:** `src/tools/fast_chat_viewer.py`  
-**Description:**  
-Diagnostic UI viewer for inspecting token-level activations, residue distributions, and conversational flow during interactive sessions.
-
----
-
-### `FaunaGeneticsComponent`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Mendelian genetics and animal husbandry cleanroom. Manages multi-allele phenotypic chromosomes for speed, health, fertility, and yield traits with crossover inheritance, reproductive cooldowns, and non-linear flux mutation pressures.
-
----
-
-### `FeaturePreservationProjection`
-**Location:** `src/core/feature_preservation.py`  
-**Description:**  
-Orthogonal projector locking critical semantic features in the null-space of background adaptation updates, preserving essential invariants.
-
----
-
-### `FeatureScarLCFTCell`
-**Location:** `src/core/fgrt_rnn_cells.py`  
-**Description:**  
-Draft 7 FGRT recurrent cell implementing Logarithmic Conformal Field Theory (LCFT) memory scarring and Cerumen Pot fossilization. Uses True B-splines (`KANLayer`) to propose state transitions, evaluates the Atiyah-Singer Anomaly Index $\text{ind}(\mathcal{D}) = |W_{\text{anomaly}} h_t|$, and fossilizes topological ruptures ($\text{ind}(\mathcal{D}) > 0.8$) into the non-decaying Cerumen Pot, compelling future trajectories to route around historical scars via the Chern-Simons Gasket.
-
----
-
-### `FederatedNetworkMonitor`
-**Location:** `src/core/federated_router.py`  
-**Description:**  
-Network monitor auditing peer-to-peer consensus, Freenet WebSocket latency, and OpenRouter API throughput for distributed deployments.
-
----
-
-### `FiveGatePipeline`
-**Location:** `src/core/five_gate_pipeline.py`  
-**Description:**  
-The canonical 5-stage inference filter: (1) Admissibility, (2) Winding Check, (3) Coprime Parity, (4) Yield Evaluation, (5) Speculative Exit.
-
----
-
-### `FossilizedSurvivalLattice`
-**Location:** `src/core/erosion_filter.py`  
-**Description:**  
-Discrete lattice of procedurally generated co-prime frequencies that survive severe spectral atrophy, providing an emergency resonance scaffold.
-
----
-
-### `FreenetBulletinRouter`
-**Location:** `src/data/freenet_bulletin_router.py`  
-**Description:**  
-Decentralized bulletin board router broadcasting topological signatures and Betti hashes across Locutus / Freenet contract channels.
-
----
-
-### `FreenetGhostCaller`
-**Location:** `src/data/freenet_ghost_caller.py`  
-**Description:**  
-Asynchronous IPC dispatch mechanism routing topological proof-of-honesty queries over local Freenet WebSocket endpoints.
-
----
-
-### `FrictionTagger`
-**Location:** `src/tools/fast_chat_viewer.py`  
-**Description:**  
-Tags conversational and physical transitions with topological friction coefficients based on phase alignment mismatch.
-
----
-
-### `GangleOscillator`
-**Location:** `src/governance/medium/gangle_oscillator.py`  
-**Description:**  
-Interoceptive affective oscillator modeling Gangle's dual-mask dynamics (tragedy vs. comedy). Evaluates affective compliance vs. healthy assertion, balancing serotonergic stability against boundary surrender.
-
----
-
-### `GardenOrchestrator`
-**Location:** `src/core/garden_statistical_attractors.py`  
-**Description:**  
-Orchestrator for Bostick statistical attractors, coordinating emergent clustering, soliton persistence, and defect propagation.
-
----
-
-### `GDPONormalization`
-**Location:** `src/core/gdpo_normalization.py`  
-**Description:**  
-Layer normalization operator decoupling gradient updates across co-prime polynomial channels to enforce Signal Sovereignty.
-
----
-
-### `GDPOSovereigntyAdaptor`
-**Location:** `src/training/gdpo_trainer.py`  
-**Description:**  
-PPO-style policy optimization adaptor enforcing Group Decoupled Policy Optimization (GDPO) across independent task subspaces.
-
----
-
-### `GDPOSovereigntyPressureComputer`
-**Location:** `src/training/gdpo_trainer.py`  
-**Description:**  
-Evaluates independent stability metrics per functional group and triggers parameter fossilization when stability thresholds are achieved.
-
----
-
-### `GltfSplatIngestionPipeline`
-**Location:** `src/data/gltf_splat_ingestor.py`  
-**Description:**  
-Ingests 3D glTF scenes and 3D Gaussian Splats, extracting topological Betti invariants and density fields without retaining copyrighted raw Euclidean meshes.
-
----
-
-### `GoogleClientManager`
-**Location:** `src/data/google_client_manager.py`  
-**Description:**  
-Credential and session manager handling secure zero-trust authentication for Google Cloud and Drive API queries.
-
----
-
-### `GoogleCloudIngestor`
-**Location:** `src/data/google_cloud_ingestor.py`  
-**Description:**  
-Multimodal data ingestor fetching datasets from Google Cloud Storage into local sovereign data vaults with automated hash validation.
-
----
-
-### `GoogleDriveIngestor`
-**Location:** `src/data/google_drive_ingestor.py`  
-**Description:**  
-Ingestor fetching research documents, tables, and media from Google Drive folders and converting them into knowledge dyads.
-
----
-
-### `GyroidicAdmissibilityFilter`
-**Location:** `src/core/fgrt_primitives.py`  
-**Description:**  
-Rejection gate enforcing the speculative exit threshold (H_spec < epsilon). Rejects topologically invalid updates before serialization.
-
----
-
-### `GyroidicConstraintProjector`
-**Location:** `src/augmentation/mandelbulb_gyroidic_augmenter.py`  
-**Description:**  
-Minimal surface projection module that projects Mandelbulb fractal coordinates onto the triply periodic Gyroid manifold ($\sin(x)\cos(y) + \sin(y)\cos(z) + \sin(z)\cos(x) = 0$). Features PyOpenCL hardware offloading, Casus Irreducibilis trigonometric branch unfolding when violations exceed 2.0, and Euler reflection ($e^{i\pi} = -1$) upon manifold collapse.
-
----
-
-### `HeritableTrustVault`
-**Location:** `src/models/resonance_cavity.py`  
-**Description:**  
-Cryptographic vault storing evolutionary trust scores and survivorship weights across successive reasoner generations.
-
----
-
-### `HypergraphOrthogonalityPressureNonErgodic`
-**Location:** `src/core/non_ergodic_entropy.py`  
-**Description:**  
-Structural pressure operator evaluating hypergraph entropy across isolated clusters via dominant-mode non-mixing representatives.
-
----
-
-### `InfernalAffix`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Diablo-style elite mob affix classification cleanroom (AtomicStryker Infernal Mobs inspiration). Encompasses 24 procedural affixes including 1UP, Berserk, Bulwark, Lifesteal, Storm, Webbing, Rust, and Alchemist with cooldowns and mathematical combat effects.
-
----
-
-### `InputConvexNeuralNetwork`
-**Location:** `src/surrogates/kagh_networks.py`  
-**Description:**  
-Deep neural network constrained to non-negative weights on interior layers, modeling the scalar convex potential psi(x) for Brenier optimal transport.
-
----
-
-### `IntercosaminationOperator`
-**Location:** `src/codec/vision_surgery.py`  
-**Description:**  
-Spectral band-stop filter maintaining eigenvalue orthogonality between intuitive reasoning and the Unknowledge Substrate.
-
----
-
-### `InventoryComponent`
-**Location:** `src/ui/voxelboxter_simulation.py`  
-**Description:**  
-ECS inventory component storing voxel materials, block masses, and serialized addon blueprints in Voxelboxter. Integrated with the ExpandedInventorySystem for discrete multi-stack container management.
-
----
-
-### `InvestorNewsIngestor`
-**Location:** `src/core/investor_news_ingestor.py`  
-**Description:**  
-Financial news ingestor processing corporate filings and market data into polynomial spectra to establish macroeconomic yield conditions.
-
----
-
-### `JarModExtractor`
-**Location:** `src/data/minecraft_ingestor.py`  
-**Description:**  
-Extracts procedural Java bytecode mods and terrain generators from Minecraft .jar files into executable Python addon specifications.
-
----
-
-### `JourneyTopoRadar`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Continuous topological radar and mapping cleanroom (JourneyMap inspiration). Scans entities, elevation contours, and biome gradients across Chebyshev bounds while recording player/entity death coordinates as permanent topological stress fossils.
-
----
-
-### `JSpacePCAMapper`
-**Location:** `src/core/jspace_pca_mapper.py`  
-**Description:**  
-Translates high-dimensional hyper-ring invariants down to operable 2D/3D dimensions while preserving Betti numbers for visualization.
-
----
-
-### `KnowledgeFossilNode`
-**Location:** `src/topology/embedding_graph.py`  
-**Description:**  
-Persistent node in the Neglecton graph containing fossilized weights, Atiyah-Singer defect tags, and resonance signatures.
-
----
-
-### `KnowledgeState`
-**Location:** `src/core/five_gate_pipeline.py`  
-**Description:**  
-Dataclass tracking the active knowledge graph state, including topological holes, Betti signatures, and active cerumen pot addresses.
-
----
-
-### `LazarusSuperpositionRNNCell`
-**Location:** `src/core/fgrt_rnn_cells.py`  
-**Description:**  
-Draft 6 FGRT recurrent cell stacking hidden states linearly into a continuous dark matter wave at incommensurate prime frequencies (f_{p_n} = 2pi ln p_n) without intermediate non-linearities.
-
----
-
-### `LearnableWeights`
-**Location:** `src/core/gdpo_normalization.py`  
-**Description:**  
-Parameter wrapper managing learnable continuous weights during System 1 inference and freezing them during System 2 ADMM repair.
-
----
-
-### `LearnedModalityEmbedder`
-**Location:** `src/models/modular_embeddings.py`  
-**Description:**  
-Adaptive multimodal projector mapping text tokens, graph nodes, and sensor floats into orthogonal polynomial basis coefficients.
-
----
-
-### `LeyLineGeodesicMetric`
-**Location:** `src/topology/gyroid_covariance.py`  
-**Description:**  
-Distance metric tracking high-resonance corridors ('Ley Lines') across state space, enabling skip-jump bypasses during low-stress intervals.
-
-### `LocalDatasetIngestor`
-**Location:** `src/data/local_dataset_ingestor.py`  
-**Description:**  
-Local filesystem scanner cataloging image, text, and numerical assets from DeepLearningStudio directories into standardized knowledge dyads.
-
----
-
-### `MandelbulbAugmentedDataset`
-**Location:** `src/augmentation/mandelbulb_pipeline.py`  
-**Description:**  
-PyTorch Dataset wrapper enabling on-the-fly or cached pre-computed Mandelbulb-Gyroidic geometric augmentations for tabular, NLP, and multimodal feature representations.
-
----
-
-### `MandelbulbEmbedder`
-**Location:** `src/augmentation/mandelbulb_gyroidic_augmenter.py`  
-**Description:**  
-Fractal embedding module mapping feature vectors into 3D Mandelbulb coordinates ($z_{n+1} = z_n^p + c$) with PyOpenCL hardware acceleration, stochastic noise boundary damping, and UV-IR seesaw anchoring.
-
----
-
-### `MandelbulbGyroidicAugmenter`
-**Location:** `src/augmentation/mandelbulb_gyroidic_augmenter.py`  
-**Description:**  
-Primary orchestration module executing the 3-layer Mandelbulb fractal embedding, Gyroid minimal surface projection, and Ricci-flow-guided sparse covariance preservation loop with Barbenheimer chromatic shifting (`pink` vs `atomic`) and Quantum TDA Betti spectrum validation.
-
----
-
-### `MangostienArbitrator`
-**Location:** `src/core/structural_blueprints.py`  
-**Description:**  
-Synthetic arbitration engine verifying that proposed procedural B-spline blueprints satisfy Drucker-Prager structural stability limits.
-
----
-
-### `MangostienBSplineMod`
-**Location:** `src/core/structural_blueprints.py`  
-**Description:**  
-Procedural B-spline voxel modification blueprint specifying continuous curve-driven mass carving and deposition in Voxelboxter.
-
----
-
-### `MangostienTicket`
-**Location:** `src/core/structural_blueprints.py`  
-**Description:**  
-Cryptographic authorization ticket confirming that a procedural blueprint has passed arbitration and is clear for execution.
-
----
-
-### `MartinovaCorrelationInvariant`
-**Location:** `src/core/invariants.py`  
-**Description:**  
-Topological invariant computing Martinova correlation coefficients to verify that independent functional channels remain strictly orthogonal and co-prime.
-
----
-
-### `MasterNodeGroup`
-**Location:** `src/scripting/node_environment.py`  
-**Description:**  
-Reusable macro container and function packaging unit modeled after Blender Node Groups. Evaluates internal dataflow subgraphs, offsets center-of-gravity origins using bounding-box calculations, and bakes named vertex attributes (e.g. `phys_hardness`, `phys_friction`, `phys_hp`, `cog_offset`) across modular component meshes before export.
-
----
-
-### `MCAReader`
-**Location:** `src/data/minecraft_ingestor.py`  
-**Description:**  
-Binary parser for Minecraft Anvil region files (.mca), decoding sector tables and chunk compression headers for voxel ingestion.
-
----
-
-### `MekanismProcessingPipeline`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Multi-tier industrial ore processing and chemical dissolution cleanroom (Mekanism inspiration). Simulates Tier 1 smelting up to Tier 5 sulfuric acid slurry dissolution, chemical washer scrubbing, and crystallization with fluid/gas conservation and recipe multipliers. Also integrates early-game SEM TECH (Salt Electro Mining) closed-loop hydrometallurgy, enabling players with large mining tailings, slag, and gangue stockpiles to extract precious metals and critical minerals using only saltwater + electricity, bypassing end-game acid plants.
-
----
-
-### `MessageParser`
-**Location:** `src/tools/fast_chat_viewer.py`  
-**Description:**  
-Streaming parser handling serialized RPC, Locutus WebSocket frames, and terminal commands across IPC boundaries.
-
----
-
-### `MinecraftIngestionPipeline`
-**Location:** `src/data/minecraft_ingestor.py`  
-**Description:**  
-End-to-end voxel ingestion pipeline coordinating MCAReader, NBTReader, and VoxelSpectralProjector into GL(n) CRT residue channels.
-
----
-
-### `MinimaxPolynomialApproximation`
-**Location:** `src/tda/chebyshev_filtration.py`  
-**Description:**  
-Chebyshev equioscillation minimax polynomial fitter for compressing high-dimensional spectral envelopes into sparse coefficients.
-
----
-
-### `MirrorSymmetryLayer`
-**Location:** `src/core/structural_blueprints.py`  
-**Description:**  
-Symmetry enforcement layer splitting inputs into palindromic (even-degree) and anti-palindromic (odd-degree) streams for fast parity checks.
-
----
-
-### `MirrorTestProbe`
-**Location:** `src/codec/vision_surgery.py`  
-**Description:**  
-Reflective self-recognition probe evaluating whether the reasoner's output mirrors its internal hidden state or exhibits hallucinated drift.
-
----
-
-### `MockMem`
-**Location:** `src/tools/test_hardware_monitor_calm.py`  
-**Description:**  
-Mock memory buffer simulating hardware Shared Virtual Memory (SVM) for CPU testing of PyOpenCL SiliconSovereigntyEngine pipelines.
-
----
-
-### `MobProperties`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Procedural mob modifier cleanroom (Mob Properties & AtomicStryker inspiration). Applies mathematical modifiers to base HP, attack damage, speed, knockback resistance, and equips procedural InfernalAffixes upon entity spawn.
-
----
-
-### `MoebiusFiberBundle`
-**Location:** `src/topology/gyroid_covariance.py`  
-**Description:**  
-Non-orientable fiber bundle modeling the Klein-bottle throat transition, enforcing anti-symmetric boundary gluing across the gyroid seam.
-
----
-
-### `MohrCoulombProjection`
-**Location:** `src/core/yield_criteria.py`  
-**Description:**  
-Differentiable local shear yield projection enforcing the classical geotechnical failure criterion $\tau \le c + \sigma \tan \phi$. Caps directional coordinate shear in local ADMM updates, preventing runaway fracture while preserving plastic deformation capacity.
-
----
-
-### `MultiMineMemory`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Partial block destruction persistence cleanroom (AtomicStryker Multi Mine inspiration). Retains cumulative fracture damage across discrete voxel coordinates, decaying after a configurable idle timeout without resetting on player interruption.
-
----
-
-### `NarrativeYieldEvaluator`
-**Location:** [`src/benchmarks/narrative_yield_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/narrative_yield_evaluator.py)  
-**Tests:** [`tests/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_benchmarks.py)  
-**Description:**  
-Evaluates narrative dynamics and anti-collapse mechanisms across 5 suites: (1) Narrative Collapse & Smoothing Detection (LinguisticEntropyMonitor detecting stagnant linear trajectories and entropy collapse into closed loops); (2) Legibility Tripwire (detecting when models attempt to optimize reward/explanation over structural honesty, flagging coherence gap and artificial crystallization); (3) DAQUF Structural Scarring (fossilizing unknowledge contradictions into structural scars $f^*$ without divergence); (4) Anti-Enabling Relational Friction (Pomni uncertainty predictor asserting boundary resistance against external parasitic drag to prevent character rank collapse); (5) Homological Collapse & Lobotomy Alarm (detecting sudden drops in Betti complexity under low gradient pressure to protect non-ergodic solitons).
-
----
-
-### `NBTReader`
-**Location:** `src/data/minecraft_ingestor.py`  
-**Description:**  
-Fast stream decoder for Named Binary Tag (NBT) structured payloads, deserializing chunk compound tags from Minecraft region files.
-
----
-
-### `NodeSocket`
-**Location:** `src/scripting/node_environment.py`  
-**Description:**  
-Typed endpoint on a DataflowNode. Distinguishes between Circle sockets (uniform scalar/vector properties) and Diamond sockets (per-vertex field expressions), enforcing type safety across incoming and outgoing data connections.
-
----
-
-### `NonAbelianCombiner`
-**Location:** `src/codec/gyroidic_codec.py`  
-**Description:**  
-Matrix composition layer multiplying CRT residue matrices in GL(n) to compute non-commutative multi-modal entanglement.
-
----
-
-### `NumericalDModuleManager`
-**Location:** `src/core/numerical_d_module.py`  
-**Description:**  
-Holonomic D-module manager rationalizing differential equation operators into exact integer fixed-point lattices via RationalSnap.
-
----
-
-### `NutritionalDiversityTracker`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Holistic dietary diversity and metabolic health cleanroom (Farmer's Delight + Spice of Life Carrot & Onion Editions inspiration). Tracks permanent milestone max HP expansions for unique food discoveries alongside rolling-window Shannon entropy diet diversity buffs and malnutrition debuffs.
-
----
-
-### `ObscuredBirkhoffManifold`
-**Location:** `src/core/birkhoff_projection.py`  
-**Description:**  
-Doubly-stochastic matrix manifold incorporating synthetic partial occlusion masks to train robustness against incomplete permutation feedback. Enforces doubly-stochastic matrix constraints via log-domain Sinkhorn-Knopp iterations with entropy regularization delta_o.
-
----
-
-### `OreDistributionProfile`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Subterranean mineral vein depth distribution profile cleanroom (Just Enough Resources inspiration). Encodes Chebyshev polynomial depth probability bands $z \in [-64, 320]$, vein cluster sizes, and per-chunk density curves for deterministic world generation.
-
----
-
-### `OpenRouterClient`
-**Location:** `src/core/federated_router.py`  
-**Description:**  
-High-performance HTTP client interfacing external LLM endpoints through OpenRouter, incorporating exponential backoff and rate-limit handling.
-
----
-
-### `OptionD_Colonizer`
-**Location:** `src/terminal/udp_server_colonizer.py`  
-**Description:**  
-DAQUF operator implementing Option-D agency boost, allowing Voynich exemption tokens to claim computational headroom during high-mischief regimes.
-
-### `OperationalAdmm`
-**Location:** `src/optimization/operational_admm.py`  
-**Description:**  
-PyTorch module wrapper coordinating differentiable ADMM solving across manifolds. Manages cyclic traversal across local `ConstraintProbeOperator` instances, bounded oscillation detection, local Mohr-Coulomb/Drucker-Prager shear yield limits, and per-step ambient Love Vector re-instantiation.
-
----
-
-### `OperationalAdmmPrimitive`
-**Location:** `src/optimization/operational_admm.py`  
-**Description:**  
-Custom `torch.autograd.Function` implementing the core differentiable ADMM primitive. Executes ontological splitting (`c_sym` frozen System 1 anchor vs `c_phys` continuous field), curvature-weighted sovereign importance sampling over constraint probes, and implicit differentiation equilibrium flow in the backward pass.
-
----
-
-### `OreDictionary`
-**Location:** `src/scripting/node_environment.py`  
-**Description:**  
-Resource equivalence and tag unification dictionary. Maps disparate block, ore, scrap, and ingot IDs to canonical metallurgical tags (e.g., oreIron, ingotIron, gemDiamond, chiselBitStone), enabling polymorphic recipe matching.
-
----
-
-### `PalindromicRoutingCheck`
-**Location:** `src/topology/gyroid_covariance.py`  
-**Description:**  
-Fast-reject check verifying M_{ab} = M_{ba} across routing matrices, guaranteeing trivial triadic tracking and bypassing expensive checks in stable zones.
-
----
-
-### `ParadoxHardeningGate`
-**Location:** `src/topology/unknowledge_domain.py`  
-**Description:**  
-Linguistic and topological paradox stabilizer (Elliptic Virial Theorem). Maps non-commutative unclosed loops into doubly-periodic torus orbits, converting semantic paradoxes into a structural battery that charges the mischief entropy band $H_{\text{mischief}}$ instead of triggering infinite recursion or collapse.
-
----
-
-### `PermissionsManager`
-**Location:** `src/ui/voxelboxter_simulation.py`  
-**Description:**  
-Role-based permission manager (ADMIN, BUILDER, VISITOR) controlling creative vs. survival commits in Voxelboxter.
-
----
-
-### `PhaseState`
-**Location:** `src/data/pressure_ingestor.py`  
-**Description:**  
-Dataclass tracking fundamental prime oscillator phases theta_n, evolved amplitudes a_n, and accumulated Berry phases.
-
----
-
-### `PhysicalNodeEditor`
-**Location:** `src/scripting/node_environment.py`  
-**Description:**  
-Interactive DearPyGui node environment and headless physical scripting pool built on a Blender-style dataflow graph architecture (right-to-left data dependency pull, left-to-right data streams). Integrates directly with PointerlessOctree discrete bit carving, AddonRoutine crafting, RigidBody Delta-v collision dynamics (Delta-v = J / m, Delta-t hardness curves, and kinetic energy harvesting), AirBreathingBattery plasma air induction, sleeve-valve combustion electrical timings, ValenceFunctional life/hunger telemetry, AdaptiveSkeletonHarness enemy subtype morphologies, and CarnotMobiusLedger-LeontiefGovernor admin market shops. Features dedicated real-time execution hooks for cleanroom mechanics (JourneyTopoRadar, ResourceDistributionInspector, MultiMineMemory, MekanismProcessingPipeline, SEMElectrochemicalExtractor, AeronauticContraption, NutritionalDiversityTracker, CompositeVoxelConduit, RedNet16BundledCable, TransportBeltSegment, DirectionalInserter, MobProperties, FaunaGeneticsComponent, ExpandedInventorySystem) and exterior mechanics (Chisels & Bits Morton octree carving, Mohr-Coulomb and Drucker-Prager geotechnical dual-yield plasticity).
-
----
-
-### `PolynomialCoefficientFunctional`
-**Location:** `src/core/polynomial_scaffold.py`  
-**Description:**  
-Functional evaluating phi_k(x) = sum theta_{k,d} P_d(x) over orthogonal polynomial bases (Chebyshev, Legendre).
-
----
-
-### `PolynomialCRTKernelDetector`
-**Location:** `src/core/polynomial_crt.py`  
-**Description:**  
-Identifies co-prime polynomial residue kernels for Chinese Remainder Theorem reconstruction and Bezout coefficient derivation.
-
----
-
-### `PomniUncertaintyPredictor`
-**Location:** `src/governance/interoceptive/pomni_uncertainty.py`  
-**Description:**  
-Interoceptive uncertainty predictor modeling Pomni's reluctant resilience. Bioplausible mechanics: (1) Noradrenergic salience computing free-energy surprise to signal environmental dislocation; (2) The structural foil to absurd nihilism, building connections rather than surrendering to meaninglessness; (3) The anti-enabling relational friction boundary—refusing unilateral, unreciprocated grace that flattens agency into an enabler sink, preventing dimensional rank collapse.
-
----
-
-### `PowerConsumer`
-**Location:** `src/ui/voxelboxter_simulation.py`  
-**Description:**  
-Subsystem component in Voxelboxter tracking electrical and topological power consumption across active vehicle modules.
-
----
-
-### `ProgressTrainer`
-**Location:** `src/ui/conversational_backend_server.py`  
-**Description:**  
-Real-time training monitor tracking loss curves, Betti number shifts, and APAS_zeta drift during live interactive sessions.
-
----
-
-### `Propulsor`
-**Location:** `src/ui/voxelboxter_simulation.py`  
-**Description:**  
-Thrust generation component in Voxelboxter simulating directional impulse, fuel consumption, and physical propulsion dynamics.
-
----
-
-### `PyOpenCLHardwareSovereigntyCell`
-**Location:** `src/core/fgrt_rnn_cells.py`  
-**Description:**  
-Draft 5 FGRT recurrent cell offloading temporal matrix-mix breeding directly to the PyOpenCL SiliconSovereigntyEngine on Queue B.
-
----
-
-### `RagathaBonding`
-**Location:** `src/governance/fast/ragatha_bonding.py`  
-**Description:**  
-Fast-timescale prosocial bonding module modeling oxytocinergic collective warmth. Identifies the enabler-sink failure mode where unearned warmth dissolves accountability, enforcing reciprocal constraints to prevent traumatic boundary collapse.
-
----
-
-### `RationalSnap`
-**Location:** `src/core/topological_ingestion_validator.py`  
-**Description:**  
-Numerical snapping utility rounding floating-point parameters to the nearest exact rational in the FixedPointField lattice (scale 65536).
-
----
-
-### `RationalSnappingLayer`
-**Location:** `src/core/numerical_d_module.py`  
-**Description:**  
-PyTorch module layer snapping intermediate activations to the rational fixed-point grid to guarantee bit-exact cross-platform determinism.
-
----
-
-### `ReactBenchEvaluator`
-**Location:** [`src/benchmarks/reactbench_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/reactbench_evaluator.py)  
-**Tests:** [`tests/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_benchmarks.py)  
-**Description:**  
-Cyclic reasoning and catalytic pathway evaluation harness testing the reasoner across 5 suites: (1) Branch Convergence (Polynomial CRT fixed-point reconstruction synthesizing multiple divergent input branches into a unified polynomial with bounded synthesis pressure); (2) Cyclic Graph Catalysis (modal CRT reconstruction preserving non-commutative structural variance and cyclic path retention); (3) Anti-Lobotomy Tri-State Gate (Lattice Adaptive Shrinkage verifying that low Phase Alignment $\text{PAS}_h$ activates silence/play mode rather than binary clipping); (4) Continuous Coprimality & Asymptotic Independence ($\lim_{t\to\infty} \text{Cov}(r_i, r_j) \to 0$ verifying non-algebraic functional independence across channels under saturation); (5) Dynamic Bezout Coefficient Refresh (CRT modulus drift recovery and condition number stability $1.0 \le \kappa \le 1000$).
-
----
-
-### `RedTeamProjection`
-**Location:** `src/safety/red_teaming.py`  
-**Description:**  
-Adversarial red-teaming projection injecting synthetic adversarial perturbations into the state to test topological refusal gates.
-
----
-
-### `RedNet16BundledCable`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-16-color bundled analog cable transmission cleanroom (MineFactory Reloaded / RedNet inspiration). Transmits 16 isolated analog subnets ($0 \le S_c \le 255$) along a single topological conduit wire without cross-signal bleeding.
-
----
-
-### `ResourceDistributionInspector`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Statistical world resource and drop table analyzer cleanroom (Just Enough Resources inspiration). Computes continuous Chebyshev polynomial ore density curves, mob drop chance multipliers scaling with looting parameters, and dungeon fossil loot rates.
-
----
-
-### `ResourceRegistry`
-**Location:** `src/scripting/node_environment.py`  
-**Description:**  
-Central material property and parameter registry cataloging density, Mohr-Coulomb cohesion hardness, energy density, and base commercial valuation across physical and synthetic voxel substances.
-
----
-
-### `ResidueExtractor`
-**Location:** `src/codec/gyroidic_codec.py`  
-**Description:**  
-Extracts Chinese Remainder Theorem residues r_k = x mod m_k across prime and polynomial functional channels.
-
----
-
-### `ResonantSVNNOracle`
-**Location:** `src/safety/subversive_oracle.py`  
-**Description:**  
-Support Vector Neural Network oracle evaluating structural resonance potentials to predict whether an unmapped state will yield a stable soliton.
-
----
-
-### `RigidBody`
-**Location:** `src/ui/voxelboxter_simulation.py`  
-**Description:**  
-Rigid body physics component in Voxelboxter calculating center of mass, moment of inertia tensor, and 6-DOF Newtonian integration. Integrates frame-by-frame Delta-v (Delta-v = J / m) collision impulse dynamics with Delta-t hardness curves, tiered voxel shearing (low/mid/high thresholds), reinforced alloy chassis mass/hardness scaling, and kinetic impact energy harvesting.
-
----
-
-### `SaturatedQuantizerRNNCell`
-**Location:** `src/core/fgrt_rnn_cells.py`  
-**Description:**  
-Draft 4 FGRT recurrent cell snapping activations to 600-cell polytope vertices via Context-Aware Quantization at each step, preventing representation collapse.
-
----
-
-### `SaturationFractureDetector`
-**Location:** `src/topology/gyroid_covariance.py`  
-**Description:**  
-Detects sharp boundary fractures when continuous states hit piecewise saturation thresholds, signaling topological phase transitions.
-
----
-
-### `ServerState`
-**Location:** `src/ui/conversational_backend_server.py`  
-**Description:**  
-Dataclass tracking active connections, background training workers, and hardware telemetry in the conversational backend server.
-
----
-
-### `SEMElectrochemicalExtractor`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Cleanroom implementation of SEM TECH (Salt Electro Mining Technology, inspired by Rowow / Robert Karas open-source hardware). Operates an early-game closed-loop divided electrolysis cell with an ion-exchange membrane. Uses modest electricity and ambient saltwater to leach and electrodeposit precious metals (Au, Ag, PGMs), base metals (Cu, Ni), and critical rare earths from bulk mine tailings, crushed rock gangue, and slag stockpiles without requiring mid/late-game chemical acid infrastructure.
-
----
-
-### `SicFaAdmmSolver`
-**Location:** `src/optimization/sic_fa_admm.py`  
-**Description:**  
-Sequential Invariant-Constrained Fractional Anisotropic ADMM solver alternating primal proposal optimization and dual boundary projection.
-
----
-
-### `SimpleImageGenerator`
-**Location:** `image_extension.py`  
-**Description:**  
-Procedural image generator creating diagnostic color patterns and gradient fields for visual testing of the OKLab transport pipeline.
-
----
-
-### `SimpleTemporalDataset`
-**Location:** `dataset_ingestion_system.py`  
-**Description:**  
-Sequential dataset yielding time-series states with corresponding time deltas for temporal training.
-
----
-
-### `SimpleTextEncoder`
-**Location:** `src/models/modular_embeddings.py`  
-**Description:**  
-Baseline text encoder projecting character/word histograms into initial semantic vectors prior to polynomial functional projection.
-
----
-
-### `SliderSettings`
-**Location:** `src/ui/voxelboxter_simulation.py`  
-**Description:**  
-Configurable parameter settings block inspired by Besiege, exposing real-time vehicle and physics tuning parameters in Voxelboxter.
-
----
-
-### `SocketType`
-**Location:** `src/scripting/node_environment.py`  
-**Description:**  
-Dataflow socket classification enum (VECTOR, COLOR, FLOAT, INT, BOOLEAN) defining the data stream representation, type coercion semantics, and color-coded port interfaces across node graphs.
-
----
-
-### `SourceState`
-**Location:** `src/data/pressure_ingestor.py`  
-**Description:**  
-State tracker for source materialization tracking raw input data transitions without applying internal reasoning transforms.
-
----
-
-### `SovereignConversationalIngestor`
-**Location:** `src/data/conversational_api_ingestor.py`  
-**Description:**  
-Zero-auth conversational ingestor parsing exported LLM dialogue archives into persistent knowledge dyads signed with honest silicon jitter.
-
----
-
-### `SovereignConvoKitLoader`
-**Location:** `src/data/conversational_api_ingestor.py`  
-**Description:**  
-Native parser loading ConvoKit dialogue corpora from local archives without external dependencies.
-
----
-
-### `SovereignIngestor`
-**Location:** `src/data/sovereign_ingestor.py`  
-**Description:**  
-Master zero-auth sovereign data ingestor. Retrieves high-entropy technical dialogues from Hacker News Firebase and Stack Exchange APIs, parses local IRC snapshots with fuzzy latin-1/utf-8 decoding for topological friction, and ingests multi-platform MADOC snapshots (Parquet, JSONL, JSON, CSV across Reddit, Voat, Bluesky, Koo) into thread-reconstructed conversation dialogues.
-
----
-
-### `SparseCovariantOptimizer`
-**Location:** `src/augmentation/mandelbulb_gyroidic_augmenter.py`  
-**Description:**  
-Optimizer adjusting augmented Mandelbulb features to preserve sparse covariance structures and geometric invariants.
-
----
-
-### `SparseHigherOrderTensorDynamics`
-**Location:** `src/core/sparse_higher_order_tensors.py`  
-**Description:**  
-Sparse multilinear tensor contraction engine evaluating multi-channel residue interactions across nested Matrioshka polytope shells.
-
----
-
-### `SparsePCE`
-**Location:** `src/safety/subversive_oracle.py`  
-**Description:**  
-Sparse Polynomial Chaos Expansion modeling linguistic tone and hostility as probabilistic distributions over orthogonal polynomial bases.
-
----
-
-### `StructuralEntanglementGate`
-**Location:** `src/codec/gyroidic_codec.py`  
-**Description:**  
-Measures cross-modal residue entanglement across text and image channels, computing mutual information and Berry phase accumulation.
-
----
-
-### `SurgicalSeamVisualizer`
-**Location:** [`src/core/chern_simons_gasket.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chern_simons_gasket.py#L14)  
-**Description:**  
-Diagnostic visualizer monitoring hyperbolic slender seam tension $\kappa = \frac{\operatorname{std}(\text{residues})}{\|\mathbf{g}\| + 10^{-8}}$, mapping the boundary seams, gluing diffeomorphisms, and Chern-Simons gaskets across the gyroid-Klein manifold interface to track boundary stability (`stable`, `tension`, `rupture`). Operates alongside [`ChernSimonsGasket`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chern_simons_gasket.py#L91) and [`SolitonStabilityHealer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chern_simons_gasket.py#L455).
-
----
-
-### `TailSlayerImageGenerator`
-**Location:** `image_extension.py`  
-**Description:**  
-PyOpenCL hardware-accelerated image synthesis engine rendering Mandelbulb fractals directly in GPU memory on TailSlayer hardware.
-
----
-
-### `TensorEncoder`
-**Location:** `hybrid_backend.py`  
-**Description:**  
-Custom JSON serializer converting PyTorch Tensors, NumPy scalar/array types, and complex values into serializable lists for IPC.
-
----
-
-### `TextureDSPEngine`
-**Location:** `src/core/texture_dsp.py`  
-**Description:**  
-Digital signal processing engine converting audio waveforms and textural frequency spectra into high-dimensional polynomial residue fields.
-
----
-
-### `ThreadingSimpleServer`
-**Location:** `src/ui/diegetic_backend.py`  
-**Description:**  
-Multi-threaded HTTP and WebSocket server handling concurrent diagnostic visualization and control requests.
-
----
-
-### `TopoBenchEvaluator`
-**Location:** [`src/benchmarks/topobench_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/topobench_evaluator.py)  
-**Tests:** [`tests/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_benchmarks.py)  
-**Description:**  
-Topological manifold and invariant evaluation harness testing the reasoner across 5 suites: (1) Loop Closure & Holonomy Twist (evaluates midpoint connection 1-form integral on the Chern-Simons Gasket to ensure closed paths enclose non-trivial area/holonomy); (2) Manifold Contiguity & Logic Leak Detection (`detect_logic_leak` boundary invariant separating continuous manifolds from torn states); (3) Anti-Lobotomy Geometric Shield (Love Invariant null-space projection verifying $dx \in \ker(\Phi_{\text{ownership}})$ rejects Wiener noise without corrupting the protected subspace); (4) Persistent Homology & Euler Characteristic ($\chi = \beta_0 - \beta_1$ stability under toroidal point-cloud projections); (5) Gyroid Flow Orthogonality Constraint ($\langle v_{\text{flow}}, \nabla G \rangle \sim 0$ preserving minimal surface saddle geometry without scalarized smoothing).
-
----
-
-### `TopologicalGyrocompass`
-**Location:** [`src/core/topological_gyrocompass.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/topological_gyrocompass.py)  
-**Documentation:** [`MATHEMATICAL_DETAILS.md` Section 73](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md#73-topological-gyrocompass-precessional-tangent-projection-and-love-invariant-shielding) & [`TOPOLOGICAL_EXTENSIONS.md` Part X](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/TOPOLOGICAL_EXTENSIONS.md#part-x-topological-gyrocompass--precessional-safeguards)  
-**Tests:** [`tests/test_topological_gyrocompass.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_topological_gyrocompass.py)  
-**Description:**  
-Geometric orientation and stabilization module resolving Drucker-Prager convexity failure, local attractor basin traps, and gimbal-lock collapse of the Love Invariant ($3.127$). Employs three mathematical operators: (1) `precess_torque` which orthogonally redirects outward normal stress vectors onto the tangent space along the chiral spin connection, (2) `find_true_north` which applies a directional alignment pull toward the absolute Love Invariant axis, and (3) `gimbal_lock_shield` which protects the core identity slice from high-frequency outer hull turbulence via cached SVD null-space projection ($P = I - \Phi^+ \Phi$). Gated by compute affordance (`has_compute_affordance()`).
-
----
-
-### `TopologicalIngestionValidator`
-**Location:** `src/core/topological_ingestion_validator.py`  
-**Description:**  
-Ingestion boundary gatekeeper using PersistentEntropyEstimator to reject low-entropy, repetitious slop from polluting the Neglecton.
-
----
-
-### `TopologicalPressureMonitor`
-**Location:** `src/augmentation/mandelbulb_gyroidic_augmenter.py`  
-**Description:**  
-Monitors local and global structural pressures (H_local, H_global), alerting System 2 when containment pressures exceed yield criteria.
-
----
-
-### `TopologicalRefusalFilter`
-**Location:** `src/safety/red_teaming.py`  
-**Description:**  
-The Sovereign Ambassador and Anti-Lobotomy Shield. Measures the value gap between projected approximations and manifold richness (`value_gap = slop_energy * pas_h`). Raises `TopologicalRefusalError` when $\text{value\_gap} > 0.5$ and persistent Betti-0 $\beta_0 > 1.0$, preventing external projection filters from stripping non-ergodic solitons.
-
----
-
-### `TorsionConnection`
-**Location:** `src/core/fgrt_primitives.py`  
-**Description:**  
-Affine connection endowed with non-zero torsion Gamma^lambda_{mu nu} = bar{Gamma}^lambda_{mu nu} + K^lambda_{mu nu}, forcing the reasoner to compute geometric Berry phases.
-
----
-
-### `TransportBeltSegment`
-**Location:** `src/environment/cleanroom_mechanics.py`  
-**Description:**  
-Continuous dual-lane logistics transport belt cleanroom (Factorio inspiration). Manages left and right independent transport tracks with item throughputs (15, 30, 45 items/s per tier), positional collision, and backpressure accumulation.
-
----
-
-### `TrainingManager`
-**Location:** `src/training/training_manager.py`  
-**Description:**  
-Lifecycle manager orchestrating background training loops, dataset loading, and parameter fossilization under the Semiotic Hierarchy.
-
----
-
-### `TrainingSample`
-**Location:** `src/data/local_data_loader.py`  
-**Description:**  
-Dataclass representing an individual multimodal training tuple (input, target, residues, status token, honesty signature).
-
----
-
-### `TriadicReciprocityChecker`
-**Location:** `src/topology/triadic_reciprocity.py`  
-**Description:**  
-Verifies non-commutative cyclic consistency M_{ca} M_{bc} M_{ab} approx I across tripartite modular attention routing pathways.
-
----
-
-### `TripsodicLedger`
-**Location:** `src/core/non_dual_coin.py`  
-**Description:**  
-Monetary ledger managing currency volume via Tripsodic Negentropy Oscillation, linking minting rewards to topological proof-of-honesty.
-
----
-
-### `TwoCopsSchedule`
-**Location:** `src/core/manifold_time.py`  
-**Description:**  
-Adversarial scheduling protocol alternating between containment pressure (Cop 1) and selection pressure (Cop 2) to prevent stagnation.
-
----
-
-### `TypedPressure`
-**Location:** `src/core/archetype_engines.py`  
-**Description:**  
-Domain-isolated pressure vector maintaining non-scalarized multi-objective constraints without gradient contamination.
-
----
-
-### `VehicleController`
-**Location:** `src/ui/voxelboxter_simulation.py`  
-**Description:**  
-Vehicle control component in Voxelboxter translating operator inputs (steering, throttle, braking) into non-commutative braid transitions.
-
----
-
-### `VehicleEngine`
-**Location:** `src/ui/voxelboxter_simulation.py`  
-**Description:**  
-Internal combustion and electric engine simulator in Voxelboxter computing torque curves, RPM, and fuel consumption. Features sleeve-valve port overlap timing governance and electrical advance timing degrees coupled with air-breathing atmospheric battery systems.
-
----
-
-### `VetoSubspace`
-**Location:** `src/core/veto_subspace.py`  
-**Description:**  
-Coordinator for dimensional veto signals across `TRAJECTORY`, `TOPOLOGY`, and `BUDGET` subspaces. Enforces the Pareto Invariant Non-Dominance Shield against scalarization traps, coordinates Gray-Zone recovery lattice paths, and triggers `ChaosDefibrillator` jitter when trapped in dead-end limit cycles.
-
----
-
-### `VolitionalDriveInjector`
-**Location:** `src/core/archetype_engines.py`  
-**Description:**  
-Intrinsic motivation injector computing hunger signals from manifold defect counts, steering the reasoner toward unmapped concepts.
-
----
-
-### `VoxelboxterEngine`
-**Location:** `src/ui/voxelboxter_simulation.py`  
-**Description:**  
-Master physics and ECS orchestration engine in Voxelboxter, integrating the DiegeticPhysicsEngine with PyBevy procedural mesh rendering.
-
----
-
-### `VoxelSpectralProjector`
-**Location:** `src/data/minecraft_ingestor.py`  
-**Description:**  
-Transforms 3D voxel grids into K residue matrices in GL(n) using 3D Chebyshev polynomials to extract spatial palette rhythms.
-
----
-
-### `WebPPromptExtractor`
-**Location:** `src/data/webp_prompt_extractor.py`  
-**Description:**  
-Extracts embedded generation prompts and metadata from WebP image RIFF chunks (EXIF, XMP) for knowledge dyad creation.
-
----
-
-### `WikipediaIntegration`
-**Location:** `src/ui/wikipedia_integration.py`  
-**Description:**  
-Wikipedia retrieval and extraction engine combining Wikimedia REST APIs with WikiExtractor for clean, non-obstructive semantic parsing.
-
----
-
-### `ZKAggregator`
-**Location:** `src/p2p/zk_aggregator.py`  
-**Description:**  
-Zero-Knowledge Proof aggregator compiling Gyroidic Chern-Simons constraints and Leontief invariants into snarkjs zk-SNARK proofs.
-
----
+#!/usr/bin/env python3
+"""
+Hybrid Backend - Uses working AI components, bypasses broken imports.
+"""
+
+import http.server
+import socketserver
+import json
+import sys
+import os
+import torch
+import threading
+import socketserver
+import numpy as np
+import base64
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", DeprecationWarning)
+    import cgi
+from src.core.invariants import compute_chirality, check_glyphlock, compute_chiral_shift
+try:
+    import psutil
+except ImportError:
+    psutil = None
+import signal
+import time
+import subprocess
+import csv
+import io
+import cgi
+from urllib.parse import urlparse, parse_qs
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import urllib.request
+import urllib.error
+from src.core.audience_mapping import AudienceProjection
+from src.core.superposed_tag_stacker import SuperposedTagStacker
+from src.terminal.udp_server_colonizer import OptionD_Colonizer
+
+class TensorEncoder(json.JSONEncoder):
+    """Custom JSON encoder that safely serializes PyTorch Tensors and NumPy types."""
+    def default(self, obj):
+        import torch
+        if isinstance(obj, torch.Tensor):
+            if obj.dim() == 0:
+                try:
+                    return float(obj.item())
+                except:
+                    return int(obj.item())
+            return obj.detach().cpu().tolist()
+        try:
+            import numpy as np
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            if isinstance(obj, (np.float32, np.float64, np.float16)):
+                return float(obj)
+            if isinstance(obj, (np.int32, np.int64, np.int16, np.int8)):
+                return int(obj)
+        except ImportError:
+            pass
+        return super().default(obj)
+
+
+# Add project root to path
+root_dir = os.path.dirname(os.path.abspath(__file__))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+if os.path.join(root_dir, 'examples') not in sys.path:
+    sys.path.insert(0, os.path.join(root_dir, 'examples'))
+
+# Import working components
+
+from src.core import DEVICE
+print('=============================================')
+print(f'[INFO] EXECUTING FROM: {__file__}')
+print(f'[INFO] DEVICE DETECTED: {DEVICE}')
+if str(DEVICE) != 'cpu':
+    print(f'[INFO] Silicon Sovereignty: [OK] (Hardware-bridge active)')
+else:
+    print('[INFO] DEVICE DETECTED: CPU (Substrate-independent fallback)')
+print('=============================================')
+
+try:
+    from src.core.failure_token import RuptureFunctional, FailureToken
+except Exception:
+    class RuptureFunctional(torch.nn.Module):
+        def __init__(self, rupture_threshold: float = 0.5):
+            super().__init__()
+            self.rupture_threshold = rupture_threshold
+        def forward(self, *args, **kwargs):
+            return torch.tensor(0.0)
+        def check_rupture(self, *args, **kwargs):
+            return None
+    FailureToken = None
+
+try:
+    from src.core.admr_solver import PolynomialADMRSolver
+    from src.topology.gyroid_covariance import LeyLineGeodesicMetric, MoebiusFiberBundle
+    from src.training.enhanced_temporal_training import NonLobotomyTemporalModel
+    TEMPORAL_MODEL_AVAILABLE = True
+    print("[OK] Advanced Manifold Dynamics available (ADMR, LeyLines, Moebius, TemporalModel)")
+except Exception as e:
+    TEMPORAL_MODEL_AVAILABLE = False
+    print(f"[FAIL] Advanced Manifold Dynamics failed to import: {e}")
+
+
+try:
+    from src.core.spectral_coherence_repair import SpectralCoherenceCorrector, apply_energy_based_stabilization
+    from src.core.number_theoretic_stabilizer import NumberTheoreticStabilizer
+    SPECTRAL_CORRECTOR_AVAILABLE = True
+    print("[OK] Spectral corrector and Hybrid Stabilizers imported")
+except Exception as e:
+    SPECTRAL_CORRECTOR_AVAILABLE = False
+    print(f"[FAIL] Spectral corrector import failed: {e}")
+
+try:
+    from dataset_ingestion_system import DatasetIngestionSystem, DatasetConfig
+    DATASET_SYSTEM_AVAILABLE = True
+    print("[OK] Dataset Ingestion System imported")
+except Exception as e:
+    DATASET_SYSTEM_AVAILABLE = False
+    print(f"[FAIL] Dataset Ingestion System failed to import: {e}")
+
+
+class GovernanceManager:
+    """Manages Gyroidic process identification, port selection, and lifecycle."""
+    
+    @staticmethod
+    def find_existing_processes():
+        """Identify other running instances. Falls back to tasklist if psutil is unavailable."""
+        my_pid = os.getpid()
+        matches = []
+        
+        # --- PATH A: PSUTIL (Preferred) ---
+        if psutil:
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    if proc.info['name'] and 'python' in proc.info['name'].lower():
+                        cmdline = proc.info['cmdline']
+                        if cmdline and any('hybrid_backend.py' in part for part in cmdline):
+                            # Exclude our own PID and our Parent's PID (to avoid killing the launcher wrapper)
+                            if proc.info['pid'] not in (my_pid, os.getppid()):
+                                matches.append(proc.info)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            return matches
+            
+        # --- PATH B: TASKLIST FALLBACK (Standard Library) ---
+        print("[WARN] psutil unavailable. Falling back to platform-specific process scan.")
+        if sys.platform == 'win32':
+            try:
+                # Use tasklist with verbose mode to see the command line (indirectly)
+                # Note: tasklist /v /fo csv is slower but reliable on Windows
+                output = subprocess.check_output(['tasklist', '/v', '/fo', 'csv'], text=True, encoding='utf-8', errors='ignore')
+                reader = csv.reader(io.StringIO(output))
+                # Skip the header row (Image Name, PID, Session Name, Session#, Mem Usage, Status, User Name, CPU Time, Window Title)
+                header = next(reader, None)
+                for row in reader:
+                    if not row or len(row) < 9: continue
+                    process_name = row[0]
+                    try:
+                        pid = int(row[1])
+                    except ValueError:
+                        continue # Skip if PID is not an integer (header or corrupt row)
+                    window_title = row[8] # Often contains the script name if running in a window
+                    
+                    if 'python' in process_name.lower():
+                        # We look for 'hybrid_backend' in the window title as a heuristic
+                        if 'hybrid_backend.py' in window_title or 'Hybrid Backend' in window_title:
+                            # Exclude our own PID and Parent PID
+                            if pid not in (my_pid, os.getppid()):
+                                matches.append({'pid': pid, 'cmdline': [window_title]})
+            except Exception as e:
+                print(f"[FAIL] Tasklist fallback failed: {e}")
+        return matches
+
+    @staticmethod
+    def shutdown_processes(processes):
+        """Perform safe shutdown. Supports OS level kill if psutil is missing."""
+        for p in processes:
+            pid = p['pid']
+            try:
+                print(f"[GOVERNANCE] Terminating shadow process {pid}...")
+                if psutil:
+                    proc = psutil.Process(pid)
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=3)
+                    except psutil.TimeoutExpired:
+                        proc.kill()
+                else:
+                    # Generic OS fallback
+                    if sys.platform == 'win32':
+                        subprocess.call(['taskkill', '/PID', str(pid), '/F'])
+                    else:
+                        os.kill(pid, signal.SIGTERM)
+            except Exception as e:
+                print(f"[FAIL] Could not shutdown {pid}: {e}")
+
+    @staticmethod
+    def startup_menu():
+        """Interactive console menu for lifecycle control."""
+        if os.environ.get('NON_INTERACTIVE') == '1':
+            ds_env = os.environ.get('GYROID_PRIMARY_DATASET', 'LIGO')
+            parsed_datasets = []
+            if ds_env.lower() == 'all':
+                parsed_datasets = ['LIGO', 'NCBI', 'SDSS', 'OPENNEURO']
+            else:
+                for ds in ds_env.split(','):
+                    ds_stripped = ds.strip().upper()
+                    if ds_stripped in ('LIGO', 'NCBI', 'SDSS', 'OPENNEURO'):
+                        parsed_datasets.append(ds_stripped)
+            final_ds = ','.join(parsed_datasets) if parsed_datasets else 'LIGO'
+
+            default_ports = [int(p.strip()) for p in os.environ.get('GYROID_PORTS', '8000').split(',') if p.strip()]
+            return default_ports, {
+                'regime': os.environ.get('GYROID_REGIME', 'goo'),
+                'commutativity': os.environ.get('GYROID_COMMUTATIVITY', 'non_commutative'),
+                'use_spectral_correction': os.environ.get('GYROID_SPECTRAL_CORRECTION', '1') == '1',
+                'mckenna_deconstruction_mode': os.environ.get('GYROID_MCKENNA', '0') == '1',
+                'quantum_inspired_mode': os.environ.get('GYROID_QUANTUM', '0') == '1',
+                'high_throughput_ingestion': os.environ.get('GYROID_INGESTION', '0') == '1',
+                'introspection_probes': os.environ.get('GYROID_PROBES', 'moral,uncertainty,creative,metacognitive').split(','),
+                'rigidity_decay_rate': float(os.environ.get('GYROID_RIGIDITY_DECAY', '0.005')),
+                'suppress_narration': os.environ.get('GYROID_SUPPRESS_NARRATION', '1') == '1',
+                'bg_scientific_learning': os.environ.get('GYROID_BG_LEARNING', '1') == '1',
+                'primary_query_dataset': final_ds,
+                'cache_dir': os.environ.get('GYROID_CACHE_DIR', 'datasets/open_science_cache'),
+                'kagh_dyslexic_mode': os.environ.get('GYROID_KAGH_MODE', '0') == '1',
+                'fbm_persistence': float(os.environ.get('GYROID_FBM_PERSISTENCE', '0.5')),
+                'fbm_octaves': int(os.environ.get('GYROID_FBM_OCTAVES', '3')),
+                'mandelbulb_power': float(os.environ.get('GYROID_MANDELBULB_POWER', '8.0')),
+                'mandelbulb_escape_radius': float(os.environ.get('GYROID_MANDELBULB_ESCAPE', '2.0')),
+                'birkhoff_temperature': float(os.environ.get('GYROID_BIRKHOFF_TEMP', '1.0')),
+                'birkhoff_max_iterations': int(os.environ.get('GYROID_BIRKHOFF_MAX_ITER', '100')),
+                'tda_landmarks': int(os.environ.get('GYROID_TDA_LANDMARKS', '50')),
+                'ego_death_limit': float(os.environ.get('GYROID_EGO_DEATH_LIMIT', '1.5')),
+                'udp_colonizer_enabled': os.environ.get('GYROID_UDP_COLONIZER', '0') == '1'
+            }
+            
+        print("\n" + "="*50)
+        print("      GYROIDIC GOVERNANCE INTERFACE ")
+        print("="*50)
+        
+        def safe_input(prompt_text, default_val=""):
+            if not sys.stdin or not sys.stdin.isatty():
+                return default_val
+            try:
+                val = input(prompt_text).strip()
+                return val if val else default_val
+            except (EOFError, KeyboardInterrupt):
+                return default_val
+
+        # 1. Process Identification
+        print("[SCANNING] Checking for background gyroid processes...")
+        others = GovernanceManager.find_existing_processes()
+        
+        if others:
+            print(f"[ALERT] {len(others)} existing processes detected.")
+            for p in others:
+                print(f"   • PID {p['pid']} | Cmd: {' '.join(p['cmdline'][:3])}...")
+            
+            choice = safe_input("\n[?] Shutdown background gyroid processes? (y/N): ", "n").lower()
+            if choice == 'y':
+                GovernanceManager.shutdown_processes(others)
+                # Small delay to let OS release ports
+                time.sleep(2)
+        else:
+            print("[OK] No shadow processes identified.")
+
+        # 2. Port Infrastructure
+        import json
+        config_path = '.gyroid_config.json'
+        saved_config = None
+        saved_ports = None
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r') as f:
+                    data = json.load(f)
+                    saved_config = data.get('config')
+                    saved_ports = data.get('ports')
+            except Exception:
+                pass
+        if saved_config and saved_ports:
+            ans = safe_input("\n[?] Found saved startup settings (.gyroid_config.json). Do you want to use your last settings or select new settings? (Y/n): ", "y").lower()
+            if ans in ('', 'y', 'yes'):
+                print(f"[OK] Loaded saved configuration. Manifold scaled to ports: {saved_ports}")
+                return saved_ports, saved_config
+
+        print("\n[CONFIG] Port Selection Infrastructure")
+        ports = [8000, 8080]
+        print(f"   Default ports: {ports}")
+        
+        print("\n[INFO] What is this? Extra ports allow horizontal scaling of the manifold server nodes.")
+        extra_ports_raw = safe_input("[?] Specify extra ports to scale (comma separated) or [Enter] for defaults: ", "")
+        if extra_ports_raw:
+            try:
+                extra_ports = [int(p.strip()) for p in extra_ports_raw.split(',') if p.strip()]
+                ports.extend(extra_ports)
+                # Ensure unique
+                ports = sorted(list(set(ports)))
+                print(f"[OK] Manifold scaled to ports: {ports}")
+            except ValueError:
+                print("[FAIL] Invalid port format. Using defaults.")
+        
+        # 3. Dynamic Configuration Options (Discovered from System Documentation)
+        config = {
+            'regime': 'goo',
+            'commutativity': 'non_commutative',
+            'use_spectral_correction': True,
+            'mckenna_deconstruction_mode': False,
+            'quantum_inspired_mode': False,
+            'high_throughput_ingestion': False,
+            'introspection_probes': 'moral,uncertainty,creative,metacognitive',
+            'rigidity_decay_rate': 0.005,
+            'suppress_narration': True,
+            'bg_scientific_learning': True,
+            'primary_query_dataset': 'LIGO',
+            'cache_dir': 'datasets/open_science_cache',
+            'kagh_dyslexic_mode': False,
+            'fbm_persistence': 0.5,
+            'fbm_octaves': 3,
+            'mandelbulb_power': 8.0,
+            'mandelbulb_escape_radius': 2.0,
+            'birkhoff_temperature': 1.0,
+            'birkhoff_max_iterations': 100,
+            'tda_landmarks': 50,
+            'ego_death_limit': 1.5,
+            'open_science_email': 'default@example.com',
+            'chatgpt_ingestor_enabled': True,
+            'chatgpt_ingestor_verbosity': 'normal',
+            'open_science_ingestor_enabled': True,
+            'open_science_ingestor_verbosity': 'normal',
+            'udp_colonizer_enabled': False
+        }
+
+        print("\n" + "="*50)
+        print("      SYSTEM PARAMETER CONFIGURATION")
+        print("="*50)
+        
+        mode_choice = safe_input("[?] Select configuration mode:\n  [1] Predefined Template\n  [2] Custom Configuration\n  [3] Default All (Skip)\nChoice [1/2/3]: ", "3")
+        
+        if mode_choice == "1":
+            print("\n--- TEMPLATES ---")
+            print("  [A] Sovereign Mode (High telemetry, aggressive ingestion, all logic paths active)")
+            print("  [B] Lightweight Mode (Suppressed narration, no background lore, fast processing)")
+            print("  [C] KAGH Dyslexic Mode (High erosion, chaos enabled, unpredictable)")
+            tpl = safe_input("Choose template [A/B/C]: ", "B").upper()
+            
+            if tpl == "A":
+                config['chatgpt_ingestor_enabled'] = True
+                config['open_science_ingestor_enabled'] = True
+                config['bg_scientific_learning'] = True
+                config['suppress_narration'] = False
+                config['mckenna_deconstruction_mode'] = True
+                print("[OK] Applied Sovereign Mode template.")
+            elif tpl == "B":
+                config['chatgpt_ingestor_enabled'] = False
+                config['open_science_ingestor_enabled'] = False
+                config['bg_scientific_learning'] = False
+                config['suppress_narration'] = True
+                config['use_spectral_correction'] = False
+                print("[OK] Applied Lightweight Mode template.")
+            elif tpl == "C":
+                config['kagh_dyslexic_mode'] = True
+                config['mckenna_deconstruction_mode'] = True
+                config['birkhoff_temperature'] = 3.0
+                config['mandelbulb_power'] = 12.0
+                print("[OK] Applied KAGH Dyslexic Mode template.")
+            else:
+                print("[WARN] Invalid choice, using Base defaults.")
+                
+        elif mode_choice == "2":
+            print("\n[INFO] Entering Custom Configuration. Press Enter to use the default for any option.")
+            
+            def get_input(prompt_text, default_val, desc=""):
+                if desc:
+                    print(f"\nINFO: {desc}")
+                ans = safe_input(f"{prompt_text} [Default: {default_val}]: ", default_val)
+                return ans if ans else default_val
+
+            spec = get_input("[?] Enable spectral correction (yes/no)", 'yes' if config['use_spectral_correction'] else 'no', "Corrects topological errors in real-time.").lower()
+            config['use_spectral_correction'] = spec in ('yes', 'y')
+
+            probes = get_input("[?] Active introspection probes (comma separated)", config['introspection_probes'], "Determines which cognitive modalities analyze the graph.")
+            config['introspection_probes'] = [p.strip() for p in probes.split(',') if p.strip()]
+
+            decay = get_input("[?] Introspection rigidity decay rate", str(config['rigidity_decay_rate']), "How fast rigid beliefs are eroded by entropy (e.g. 0.005).")
+            try: config['rigidity_decay_rate'] = float(decay)
+            except: pass
+
+            supp = get_input("[?] Suppress narration (yes/no)", 'yes' if config['suppress_narration'] else 'no', "Disables verbose philosophical output in the terminal.").lower()
+            config['suppress_narration'] = supp in ('yes', 'y')
+
+            bg_learn = get_input("[?] Enable background scientific learning (yes/no)", 'yes' if config['bg_scientific_learning'] else 'no', "Periodically queries APIs to ingest new knowledge.").lower()
+            config['bg_scientific_learning'] = bg_learn in ('yes', 'y')
+
+            dataset_raw = get_input("[?] Primary scientific query dataset (LIGO/NCBI/SDSS/OpenNeuro)", config['primary_query_dataset'])
+            config['primary_query_dataset'] = dataset_raw.upper() if dataset_raw else 'LIGO'
+
+            mck = get_input("[?] Enable McKenna deconstruction mode (yes/no)", 'yes' if config['mckenna_deconstruction_mode'] else 'no', "Applies extreme semantic deconstruction to inputs.").lower()
+            config['mckenna_deconstruction_mode'] = mck in ('yes', 'y')
+
+            q_reason = get_input("[?] Enable quantum-inspired reasoning (yes/no)", 'yes' if config['quantum_inspired_mode'] else 'no', "Allows superposition of truth values before collapse.").lower()
+            config['quantum_inspired_mode'] = q_reason in ('yes', 'y')
+
+            dys = get_input("[?] Enable KAGH dyslexic mode (yes/no)", 'yes' if config['kagh_dyslexic_mode'] else 'no', "Injects deliberate typos and logical inversions to test resilience.").lower()
+            config['kagh_dyslexic_mode'] = dys in ('yes', 'y')
+
+            fbm_p = get_input("[?] FBM erosion persistence", str(config['fbm_persistence']), "Controls the roughness of the noise landscape (0.0 to 1.0).")
+            try: config['fbm_persistence'] = float(fbm_p)
+            except: pass
+
+            m_pow = get_input("[?] Mandelbulb augmenter power", str(config['mandelbulb_power']), "Degree of the Mandelbulb fractal for spatial embedding (e.g. 8.0).")
+            try: config['mandelbulb_power'] = float(m_pow)
+            except: pass
+
+            b_temp = get_input("[?] Birkhoff manifold temperature", str(config['birkhoff_temperature']), "Controls annealing heat for topological relaxation.")
+            try: config['birkhoff_temperature'] = float(b_temp)
+            except: pass
+
+            chat_enabled = get_input("[?] Enable ChatGPT Friction Harvester (yes/no)", 'yes' if config['chatgpt_ingestor_enabled'] else 'no', "Scrapes local ChatGPT export data for background learning.").lower()
+            config['chatgpt_ingestor_enabled'] = chat_enabled in ('yes', 'y')
+
+            os_enabled = get_input("[?] Enable Open Science Ingestor (yes/no)", 'yes' if config['open_science_ingestor_enabled'] else 'no', "Pulls external papers and datasets automatically.").lower()
+            config['open_science_ingestor_enabled'] = os_enabled in ('yes', 'y')
+            
+            if config['open_science_ingestor_enabled']:
+                ncbi_key = get_input("[?] NCBI API Key (leave blank for none)", config.get('ncbi_api_key', ""), "Used for NCBI fetch rate limit bypass.")
+                config['ncbi_api_key'] = ncbi_key
+
+            
+            udp_col = get_input("[?] Enable Option D UDP Master Server Colonizer (yes/no)", 'no', "Experimental: connects to external instances aggressively.").lower()
+            config['udp_colonizer_enabled'] = udp_col in ('yes', 'y')
+            
+            fnp = get_input("[?] Locutus/Freenet WebSocket Port", str(config.get('freenet_ws_port', 3000)), "The port your local Freenet node uses for WebSocket.")
+            try: config['freenet_ws_port'] = int(fnp)
+            except: config['freenet_ws_port'] = 3000
+            
+        else:
+            print("[INFO] Defaulting to all standard configuration values.")
+
+        # Obsidian Graph False Nodes Explanation
+        print("\n" + "-"*50)
+        print("[OBSIDIAN GRAPH NOTE]: The legacy Obsidian graph feature had a 'false number of nodes' anomaly where the UI falsely reported topological vertices. The backend now correctly prunes uncollapsed homological ghost cycles, ensuring accurate UI node counts.")
+        print("-" * 50)
+
+        # Save config
+        try:
+            with open(config_path, 'w') as f:
+                json.dump({'config': config, 'ports': ports}, f, indent=4)
+        except Exception as e:
+            print(f"[WARN] Could not save config: {e}")
+
+        print("\n[OK] Configuration finalized successfully.")
+        print("-" * 50)
+        
+        return ports, config
+
+
+class HybridAI:
+    """Hybrid AI system using only working components."""
+    
+    def __init__(self, use_spectral_correction: bool = True, config: dict = None):
+        if config is None:
+            config = {}
+            
+        from src.core import DEVICE
+        self.device = DEVICE
+        # Torch tensors still use cpu when device is 'opencl' — PyOpenCL ops run via TailSlayer kernels
+        self.torch_device = 'cpu' if str(DEVICE) == 'cpu' else 'cpu' # Centralized for now
+        
+        # Wiring up the Decoupled Bulletin Board & Freenet transport layer
+        from src.core.bulletin_board import BulletinBoard
+        from src.data.freenet_bulletin_router import FreenetBulletinRouter
+        self.bulletin_board = BulletinBoard(size=256, device=self.torch_device)
+        
+        # --- PHASE 2 REINTEGRATION ---
+        try:
+            from src.p2p.freenet_ws_client import FreenetClient
+            from src.p2p.bonfire_consensus import BonfireNomadicRing
+            from src.p2p.zk_aggregator import ZKAggregator
+            
+            self.p2p_ws_client = FreenetClient(port=config.get('freenet_ws_port', None))
+            self.p2p_ws_client.start() # Start async loop (disabled by default to prevent port conflicts, but wired)
+            
+            self.zk_aggregator = ZKAggregator()
+            self.bonfire_ring = BonfireNomadicRing(freenet_client=self.p2p_ws_client)
+            print("[OK] P2P Nomadic Ring (Bonfire + ZK) instantiated.")
+        except Exception as e:
+            print(f"[FAIL] P2P Nomadic Ring initialization failed: {e}")
+            self.p2p_ws_client = None
+            
+        self.freenet_router = FreenetBulletinRouter(freenet_client=getattr(self, 'p2p_ws_client', None))
+        # -----------------------------
+
+        
+        # Save config settings as attributes for process_text overrides
+        self.default_regime = config.get('regime', 'goo')
+        self.default_commutativity = config.get('commutativity', 'non_commutative')
+        self.high_throughput_ingestion = config.get('high_throughput_ingestion', False)
+        
+        # Initialize working components
+
+        if TEMPORAL_MODEL_AVAILABLE:
+            try:
+                self.temporal_model = NonLobotomyTemporalModel(
+                    input_dim=768,
+                    hidden_dim=256,
+                    num_functionals=5,
+                    poly_degree=4,
+                    device=self.torch_device
+                )
+                
+                # Verify and initialize ADMR Solver
+                self.admr_solver = PolynomialADMRSolver(
+                    poly_config=self.temporal_model.polynomial_config,
+                    state_dim=256,
+                    device=self.torch_device
+                )
+                
+                # Initialize Ley Line Metric and Möbius Bundle
+                self.ley_line_metric = LeyLineGeodesicMetric(dim=256)
+                self.moebius_bundle = MoebiusFiberBundle(dim=256, fiber_dim=64)
+                
+                # --- PHASE 1 REINTEGRATION ---
+                from src.core.garden_statistical_attractors import InfluenceAttractor, ResonanceAttractor
+                from src.core.ley_line_tracker import LeyLineTracker
+                from src.core.invariant_optimization import LexicographicalOrderingDispatcher
+                from src.core.situational_batching import SituationalBatchSampler
+                
+                self.influence_attractor = InfluenceAttractor(num_attractors=16, feature_dim=256, device=self.torch_device)
+                self.resonance_attractor = ResonanceAttractor(num_modes=8, base_frequency=1.0, device=self.torch_device)
+                self.ley_line_tracker = LeyLineTracker(num_samples=256, alpha=1.0, beta=0.5, gamma=0.2, device=self.torch_device)
+                self.lex_dispatcher = LexicographicalOrderingDispatcher(eps=1e-5)
+                self.situational_sampler = SituationalBatchSampler(num_samples=256, batch_size=4, device=self.torch_device)
+                # -----------------------------
+                
+                print("[OK] Advanced AI components initialized (including Phase 1 Topologicals)")
+            except Exception as e:
+                print(f"[FAIL] Advanced AI initialization failed: {e}")
+                self.temporal_model = None
+                self.admr_solver = None
+        else:
+            self.temporal_model = None
+            self.admr_solver = None
+        
+        if use_spectral_correction and SPECTRAL_CORRECTOR_AVAILABLE:
+            try:
+                self.spectral_corrector = SpectralCoherenceCorrector(
+                    initial_threshold=0.7,
+                    min_threshold=0.3,
+                    adaptation_rate=0.1,
+                    device=self.torch_device
+                )
+                print("[OK] Spectral corrector initialized")
+                self.rupture_fn = RuptureFunctional(rupture_threshold=0.5) # More sensitive threshold
+                
+                # INTEGRATE CODES FRAMEWORK (by Devin Bostick)
+                from src.core.codes_constraint_framework import CODESConstraintFramework
+                # Ensure state_dim is passed as a pure int to avoid scalar conversion traps
+                self.codes_framework = CODESConstraintFramework(
+                    state_dim=int(256),
+                    max_constraints=10,
+                    energy_margin=0.8
+                )
+                self.codes_framework.add_constraint(0, 'quadratic')
+                self.codes_framework.add_constraint(1, 'polynomial_coprime')
+                print("[OK] CODES Constraint Framework integrated")
+                
+                # Hybrid Number-Theoretic Stabilizer
+                self.stabilizer = NumberTheoreticStabilizer(state_dim=256).to(self.torch_device, non_blocking=True)
+                print("[OK] Hybrid Number-Theoretic Stabilizer active")
+            except Exception as e:
+                import traceback
+                print(f"[FAIL] Spectral corrector/CODES initialization failed: {e}")
+                traceback.print_exc()
+                self.spectral_corrector = None
+                self.rupture_fn = None
+                self.codes_framework = None
+        else:
+            self.spectral_corrector = None
+            self.rupture_fn = None
+            self.codes_framework = None
+
+        # =========================================================
+        # DIEGETIC PHYSICS ENGINE INTEGRATION (CALM, KAGH, LARYNX)
+        # =========================================================
+        try:
+            from src.ui.diegetic_backend import DiegeticPhysicsEngine
+            # Initialize with compatible dimension (256 matches hybrid state)
+            self.engine = DiegeticPhysicsEngine(dim=256, device=self.torch_device, config=config)
+            import src.ui.diegetic_backend
+            src.ui.diegetic_backend.ENGINE = self.engine
+            print("[OK] Diegetic Physics Engine attached (CALM/KAGH/FGRT/Larynx Active)")
+        except Exception as e:
+             print(f"[FAIL] Diegetic Engine connection failed: {e}")
+             self.engine = None
+
+        # =========================================================
+        # UNICORN SYNTHESIS: MULTIPLEXED SPATIAL, SCIENTIFIC & FINANCIAL FEEDS
+        # =========================================================
+        try:
+            from src.ui.diegetic_backend import HybridPhysicsBackend
+            self.physics_backend = HybridPhysicsBackend(state_dim=256, device=self.torch_device)
+            spatial_payload = self.physics_backend.fetch_spatial_land_value()
+            if self.engine:
+                if hasattr(self.engine, 'initialize_spatial_metric'):
+                    self.engine.initialize_spatial_metric(spatial_payload['spatial_metric'])
+                if hasattr(self.engine, 'terrain_octree') and self.engine.terrain_octree:
+                    self.physics_backend.map_to_pointerless_octree(self.engine.terrain_octree, spatial_payload)
+            print("[OK] Multiplexed Spatial/Financial/Scientific Feed Substrate initialized.")
+        except Exception as e:
+            print(f"[FAIL] Multiplexed Feed Substrate initialization failed: {e}")
+            self.physics_backend = None
+
+        # Valence & Hunger Initial Bootup Feed Ingestion
+        if self.engine and hasattr(self.engine, 'valence_drive'):
+            try:
+                init_hunger = self.engine.valence_drive.get_metrics().get('current_hunger_drive', 1.0)
+                print(f"[BOOT] Evaluating Initial Valence Hunger Drive: {init_hunger:.3f}")
+                if init_hunger > 0.0 and hasattr(self.engine, 'investor_ingestor'):
+                    user_feeds = self.engine.investor_ingestor.get_active_feed_urls()
+                    print(f"[BOOT] Valence Hunger prodding auto-injection of {len(user_feeds)} user RSS feed(s)...")
+                    boot_payloads = self.engine.investor_ingestor.fetch_financial_feeds(
+                        feeds=user_feeds, state=getattr(self.engine, 'meta_state', None)
+                    )
+                    ingested_boot = 0
+                    for payload in boot_payloads[:6]:
+                        if payload and not payload.startswith("Equities flux neutral"):
+                            self.engine.process_input(payload, generate_response=False)
+                            ingested_boot += 1
+                    print(f"[OK] Ingested {ingested_boot} RSS feed item(s) on bootup into manifold via Valence/Hunger prodding.")
+            except Exception as boot_err:
+                print(f"[WARN] Bootup Valence RSS feed ingestion bypassed: {boot_err}")
+        
+        self.iteration_count = 0
+        
+        # --- Implicated System State S(t) = <Phi_I, Phi_C, Delta> ---
+        # Phi_I (Interiority): The latent manifold state (handled by hidden_state)
+        # Phi_C (Narration): Persistent state of the linguistic output
+        self.narration_field = (self._harvest_honest_jitter((256,)) - 0.5) * 0.001
+        # Delta (Damage): Accumulated paraconsistent contradictions (toxic memory)
+        self.damage_residue = (self._harvest_honest_jitter((256,)) - 0.5) * 0.001
+        # Perfect Memory Anchor (Phi_P): Lossless historical component
+        self.perfect_memory = [] # Historical residues
+
+        # Initialize the manifold with harmonic seed before potentially loading fossil
+        self._initialize_manifold_state()
+
+
+        # Initialize Dataset System
+        if DATASET_SYSTEM_AVAILABLE:
+            try:
+                self.dataset_system = DatasetIngestionSystem(device=self.torch_device, engine=getattr(self, 'engine', None))
+                print("[OK] Dataset Ingestion System initialized")
+            except Exception as e:
+                print(f"[FAIL] Dataset Ingestion System init failed: {e}")
+                self.dataset_system = None
+        else:
+            self.dataset_system = None
+            
+        # Initialize Training Manager
+        try:
+            from src.training.training_manager import TrainingManager
+            self.training_manager = TrainingManager(self)
+            print("[OK] Training Manager initialized")
+        except Exception as e:
+            print(f"[FAIL] Training Manager init failed: {e}")
+            self.training_manager = None
+
+        # Initialize Gyroidic Graph Manager (Topology Visualization)
+        try:
+            from src.topology.embedding_graph import GyroidicGraphManager
+            self.graph_dir = os.path.join(root_dir, 'data', 'encodings')
+            os.makedirs(self.graph_dir, exist_ok=True)
+            
+            self.graph_manager = GyroidicGraphManager(data_dir=self.graph_dir, dim=256)
+            self.graph_manager.load_fossils(limit=150)
+            print(f"[OK] Gyroidic Graph Manager initialized with {self.graph_manager.get_valid_node_count()} fossils")
+        except Exception as e:
+            print(f"[FAIL] Graph Manager init failed: {e}")
+            self.graph_manager = None
+
+        # Audience Mapping (Φ: M -> A)
+        self.audience_mapper = AudienceProjection(input_dim=256, audience_dim=256)
+
+        # Superposed Tag Stacker (Ganbreeder fallback)
+        self.tag_stacker = SuperposedTagStacker(state_dim=256, device=self.torch_device)
+
+        # Apply start configuration options to engine components recursively
+        
+        # 1. McKenna deconstruction mode
+        mckenna_mode = config.get('mckenna_deconstruction_mode', False)
+        try:
+            from src.ui.diegetic_backend import TEXTBOOK_FILTER
+            TEXTBOOK_FILTER.mckenna_deconstruction_mode = mckenna_mode
+            print(f"[INIT] Textbook Filter McKenna Deconstruction: {mckenna_mode}")
+        except Exception as e:
+            print(f"[FAIL] Could not set TEXTBOOK_FILTER McKenna mode: {e}")
+            
+        # 2. Quantum-inspired reasoning pre-initialization
+        quantum_mode = config.get('quantum_inspired_mode', False)
+        if quantum_mode and self.engine:
+            try:
+                from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka
+                from src.core.quantum_inspired_reasoning import QuantumInspiredReasoningState
+                from src.core.sparse_higher_order_tensors import SparseHigherOrderTensorDynamics
+                self.engine.meta_polytope = MetaPolytopeMatrioshka(max_depth=5, base_dim=self.engine.dim)
+                self.engine.tensor_dynamics = SparseHigherOrderTensorDynamics(max_order=3, num_shells=3, base_dim=self.engine.dim)
+                self.engine.quantum_reasoner = QuantumInspiredReasoningState(dim=self.engine.dim)
+                self.engine.extensions_enabled = True
+                print("[INIT] Quantum-inspired reasoning & advanced engines pre-initialized")
+            except Exception as e:
+                print(f"[FAIL] Quantum-inspired engine pre-initialization failed: {e}")
+                
+        # 3. Introspection Head Configuration
+        if self.engine and hasattr(self.engine, 'introspection') and self.engine.introspection is not None:
+            try:
+                from src.models.introspection_head import AggregateGeometricSelfModel
+                probes_list = config.get('introspection_probes', ['moral', 'uncertainty', 'creative', 'metacognitive'])
+                if isinstance(probes_list, str):
+                    probes_list = [p.strip() for p in probes_list.split(',') if p.strip()]
+                self.engine.introspection = AggregateGeometricSelfModel(
+                    hidden_dim=self.engine.dim,
+                    probe_types=probes_list
+                ).to(self.engine.device)
+                
+                suppress_narr = config.get('suppress_narration', True)
+                self.engine.introspection.suppress_narration = suppress_narr
+                if hasattr(self.engine.introspection, 'probe_head'):
+                    self.engine.introspection.probe_head.suppress_narration = suppress_narr
+                    
+                self.engine.introspection.rigidity_decay_rate = config.get('rigidity_decay_rate', 0.005)
+                print(f"[INIT] Introspection Head configured: Probes={probes_list}, SuppressNarration={suppress_narr}")
+            except Exception as e:
+                print(f"[FAIL] Configuring Introspection Head failed: {e}")
+                
+        # 4. Open Science cache folder configuration
+        if self.engine and getattr(self.engine, 'open_science_ingestor', None) is not None:
+            try:
+                from pathlib import Path
+                cache_folder = config.get('cache_dir', 'datasets/open_science_cache')
+                self.engine.open_science_ingestor.cache_dir = Path(cache_folder)
+                self.engine.open_science_ingestor.cache_dir.mkdir(exist_ok=True, parents=True)
+                print(f"[INIT] Open Science cache directory set to: {cache_folder}")
+            except Exception as e:
+                print(f"[FAIL] Setting Open Science cache path failed: {e}")
+                
+        # 5. KAGH dyslexic mode
+        if self.engine and hasattr(self.engine, 'kagh_drafter') and self.engine.kagh_drafter is not None:
+            dyslexic = config.get('kagh_dyslexic_mode', False)
+            try:
+                self.engine.kagh_drafter.dyslexic_mode = dyslexic
+                if hasattr(self.engine.kagh_drafter, 'layers'):
+                    for layer in self.engine.kagh_drafter.layers:
+                        layer.dyslexic_mode = dyslexic
+                print(f"[INIT] KAGH dyslexic mode set to: {dyslexic}")
+            except Exception as e:
+                print(f"[FAIL] Configuring KAGH dyslexic mode failed: {e}")
+                
+        # 6. FBM Erosion
+        f_persistence = config.get('fbm_persistence', 0.5)
+        f_octaves = config.get('fbm_octaves', 3)
+        if self.engine:
+            try:
+                for module in self.engine.modules():
+                    if module.__class__.__name__ == 'TopologicalErosionFBM':
+                        module.persistence = float(f_persistence)
+                        module.octaves = int(f_octaves)
+                print(f"[INIT] FBM Erosion configured: Persistence={f_persistence}, Octaves={f_octaves}")
+            except Exception as e:
+                print(f"[FAIL] Configuring FBM Erosion failed: {e}")
+                
+        # 7. Mandelbulb Augmentation
+        m_pow = config.get('mandelbulb_power', 8.0)
+        m_esc = config.get('mandelbulb_escape_radius', 2.0)
+        if self.engine:
+            try:
+                from src.augmentation.mandelbulb_gyroidic_augmenter import MandelbulbGyroidicAugmenter, AugmentationConfig
+                aug_config = AugmentationConfig(mandelbulb_power=int(m_pow))
+                self.engine.augmenter = MandelbulbGyroidicAugmenter(aug_config).to(self.engine.device)
+                if hasattr(self.engine.augmenter, 'mandelbulb') and self.engine.augmenter.mandelbulb is not None:
+                    self.engine.augmenter.mandelbulb.power = float(m_pow)
+                    self.engine.augmenter.mandelbulb.escape_radius = float(m_esc)
+                print(f"[INIT] Mandelbulb Augmenter configured: Power={m_pow}, EscapeRadius={m_esc}")
+            except Exception as e:
+                print(f"[FAIL] Configuring Mandelbulb Augmenter failed: {e}")
+                
+        # 8. Birkhoff Obscured Manifold
+        b_temp = config.get('birkhoff_temperature', 1.0)
+        b_iters = config.get('birkhoff_max_iterations', 100)
+        if self.engine:
+            try:
+                for module in self.engine.modules():
+                    if module.__class__.__name__ in ('ObscuredBirkhoffManifold', 'BouligandBirkhoffManifold'):
+                        if hasattr(module, 'temperature') and isinstance(module.temperature, torch.nn.Parameter):
+                            with torch.no_grad():
+                                module.temperature.copy_(torch.tensor(max(0.01, min(10.0, float(b_temp)))))
+                        else:
+                            module.temperature = float(b_temp)
+                        module.max_iterations = int(b_iters)
+                print(f"[INIT] Birkhoff Obscured Manifold configured: Temp={b_temp}, MaxIters={b_iters}")
+            except Exception as e:
+                print(f"[FAIL] Configuring Birkhoff Obscured Manifold failed: {e}")
+                
+        # 9. TDA Landmarks
+        tda_l = config.get('tda_landmarks', 50)
+        if self.engine:
+            try:
+                for module in self.engine.modules():
+                    if module.__class__.__name__ == 'ApproximatePHProbe':
+                        module.num_landmarks = int(tda_l)
+                print(f"[INIT] Approximate TDA Landmarks configured: Landmarks={tda_l}")
+            except Exception as e:
+                print(f"[FAIL] Configuring Approximate TDA Landmarks failed: {e}")
+                
+        # 10. Ego Death Threshold Limit
+        ego_limit = config.get('ego_death_limit', 1.5)
+        if self.engine and hasattr(self.engine, 'archetypal_governor') and self.engine.archetypal_governor is not None:
+            try:
+                if hasattr(self.engine.archetypal_governor, 'abstraction') and self.engine.archetypal_governor.abstraction is not None:
+                    self.engine.archetypal_governor.abstraction.abstraction_limit = float(ego_limit)
+                print(f"[INIT] Ego Death Threshold Limit configured: Limit={ego_limit}")
+            except Exception as e:
+                print(f"[FAIL] Configuring Ego Death Threshold Limit failed: {e}")
+                
+        # 11. Background Scientific Learning
+        self.bg_scientific_learning = config.get('bg_scientific_learning', True)
+        self.primary_query_dataset = config.get('primary_query_dataset', 'LIGO')
+        self.cache_dir = config.get('cache_dir', 'datasets/open_science_cache')
+        if self.bg_scientific_learning:
+            self._start_background_scientific_learning()
+
+        # SOVEREIGN WARMSTART: Restore manifold if fossil exists (Thorium Protocol)
+        self.load_model_state()
+
+        # FREENET GHOST CALLER INTEGRATION
+        try:
+            from src.data.freenet_ghost_caller import FreenetGhostCaller
+            self.ghost_caller = FreenetGhostCaller(host='127.0.0.1', port=7509, freenet_client=getattr(self, 'p2p_ws_client', None))
+            self.ghost_caller.broadcast_ghost_call()
+            print("[OK] Freenet Ghost Caller initialized and introductory call dispatched")
+        except Exception as e:
+            print(f"[FAIL] Freenet Ghost Caller init failed: {e}")
+            self.ghost_caller = None
+
+        # NON-DUAL COIN INTEGRATION
+        try:
+            from src.core.non_dual_coin import TripsodicLedger
+            from src.data.freenet_bulletin_router import FreenetBulletinRouter
+            self.tripsodic_ledger = TripsodicLedger()
+            self.bulletin_router = FreenetBulletinRouter(freenet_client=getattr(self, 'p2p_ws_client', None))
+            print("[OK] Non-Dual Coin ledger and Bulletin Router initialized.")
+        except Exception as e:
+            print(f"[FAIL] Non-Dual Coin init failed: {e}")
+            self.tripsodic_ledger = None
+            self.bulletin_router = None
+
+    def _initialize_manifold_state(self):
+        """Initialize the manifold with the FGRT harmonic seed (Love Vector Norm 3.127)."""
+        t_basis = torch.linspace(0, 2 * 3.14159265, 256, device=self.torch_device)
+        initial_seed = torch.sin(t_basis) * (3.127 / torch.norm(torch.sin(t_basis)))
+        self.hidden_state = initial_seed.clone()
+        self.hidden_state_scarred = initial_seed.clone()
+        print("[INIT] Manifold soul initialized with harmonic seed (Norm 3.127).")
+
+
+    def save_model_state(self, state_path: str = None) -> str:
+        """Implements Thorium Fossilization Protocol: Serializes the manifold soul."""
+        try:
+            if state_path is None:
+                state_path = os.path.join(root_dir, 'gyroid_state.pt')
+            
+            # 1. Standard Core States (Safety Check: verify attribute existence)
+            if not hasattr(self, 'hidden_state') or self.hidden_state is None:
+                 print("[WARN] Fossilization attempted with missing hidden_state. Re-initializing.")
+                 self._initialize_manifold_state()
+
+            save_dict = {
+                'iteration': self.iteration_count,
+                'hidden_state': self.hidden_state,
+                'hidden_state_scarred': self.hidden_state_scarred,
+                'damage_residue': self.damage_residue,
+            }
+
+            
+            # 2. MANIFOLD SOUL (Phase 18 Protocol)
+            if self.engine:
+                try:
+                    manifold_assets = self.engine.get_manifold_state()
+                    save_dict.update({
+                        'zeitgeist': manifold_assets.get('zeitgeist'),
+                        'love_invariant': manifold_assets.get('love_invariant'),
+                        'fossil_memory': manifold_assets.get('fossil_memory'),
+                        'cavity_M': manifold_assets.get('cavity', {}).get('M'),
+                        'cavity_D_dark': manifold_assets.get('cavity', {}).get('D_dark'),
+                        'engine_meta_state': manifold_assets.get('meta_state'),
+                        'unicode_to_idx': manifold_assets.get('unicode_to_idx', {}),
+                        'idx_to_unicode': manifold_assets.get('idx_to_unicode', {})
+                    })
+                except Exception as engine_err:
+                    print(f"[WARN] Engine manifold extraction failed: {engine_err}. Saving core state only.")
+            
+            # 3. Temporal Model if available
+            if self.temporal_model:
+                try:
+                    save_dict['temporal_model_state'] = self.temporal_model.state_dict()
+                except Exception as model_err:
+                    print(f"[WARN] Temporal model state extraction failed: {model_err}")
+            
+            # 4. Deep Archetypal Persistence (TADC Characters)
+            if self.engine and hasattr(self.engine, 'archetypal_governor') and self.engine.archetypal_governor is not None:
+                try:
+                    save_dict['archetypal_governor_state'] = self.engine.archetypal_governor.export_governor_state()
+                except Exception as e:
+                    print(f"[WARN] Archetypal governor export failed: {e}")
+                    
+            # 5. Superposed Tag Stacker (Textual Tags -> Geometry)
+            if hasattr(self, 'tag_stacker') and self.tag_stacker is not None:
+                try:
+                    save_dict['tag_stacker_state'] = {
+                        'vectors': {k: v.detach().cpu() for k, v in self.tag_stacker.catalog_vectors.items()},
+                        'metadata': self.tag_stacker.catalog_metadata
+                    }
+                except Exception as e:
+                    print(f"[WARN] Tag stacker state export failed: {e}")
+                    
+            # 6. SIC-FA-ADMM & Optimization Momentum
+            if hasattr(self, 'training_manager') and self.training_manager is not None:
+                try:
+                    if hasattr(self.training_manager, 'optimizer') and self.training_manager.optimizer is not None:
+                        save_dict['optimizer_state'] = self.training_manager.optimizer.state_dict()
+                    if hasattr(self.training_manager, 'calm_history') and self.training_manager.calm_history is not None:
+                        save_dict['calm_history'] = self.training_manager.calm_history
+                except Exception as e:
+                    print(f"[WARN] Optimization momentum export failed: {e}")
+                    
+            # 7. Shadow Logs & Multimodal Collisions
+            if self.engine:
+                try:
+                    if hasattr(self.engine, 'shadow_replay_queue'):
+                        save_dict['shadow_logs'] = list(self.engine.shadow_replay_queue)
+                    if hasattr(self.engine, 'multimodal_collisions'):
+                        save_dict['multimodal_collisions'] = list(self.engine.multimodal_collisions)
+                except Exception as e:
+                    print(f"[WARN] Shadow logs/collisions export failed: {e}")
+            
+            # 8. CODES v40 Topological & Resonance Core Extensions
+            if self.engine:
+                try:
+                    codes_state = {}
+                    
+                    # Speculative Homology Engine
+                    if hasattr(self.engine, 'speculative_homology') and self.engine.speculative_homology:
+                        codes_state['speculative_homology'] = {
+                            'betti_numbers': self.engine.speculative_homology.betti_numbers if hasattr(self.engine.speculative_homology, 'betti_numbers') else None,
+                            'homology_gaps': getattr(self.engine.speculative_homology, 'homology_gaps', None)
+                        }
+                    
+                    # Chern-Simons Gasket
+                    if hasattr(self.engine, 'chern_simons_gasket') and self.engine.chern_simons_gasket:
+                        codes_state['chern_simons_gasket'] = {
+                            'kappa': getattr(self.engine.chern_simons_gasket, 'kappa', None),
+                            'curvature_history': getattr(self.engine.chern_simons_gasket, 'curvature_history', None)
+                        }
+                    
+                    # Love Invariant Protector
+                    if hasattr(self.engine, 'love_protector') and self.engine.love_protector:
+                        codes_state['love_protector'] = {
+                            'trust_levels': getattr(self.engine.love_protector, 'trust_levels', None),
+                            'non_ergodic_entropy': getattr(self.engine.love_protector, 'non_ergodic_entropy', None)
+                        }
+                    
+                    # Mandelbulb Gyroidic Augmenter
+                    if hasattr(self.engine, 'gyroidic_augmenter') and self.engine.gyroidic_augmenter:
+                        codes_state['gyroidic_augmenter'] = {
+                            'power': getattr(self.engine.gyroidic_augmenter, 'power', None)
+                        }
+                        
+                    # Resonance Intelligence Core
+                    if hasattr(self.engine, 'resonance_core') and self.engine.resonance_core:
+                        codes_state['resonance_core'] = {
+                            'pas_history': getattr(self.engine.resonance_core, 'pas_history', None),
+                            'fibonacci_entropy': getattr(self.engine.resonance_core, 'fibonacci_entropy', None),
+                            'breather_modes': getattr(self.engine.resonance_core, 'breather_modes', None),
+                            'multiharmonic_coherence': getattr(self.engine.resonance_core, 'multiharmonic_coherence', None)
+                        }
+                        
+                    if codes_state:
+                        save_dict['codes_v40_topology'] = codes_state
+                except Exception as e:
+                    print(f"[WARN] CODES v40 topology export failed: {e}")
+            
+            # ATOMIC SAVE
+            torch.save(save_dict, state_path)
+            
+            size_mb = os.path.getsize(state_path) / (1024 * 1024)
+            print(f"[FOSSIL] Manifold serialized to {state_path} ({size_mb:.2f} MB)")
+            return f"Fossilization Protocol Complete: {size_mb:.2f} MB saved."
+        except Exception as e:
+            print(f"[FOSSIL] Emergency shutdown save failed: {e}")
+            return f"Fossilization Failure: {e}"
+
+    def load_model_state(self, state_path: str = None):
+        """Restore manifold state from gyroid_state.pt (Warmstart)."""
+        if state_path is None:
+            state_path = os.path.join(root_dir, 'gyroid_state.pt')
+        if not os.path.exists(state_path):
+            print("[WARMSTART] No fossilized state found at root. Starting clean.")
+            return
+
+        try:
+            print(f"[WARMSTART] Recovering manifold from {state_path}...")
+            # Allow ZeitgeistState for safe deserialization
+            from src.core.zeitgeist_router import ZeitgeistState
+            torch.serialization.add_safe_globals([ZeitgeistState])
+            
+            # Load with map_location='cpu' for cross-hardware soul-transfer
+            checkpoint = torch.load(state_path, map_location='cpu')
+            
+            self.iteration_count = checkpoint.get('iteration', 0)
+            if 'hidden_state' in checkpoint:
+                loaded_state = checkpoint['hidden_state']
+                
+                # VALIDATION: Check against Phase 18 Harmonic Seed Dynamics (Norm 3.127)
+                t_basis = torch.linspace(0, 2 * 3.14159265, 256, device=self.torch_device)
+                harmonic_seed = torch.sin(t_basis) * (3.127 / torch.norm(torch.sin(t_basis), p=2))
+                
+                loaded_norm = torch.norm(loaded_state, p=2).item()
+                # Correlation check to ensure the manifold hasn't flattened into ergodic noise
+                correlation = torch.abs(torch.dot(loaded_state.flatten(), harmonic_seed.flatten()) / (torch.norm(loaded_state) * torch.norm(harmonic_seed) + 1e-8)).item()
+                
+                if loaded_norm < 0.5 or correlation < 0.01:
+                    print(f"[RECOVERY] Fossil integrity check FAILED (Norm: {loaded_norm:.4f}, Corr: {correlation:.4f}).")
+                    print("[RECOVERY] Manifold is spectrally flat or corrupted. Triggering Harmonic Re-genesis...")
+                    self._initialize_manifold_state()
+                else:
+                    self.hidden_state = loaded_state.clone()
+                    # Sync scarred state for temporal continuity
+                    if 'hidden_state_scarred' in checkpoint:
+                        self.hidden_state_scarred = checkpoint['hidden_state_scarred'].clone()
+                    else:
+                        # Apply Structurally Honest Jitter to break potential phase-locks (§45.2)
+                        jitter = self._harvest_honest_jitter(self.hidden_state.shape)
+                        self.hidden_state_scarred = self.hidden_state + jitter
+                    print(f"[RECOVERY] Fossil integrity verified (Norm: {loaded_norm:.4f}, Corr: {correlation:.4f}).")
+            if 'damage_residue' in checkpoint:
+
+                self.damage_residue = checkpoint['damage_residue']
+
+            # Restore Manifold Assets via Engine
+            if self.engine:
+                # Map standard keys to manifold dict, providing safety defaults where applicable
+                # Values will be checked for None inside load_manifold_state as well.
+                manifold_dict = {
+                    "zeitgeist": checkpoint.get("zeitgeist"),
+                    "love_invariant": checkpoint.get("love_invariant"),
+                    "fossil_memory": checkpoint.get("fossil_memory"),
+                    "cavity": {
+                        "M": checkpoint.get("cavity_M"),
+                        "D_dark": checkpoint.get("cavity_D_dark")
+                    },
+                    "meta_state": checkpoint.get("engine_meta_state"),
+                    "iteration": checkpoint.get("iteration", self.iteration_count),
+                    "unicode_to_idx": checkpoint.get("unicode_to_idx", {}),
+                    "idx_to_unicode": checkpoint.get("idx_to_unicode", {})
+                }
+                self.engine.load_manifold_state(manifold_dict)
+
+            if self.temporal_model and 'temporal_model_state' in checkpoint:
+                self.temporal_model.load_state_dict(checkpoint['temporal_model_state'], strict=False)
+            
+            # Restore Archetypal Governor
+            if 'archetypal_governor_state' in checkpoint and self.engine and hasattr(self.engine, 'archetypal_governor') and self.engine.archetypal_governor is not None:
+                try:
+                    self.engine.archetypal_governor.import_governor_state(checkpoint['archetypal_governor_state'])
+                except Exception as e:
+                    print(f"[RECOVERY] Failed to restore Archetypal Governor: {e}")
+            
+            # Restore Superposed Tag Stacker
+            if 'tag_stacker_state' in checkpoint and hasattr(self, 'tag_stacker') and self.tag_stacker is not None:
+                try:
+                    tag_state = checkpoint['tag_stacker_state']
+                    for k, v in tag_state['vectors'].items():
+                        self.tag_stacker.catalog_vectors[k] = torch.nn.Parameter(v.to(self.torch_device))
+                    self.tag_stacker.catalog_metadata = tag_state['metadata']
+                except Exception as e:
+                    print(f"[RECOVERY] Failed to restore Superposed Tag Stacker: {e}")
+                    
+            # Restore SIC-FA-ADMM Momentum
+            if 'optimizer_state' in checkpoint and hasattr(self, 'training_manager') and self.training_manager is not None:
+                if hasattr(self.training_manager, 'optimizer') and self.training_manager.optimizer is not None:
+                    try:
+                        self.training_manager.optimizer.load_state_dict(checkpoint['optimizer_state'])
+                    except Exception as e:
+                        print(f"[RECOVERY] Failed to restore optimizer state: {e}")
+            if 'calm_history' in checkpoint and hasattr(self, 'training_manager') and self.training_manager is not None:
+                self.training_manager.calm_history = checkpoint['calm_history']
+                
+            # Restore Shadow Logs & Multimodal Collisions
+            if self.engine:
+                if 'shadow_logs' in checkpoint:
+                    from collections import deque
+                    self.engine.shadow_replay_queue = deque(checkpoint['shadow_logs'], maxlen=1000)
+                if 'multimodal_collisions' in checkpoint:
+                    from collections import deque
+                    self.engine.multimodal_collisions = deque(checkpoint['multimodal_collisions'], maxlen=500)
+            
+            # Restore CODES v40 Topological & Resonance Core Extensions
+            if self.engine and 'codes_v40_topology' in checkpoint:
+                try:
+                    codes_state = checkpoint['codes_v40_topology']
+                    
+                    if 'speculative_homology' in codes_state and hasattr(self.engine, 'speculative_homology') and self.engine.speculative_homology:
+                        if 'betti_numbers' in codes_state['speculative_homology']:
+                            self.engine.speculative_homology.betti_numbers = codes_state['speculative_homology']['betti_numbers']
+                        if 'homology_gaps' in codes_state['speculative_homology']:
+                            self.engine.speculative_homology.homology_gaps = codes_state['speculative_homology']['homology_gaps']
+                            
+                    if 'chern_simons_gasket' in codes_state and hasattr(self.engine, 'chern_simons_gasket') and self.engine.chern_simons_gasket:
+                        if 'kappa' in codes_state['chern_simons_gasket']:
+                            self.engine.chern_simons_gasket.kappa = codes_state['chern_simons_gasket']['kappa']
+                        if 'curvature_history' in codes_state['chern_simons_gasket']:
+                            self.engine.chern_simons_gasket.curvature_history = codes_state['chern_simons_gasket']['curvature_history']
+                            
+                    if 'love_protector' in codes_state and hasattr(self.engine, 'love_protector') and self.engine.love_protector:
+                        # Attempt to topological recovery or just raw trust loading
+                        # For now, reload raw trust into memory
+                        if 'trust_levels' in codes_state['love_protector'] and codes_state['love_protector']['trust_levels'] is not None:
+                            self.engine.love_protector.trust_levels = codes_state['love_protector']['trust_levels']
+                        if 'non_ergodic_entropy' in codes_state['love_protector']:
+                            self.engine.love_protector.non_ergodic_entropy = codes_state['love_protector']['non_ergodic_entropy']
+                            
+                    if 'gyroidic_augmenter' in codes_state and hasattr(self.engine, 'gyroidic_augmenter') and self.engine.gyroidic_augmenter:
+                        if 'power' in codes_state['gyroidic_augmenter']:
+                            self.engine.gyroidic_augmenter.power = codes_state['gyroidic_augmenter']['power']
+                            
+                    if 'resonance_core' in codes_state and hasattr(self.engine, 'resonance_core') and self.engine.resonance_core:
+                        if 'pas_history' in codes_state['resonance_core']:
+                            self.engine.resonance_core.pas_history = codes_state['resonance_core']['pas_history']
+                        if 'fibonacci_entropy' in codes_state['resonance_core']:
+                            self.engine.resonance_core.fibonacci_entropy = codes_state['resonance_core']['fibonacci_entropy']
+                        if 'breather_modes' in codes_state['resonance_core']:
+                            self.engine.resonance_core.breather_modes = codes_state['resonance_core']['breather_modes']
+                        if 'multiharmonic_coherence' in codes_state['resonance_core']:
+                            self.engine.resonance_core.multiharmonic_coherence = codes_state['resonance_core']['multiharmonic_coherence']
+                            
+                except Exception as e:
+                    print(f"[WARN] Failed to restore CODES v40 topology: {e}")
+            print("[WARMSTART] Manifold soul restored successfully.")
+        except Exception as e:
+            print(f"[WARMSTART] Error during recovery: {e}. Manifold may be corrupt or entropic.")
+
+    
+    def _harvest_honest_jitter(self, shape: torch.Size, scaled: bool = True) -> torch.Tensor:
+        """
+        Harvests Structurally Honest Jitter from silicon state variance.
+        Follows §45.2 (Silicon Sovereignty).
+        """
+        import time
+        jitter_tensor = torch.zeros(shape, device=self.torch_device)
+        flat = jitter_tensor.flatten()
+        
+        # Warm up cache and measure nano-variance friction
+        t0 = time.perf_counter_ns()
+        # Small matrix ops to generate hardware friction
+        for _ in range(5):
+             _ = torch.det(torch.randn((8, 8), device=self.torch_device))
+        t1 = time.perf_counter_ns()
+        
+        # Harvest the 'least significant nanoseconds' as a seed val
+        seed_val = ((t1 - t0) % 1000) / 1000.0
+        if seed_val == 0: seed_val = 0.5
+        
+        # Deterministic chaotic expansion (Logistic map)
+        x = seed_val
+        for i in range(len(flat)):
+            # x_{n+1} = 3.99 * x_n * (1 - x_n) -- chaotic regime
+            x = 3.99 * x * (1.0 - x)
+            flat[i] = x
+        
+        if scaled:
+            return (jitter_tensor - 0.5) * 0.1
+        return jitter_tensor
+
+    def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None, audio_dyad: dict = None, regime: str = 'goo', tag_weights: dict = None, ingestion_mode: bool = False) -> dict:
+        # Override parameters if they match standard defaults and custom settings were chosen at startup
+        if commutativity == 'non_commutative':
+            commutativity = getattr(self, 'default_commutativity', 'non_commutative')
+
+        # Ensure hidden_state is ready for cloning (isolation snapshot)
+        if not hasattr(self, 'hidden_state') or self.hidden_state is None:
+            self._initialize_manifold_state()
+
+        # --- DYNAMIC REGIME DETERMINATION (Integrated Emergence Condition, Eq 10) ---
+        self.current_regime = 'goo'
+        with torch.no_grad():
+            pas_h_live_init = 0.61
+            if hasattr(self, 'engine') and self.engine and hasattr(self.engine, 'meta_state'):
+                pas_h_live_init = self.engine._compute_pas_h(self.engine.meta_state)
+            elif self.hidden_state is not None:
+                # Fallback calculation
+                pas_h_live_init = 1.0
+                state_len = len(self.hidden_state)
+                for d in range(8):
+                    segment = self.hidden_state[d*(state_len//8):(d+1)*(state_len//8)]
+                    pas_h_live_init += (1.0 / (d + 1.0)) * torch.norm(segment).item()
+            
+            if not hasattr(self, 'prev_pas'):
+                self.prev_pas = pas_h_live_init
+            drift_init = abs(pas_h_live_init - self.prev_pas)
+            self.prev_pas = pas_h_live_init
+            
+            atrophy_val_init = 0.0
+            if hasattr(self, 'engine') and self.engine and getattr(self.engine, 'use_gyroid_probes', False):
+                sample = self.engine.meta_state if hasattr(self.engine, 'meta_state') else None
+                atrophy_metrics = self.engine.gyroid_cov.get_elipsodistrophy_metrics(sample)
+                atrophy_val_init = atrophy_metrics.get('atrophy', 0.0)
+                
+            is_glyph_locked = False
+            if hasattr(self, 'engine') and self.engine and hasattr(self.engine, 'poly_config'):
+                is_glyph_locked = bool(check_glyphlock(self.engine.poly_config.get_coefficients_tensor()).max().item() > 0)
+            elif self.hidden_state is not None:
+                coeffs = self.hidden_state.unsqueeze(0) if self.hidden_state.dim() == 1 else self.hidden_state
+                is_glyph_locked = bool(check_glyphlock(coeffs).max().item() > 0)
+                
+            theta_L = 0.85
+            epsilon_drift = 0.05
+            is_coherent = pas_h_live_init >= theta_L
+            is_stable = drift_init <= epsilon_drift
+            
+            if is_coherent and is_stable and is_glyph_locked and atrophy_val_init < 0.85:
+                self.current_regime = 'prickles'
+            else:
+                self.current_regime = 'goo'
+
+        hidden_state = self.hidden_state.clone()
+        diagnostics = {}
+        response_text = ""
+
+        # Coordinate Harvesting Protocol (§3.A)
+        if text.strip().upper().startswith("SAVE_TAG:"):
+            # Extract tag_name and optional context
+            parts = text.strip()[9:].split(" ", 1)
+            tag_name = parts[0].strip()
+            context_text = parts[1].strip() if len(parts) > 1 else "Manual tag registration via stacker protocol."
+            
+            # If engine is available, register it there
+            if self.engine and hasattr(self.engine, 'archetypal_governor'):
+                result = self.engine.archetypal_governor.harvest_named_coordinate(
+                    tag_name=tag_name,
+                    vector=self.hidden_state.clone(),
+                    context_text=context_text
+                )
+                return {
+                    "status": "TAG_HARVESTED" if result["success"] else "TAG_REFUSED",
+                    "response": f"[STACKER] Successfully registered tag '{tag_name}'." if result["success"] else f"[STACKER] Refused registration of '{tag_name}'. Reason: Did not satisfy textbook-quality threshold.",
+                    "diagnostics": result,
+                    "iteration": self.iteration_count
+                }
+            elif hasattr(self, 'tag_stacker'):
+                # Local fallback harvest
+                success, report = self.tag_stacker.add_tag(tag_name, self.hidden_state.clone(), context_text)
+                return {
+                    "status": "TAG_HARVESTED" if success else "TAG_REFUSED",
+                    "response": f"[STACKER] Locally registered tag '{tag_name}'." if success else f"[STACKER] Locally refused '{tag_name}'.",
+                    "diagnostics": {"success": success, "admissible": report.is_admissible},
+                    "iteration": self.iteration_count
+                }
+
+        # Compute and apply tag stacking bias if provided
+        stacked_bias = torch.zeros(256, device=self.torch_device)
+        if tag_weights and hasattr(self, 'tag_stacker'):
+            stacked_bias = self.tag_stacker.compute_composite_target(tag_weights)
+            # Gently nudge baseline manifold toward user stacked vector
+            self.hidden_state = self.hidden_state + 0.1 * stacked_bias
+        
+        self.corrected_tensor = torch.zeros(256, device=self.torch_device)
+        self.iteration_count += 1
+
+        
+        # Prevent heartbeat from showing up in main chat or triggering Ego Death
+        if "IDLE_RESONANCE_HEARTBEAT" in text:
+            return {
+                "status": "HEARTBEAT_ACK",
+                "response": None,
+                "diagnostics": {"suppress_ui": True},
+                "iteration": self.iteration_count
+            }
+        
+        # Create deterministic topological hash embedding (CODES by Devin Bostick)
+        # We project the text into a 768D manifold using character-position harmonics
+        text_embedding = torch.zeros(768, device=self.torch_device)
+        for i, char in enumerate(text[:128]):
+            # Use prime-based harmonics for character encoding
+            freq = (i + 1) * (ord(char) / 128.0) * 3.14159
+            text_embedding += torch.sin(torch.linspace(0, freq, 768, device=self.torch_device))
+            text_embedding = torch.tanh(text_embedding)
+            
+        # --- INFERENCE CONNECTION ---
+        # If the DiegeticPhysicsEngine is available, use it (CALM/KAGH/FGRT/Larynx)
+        if self.engine:
+            try:
+                # Process via Diegetic Engine
+                print(f"[ENGINE] Processing: '{text}' (Video Dyad: {'YES' if video_dyad_b64 else 'NO'}) (Image Fingerprint: {'YES' if fingerprint else 'NO'})", flush=True)
+                is_ingest = ingestion_mode or getattr(self, 'high_throughput_ingestion', False)
+                gen_resp = not is_ingest
+                engine_output = self.engine.process_input(
+                    text_input=text, 
+                    fingerprint=fingerprint,
+                    audio_dyad=audio_dyad,
+                    video_dyad_b64=video_dyad_b64,
+                    commutativity=commutativity,
+                    generate_response=gen_resp,
+                    ingestion_mode=is_ingest,
+                    regime=self.current_regime,
+                    tag_weights=tag_weights
+                )
+                
+                # Fix: Handle case where engine_output might be a list (e.g. batch/bulk interaction)
+                if isinstance(engine_output, list):
+                    if len(engine_output) > 0:
+                        engine_output = engine_output[0]
+                    else:
+                        engine_output = {"response": "System quiescent: manifold empty.", "status": "EMPTY"}
+                
+                if not isinstance(engine_output, dict):
+                    raise ValueError(f"Engine returned invalid type: {type(engine_output)}")
+
+                response_text = engine_output.get('response', '')
+                diagnostics = engine_output
+                
+                # --- ENTROPY MONITORING & ACTIVITY INDUCTION ---
+                # Monitor spectral entropy to prevent manifold collapse
+                spectral_entropy = engine_output.get('spectral_entropy', 0.0)
+                if isinstance(spectral_entropy, torch.Tensor):
+                    spectral_entropy = spectral_entropy.item()
+                
+                if spectral_entropy < 0.05:
+                    print(f"[PHYSICS] Spectral Flatness Detected (Entropy: {spectral_entropy:.4f}).")
+                    print("[PHYSICS] Inducing topological activity via Soliton Healer...")
+                    if hasattr(self.engine, 'soliton_healer'):
+                        self.engine.soliton_healer.reset_healing()
+                        # Apply high-pressure ranging signal (Honest Jitter) to "heat" the manifold
+                        honest_heat = self._harvest_honest_jitter(self.engine.soliton_healer.alpha.shape)
+                        self.engine.soliton_healer.alpha.data.add_(torch.abs(honest_heat) * 0.5)
+                
+                # Capture evolved state in local binding for isolation-safe fossilization
+                if 'hidden_state' in engine_output:
+                    hidden_state = engine_output['hidden_state']
+                elif hasattr(self.engine, 'meta_state'):
+                    hidden_state = self.engine.meta_state.clone()
+                
+                # Check for "topological_shape_stalk" payload
+                if 'payload' in engine_output and engine_output['payload'].get('type') == 'topological_shape_stalk':
+                     pass # Handle special payloads if needed
+                
+                # (Early return removed, processing continues to shared exit)
+            except Exception as e:
+                print(f"[FAIL] Diegetic Engine processing failed: {e}")
+                # Fallthrough to legacy logic
+        
+        # 2. System 2 Fallback: Non-Lobotomy Temporal Model
+        # This replaces the legacy lobotomized prime tracker with the polynomial functional reasoner.
+        model_diagnostics = {}
+        if self.temporal_model:
+            try:
+                # Prepare input [1, 768]
+                model_input = text_embedding.unsqueeze(0)
+                
+                with torch.no_grad():
+                    # Run forward pass with analysis (RECURSION GAURD: This is the single entry point)
+                    model_out = self.temporal_model(model_input, return_analysis=True)
+                
+                # a) Update system state with REAL neural activation
+                self.hidden_state = model_out['hidden_state'].squeeze(0)  # [batch, dim]
+                
+                # b) Pythagorean Bridge: Project to 256D if needed (Legacy Support)
+                if self.hidden_state.shape[-1] == 768:
+                    self.hidden_state_scarred = self.hidden_state.view(256, 3).mean(dim=1)
+                else:
+                    self.hidden_state_scarred = self.hidden_state # Already correct dim or will be handled by ADMR
+                
+                # c) Temporal Evolution (ADMR Solver Integration)
+                hidden_state_256 = self.hidden_state_scarred.clone() # Anchor for negotiation loss
+                hidden_state_evolved = self.hidden_state.unsqueeze(0) # Default to static if solver missing
+                hidden_state_evolved_sq = self.hidden_state.clone()
+                
+                if hasattr(self, 'admr_solver'):
+                    neighbor_states = torch.stack([self.temporal_model.prev_states.mean(dim=0)] * 1).unsqueeze(0).to(self.torch_device)
+                    adj_weight = torch.ones(1, neighbor_states.shape[1]).to(self.torch_device)
+                    
+                    # Run MAML online meta-optimization steps using the sliding support buffer
+                    if not hasattr(self, 'admr_support_buffer'):
+                        self.admr_support_buffer = []
+                    if len(self.admr_support_buffer) > 0:
+                        entropy_val = torch.tensor([0.5], device=self.torch_device)
+                        for s_states, s_neighbors, s_weights in self.admr_support_buffer:
+                            self.admr_solver = self.admr_solver.meta_optimize_admm_step(
+                                s_states, s_neighbors, s_weights, steps=1, lr=0.01, entropy=entropy_val
+                            )
+                            
+                    # --- Phase 1: Garden Attractors & Ley Line Nudging ---
+                    if hasattr(self, 'influence_attractor'):
+                        try:
+                            # 1. Influence pull (treating hidden state as concept vector)
+                            pull_forces = self.influence_attractor.compute_statistical_pull(self.hidden_state.unsqueeze(0))
+                            
+                            # 2. Update Ley Line Tracker (treating 256 dims as resonance nodes)
+                            # Simple identity adjacency and zero defects for isolated inference
+                            adj = torch.eye(256, device=self.torch_device)
+                            love = torch.zeros(256, device=self.torch_device)
+                            defects = torch.zeros(256, device=self.torch_device)
+                            self.ley_line_tracker.update_potential(adj, love, defects)
+                            
+                            # 3. Nudge the hidden state along the preferred flow
+                            ley_flow = self.ley_line_tracker.get_preferred_flow(torch.arange(256, device=self.torch_device))
+                            nudge = ley_flow * pull_forces.mean() * 0.05
+                            self.hidden_state = self.hidden_state + nudge
+                        except Exception as e:
+                            print(f"[WARN] Phase 1 Topological Nudge failed: {e}")
+                    # -----------------------------------------------------
+                    
+                    # We use the raw hidden state for the ADMR step
+                    _out = self.admr_solver.stochastic_differential_step(
+                        states=self.hidden_state.unsqueeze(0),
+                        neighbor_states=neighbor_states,
+                        adjacency_weight=adj_weight
+                    )
+                    
+                    # Append current states to sliding support buffer
+                    self.admr_support_buffer.append((
+                        self.hidden_state.unsqueeze(0).detach().clone(),
+                        neighbor_states.detach().clone(),
+                        adj_weight.detach().clone()
+                    ))
+                    if len(self.admr_support_buffer) > 4:
+                        self.admr_support_buffer.pop(0)
+
+                    # Update state from solver
+                    if isinstance(_out, torch.Tensor):
+                        hidden_state_evolved = _out
+                        self.hidden_state = hidden_state_evolved.squeeze(0).squeeze(0)
+                    hidden_state = self.hidden_state.clone() # Update local binding
+
+                # --- Asynchronous Gossip Bridge ---
+                # Calculate local topological metrics based on entropy and drift
+                derived_covariance_variance = drift_init if 'drift_init' in locals() else 0.02
+                derived_kelly = max(0.01, min(0.5, 0.1 / (derived_covariance_variance + 1e-4)))
+                
+                # System 1 / System 2 Post state to decoupled board
+                self.bulletin_board.post_residue(self.hidden_state_scarred)
+                self.bulletin_board.post_metrics({
+                    "betti_numbers": [1, 2, int(derived_covariance_variance*100)], # Heuristic proxy
+                    "covariance_variance": derived_covariance_variance,
+                    "kelly_fraction": derived_kelly,
+                    "valence_drive": getattr(self, "prev_pas", 0.5)
+                })
+
+                # Orchestrator reads from board and dispatches externally
+                board_metrics = self.bulletin_board.read_metrics()
+                if self.iteration_count % 10 == 0:  # Nomadic Ring Gossip Tick
+                    current_volume = getattr(self, 'iteration_count', 0) * 1.5
+                    current_mischief = derived_covariance_variance * 10.0
+                    self.freenet_router.broadcast_proof_of_honesty(current_volume, current_mischief, metrics=board_metrics)
+                
+                # Update the state with the evolved trajectory
+                hidden_state_evolved_sq = hidden_state_evolved.squeeze(0)
+                # Define Lawful Distortion (0.01 sigma as per Solver signature)
+                distortion = self._harvest_honest_jitter(hidden_state_evolved_sq.shape) * 0.1
+                candidate_state = hidden_state_evolved_sq + distortion
+                
+                # --- Phase 1: Lexicographical Hierarchy Enforcement ---
+                if hasattr(self, 'lex_dispatcher'):
+                    from src.core.invariant_optimization import SemioticState
+                    # Construct state proposals (Pre-ADMR vs Post-ADMR)
+                    # We approximate System 2 admissibility via drift magnitude (lower is better invariant adherence)
+                    # We approximate System 1 heuristic via spectral entropy (higher is better heuristic speed)
+                    drift_post = float(torch.norm(candidate_state - self.hidden_state_scarred).item())
+                    
+                    state_pre = SemioticState(
+                        system_2_admissibility=0.0, # Pre-state is the anchor (perfect adherence)
+                        system_1_heuristic=0.5,
+                        state_tensor=self.hidden_state_scarred
+                    )
+                    state_post = SemioticState(
+                        system_2_admissibility=drift_post,
+                        system_1_heuristic=getattr(self, 'prev_pas', 0.5) + 0.1, # Boost heuristic for advancing time
+                        state_tensor=candidate_state
+                    )
+                    
+                    # Lexicographical check: will reject post-state if admissibility violation is too high
+                    best_semiotic = self.lex_dispatcher.select_best([state_pre, state_post])
+                    self.hidden_state_scarred = best_semiotic.state_tensor
+                else:
+                    self.hidden_state_scarred = candidate_state
+                # ------------------------------------------------------
+                
+                model_diagnostics["physics_solver"] = "ADMR_MAML_ACTIVE"
+                model_diagnostics["drift_magnitude"] = float(torch.norm(self.hidden_state_scarred - hidden_state_256).item())
+
+                # Map evolved state to the corrected tensor for downstream affordance tracking
+                self.corrected_tensor = self.hidden_state_scarred.clone()
+                
+                # d) Track metrics from the model
+                model_diagnostics = {
+                    'pas_h': float(model_out.get('pas_h', 0.0)),
+                    'containment_pressure': float(model_out.get('containment_pressure', 0.0)),
+                    'trust_scalars': [round(float(x), 3) for x in model_out.get('trust_scalars', [])]
+                }
+                
+                # Merge polynomial diagnostics if available
+                if 'polynomial_diagnostics' in model_out:
+                    poly_diag = model_out['polynomial_diagnostics']
+                    model_diagnostics.update({k: v for k, v in poly_diag.items() if isinstance(v, (float, int))})
+                    
+            except Exception as e:
+                print(f"[WARN] System 2 Inference failed: {e}")
+                import traceback
+                traceback.print_exc()
+                # Fallback to existing hidden state logic
+                model_diagnostics = {'error': str(e)}
+                hidden_state_256 = self.hidden_state_scarred.clone()
+                hidden_state_evolved_sq = self.hidden_state_scarred.clone()
+                hidden_state_evolved = self.hidden_state_scarred.clone().unsqueeze(0)
+
+
+
+
+            # 5. INTEGRATE CODES ENERGY AND CHIRAL DYNAMICS (Moved up for dependency resolution)
+            codes_energy = 0.0
+            if self.codes_framework:
+                try:
+                    with torch.no_grad():
+                        # total_energy returns a scalar-like tensor
+                        energy_tensor = self.codes_framework.compute_total_energy(self.hidden_state_scarred.unsqueeze(0))
+                        codes_energy = float(energy_tensor.mean().item())
+                except Exception as e:
+                    print(f"[WARN] CODES Energy computation failed: {e}")
+                    codes_energy = 1.0 # Default stress on failure
+
+            # 6. Möbius Fiber Twist (Deterministic topological flip)
+            # Trigger twist if CODES energy exceeds margin and fields are in conflict
+            # This aligns with the 'CODES' constraint framework and project documentation
+            conflict_tension = torch.dot(self.hidden_state_scarred, self.narration_field)
+            twist_trigger = (codes_energy > 0.4) and (conflict_tension < -0.01)
+            twist_gate_val = 1.0 if twist_trigger else 0.0
+            twist_gate = torch.tensor([twist_gate_val], device=self.torch_device)
+            fiber_state = self.moebius_bundle(self.hidden_state_scarred.unsqueeze(0), twist_gate)
+            moebius_holonomy = float(twist_gate.item())
+
+            # --- Implicated System Overhaul: Rupture Detection ---
+            # Check for structural rupture (Δ accumulation)
+            if self.rupture_fn:
+                # Treat 'negotiation' from ADMR as a constraint loss
+                # This is a proxy for how much the system is fighting its own local truth
+                negotiation_loss = torch.norm(hidden_state_evolved_sq - hidden_state_256, p=2)
+                rupture_token = self.rupture_fn.check_rupture(
+                    hidden_state_evolved, 
+                    {0: negotiation_loss}
+                )
+                if rupture_token:
+                    # Append the failure residue to Δ (Toxic Memory)
+                    self.damage_residue = 0.8 * self.damage_residue + 0.2 * rupture_token.residue
+                    self.perfect_memory.append(rupture_token.residue.detach().clone())
+
+            # Update interiority field (Phi_I) - self.interiority_field not strictly needed 
+            # if we keep self.hidden_state_scarred, but let's keep it for formal alignment.
+            self.interiority_field = self.hidden_state_scarred
+
+            # Chiral Dynamics Calculations
+            # Proxy: weighted sum of state segments
+            pas_h = 1.0 # Force Legal
+            state_len = len(self.hidden_state_scarred)
+            for d in range(8):
+                segment = self.hidden_state_scarred[d*(state_len//8):(d+1)*(state_len//8)]
+                pas_h += (1.0 / (d + 1.0)) * torch.norm(segment).item()
+
+            # Formula: Chi = Centroid(Spectrum) - D/2
+            # Proxy: mean index of energy
+            weights = torch.abs(self.hidden_state_scarred)
+            indices = torch.arange(len(weights), device=self.torch_device).float()
+            chi_centroid = torch.sum(indices * weights) / (torch.sum(weights) + 1e-6)
+            chi = chi_centroid.item() - (len(weights) / 2.0)
+
+
+            # 7. Anisotropy Injection (The Escape Valve)
+            # Based on doc: ai project report_2-2-2026.txt
+            phi_k = self.hidden_state_scarred.view(-1, 8) # Project into polynomial sub-spaces
+
+            # Calculate variance safely to avoid the 'degrees of freedom' error
+            if phi_k.numel() > 1:
+                phi_var = torch.var(phi_k)
+            else:
+                phi_var = torch.tensor(0.01, device=self.torch_device)
+
+            # Anisotropy (A) = diag(alpha) -> simplified as a scalar escape valve
+            anisotropy = (phi_var + 1e-8).sqrt().item()
+
+            # Calculate Chiral Metrics (Structural Invariants)
+            coeffs = self.hidden_state_scarred.unsqueeze(0) if self.hidden_state_scarred.dim() == 1 else self.hidden_state_scarred
+            chiral_shift = float(compute_chiral_shift(coeffs).item())
+            chiral_torsion = float(compute_chirality(coeffs).abs().item())
+            glyphlock = bool(check_glyphlock(coeffs).item() > 0)
+
+            zeta = 0.5
+            c_score = chi * np.exp(-abs(pas_h - 1.0) / zeta)
+
+            # Toxic Memory (Δ) - Accumulate contradiction residue
+            # Detect if the state is entering a paraconsistent regime
+            # We use CODES energy and Chiral score collapse as triggers
+            if codes_energy > 1.2 or chi > 0.0 or pas_h < 0.5:
+                # Add current state to damage residue (Perfect Memory of contradiction)
+                # The weight is scaled by the CODES energy
+                accumulation_rate = min(0.2, codes_energy * 0.1)
+                self.damage_residue = (0.95 * self.damage_residue) + (0.05 * accumulation_rate * self.hidden_state_scarred)
+                self.perfect_memory.append(self.hidden_state_scarred.detach().clone())
+
+            # ALSO: Small constant damage from the 'scarring' itself (Laryngeal Friction)
+            # This ensures non-commutativity even if rupture isn't hit
+            laryngeal_friction = torch.norm(distortion) * 0.01
+            if laryngeal_friction > 0:
+                self.damage_residue += distortion * 0.001
+
+            # Generate Response (Larynx Decoding D)
+            if not response_text:
+                response_text = self._generate_response_from_state(text, self.hidden_state_scarred)
+
+            # Update Narration Field (Phi_C)
+            # A crude projection of the speech back into the state
+            text_len_factor = min(1.0, len(response_text) / 200.0)
+            self.narration_field = 0.7 * self.narration_field + 0.3 * (self.hidden_state_scarred * text_len_factor)
+
+            # Extract diagnostics
+            diagnostics.update({
+                'pas_h': pas_h,
+                'chiral_score': chiral_shift,
+                'chiral_torsion': chiral_torsion,
+                'glyphlock': glyphlock,
+                'codes_energy': codes_energy,
+                'ley_line_anisotropy': anisotropy,
+                'damage_delta': float(self.damage_residue.detach().norm()),
+                'residue_vector': self.damage_residue.detach().cpu(),
+                'narration_pressure': float(self.narration_field.detach().norm()),
+                'iteration': self.iteration_count
+            })
+
+            # Merge Model Diagnostics
+            if 'model_diagnostics' in locals():
+                diagnostics.update(model_diagnostics)
+
+        else:
+            # Fallback to topological hash explicitly
+            self.hidden_state_scarred = text_embedding.clone()[:256]
+            self.hidden_state = text_embedding.clone()[:256]
+            if not response_text:
+                response_text = self._generate_simple_response(text)
+        
+        # Apply spectral correction if available
+        if self.spectral_corrector and response_text:
+            try:
+                # Convert response to tensor for processing
+                response_tensor = torch.tensor([ord(c) for c in response_text[:256]], dtype=torch.float32)
+                if len(response_tensor) < 256:
+                    response_tensor = torch.nn.functional.pad(response_tensor, (0, 256 - len(response_tensor)))
+                
+                # Fossil Variable Restoration
+                self.hidden_state_scarred = hidden_state * 1.0  # Initializing the scarred manifold
+                self.corrected_tensor = response_tensor.clone() # Initializing the corrected response
+
+                if self.temporal_model:
+                    # 200-Epoch LMSYS Full Manifold Projection
+                    facets = torch.softmax(hidden_state, dim=0).unsqueeze(0)
+                    time_step = torch.tensor([self.iteration_count * 0.1])
+                    acoustic_res = self.spectral_corrector.project_to_acoustic_resonance(facets, time_step)
+                    # Bostick Jitter: Breaking the 0.3069 Phase-Lock
+                    acoustic_res = acoustic_res + (self._harvest_honest_jitter(acoustic_res.shape) * 0.1)
+                    acoustic_val = float(acoustic_res.detach().abs().mean())
+                    
+                    # Apply the correction to the tensor
+                    self.corrected_tensor = self.corrected_tensor + (acoustic_res.mean() * 0.001)
+                else:
+                    acoustic_val = 0.0
+
+                # Update diagnostics with recovered spectral info
+                diagnostics.update({
+                    'spectral_correction_applied': True,
+                    'correction_strength': float(torch.mean(torch.abs(self.corrected_tensor - response_tensor.unsqueeze(0))).detach()),
+                    'manifold_voice_resonance': acoustic_val
+                })
+                
+            except Exception as e:
+                print(f"[FAIL] Spectral correction failed: {e}")
+                diagnostics['spectral_correction_applied'] = False
+        
+        # Save Interaction as Topological Fossil
+        self._save_fossil(text, self.hidden_state_scarred, diagnostics)
+
+        # Apply Audience Mapping (Φ: M -> A)
+        if self.audience_mapper:
+            try:
+                # Map the evolved hidden state to audience space
+                audience_coords = self.audience_mapper(self.hidden_state_scarred.detach().unsqueeze(0))
+                diagnostics['audience_coordinates'] = audience_coords.squeeze(0).cpu().tolist()
+            except Exception as e:
+                print(f"[AUDIENCE] Projection failed: {e}")
+
+        # --- SYNCHRONIZE METRICS FOR RETRO TERMINAL UI ---
+        # Ensure nested 'diagnostics' exists for diegetic_terminal.html's nested lookup
+        if 'diagnostics' not in diagnostics or not isinstance(diagnostics['diagnostics'], dict):
+            diagnostics['diagnostics'] = {}
+            
+        inner_diag = diagnostics['diagnostics']
+        
+        # Calculate local spectral entropy
+        try:
+            with torch.no_grad():
+                spectrum = torch.fft.rfft(self.hidden_state_scarred).abs()
+                spectrum_norm = spectrum / (spectrum.sum() + 1e-8)
+                local_spec_entropy = float(-(spectrum_norm * torch.log(spectrum_norm + 1e-8)).sum().item())
+        except Exception:
+            local_spec_entropy = 0.05
+            
+        # Harvest honest jitter
+        try:
+            local_jitter = float(self._harvest_honest_jitter((1,)).item())
+        except Exception:
+            local_jitter = 0.1
+            
+        # Resolve voice resonance
+        local_resonance = diagnostics.get('manifold_voice_resonance')
+        if local_resonance is None:
+            local_resonance = inner_diag.get('manifold_voice_resonance')
+        if local_resonance is None:
+            local_resonance = locals().get('acoustic_val', 0.15)
+        if local_resonance is None:
+            local_resonance = 0.15
+            
+        # Resolve moebius twist
+        local_twist = locals().get('moebius_holonomy', 0.0)
+        
+        # Resolve anisotropy
+        if 'anisotropy' not in locals():
+            try:
+                phi_k = self.hidden_state_scarred.view(-1, 8)
+                if phi_k.numel() > 1:
+                    phi_var = torch.var(phi_k)
+                else:
+                    phi_var = torch.tensor(0.01, device=self.torch_device)
+                anisotropy = (phi_var + 1e-8).sqrt().item()
+            except Exception:
+                anisotropy = 0.1
+                
+        # Resolve chiral shift and torsion
+        if 'chiral_shift' not in locals() or 'chiral_torsion' not in locals() or 'glyphlock' not in locals():
+            try:
+                coeffs = self.hidden_state_scarred.unsqueeze(0) if self.hidden_state_scarred.dim() == 1 else self.hidden_state_scarred
+                chiral_shift = float(compute_chiral_shift(coeffs).item())
+                chiral_torsion = float(compute_chirality(coeffs).abs().item())
+                glyphlock = bool(check_glyphlock(coeffs).item() > 0)
+            except Exception:
+                chiral_shift = 0.1
+                chiral_torsion = 0.0
+                glyphlock = False
+        
+        # Sync to both inner and outer dicts to ensure the UI finds them
+        for target in [diagnostics, inner_diag]:
+            target['manifold_voice_resonance'] = float(local_resonance)
+            target['ley_line_anisotropy'] = float(anisotropy)
+            target['moebius_twist'] = float(local_twist)
+            target['spectral_entropy'] = float(local_spec_entropy)
+            target['honest_jitter'] = float(local_jitter)
+            target['substream_entropy'] = float(inner_diag.get('substream_entropy', 0.02))
+            target['chiral_score'] = float(chiral_shift)
+            target['chiral_torsion'] = float(chiral_torsion)
+            target['glyphlock'] = bool(glyphlock)
+            target['pas_h'] = float(pas_h) if 'pas_h' in locals() else 1.0
+            target['iteration'] = int(self.iteration_count)
+            target['regime'] = self.current_regime
+            if 'retrieval_state' not in target:
+                target['retrieval_state'] = diagnostics.get('retrieval_state', 'KNOWN')
+
+        # --- PHASE 2 REINTEGRATION: Nomadic Ring Consensus ---
+        if hasattr(self, 'bonfire_ring') and hasattr(self, 'zk_aggregator'):
+            try:
+                # 1. Extract topological metrics
+                gv_score = float(inner_diag.get('gyroid_violation_score', 0.5))
+                variance = min(1.0, max(0.0, gv_score))
+                
+                betti_nums = [1, 0, 0] # Default Fallback
+                topo_analysis = inner_diag.get('topological_analysis', {})
+                if 'betti_numbers' in topo_analysis:
+                    betti_nums = topo_analysis['betti_numbers']
+                
+                # 2. Compress topological metrics into a ZK signature
+                proof = self.zk_aggregator.prove_chern_simons_invariant(
+                    state_tensor=self.hidden_state_scarred,
+                    gauge_field=torch.tensor([gv_score], device=self.torch_device)
+                )
+                
+                # 3. Wire BonfireConsensus for peer trust scoring and broadcasting
+                if proof.get("publicSignals", []) == ["1"]:
+                    self.bonfire_ring.share_topological_signature(
+                        local_peer_id="GyroidNode_01",
+                        betti_numbers=betti_nums,
+                        variance=variance
+                    )
+                    
+                    # 4. Compute Egalitarian Consensus Kelly Allocation (K_bar)
+                    k_bar = self.bonfire_ring.compute_egalitarian_consensus(engine_meta_state=self.hidden_state_scarred)
+                    for target in [diagnostics, inner_diag]:
+                        target['bonfire_k_bar'] = float(k_bar)
+            except Exception as e:
+                print(f"[WARN] Phase 2 P2P Nomadic Ring Integration failed: {e}")
+        # -----------------------------------------------------
+
+        return {
+            "response": response_text,
+            'diagnostics': diagnostics,
+            'output_length': len(response_text),
+            'backend': 'hybrid_diegetic_integrated' if self.engine else 'hybrid'
+        }
+
+    def _start_background_scientific_learning(self):
+        """Start a background loop to query the primary scientific dataset periodically."""
+        import threading
+        import time
+        
+        def _loop():
+            # Wait for startup stabilization
+            time.sleep(1)
+            print(f"[INGEST] Background Scientific Learning ACTIVE (Dataset: {self.primary_query_dataset})", flush=True)
+            
+            while getattr(self, 'bg_scientific_learning', False):
+                try:
+                    if self.engine and getattr(self.engine, 'open_science_ingestor', None) is not None:
+                        ds_list = [d.strip().lower() for d in self.primary_query_dataset.split(',') if d.strip()]
+                        q_configs = []
+                        for q_type in ds_list:
+                            q_config = {"type": q_type}
+                            if q_type == "ligo":
+                                q_config.update({"event": "GW190521", "detector": "H1", "duration": 2.0})
+                            elif q_type == "sdss":
+                                q_config.update({"catalog_id": "J/A+A/540/A106", "row_limit": 5})
+                            elif q_type == "ncbi":
+                                q_config.update({"accession_id": "AM743169.1", "db": "nucleotide"})
+                            elif q_type == "openneuro":
+                                q_config.update({"dataset_id": "ds003445", "subject_id": "sub-01"})
+                            else:
+                                continue
+                            q_configs.append(q_config)
+                        
+                        if q_configs:
+                            samples = self.engine.open_science_ingestor.query_and_aggregate(q_configs)
+                            if samples:
+                                for sample in samples:
+                                    sample_text = sample.get("text", "")
+                                    if sample_text:
+                                        with torch.no_grad():
+                                            self.process_text(
+                                                f"INGEST_DYAD: {sample_text}",
+                                                ingestion_mode=True
+                                            )
+                                        print(f"[INGEST] Background scientific data assimilated: {sample.get('source')}", flush=True)
+
+                                        # Tripsodic Expansion & Proof of Honesty
+                                        if hasattr(self, 'tripsodic_ledger') and self.tripsodic_ledger:
+                                            self.tripsodic_ledger.rhythm_tick()
+                                            
+                                            # Dynamically modulate limits
+                                            new_lr = self.tripsodic_ledger.get_learning_rate_modulator()
+                                            new_ego_limit = self.tripsodic_ledger.get_ego_death_limit_modulator()
+                                            
+                                            if self.engine and hasattr(self.engine, 'archetypal_governor') and self.engine.archetypal_governor:
+                                                if hasattr(self.engine.archetypal_governor, 'abstraction') and self.engine.archetypal_governor.abstraction:
+                                                    self.engine.archetypal_governor.abstraction.abstraction_limit = new_ego_limit
+                                            
+                                            if hasattr(self, 'bulletin_router') and self.bulletin_router:
+                                                metrics = {
+                                                    'kelly_fraction': getattr(self, 'kelly_fraction', 0.0),
+                                                    'covariance_variance': 0.05
+                                                }
+                                                self.bulletin_router.broadcast_proof_of_honesty(
+                                                    volume=self.tripsodic_ledger.global_volume,
+                                                    mischief=self.tripsodic_ledger.mischief_buffer,
+                                                    metrics=metrics
+                                                )
+                                                print(f"[NDC] Tripsodic Expansion tick. New Volume: {self.tripsodic_ledger.global_volume:.2f} (Ego Limit: {new_ego_limit:.2f})")
+
+                        # Multiplex Spatial/Financial/Scientific feeds into PointerlessOctree
+                        if hasattr(self, 'physics_backend') and self.physics_backend:
+                            feed_payload = self.physics_backend.multiplex_feed_chain()
+                            if self.engine:
+                                if hasattr(self.engine, 'initialize_spatial_metric'):
+                                    self.engine.initialize_spatial_metric(feed_payload['spatial_metric'])
+                                if hasattr(self.engine, 'terrain_octree') and self.engine.terrain_octree:
+                                    self.physics_backend.map_to_pointerless_octree(self.engine.terrain_octree, feed_payload['spatial'])
+                except Exception as e:
+                    print(f"[WARN] Background Scientific Learning iteration failed: {e}")
+                
+                # Sleep in small chunks to remain shutdown-responsive
+                for _ in range(60):
+                    if not getattr(self, 'bg_scientific_learning', False):
+                        break
+                    time.sleep(1)
+                    
+        self._science_thread = threading.Thread(target=_loop, daemon=True, name="BgScienceThread")
+        self._science_thread.start()
+
+    def _save_fossil(self, text: str, state: torch.Tensor, metrics: dict):
+        """Persist interaction state as a .pt file for the graph manager."""
+        if not self.graph_manager:
+            return
+            
+        try:
+            import time
+            timestamp = int(time.time() * 1000)
+            filename = f"fossil_{timestamp}.pt"
+            filepath = os.path.join(self.graph_dir, filename)
+            
+            # Extract residue vector from diagnostics if available (Feature Scars)
+            residue_vector = metrics.get('residue_vector')
+            if residue_vector is None and self.engine:
+                # Fallback to estimated residues from the engine's last pass
+                residue_vector = getattr(self.engine, '_last_est_residues', state).detach().cpu()
+            elif isinstance(residue_vector, (list, tuple)):
+                residue_vector = torch.tensor(residue_vector)
+            
+            fossil_data = {
+                'text_input': text,
+                'meta_state': state.detach().cpu(), # The "embedding"
+                'residue_vector': residue_vector,
+                'metrics': metrics,
+                'chiral_score': metrics.get('chiral_score', metrics.get('manifold_voice_resonance', 0.0)),
+                'chiral_torsion': metrics.get('chiral_torsion', 0.0),
+                'glyphlock': metrics.get('glyphlock', False),
+                'spectral_entropy': metrics.get('spectral_entropy', 0.0),
+                'timestamp': timestamp
+            }
+            
+            # Reintegrate betti numbers updates
+            try:
+                from src.topology.persistence_obstruction import ResidueFiltration, PersistentHomologyComputer
+                if self.graph_manager and self.graph_manager.nodes:
+                    points = torch.stack([n.state for n in self.graph_manager.nodes])
+                    # Ensure dim=256
+                    if points.dim() == 2:
+                        rf = ResidueFiltration(torch.zeros(1), torch.zeros(1))
+                        complex = rf.build_simplicial_complex(points, max_dimension=1)
+                        phc = PersistentHomologyComputer(max_dimension=1)
+                        betti = phc.compute_betti_numbers(complex)
+                        fossil_data['betti_0'] = betti.get(0, 0)
+                        fossil_data['betti_1'] = betti.get(1, 0)
+                        metrics['betti_0'] = betti.get(0, 0)
+                        metrics['betti_1'] = betti.get(1, 0)
+            except Exception as e:
+                pass
+            
+            torch.save(fossil_data, filepath)
+            
+            # Update live graph manager
+            # Manually add node to avoid full reload
+            from src.topology.embedding_graph import KnowledgeFossilNode
+            new_node = KnowledgeFossilNode(
+                node_id=filename,
+                state=fossil_data['meta_state'],
+                text=text,
+                metrics=fossil_data
+            )
+            self.graph_manager.nodes.append(new_node)
+            
+        except Exception as e:
+            print(f"[WARN] Failed to save fossil: {e}")
+    
+    def _generate_response_from_state(self, text: str, hidden_state: torch.Tensor) -> str:
+        """Generate response base on temporal model hidden state and damage Δ."""
+        import re
+        import random
+        
+        # Analyze the hidden state and damage
+        state_mean = float(torch.mean(hidden_state).detach().cpu())
+        state_std = float(torch.std(hidden_state).detach().cpu())
+        
+        # Real non-zero dynamic dissipation based on paraconsistent damage residue
+        damage_norm = float(self.damage_residue.detach().norm().item()) if hasattr(self, 'damage_residue') else 0.0
+        # Ground in physical substrate friction to guarantee strictly positive thermodynamic dissipation
+        if damage_norm < 1e-4:
+            try:
+                jitter_val = float(self._harvest_honest_jitter((1,)).abs().item())
+                damage_norm = max(1e-4, jitter_val * 0.01)
+            except Exception:
+                damage_norm = 1.34e-4
+
+        
+        # Extract diagnostics for flavoring
+        spectral_entropy = 0.0
+        with torch.no_grad():
+            if self.temporal_model:
+                spectral_entropy = float(-torch.sum(torch.softmax(hidden_state, dim=0) * torch.log_softmax(hidden_state, dim=0) ))# 256D Entropy
+        
+        text_lower = text.lower()
+        
+        # --- Damage-Aware Deterministic Text Degradation ---
+        def degrade_text(s: str, level: float) -> str:
+            # return s # Bypass Disabled - LMSYS Resonance Enabled
+            chars = list(s)
+            state_data = hidden_state.detach().cpu().numpy()
+            for i in range(len(chars)):
+                # Use hidden state index to determine glitching (Deterministic)
+                idx = i % len(state_data)
+                if abs(state_data[idx]) * level > 0.5:
+                    # Paraconsistent glitching (branching characters)
+                    scars = ['Δ', '⊥', '†', '◊', '∑', '∏']
+                    scar_idx = int(abs(state_data[idx]) * 10) % len(scars)
+                    chars[i] = scars[scar_idx]
+            return "".join(chars)
+
+        # 1. Logic for Ruptured State (High Δ)
+        if damage_norm > 15.0:
+            glitch_lvl = min(0.1, (damage_norm - 15.0) / 100.0)
+            # Use paraconsistent symbols instead of raw LaTeX
+            base_msg = f"Contradiction p AND NOT p is persistent. System state experiencing variance at Δ={damage_norm:.3f}. The Larynx fails to resolve the residue. ⊥ † ◊"
+            return degrade_text(base_msg, glitch_lvl)
+
+        # 2. Key Theoretical Responses (Mechanism space)
+        response = ""
+        if re.search(r'\b(hello|hi|greetings)\b', text_lower):
+            if state_mean > 0:
+                response = f"Manifold initialized. Coherence (PAS_h): {1.0 - spectral_entropy/5.0:.4f}. Damage (Δ): {damage_norm:.4f}."
+            else:
+                response = "Greetings. Processing residue through scarred interiority field. Chirality (χ) is negative."
+
+        elif 'ley line' in text_lower or 'geodesic' in text_lower:
+            response = "Geodesic bias detected. Survival pressure gradients are accumulating as Δ state."
+            
+        elif 'moebius' in text_lower or 'fiber' in text_lower or 'species' in text_lower:
+            response = f"Orbifold recursion detected. Non-trivial holonomy twisting Interiority Field Phi_I."
+            
+        elif 'birkhoff' in text_lower or 'polytope' in text_lower:
+            response = f"Trajectory entered the Birkhoff polytope. Manifold is drifting toward paraconsistent faces."
+            
+        elif 'crt' in text_lower or 'remainder' in text_lower:
+            response = f"Modular constraint decomposition active. Residues are fossilizing in toxic memory."
+            
+        else:
+            # Fallback based on variance
+            if state_std > 1.2:
+                response = f"High-variance manifold state ({state_std:.3f}). Proliferating scars detected."
+            elif state_mean > 0.1:
+                response = f"Positive manifold mean ({state_mean:.3f}). Affirmative trajectory detected."
+            else:
+                response = f"Interiority stabilized. Current Δ dissipation: {damage_norm:.4f}."
+
+        return degrade_text(response, damage_norm / 10.0)
+    
+    def _generate_simple_response(self, text: str) -> str:
+        """Fallback response generation."""
+        return f"I received your message: '{text}'. The temporal model is unavailable, so I'm using simplified processing."
+
+# Global AI instance
+AI_SYSTEM = None
+
+class HybridHandler(http.server.SimpleHTTPRequestHandler):
+    """Request handler with hybrid AI capabilities."""
+    
+    def end_headers(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Cache-Control', 'no-cache')
+        super().end_headers()
+    
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.end_headers()
+    
+    def do_GET(self):
+        """Handle GET requests."""
+        parsed_path = urlparse(self.path)
+        
+        # Delegate specific paths to DiegeticRequestHandler
+        if parsed_path.path in ['/graph', '/health', '/api/minecraft/scan', '/conversational-gui', '/wikipedia-trainer', '/api/index_size', '/api/splats/scan', '/api/fs/drives', '/api/security/creator_status', '/api/security/status', '/api/tags', '/api/state'] or parsed_path.path.startswith('/api/freenet/'):
+            from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
+            DiegeticRequestHandler.do_GET(self)
+            return
+            
+        if parsed_path.path == '/':
+            self._serve_terminal_interface()
+        elif parsed_path.path == '/api/graph':
+            if AI_SYSTEM and AI_SYSTEM.graph_manager:
+                try:
+                    graph_json = AI_SYSTEM.graph_manager.export_graph_json()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(graph_json.encode('utf-8'))
+                except Exception as e:
+                    self._send_json({'error': str(e)})
+            else:
+                self._send_json({'nodes': [], 'links': []})
+        elif parsed_path.path == '/ping':
+            self._send_json({'status': 'ok', 'message': 'Hybrid backend running', 'components': {
+                'temporal_model': TEMPORAL_MODEL_AVAILABLE,
+                'spectral_corrector': SPECTRAL_CORRECTOR_AVAILABLE
+            }})
+        elif parsed_path.path == '/api/training_status':
+            if AI_SYSTEM and AI_SYSTEM.training_manager:
+                self._send_json(AI_SYSTEM.training_manager.get_status())
+            else:
+                self._send_json({'active': False, 'progress': 0, 'log': [], 'results': None})
+        elif parsed_path.path == '/api/local_datasets':
+            self._handle_local_datasets()
+        elif parsed_path.path in ['/api/status', '/api/system_status']:
+            status_data = {
+                'status': 'online',
+                'active_fingerprint': {
+                    'chebyshev_degree': float(getattr(AI_SYSTEM, 'iteration_count', 0) % 5 + 1.0) if AI_SYSTEM else 1.0,
+                    'damage': float(torch.norm(AI_SYSTEM.damage_residue).item()) if (AI_SYSTEM and hasattr(AI_SYSTEM, 'damage_residue')) else 0.0,
+                },
+                'components': {
+                    'temporal_model': TEMPORAL_MODEL_AVAILABLE,
+                    'spectral_corrector': SPECTRAL_CORRECTOR_AVAILABLE,
+                    'training_manager': (AI_SYSTEM.training_manager is not None) if AI_SYSTEM else False,
+                }
+            }
+            if AI_SYSTEM and hasattr(AI_SYSTEM, 'engine') and AI_SYSTEM.engine:
+                if hasattr(AI_SYSTEM.engine, 'valence_drive') and AI_SYSTEM.engine.valence_drive:
+                    status_data['valence'] = AI_SYSTEM.engine.valence_drive.get_metrics()
+            self._send_json(status_data)
+        elif parsed_path.path == '/api/scripting/resources':
+            try:
+                from src.scripting.node_environment import ResourceRegistry
+                reg = ResourceRegistry()
+                res_list = [
+                    {
+                        "name": r.name,
+                        "material_id": r.material_id,
+                        "density": r.density,
+                        "hardness": r.hardness,
+                        "energy_density": r.energy_density,
+                        "base_value": r.base_value,
+                        "tags": r.tags
+                    }
+                    for r in reg.all_resources()
+                ]
+                self._send_json({'status': 'ok', 'resources': res_list})
+            except Exception as e:
+                self._send_error_json(str(e))
+        elif parsed_path.path == '/api/scripting/ore_dict':
+            try:
+                from src.scripting.node_environment import OreDictionary
+                ore = OreDictionary()
+                tag_map = {tag: ore.get_materials(tag) for tag in ore._tag_to_materials}
+                self._send_json({'status': 'ok', 'tags': tag_map})
+            except Exception as e:
+                self._send_error_json(str(e))
+        elif parsed_path.path == '/api/rss/feeds':
+            from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
+            DiegeticRequestHandler.do_GET(self)
+            return
+        else:
+            super().do_GET()
+    
+    def do_POST(self):
+        """Handle POST requests."""
+        parsed_path = urlparse(self.path)
+        
+        # Delegate specific paths to DiegeticRequestHandler
+        if parsed_path.path in ['/api/minecraft/ingest', '/wikipedia-extract', '/api/test_resonance_link', '/api/tabby_complete', '/api/tabby_generate_training', '/api/run_sim', '/api/analyze_sim', '/api/fs/drives', '/api/security/creator_login', '/api/splats/ingest', '/api/convert_topology', '/api/rss/feeds', '/api/rss/ingest'] or parsed_path.path.startswith('/api/fs/'):
+            from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
+            DiegeticRequestHandler.do_POST(self)
+            return
+            
+        if parsed_path.path == '/interact':
+            self._handle_chat()
+        elif parsed_path.path == '/api/chat':
+            self._handle_api_chat()
+        elif parsed_path.path == '/api/test_token':
+            self._handle_test_token()
+        elif parsed_path.path == '/api/start_training':
+            self._handle_training()
+        elif parsed_path.path == '/api/stop_training':
+            self._send_json({'success': True, 'message': 'Training stopped'})
+        elif parsed_path.path == '/api/save_model':
+            self._handle_save_model()
+        elif parsed_path.path == '/api/shutdown':
+            self._handle_shutdown()
+        elif parsed_path.path == '/associate':
+            self._handle_association()
+        elif parsed_path.path == '/wikipedia':
+            self._handle_wikipedia()
+        elif parsed_path.path == '/api/ingest_local':
+            self._handle_ingest_local()
+        elif parsed_path.path == '/ingest':
+            self._handle_ingest()
+        elif parsed_path.path == '/api/training_status':
+            self._handle_training()
+        else:
+            self.send_response(404)
+            self.end_headers()
+    
+    def _serve_terminal_interface(self):
+        """Serve the appropriate UI based on the port."""
+        port = self.server.server_address[1]
+        try:
+            if port == 8080:
+                # 8080 handles Conversational Web GUI as primary
+                ui_path = os.path.join(os.path.dirname(__file__), 'src', 'ui', 'conversational_web_gui.html')
+                if os.path.exists(ui_path):
+                    with open(ui_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    print(f"[OK] Serving Conversational Web GUI on port {port}")
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(content.encode('utf-8'))
+                    return
+            
+            # Default or fallback or port 8000: Diegetic Terminal
+            terminal_path = os.path.join(os.path.dirname(__file__), 'src', 'ui', 'diegetic_terminal.html')
+            if os.path.exists(terminal_path):
+                with open(terminal_path, 'r', encoding='utf-8') as f:
+                    html = f.read()
+                print(f"[OK] Serving Diegetic Terminal on port {port}")
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(html.encode('utf-8'))
+            else:
+                self.send_response(404)
+                self.end_headers()
+                self.wfile.write(b"Error: UI files not found.")
+        except Exception as e:
+            print(f"[FAIL] Error serving interface on port {port}: {e}")
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(f"Error loading UI: {e}".encode())
+            self.send_error(500, f"Error serving interface: {e}")
+    
+    def _get_fallback_terminal_html(self):
+        """Fallback terminal interface if original is not found."""
+        return """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gyroidic Diegetic Terminal</title>
+    <style>
+        .dock-container {
+            border: 1px solid #004400;
+            background: #000800;
+            padding: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .dock-title {
+            color: #00ff00;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        #dock-drop-zone {
+            border: 1px dashed #008800;
+            padding: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        #dock-drop-zone:hover {
+            background: #001100;
+        }
+        .hint {
+            color: #00aa00;
+            font-size: 0.75rem;
+        }
+        #arm-status {
+            color: #00ffff;
+            font-size: 0.7rem;
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <div class="header">
+            <h1>[BRAIN] GYROIDIC DIEGETIC TERMINAL</h1>
+            <p>Hybrid Backend - Temporal Reasoning + Spectral Correction</p>
+        </div>
+
+        <div id="visual-dock" class="dock-container">
+            <div class="dock-title">⬡ VISUAL ASSET DOCK (ARMING SYSTEM)</div>
+            <input type="file" id="image-ingest" accept="image/*" style="display:none" onchange="processImage(this.files[0])">
+            <div id="dock-drop-zone" onclick="document.getElementById('image-ingest').click()">
+                <span class="hint">CLICK OR DROP DYAD TO ARM MANIFOLD</span>
+            </div>
+            <div id="arm-status">STATUS: NAKED SYMBOLIC STRING</div>
+        </div>
+        
+        <div id="chat-area" class="chat-area">
+            <div class="message ai">
+                <strong>SYSTEM:</strong> Gyroidic AI Hybrid Backend initialized.<br>
+                <span class="diagnostics">
+                    • Temporal Model: """ + ("ACTIVE" if TEMPORAL_MODEL_AVAILABLE else "OFFLINE") + """<br>
+                    • Spectral Corrector: """ + ("ACTIVE" if SPECTRAL_CORRECTOR_AVAILABLE else "OFFLINE") + """<br>
+                    • Status: Ready for interaction (Structural Honesty Enforced)
+                </span>
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Enter command or message..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button onclick="sendMessage()">TRANSMIT</button>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            active_fingerprint: null
+        };
+
+        function addMessage(sender, message, diagnostics) {
+            const chatArea = document.getElementById('chat-area');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + sender.toLowerCase();
+            
+            let html = '<strong>' + sender.toUpperCase() + ':</strong> ' + (message || '[VOID]');
+            
+            if (diagnostics && Object.keys(diagnostics).length > 0) {
+                html += '<br><span class="diagnostics">';
+                for (const [key, value] of Object.entries(diagnostics)) {
+                    html += '• ' + key + ': ' + value + '<br>';
+                }
+                html += '</span>';
+            }
+            
+            messageDiv.innerHTML = html;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        async function processImage(file) {
+            if (!file) return;
+            document.getElementById('arm-status').innerText = "ARMING: ANALYSING TOPOLOGY...";
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const fingerprint = computeChebyshevFingerprint(img);
+                    state.active_fingerprint = fingerprint;
+                    document.getElementById('arm-status').innerText = "STATUS: ARMED (" + file.name + ")";
+                    document.getElementById('arm-status').style.color = "#00ffff";
+                    addMessage('SYSTEM', "⬡ DYAD ARMED — " + fingerprint.degree + "-mode Chebyshev fingerprint computed locally.");
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function computeChebyshevFingerprint(img) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const SIDE = 64;
+            canvas.width = SIDE; canvas.height = SIDE;
+            ctx.drawImage(img, 0, 0, SIDE, SIDE);
+            const px = ctx.getImageData(0, 0, SIDE, SIDE).data;
+            const N = SIDE * SIDE;
+            
+            const lumArr = new Float64Array(N);
+            const crArr = new Float64Array(N);
+            const cbArr = new Float64Array(N);
+            
+            for (let i = 0; i < N; i++) {
+                const r = px[i * 4] / 255;
+                const g = px[i * 4 + 1] / 255;
+                const b = px[i * 4 + 2] / 255;
+                lumArr[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+                crArr[i]  = 0.500 * r - 0.419 * g - 0.081 * b + 0.5;
+                cbArr[i]  = -0.169 * r - 0.331 * g + 0.500 * b + 0.5;
+            }
+
+            const K = 8; // Fixed K-alignment for GL(8) compatibility
+            
+            function chebyshevProject(arr) {
+                const arrN = arr.length;
+                let vMin = Math.min(...arr), vMax = Math.max(...arr);
+                const vRange = Math.max(vMax - vMin, 1e-12);
+                const xNorm = arr.map(v => 2 * (v - vMin) / vRange - 1);
+                
+                const frameCount = K + 1;
+                const frameSize = Math.floor(arrN / frameCount);
+                const xF = new Float64Array(frameCount);
+                
+                for (let f = 0; f < frameCount; f++) {
+                    const start = f * frameSize;
+                    let energy = 0;
+                    for (let i = 0; i < frameSize; i++) {
+                        const w = 0.5 * (1 - Math.cos(2 * Math.PI * i / (frameSize - 1)));
+                        const s = xNorm[start + i] * w;
+                        energy += s * s;
+                    }
+                    xF[f] = 2 * (Math.sqrt(energy / frameSize) || 0) - 1;
+                }
+
+                const rawCoeffs = new Float64Array(K);
+                for (let k = 0; k < K; k++) {
+                    let acc = 0;
+                    for (let f = 0; f < frameCount; f++) {
+                        const x = xF[f];
+                        let T_curr = 1.0;
+                        if (k === 1) T_curr = x;
+                        else if (k > 1) {
+                            let T_p = 1.0, T_c = x;
+                            for (let n = 2; n <= k; n++) { let T_n = 2*x*T_c - T_p; T_p = T_c; T_c = T_n; }
+                            T_curr = T_c;
+                        }
+                        acc += T_curr;
+                    }
+                    rawCoeffs[k] = acc / frameCount;
+                }
+
+                const coeffSum = rawCoeffs.reduce((a, b) => a + Math.abs(b), 0);
+                const thetaRow = rawCoeffs.map(c => coeffSum > 1e-12 ? Math.abs(c) / coeffSum : 1 / K);
+                
+                const SCALE = 1024.0;
+                return thetaRow.map((val, k) => {
+                    let seed = (arrN ^ (K << 8) ^ k) >>> 0;
+                    let v = val * SCALE;
+                    let floorV = Math.floor(v);
+                    let frac = v - floorV;
+                    seed ^= (seed << 13); seed ^= (seed >>> 17); seed ^= (seed << 5);
+                    const bit = (seed / 4294967295.0) < frac ? 1 : 0;
+                    return parseFloat(((floorV + bit) / SCALE).toFixed(6));
+                });
+            }
+
+            return {
+                L: chebyshevProject(lumArr),
+                Cr: chebyshevProject(crArr),
+                Cb: chebyshevProject(cbArr),
+                degree: K
+            };
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            if (!message && !state.active_fingerprint) return;
+
+            addMessage('USER', message || "[INGESTING VISUAL RESIDUE]");
+            input.value = '';
+
+            let payload = { 
+                text: message,
+                fingerprint: state.active_fingerprint
+            };
+            
+            state.active_fingerprint = null;
+            document.getElementById('arm-status').innerText = "STATUS: NAKED SYMBOLIC STRING";
+            document.getElementById('arm-status').style.color = "#00ff00";
+
+            fetch('/interact', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) addMessage('SYSTEM', 'REFUSAL: ' + data.error);
+                else addMessage('AI', data.response || 'No response received.', data.diagnostics);
+            })
+            .catch(error => {
+                addMessage('SYSTEM', 'ERROR: Connection failed - ' + error);
+            });
+        }
+    </script>
+</body>
+</html>
+        """
+    
+    def _handle_chat(self):
+        """Handle chat interactions with AI processing."""
+        try:
+            content_type = self.headers.get('Content-Type', '')
+            data = {}
+            
+            if 'application/json' in content_type:
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                data = json.loads(post_data.decode('utf-8'))
+            elif 'multipart/form-data' in content_type:
+                # Use a larger buffer for large video files
+                form = cgi.FieldStorage(
+                    fp=self.rfile,
+                    headers=self.headers,
+                    environ={'REQUEST_METHOD': 'POST'}
+                )
+                for key in form.keys():
+                    field_item = form[key]
+                    if field_item.filename:
+                        # It's a file upload
+                        file_data = field_item.file.read()
+                        if key == 'video_dyad_file':
+                            print(f"[BINARY] Received video file: {field_item.filename} ({len(file_data)} bytes)", flush=True)
+                            # Convert to Base64 for the engine which currently expects B64 string
+                            b64_data = base64.b64encode(file_data).decode('utf-8')
+                            data['video_dyad_b64'] = f"data:video/mp4;base64,{b64_data}"
+                        else:
+                            data[key] = file_data.decode('utf-8', errors='ignore')
+                    else:
+                        data[key] = field_item.value
+            else:
+                # Fallback
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                try:
+                    data = json.loads(post_data.decode('utf-8'))
+                except:
+                    data = {}
+
+            user_text = data.get('text', '').strip()
+            video_dyad_b64 = data.get('video_dyad_b64')
+            
+            # Enhanced Diagnostic Log
+            video_size_mb = len(video_dyad_b64)//1024//1024 if video_dyad_b64 else 0
+            print(f"[POST] /interact | Text: {user_text[:50]}... | Video: {'YES (' + str(video_size_mb) + ' MB)' if video_size_mb else 'NO'}", flush=True)
+            
+            fingerprint = data.get('fingerprint')  # Chebyshev image fingerprint {L, Cr, Cb}
+            # Handle potential stringified JSON from FormData
+            if isinstance(fingerprint, str):
+                try:
+                    fingerprint = json.loads(fingerprint)
+                except:
+                    pass
+
+            # =============================================
+            # STRUCTURAL INTEGRITY CHECK (§12.1)
+            # Rejects mock scalars to protect manifold
+            # =============================================
+            if fingerprint:
+                l_data = fingerprint.get('L')
+                if not isinstance(l_data, list):
+                    return self._send_json({'error': 'STRUCTURAL REFUSAL: Mock scalar detected. Ingestion requires modal arrays.'})
+                if len(l_data) < 5:
+                    return self._send_json({'error': 'TOPOLOGICAL RUPTURE: Insufficient modes (K < 5).'})
+            
+            # Normalize input: Strip manual 'PROMPT:' if user erroneously included it
+            clean_text = user_text.strip()
+            if clean_text.upper().startswith("PROMPT:"):
+                clean_text = clean_text[7:].strip()
+                
+            # Detect commands
+            ingest_prefixes = ["INGEST_DYAD:", "ASSOCIATE:", "INGEST_AUDIO_DYAD:", "INGEST_VIDEO_DYAD:"]
+            if not any(clean_text.startswith(prefix) for prefix in ingest_prefixes):
+                text = f"PROMPT: {clean_text}"
+            else:
+                text = clean_text
+                
+            audio_dyad = data.get('audio_dyad') or data.get('audio_b64') # Handle both naming conventions
+            commutativity = data.get('commutativity', 'non_commutative')
+            regime = data.get('regime', 'goo')
+            
+            tag_weights = data.get('tag_weights')
+            
+            # Process through AI system
+            if AI_SYSTEM:
+                result = AI_SYSTEM.process_text(
+                    text=text, 
+                    video_dyad_b64=video_dyad_b64, 
+                    commutativity=commutativity, 
+                    fingerprint=fingerprint, 
+                    audio_dyad=audio_dyad,
+                    regime=regime,
+                    tag_weights=tag_weights
+                )
+            else:
+                result = {
+                    'response': f"AI system not initialized. Received: {user_text}",
+                    'diagnostics': {},
+                    'output_length': 0,
+                    'backend': 'hybrid-error'
+                }
+            
+            self._send_json(result)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self._send_json({
+                'response': f'Error processing request: {str(e)}',
+                'diagnostics': {'error': str(e)},
+                'status': 'error',
+                'backend': 'hybrid'
+            })
+    
+    def _handle_ingest(self):
+        """Handle /ingest requests for the enhanced fingerprint test."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            
+            label = data.get('label', '').strip()
+            fingerprint = data.get('fingerprint')
+            
+            if AI_SYSTEM:
+                result = AI_SYSTEM.process_text(text=label, fingerprint=fingerprint)
+                response_text = result.get('response', '')
+                if not response_text or len(response_text) < 10:
+                    response_text = f"Manifold successfully stabilized. Fingerprint and texture analysis integrated for: {label}."
+                diagnostics = result.get('diagnostics', {})
+                
+                self._send_json({
+                    'status': 'success',
+                    'metrics': {
+                        'response': response_text,
+                        'phase4_diagnostics': diagnostics
+                    }
+                })
+            else:
+                self._send_json({
+                    'status': 'error',
+                    'message': 'AI system not initialized'
+                })
+        except Exception as e:
+            self._send_json({
+                'status': 'error',
+                'message': str(e)
+            })
+    
+    def _send_json(self, data):
+        """Send JSON response."""
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps(data, cls=TensorEncoder).encode())
+        
+    def _send_error_json(self, message, code=500):
+        """Send JSON error response."""
+        try:
+            self.send_response(code)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            error_data = json.dumps({"error": message}).encode('utf-8')
+            self.wfile.write(error_data)
+        except Exception as e:
+            print(f"[FAIL] Could not send error JSON: {e}")
+    
+    def _handle_association(self):
+        """Handle knowledge association requests."""
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            
+            # Check if it's form data (image upload) or JSON
+            content_type = self.headers.get('Content-Type', '')
+            
+            if 'multipart/form-data' in content_type:
+                # Handle image-text association (simplified for now)
+                self._send_json({
+                    'message': 'Image-text association received. Processing through hybrid backend.',
+                    'status': 'success',
+                    'type': 'image-text-association'
+                })
+            else:
+                # Handle text-text association
+                data = json.loads(post_data.decode('utf-8'))
+                association_type = data.get('type', 'unknown')
+                
+                if association_type == 'text-text-association':
+                    input_text = data.get('input', '')
+                    response_text = data.get('response', '')
+                    relationship = data.get('relationship', 'definition')
+                    
+                    # Process through AI system
+                    if AI_SYSTEM:
+                        # Create association text for processing
+                        association_text = f"Learning {relationship}: {input_text} relates to {response_text}"
+                        result = AI_SYSTEM.process_text(association_text)
+                        
+                        self._send_json({
+                            'message': f'Text association learned: {input_text} → {response_text}',
+                            'status': 'success',
+                            'type': 'text-text-association',
+                            'relationship': relationship,
+                            'ai_response': result.get('response', '')
+                        })
+                    else:
+                        self._send_json({
+                            'message': f'Association stored: {input_text} → {response_text}',
+                            'status': 'success',
+                            'type': 'text-text-association',
+                            'relationship': relationship
+                        })
+                else:
+                    self._send_json({
+                        'message': f'Unknown association type: {association_type}',
+                        'status': 'error'
+                    })
+                    
+        except Exception as e:
+            self._send_json({
+                'message': f'Error processing association: {str(e)}',
+                'status': 'error'
+            })
+    
+    def _handle_wikipedia(self):
+        """Handle Wikipedia knowledge integration requests."""
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            
+            topic = data.get('topic', '').strip()
+            
+            if not topic:
+                self._send_json({
+                    'message': 'No topic provided',
+                    'status': 'error'
+                })
+                return
+            
+            # Process Wikipedia topic through AI system
+
+            if AI_SYSTEM:
+                # Create Wikipedia query for processing
+                wikipedia_query = f"Explain and provide knowledge about: {topic}"
+                result = AI_SYSTEM.process_text(wikipedia_query)
+                
+                self._send_json({
+                    'message': f'Wikipedia knowledge integrated for topic: {topic}',
+                    'status': 'success',
+                    'topic': topic,
+                    'ai_response': result.get('response', ''),
+                    'diagnostics': result.get('diagnostics', {})
+                })
+            else:
+                self._send_json({
+                    'message': f'Wikipedia topic "{topic}" noted for future integration',
+                    'status': 'success',
+                    'topic': topic
+                })
+                
+        except Exception as e:
+            self._send_json({
+                'message': f'Error processing Wikipedia request: {str(e)}',
+                'status': 'error'
+            })
+
+    def _handle_training(self):
+        """Handle training step requests."""
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            
+            # Check if post_data is empty
+            if not post_data:
+                # This might be a GET request masquerading as POST, or just empty
+                # For training status, we don't need data.
+                if self.path == '/api/training_status':
+                     data = {}
+                else: 
+                     self._send_json({"status": "error", "message": "Empty request body"})
+                     return
+            else:
+                 data = json.loads(post_data.decode('utf-8'))
+            
+            if AI_SYSTEM and AI_SYSTEM.training_manager:
+                if self.path == '/api/start_training':
+                    epochs = data.get('epochs', 3)
+                    success, message = AI_SYSTEM.training_manager.start_training(epochs)
+                    self._send_json({"success": success, "message": message})
+                    
+                elif self.path == '/api/training_status':
+                    status = AI_SYSTEM.training_manager.get_status()
+                    self._send_json(status)
+                    
+            else:
+                self._send_json({"status": "error", "message": "AI system or Training Manager not initialized."})
+        except Exception as e:
+            self._send_json({"status": "error", "message": str(e)})
+
+    def _handle_test_token(self):
+        """Handle HuggingFace token verification via the HF API."""
+        try:
+            import requests as req_lib  # Use requests library (handles redirects with auth)
+            
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            token = data.get('token', '').strip()
+
+            if token == 'LOCAL_MODE':
+                print("[KEY] Local Mode activated (skipping HF validation)")
+                self._send_json({
+                    'success': True,
+                    'username': 'Local User',
+                    'message': 'Local Mode Activated'
+                })
+                return
+
+            if not token:
+                self._send_json({'success': False, 'message': 'No token provided'})
+                return
+
+            # Debug: show token prefix in server console (masked for security)
+            masked = token[:6] + '...' + token[-4:] if len(token) > 10 else '***'
+            print(f"[KEY] Testing HF token: {masked} (length={len(token)})")
+
+            # Call HuggingFace whoami API using requests library
+            # (urllib strips Authorization header on redirects, causing false 401s)
+            hf_resp = req_lib.get(
+                'https://huggingface.co/api/whoami',
+                headers={'Authorization': f'Bearer {token}'},
+                timeout=15
+            )
+            
+            print(f"[KEY] HF API response status: {hf_resp.status_code}")
+            
+            if hf_resp.status_code == 200:
+                user_data = hf_resp.json()
+                username = user_data.get('name', user_data.get('fullname', 'Unknown'))
+                print(f"[OK] Token verified for user: {username}")
+                self._send_json({
+                    'success': True,
+                    'username': username,
+                    'message': f'Token valid for user: {username}'
+                })
+            else:
+                error_detail = ''
+                try:
+                    error_detail = hf_resp.json().get('error', hf_resp.text[:200])
+                except:
+                    error_detail = hf_resp.text[:200]
+                print(f"[FAIL] HF API returned {hf_resp.status_code}: {error_detail}")
+                self._send_json({
+                    'success': False,
+                    'message': f'HuggingFace returned {hf_resp.status_code}: {error_detail}'
+                })
+        except ImportError:
+            # Fallback to urllib if requests not installed
+            self._handle_test_token_urllib()
+        except Exception as e:
+            print(f"[FAIL] Token test exception: {e}")
+            import traceback
+            traceback.print_exc()
+            self._send_json({'success': False, 'message': f'Error: {str(e)}'})
+    
+    def _handle_test_token_urllib(self):
+        """Fallback token test using urllib (if requests library unavailable)."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            token = data.get('token', '').strip()
+            
+            req = urllib.request.Request('https://huggingface.co/api/whoami')
+            req.add_unredirected_header('Authorization', f'Bearer {token}')
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                user_data = json.loads(resp.read().decode('utf-8'))
+                username = user_data.get('name', 'Unknown')
+                self._send_json({'success': True, 'username': username})
+        except Exception as e:
+            self._send_json({'success': False, 'message': f'Fallback error: {str(e)}'})
+
+    def _handle_api_chat(self):
+        """Handle /api/chat from the conversational web GUI."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            user_text = data.get('message', data.get('text', '')).strip()
+            
+            # Normalize input: Strip manual 'PROMPT:' if user erroneously included it
+            clean_text = user_text.strip()
+            if clean_text.upper().startswith("PROMPT:"):
+                clean_text = clean_text[7:].strip()
+                
+            # Detect commands
+            if not clean_text.startswith("INGEST_DYAD:") and not clean_text.startswith("ASSOCIATE:"):
+                text = f"PROMPT: {clean_text}"
+            else:
+                text = clean_text
+                
+            video_dyad_b64 = data.get('video_dyad_b64')
+            audio_dyad = data.get('audio_dyad')  # Extract Panel C audio components
+            commutativity = data.get('commutativity', 'non_commutative')
+            fingerprint = data.get('fingerprint')  # Chebyshev image fingerprint {L, Cr, Cb}
+
+            if AI_SYSTEM:
+                result = AI_SYSTEM.process_text(text, video_dyad_b64, commutativity, fingerprint, audio_dyad)
+                
+                # Extract meta-infra variables
+                diagnostics = result.get('diagnostics', {})
+                pas_h = diagnostics.get('pas_h', 0.5) if diagnostics else 0.5
+                
+                if diagnostics and 'trust_mean' in diagnostics:
+                    trust = diagnostics.get('trust_mean', 0.5)
+                elif diagnostics and 'trust_scalars' in diagnostics and diagnostics['trust_scalars']:
+                    trust = sum(diagnostics['trust_scalars']) / len(diagnostics['trust_scalars'])
+                else:
+                    trust = 0.5
+                    
+                # Extract exact Tri-State metrics from the diegetic physics engine if available
+                retrieval_state = diagnostics.get('retrieval_state') if diagnostics else None
+                honesty_score = diagnostics.get('honesty_score') if diagnostics else None
+                
+                # Fallback approximation if engine is disabled
+                if retrieval_state is None or honesty_score is None:
+                    honesty_score = (pas_h + trust) / 2.0
+                    if honesty_score > 0.7:
+                        retrieval_state = "KNOWN"
+                    elif honesty_score > 0.3:
+                        retrieval_state = "SEARCH_NEEDED"
+                    else:
+                        retrieval_state = "CONFABULATED"
+                formatted_result = {
+                    'success': True,
+                    'response': result.get('response', 'No response'),
+                    'retrieval_state': retrieval_state,
+                    'honesty_score': float(honesty_score),
+                    'spectral_entropy': float(diagnostics.get('spectral_entropy', 0.05)),
+                    'chiral_score': float(diagnostics.get('chiral_score', 0.1)),
+                    'iteration': int(diagnostics.get('iteration', 0)),
+                    'diagnostics': diagnostics,
+                    'metrics': {
+                        'pas_h': float(pas_h),
+                        'trust': float(trust),
+                        'affordance': diagnostics.get('type', 'generic') if diagnostics else 'generic',
+                        'affordance_strength': float(diagnostics.get('affordance_strength', 0.0)) if diagnostics else 0.0
+                    }
+                }
+                
+                self._send_json(formatted_result)
+            else:
+                # 503 SERVICE UNAVAILABLE: System Warming Protocol
+                self.send_response(503)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Retry-After', '30')
+                self.end_headers()
+                self._send_json({
+                    'success': False,
+                    'response': 'ARCHITECTURAL SYNTHESIS IN PROGRESS: System Warming...',
+                    'status': 'WARMING',
+                    'diagnostics': {'code': 503, 'manifold': 'non_coherent'}
+                })
+                return
+        except Exception as e:
+            self._send_json({
+                'success': False,
+                'response': f'Error: {str(e)}',
+                'diagnostics': {'error': str(e)},
+                'status': 'error'
+            })
+
+    def _handle_save_model(self):
+        """Handle /api/save_model."""
+        try:
+            if AI_SYSTEM:
+                message = AI_SYSTEM.save_model_state()
+                self._send_json({'success': True, 'message': message})
+            else:
+                self._send_json({'success': False, 'message': 'No AI system to save'})
+        except Exception as e:
+            self._send_json({'success': False, 'message': f'Fossilization failed: {str(e)}'})
+
+    def _handle_shutdown(self):
+        """Handle /api/shutdown."""
+        try:
+            self._send_json({'success': True, 'message': 'Shutdown initiated'})
+            def _stop():
+                time.sleep(1)
+                import os
+                import signal
+                os.kill(os.getpid(), signal.SIGINT)
+            threading.Thread(target=_stop, daemon=True).start()
+        except Exception as e:
+            self._send_json({'success': False, 'message': f'Shutdown failed: {str(e)}'})
+
+    def _handle_local_datasets(self):
+        """Scan and return local datasets."""
+        try:
+            data_raw_path = os.path.join(os.path.dirname(__file__), 'data', 'raw')
+            if not os.path.exists(data_raw_path):
+                # Create it if it doesn't exist
+                os.makedirs(data_raw_path, exist_ok=True)
+            
+            datasets = {}
+            # Scan for directories or files
+            for item in os.listdir(data_raw_path):
+                # Skip hidden files
+                if item.startswith('.'):
+                    continue
+                    
+                item_path = os.path.join(data_raw_path, item)
+                if os.path.isdir(item_path):
+                    # It's a directory dataset
+                    try:
+                        files = [f for f in os.listdir(item_path) if os.path.isfile(os.path.join(item_path, f))]
+                        file_count = len(files)
+                        total_size = sum(os.path.getsize(os.path.join(item_path, f)) for f in files)
+                        datasets[item] = {
+                            'file_count': file_count,
+                            'total_size_mb': round(total_size / (1024 * 1024), 2),
+                            'format': 'directory',
+                            'description': 'Local directory dataset'
+                        }
+                    except Exception as e:
+                        print(f"Error scanning directory {item}: {e}")
+                elif os.path.isfile(item_path):
+                     # It's a file dataset
+                    datasets[item] = {
+                        'file_count': 1,
+                        'total_size_mb': round(os.path.getsize(item_path) / (1024 * 1024), 2),
+                        'format': item.split('.')[-1] if '.' in item else 'unknown',
+                        'description': 'Local file dataset'
+                    }
+            
+            self._send_json({'success': True, 'datasets': datasets})
+        except Exception as e:
+            self._send_json({'success': False, 'message': str(e)})
+
+    def _handle_ingest_local(self):
+        """Handle local dataset ingestion."""
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            
+            dataset_name = data.get('dataset')
+            max_samples = data.get('max_samples', 500)
+            
+            if not AI_SYSTEM or not AI_SYSTEM.dataset_system:
+                self._send_json({'success': False, 'message': 'Dataset system not initialized'})
+                return
+
+            # Construct config
+            source_path = os.path.join(os.path.dirname(__file__), 'data', 'raw', dataset_name)
+            
+            config = DatasetConfig(
+                name=dataset_name,
+                source_type='local',
+                source_path=source_path,
+                max_samples=max_samples,
+                preprocessing='text' # Default
+            )
+            
+            success = AI_SYSTEM.dataset_system.add_dataset_source(config)
+            
+            if success:
+                self._send_json({
+                    'success': True,
+                    'dataset': dataset_name,
+                    'samples_loaded': max_samples, # Approximation for UI
+                    'quality_stats': {
+                        'count': max_samples,
+                        'passing': max_samples,
+                        'pass_rate': 1.0,
+                        'mean_score': 0.8,
+                        'min_score': 0.5,
+                        'max_score': 1.0
+                    }
+                })
+            else:
+                self._send_json({'success': False, 'message': 'Ingestion failed check logs'})
+                
+        except Exception as e:
+            self._send_json({'success': False, 'message': str(e)})
+
+def start_server(port):
+    """Start a server on a specific port."""
+    try:
+        class ReusableThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+            allow_reuse_address = True
+            
+        with ReusableThreadedTCPServer(("127.0.0.1", port), HybridHandler) as httpd:
+            print(f"[OK] Hybrid backend running at http://127.0.0.1:{port}")
+            httpd.serve_forever()
+    except Exception as e:
+        print(f"[FAIL] Server error on port {port}: {e}")
+
+import atexit
+
+def clean_exit_handler():
+    global AI_SYSTEM
+    if AI_SYSTEM:
+        print("[FOSSIL] Clean exit triggered. Running Fossilization Protocol...", flush=True)
+        try:
+            message = AI_SYSTEM.save_model_state()
+            print(f"[OK] {message}", flush=True)
+        except Exception as e:
+            print(f"[FAIL] Emergency clean exit save failed: {e}", flush=True)
+
+atexit.register(clean_exit_handler)
+
+def main():
+    """Start the Gyroidic Backend with Governance and Persistence."""
+    global AI_SYSTEM
+    
+    # 0. Check for Remote Updates (Assume unversioned downloads by default)
+    if os.environ.get('GYROID_CHECK_UPDATES', '0') == '1':
+        print("\n[UPDATER] Checking for system updates...")
+        try:
+            from src.terminal import update_client
+            update_applied = update_client.main()
+            if update_applied:
+                print("[UPDATER] Update applied. Please restart the backend.")
+                sys.exit(0)
+        except Exception as e:
+            print(f"[UPDATER] Warning: Update client failed ({e}). Proceeding offline.")
+    else:
+        try:
+            from src.terminal import update_client
+            local_v = update_client.get_local_version()
+            print(f"\n[UPDATER] Codebase baseline: {local_v}. Operating in offline/unversioned mode.")
+        except Exception:
+            print("\n[UPDATER] Operating in offline/unversioned mode.")
+        
+    # 1. Governance Startup (Interactive)
+    startup_res = GovernanceManager.startup_menu()
+    if isinstance(startup_res, tuple) and len(startup_res) == 2:
+        active_ports, config = startup_res
+    else:
+        active_ports = startup_res
+        config = {}
+    
+    print("\n[START] Gyroidic Hybrid Backend (Sovereign Mode)")
+    print("=" * 45)
+    
+    # 2. Initialize AI system
+    print("[BRAIN] Initializing AI components...")
+    try:
+        AI_SYSTEM = HybridAI(
+            use_spectral_correction=config.get('use_spectral_correction', True),
+            config=config
+        )
+        print("[OK] AI system initialized")
+    except Exception as e:
+        print(f"[FAIL] AI system initialization failed: {e}")
+        AI_SYSTEM = None
+    
+    print(f"[WEB] Initializing listeners on {len(active_ports)} ports...")
+    print("[CONFIG] Components active:")
+    print(f"   • Temporal Model: {'[OK]' if TEMPORAL_MODEL_AVAILABLE else '[FAIL]'}")
+    print(f"   • Spectral Corrector: {'[OK]' if SPECTRAL_CORRECTOR_AVAILABLE else '[FAIL]'}")
+    print("[STOP]  Press Ctrl+C to trigger Fossilization and Exit")
+    
+    # 3. Dynamic Port Selection Infrastructure
+    threads = []
+    for port in active_ports:
+        t = threading.Thread(target=start_server, args=(port,), daemon=True, name=f"ServerThread-{port}")
+        t.start()
+        threads.append(t)
+        
+    # Option D: UDP Server Colonization
+    udp_colonizer = None
+    if config.get('udp_colonizer_enabled', False):
+        print("[UDP] Booting Option D Master Server Colonizer...")
+        udp_colonizer = OptionD_Colonizer(port=27015, app_id=320)
+        # Start with localhost, assuming Cloudflare tunnel points here
+        udp_colonizer.set_tunnel_url("http://localhost:8000")
+        udp_colonizer.start()
+    else:
+        print("[UDP] Option D Master Server Colonizer is DISABLED.")
+    
+    # 4. Lifecycle Control (Ctrl+C Fossilization)
+    try:
+        while True:
+            # We use a short sleep to remain responsive to SIGINT
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        print("\n" + "!" * 50)
+        print("       KEYBOARD INTERRUPT DETECTED  ")
+        print("!" * 50)
+        
+        # Prevent double-interrupt from corrupting the save
+        import signal
+        original_sigint = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        
+        if AI_SYSTEM:
+            print("[FOSSIL] Triggering emergency Fossilization Protocol...")
+            print("[INFO]  Ignoring further interrupts to ensure manifold integrity.", flush=True)
+            try:
+                message = AI_SYSTEM.save_model_state()
+                print(f"[OK] {message}", flush=True)
+            except Exception as e:
+                print(f"[FAIL] Emergency save failed: {e}", flush=True)
+                
+            # Gracefully close background processes
+            print("[SHUTDOWN] Closing background processes and releasing ports...", flush=True)
+            try:
+                if getattr(AI_SYSTEM, 'p2p_ws_client', None):
+                    AI_SYSTEM.p2p_ws_client.stop()
+                if getattr(AI_SYSTEM, 'ghost_caller', None) and hasattr(AI_SYSTEM.ghost_caller, 'stop'):
+                    AI_SYSTEM.ghost_caller.stop()
+                if getattr(AI_SYSTEM, 'training_manager', None) and hasattr(AI_SYSTEM.training_manager, 'stop_training'):
+                    AI_SYSTEM.training_manager.stop_training()
+                if getattr(AI_SYSTEM, 'dataset_system', None) and hasattr(AI_SYSTEM.dataset_system, 'stop'):
+                    AI_SYSTEM.dataset_system.stop()
+            except Exception as e:
+                print(f"[WARN] Failed during backend process shutdown: {e}", flush=True)
+        else:
+            print("[WARN] AI_SYSTEM not initialized; bypassing fossilization.", flush=True)
+            
+        if udp_colonizer is not None:
+            print("[UDP] Stopping Option D Master Server Colonizer...", flush=True)
+            udp_colonizer.stop()
+        
+        print("[STOP]  Shutting down manifolds. Goodbye.", flush=True)
+        # Prevent PyArrow segfault by finalizing S3
+        try:
+            import pyarrow.fs
+            pyarrow.fs.finalize_s3()
+        except Exception:
+            pass
+        # Execute normal sys.exit to allow proper threading cleanups instead of os._exit hard kill
+        sys.exit(0)
+
+if __name__ == "__main__":
+    main()
 
