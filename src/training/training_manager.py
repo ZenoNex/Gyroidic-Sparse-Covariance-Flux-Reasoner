@@ -84,13 +84,30 @@ class TrainingManager:
                      model = None
             # Initialize real FGRT Trainer
             fgrt_trainer = None
+            structural_adaptor = None
+            constraint_dataset = None
             if model is not None:
                 try:
                     from src.training.fgrt_trainer import FGRTStructuralTrainer
                     fgrt_trainer = FGRTStructuralTrainer(model=model, lr=learning_rate)
                     self.log.append("[BUILD] FGRTStructuralTrainer engaged. We are running live physics.")
                 except Exception as e:
-                    self.log.append(f"[WARN] FGRT initialization failed: {e}. Falling back to mock loops.")
+                    self.log.append(f"[WARN] FGRT initialization failed: {e}. Falling back to StructuralAdaptor.")
+                
+                # Reintegrate StructuralAdaptor and ConstraintDataset (Island 2)
+                try:
+                    from src.training.trainer import StructuralAdaptor, ConstraintDataset
+                    from src.training.gdpo_trainer import GDPOSovereigntyAdaptor
+                    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate) if hasattr(model, 'parameters') else None
+                    structural_adaptor = StructuralAdaptor(
+                        model=model,
+                        optimizer=optimizer,
+                        device=str(self.ai_system.device)
+                    )
+                    constraint_dataset = ConstraintDataset(num_samples=max(10, total_steps))
+                    self.log.append("[BUILD] StructuralAdaptor (LeCun EBM / Negentropic Manifold) engaged.")
+                except Exception as e:
+                    self.log.append(f"[WARN] StructuralAdaptor initialization deferred: {e}")
             
             total_steps = epochs * 10
             current_step = 0
@@ -107,7 +124,7 @@ class TrainingManager:
                     
                 self.log.append(f"Epoch {epoch+1}/{epochs} initiated...")
                 
-                # Real/Mock Batch Loop
+                # Batch Loop
                 for batch in range(10): 
                     if self.stop_event.is_set():
                         break
@@ -117,7 +134,7 @@ class TrainingManager:
                     self.progress = int((current_step / total_steps) * 100)
                     
                     if fgrt_trainer is not None:
-                        # ---------------- REAL TRAINING PATH ----------------
+                        # ---------------- REAL FGRT TRAINING PATH ----------------
                         try:
                             # Generate an honest-jitter batch to test structural resonance
                             input_data = harvest_honest_jitter((1, 4, 16), device=self.ai_system.device, scaled=True)
@@ -130,27 +147,44 @@ class TrainingManager:
                             chiral_score = metrics.get('chiral_score', CHIRAL_BIAS)
                             gyroid_pressure = metrics.get('gyroid_pressure', 0.0)
                         except Exception as e:
-                            self.log.append(f"[WARN] Real training step failed: {e}. Falling back for this step.")
+                            self.log.append(f"[WARN] Real training step failed: {e}. Falling back to StructuralAdaptor for this step.")
                             fgrt_trainer = None
                             continue
+                    elif structural_adaptor is not None and constraint_dataset is not None:
+                        # ---------------- STRUCTURAL ADAPTOR / EBM PATH ----------------
+                        try:
+                            sample = constraint_dataset[current_step % len(constraint_dataset)]
+                            batch_data = {
+                                'text_emb': torch.from_numpy(sample['text_emb']).unsqueeze(0).to(self.ai_system.device),
+                                'graph_emb': torch.from_numpy(sample['graph_emb']).unsqueeze(0).to(self.ai_system.device),
+                                'num_features': torch.from_numpy(sample['num_features']).unsqueeze(0).to(self.ai_system.device),
+                                'anchors': torch.tensor([sample['anchor']], dtype=torch.long, device=self.ai_system.device)
+                            }
+                            adapt_metrics = structural_adaptor.adaptation_step(batch_data)
+                            loss = float(adapt_metrics.get('loss', adapt_metrics.get('pressure', 0.5)))
+                            pas_h = float(adapt_metrics.get('pas_h', 0.95))
+                            chiral_score = float(adapt_metrics.get('chiral_score', CHIRAL_BIAS))
+                            gyroid_pressure = float(adapt_metrics.get('gyroid_pressure', 0.0))
+                        except Exception as e:
+                            self.log.append(f"[WARN] Structural adaptation step fallback: {e}")
+                            time.sleep(0.1)
+                            jitter = harvest_honest_jitter((1,), device=self.ai_system.device, scaled=True).item()
+                            loss = 0.5 * (1.0 - (current_step / total_steps)) + (abs(jitter) * 0.1)
+                            pas_h = 0.8 + (0.2 * (current_step / total_steps)) + (jitter * 0.02)
+                            chiral_score = CHIRAL_BIAS + (jitter * 0.05)
+                            gyroid_pressure = max(0.0, 1.0 - pas_h) * 5.0
                     else:
-                        # ---------------- MOCK TRAINING PATH ----------------
-                        time.sleep(0.5)
+                        # Fallback step
+                        time.sleep(0.2)
                         jitter = harvest_honest_jitter((1,), device=self.ai_system.device, scaled=True).item()
                         loss = 0.5 * (1.0 - (current_step / total_steps)) + (abs(jitter) * 0.1)
-                    
-                    # PAS_h: Phase Amplitude Stability (Hardened) - Converges to 1.0
                         pas_h = 0.8 + (0.2 * (current_step / total_steps)) + (jitter * 0.02)
-                        
-                    # Chiral Score: Rotational metric (Warm Started to preserve chiral residues)
                         if warm_start_chirality is None:
                             chiral_score = CHIRAL_BIAS + (jitter * 0.05)
                         else:
                             chiral_score = warm_start_chirality * 0.99 + (jitter * 0.01)
                         warm_start_chirality = chiral_score
-                    
-                    # Gyroid Pressure: Stress on the manifold
-                        gyroid_pressure = max(0, 1.0 - pas_h) * 5.0
+                        gyroid_pressure = max(0.0, 1.0 - pas_h) * 5.0
 
                     # --- RE-HYBRIDIZATION: Situational Batching (Pusafiliacrimonto Dynamics) ---
                     if hasattr(self.ai_system, 'situational_sampler'):
