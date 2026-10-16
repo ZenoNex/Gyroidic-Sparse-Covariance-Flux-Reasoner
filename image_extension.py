@@ -28,7 +28,7 @@ from src.core.honest_jitter import harvest_honest_jitter
 from src.codec.vision_surgery import IntercosaminationOperator, MirrorTestProbe
 from src.codec.vision_utilities import get_russian_doll_projection
 
-from typing import Optional, List, Tuple, Union
+from typing import Optional, List, Tuple, Union, Dict, Any
 import os
 
 class StructuralEntanglementNet(nn.Module):
@@ -184,6 +184,18 @@ class ImageProcessor(nn.Module):
         patches = patches.permute(1, 0, 2, 3) # [64, 3, 64, 64] (Batch of tiles)
         
         return patches
+
+    def extract_prompt_metadata(self, image_input: Union[str, os.PathLike]) -> Dict[str, Any]:
+        """Extract hidden prompt metadata from ChatGPT WebP artifacts if present."""
+        path = Path(image_input)
+        if path.suffix.lower() == '.webp' and path.exists():
+            try:
+                from src.data.webp_prompt_extractor import WebPPromptExtractor
+                extractor = WebPPromptExtractor(str(path.parent))
+                return extractor.extract_from_webp(path)
+            except Exception as e:
+                return {'error': str(e)}
+        return {}
 
     def extract_image_fingerprint(self, image_input: Union[str, Image.Image]) -> torch.Tensor:
         """Alias for compatibility with older test suites."""
