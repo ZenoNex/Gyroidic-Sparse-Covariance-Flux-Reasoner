@@ -481,7 +481,7 @@ class UnknowledgeDomain(nn.Module):
         diffusion_coefficient = 0.1 * (1.0 + shear)
         
         # Atrophy: Calculate by applying local correlation to the eigenvalue spectrum
-        from core.martinova_correlation import compute_bounded_correlation
+        from src.core.martinova_correlation import compute_bounded_correlation
         corr = compute_bounded_correlation(eigenvalues.unsqueeze(-1).unsqueeze(0)).squeeze(0)
         atrophy = corr.item()
         is_dangerously_legible = atrophy > self.legibility_threshold
