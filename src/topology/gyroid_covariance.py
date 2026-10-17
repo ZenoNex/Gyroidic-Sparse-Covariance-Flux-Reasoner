@@ -927,7 +927,7 @@ class GyroidCovarianceEstimator(nn.Module):
         diffusion_coefficient = 0.1 * (1.0 + shear)
 
         # Atrophy: Calculate by applying local correlation to the eigenvalue spectrum
-        from core.martinova_correlation import compute_bounded_correlation
+        from src.core.martinova_correlation import compute_bounded_correlation
         corr = compute_bounded_correlation(eigenvalues.unsqueeze(-1).unsqueeze(0)).squeeze(0)
         atrophy = corr.item()
         is_dangerously_legible = atrophy > 0.85
@@ -949,11 +949,14 @@ class LeyLineGeodesicMetric(nn.Module):
     Computes preferred geodesics in state space based on constraint-induced curvature.
     Implements a non-Euclidean metric g_{ij}(x) where 'ley lines' are paths
     that minimize the anisotropic action.
+    Delegates streamline potential tracking to canonical LeyLineTracker.
     """
-    def __init__(self, dim: int, anisotropy_init: float = 1.0):
+    def __init__(self, dim: int, anisotropy_init: float = 1.0, num_samples: int = 32):
         super().__init__()
         self.dim = dim
         self.g_base = nn.Parameter(torch.eye(dim) * anisotropy_init)
+        from src.core.ley_line_tracker import LeyLineTracker
+        self.tracker = LeyLineTracker(num_samples=num_samples)
         
     def compute_metric(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -979,27 +982,38 @@ class LeyLineGeodesicMetric(nn.Module):
         """
         delta = x1 - x2
         G = self.compute_metric(x1)
-        # Using the midpoint approximation for G
-        dist_sq = torch.matmul(delta.unsqueeze(1), torch.matmul(G, delta.unsqueeze(2)))
+        if delta.dim() == 1:
+            dist_sq = delta.unsqueeze(0) @ G @ delta.unsqueeze(-1)
+        else:
+            dist_sq = delta.unsqueeze(-2) @ G @ delta.unsqueeze(-1)
         return torch.sqrt(dist_sq.squeeze() + 1e-8)
+
+    def detect_ley_shear(self, pressure: torch.Tensor, threshold: float = 0.5) -> torch.Tensor:
+        """Delegates shear plane detection directly to LeyLineTracker."""
+        return self.tracker.detect_shear_planes(pressure, threshold=threshold)
+
 
 class MoebiusFiberBundle(nn.Module):
     """
     Orientation-twisted recursive fiber bundle.
     
-    Implements a transition function g satisfying g  O(n) \ SO(n),
-    causing orientation reversal on traversal (Mbius holonomy).
+    Implements a transition function g satisfying g in O(n) \ SO(n),
+    causing orientation reversal on traversal (Möbius holonomy).
+    Delegates manifold reversal and Carnot-Möbius thermodynamics to 
+    canonical GluingOperator and CarnotMobiusLedger.
     """
     def __init__(self, dim: int, fiber_dim: int):
         super().__init__()
         self.dim = dim
         self.fiber_dim = fiber_dim
         
-        # Transition operator that includes a reflection (det = -1)
-        reflection = torch.eye(dim)
-        reflection[0, 0] = -1.0
-        self.register_buffer('transition_twist', reflection)
+        from src.core.gluing_operator import GluingOperator
+        from src.core.carnot_mobius_ledger import CarnotMobiusLedger
+        self.gluing_operator = GluingOperator(dim=dim)
+        self.carnot_ledger = CarnotMobiusLedger()
         
+        # Transition operator alias pointing to GluingOperator's reversal_matrix
+        self.register_buffer('transition_twist', self.gluing_operator.reversal_matrix)
         self.fiber_projection = nn.Linear(dim, fiber_dim)
         
     def forward(self, x: torch.Tensor, twist_gate: torch.Tensor) -> torch.Tensor:
@@ -1009,7 +1023,7 @@ class MoebiusFiberBundle(nn.Module):
         x: Base state
         twist_gate: Trigger for orientation reversal (e.g. crossing a facet boundary)
         """
-        # Apply twist if gated
+        # Apply twist via canonical GluingOperator reversal matrix if gated
         twisted_x = torch.where(twist_gate.unsqueeze(-1) > 0.5, 
                                 torch.matmul(x, self.transition_twist), 
                                 x)
@@ -1017,4 +1031,15 @@ class MoebiusFiberBundle(nn.Module):
         # Project to fiber space
         fiber_state = self.fiber_projection(twisted_x)
         return fiber_state
+
+    def audit_carnot_efficiency(
+        self,
+        lambda_vac: torch.Tensor,
+        lambda_pump: torch.Tensor,
+        admr_residues: torch.Tensor,
+        depth_N: int
+    ) -> Dict[str, Any]:
+        """Audits thermodynamic stack efficiency via CarnotMobiusLedger."""
+        return self.carnot_ledger(lambda_vac, lambda_pump, admr_residues, depth_N)
+
 
