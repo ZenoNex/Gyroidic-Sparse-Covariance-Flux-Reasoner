@@ -1335,6 +1335,65 @@ class PhysicalNodeEditor:
             "inventory_mass": dict(self.inventory.block_masses)
         }
 
+    def hook_cleanroom_piston(
+        self,
+        player_id: str = "player_sovereign",
+        source_coord: Tuple[int, int, int] = (0, 0, 0),
+        push_direction: Tuple[int, int, int] = (1, 0, 0),
+        impulse_magnitude: float = 500.0,
+        construct_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Hook for Cleanroom Handheld Piston tool interacting with PointerlessOctree,
+        PermissionsManager, StructuralGraph, and RigidBody.
+        """
+        from src.environment.cleanroom_mechanics import HandheldPistonTool
+        tool = HandheldPistonTool(impulse_magnitude=impulse_magnitude)
+        graph = self.voxelboxter.constructs.get(construct_id) if construct_id and hasattr(self, "voxelboxter") else None
+        res = tool.fire(
+            player_id=player_id,
+            source_coord=source_coord,
+            push_direction=push_direction,
+            octree=self.octree,
+            permissions_manager=self.permissions,
+            graph=graph,
+            node_editor=self
+        )
+        return {
+            "status": res.status.name,
+            "target_type": res.target_type,
+            "source_coord": res.source_coord,
+            "dest_coord": res.dest_coord,
+            "betti_numbers": res.betti_numbers,
+            "topological_complexity": res.topological_complexity,
+            "macro_move_report": res.macro_move_report,
+            "kinetic_impulse_report": res.kinetic_impulse_report,
+            "fossilization_wager_enforced": res.fossilization_wager_enforced,
+            "message": res.message
+        }
+
+    def hook_cleanroom_terrain_generation(
+        self,
+        chunk_x: int = 0,
+        chunk_z: int = 0,
+        y_min: int = 0,
+        y_max: int = 32,
+        step: int = 4
+    ) -> Dict[str, Any]:
+        """
+        Hook for Multiplexed Perlin-Worley-Gyroid procedural chunk generation into PointerlessOctree.
+        """
+        from src.environment.cleanroom_mechanics import PerlinWorleyGyroidGenerator
+        gen = PerlinWorleyGyroidGenerator()
+        return gen.generate_chunk(
+            chunk_x=chunk_x,
+            chunk_z=chunk_z,
+            octree=self.octree,
+            y_min=y_min,
+            y_max=y_max,
+            step=step
+        )
+
     def hook_adaptive_rig(
         self,
         subtype: EnemySubtype = EnemySubtype.NONE,
