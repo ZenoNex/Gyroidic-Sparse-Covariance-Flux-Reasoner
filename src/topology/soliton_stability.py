@@ -4,10 +4,10 @@ Soliton Stability Functional
 Implements dispersion and localization computation for soliton detection.
 
 Mathematical Foundation:
-    D(r) = ∫_C |∇Φ(r)|^2 dμ
-    Λ(r) = sup_{U subset C} μ(U) s.t. ∫_U |Φ(r)|^2 dμ >= η
+    D(r) = _C |(r)|^2 d
+    (r) = sup_{U subset C} (U) s.t. _U |(r)|^2 d >= 
     
-    Soliton condition: D(r) / Λ(r) < κ
+    Soliton condition: D(r) / (r) < 
     (no minimization, threshold only)
 """
 
@@ -16,6 +16,8 @@ import torch.nn as nn
 from typing import Optional, Tuple, Dict
 import numpy as np
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.relational_kappa import RelationalKappa
+from src.core.energy_based_soliton_healer import EnergyBasedSolitonHealer
 
 
 class SolitonStability(nn.Module):
@@ -23,24 +25,30 @@ class SolitonStability(nn.Module):
     Soliton Stability Functional.
     
     Computes dispersion and localization to detect stable solitons.
+    Delegates context-dependent threshold computation to canonical RelationalKappa
+    and healing to EnergyBasedSolitonHealer.
     """
     
     def __init__(
         self,
         eta: float = 0.5,
-        kappa: float = 0.1,
+        kappa: Optional[float] = None,
         num_integration_samples: int = 100
     ):
         """
         Args:
             eta: Energy threshold for localization (default: 0.5)
-            kappa: Soliton threshold (default: 0.1)
+            kappa: Soliton threshold (default: None, derived from RelationalKappa)
             num_integration_samples: Number of samples for numerical integration
         """
         super().__init__()
         self.eta = eta
         self.kappa = kappa
         self.num_integration_samples = num_integration_samples
+        # Canonical Relational Kappa context-dependent soliton threshold
+        self.relational_kappa = RelationalKappa(lambda_temperament=4.5)
+        # Canonical Energy-Based Soliton Stability Healer
+        self.soliton_healer = EnergyBasedSolitonHealer()
     
     def compute_dispersion(
         self,
@@ -49,7 +57,7 @@ class SolitonStability(nn.Module):
         embedding_fn: Optional[callable] = None
     ) -> torch.Tensor:
         """
-        Compute dispersion: D(r) = ∫_C |∇Φ(r)|^2 dμ
+        Compute dispersion: D(r) = _C |(r)|^2 d
         
         Args:
             residue: [batch, ...] residue tensor
@@ -87,7 +95,7 @@ class SolitonStability(nn.Module):
             phi_b = phi_r[b]  # [dim]
             constraint_b = constraint_manifold[b]  # [dim]
             
-            # Compute gradient: ∇Φ(r) ≈ (Φ(r + δ) - Φ(r)) / δ
+            # Compute gradient: (r)  ((r + ) - (r)) / 
             # Use finite differences
             delta = 1e-5
             grad_squared_sum = 0.0
@@ -106,7 +114,7 @@ class SolitonStability(nn.Module):
                 # Compute gradient approximation
                 grad_approx = (phi_perturbed - phi_b) / delta
                 
-                # |∇|^2
+                # ||^2
                 grad_squared_sum += torch.sum(grad_approx ** 2).item()
             
             # Average over samples (approximate integration)
@@ -123,7 +131,7 @@ class SolitonStability(nn.Module):
         eta: Optional[float] = None
     ) -> torch.Tensor:
         """
-        Compute localization: Λ(r) = sup_{U subset C} μ(U) s.t. ∫_U |Φ(r)|^2 dμ >= η
+        Compute localization: (r) = sup_{U subset C} (U) s.t. _U |(r)|^2 d >= 
         
         Finds the largest region U where energy >= eta.
         
@@ -162,7 +170,7 @@ class SolitonStability(nn.Module):
             phi_b = phi_r[b]  # [dim]
             constraint_b = constraint_manifold[b]  # [dim]
             
-            # Compute energy: |Φ(r)|^2
+            # Compute energy: |(r)|^2
             energy = torch.sum(phi_b ** 2)
             
             # Find largest region U where energy >= eta
@@ -193,36 +201,51 @@ class SolitonStability(nn.Module):
         kappa: Optional[float] = None
     ) -> torch.Tensor:
         """
-        Check soliton condition: D(r) / Λ(r) < κ
+        Check soliton condition: D(r) / Lambda(r) < kappa
         
         Args:
             residue: [batch, ...] residue tensor
             constraint_manifold: [batch, dim] constraint manifold
             embedding_fn: Optional embedding function
-            kappa: Optional threshold (uses self.kappa if None)
+            kappa: Optional threshold. If None, derived dynamically via RelationalKappa.
             
         Returns:
             is_soliton: [batch] boolean tensor
         """
-        if kappa is None:
-            kappa = self.kappa
-        
         D = self.compute_dispersion(residue, constraint_manifold, embedding_fn)
         Lambda = self.compute_localization(residue, constraint_manifold, embedding_fn)
         
         # Ratio: D / Lambda
         ratio = D / (Lambda + 1e-8)
         
-        # Soliton if ratio < kappa
-        is_soliton = ratio < kappa
+        # Context-dependent kappa derivation
+        if kappa is None:
+            if self.kappa is not None:
+                kappa_thresh = self.kappa
+            else:
+                k_val = self.relational_kappa.compute_kappa()
+                kappa_thresh = float(k_val.item()) if isinstance(k_val, torch.Tensor) else float(k_val)
+                self.relational_kappa.update(ratio.mean())
+        else:
+            kappa_thresh = kappa
+            self.relational_kappa.update(ratio.mean())
         
-        return is_soliton
+        return ratio < kappa_thresh
+
+    def heal_soliton(
+        self,
+        state: torch.Tensor,
+        target: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, Dict]:
+        """Delegates soliton healing to canonical EnergyBasedSolitonHealer."""
+        return self.soliton_healer.heal_state(state, target=target)
     
     def forward(
         self,
         residue: torch.Tensor,
         constraint_manifold: torch.Tensor,
-        embedding_fn: Optional[callable] = None
+        embedding_fn: Optional[callable] = None,
+        kappa: Optional[float] = None
     ) -> Dict[str, torch.Tensor]:
         """
         Forward pass: compute soliton stability metrics.
@@ -231,17 +254,31 @@ class SolitonStability(nn.Module):
             Dictionary with:
             - 'is_soliton': [batch] boolean
             - 'dispersion': [batch] D(r)
-            - 'localization': [batch] Λ(r)
-            - 'ratio': [batch] D(r) / Λ(r)
+            - 'localization': [batch] Lambda(r)
+            - 'ratio': [batch] D(r) / Lambda(r)
+            - 'kappa_threshold': scalar tensor
         """
         D = self.compute_dispersion(residue, constraint_manifold, embedding_fn)
         Lambda = self.compute_localization(residue, constraint_manifold, embedding_fn)
         ratio = D / (Lambda + 1e-8)
-        is_soliton = ratio < self.kappa
+        
+        if kappa is None:
+            if self.kappa is not None:
+                kappa_thresh = self.kappa
+            else:
+                k_val = self.relational_kappa.compute_kappa()
+                kappa_thresh = float(k_val.item()) if isinstance(k_val, torch.Tensor) else float(k_val)
+                self.relational_kappa.update(ratio.mean())
+        else:
+            kappa_thresh = kappa
+            self.relational_kappa.update(ratio.mean())
+            
+        is_soliton = ratio < kappa_thresh
         
         return {
             'is_soliton': is_soliton,
             'dispersion': D,
             'localization': Lambda,
-            'ratio': ratio
+            'ratio': ratio,
+            'kappa_threshold': torch.tensor(kappa_thresh, device=residue.device)
         }
