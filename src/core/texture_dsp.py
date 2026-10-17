@@ -3,14 +3,15 @@ import numpy as np
 from scipy import fftpack
 import sys
 import os
+from typing import Optional, Any
 
 try:
-    from image_extension import ImageProcessor, StructuralEntanglementNet
+    from image_extension import ImageProcessor, StructuralEntanglementNet, ConjugateColorTransport
 except ImportError:
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     if root_dir not in sys.path:
         sys.path.insert(0, root_dir)
-    from image_extension import ImageProcessor, StructuralEntanglementNet
+    from image_extension import ImageProcessor, StructuralEntanglementNet, ConjugateColorTransport
 
 class TextureDSPEngine:
     """
@@ -21,6 +22,28 @@ class TextureDSPEngine:
     def __init__(self, device: str = 'cpu'):
         self.device = device
         self.image_processor = ImageProcessor(device=self.device)
+        self.color_transport = ConjugateColorTransport(device=self.device)
+
+    def apply_conjugate_color_filter(
+        self,
+        image_tensor: torch.Tensor,
+        kappa: float = 0.15,
+        prime_ladder: Optional[Any] = None
+    ) -> torch.Tensor:
+        """
+        Applies OKLab whitening, Gaussian mixture valley potential, and Brenier push-forward
+        transport to image / texture tensor [B, C, H, W] or [B, H, W, 3].
+        """
+        if image_tensor.dim() == 4 and image_tensor.shape[1] == 3:
+            # [B, 3, H, W] -> [B, H, W, 3]
+            perm = image_tensor.permute(0, 2, 3, 1)
+            transported = self.color_transport.transport_colors(perm, kappa=kappa, prime_ladder=prime_ladder)
+            return transported.permute(0, 3, 1, 2)
+        elif image_tensor.dim() == 4 and image_tensor.shape[3] == 3:
+            return self.color_transport.transport_colors(image_tensor, kappa=kappa, prime_ladder=prime_ladder)
+        elif image_tensor.dim() == 3 and image_tensor.shape[-1] == 3:
+            return self.color_transport.transport_colors(image_tensor, kappa=kappa, prime_ladder=prime_ladder)
+        return image_tensor
 
     def apply_spectral_filter(self, image_tensor: torch.Tensor, cutoff_freq: float = 0.5) -> torch.Tensor:
         """
