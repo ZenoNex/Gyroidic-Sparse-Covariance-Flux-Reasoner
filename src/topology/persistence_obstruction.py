@@ -18,6 +18,7 @@ import torch.nn as nn
 from typing import List, Dict, Tuple, Optional
 import networkx as nx
 import numpy as np
+from src.core.quantum_tda import QuantumBettiApproximator
 
 
 class ResidueFiltration(nn.Module):
@@ -174,6 +175,19 @@ class PersistentHomologyComputer(nn.Module):
         """
         super().__init__()
         self.max_dimension = max_dimension
+        # Canonical Quantum-Assisted Betti Number Approximator
+        self.quantum_betti = QuantumBettiApproximator()
+    
+    def approximate_betti_quantum(
+        self, 
+        adjacency_matrix: torch.Tensor, 
+        max_dim: Optional[int] = None
+    ) -> Dict[int, int]:
+        """Approximates high-dimensional Betti numbers via canonical QuantumBettiApproximator."""
+        dim_target = max_dim if max_dim is not None else self.max_dimension
+        res = self.quantum_betti.estimate_betti_numbers(adjacency_matrix, max_dim=dim_target)
+        return {k: int(v.float().mean().item()) for k, v in res.items()}
+
     
     def compute_betti_numbers(
         self,
