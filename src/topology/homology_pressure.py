@@ -9,6 +9,8 @@ import torch.nn as nn
 from typing import List, Dict, Optional, Tuple
 import networkx as nx
 
+from src.core.pressure_typing import StructuralPressure
+
 # Phase 2: Import persistence obstruction graph
 try:
     from src.topology.persistence_obstruction import ResidueObstructionGraph
@@ -198,6 +200,21 @@ class HomologyPressure(nn.Module):
             total_pressure += pressure
             
         return total_pressure * self.cycle_weight
+
+    def forward_typed(
+        self,
+        cycles: List[List[int]],
+        pressures: torch.Tensor,
+        tau: float = 0.5,
+        introspection_coherence: Optional[torch.Tensor] = None,
+        domain: str = "homology_ker_obstruction"
+    ) -> StructuralPressure:
+        """
+        Computes domain-isolated StructuralPressure, preventing scalarization traps.
+        """
+        raw_pressure = self.forward(cycles, pressures, tau=tau, introspection_coherence=introspection_coherence)
+        return StructuralPressure(raw_pressure, domain=domain)
+
 
 
 class WeightedBettiNumber(nn.Module):
