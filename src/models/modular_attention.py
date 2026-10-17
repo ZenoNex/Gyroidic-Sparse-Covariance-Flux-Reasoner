@@ -9,7 +9,7 @@ Created: January 2026
 
 import torch
 import torch.nn as nn
-from typing import List, Optional
+from typing import List, Optional, Union, Dict, Any, Tuple
 import math
 
 from src.core.birkhoff_projection import BirkhoffProjection
@@ -105,6 +105,65 @@ class ModularAttention(nn.Module):
         # Structural Integrity Buffer
         self.register_buffer('last_integrity_mask', torch.ones(1, dtype=torch.bool))
     
+    @staticmethod
+    def construct_dynamic_attention_mask(
+        violations: Union[torch.Tensor, float],
+        seq_len: int,
+        threshold: float = 0.5,
+        local_window: int = 2,
+        device: Optional[torch.device] = None
+    ) -> torch.Tensor:
+        """
+        Construct a Dynamic Attention Mask guided by topological violations.
+        
+        High violation (> threshold) -> Dense attention (allows long-range defect resolution).
+        Low violation (<= threshold) -> Band-sparse attention (local window).
+        
+        Args:
+            violations: Scalar or [batch] tensor of GCVE/topological violation scores.
+            seq_len: Sequence length for the [seq_len, seq_len] attention mask.
+            threshold: Violation threshold above which dense attention is triggered.
+            local_window: Half-window size for band-diagonal sparse attention.
+            device: Optional torch.device for mask tensor.
+            
+        Returns:
+            mask: [batch, 1, seq_len, seq_len] or [seq_len, seq_len] attention bias mask (0.0 allowed, -1e4 masked).
+        """
+        if isinstance(violations, (int, float)):
+            v_val = float(violations)
+            v_tensor = torch.tensor([v_val])
+        else:
+            v_val = violations.mean().item()
+            v_tensor = violations
+            
+        dev = device if device is not None else (v_tensor.device if isinstance(v_tensor, torch.Tensor) else torch.device('cpu'))
+        
+        if v_tensor.dim() == 0 or v_tensor.numel() == 1:
+            if v_val > threshold:
+                return torch.zeros((1, 1, seq_len, seq_len), device=dev)
+            else:
+                mask = torch.full((seq_len, seq_len), -1e4, device=dev)
+                for i in range(seq_len):
+                    low = max(0, i - local_window)
+                    high = min(seq_len, i + local_window + 1)
+                    mask[i, low:high] = 0.0
+                return mask.unsqueeze(0).unsqueeze(0)
+        else:
+            batch_sz = v_tensor.shape[0]
+            masks = []
+            for b in range(batch_sz):
+                vb = v_tensor[b].item()
+                if vb > threshold:
+                    m = torch.zeros((seq_len, seq_len), device=dev)
+                else:
+                    m = torch.full((seq_len, seq_len), -1e4, device=dev)
+                    for i in range(seq_len):
+                        low = max(0, i - local_window)
+                        high = min(seq_len, i + local_window + 1)
+                        m[i, low:high] = 0.0
+                masks.append(m)
+            return torch.stack(masks, dim=0).unsqueeze(1)
+
     def validate_structural_integrity(self) -> torch.Tensor:
         """
         Structural Validation: Are attention matrices on the Birkhoff Polytope?
@@ -178,8 +237,15 @@ class ModularAttention(nn.Module):
             if kwargs.get('path_topology_vectors') is not None:
                 topology_bias = kwargs['path_topology_vectors'].unsqueeze(1) # Broadcast over heads
                 scores = scores + topology_bias
-                
-            # [ARCHITECTURAL REMEDIATION] Replaced crude masked_fill and nn.Dropout with Unknowledge Domain
+
+            # Dynamic Attention Mask Injection
+            if mask is not None:
+                if mask.dim() == 2:
+                    scores = scores + mask.unsqueeze(0).unsqueeze(0)
+                elif mask.dim() == 3:
+                    scores = scores + mask.unsqueeze(1)
+                else:
+                    scores = scores + mask
             # Masking and crude dropout lobotomize the "Dream State" of the attention map.
             # Instead of masking to -1e9, we apply the Unknowledge Domain's computable flux shield later
             # and use Nostalgic Leak on the final states.
