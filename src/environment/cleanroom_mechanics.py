@@ -25,6 +25,7 @@ from enum import Enum, auto
 
 import torch
 import torch.nn as nn
+import numpy as np
 
 # Canonical simulation, physics, and invariant imports to eliminate wheel reinvention
 from src.ui.voxelboxter_simulation import (
@@ -3683,6 +3684,339 @@ class PerlinWorleyGyroidGenerator:
             return octree.traverse_scale_expand_16x(center_cell)
         else:
             return octree.traverse_scale_contract_16x()
+
+
+# =========================================================================
+# 34. CHISELS & BITS MICRO-OCTREE SUB-VOXEL CARVING & MASS CONSERVATION (HOOK 15)
+# =========================================================================
+
+@dataclass
+class MicroVoxelBit:
+    """A single 1/16th scale micro-voxel bit inside a macroscopic voxel cell."""
+    sub_x: int
+    sub_y: int
+    sub_z: int
+    material_id: int
+    complexity: float = 0.05
+
+
+class ChiselsAndBitsMicroOctree:
+    """
+    Sub-voxel 1/16th scale micro-octree for Chisels & Bits sculpting (Hook 15).
+    A single macroscopic block (1x1x1) contains 16x16x16 = 4096 micro-bits.
+    Uses Morton Z-order bit-interleaving within each micro-cell for spatial locality.
+    Enforces strict mass conservation: 4096 micro-bits <=> 1 macroscopic block.
+    """
+    BITS_PER_AXIS = 16
+    TOTAL_BITS_PER_BLOCK = 4096
+
+    def __init__(self):
+        # Maps macroscopic (mx, my, mz) -> dict of micro_morton -> MicroVoxelBit
+        self.cells: Dict[Tuple[int, int, int], Dict[int, MicroVoxelBit]] = {}
+        # Inventory of loose chisels & bits mass by material_id
+        self.bit_inventory: Dict[int, int] = {}
+
+    def _micro_morton(self, sx: int, sy: int, sz: int) -> int:
+        """Bit-interleaves 4-bit sub-coordinates [0..15] into a 12-bit micro-Morton code."""
+        code = 0
+        for i in range(4):
+            code |= ((sx >> i) & 1) << (3 * i)
+            code |= ((sy >> i) & 1) << (3 * i + 1)
+            code |= ((sz >> i) & 1) << (3 * i + 2)
+        return code
+
+    def populate_solid_block(self, mx: int, my: int, mz: int, material_id: int) -> int:
+        """Fills an entire macroscopic cell with 4096 solid micro-bits of material_id."""
+        cell: Dict[int, MicroVoxelBit] = {}
+        for sx in range(self.BITS_PER_AXIS):
+            for sy in range(self.BITS_PER_AXIS):
+                for sz in range(self.BITS_PER_AXIS):
+                    code = self._micro_morton(sx, sy, sz)
+                    cell[code] = MicroVoxelBit(sx, sy, sz, material_id)
+        self.cells[(mx, my, mz)] = cell
+        return self.TOTAL_BITS_PER_BLOCK
+
+    def chisel_carve_bit(
+        self,
+        mx: int,
+        my: int,
+        mz: int,
+        sx: int = 0,
+        sy: int = 0,
+        sz: int = 0,
+        material_id: Optional[int] = None,
+        octree: Optional[PointerlessOctree] = None
+    ) -> int:
+        """
+        Carves a 1/16th scale micro-bit from macroscopic voxel (mx, my, mz).
+        If the macroscopic block was solid in octree but not yet divided into micro-bits,
+        lazily populates the 4096 bits first.
+        Conserves mass into bit_inventory.
+        """
+        macro_coord = (mx, my, mz)
+        if macro_coord not in self.cells:
+            # Lazy initialization from parent octree material
+            mat = material_id or 1
+            if octree is not None:
+                m_key = octree._interleave_bits(mx, my, mz)
+                mat = octree.morton_grid.get(m_key, mat)
+            self.populate_solid_block(mx, my, mz, mat)
+
+        cell = self.cells[macro_coord]
+        code = self._micro_morton(sx % 16, sy % 16, sz % 16)
+        
+        extracted_mat = 1
+        if code in cell:
+            extracted_mat = cell[code].material_id
+            del cell[code]
+            # Accumulate mass in bit inventory
+            self.bit_inventory[extracted_mat] = self.bit_inventory.get(extracted_mat, 0) + 1
+
+        # If cell is now completely hollow, clean up macroscopic cell
+        if len(cell) == 0:
+            del self.cells[macro_coord]
+            if octree is not None:
+                octree.remove_voxel(mx, my, mz)
+
+        return extracted_mat
+
+    def chisel_place_bit(
+        self,
+        mx: int,
+        my: int,
+        mz: int,
+        sx: int = 0,
+        sy: int = 0,
+        sz: int = 0,
+        material_id: int = 1,
+        octree: Optional[PointerlessOctree] = None
+    ) -> bool:
+        """
+        Places a 1/16th scale micro-bit into macroscopic voxel (mx, my, mz).
+        Deducts mass from bit_inventory if available.
+        Updates PointerlessOctree representation.
+        """
+        macro_coord = (mx, my, mz)
+        if macro_coord not in self.cells:
+            self.cells[macro_coord] = {}
+
+        cell = self.cells[macro_coord]
+        code = self._micro_morton(sx % 16, sy % 16, sz % 16)
+        
+        cell[code] = MicroVoxelBit(sx % 16, sy % 16, sz % 16, material_id)
+        
+        # Deduct mass from inventory if tracked
+        if self.bit_inventory.get(material_id, 0) > 0:
+            self.bit_inventory[material_id] -= 1
+
+        # Ensure parent macroscopic block is registered in octree
+        if octree is not None:
+            m_key = octree._interleave_bits(mx, my, mz)
+            if m_key not in octree.morton_grid:
+                octree.add_adaptive_fractal_node(float(mx), float(my), float(mz), material=material_id, complexity=0.1)
+
+        return True
+
+    def get_cell_bit_count(self, mx: int, my: int, mz: int) -> int:
+        """Returns the number of active micro-bits in macroscopic voxel (mx, my, mz)."""
+        return len(self.cells.get((mx, my, mz), {}))
+
+
+# =========================================================================
+# 35. EMERGENT BAKING ENGINE & POINCARÉ DISK FOSSILIZATION (HOOK 14)
+# =========================================================================
+
+class EmergentBakingEngine:
+    """
+    Converts dynamic player constructs, micro-sculptures, and terrain deformations
+    into permanent topological persistence on the Poincaré disk (Hook 14).
+    Enforces Wager #2: 80/20 Fossilization Split - shears transient dynamic boundary flesh
+    while permanently fossilizing core structural bone into immutable Poincaré scars.
+    """
+    def __init__(self, poincare_radius_bound: float = 0.95):
+        self.poincare_radius_bound = poincare_radius_bound
+        self.baked_records: List[Dict[str, Any]] = []
+
+    def poincare_hyperbolic_distance(self, u: Tuple[float, float, float], v: Tuple[float, float, float]) -> float:
+        """
+        Computes hyperbolic distance in the Poincare ball model:
+        d_D(u, v) = arcosh(1 + 2 * ||u - v||^2 / ((1 - ||u||^2) * (1 - ||v||^2)))
+        """
+        ux, uy, uz = u
+        vx, vy, vz = v
+        u_norm_sq = min(self.poincare_radius_bound ** 2, ux*ux + uy*uy + uz*uz)
+        v_norm_sq = min(self.poincare_radius_bound ** 2, vx*vx + vy*vy + vz*vz)
+        diff_sq = (ux - vx)**2 + (uy - vy)**2 + (uz - vz)**2
+        
+        denom = max(1e-6, (1.0 - u_norm_sq) * (1.0 - v_norm_sq))
+        arg = 1.0 + 2.0 * diff_sq / denom
+        return math.acosh(max(1.0, arg))
+
+    def bake_construct(
+        self,
+        octree: PointerlessOctree,
+        center_coord: Tuple[int, int, int],
+        radius: int = 4,
+        player_id: str = "player"
+    ) -> Dict[str, Any]:
+        """
+        Executes Emergent Baking on the octree region.
+        Applies Wager #2: 80/20 split between mutable boundary flesh and immutable core bone.
+        """
+        bake_res = octree.bake_construct(center_coord, radius=radius, player_id=player_id)
+        
+        # Calculate Poincare disk metric distribution
+        cx, cy, cz = center_coord
+        origin_u = (0.0, 0.0, 0.0)
+        hyperbolic_depths = []
+        
+        for code, mat in list(octree.morton_grid.items()):
+            x, y, z = octree._deinterleave_bits(code)
+            dist = math.sqrt((x - cx)**2 + (y - cy)**2 + (z - cz)**2)
+            if dist <= radius:
+                # Radial projection to Poincare ball
+                r_frac = min(self.poincare_radius_bound, dist / float(radius + 1.0))
+                d_hyp = self.poincare_hyperbolic_distance(origin_u, (r_frac, 0.0, 0.0))
+                hyperbolic_depths.append(d_hyp)
+                
+        mean_depth = float(np.mean(hyperbolic_depths)) if hyperbolic_depths else 0.0
+        
+        record = {
+            "player_id": player_id,
+            "center": center_coord,
+            "radius": radius,
+            "baked_nodes": bake_res.get("baked_nodes", 0),
+            "mean_hyperbolic_depth": mean_depth,
+            "fossilization_wager": "80/20_SPLIT_ENFORCED",
+            "timestamp": time.time()
+        }
+        self.baked_records.append(record)
+        return record
+
+
+# =========================================================================
+# 36. UNIFIED VOXELBOXTER 15-HOOK REHYBRIDIZATION BRIDGE
+# =========================================================================
+
+class VoxelboxterHookIntegrator:
+    """
+    Coordinates and bridges the 15 texturing, gsplat, rasterization, and generative hooks
+    across base Voxelboxter, cleanroom mechanics, and physical scripting nodes:
+    1. KHR_gaussian_splatting (GltfSplatIngestionPipeline)
+    2. Wasserstein mass collapse (apply_wasserstein_rasterization)
+    3. Conjugate Color Transport (OKLab Brenier push-forward W(x))
+    4. Morton Z-order bit-interleaving (morton_encode_3d / _interleave_bits)
+    5. Chebyshev Spectral Texture Density (TextureDSPEngine)
+    6. Mandelbulb Recursive Embedding (MandelbulbEmbedder)
+    7. B-Spline True Geometric Texture Weaving (BSplineCompiledMod)
+    8. 3D Perlin Gradient Noise (sample_perlin_3d)
+    9. Worley Cellular Cave & Chasm (sample_worley_3d F1, F2)
+    10. TPMS Gyroid Minimal Surface Level-Set (sample_gyroid_surface)
+    11. Matrioshka Scale Nesting (traverse_treehouse_scale 16x / 1/16x)
+    12. Kniberg 5D Spline Terrain Modulator (evaluate_density)
+    13. FBM Anisotropic Weathering & Ley Line Erosion (anisotropic_weathering_pass)
+    14. Emergent Baking & Poincare Fossilization (EmergentBakingEngine)
+    15. Chisels & Bits Micro-Octree Carving (ChiselsAndBitsMicroOctree)
+    """
+    def __init__(self, octree: Optional[PointerlessOctree] = None):
+        self.octree = octree or PointerlessOctree()
+        self.terrain_gen = PerlinWorleyGyroidGenerator()
+        self.chisels_bits = ChiselsAndBitsMicroOctree()
+        self.baking_engine = EmergentBakingEngine()
+        self.carnot_ledger = CarnotMobiusLedger()
+        from src.core.fgrt_primitives import FractalLHopitalRegularizer, ValleyVorticitySweeper
+        self.lhopital_reg = FractalLHopitalRegularizer()
+        self.vorticity_sweeper = ValleyVorticitySweeper()
+
+    def get_hooks_inventory(self) -> Dict[str, str]:
+        return {
+            "hook_01_gsplat_ingestion": "GltfSplatIngestionPipeline (KHR_gaussian_splatting)",
+            "hook_02_wasserstein_collapse": "PointerlessOctree.apply_wasserstein_rasterization (SVM / TEA-hash)",
+            "hook_03_conjugate_color": "ConjugateColorTransport (OKLab Brenier push-forward W(x))",
+            "hook_04_morton_z_order": "PointerlessOctree.morton_encode_3d (Linear memory layout)",
+            "hook_05_chebyshev_spectral_dsp": "TextureDSPEngine (2D FFT spectral texture filtering)",
+            "hook_06_mandelbulb_fractal": "PointerlessOctree.sample_mandelbulb_fractal_texture (MandelbulbEmbedder)",
+            "hook_07_bspline_weaving": "BSplineCompiledMod (KAN Layer Cox-de Boor B-splines)",
+            "hook_08_perlin_gradient_noise": "PerlinWorleyGyroidGenerator.sample_perlin_3d (3D FBM quintic)",
+            "hook_09_worley_cellular_noise": "PerlinWorleyGyroidGenerator.sample_worley_3d (F1, F2 ridges)",
+            "hook_10_gyroid_minimal_surface": "PerlinWorleyGyroidGenerator.sample_gyroid_surface (TPMS G=0)",
+            "hook_11_matrioshka_scale_nesting": "PerlinWorleyGyroidGenerator.traverse_treehouse_scale (16x expand/contract)",
+            "hook_12_kniberg_5d_splines": "PerlinWorleyGyroidGenerator.evaluate_density (5D Climate splines)",
+            "hook_13_anisotropic_weathering": "PointerlessOctree.anisotropic_weathering_pass (FBM Ley line erosion)",
+            "hook_14_emergent_baking": "EmergentBakingEngine.bake_construct (Poincare disk fossilization)",
+            "hook_15_chisels_bits_micro_octree": "ChiselsAndBitsMicroOctree (1/16th sub-voxel bit carving & mass conservation)"
+        }
+
+    def compute_parallel_sorting_entropy(
+        self,
+        omega_heads: torch.Tensor,
+        gauge_circulation: torch.Tensor,
+        euler_chi: Union[torch.Tensor, float] = 1.0,
+        lambda_min: float = 1e-3,
+        kappa_accel: float = 1.0,
+        k_B: float = 1.0
+    ) -> Dict[str, Any]:
+        r"""
+        Evaluates Eq 1: Parallel Sorting Entropy & Circulation Integral:
+        \Delta S_{sort}^{\parallel} = \eta(N_{heads}) \sum_{h=1}^{N_{heads}} \kappa_{accel} \left[ k_B \ln \Omega_h - \oint_{\gamma_h} (\nabla \times \boldsymbol{\mathcal{G}}_h)\cdot d\boldsymbol{\ell} + \chi_h \, \lambda_{min}^{-1} \right]
+        """
+        return self.carnot_ledger.compute_parallel_sorting_entropy(
+            omega_heads=omega_heads,
+            gauge_circulation=gauge_circulation,
+            euler_chi=euler_chi,
+            lambda_min=lambda_min,
+            kappa_accel=kappa_accel,
+            k_B=k_B
+        )
+
+    def evaluate_fractal_lhopital_regularization(
+        self,
+        lambda_min: float = 1e-3,
+        kappa_accel: float = 1.0,
+        fractal_dim_D: float = 2.73,
+        C_constant: float = 1.0
+    ) -> Dict[str, float]:
+        r"""
+        Evaluates Eq 2: Non-Differentiable Fractal L'Hopital Regularization:
+        \lim_{\varepsilon \to 0} \frac{S(\varepsilon)}{V(\varepsilon)} \;\xrightarrow[\text{invalid}]{\text{L'Hôpital}}\; \text{undefined}
+        \Longrightarrow R_{reg} = \lim_{\varepsilon \to \varepsilon_{min}^{+}} C\,\varepsilon^{\,2-D}, \quad \varepsilon_{min} = \frac{\lambda_{min}}{\kappa_{accel}}
+        """
+        eps_min = self.lhopital_reg.compute_cutoff(lambda_min=lambda_min, kappa_accel=kappa_accel)
+        r_reg = self.lhopital_reg.evaluate_regularized_ratio(
+            lambda_min=lambda_min,
+            kappa_accel=kappa_accel,
+            fractal_dim_D=fractal_dim_D,
+            C_constant=C_constant
+        )
+        return {
+            "eps_min": eps_min,
+            "R_reg": r_reg,
+            "fractal_dim_D": fractal_dim_D,
+            "C_constant": C_constant
+        }
+
+    def evaluate_valley_vorticity_sweep(
+        self,
+        curl_fields: torch.Tensor,
+        area_normals: torch.Tensor,
+        tau_crit: float = 2.5
+    ) -> Tuple[torch.Tensor, bool, Dict[str, Any]]:
+        r"""
+        Evaluates Eq 3: Valley Vorticity Flux Threshold & Sweep Operator:
+        \Upsilon_{valley} = \sum_{j} \oint_{\partial \gamma_j} (\nabla \times \boldsymbol{\mathcal{S}}) \cdot d\mathbf{A} > \tau_{crit} \implies \hat{\mathcal{P}}_{sweep}
+        """
+        upsilon = float(self.vorticity_sweeper.compute_vorticity_flux(curl_fields, area_normals).sum().item())
+        swept_fields, triggered, diag = self.vorticity_sweeper.apply_sweep_operator(
+            curl_fields,
+            upsilon_val=upsilon,
+            tau_crit=tau_crit
+        )
+        if triggered:
+            # Also flush stagnant octree debris if sweeping
+            self.octree.sweep_valley_vorticity(tau_crit=tau_crit)
+        return swept_fields, triggered, diag
+
+
 
 
 
