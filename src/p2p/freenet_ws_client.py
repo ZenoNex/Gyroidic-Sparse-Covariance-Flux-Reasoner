@@ -40,7 +40,7 @@ def get_freenet_udp_port() -> int:
                 "$proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; "
                 "if ($proc.Name -match 'java|locutus|freenet|wrapper') { $_.LocalPort } }"
             )
-            output = subprocess.check_output(["powershell", "-Command", ps_cmd], text=True).strip()
+            output = subprocess.check_output(["powershell", "-Command", ps_cmd], text=True, timeout=2.0).strip()
             if output:
                 ports = [int(p.strip()) for p in output.splitlines() if p.strip().isdigit()]
                 if ports:
