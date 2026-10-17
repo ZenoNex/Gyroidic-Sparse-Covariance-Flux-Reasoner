@@ -18,12 +18,13 @@ import threading
 import logging
 import time
 import math
-from typing import Dict, Any, Callable, List, Tuple, Optional, Set
+from typing import Dict, Any, Callable, List, Tuple, Optional, Set, Union
 from enum import Enum, auto
 from dataclasses import dataclass, field
 import dearpygui.dearpygui as dpg
 
 import torch
+import numpy as np
 
 # Canonical engine and simulation imports
 from src.ui.voxelboxter_simulation import (
@@ -537,9 +538,30 @@ class PhysicalNodeEditor:
         self.admissibility_gate = VoxelboxterAdmissibilityGate(epsilon=0.08)
         self.spectral_speculation = SpectralSpeculationEngine(epsilon=0.15)
 
+        # 15-Hook Cleanroom Integrators (Chisels & Bits, Emergent Baking, Procedural Generation)
+        from src.environment.cleanroom_mechanics import (
+            ChiselsAndBitsMicroOctree, EmergentBakingEngine, PerlinWorleyGyroidGenerator
+        )
+        self.chisels_bits = ChiselsAndBitsMicroOctree()
+        self.baking_engine = EmergentBakingEngine()
+        self.terrain_gen = PerlinWorleyGyroidGenerator()
+
         # Virtual Links and Sidechain parameters
         self.virtual_links: List[Tuple[str, str]] = []
         self.last_state_tuple = None
+
+        # Attention & Cognitive Routing Subsystems
+        from src.models.modular_attention import ModularAttention, ModularTransformerLayer
+        from src.models.diegetic_heads import AutoeclecticResponderHead, DataAssociationLayer
+        from src.surrogates.calm_predictor import CALM
+        from src.core.polynomial_coprime import PolynomialCoprimeConfig
+
+        self.poly_config = PolynomialCoprimeConfig(k=4, degree=3)
+        self.modular_attention = ModularAttention(hidden_dim=8, num_heads=4, poly_config=self.poly_config, num_functionals=4)
+        self.modular_transformer = ModularTransformerLayer(hidden_dim=8, num_heads=4, poly_config=self.poly_config, num_functionals=4)
+        self.autoeclectic_head = AutoeclecticResponderHead(hidden_dim=8, output_dim=8)
+        self.data_association = DataAssociationLayer(input_dim=8, hidden_dim=8, k=4)
+        self.calm = CALM(dim=8)
 
     # ---------------------------------------------------------------------
     # Canonical Chisels & Bits Operations via PointerlessOctree & BooleanXOR
@@ -1394,6 +1416,115 @@ class PhysicalNodeEditor:
             step=step
         )
 
+    def hook_gsplat_ingest(
+        self,
+        file_path: str,
+        target_dim: int = 128,
+        density_scale: float = 1.0
+    ) -> Dict[str, Any]:
+        """Hook 1: Gaussian Splatting Ingestion (KHR_gaussian_splatting)."""
+        return self.octree.ingest_gaussian_splats(file_path, target_dim=target_dim, density_scale=density_scale)
+
+    def hook_wasserstein_rasterization(
+        self,
+        residues_tensor: torch.Tensor,
+        iteration: int = 1,
+        mass_budget: float = 1.0
+    ) -> np.ndarray:
+        """Hook 2: Wasserstein Mass Collapse Rasterization."""
+        return self.octree.apply_wasserstein_rasterization(residues_tensor, iteration=iteration, mass_budget=mass_budget)
+
+    def hook_conjugate_color_transport(
+        self,
+        rgb_tensor: torch.Tensor,
+        kappa: float = 0.15
+    ) -> torch.Tensor:
+        """Hook 3: Conjugate Color Transport (OKLab Brenier push-forward)."""
+        return self.octree.apply_conjugate_color_transport(rgb_tensor, kappa=kappa)
+
+    def hook_mandelbulb_fractal(
+        self,
+        coords_3d: torch.Tensor,
+        power: int = 8
+    ) -> torch.Tensor:
+        """Hook 6: Mandelbulb Recursive Embedding & Fractal Texture Synthesizer."""
+        return self.octree.sample_mandelbulb_fractal_texture(coords_3d, power=power)
+
+    def hook_anisotropic_weathering(
+        self,
+        dt: float = 0.1,
+        pressure_gradient: Optional[Tuple[float, float, float]] = None
+    ) -> Dict[str, Any]:
+        """Hook 13: FBM Anisotropic Weathering & Ley Line Erosion."""
+        return self.octree.anisotropic_weathering_pass(dt=dt, pressure_gradient=pressure_gradient)
+
+    def hook_emergent_baking(
+        self,
+        center_coord: Tuple[int, int, int],
+        radius: int = 4,
+        player_id: str = "player"
+    ) -> Dict[str, Any]:
+        """Hook 14: Emergent Baking & Poincare Fossilization."""
+        return self.baking_engine.bake_construct(self.octree, center_coord=center_coord, radius=radius, player_id=player_id)
+
+    def hook_parallel_sorting_entropy(
+        self,
+        omega_heads: torch.Tensor,
+        gauge_circulation: torch.Tensor,
+        euler_chi: Union[torch.Tensor, float] = 1.0,
+        lambda_min: float = 1e-3,
+        kappa_accel: float = 1.0,
+        k_B: float = 1.0
+    ) -> Dict[str, Any]:
+        r"""
+        Hook for Eq 1: Parallel Sorting Entropy with Gauge Field Circulation:
+        \Delta S_{sort}^{\parallel} = \eta(N_{heads}) \sum_{h=1}^{N_{heads}} \kappa_{accel} \left[ k_B \ln \Omega_h - \oint_{\gamma_h} (\nabla \times \boldsymbol{\mathcal{G}}_h)\cdot d\boldsymbol{\ell} + \chi_h \, \lambda_{min}^{-1} \right]
+        """
+        return self.carnot_ledger.compute_parallel_sorting_entropy(
+            omega_heads=omega_heads,
+            gauge_circulation=gauge_circulation,
+            euler_chi=euler_chi,
+            lambda_min=lambda_min,
+            kappa_accel=kappa_accel,
+            k_B=k_B
+        )
+
+    def hook_fractal_lhopital_regularization(
+        self,
+        lambda_min: float = 1e-3,
+        kappa_accel: float = 1.0,
+        fractal_dim_D: float = 2.73,
+        C_constant: float = 1.0
+    ) -> Dict[str, Any]:
+        r"""
+        Hook for Eq 2: Non-Differentiable Fractal L'Hopital Regularization:
+        R_{reg} = lim_{eps -> eps_min^+} C * eps^{2-D}, eps_min = lambda_min / kappa_accel.
+        """
+        return self.octree.apply_fractal_lhopital_regularization(
+            lambda_min=lambda_min,
+            kappa_accel=kappa_accel,
+            fractal_dim_D=fractal_dim_D,
+            C_constant=C_constant
+        )
+
+    def hook_valley_vorticity_sweep(
+        self,
+        curl_fields: torch.Tensor,
+        area_normals: torch.Tensor,
+        tau_crit: float = 2.5
+    ) -> Tuple[torch.Tensor, bool, Dict[str, Any]]:
+        r"""
+        Hook for Eq 3: Valley Vorticity Flux Threshold & Sweep Operator:
+        \Upsilon_{valley} = \sum_{j} \oint_{\partial \gamma_j} (\nabla \times \boldsymbol{\mathcal{S}}) \cdot d\mathbf{A} > \tau_{crit} \implies \hat{\mathcal{P}}_{sweep}
+        """
+        from src.core.fgrt_primitives import ValleyVorticitySweeper
+        sweeper = ValleyVorticitySweeper(tau_crit=tau_crit)
+        upsilon = float(sweeper.compute_vorticity_flux(curl_fields, area_normals).sum().item())
+        swept_state, triggered, diag = sweeper.apply_sweep_operator(curl_fields, upsilon, tau_crit=tau_crit)
+        if triggered:
+            self.octree.sweep_valley_vorticity(tau_crit=tau_crit)
+        return swept_state, triggered, diag
+
     def hook_adaptive_rig(
         self,
         subtype: EnemySubtype = EnemySubtype.NONE,
@@ -1755,6 +1886,113 @@ class PhysicalNodeEditor:
             "can_fuse_3x3_giant_crop": can_fuse
         }
 
+    # ---------------------------------------------------------------------
+    # Attention & Cognitive Routing Hooks
+    # ---------------------------------------------------------------------
+    def hook_modular_attention(
+        self,
+        x: torch.Tensor,
+        path_topology_vectors: Optional[torch.Tensor] = None,
+        mask: Optional[torch.Tensor] = None
+    ) -> Dict[str, Any]:
+        """Hook for ModularAttention multi-field attention and Birkhoff projection."""
+        if x.dim() == 1:
+            x_in = x.unsqueeze(0).unsqueeze(0)
+        elif x.dim() == 2:
+            x_in = x.unsqueeze(1)
+        else:
+            x_in = x
+        attn_out = self.modular_attention(x_in, mask=mask, path_topology_vectors=path_topology_vectors)
+        integrity = self.modular_attention.validate_structural_integrity()
+        return {
+            "attended_tensor": attn_out,
+            "birkhoff_integrity": integrity.all().item() if hasattr(integrity, 'all') else True,
+            "output_norm": torch.norm(attn_out).item()
+        }
+
+    def hook_autoeclectic_response(
+        self,
+        state: torch.Tensor,
+        spectral_entropy: torch.Tensor
+    ) -> Dict[str, Any]:
+        """Hook for AutoeclecticResponderHead diegetic response modulation."""
+        if state.dim() == 1:
+            state_in = state.unsqueeze(0)
+        else:
+            state_in = state
+        if spectral_entropy.dim() == 1:
+            spectral_entropy = spectral_entropy.unsqueeze(-1)
+        elif spectral_entropy.dim() == 0:
+            spectral_entropy = spectral_entropy.view(1, 1)
+        resp = self.autoeclectic_head(state_in, spectral_entropy=spectral_entropy)
+        return {
+            "diegetic_response": resp,
+            "response_norm": torch.norm(resp).item()
+        }
+
+    def hook_knowledge_dyad_association(
+        self,
+        text_emb: torch.Tensor,
+        image_emb: torch.Tensor
+    ) -> Dict[str, Any]:
+        """Hook for DataAssociationLayer cross-modal fusion into coprime residues."""
+        if text_emb.dim() == 1:
+            text_emb = text_emb.unsqueeze(0)
+        if image_emb.dim() == 1:
+            image_emb = image_emb.unsqueeze(0)
+        residues = self.data_association(text_emb, image_emb)
+        return {
+            "residues": residues,
+            "num_residues": residues.shape[-1],
+            "residue_norm": torch.norm(residues).item()
+        }
+
+    def hook_calm_trajectory_veto(
+        self,
+        trajectory_history: torch.Tensor,
+        h_mischief: float = 0.0,
+        dt: float = 1.0
+    ) -> Dict[str, Any]:
+        """Hook for CALM trajectory momentum monitor and non-dual veto gating."""
+        if trajectory_history.dim() == 2:
+            hist_in = trajectory_history.unsqueeze(0)
+        else:
+            hist_in = trajectory_history
+        abort_score, rho_factor, step_factor, forcing, gauge, constraints = self.calm(
+            hist_in, h_mischief=h_mischief, dt=dt
+        )
+        calm_veto = (abort_score.mean().item() > 0.5) or (step_factor.mean().item() < 0.5)
+        gauge_val = torch.sigmoid(gauge).mean().item()
+        return {
+            "abort_score": abort_score.mean().item(),
+            "rho_factor": rho_factor.mean().item(),
+            "step_factor": step_factor.mean().item(),
+            "gauge": gauge_val,
+            "calm_veto": calm_veto,
+            "constraints": constraints.squeeze().detach().cpu().numpy().tolist() if constraints is not None else []
+        }
+
+    def hook_dynamic_attention_mask(
+        self,
+        violations: Union[torch.Tensor, float],
+        seq_len: int = 4,
+        threshold: float = 0.5,
+        local_window: int = 2
+    ) -> Dict[str, Any]:
+        """Hook for Dynamic Attention Mask construction guided by topological violations."""
+        mask = self.modular_attention.construct_dynamic_attention_mask(
+            violations=violations,
+            seq_len=seq_len,
+            threshold=threshold,
+            local_window=local_window
+        )
+        is_dense = bool((violations.mean().item() if isinstance(violations, torch.Tensor) else float(violations)) > threshold)
+        return {
+            "mask": mask,
+            "is_dense": is_dense,
+            "seq_len": seq_len
+        }
+
 
     # ---------------------------------------------------------------------
     # Continuous Headless Tick
@@ -1846,6 +2084,15 @@ class PhysicalNodeEditor:
         bag_res = self.hook_bag_of_holding()
         crop_res = self.hook_crop_breeding_giant()
 
+        # Cognitive & Attention Subsystem Hooks
+        dummy_state = torch.tensor([current_pressure, current_mischief, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+        dummy_hist = dummy_state.unsqueeze(0).repeat(1, 8, 1)
+        attn_res = self.hook_modular_attention(dummy_state)
+        ae_res = self.hook_autoeclectic_response(dummy_state, torch.tensor([[current_mischief]]))
+        dyad_res = self.hook_knowledge_dyad_association(dummy_state, dummy_state)
+        calm_res = self.hook_calm_trajectory_veto(dummy_hist, h_mischief=current_mischief, dt=dt)
+        mask_res = self.hook_dynamic_attention_mask(current_mischief, seq_len=4)
+
         return {
             "vehicle": veh,
             "life": life,
@@ -1883,7 +2130,12 @@ class PhysicalNodeEditor:
             "cauldron_brewing": brew_res,
             "multipart_subgrid": multi_sub_res,
             "bag_of_holding": bag_res,
-            "crop_breeding_giant": crop_res
+            "crop_breeding_giant": crop_res,
+            "modular_attention": attn_res,
+            "autoeclectic_response": ae_res,
+            "knowledge_dyad": dyad_res,
+            "calm_veto": calm_res,
+            "dynamic_attention_mask": mask_res
         }
 
     # ---------------------------------------------------------------------
