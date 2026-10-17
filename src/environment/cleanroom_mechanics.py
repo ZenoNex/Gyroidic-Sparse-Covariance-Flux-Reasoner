@@ -3077,3 +3077,612 @@ class ModularWeaponBayesianNetwork(nn.Module):
             "arbitration_status": "CONSENSUS_VERIFIED" if is_valid else "CHEATING_VETO_REJECTED"
         }
 
+
+# =========================================================================
+# 12. CLEANROOM HANDHELD PISTON & TOPOLOGICAL MANIFOLD PUSH
+# =========================================================================
+
+from src.ui.voxelboxter_simulation import Role, PermissionsManager
+
+class PistonMode(Enum):
+    PUSH = auto()
+    PULL = auto()
+    SHEAR_CLEAVE = auto()
+    MICRO_CHISEL = auto()
+
+class PistonResultCode(Enum):
+    SUCCESS = auto()
+    REJECTED_VISITOR_RESTRICTION = auto()
+    TARGET_EMPTY = auto()
+    OUT_OF_REACH = auto()
+    BLOCKED = auto()
+
+@dataclass
+class PistonPushResult:
+    """Result payload of a handheld piston actuation on the non-dual manifold."""
+    status: PistonResultCode
+    player_id: str
+    source_coord: Tuple[int, int, int]
+    dest_coord: Tuple[int, int, int]
+    morton_key_source: int
+    morton_key_dest: int
+    target_type: str  # "VOXEL", "MACRO_GRAPH", "ENTITY_RIGIDBODY", "EMPTY"
+    extracted_material_id: Optional[int] = None
+    betti_numbers: Dict[str, int] = field(default_factory=lambda: {"betti_0": 1, "betti_1": 0})
+    topological_complexity: float = 1.0
+    macro_move_report: Optional[Dict[str, Any]] = None
+    kinetic_impulse_report: Optional[Dict[str, Any]] = None
+    fossilization_wager_enforced: bool = False
+    message: str = ""
+
+class HandheldPistonTool:
+    """
+    Cleanroom implementation of the Handheld Piston Tool for Voxelboxter.
+    Interacts natively with the PyBevy substrate, Morton-encoded linear memory,
+    and non-dual topological manifold without server event bus spoofing.
+    
+    Adheres strictly to:
+    1. Sovereignty and Claim Validation (PermissionsManager: Role.BUILDER / Role.ADMIN).
+    2. Coordinate Targeting via Morton Z-Order bit-interleaving (morton_encode_3d).
+    3. Block Extraction and Placement (chisel_carve_bit / chisel_place_bit).
+    4. Macro-Structure & Slime-Block Mechanics (StructuralGraph.execute_topological_macro_move,
+       enforcing Wager #2: 80/20 Fossilization Split - shears plastic flesh, preserves bone core).
+    5. Entity Knockback Dynamics (RigidBody collision impulse: Delta v = J / m).
+    6. Real-time Euler-Poincaré Algebraic Betti Updates (chi = V - E = beta_0 - beta_1).
+    """
+    def __init__(
+        self,
+        impulse_magnitude: float = 500.0,
+        max_reach: float = 8.0,
+        default_mode: PistonMode = PistonMode.PUSH
+    ):
+        self.impulse_magnitude = float(impulse_magnitude)
+        self.max_reach = float(max_reach)
+        self.default_mode = default_mode
+
+    def check_sovereignty(
+        self,
+        player_id: str,
+        permissions_manager: Any,
+        target_coord: Optional[Tuple[int, int, int]] = None
+    ) -> bool:
+        """
+        Queries PermissionsManager to verify that the holding player possesses
+        the required ADMIN or BUILDER role for the target space.
+        Rejects commits if restricted to a VISITOR role.
+        """
+        if permissions_manager is None:
+            return True
+        if hasattr(permissions_manager, "get_role"):
+            role = permissions_manager.get_role(player_id)
+            if role in (Role.ADMIN, Role.BUILDER):
+                return True
+            if hasattr(permissions_manager, "has_permission"):
+                if permissions_manager.has_permission(player_id, "creative_mode") or \
+                   permissions_manager.has_permission(player_id, "arbitrate"):
+                    return True
+            return False
+        return True
+
+    def fire(
+        self,
+        player_id: str,
+        source_coord: Tuple[int, int, int],
+        push_direction: Tuple[int, int, int] = (1, 0, 0),
+        octree: Optional[PointerlessOctree] = None,
+        permissions_manager: Optional[Any] = None,
+        graph: Optional[StructuralGraph] = None,
+        rigid_body: Optional[RigidBody] = None,
+        node_editor: Optional[Any] = None,
+        player_pos: Optional[Tuple[float, float, float]] = None
+    ) -> PistonPushResult:
+        """
+        Fires the handheld piston against a target coordinate, entity, or macro-structure.
+        """
+        sx, sy, sz = source_coord
+        dx, dy, dz = push_direction
+        dst_coord = (sx + dx, sy + dy, sz + dz)
+
+        # 1. Reach Check
+        if player_pos is not None:
+            px, py, pz = player_pos
+            dist = math.sqrt((sx - px)**2 + (sy - py)**2 + (sz - pz)**2)
+            if dist > self.max_reach:
+                return PistonPushResult(
+                    status=PistonResultCode.OUT_OF_REACH,
+                    player_id=player_id,
+                    source_coord=source_coord,
+                    dest_coord=dst_coord,
+                    morton_key_source=0,
+                    morton_key_dest=0,
+                    target_type="EMPTY",
+                    message=f"Target distance {dist:.2f} exceeds max reach {self.max_reach:.2f}"
+                )
+
+        # 2. Sovereignty and Claim Validation
+        if not self.check_sovereignty(player_id, permissions_manager, source_coord):
+            return PistonPushResult(
+                status=PistonResultCode.REJECTED_VISITOR_RESTRICTION,
+                player_id=player_id,
+                source_coord=source_coord,
+                dest_coord=dst_coord,
+                morton_key_source=0,
+                morton_key_dest=0,
+                target_type="EMPTY",
+                message=f"Player {player_id} restricted to VISITOR role in target patch; commit rejected."
+            )
+
+        # 3. Coordinate Targeting via Morton Z-Order Bit Interleaving
+        morton_src = octree._interleave_bits(sx, sy, sz) if octree else 0
+        morton_dst = octree._interleave_bits(dst_coord[0], dst_coord[1], dst_coord[2]) if octree else 0
+
+        # 4. Entity Knockback Dynamics (RigidBody interaction)
+        if rigid_body is not None:
+            eff_norm = (float(dx), float(dy), float(dz))
+            norm_mag = math.sqrt(dx*dx + dy*dy + dz*dz) or 1.0
+            eff_norm = (eff_norm[0] / norm_mag, eff_norm[1] / norm_mag, eff_norm[2] / norm_mag)
+            impulse_report = rigid_body.apply_collision_impulse(
+                impulse_J=self.impulse_magnitude,
+                contact_normal=eff_norm,
+                delta_t=0.016,
+                graph=graph
+            )
+            betti = graph.compute_betti_numbers() if graph else {"betti_0": 1, "betti_1": 0}
+            topo_complexity = 1.0 + 0.1 * (betti.get("betti_0", 1) - 1) + 0.25 * betti.get("betti_1", 0)
+            return PistonPushResult(
+                status=PistonResultCode.SUCCESS,
+                player_id=player_id,
+                source_coord=source_coord,
+                dest_coord=dst_coord,
+                morton_key_source=morton_src,
+                morton_key_dest=morton_dst,
+                target_type="ENTITY_RIGIDBODY",
+                betti_numbers=betti,
+                topological_complexity=topo_complexity,
+                kinetic_impulse_report=impulse_report,
+                fossilization_wager_enforced=True,
+                message=f"Entity knocked back: Delta v = {impulse_report.get('delta_v', 0.0):.3f} m/s, Tier={impulse_report.get('tier')}"
+            )
+
+        # 5. Macro-Structure & Slime-Block Mechanics (StructuralGraph Hyperplane Cleavage)
+        if graph is not None and source_coord in graph.blocks:
+            cut_normal = (float(dx), float(dy), float(dz))
+            cut_offset = float(sx * dx + sy * dy + sz * dz)
+            macro_report = graph.execute_topological_macro_move(
+                cut_normal=cut_normal,
+                cut_offset=cut_offset
+            )
+            betti = macro_report.get("final_betti", graph.compute_betti_numbers())
+            topo_complexity = 1.0 + 0.1 * (betti.get("betti_0", 1) - 1) + 0.25 * betti.get("betti_1", 0)
+            return PistonPushResult(
+                status=PistonResultCode.SUCCESS,
+                player_id=player_id,
+                source_coord=source_coord,
+                dest_coord=dst_coord,
+                morton_key_source=morton_src,
+                morton_key_dest=morton_dst,
+                target_type="MACRO_GRAPH",
+                betti_numbers=betti,
+                topological_complexity=topo_complexity,
+                macro_move_report=macro_report,
+                fossilization_wager_enforced=True,
+                message=f"Topological macro-move executed: severed {macro_report.get('severed_flesh_count', 0)} flesh blocks; bone core preserved."
+            )
+
+        # 6. Single-Block and Micro-Voxel Extraction & Placement (The Push)
+        if octree is not None:
+            mat_id = octree.morton_grid.get(morton_src)
+            if mat_id is None:
+                return PistonPushResult(
+                    status=PistonResultCode.TARGET_EMPTY,
+                    player_id=player_id,
+                    source_coord=source_coord,
+                    dest_coord=dst_coord,
+                    morton_key_source=morton_src,
+                    morton_key_dest=morton_dst,
+                    target_type="EMPTY",
+                    message="Target coordinate contains no active voxel node in PointerlessOctree."
+                )
+
+            # Block Extraction via chisel_carve_bit hook
+            if node_editor is not None and hasattr(node_editor, "chisel_carve_bit"):
+                extracted_mat = node_editor.chisel_carve_bit(sx, sy, sz, material_id=mat_id)
+            else:
+                extracted_mat = mat_id
+                octree.remove_voxel(sx, sy, sz)
+
+            # Block Placement via chisel_place_bit hook
+            if node_editor is not None and hasattr(node_editor, "chisel_place_bit"):
+                node_editor.chisel_place_bit(dst_coord[0], dst_coord[1], dst_coord[2], material_id=extracted_mat)
+            else:
+                octree.add_fractal_node(dst_coord[0], dst_coord[1], dst_coord[2], material=extracted_mat)
+
+            # Recalculate Betti numbers
+            betti = octree.compute_betti_numbers()
+            topo_complexity = 1.0 + 0.1 * (betti.get("betti_0", 1) - 1) + 0.25 * betti.get("betti_1", 0)
+
+            return PistonPushResult(
+                status=PistonResultCode.SUCCESS,
+                player_id=player_id,
+                source_coord=source_coord,
+                dest_coord=dst_coord,
+                morton_key_source=morton_src,
+                morton_key_dest=morton_dst,
+                target_type="VOXEL",
+                extracted_material_id=extracted_mat,
+                betti_numbers=betti,
+                topological_complexity=topo_complexity,
+                fossilization_wager_enforced=False,
+                message=f"Pushed voxel (mat={extracted_mat}) from {source_coord} to {dst_coord} (Morton {morton_src} -> {morton_dst})."
+            )
+
+        return PistonPushResult(
+            status=PistonResultCode.TARGET_EMPTY,
+            player_id=player_id,
+            source_coord=source_coord,
+            dest_coord=dst_coord,
+            morton_key_source=morton_src,
+            morton_key_dest=morton_dst,
+            target_type="EMPTY",
+            message="No active octree, graph, or entity present at target coordinate."
+        )
+
+
+# =========================================================================
+# 13. MULTIPLEXED PERLIN-WORLEY-GYROID PROCEDURAL TERRAIN GENERATOR
+# =========================================================================
+
+@dataclass
+class SplineNoise5DConfig:
+    """Configuration for Kniberg's 5D Minecraft procedural spline parameters."""
+    continentalness_octaves: int = 4
+    erosion_octaves: int = 3
+    pv_octaves: int = 4            # Peaks and Valleys
+    temperature_octaves: int = 2
+    humidity_octaves: int = 2
+    base_frequency: float = 0.02
+    lacunarity: float = 2.0
+    persistence: float = 0.5
+
+class TreehouseBiomeType(Enum):
+    INCEPTIVE_GYROID_CANOPY = "inceptive_gyroid_canopy"
+    MATRIOSHKA_NESTED_SPIRES = "matrioshka_nested_spires"
+    VORONOI_BASALT_COLUMNS = "voronoi_basalt_columns"
+    CHEESE_CAVERN_VOID = "cheese_cavern_void"
+    SPAGHETTI_CHASM_CORRIDOR = "spaghetti_chasm_corridor"
+    FRACTURE_GULLY_LEYLINE = "fracture_gully_leyline"
+
+class PerlinWorleyGyroidGenerator:
+    """
+    Procedural terrain generation engine unifying:
+    1. 3D Perlin Gradient Noise across configurable octaves.
+    2. 3D Worley (Cellular) Noise (F1, F2) for Voronoi ridges, cheese caverns, and spaghetti tunnels.
+    3. Triply Periodic Minimal Surface (TPMS) Gyroid density field G(x,y,z) = 0.
+    4. Kniberg 5D Spline Parameters (Continentalness, Erosion, Peaks & Valleys, Temperature, Humidity).
+    5. Geotechnical Dual Plasticity: Mohr-Coulomb shear yield vs Drucker-Prager flow envelope.
+    6. The Treehouse Dimension (Matrioshka Scale Nesting: 16x expansion and 1/16x contraction).
+    7. Real-time Euler-Poincaré Algebraic Betti Auditing (beta_0, beta_1).
+    """
+    def __init__(self, seed: int = 1337, config: Optional[SplineNoise5DConfig] = None):
+        self.seed = seed
+        self.config = config or SplineNoise5DConfig()
+        
+        # Deterministic pseudo-random permutation table for 3D Perlin noise
+        rnd = random.Random(seed)
+        p = [i for i in range(256)]
+        rnd.shuffle(p)
+        self.perm = p + p  # Doubled permutation table (512 entries)
+        
+        # 12 gradient vectors for 3D Perlin noise
+        self.grad3 = [
+            (1,1,0),(-1,1,0),(1,-1,0),(-1,-1,0),
+            (1,0,1),(-1,0,1),(1,0,-1),(-1,0,-1),
+            (0,1,1),(0,-1,1),(0,1,-1),(0,-1,-1)
+        ]
+
+    def _fade(self, t: float) -> float:
+        """Ken Perlin's quintic polynomial s-curve: 6t^5 - 15t^4 + 10t^3."""
+        return t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
+
+    def _grad(self, hash_val: int, x: float, y: float, z: float) -> float:
+        """Computes dot product of gradient vector with distance vector."""
+        g = self.grad3[hash_val % 12]
+        return g[0] * x + g[1] * y + g[2] * z
+
+    def sample_perlin_3d_single(self, x: float, y: float, z: float) -> float:
+        """Samples a single octave of 3D gradient Perlin noise in [-1.0, 1.0]."""
+        X = int(math.floor(x)) & 255
+        Y = int(math.floor(y)) & 255
+        Z = int(math.floor(z)) & 255
+
+        xf = x - math.floor(x)
+        yf = y - math.floor(y)
+        zf = z - math.floor(z)
+
+        u = self._fade(xf)
+        v = self._fade(yf)
+        w = self._fade(zf)
+
+        A = self.perm[X] + Y
+        AA = self.perm[A] + Z
+        AB = self.perm[A + 1] + Z
+        B = self.perm[X + 1] + Y
+        BA = self.perm[B] + Z
+        BB = self.perm[B + 1] + Z
+
+        # Trilinear interpolation over 8 lattice corners
+        g000 = self._grad(self.perm[AA], xf, yf, zf)
+        g100 = self._grad(self.perm[BA], xf - 1.0, yf, zf)
+        g010 = self._grad(self.perm[AB], xf, yf - 1.0, zf)
+        g110 = self._grad(self.perm[BB], xf - 1.0, yf - 1.0, zf)
+        g001 = self._grad(self.perm[AA + 1], xf, yf, zf - 1.0)
+        g101 = self._grad(self.perm[BA + 1], xf - 1.0, yf, zf - 1.0)
+        g011 = self._grad(self.perm[AB + 1], xf, yf - 1.0, zf - 1.0)
+        g111 = self._grad(self.perm[BB + 1], xf - 1.0, yf - 1.0, zf - 1.0)
+
+        x1 = g000 + u * (g100 - g000)
+        x2 = g010 + u * (g110 - g010)
+        y1 = x1 + v * (x2 - x1)
+
+        x3 = g001 + u * (g101 - g001)
+        x4 = g011 + u * (g111 - g011)
+        y2 = x3 + v * (x4 - x3)
+
+        return y1 + w * (y2 - y1)
+
+    def sample_perlin_3d(
+        self,
+        x: float,
+        y: float,
+        z: float,
+        octaves: int = 4,
+        frequency: float = 0.02
+    ) -> float:
+        """
+        Multi-octave Fractal Brownian Motion (FBM) gradient noise.
+        Each higher octave doubles frequency and halves amplitude.
+        """
+        total = 0.0
+        amp = 1.0
+        freq = frequency
+        max_amp = 0.0
+        for _ in range(max(1, octaves)):
+            total += self.sample_perlin_3d_single(x * freq, y * freq, z * freq) * amp
+            max_amp += amp
+            freq *= self.config.lacunarity
+            amp *= self.config.persistence
+        return total / max_amp if max_amp > 0 else 0.0
+
+    def sample_worley_3d(
+        self,
+        x: float,
+        y: float,
+        z: float,
+        cell_size: float = 16.0
+    ) -> Tuple[float, float]:
+        """
+        3D Cellular (Worley) Noise:
+        Returns (F1, F2), where F1 is distance to closest feature point,
+        and F2 is distance to the second-closest feature point.
+        F2 - F1 yields Voronoi cell ridges, chasms, and cavern boundaries.
+        """
+        cs = max(1.0, cell_size)
+        cx = math.floor(x / cs)
+        cy = math.floor(y / cs)
+        cz = math.floor(z / cs)
+
+        dists = []
+        for ix in (-1, 0, 1):
+            for iy in (-1, 0, 1):
+                for iz in (-1, 0, 1):
+                    bx = cx + ix
+                    by = cy + iy
+                    bz = cz + iz
+                    # Deterministic hash for feature point inside cell
+                    h = ((int(bx) * 73856093) ^ (int(by) * 19349663) ^ (int(bz) * 83492791) ^ self.seed) & 0x7FFFFFFF
+                    fx = (bx + ((h & 0xFF) / 255.0)) * cs
+                    fy = (by + (((h >> 8) & 0xFF) / 255.0)) * cs
+                    fz = (bz + (((h >> 16) & 0xFF) / 255.0)) * cs
+                    d = math.sqrt((x - fx)**2 + (y - fy)**2 + (z - fz)**2) / cs
+                    dists.append(d)
+
+        dists.sort()
+        f1 = dists[0] if len(dists) > 0 else 0.0
+        f2 = dists[1] if len(dists) > 1 else 1.0
+        return f1, f2
+
+    def sample_gyroid_surface(self, x: float, y: float, z: float, scale: float = 0.1) -> float:
+        """
+        Triply Periodic Minimal Surface (TPMS) Gyroid equation:
+        G(x, y, z) = sin(sx)cos(sy) + sin(sy)cos(sz) + sin(sz)cos(sx) = 0.
+        """
+        sx = x * scale
+        sy = y * scale
+        sz = z * scale
+        return math.sin(sx) * math.cos(sy) + math.sin(sy) * math.cos(sz) + math.sin(sz) * math.cos(sx)
+
+    def evaluate_density(
+        self,
+        x: float,
+        y: float,
+        z: float,
+        sea_level: float = 64.0,
+        squashing_factor: float = 32.0,
+        w_perlin: float = 1.0,
+        w_worley: float = 0.7,
+        w_gyroid: float = 0.5
+    ) -> Dict[str, Any]:
+        """
+        Multiplexes Perlin noise, Worley cellular noise, and Gyroid minimal surfaces
+        under Kniberg's 5D spline parameters.
+        """
+        # Kniberg 5D Spline Noises
+        continentalness = self.sample_perlin_3d(x, 0.0, z, octaves=self.config.continentalness_octaves, frequency=0.005)
+        erosion = self.sample_perlin_3d(x + 1000.0, 0.0, z + 1000.0, octaves=self.config.erosion_octaves, frequency=0.01)
+        peaks_valleys = self.sample_perlin_3d(x + 2000.0, 0.0, z + 2000.0, octaves=self.config.pv_octaves, frequency=0.015)
+        temperature = self.sample_perlin_3d(x + 3000.0, 0.0, z + 3000.0, octaves=self.config.temperature_octaves, frequency=0.003)
+        humidity = self.sample_perlin_3d(x + 4000.0, 0.0, z + 4000.0, octaves=self.config.humidity_octaves, frequency=0.003)
+
+        # Spline Height Offset mapping
+        if continentalness < -0.2:
+            base_elevation = sea_level - 20.0 + 15.0 * (continentalness + 1.0)
+        elif continentalness < 0.3:
+            base_elevation = sea_level + 10.0 + 25.0 * (continentalness + 0.2)
+        else:
+            base_elevation = sea_level + 30.0 + 40.0 * (continentalness - 0.3)
+
+        # Peaks and Valleys squashing factor adaptation
+        effective_squash = squashing_factor
+        if peaks_valleys > 0.4:
+            # Low squashing factor exposes 3D overhangs and mountain peaks
+            effective_squash = max(8.0, squashing_factor * (1.0 - 0.6 * peaks_valleys))
+        elif peaks_valleys < -0.3:
+            # High squashing factor flattens valleys
+            effective_squash = squashing_factor * 1.5
+
+        # 3D Gradient Noise
+        perlin_3d = self.sample_perlin_3d(x, y, z, octaves=3, frequency=self.config.base_frequency)
+
+        # 3D Cellular Worley Noise (F1, F2)
+        f1, f2 = self.sample_worley_3d(x, y, z, cell_size=20.0)
+        worley_ridge = f2 - f1
+
+        # Gyroid Minimal Surface Component
+        gyroid_val = self.sample_gyroid_surface(x, y, z, scale=0.08)
+
+        # Dual Plasticity Yield:
+        # Low erosion activates Mohr-Coulomb brittle shear planes (tau = c + sigma tan(phi))
+        # High erosion activates Drucker-Prager smooth flow envelope (alpha I1 + sqrt(J2) - k = 0)
+        is_brittle_shear = (erosion < -0.25 and peaks_valleys > 0.3)
+        plastic_flow_smoothing = max(0.0, (erosion + 0.5) * 0.4)
+
+        # Cave carving: Cheese and Spaghetti caves
+        is_cheese_void = (y < sea_level - 10.0 and f1 > 0.85)
+        is_spaghetti_void = (y < sea_level - 8.0 and abs(worley_ridge - 0.22) < 0.04)
+        is_cave_void = is_cheese_void or is_spaghetti_void
+
+        # Combined Density Function:
+        # Density = w_p * Perlin_3D + w_w * (F2 - F1) + w_g * Gyroid - HeightBias(y)
+        height_bias = (y - base_elevation) / max(1.0, effective_squash)
+        combined_density = (
+            w_perlin * perlin_3d +
+            w_worley * (worley_ridge - 0.4) +
+            w_gyroid * gyroid_val -
+            height_bias
+        )
+        if plastic_flow_smoothing > 0.0:
+            combined_density = combined_density * (1.0 - plastic_flow_smoothing) + (0.5 - height_bias) * plastic_flow_smoothing
+
+        is_solid = (combined_density > 0.0) and not is_cave_void
+
+        # Metaphysical Entropy Bands
+        h_mischief = abs(peaks_valleys) * (1.0 - (erosion + 1.0) / 2.0)
+        h_schizo = abs(temperature - humidity)
+        h_dementia = max(0.0, 1.0 - abs(continentalness))
+
+        # Biome Classification
+        if is_cheese_void:
+            biome = TreehouseBiomeType.CHEESE_CAVERN_VOID
+        elif is_spaghetti_void:
+            biome = TreehouseBiomeType.SPAGHETTI_CHASM_CORRIDOR
+        elif abs(gyroid_val) < 0.15:
+            biome = TreehouseBiomeType.INCEPTIVE_GYROID_CANOPY
+        elif is_brittle_shear:
+            biome = TreehouseBiomeType.FRACTURE_GULLY_LEYLINE
+        elif worley_ridge > 0.6:
+            biome = TreehouseBiomeType.VORONOI_BASALT_COLUMNS
+        else:
+            biome = TreehouseBiomeType.MATRIOSHKA_NESTED_SPIRES
+
+        return {
+            "density": combined_density,
+            "is_solid": is_solid,
+            "biome": biome,
+            "continentalness": continentalness,
+            "erosion": erosion,
+            "peaks_valleys": peaks_valleys,
+            "temperature": temperature,
+            "humidity": humidity,
+            "base_elevation": base_elevation,
+            "effective_squash": effective_squash,
+            "is_cave_void": is_cave_void,
+            "is_brittle_shear": is_brittle_shear,
+            "entropy_bands": {
+                "h_mischief": h_mischief,
+                "h_schizo": h_schizo,
+                "h_dementia": h_dementia
+            }
+        }
+
+    def generate_chunk(
+        self,
+        chunk_x: int,
+        chunk_z: int,
+        octree: PointerlessOctree,
+        y_min: int = 0,
+        y_max: int = 64,
+        step: int = 2
+    ) -> Dict[str, Any]:
+        """
+        Populates a 16x16 chunk column directly into the PointerlessOctree
+        using Morton Z-order bit interleaving and L'Hôpital complexity depth.
+        Recalculates Euler-Poincaré Algebraic Betti numbers (beta_0, beta_1).
+        """
+        voxels_placed = 0
+        x_start = chunk_x * 16
+        z_start = chunk_z * 16
+
+        for x in range(x_start, x_start + 16, step):
+            for z in range(z_start, z_start + 16, step):
+                for y in range(y_min, y_max, step):
+                    d_eval = self.evaluate_density(float(x), float(y), float(z))
+                    if d_eval["is_solid"]:
+                        # Material selection:
+                        # 2: Bedrock core (y <= 4)
+                        # 1: Resonant Stone substrate (4 < y < 50)
+                        # 4: Biome-specific crystal / canopy (y >= 50)
+                        if y <= 4:
+                            mat = 2
+                        elif y < 50:
+                            mat = 1
+                        else:
+                            mat = 4
+
+                        complexity = d_eval["entropy_bands"]["h_mischief"] + abs(d_eval["density"])
+                        octree.add_adaptive_fractal_node(
+                            float(x), float(y), float(z),
+                            material=mat,
+                            complexity=complexity
+                        )
+                        voxels_placed += 1
+
+        betti = octree.compute_betti_numbers()
+        topo_complexity = 1.0 + 0.1 * (betti.get("betti_0", 1) - 1) + 0.25 * betti.get("betti_1", 0)
+
+        return {
+            "chunk_coords": (chunk_x, chunk_z),
+            "voxels_placed": voxels_placed,
+            "betti_numbers": betti,
+            "topological_complexity": topo_complexity,
+            "total_octree_nodes": len(octree.morton_grid)
+        }
+
+    def traverse_treehouse_scale(
+        self,
+        octree: PointerlessOctree,
+        center_cell: Tuple[int, int, int],
+        direction: str = "expand"
+    ) -> PointerlessOctree:
+        """
+        Treehouse Dimension Matrioshka Scale Nesting:
+        - "expand": 16x inward traversal (1 macro block expands to 16x16x16 sub-biome).
+        - "contract": 1/16x outward collapse (biome collapses to a single macroscopic voxel).
+        Applies L'Hôpital adaptive complexity scaling.
+        """
+        if direction.lower() == "expand":
+            return octree.traverse_scale_expand_16x(center_cell)
+        else:
+            return octree.traverse_scale_contract_16x()
+
+
+
