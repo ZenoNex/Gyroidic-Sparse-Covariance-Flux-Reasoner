@@ -7933,17 +7933,21 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     urls = data.get('urls', [])
                     options = data.get('options', {})
                     
-                    # Import Wikipedia integration with better error handling
+                    # Import Wikipedia integration with package resolution
                     try:
-                        import sys
-                        import os
-                        sys.path.append(os.path.join(os.path.dirname(__file__)))
-                        from wikipedia_integration import wikipedia_integration
-                        print(" Wikipedia integration module loaded successfully")
-                    except ImportError as e:
-                        print(f" Failed to import Wikipedia integration: {e}")
-                        self._send_error_json(f"Wikipedia integration module not available: {e}")
-                        return
+                        from src.ui.wikipedia_integration import wikipedia_integration
+                        print("[WIKI] Wikipedia integration module loaded successfully")
+                    except ImportError:
+                        try:
+                            import sys
+                            import os
+                            sys.path.append(os.path.join(os.path.dirname(__file__)))
+                            from wikipedia_integration import wikipedia_integration
+                            print("[WIKI] Wikipedia integration module loaded successfully (fallback)")
+                        except ImportError as e:
+                            print(f"[FAIL] Failed to import Wikipedia integration: {e}")
+                            self._send_error_json(f"Wikipedia integration module not available: {e}")
+                            return
                     
                     results = []
                     for url in urls:
