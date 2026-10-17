@@ -346,35 +346,57 @@ class TestVoxelboxterFloraFauna(unittest.TestCase):
         self.assertEqual(tear_res["puncture_type"], "SKYBOX_LAUNCH")
         self.assertTrue(tear_res["substrate_exposed"])
 
-    def test_zar_operator_integration_inner_core_and_dyadic_anchor(self):
+    def test_operator_spatial_telemetry_and_drift_alert(self):
         """
-        Verify the Zar Mechanism operator integration:
-        - Spatial maze cognitive friction generates an Inner Core extracted via ocular jitter.
-        - High anchor coherence (Kay/Jane dyad) maintains stable mental superposition.
-        - Low anchor coherence triggers containment alert to prevent scale dissociation.
+        Verify operator spatial navigation and gaze tracking telemetry evaluation:
+        - Spatial traversal friction and scan jitter yield bounded interaction workload.
+        - High anchor coherence maintains stable tracking state.
+        - Degraded anchor coherence triggers tracking drift alert.
         """
         engine = VoxelboxterEngine()
 
-        # Stable dyadic containment
-        stable_res = engine.harvest_zar_inner_core(
+        # Stable tracking state with descriptive telemetry API
+        stable_res = engine.evaluate_operator_telemetry(
+            spatial_friction=1.5,
+            scan_jitter=0.08,
+            anchor_coherence=0.96
+        )
+        self.assertTrue(stable_res["telemetry_recorded"])
+        self.assertTrue(stable_res["is_stable"])
+        self.assertFalse(stable_res["drift_alert"])
+        self.assertEqual(stable_res["status"], "TRACKING_STABLE")
+        self.assertAlmostEqual(stable_res["drift_risk"], 0.04, places=4)
+
+        # Degraded tracking state triggering drift alert
+        degraded_res = engine.evaluate_operator_telemetry(
+            spatial_friction=2.0,
+            scan_jitter=0.15,
+            anchor_coherence=0.70
+        )
+        self.assertTrue(degraded_res["drift_alert"])
+        self.assertFalse(degraded_res["is_stable"])
+        self.assertEqual(degraded_res["status"], "TRACKING_DRIFT_ALERT")
+        self.assertAlmostEqual(degraded_res["drift_risk"], 0.30, places=4)
+
+        # Legacy alias compatibility verification
+        legacy_stable = engine.harvest_zar_inner_core(
             spatial_maze_friction=1.5,
             ocular_scan_jitter=0.08,
             anchor_coherence=0.96
         )
-        self.assertTrue(stable_res["inner_core_generated"])
-        self.assertTrue(stable_res["is_safely_contained"])
-        self.assertFalse(stable_res["catatonic_hazard"])
-        self.assertEqual(stable_res["status"], "SUPERPOSITION_STABLE")
+        self.assertTrue(legacy_stable["inner_core_generated"])
+        self.assertTrue(legacy_stable["is_safely_contained"])
+        self.assertFalse(legacy_stable["catatonic_hazard"])
+        self.assertEqual(legacy_stable["status"], "SUPERPOSITION_STABLE")
 
-        # Dissociated state without external human anchor
-        dissociated_res = engine.harvest_zar_inner_core(
+        legacy_degraded = engine.harvest_zar_inner_core(
             spatial_maze_friction=2.0,
             ocular_scan_jitter=0.15,
-            anchor_coherence=0.70 # Coherence degraded below 0.80
+            anchor_coherence=0.70
         )
-        self.assertTrue(dissociated_res["catatonic_hazard"])
-        self.assertFalse(dissociated_res["is_safely_contained"])
-        self.assertEqual(dissociated_res["status"], "SCALE_DISSOCIATION_CONTAINMENT_ALERT")
+        self.assertTrue(legacy_degraded["catatonic_hazard"])
+        self.assertFalse(legacy_degraded["is_safely_contained"])
+        self.assertEqual(legacy_degraded["status"], "SCALE_DISSOCIATION_CONTAINMENT_ALERT")
 
 if __name__ == '__main__':
     unittest.main()
