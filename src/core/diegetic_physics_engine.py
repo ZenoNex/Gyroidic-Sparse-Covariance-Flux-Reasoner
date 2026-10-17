@@ -10,11 +10,15 @@ from src.core.honest_jitter import harvest_honest_jitter
 from src.topology.hyper_ring_closure import HyperRingClosureChecker
 from src.core.zeitgeist_router import ZeitgeistRouter
 from src.core.invariants import PhaseAlignmentInvariant
+from src.models.modular_attention import ModularAttention
+from src.models.diegetic_heads import AutoeclecticResponderHead, DataAssociationLayer, ResonanceLarynx
+from src.surrogates.calm_predictor import CALM
+from src.core.polynomial_coprime import PolynomialCoprimeConfig
 
 class DiegeticPhysicsEngine(nn.Module):
     """
     Master Orchestration Pipeline in Voxelboxter.
-    Executes the 9-Stage pipeline on every game tick.
+    Executes the 9-Stage pipeline on every game tick with full attention-system integration.
     """
     def __init__(self, device: str = "cpu", state_dim: int = 32):
         super().__init__()
@@ -29,6 +33,21 @@ class DiegeticPhysicsEngine(nn.Module):
         self.pas = PhaseAlignmentInvariant(poly_degree=3).to(device)
         from src.core.zeitgeist_router import ZeitgeistState
         self.zeitgeist_state = ZeitgeistState.initial(self.router.moduli)
+
+        # Attention, Diegetic Heads & Trajectory Veto Subsystems
+        self.poly_config = PolynomialCoprimeConfig(k=4, degree=3, basis_type='chebyshev', learnable=False)
+        attn_heads = 4 if state_dim % 4 == 0 else max([h for h in [4, 2, 1] if state_dim % h == 0], default=1)
+        self.modular_attention = ModularAttention(
+            hidden_dim=state_dim,
+            num_heads=attn_heads,
+            poly_config=self.poly_config,
+            num_functionals=4,
+            use_birkhoff=True
+        ).to(device)
+        self.calm = CALM(dim=state_dim).to(device)
+        self.autoeclectic_head = AutoeclecticResponderHead(hidden_dim=state_dim, output_dim=state_dim).to(device)
+        self.data_association = DataAssociationLayer(input_dim=state_dim, hidden_dim=state_dim, k=4).to(device)
+        self.larynx = ResonanceLarynx(state_dim).to(device)
 
         # Geotechnical yield criteria & PointerlessOctree substrate
         from src.ui.voxelboxter_simulation import PointerlessOctree
@@ -85,6 +104,13 @@ class DiegeticPhysicsEngine(nn.Module):
             
         pas_h = self.pas(c_in)
 
+        # Draw from ModularAttention to reality-check active resonance slots and validate Birkhoff stochasticity
+        c_seq = c_in.unsqueeze(0).unsqueeze(0)  # [1, 1, state_dim]
+        path_topo = controller_input.get('path_topology_vectors', None)
+        attn_out = self.modular_attention(c_seq, path_topology_vectors=path_topo)
+        attn_integrity = self.modular_attention.validate_structural_integrity()
+        attended_c = attn_out.squeeze(0).squeeze(0)
+
         # Strictly Damped Spin Precession & PSH Proximity (Read-Only Telemetry)
         # Low-pass filter (tau/EMA) prevents phase velocity jitter from modulating state update rates
         # and guards against false CALM aborts
@@ -126,6 +152,14 @@ class DiegeticPhysicsEngine(nn.Module):
         # --- Stage 5: System 2 ADMM & ADMR Constraint Probes ---
         # Check constraints (tire slip, structural breakage).
         admr_output = self.admr(c_sym)
+
+        # CALM Trajectory Veto Gating (TOPOLOGICAL_EXTENSIONS.md Part VI §7)
+        history_c = c_in.unsqueeze(0).repeat(1, 8, 1)  # [1, 8, state_dim]
+        calm_abort, calm_rho, calm_step, calm_forcing, calm_gauge, calm_constraints = self.calm(history_c)
+        geom_veto = float(violation_v.item() > 2.0)
+        calm_veto = float(calm_abort.mean().item())
+        gauge_val = float(torch.clamp(calm_gauge.mean(), 0.0, 1.0).item())
+        total_veto = (1.0 - gauge_val) * geom_veto + gauge_val * calm_veto
         
         # --- Stage 5.1: Carnot-Möbius Thermodynamic Ledger ---
         # Compute thermal runaway based on ADMR topological friction.
@@ -200,6 +234,10 @@ class DiegeticPhysicsEngine(nn.Module):
             betti_shift = 1 # We carved a new hole (Delta beta_1 = 1) in the terrain
             new_b1 = max(new_b1, b1 + 1)
 
+        # Diegetic Autoeclectic Expression
+        spectral_entropy = torch.tensor([[float(torch.clamp(1.0 - pas_h.mean(), 0.0, 1.0).item())]], device=self.device)
+        diegetic_out = self.autoeclectic_head(x_hat.unsqueeze(0), spectral_entropy=spectral_entropy)
+
         # Return updated physics state
         return {
             "c_out": x_hat,
@@ -211,5 +249,28 @@ class DiegeticPhysicsEngine(nn.Module):
             "closure_gap": gap_val,
             "damped_spin_precession": float(self.damped_spin_precession.item()),
             "delta_psh": float(delta_psh),
-            "psh_invariant_active": bool(delta_psh < 1e-4)
+            "psh_invariant_active": bool(delta_psh < 1e-4),
+            "attention_integrity": bool(attn_integrity.all().item()),
+            "diegetic_response": diegetic_out.squeeze(0).detach(),
+            "calm_total_veto": total_veto,
+            "calm_gauge": gauge_val,
+            "calm_constraints": calm_constraints.squeeze(0).detach()
+        }
+
+    def ingest_knowledge_dyad(self, text_emb: torch.Tensor, image_emb: torch.Tensor) -> torch.Tensor:
+        """
+        Fuses multi-modal inputs (e.g., Image semantics + Textual descriptions)
+        via DataAssociationLayer into unified coprime polynomial residues.
+        """
+        return self.data_association(text_emb, image_emb)
+
+    def evaluate_attention_diagnostics(self) -> Dict[str, Any]:
+        """
+        Returns live attention health, Birkhoff doubly-stochastic integrity, and CALM veto states.
+        """
+        return {
+            "birkhoff_integrity": bool(self.modular_attention.validate_structural_integrity().all().item()),
+            "warmstart_mix": float(self.modular_attention.warmstart_mix.item()),
+            "num_breathers": self.modular_attention.num_breathers,
+            "active_functionals": self.modular_attention.K
         }
