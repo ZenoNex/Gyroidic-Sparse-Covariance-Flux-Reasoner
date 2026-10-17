@@ -328,6 +328,10 @@ class UniversalOrchestrator(nn.Module):
         from src.core.enhanced_bezout_crt import EnhancedBezoutCRT
         self.enhanced_bezout_crt = EnhancedBezoutCRT(num_moduli=min(8, dim))
 
+        # 7.27 Alexander 1924 Wild Embedding & Fractal Cube Stacking Transversality Operator
+        from src.topology.alexander_wild_embedding import AlexanderWildEmbeddingOperator
+        self.alexander_operator = AlexanderWildEmbeddingOperator(dim=dim)
+
         # 7.27 Structural Energy Monitor (EBM Free Energy & Topological Pressure)
         from src.core.energy_monitor import StructuralEnergyMonitor
         self.structural_energy_monitor = StructuralEnergyMonitor(device=str(_device))
@@ -628,6 +632,12 @@ class UniversalOrchestrator(nn.Module):
             board_metrics.update(self.structural_energy_monitor.get_metrics())
         except Exception:
             pass
+
+        if hasattr(self, 'last_alexander_report') and self.last_alexander_report is not None:
+            board_metrics["alexander_transversal"] = self.last_alexander_report.is_transversal
+            board_metrics["alexander_singularity_risk"] = self.last_alexander_report.wild_singularity_risk
+            board_metrics["alexander_shear_flux"] = self.last_alexander_report.shear_flux
+            board_metrics["alexander_lhopital_scale"] = self.last_alexander_report.lhopital_scale
 
         b1_val = float(board_metrics.get("b1", 0.0))
         pas_out = float(board_metrics.get("pas_h", pas_h))
@@ -1096,6 +1106,23 @@ class UniversalOrchestrator(nn.Module):
             'mischief': mischief_metrics['H_mischief']
         }
         
+        # 3.8. J. W. Alexander 1924 Wild Embedding & Fractal Cube Stacking Check
+        alex_report = None
+        if hasattr(self, 'alexander_operator') and self.alexander_operator is not None:
+            try:
+                negentropy_val = float(self.fib_entropy().mean().item()) if hasattr(self, 'fib_entropy') else 0.5
+                alex_report = self.alexander_operator(
+                    state=state_final,
+                    negentropy_flux=negentropy_val,
+                    hyperbolic_shear=0.4
+                )
+                self.last_alexander_report = alex_report
+                if not alex_report.is_transversal:
+                    # Negentropy shear plane regularization to restore transversality
+                    state_final = alex_report.reconstructed_state
+            except Exception:
+                pass
+
         arch_results = self.archetype_governor.run_archetypes(
             current_state=state_final,
             stranded_states=stranded_states,
@@ -1113,7 +1140,8 @@ class UniversalOrchestrator(nn.Module):
             fossilizer=fossilizer,
             valence_functional=valence_func,
             moment_transport=moment_trans,
-            private_invariants=private_invariants
+            private_invariants=private_invariants,
+            alexander_transversality=alex_report
         )
         
         state_governed = arch_results.active_state
