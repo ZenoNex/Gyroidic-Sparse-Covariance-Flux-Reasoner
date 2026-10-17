@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import math
 
-from typing import Dict, Tuple, Optional, Any
+from typing import Dict, Tuple, Optional, Any, Union
 
 class CarnotMobiusLedger(nn.Module):
     """
@@ -114,6 +114,74 @@ class CarnotMobiusLedger(nn.Module):
             "n_crit": n_crit,
             "topological_friction": sigma_eps_sq
         }
+
+    def compute_parallel_sorting_entropy(
+        self,
+        omega_heads: torch.Tensor,
+        gauge_circulation: torch.Tensor,
+        euler_chi: Union[torch.Tensor, float] = 1.0,
+        lambda_min: float = 1e-3,
+        kappa_accel: float = 1.0,
+        k_B: float = 1.0,
+        efficiency_fn: Optional[Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Computes the Parallel Sorting Entropy:
+        Delta S_{sort}^{||} = eta(N_{heads}) * sum_{h=1}^{N_{heads}} kappa_{accel} * [ k_B * ln(Omega_h) - oint_{gamma_h} (nabla x G_h) . dl + chi_h * lambda_{min}^{-1} ]
+
+        Args:
+            omega_heads: Microstate volume / permutation counts for each head [N_heads].
+            gauge_circulation: Line integral of curl of gauge field around loop gamma_h [N_heads].
+            euler_chi: Euler characteristic topological invariant for each head [N_heads] or scalar.
+            lambda_min: Smallest non-zero Laplacian eigenvalue (> 0).
+            kappa_accel: Curvature acceleration parameter (> 0).
+            k_B: Boltzmann constant.
+            efficiency_fn: Optional scaling function eta(N_heads). Defaults to 1 / sqrt(N_heads).
+
+        Returns:
+            Dictionary containing total delta_s_sort, per-head components, and thermodynamic diagnostics.
+        """
+        N_heads = omega_heads.shape[0] if omega_heads.dim() > 0 else 1
+        
+        # Scaling efficiency eta(N_heads)
+        if efficiency_fn is not None:
+            eta = float(efficiency_fn(N_heads))
+        else:
+            eta = 1.0 / math.sqrt(max(1, N_heads))
+
+        # Safe log for microstate volumes: k_B * ln(Omega_h)
+        safe_omega = torch.clamp(omega_heads, min=1e-8)
+        boltzmann_term = k_B * torch.log(safe_omega)
+
+        # Circulation term: - oint_{gamma_h} (nabla x G_h) . dl
+        circ_term = -gauge_circulation
+
+        # Euler characteristic term: chi_h * lambda_{min}^{-1}
+        safe_lambda_min = max(1e-8, float(lambda_min))
+        if isinstance(euler_chi, torch.Tensor):
+            topo_term = euler_chi * (1.0 / safe_lambda_min)
+        else:
+            topo_term = float(euler_chi) * (1.0 / safe_lambda_min)
+
+        # Per-head term: kappa_accel * [ k_B ln(Omega_h) - circ + chi * lambda_min^{-1} ]
+        head_bracket = boltzmann_term + circ_term + topo_term
+        head_entropy = kappa_accel * head_bracket
+
+        # Total parallel sorting entropy
+        delta_s_sort = eta * torch.sum(head_entropy)
+
+        return {
+            "delta_s_sort": delta_s_sort,
+            "eta_heads": eta,
+            "N_heads": N_heads,
+            "boltzmann_entropy": boltzmann_term,
+            "gauge_circulation": gauge_circulation,
+            "topological_euler_term": topo_term,
+            "per_head_entropy": head_entropy,
+            "kappa_accel": kappa_accel,
+            "lambda_min": safe_lambda_min
+        }
+
 
 
 class GENIUSOperator(nn.Module):
