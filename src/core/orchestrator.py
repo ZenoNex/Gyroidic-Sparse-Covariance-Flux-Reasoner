@@ -891,8 +891,14 @@ class UniversalOrchestrator(nn.Module):
             if preservation_report.get('active_facets'):
                 for f_idx in preservation_report['active_facets']:
                     normal = F.normalize(self.feature_preservation.facet_normals[f_idx], dim=-1).to(state_quant.device)
+                    if normal.shape[-1] != state_quant.shape[-1]:
+                        if normal.shape[-1] > state_quant.shape[-1]:
+                            normal = normal[..., :state_quant.shape[-1]]
+                        else:
+                            normal = F.pad(normal, (0, state_quant.shape[-1] - normal.shape[-1]))
+                    normal_expanded = normal.view(*([1] * (state_quant.dim() - 1)), -1)
                     q_deriv = preservation_report['preserved_features'][f_idx][1].mean()
-                    state_quant = state_quant + 0.02 * q_deriv * normal.view_as(state_quant)
+                    state_quant = state_quant + 0.02 * q_deriv * normal_expanded
             
             # Apply Topological Twist (Gluing Operator Psi)
             target_dim = self.gluer.dim if hasattr(self.gluer, 'dim') else 4
