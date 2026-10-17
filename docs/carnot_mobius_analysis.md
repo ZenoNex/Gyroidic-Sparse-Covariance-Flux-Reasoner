@@ -182,3 +182,34 @@ Domain transformations are governed by directional transfer couplings:
 - $\text{gauge}_{\text{topo} \to \text{algorithmic}} = \max(0, 1 - S_{\text{abort}})$: Suppresses non-critical tasks during topological rupture.
 - $\text{gauge}_{\text{silicon} \to \text{p2p}} = \min(G_{\text{silicon}}, G_{\text{p2p}})$: Harmonizes local physical constraints with distributed consensus budgets.
 
+---
+
+## 6. Parallel Sorting Entropy & Gauge Field Circulation
+
+In distributed multi-head sorting, spatial attention, and parallel voxel rasterization pipelines, thermodynamic entropy production across $N_{\text{heads}}$ concurrent execution heads is governed by:
+
+$$\Delta S_{sort}^{\parallel} = \eta(N_{heads}) \sum_{h=1}^{N_{heads}} \kappa_{accel} \left[ k_B \ln \Omega_h - \oint_{\gamma_h} (\nabla \times \boldsymbol{\mathcal{G}}_h)\cdot d\boldsymbol{\ell} + \chi_h \, \lambda_{min}^{-1} \right]$$
+
+### 6.1 Component Physical Semantics
+1. **Concurrency Scaling Efficiency ($\eta(N_{\text{heads}})$):**
+   Sub-linear scaling factor reflecting Amdahl and inter-head synchronization overhead, defaulting to:
+   $$\eta(N_{\text{heads}}) = \frac{1}{\sqrt{N_{\text{heads}}}}$$
+
+2. **Microstate Sorting Phase Volume ($k_B \ln \Omega_h$):**
+   Boltzmann permutation entropy for head $h$, where $\Omega_h$ measures the unconstrained state space volume or permutation rank of candidate sort vectors.
+
+3. **Gauge Field Circulation Line Integral ($-\oint_{\gamma_h} (\nabla \times \boldsymbol{\mathcal{G}}_h)\cdot d\boldsymbol{\ell}$):**
+   Stokes circulation of the gauge contortion connection field $\boldsymbol{\mathcal{G}}_h$ along the closed boundary loop $\gamma_h$. Vortex accumulation along the sort trajectory opposes entropy dissipation, reducing usable sorting free energy.
+
+4. **Euler Characteristic Topological Stiffness ($\chi_h \, \lambda_{min}^{-1}$):**
+   Topological invariant $\chi_h = \beta_{0, h} - \beta_{1, h}$ weighted by the inverse of the spectral gap $\lambda_{\min}$ (the Fiedler eigenvalue of the Laplacian). When the spectral gap contracts ($\lambda_{\min} \to 0$), topological friction and sorting resistance diverge.
+
+5. **Curvature Acceleration ($\kappa_{accel}$):**
+   Kinematic acceleration scalar scaling the entropy gradient across non-Euclidean manifolds.
+
+### 6.2 Canonical Codebase Bindings
+- Implemented natively in [`CarnotMobiusLedger.compute_parallel_sorting_entropy`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/carnot_mobius_ledger.py#L118).
+- Bound to cleanroom simulation via [`VoxelboxterHookIntegrator.compute_parallel_sorting_entropy`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py#L3950).
+- Exposed to node scripting via [`PhysicalNodeEditor.hook_parallel_sorting_entropy`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L1457).
+
+
