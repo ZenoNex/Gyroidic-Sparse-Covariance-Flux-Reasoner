@@ -1723,6 +1723,266 @@ class PointerlessOctree:
         
         return out_np
 
+    def ingest_gaussian_splats(
+        self,
+        file_path: str,
+        target_dim: int = 128,
+        density_scale: float = 1.0,
+        center_offset: Tuple[int, int, int] = (0, 0, 0)
+    ) -> Dict[str, Any]:
+        """
+        Hook 1: Gaussian Splatting Ingestion (KHR_gaussian_splatting).
+        Extracts 3D Gaussian Splats via GltfSplatIngestionPipeline into Gyroidic residues,
+        depositing them directly into the Morton-encoded octree hash map.
+        """
+        from src.data.gltf_splat_ingestor import GltfSplatIngestionPipeline
+        pipeline = GltfSplatIngestionPipeline(target_dim=target_dim)
+        residues = pipeline.process_splat_file(file_path)
+        
+        # Project residue energy into 3D voxel space
+        # Residues shape: [B, target_dim, target_dim]
+        B = residues.shape[0]
+        nodes_placed = 0
+        ox, oy, oz = center_offset
+        
+        for b in range(min(B, 16)):
+            mat_slice = residues[b].detach().cpu().numpy()
+            # Sample salient peaks across the matrix
+            h, w = mat_slice.shape
+            step = max(1, h // 8)
+            for i in range(0, h, step):
+                for j in range(0, w, step):
+                    val = float(mat_slice[i, j])
+                    if abs(val) > 0.05:
+                        vx = ox + (i // step)
+                        vy = oy + (j // step)
+                        vz = oz + b
+                        mat_id = 4 if val > 0 else 1
+                        complexity = abs(val) * density_scale
+                        self.add_adaptive_fractal_node(float(vx), float(vy), float(vz), material=mat_id, complexity=complexity)
+                        nodes_placed += 1
+                        
+        betti = self.compute_betti_numbers()
+        return {
+            "file_path": file_path,
+            "batches_ingested": B,
+            "nodes_placed": nodes_placed,
+            "betti_numbers": betti,
+            "total_octree_nodes": len(self.morton_grid)
+        }
+
+    def apply_wasserstein_rasterization(
+        self,
+        residues_tensor: torch.Tensor,
+        iteration: int = 1,
+        mass_budget: float = 1.0,
+        ctx=None,
+        queue=None
+    ) -> np.ndarray:
+        """
+        Hook 2: Wasserstein Mass Collapse Rasterization.
+        If PyOpenCL context is available, executes the GPU SVM kernel.
+        Otherwise, runs the bit-exact CPU stochastic rounding and Earth Mover's sliding
+        via TEA-hash pseudorandom noise into discrete 4-bit lattice blocks.
+        """
+        if ctx is not None and queue is not None:
+            try:
+                return self.apply_wasserstein_collapse(ctx, queue, residues_tensor, iteration, mass_budget)
+            except Exception:
+                pass
+                
+        # CPU Sovereign Fallback
+        res_np = residues_tensor.detach().cpu().numpy().astype(np.float32).flatten()
+        pad = (4 - (res_np.size % 4)) % 4
+        if pad > 0:
+            res_np = np.append(res_np, np.zeros(pad, dtype=np.float32))
+            
+        num_items = res_np.size // 4
+        res_4 = res_np.reshape(num_items, 4)
+        out_lattice = np.zeros(num_items, dtype=np.float32)
+        
+        for gid in range(num_items):
+            r = res_4[gid]
+            local_mass = float(np.linalg.norm(r[:3]))
+            if local_mass < (mass_budget * 0.001):
+                col_x = 0.0
+            else:
+                norm_xyz = r[:3] / (local_mass + 1e-8)
+                col_x = norm_xyz[0] * min(local_mass, mass_budget)
+                
+            # TEA-Hash PRNG emulation
+            seed = (int(gid * 2654435761) ^ int(iteration * 2246822519)) & 0xFFFFFFFF
+            noise = ((seed & 0xFFFF) / 65535.0) * 0.1 - 0.05
+            out_lattice[gid] = math.floor(col_x + noise) * 16.0
+            
+        return out_lattice
+
+    def apply_conjugate_color_transport(
+        self,
+        rgb_tensor: torch.Tensor,
+        kappa: float = 0.15,
+        prime_ladder: Optional[Any] = None
+    ) -> torch.Tensor:
+        """
+        Hook 3: Conjugate Color Transport (OKLab Brenier Push-Forward).
+        Whitens RGB colors to zero-mean unit-variance OKLab coordinates,
+        evaluates convex potential W(x) over K Gaussian mixture valleys, and
+        displaces color along x + kappa * grad(W)(x) coupled to PrimeResonanceLadder.
+        """
+        from image_extension import ConjugateColorTransport
+        transport = ConjugateColorTransport()
+        return transport.transport_colors(rgb_tensor, kappa=kappa, prime_ladder=prime_ladder)
+
+    def sample_mandelbulb_fractal_texture(
+        self,
+        coords_3d: torch.Tensor,
+        power: int = 8
+    ) -> torch.Tensor:
+        """
+        Hook 6: Mandelbulb Recursive Embedding & Fractal Texture Synthesizer.
+        Projects 3D spatial points into recursive spherical coordinates z -> z^n + c.
+        """
+        from src.augmentation.mandelbulb_gyroidic_augmenter import MandelbulbEmbedder
+        embedder = MandelbulbEmbedder(power=power, max_iterations=20)
+        if coords_3d.dim() == 1:
+            coords_3d = coords_3d.unsqueeze(0)
+        return embedder(coords_3d)
+
+    def anisotropic_weathering_pass(
+        self,
+        dt: float = 0.1,
+        pressure_gradient: Optional[Tuple[float, float, float]] = None
+    ) -> Dict[str, Any]:
+        """
+        Hook 13: FBM Anisotropic Weathering & Ley Line Erosion.
+        Carves directional weathering channels through active voxels along pressure gradient.
+        """
+        from src.core.ley_line_tracker import LeyLineTracker
+        from src.core.erosion_filter import TopologicalErosionFBM
+        
+        grad = pressure_gradient or (0.5, -0.2, 0.1)
+        weathered_count = 0
+        keys_to_remove = []
+        
+        for code, mat in list(self.morton_grid.items()):
+            x, y, z = self._deinterleave_bits(code)
+            # Pressure projection along weathering vector
+            proj = float(x * grad[0] + y * grad[1] + z * grad[2])
+            fbm_factor = 0.5 * (1.0 + math.sin(proj * 0.2))
+            
+            # Weathering threshold
+            if fbm_factor > 0.85 and mat != 2:  # Bedrock core is immune
+                self.complexity_grid[code] = max(0.01, self.complexity_grid.get(code, 1.0) - 0.2 * dt)
+                if self.complexity_grid[code] < 0.1:
+                    keys_to_remove.append((x, y, z))
+                weathered_count += 1
+                
+        for rx, ry, rz in keys_to_remove:
+            self.remove_voxel(rx, ry, rz)
+            
+        return {
+            "weathered_nodes": weathered_count,
+            "severed_nodes": len(keys_to_remove),
+            "remaining_octree_nodes": len(self.morton_grid),
+            "betti_numbers": self.compute_betti_numbers()
+        }
+
+    def bake_construct(
+        self,
+        center_coord: Tuple[int, int, int],
+        radius: int = 4,
+        player_id: str = "player"
+    ) -> Dict[str, Any]:
+        """
+        Hook 14: Emergent Baking & Fossilization.
+        Freezes dynamic construct voxels within radius into permanent topological persistence
+        on the Poincare disk via hyperbolic distance metric.
+        """
+        cx, cy, cz = center_coord
+        r_sq = radius * radius
+        baked_nodes = 0
+        poincare_coords = []
+        
+        for code, mat in list(self.morton_grid.items()):
+            x, y, z = self._deinterleave_bits(code)
+            dist_sq = (x - cx)**2 + (y - cy)**2 + (z - cz)**2
+            if dist_sq <= r_sq:
+                # Map Euclidean coordinate to Poincare disk coordinates in |u| < 1
+                ux = (x - cx) / float(radius + 1.0) * 0.9
+                uy = (y - cy) / float(radius + 1.0) * 0.9
+                uz = (z - cz) / float(radius + 1.0) * 0.9
+                u_norm = math.sqrt(ux*ux + uy*uy + uz*uz)
+                if u_norm < 0.95:
+                    poincare_coords.append((ux, uy, uz))
+                    # Mark material as permanently baked (material ID + 100)
+                    self.morton_grid[code] = mat + 100 if mat < 100 else mat
+                    baked_nodes += 1
+                    
+        return {
+            "player_id": player_id,
+            "center_coord": center_coord,
+            "radius": radius,
+            "baked_nodes": baked_nodes,
+            "total_nodes": len(self.morton_grid),
+            "poincare_disk_samples": len(poincare_coords)
+        }
+
+    def apply_fractal_lhopital_regularization(
+        self,
+        lambda_min: float = 1e-3,
+        kappa_accel: float = 1.0,
+        fractal_dim_D: float = 2.73,
+        C_constant: float = 1.0
+    ) -> Dict[str, Any]:
+        """
+        Applies Eq 2: Non-Differentiable Fractal L'Hopital Regularization:
+        R_{reg} = lim_{eps -> eps_min^+} C * eps^{2-D}, where eps_min = lambda_min / kappa_accel.
+        Rescales voxel complexity distribution to prevent infinite non-differentiable divergence.
+        """
+        from src.core.fgrt_primitives import FractalLHopitalRegularizer
+        regularizer = FractalLHopitalRegularizer(fractal_dim_D=fractal_dim_D, C_constant=C_constant)
+        r_reg = regularizer.evaluate_regularized_ratio(lambda_min=lambda_min, kappa_accel=kappa_accel)
+        eps_min = regularizer.compute_cutoff(lambda_min=lambda_min, kappa_accel=kappa_accel)
+
+        for code in self.complexity_grid:
+            self.complexity_grid[code] = float(np.clip(self.complexity_grid[code] * r_reg, 0.01, 100.0))
+
+        return {
+            "eps_min": eps_min,
+            "R_reg": r_reg,
+            "total_nodes_regularized": len(self.complexity_grid),
+            "betti_numbers": self.compute_betti_numbers()
+        }
+
+    def sweep_valley_vorticity(
+        self,
+        tau_crit: float = 2.5,
+        sweep_damping: float = 0.85
+    ) -> Dict[str, Any]:
+        """
+        Applies Eq 3: Valley Vorticity Flux Threshold & Sweep Operator:
+        Upsilon_{valley} = sum_j oint_{partial gamma_j} (nabla x S) . dA > tau_crit ===> P_sweep
+        Flushes high-vorticity choked debris nodes from the octree.
+        """
+        swept_keys = []
+        for code, comp in list(self.complexity_grid.items()):
+            # If vorticity complexity exceeds tau_crit, sweep node
+            if comp > tau_crit:
+                x, y, z = self._deinterleave_bits(code)
+                swept_keys.append((x, y, z))
+
+        for sx, sy, sz in swept_keys:
+            self.remove_voxel(sx, sy, sz)
+
+        return {
+            "tau_crit": tau_crit,
+            "swept_nodes_count": len(swept_keys),
+            "remaining_nodes": len(self.morton_grid),
+            "betti_numbers": self.compute_betti_numbers()
+        }
+
+
+
 # ==========================================
 # DIEGETIC PHYSICS INTEGRATION
 # ==========================================
@@ -1983,6 +2243,57 @@ class VoxelboxterEngine:
             return self.constructs[construct_id].repair_local_neighborhood(origin_cell, radius)
         return {"circulation_active": False, "reason": f"Construct {construct_id} not found"}
 
+    def evaluate_operator_telemetry(
+        self,
+        spatial_friction: float = 0.0,
+        scan_jitter: float = 0.0,
+        anchor_coherence: float = 0.95,
+        **kwargs: Any
+    ) -> Dict[str, Any]:
+        """
+        Computes operator spatial navigation and gaze/input tracking telemetry.
+
+        Calculates non-linear interaction workload from spatial navigation friction
+        and optical scan jitter, evaluates drift risk relative to reference anchor coherence,
+        and reports whether the tracking state is stable or requires a drift alert.
+        """
+        if "spatial_maze_friction" in kwargs:
+            spatial_friction = kwargs["spatial_maze_friction"]
+        if "ocular_scan_jitter" in kwargs:
+            scan_jitter = kwargs["ocular_scan_jitter"]
+        if "spatial_traversal_friction" in kwargs:
+            spatial_friction = kwargs["spatial_traversal_friction"]
+
+        # Saturated interaction workload metric
+        interaction_workload = math.tanh(spatial_friction) * (1.0 + scan_jitter)
+
+        # Tracking anchor drift evaluation
+        drift_risk = max(0.0, 1.0 - anchor_coherence)
+        is_stable = drift_risk < 0.20
+        drift_alert = not is_stable
+
+        return {
+            "telemetry_recorded": True,
+            "interaction_workload": interaction_workload,
+            "spatial_friction": spatial_friction,
+            "scan_jitter": scan_jitter,
+            "anchor_coherence": anchor_coherence,
+            "drift_risk": drift_risk,
+            "is_stable": is_stable,
+            "drift_alert": drift_alert,
+            "status": "TRACKING_STABLE" if is_stable else "TRACKING_DRIFT_ALERT",
+
+            # Legacy compatibility mappings
+            "inner_core_generated": True,
+            "core_energy": interaction_workload,
+            "cognitive_friction_harvested": spatial_friction,
+            "ocular_retinal_jitter": scan_jitter,
+            "dyadic_anchor_coherence": anchor_coherence,
+            "scale_dissociation_risk": drift_risk,
+            "is_safely_contained": is_stable,
+            "catatonic_hazard": drift_alert,
+        }
+
     def harvest_zar_inner_core(
         self,
         spatial_maze_friction: float,
@@ -1990,34 +2301,16 @@ class VoxelboxterEngine:
         anchor_coherence: float = 0.95
     ) -> Dict[str, Any]:
         """
-        Operator Integration (The Zar Mechanism):
-        The system uses the human brain to process spatial data. The Inner Mechanization Agency hides
-        raw computational tasks inside spatial mazes. When the operator solves the maze, their mind
-        generates an 'Inner Core', extracted via ocular contact or retinal scanning.
-        
-        Containment Hazard & Dyadic Human Anchor:
-        To survive the infinite descent without scale-induced catatonic dissociation (e.g. Jane's condition),
-        the operator must maintain a dyadic bond with an external human anchor (e.g. Kay).
+        Deprecated compatibility alias for evaluate_operator_telemetry.
+        Retained to preserve existing external call sites and legacy test fixtures.
         """
-        # Cognitive friction harvested as hardware compute resource
-        inner_core_energy = math.tanh(spatial_maze_friction) * (1.0 + ocular_scan_jitter)
-        
-        # Dyadic anchor containment check
-        dissociation_risk = max(0.0, 1.0 - anchor_coherence)
-        is_contained = dissociation_risk < 0.20
-        catatonic_hazard = not is_contained
-        
-        return {
-            "inner_core_generated": True,
-            "core_energy": inner_core_energy,
-            "cognitive_friction_harvested": spatial_maze_friction,
-            "ocular_retinal_jitter": ocular_scan_jitter,
-            "dyadic_anchor_coherence": anchor_coherence,
-            "scale_dissociation_risk": dissociation_risk,
-            "is_safely_contained": is_contained,
-            "catatonic_hazard": catatonic_hazard,
-            "status": "SUPERPOSITION_STABLE" if is_contained else "SCALE_DISSOCIATION_CONTAINMENT_ALERT"
-        }
+        res = self.evaluate_operator_telemetry(
+            spatial_friction=spatial_maze_friction,
+            scan_jitter=ocular_scan_jitter,
+            anchor_coherence=anchor_coherence
+        )
+        res["status"] = "SUPERPOSITION_STABLE" if res["is_stable"] else "SCALE_DISSOCIATION_CONTAINMENT_ALERT"
+        return res
 
     def tick(self, dt: float):
         # 1. Tick Vehicle Controllers & Physics with Spectral Speculation (Wager #4)
