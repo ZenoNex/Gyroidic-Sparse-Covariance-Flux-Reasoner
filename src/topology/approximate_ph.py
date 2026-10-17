@@ -2,7 +2,7 @@
 Approximate Persistent Homology for topological rupture detection.
 
 Uses relative barcode change, not exact Betti numbers.
-PASₕ fires on RELATIVE change, not absolute topology.
+PAS fires on RELATIVE change, not absolute topology.
 
 Author: Implementation from Structural Design Decisions
 Created: January 2026
@@ -10,6 +10,7 @@ Created: January 2026
 import torch
 import torch.nn as nn
 from typing import Dict, Optional
+from src.core.invariants import APAS_Zeta
 
 
 class ApproximatePHProbe(nn.Module):
@@ -18,6 +19,7 @@ class ApproximatePHProbe(nn.Module):
     
     Key principle: Approximation error is orthogonal to the invariants
     we care about (birth-death stability of defects).
+    Delegates drift bounding to canonical APAS_Zeta invariant.
     
     Treats PH as a TRIGGER, not a metric.
     """
@@ -44,6 +46,9 @@ class ApproximatePHProbe(nn.Module):
         self.num_landmarks = num_landmarks
         self.relative_threshold = relative_threshold
         self.signature_size = signature_size
+        
+        # Canonical APAS_Zeta invariant governing rupture drift limits
+        self.apas_bound = APAS_Zeta(zeta=relative_threshold)
         
         # Track previous barcode for relative change
         self.register_buffer('prev_barcode_signature', torch.zeros(signature_size))
@@ -115,7 +120,7 @@ class ApproximatePHProbe(nn.Module):
         """
         Detect topological rupture via relative barcode change.
         
-        PASₕ fires on RELATIVE change, not absolute homology.
+        PAS fires on RELATIVE change, not absolute homology.
         
         Args:
             points: [num_points, dim] point cloud
@@ -132,10 +137,12 @@ class ApproximatePHProbe(nn.Module):
         if self.step_count == 0:
             relative_change = torch.tensor(0.0, device=points.device)
             is_rupture = torch.tensor(False, device=points.device)
+            apas_drift = torch.tensor(0.0, device=points.device)
         else:
             delta = torch.abs(current_sig - self.prev_barcode_signature)
             relative_change = delta.sum() / (self.prev_barcode_signature.abs().sum() + 1e-8)
-            is_rupture = relative_change > self.relative_threshold
+            apas_drift, violation = self.apas_bound.check_drift(current_sig.mean(), self.prev_barcode_signature.mean())
+            is_rupture = (relative_change > self.relative_threshold) | (violation > 0)
         
         # Update history
         self.prev_barcode_signature = current_sig.detach()
@@ -144,6 +151,7 @@ class ApproximatePHProbe(nn.Module):
         return {
             'is_rupture': is_rupture,
             'relative_change': relative_change,
+            'apas_drift': apas_drift,
             'barcode_signature': current_sig
         }
     
