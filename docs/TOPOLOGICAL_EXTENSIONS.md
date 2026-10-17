@@ -318,3 +318,37 @@ The Alexander Wild Embedding & Negentropy Shear operator links directly to 12 de
 11. **`HyperRingClosure`** ([`src/topology/hyper_ring_closure.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/hyper_ring_closure.py)): Enforces gyroidic differential inclusion via contingent cones.
 12. **`BettiRouter`** ([`src/topology/betti_router.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/betti_router.py)): Vetoes topological traffic jams along non-transversal routes.
 
+---
+
+### 8. Non-Differentiable Fractal L'Hôpital Regularization
+Across non-smooth Weierstrass fractures and multi-scale fractal boundaries, classical differential calculus and L'Hôpital's rule break down because the boundary surface area $S(\varepsilon)$ and volume $V(\varepsilon)$ do not possess differentiable tangent planes:
+
+$$\lim_{\varepsilon \to 0} \frac{S(\varepsilon)}{V(\varepsilon)} \;\xrightarrow[\text{invalid}]{\text{L'Hôpital}}\; \text{undefined} \qquad\Longrightarrow\qquad R_{reg} \;=\; \lim_{\varepsilon \,\to\, \varepsilon_{min}^{+}} C\,\varepsilon^{\,2-D}, \quad \varepsilon_{min} = \frac{\lambda_{min}}{\kappa_{accel}}$$
+
+#### Physical & Algorithmic Semantics
+- **Spectral Cutoff ($\varepsilon_{min} = \frac{\lambda_{min}}{\kappa_{accel}}$):** Lower spatial bound determined by the smallest non-zero eigenvalue $\lambda_{min}$ of the Laplacian divided by curvature acceleration $\kappa_{accel}$, matching the physical Planck grid of the octree.
+- **Hausdorff Dimension Scaling ($R_{reg} = C \varepsilon_{min}^{2-D}$):** Governs how spatial density scales with fractal dimension $D \in (2, 3)$. For a standard 2.73-dimensional fractal gasket, $2-D = -0.73$, preventing computational blowup while preserving scale-invariant complexity.
+- **Codebase Bindings:**
+  - Evaluated by [`FractalLHopitalRegularizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/fgrt_primitives.py#L518).
+  - Enforced across spatial voxel grids via [`PointerlessOctree.apply_fractal_lhopital_regularization`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L1930).
+  - Integrated into cleanroom mechanics via [`VoxelboxterHookIntegrator.evaluate_fractal_lhopital_regularization`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py#L3972).
+
+---
+
+### 9. Valley Vorticity Flux Threshold & Sweep Operator
+During continuous field evolution and conjugate color transport across non-Euclidean landscape valleys, turbulent vorticity accumulation can choke transport manifolds:
+
+$$\Upsilon_{valley} = \sum_{j} \oint_{\partial \gamma_j} (\nabla \times \boldsymbol{\mathcal{S}}) \cdot d\mathbf{A} > \tau_{crit} \implies \hat{\mathcal{P}}_{sweep}$$
+
+#### Physical & Algorithmic Semantics
+- **Circulation Flux Integral ($\Upsilon_{valley} = \sum_j \oint_{\partial \gamma_j} (\nabla \times \boldsymbol{\mathcal{S}}) \cdot d\mathbf{A}$):** Stokes circulation integral measuring total curl flux of stress/entropy vector field $\boldsymbol{\mathcal{S}}$ through closed valley loop boundaries $\partial \gamma_j$.
+- **Critical Threshold ($\tau_{crit}$):** Critical vorticity saturation point beyond which vortex traps choke flow.
+- **Projection Sweep Operator ($\hat{\mathcal{P}}_{sweep}$):** Idempotent projection operator flushing topological stagnation, damping rotational vortex debris ($S \mapsto \gamma_{sweep} S$), and clearing stagnant octree nodes.
+- **Codebase Bindings:**
+  - Computed by [`ValleyVorticitySweeper`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/fgrt_primitives.py#L561).
+  - Bound to color transport in [`ConjugateColorTransport.evaluate_valley_vorticity_and_sweep`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/image_extension.py#L599).
+  - Coupled to octree clearing via [`PointerlessOctree.sweep_valley_vorticity`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L1956).
+  - Integrated into cleanroom mechanics via [`VoxelboxterHookIntegrator.evaluate_valley_vorticity_sweep`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py#L3998).
+  - Accessible via node script graph [`PhysicalNodeEditor.hook_valley_vorticity_sweep`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L1497).
+
+
