@@ -38,5 +38,5 @@ ligotimegps
 astroquery
 biopython
 git+https://github.com/pybevy/pybevy
-dearpygui>=1.10.0  
- 
+dearpygui>=1.10.0
+torchvision
