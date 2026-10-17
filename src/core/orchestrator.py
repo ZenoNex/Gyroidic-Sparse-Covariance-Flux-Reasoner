@@ -47,6 +47,10 @@ from src.core.bulletin_board import BulletinBoard
 from src.core.noncommutativity_curvature import NonCommutativityCurvature
 from src.core.manifold_time import TwoCopsSchedule
 from src.core.archetype_engines import ArchetypalSynthesisEngine
+from src.models.modular_attention import ModularAttention, ModularTransformerLayer
+from src.models.diegetic_heads import AutoeclecticResponderHead, DataAssociationLayer
+from src.surrogates.calm_predictor import CALM
+from src.core.polynomial_coprime import PolynomialCoprimeConfig
 
 
 class GeneralUserAliasTracker(nn.Module):
@@ -164,6 +168,7 @@ class UniversalOrchestrator(nn.Module):
         # Economic Topology / Yield Stress
         self.tripsodic_ledger = TripsodicLedger(base_volume=1000.0)
         _device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = _device
         self.sys1_wallet = CerumenPotWallet(dim=dim, device=_device)
         self.sys2_wallet = CerumenPotWallet(dim=dim, device=_device)
         self.chern_simons_validator = ChernSimonsValidator(yield_criteria=2.5)
@@ -335,6 +340,30 @@ class UniversalOrchestrator(nn.Module):
         # 7.27 Structural Energy Monitor (EBM Free Energy & Topological Pressure)
         from src.core.energy_monitor import StructuralEnergyMonitor
         self.structural_energy_monitor = StructuralEnergyMonitor(device=str(_device))
+
+        # 7.28 Attention Subsystem Suite (Multi-Field Modular Attention, CALM Veto & Diegetic Heads)
+        self.poly_config = PolynomialCoprimeConfig(k=5, degree=4, basis_type='chebyshev', learnable=True, use_saturation=True)
+        attn_heads = 4 if dim % 4 == 0 else max([h for h in [4, 2, 1] if dim % h == 0], default=1)
+        self.modular_attention = ModularAttention(
+            hidden_dim=dim,
+            num_heads=attn_heads,
+            poly_config=self.poly_config,
+            num_functionals=5,
+            use_birkhoff=True
+        )
+        self.modular_transformer = ModularTransformerLayer(
+            hidden_dim=dim,
+            num_heads=attn_heads,
+            poly_config=self.poly_config,
+            num_functionals=5
+        )
+        self.autoeclectic_head = AutoeclecticResponderHead(hidden_dim=dim, output_dim=dim)
+        self.data_association = DataAssociationLayer(input_dim=dim, hidden_dim=dim, k=5)
+        self.calm = CALM(dim=dim)
+        self.calm_trajectory_history = None
+        self.last_calm_veto = None
+        self.last_diegetic_response = None
+        self.last_attention_integrity = None
         
         # 8. P2P & External Integrations
         self.freenet_router = None
@@ -643,6 +672,13 @@ class UniversalOrchestrator(nn.Module):
         pas_out = float(board_metrics.get("pas_h", pas_h))
         nav_mode = str(board_metrics.get("nav_mode", "SLERP" if regime == "SERIOUSNESS" else "LERP"))
 
+        attn_integ = True
+        if hasattr(self, 'last_attention_integrity') and self.last_attention_integrity is not None:
+            if hasattr(self.last_attention_integrity, 'all'):
+                attn_integ = bool(self.last_attention_integrity.all().item())
+            else:
+                attn_integ = bool(self.last_attention_integrity)
+
         return {
             "state": state_shielded,
             "pas_h": pas_out,
@@ -653,7 +689,10 @@ class UniversalOrchestrator(nn.Module):
             "betti_1": b1_val,
             "diagnostics": board_metrics,
             "routing": routing,
-            "stacked_target": stacked_target
+            "stacked_target": stacked_target,
+            "attention_integrity": attn_integ,
+            "calm_veto": self.last_calm_veto,
+            "diegetic_response": self.last_diegetic_response
         }
 
     def forward(
@@ -1165,6 +1204,67 @@ class UniversalOrchestrator(nn.Module):
         veto_status = tag_weights.get("veto_status", None) if tag_weights else None
         if veto_status == "saturation_escalation" or is_alias_active or is_archetype_active:
              state_governed = self.alias_tracker(state_governed, is_alias_active, is_archetype_active)
+
+        # 4.5. CALM Trajectory Veto & Modular Attention Coupling
+        # -----------------------------------------------------
+        if state_governed.dim() == 1:
+            state_flat_attn = state_governed.unsqueeze(0).unsqueeze(1) # [1, 1, dim]
+        elif state_governed.dim() == 2:
+            state_flat_attn = state_governed.unsqueeze(1) # [batch, 1, dim]
+        else:
+            state_flat_attn = state_governed
+
+        # Update CALM trajectory history
+        if not hasattr(self, 'calm_trajectory_history') or self.calm_trajectory_history is None or self.calm_trajectory_history.shape[-1] != self.dim:
+            self.calm_trajectory_history = state_flat_attn.repeat(1, 8, 1).detach().clone()
+        else:
+            self.calm_trajectory_history = torch.cat([self.calm_trajectory_history[:, 1:, :], state_flat_attn.detach()], dim=1)
+
+        # Evaluate CALM (Trajectory Momentum Monitor & Constraint Attention)
+        calm_abort, calm_rho, calm_step, calm_forcing, calm_gauge, calm_constraints = self.calm(
+            self.calm_trajectory_history,
+            h_mischief=mischief_metrics.get('H_mischief', 0.0),
+            dt=dt
+        )
+        is_calm_vetoed = (calm_abort.mean().item() > 0.5) or (calm_step.mean().item() < 0.5)
+        gauge_val = torch.sigmoid(calm_gauge).mean().item()
+        geom_veto = 1.0 if is_red_zone else 0.0
+        # Non-dual veto gating: (1 - gauge) * geom_veto + gauge * calm_veto
+        total_veto = (1.0 - gauge_val) * geom_veto + gauge_val * (1.0 if is_calm_vetoed else 0.0)
+
+        self.last_calm_veto = {
+            "abort_score": calm_abort.mean().item(),
+            "rho_factor": calm_rho.mean().item(),
+            "step_factor": calm_step.mean().item(),
+            "gauge": gauge_val,
+            "total_veto": total_veto,
+            "vetoed": total_veto > 0.5,
+            "constraints": calm_constraints.squeeze().detach().cpu().numpy().tolist() if calm_constraints is not None else []
+        }
+
+        # Multi-Field Modular Attention (Birkhoff Projection & Sine-Gordon Breather slots)
+        attn_out = self.modular_attention(state_flat_attn)
+        attn_integrity = self.modular_attention.validate_structural_integrity()
+        self.last_attention_integrity = attn_integrity
+
+        # Excite ResonanceCavity with attention states: dC/dt = -Gamma*C + alpha*A_ij^H*R_ij
+        if hasattr(self, 'resonance_cavity') and self.resonance_cavity is not None:
+            try:
+                self.resonance_cavity(
+                    attention_states=attn_out,
+                    introspection_directions=state_flat_attn.squeeze(1),
+                    dt=dt
+                )
+            except Exception:
+                pass
+
+        # Re-project governed state from modular attention
+        if state_governed.dim() == 1:
+            state_governed = attn_out.squeeze(0).squeeze(0)
+        elif state_governed.dim() == 2:
+            state_governed = attn_out.squeeze(1)
+        else:
+            state_governed = attn_out
         
         # Update Mischief Probe with current cycle results
         self.mischief_probe.update_bands(
@@ -1215,6 +1315,21 @@ class UniversalOrchestrator(nn.Module):
         
         # Audience Mapping: Final human-readable projection
         ui_readout = self.audience_projector(state_shielded)
+
+        # Autoeclectic Responder Head (Diegetic Response modulated by spectral entropy)
+        try:
+            spectral_ent = modulated_entropy if 'modulated_entropy' in locals() and isinstance(modulated_entropy, torch.Tensor) else torch.tensor([[0.2]], device=state_shielded.device)
+            if spectral_ent.dim() == 1:
+                spectral_ent = spectral_ent.unsqueeze(-1)
+            elif spectral_ent.dim() == 0:
+                spectral_ent = spectral_ent.view(1, 1)
+            flat_state_for_ae = state_shielded.view(-1, self.dim)
+            if spectral_ent.shape[0] != flat_state_for_ae.shape[0]:
+                spectral_ent = spectral_ent.expand(flat_state_for_ae.shape[0], 1)
+            ae_response = self.autoeclectic_head(flat_state_for_ae, spectral_entropy=spectral_ent)
+            self.last_diegetic_response = ae_response
+        except Exception:
+            self.last_diegetic_response = None
         
         # Invoke Fractal Meta-Functional to process recursive pressure
         orig_shape = state_shielded.shape
@@ -1313,7 +1428,10 @@ class UniversalOrchestrator(nn.Module):
             "hessian_trace": float(trace_morse),
             "bouligand_kink": float(kink_norm),
             "hessian_regime": int(regime_code),
-            "pas_cyclotomic": float(pas_cyclotomic)
+            "pas_cyclotomic": float(pas_cyclotomic),
+            "calm_veto": self.last_calm_veto.get("vetoed", False) if self.last_calm_veto else False,
+            "calm_gauge": self.last_calm_veto.get("gauge", 0.5) if self.last_calm_veto else 0.5,
+            "attention_integrity": bool(attn_integrity.all().item()) if 'attn_integrity' in locals() and hasattr(attn_integrity, 'all') else True
         }
         self.bulletin_board.post_metrics(board_metrics)
         
@@ -1558,4 +1676,40 @@ class UniversalOrchestrator(nn.Module):
                 resonance_threshold=resonance_threshold
             )
         return False, None, 0.0
+
+    def construct_dynamic_attention_mask(
+        self,
+        violations: torch.Tensor,
+        seq_len: int = 4,
+        threshold: float = 0.5,
+        local_window: int = 2
+    ) -> torch.Tensor:
+        """Construct dynamic attention mask guided by topological violations."""
+        dev = getattr(self, 'device', next(self.parameters()).device if list(self.parameters()) else torch.device('cpu'))
+        return self.modular_attention.construct_dynamic_attention_mask(
+            violations=violations,
+            seq_len=seq_len,
+            threshold=threshold,
+            local_window=local_window,
+            device=dev
+        )
+
+    def ingest_knowledge_dyad(
+        self,
+        text_emb: torch.Tensor,
+        image_emb: torch.Tensor
+    ) -> torch.Tensor:
+        """Ingest knowledge dyad (text/image pair) into coprime residues."""
+        return self.data_association(text_emb, image_emb)
+
+    def run_modular_attention(
+        self,
+        x: torch.Tensor,
+        path_topology_vectors: Optional[torch.Tensor] = None,
+        mask: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Compute modular multi-field attention and return attended tensor and structural integrity."""
+        out = self.modular_attention(x, mask=mask, path_topology_vectors=path_topology_vectors)
+        integrity = self.modular_attention.validate_structural_integrity()
+        return out, integrity
 
