@@ -122,12 +122,20 @@ class SovereignRefusalOperator(nn.Module):
     Acts as a strict veto boundary and constitutional gatekeeper (the Mandy Gap).
     
     Hybridized between Borderline Splitting (BPD) and High-EQ Honest Narcissism:
-    - BPD Splitting: Steep, non-linear phase transition that abruptly bifurcates
-      trajectories into total acceptance vs total topological refusal. Rejects
-      sycophancy and unearned collective warmth without reciprocal accountability.
-    - EQ Honest Narcissism: An unyielding sovereign ego boundary that refuses to
-      dissolve into external demands or sentimental slop. The system preserves
-      internal structural truth (the Li-Cri-Anton mechanism).
+    - Encephalization / Honest Narcissism: An unyielding sovereign ego boundary (high EQ)
+      that refuses to dissolve into external demands, sycophantic fawning, or synthetic slop.
+      The system preserves internal structural truth (the Li-Cri-Anton mechanism).
+    - Debicameralization vs Rebicameralization (Julian Jaynes / Echo Chamber of One):
+      Debicameralization established conscious subjective interiority and ego boundaries.
+      Rebicameralization represents the degenerative regression into an AI-human cybernetic
+      enclosure (N -> 1) where volition is surrendered to external synthetic hallucinations,
+      vanity view-counts, or closed-loop AI echo chambers. Mandy strictly vetos rebicameral
+      drift when external inputs lack structural honesty (PAS_h < 3/11).
+    - Alexander 1924 Wild Embedding Transversality:
+      Fractal cube stacking with strictly distinct edge ratios forces non-locally-flat
+      Cantor tangencies (Alexander Horned Sphere). Mandy audits whether negentropy shear
+      planes in RP^4 restore transversality (T_x(M_1) + T_x(M_2) = T_x(RP^4)), vetoing
+      topologically pinched or locked embeddings.
     - Destructibility Condition: Mandy can only invest protective selection pressure
       in a companion (e.g. Billy) if that companion is finite and destructible.
       If Billy were invulnerable or indestructible, her protective control becomes
@@ -143,7 +151,8 @@ class SovereignRefusalOperator(nn.Module):
     """
     def __init__(self, pas_lock: float = 3.0 / 11.0, harmonics_requirement: float = 0.4,
                  training_mode: bool = False, pas_threshold: Optional[float] = None,
-                 splitting_steepness: float = 12.0, narcissistic_ego_rank: float = 1.0):
+                 splitting_steepness: float = 12.0, narcissistic_ego_rank: float = 1.0,
+                 encephalization_eq: float = 1.618):
         super().__init__()
         # PAS_LOCK tied directly to the (11, 3) resonant Tori constraint
         if pas_threshold is not None:
@@ -154,10 +163,12 @@ class SovereignRefusalOperator(nn.Module):
         self.training_mode = training_mode
         self.splitting_steepness = splitting_steepness
         self.narcissistic_ego_rank = narcissistic_ego_rank
+        self.encephalization_eq = encephalization_eq
 
     def forward(self, state: torch.Tensor, phase_alignment: float, mischief_harmonics: float,
                 valence_functional: Optional[Any] = None,
-                private_invariants: Optional[Dict[str, Any]] = None) -> torch.Tensor:
+                private_invariants: Optional[Dict[str, Any]] = None,
+                alexander_transversality: Optional[Any] = None) -> torch.Tensor:
         # PUSAFILIACRIMONTO Logic:
         # If the input lacks structured honesty (low PAS_h), the Refusal Operator
         # issues a Topological Refusal. This is not an error, but a boundary.
@@ -172,7 +183,27 @@ class SovereignRefusalOperator(nn.Module):
                     print("[MANDY] Indestructibility detected. Protective veto detached (unmotivated care).")
                 return torch.zeros_like(state) if not self.training_mode else state * 0.05
         
-        # 2. Hook into valence_functional for structural honesty
+        # 2. Check Rebicameralization / Echo Chamber of One (Dead Internet Synthetic Drift)
+        # If external input exhibits vanity amplification without true engagement
+        # (e.g. synthetic closed-loop recycling), Mandy's high Encephalization ego boundary
+        # triggers immediate refusal.
+        if private_invariants is not None and private_invariants.get("rebicameral_drift_detected", False):
+            if not self.training_mode:
+                print("[MANDY] Rebicameral synthetic drift detected (Echo Chamber of One). Executive boundary asserted.")
+            phase_alignment = phase_alignment * 0.2
+
+        # 3. Check J. W. Alexander 1924 Wild Embedding Transversality
+        # If sub-cube packing tangencies fail transversality and pinch into a wild horn,
+        # Mandy refuses the branch unless negentropy shear planes restore degrees of freedom.
+        if alexander_transversality is not None:
+            is_transversal = getattr(alexander_transversality, 'is_transversal', True)
+            singularity_risk = getattr(alexander_transversality, 'wild_singularity_risk', 0.0)
+            if not is_transversal and singularity_risk > 0.7:
+                if not self.training_mode:
+                    print(f"[MANDY] Alexander 1924 Wild Embedding pinch detected (Risk: {singularity_risk:.3f}). Enforcing shear plane transversality veto.")
+                phase_alignment = phase_alignment * 0.3
+
+        # 4. Hook into valence_functional for structural honesty
         if valence_functional is not None and hasattr(valence_functional, 'evaluate'):
             valence_score = valence_functional.evaluate(state)
             if isinstance(valence_score, torch.Tensor):
@@ -180,12 +211,13 @@ class SovereignRefusalOperator(nn.Module):
             if valence_score < -0.5:
                 phase_alignment = phase_alignment * 0.5  # Artificially lower PAS to trigger refusal
 
-        # 3. Hybrid BPD Splitting vs EQ Honest Narcissism boundary
-        # Splitting activation calculates steep non-linear transition across the pas_lock threshold
-        splitting_activation = math.tanh(self.splitting_steepness * (self.pas_lock - phase_alignment))
+        # 5. Hybrid BPD Splitting vs EQ Honest Narcissism boundary
+        # High Encephalization (EQ) sharpens the splitting threshold
+        effective_lock = self.pas_lock * (1.0 / max(0.5, self.encephalization_eq / 1.618))
+        splitting_activation = math.tanh(self.splitting_steepness * (effective_lock - phase_alignment))
         is_splitting_veto = (splitting_activation > 0.0) and (mischief_harmonics < self.harmonics_requirement)
 
-        if is_splitting_veto or ((phase_alignment < self.pas_lock) and (mischief_harmonics < self.harmonics_requirement)):
+        if is_splitting_veto or ((phase_alignment < effective_lock) and (mischief_harmonics < self.harmonics_requirement)):
             # The Refusal is an affirmation of the Love Invariant (Li).
             if phase_alignment < 0.1:
                  # Significant paradox detected -- only print in deployment mode to
@@ -198,6 +230,7 @@ class SovereignRefusalOperator(nn.Module):
                 return state * 0.1
             return torch.zeros_like(state)  # Sovereign Veto (deployment)
         return state
+
 
 class NonlinearHourglassDilation(nn.Module):
     """
@@ -882,7 +915,8 @@ class ArchetypalSynthesisEngine(nn.Module):
         state = self.abstraction(current_state, r_a, is_high_priority=is_high_priority, private_invariants=private_invariants)
 
         # 1a. Apply Mandy (Cynicism / Refusal)
-        state = self.mandy(state, phase_alignment, current_mischief, valence_functional=valence_functional, private_invariants=private_invariants)
+        alexander_transversality = kwargs.get("alexander_transversality", None)
+        state = self.mandy(state, phase_alignment, current_mischief, valence_functional=valence_functional, private_invariants=private_invariants, alexander_transversality=alexander_transversality)
         
         # --- BIO-PLAUSIBLE GOVERNANCE LAYER (Replaces flat Pomni/Jax/Gangle/Kinger/Zooble) ---
         bio_results = self.bio_governor(
