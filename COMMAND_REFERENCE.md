@@ -37,6 +37,25 @@ python test_fixes_verification.py
 
 # Check system status
 python dataset_command_interface.py status
+### Background Service Control & Autostart (Windows 10/11, Linux, macOS)
+Use the cross-platform service controllers to run the backend in the background, toggle computer autostart, and execute graceful shutdowns:
+
+```powershell
+# Windows 10 & 11 (PowerShell)
+.\scripts\reasoner_ctl.ps1 -Action Start              # Start in background (headless)
+.\scripts\reasoner_ctl.ps1 -Action Status             # Check PID and HTTP health
+.\scripts\reasoner_ctl.ps1 -Action Stop               # Trigger graceful fossilization shutdown
+.\scripts\reasoner_ctl.ps1 -Action EnableAutostart    # Configure start on computer boot (User Startup)
+.\scripts\reasoner_ctl.ps1 -Action DisableAutostart   # Turn off autostart
+```
+
+```bash
+# Linux & macOS (Bash)
+./scripts/reasoner_ctl.sh start                       # Start in background (headless)
+./scripts/reasoner_ctl.sh status                      # Check PID and HTTP health
+./scripts/reasoner_ctl.sh stop                        # Trigger graceful fossilization shutdown
+./scripts/reasoner_ctl.sh enable-autostart            # Install systemd user service (Linux) or launchd agent (macOS)
+./scripts/reasoner_ctl.sh disable-autostart           # Safely disable and remove autostart
 ```
 
 ---
