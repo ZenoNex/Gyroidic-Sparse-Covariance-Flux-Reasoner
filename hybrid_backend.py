@@ -200,6 +200,17 @@ class GovernanceManager:
     def startup_menu():
         """Interactive console menu for lifecycle control."""
         if os.environ.get('NON_INTERACTIVE') == '1':
+            config_path = '.gyroid_config.json'
+            if os.path.exists(config_path):
+                try:
+                    with open(config_path, 'r') as f:
+                        data = json.load(f)
+                        saved_config = data.get('config')
+                        saved_ports = data.get('ports')
+                        if saved_config and saved_ports:
+                            return saved_ports, saved_config
+                except Exception:
+                    pass
             ds_env = os.environ.get('GYROID_PRIMARY_DATASET', 'LIGO')
             parsed_datasets = []
             if ds_env.lower() == 'all':
@@ -3082,6 +3093,12 @@ import atexit
 
 def clean_exit_handler():
     global AI_SYSTEM
+    pid_file = os.path.join(root_dir, '.backend.pid')
+    try:
+        if os.path.exists(pid_file):
+            os.remove(pid_file)
+    except Exception:
+        pass
     if AI_SYSTEM:
         print("[FOSSIL] Clean exit triggered. Running Fossilization Protocol...", flush=True)
         try:
@@ -3146,6 +3163,21 @@ def main():
     
     # 3. Dynamic Port Selection Infrastructure
     threads = []
+    pid_file = os.path.join(root_dir, '.backend.pid')
+    try:
+        with open(pid_file, 'w') as f:
+            f.write(str(os.getpid()))
+    except Exception:
+        pass
+
+    def _sigterm_handler(signum, frame):
+        raise KeyboardInterrupt
+
+    try:
+        signal.signal(signal.SIGTERM, _sigterm_handler)
+    except Exception:
+        pass
+
     for port in active_ports:
         t = threading.Thread(target=start_server, args=(port,), daemon=True, name=f"ServerThread-{port}")
         t.start()
