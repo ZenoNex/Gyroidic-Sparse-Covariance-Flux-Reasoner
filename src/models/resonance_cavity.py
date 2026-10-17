@@ -825,7 +825,9 @@ class ResonanceCavity(nn.Module):
         braid_word: Optional[List[int]] = None,
         nav_mode: str = 'VOID',
         archetype_leak: float = 0.0,
-        bouligand_bubble_residual: Optional[torch.Tensor] = None
+        bouligand_bubble_residual: Optional[torch.Tensor] = None,
+        dt: float = 0.1,
+        **kwargs
     ) -> Dict[str, torch.Tensor]:
         """
         Update all field cavities and return aggregated memory state.
@@ -843,6 +845,7 @@ class ResonanceCavity(nn.Module):
             nav_mode: Navigation mode (VOID, etc)
             archetype_leak: Archetypal resonance leakage gain
             bouligand_bubble_residual: Optional [batch, dim] non-smooth jump vector
+            dt: Time step for update
             
         Returns:
             Dictionary with:
@@ -863,6 +866,7 @@ class ResonanceCavity(nn.Module):
                 gcve_pressures,
                 multimodal_excitation=multimodal_excitation,
                 field_idx=k,
+                dt=dt,
                 reconstruction_pressure=reconstruction_pressure,
                 refined_residues=refined_residues,
                 instability_severity=instability_severity,
