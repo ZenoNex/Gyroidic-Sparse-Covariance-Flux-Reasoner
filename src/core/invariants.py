@@ -453,11 +453,12 @@ class PrimeResonanceLadder(nn.Module):
                 
                 if is_lazarus:
                     lazarus_prioritized.append((candidate, r_n))
+                else:
+                    pairs.append((candidate, r_n))
                 
                 if len(lazarus_prioritized) + len(pairs) >= n:
                     # Fill the rest with non-lazarus primes if needed
                     break
-                pairs.append((candidate, r_n))
             candidate += 1
             
         # Combine: Lazarus Primes come first to ensure O(K) warmstart
