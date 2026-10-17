@@ -260,7 +260,18 @@ class DyadFossilizer:
         if os.path.exists(self.index_file):
             try:
                 with open(self.index_file, "r", encoding="utf-8") as f:
-                    self.fossil_index = json.load(f)
+                    content = f.read()
+                try:
+                    self.fossil_index = json.loads(content)
+                except json.JSONDecodeError as decode_err:
+                    last_obj = content.rfind("},")
+                    if last_obj != -1:
+                        salvaged = content[:last_obj+1] + "}"
+                        self.fossil_index = json.loads(salvaged)
+                        print(f"[FOSSILIZER] Salvaged {len(self.fossil_index)} entries from truncated fast index: {decode_err}")
+                        self._save_index()
+                    else:
+                        raise decode_err
                 
                 # Check for sync: fast validation of existing .pt files
                 existing_files = set(f for f in os.listdir(self.storage_dir) if f.endswith(".pt"))
