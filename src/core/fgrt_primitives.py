@@ -511,3 +511,108 @@ class KleinThroatTransition(nn.Module):
         return flipped_normal, contorsion_effect, berry_phase
 
 
+# =========================================================================
+# FRACTAL L'HÔPITAL REGULARIZATION & VALLEY VORTICITY SWEEPER
+# =========================================================================
+
+class FractalLHopitalRegularizer(nn.Module):
+    """
+    Non-Differentiable Fractal L'Hôpital Regularization:
+    lim_{eps -> 0} S(eps) / V(eps) -[invalid L'Hopital]-> undefined
+    ===> R_{reg} = lim_{eps -> eps_min^+} C * eps^{2-D}, where eps_{min} = lambda_{min} / kappa_{accel}.
+
+    As proven in docs/Recursive Fractals and L'Hôpital.txt, boundary differentiation
+    breaks down across recursive Weierstrass fractures.
+    This module enforces the spectral/hardware regularized limit R_reg.
+    """
+    def __init__(self, fractal_dim_D: float = 2.73, C_constant: float = 1.0):
+        super().__init__()
+        self.fractal_dim_D = fractal_dim_D
+        self.C_constant = C_constant
+
+    def compute_cutoff(self, lambda_min: float = 1e-3, kappa_accel: float = 1.0) -> float:
+        """eps_{min} = lambda_{min} / kappa_{accel}."""
+        return max(1e-8, float(lambda_min) / max(1e-8, float(kappa_accel)))
+
+    def evaluate_regularized_ratio(
+        self,
+        lambda_min: float = 1e-3,
+        kappa_accel: float = 1.0,
+        fractal_dim_D: Optional[float] = None,
+        C_constant: Optional[float] = None
+    ) -> float:
+        """Computes R_{reg} = C * eps_{min}^{2 - D}."""
+        D = fractal_dim_D if fractal_dim_D is not None else self.fractal_dim_D
+        C = C_constant if C_constant is not None else self.C_constant
+        eps_min = self.compute_cutoff(lambda_min, kappa_accel)
+        return float(C * (eps_min ** (2.0 - D)))
+
+    def regularize_complexity(
+        self,
+        raw_complexity: torch.Tensor,
+        lambda_min: float = 1e-3,
+        kappa_accel: float = 1.0
+    ) -> torch.Tensor:
+        """Applies R_{reg} scaling factor to regularize non-differentiable fractal complexity."""
+        r_reg = self.evaluate_regularized_ratio(lambda_min, kappa_accel)
+        return raw_complexity * r_reg
+
+
+class ValleyVorticitySweeper(nn.Module):
+    """
+    Valley Circulation Flux Threshold & Sweep Operator:
+    Upsilon_{valley} = sum_j oint_{partial gamma_j} (nabla x S) . dA > tau_{crit} ===> P_sweep
+
+    Monitors the vorticity/circulation flux Upsilon_{valley} of the entropy/stress vector
+    field S across valley boundary loops partial gamma_j. When Upsilon exceeds critical threshold
+    tau_{crit}, triggers the projection sweep operator P_sweep to flush vortex traps and
+    choked topological debris.
+    """
+    def __init__(self, tau_crit: float = 2.5, sweep_damping: float = 0.85):
+        super().__init__()
+        self.tau_crit = tau_crit
+        self.sweep_damping = sweep_damping
+
+    def compute_vorticity_flux(
+        self,
+        curl_S_fields: torch.Tensor,
+        area_normals: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        Computes Upsilon_{valley} = sum_j (nabla x S)_j . dA_j.
+        curl_S_fields: [..., J, 3] or [J, 3]
+        area_normals: [..., J, 3] or [J, 3]
+        """
+        dot_flux = torch.sum(curl_S_fields * area_normals, dim=-1)
+        upsilon = torch.sum(dot_flux, dim=-1)
+        return upsilon
+
+    def apply_sweep_operator(
+        self,
+        state_tensor: torch.Tensor,
+        upsilon_val: float,
+        tau_crit: Optional[float] = None
+    ) -> Tuple[torch.Tensor, bool, Dict[str, Any]]:
+        """
+        Checks if Upsilon_{valley} > tau_{crit}. If triggered, applies P_sweep
+        projection operator: P_sweep(S) = S - (1 - sweep_damping) * S_{vortex}.
+        """
+        crit = tau_crit if tau_crit is not None else self.tau_crit
+        triggered = float(upsilon_val) > float(crit)
+        
+        if triggered:
+            # P_sweep projection: projects out divergent vortex accumulation
+            swept_state = state_tensor * self.sweep_damping
+        else:
+            swept_state = state_tensor
+            
+        diagnostics = {
+            "upsilon_valley": float(upsilon_val),
+            "tau_crit": float(crit),
+            "sweep_triggered": triggered,
+            "damping_applied": self.sweep_damping if triggered else 1.0
+        }
+        return swept_state, triggered, diagnostics
+
+
+
