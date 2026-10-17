@@ -32,10 +32,43 @@ except ImportError:
     NostalgicLeakFunctional = None
     EntropicMischiefProbe = None
 
+# Soliton Stability & Approximate PH
+try:
+    from .soliton_stability import SolitonStability
+except ImportError:
+    SolitonStability = None
+
+try:
+    from .approximate_ph import ApproximatePHProbe
+except ImportError:
+    ApproximatePHProbe = None
+
+try:
+    from .gyroid_covariance import LeyLineGeodesicMetric, MoebiusFiberBundle
+except ImportError:
+    LeyLineGeodesicMetric = None
+    MoebiusFiberBundle = None
+
+try:
+    from .persistence_obstruction import ResidueFiltration, PersistentHomologyComputer, ResidueObstructionGraph
+except ImportError:
+    ResidueFiltration = None
+    PersistentHomologyComputer = None
+    ResidueObstructionGraph = None
+
+# Alexander 1924 Wild Embedding & Fractal Cube Stacking Operator
+try:
+    from .alexander_wild_embedding import AlexanderWildEmbeddingOperator, AlexanderTransversalityReport
+except ImportError:
+    AlexanderWildEmbeddingOperator = None
+    AlexanderTransversalityReport = None
+
 __all__ = [
     'SparseGyroidCovarianceProbe',
     'SparseExplorerRouting',
     'PalindromicRoutingCheck',
+    'LeyLineGeodesicMetric',
+    'MoebiusFiberBundle',
     'HomologyPressure',
     'WeightedBettiNumber',
     'ResidueHomologyDrift',
@@ -48,5 +81,13 @@ __all__ = [
     'UnknowledgeDomain',
     'NostalgicLeakFunctional',
     'EntropicMischiefProbe',
+    'SolitonStability',
+    'ApproximatePHProbe',
+    'ResidueFiltration',
+    'PersistentHomologyComputer',
+    'ResidueObstructionGraph',
+    'AlexanderWildEmbeddingOperator',
+    'AlexanderTransversalityReport',
 ]
+
 
