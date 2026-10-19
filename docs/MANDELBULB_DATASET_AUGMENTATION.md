@@ -315,6 +315,24 @@ pipeline_loader = create_mandelbulb_pipeline(
 
 ---
 
+## Cooperative Co-Processing with Gyroidic Codec
+
+MandelbulbAugmenter (`MandelbulbGyroidicAugmenter` / MGDAS) and `GyroidicCodec` (`GyroidImageProjector` / non-Abelian CRT residue encoder) do not compete for coverage; they operate in synergy across two complementary dimensions of topological computation:
+
+1. **Fractal Multi-Scale Pre-Folding (`MandelbulbEmbedder`)**:
+   - `MandelbulbEmbedder` folds 1D spectral residues and 2D image representations into 3D recursive fractal coordinates ($z_{n+1} = z_n^p + c$) with Casus Irreducibilis bypass.
+   - When enabled via `CodecConfig(use_mandelbulb_prefold=True)` in [`src/codec/gyroidic_codec.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/gyroidic_codec.py), `GyroidImageProjector` unrolls and pre-folds input tensors before passing them into the TPMS gyroidic minimal surface slice projector.
+
+2. **Bidirectional Transform Integration**:
+   - **Augmenter -> Codec**: `MandelbulbGyroidicAugmenter.encode_to_codec(dataset)` takes any raw dataset, applies the 5-stage Mandelbulb-Gyroidic augmentation pipeline, and yields a direct `EncodingResult` containing non-Abelian CRT residue matrices, commutator gap diagnostics, and prime modulos.
+   - **Codec -> Augmenter**: `GyroidicCodec.augment_and_encode(tensor)` passes incoming visual or token tensors through `MandelbulbGyroidicAugmenter.augment_single_feature` before CRT matrix decomposition and projection.
+
+3. **Orchestrator Co-Processing Ingestion**:
+   - [`UniversalOrchestrator.ingest_knowledge_dyad`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py) executes both paths concurrently: the dyad tensor is passed through `MandelbulbGyroidicAugmenter` while being verified via `GyroidicCodec.encode(use_mandelbulb_prefold=True)`.
+   - Results are registered under `orchestrator.last_dyad_codec_result` and `orchestrator.last_dyad_entanglement`, enabling non-Abelian audit logs alongside the backward-compatible `[1, 5]` return tensor.
+
+---
+
 ##  Advantages Over Traditional Augmentation
 
 ### 1. **Topological Coherence**
