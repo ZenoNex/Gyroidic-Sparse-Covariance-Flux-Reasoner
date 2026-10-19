@@ -172,4 +172,115 @@ All rehybridized systems are validated by the test suites:
 * [`tests/test_alexander_wild_embedding.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_alexander_wild_embedding.py) (5 tests: fractal cube ratios distinctness, negentropy shear plane transversality in $\mathbb{RP}^4$, L'Hopital limit continuity, Bouligand contingent cone projection, Sovereign Refusal integration)
 * [`tests/test_topology_core_rehybridization.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_topology_core_rehybridization.py) (7 tests: SolitonStability -> RelationalKappa, ApproximatePHProbe -> APAS_Zeta, TriadicReciprocityChecker -> CayleyCubicProbe, MoebiusFiberBundle -> GluingOperator & CarnotMobiusLedger, LeyLineGeodesicMetric -> LeyLineTracker, HomologyPressure -> StructuralPressure, PersistentHomologyComputer -> QuantumBettiApproximator)
 
+---
+
+## 5. Residual Unintegrated Surface & Core Isolation Audit (October 2026)
+
+A static AST and symbol-reachability analysis across all 204 non-init Python source modules in `src/` establishes:
+* **Fully Reachable from Core Orchestrators**: 190 / 204 modules (**93.1%**).
+* **Unreachable from Primary Entry Points** ([`hybrid_backend.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/hybrid_backend.py), [`src/core/orchestrator.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py), [`src/ui/diegetic_backend.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py)): 14 modules (**6.9%**).
+* **Isolated from `src/core/`** (no upstream imports to or downstream calls from `src/core/`): 26 modules (**12.7%**).
+
+### Breakdown of the 26 Core-Isolated Modules by Domain:
+1. **Secondary Data Ingestion (`src/data/`, 10 modules)**:
+   - [`src/data/google_client_manager.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/google_client_manager.py), [`google_cloud_ingestor.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/google_cloud_ingestor.py), [`google_drive_ingestor.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/google_drive_ingestor.py)
+   - [`src/data/local_data_loader.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/local_data_loader.py), [`local_dataset_ingestor.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/local_dataset_ingestor.py), [`economic_news_linker.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/economic_news_linker.py), [`sovereign_ingestor.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/sovereign_ingestor.py)
+   - [`src/data/conversational_types.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/conversational_types.py), [`webp_prompt_extractor.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/webp_prompt_extractor.py), [`sterile_data_reruns.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/sterile_data_reruns.py)
+   - *Status*: Secondary pipelines eclipsed when [`knowledge_ingestor.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/knowledge_ingestor.py) became the primary sovereign ArXiv/Wikipedia/bulletin harvester.
+2. **Diagnostic Probes & Tools (`src/tools/`, 4 modules)**:
+   - [`src/tools/fast_chat_viewer.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/tools/fast_chat_viewer.py), [`probe_html.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/tools/probe_html.py), [`test_hardware_monitor_calm.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/tools/test_hardware_monitor_calm.py), [`validate_cmmf.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/tools/validate_cmmf.py)
+3. **Secondary UI Servers & Client Interfaces (`src/ui/`, 3 modules)**:
+   - [`src/ui/diegetic_terminal.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_terminal.py), [`voxelboxter_backend.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_backend.py), [`wikipedia_integration.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/wikipedia_integration.py)
+4. **Benchmarks (`src/benchmarks/`, 2 modules)**:
+   - [`src/benchmarks/run_all_benchmarks.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/run_all_benchmarks.py), [`src/benchmarks/__main__.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/__main__.py)
+5. **Terminal & Daemon Infrastructure (`src/terminal/`, 2 modules)**:
+   - [`src/terminal/udp_server_colonizer.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/terminal/udp_server_colonizer.py), [`update_client.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/terminal/update_client.py)
+6. **Auxiliary Codec & Augmentation Utilities (`src/codec/` & `src/augmentation/`, 3 modules)**:
+   - [`src/codec/conformal_log_polar.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/conformal_log_polar.py), [`vision_utilities.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/vision_utilities.py), [`src/augmentation/mandelbulb_pipeline.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/augmentation/mandelbulb_pipeline.py)
+7. **P2P, Environment, Integration, & Safety Anchors (4 modules)**:
+   - [`src/topology/bonfire_network.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/bonfire_network.py), [`src/environment/caine_precision.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/caine_precision.py), [`src/integrations/tabby_client.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/integrations/tabby_client.py), [`src/safety/hardware_fingerprint.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/safety/hardware_fingerprint.py)
+
+---
+
+## 6. Retrospective on Past Breakthroughs & Shape Error Resolutions
+
+### 6.1 The "False Breakthrough" of January 2026
+In [`docs/.../06_reports_and_inspirations/BREAKTHROUGH_REPORT.md`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/06_reports_and_inspirations/BREAKTHROUGH_REPORT.md), the system initially celebrated its "first hashed response":
+* **Input**: `"hello"`
+* **Output**: `"nccmtsmneltcclrclcnl,tncsectsead"`
+
+While recorded as an initial victory over complete silence, subsequent analysis in [`GARBLED_OUTPUT_REPAIR.md`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/GARBLED_OUTPUT_REPAIR.md) recognized this output as a **pathological topological fracture / residue collapse**. Root causes included spectral coherence collapse (vowel starvation, consonant clustering), CRT modulus drift (stale Bezout coefficients), Chern-Simons gasket failure, and Love vector scalarization. Genuine coherence was achieved only after establishing:
+1. `SpectralCoherenceCorrector` (adaptive band merging).
+2. `ChernSimonsGasket` (logic leak sealing with polynomial co-primes).
+3. `SolitonStabilityHealer` (Drucker-Prager plastic flow).
+4. `LoveInvariantProtector` (SVD null-space projection).
+5. Agglutinative morpho-unit boundary phase alignment (`VoynichLinguist.split_sub_pairs`).
+
+### 6.2 Key Shape Error Resolutions
+1. **Symmetry-Preserving Reshape (`shape '[1, 5, -1]' invalid for size 64`)**:
+   - *Problem*: Working state vector length 64 is not cleanly divisible by $K=5$ functionals ($64 / 5 = 12.8$).
+   - *Resolution*: Reflective padding expands $64 \to 65$ via `torch.nn.functional.pad(..., mode='reflect')`. Residues form $[B, 5, 13]$. Following Bezout CRT, Chern-Simons, and Soliton transformations, the tensor is flattened to $[B, 65]$ and truncated back to $[B, 64]$. Formally codified in [`RESIDUE_SHAPE_COMPATIBILITY.md`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/RESIDUE_SHAPE_COMPATIBILITY.md).
+2. **Autocorrelation Non-Existence (`torch.correlate`)**:
+   - *Problem*: PyTorch lacks a native `torch.correlate`.
+   - *Resolution*: Replaced with FFT/iFFT spectral autocorrelation based on Parseval's theorem in [`src/ui/diegetic_backend.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py).
+3. **Batch Dimension Mismatch (`[1, 64]` vs `[1, 8]`)**:
+   - *Problem*: Constraint manifold generation in `_create_constraint_manifold()` mismatched downstream ADMM hyper-ring projections.
+   - *Resolution*: Delegated directly to `DecoupledPolynomialCRT` and `HyperRingOperator`.
+4. **Non-Finite Python Scalar Extraction**:
+   - *Problem*: `"only one element tensors can be converted to Python scalars"` crashing JSON serialization in `_handle_chat`.
+   - *Resolution*: Enforced explicit item conversion (`float(x.item())`) and numeric-first reporting per [`output_boundary_policy.md`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/.agents/rules/output_boundary_policy.md).
+5. **Moduli Collapse & Flatline Stasis**:
+   - *Problem*: Checkpoint `gyroid_state.pt` loaded sterile moduli defaulting to `1.0`, zeroing all CRT remainders and trapping the state at $-0.780714$ ($\text{std} = 0$).
+   - *Resolution*: Intercepted sterile moduli during state dict loading in `BezoutCoefficientRefresh`, coupled with IVST side-chaining, Birkhoff mass conservation, and Lazarus structured jitter rehydration.
+
+---
+
+## 7. Isolation Taxonomy & Compute Affordance Reintegration (October 2026)
+
+### 7.1 Intentional Isolation vs. Unintentional Isolation Taxonomy
+
+A deep keyword audit of architectural records across `docs/` clarifies what is intentionally isolated versus what was inadvertently orphaned:
+
+| Architectural Mechanism | Isolation Category | Exact Mathematical & Structural Rationale |
+| :--- | :--- | :--- |
+| **Meliponini Cerumen Pot Isolation** (`CerumenPotIsolation`) | **Intentional** | $\overline{P}_i \cap \overline{P}_j = \emptyset$. Sealed spherical concept pots encapsulate high-entropy or opaque logic (e.g. Voynich representations) to prevent Diffusion Toxins from poisoning the global inference manifold. |
+| **System 1 / System 2 Triple Isolation** | **Intentional** | System 2 verifies physical/topological consistency under a **Silent Failure** contract, returning discrete status tokens (`REPAIRED`, `FAILURE`) with strictly zero gradient backpropagation into System 1's symbolic anchor. |
+| **Domain Pressure Typing** (`StructuralPressure`) | **Intentional** | Enforces hard categorical boundaries by raising `ValueError` if an operator attempts to sum, rank, or scalarize pressures across incommensurate physical/symbolic regimes. |
+| **Localhost Loopback Isolation** (`127.0.0.1`) | **Intentional** | Security boundary preventing unauthenticated network interface binding across public wide-area interfaces. |
+| **Gangle Exploratory Bandwidth Compression** | **Intentional** | Tragedy mask enforces narrow, strict state coordinate isolation; Comedy mask amplifies exploratory coupling and bandwidth scaling. |
+| **Veto Subspace Null Protection** | **Intentional** | Irreconcilable contradictory vectors are exiled to a null-space subspace to oscillate in isolation without corrupting higher-order polytopes. |
+| **Compute Affordances System** (`TypedComputeAffordance`, `has_compute_affordance`) | **Unintentional (Resolved)** | Discovered to be completely unreferenced in `UniversalOrchestrator` and `hybrid_backend.py`. Reconnected into the orchestrator core and exposed through `/api/affordances` and `/api/system_status`. |
+| **Signal DSP & Kinematics Engine** (`TextureDSPEngine`) | **Unintentional (Resolved)** | Unexported from `src/core/__init__.py` and uncalled in orchestrator passes. Reconnected into `UniversalOrchestrator` and package exports. |
+| **3D Gaussian Splat Ingestion** (`gltf_splat_ingestor.py`) | **Unintentional Vulnerability (Resolved)** | Raw splats imported into Voxelboxter risked direct Euclidean mesh reproduction. Intercepted generatively via `AdaptiveSkeletonHarness`, Bouligand tangent cone projection, and Wager #2 80/20 fossilization split for DMCA safety. |
+
+### 7.2 Integration of Typed Compute Affordances into Core & API
+The categorical compute affordance engine from [`src/core/hardware_monitor.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py) is now formally wired into the system's operational core:
+* [`UniversalOrchestrator`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py):
+  - Exposes `@property affordance_status -> bool` (silicon + thermal composite headroom).
+  - Exposes `@property affordance_gauges -> Dict[str, float]` across all typed regimes (`silicon`, `thermal`, `gpu_sovereign`, `topological`, `p2p_mesh`, `diegetic`, `algorithmic`).
+  - Implements `check_affordance(type: ComputeAffordanceType) -> bool`.
+* [`hybrid_backend.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/hybrid_backend.py):
+  - Added new `/api/affordances` endpoint returning full typed telemetry, gauges, and headroom dimensionality.
+  - Enhanced `/api/status` and `/api/system_status` to include real-time compute affordance health.
+
+### 7.3 Generative Interception of 3D Gaussian Splats in Voxelboxter
+* Both [`VoxelboxterEngine.ingest_gaussian_splats()`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py) and [`PointerlessOctree.ingest_gaussian_splats()`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py) now guarantee DMCA safety:
+  - Raw splat records are distilled into continuous moment and chromaticity vectors.
+  - Fed into [`AdaptiveSkeletonHarness`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/adaptive_skeleton_harness.py) with Bouligand tangent cone projections and KAN micro-waves.
+  - Registered in the Ganbreeder vector stacker catalogue.
+  - Compiled through B-spline spine algebra and partitioned according to Wager #2 (80% frozen bone core, 20% plastic flesh).
+  - Populated into discrete Morton Z-order voxel octree nodes.
+
+### 7.4 Matrioshka Mandelbulb Partitioning & Derivative Time ($dt$) Compute Batching
+* **Resolution of the Harness Compute Affordance Veto**:
+  - The previous harness failure (`[HARNESS VETO] Rig synthesis rejected. Cost ratio: 13.00`) was traced to unscaled intermediate consumption matrices ($A = I$, causing spectral radius $\rho = 1.0$ and non-productive Neumann divergence $L = 13 \cdot I$) combined with unamortized single-shot budget evaluation.
+  - Intermediate consumption is now anchored to contractive operators ($A = 0.5 \cdot I$, $\rho = 0.5 < 0.95$), satisfying the Hawkins-Simon condition and yielding a convergent cascading cost ratio of $2.00$.
+* **Compute Affordance Positioning**:
+  - [`HardwareMonitor.evaluate_matrioshka_mandelbulb_affordance()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py) evaluates Silicon headroom, Carnot-Möbius thermal margin, and situational batch capacity (`ComputeAffordanceType.COMPUTE_BATCH`).
+  - Positions optimal Matrioshka shell depths ($N_{\text{shells}} \in [2, 5]$) and Mandelbulb fractal iteration powers (powers 4 through 8 via OpenCL or PyTorch fallback).
+* **Derivative Time ($dt$) Elasticity**:
+  - [`ManifoldClock.tick()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/manifold_time.py) dynamically modulates $dt$ based on demand pressure.
+  - High-value internal tasks amortize computational requirements over effective temporal slices ($\text{effective\_time\_steps} = N_{\text{shells}} \cdot \max(1, 1/dt)$) with situational batch expansion ($\text{headroom\_mult} = 8 \cdot N_{\text{shells}}$), eliminating false-positive vetoes and preventing self-poisoning.
+* **Poincaré Ball Metric Stabilization**:
+  - Distance metrics in [`InfluenceAttractor.poincare_distance()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/garden_statistical_attractors.py) are strictly domain-clamped to prevent out-of-bounds `atanh` NaNs, guaranteeing numeric stability across all coordinate projections.
 
