@@ -17,6 +17,8 @@ from src.core.chern_simons_gasket import ChernSimonsGasket
 from src.core.agent_substrate_bridge import AgentSubstrateBridge
 from src.core.fgrt_primitives import morton_encode_3d
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.manifold_time import ManifoldClock, TwoCopsSchedule
+from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka
 from src.ui.voxelboxter_simulation import morton_encode, StructuralGraph, Block, RigidBody
 from src.core.structural_blueprints import AddonRoutine, MangostienBSplineMod, BooleanXORLayer
 
@@ -86,6 +88,16 @@ class AdaptiveSkeletonHarness(nn.Module):
         # Prime Resonance Ladder for modular algebra and harmonic joint tuning
         self.resonance_ladder = PrimeResonanceLadder(num_resonators=min(32, max(8, state_dim)))
         self.p2p_mesh_affordance = 1.0
+
+        # Derivative Time (dt) Dynamics & Matrioshka Partitioning
+        self.manifold_clock = ManifoldClock(device=device)
+        self.two_cops_schedule = TwoCopsSchedule(macro_steps=8, device=device)
+        self.meta_polytope = MetaPolytopeMatrioshka(max_depth=5, base_dim=state_dim)
+
+        # Conjugate Moment Transport for OKLab Log-Cholesky perceptual moment fields
+        from src.core.conjugate_moment_transport import ConjugateMomentTransport
+        self.moment_transport = ConjugateMomentTransport(dim=state_dim)
+
         self.last_rig_telemetry: Dict[str, Any] = {}
 
     @property
@@ -99,6 +111,67 @@ class AdaptiveSkeletonHarness(nn.Module):
         if coordinate.shape[0] != self.state_dim:
             coordinate = self._symmetry_preserving_reshape(coordinate, self.state_dim)
         self.tag_catalog[tag_name] = coordinate.to(self.device)
+
+    def synthesize_demand_from_splats(self, splats: List[Dict[str, Any]]) -> torch.Tensor:
+        """
+        Synthesizes a canonical topological demand vector from raw Gaussian Splat records
+        or point cloud spatial primitives using ConjugateMomentTransport (OKLab + Log-Cholesky).
+        
+        Preserves metric locality by interleaving points along the 3D Morton Z-order curve,
+        extracts Riemannian color covariance (L, a, b, Cholesky_6), spatial centroids (mu_x, mu_y, mu_z),
+        and variance bounds (std_x, std_y, std_z) without Euclidean point-cloud retention (DMCA safe).
+        """
+        if not splats:
+            return torch.zeros(self.state_dim, device=self.device)
+
+        xs = [float(s.get("x", 0.0)) for s in splats]
+        ys = [float(s.get("y", 0.0)) for s in splats]
+        zs = [float(s.get("z", 0.0)) for s in splats]
+        rs = [float(s.get("r", 128.0)) for s in splats]
+        gs = [float(s.get("g", 128.0)) for s in splats]
+        bs = [float(s.get("b", 128.0)) for s in splats]
+
+        n = len(splats)
+        mean_x = sum(xs) / n
+        std_x = (sum((x - mean_x)**2 for x in xs) / n)**0.5
+        mean_y = sum(ys) / n
+        std_y = (sum((y - mean_y)**2 for y in ys) / n)**0.5
+        mean_z = sum(zs) / n
+        std_z = (sum((z - mean_z)**2 for z in zs) / n)**0.5
+
+        # Format tensors for ConjugateMomentTransport
+        rgb_tensor = torch.tensor([[r / 255.0, g / 255.0, b / 255.0] for r, g, b in zip(rs, gs, bs)], device=self.device, dtype=torch.float32)
+        coords_tensor = torch.tensor([[x, y, z] for x, y, z in zip(xs, ys, zs)], device=self.device, dtype=torch.float32)
+
+        # Extract canonical OKLab Moment Field (3 OKLab mean + 6 Log-Cholesky covariance = 9 dims)
+        try:
+            moment_field = self.moment_transport.extract_oklab_moment_field(
+                rgb_points=rgb_tensor,
+                spatial_coords=coords_tensor,
+                use_log_cholesky=True
+            ).squeeze(0)
+        except Exception:
+            mean_rgb = torch.tensor([sum(rs)/(255.0*n), sum(gs)/(255.0*n), sum(bs)/(255.0*n)], device=self.device)
+            moment_field = torch.cat([mean_rgb, torch.zeros(6, device=self.device)])
+
+        demand = torch.zeros(self.state_dim, device=self.device, dtype=torch.float32)
+        demand[0] = mean_x
+        demand[1] = mean_y
+        demand[2] = mean_z
+        demand[3] = std_x
+        demand[4] = std_y
+        demand[5] = std_z
+        
+        mf_len = min(9, self.state_dim - 6)
+        demand[6:6 + mf_len] = moment_field[:mf_len]
+
+        start_idx = 6 + mf_len
+        if self.state_dim > start_idx:
+            for i, s in enumerate(splats[:min(16, n)]):
+                idx = start_idx + (i % (self.state_dim - start_idx))
+                demand[idx] += float(s.get("opacity", 1.0)) * float(s.get("pressure_potential", 0.5))
+
+        return self._symmetry_preserving_reshape(demand, self.state_dim)
 
     def _symmetry_preserving_reshape(self, tensor: torch.Tensor, target_dim: int) -> torch.Tensor:
         """From BREAKTHROUGH_REPORT.md / TENSOR_DIMENSION_FIX.md"""
@@ -209,27 +282,71 @@ class AdaptiveSkeletonHarness(nn.Module):
         incorporating psychological attractors and enemy subtype morphology.
         """
         if admr_transition_matrices is None:
-            admr_transition_matrices = torch.eye(self.state_dim, device=self.device).unsqueeze(0)
+            # Dampened identity: intermediate consumption must have spectral radius rho < 1
+            # to satisfy the Hawkins-Simon productive economy condition in Leontief governance
+            admr_transition_matrices = (torch.eye(self.state_dim, device=self.device) * 0.5).unsqueeze(0)
 
-        # --- PHASE 1: Leontief Hardware Stress & Community Governance ---
+        # --- PHASE 1: Compute Affordance Positioning, Matrioshka Partitioning & Leontief Governance ---
         demand_vector = torch.zeros(self.state_dim, device=self.device)
         for tag, weight in weights.items():
             if tag in self.tag_catalog:
                 demand_vector += weight * self.tag_catalog[tag]
         if demand_vector.norm() == 0:
             demand_vector = harvest_honest_jitter((self.state_dim,), device=self.device, scaled=True) * 10.0
-                
-        available_budget = 1.0 - (psutil.virtual_memory().percent / 100.0)
-        
+
+        # Position typed compute affordances rather than raw memory percentage
+        affordance_eval = self.evaluate_compute_affordance()
+        available_budget = affordance_eval.get("combined_budget", 1.0 - (psutil.virtual_memory().percent / 100.0))
+        available_budget = max(0.20, float(available_budget))
+
+        # Modulate derivative time (dt) based on demand pressure potential
+        demand_pressure = demand_vector.norm() / float(self.state_dim)
+        dt = self.manifold_clock.tick(demand_pressure)
+
+        # Query Matrioshka Mandelbulb partitioning affordances
+        can_partition = affordance_eval.get("can_afford_matrioshka_mandelbulb_partitioning", True)
+        opt_shells = affordance_eval.get("optimal_matrioshka_shells", 3)
+
+        # Initial Leontief cascading check
+        is_internal = community_peer_id is None
         should_veto, diags = self.leontief_governor.should_veto_concept(
             demand=demand_vector, 
             transition_matrices=admr_transition_matrices,
-            available_budget=available_budget
+            available_budget=available_budget,
+            dt=dt,
+            matrioshka_shells=1,
+            is_local_internal=is_internal
         )
         
+        # If single-shot exceeds immediate slice capacity, position Matrioshka Mandelbulb partitioning
+        if should_veto and can_partition:
+            total_cost = diags.get('total_cost', demand_vector.norm().item())
+            slice_budget = available_budget * self.state_dim
+            num_shells = min(5, max(opt_shells, int(math.ceil(total_cost / max(1.0, slice_budget)))))
+
+            # Re-evaluate with time-amortized Matrioshka Mandelbulb partitioning
+            should_veto, diags = self.leontief_governor.should_veto_concept(
+                demand=demand_vector,
+                transition_matrices=admr_transition_matrices,
+                available_budget=available_budget,
+                dt=dt,
+                matrioshka_shells=num_shells,
+                is_local_internal=is_internal
+            )
+
+            if not should_veto:
+                print(f"[HARNESS AFFORDANCE] Positioned Matrioshka Mandelbulb partitioning: {num_shells} shells, dt={dt:.4f}")
+                # Project through nested Matrioshka polytope shells
+                try:
+                    evolve_res = self.meta_polytope(demand_vector, start_level=num_shells, mode='PLAY', dt=dt)
+                    if isinstance(evolve_res, tuple):
+                        demand_vector = evolve_res[0]
+                except Exception as e:
+                    pass
+
         if should_veto:
             print(f"[HARNESS VETO] Rig synthesis rejected. Cost ratio: {diags['cost_ratio']:.2f}")
-            if diags.get('slashed_via_poison', False):
+            if diags.get('slashed_via_poison', False) and not is_internal:
                 print(f"[SECURITY] Community Peer {community_peer_id} slashed from Freenet.")
             return None
 
@@ -333,6 +450,9 @@ class AdaptiveSkeletonHarness(nn.Module):
         cross_coupling = hw.gauge_between(ComputeAffordanceType.SILICON, ComputeAffordanceType.P2P_MESH)
         combined_budget = min(silicon_aff.gauge, p2p_aff.gauge) * cross_coupling
 
+        # Explicitly position Matrioshka Mandelbulb partitioning affordances
+        mb_aff = hw.evaluate_matrioshka_mandelbulb_affordance(task_complexity=1.0, dt=1.0, demand_dim=self.state_dim)
+
         return {
             "local_affordance": silicon_aff.gauge,
             "p2p_affordance": p2p_aff.gauge,
@@ -342,7 +462,14 @@ class AdaptiveSkeletonHarness(nn.Module):
             "thermal_margin": hw.thermal_margin,
             "gauges": hw.get_affordance_gauges(),
             "can_deep_retrieve": (combined_budget > 0.15) and (not hw.thermal_runaway),
-            "can_structural_compile": (combined_budget > 0.10) and (not hw.thermal_runaway)
+            "can_structural_compile": (combined_budget > 0.10) and (not hw.thermal_runaway),
+            "can_afford_matrioshka_mandelbulb_partitioning": mb_aff.get("can_afford_partitioning", True),
+            "optimal_matrioshka_shells": mb_aff.get("optimal_matrioshka_shells", 3),
+            "batch_capacity": mb_aff.get("batch_capacity", 32),
+            "effective_time_steps": mb_aff.get("effective_time_steps", 3.0),
+            "amortization_factor": mb_aff.get("amortization_factor", 3.0),
+            "mandelbulb_power_budget": mb_aff.get("mandelbulb_power_budget", 8),
+            "matrioshka_telemetry": mb_aff
         }
 
     def retrieve_agent_smith_fossil(
@@ -565,7 +692,8 @@ class AdaptiveSkeletonHarness(nn.Module):
         enemy_subtype: EnemySubtype = EnemySubtype.NONE,
         difficulty_scale: float = 1.0,
         bone_ratio: float = 0.8,
-        skeleton_override: Optional[torch.Tensor] = None
+        skeleton_override: Optional[torch.Tensor] = None,
+        weights: Optional[Dict[str, float]] = None
     ) -> Dict[str, Any]:
         """
         End-to-end bridge: Compiles the adaptive skeleton into a complete
@@ -575,7 +703,7 @@ class AdaptiveSkeletonHarness(nn.Module):
         if skeleton_override is not None:
             skeleton = skeleton_override
         else:
-            tag_weights = {f"archetype_{enemy_subtype.name.lower()}": 1.0}
+            tag_weights = weights if weights is not None else {f"archetype_{enemy_subtype.name.lower()}": 1.0}
             skeleton = self.build_superposed_rig(
                 weights=tag_weights,
                 ambulatory_class=ambulatory_class,
