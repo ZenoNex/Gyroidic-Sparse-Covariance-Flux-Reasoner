@@ -705,5 +705,61 @@ $$\chi = V - E = \beta_0 - \beta_1 \implies \beta_1 = \max(0, E - V + \beta_0)$$
 * **$\beta_1$ (Topological Loops / Tunnels)**: Pushing a block out of a wall creates a 1D tunnel handle, incrementing $\beta_1$ and dynamically updating the obstacle complexity score in [`DiegeticPhysicsEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/diegetic_physics_engine.py#L33):
   $$\text{topo\_complexity} = 1.0 + 0.1(\beta_0 - 1) + 0.25\beta_1$$
 
+---
 
+## 19. DMCA-Safe Generative Interception of 3D Gaussian Splats (`KHR_gaussian_splatting`)
+
+When external 3D Gaussian Splats (`.ply`, `.splat`, or glTF `KHR_gaussian_splatting` extensions) are imported into Voxelboxter, the system enforces a strict generative interception protocol to guarantee DMCA safety and intellectual property non-infringement.
+
+### 19.1 The Copyright Hazard of Direct Euclidean Voxelization
+Naive 3D splat ingestion samples Gaussian ellipsoids directly into Cartesian grids, preserving the original artist's protected polygon or point-cloud geometry verbatim. In a sovereign AI ecosystem, retaining copyrighted external representations creates catastrophic liability.
+
+### 19.2 The Generative Interception Architecture
+Rather than rasterizing raw splats directly, [`VoxelboxterEngine.ingest_gaussian_splats()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py) and [`PointerlessOctree.ingest_gaussian_splats()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py) route the splat stream into the deepest endogenous generative systems:
+
+```
+Raw Gaussian Splats (Position, Covariance, Spherical Harmonics, Opacity)
+                              │
+                              ▼
+[ ConjugateMomentTransport & OKLab Field ] -> Riemannian Log-Cholesky Covariance + Morton Z-Curve
+                              │
+                              ▼
+[ AdaptiveSkeletonHarness.synthesize_demand_from_splats ] -> Canonical Latent Demand Vector (Dim 32)
+                              │
+                              ▼
+[ Bouligand Tangent Cone Projection ] -> Directional Lipschitz Normalization & KAN Micro-waves (137.0)
+                              │
+                              ▼
+[ Ganbreeder Vector Stacking ] -> Interspecies / Archetype Coordinate Registration
+                              │
+                              ▼
+[ B-Spline Spine Algebra ] -> Procedural Structural Graph Synthesis
+                              │
+                              ▼
+[ Wager #2 (80/20 Fossilization Split) ] -> 80% Frozen Bone Core / 20% Plastic Flesh
+                              │
+                              ▼
+[ Discrete Voxelboxter Octree / Construct ] -> DMCA-Safe Procedural Entity
+```
+
+### 19.3 Ingestion Pipeline Invariants & De-Isolated Demand Transport
+1. **Zero Euclidean Retention & Canonical Demand Synthesis**: Raw vertices, faces, and point sets are completely discarded. Rather than computing ad-hoc arithmetic means, [`AdaptiveSkeletonHarness.synthesize_demand_from_splats()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/adaptive_skeleton_harness.py) delegates spatial coordinates and RGB chromaticities to canonical [`ConjugateMomentTransport.extract_oklab_moment_field()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/conjugate_moment_transport.py). This maps color palettes into the 9-dimensional Riemannian Log-Cholesky covariance space ($S_{++}^3 \to \mathbb{R}^6$) and sorts spatial centroids along the 3D Morton Z-order curve (`morton_encode_3d`), combining spatial centroids ($\mu_x, \mu_y, \mu_z$), spread ($\sigma_x, \sigma_y, \sigma_z$), and opacity pressure potentials into an exact, robust topological demand vector.
+2. **Bouligand Tangent Cone Projection**: The synthesized demand vector seeds [`AdaptiveSkeletonHarness`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/adaptive_skeleton_harness.py), which uses Bouligand tangent cones and incommensurate prime-ladder micro-carrier frequencies ($\omega = 137.0$) to synthesize a continuous topological spine.
+3. **Ganbreeder Vector Stacking**: The distilled seed is registered in the harness's coordinate catalogue, enabling collaborative interactive evolution and archetype rig blending without copying mesh topology.
+4. **Wager #2 Enforcement**: Every generated construct partitions into 80% immutable fossilized bone (mass locked, $O(1)$ physics inertia) and 20% plastic flesh subject to Mohr-Coulomb shear fracture and live learning.
+5. **Simulation Population**: The procedural blocks populate [`PointerlessOctree`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py) via Morton Z-order hash addresses with fully recomputed Betti numbers ($\beta_0, \beta_1$).
+
+### 19.4 Compute Affordance Positioning & Matrioshka Mandelbulb Partitioning
+High-value procedural generative synthesis (e.g., character skeletal rig compilation from multi-splat point streams) inherently creates large instantaneous topological demand vectors. Under naive single-slice Leontief governance, unamortized costs trigger immediate false-positive vetoes (`[HARNESS VETO]`). To resolve this, [`HardwareMonitor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py) positions multi-gauge compute affordances:
+* **Typed Affordance Tokens**: [`ComputeAffordanceType.COMPUTE_BATCH`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py) gauges available RAM headroom, thermal dissipation margin ($\eta_{\text{stack}}$), and Silicon CPU saturation to determine whether nested partition slicing is affordable.
+* **Matrioshka Shell Partitioning**: High-demand concept vectors are decomposed through nested [`MetaPolytopeMatrioshka`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/meta_polytope_matrioshka.py) polytope shells ($P_k^{(\ell)}$ for $\ell \in [1, 5]$). Rather than evaluating total cost $x = (I - A)^{-1} d$ in a single execution quantum, the synthesis workload is amortized across $N_{\text{shells}}$ nested shells.
+* **Mandelbulb Fractal Iteration Power**: When thermal headroom permits ($\eta > 0.70$), 3D feature embeddings execute OpenCL-accelerated Mandelbulb power-8 iterations ([`MandelbulbEmbedder`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/augmentation/mandelbulb_gyroidic_augmenter.py)), falling back to power-4 on thermal constriction.
+
+### 19.5 Derivative Time ($dt$) Manifold Clocks & Situational Batch Amortization
+The temporal pacing of generative compilation is governed dynamically by [`ManifoldClock`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/manifold_time.py):
+$$dt = dt_{\text{base}} \cdot \frac{\text{Play}}{1.0 + \text{Seriousness}}$$
+* **Elastic Temporal Amortization**: As demand pressure spikes, derivative time $dt$ contracts, effectively expanding the number of operational sub-steps:
+  $$\text{effective\_time\_steps} = \max\left(1.0, N_{\text{shells}} \cdot \max\left(1.0, \frac{1.0}{\max(0.001, dt)}\right)\right)$$
+* **Productive Leontief Equilibrium**: In [`LeontiefGovernor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/leontief_governor.py), intermediate consumption is governed by a contractive transition matrix $A = 0.5 \cdot I$ ($\rho = 0.5 < 0.95$), guaranteeing the Hawkins-Simon condition. Internal procedural tasks are granted situational batch expansion ($\text{headroom\_mult} = 8 \cdot N_{\text{shells}}$) and exempted from P2P network slashing, eliminating self-poisoning of the cached Leontief inverse.
+* **Situational Batching**: Integrated via [`SituationalBatchSampler`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/situational_batching.py), grouping high-value relational generative updates based on historical resonance ($R_{ij}$) and mischief ($M_{ij}$) matrices, bounded within the Martinova optimal correlation window $[-0.7, 0.7]$.
 
