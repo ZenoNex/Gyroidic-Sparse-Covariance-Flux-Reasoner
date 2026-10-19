@@ -241,7 +241,10 @@ class LeontiefGovernor(nn.Module):
         demand: torch.Tensor,
         transition_matrices: torch.Tensor,
         available_budget: float = 1.0,
-        bonfire_ring: Optional[Any] = None
+        bonfire_ring: Optional[Any] = None,
+        dt: float = 1.0,
+        matrioshka_shells: int = 1,
+        is_local_internal: bool = True
     ) -> Tuple[bool, Dict[str, float]]:
         """
         Governance check: should the system proceed with synthesizing
@@ -253,11 +256,18 @@ class LeontiefGovernor(nn.Module):
         If a BonfireNomadicRing is provided, incorporates community P2P 
         compute affordances via the Egalitarian Consensus Kelly Allocation.
 
+        Supports Matrioshka shell partitioning and derivative time (dt)
+        amortization for high-value tasks, preventing false-positive vetoes
+        and self-slashing on complex procedural synthesis.
+
         Args:
             demand: [state_dim] concept demand vector.
             transition_matrices: [K, state_dim, state_dim] from ADMR solver.
             available_budget: Scalar budget (normalized, 1.0 = full capacity).
             bonfire_ring: Optional BonfireNomadicRing instance.
+            dt: Current manifold clock derivative time step in (0, 2].
+            matrioshka_shells: Number of nested Matrioshka shell partitions.
+            is_local_internal: True if generated internally (exempt from P2P slashing).
 
         Returns:
             should_veto: bool
@@ -273,7 +283,16 @@ class LeontiefGovernor(nn.Module):
         total_production, diags = self.cascading_cost(demand, transition_matrices)
 
         total_cost = total_production.abs().sum().item()
-        can_afford = total_cost <= available_budget * self.state_dim
+        
+        # Amortize cost across Matrioshka shells and derivative time (dt) steps
+        # As dt shrinks (higher seriousness / pressure), temporal budget amortizes across steps
+        effective_time_steps = max(1.0, float(matrioshka_shells) * max(1.0, 1.0 / max(0.001, dt)))
+        amortized_cost = total_cost / effective_time_steps
+
+        # For internal high-value tasks, Matrioshka shell partitioning and situational
+        # batching amortize across the temporal slice sequence, expanding headroom
+        headroom_mult = max(1.0, float(matrioshka_shells) * 8.0) if is_local_internal else 1.0
+        can_afford = (amortized_cost <= available_budget * self.state_dim * headroom_mult) or (total_cost <= available_budget * self.state_dim)
 
         # Enforce GLYPHLOCK if available
         is_glyphlocked = True
@@ -289,14 +308,18 @@ class LeontiefGovernor(nn.Module):
         # ---------------------------------------------------------
         # P2P Slashing Mechanics (Kelly Criterion & Mischief Systems)
         # ---------------------------------------------------------
-        # If the cascading cost exceeds 10x the budget, it indicates an intentional 
-        # Mischief System attack (Unfunded Soliton). We execute a Collapse Path Poison.
+        # Only slash external malicious community peers submitting unfunded solitons.
+        # Local internal high-value synthesis is never slashed.
         slashed = False
-        if not can_afford and (total_cost > available_budget * self.state_dim * 10.0):
+        if not can_afford and (total_cost > available_budget * self.state_dim * 10.0) and not is_local_internal:
             self.kelly_slash_malicious_actor(demand, total_cost)
             slashed = True
 
         diags['total_cost'] = total_cost
+        diags['amortized_cost'] = amortized_cost
+        diags['effective_time_steps'] = effective_time_steps
+        diags['matrioshka_shells'] = matrioshka_shells
+        diags['dt'] = dt
         diags['available_budget'] = available_budget
         diags['can_afford'] = can_afford
         diags['vetoed'] = should_veto
