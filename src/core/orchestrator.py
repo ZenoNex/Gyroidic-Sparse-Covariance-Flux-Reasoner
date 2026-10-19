@@ -377,6 +377,80 @@ class UniversalOrchestrator(nn.Module):
         except Exception:
             self.texture_dsp = None
 
+        # 7.30 Gyroidic Codec & Mandelbulb Augmentation Co-Processing Suite
+        try:
+            from src.codec.gyroidic_codec import GyroidicCodec, CodecConfig
+            from src.augmentation.mandelbulb_gyroidic_augmenter import MandelbulbGyroidicAugmenter, AugmentationConfig
+            self.gyroidic_codec = GyroidicCodec(CodecConfig(K=min(5, dim), n=min(8, max(2, int(math.isqrt(dim)))), device=str(_device)))
+            self.mandelbulb_augmenter = MandelbulbGyroidicAugmenter(AugmentationConfig(mandelbulb_power=8))
+        except Exception:
+            self.gyroidic_codec = None
+            self.mandelbulb_augmenter = None
+        self.last_dyad_codec_result = None
+        self.last_dyad_entanglement = 0.0
+
+        # 7.31 Unified Knowledge Dyad Ingestor Suite (Dyadic Transfer, Video, Investor, ArXiv, Minecraft, Open Science)
+        from src.core.dyadic_transfer import DyadicTransferMap
+        from src.core.video_dyad_parser import VideoDyadParser
+        from src.core.investor_news_ingestor import InvestorNewsIngestor
+        
+        self.dyadic_transfer = DyadicTransferMap(num_tasks=8, embedding_dim=dim)
+        self.video_dyad_parser = VideoDyadParser(device=str(_device))
+        self.investor_ingestor = InvestorNewsIngestor(
+            state_dim=dim,
+            engine=self,
+            larynx=getattr(self, 'autoeclectic_head', None),
+            maml_adapter=getattr(self, 'calm', None)
+        )
+        
+        try:
+            from src.data.knowledge_ingestor import ArXivSovereignIngestor
+            self.arxiv_ingestor = ArXivSovereignIngestor(
+                fossilizer=self.fossilizer,
+                engine_dim=dim,
+                device=str(_device),
+                state_callback=lambda: getattr(self, 'working_state', None),
+                engine=self
+            )
+        except Exception:
+            self.arxiv_ingestor = None
+            
+        try:
+            from src.data.conversational_api_ingestor import ConversationalAPIIngestor
+            self.conversational_ingestor = ConversationalAPIIngestor(device=str(_device))
+        except Exception:
+            self.conversational_ingestor = None
+
+        try:
+            from src.data.chatgpt_friction_harvester import ChatGPTFrictionHarvester
+            self.chatgpt_harvester = ChatGPTFrictionHarvester(fossilizer=self.fossilizer, dim=dim)
+        except Exception:
+            self.chatgpt_harvester = None
+
+        try:
+            from src.data.open_science_ingestor import OpenScienceIngestor
+            self.open_science_ingestor = OpenScienceIngestor(cache_dir="data/open_science_cache")
+        except Exception:
+            self.open_science_ingestor = None
+
+        try:
+            from src.data.minecraft_ingestor import MinecraftIngestionPipeline
+            self.minecraft_ingestor = MinecraftIngestionPipeline(
+                codec_config=self.gyroidic_codec.config if getattr(self, 'gyroidic_codec', None) else CodecConfig(K=5, n=min(8, max(2, int(math.isqrt(dim))))),
+                poly_config=self.poly_config
+            )
+        except Exception:
+            self.minecraft_ingestor = None
+
+        try:
+            from src.data.local_dataset_ingestor import LocalDatasetIngestor
+            self.local_dataset_ingestor = LocalDatasetIngestor(datasets_root="data/local_datasets", device=str(_device))
+        except Exception:
+            self.local_dataset_ingestor = None
+            
+        self.last_dyad = None
+        self.last_fossil_path = None
+
         # 7.28 Attention Subsystem Suite (Multi-Field Modular Attention, CALM Veto & Diegetic Heads)
         self.poly_config = PolynomialCoprimeConfig(k=5, degree=4, basis_type='chebyshev', learnable=True, use_saturation=True)
         attn_heads = 4 if dim % 4 == 0 else max([h for h in [4, 2, 1] if dim % h == 0], default=1)
@@ -1784,11 +1858,307 @@ class UniversalOrchestrator(nn.Module):
 
     def ingest_knowledge_dyad(
         self,
-        text_emb: torch.Tensor,
-        image_emb: torch.Tensor
+        text_emb: Optional[torch.Tensor] = None,
+        image_emb: Optional[torch.Tensor] = None,
+        text_raw: Optional[str] = None,
+        audio_emb: Optional[torch.Tensor] = None,
+        video_breather: Optional[Dict[str, Any]] = None,
+        signal_tensor: Optional[torch.Tensor] = None,
+        dyad: Optional[Any] = None,
+        use_mandelbulb_prefold: bool = True,
+        fossilize: bool = True,
+        modality: str = "Multimodal",
+        seed_state: Optional[torch.Tensor] = None,
+        metadata: Optional[Dict[str, Any]] = None
     ) -> torch.Tensor:
-        """Ingest knowledge dyad (text/image pair) into coprime residues."""
-        return self.data_association(text_emb, image_emb)
+        """
+        Unifying Knowledge Dyad Ingestion & Fossilization Pipeline.
+        Rehybridizes multimodal knowledge dyad ingestors (ArXiv, Video, Investor,
+        Conversational, Minecraft, Open Science, Local Datasets) into canonical
+        KnowledgeDyad structures with persistent DyadFossilizer storage and
+        cooperative Mandelbulb-Gyroidic non-Abelian verification.
+        """
+        import os
+        from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
+
+        # 1. Unpack if a KnowledgeDyad instance is passed directly (or as text_emb)
+        if dyad is not None and isinstance(dyad, KnowledgeDyad):
+            target_dyad = dyad
+            text_raw = text_raw or target_dyad.linguistic_description
+            if image_emb is None and target_dyad.image_fingerprint is not None:
+                image_emb = target_dyad.image_fingerprint
+            if audio_emb is None and target_dyad.audio_harmonics is not None:
+                audio_emb = target_dyad.audio_harmonics
+            if video_breather is None and target_dyad.video_breather is not None:
+                video_breather = target_dyad.video_breather
+            if signal_tensor is None and target_dyad.unified_spectral_signature is not None:
+                signal_tensor = target_dyad.unified_spectral_signature
+        elif text_emb is not None and isinstance(text_emb, KnowledgeDyad):
+            target_dyad = text_emb
+            text_raw = text_raw or target_dyad.linguistic_description
+            text_emb = None
+            if image_emb is None and target_dyad.image_fingerprint is not None:
+                image_emb = target_dyad.image_fingerprint
+            if audio_emb is None and target_dyad.audio_harmonics is not None:
+                audio_emb = target_dyad.audio_harmonics
+            if video_breather is None and target_dyad.video_breather is not None:
+                video_breather = target_dyad.video_breather
+            if signal_tensor is None and target_dyad.unified_spectral_signature is not None:
+                signal_tensor = target_dyad.unified_spectral_signature
+
+        dev = next(self.parameters()).device if list(self.parameters()) else torch.device("cpu")
+        target_dim = getattr(self, 'dim', 64)
+
+        # 2. Harmonize text and image embeddings to [1, dim]
+        if text_emb is None:
+            if text_raw is not None and hasattr(self, 'poly_embedder') and self.poly_embedder is not None:
+                try:
+                    text_emb = self.poly_embedder(text_raw).to(dev)
+                except Exception:
+                    text_emb = torch.zeros((1, target_dim), device=dev)
+            else:
+                text_emb = torch.zeros((1, target_dim), device=dev)
+        else:
+            text_emb = text_emb.to(dev)
+
+        if image_emb is None:
+            if signal_tensor is not None:
+                image_emb = signal_tensor.to(dev)
+            else:
+                image_emb = torch.zeros((1, target_dim), device=dev)
+        else:
+            image_emb = image_emb.to(dev)
+
+        if text_emb.dim() == 1:
+            text_emb = text_emb.unsqueeze(0)
+        if image_emb.dim() == 1:
+            image_emb = image_emb.unsqueeze(0)
+
+        assoc_in_dim = getattr(self.data_association, 'input_dim', target_dim)
+        if text_emb.size(-1) != assoc_in_dim:
+            if text_emb.size(-1) < assoc_in_dim:
+                text_emb = F.pad(text_emb, (0, assoc_in_dim - text_emb.size(-1)))
+            else:
+                text_emb = text_emb[:, :assoc_in_dim]
+
+        if image_emb.size(-1) != assoc_in_dim:
+            if image_emb.size(-1) < assoc_in_dim:
+                image_emb = F.pad(image_emb, (0, assoc_in_dim - image_emb.size(-1)))
+            else:
+                image_emb = image_emb[:, :assoc_in_dim]
+
+        # 3. Coprime Polynomial Residue Fusion via DataAssociationLayer
+        assoc_residues = self.data_association(text_emb, image_emb)
+
+        # 4. Cooperative Gyroidic Codec & Mandelbulb pre-folding verification
+        if getattr(self, 'gyroidic_codec', None) is not None:
+            try:
+                proc_img = image_emb
+                if use_mandelbulb_prefold and getattr(self, 'mandelbulb_augmenter', None) is not None:
+                    flat_in = proc_img.view(1, -1)
+                    aug_res, _ = self.mandelbulb_augmenter(flat_in, augmentation_factor=1)
+                    if aug_res.numel() >= proc_img.numel():
+                        proc_img = aug_res.squeeze(0)[:proc_img.numel()].view_as(proc_img)
+
+                desc = text_raw or f"Dyad_Vector_{text_emb.norm().item():.3f}"
+                codec_result = self.gyroidic_codec.encode(desc, image=proc_img.squeeze(), use_mandelbulb_prefold=False)
+                self.last_dyad_codec_result = codec_result
+                self.last_dyad_entanglement = codec_result.diagnostics.get('entanglement_ratio', 0.0)
+            except Exception:
+                pass
+
+        # 5. Non-Commutative Dyadic Transfer Resonance
+        if getattr(self, 'dyadic_transfer', None) is not None:
+            try:
+                _ = self.dyadic_transfer.get_transfer_coefficients()
+            except Exception:
+                pass
+
+        # 6. Construct canonical KnowledgeDyad
+        desc_str = text_raw or f"Dyad_Vector_{text_emb.norm().item():.3f}"
+        cur_seed = seed_state if seed_state is not None else getattr(self, 'working_state', None)
+        
+        canonical_dyad = KnowledgeDyad(
+            linguistic_description=desc_str,
+            image_fingerprint=image_emb.squeeze().detach().cpu() if image_emb is not None else None,
+            audio_harmonics=audio_emb.squeeze().detach().cpu() if audio_emb is not None else None,
+            video_breather=video_breather,
+            unified_spectral_signature=signal_tensor.squeeze().detach().cpu() if signal_tensor is not None else None,
+            gyroid_residue=getattr(self.last_dyad_codec_result, 'residue', None),
+            meta_state=cur_seed.detach().cpu() if cur_seed is not None else None,
+            metadata={
+                "entanglement": getattr(self, 'last_dyad_entanglement', 0.0),
+                "modality": modality,
+                "has_mandelbulb_prefold": bool(use_mandelbulb_prefold and getattr(self, 'mandelbulb_augmenter', None)),
+                **(metadata or {})
+            }
+        )
+        self.last_dyad = canonical_dyad
+
+        # 7. Persistent Fossilization (No Erasing of Implication)
+        if fossilize and getattr(self, 'fossilizer', None) is not None:
+            try:
+                fossil_path = self.fossilizer.fossilize(
+                    canonical_dyad,
+                    text_embedding=text_emb.squeeze().detach().cpu(),
+                    seed_state=cur_seed.detach().cpu() if cur_seed is not None else None
+                )
+                self.last_fossil_path = fossil_path
+                if getattr(self, 'zeitgeist_router', None) is not None and fossil_path:
+                    fid = os.path.basename(fossil_path).replace(".fossil", "").replace(".pt", "")
+                    if hasattr(self.zeitgeist_router, 'register_fossil_landmark'):
+                        self.zeitgeist_router.register_fossil_landmark(fid, intensity=1.2)
+            except Exception:
+                pass
+
+        return assoc_residues
+
+    def ingest_knowledge_dyad_diagnostics(
+        self,
+        text_emb: Optional[torch.Tensor] = None,
+        image_emb: Optional[torch.Tensor] = None,
+        text_raw: Optional[str] = None,
+        audio_emb: Optional[torch.Tensor] = None,
+        video_breather: Optional[Dict[str, Any]] = None,
+        signal_tensor: Optional[torch.Tensor] = None,
+        dyad: Optional[Any] = None,
+        use_mandelbulb_prefold: bool = True,
+        fossilize: bool = True,
+        modality: str = "Multimodal",
+        seed_state: Optional[torch.Tensor] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Returns full diagnostic payload from cooperative dyad ingestion and fossilization."""
+        residues = self.ingest_knowledge_dyad(
+            text_emb=text_emb,
+            image_emb=image_emb,
+            text_raw=text_raw,
+            audio_emb=audio_emb,
+            video_breather=video_breather,
+            signal_tensor=signal_tensor,
+            dyad=dyad,
+            use_mandelbulb_prefold=use_mandelbulb_prefold,
+            fossilize=fossilize,
+            modality=modality,
+            seed_state=seed_state,
+            metadata=metadata
+        )
+        return {
+            "residues": residues,
+            "dyad": getattr(self, 'last_dyad', None),
+            "fossil_path": getattr(self, 'last_fossil_path', None),
+            "codec_result": getattr(self, 'last_dyad_codec_result', None),
+            "entanglement_ratio": getattr(self, 'last_dyad_entanglement', 0.0),
+            "has_mandelbulb_prefold": bool(use_mandelbulb_prefold and getattr(self, 'mandelbulb_augmenter', None))
+        }
+
+    def ingest_raw_dyad(self, dyad: Any, **kwargs) -> torch.Tensor:
+        """Ingest a pre-existing KnowledgeDyad instance directly."""
+        return self.ingest_knowledge_dyad(dyad=dyad, **kwargs)
+
+    def ingest_arxiv_dyad(
+        self,
+        arxiv_id: str,
+        title: str,
+        abstract: str,
+        categories: Optional[List[str]] = None,
+        **kwargs
+    ) -> torch.Tensor:
+        """Ingest scientific preprint metadata as a standardized KnowledgeDyad."""
+        text_raw = f"arXiv:{arxiv_id} [{', '.join(categories or [])}]: {title}. {abstract}"
+        meta = {
+            "arxiv_id": arxiv_id,
+            "title": title,
+            "source": "arxiv",
+            "categories": categories or []
+        }
+        return self.ingest_knowledge_dyad(text_raw=text_raw, modality="ScientificPreprint", metadata=meta, **kwargs)
+
+    def ingest_video_dyad(
+        self,
+        video_b64: str,
+        description: str = "",
+        extract_audio: bool = True,
+        **kwargs
+    ) -> torch.Tensor:
+        """Ingest video stream/b64 bitstream through VideoDyadParser into a KnowledgeDyad."""
+        if getattr(self, 'video_dyad_parser', None) is not None:
+            parsed = self.video_dyad_parser.parse_video_b64(video_b64, extract_audio=extract_audio)
+            sig = parsed.get('substream_residue')
+            aud = parsed.get('audio_harmonics')
+            cov = parsed.get('sparse_covariance')
+            meta = {
+                "source": "video",
+                "substream_entropy": float(parsed.get('substream_entropy', 0.0).item()) if torch.is_tensor(parsed.get('substream_entropy')) else float(parsed.get('substream_entropy', 0.0)),
+                "signal_length": float(parsed.get('signal_length', 0.0).item()) if torch.is_tensor(parsed.get('signal_length')) else float(parsed.get('signal_length', 0.0))
+            }
+            return self.ingest_knowledge_dyad(
+                image_emb=cov.flatten().unsqueeze(0) if cov is not None else None,
+                audio_emb=aud,
+                signal_tensor=sig,
+                text_raw=description or "Video_Bitstream_Dyad",
+                modality="Video",
+                metadata=meta,
+                **kwargs
+            )
+        return self.ingest_knowledge_dyad(text_raw=description or "Video_Bitstream_Dyad", modality="Video", **kwargs)
+
+    def ingest_investor_news_dyad(
+        self,
+        headline: str,
+        content: str = "",
+        source_feed: Optional[str] = None,
+        **kwargs
+    ) -> torch.Tensor:
+        """Ingest macroeconomic/financial news through InvestorNewsIngestor into a KnowledgeDyad."""
+        text_raw = f"MARKET TOPOLOGY: {headline}. {content}"
+        meta = {
+            "source": "investor_news",
+            "feed": source_feed or "financial_rss"
+        }
+        return self.ingest_knowledge_dyad(text_raw=text_raw, modality="Macroeconomic", metadata=meta, **kwargs)
+
+    def ingest_conversational_dyad(
+        self,
+        user_text: str,
+        assistant_text: str,
+        conversation_id: Optional[str] = None,
+        **kwargs
+    ) -> torch.Tensor:
+        """Ingest user-assistant conversational exchange as a unified KnowledgeDyad."""
+        text_raw = f"User: {user_text} | Assistant: {assistant_text}"
+        meta = {
+            "source": "conversational",
+            "conversation_id": conversation_id or "local_turn",
+            "user_prompt": user_text,
+            "assistant_response": assistant_text
+        }
+        return self.ingest_knowledge_dyad(text_raw=text_raw, modality="Dialogue", metadata=meta, **kwargs)
+
+    def ingest_minecraft_dyad(
+        self,
+        world_dir: str,
+        max_chunks: int = 4,
+        **kwargs
+    ) -> torch.Tensor:
+        """Ingest Minecraft voxel-script topologies through MinecraftIngestionPipeline."""
+        if getattr(self, 'minecraft_ingestor', None) is not None:
+            results = self.minecraft_ingestor.ingest_minecraft_world(world_dir, max_chunks=max_chunks)
+            res_tensor = results.get('combined_residue')
+            meta = {
+                "source": "minecraft",
+                "world_name": results.get('world_name', ''),
+                "chunks_processed": results.get('chunks_processed', 0),
+                "commutativity_gap": results.get('commutativity_gap', 0.0)
+            }
+            return self.ingest_knowledge_dyad(
+                image_emb=res_tensor.flatten().unsqueeze(0) if res_tensor is not None else None,
+                text_raw=f"Minecraft World: {results.get('world_name', 'world')} ({results.get('chunks_processed', 0)} chunks)",
+                modality="VoxelText",
+                metadata=meta,
+                **kwargs
+            )
+        return self.ingest_knowledge_dyad(text_raw=f"Minecraft World: {world_dir}", modality="VoxelText", **kwargs)
 
     def run_modular_attention(
         self,
