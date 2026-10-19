@@ -273,14 +273,12 @@ class MetaPolytopeMatrioshka(nn.Module):
         if best_quantization is None:
             best_quantization = torch.zeros_like(x)
             
-        state_direction = F.normalize(x.mean(dim=0, keepdim=True), dim=-1).squeeze(0)
-        facet_normal = F.normalize((x - best_quantization).mean(dim=0, keepdim=True), dim=-1).squeeze(0)
-        
-        # Squeeze down to 1D if necessary
-        if state_direction.dim() > 1:
-            state_direction = state_direction.flatten()[:state_direction.shape[-1]]
-        if facet_normal.dim() > 1:
-            facet_normal = facet_normal.flatten()[:facet_normal.shape[-1]]
+        if x.dim() == 1:
+            state_direction = F.normalize(x, dim=-1)
+            facet_normal = F.normalize(x - best_quantization, dim=-1)
+        else:
+            state_direction = F.normalize(x.mean(dim=0), dim=-1)
+            facet_normal = F.normalize((x - best_quantization).mean(dim=0), dim=-1)
             
         boundary_state = BoundaryState.from_crossing(
             state_direction=state_direction,
