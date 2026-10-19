@@ -2134,10 +2134,43 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                     'training_manager': (AI_SYSTEM.training_manager is not None) if AI_SYSTEM else False,
                 }
             }
+            # Rehybridized Compute Affordance Telemetry
+            try:
+                from src.core.hardware_monitor import get_affordance_gauges, has_compute_affordance, ComputeAffordanceType
+                status_data['compute_affordances'] = {
+                    'gauges': get_affordance_gauges(),
+                    'topological_ok': bool(has_compute_affordance(ComputeAffordanceType.TOPOLOGICAL)),
+                    'thermal_ok': bool(has_compute_affordance(ComputeAffordanceType.THERMAL)),
+                    'silicon_ok': bool(has_compute_affordance(ComputeAffordanceType.SILICON)),
+                    'algorithmic_ok': bool(has_compute_affordance(ComputeAffordanceType.ALGORITHMIC)),
+                    'diegetic_ok': bool(has_compute_affordance(ComputeAffordanceType.DIEGETIC))
+                }
+            except Exception:
+                pass
+
             if AI_SYSTEM and hasattr(AI_SYSTEM, 'engine') and AI_SYSTEM.engine:
                 if hasattr(AI_SYSTEM.engine, 'valence_drive') and AI_SYSTEM.engine.valence_drive:
                     status_data['valence'] = AI_SYSTEM.engine.valence_drive.get_metrics()
             self._send_json(status_data)
+        elif parsed_path.path == '/api/affordances':
+            try:
+                from src.core.hardware_monitor import get_affordance_gauges, has_compute_affordance, ComputeAffordanceType
+                aff_telemetry = {
+                    'status': 'ok',
+                    'gauges': get_affordance_gauges(),
+                    'headroom': {
+                        'topological': bool(has_compute_affordance(ComputeAffordanceType.TOPOLOGICAL)),
+                        'thermal': bool(has_compute_affordance(ComputeAffordanceType.THERMAL)),
+                        'silicon': bool(has_compute_affordance(ComputeAffordanceType.SILICON)),
+                        'algorithmic': bool(has_compute_affordance(ComputeAffordanceType.ALGORITHMIC)),
+                        'diegetic': bool(has_compute_affordance(ComputeAffordanceType.DIEGETIC)),
+                        'p2p_mesh': bool(has_compute_affordance(ComputeAffordanceType.P2P_MESH)),
+                        'gpu_sovereign': bool(has_compute_affordance(ComputeAffordanceType.GPU_SOVEREIGN))
+                    }
+                }
+                self._send_json(aff_telemetry)
+            except Exception as e:
+                self._send_error_json(str(e))
         elif parsed_path.path == '/api/scripting/resources':
             try:
                 from src.scripting.node_environment import ResourceRegistry
@@ -2163,6 +2196,12 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 ore = OreDictionary()
                 tag_map = {tag: ore.get_materials(tag) for tag in ore._tag_to_materials}
                 self._send_json({'status': 'ok', 'tags': tag_map})
+            except Exception as e:
+                self._send_error_json(str(e))
+        elif parsed_path.path == '/api/voxelboxter/proxy_status':
+            try:
+                from src.ui.voxelboxter_backend import MAIN_BACKEND_URL
+                self._send_json({'status': 'ok', 'target_backend': MAIN_BACKEND_URL})
             except Exception as e:
                 self._send_error_json(str(e))
         elif parsed_path.path == '/api/rss/feeds':
@@ -2228,10 +2267,18 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                     return
             
             # Default or fallback or port 8000: Diegetic Terminal
-            terminal_path = os.path.join(os.path.dirname(__file__), 'src', 'ui', 'diegetic_terminal.html')
-            if os.path.exists(terminal_path):
-                with open(terminal_path, 'r', encoding='utf-8') as f:
-                    html = f.read()
+            try:
+                from src.ui.diegetic_terminal import create_diegetic_terminal_html
+                html = create_diegetic_terminal_html()
+            except Exception:
+                terminal_path = os.path.join(os.path.dirname(__file__), 'src', 'ui', 'diegetic_terminal.html')
+                if os.path.exists(terminal_path):
+                    with open(terminal_path, 'r', encoding='utf-8') as f:
+                        html = f.read()
+                else:
+                    html = self._get_fallback_terminal_html()
+
+            if html and not html.startswith("<!-- Error"):
                 print(f"[OK] Serving Diegetic Terminal on port {port}")
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
