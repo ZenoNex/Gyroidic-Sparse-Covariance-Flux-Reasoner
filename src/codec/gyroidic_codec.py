@@ -62,6 +62,8 @@ class CodecConfig:
     text_embed_dim: int = 64     # Dimension for text character embeddings
     use_saturation: bool = True  # Apply piecewise saturation gates
     use_conformal_mapping: bool = True # Apply Escher Log-Polar foveal unroll for scale/rotation invariance
+    use_mandelbulb_prefold: bool = False # Synergistic Mandelbulb-Gyroidic fractal pre-folding
+    mandelbulb_power: int = 8            # Fractal iteration power for Mandelbulb embedder
     device: str = 'cpu'
 
 
@@ -322,6 +324,16 @@ class GyroidImageProjector(nn.Module):
             resolution_theta=config.gyroid_resolution
         ) if config.use_conformal_mapping else None
 
+        # Mandelbulb Recursive Embedding integration (MGDAS co-processing)
+        if getattr(config, 'use_mandelbulb_prefold', False):
+            from src.augmentation.mandelbulb_gyroidic_augmenter import MandelbulbEmbedder
+            self.mandelbulb_embedder = MandelbulbEmbedder(
+                power=getattr(config, 'mandelbulb_power', 8),
+                max_iterations=50
+            )
+        else:
+            self.mandelbulb_embedder = None
+
         # Per-channel projection from gyroid features to GL(n)
         self.channel_projectors = nn.ModuleList([
             nn.Sequential(
@@ -337,7 +349,8 @@ class GyroidImageProjector(nn.Module):
         image: Optional[torch.Tensor] = None,
         unified_spectral_signature: Optional[torch.Tensor] = None,
         image_fingerprint: Optional[torch.Tensor] = None,
-        audio_harmonics: Optional[torch.Tensor] = None
+        audio_harmonics: Optional[torch.Tensor] = None,
+        use_mandelbulb_prefold: Optional[bool] = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""
         Project image to K residue matrices.
@@ -349,6 +362,7 @@ class GyroidImageProjector(nn.Module):
             unified_spectral_signature: Optional 1D signature tensor.
             image_fingerprint: Optional 1D fingerprint tensor.
             audio_harmonics: Optional 1D harmonics tensor.
+            use_mandelbulb_prefold: If True, folds signal through MandelbulbEmbedder.
 
         Returns:
             residues: [K, n, n]  each G_k \in GL(n)
@@ -362,6 +376,30 @@ class GyroidImageProjector(nn.Module):
             img_input = image_fingerprint
         if img_input is None:
             img_input = audio_harmonics
+
+        # Synergistic Mandelbulb-Gyroidic prefolding stage
+        apply_mandelbulb = use_mandelbulb_prefold if use_mandelbulb_prefold is not None else (self.mandelbulb_embedder is not None)
+        if img_input is not None and apply_mandelbulb:
+            try:
+                from src.augmentation.mandelbulb_gyroidic_augmenter import MandelbulbEmbedder
+                embedder = self.mandelbulb_embedder or MandelbulbEmbedder(
+                    power=getattr(self.config, 'mandelbulb_power', 8),
+                    max_iterations=50
+                )
+                if img_input.dim() == 1:
+                    m_in = img_input.unsqueeze(0)
+                    m_out = embedder(m_in).squeeze(0)
+                    # Blend original with Mandelbulb harmonics to enrich spectral depth
+                    if m_out.numel() >= img_input.numel():
+                        img_input = 0.7 * img_input + 0.3 * m_out[:img_input.numel()]
+                elif img_input.dim() == 2:
+                    h, w = img_input.shape
+                    m_in = img_input.view(1, -1)
+                    m_out = embedder(m_in).squeeze(0)
+                    if m_out.numel() >= h * w:
+                        img_input = 0.7 * img_input + 0.3 * m_out[:h * w].view(h, w)
+            except Exception:
+                pass
 
         residues = []
         berry_phases = []
@@ -818,10 +856,11 @@ class GyroidicCodec(nn.Module):
         commutativity: str = 'text_first',
         unified_spectral_signature: Optional[torch.Tensor] = None,
         image_fingerprint: Optional[torch.Tensor] = None,
-        audio_harmonics: Optional[torch.Tensor] = None
+        audio_harmonics: Optional[torch.Tensor] = None,
+        use_mandelbulb_prefold: Optional[bool] = None
     ) -> EncodingResult:
         """
-        Encode a text-image pair.
+        Encode a text-image pair into Non-Abelian CRT residue space.
 
         Args:
             text: Input text string
@@ -831,19 +870,21 @@ class GyroidicCodec(nn.Module):
             unified_spectral_signature: Optional 1D signature tensor.
             image_fingerprint: Optional 1D fingerprint tensor.
             audio_harmonics: Optional 1D harmonics tensor.
+            use_mandelbulb_prefold: If True, applies Mandelbulb fractal folding to the visual/spectral signal.
 
         Returns:
             EncodingResult with full encoding diagnostics
         """
-        # 1. Text  residues
+        # 1. Text -> residues
         text_residues = self.text_projector(text)      # [K, n, n]
 
-        # 2. Image  residues and berry phases
+        # 2. Image -> residues and berry phases (with Mandelbulb prefold if enabled)
         image_residues, berry_phases = self.image_projector(
             image=image,
             unified_spectral_signature=unified_spectral_signature,
             image_fingerprint=image_fingerprint,
-            audio_harmonics=audio_harmonics
+            audio_harmonics=audio_harmonics,
+            use_mandelbulb_prefold=use_mandelbulb_prefold
         )    # [K, n, n], [K]
 
         # 3. Non-abelian combination
@@ -952,6 +993,40 @@ class GyroidicCodec(nn.Module):
             image = images[i] if images and i < len(images) else None
             results.append(self.encode(text, image))
         return results
+
+    def augment_and_encode(
+        self,
+        text: str,
+        image: Optional[torch.Tensor] = None,
+        augmentation_factor: int = 1,
+        chromatic_mode: str = 'pink',
+        commutativity: str = 'text_first'
+    ) -> EncodingResult:
+        """
+        Cooperative single-call integration of MandelbulbAugmenter and GyroidicCodec.
+        Applies Mandelbulb-Gyroidic fractal augmentation to the visual/spectral signal,
+        then encodes the resulting structured manifold into CRT residue space.
+        """
+        from src.augmentation.mandelbulb_gyroidic_augmenter import MandelbulbGyroidicAugmenter, AugmentationConfig
+        
+        proc_img = image
+        if proc_img is not None:
+            augmenter = MandelbulbGyroidicAugmenter(
+                AugmentationConfig(mandelbulb_power=getattr(self.config, 'mandelbulb_power', 8))
+            )
+            # Ensure 2D format [batch, dim] for augmenter
+            in_t = proc_img.unsqueeze(0) if proc_img.dim() == 1 else proc_img
+            if in_t.dim() > 2:
+                in_t = in_t.view(1, -1)
+            aug_t, _ = augmenter(in_t, augmentation_factor=augmentation_factor, chromatic_mode=chromatic_mode)
+            proc_img = aug_t[:proc_img.numel()].view_as(proc_img) if proc_img.dim() <= 2 else aug_t
+            
+        return self.encode(
+            text=text,
+            image=proc_img,
+            commutativity=commutativity,
+            use_mandelbulb_prefold=True
+        )
 
     def compute_mutual_information_proxy(
         self,
