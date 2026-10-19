@@ -3165,8 +3165,8 @@ class DiegeticPhysicsEngine(nn.Module):
                     collision_residues = self.associator(input_text_emb, input_image_emb) # [1, k]
                     
                     # 4. Codec Verification (Non-Abelian Entanglement)
-                    # We pass the raw signal to the codec to calculate the commutativity gap
-                    codec_result = self.codec.encode(text_input, fp_tensor)
+                    # We pass the raw signal to the codec with cooperative Mandelbulb fractal prefolding
+                    codec_result = self.codec.encode(text_input, fp_tensor, use_mandelbulb_prefold=True)
                     codec_metrics = codec_result.diagnostics
                     
                     # 5. Mohr-Coulomb Yield Pressure (Topological Rupture)
@@ -5356,8 +5356,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 text_emb = input_tensor
                 collision_residues = self.associator(text_emb, media_emb)
                 
-                # 4. Codec Diagnostics with Non-Commutativity
-                codec_result = self.codec.encode(text_input, fp_tensor.view(1, 8, 12), commutativity=commutativity)
+                # 4. Codec Diagnostics with Non-Commutativity and Mandelbulb Prefolding
+                codec_result = self.codec.encode(text_input, fp_tensor.view(1, 8, 12), commutativity=commutativity, use_mandelbulb_prefold=True)
                 codec_metrics.update({
                     "entanglement_ratio": codec_result.diagnostics.get('entanglement_ratio', 0.0),
                     "commutativity_gap": codec_result.commutativity_gap,
