@@ -283,27 +283,36 @@ class DyadFossilizer:
                 
                 new_files = existing_files - indexed_files
                 if new_files:
-                    # Scan only new files to avoid reloading old ones
-                    for f in new_files:
-                        filepath = os.path.join(self.storage_dir, f)
-                        try:
-                            mtime = os.path.getmtime(filepath)
-                            data = torch.load(filepath, map_location='cpu')
-                            if isinstance(data, dict):
-                                p_hash = data.get('prompt_hash')
-                                if not p_hash:
-                                    desc = data.get('description') or data.get('text_input')
-                                    if desc:
-                                        p_hash = hashlib.sha256(desc.encode('utf-8')).hexdigest()
-                                dyad_meta = data.get('dyad_metadata') or {}
-                                arxiv_id = dyad_meta.get('arxiv_id')
-                                self.fossil_index[f] = {
-                                    'prompt_hash': p_hash,
-                                    'arxiv_id': arxiv_id,
-                                    'mtime': mtime
-                                }
-                        except Exception:
-                            pass
+                    if len(new_files) > 50:
+                        print(f"[FOSSILIZER] Fast index bulk registering {len(new_files)} unindexed files without O(N) disk stall...")
+                        for f in new_files:
+                            p_hash = hashlib.sha256(f.encode('utf-8')).hexdigest()
+                            self.fossil_index[f] = {
+                                'prompt_hash': p_hash,
+                                'arxiv_id': None,
+                                'mtime': 0.0
+                            }
+                    else:
+                        for f in new_files:
+                            filepath = os.path.join(self.storage_dir, f)
+                            try:
+                                mtime = os.path.getmtime(filepath)
+                                data = torch.load(filepath, map_location='cpu')
+                                if isinstance(data, dict):
+                                    p_hash = data.get('prompt_hash')
+                                    if not p_hash:
+                                        desc = data.get('description') or data.get('text_input')
+                                        if desc:
+                                            p_hash = hashlib.sha256(desc.encode('utf-8')).hexdigest()
+                                    dyad_meta = data.get('dyad_metadata') or {}
+                                    arxiv_id = dyad_meta.get('arxiv_id')
+                                    self.fossil_index[f] = {
+                                        'prompt_hash': p_hash,
+                                        'arxiv_id': arxiv_id,
+                                        'mtime': mtime
+                                    }
+                            except Exception:
+                                pass
                 
                 if missing_files or new_files:
                     self._save_index()
@@ -446,7 +455,7 @@ class DyadFossilizer:
             If detected, honest jitter is injected to rehydrate variance and
             the atrophy event is recorded in the fossil payload.
         """
-        self._index_ready.wait()
+        self._index_ready.wait(timeout=10.0)
         # --- UPSTREAM SPECTRAL ATROPHY GUARD ---
         # This guard detects the 0.8824 flatline BEFORE the invariant engines
         # see it, so they don't produce meaningless chiral/betti metrics from
@@ -724,7 +733,7 @@ class DyadFossilizer:
         
     def enforce_fossil_budget(self):
         """ASD-STE100 Rules: 80/20 fossilization budget constraint."""
-        max_total = 150 # based on default budget limit
+        max_total = int(os.environ.get("MAX_FOSSIL_BUDGET", 50000))
         ouroboros_limit = int(max_total * 0.20)
         regular_limit = max_total - ouroboros_limit
         
@@ -745,10 +754,12 @@ class DyadFossilizer:
         if len(regular_files) > regular_limit:
             to_delete.extend([f for f, _ in regular_files[:len(regular_files) - regular_limit]])
             
-        for f in to_delete:
-            self._delete_fossil(f)
+        if to_delete:
+            for f in to_delete:
+                self._delete_fossil(f, save_index=False)
+            self._save_index()
 
-    def _delete_fossil(self, filename: str):
+    def _delete_fossil(self, filename: str, save_index: bool = True):
         filepath = os.path.join(self.storage_dir, filename)
         try:
             if os.path.exists(filepath):
@@ -765,7 +776,8 @@ class DyadFossilizer:
         except Exception as e:
             if not isinstance(e, KeyError):
                 print(f"[FOSSILIZER] Budget cleanup failed for {filename}: {e}")
-        self._save_index()
+        if save_index:
+            self._save_index()
         
     def ouroboros_shadow_loop(self, 
                               failure_log: str, 
