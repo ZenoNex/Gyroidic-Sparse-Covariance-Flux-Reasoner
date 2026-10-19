@@ -156,8 +156,8 @@ class ChatGPTFrictionHarvester:
     files are usually a subset of the full history.
     """
 
-    def __init__(self, export_dir: str, dim: int = 256, fossilizer: Optional[Any] = None):
-        self.export_dir = export_dir
+    def __init__(self, export_dir: Optional[str] = None, dim: int = 256, fossilizer: Optional[Any] = None):
+        self.export_dir = export_dir or "data/service_llm_archive"
         self.dim = dim
         self.fossilizer = fossilizer
         self.creator_aliases: List[str] = ["ila", "akkaris", "willabusta"]
