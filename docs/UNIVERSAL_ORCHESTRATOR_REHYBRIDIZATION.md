@@ -306,4 +306,41 @@ The categorical compute affordance engine from [`src/core/hardware_monitor.py`](
      - [`UniversalOrchestrator.ingest_knowledge_dyad`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py) executes both paths concurrently, storing non-Abelian commutator gap diagnostics under `last_dyad_entanglement` while maintaining backward compatibility with `[1, 5]` return tensors.
      - Verified with 100% pass rate in [`tests/test_mandelbulb_codec_cooperation.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_mandelbulb_codec_cooperation.py).
 
+### 7.7 Rehybridization and Unifying Integration of Knowledge Dyad Ingestors
+* **The Circumvention Identified**:
+  - `UniversalOrchestrator.ingest_knowledge_dyad()` previously performed an ephemeral data association between text and image embeddings and ran optional Gyroidic Codec diagnostics, but completely circumvented the system's specialized multimodal ingestor suite and failed to generate or persist permanent `KnowledgeDyad` artifacts into the `DyadFossilizer` store.
+  - The repository's diverse ingestors ([`VideoDyadParser`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/video_dyad_parser.py), [`InvestorNewsIngestor`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/economic_news_linker.py), [`ArXivSovereignIngestor`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/knowledge_ingestor.py), [`ConversationalAPIIngestor`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/conversational_types.py), [`ChatGPTFrictionHarvester`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/chatgpt_friction_harvester.py), [`OpenScienceIngestor`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/open_science_ingestor.py), [`MinecraftIngestionPipeline`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/minecraft_pipeline.py), [`LocalDatasetIngestor`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/local_dataset_ingestor.py), and [`DyadicTransferMap`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/polynomial_embeddings.py)) operated in isolated silos without a single unifying orchestration gateway.
+
+* **Unified Architectural Reconnection**:
+  1. **Canonical Orchestrator Mounting**:
+     - Initialized and mounted in [`UniversalOrchestrator.__init__`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py):
+       - `self.dyadic_transfer`: [`DyadicTransferMap`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/polynomial_embeddings.py) for non-commutative cross-modal projection.
+       - `self.video_dyad_parser`: [`VideoDyadParser`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/video_dyad_parser.py) for video/text dyad extraction.
+       - `self.investor_ingestor`: [`InvestorNewsIngestor`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/economic_news_linker.py) for financial/economic macro events.
+       - `self.arxiv_ingestor`: [`ArXivSovereignIngestor`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/knowledge_ingestor.py) for scientific literature and preprints.
+       - `self.conversational_ingestor`: [`ConversationalAPIIngestor`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/conversational_types.py) for dialogue dyads.
+       - `self.chatgpt_harvester`: [`ChatGPTFrictionHarvester`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/chatgpt_friction_harvester.py) for cognitive friction harvesting.
+       - `self.open_science_ingestor`: [`OpenScienceIngestor`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/open_science_ingestor.py) for open scientific datasets.
+       - `self.minecraft_ingestor`: [`MinecraftIngestionPipeline`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/minecraft_pipeline.py) for 3D voxel world grounding.
+       - `self.local_dataset_ingestor`: [`LocalDatasetIngestor`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/local_dataset_ingestor.py) for local file ingestion.
+  2. **Canonical Dyad Ingestion Pipeline**:
+     - [`UniversalOrchestrator.ingest_knowledge_dyad()`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py) now:
+       - Constructs canonical [`KnowledgeDyad`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py) instances with linguistic descriptions, image fingerprints, unified spectral signatures, and metadata.
+       - Calls [`DyadFossilizer.fossilize()`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py) to permanently record CRT residue tuples, Poincaré hyperbolic embeddings, and chiral invariants to disk.
+       - Registers landmark associations in [`ZeitgeistRouter`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/zeitgeist_moment_router.py).
+       - Updates non-commutative modal resonance via [`DyadicTransferMap.measure_resonance()`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/polynomial_embeddings.py).
+       - Returns the backward-compatible residue tensor for seamless continuous execution.
+  3. **Unifying Modal Dispatch Interface**:
+     - `ingest_raw_dyad(self, dyad: KnowledgeDyad, ...)`
+     - `ingest_arxiv_dyad(self, arxiv_id, title, abstract, ...)`
+     - `ingest_video_dyad(self, video_b64, description, ...)`
+     - `ingest_investor_news_dyad(self, headline, content, ...)`
+     - `ingest_conversational_dyad(self, user_text, assistant_text, ...)`
+     - `ingest_minecraft_dyad(self, world_dir, max_chunks, ...)`
+  4. **Fossilizer Startup and Disk I/O Optimization**:
+     - Replaced synchronous `torch.load` loops on startup with non-blocking fast index bulk registration, eliminating multi-minute application hangs.
+     - Enforced `save_index=False` during bulk budget cleanup, preventing quadratic JSON rewrites across 40,000+ files.
+  5. **Verification**:
+     - Validated with 100% success across all 6 test cases in [`tests/test_knowledge_dyad_rehybridization.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_knowledge_dyad_rehybridization.py).
+
 
