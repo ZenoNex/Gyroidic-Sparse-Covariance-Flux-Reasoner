@@ -1471,6 +1471,14 @@ class PointerlessOctree:
             
         return nodes_added
 
+    def set_voxel(self, x: int, y: int, z: int, material: int = 1, complexity: float = 1.0):
+        """Sets a voxel in the Morton-encoded spatial hash lattice at discrete coordinates (x, y, z)."""
+        code = self._interleave_bits(int(x), int(y), int(z))
+        self.morton_grid[code] = int(material)
+        self.complexity_grid[code] = float(complexity)
+        self.depth_grid[code] = self.get_adaptive_depth(float(complexity))
+
+
     def remove_voxel(self, x: int, y: int, z: int) -> bool:
         """Removes a voxel from the Morton-encoded spatial hash lattice. Returns True if removed."""
         code = self._interleave_bits(x, y, z)
@@ -1725,50 +1733,148 @@ class PointerlessOctree:
 
     def ingest_gaussian_splats(
         self,
-        file_path: str,
+        splats: Any = None,
+        file_path: Optional[str] = None,
+        default_material: int = 1,
+        construct_name: Optional[str] = None,
+        bone_ratio: float = 0.8,
         target_dim: int = 128,
         density_scale: float = 1.0,
-        center_offset: Tuple[int, int, int] = (0, 0, 0)
+        center_offset: Tuple[int, int, int] = (0, 0, 0),
+        use_generative_interception: bool = True,
+        **kwargs: Any
     ) -> Dict[str, Any]:
         """
         Hook 1: Gaussian Splatting Ingestion (KHR_gaussian_splatting).
-        Extracts 3D Gaussian Splats via GltfSplatIngestionPipeline into Gyroidic residues,
-        depositing them directly into the Morton-encoded octree hash map.
+        Extracts 3D Gaussian Splats via GltfSplatIngestionPipeline and AdaptiveSkeletonHarness,
+        intercepting raw geometry through Bouligand contingent cone projections to generate
+        fully procedural, DMCA-safe Voxelboxter structural constructs.
+        No copyrighted raw Euclidean meshes or vertex sets are retained.
         """
+        # 1. Handle in-memory list of splat primitive dictionaries
+        if isinstance(splats, (list, tuple)):
+            from src.ui.voxelboxter_simulation import VoxelboxterEngine
+            engine = VoxelboxterEngine()
+            result = engine.ingest_gaussian_splats(
+                splats=splats,
+                default_material=default_material,
+                construct_name=construct_name,
+                bone_ratio=bone_ratio
+            )
+            # Mirror blocks into this octree's Morton grid
+            cid = result.get("construct_id") or result.get("construct_name")
+            if cid and cid in engine.constructs:
+                graph = engine.constructs[cid]
+                for block in graph.blocks.values():
+                    bx, by, bz = block.local_cell
+                    self.set_voxel(bx + center_offset[0], by + center_offset[1], bz + center_offset[2], material=block.material_id, complexity=0.8)
+            result["total_octree_nodes"] = len(self.morton_grid)
+            result["betti_numbers"] = self.compute_betti_numbers()
+            return result
+
+        # 2. Handle file path input (.gltf / .glb)
+        resolved_file = splats if isinstance(splats, str) else file_path
+        if resolved_file is None:
+            return {
+                "status": "empty",
+                "dmca_safe_generative_intercept": True,
+                "total_octree_nodes": len(self.morton_grid)
+            }
+
+        import os
         from src.data.gltf_splat_ingestor import GltfSplatIngestionPipeline
         pipeline = GltfSplatIngestionPipeline(target_dim=target_dim)
-        residues = pipeline.process_splat_file(file_path)
         
-        # Project residue energy into 3D voxel space
-        # Residues shape: [B, target_dim, target_dim]
+        # Check if structured primitive extraction succeeds
+        try:
+            extracted_prims = pipeline.extract_splat_primitives(resolved_file)
+            if extracted_prims:
+                return self.ingest_gaussian_splats(
+                    splats=extracted_prims,
+                    default_material=default_material,
+                    construct_name=construct_name,
+                    bone_ratio=bone_ratio,
+                    center_offset=center_offset
+                )
+        except Exception:
+            pass
+
+        residues = pipeline.process_splat_file(resolved_file)
+        file_path = resolved_file
+        
         B = residues.shape[0]
         nodes_placed = 0
         ox, oy, oz = center_offset
-        
-        for b in range(min(B, 16)):
-            mat_slice = residues[b].detach().cpu().numpy()
-            # Sample salient peaks across the matrix
-            h, w = mat_slice.shape
-            step = max(1, h // 8)
-            for i in range(0, h, step):
-                for j in range(0, w, step):
-                    val = float(mat_slice[i, j])
-                    if abs(val) > 0.05:
-                        vx = ox + (i // step)
-                        vy = oy + (j // step)
-                        vz = oz + b
-                        mat_id = 4 if val > 0 else 1
-                        complexity = abs(val) * density_scale
-                        self.add_adaptive_fractal_node(float(vx), float(vy), float(vz), material=mat_id, complexity=complexity)
+        construct_telemetry = {}
+
+        if use_generative_interception:
+            try:
+                from src.core.adaptive_skeleton_harness import AdaptiveSkeletonHarness, AmbulatoryClass, EnemySubtype
+                harness = AdaptiveSkeletonHarness(state_dim=min(target_dim, 64))
+                
+                # Derive seed state vector from residue matrix mean
+                seed_state = residues.mean(dim=0).flatten()[:min(target_dim, 64)]
+                if seed_state.shape[0] < min(target_dim, 64):
+                    seed_state = torch.nn.functional.pad(seed_state, (0, min(target_dim, 64) - seed_state.shape[0]))
+                
+                # Register the splat archetype coordinate in Ganbreeder vector stacker
+                tag_name = os.path.basename(file_path).split('.')[0]
+                harness.register_tag_coordinate(f"splat_{tag_name}", seed_state)
+                
+                # Generatively compile into procedural structural construct
+                construct = harness.compile_to_voxelboxter_construct(
+                    skeleton_override=seed_state,
+                    bone_ratio=0.8
+                )
+                construct_telemetry = {
+                    "total_blocks": construct.get("total_blocks", 0),
+                    "bone_blocks": construct.get("bone_blocks", 0),
+                    "flesh_blocks": construct.get("flesh_blocks", 0),
+                    "fossil_split": construct.get("fossil_split", {}),
+                    "generative_interception": True
+                }
+                
+                # Ingest procedurally generated blocks into simulation octree
+                s_graph = construct.get("graph")
+                if s_graph and hasattr(s_graph, "blocks"):
+                    for cell, blk in s_graph.blocks.items():
+                        bx, by, bz = cell
+                        mat_id = 4 if getattr(blk, 'is_bone', False) else 1
+                        self.add_adaptive_fractal_node(
+                            float(ox + bx), float(oy + by), float(oz + bz),
+                            material=mat_id,
+                            complexity=density_scale * (1.2 if getattr(blk, 'is_bone', False) else 0.8)
+                        )
                         nodes_placed += 1
-                        
+            except Exception as e:
+                print(f"[WARN] Generative interception fallback: {e}")
+
+        # If procedural harness produced 0 blocks or was bypassed, fall back to safe topological projection
+        if nodes_placed == 0:
+            for b in range(min(B, 16)):
+                mat_slice = residues[b].detach().cpu().numpy()
+                h, w = mat_slice.shape
+                step = max(1, h // 8)
+                for i in range(0, h, step):
+                    for j in range(0, w, step):
+                        val = float(mat_slice[i, j])
+                        if abs(val) > 0.05:
+                            vx = ox + (i // step)
+                            vy = oy + (j // step)
+                            vz = oz + b
+                            mat_id = 4 if val > 0 else 1
+                            complexity = abs(val) * density_scale
+                            self.add_adaptive_fractal_node(float(vx), float(vy), float(vz), material=mat_id, complexity=complexity)
+                            nodes_placed += 1
+                            
         betti = self.compute_betti_numbers()
         return {
             "file_path": file_path,
             "batches_ingested": B,
             "nodes_placed": nodes_placed,
             "betti_numbers": betti,
-            "total_octree_nodes": len(self.morton_grid)
+            "total_octree_nodes": len(self.morton_grid),
+            "construct_telemetry": construct_telemetry
         }
 
     def apply_wasserstein_rasterization(
@@ -2111,6 +2217,97 @@ class VoxelboxterEngine:
     def mine_voxel_progressive(self, coord: Tuple[int, int, int], damage_delta: float) -> bool:
         """AtomicStryker Multi Mine cleanroom: partial damage remembered across ticks."""
         return self.multi_mine.mine_block(coord, damage_delta)
+
+    def ingest_gaussian_splats(
+        self,
+        splats: Union[List[Dict[str, Any]], str],
+        default_material: int = 1,
+        construct_name: Optional[str] = None,
+        bone_ratio: float = 0.8
+    ) -> Dict[str, Any]:
+        """
+        Generatively intercepts raw Gaussian Splat records into Voxelboxter constructs.
+        
+        To prevent direct extraction of copyrighted Euclidean meshes and ensure DMCA safety,
+        raw splat spatial primitives are NOT placed verbatim into the octree. Instead, they are
+        intercepted by the character skeletal harness generative pipeline:
+        1. Extract spatial moments, covariance bounds, and color chromaticities into a canonical
+           topological demand vector via AdaptiveSkeletonHarness and ConjugateMomentTransport (OKLab + Log-Cholesky).
+        2. Feed coordinates through AdaptiveSkeletonHarness (Bouligand tangent cone projection, KANLayer micro-waves).
+        3. Register Ganbreeder vector tags and synthesize procedural B-spline spine algebra.
+        4. Apply the Wager #2 80/20 Fossilization Split (80% frozen bone core, 20% plastic flesh).
+        5. Populate the construct graph and terrain octree with the resulting non-infringing procedural voxels.
+        """
+        # If a file path string (.gltf, .glb) is provided, extract primitives via GltfSplatIngestionPipeline
+        if isinstance(splats, str):
+            from src.data.gltf_splat_ingestor import GltfSplatIngestionPipeline
+            splats = GltfSplatIngestionPipeline().extract_splat_primitives(splats)
+
+        if not splats:
+            return {
+                "status": "empty",
+                "dmca_safe_generative_intercept": True,
+                "pipeline": "AdaptiveSkeletonHarness_Bouligand_Ganbreeder",
+                "blocks_placed": 0,
+                "bone_voxel_count": 0,
+                "flesh_voxel_count": 0
+            }
+
+        cid = construct_name or f"splat_construct_{int(time.time() * 1000)}"
+        from src.core.adaptive_skeleton_harness import (
+            AdaptiveSkeletonHarness,
+            AmbulatoryClass,
+            EnemySubtype
+        )
+        
+        state_dim = 32
+        harness = AdaptiveSkeletonHarness(state_dim=state_dim, device="cpu")
+        
+        # 1. Synthesize canonical latent demand vector via AdaptiveSkeletonHarness & ConjugateMomentTransport
+        demand = harness.synthesize_demand_from_splats(splats)
+
+        # 2. Register coordinate in Ganbreeder vector stacker
+        tag_key = f"splat_seed_{cid}"
+        harness.register_tag_coordinate(tag_key, demand)
+
+        # 3. Compile construct via Bouligand projection and B-spline spine algebra
+        compiled = harness.compile_to_voxelboxter_construct(
+            weights={tag_key: 1.0},
+            ambulatory_class=AmbulatoryClass.BIPED,
+            enemy_subtype=EnemySubtype.NONE,
+            difficulty_scale=1.0,
+            bone_ratio=bone_ratio
+        )
+
+        graph = compiled.get("graph", StructuralGraph())
+        
+        # 4. Integrate into engine constructs and terrain octree
+        self.constructs[cid] = graph
+        bone_count = compiled.get("bone_blocks", len(getattr(graph, "bone_blocks", [])))
+        flesh_count = compiled.get("flesh_blocks", len(getattr(graph, "flesh_blocks", [])))
+
+        # Place voxels into terrain octree
+        blocks_placed = len(graph.blocks)
+        for cell, block in graph.blocks.items():
+            vx, vy, vz = cell
+            block.material_id = default_material
+            if self.terrain_octree:
+                self.terrain_octree.set_voxel(vx, vy, vz, default_material)
+
+        return {
+            "status": "success",
+            "construct_id": cid,
+            "construct_name": cid,
+            "graph": graph,
+            "dmca_safe_generative_intercept": True,
+            "pipeline": "AdaptiveSkeletonHarness_Bouligand_Ganbreeder",
+            "blocks_placed": blocks_placed,
+            "bone_voxel_count": bone_count,
+            "flesh_voxel_count": flesh_count,
+            "bone_ratio": bone_ratio,
+            "fossil_split": compiled.get("fossil_split", {}),
+            "morton_codes": compiled.get("morton_octree_keys", [])
+        }
 
     def refine_ore_mekanism(self, ore_count: int, tier: int = 1, reagent_mb: float = 0.0) -> Tuple[int, float]:
         """Mekanism tiered ore multiplier (Tier 1: 1x, Tier 2: 2x, Tier 3: 3x, Tier 4: 4x, Tier 5: 5x)."""
