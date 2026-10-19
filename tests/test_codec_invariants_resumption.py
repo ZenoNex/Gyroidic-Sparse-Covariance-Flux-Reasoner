@@ -70,18 +70,28 @@ def test_meliponini_isolation():
     print("\n--- Testing Meliponini Isolation (Algebraic Mask) ---")
     codec = GyroidicCodec(CodecConfig(K=3, n=4))
     
+    # Create residues with distinct channel profiles to prevent argmax collision
     residues = torch.randn(1, 3, 16)
+    for k in range(3):
+        residues[0, k, k] += 5.0
     # Veto mask for channel 1 [B, K]
     veto_mask = torch.tensor([[False, True, False]]) 
     
-    # Reconstruction without veto
-    res_full = codec.crt_bridge.crt.forward(residues)
+    # Reconstruction without veto (fixed-point algebraic path)
+    res_full_fp = codec.crt_bridge.crt.forward(residues, mode='fixed_point')
     # Reconstruction with veto
-    res_veto = codec.crt_bridge.crt.forward(residues, veto_mask=veto_mask)
+    res_veto_fp = codec.crt_bridge.crt.forward(residues, veto_mask=veto_mask, mode='fixed_point')
     
-    diff = torch.norm(res_full - res_veto).item()
-    print(f"Veto Impact: {diff:.6f}")
-    assert diff > 1e-6, "Veto mask should change reconstruction"
+    diff_fp = torch.norm(res_full_fp - res_veto_fp).item()
+    print(f"Veto Impact (Fixed-Point): {diff_fp:.6f}")
+    assert diff_fp > 1e-6, "Fixed-point veto mask should change reconstruction"
+
+    # Reconstruction with majority symbolic path
+    res_full_maj = codec.crt_bridge.crt.forward(residues, mode='majority')
+    res_veto_maj = codec.crt_bridge.crt.forward(residues, veto_mask=veto_mask, mode='majority')
+    diff_maj = torch.norm(res_full_maj - res_veto_maj).item()
+    print(f"Veto Impact (Majority): {diff_maj:.6f}")
+    assert diff_maj > 1e-6, "Majority veto mask should change reconstruction"
     print("SUCCESS: Meliponini Isolation verified.")
 
 if __name__ == "__main__":
