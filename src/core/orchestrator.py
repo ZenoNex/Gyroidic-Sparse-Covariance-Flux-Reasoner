@@ -17,7 +17,7 @@ RIC-SRI Integration (Equations 1-10):
 import torch
 import torch.nn as nn
 import math
-from typing import Dict, Tuple, Optional, Any, List
+from typing import Dict, Tuple, Optional, Any, List, Union
 
 from src.core.love_vector import LoveVector
 from src.core.failure_token import FailureToken, RuptureFunctional
@@ -84,13 +84,27 @@ class UniversalOrchestrator(nn.Module):
         dim: int = 32,
         fossil_threshold: float = 0.8,
         mischief_threshold: float = 0.5,
-        play_volition_ratio: float = 0.15
+        play_volition_ratio: float = 0.15,
+        device: Optional[Union[str, torch.device]] = None,
+        hidden_dim: Optional[int] = None
     ):
         super().__init__()
-        self.dim = dim
+        self.dim = hidden_dim if hidden_dim is not None else dim
         self.fossil_threshold = fossil_threshold
         self.mischief_threshold = mischief_threshold
         self.play_volition_ratio = play_volition_ratio
+
+        # Compute Affordance Governance
+        from src.core.hardware_monitor import (
+            has_compute_affordance,
+            get_affordance_gauges,
+            get_compute_affordance_telemetry,
+            get_thermal_affordance,
+            ComputeAffordanceType
+        )
+        self.check_affordance = has_compute_affordance
+        self.get_affordance_gauges = get_affordance_gauges
+        self.get_affordance_telemetry = get_compute_affordance_telemetry
         
         # Dynamical phase transition thresholds (previously hardcoded)
         self.theta_L = 0.85
@@ -341,6 +355,28 @@ class UniversalOrchestrator(nn.Module):
         from src.core.energy_monitor import StructuralEnergyMonitor
         self.structural_energy_monitor = StructuralEnergyMonitor(device=str(_device))
 
+        # 7.28 Compute Affordances & Hardware Headroom Tracking (Unintentional Isolation Fix)
+        from src.core.hardware_monitor import (
+            has_compute_affordance,
+            get_typed_affordance,
+            get_affordance_gauges,
+            get_compute_affordance_telemetry,
+            get_thermal_affordance,
+            ComputeAffordanceType,
+            TypedComputeAffordance
+        )
+        self.ComputeAffordanceType = ComputeAffordanceType
+        self.TypedComputeAffordance = TypedComputeAffordance
+        self.get_typed_affordance = get_typed_affordance
+        self.get_affordance_telemetry = get_compute_affordance_telemetry
+
+        # 7.29 Spectral Texture DSP Engine (Signal & Kinematics Island Integration)
+        try:
+            from src.core.texture_dsp import TextureDSPEngine
+            self.texture_dsp = TextureDSPEngine(device=str(_device))
+        except Exception:
+            self.texture_dsp = None
+
         # 7.28 Attention Subsystem Suite (Multi-Field Modular Attention, CALM Veto & Diegetic Heads)
         self.poly_config = PolynomialCoprimeConfig(k=5, degree=4, basis_type='chebyshev', learnable=True, use_saturation=True)
         attn_heads = 4 if dim % 4 == 0 else max([h for h in [4, 2, 1] if dim % h == 0], default=1)
@@ -389,6 +425,17 @@ class UniversalOrchestrator(nn.Module):
         except ImportError as e:
             print(f"[ORCHESTRATOR] P2P Modules Not Loaded: {e}")
 
+    @property
+    def affordance_status(self) -> bool:
+        """Returns True if the system has operational compute affordance."""
+        from src.core.hardware_monitor import has_compute_affordance
+        return has_compute_affordance()
+
+    @property
+    def affordance_gauges(self) -> Dict[str, float]:
+        """Returns current operational gauges [0, 1] across all typed compute regimes."""
+        from src.core.hardware_monitor import get_affordance_gauges
+        return get_affordance_gauges()
 
     def compute_complexity_index(self, state: torch.Tensor, pas_h: float) -> float:
         """
@@ -553,6 +600,35 @@ class UniversalOrchestrator(nn.Module):
         else:
             return 'PLAY'
 
+    def check_compute_affordance(self, affordance_type: Any) -> bool:
+        """
+        Query whether the physical/topological substrate has adequate compute affordance headroom
+        for the specified categorical regime (silicon, thermal, topological, algorithmic, etc.).
+        """
+        try:
+            from src.core.hardware_monitor import has_compute_affordance
+            return bool(has_compute_affordance(affordance_type))
+        except Exception:
+            return True
+
+    def get_compute_affordance_telemetry(self) -> Dict[str, Any]:
+        """
+        Expose live typed compute affordance gauges across silicon, thermal, topological,
+        and algorithmic regimes to prevent hardware thermal runaway or unconstrained compute stall.
+        """
+        try:
+            from src.core.hardware_monitor import get_affordance_gauges, has_compute_affordance, ComputeAffordanceType
+            return {
+                "gauges": get_affordance_gauges(),
+                "topological_ok": bool(has_compute_affordance(ComputeAffordanceType.TOPOLOGICAL)),
+                "thermal_ok": bool(has_compute_affordance(ComputeAffordanceType.THERMAL)),
+                "silicon_ok": bool(has_compute_affordance(ComputeAffordanceType.SILICON)),
+                "algorithmic_ok": bool(has_compute_affordance(ComputeAffordanceType.ALGORITHMIC)),
+                "diegetic_ok": bool(has_compute_affordance(ComputeAffordanceType.DIEGETIC))
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
     def get_hardening_factor(self) -> float:
         """Asymptotic hardening schedule: grows with iteration and resonance."""
         # Simple exponential hardening
@@ -659,6 +735,12 @@ class UniversalOrchestrator(nn.Module):
         try:
             self.structural_energy_monitor.update(pressure_grad.mean())
             board_metrics.update(self.structural_energy_monitor.get_metrics())
+        except Exception:
+            pass
+
+        # Rehybridized Compute Affordance Telemetry
+        try:
+            board_metrics["compute_affordances"] = self.get_compute_affordance_telemetry()
         except Exception:
             pass
 
@@ -1005,10 +1087,16 @@ class UniversalOrchestrator(nn.Module):
             else:
                 dummy_A = torch.eye(self.dim, device=state_final.device).unsqueeze(0) * 0.5
                 
+            dt_step = getattr(self.schedule, "current_dt", 1.0) if hasattr(self, "schedule") else 1.0
+            if isinstance(dt_step, torch.Tensor):
+                dt_step = float(dt_step.item())
             is_vetoed, leontief_metrics = self.leontief.should_veto_concept(
                 demand=demand, 
                 transition_matrices=dummy_A, 
-                available_budget=1.0
+                available_budget=1.0,
+                dt=dt_step,
+                matrioshka_shells=3,
+                is_local_internal=True
             )
             
             if is_vetoed:
