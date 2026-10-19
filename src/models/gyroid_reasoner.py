@@ -170,6 +170,18 @@ class GyroidicFluxReasoner(nn.Module):
             use_saturation=use_saturation
         )
         
+        # Modular residue embedder (multi-modal residue projection)
+        try:
+            from src.models.modular_embeddings import LearnedModalityEmbedder
+            self.modular_embedder = LearnedModalityEmbedder(
+                text_dim=text_dim,
+                graph_dim=graph_dim,
+                num_dim=num_dim,
+                hidden_dim=hidden_dim
+            )
+        except Exception:
+            self.modular_embedder = None
+        
         # Modular transformer layers
         self.layers = nn.ModuleList([
             ModularTransformerLayer(
