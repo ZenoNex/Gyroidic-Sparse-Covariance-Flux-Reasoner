@@ -73,6 +73,37 @@ except ImportError:
     Hessian8x8CurvatureLedger = None
     Trajectory8x8Decombiner = None
 
+try:
+    from .texture_dsp import TextureDSPEngine
+except ImportError:
+    TextureDSPEngine = None
+
+try:
+    from .hardware_monitor import (
+        has_compute_affordance,
+        get_typed_compute_affordance,
+        get_affordance_gauges,
+        ComputeAffordanceType,
+        TypedComputeAffordance
+    )
+except ImportError:
+    has_compute_affordance = None
+    get_typed_compute_affordance = None
+    get_affordance_gauges = None
+    ComputeAffordanceType = None
+    TypedComputeAffordance = None
+
+try:
+    from .adaptive_skeleton_harness import AdaptiveSkeletonHarness
+except ImportError:
+    AdaptiveSkeletonHarness = None
+
+try:
+    from .enhanced_bezout_crt import EnhancedBezoutCRT, CrossbarIKSolver
+except ImportError:
+    EnhancedBezoutCRT = None
+    CrossbarIKSolver = None
+
 __all__ = [
     # Core polynomial system
     'PolynomialBasis',
@@ -114,5 +145,15 @@ __all__ = [
     'TripsodicLedger',
     'Hessian8x8CurvatureLedger',
     'Trajectory8x8Decombiner',
+    # Rehybridized Core Primitives
+    'TextureDSPEngine',
+    'has_compute_affordance',
+    'get_typed_compute_affordance',
+    'get_affordance_gauges',
+    'ComputeAffordanceType',
+    'TypedComputeAffordance',
+    'AdaptiveSkeletonHarness',
+    'EnhancedBezoutCRT',
+    'CrossbarIKSolver',
 ]
 
