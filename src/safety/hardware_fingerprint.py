@@ -17,12 +17,16 @@ from typing import Optional
 
 SIG_FILE = os.path.join("data", "creator_sig.json")
 
+# Canonical alias forward declaration / alias
+get_hardware_fingerprint = None
+
 def get_stable_hardware_fingerprint() -> str:
     """
     Assembles a unique, unforgeable hardware signature bound to the physical machine.
     Uses system UUID, MAC address, and processor architectures.
     """
     system_uuid = ""
+
     if platform.system() == "Windows":
         try:
             # Query machine UUID via wmic
@@ -40,6 +44,9 @@ def get_stable_hardware_fingerprint() -> str:
     
     raw_payload = f"{system_uuid}:{mac}:{proc}:{machine}"
     return hashlib.sha256(raw_payload.encode('utf-8')).hexdigest()
+
+# Canonical alias
+get_hardware_fingerprint = get_stable_hardware_fingerprint
 
 def discover_public_ip() -> str:
     """
