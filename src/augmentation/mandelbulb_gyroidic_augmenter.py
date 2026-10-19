@@ -884,6 +884,9 @@ class MandelbulbGyroidicAugmenter(nn.Module):
         
         return validation_results
 
+# Canonical alias
+MandelbulbAugmenter = MandelbulbGyroidicAugmenter
+
 
 # Example usage and testing
 def demo_mandelbulb_gyroidic_augmentation():
