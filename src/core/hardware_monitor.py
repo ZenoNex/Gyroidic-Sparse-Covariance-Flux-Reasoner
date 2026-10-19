@@ -16,6 +16,7 @@ class ComputeAffordanceType(str, Enum):
     P2P_MESH = "p2p_mesh"           # Bonfire nomadic ring peer budget
     DIEGETIC = "diegetic"           # Simulation kinematics, conversational pressure
     ALGORITHMIC = "algorithmic"     # Heavy second-order checks (ForbiddenSmoothing, etc.)
+    COMPUTE_BATCH = "compute_batch" # Matrioshka Mandelbulb partitioning and situational batch capacity
 
     @classmethod
     def from_str(cls, val: Union[str, 'ComputeAffordanceType']) -> 'ComputeAffordanceType':
@@ -42,6 +43,10 @@ class ComputeAffordanceType(str, Enum):
             "fauna": cls.DIEGETIC,
             "smoothing": cls.ALGORITHMIC,
             "second_order": cls.ALGORITHMIC,
+            "batch": cls.COMPUTE_BATCH,
+            "batching": cls.COMPUTE_BATCH,
+            "matrioshka": cls.COMPUTE_BATCH,
+            "mandelbulb": cls.COMPUTE_BATCH,
         }
         return aliases.get(s, cls.SILICON)
 
@@ -188,9 +193,9 @@ class HardwareMonitor:
             free_ram_gb = mem_info.available / (1024 ** 3)
             cpu_headroom = max(0.0, (100.0 - cpu_load) / 100.0)
             ram_headroom = min(1.0, free_ram_gb / 4.0)
-            silicon_gauge = max(0.0, min(1.0, 0.6 * cpu_headroom + 0.4 * ram_headroom))
-            max_cpu = 65.0 if (self.p_waste > 0.0 and self.thermal_margin < 0.25) else 90.0
-            silicon_admissible = (cpu_load < max_cpu) and (free_ram_gb > 0.5)
+            silicon_gauge = max(0.1, min(1.0, 0.6 * cpu_headroom + 0.4 * ram_headroom))
+            max_cpu = 65.0 if (self.p_waste > 0.0 and self.thermal_margin < 0.25) else 95.0
+            silicon_admissible = (cpu_load < max_cpu or free_ram_gb > 1.5) and (free_ram_gb > 0.5) and not self.thermal_runaway
         except Exception:
             cpu_load = 50.0
             free_ram_gb = 4.0
@@ -294,6 +299,21 @@ class HardwareMonitor:
                 telemetry={"algo_gauge": algo_gauge, "silicon_gauge": silicon_gauge, "thermal_gauge": thermal_gauge}
             )
 
+        elif atype == ComputeAffordanceType.COMPUTE_BATCH:
+            batch_gauge = silicon_gauge * max(0.2, thermal_gauge)
+            batch_admissible = silicon_admissible and not self.thermal_runaway and (free_ram_gb > 0.5)
+            return TypedComputeAffordance(
+                affordance_type=atype,
+                gauge=batch_gauge,
+                is_admissible=batch_admissible,
+                telemetry={
+                    "silicon_gauge": silicon_gauge,
+                    "free_ram_gb": free_ram_gb,
+                    "max_batch_size": max(1, int(batch_gauge * 64)),
+                    "max_matrioshka_shells": 5 if batch_gauge > 0.4 else (3 if batch_gauge > 0.2 else 1)
+                }
+            )
+
         return TypedComputeAffordance(affordance_type=atype, gauge=0.5, is_admissible=True)
 
     def gauge_between(
@@ -379,6 +399,90 @@ class HardwareMonitor:
         except Exception:
             return False
 
+    def evaluate_matrioshka_mandelbulb_affordance(
+        self,
+        task_complexity: float = 1.0,
+        dt: float = 1.0,
+        demand_dim: int = 32
+    ) -> Dict[str, Any]:
+        """
+        Explicitly positions whether the system can afford Matrioshka Mandelbulb
+        partitioning of compute batching for high-value tasks.
+        
+        Evaluates Silicon headroom, Carnot-Möbius thermal dissipation, and derivative
+        time (dt) elasticity to prevent false-positive Leontief vetoes and self-slashing.
+        """
+        silicon_aff = self.get_typed_affordance(ComputeAffordanceType.SILICON)
+        thermal_aff = self.get_typed_affordance(ComputeAffordanceType.THERMAL)
+        batch_aff = self.get_typed_affordance(ComputeAffordanceType.COMPUTE_BATCH)
+        gpu_aff = self.get_typed_affordance(ComputeAffordanceType.GPU_SOVEREIGN)
+
+        # Baseline affordability: non-thermal-runaway with minimum viable silicon headroom
+        can_afford = (not self.thermal_runaway) and (silicon_aff.gauge > 0.08)
+        
+        # Determine optimal Matrioshka shell depth
+        # Higher complexity or lower immediate slice capacity -> deeper Matrioshka partitioning
+        effective_budget = max(0.15, silicon_aff.gauge * max(0.5, thermal_aff.gauge))
+        if task_complexity > 2.0 or effective_budget < 0.4:
+            optimal_shells = 5
+        elif task_complexity > 1.2 or effective_budget < 0.6:
+            optimal_shells = 3
+        else:
+            optimal_shells = 2
+
+        # Temporal amortization factor: effective_time_steps = shells * max(1, 1 / dt)
+        clamped_dt = max(0.01, min(2.0, float(dt)))
+        effective_time_steps = max(1.0, float(optimal_shells) * max(1.0, 1.0 / clamped_dt))
+        amortization_factor = effective_time_steps
+
+        # Situational batch capacity (max batch size that fits in current silicon/RAM headroom)
+        try:
+            mem_info = psutil.virtual_memory()
+            free_gb = mem_info.available / (1024 ** 3)
+        except Exception:
+            free_gb = 4.0
+        batch_capacity = max(1, min(128, int(free_gb * 16 * effective_budget)))
+
+        # Recommended Mandelbulb fractal iteration power based on thermal margin
+        if self.thermal_margin > 0.7 and bool(gpu_aff):
+            mandelbulb_power = 8
+        elif self.thermal_margin > 0.4:
+            mandelbulb_power = 6
+        else:
+            mandelbulb_power = 4
+
+        return {
+            "can_afford_partitioning": can_afford,
+            "optimal_matrioshka_shells": optimal_shells,
+            "batch_capacity": batch_capacity,
+            "effective_time_steps": effective_time_steps,
+            "amortization_factor": amortization_factor,
+            "mandelbulb_power_budget": mandelbulb_power,
+            "clamped_dt": clamped_dt,
+            "effective_budget": effective_budget,
+            "silicon_gauge": silicon_aff.gauge,
+            "thermal_gauge": thermal_aff.gauge,
+            "thermal_runaway": self.thermal_runaway,
+            "is_high_value_exempt": True
+        }
+
+
+def evaluate_matrioshka_mandelbulb_affordance(
+    task_complexity: float = 1.0,
+    dt: float = 1.0,
+    demand_dim: int = 32
+) -> Dict[str, Any]:
+    """Helper function to position Matrioshka Mandelbulb compute affordances."""
+    return HardwareMonitor.get_instance().evaluate_matrioshka_mandelbulb_affordance(
+        task_complexity=task_complexity,
+        dt=dt,
+        demand_dim=demand_dim
+    )
+
+def can_afford_matrioshka_partitioning(task_complexity: float = 1.0, dt: float = 1.0) -> bool:
+    """Predicate indicating whether the system can afford Matrioshka Mandelbulb partitioning."""
+    res = evaluate_matrioshka_mandelbulb_affordance(task_complexity=task_complexity, dt=dt)
+    return bool(res.get("can_afford_partitioning", False))
 
 def has_headroom() -> bool:
     """Helper function to get headroom status from the centralized monitor."""
@@ -430,6 +534,22 @@ def get_thermal_affordance() -> dict:
         "has_compute_affordance": has_compute_affordance(),
         "gauges": hm.get_affordance_gauges()
     }
+
+def get_compute_affordance_telemetry() -> Dict[str, Any]:
+    """Helper function to retrieve compute affordance telemetry including gauges and typed statuses."""
+    hm = HardwareMonitor.get_instance()
+    gauges = hm.get_affordance_gauges()
+    affordances = {t.value: bool(hm.get_typed_affordance(t)) for t in ComputeAffordanceType}
+    return {
+        "status": "ok",
+        "has_compute_affordance": has_compute_affordance(),
+        "gauges": gauges,
+        "affordances": affordances,
+        "thermal": get_thermal_affordance(),
+        "headroom_dim": get_headroom_dimensionality()
+    }
+
+check_compute_affordance = has_compute_affordance
 
 def get_headroom_dimensionality() -> int:
     """
