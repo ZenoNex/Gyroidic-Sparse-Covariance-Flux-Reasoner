@@ -284,3 +284,26 @@ The categorical compute affordance engine from [`src/core/hardware_monitor.py`](
 * **Poincaré Ball Metric Stabilization**:
   - Distance metrics in [`InfluenceAttractor.poincare_distance()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/garden_statistical_attractors.py) are strictly domain-clamped to prevent out-of-bounds `atanh` NaNs, guaranteeing numeric stability across all coordinate projections.
 
+### 7.5 De-Isolation of the Latent Demand Vector Pipeline (`ConjugateMomentTransport`)
+* **The Isolation Identified**:
+  - In `src/ui/voxelboxter_simulation.py` (lines 2208-2232), Gaussian Splat interception synthesized its latent `demand` vector using ad-hoc manual Python loops calculating raw Cartesian coordinates and scalar RGB averages, completely isolated from the mathematical invariants established in `src/core/conjugate_moment_transport.py`.
+* **The Canonical Reconnection**:
+  - Replaced ad-hoc loops with [`AdaptiveSkeletonHarness.synthesize_demand_from_splats()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/adaptive_skeleton_harness.py).
+  - Delegates to [`ConjugateMomentTransport.extract_oklab_moment_field()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/conjugate_moment_transport.py) with `use_log_cholesky=True`.
+  - Maps chromaticities into the 9-dimensional Riemannian Log-Cholesky covariance space ($S_{++}^3 \to \mathbb{R}^6$) and sorts spatial centroids along the 3D Morton Z-order curve (`morton_encode_3d`), combining spatial centroids ($\mu_x, \mu_y, \mu_z$), spread ($\sigma_x, \sigma_y, \sigma_z$), and opacity pressure potentials into an exact, robust topological demand vector.
+  - Fully reconnected in [`PointerlessOctree.ingest_gaussian_splats()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py), [`VoxelboxterEngine.ingest_gaussian_splats()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py), and [`GltfSplatIngestionPipeline.extract_splat_primitives()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/gltf_splat_ingestor.py).
+
+### 7.6 Reconciled Integration Coverage: MandelbulbAugmenter and GyroidicCodec Synergy
+* **The Historical Competition Resolved**:
+  - `MandelbulbGyroidicAugmenter` (MGDAS, [`src/augmentation/mandelbulb_gyroidic_augmenter.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/augmentation/mandelbulb_gyroidic_augmenter.py)) and `GyroidicCodec` ([`src/codec/gyroidic_codec.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/gyroidic_codec.py)) were previously isolated into mutually exclusive niches (offline training dataset pre-folding vs. runtime non-Abelian image-text tokenization), with legacy Mandelbulb tests tombstoned under the false assumption that they competed for coverage.
+  - In truth, their mathematical domains are non-competing and strictly complementary: Mandelbulb embedding contributes multi-scale self-similar fractal recursion ($z_{n+1} = z_n^p + c$) with Casus Irreducibilis bypass, while GyroidicCodec provides non-commutative groupoid algebra in $GL(n)$ and Chinese Remainder Theorem coprime residue factorization.
+* **Unified Architectural Bridges**:
+  1. **Fractal Multi-Scale Pre-Folding**: Enabled via `CodecConfig.use_mandelbulb_prefold=True` and `GyroidImageProjector.forward()`, allowing spectral residues and image tokens to be unfolded into 3D recursive Mandelbulb manifolds prior to TPMS gyroidic minimal surface slice projection.
+  2. **Bidirectional Transform Integration**:
+     - `MandelbulbGyroidicAugmenter.encode_to_codec(dataset)` maps augmented datasets directly into canonical non-Abelian `EncodingResult` structures.
+     - `GyroidicCodec.augment_and_encode(tensor)` executes Mandelbulb single-feature pre-folding before CRT residue decomposition.
+  3. **Universal Orchestrator Co-Processing**:
+     - [`UniversalOrchestrator.ingest_knowledge_dyad`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py) executes both paths concurrently, storing non-Abelian commutator gap diagnostics under `last_dyad_entanglement` while maintaining backward compatibility with `[1, 5]` return tensors.
+     - Verified with 100% pass rate in [`tests/test_mandelbulb_codec_cooperation.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_mandelbulb_codec_cooperation.py).
+
+
