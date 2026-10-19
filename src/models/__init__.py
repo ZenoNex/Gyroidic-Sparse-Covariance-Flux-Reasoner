@@ -16,6 +16,8 @@ from .modular_attention import ModularAttention, ModularTransformerLayer
 from .polynomial_embeddings import PolynomialFunctionalEmbedder
 from .resonance_cavity import ResonanceCavity, GyroidicFluxAlignment
 from .introspection_head import GeometricSelfModelProbe, AggregateGeometricSelfModel
+from .modular_embeddings import LearnedModalityEmbedder
+from .diegetic_heads import AutoeclecticResponderHead, DataAssociationLayer
 
 __all__ = [
     'GyroidicFluxReasoner',
@@ -26,4 +28,7 @@ __all__ = [
     'GyroidicFluxAlignment',
     'GeometricSelfModelProbe',
     'AggregateGeometricSelfModel',
+    'LearnedModalityEmbedder',
+    'AutoeclecticResponderHead',
+    'DataAssociationLayer',
 ]
