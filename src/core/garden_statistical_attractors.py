@@ -108,9 +108,9 @@ class InfluenceAttractor(nn.Module):
         
         # Poincare distance with curvature
         curvature = torch.abs(self.poincare_curvature) + 1e-8
-        poincare_dist = (2.0 / torch.sqrt(curvature)) * torch.atanh(
-            torch.sqrt(curvature) * euclidean_dist / (1 + 1e-8)
-        )
+        # Strictly clamp distance to avoid out-of-domain atanh NaNs in Poincare ball
+        scaled_dist = torch.clamp(torch.sqrt(curvature) * euclidean_dist * 0.49, 0.0, 1.0 - 1e-4)
+        poincare_dist = (2.0 / torch.sqrt(curvature)) * torch.atanh(scaled_dist)
         
         return poincare_dist
     
@@ -327,6 +327,16 @@ class InfluenceAttractor(nn.Module):
         density_corr = compute_bounded_correlation(self.fossilized_basins.unsqueeze(0)).squeeze(0)
         return density_corr
 
+    def forward(self, concepts: torch.Tensor) -> torch.Tensor:
+        """
+        Calculates the net influence force vector pulling concepts toward
+        fossilized basins in the meta-polytope lattice.
+        """
+        pulls = self.compute_statistical_pull(concepts)
+        influence_vec = torch.matmul(pulls, self.fossilized_basins)
+        traversal = self.compute_phase_aligned_traversal(concepts)
+        return self.compute_anisotropic_forces(concepts, influence_vec) + traversal
+
 
 class ResonanceAttractor(nn.Module):
     """
@@ -422,6 +432,12 @@ class ResonanceAttractor(nn.Module):
         sync_forces = (pull_j - pull_i) / batch_size
         
         return sync_forces
+
+    def forward(self, signals: torch.Tensor) -> torch.Tensor:
+        """
+        Computes harmonic synchronization forces across prime-index lattice.
+        """
+        return self.compute_sync_forces(signals)
 
 class DefectAttractor(nn.Module):
     """
@@ -539,6 +555,12 @@ class DefectAttractor(nn.Module):
                     propagation = -propagation
         
         return propagation
+
+    def forward(self, defect_location: torch.Tensor, defect_type: str = 'topological') -> torch.Tensor:
+        """
+        Propagate defect through manifold following geodesic paths toward nearest defect attractor basin.
+        """
+        return self.propagate_defect(defect_location, defect_type=defect_type)
 
 class GardenOrchestrator(nn.Module):
     """
