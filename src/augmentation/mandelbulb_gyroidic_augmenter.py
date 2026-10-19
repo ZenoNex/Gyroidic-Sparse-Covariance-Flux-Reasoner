@@ -27,6 +27,9 @@ class AugmentationConfig:
     sparsity_threshold: float = 0.1
     covariance_preservation: float = 0.8
     pressure_adaptation: bool = True
+    use_gyroidic_codec: bool = False
+    codec_k: int = 5
+    codec_n: int = 8
 
 class MandelbulbEmbedder(nn.Module):
     """
@@ -883,6 +886,44 @@ class MandelbulbGyroidicAugmenter(nn.Module):
         validation_results['topological_integrity'] = not_random_noise and tracks_original
         
         return validation_results
+
+    def encode_to_codec(
+        self,
+        X: torch.Tensor,
+        text: str = "MGDAS Fractal Augmented State",
+        commutativity: str = "text_first",
+        codec: Optional[Any] = None
+    ) -> Any:
+        """
+        Cooperative bridge between MandelbulbAugmenter and GyroidicCodec.
+        
+        Passes input data through the Mandelbulb-Gyroidic fractal augmentation
+        pipeline, then directly encodes the resulting topological representations
+        into Non-Abelian CRT residue space via GyroidicCodec without competing
+        for pipeline exclusivity.
+        """
+        from src.codec.gyroidic_codec import GyroidicCodec, CodecConfig
+
+        if codec is None:
+            if hasattr(self, '_codec') and self._codec is not None:
+                codec = self._codec
+            else:
+                dev = str(X.device) if hasattr(X, 'device') else 'cpu'
+                k = getattr(self.config, 'codec_k', 5)
+                n = getattr(self.config, 'codec_n', 8)
+                self._codec = GyroidicCodec(CodecConfig(K=k, n=n, device=dev))
+                codec = self._codec
+
+        # 1. Run Mandelbulb-Gyroidic augmentation
+        augmented_X, _ = self.forward(X, augmentation_factor=1)
+        
+        # 2. Extract representative signal for codec encoding
+        if augmented_X.dim() == 2 and augmented_X.shape[0] > 1:
+            rep_signal = augmented_X.mean(dim=0)
+        else:
+            rep_signal = augmented_X.squeeze()
+
+        return codec.encode(text=text, image=rep_signal, commutativity=commutativity)
 
 # Canonical alias
 MandelbulbAugmenter = MandelbulbGyroidicAugmenter
