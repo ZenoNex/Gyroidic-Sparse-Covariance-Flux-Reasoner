@@ -134,7 +134,22 @@ class ResidueFusion(nn.Module):
             txt_proj = txt_proj.unsqueeze(0)
             
         # Cross-modal shear matrix: I^T * T - T^T * I
-        shear = torch.matmul(img_proj.T, txt_proj) - torch.matmul(txt_proj.T, img_proj)
+        # Accelerate on OpenCL silicon substrate if available and dimensions justify zero-copy offloading
+        engine = None
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            engine = SiliconSovereigntyEngine()
+            if not engine._is_healthy():
+                engine = None
+        except Exception:
+            engine = None
+
+        if engine is not None and img_proj.shape[-1] >= 16:
+            term1 = engine.hardware_sovereign_matmul(img_proj.T, txt_proj)
+            term2 = engine.hardware_sovereign_matmul(txt_proj.T, img_proj)
+            shear = term1 - term2
+        else:
+            shear = torch.matmul(img_proj.T, txt_proj) - torch.matmul(txt_proj.T, img_proj)
         
         # Project back to a 1D "Dark Matter" seed of length feature_dim
         dark_matter_seed = torch.tanh(shear.mean(dim=0))
@@ -417,6 +432,7 @@ class DyadFossilizer:
         """Check if a prompt/text has already been fossilized."""
         if not text:
             return False
+        self._index_ready.wait(timeout=10.0)
         h = hashlib.sha256(text.strip().encode('utf-8')).hexdigest()
         return h in self.fossilized_hashes
 
