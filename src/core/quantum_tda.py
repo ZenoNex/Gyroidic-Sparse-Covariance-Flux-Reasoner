@@ -13,6 +13,7 @@ Quantum Phase Estimation (QPE) of the Combinatorial Laplacian spectrum.
 import torch
 import torch.nn as nn
 from src.core.honest_jitter import harvest_honest_jitter
+from src.tda.chebyshev_filtration import MinimaxPolynomialApproximation
 from typing import Dict, List, Tuple
 import math
 
@@ -25,13 +26,16 @@ class QuantumBettiApproximator(nn.Module):
     Quantum Algo: Estimate number of zero eigenvalues of Laplacian.
     
     Simulation:
-    Uses stochastic trace estimation (Hutchinson's method) to approximate
+    Uses stochastic trace estimation (Hutchinson's method) and Chebyshev
+    minimax polynomial approximation from src.tda to approximate
     spectral density near zero, acting as a proxy for the quantum algorithm.
     """
     
-    def __init__(self, simulation_fidelity: float = 0.95):
+    def __init__(self, simulation_fidelity: float = 0.95, poly_degree: int = 20):
         super().__init__()
         self.simulation_fidelity = simulation_fidelity
+        self.poly_degree = poly_degree
+        self.minimax_approximator = MinimaxPolynomialApproximation(degree=min(poly_degree, 10))
         
     def estimate_betti_numbers(
         self, 
@@ -105,14 +109,31 @@ class QuantumBettiApproximator(nn.Module):
         dim_size = L.shape[0]
         max_eig = 2.0 * torch.max(torch.diag(L)).clamp(min=1e-5)
         L_norm = (2.0 / max_eig) * L - torch.eye(dim_size, device=L.device)
+        
+        # Check Silicon Sovereignty hardware engine availability
+        engine = None
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            engine = SiliconSovereigntyEngine()
+            if not engine._is_healthy():
+                engine = None
+        except Exception:
+            engine = None
+            
         trace_est = 0.0
         for _ in range(num_probes):
             z = harvest_honest_jitter((dim_size, 1), device=L.device, scaled=True) * 1.0
             x0 = z
-            x1 = torch.matmul(L_norm, z)
+            if engine is not None and dim_size >= 16:
+                x1 = engine.hardware_sovereign_matmul(L_norm, z)
+            else:
+                x1 = torch.matmul(L_norm, z)
             y = 0.5 * x0 - 0.5 * x1
             for k in range(2, poly_degree):
-                x2 = 2.0 * torch.matmul(L_norm, x1) - x0
+                if engine is not None and dim_size >= 16:
+                    x2 = 2.0 * engine.hardware_sovereign_matmul(L_norm, x1) - x0
+                else:
+                    x2 = 2.0 * torch.matmul(L_norm, x1) - x0
                 y += ((-1)**k) * (1.0 / (k+1)) * x2
                 x0, x1 = x1, x2
             trace_est += (z * y).sum().item()
