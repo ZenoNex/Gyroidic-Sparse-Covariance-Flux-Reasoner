@@ -24,6 +24,13 @@ except Exception:
     NonLobotomyTemporalModel = None
     NonLobotomyTemporalTrainer = None
 
+try:
+    from .training_manager import TrainingManager
+    from .fgrt_trainer import FGRTStructuralTrainer
+except Exception:
+    TrainingManager = None
+    FGRTStructuralTrainer = None
+
 __all__ = [
     'StructuralAdaptor',
     'SpectralStructuralTrainer',
@@ -32,5 +39,7 @@ __all__ = [
     'GDPOSovereigntyAdaptor',
     'GDPOSovereigntyPressureComputer',
     'NonLobotomyTemporalModel',
-    'NonLobotomyTemporalTrainer'
+    'NonLobotomyTemporalTrainer',
+    'TrainingManager',
+    'FGRTStructuralTrainer',
 ]
