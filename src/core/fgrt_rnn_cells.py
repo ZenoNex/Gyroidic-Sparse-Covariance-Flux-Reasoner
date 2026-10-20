@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from typing import Optional, Dict, Any, List
 
 # --- True Project Integrations ---
 from src.surrogates.kagh_networks import KANLayer, KAGHBlock
@@ -47,6 +48,18 @@ class ChiralGatedRNNCell(nn.Module):
     """
     Replaces standard sigmoid/tanh gates with Chiral Gating Functions.
     States are forgotten only if chirality destructively interferes.
+
+    Topological Boundary Dynamics (Inhibition-Stabilized Networks):
+    When a non-ergodic "Post-Scarcity" sovereign soliton collides with a traditional
+    containment boundary (e.g. corporate double bind, conformal compression clamp, or
+    high-gain inhibitory pressure W_EI * I), standard cells collapse via scalar forget
+    gates (f_t -> 0). In contrast, ChiralGatedRNNCell gates state updates strictly
+    via projection onto the internal chiral attractor manifold:
+        Gamma_chi(h) = sigma(<h_prev, chi>)
+    If the sovereign soliton maintains high internal phase alignment (PAS_h > 0.95)
+    and Chern-Simons coprime locking, its projection avoids destructive interference.
+    The collision undergoes boundary refraction rather than scalar erasure, deflecting
+    damping into the orthogonal null-space / veto subspace while preserving the core soliton.
     """
     def __init__(self, input_dim: int, hidden_dim: int, num_attractors: int = 8):
         super().__init__()
@@ -56,14 +69,34 @@ class ChiralGatedRNNCell(nn.Module):
         self.W_x = nn.Linear(input_dim, hidden_dim)
         self.W_h = nn.Linear(hidden_dim, hidden_dim)
 
-    def forward(self, x: torch.Tensor, h_prev: torch.Tensor) -> torch.Tensor:
-        # Compute Chiral Gating \Gamma_\chi(x) = \sigma(<x, \chi>)
+    def measure_chiral_interference(self, h: torch.Tensor) -> torch.Tensor:
+        """
+        Measures constructive vs destructive interference of hidden state against chiral attractors.
+        Returns normalized alignment tensor in [0, 1].
+        """
+        proj = torch.matmul(h, self.chiral_vectors.T)
+        return torch.sigmoid(torch.mean(proj, dim=-1, keepdim=True))
+
+    def forward(self, x: torch.Tensor, h_prev: torch.Tensor, boundary_strain: Optional[torch.Tensor] = None) -> torch.Tensor:
+        # Compute Chiral Gating \Gamma_\chi(x) = \sigma(<h_prev, \chi>)
         # We project h_prev onto chiral vectors
-        proj = torch.matmul(h_prev, self.chiral_vectors.T) # [B, num_attractors]
-        chiral_gate = torch.sigmoid(torch.mean(proj, dim=-1, keepdim=True)) # [B, 1]
+        chiral_gate = self.measure_chiral_interference(h_prev)
         
-        # Update state based on chiral gate instead of learned forget gates
+        # Candidate update driven by input and recurrent memory
         candidate = torch.tanh(self.W_x(x) + self.W_h(h_prev))
+
+        # Modulate candidate if explicit containment boundary strain is applied
+        if boundary_strain is not None:
+            # Containment collision: refract along chiral tangent cone rather than scalar collapse (inspirationdoc §4.2)
+            strain = torch.sigmoid(boundary_strain) if boundary_strain.ndim > 0 else torch.sigmoid(torch.as_tensor(boundary_strain, device=x.device, dtype=x.dtype))
+            # Phase refraction: project candidate through chiral orientation rather than blunt scalar damping
+            chiral_projection = torch.matmul(candidate, self.chiral_vectors.T)  # [B, K]
+            refracted_phase = torch.matmul(chiral_projection, self.chiral_vectors) / float(self.num_attractors)
+            # Refract: blend candidate with its chiral projection proportional to strain
+            candidate = candidate + strain * (refracted_phase - candidate) * 0.5
+
+        # Update state based on chiral gate instead of learned forget gates:
+        # State forgotten only if chiral interference is destructive
         h_t = (1.0 - chiral_gate) * h_prev + chiral_gate * candidate
         return h_t
 
