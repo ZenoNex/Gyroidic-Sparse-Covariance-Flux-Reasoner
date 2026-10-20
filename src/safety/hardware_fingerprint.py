@@ -41,8 +41,32 @@ def get_stable_hardware_fingerprint() -> str:
     mac = str(uuid.getnode())
     proc = platform.processor() or "unknown_processor"
     machine = platform.machine() or "unknown_machine"
+
+    # Incorporate CPU core topology via psutil
+    try:
+        import psutil
+        cpu_phys = str(psutil.cpu_count(logical=False) or 0)
+        cpu_logi = str(psutil.cpu_count(logical=True) or 0)
+    except Exception:
+        cpu_phys = "0"
+        cpu_logi = "0"
+
+    # Incorporate OpenCL GPU / accelerator compute layout if available
+    gpu_layout_sig = "none"
+    try:
+        import pyopencl as cl
+        plats = cl.get_platforms()
+        dev_names = []
+        for p in plats:
+            for d in p.get_devices():
+                cu = getattr(d, 'max_compute_units', 1)
+                dev_names.append(f"{d.name.strip()}:{cu}")
+        if dev_names:
+            gpu_layout_sig = ";".join(sorted(dev_names))
+    except Exception:
+        pass
     
-    raw_payload = f"{system_uuid}:{mac}:{proc}:{machine}"
+    raw_payload = f"{system_uuid}:{mac}:{proc}:{machine}:{cpu_phys}:{cpu_logi}:{gpu_layout_sig}"
     return hashlib.sha256(raw_payload.encode('utf-8')).hexdigest()
 
 # Canonical alias
