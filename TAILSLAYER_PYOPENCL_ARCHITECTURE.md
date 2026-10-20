@@ -128,6 +128,7 @@ How existing Python components map to the PyOpenCL environment:
 | Veto Check | CPU CALM predictor | Async event loop; `kernel flush` on abort |
 | 8x8 Hessian Ledger | CPU finite-difference loop | `fused_hessian_8x8_ledger` in `__local` SRAM on GTX 1050 Ti |
 | Trajectory Decombiner | Python recursive DAG search | `fused_trajectory_8x8_decombiner_d4` on-chip Coxeter reduction |
+| Tensor Contraction (GEMM) | PyTorch `torch.matmul` | `hardware_sovereign_gemm` zero-copy on-chip OpenCL execution |
 
 ---
 
