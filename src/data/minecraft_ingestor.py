@@ -26,10 +26,11 @@ import torch.nn as nn
 from typing import Dict, List, Tuple, Optional, Any, Union
 from pathlib import Path
 
-from src.core.polynomial_coprime import PolynomialCoprimeConfig
+import numpy as np
+
+from src.core.polynomial_coprime import PolynomialBasis, PolynomialCoprimeConfig
 from src.codec.gyroidic_codec import CodecConfig, EncodingResult
 from src.core.topological_ingestion_validator import TopologicalIngestionValidator
-from src.core.polynomial_coprime import PolynomialCoprimeConfig
 
 
 # Pre-allocate a flat integer array REGISTRY_TABLE of size 1024
@@ -42,25 +43,24 @@ def get_block_registry_code(name: str) -> int:
     return REGISTRY_TABLE[h]
 
 def _chebyshev_compress(text: str, target_len: int = 2048) -> str:
+    """Compresses arbitrary text streams into target_len characters using Chebyshev basis modes."""
     if len(text) <= target_len:
         return text
     num_modes = 128
-    coeffs = [0.0] * num_modes
     n = len(text)
-    for i, char in enumerate(text):
-        val = ord(char) / 128.0
-        x = -1.0 + 2.0 * i / (n - 1) if n > 1 else 0.0
-        acos_x = math.acos(max(-1.0, min(1.0, x)))
-        for k in range(num_modes):
-            coeffs[k] += val * math.cos(k * acos_x)
-            
+    # Use canonical PolynomialBasis for discrete orthogonal expansion
+    basis = PolynomialBasis(degree=num_modes - 1, basis_type='chebyshev', domain=(-1.0, 1.0))
+    grid = torch.linspace(-1.0, 1.0, n)
+    t_vals = basis.evaluate(grid).detach().cpu().numpy()  # [n, num_modes]
+    char_vals = np.array([ord(c) / 128.0 for c in text], dtype=np.float64)
+    coeffs = (char_vals[:, None] * t_vals).sum(axis=0)
+
+    target_grid = torch.linspace(-1.0, 1.0, target_len)
+    target_t = basis.evaluate(target_grid).detach().cpu().numpy()  # [target_len, num_modes]
+    reconstructed = (target_t * coeffs[None, :]).sum(axis=1)
+
     compressed_chars = []
-    for i in range(target_len):
-        x = -1.0 + 2.0 * i / (target_len - 1) if target_len > 1 else 0.0
-        acos_x = math.acos(max(-1.0, min(1.0, x)))
-        val = 0.0
-        for k in range(num_modes):
-            val += coeffs[k] * math.cos(k * acos_x)
+    for val in reconstructed:
         char_code = 32 + int(abs(val * 100) % 95)
         compressed_chars.append(chr(char_code))
     return "".join(compressed_chars)
@@ -328,20 +328,25 @@ class VoxelSpectralProjector(nn.Module):
         self.K = config.K
         self.poly_config = poly_config
 
+        self.basis = PolynomialBasis(
+            degree=2,
+            basis_type=getattr(poly_config, 'basis_type', 'chebyshev'),
+            domain=(-1.0, 1.0)
+        )
+
         # Linear projection from Chebyshev coefficients (flattened) to GL(n) generator size
         self.coefficient_proj = nn.Linear(config.K * 27, config.n * config.n)
         nn.init.orthogonal_(self.coefficient_proj.weight)
 
     def _chebyshev_1d(self, x: torch.Tensor, degree: int) -> torch.Tensor:
-        """Computes Chebyshev polynomial values along normalized dimension."""
-        # x is assumed normalized to [-1, 1]
-        T = torch.zeros(x.shape[0], degree + 1, device=x.device)
-        T[:, 0] = 1.0
-        if degree > 0:
-            T[:, 1] = x
-        for i in range(2, degree + 1):
-            T[:, i] = 2.0 * x * T[:, i-1] - T[:, i-2]
-        return T
+        """Computes Chebyshev polynomial values along normalized dimension via canonical PolynomialBasis."""
+        if self.basis.degree == degree:
+            return self.basis.evaluate(x)
+        return PolynomialBasis(
+            degree=degree,
+            basis_type=getattr(self.poly_config, 'basis_type', 'chebyshev'),
+            domain=(-1.0, 1.0)
+        ).evaluate(x)
 
     def project_voxel_grid(self, block_grid: torch.Tensor) -> torch.Tensor:
         """
