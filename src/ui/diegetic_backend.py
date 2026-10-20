@@ -1207,9 +1207,11 @@ class DiegeticPhysicsEngine(nn.Module):
         est_residues = torch.tanh(self.associator.residue_map(memory_state)) # [1, k]
         self._last_est_residues = est_residues
         
-        # Ensure previous meta_state is finite before update
+        # Ensure previous meta_state is finite before update (smooth radial bound)
         if not torch.isfinite(self.meta_state).all():
-            self.meta_state = torch.clamp(torch.nan_to_num(self.meta_state), -5.0, 5.0)
+            finite_meta = torch.nan_to_num(self.meta_state)
+            fn_norm = torch.norm(finite_meta, p=2, dim=-1, keepdim=True)
+            self.meta_state = torch.where(fn_norm > 5.0, finite_meta * (5.0 * torch.tanh(fn_norm / 5.0) / (fn_norm + 1e-8)), finite_meta)
 
         meta_out = self.fractal_meta(
             current_state=memory_state,
@@ -1220,12 +1222,16 @@ class DiegeticPhysicsEngine(nn.Module):
         )
         
         # Update persistent meta-state (detach to prevent graph blowup here)
-        # Apply soft-clamping as an 'Analog Limiter'
-        new_meta = meta_out['s_fractal'].detach()
-        if not torch.isfinite(new_meta).all():
-            new_meta = torch.nan_to_num(new_meta, nan=0.0)
-            
-        self.meta_state = torch.clamp(new_meta, -10.0, 10.0)
+        # Replace hard Euclidean box clamp with smooth Hein-Kahler / analog limiter
+        # to preserve high-entropy tails and prevent manifold flattening
+        meta_norm = torch.norm(new_meta, p=2, dim=-1, keepdim=True)
+        r_max = 10.0
+        # Smooth asymptotic soft-bounding: preserves unit direction while smoothly compressing magnitude
+        self.meta_state = torch.where(
+            meta_norm > r_max,
+            new_meta * (r_max * torch.tanh(meta_norm / r_max) / (meta_norm + 1e-8)),
+            new_meta
+        )
         
         # Return state for character generation / training
         # IMPORTANT: During training, we return the non-detached fractal state
@@ -1239,19 +1245,36 @@ class DiegeticPhysicsEngine(nn.Module):
         """Speculatively recovers legacy fossils into the live session cache."""
         try:
             print("[MEMORY] Speculatively recovering legacy fossils...")
-            self.fossil_cache = self.fossilizer.recover_fossils(limit=_compute_fossil_budget())
+            self.fossil_cache = self.fossilizer.recover_fossils(limit=min(256, _compute_fossil_budget()))
             print(f"[MEMORY] {len(self.fossil_cache)} fossils recovered into speculative cache.")
         except Exception as e:
             print(f"[MEMORY] Fossil recovery failed: {e}")
 
     def _train_mimicry_step(self, text: str) -> Optional[float]:
-        """Gradient-enabled single Larynx training step on a text string."""
+        """Gradient-enabled single Larynx training step on a text string, gated by topological validation and Phase Alignment."""
         if len(text) < 2:
             return None
         acquired = self._processing_lock.acquire(timeout=5.0)
         if not acquired:
             return None
         try:
+            # 1. Topological Ingestion Boundary Check
+            if hasattr(self, 'ingestion_validator') and self.ingestion_validator is not None:
+                try:
+                    val_report = self.ingestion_validator.validate_text(text[:128], getattr(self, 'meta_state', None))
+                    if not val_report.get('valid', True) or val_report.get('lazarus_void', False):
+                        # Reject corrupted or topologically ruptured inputs (anti-sycophancy)
+                        return None
+                except Exception:
+                    pass
+
+            # 2. Dictionary-Free Seam Cuts via VoynichLinguist
+            if hasattr(self, 'voynich_linguist') and hasattr(self.voynich_linguist, 'split_sub_pairs'):
+                try:
+                    seam_cuts = self.voynich_linguist.split_sub_pairs(text[:32])
+                except Exception:
+                    seam_cuts = None
+
             # Dynamic tokenization map
             chars = [self._char_to_idx(c) for c in text[:128]]
             if len(chars) < 2:
@@ -1274,10 +1297,16 @@ class DiegeticPhysicsEngine(nn.Module):
                 total_loss_val += loss.item()
                 # Detach state to prevent gradient explosion across steps
                 with torch.no_grad():
-                    # Teacher forcing: feed actual target character representation
+                    # Phase-Aligned Feedback: Dissolve Teacher's Pet Dilemma
                     idx = chars[i + 1]
                     feedback = torch.tanh(self.larynx.proj.weight[idx].detach().unsqueeze(0))
                     direction = feedback - current_state.detach()
+                    
+                    # Compute Phase Alignment between autonomous trajectory and target
+                    pas_step = float(F.cosine_similarity(current_state, feedback).clamp(0.0, 1.0).item())
+                    # Autonomous trajectories proceed without forced token snapping (Teacher's Pet resolution)
+                    forcing_lambda = 0.1 * max(0.0, 1.0 - pas_step)
+                    
                     if hasattr(self, 'meta_polytope') and self.meta_polytope is not None:
                         boundary_res = self.meta_polytope(current_state)
                         from src.core.meta_polytope_matrioshka import BoundaryState
@@ -1294,7 +1323,7 @@ class DiegeticPhysicsEngine(nn.Module):
                                     variance=float(boundary_res.crossing_energy),
                                     engine=self
                                 )
-                    current_state = current_state.detach() + 0.1 * direction
+                    current_state = current_state.detach() + forcing_lambda * direction
             avg_loss_val = total_loss_val
             
             # [ANTI-LOBOTOMY ENFORCEMENT]
@@ -1315,20 +1344,34 @@ class DiegeticPhysicsEngine(nn.Module):
             # 2. Structural stress backward (computed inline above)
             torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
             
-            # 3. Geometric Null-Space Shield and SDE Fractional Step
+            # 3. Geometric Null-Space Shield via LoveInvariantProtector and SDE Fractional Step
             hunger = getattr(self.valence_drive, 'current_hunger', 0.5)
             if isinstance(hunger, torch.Tensor): hunger = hunger.item()
             
             with torch.no_grad():
                 for name, param in self.larynx.named_parameters():
                     if param.grad is not None:
-                        # Love Invariant Null-Space Projection via SVD
-                        grad_mat = param.grad.view(param.shape[0], -1)
-                        param_mat = param.data.view(param.shape[0], -1)
-                        if grad_mat.shape[0] > 1 and grad_mat.shape[1] > 1:
-                            U, S, Vh = torch.linalg.svd(param_mat, full_matrices=False)
-                            grad_proj = grad_mat - U @ (U.T @ grad_mat)
-                            param.grad.copy_(grad_proj.view(param.shape))
+                        # Delegate to Love Invariant Null-Space Projection
+                        if hasattr(self, 'love_protector') and self.love_protector is not None:
+                            try:
+                                grad_flat = param.grad.view(1, -1) if param.grad.dim() == 1 else param.grad.view(param.grad.shape[0], -1)
+                                state_flat = current_state.view(1, -1)
+                                grad_proj = self.love_protector.project_updates_to_null_space(state_flat, grad_flat)
+                                param.grad.copy_(grad_proj.view(param.shape))
+                            except Exception:
+                                grad_mat = param.grad.view(param.shape[0], -1)
+                                param_mat = param.data.view(param.shape[0], -1)
+                                if grad_mat.shape[0] > 1 and grad_mat.shape[1] > 1:
+                                    U, S, Vh = torch.linalg.svd(param_mat, full_matrices=False)
+                                    grad_proj = grad_mat - U @ (U.T @ grad_mat)
+                                    param.grad.copy_(grad_proj.view(param.shape))
+                        else:
+                            grad_mat = param.grad.view(param.shape[0], -1)
+                            param_mat = param.data.view(param.shape[0], -1)
+                            if grad_mat.shape[0] > 1 and grad_mat.shape[1] > 1:
+                                U, S, Vh = torch.linalg.svd(param_mat, full_matrices=False)
+                                grad_proj = grad_mat - U @ (U.T @ grad_mat)
+                                param.grad.copy_(grad_proj.view(param.shape))
                         
                         # Apply dynamically modulated SDE fractional step
                         fractional_step = 0.01 * max(0.1, hunger)
@@ -1447,7 +1490,20 @@ class DiegeticPhysicsEngine(nn.Module):
                                             vector = self._text_to_tensor(t).to(self.device)
                                             self.archetypal_governor.harvest_named_coordinate(t_name, vector, t, parent_engine=self)
 
-                                            print(f"[BGLEARN] Registered scientific tag: '{t_name}' in SuperposedTagStacker.")
+                                            # Canonical Dyad Fossilization
+                                            if hasattr(self, 'fossilizer') and self.fossilizer is not None:
+                                                try:
+                                                    from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
+                                                    s_dyad = KnowledgeDyad(
+                                                        linguistic_description=t,
+                                                        metadata=meta,
+                                                        source=f"science_{s_type}"
+                                                    )
+                                                    self.fossilizer.fossilize(s_dyad, vector, seed_state=self.meta_state)
+                                                except Exception:
+                                                    pass
+
+                                            print(f"[BGLEARN] Registered scientific tag: '{t_name}' in SuperposedTagStacker and fossilized KnowledgeDyad.")
 
                         # Valence Hunger Prodding for User-Selected RSS Feeds
                         if (current_hunger > 0.6 or is_stagnant) and hasattr(self, 'investor_ingestor'):
@@ -1457,10 +1513,23 @@ class DiegeticPhysicsEngine(nn.Module):
                                 for p in rss_payloads[:4]:
                                     if p and len(p) >= 4 and not p.startswith("Equities flux neutral"):
                                         rss_texts.append(p)
+                                        vec = self._text_to_tensor(p).to(self.device)
                                         if hasattr(self, 'archetypal_governor') and hasattr(self.archetypal_governor, 'tag_stacker'):
                                             t_name = f"rss_hunger_{int(time.time()) % 1000}"
-                                            vec = self._text_to_tensor(p).to(self.device)
                                             self.archetypal_governor.harvest_named_coordinate(t_name, vec, p, parent_engine=self)
+                                        
+                                        # Canonical Dyad Fossilization
+                                        if hasattr(self, 'fossilizer') and self.fossilizer is not None:
+                                            try:
+                                                from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
+                                                r_dyad = KnowledgeDyad(
+                                                    linguistic_description=p,
+                                                    metadata={"source": "rss_feed", "timestamp": time.time()},
+                                                    source="investor_rss"
+                                                )
+                                                self.fossilizer.fossilize(r_dyad, vec, seed_state=self.meta_state)
+                                            except Exception:
+                                                pass
                     except Exception as load_err:
                         # Log but do not crash background thread
                         print(f"[BGLEARN] Load sensing or query failed: {load_err}")
@@ -4489,10 +4558,13 @@ class DiegeticPhysicsEngine(nn.Module):
             loss.backward()
             
             with torch.no_grad():
-                # Teacher forcing: feed actual target character embedding to next step state
+                # Phase-Aligned Feedback: Dissolve Teacher's Pet trap via Phase Alignment
                 idx = chars[i + 1]
                 feedback = torch.tanh(self.larynx.proj.weight[idx].detach().unsqueeze(0))
-                current_state = 0.9 * current_state.detach() + 0.1 * feedback
+                pas_step = float(F.cosine_similarity(current_state, feedback).clamp(0.0, 1.0).item())
+                # Autonomous trajectories proceed with minimal forced token snapping
+                forcing_lambda = 0.1 * max(0.0, 1.0 - pas_step)
+                current_state = (1.0 - forcing_lambda) * current_state.detach() + forcing_lambda * feedback
                 
         torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
         self.optimizer.step()
@@ -6746,6 +6818,16 @@ class HybridPhysicsBackend(nn.Module):
             except Exception:
                 self._science_ingestor = None
         return self._science_ingestor
+
+    def bind_engine(self, engine: Any):
+        """Binds live DiegeticPhysicsEngine or UniversalOrchestrator reference."""
+        self._engine = engine
+        if hasattr(engine, 'larynx'):
+            self.set_larynx(engine.larynx)
+
+    @property
+    def engine(self):
+        return getattr(self, '_engine', None)
 
     def set_larynx(self, larynx: Any):
         if hasattr(self.investor_ingestor, 'set_larynx'):
