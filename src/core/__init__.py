@@ -104,6 +104,13 @@ except ImportError:
     EnhancedBezoutCRT = None
     CrossbarIKSolver = None
 
+try:
+    from .quantum_tda import QuantumBettiApproximator
+    from src.tda.chebyshev_filtration import MinimaxPolynomialApproximation
+except ImportError:
+    QuantumBettiApproximator = None
+    MinimaxPolynomialApproximation = None
+
 __all__ = [
     # Core polynomial system
     'PolynomialBasis',
@@ -155,5 +162,7 @@ __all__ = [
     'AdaptiveSkeletonHarness',
     'EnhancedBezoutCRT',
     'CrossbarIKSolver',
+    'QuantumBettiApproximator',
+    'MinimaxPolynomialApproximation',
 ]
 
