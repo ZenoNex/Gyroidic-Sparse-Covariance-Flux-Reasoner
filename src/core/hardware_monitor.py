@@ -173,6 +173,100 @@ class HardwareMonitor:
         self.thermal_margin = max(0.0, (self.p_cool_max - self.p_waste) / self.p_cool_max)
         self.thermal_source = str(source)
 
+    def get_cpu_gpu_layout(self) -> Dict[str, Any]:
+        """
+        Inspects physical and logical CPU cores, per-core utilization, frequency layouts,
+        and PyOpenCL GPU/accelerator compute core layouts to recognize different hardware
+        topologies (e.g. heterogeneous P/E core clusters, GPU compute unit scales).
+        """
+        layout = {
+            "cpu": {
+                "physical_cores": 1,
+                "logical_cores": 1,
+                "per_core_percent": [],
+                "frequencies_mhz": {},
+                "is_heterogeneous": False,
+                "performance_cores": [],
+                "efficiency_cores": []
+            },
+            "gpu": {
+                "available": False,
+                "devices": []
+            }
+        }
+        
+        # 1. CPU Layout via psutil
+        try:
+            phys = psutil.cpu_count(logical=False) or 1
+            logi = psutil.cpu_count(logical=True) or phys
+            per_cpu = psutil.cpu_percent(interval=None, percpu=True)
+            layout["cpu"]["physical_cores"] = phys
+            layout["cpu"]["logical_cores"] = logi
+            layout["cpu"]["per_core_percent"] = per_cpu
+            
+            try:
+                freqs = psutil.cpu_freq(percpu=True)
+                if freqs:
+                    layout["cpu"]["frequencies_mhz"] = {
+                        f"core_{i}": {"current": f.current, "min": f.min, "max": f.max}
+                        for i, f in enumerate(freqs)
+                    }
+                    max_freqs = [f.max for f in freqs if f.max > 0]
+                    if len(set(max_freqs)) > 1:
+                        layout["cpu"]["is_heterogeneous"] = True
+                        median_freq = sorted(max_freqs)[len(max_freqs) // 2]
+                        for i, f in enumerate(freqs):
+                            if f.max >= median_freq:
+                                layout["cpu"]["performance_cores"].append(i)
+                            else:
+                                layout["cpu"]["efficiency_cores"].append(i)
+                else:
+                    global_freq = psutil.cpu_freq()
+                    if global_freq:
+                        layout["cpu"]["frequencies_mhz"] = {
+                            "global": {"current": global_freq.current, "min": global_freq.min, "max": global_freq.max}
+                        }
+            except Exception:
+                pass
+        except Exception as e:
+            layout["cpu"]["error"] = str(e)
+
+        # 2. GPU Core Layout via PyOpenCL
+        try:
+            import pyopencl as cl
+            platforms = cl.get_platforms()
+            devices_info = []
+            for plat in platforms:
+                for dev in plat.get_devices():
+                    dev_type_str = "GPU" if (dev.type & cl.device_type.GPU) else ("CPU" if (dev.type & cl.device_type.CPU) else "ACCELERATOR")
+                    is_disc = False
+                    dev_name_lower = dev.name.lower()
+                    if dev_type_str == "GPU":
+                        if any(k in dev_name_lower for k in ["nvidia", "geforce", "gtx", "rtx", "radeon", "discrete"]):
+                            is_disc = True
+                    
+                    dev_meta = {
+                        "name": dev.name.strip(),
+                        "platform": plat.name.strip(),
+                        "type": dev_type_str,
+                        "compute_units": getattr(dev, "max_compute_units", 1),
+                        "max_work_group_size": getattr(dev, "max_work_group_size", 1),
+                        "max_work_item_sizes": list(getattr(dev, "max_work_item_sizes", [1])),
+                        "global_mem_mb": getattr(dev, "global_mem_size", 0) / (1024 * 1024),
+                        "local_mem_kb": getattr(dev, "local_mem_size", 0) / 1024,
+                        "is_discrete": is_disc
+                    }
+                    devices_info.append(dev_meta)
+            if devices_info:
+                layout["gpu"]["available"] = True
+                layout["gpu"]["devices"] = devices_info
+        except Exception:
+            layout["gpu"]["available"] = False
+
+        return layout
+
+    get_hardware_core_layout = get_cpu_gpu_layout
+
     def update_p2p_mesh(self, mesh_gauge: float):
         """Update collective nomadic ring mesh budget."""
         self.p2p_mesh_gauge = max(0.0, min(1.0, float(mesh_gauge)))
@@ -185,6 +279,7 @@ class HardwareMonitor:
         Evaluates the specific typed compute affordance and gauge for the requested domain.
         """
         atype = ComputeAffordanceType.from_str(affordance_type)
+        core_layout = self.get_cpu_gpu_layout()
         
         # 1. Silicon gauge: host CPU and RAM
         try:
@@ -219,7 +314,12 @@ class HardwareMonitor:
                 affordance_type=atype,
                 gauge=effective_gauge,
                 is_admissible=silicon_admissible and not self.thermal_runaway,
-                telemetry={"cpu_load": cpu_load, "free_ram_gb": free_ram_gb, "raw_gauge": silicon_gauge}
+                telemetry={
+                    "cpu_load": cpu_load,
+                    "free_ram_gb": free_ram_gb,
+                    "raw_gauge": silicon_gauge,
+                    "core_layout": core_layout["cpu"]
+                }
             )
 
         elif atype == ComputeAffordanceType.THERMAL:
@@ -251,7 +351,8 @@ class HardwareMonitor:
                 telemetry={
                     "silicon_coupling": silicon_gauge,
                     "thermal_coupling": thermal_gauge,
-                    "thermal_runaway": self.thermal_runaway
+                    "thermal_runaway": self.thermal_runaway,
+                    "gpu_devices": core_layout["gpu"]["devices"]
                 }
             )
 
@@ -390,9 +491,6 @@ class HardwareMonitor:
 
             if self.topological_abort_score > 0.8:
                 return cpu_load < 95.0 and free_ram_gb > 1.0
-                
-            if self.topological_abort_score < 0.2:
-                return False
                 
             effective_cpu_threshold = self.cpu_threshold * max(0.5, self.thermal_margin)
             return cpu_load < effective_cpu_threshold and free_ram_gb > self.ram_threshold_gb
@@ -550,6 +648,13 @@ def get_compute_affordance_telemetry() -> Dict[str, Any]:
     }
 
 check_compute_affordance = has_compute_affordance
+get_typed_compute_affordance = get_typed_affordance
+
+def get_cpu_gpu_layout() -> Dict[str, Any]:
+    """Helper function to retrieve CPU and GPU core layout topology."""
+    return HardwareMonitor.get_instance().get_cpu_gpu_layout()
+
+get_hardware_core_layout = get_cpu_gpu_layout
 
 def get_headroom_dimensionality() -> int:
     """
