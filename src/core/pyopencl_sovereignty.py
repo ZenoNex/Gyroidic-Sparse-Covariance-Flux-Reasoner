@@ -179,6 +179,18 @@ class SiliconSovereigntyEngine:
             # We need two queues to process Odd/Even CRT moduli in parallel without serial friction.
             self.queue_a = cl.CommandQueue(self.ctx, properties=cl.command_queue_properties.PROFILING_ENABLE) # Odd
             self.queue_b = cl.CommandQueue(self.ctx, properties=cl.command_queue_properties.PROFILING_ENABLE) # Even
+
+            # Topology recognition: Query Hardware Core Layout (CPU + GPU) via HardwareMonitor
+            try:
+                from src.core.hardware_monitor import HardwareMonitor
+                self.hardware_layout = HardwareMonitor.get_instance().get_cpu_gpu_layout()
+            except Exception:
+                self.hardware_layout = {"cpu": {}, "gpu": {}}
+
+            self.compute_units = getattr(self.device, "max_compute_units", 1)
+            self.max_work_group_size = getattr(self.device, "max_work_group_size", 256)
+            self.max_work_item_sizes = getattr(self.device, "max_work_item_sizes", [256, 256, 64])
+            self.is_gpu = bool(self.device.type & cl.device_type.GPU) if hasattr(cl, "device_type") else True
             
             self._build_kernels()
         except Exception as e:
@@ -944,12 +956,71 @@ class SiliconSovereigntyEngine:
             int best_g = l_lex_min_idx;
             out_canonical_board[lid] = l_transformed[best_g][lid];
         }
+
+        // 20. Fused Hardware-Sovereign GEMM (Batched Matrix Multiplication)
+        // Enables zero-copy on-chip tensor multiplications when PCIe roundtrip is decoupled
+        __kernel void hardware_sovereign_gemm(
+            __global const float *A,
+            __global const float *B,
+            __global float *C,
+            int M,
+            int K,
+            int N,
+            float alpha,
+            float beta
+        ) {
+            int row = get_global_id(0); // [0, M)
+            int col = get_global_id(1); // [0, N)
+            
+            if (row < M && col < N) {
+                float sum = 0.0f;
+                for (int k = 0; k < K; k++) {
+                    sum += A[row * K + k] * B[k * N + col];
+                }
+                if (beta == 0.0f) {
+                    C[row * N + col] = alpha * sum;
+                } else {
+                    C[row * N + col] = alpha * sum + beta * C[row * N + col];
+                }
+            }
+        }
         """
         
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")  # NVIDIA PTX driver warns about kernel inlining  benign
             self.program = cl.Program(self.ctx, kernel_src).build()
+
+    @property
+    def is_initialized(self) -> bool:
+        """Returns True if PyOpenCL context and program are successfully initialized on device."""
+        return self.ctx is not None and hasattr(self, "program") and self.program is not None
+
+    def get_optimal_work_group_size(self, problem_size: int, max_cap: Optional[int] = None) -> int:
+        """
+        Determines the optimal OpenCL local work group size tuned to the silicon core layout.
+        Bridges physical compute units and hardware work group boundaries.
+        """
+        if not self.is_initialized or not self.device:
+            return 1
+        wg_limit = getattr(self, "max_work_group_size", 256)
+        if max_cap is not None:
+            wg_limit = min(wg_limit, max_cap)
+        wg = 1
+        while (wg * 2 <= wg_limit) and (wg * 2 <= problem_size):
+            wg *= 2
+        return max(1, wg)
+
+    def get_core_layout_telemetry(self) -> Dict[str, Any]:
+        """Returns core layout telemetry for CPU and GPU substrates."""
+        return {
+            "device_name": self.device.name if self.device else "CPU Mock",
+            "is_gpu": getattr(self, "is_gpu", False),
+            "compute_units": getattr(self, "compute_units", 1),
+            "max_work_group_size": getattr(self, "max_work_group_size", 1),
+            "max_work_item_sizes": getattr(self, "max_work_item_sizes", []),
+            "hardware_layout": getattr(self, "hardware_layout", {})
+        }
 
     def compute_hedged_pas_h(self, phase: float, harmonics: list) -> float:
         """
@@ -1568,7 +1639,11 @@ class SiliconSovereigntyEngine:
             orig_shape = coords_arr.shape
             coords_flat = coords_arr.reshape(-1, 3).copy()
             coords_t = torch.from_numpy(coords_flat)
-            coords_t = torch.clamp(coords_t, -3.0, 3.0)
+            # Replace hard box clamp with smooth Hein-Kahler radial bounding
+            # Gyroid minimal surfaces are triply periodic (scale 2*pi), box clipping erases saddle connectivity
+            r_box = 3.0
+            r_norm = torch.norm(coords_t, p=2, dim=-1, keepdim=True)
+            coords_t = torch.where(r_norm > r_box, coords_t * (r_box * torch.tanh(r_norm / r_box) / (r_norm + 1e-8)), coords_t)
             
             manifold = GyroidManifold(scale=1.0)
             for _ in range(max_steps):
@@ -1578,8 +1653,12 @@ class SiliconSovereigntyEngine:
                 grad = manifold.gradient(coords_t)
                 g_norm = torch.norm(grad, dim=-1, keepdim=True) + 1e-8
                 grad_unit = grad / g_norm
-                step_size = torch.clamp(0.1 * violation.unsqueeze(-1), -0.5, 0.5)
-                coords_t = torch.clamp(coords_t - step_size * grad_unit, -5.0, 5.0)
+                step_size = 0.1 * torch.tanh(violation.unsqueeze(-1))  # Smooth step limit rather than hard clamp
+                step_update = coords_t - step_size * grad_unit
+                # Hein-Kahler smooth asymptotic constraint on update radius
+                u_norm = torch.norm(step_update, p=2, dim=-1, keepdim=True)
+                r_max = 5.0
+                coords_t = torch.where(u_norm > r_max, step_update * (r_max * torch.tanh(u_norm / r_max) / (u_norm + 1e-8)), step_update)
                 
             return coords_t.detach().cpu().numpy().reshape(orig_shape)
 
@@ -1975,6 +2054,63 @@ class SiliconSovereigntyEngine:
         cl.enqueue_copy(self.queue_a, out_valid, buf_out_v, is_blocking=True)
 
         return out_canon.reshape(8, 8), int(out_sum[0]), bool(out_valid[0] == 1)
+
+    def hardware_sovereign_matmul(
+        self,
+        A: torch.Tensor,
+        B: torch.Tensor,
+        alpha: float = 1.0,
+        beta: float = 0.0
+    ) -> torch.Tensor:
+        """
+        Executes zero-copy hardware sovereign matrix multiplication on OpenCL substrate.
+        Bypasses CPU serial bottlenecks when PCIe bus latency is decoupled or data is resident in VRAM.
+        
+        Args:
+            A: [M, K] tensor
+            B: [K, N] tensor
+            alpha: scalar multiplier for A @ B
+            beta: scalar multiplier for C accumulation
+            
+        Returns:
+            C: [M, N] tensor
+        """
+        if not self._is_healthy():
+            # CPU Fallback
+            return alpha * torch.matmul(A, B)
+
+        # Ensure 2D float32
+        A_2d = A.float() if A.dim() == 2 else A.view(-1, A.shape[-1]).float()
+        B_2d = B.float() if B.dim() == 2 else B.view(B.shape[0], -1).float()
+        
+        M, K = A_2d.shape
+        K2, N = B_2d.shape
+        if K != K2:
+            raise ValueError(f"Incompatible matrix dimensions for matmul: ({M}, {K}) and ({K2}, {N})")
+            
+        # Push to OpenCL with zero-copy host pointers
+        cl_A = push_to_opencl(A_2d, self.ctx)
+        cl_B = push_to_opencl(B_2d, self.ctx)
+        
+        import pyopencl as cl
+        mf = cl.mem_flags
+        C_bytes = M * N * 4
+        cl_C = cl.Buffer(self.ctx, mf.READ_WRITE, C_bytes)
+        
+        kernel = self._get_kernel("hardware_sovereign_gemm")
+        # Global work size: (M, N)
+        kernel(
+            self.queue_a, (M, N), None,
+            cl_A, cl_B, cl_C,
+            np.int32(M), np.int32(K), np.int32(N),
+            np.float32(alpha), np.float32(beta)
+        )
+        
+        res = pull_from_opencl(self.queue_a, cl_C, (M, N), torch.float32)
+        if A.dim() > 2:
+            out_shape = list(A.shape[:-1]) + [N]
+            return res.view(out_shape)
+        return res
 
 # Expose standard execution hook
 def create_engine():
