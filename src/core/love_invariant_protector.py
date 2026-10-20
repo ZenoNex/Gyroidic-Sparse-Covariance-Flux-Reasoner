@@ -62,7 +62,21 @@ class LoveInvariantProtector(nn.Module):
         
         # Compute covariance of system state (ownership pressure)
         state_centered = system_state - system_state.mean(dim=0, keepdim=True)
-        covariance = torch.matmul(state_centered.T, state_centered) / (batch_size - 1)
+        
+        # Check if hardware sovereign engine is available for decoupled covariance contraction
+        engine = None
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            engine = SiliconSovereigntyEngine()
+            if not engine._is_healthy():
+                engine = None
+        except Exception:
+            engine = None
+            
+        if engine is not None and batch_size >= 16:
+            covariance = engine.hardware_sovereign_matmul(state_centered.T, state_centered) / (batch_size - 1)
+        else:
+            covariance = torch.matmul(state_centered.T, state_centered) / (batch_size - 1)
         
         # Project to Love dimension if needed
         if state_dim != self.love_dim:
