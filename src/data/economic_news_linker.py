@@ -18,6 +18,8 @@ import urllib.parse
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Any, Optional
 
+from src.core.invariants import PHI_RECIPROCAL
+
 # Production Public Gateway Endpoints
 BITTENSOR_FINNEY_RPC = "https://entrypoint-finney.opentensor.ai:443"
 BITTENSOR_TAOSTATS_API = "https://api.taostats.io/v1/subnets"
@@ -86,7 +88,7 @@ class EconomicAgentLinker:
                     "status": "sovereign_local_fallback",
                     "network": "finney_gateway",
                     "subnet": subnet_id,
-                    "consensus_forecast": 0.618,
+                    "consensus_forecast": float(PHI_RECIPROCAL),
                     "endpoint": BITTENSOR_FINNEY_RPC,
                     "note": f"Public Finney gateway unreachable, using local sovereign baseline: {e_rpc}"
                 }
