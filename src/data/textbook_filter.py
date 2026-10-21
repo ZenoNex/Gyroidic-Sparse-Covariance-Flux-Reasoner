@@ -59,18 +59,25 @@ class TextbookFilter:
             min_rank_ratio=0.3,
         )
         self.state_dim = state_dim
+        self.thresholds = {
+            'self_contained': 0.5,
+            'instructive': 0.5,
+            'algorithmic': 0.5,
+            'clarity': 0.5,
+            'structural_honesty': 0.5,
+        }
 
     def assess(self, text: str, source: str = None) -> QualityReport:
         """Single-text assessment. Interface unchanged."""
         result = self.validator.validate_text(text)
 
-        # Map topological invariants to the 5 documented dimensions
+        # Map topological invariants to the 5 documented dimensions, respecting configurable thresholds
         dimension_gates = {
-            "structural_honesty": result["soliton_entropy"] > 1e-6,
-            "self_contained": result["holonomic_rank"] >= max(1, int(0.3 * self.validator.K)),
-            "instructive": not result["is_lazarus_void"],
-            "algorithmic": result["pas_h"] > 0.1 if result["pas_h"] != 1.0 else True,
-            "clarity": result["holonomic_rank"] > 0,  # Non-zero rank = not pure noise
+            "structural_honesty": (result["soliton_entropy"] > 1e-6) if self.thresholds.get("structural_honesty", 0.5) > 0.0 else True,
+            "self_contained": (result["holonomic_rank"] >= max(1, int(0.3 * self.validator.K))) if self.thresholds.get("self_contained", 0.5) > 0.0 else True,
+            "instructive": (not result["is_lazarus_void"]) if self.thresholds.get("instructive", 0.5) > 0.0 else True,
+            "algorithmic": (result["pas_h"] > 0.1 if result["pas_h"] != 1.0 else True) if self.thresholds.get("algorithmic", 0.5) > 0.0 else True,
+            "clarity": (result["holonomic_rank"] > 0) if self.thresholds.get("clarity", 0.5) > 0.0 else True,
         }
 
         report = QualityReport(
