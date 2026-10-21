@@ -24,6 +24,7 @@ except ImportError:
     psutil = None
 import signal
 import time
+import hashlib
 import subprocess
 import csv
 import io
@@ -118,6 +119,55 @@ try:
 except Exception as e:
     DATASET_SYSTEM_AVAILABLE = False
     print(f"[FAIL] Dataset Ingestion System failed to import: {e}")
+
+
+def ensure_python_dependencies(req_file: str = "requirements.txt") -> bool:
+    """
+    Ensure the active virtual environment has all required libraries installed.
+    Computes a cryptographic hash of requirements.txt against .requirements.hash.
+    If the hash differs or if critical dependencies (mpmath, sympy, etc.) are missing,
+    automatically triggers pip install in the virtual environment.
+    """
+    if not os.path.exists(req_file):
+        return True
+
+    hash_file = os.path.join(root_dir, ".requirements.hash")
+    
+    with open(req_file, "rb") as f:
+        curr_hash = hashlib.sha256(f.read()).hexdigest()
+        
+    last_hash = None
+    if os.path.exists(hash_file):
+        try:
+            with open(hash_file, "r") as f:
+                last_hash = f.read().strip()
+        except Exception:
+            last_hash = None
+
+    needs_sync = (curr_hash != last_hash)
+    if not needs_sync:
+        for pkg in ["mpmath", "sympy", "torch", "scipy"]:
+            try:
+                __import__(pkg)
+            except ImportError:
+                needs_sync = True
+                print(f"[UPDATER] Library '{pkg}' missing from environment. Triggering auto-installation.", flush=True)
+                break
+
+    if needs_sync:
+        print(f"\n[UPDATER] Detected missing or updated dependencies from {req_file}.", flush=True)
+        print(f"[UPDATER] Executing: {sys.executable} -m pip install -r {req_file}...", flush=True)
+        try:
+            import subprocess
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", req_file])
+            with open(hash_file, "w") as f:
+                f.write(curr_hash)
+            print("[UPDATER] [OK] Python dependencies successfully synchronized into virtual environment.\n", flush=True)
+            return True
+        except Exception as e:
+            print(f"[UPDATER] [!] Warning: Failed to auto-install dependencies: {e}\n", flush=True)
+            return False
+    return True
 
 
 def ensure_ffmpeg_binary() -> str:
@@ -3224,6 +3274,12 @@ def main():
     """Start the Gyroidic Backend with Governance and Persistence."""
     global AI_SYSTEM
     
+    # Ensure all python libraries in requirements.txt are installed into the active environment
+    try:
+        ensure_python_dependencies()
+    except Exception as dep_err:
+        print(f"[UPDATER] Python dependency check notice: {dep_err}", flush=True)
+
     # Ensure ffmpeg binary exists in .venv/scripts
     try:
         ensure_ffmpeg_binary()
