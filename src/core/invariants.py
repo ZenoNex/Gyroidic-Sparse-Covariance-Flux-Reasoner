@@ -21,8 +21,14 @@ import time
 
 # Universal Mathematical & Topological Constants
 PI = math.pi
-PHI = (1.0 + math.sqrt(5.0)) / 2.0
-PHI_RECIPROCAL = (math.sqrt(5.0) - 1.0) / 2.0
+try:
+    import mpmath
+    with mpmath.workdps(60):
+        PHI = float((mpmath.sqrt(5) + 1) / 2)
+        PHI_RECIPROCAL = float((mpmath.sqrt(5) - 1) / 2)
+except Exception:
+    PHI = (1.0 + math.sqrt(5.0)) / 2.0
+    PHI_RECIPROCAL = (math.sqrt(5.0) - 1.0) / 2.0
 
 def is_prime(n: int) -> bool:
     """Optimized deterministic primality test."""
@@ -294,8 +300,8 @@ class ImplicationInvariant(nn.Module):
         violation = significant * lobotomized
         
         # Preservation Score (SAFE DIV)
-        # Retuned: Allow high-energy external shifts (0.61) without 0.30 anchoring
-        preservation = torch.clamp(implication_E / (interaction_E + 1e-8), min=0.618)
+        # Retuned: Allow high-energy external shifts without arbitrary anchoring
+        preservation = torch.clamp(implication_E / (interaction_E + 1e-8), min=PHI_RECIPROCAL)
         
         return violation, preservation
 
