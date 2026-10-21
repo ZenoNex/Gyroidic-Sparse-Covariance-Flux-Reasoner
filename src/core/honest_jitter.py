@@ -16,6 +16,38 @@ _HONEST_JITTER_CACHE = {}
 _LAST_HARVEST_TIME = 0
 _HARVEST_COOLDOWN = 0.05 # 50ms cooldown between DRAM friction harvests
 
+try:
+    import mpmath
+    with mpmath.workdps(60):
+        PHI_INV_HP = float((mpmath.sqrt(5) - 1) / 2)
+except Exception:
+    import math
+    PHI_INV_HP = (math.sqrt(5.0) - 1.0) / 2.0
+
+
+def compute_generalized_phi(dimension: int = 1, precision: int = 50) -> float:
+    """
+    Compute generalized metallic/plastic ratio constant for d-dimensional quasi-random Weyl sequences.
+    For d=1: Golden ratio reciprocal phi_1 = (sqrt(5) - 1) / 2 ~= 0.618033988749895
+    For d=2: Plastic ratio reciprocal phi_2 ~= 0.754877666246693
+    For d>2: Unique positive root of x^(d+1) = x + 1 via mpmath.
+    """
+    try:
+        import mpmath
+        with mpmath.workdps(precision):
+            if dimension == 1:
+                return float((mpmath.sqrt(5) - 1) / 2)
+            poly = [1] + [0] * (dimension - 1) + [-1, -1]
+            roots = mpmath.polyroots(poly)
+            real_roots = [float(r.real) for r in roots if abs(r.imag) < 1e-12 and r.real > 1.0]
+            if real_roots:
+                return float(1.0 / real_roots[0])
+    except Exception:
+        pass
+    import math
+    return (math.sqrt(5.0) - 1.0) / 2.0
+
+
 class AgentSmithEngine(nn.Module):
     """
     Sovereign entropy expansion engine using the Agent Smith protocol.
@@ -43,13 +75,15 @@ class AgentSmithEngine(nn.Module):
             
             # True hardware-anchored seed via nanosecond counter
             ns = time.perf_counter_ns()
+            # Bound ns within float32 precision window while preserving nanosecond jitter dynamics
+            ns_bounded = float((ns % 1000000) + 1)
             
-            # Structural expansion via Weyl sequence (deterministic sequence, hardware-seeded, no PRNG)
-            indices = torch.arange(num_elements, device=device).float()
-            phi = 0.6180339887498948482
-            x = ((indices + 1.0) * ns * phi + seed_val) % 1.0
+            # Structural expansion via Weyl sequence in float64 precision (eliminating float32 mantissa clipping)
+            indices = torch.arange(num_elements, device=device, dtype=torch.float64)
+            phi = PHI_INV_HP
+            x = ((indices + 1.0) * float(ns_bounded) * phi + float(seed_val)) % 1.0
             
-            jitter_flat = (x * 2.0 - 1.0)
+            jitter_flat = (x * 2.0 - 1.0).to(torch.float32)
             
             if scaled:
                 jitter_flat = jitter_flat * 0.01
