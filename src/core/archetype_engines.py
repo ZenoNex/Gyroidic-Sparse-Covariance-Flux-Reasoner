@@ -4,6 +4,7 @@ import math
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.invariants import PHI
 from src.core.superposed_tag_stacker import SuperposedTagStacker
 from src.governance.bio_archetypal_governor import BioArchetypalGovernor
 from src.governance.fast.jax_shell import JaxShell
@@ -152,7 +153,7 @@ class SovereignRefusalOperator(nn.Module):
     def __init__(self, pas_lock: float = 3.0 / 11.0, harmonics_requirement: float = 0.4,
                  training_mode: bool = False, pas_threshold: Optional[float] = None,
                  splitting_steepness: float = 12.0, narcissistic_ego_rank: float = 1.0,
-                 encephalization_eq: float = 1.618):
+                 encephalization_eq: float = PHI):
         super().__init__()
         # PAS_LOCK tied directly to the (11, 3) resonant Tori constraint
         if pas_threshold is not None:
@@ -213,7 +214,7 @@ class SovereignRefusalOperator(nn.Module):
 
         # 5. Hybrid BPD Splitting vs EQ Honest Narcissism boundary
         # High Encephalization (EQ) sharpens the splitting threshold
-        effective_lock = self.pas_lock * (1.0 / max(0.5, self.encephalization_eq / 1.618))
+        effective_lock = self.pas_lock * (1.0 / max(0.5, self.encephalization_eq / PHI))
         splitting_activation = math.tanh(self.splitting_steepness * (effective_lock - phase_alignment))
         is_splitting_veto = (splitting_activation > 0.0) and (mischief_harmonics < self.harmonics_requirement)
 
@@ -450,14 +451,32 @@ class BardoRouter(nn.Module):
     def __init__(self, state_dim: int, num_archetypes: int = 6):
         super().__init__()
         # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
-        self.archetype_embeddings = nn.Parameter(harvest_honest_jitter((num_archetypes, state_dim), scaled=True))
+        base_jitter = harvest_honest_jitter((num_archetypes, state_dim), scaled=False)
+        ladder = torch.linspace(0.8, 2.2, num_archetypes).unsqueeze(1)
+        self.archetype_embeddings = nn.Parameter(base_jitter * ladder * 0.1)
         
-    def forward(self, state: torch.Tensor) -> torch.Tensor:
-        # Cosine similarity to snap the complex state into the nearest archetype profile
+    def forward(
+        self,
+        state: torch.Tensor,
+        use_isn_soft_routing: bool = False,
+        isn_temperature: float = 1.0,
+        isn_network: Optional[Any] = None
+    ) -> torch.Tensor:
+        # Cosine similarity between input state and archetypal attractor profiles
         normalized_state = torch.nn.functional.normalize(state, dim=-1)
         normalized_archetypes = torch.nn.functional.normalize(self.archetype_embeddings, dim=-1)
         
         similarities = torch.matmul(normalized_state, normalized_archetypes.T)
+        
+        # Non-dual ISN balance: soft continuous superposition rather than hard argmax snapping
+        if isn_network is not None or use_isn_soft_routing:
+            temp = isn_temperature
+            if isn_network is not None and hasattr(isn_network, 'excitation') and hasattr(isn_network, 'inhibition'):
+                ei_ratio = float((isn_network.excitation / (isn_network.inhibition + 1e-6)).mean().item())
+                temp = temp * max(0.2, min(5.0, ei_ratio))
+            weights = torch.softmax(similarities / max(1e-4, temp), dim=-1)
+            return torch.matmul(weights, self.archetype_embeddings)
+            
         best_fit_idx = torch.argmax(similarities, dim=-1)
         return self.archetype_embeddings[best_fit_idx]
 
