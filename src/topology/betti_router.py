@@ -10,7 +10,7 @@ import torch.nn as nn
 from typing import Dict, Tuple, Optional
 
 from src.topology.modular_homology_fft import CyclotomicTDACompressor
-from src.core.invariants import PrimeResonanceLadder
+from src.core.invariants import PrimeResonanceLadder, PHI
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine, PYOPENCL_AVAILABLE
 import math
@@ -84,7 +84,7 @@ class BettiRouter(nn.Module):
         if self.engine is not None:
             # Check viability using fixed irrationals
             omega_i = math.sqrt(2)
-            omega_j = (1.0 + math.sqrt(5)) / 2.0  # Golden ratio
+            omega_j = PHI  # Golden ratio from canonical invariants
             t_pseudo = torch.norm(x).item()
             
             # Use betti_densities as the incoming flux vector against state x
