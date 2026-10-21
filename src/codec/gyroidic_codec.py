@@ -132,8 +132,8 @@ class GyroidSurface:
         else:
             # Fallback: irrational frequency spacing (still not hardcoded primes)
             # Uses golden-ratio-derived incommensurate frequencies
-            phi = (1 + math.sqrt(5)) / 2  # Golden ratio
-            freq = 1.0 + k * phi
+            from src.core.invariants import PHI
+            freq = 1.0 + k * PHI
         return freq
 
     def evaluate(self, k: int) -> torch.Tensor:
