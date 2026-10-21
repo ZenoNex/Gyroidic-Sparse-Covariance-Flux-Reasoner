@@ -544,24 +544,13 @@ def _chebyshev_project_np(arr: np.ndarray, K: int) -> List[float]:
     e_range = max(float(e_max - e_min), 1e-12)
     x_f = 2.0 * (frame_energies - e_min) / e_range - 1.0
 
-    # Chebyshev T_k recurrence
-    raw_coeffs = np.zeros(K, dtype=np.float64)
-    for k in range(K):
-        acc = 0.0
-        for f in range(frame_count):
-            x = float(x_f[f])
-            if k == 0:
-                T = 1.0
-            elif k == 1:
-                T = x
-            else:
-                T_p, T_c = 1.0, x
-                for _ in range(2, k + 1):
-                    T_n = 2.0 * x * T_c - T_p
-                    T_p, T_c = T_c, T_n
-                T = T_c
-            acc += T
-        raw_coeffs[k] = acc / frame_count
+    # Chebyshev T_k recurrence via canonical PolynomialBasis
+    from src.core.polynomial_coprime import PolynomialBasis
+    basis = PolynomialBasis(degree=K - 1, basis_type='chebyshev', domain=(-1.0, 1.0))
+    t_xf = torch.from_numpy(x_f.astype(np.float32))
+    # basis.evaluate returns [frame_count, K]
+    T_mat = basis.evaluate(t_xf).detach().cpu().numpy()
+    raw_coeffs = T_mat.mean(axis=0).astype(np.float64)
 
     # Birkhoff row normalisation
     coeff_sum = np.sum(np.abs(raw_coeffs))
