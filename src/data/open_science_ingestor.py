@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any, Union
 import torch
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.invariants import PHI
 
 class OpenScienceIngestor:
     """
@@ -377,7 +378,7 @@ class OpenScienceIngestor:
     def _simulate_sdss_catalog(self, catalog_id: str, limit: int, cache_path: Path) -> Dict[str, Any]:
         """Generates a mock SDSS galaxy table obeying IHC 33-shell RP4 golden ratio hierarchy."""
         rows = []
-        phi = (1.0 + math.sqrt(5.0)) / 2.0  # Golden ratio 1.6180339887...
+        phi = PHI  # Canonical golden ratio from invariants
         r_s = 153.2                         # Sound horizon / BAO scale at k=7 shell
         c_over_h0 = 4448.0
         
