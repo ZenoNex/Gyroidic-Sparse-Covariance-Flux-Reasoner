@@ -25,7 +25,7 @@ from typing import List, Tuple, Optional, Union, Any, Dict
 import torch
 import torch.nn as nn
 
-from src.core.invariants import PrimeResonanceLadder
+from src.core.invariants import PrimeResonanceLadder, PHI_RECIPROCAL
 from src.core.fgrt_primitives import CoherentPrimeResonance
 from src.core.polychoron_quantization import PolychronQuantizer
 from src.surrogates.kagh_networks import TrigonometricUnfolding
@@ -40,13 +40,13 @@ class CODES(nn.Module):
     
     def __init__(
         self,
-        coherence_threshold: float = 0.618,
+        coherence_threshold: float = PHI_RECIPROCAL,
         state_dim: int = 32,
         constraint_depth: int = 3,
         **kwargs
     ):
         super().__init__()
-        # Threshold aligned to golden ratio / Love Vector baseline (0.618)
+        # Threshold aligned to canonical golden ratio reciprocal / Love Vector baseline (PHI_RECIPROCAL)
         self.coherence_threshold = coherence_threshold
         self.state_dim = state_dim
         self.constraint_depth = constraint_depth
