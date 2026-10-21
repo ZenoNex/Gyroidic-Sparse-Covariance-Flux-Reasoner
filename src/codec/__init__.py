@@ -13,6 +13,7 @@ from .gyroidic_codec import (
 )
 from .conformal_log_polar import ConformalLogPolarProjector
 from .vision_surgery import IntercosaminationOperator, MirrorTestProbe
+from .vision_utilities import get_russian_doll_projection
 
 __all__ = [
     'GyroidicCodec',
@@ -22,4 +23,5 @@ __all__ = [
     'ConformalLogPolarProjector',
     'IntercosaminationOperator',
     'MirrorTestProbe',
+    'get_russian_doll_projection',
 ]
