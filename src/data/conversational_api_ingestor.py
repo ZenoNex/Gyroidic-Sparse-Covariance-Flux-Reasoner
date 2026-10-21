@@ -1204,9 +1204,10 @@ class SovereignConversationalIngestor:
         else:
             # Fallback residual projection using Agent Smith Engine (honest jitter)
             from src.core.honest_jitter import AgentSmithEngine
+            from src.core.invariants import PHI_RECIPROCAL
             engine = AgentSmithEngine(device=device)
-            # Deterministic seed value for fallback matrix
-            seed_val = 0.6180339887  # Golden ratio seed
+            # Deterministic seed value for fallback matrix using canonical golden ratio reciprocal
+            seed_val = PHI_RECIPROCAL
             proj_matrix = engine((dim, dim), seed_val, scaled=False) / (dim ** 0.5)
             smooth_proj = torch.matmul(proj_matrix, blended_state)
             projected = blended_state + 0.1 * torch.tanh(smooth_proj)
