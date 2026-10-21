@@ -80,7 +80,7 @@ The `VoynichLinguist` uses `PolynomialCoprimeConfig` to generate its symbolic re
 - `x mod p_i`  `_k(projected_thought)` (polynomial functional evaluation)
 - Integer CRT reconstruction  PAS (Phase Alignment Score) evaluation
 - Modular deviation check  PAS_h (Multiharmonic Phase Alignment Score)
-- Co-primality enforcement  Root Persistence Pressure + Orthogonality Pressure (continuous)
+- Co-primality enforcement -> Lawful Novelty Dispersion (CODES v40 canonical refinement of 'Root Persistence Pressure' / 'co_primality_pressure') + Orthogonality Pressure (continuous)
 
 ### Common Misconceptions: The Output Protector vs. Spatial Mapping
 **CRITICAL**: The `VoynichLinguist` is an **Output Protector**, NOT an input resolver.
