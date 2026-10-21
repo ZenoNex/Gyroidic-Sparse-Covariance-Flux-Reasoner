@@ -63,6 +63,12 @@ except ImportError:
     AlexanderWildEmbeddingOperator = None
     AlexanderTransversalityReport = None
 
+# Speculative Homology Engine (Minimax Chebyshev Draft -> Persistent Homology Oracle)
+try:
+    from .speculative_homology import SpeculativeHomologyEngine
+except ImportError:
+    SpeculativeHomologyEngine = None
+
 __all__ = [
     'SparseGyroidCovarianceProbe',
     'SparseExplorerRouting',
@@ -88,6 +94,7 @@ __all__ = [
     'ResidueObstructionGraph',
     'AlexanderWildEmbeddingOperator',
     'AlexanderTransversalityReport',
+    'SpeculativeHomologyEngine',
 ]
 
 
