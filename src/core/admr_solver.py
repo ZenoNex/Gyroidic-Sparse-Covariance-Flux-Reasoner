@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from .polynomial_coprime import PolynomialCoprimeConfig
 from .numerical_d_module import NumericalDModuleManager, RationalSnappingLayer
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.invariants import PHI_RECIPROCAL
 from src.topology.hyper_ring_closure import HyperRingClosureChecker
 from src.core.daqf_operator import DAQUFOperator
 
@@ -835,9 +836,12 @@ class PolynomialADMRSolver(nn.Module):
         dynamic_dt = dt * (1.0 / (1.0 + tik_delay))
         
         for n in range(num_drafts):
-            # Generate parallel drafts with distinct noise
-            # Scale dt dynamically per draft using the TIK delay
-            draft_dt = dynamic_dt * (0.8 + 0.4 * torch.rand_like(dynamic_dt))
+            # Generate parallel drafts with distinct incommensurate phase offsets and Honest Jitter
+            # Scale dt dynamically per draft using the TIK delay and Weyl sequence
+            draft_phase = ((n + 1) * PHI_RECIPROCAL) % 1.0
+            jitter = harvest_honest_jitter(dynamic_dt.shape, device=dynamic_dt.device, scaled=False)
+            dt_multiplier = 0.85 + 0.30 * (0.5 * draft_phase + 0.5 * ((jitter * 0.5) + 0.5))
+            draft_dt = dynamic_dt * dt_multiplier
             draft = self.stochastic_differential_step(
                 states=states,
                 neighbor_states=neighbor_states,
