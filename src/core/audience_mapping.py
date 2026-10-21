@@ -47,6 +47,13 @@ class AudienceProjection(nn.Module):
         """
         Phi(m). Uses Symplectic Gluing to dynamically stitch state boundaries for projection.
         """
+        # Ensure input dimensionality aligns with gluing operator
+        if manifold_state.shape[-1] != self.input_dim:
+            if manifold_state.shape[-1] < self.input_dim:
+                manifold_state = torch.nn.functional.pad(manifold_state, (0, self.input_dim - manifold_state.shape[-1]))
+            else:
+                manifold_state = manifold_state[..., :self.input_dim]
+
         # Phase 3: Homology-driven topological shaping
         draft_betti = self.homology_engine.predict_draft_betti(manifold_state)
         betti_1 = draft_betti.get(1, 0)
@@ -103,3 +110,11 @@ class AudienceProjection(nn.Module):
             # 3. Update step: x = output - f(x) * k
             x = audience_state - (f_x * effective_k)
         return x
+
+    def project_concept(self, concept_state: torch.Tensor) -> torch.Tensor:
+        """
+        Projects a concept vector into Audience space A while strictly preserving
+        topological roughness, Betti-1 homology, and symplectic gluing boundaries.
+        """
+        return self.forward(concept_state)
+
