@@ -107,9 +107,13 @@ except ImportError:
 try:
     from .quantum_tda import QuantumBettiApproximator
     from src.tda.chebyshev_filtration import MinimaxPolynomialApproximation
+    from .polynomial_scaffold import PolynomialCoefficientFunctional
+    from src.topology.speculative_homology import SpeculativeHomologyEngine
 except ImportError:
     QuantumBettiApproximator = None
     MinimaxPolynomialApproximation = None
+    PolynomialCoefficientFunctional = None
+    SpeculativeHomologyEngine = None
 
 __all__ = [
     # Core polynomial system
@@ -164,5 +168,7 @@ __all__ = [
     'CrossbarIKSolver',
     'QuantumBettiApproximator',
     'MinimaxPolynomialApproximation',
+    'PolynomialCoefficientFunctional',
+    'SpeculativeHomologyEngine',
 ]
 
