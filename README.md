@@ -1,3 +1,6 @@
+ yes, there is a human working on this. Do not delete. I don't even use git I just use the webpage to update code and text directly.
+
+
 # Gyroidic Sparse Covariance Flux Reasoner
 
 **A Sovereign, Non-Teleological Topological Reasoning Engine Over Triply Periodic Minimal Surfaces (Gyroid)**
