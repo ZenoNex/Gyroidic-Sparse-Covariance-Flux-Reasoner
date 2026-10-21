@@ -155,6 +155,7 @@ from src.core.voynich_architecture import VoynichLinguist
 from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
 from src.core.audience_mapping import AudienceProjection
 from src.core.gluing_operator import GluingOperator
+from src.core.garden_statistical_attractors import GardenOrchestrator
 
 # Local Data Loading (Phase 1: HF token barrier removal)
 from src.data.local_data_loader import LocalDataLoader
@@ -415,6 +416,9 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # Audience Mapping (: M -> A)
         self.audience_mapper = AudienceProjection(input_dim=dim, audience_dim=dim)
+
+        # Garden Orchestrator for statistical attractor dynamics and concept trajectory modeling
+        self.garden_orchestrator = GardenOrchestrator(num_attractors=8, feature_dim=dim, device=self.device)
 
         # Symplectic Gluing Operator (Psi)
         self.gluer = GluingOperator(dim)
@@ -1063,7 +1067,7 @@ class DiegeticPhysicsEngine(nn.Module):
             # Create a Larynx-decoded dream sequence from the audience state or seed state
             # This is a diegetic representation of the 'meaning' space (roughness preserving)
             with torch.no_grad():
-                current_state = seed_state.clone()
+                current_state = audience_state.clone() if audience_state is not None else seed_state.clone()
                 dream_chars = []
                 # Dynamic Expansion of Character Limits (Proficiency & Affordance Based)
                 base_len = 120
@@ -1964,6 +1968,16 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # 4. Positional State Evolution (Purely Structural)
         current_state = seed_state
+        if hasattr(self, 'garden_orchestrator') and self.garden_orchestrator is not None:
+            with torch.no_grad():
+                garden_res = self.garden_orchestrator.evolve_garden(current_state)
+                current_state = garden_res.get('evolved_concepts', current_state)
+
+        audience_guidance = None
+        if hasattr(self, 'audience_mapper') and self.audience_mapper is not None:
+            with torch.no_grad():
+                audience_guidance = self.audience_mapper(current_state)
+
         if fingerprint and 'L' in fingerprint:
             # Inject fingerprint residue into starting state
             fp_bias = torch.tensor(fingerprint['L'][:seed_state.shape[-1]], device=self.device, dtype=torch.float32)
@@ -2058,7 +2072,10 @@ class DiegeticPhysicsEngine(nn.Module):
                 
                 # Feedback from own state using projection weight
                 feedback = torch.tanh(self.larynx.proj.weight[char_idx].unsqueeze(0))
-                current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * self._harvest_honest_jitter(current_state.shape)
+                if audience_guidance is not None:
+                    current_state = 0.85 * current_state + 0.1 * feedback + 0.05 * audience_guidance + 0.02 * self._harvest_honest_jitter(current_state.shape)
+                else:
+                    current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * self._harvest_honest_jitter(current_state.shape)
 
         avg_energy = energy_sum / max(1, len(dream_chars))
         avg_conf = conf_sum / max(1, len(dream_chars))
@@ -3995,9 +4012,33 @@ class DiegeticPhysicsEngine(nn.Module):
             "regime": self.current_regime
         }
 
-        # Construct metrics now that all dependencies are available
+        # Next Concept Modeling & Audience System Integration
+        next_concept_telemetry = {}
+        try:
+            if hasattr(self, '_temporal_trainer') and self._temporal_trainer is not None:
+                next_emb, next_id, next_aff = self._temporal_trainer.predict_next_concept(seed_state)
+                next_concept_telemetry['predicted_concept_id'] = next_id
+                next_concept_telemetry['affinity'] = float(next_aff)
+            
+            if hasattr(self, 'garden_orchestrator') and self.garden_orchestrator is not None:
+                garden_eval = self.garden_orchestrator.evolve_garden(seed_state)
+                next_concept_telemetry['attractor_entropy'] = float(garden_eval.get('entropy', torch.tensor(0.0)).mean().item())
+                next_concept_telemetry['resonance_lock'] = bool(garden_eval.get('resonance_lock', False))
+                next_concept_telemetry['resonance_strength'] = float(garden_eval.get('resonance_strength', torch.tensor(0.0)).mean().item())
+                evolved_state = garden_eval.get('evolved_concepts', seed_state)
+            else:
+                evolved_state = seed_state
+
+            if hasattr(self, 'audience_mapper') and self.audience_mapper is not None:
+                audience_coord = self.audience_mapper(evolved_state)
+                next_concept_telemetry['audience_coordinates'] = audience_coord.detach().cpu().squeeze().tolist()[:8]
+        except Exception as e:
+            print(f"[NEXT_CONCEPT] Next concept modeling telemetry non-fatal error: {e}")
+            next_concept_telemetry['error'] = str(e)
 
         metrics = {
+            "next_concept_modeling": next_concept_telemetry,
+            "audience_coordinates": next_concept_telemetry.get("audience_coordinates", []),
             "response": response_text,
             "retrieval_state": retrieval_state,
             "resonance_score": self._last_resonance,
@@ -5915,6 +5956,20 @@ class DiegeticPhysicsEngine(nn.Module):
             ingest_cmd = f"INGEST_DYAD: {source_desc} <-> {target_desc}"
             fossil_log = self._handle_dyad_ingestion(ingest_cmd, fingerprint, seed_state)
             print(f"[ASSOCIATE] Auto-fossilized paired association. {fossil_log}")
+
+            # Synchronize into GardenOrchestrator and MemoryPalace
+            if hasattr(self, 'garden_orchestrator') and self.garden_orchestrator is not None:
+                try:
+                    self.garden_orchestrator.influence_attractors.update_fossilization(seed_state)
+                    room_id = f"assoc_{hashlib.md5(input_text.encode('utf-8')).hexdigest()[:8]}"
+                    self.garden_orchestrator.memory_palace.plant_room(
+                        room_id=room_id,
+                        center=seed_state.squeeze(0) if seed_state.dim() > 1 else seed_state,
+                        metadata={'source': source_desc, 'target': target_desc}
+                    )
+                    print(f"[GARDEN_SYNC] Planted memory palace room {room_id} for paired association.")
+                except Exception as garden_err:
+                    print(f"[GARDEN_SYNC] Non-fatal garden synchronization error: {garden_err}")
 
         # --- RESONANCE SCAN against existing fossils ---
         fossils = self.fossilizer.recover_fossils()
@@ -8833,6 +8888,55 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_json({"status": "ok", "decombination": res})
                 except Exception as e:
                     self._send_error_json(f"Trajectory decombination failed: {str(e)}")
+
+            elif self.path == '/api/concept/predict':
+                try:
+                    content_len = int(self.headers.get('Content-Length', 0))
+                    post_body = self.rfile.read(content_len) if content_len > 0 else b'{}'
+                    data = json.loads(post_body.decode('utf-8')) if post_body else {}
+                    num_steps = int(data.get('steps', 1))
+                    context_type = data.get('context_type', 'default')
+                    input_text = data.get('text', '')
+
+                    if input_text:
+                        state = ENGINE._text_to_tensor(input_text)
+                    elif 'state' in data and data['state']:
+                        state = torch.tensor(data['state'], dtype=torch.float32, device=ENGINE.device)
+                        if state.dim() == 1:
+                            state = state.unsqueeze(0)
+                    else:
+                        state = ENGINE.meta_state.clone()
+
+                    trajectory = ENGINE._temporal_trainer.predict_concept_trajectory(
+                        current_state=state,
+                        num_steps=num_steps,
+                        context_type=context_type
+                    )
+
+                    garden_diag = {}
+                    if hasattr(ENGINE, 'garden_orchestrator') and ENGINE.garden_orchestrator is not None:
+                        garden_out = ENGINE.garden_orchestrator.evolve_garden(state)
+                        garden_diag = {
+                            'resonance_lock': bool(garden_out.get('resonance_lock', False)),
+                            'resonance_strength': float(garden_out.get('resonance_strength', torch.tensor(0.0)).mean().item()),
+                            'entropy': float(garden_out.get('entropy', torch.tensor(0.0)).mean().item())
+                        }
+
+                    audience_coords = []
+                    if hasattr(ENGINE, 'audience_mapper') and ENGINE.audience_mapper is not None:
+                        for step_info in trajectory:
+                            emb = torch.tensor(step_info['embedding'], dtype=torch.float32, device=ENGINE.device).unsqueeze(0)
+                            proj = ENGINE.audience_mapper(emb)
+                            audience_coords.append(proj.detach().cpu().squeeze().tolist()[:8])
+
+                    self._send_json({
+                        "status": "ok",
+                        "trajectory": trajectory,
+                        "audience_projections": audience_coords,
+                        "attractor_dynamics": garden_diag
+                    })
+                except Exception as e:
+                    self._send_error_json(f"Concept prediction failed: {str(e)}")
 
             else:
                 self.send_error(404)
