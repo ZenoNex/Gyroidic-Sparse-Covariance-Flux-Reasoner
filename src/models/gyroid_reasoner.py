@@ -139,8 +139,11 @@ class GyroidicFluxReasoner(nn.Module):
         super().__init__()
         
         self.engine = None
-        if HAS_TAILSLAYER and has_headroom():
-            self.engine = SiliconSovereigntyEngine()
+        if HAS_TAILSLAYER:
+            try:
+                self.engine = SiliconSovereigntyEngine()
+            except Exception as e:
+                self.engine = None
             
         # --- FORCED REPAIR INJECTION ---
         self.device = DEVICE
@@ -357,6 +360,10 @@ class GyroidicFluxReasoner(nn.Module):
         # Phase 4: Universal Orchestration (Deep Dynamics)
         from src.core.orchestrator import UniversalOrchestrator
         self.orchestrator = UniversalOrchestrator(dim=hidden_dim)
+        if self.engine is not None:
+            self.orchestrator.silicon_engine = self.engine
+            if hasattr(self.orchestrator, 'curvature_ledger'):
+                self.orchestrator.curvature_ledger.silicon_engine = self.engine
 
         # Phase 1: Garbled Output Repair System
         self.spectral_coherence_corrector = SpectralCoherenceCorrector(device=device)
