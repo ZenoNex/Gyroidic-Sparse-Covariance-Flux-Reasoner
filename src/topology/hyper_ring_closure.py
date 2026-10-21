@@ -23,6 +23,7 @@ from typing import Tuple, Optional, Dict, Union
 import numpy as np
 
 from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine, PYOPENCL_AVAILABLE
+from src.core.invariants import PHI
 import math
 
 
@@ -295,7 +296,7 @@ class HyperRingClosureChecker(nn.Module):
             # We treat the hyper_ring as the incoming flux (state_j) and constraint_manifold as state_i
             # We use Fixed Irrational Tick Rates (e.g. sqrt(2), phi)
             omega_i = math.sqrt(2)
-            omega_j = (1.0 + math.sqrt(5)) / 2.0  # Golden ratio
+            omega_j = PHI  # Golden ratio from canonical invariants
             t_pseudo = torch.norm(constraint_manifold).item()  # Pseudo-time metric
             
             # Delegate to PyOpenCL Bouligand intersection
