@@ -236,6 +236,8 @@ class UniversalOrchestrator(nn.Module):
         self.red_team_projector = RedTeamProjection(hidden_dim=dim)
         self.topological_refusal = TopologicalRefusalFilter(value_gap_threshold=0.5)
         self.quantum_betti = QuantumBettiApproximator()
+        from src.topology.speculative_homology import SpeculativeHomologyEngine
+        self.speculative_homology = SpeculativeHomologyEngine(feature_dim=dim)
         self.audience_projector = AudienceProjection(input_dim=dim, audience_dim=dim)
         
         # 6a. Recurrent Core / Feature Scar Cell (Dynamic Polymorphic Cell Factory)
@@ -331,12 +333,16 @@ class UniversalOrchestrator(nn.Module):
         self.narrative_monitor = LinguisticEntropyMonitor(device=str(_device))
         
         # 7.23 Silicon-Fused 8x8 Boundary Curvature Ledger
+        from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine, PYOPENCL_AVAILABLE
+        if not hasattr(self, 'silicon_engine'):
+            self.silicon_engine = SiliconSovereigntyEngine() if PYOPENCL_AVAILABLE else None
         from src.core.hessian_8x8_curvature_ledger import Hessian8x8CurvatureLedger
         self.curvature_ledger = Hessian8x8CurvatureLedger(dim=8, sovereignty_engine=getattr(self, 'silicon_engine', None))
         
         # 7.24 Hybrid Physics Backend (Multi-Modal Spatial, Financial & Scientific Streams)
         from src.ui.diegetic_backend import HybridPhysicsBackend
         self.hybrid_backend = HybridPhysicsBackend(state_dim=dim)
+        self.hybrid_backend.bind_engine(self)
         
         # 7.25 Surgical Handle-Attachment & Topological Parity Probe
         from src.codec.vision_surgery import IntercosaminationOperator, MirrorTestProbe
