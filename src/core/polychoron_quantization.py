@@ -10,6 +10,7 @@ import torch.nn as nn
 import numpy as np
 from itertools import permutations, product
 from typing import Dict, Optional
+from src.core.invariants import PHI
 
 
 class Polychoron600Quantizer(nn.Module):
@@ -22,7 +23,7 @@ class Polychoron600Quantizer(nn.Module):
 
     def _generate_600_cell_vertices(self) -> torch.Tensor:
         """Generates the 120 vertices of the 600-cell."""
-        phi = (1 + 5**0.5) / 2
+        phi = float(PHI)
         vertices = []
 
         # 1. 8 permutations of (+-1, 0, 0, 0)
