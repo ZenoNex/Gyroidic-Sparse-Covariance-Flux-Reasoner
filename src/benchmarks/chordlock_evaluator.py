@@ -12,7 +12,7 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 from src.optimization.codes_driver import CODES, CODESDriver
-from src.core.invariants import PrimeResonanceLadder
+from src.core.invariants import PrimeResonanceLadder, PHI_RECIPROCAL
 from src.core.fgrt_primitives import CoherentPrimeResonance
 from src.surrogates.kagh_networks import TrigonometricUnfolding
 
@@ -36,7 +36,7 @@ class ChordlockEvaluator:
         self.device = device
         self.codes = CODES(state_dim=state_dim)
         self.ladder = PrimeResonanceLadder(num_resonators=max(state_dim, 8))
-        self.cpr = CoherentPrimeResonance(theta_cpr=0.618, num_primes=min(state_dim, 20))
+        self.cpr = CoherentPrimeResonance(theta_cpr=PHI_RECIPROCAL, num_primes=min(state_dim, 20))
 
     def evaluate_chordlock_identity(self) -> Tuple[bool, float]:
         """Verify chordlock projection preserves shape and anchors resonant signals."""
