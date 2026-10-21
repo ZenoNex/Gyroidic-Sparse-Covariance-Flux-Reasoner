@@ -412,37 +412,21 @@ class HybridLassoQuantizer(nn.Module):
         self.levels = levels
         self.lasso_lambda = lasso_lambda
         
-        # Meta Polytope Basis (Polynomial Lattice) - NO PRIME GENERATION (anti-lobotomy)
         if prime_basis is None:
-            # Generate polynomial-based lattice using Chebyshev polynomial coefficients
-            import math
+            # Generate polynomial-based lattice using canonical Chebyshev PolynomialBasis
+            from src.core.polynomial_coprime import PolynomialBasis
             def get_polynomial_basis(n):
                 """Generate polynomial basis coefficients instead of primes."""
                 if n in _POLYNOMIAL_BASIS_CACHE:
                     return _POLYNOMIAL_BASIS_CACHE[n]
+                poly_basis = PolynomialBasis(degree=max(1, n - 1), basis_type='chebyshev', domain=(-1.0, 1.0))
+                x_eval = torch.tensor([0.3 + 0.1 * k for k in range(n)], dtype=torch.float32)
+                T_matrix = poly_basis.evaluate(x_eval)  # [n, dim]
                 basis = []
                 for k in range(n):
-                    # Use Chebyshev polynomial T_k evaluated at multiple points
-                    # and take the coefficient magnitudes
-                    x = 0.3 + 0.1 * k  # Varying evaluation points
-                    if k == 0:
-                        coeff = 1.0
-                    elif k == 1:
-                        coeff = x
-                    else:
-                        # T_k(x) = 2*x*T_{k-1}(x) - T_{k-2}(x)
-                        t_prev2 = 1.0
-                        t_prev1 = x
-                        for j in range(2, k + 1):
-                            t_curr = 2 * x * t_prev1 - t_prev2
-                            t_prev2 = t_prev1
-                            t_prev1 = t_curr
-                        coeff = t_prev1
-                    
-                    # Scale to positive values suitable for lattice
+                    coeff = float(T_matrix[k, k].item())
                     basis_val = abs(coeff * 10) + 1
                     basis.append(basis_val)
-                
                 _POLYNOMIAL_BASIS_CACHE[n] = basis
                 return basis
             
