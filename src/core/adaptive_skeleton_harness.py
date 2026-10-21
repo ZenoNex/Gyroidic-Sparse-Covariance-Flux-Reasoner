@@ -38,6 +38,91 @@ class EnemySubtype(Enum):
     DEMIURGIC_TITAN = auto()         # Mildenhall/Caine boss archetype, multi-limbed reality-distorting dt
     FERAL_SWARM = auto()             # Theropod/quadruped chitinous scavenger, flocking vector fields
 
+class InhibitionStabilizedTopologicalNetwork(nn.Module):
+    """
+    Inhibition-Stabilized Topological Network (ISN) for Non-Dual Archetypal Manifestation.
+    
+    Replaces Caine's top-down hard precision spikes with continuous, bioplausible
+    Excitatory-Inhibitory (E/I) balance. Archetypes (physical posture and verbal larynx expression)
+    emerge as stable topological solitons within the Bouligand contingent cone.
+    
+    Differential Equations:
+      dE/dt = -E + relu(W_ee * E - W_ei * I + S_ext)
+      dI/dt = -I + relu(W_ie * E - W_ii * I + S_inh)
+      dd/dt = D * del^2(d) + alpha * V_gyroid - beta * d (Defect propagation)
+      
+    In the ISN regime (W_ee > 1), positive feedback would cause runaway explosion
+    were it not for strong recurrent inhibition (W_ei, W_ie). This dynamic balance
+    allows archetypal traits to shimmer, adapt, and speak without rigid snapping.
+    """
+    def __init__(
+        self,
+        num_archetypes: int = 7,
+        state_dim: int = 32,
+        w_ee: float = 1.45,
+        w_ei: float = 1.25,
+        w_ie: float = 1.15,
+        w_ii: float = 0.85,
+        diffusion_d: float = 0.15,
+        device: str = "cpu"
+    ):
+        super().__init__()
+        self.num_archetypes = num_archetypes
+        self.state_dim = state_dim
+        self.device = device
+        
+        # Recurrent E/I coupling weights
+        self.w_ee = nn.Parameter(torch.tensor(w_ee, device=device))
+        self.w_ei = nn.Parameter(torch.tensor(w_ei, device=device))
+        self.w_ie = nn.Parameter(torch.tensor(w_ie, device=device))
+        self.w_ii = nn.Parameter(torch.tensor(w_ii, device=device))
+        
+        # State tracking: Excitation (posture/volume) and Inhibition (boundary tension/restraint)
+        self.register_buffer("excitation", torch.ones(num_archetypes, device=device) * 0.2)
+        self.register_buffer("inhibition", torch.ones(num_archetypes, device=device) * 0.2)
+        self.register_buffer("defect_density", torch.zeros(num_archetypes, device=device))
+        
+        self.diffusion_d = diffusion_d
+        
+    def step(
+        self,
+        external_stimulus: Optional[torch.Tensor] = None,
+        gyroid_potential: float = 0.1,
+        dt: float = 0.05
+    ) -> Dict[str, torch.Tensor]:
+        if external_stimulus is None:
+            external_stimulus = torch.zeros(self.num_archetypes, device=self.device)
+        elif external_stimulus.dim() > 1:
+            external_stimulus = external_stimulus.mean(dim=list(range(external_stimulus.dim() - 1)))
+        if external_stimulus.shape[0] != self.num_archetypes:
+            external_stimulus = torch.nn.functional.pad(
+                external_stimulus[:self.num_archetypes],
+                (0, max(0, self.num_archetypes - external_stimulus.shape[0]))
+            )
+            
+        e = self.excitation
+        i = self.inhibition
+        
+        # Continuous ISN integration step
+        de_dt = -e + torch.relu(self.w_ee * e - self.w_ei * i + external_stimulus)
+        di_dt = -i + torch.relu(self.w_ie * e - self.w_ii * i + external_stimulus * 0.5)
+        
+        self.excitation = torch.clamp(e + de_dt * dt, min=0.01, max=10.0)
+        self.inhibition = torch.clamp(i + di_dt * dt, min=0.01, max=10.0)
+        
+        # Defect diffusion PDE: dd/dt = D * del^2(d) + alpha * V_gyroid - beta * d
+        laplacian_d = external_stimulus * 0.5 - self.defect_density
+        dd_dt = self.diffusion_d * laplacian_d + 0.1 * gyroid_potential - 0.05 * self.defect_density
+        self.defect_density = torch.clamp(self.defect_density + dd_dt * dt, min=0.0, max=5.0)
+        
+        return {
+            "excitation": self.excitation.clone(),
+            "inhibition": self.inhibition.clone(),
+            "defect_density": self.defect_density.clone(),
+            "ei_ratio": (self.excitation / (self.inhibition + 1e-6)).clone()
+        }
+
+
 class AdaptiveSkeletonHarness(nn.Module):
     """
     The Adaptive Skeleton Harness is responsible for the procedural generation
@@ -49,6 +134,8 @@ class AdaptiveSkeletonHarness(nn.Module):
     3. Bostick-style Garden Attractors for mapping psychological affordances.
     4. Leontief Governor for hardware stress monitoring and P2P mesh defense.
     5. Access hooks for the 13+ Endogenous One-Shot Adaptation systems.
+    6. Inhibition-Stabilized Topological Network (ISN) for non-dual archetypal emergence.
+    7. Morton stream PAL/NTSC-style color subcarrier modulation of ResonanceLarynx and ModularAttention.
     """
 
     def __init__(self, state_dim: int, device: str = "cpu", fossilizer: Optional[Any] = None):
@@ -97,6 +184,18 @@ class AdaptiveSkeletonHarness(nn.Module):
         # Conjugate Moment Transport for OKLab Log-Cholesky perceptual moment fields
         from src.core.conjugate_moment_transport import ConjugateMomentTransport
         self.moment_transport = ConjugateMomentTransport(dim=state_dim)
+
+        # Archetypal Inhibition-Stabilized Network (ISN, replaces Caine hard precision snapping)
+        self.archetypal_isn = InhibitionStabilizedTopologicalNetwork(
+            num_archetypes=7,
+            state_dim=state_dim,
+            device=device
+        )
+
+        # Diegetic Larynx (verbal phonemic expression) & Modular Attention (cognitive focus)
+        self.larynx: Optional[Any] = None
+        self.modular_attention: Optional[Any] = None
+        self.last_subcarrier_telemetry: Dict[str, Any] = {}
 
         self.last_rig_telemetry: Dict[str, Any] = {}
 
@@ -275,11 +374,15 @@ class AdaptiveSkeletonHarness(nn.Module):
         admr_transition_matrices: Optional[torch.Tensor] = None,
         community_peer_id: Optional[str] = None,
         ambulatory_class: AmbulatoryClass = AmbulatoryClass.BIPED,
-        enemy_subtype: EnemySubtype = EnemySubtype.NONE
+        enemy_subtype: EnemySubtype = EnemySubtype.NONE,
+        larynx_state: Optional[torch.Tensor] = None,
+        attention_weights: Optional[torch.Tensor] = None,
+        modulate_morton_subcarrier: bool = False
     ) -> Optional[torch.Tensor]:
         """
         Generates a composite skeleton coordinate via the Ganbreeder Vector Stacker,
-        incorporating psychological attractors and enemy subtype morphology.
+        incorporating psychological attractors, enemy subtype morphology,
+        and continuous Inhibition-Stabilized Network (ISN) balance.
         """
         if admr_transition_matrices is None:
             # Dampened identity: intermediate consumption must have spectral radius rho < 1
@@ -372,6 +475,12 @@ class AdaptiveSkeletonHarness(nn.Module):
         if composite_target.shape[0] == 1 and demand_vector.dim() == 1:
             composite_target = composite_target.squeeze(0)
 
+        # --- PHASE 2.55: Archetypal Inhibition-Stabilized Network (ISN) Stepping ---
+        isn_metrics = self.archetypal_isn.step(
+            external_stimulus=composite_target.detach().abs().mean().unsqueeze(0),
+            dt=dt
+        )
+
         # --- PHASE 2.6: Compute Affordance Gating & Agent Smith Fossil Retrieval ---
         # Gated by local RAM/CPU stress and collective P2P network affordance
         affordance = self.evaluate_compute_affordance()
@@ -405,6 +514,17 @@ class AdaptiveSkeletonHarness(nn.Module):
         # --- PHASE 3: Bouligand Tangent Cone & Base Mesh Smoothing ---
         composite_target = self._inject_kanlayer_micro_wave(composite_target)
         projected_skeleton = self._apply_bouligand_projection(composite_target)
+
+        # Optional PAL/NTSC subcarrier modulation (voice larynx + cognitive attention)
+        subcarrier_packet = None
+        if modulate_morton_subcarrier or larynx_state is not None or attention_weights is not None:
+            subcarrier_packet = self.modulate_larynx_attention_morton_stream(
+                skeleton_tensor=projected_skeleton,
+                larynx_state=larynx_state,
+                attention_weights=attention_weights
+            )
+            projected_skeleton = subcarrier_packet["composite_coords"]
+            morton_keys = subcarrier_packet["morton_keys"]
         
         # Cache live telemetry for downstream Voxelboxter compilation & diagnostic tracking
         self.last_rig_telemetry = {
@@ -412,7 +532,9 @@ class AdaptiveSkeletonHarness(nn.Module):
             "fossil_telemetry": fossil_data,
             "compute_affordance": affordance,
             "ambulatory_class": ambulatory_class,
-            "enemy_subtype": enemy_subtype
+            "enemy_subtype": enemy_subtype,
+            "isn_telemetry": isn_metrics,
+            "subcarrier_stream": subcarrier_packet
         }
         
         return projected_skeleton
@@ -693,12 +815,16 @@ class AdaptiveSkeletonHarness(nn.Module):
         difficulty_scale: float = 1.0,
         bone_ratio: float = 0.8,
         skeleton_override: Optional[torch.Tensor] = None,
-        weights: Optional[Dict[str, float]] = None
+        weights: Optional[Dict[str, float]] = None,
+        larynx_state: Optional[torch.Tensor] = None,
+        attention_weights: Optional[torch.Tensor] = None,
+        modulate_morton_subcarrier: bool = False
     ) -> Dict[str, Any]:
         """
         End-to-end bridge: Compiles the adaptive skeleton into a complete
         Voxelboxter Construct (StructuralGraph + RigidBody) with Wager #2 80/20
-        fossilization split, Morton octree keys, and Agent Smith rehydration telemetry.
+        fossilization split, Morton octree keys, Agent Smith rehydration telemetry,
+        and optional PAL-style larynx/attention subcarrier stream.
         """
         if skeleton_override is not None:
             skeleton = skeleton_override
@@ -707,16 +833,23 @@ class AdaptiveSkeletonHarness(nn.Module):
             skeleton = self.build_superposed_rig(
                 weights=tag_weights,
                 ambulatory_class=ambulatory_class,
-                enemy_subtype=enemy_subtype
+                enemy_subtype=enemy_subtype,
+                larynx_state=larynx_state,
+                attention_weights=attention_weights,
+                modulate_morton_subcarrier=modulate_morton_subcarrier
             )
             if skeleton is None:
                 skeleton = self.forward(harvest_honest_jitter((self.state_dim,), device=self.device, scaled=True) * 10.0)
 
         morton_keys = []
         fossil_info = {}
+        isn_info = {}
+        subcarrier_info = None
         if hasattr(self, "last_rig_telemetry") and self.last_rig_telemetry:
             morton_keys = self.last_rig_telemetry.get("morton_codes", [])
             fossil_info = self.last_rig_telemetry.get("fossil_telemetry", {})
+            isn_info = self.last_rig_telemetry.get("isn_telemetry", {})
+            subcarrier_info = self.last_rig_telemetry.get("subcarrier_stream")
         if not morton_keys:
             _, morton_keys = self.apply_multidimensional_gauge_functional(skeleton)
 
@@ -742,6 +875,8 @@ class AdaptiveSkeletonHarness(nn.Module):
             "morton_codes": morton_keys,
             "fossil_split": fossil_split,
             "fossil_telemetry": fossil_info,
+            "isn_telemetry": isn_info,
+            "subcarrier_stream": subcarrier_info,
             "bone_blocks": len(graph.bone_blocks),
             "flesh_blocks": len(graph.flesh_blocks),
             "total_blocks": len(graph.blocks)
@@ -851,3 +986,195 @@ class AdaptiveSkeletonHarness(nn.Module):
         """Passes raw geometric coordinates through the harness."""
         x = self._inject_kanlayer_micro_wave(input_coordinates)
         return self._apply_bouligand_projection(x)
+
+    def bind_larynx(self, larynx: Any):
+        """Binds an instance of ResonanceLarynx to the skeleton harness."""
+        self.larynx = larynx
+
+    def bind_modular_attention(self, attention: Any):
+        """Binds an instance of ModularAttention to the skeleton harness."""
+        self.modular_attention = attention
+
+    def get_or_create_larynx(self) -> Any:
+        """Retrieves or creates the canonical ResonanceLarynx instance for vocal resonance."""
+        if self.larynx is None:
+            from src.models.diegetic_heads import ResonanceLarynx
+            self.larynx = ResonanceLarynx(hidden_dim=self.state_dim).to(self.device)
+        return self.larynx
+
+    def get_or_create_modular_attention(self) -> Any:
+        """Retrieves or creates the canonical ModularAttention instance for cognitive focus."""
+        if self.modular_attention is None:
+            from src.models.modular_attention import ModularAttention
+            from src.core.polynomial_coprime import PolynomialCoprimeConfig
+            poly_cfg = PolynomialCoprimeConfig(moduli=[2, 3, 5, 17, 41])
+            heads = 4 if self.state_dim % 4 == 0 else 1
+            self.modular_attention = ModularAttention(
+                hidden_dim=self.state_dim,
+                num_heads=heads,
+                poly_config=poly_cfg,
+                num_functionals=min(5, max(2, self.state_dim // 8))
+            ).to(self.device)
+        return self.modular_attention
+
+    def modulate_larynx_attention_morton_stream(
+        self,
+        skeleton_tensor: torch.Tensor,
+        larynx_state: Optional[torch.Tensor] = None,
+        attention_weights: Optional[torch.Tensor] = None,
+        carrier_freq: Optional[float] = None,
+        subcarrier_gain: float = 0.05
+    ) -> Dict[str, Any]:
+        """
+        Multiplexes verbal voice resonance (ResonanceLarynx) and cognitive attention (ModularAttention)
+        onto the Morton-encoded spatial skeleton stream, directly analogous to the PAL/NTSC color
+        subcarrier (chrominance quadrature phase modulation) multiplexed over the luminance signal.
+
+        Luminance (Y):
+          Baseband continuous skeletal coordinates and discrete 3D Morton Z-order curve keys.
+        Chrominance (U, V):
+          U: Phonemic spectral overtones from ResonanceLarynx.
+          V: Multi-field attention focus from ModularAttention.
+          Carrier: High-frequency Bouligand micro-wave omega_micro = 137.0.
+          PAL Phase Alternation: V-phase alternates by 180 degrees every consecutive Morton step
+          ((-1)^k) to cancel out spatial phase distortion along winding octree trajectories.
+        Bouligand Tangent Cone Projection:
+          Projects the modulated subcarrier onto the contingent cone to ensure exact
+          Lipschitz-continuity without DRAM or bus stalls.
+        Backward Compatibility:
+          Low-order spatial consumers (collision detection, rigid-body physics) average out
+          the high-frequency subcarrier, perceiving uncorrupted base geometry.
+        """
+        device = skeleton_tensor.device
+        dim = skeleton_tensor.shape[-1]
+        omega = carrier_freq if carrier_freq is not None else self.omega_micro
+
+        # 1. Step the archetypal ISN to establish the organic E/I balance (posture & voice volume)
+        isn_metrics = self.archetypal_isn.step(
+            external_stimulus=skeleton_tensor.detach().abs().mean().unsqueeze(0)
+        )
+        ei_ratio = float(isn_metrics["ei_ratio"].mean().item())
+        effective_gain = subcarrier_gain * math.tanh(ei_ratio)
+
+        # 2. Extract or synthesize U (Larynx phonemic resonance)
+        if larynx_state is None:
+            lx = self.get_or_create_larynx()
+            with torch.no_grad():
+                l_inp = skeleton_tensor.view(-1, dim)
+                pred_larynx, conf = lx.forward(l_inp)
+                u_signal = pred_larynx.view_as(skeleton_tensor)
+        else:
+            u_signal = larynx_state.to(device)
+            if u_signal.shape[-1] != dim:
+                u_signal = self._symmetry_preserving_reshape(u_signal, dim)
+
+        # 3. Extract or synthesize V (Modular Attention focus)
+        if attention_weights is None:
+            attn = self.get_or_create_modular_attention()
+            with torch.no_grad():
+                a_inp = skeleton_tensor.view(1, -1, dim)
+                q_proj = attn.field_projections[0]['Q'](a_inp).view_as(skeleton_tensor)
+                v_signal = q_proj
+        else:
+            v_signal = attention_weights.to(device)
+            if v_signal.shape[-1] != dim:
+                v_signal = self._symmetry_preserving_reshape(v_signal, dim)
+
+        # 4. Generate Morton Z-order curve keys for base spatial skeleton (Luminance Y)
+        morton_keys = []
+        with torch.no_grad():
+            flat = skeleton_tensor.detach().cpu().flatten()
+            for i in range(0, max(3, len(flat) - 2), 3):
+                x_val = int(round(flat[i % len(flat)].item() * 5.0)) & 0x3FF
+                y_val = int(round(flat[(i + 1) % len(flat)].item() * 5.0)) & 0x3FF
+                z_val = int(round(flat[(i + 2) % len(flat)].item() * 5.0)) & 0x3FF
+                code = morton_encode(x_val, y_val, z_val)
+                morton_keys.append(code)
+
+        # 5. Modulate U and V onto high-frequency Bouligand carrier with PAL phase alternation
+        k_indices = torch.arange(dim, device=device, dtype=torch.float32)
+        carrier_sin = torch.sin(omega * (k_indices + 1.0))
+        pal_switch = torch.where(k_indices % 2 == 0, 1.0, -1.0)
+        carrier_cos = torch.cos(omega * (k_indices + 1.0)) * pal_switch
+
+        chrominance = u_signal * carrier_sin + v_signal * carrier_cos
+
+        # Project subcarrier onto Bouligand Tangent Cone
+        projected_chrominance = self._apply_bouligand_projection(chrominance)
+
+        # Multiplex into composite stream: X_multiplexed = Y + gain * C_tilde
+        composite_coords = skeleton_tensor + effective_gain * projected_chrominance
+
+        telemetry = {
+            "morton_keys": morton_keys,
+            "composite_coords": composite_coords,
+            "luminance_skeleton": skeleton_tensor.clone(),
+            "u_larynx": u_signal.clone(),
+            "v_attention": v_signal.clone(),
+            "carrier_frequency": omega,
+            "subcarrier_gain": effective_gain,
+            "isn_metrics": isn_metrics,
+            "pal_alternation": True
+        }
+        self.last_subcarrier_telemetry = telemetry
+        return telemetry
+
+    def demodulate_morton_stream(
+        self,
+        stream_packet: Dict[str, Any],
+        filter_window: int = 3
+    ) -> Dict[str, Any]:
+        """
+        Demodulates a composite Morton stream packet (recovering Luminance skeleton,
+        Larynx phonemes, and Modular Attention focus), exactly analogous to a color TV
+        demodulating PAL subcarriers.
+        """
+        composite = stream_packet["composite_coords"]
+        omega = stream_packet.get("carrier_frequency", self.omega_micro)
+        gain = stream_packet.get("subcarrier_gain", 0.05)
+        device = composite.device
+        dim = composite.shape[-1]
+
+        k_indices = torch.arange(dim, device=device, dtype=torch.float32)
+        carrier_sin = torch.sin(omega * (k_indices + 1.0))
+        pal_switch = torch.where(k_indices % 2 == 0, 1.0, -1.0)
+        carrier_cos = torch.cos(omega * (k_indices + 1.0)) * pal_switch
+
+        high_freq_extract = (composite - stream_packet["luminance_skeleton"]) / max(1e-6, gain)
+        
+        recovered_u = high_freq_extract * carrier_sin * 2.0
+        recovered_v = high_freq_extract * carrier_cos * 2.0
+
+        if filter_window > 1 and dim >= filter_window:
+            pad = filter_window // 2
+            u_shape = recovered_u.shape
+            v_shape = recovered_v.shape
+            u_flat = recovered_u.view(-1, 1, dim)
+            v_flat = recovered_v.view(-1, 1, dim)
+            u_padded = torch.nn.functional.pad(u_flat, (pad, pad), mode='replicate')
+            v_padded = torch.nn.functional.pad(v_flat, (pad, pad), mode='replicate')
+            kernel = torch.ones(1, 1, filter_window, device=device) / float(filter_window)
+            recovered_u = torch.nn.functional.conv1d(u_padded, kernel).view(u_shape)
+            recovered_v = torch.nn.functional.conv1d(v_padded, kernel).view(v_shape)
+
+        # In PAL television reception, the decoded chrominance is subtracted from the composite
+        # signal to recover clean luminance without high-frequency subcarrier dot crawl:
+        reconstructed_subcarrier = (recovered_u * carrier_sin + recovered_v * carrier_cos) * 0.5
+        recovered_luminance = composite - gain * reconstructed_subcarrier
+
+        demod_fidelity = float(torch.cosine_similarity(
+            recovered_luminance.flatten().unsqueeze(0),
+            stream_packet["luminance_skeleton"].flatten().unsqueeze(0)
+        ).item())
+        backward_compat_fidelity = float(torch.cosine_similarity(
+            composite.flatten().unsqueeze(0),
+            stream_packet["luminance_skeleton"].flatten().unsqueeze(0)
+        ).item())
+
+        return {
+            "recovered_luminance": recovered_luminance,
+            "recovered_u_larynx": recovered_u,
+            "recovered_v_attention": recovered_v,
+            "demodulation_fidelity": demod_fidelity,
+            "backward_compatibility_fidelity": backward_compat_fidelity
+        }
