@@ -226,10 +226,17 @@ class HypergraphOrthogonalityPressure(nn.Module):
             
         return h_sum / len(subsets)
 
-class RootPersistencePressure(nn.Module):
+class TopologicalNoveltyDispersion(nn.Module):
     """
-    Topological Co-Primality via Root Persistence under Perturbation.
-    GCD = 1 (Co-prime) if zero-crossings do not persist jointly.
+    Topological Co-Primality via Lawful Novelty Dispersion.
+    (Formerly mistranslated as 'Root Persistence Pressure').
+    
+    Per CODES v40 Section 16.4.1 & 51.3:
+    Intelligence achieves co-primality not through stochastic 'persistence pressure', but through 
+    Lawful Novelty (PAS_zeta, bounded creative drift). When functionals are perturbed with honest silicon jitter,
+    independent channels disperse zero-crossings rather than collapsing into degenerate shared roots.
+    
+    Zero shared persistent zero-crossings -> High Lawful Novelty -> Polynomial GCD = 1 (mutually co-prime).
     """
     def __init__(self, perturbation_scale: float = 0.01):
         super().__init__()
@@ -237,14 +244,13 @@ class RootPersistencePressure(nn.Module):
         
     def forward(self, theta: torch.Tensor, basis_eval: torch.Tensor) -> torch.Tensor:
         """
-        Measure persistence of shared roots between pairwise functionals.
-        Returns a vector of obstruction pressures [K*(K-1)/2].
+        Measure obstruction to lawful novelty (redundancy / shared roots between pairwise functionals).
+        Returns a vector of novelty obstruction measures [K*(K-1)/2].
         """
         K, D = theta.shape
         phi_raw = torch.matmul(basis_eval, theta.t()) # [N, K]
         
-        # Perturb and evaluate roots
-        # SILICON SOVEREIGNTY: Replace stochastic noise with Honest Jitter
+        # Perturb and evaluate roots using Honest Silicon Jitter (no stochastic noise)
         noise = harvest_honest_jitter(theta.shape, device=theta.device, scaled=True) * self.perturbation_scale
         phi_perturbed = torch.matmul(basis_eval, (theta + noise).t())
         
@@ -252,7 +258,7 @@ class RootPersistencePressure(nn.Module):
         crossings = (phi_raw[:-1] * phi_raw[1:] < 0).float()
         crossings_p = (phi_perturbed[:-1] * phi_perturbed[1:] < 0).float()
         
-        # Persistent Crossings (Shared roots across perturbation)
+        # Persistent Crossings (Shared roots across perturbation -> obstruction to novelty)
         persistence = crossings * crossings_p
         
         pressures = []
@@ -263,6 +269,10 @@ class RootPersistencePressure(nn.Module):
             pressures.append(shared)
             
         return torch.stack(pressures)
+
+
+# Canonical alias preserving full backward compatibility
+RootPersistencePressure = TopologicalNoveltyDispersion
 
 
 class BirkhoffPolytopeSampler:
@@ -458,8 +468,8 @@ class PolynomialCoprimeConfig:
         else:
             self.orth_pressure_fn = HypergraphOrthogonalityPressure(k_order=3)
             self.quantizer = None
-            
-        self.root_persistence_fn = RootPersistencePressure()
+        self.novelty_dispersion_fn = TopologicalNoveltyDispersion()
+        self.root_persistence_fn = self.novelty_dispersion_fn  # Backwards compatibility alias
         self.continuous_coprime = ContinuousCoprimality()
         
         # Enforce Chirality (Bostick, 2025)
@@ -530,13 +540,21 @@ class PolynomialCoprimeConfig:
         phi = self.evaluate(x)
         return self.continuous_coprime(phi.t())
 
-    def co_primality_pressure(self) -> torch.Tensor:
+    def lawful_novelty_dispersion(self) -> torch.Tensor:
         """
-        Returns Vectorized Root Persistence Pressure (Topological Co-primality).
+        Returns Vectorized Lawful Novelty Dispersion (Topological Co-primality).
+        Canonical CODES v40 replacement for 'co_primality_pressure' / 'root persistence pressure'.
         """
         x = torch.linspace(-1, 1, 100, device=self.device)
         basis = self.basis.evaluate(x)
-        return self.root_persistence_fn(self.theta, basis)
+        return self.novelty_dispersion_fn(self.theta, basis)
+
+    def co_primality_pressure(self) -> torch.Tensor:
+        """
+        Returns Vectorized Root Persistence Pressure (Topological Co-primality).
+        Maintained as a backwards-compatibility alias for lawful_novelty_dispersion().
+        """
+        return self.lawful_novelty_dispersion()
     
     def mutate(self, berkoff_mode: bool = False, twist_strength: float = 0.05):
         """
