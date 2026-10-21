@@ -30,11 +30,15 @@ Prerequisites: Microsoft Visual C++ 2022 Redistributable, RustRover / Rust toolc
 cd "d:\programming\python\Gyroidic Sparse Covariance Flux Reasoner"
 ```
 
-### 3. Activate Virtual Environment
+### 3. create the Virtual Environment
 Always execute Python files using the project virtual environment.
 
 **Windows (PowerShell / Command Prompt):**
 ```powershell
+
+# Create env
+python -m venv .venv
+
 # Activate venv
 .venv\Scripts\activate
 
