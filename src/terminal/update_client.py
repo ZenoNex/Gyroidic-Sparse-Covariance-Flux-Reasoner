@@ -82,8 +82,9 @@ def compute_diff(staging_root, local_root):
         "removed_remote": [] # Orphan local files not in remote
     }
     
-    # We only care about src and docs for now to protect the environment and root config.
+    # We track src, docs, and dependency configuration files
     target_dirs = ["src", "docs"]
+    target_files = ["requirements.txt"]
     
     # Check what remote has vs local
     for target in target_dirs:
@@ -102,6 +103,16 @@ def compute_diff(staging_root, local_root):
                 else:
                     if hash_file(remote_path) != hash_file(local_path):
                         diff["modified"].append((rel_path, remote_path))
+
+    # Check top-level dependency files
+    for f in target_files:
+        remote_f = os.path.join(staging_root, f)
+        local_f = os.path.join(local_root, f)
+        if os.path.exists(remote_f):
+            if not os.path.exists(local_f):
+                diff["new"].append((f, remote_f))
+            elif hash_file(remote_f) != hash_file(local_f):
+                diff["modified"].append((f, remote_f))
                         
     # Identify local orphans (files we have that remote doesn't)
     for target in target_dirs:
@@ -125,6 +136,19 @@ def compute_diff(staging_root, local_root):
                     
     return diff
 
+def sync_pip_dependencies(local_root):
+    """Auto-install or upgrade python dependencies when requirements.txt changes."""
+    req_path = os.path.join(local_root, "requirements.txt")
+    if not os.path.exists(req_path):
+        return
+    print("\n[UPDATER] Synchronizing Python environment packages with updated requirements.txt...")
+    try:
+        import subprocess
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", req_path])
+        print("[UPDATER] [OK] Python dependencies successfully installed.\n")
+    except Exception as e:
+        print(f"[UPDATER] [!] Warning: Failed to install python dependencies automatically: {e}\n")
+
 def interactive_prompt(diff, local_root):
     """Prompt the user for each file to ensure no accidental downgrades."""
     print("\n" + "="*50)
@@ -143,6 +167,7 @@ def interactive_prompt(diff, local_root):
     print("[!] CAUTION: Selecting individual files to update risks manifold fragmentation and system stability.")
     print("[!] Ensure you maintain consistency across the codebase.")
     
+    requirements_applied = False
     for category, prefix in [("new", "[NEW]"), ("modified", "[MOD]")]:
         for rel_path, remote_path in diff[category]:
             local_path = os.path.join(local_root, rel_path)
@@ -153,12 +178,16 @@ def interactive_prompt(diff, local_root):
                     os.makedirs(os.path.dirname(local_path), exist_ok=True)
                     shutil.copy2(remote_path, local_path)
                     print(f"  -> Applied {rel_path}")
+                    if os.path.basename(rel_path) == "requirements.txt":
+                        requirements_applied = True
                     break
                 elif choice == 'n':
                     print(f"  -> Skipped {rel_path} (Local preserved)")
                     break
                 elif choice == 'q':
                     print("[*] Aborting update process. All remaining files preserved.")
+                    if requirements_applied:
+                        sync_pip_dependencies(local_root)
                     return
                 
     if diff["removed_remote"]:
@@ -168,6 +197,9 @@ def interactive_prompt(diff, local_root):
             print(f"  - {rel_path}")
         if len(diff["removed_remote"]) > 10:
             print(f"  ... and {len(diff['removed_remote']) - 10} more.")
+
+    if requirements_applied:
+        sync_pip_dependencies(local_root)
 
 def main():
     print("=== Gyroidic Update Client ===")
