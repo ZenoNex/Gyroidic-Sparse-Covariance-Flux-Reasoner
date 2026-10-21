@@ -115,10 +115,74 @@ except Exception as e:
 try:
     from dataset_ingestion_system import DatasetIngestionSystem, DatasetConfig
     DATASET_SYSTEM_AVAILABLE = True
-    print("[OK] Dataset Ingestion System imported")
 except Exception as e:
     DATASET_SYSTEM_AVAILABLE = False
     print(f"[FAIL] Dataset Ingestion System failed to import: {e}")
+
+
+def ensure_ffmpeg_binary() -> str:
+    """
+    Ensure ffmpeg executable is available in the .venv/scripts directory.
+    If missing:
+      1. Tries copying from imageio_ffmpeg (local venv bundle).
+      2. If unavailable, launches download backend from static Gyan.dev / GitHub mirrors.
+    """
+    venv_bin = os.path.dirname(sys.executable)
+    target_ffmpeg = os.path.join(venv_bin, 'ffmpeg.exe' if os.name == 'nt' else 'ffmpeg')
+    if os.path.exists(target_ffmpeg) and os.path.getsize(target_ffmpeg) > 10000:
+        return target_ffmpeg
+
+    print(f"[FFMPEG] Ensuring ffmpeg binary exists at {target_ffmpeg}...", flush=True)
+
+    # 1. Local imageio_ffmpeg copy fallback
+    try:
+        import imageio_ffmpeg
+        src_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        if src_exe and os.path.exists(src_exe):
+            import shutil
+            shutil.copy2(src_exe, target_ffmpeg)
+            print(f"[FFMPEG] Successfully copied local bundle from {src_exe} to {target_ffmpeg}", flush=True)
+            return target_ffmpeg
+    except Exception as e:
+        print(f"[FFMPEG] Local imageio_ffmpeg resolution failed ({e}); falling back to web download...", flush=True)
+
+    # 2. Web download backend fallback
+    def _download_task():
+        import io
+        import zipfile
+        import urllib.request
+        urls = [
+            "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
+            "https://github.com/GyanD/codexffmpeg/releases/download/7.1/ffmpeg-7.1-essentials_build.zip"
+        ]
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        for url in urls:
+            try:
+                print(f"[FFMPEG] Downloading static build from {url}...", flush=True)
+                req = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    if resp.status != 200:
+                        continue
+                    zip_data = resp.read()
+                with zipfile.ZipFile(io.BytesIO(zip_data)) as zf:
+                    for member in zf.namelist():
+                        if member.lower().endswith("ffmpeg.exe"):
+                            with open(target_ffmpeg, "wb") as out_f:
+                                out_f.write(zf.read(member))
+                            print(f"[FFMPEG] Successfully extracted ffmpeg to {target_ffmpeg}", flush=True)
+                            return target_ffmpeg
+            except Exception as dl_err:
+                print(f"[FFMPEG] Download attempt from {url} failed: {dl_err}", flush=True)
+        return None
+
+    try:
+        t = threading.Thread(target=_download_task, daemon=True)
+        t.start()
+        t.join(timeout=10.0)
+    except Exception as err:
+        print(f"[FFMPEG] Failed to initialize ffmpeg download: {err}", flush=True)
+
+    return target_ffmpeg
 
 
 class GovernanceManager:
@@ -3160,6 +3224,12 @@ def main():
     """Start the Gyroidic Backend with Governance and Persistence."""
     global AI_SYSTEM
     
+    # Ensure ffmpeg binary exists in .venv/scripts
+    try:
+        ensure_ffmpeg_binary()
+    except Exception as ffmpeg_err:
+        print(f"[FFMPEG] Startup check non-fatal notice: {ffmpeg_err}", flush=True)
+
     # 0. Check for Remote Updates (Assume unversioned downloads by default)
     if os.environ.get('GYROID_CHECK_UPDATES', '0') == '1':
         print("\n[UPDATER] Checking for system updates...")
