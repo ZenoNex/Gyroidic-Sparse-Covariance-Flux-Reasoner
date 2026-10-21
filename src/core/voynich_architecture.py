@@ -236,14 +236,16 @@ class VoynichLinguist(nn.Module):
         return self.pas_calculator(residues)
     def get_coprimality_pressure(self) -> Dict[str, torch.Tensor]:
         """
-        Returns the structural pressures from the polynomial coprime system.
+        Returns structural co-primality from the polynomial coprime system.
         
-        Includes orthogonality pressure and root persistence pressure,
-        which enforce that the K polynomial channels remain independent.
+        Per CODES v40, channels disperse roots to achieve Lawful Novelty rather than
+        succumbing to the literal mistranslation of 'persistence pressure'.
         """
+        novelty_disp = getattr(self.poly_config, 'lawful_novelty_dispersion', self.poly_config.co_primality_pressure)()
         return {
             'orthogonality': self.poly_config.orthogonality_pressure(),
-            'coprimality': self.poly_config.co_primality_pressure()
+            'lawful_novelty': novelty_disp,
+            'coprimality': novelty_disp  # Backwards compatibility alias
         }
 
     @staticmethod
