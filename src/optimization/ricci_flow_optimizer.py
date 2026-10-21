@@ -54,10 +54,11 @@ class RicciFlowOptimizer(Optimizer):
     Implements Ricci Flow: dg/dt = -2Ric.
     Erradicates proxies by utilizing the SplitBeamInterfactorization with the Chern-Simons gasket.
     """
-    def __init__(self, params, lr=1e-3, seam_width=0.1):
+    def __init__(self, params, lr=1e-3, seam_width=0.1, engine=None):
         defaults = dict(lr=lr, seam_width=seam_width)
         super(RicciFlowOptimizer, self).__init__(params, defaults)
-        self.split_beam = SplitBeamInterfactorization()
+        self.engine = engine
+        self.split_beam = SplitBeamInterfactorization(engine=engine)
 
     @torch.no_grad()
     def step(self, closure=None):
