@@ -223,6 +223,69 @@ class TemporalAssociationDataset:
             'concept_ids': torch.tensor([pattern for pattern in [self._honest_choice(self.temporal_patterns) for _ in range(batch_size)]])
         }
 
+    def predict_next_concept(
+        self,
+        current_state: torch.Tensor,
+        context_type: Optional[str] = None
+    ) -> Tuple[torch.Tensor, int, float]:
+        """
+        Predict the next concept embedding and ID from a given manifold or concept state.
+        
+        Args:
+            current_state: Current concept vector or manifold representation [D] or [1, D].
+            context_type: Optional context modifier ('positive', 'causal', 'spatial', etc.)
+            
+        Returns:
+            Tuple of (next_concept_embedding [768], next_concept_id, association_affinity [0, 1]).
+        """
+        c_flat = current_state.view(-1).to(self.concept_embeddings.device)
+        concept_dim = self.concept_embeddings.shape[1]
+        if c_flat.shape[0] != concept_dim:
+            if c_flat.shape[0] < concept_dim:
+                c_flat = torch.nn.functional.pad(c_flat, (0, concept_dim - c_flat.shape[0]))
+            else:
+                c_flat = c_flat[:concept_dim]
+                
+        # Find nearest current concept via cosine similarity
+        norm_c = torch.nn.functional.normalize(c_flat.unsqueeze(0), p=2, dim=-1)
+        norm_emb = torch.nn.functional.normalize(self.concept_embeddings, p=2, dim=-1)
+        sims = torch.matmul(norm_c, norm_emb.t()).squeeze(0)
+        nearest_concept_id = int(torch.argmax(sims).item())
+        
+        # Traverse association graph to find the associated next concept
+        if nearest_concept_id in self.association_graph and len(self.association_graph[nearest_concept_id]) > 0:
+            next_concept_id = self._honest_choice(self.association_graph[nearest_concept_id])
+        else:
+            next_concept_id = (nearest_concept_id + 1) % self.num_concepts
+            
+        next_embedding = self.concept_embeddings[next_concept_id].clone()
+        
+        # Apply contextual modification if requested
+        if context_type and context_type in self.contextual_modifiers:
+            modifier = self.contextual_modifiers[context_type]
+            next_embedding = torch.matmul(next_embedding.unsqueeze(0), modifier).squeeze(0)
+            
+        # Calculate transition affinity
+        norm_next = torch.nn.functional.normalize(next_embedding, p=2, dim=-1)
+        affinity = float(torch.dot(norm_c.squeeze(0), norm_next).clamp(-1.0, 1.0).item() * 0.5 + 0.5)
+        
+        return next_embedding, next_concept_id, affinity
+
+    def predict_concept_trajectory(
+        self,
+        current_state: torch.Tensor,
+        num_steps: int = 4,
+        context_type: Optional[str] = None
+    ) -> List[Tuple[torch.Tensor, int, float]]:
+        """Predict a multi-step concept trajectory through the association graph."""
+        trajectory = []
+        state = current_state
+        for _ in range(num_steps):
+            next_emb, c_id, aff = self.predict_next_concept(state, context_type=context_type)
+            trajectory.append((next_emb, c_id, aff))
+            state = next_emb
+        return trajectory
+
 
 class TemporalAssociationTrainer:
     """
@@ -242,7 +305,8 @@ class TemporalAssociationTrainer:
         learning_rate: float = 1e-4,
         trust_update_rate: float = 0.01,
         fossilization_threshold: float = 0.8,
-        device: str = None
+        device: str = None,
+        engine = None
     ):
         self.model = model
         self.dataset = dataset
@@ -251,28 +315,45 @@ class TemporalAssociationTrainer:
         self.fossilization_threshold = fossilization_threshold
         self.device = device
         
+        # Silicon Sovereignty / TailSlayer PyOpenCL Engine Binding
+        self.engine = engine or getattr(model, 'engine', None) or getattr(model, 'silicon_engine', None)
+        if self.engine is None:
+            try:
+                from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine, PYOPENCL_AVAILABLE
+                if PYOPENCL_AVAILABLE:
+                    self.engine = SiliconSovereigntyEngine(use_gpu=True)
+            except Exception:
+                self.engine = None
+        
         # [ANTI-LOBOTOMY ENFORCEMENT] Replace Adam with RicciFlowOptimizer
-        self.optimizer = RicciFlowOptimizer(
-            [p for p in model.parameters() if p.requires_grad], 
-            lr=learning_rate, seam_width=0.1
-        )
+        model_params = [p for p in model.parameters() if p.requires_grad] if (model is not None and hasattr(model, 'parameters')) else []
+        if model_params:
+            self.optimizer = RicciFlowOptimizer(
+                model_params, 
+                lr=learning_rate, seam_width=0.1,
+                engine=self.engine
+            )
+        else:
+            self.optimizer = None
 
         # Automatically enable MANDY's soft-veto training mode so cold-start
         # PAS_h (~0.013) does not cause hard zero-outs that block gradient flow.
         # Works with both DiegeticPhysicsEngine and GyroidicFluxReasoner model types.
-        self._enable_mandy_training_mode()
+        if model is not None:
+            self._enable_mandy_training_mode()
         
         self.unknowledge_domain = UnknowledgeDomain(tau_m=0.5)
         
         # Restore architectural probes erased in previous iterations
         from src.topology.unknowledge_domain import NostalgicLeakFunctional, EntropicMischiefProbe
         from src.core.nondual_admm import NonDualProbe
+        model_dim = getattr(model, 'dim', 64)
         self.mischief_probe = EntropicMischiefProbe(device=device)
         self.nondual_probe = NonDualProbe(device=device)
-        self.nostalgic_leak = NostalgicLeakFunctional(fossil_dim=model.dim, device=device)
+        self.nostalgic_leak = NostalgicLeakFunctional(fossil_dim=model_dim, device=device)
 
         # Asynchronous Bulletin Board
-        self.bulletin_board = BulletinBoard(size=model.dim, device=device)
+        self.bulletin_board = BulletinBoard(size=model_dim, device=device)
         
         # Training history
         self.training_history = {
@@ -300,6 +381,33 @@ class TemporalAssociationTrainer:
             )
         # Legacy fallback  original model interface
         return self.model(text_emb=text_emb, return_analysis=return_analysis, **kwargs)
+
+    def predict_next_concept(
+        self,
+        current_state: torch.Tensor,
+        context_type: Optional[str] = None
+    ) -> Tuple[torch.Tensor, int, float]:
+        """Delegate next concept prediction to the temporal dataset."""
+        return self.dataset.predict_next_concept(current_state, context_type=context_type)
+
+    def predict_concept_trajectory(
+        self,
+        current_state: torch.Tensor,
+        num_steps: int = 4,
+        context_type: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Delegate concept trajectory prediction to the temporal dataset, formatted as structured dicts."""
+        raw_traj = self.dataset.predict_concept_trajectory(current_state, num_steps=num_steps, context_type=context_type)
+        return [
+            {
+                "step": i + 1,
+                "concept_id": c_id,
+                "affinity": float(aff),
+                "embedding": emb.detach().cpu().squeeze().tolist() if isinstance(emb, torch.Tensor) else list(emb)
+            }
+            for i, (emb, c_id, aff) in enumerate(raw_traj)
+        ]
+
 
     def compute_association_loss(
         self, 
@@ -491,24 +599,32 @@ class TemporalAssociationTrainer:
             epsilon = 1e-4
             
             try:
-                from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
-                if getattr(self, '_gyroid_probe', None) is None or self._gyroid_probe.hidden_dim != h_dim:
-                    self._gyroid_probe = SparseGyroidCovarianceProbe(hidden_dim=h_dim).to(h_stack.device)
+                from src.topology.gyroid_covariance import GyroidCovarianceEstimator
+                if getattr(self, '_gyroid_estimator_x', None) is None or self._gyroid_estimator_x.dim != h_dim:
+                    self._gyroid_estimator_x = GyroidCovarianceEstimator(dim=h_dim).to(h_stack.device)
+                if getattr(self, '_gyroid_estimator_y', None) is None or self._gyroid_estimator_y.dim != h_dim:
+                    self._gyroid_estimator_y = GyroidCovarianceEstimator(dim=h_dim).to(h_stack.device)
                 
                 # Topologically aware Gyroidic covariance instead of crude Euclidean X^T X silos
-                self._gyroid_probe.buffer.clear()
-                self._gyroid_probe.update_buffer(X)
-                C_X = self._gyroid_probe.compute_covariance()
-                
-                self._gyroid_probe.buffer.clear()
-                self._gyroid_probe.update_buffer(Y)
-                C_Y = self._gyroid_probe.compute_covariance()
+                for row_idx in range(X.shape[0]):
+                    self._gyroid_estimator_x.update_buffer(X[row_idx])
+                    self._gyroid_estimator_y.update_buffer(Y[row_idx])
+                C_X = self._gyroid_estimator_x.compute_covariance()
+                C_Y = self._gyroid_estimator_y.compute_covariance()
                 
                 X_T_X_inv = torch.inverse(C_X + epsilon * I)
-                F_op = torch.matmul(X_T_X_inv, torch.matmul(X.T, Y))
-                
                 Y_T_Y_inv = torch.inverse(C_Y + epsilon * I)
-                B_op = torch.matmul(Y_T_Y_inv, torch.matmul(Y.T, X))
+                
+                # Hardware sovereign tensor contractions via TailSlayer PyOpenCL when available
+                if self.engine is not None and hasattr(self.engine, 'hardware_sovereign_matmul'):
+                    XT_Y = self.engine.hardware_sovereign_matmul(X.T, Y)
+                    F_op = self.engine.hardware_sovereign_matmul(X_T_X_inv, XT_Y)
+                    
+                    YT_X = self.engine.hardware_sovereign_matmul(Y.T, X)
+                    B_op = self.engine.hardware_sovereign_matmul(Y_T_Y_inv, YT_X)
+                else:
+                    F_op = torch.matmul(X_T_X_inv, torch.matmul(X.T, Y))
+                    B_op = torch.matmul(Y_T_Y_inv, torch.matmul(Y.T, X))
                 
                 if not hasattr(self, 'curvature_tracker') or self.curvature_tracker.dim != h_dim:
                     from src.core.noncommutativity_curvature import NonCommutativityCurvature
