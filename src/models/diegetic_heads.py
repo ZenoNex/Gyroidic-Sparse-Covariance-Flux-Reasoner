@@ -166,7 +166,13 @@ class ResonanceLarynx(nn.Module):
         
         # Hazard Protection: Ensure temperature is never zero
         safe_temp = max(temperature, 1e-6)
-        predicted_state = self.proj(safe_state) / safe_temp
+        
+        # Chern-Simons Breather Mode Excitation: dresses phonemic projection with chiral soliton depth
+        breather_packet = self.chern_simons.excite_chern_simons_breathers(safe_state)
+        if breather_packet.shape != safe_state.shape:
+            breather_packet = breather_packet.view_as(safe_state)
+            
+        predicted_state = (self.proj(safe_state) + 0.08 * breather_packet) / safe_temp
         conf = self.confidence(safe_state)
         return predicted_state, conf
         
