@@ -15,6 +15,8 @@ from typing import Dict, Optional, Any
 from ..core.polynomial_coprime import PolynomialCoprimeConfig
 from ..core.primitive_ops import FixedPointField, LearnedPrimitivePerturbation
 from ..core.gdpo_normalization import GDPONormalization
+from ..core.invariants import PHI, get_ihc_ladder_scale
+
 
 
 class PolynomialFunctionalEmbedder(nn.Module):
@@ -173,6 +175,13 @@ class PolynomialFunctionalEmbedder(nn.Module):
             else:
                 # Soft mode
                 res_k = torch.tanh(logits_k)
+            
+            # Inverted Hypersphere Cosmology (IHC): 33-shell golden ratio ladder scaling
+            # Stabilizes UV-IR seesaw across co-prime functional hierarchy without hard clipping
+            # Bound directly to canonical invariants IHC 33-shell hierarchy
+            ihc_ladder_scale = get_ihc_ladder_scale(k, num_shells=33)
+            res_k = res_k * ihc_ladder_scale
+
             
             coeff_logits.append(logits_k)
             residues.append(res_k)
