@@ -1007,7 +1007,7 @@ class AdaptiveSkeletonHarness(nn.Module):
         if self.modular_attention is None:
             from src.models.modular_attention import ModularAttention
             from src.core.polynomial_coprime import PolynomialCoprimeConfig
-            poly_cfg = PolynomialCoprimeConfig(moduli=[2, 3, 5, 17, 41])
+            poly_cfg = PolynomialCoprimeConfig(k=5, degree=4)
             heads = 4 if self.state_dim % 4 == 0 else 1
             self.modular_attention = ModularAttention(
                 hidden_dim=self.state_dim,
