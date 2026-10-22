@@ -19,6 +19,8 @@ import os
 from typing import Dict, List, Optional, Tuple, Any
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.core.honest_jitter import harvest_honest_jitter, fractal_pad
+from src.core.invariants import PHI, get_ihc_ladder_scale
+
 
 
 class GyroidicFluxAlignment(nn.Module):
@@ -196,13 +198,23 @@ class BreatherMode(nn.Module):
         ladder = PrimeResonanceLadder(num_resonators=n)
         return ladder.primes
     
-    def evaluate(self, x: torch.Tensor, t: float = None) -> torch.Tensor:
+    def evaluate(
+        self,
+        x: torch.Tensor,
+        t: Optional[float] = None,
+        gauge_field: Optional[torch.Tensor] = None,
+        chern_simons_level: int = 1,
+        chiral_torsion: Optional[float] = None
+    ) -> torch.Tensor:
         """
-        Evaluate all breather modes at positions x and time t.
+        Evaluate all breather modes at positions x and time t with non-Abelian Chern-Simons coupling.
         
         Args:
             x: [batch, spatial_dim] or [spatial_dim] positions along the manifold
             t: Time (uses internal clock if None)
+            gauge_field: Optional [dim, dim] non-Abelian gauge connection 1-form A
+            chern_simons_level: Level k governing the topological twist
+            chiral_torsion: Optional scalar chiral torsion rotation angle
         
         Returns:
             breather_field: [batch, num_breathers] breather amplitudes
@@ -216,30 +228,77 @@ class BreatherMode(nn.Module):
         # Use mean of spatial coordinates as 1D position proxy
         x_pos = x.mean(dim=-1)  # [batch]
         
-        # u_n(x,t) = 4*arctan[ (sqrt(1-w^2)/w) * sech(sqrt(1-w^2)*(x-x_n)) * sin(w*t) ]
+        # Non-Abelian Chern-Simons Holonomy Shift & Curvature Twist
+        holonomy_shift = 0.0
+        kappa_twist = 0.0
+        cs_action_phase = 0.0
+        safe_k = max(int(chern_simons_level), 1)
+        
+        if gauge_field is not None and gauge_field.numel() > 0:
+            # 1. Holonomy phase shift from gauge field trace: dx_n = Tr(A) / (2pi * k)
+            trace_a = torch.trace(gauge_field[:min(4, gauge_field.shape[0]), :min(4, gauge_field.shape[-1])])
+            holonomy_shift = float(trace_a.item()) / (2.0 * math.pi * safe_k)
+            
+            # 2. Curvature twist: F = A - A^T, kappa = ||F||_F
+            d_min = min(gauge_field.shape[0], gauge_field.shape[1])
+            f_mat = gauge_field[:d_min, :d_min] - gauge_field[:d_min, :d_min].t()
+            kappa_twist = float(torch.norm(f_mat, p='fro').item())
+            
+            # 3. Chern-Simons line integral action phase
+            cs_action_phase = float(safe_k / (4.0 * math.pi) * trace_a.item())
+
+        # u_n(x,t) = 4*arctan[ (sqrt(1-w^2)/w) * sech(sqrt(1-w^2)*(x-x_n-shift)) * sin(w*t) ]
         results = []
         for n in range(self.num_breathers):
             w = self.omegas[n]
-            sq = self.sqrt_term[n]
-            x_n = self.centers[n]
+            # Frequency twist governed by non-Abelian curvature (preserving w < 1 stability)
+            if kappa_twist > 1e-6:
+                w_eff = w / (1.0 + kappa_twist / (float(safe_k) * 10.0))
+                sq_eff = torch.sqrt(torch.clamp(1.0 - w_eff ** 2, min=1e-6))
+            else:
+                w_eff = w
+                sq_eff = self.sqrt_term[n]
+                
+            x_n = self.centers[n] + holonomy_shift
             
             # Amplitude ratio
-            amp_ratio = sq / (w + 1e-8)
+            amp_ratio = sq_eff / (w_eff + 1e-8)
             
             # Sech envelope (localization)
-            sech_arg = sq * (x_pos - x_n)
+            sech_arg = sq_eff * (x_pos - x_n)
             sech_val = 1.0 / (torch.cosh(sech_arg) + 1e-8)
             
             # Temporal oscillation
-            sin_val = torch.sin(w * t)
+            sin_val = torch.sin(w_eff * t)
             
             # Full breather
             u_n = 4.0 * torch.arctan(amp_ratio * sech_val * sin_val)
+            
+            # Chern-Simons chiral dressing & torsion rotation
+            if abs(cs_action_phase) > 1e-6 or (chiral_torsion is not None and abs(chiral_torsion) > 1e-6):
+                phi_twist = cs_action_phase + (float(chiral_torsion) if chiral_torsion is not None else 0.0)
+                # Alternate mode 90-degree chiral rotation to prevent 0.8824 flatline
+                if n % 2 == 1:
+                    u_n = u_n * math.cos(phi_twist) - torch.cos(w_eff * t) * math.sin(phi_twist)
+                else:
+                    u_n = u_n * math.cos(phi_twist) + torch.cos(w_eff * t) * math.sin(phi_twist)
+                    
+            # Inverted Hypersphere Cosmology (IHC): 33-shell golden ratio ladder scaling
+            u_n = u_n * get_ihc_ladder_scale(n, num_shells=33)
             results.append(u_n)
         
         return torch.stack(results, dim=-1)  # [batch, num_breathers]
+
     
-    def forward(self, x: torch.Tensor, dt: float = 0.1, excitation: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        dt: float = 0.1,
+        excitation: Optional[torch.Tensor] = None,
+        gauge_field: Optional[torch.Tensor] = None,
+        chern_simons_level: int = 1,
+        chiral_torsion: Optional[float] = None
+    ) -> torch.Tensor:
         """
         Advance breather clock and return projected breather field.
         
@@ -247,12 +306,20 @@ class BreatherMode(nn.Module):
             x: [batch, dim] state positions
             dt: Time step
             excitation: Optional [batch, num_breathers] external media excitation
+            gauge_field: Optional [dim, dim] non-Abelian gauge connection 1-form A
+            chern_simons_level: Level k governing the topological twist
+            chiral_torsion: Optional scalar chiral torsion rotation angle
         
         Returns:
             breather_contribution: [batch, dim] projected breather excitations
         """
         self.t += dt
-        amplitudes = self.evaluate(x)  # [batch, num_breathers]
+        amplitudes = self.evaluate(
+            x,
+            gauge_field=gauge_field,
+            chern_simons_level=chern_simons_level,
+            chiral_torsion=chiral_torsion
+        )  # [batch, num_breathers]
         
         if excitation is not None:
             # Inject external media energy into the standing waves
@@ -433,7 +500,9 @@ class ResonanceCavity(nn.Module):
         instability_severity: float = 0.0,
         braid_word: Optional[List[int]] = None,
         bouligand_bubble_residual: Optional[torch.Tensor] = None,
-        nostalgic_leak_signal: Optional[torch.Tensor] = None
+        nostalgic_leak_signal: Optional[torch.Tensor] = None,
+        gauge_field: Optional[torch.Tensor] = None,
+        chern_simons_level: int = 1
     ):
         """
         Update resonance cavity memory (GDPO-enhanced + GCVE + System 2 Feedback).
@@ -557,7 +626,9 @@ class ResonanceCavity(nn.Module):
         breather_excitation = self.breather(
             breather_pos_proxy, 
             dt=dt,
-            excitation=multimodal_excitation
+            excitation=multimodal_excitation,
+            gauge_field=gauge_field,
+            chern_simons_level=chern_simons_level
         )
         
         # --- UNKNOWLEDGE FLUX INTEGRATION (Nostalgic Leak) ---
