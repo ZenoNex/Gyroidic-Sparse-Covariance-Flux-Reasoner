@@ -968,6 +968,7 @@ class DyadFossilizer:
             "unified_spectral_signature": dyad.unified_spectral_signature.detach().cpu() if isinstance(dyad.unified_spectral_signature, torch.Tensor) else dyad.unified_spectral_signature,
             "audio_harmonics": dyad.audio_harmonics.detach().cpu() if isinstance(dyad.audio_harmonics, torch.Tensor) else dyad.audio_harmonics,
             "video_breather": dyad.video_breather,
+            "chern_simons_breather": (dyad.video_breather.get("chern_simons_breather") if isinstance(dyad.video_breather, dict) else None),
             "gauge_field": gauge_field.detach().cpu() if gauge_field is not None else None,
             "betti_signature_8": betti_numbers,
             "meta_state_shielded": protected_state, # Punctured State
