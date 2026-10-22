@@ -77,9 +77,14 @@ class OmipedialDeflagrator(nn.Module):
 
     def compute_transversality(self, archetype_state: torch.Tensor, voynich_state: torch.Tensor) -> Dict[str, torch.Tensor]:
         """
-        Calculates Symbolic Transversality using Non-Commutativity Curvature (kappa).
+        Calculates Symbolic Transversality using Non-Commutativity Curvature (kappa)
+        and Folium of Descartes implicit tangency (reciprocal exchange slope -1.0).
+        
         To measure path dependence, we project states into rank-1 operators
         and measure their commutator: [A, B] = A@B - B@A.
+        Additionally, the interaction is evaluated against the Folium of Descartes
+        tangent line (slope -1.0 at (3/2, 3/2)), indicating perfect reciprocal exchange
+        without topological rupture.
         """
         # Ensure 2D [1, dim]
         arc = archetype_state.view(1, -1)
@@ -91,5 +96,32 @@ class OmipedialDeflagrator(nn.Module):
         
         # Calculate Curvature
         metrics = self.curvature_engine.compute_curvature(OpA, OpB, update_ema=True)
+        
+        # Folium of Descartes Transversal Evaluation
+        # Take scalar projections or first coordinates as (x, y)
+        x = arc[0, 0] if arc.numel() > 0 else torch.tensor(1.5, device=arc.device)
+        y = voy[0, 0] if voy.numel() > 0 else torch.tensor(1.5, device=voy.device)
+        
+        num = y - x**2
+        denom = y**2 - x
+        safe_denom = torch.where(denom.abs() < 1e-5, torch.sign(denom + 1e-6) * 1e-5, denom)
+        slope = num / safe_denom
+        
+        dist_smooch = torch.sqrt((x - 1.5)**2 + (y - 1.5)**2)
+        slope_error = (slope - (-1.0)).abs()
+        reciprocal_score = 1.0 / (1.0 + slope_error)
+        is_smooch = (dist_smooch < 0.3) & (slope_error < 0.3)
+        
+        metrics['folium_slope'] = slope
+        metrics['reciprocal_exchange_score'] = reciprocal_score
+        metrics['is_folium_smooch'] = bool(is_smooch.item())
+        
+        # Expose combined state for VoynichExemptionToken issuance
+        # Normalize/pad to at least 3 dims if needed or 2 dims
+        min_dim = min(arc.shape[-1], voy.shape[-1])
+        combined_state = torch.stack([x, y], dim=-1).unsqueeze(0)
+        metrics['state'] = combined_state
+        
         return metrics
+
 
