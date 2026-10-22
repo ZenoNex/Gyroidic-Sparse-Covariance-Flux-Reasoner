@@ -61,38 +61,78 @@ class VoynichExemptionToken:
     @classmethod
     def issue_from_transversality(cls, transversality_metrics: Dict[str, torch.Tensor]) -> 'VoynichExemptionToken':
         """
-        Issues an exemption token passport ONLY at Sovereign Loci: 
-        isolated Cayley cubic intersections A_1 = (±2, ±2, ±2).
+        Issues an exemption token passport at Sovereign Loci: 
+        1. 3D isolated Cayley cubic intersections A_1 = (±2, ±2, ±2).
+        2. 2D Folium of Descartes transversal intersection smooch at (3/2, 3/2) with
+           slope -1.0 (PAS_h Phase Alignment anchor) or Neglecton node at (0, 0).
         """
         state = transversality_metrics.get('state')
         if state is None:
             return cls(
                 honesty_score=0.0,
                 is_valid_exemption=False,
-                reason="State missing for Cayley check",
+                reason="State missing for transversality check",
                 is_nutrient=False
             )
             
         is_valid = False
-        c_norm = 0.0
+        reason = "Not at Sovereign Loci"
         
-        if state.shape[-1] >= 3:
-            xyz = state[..., :3]
-            # Check proximity to A_1 = (±2, ±2, ±2)
-            dist = torch.abs(torch.abs(xyz) - 2.0).sum(dim=-1)
-            # Strict Sovereign Loci constraint (allow small eps for floating point)
-            is_valid_tensor = dist < 1e-4
-            is_valid = bool(is_valid_tensor.any().item())
+        # 1. Check explicit flag from CayleyCubicProbe or DeflagrationScout if present
+        if transversality_metrics.get('is_transversal_smooch', False) or transversality_metrics.get('is_folium_smooch', False):
+            is_valid = True
+            reason = "Folium Transversal Smooch Match (Slope -1.0)"
+            return cls(
+                honesty_score=1.0,
+                is_valid_exemption=True,
+                reason=reason,
+                is_nutrient=True,
+                fossilized_state=state,
+                gasket_signature=1.0
+            )
+
+        # 2. Check 2D Folium of Descartes transversal smooch & Neglecton node
+        if state.shape[-1] >= 2:
+            xy = state[..., :2]
+            x, y = xy[..., 0], xy[..., 1]
             
+            # Check proximity to Transversal Smooch (1.5, 1.5)
+            smooch_target = torch.tensor([1.5, 1.5], dtype=state.dtype, device=state.device)
+            dist_smooch = torch.norm(xy - smooch_target, p=2, dim=-1)
+            
+            # Check implicit derivative dy/dx = (y - x^2) / (y^2 - x)
+            num = y - x**2
+            denom = y**2 - x
+            safe_denom = torch.where(denom.abs() < 1e-5, torch.sign(denom + 1e-6) * 1e-5, denom)
+            slope = num / safe_denom
+            slope_match = (slope - (-1.0)).abs() < 0.25
+            
+            smooch_match = (dist_smooch < 0.25) & slope_match
+            node_match = torch.norm(xy, p=2, dim=-1) < 1e-3
+            
+            if smooch_match.any().item():
+                is_valid = True
+                reason = "Folium Transversal Smooch Match (Slope -1.0, PAS_h Anchor)"
+            elif node_match.any().item():
+                is_valid = True
+                reason = "Folium Neglecton Node Anchor (0, 0)"
+
+        # 3. Check 3D Cayley cubic A_1 = (±2, ±2, ±2)
+        if not is_valid and state.shape[-1] >= 3:
+            xyz = state[..., :3]
+            dist = torch.abs(torch.abs(xyz) - 2.0).sum(dim=-1)
+            is_valid_tensor = dist < 1e-3
+            is_valid = bool(is_valid_tensor.any().item())
             if is_valid:
-                x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
-                c_norm = torch.abs(x * (x**2 + y**2 + z**2 - x*y*z - 4)).mean().item()
+                reason = "Cayley Sovereign Loci Match (A_1 Singularity)"
         
         return cls(
             honesty_score=1.0 if is_valid else 0.0,
             is_valid_exemption=is_valid,
-            reason="Cayley Sovereign Loci Match" if is_valid else "Not at A_1=(±2,±2,±2)",
-            is_nutrient=is_valid
+            reason=reason,
+            is_nutrient=is_valid,
+            fossilized_state=state if is_valid else None,
+            gasket_signature=1.0 if is_valid else None
         )
 
     @classmethod
