@@ -21,6 +21,8 @@ from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.models.resonance_cavity import BreatherMode
 from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
 from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
+from src.core.invariants import PHI, get_ihc_ladder_scale
+
 
 # Fix import paths
 import sys
@@ -351,7 +353,12 @@ class ModularAttention(nn.Module):
             if trust_scalars is not None:
                 A_k = A_k * trust_scalars[k]
                 
+            # Inverted Hypersphere Cosmology (IHC): 33-shell golden ratio ladder scaling
+            ihc_scale = get_ihc_ladder_scale(k, num_shells=33)
+            A_k = A_k * ihc_scale
+                
             field_outputs.append(A_k)
+
             
         # --- DOWNSTREAM CHERN-SIMONS GASKET ---
         # Data arrives at symbolic-geometric boundaries as CRT residues [Batch, K, Dim//K]
