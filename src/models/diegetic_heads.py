@@ -12,6 +12,7 @@ import torch.nn.functional as F
 from typing import Dict, List, Optional, Tuple
 from src.core.chern_simons_gasket import ChernSimonsGasket
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.invariants import PHI, get_ihc_ladder_tensor
 
 # Fix import paths
 import sys
@@ -58,7 +59,12 @@ class DataAssociationLayer(nn.Module):
         # Map to co-prime field residues [batch, k]
         residues = torch.tanh(self.residue_map(latent))
         
+        # Inverted Hypersphere Cosmology (IHC): 33-shell golden ratio ladder scaling
+        ihc_ladder = get_ihc_ladder_tensor(self.k, device=residues.device, dtype=residues.dtype)
+        residues = residues * ihc_ladder
+        
         return residues
+
 
 class AutoeclecticResponderHead(nn.Module):
     """
