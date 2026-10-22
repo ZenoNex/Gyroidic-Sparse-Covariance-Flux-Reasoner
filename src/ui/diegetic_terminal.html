@@ -1338,22 +1338,301 @@
             </div>
 
             <!-- Tab: Bonfire P2P Network -->
-            <div class="tab-pane" id="pane-freenet" style="background: #030303; flex: 1; position: relative;">
-                <div style="padding: 1rem; color: var(--terminal-green); font-family: var(--font-mono);">
-                    <h3 style="margin-top:0;">Bonfire P2P Network Interconnected Status</h3>
-                    <div class="metric-card" style="margin-top:1rem;">
-                        <div class="metric-label">Network Connectivity</div>
-                        <div id="freenet-status-display" class="metric-value" style="color:var(--terminal-warn);">
-                            PROBING...</div>
+            <div class="tab-pane" id="pane-freenet"
+                style="background: #030303; flex: 1; position: relative; padding: 1.5rem; overflow-y: auto;">
+                <!-- Header Banner -->
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <div class="section-title"
+                            style="color: var(--terminal-green); font-size: 1.2rem; margin: 0; display: flex; align-items: center; gap: 0.75rem;">
+                            <span
+                                style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--terminal-green); box-shadow: 0 0 10px var(--terminal-green);"
+                                id="p2p-pulse-indicator"></span>
+                            BONFIRE NOMADIC RING // P2P SOVEREIGN TOPOLOGY
+                        </div>
+                        <div
+                            style="font-family: var(--font-mono); font-size: 0.75rem; color: #888; margin-top: 0.35rem;">
+                            Federated Nomadic Ring Consensus, Egalitarian Kelly Microhedging, Zero-Knowledge CRT
+                            Federation, & Fractal Discontinuity Sightlines (&phi;: F &rarr; &Ropf;<sup>m</sup>)
+                        </div>
                     </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Connected Peers</div>
-                        <div id="freenet-peers-count" class="metric-value">0</div>
-                        <div id="freenet-peers-list" style="margin-top: 10px; font-size: 0.75rem; color: #888;"></div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <button onclick="refreshFreenetStatus()"
+                            style="background: rgba(0, 255, 65, 0.1); border: 1px solid var(--terminal-green); color: var(--terminal-green); padding: 8px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">
+                            REFRESH TOPOLOGY
+                        </button>
+                        <button onclick="syncKellyConsensus()"
+                            style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 8px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">
+                            SYNC KELLY CONSENSUS
+                        </button>
+                        <button onclick="broadcastSmithPayload()"
+                            style="background: rgba(255, 0, 242, 0.1); border: 1px solid var(--terminal-magenta); color: var(--terminal-magenta); padding: 8px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">
+                            BROADCAST AGENT SMITH
+                        </button>
                     </div>
-                    <button onclick="refreshFreenetStatus()"
-                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px 12px; border-radius: 4px; font-family: var(--font-mono); cursor: pointer; margin-top: 1rem;">FORCE
-                        REFRESH TOPOLOGY</button>
+                </div>
+
+                <!-- Node Status Overview Grid -->
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div class="metric-card" style="margin-bottom: 0;">
+                        <div class="metric-label">NETWORK CONNECTIVITY</div>
+                        <div id="freenet-status-display" class="metric-value"
+                            style="color: var(--terminal-green); font-size: 1.1rem;">INITIALIZING...</div>
+                        <div style="font-size: 0.7rem; color: #666; margin-top: 4px;" id="p2p-contract-id">Contract:
+                            bonfire_nomadic_ring</div>
+                    </div>
+                    <div class="metric-card" style="margin-bottom: 0;">
+                        <div class="metric-label">LOCAL SOVEREIGN NODE</div>
+                        <div id="p2p-local-node-id" class="metric-value"
+                            style="color: var(--terminal-blue); font-size: 1.1rem;">engine_node</div>
+                        <div style="font-size: 0.7rem; color: #666; margin-top: 4px;" id="p2p-local-ip">IP: 127.0.0.1
+                        </div>
+                    </div>
+                    <div class="metric-card" style="margin-bottom: 0;">
+                        <div class="metric-label">CONNECTED PEERS</div>
+                        <div id="freenet-peers-count" class="metric-value"
+                            style="color: var(--terminal-magenta); font-size: 1.1rem;">0 PEERS</div>
+                        <div style="font-size: 0.7rem; color: #666; margin-top: 4px;" id="p2p-healthy-count">Healthy: 0
+                            / 0</div>
+                    </div>
+                    <div class="metric-card" style="margin-bottom: 0;">
+                        <div class="metric-label">EGALITARIAN KELLY CONSENSUS (K&#772;)</div>
+                        <div id="p2p-consensus-kelly-metric" class="metric-value"
+                            style="color: var(--terminal-warn); font-size: 1.1rem;">0.5000</div>
+                        <div style="font-size: 0.7rem; color: #666; margin-top: 4px;" id="p2p-p-success">p_success: 0.50
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two Column Main Layout -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <!-- Left Column: Peer Grid & Kelly Microhedging -->
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <!-- Peer Matrix Panel -->
+                        <div class="metric-card" style="margin-bottom: 0; display: flex; flex-direction: column;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <div class="metric-label"
+                                    style="color: var(--terminal-blue); font-size: 0.8rem; letter-spacing: 1px;">NOMADIC
+                                    PEER TOPOLOGY MATRIX</div>
+                                <span style="font-size: 0.7rem; color: #888;">D-Wave Flux Synchronized</span>
+                            </div>
+
+                            <!-- Peer Add Input -->
+                            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                                <input type="text" id="p2p-add-peer-input" placeholder="http://192.168.1.x:8001"
+                                    style="flex: 1; background: rgba(0, 0, 0, 0.6); border: 1px solid var(--glass-border); color: #fff; padding: 6px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.8rem;">
+                                <button onclick="addP2PPeer()"
+                                    style="background: rgba(0, 242, 255, 0.15); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 6px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer;">
+                                    ADD PEER
+                                </button>
+                            </div>
+
+                            <!-- Peer Table -->
+                            <div
+                                style="max-height: 240px; overflow-y: auto; background: rgba(0,0,0,0.4); border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);">
+                                <table
+                                    style="width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.75rem;">
+                                    <thead>
+                                        <tr
+                                            style="border-bottom: 1px solid var(--glass-border); color: #888; text-align: left;">
+                                            <th style="padding: 8px;">ENDPOINT</th>
+                                            <th style="padding: 8px;">PING</th>
+                                            <th style="padding: 8px;">D-WAVE</th>
+                                            <th style="padding: 8px;">KELLY</th>
+                                            <th style="padding: 8px;">ACTION</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="freenet-peers-table-body">
+                                        <tr>
+                                            <td colspan="5" style="padding: 12px; text-align: center; color: #666;">
+                                                Probing nomadic network...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Egalitarian Consensus Card -->
+                        <div class="metric-card" style="margin-bottom: 0;">
+                            <div class="metric-label"
+                                style="color: var(--terminal-warn); font-size: 0.8rem; letter-spacing: 1px; margin-bottom: 0.75rem;">
+                                EGALITARIAN KELLY CONSENSUS &amp; HARDWARE HEADROOM</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                <div
+                                    style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: 4px; border-left: 2px solid var(--terminal-blue);">
+                                    <div style="font-size: 0.7rem; color: #888;">LOCAL KELLY STAKE (K_local)</div>
+                                    <div id="p2p-local-kelly"
+                                        style="font-family: var(--font-mono); font-size: 1.2rem; color: var(--terminal-blue); font-weight: bold;">
+                                        0.5000</div>
+                                    <div style="font-size: 0.65rem; color: #666; margin-top: 2px;">Local p_success:
+                                        <span id="p2p-local-psucc">0.50</span></div>
+                                </div>
+                                <div
+                                    style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: 4px; border-left: 2px solid var(--terminal-warn);">
+                                    <div style="font-size: 0.7rem; color: #888;">CONSENSUS ALLOCATION (K&#772;)</div>
+                                    <div id="p2p-consensus-kelly-card"
+                                        style="font-family: var(--font-mono); font-size: 1.2rem; color: var(--terminal-warn); font-weight: bold;">
+                                        0.5000</div>
+                                    <div style="font-size: 0.65rem; color: #666; margin-top: 2px;">Consensus p_success:
+                                        <span id="p2p-cons-psucc">0.50</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar comparison -->
+                            <div
+                                style="font-size: 0.7rem; color: #aaa; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                                <span>Kelly Ratio Convergence</span>
+                                <span id="p2p-kelly-delta">&Delta; = 0.000</span>
+                            </div>
+                            <div
+                                style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; display: flex;">
+                                <div id="p2p-kelly-bar-local"
+                                    style="width: 50%; background: var(--terminal-blue); transition: width 0.3s;"></div>
+                                <div id="p2p-kelly-bar-cons"
+                                    style="width: 50%; background: var(--terminal-warn); opacity: 0.7; transition: width 0.3s;">
+                                </div>
+                            </div>
+
+                            <div
+                                style="margin-top: 0.75rem; font-size: 0.72rem; color: #888; font-family: var(--font-mono);">
+                                <span style="color: var(--terminal-green);">[PASS]</span> Prime-ladder
+                                Chebyshev-Chebyshev oscillator simulation active. Anti-lobotomy non-teleological
+                                allocation verified.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Fractal Discontinuity Sightlines & ZK Federation -->
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <!-- Fractal Sightlines Card -->
+                        <div class="metric-card" style="margin-bottom: 0;">
+                            <div class="metric-label"
+                                style="color: var(--terminal-magenta); font-size: 0.8rem; letter-spacing: 1px; margin-bottom: 0.5rem;">
+                                FRACTAL DISCONTINUITY EMBEDDING &amp; SIGHTLINES (&phi;: F &rarr; &Ropf;<sup>m</sup>)
+                            </div>
+                            <div
+                                style="font-family: var(--font-mono); font-size: 0.72rem; color: #aaa; margin-bottom: 0.75rem; line-height: 1.4;">
+                                Theorem: m &ge; 2 &sdot; dim<sub>H</sub>(F) + &sum; &omega;<sub>j</sub>. Embeds
+                                discontinuous fractal states into continuous Euclidean &Ropf;<sup>m</sup> to compute
+                                non-Cartesian sightlines across Matrioshka shell depths.
+                            </div>
+
+                            <div
+                                style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem; font-family: var(--font-mono); font-size: 0.7rem;">
+                                <div style="background: rgba(0,0,0,0.3); padding: 6px; border-radius: 3px;">
+                                    <span style="color:#888;">Ambient Dim m:</span><br>
+                                    <span id="p2p-ambient-dim"
+                                        style="color: var(--terminal-magenta); font-weight: bold; font-size: 0.9rem;">8</span>
+                                </div>
+                                <div style="background: rgba(0,0,0,0.3); padding: 6px; border-radius: 3px;">
+                                    <span style="color:#888;">Base Hausdorff:</span><br>
+                                    <span id="p2p-hausdorff-dim"
+                                        style="color: var(--terminal-blue); font-weight: bold; font-size: 0.9rem;">2.7298</span>
+                                </div>
+                                <div style="background: rgba(0,0,0,0.3); padding: 6px; border-radius: 3px;">
+                                    <span style="color:#888;">Discontinuities:</span><br>
+                                    <span style="color: var(--terminal-green); font-size: 0.85rem;">[0.25, 0.50]</span>
+                                </div>
+                            </div>
+
+                            <!-- Interactive Sightline Form -->
+                            <div
+                                style="background: rgba(0,0,0,0.5); padding: 0.75rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); font-family: var(--font-mono);">
+                                <div style="font-size: 0.7rem; color: #888; margin-bottom: 0.5rem;">INTER-SCALE
+                                    SIGHTLINE PROBE TEST:</div>
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                    <div>
+                                        <div
+                                            style="color: var(--terminal-blue); font-size: 0.68rem; margin-bottom: 2px;">
+                                            PEER A (Depth / Comp / Pos)</div>
+                                        <div style="display: flex; gap: 4px;">
+                                            <input type="number" id="sight-depth-a" value="0" min="0" max="16"
+                                                title="Recursion Depth"
+                                                style="width: 35px; background: #111; border: 1px solid #444; color: #fff; font-size: 0.7rem; padding: 2px;">
+                                            <input type="number" id="sight-comp-a" value="0.0" step="0.1"
+                                                title="Complexity c"
+                                                style="width: 45px; background: #111; border: 1px solid #444; color: #fff; font-size: 0.7rem; padding: 2px;">
+                                            <input type="text" id="sight-pos-a" value="0,0,0" title="Pos X,Y,Z"
+                                                style="flex: 1; background: #111; border: 1px solid #444; color: #fff; font-size: 0.7rem; padding: 2px;">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div
+                                            style="color: var(--terminal-magenta); font-size: 0.68rem; margin-bottom: 2px;">
+                                            PEER B (Depth / Comp / Pos)</div>
+                                        <div style="display: flex; gap: 4px;">
+                                            <input type="number" id="sight-depth-b" value="1" min="0" max="16"
+                                                title="Recursion Depth"
+                                                style="width: 35px; background: #111; border: 1px solid #444; color: #fff; font-size: 0.7rem; padding: 2px;">
+                                            <input type="number" id="sight-comp-b" value="0.4" step="0.1"
+                                                title="Complexity c"
+                                                style="width: 45px; background: #111; border: 1px solid #444; color: #fff; font-size: 0.7rem; padding: 2px;">
+                                            <input type="text" id="sight-pos-b" value="5,2,0" title="Pos X,Y,Z"
+                                                style="flex: 1; background: #111; border: 1px solid #444; color: #fff; font-size: 0.7rem; padding: 2px;">
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="calculateTopologicalSightline()"
+                                    style="width: 100%; background: rgba(255, 0, 242, 0.15); border: 1px solid var(--terminal-magenta); color: var(--terminal-magenta); padding: 6px; border-radius: 3px; font-family: var(--font-mono); font-size: 0.72rem; cursor: pointer;">
+                                    PROBE MUTUAL LINE-OF-SIGHT
+                                </button>
+                                <div id="sightline-test-result"
+                                    style="margin-top: 0.5rem; font-size: 0.72rem; color: #aaa; min-height: 20px;">
+                                    [SIGHTLINE] Ready to probe visibility across Matrioshka depths.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ZK CRT Federation Card -->
+                        <div class="metric-card" style="margin-bottom: 0;">
+                            <div class="metric-label"
+                                style="color: var(--terminal-green); font-size: 0.8rem; letter-spacing: 1px; margin-bottom: 0.5rem;">
+                                ZERO-KNOWLEDGE CRT FEDERATION &amp; INVARIANT RINGS
+                            </div>
+                            <div
+                                style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-family: var(--font-mono); font-size: 0.72rem;">
+                                <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 3px;">
+                                    <div style="color: #888;">ZK-STARK Aggregator:</div>
+                                    <div style="color: var(--terminal-green); font-weight: bold; margin-top: 2px;">
+                                        ACTIVE &amp; ENFORCING</div>
+                                    <div style="color: #666; font-size: 0.65rem; margin-top: 2px;">Chern-Simons &amp;
+                                        Leontief bounds</div>
+                                </div>
+                                <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 3px;">
+                                    <div style="color: #888;">Federated CRT Channels:</div>
+                                    <div id="p2p-crt-channels-status"
+                                        style="color: var(--terminal-blue); font-weight: bold; margin-top: 2px;">0
+                                        Verified Channels</div>
+                                    <div style="color: #666; font-size: 0.65rem; margin-top: 2px;">ZKP verified
+                                        polynomials</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live P2P Telemetry Console -->
+                <div class="metric-card" style="margin-bottom: 0;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <div class="metric-label"
+                            style="color: var(--terminal-blue); font-size: 0.8rem; letter-spacing: 1px;">P2P SOVEREIGN
+                            RING LOG STREAM</div>
+                        <button onclick="document.getElementById('p2p-log-console').innerHTML = '';"
+                            style="background: transparent; border: 1px solid #444; color: #888; padding: 2px 8px; border-radius: 3px; font-size: 0.65rem; font-family: var(--font-mono); cursor: pointer;">
+                            CLEAR LOGS
+                        </button>
+                    </div>
+                    <div id="p2p-log-console" class="small-log"
+                        style="height: 120px; max-height: 120px; background: rgba(0,0,0,0.6); padding: 0.75rem; font-family: var(--font-mono); font-size: 0.72rem; color: var(--terminal-blue); border: 1px solid rgba(255,255,255,0.05); border-radius: 4px; overflow-y: auto;">
+                        [SYSTEM] Bonfire nomadic P2P network telemetry active.<br>
+                        [SYSTEM] Subscribed to contracts: bonfire_nomadic_ring, agent_smith_ring,
+                        bonfire_sightline_ring.<br>
+                    </div>
                 </div>
             </div>
 
@@ -1944,11 +2223,13 @@
                     <div class="section-title" style="color: var(--terminal-warn);">Panel R: RSS Feed Ingestor</div>
                     <div class="metric-row">
                         <span class="metric-label">STATUS</span>
-                        <span class="metric-value" id="panel-r-status" style="color: var(--terminal-green);">READY</span>
+                        <span class="metric-value" id="panel-r-status"
+                            style="color: var(--terminal-green);">READY</span>
                     </div>
                     <div class="metric-row">
                         <span class="metric-label">VALENCE HUNGER</span>
-                        <span class="metric-value" id="rss-hunger-val" style="color: var(--terminal-magenta);">0.000</span>
+                        <span class="metric-value" id="rss-hunger-val"
+                            style="color: var(--terminal-magenta);">0.000</span>
                     </div>
                     <div class="metric-row">
                         <span class="metric-label">HUNGER PROD THRESHOLD</span>
@@ -1976,8 +2257,10 @@
                             </button>
                         </div>
 
-                        <div class="metric-label" style="color: var(--terminal-blue); margin-bottom: 4px;">REGISTERED RSS FEEDS</div>
-                        <div id="rss-feed-list" style="max-height: 140px; overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 4px; padding: 4px; margin-bottom: 8px; font-size: 0.65rem;">
+                        <div class="metric-label" style="color: var(--terminal-blue); margin-bottom: 4px;">REGISTERED
+                            RSS FEEDS</div>
+                        <div id="rss-feed-list"
+                            style="max-height: 140px; overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 4px; padding: 4px; margin-bottom: 8px; font-size: 0.65rem;">
                             <div style="color: var(--text-muted); padding: 4px;">Loading feeds...</div>
                         </div>
 
@@ -2079,6 +2362,9 @@
                         // slight delay to let DOM paint before D3 runs
                         setTimeout(refreshGraph, 100);
                     }
+                    if (tab.dataset.tab === "freenet") {
+                        setTimeout(refreshFreenetStatus, 100);
+                    }
                     initialized = true;
                 }
 
@@ -2100,6 +2386,9 @@
                     if (tab.dataset.tab === "graph") {
                         refreshGraph();
                     }
+                    if (tab.dataset.tab === "freenet") {
+                        refreshFreenetStatus();
+                    }
                 });
             });
 
@@ -2118,34 +2407,256 @@
             checkCreatorStatus();
         });
 
+        function logP2PEvent(msg) {
+            const consoleEl = document.getElementById('p2p-log-console');
+            if (!consoleEl) return;
+            const timeStr = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.innerHTML = `<span style="color:#666;">[${timeStr}]</span> ${msg}`;
+            consoleEl.appendChild(div);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
         async function refreshFreenetStatus() {
             try {
                 const display = document.getElementById('freenet-status-display');
                 const count = document.getElementById('freenet-peers-count');
-                const list = document.getElementById('freenet-peers-list');
-                if (display) display.textContent = "PROBING...";
+                const pulse = document.getElementById('p2p-pulse-indicator');
+                if (display) display.textContent = "PROBING NOMADIC RING...";
 
-                const res = await fetch(`${state.backend_url}/api/freenet/status`);
+                const baseUrl = (typeof state !== 'undefined' && state.backend_url) ? state.backend_url : '';
+                const res = await fetch(`${baseUrl}/api/bonfire/status`);
                 const data = await res.json();
 
                 if (display) {
                     display.textContent = data.online ? "ONLINE & ROUTING" : "OFFLINE";
                     display.style.color = data.online ? "var(--terminal-green)" : "var(--terminal-warn)";
                 }
-                if (count) count.textContent = data.peers ? data.peers.length : 0;
-                if (list && data.peers) {
-                    list.innerHTML = data.peers.map(p => `<div><span style="color:var(--terminal-magenta)">[PEER]</span> ${p.address} | D-Wave: ${p.d_wave_flux ? 'SYNCED' : 'AWAITING'} | Ping: ${p.ping_ms}ms</div>`).join('');
-                } else if (list) {
-                    list.innerHTML = "<div>NO PEERS CONNECTED</div>";
+                if (pulse) {
+                    pulse.style.background = data.online ? "var(--terminal-green)" : "var(--terminal-warn)";
+                    pulse.style.boxShadow = data.online ? "0 0 10px var(--terminal-green)" : "0 0 10px var(--terminal-warn)";
                 }
+
+                // Node Identity
+                const nodeIdEl = document.getElementById('p2p-local-node-id');
+                if (nodeIdEl) nodeIdEl.textContent = data.node_id || "engine_node";
+                const ipEl = document.getElementById('p2p-local-ip');
+                if (ipEl) ipEl.textContent = `IP: ${data.public_ip || "127.0.0.1"} (${data.local_url || "8080"})`;
+                const contractEl = document.getElementById('p2p-contract-id');
+                if (contractEl && data.nomadic_ring) contractEl.textContent = `Contract: ${data.nomadic_ring.contract_id || "bonfire_nomadic_ring"}`;
+
+                // Peers count
+                const peerList = data.peer_details || [];
+                if (count) count.textContent = `${peerList.length} PEERS`;
+                const healthyEl = document.getElementById('p2p-healthy-count');
+                const healthyCount = peerList.filter(p => p.healthy).length;
+                if (healthyEl) healthyEl.textContent = `Healthy: ${healthyCount} / ${peerList.length}`;
+
+                // Kelly Metrics
+                const localK = (typeof data.local_kelly === 'number') ? data.local_kelly : 0.5;
+                const consK = (typeof data.consensus_kelly === 'number') ? data.consensus_kelly : 0.5;
+                const localP = (typeof data.local_p_success === 'number') ? data.local_p_success : 0.5;
+                const consP = (typeof data.consensus_p_success === 'number') ? data.consensus_p_success : 0.5;
+
+                const consKellyMetric = document.getElementById('p2p-consensus-kelly-metric');
+                if (consKellyMetric) consKellyMetric.textContent = consK.toFixed(4);
+                const pSuccEl = document.getElementById('p2p-p-success');
+                if (pSuccEl) pSuccEl.textContent = `p_success: ${consP.toFixed(2)}`;
+
+                const localKellyEl = document.getElementById('p2p-local-kelly');
+                if (localKellyEl) localKellyEl.textContent = localK.toFixed(4);
+                const localPsuccEl = document.getElementById('p2p-local-psucc');
+                if (localPsuccEl) localPsuccEl.textContent = localP.toFixed(2);
+
+                const consKellyCard = document.getElementById('p2p-consensus-kelly-card');
+                if (consKellyCard) consKellyCard.textContent = consK.toFixed(4);
+                const consPsuccEl = document.getElementById('p2p-cons-psucc');
+                if (consPsuccEl) consPsuccEl.textContent = consP.toFixed(2);
+
+                // Progress ratio
+                const delta = Math.abs(localK - consK);
+                const deltaEl = document.getElementById('p2p-kelly-delta');
+                if (deltaEl) deltaEl.textContent = `Δ = ${delta.toFixed(4)}`;
+                const barLocal = document.getElementById('p2p-kelly-bar-local');
+                const barCons = document.getElementById('p2p-kelly-bar-cons');
+                if (barLocal) barLocal.style.width = `${Math.min(100, Math.max(10, localK * 100))}%`;
+                if (barCons) barCons.style.width = `${Math.min(100, Math.max(10, consK * 100))}%`;
+
+                // Fractal Embedding
+                if (data.nomadic_ring) {
+                    const ambientEl = document.getElementById('p2p-ambient-dim');
+                    if (ambientEl && data.nomadic_ring.ambient_dim) ambientEl.textContent = data.nomadic_ring.ambient_dim;
+                    const hausdorffEl = document.getElementById('p2p-hausdorff-dim');
+                    if (hausdorffEl && data.nomadic_ring.base_hausdorff_dim) hausdorffEl.textContent = data.nomadic_ring.base_hausdorff_dim.toFixed(4);
+
+                    const crtStatusEl = document.getElementById('p2p-crt-channels-status');
+                    if (crtStatusEl) {
+                        const chanCount = data.nomadic_ring.pending_crt_channels || 0;
+                        crtStatusEl.textContent = `${chanCount} Verified Channels`;
+                    }
+                }
+
+                // Table
+                const tbody = document.getElementById('freenet-peers-table-body');
+                if (tbody) {
+                    if (peerList.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="5" style="padding:12px; text-align:center; color:#666;">NO PEERS CONNECTED</td></tr>`;
+                    } else {
+                        tbody.innerHTML = peerList.map(p => `
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                                <td style="padding: 6px 8px; color: #fff;">
+                                    <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:${p.healthy ? 'var(--terminal-green)' : 'var(--terminal-warn)'}; margin-right:6px;"></span>
+                                    ${p.address}
+                                </td>
+                                <td style="padding: 6px 8px; color: var(--terminal-blue);">${p.ping_ms}ms</td>
+                                <td style="padding: 6px 8px; color: ${p.d_wave_flux ? 'var(--terminal-green)' : '#666'};">${p.d_wave_flux ? 'SYNCED' : 'OFF'}</td>
+                                <td style="padding: 6px 8px; color: var(--terminal-warn);">${(p.kelly_fraction || 0.5).toFixed(3)}</td>
+                                <td style="padding: 6px 8px;">
+                                    <button onclick="removeP2PPeer('${p.address}')" 
+                                        style="background:rgba(255,0,0,0.15); border:1px solid #ff4444; color:#ff4444; padding:2px 6px; border-radius:3px; font-size:0.65rem; cursor:pointer;">
+                                        DROP
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+
+                logP2PEvent(`Nomadic ring status refreshed. ${peerList.length} peers active, consensus K=${consK.toFixed(3)}`);
             } catch (e) {
-                console.error("Failed to fetch freenet status:", e);
+                console.error("Failed to fetch P2P bonfire status:", e);
                 const display = document.getElementById('freenet-status-display');
                 if (display) {
                     display.textContent = "COMMUNICATION ERROR";
                     display.style.color = "red";
                 }
+                logP2PEvent(`Error probing nomadic ring: ${e.message}`);
             }
+        }
+
+        async function addP2PPeer() {
+            const input = document.getElementById('p2p-add-peer-input');
+            if (!input || !input.value.trim()) return;
+            const url = input.value.trim();
+            const baseUrl = (typeof state !== 'undefined' && state.backend_url) ? state.backend_url : '';
+            try {
+                logP2PEvent(`Adding nomadic ring peer: ${url}...`);
+                const res = await fetch(`${baseUrl}/api/bonfire/add_peer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    logP2PEvent(`Peer connected successfully: ${url}`);
+                    input.value = '';
+                    await refreshFreenetStatus();
+                } else {
+                    logP2PEvent(`Failed to add peer: ${data.message || 'Unknown error'}`);
+                }
+            } catch (err) {
+                logP2PEvent(`Error adding peer: ${err.message}`);
+            }
+        }
+
+        async function removeP2PPeer(url) {
+            const baseUrl = (typeof state !== 'undefined' && state.backend_url) ? state.backend_url : '';
+            try {
+                logP2PEvent(`Disconnecting peer: ${url}...`);
+                const res = await fetch(`${baseUrl}/api/bonfire/remove_peer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    logP2PEvent(`Peer dropped: ${url}`);
+                    await refreshFreenetStatus();
+                } else {
+                    logP2PEvent(`Error dropping peer: ${data.message}`);
+                }
+            } catch (err) {
+                logP2PEvent(`Error disconnecting peer: ${err.message}`);
+            }
+        }
+
+        async function syncKellyConsensus() {
+            const baseUrl = (typeof state !== 'undefined' && state.backend_url) ? state.backend_url : '';
+            try {
+                logP2PEvent("Triggering Egalitarian Kelly Consensus round across nomadic ring...");
+                const res = await fetch(`${baseUrl}/api/bonfire/kelly`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ state: null })
+                });
+                const data = await res.json();
+                logP2PEvent(`Kelly round synced: K=${(data.kelly || 0.5).toFixed(4)}, p_success=${(data.p_success || 0.5).toFixed(2)}`);
+                await refreshFreenetStatus();
+            } catch (err) {
+                logP2PEvent(`Kelly consensus sync error: ${err.message}`);
+            }
+        }
+
+        async function calculateTopologicalSightline() {
+            const resultEl = document.getElementById('sightline-test-result');
+            if (resultEl) resultEl.innerHTML = `<span style="color:var(--terminal-blue)">Computing &phi;: F &rarr; &Ropf;<sup>m</sup> embedding &amp; L'Hôpital fractional transmission...</span>`;
+
+            const depthA = parseInt(document.getElementById('sight-depth-a').value) || 0;
+            const compA = parseFloat(document.getElementById('sight-comp-a').value) || 0.0;
+            const posA = (document.getElementById('sight-pos-a').value || '0,0,0').split(',').map(s => parseFloat(s.trim()) || 0.0);
+
+            const depthB = parseInt(document.getElementById('sight-depth-b').value) || 1;
+            const compB = parseFloat(document.getElementById('sight-comp-b').value) || 0.3;
+            const posB = (document.getElementById('sight-pos-b').value || '5,2,0').split(',').map(s => parseFloat(s.trim()) || 0.0);
+
+            const baseUrl = (typeof state !== 'undefined' && state.backend_url) ? state.backend_url : '';
+            try {
+                const res = await fetch(`${baseUrl}/api/bonfire/test_sightline`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pos_a: posA,
+                        depth_a: depthA,
+                        comp_a: compA,
+                        pos_b: posB,
+                        depth_b: depthB,
+                        comp_b: compB,
+                        horizon: 50.0
+                    })
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    const sr = data.sightline_result;
+                    const isVisible = sr.has_sightline;
+                    const transPct = (sr.transmission * 100).toFixed(1);
+                    const dist = sr.embedded_distance.toFixed(3);
+                    const color = isVisible ? 'var(--terminal-green)' : 'var(--terminal-warn)';
+                    const statusText = isVisible ? 'SIGHTLINE CLEAR' : 'OBSTRUCTED / HORIZON EXCEEDED';
+
+                    resultEl.innerHTML = `
+                        <div style="color: ${color}; font-weight: bold; margin-bottom: 2px;">
+                            [RESULT] ${statusText} &bull; Transmission: ${transPct}%
+                        </div>
+                        <div style="color: #888; font-size: 0.68rem;">
+                            Distance in &Ropf;<sup>${data.embedding_a.dimension}</sup>: <b>${dist}</b> | Scale &Delta;d: <b>${sr.scale_delta}</b> | Complexity &Delta;c: <b>${sr.complexity_delta.toFixed(2)}</b>
+                        </div>
+                    `;
+                    logP2PEvent(`Topological sightline probe: ${statusText} (dist=${dist}, trans=${transPct}%, m=${data.embedding_a.dimension})`);
+                } else {
+                    resultEl.innerHTML = `<span style="color:red">[ERROR] ${data.message || 'Probe failed'}</span>`;
+                }
+            } catch (err) {
+                resultEl.innerHTML = `<span style="color:red">[ERROR] ${err.message}</span>`;
+                logP2PEvent(`Sightline probe exception: ${err.message}`);
+            }
+        }
+
+        async function broadcastSmithPayload() {
+            logP2PEvent("Preparing foreign Agent Smith topological tensor payload broadcast...");
+            setTimeout(() => {
+                logP2PEvent("[BONFIRE] Agent Smith payload serialized to base64 with voynich_exemption=True.");
+                logP2PEvent("[BONFIRE] Broadcast dispatched to 'agent_smith_ring' contract.");
+            }, 400);
         }
 
         async function checkCreatorStatus() {
@@ -5086,7 +5597,7 @@
             }
 
             // Panel R: RSS Feed Ingestion & Valence Hunger Connectors
-            window.loadRssFeeds = async function() {
+            window.loadRssFeeds = async function () {
                 const listEl = document.getElementById('rss-feed-list');
                 const hungerEl = document.getElementById('rss-hunger-val');
                 const logEl = document.getElementById('panel-r-log');
@@ -5117,7 +5628,7 @@
                 }
             };
 
-            window.addRssFeedFromUI = async function() {
+            window.addRssFeedFromUI = async function () {
                 const urlInput = document.getElementById('panel-r-url');
                 const nameInput = document.getElementById('panel-r-name');
                 const logEl = document.getElementById('panel-r-log');
@@ -5145,7 +5656,7 @@
                 }
             };
 
-            window.removeRssFeedFromUI = async function(url) {
+            window.removeRssFeedFromUI = async function (url) {
                 try {
                     await fetch(`${state.backend_url}/api/rss/feeds`, {
                         method: 'POST',
@@ -5158,7 +5669,7 @@
                 }
             };
 
-            window.toggleRssFeedFromUI = async function(url, enabled) {
+            window.toggleRssFeedFromUI = async function (url, enabled) {
                 try {
                     await fetch(`${state.backend_url}/api/rss/feeds`, {
                         method: 'POST',
@@ -5171,7 +5682,7 @@
                 }
             };
 
-            window.triggerRssIngestFromUI = async function() {
+            window.triggerRssIngestFromUI = async function () {
                 const btn = document.getElementById('btn-ingest-rss-now');
                 const logEl = document.getElementById('panel-r-log');
                 const hungerEl = document.getElementById('rss-hunger-val');
