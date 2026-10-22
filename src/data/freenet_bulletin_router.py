@@ -43,8 +43,9 @@ class FreenetBulletinRouter:
 
     def _generate_fms_xml(self, volume: float, mischief: float, metrics: dict = None) -> str:
         """Generates a Bonfire P2P FMS Message XML payload."""
-        date_str = datetime.datetime.utcnow().strftime('%Y-%m-%d')
-        time_str = datetime.datetime.utcnow().strftime('%H:%M:%S')
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        date_str = now_utc.strftime('%Y-%m-%d')
+        time_str = now_utc.strftime('%H:%M:%S')
         message_id = f"{uuid.uuid4().hex}@fms.gyroidic"
         
         if metrics is None:
