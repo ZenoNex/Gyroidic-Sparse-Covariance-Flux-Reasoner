@@ -166,7 +166,7 @@ class AgentSubstrateBridge(nn.Module):
         payload['recalibrated_dt_scale'] = dt_scale
         
         # 3. Preserve ShadowLog / Identity Artifacts
-        if 'image_fingerprint' in payload:
+        if 'image_fingerprint' in payload and payload['image_fingerprint'] is not None:
              payload['image_fingerprint_aligned'] = torch.as_tensor(payload['image_fingerprint'], device=self.device)
         
         if 'hyperbolic_residue' in payload and payload['hyperbolic_residue'] is not None:
@@ -175,6 +175,14 @@ class AgentSubstrateBridge(nn.Module):
         if 'gauge_field' in payload and payload['gauge_field'] is not None:
              # Gauge field is [manifold_dim, manifold_dim]. Re-hydrate to device.
              payload['gauge_field_aligned'] = torch.as_tensor(payload['gauge_field'], device=self.device)
+             
+        # 3b. Align Chern-Simons Breather Solitons
+        if 'chern_simons_breather' in payload and payload['chern_simons_breather'] is not None:
+            cs_breather = torch.as_tensor(payload['chern_simons_breather'], device=self.device).float()
+            if cs_breather.shape[-1] != expected_dim:
+                from src.core.honest_jitter import fractal_pad
+                cs_breather = fractal_pad(cs_breather, expected_dim)
+            payload['chern_simons_breather_aligned'] = cs_breather * dt_scale
              
         # 4. Agent Smith Protocol Alignment
         if 'agent_smith_iters' in payload:
