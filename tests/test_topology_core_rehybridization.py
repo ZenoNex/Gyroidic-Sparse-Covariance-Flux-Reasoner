@@ -107,6 +107,63 @@ class TestTopologyCoreRehybridization(unittest.TestCase):
         self.assertIn(1, betti_approx)
         self.assertEqual(betti_approx[0], 8)
 
+    def test_folium_implicit_differentiation_and_transversal_smooch(self):
+        """
+        Verifies Folium of Descartes algebraic curve x^3 + y^3 - 3axy = 0:
+        1. Implicit residual at (1.5, 1.5) is 0.0 (anti-lobotomy refusal of vertical line test).
+        2. Implicit derivative dy/dx at (1.5, 1.5) yields slope -1.0.
+        3. Transversal intersection smooch is detected with reciprocal score 1.0.
+        """
+        probe = CayleyCubicProbe(high_mischief_threshold=0.5, folium_scale=1.0)
+        
+        # Point on the loop: (3/2, 3/2)
+        pt = torch.tensor([[1.5, 1.5]], dtype=torch.float32)
+        residual = probe.evaluate_folium_implicit(pt)
+        self.assertAlmostEqual(residual.item(), 0.0, places=5)
+        
+        slope = probe.compute_implicit_derivative(pt)
+        self.assertAlmostEqual(slope.item(), -1.0, places=4)
+        
+        smooch_metrics = probe.evaluate_transversal_smooch(pt)
+        self.assertTrue(smooch_metrics["is_transversal_smooch"].item())
+        self.assertAlmostEqual(smooch_metrics["reciprocal_score"].item(), 1.0, places=3)
+        self.assertAlmostEqual(smooch_metrics["slope"].item(), -1.0, places=4)
+
+    def test_folium_anchor_and_neglecton_jordan_block(self):
+        """
+        Verifies that high cycle debt (>= 0.5) projects 2D coordinates toward
+        the Folium transversal smooch or Jordan-block Neglecton anchor.
+        """
+        probe = CayleyCubicProbe(high_mischief_threshold=0.5, folium_scale=1.0)
+        
+        # Test near loop: should anchor to (1.5, 1.5)
+        near_loop = torch.tensor([[1.4, 1.6]], dtype=torch.float32)
+        anchored_loop = probe(near_loop, cycle_debt=0.8)
+        self.assertTrue(torch.allclose(anchored_loop, torch.tensor([[1.5, 1.5]]), atol=1e-4))
+        
+        # Test near origin node: Jordan block transform
+        near_node = torch.tensor([[0.01, 0.01]], dtype=torch.float32)
+        anchored_node = probe(near_node, cycle_debt=0.8)
+        self.assertEqual(anchored_node.shape, (1, 2))
+
+    def test_voynich_exemption_token_from_folium_smooch(self):
+        """
+        Verifies VoynichExemptionToken.issue_from_transversality issues an Option D
+        Nutrient passport when encountering the Folium Transversal Smooch (slope -1.0).
+        """
+        from src.core.false_negative_subsystem import VoynichExemptionToken
+        
+        # State at transversal smooch (1.5, 1.5)
+        smooch_state = torch.tensor([[1.5, 1.5]], dtype=torch.float32)
+        metrics = {"state": smooch_state}
+        token = VoynichExemptionToken.issue_from_transversality(metrics)
+        
+        self.assertTrue(token.is_valid_exemption)
+        self.assertTrue(token.is_nutrient)
+        self.assertEqual(token.honesty_score, 1.0)
+        self.assertIn("Folium", token.reason)
+
 
 if __name__ == "__main__":
     unittest.main()
+
