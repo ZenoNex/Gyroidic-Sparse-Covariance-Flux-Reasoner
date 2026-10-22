@@ -256,10 +256,20 @@ class ConstraintProbeOperator(nn.Module):
         
         return c.detach(), final_loss.detach()
 
+    def evaluate_folium_transversality(self, c: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """
+        Anti-Lobotomy Implicit Differentiation & Transversal Smooch Check.
+        Evaluates whether the constraint state satisfies the Folium of Descartes
+        implicit relation x^3 + y^3 - 3axy = 0 and resides near the Transversal
+        Intersection smooch point (slope -1.0, PAS_h anchor).
+        """
+        return self.cayley_probe.evaluate_transversal_smooch(c)
+
+
 
 class ConstraintManifold:
     """
-    Represents the constraint manifold C = C_sym × C_phys × C_ext
+    Represents the constraint manifold C = C_sym  C_phys  C_ext
     """
     
     def __init__(
