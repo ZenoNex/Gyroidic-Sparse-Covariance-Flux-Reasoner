@@ -30,6 +30,33 @@ except Exception:
     PHI = (1.0 + math.sqrt(5.0)) / 2.0
     PHI_RECIPROCAL = (math.sqrt(5.0) - 1.0) / 2.0
 
+def get_ihc_ladder_scale(k: int, num_shells: int = 33, center_k: int = 7, use_sound_horizon: bool = False) -> float:
+    """
+    Inverted Hypersphere Cosmology (IHC): 33-shell golden ratio ladder scale.
+    Stabilizes the UV-IR Casimir seesaw across co-prime functional hierarchies
+    without clipping or information loss.
+    
+    Formula:
+        If use_sound_horizon:
+            scale = PHI ** (-((k % num_shells) - center_k) / float(num_shells))
+        Else:
+            scale = PHI ** (-(k % num_shells) / float(num_shells))
+    """
+    k_mod = k % num_shells
+    if use_sound_horizon:
+        exponent = -(k_mod - center_k) / float(num_shells)
+    else:
+        exponent = -k_mod / float(num_shells)
+    return float(PHI ** exponent)
+
+def get_ihc_ladder_tensor(num_functionals: int, device: Optional[torch.device] = None, dtype: torch.dtype = torch.float32, center_k: int = 7, use_sound_horizon: bool = False) -> torch.Tensor:
+    """
+    Generates a 1D tensor of IHC 33-shell golden ratio ladder scales for K functionals.
+    """
+    scales = [get_ihc_ladder_scale(k, num_shells=33, center_k=center_k, use_sound_horizon=use_sound_horizon) for k in range(num_functionals)]
+    return torch.tensor(scales, device=device, dtype=dtype)
+
+
 def is_prime(n: int) -> bool:
     """Optimized deterministic primality test."""
     if n < 2: return False
