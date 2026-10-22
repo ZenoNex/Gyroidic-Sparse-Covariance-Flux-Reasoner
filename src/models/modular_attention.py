@@ -20,6 +20,7 @@ from src.core.chern_simons_gasket import ChernSimonsGasket
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.models.resonance_cavity import BreatherMode
 from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
 
 # Fix import paths
 import sys
@@ -48,7 +49,8 @@ class ModularAttention(nn.Module):
         poly_config: PolynomialCoprimeConfig,
         num_functionals: int = 5,
         dropout: float = 0.1,
-        use_birkhoff: bool = True
+        use_birkhoff: bool = True,
+        gyroid_probe: Optional[SparseGyroidCovarianceProbe] = None
     ):
         """
         Args:
@@ -104,6 +106,21 @@ class ModularAttention(nn.Module):
         
         # Structural Integrity Buffer
         self.register_buffer('last_integrity_mask', torch.ones(1, dtype=torch.bool))
+
+        # Rehybridized Gyroidic Covariance Violation Probe (GCVE)
+        if gyroid_probe is not None:
+            self.gyroid_probe = gyroid_probe
+        else:
+            self.gyroid_probe = SparseGyroidCovarianceProbe(
+                hidden_dim=hidden_dim,
+                window_size=min(32, hidden_dim),
+                k_hop=2,
+                num_eigenvalues=min(8, hidden_dim),
+                violation_threshold=0.5,
+                use_saturation_detection=True,
+                adaptive_threshold=True
+            )
+        self.last_gyroid_violation: Optional[Dict[str, torch.Tensor]] = None
     
     @staticmethod
     def construct_dynamic_attention_mask(
@@ -169,6 +186,20 @@ class ModularAttention(nn.Module):
         Structural Validation: Are attention matrices on the Birkhoff Polytope?
         """
         return self.last_integrity_mask
+
+    def compute_gyroid_violation(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """
+        Compute local covariance spectral signature and violation scores using SparseGyroidCovarianceProbe.
+        
+        Args:
+            x: [batch, seq_len, hidden_dim] state representations
+            
+        Returns:
+            Dictionary with gcve_pressures, total_pressure, eigenvalues, violations
+        """
+        gyroid_eval = self.gyroid_probe(x)
+        self.last_gyroid_violation = gyroid_eval
+        return gyroid_eval
     
     def forward(
         self,
@@ -197,6 +228,17 @@ class ModularAttention(nn.Module):
             x = fractal_pad(x, self.hidden_dim)
             
         batch_size, seq_len, _ = x.shape
+
+        # Dynamic Gyroid Attention Masking:
+        # If mask is omitted and dynamic gating is enabled, gate sparse/dense via gyroid probe
+        if mask is None and kwargs.get('use_dynamic_mask', False) and seq_len > 1:
+            gyroid_eval = self.compute_gyroid_violation(x)
+            press = gyroid_eval.get('total_pressure', gyroid_eval.get('gcve_pressures', torch.tensor([0.0]))).mean()
+            mask = self.construct_dynamic_attention_mask(
+                violations=press,
+                seq_len=seq_len,
+                device=x.device
+            )
         
         # Operational Integration: Dequantize if primitive
         if hasattr(x, 'backing_store') or isinstance(x, FixedPointField):
@@ -230,6 +272,11 @@ class ModularAttention(nn.Module):
             # Compute attention scores
             scores = torch.matmul(Q_k, K_k.transpose(-2, -1)) / self.scale
             # [batch, num_heads, seq_len, seq_len]
+            
+            # Inverted Hypersphere Cosmology (IHC) RP4 Projective Attention in VOID regime:
+            # Identifies antipodal concepts (-x ~ x) via squared similarity to tunnel across paradoxes
+            if kwargs.get('use_rp4_projective', False) or kwargs.get('regime') == 'VOID':
+                scores = torch.sign(scores) * (scores ** 2) / (self.scale + 1e-8)
             
             # Phase 6: S-Path RAG Injection (Non-Tokenizing Geometry)
             # Add structural path topology directly to the alignment scores.
@@ -365,14 +412,22 @@ class ModularTransformerLayer(nn.Module):
         poly_config: PolynomialCoprimeConfig,
         num_functionals: int = 5,
         ff_dim: Optional[int] = None,
-        dropout: float = 0.1
+        dropout: float = 0.1,
+        gyroid_probe: Optional[SparseGyroidCovarianceProbe] = None
     ):
         super().__init__()
         
         if ff_dim is None:
             ff_dim = hidden_dim * 4
         
-        self.attention = ModularAttention(hidden_dim, num_heads, poly_config, num_functionals, dropout)
+        self.attention = ModularAttention(
+            hidden_dim=hidden_dim,
+            num_heads=num_heads,
+            poly_config=poly_config,
+            num_functionals=num_functionals,
+            dropout=dropout,
+            gyroid_probe=gyroid_probe
+        )
         
         self.norm1 = GDPONormalization(hidden_dim)
         self.norm2 = GDPONormalization(hidden_dim)
@@ -406,3 +461,7 @@ class ModularTransformerLayer(nn.Module):
     def validate_structural_integrity(self) -> torch.Tensor:
         """Propagate integrity check from attention block."""
         return self.attention.validate_structural_integrity()
+
+    def compute_gyroid_violation(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """Propagate gyroidic covariance violation computation from attention block."""
+        return self.attention.compute_gyroid_violation(x)
