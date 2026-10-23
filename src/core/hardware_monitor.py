@@ -464,6 +464,21 @@ class HardwareMonitor:
             for atype in ComputeAffordanceType
         }
 
+    def has_compute_affordance(
+        self,
+        affordance_type: Optional[Union[str, ComputeAffordanceType]] = None
+    ) -> bool:
+        """
+        Evaluates computational affordance for the specified domain.
+        If affordance_type is provided, checks specific typed affordance admissibility.
+        If None, evaluates composite affordance (Silicon AND Thermal).
+        """
+        if affordance_type is not None:
+            return bool(self.get_typed_affordance(affordance_type))
+        silicon = self.get_typed_affordance(ComputeAffordanceType.SILICON)
+        thermal = self.get_typed_affordance(ComputeAffordanceType.THERMAL)
+        return bool(silicon and thermal)
+
     def has_headroom(self) -> bool:
         """
         Evaluates physical headroom (CPU/RAM) in conjunction with topological stability (CALM)
