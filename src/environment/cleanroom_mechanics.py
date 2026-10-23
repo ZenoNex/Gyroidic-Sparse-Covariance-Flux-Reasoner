@@ -18,7 +18,6 @@ ecological, and industrial gameplay systems:
 import math
 import time
 import copy
-import random
 from typing import Dict, List, Tuple, Optional, Any, Set, Union
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -33,6 +32,28 @@ from src.ui.voxelboxter_simulation import (
     EnvironmentalAtmosphere, StructuralGraph, Block,
     InventoryComponent, PointerlessOctree
 )
+
+# =========================================================================
+# SILICON SOVEREIGNTY: Physical substrate entropy helpers
+# =========================================================================
+def _honest_float() -> float:
+    """Harvest scalar float in [0.0, 1.0) grounded in physical hardware friction."""
+    from src.core.honest_jitter import harvest_honest_jitter
+    return float((harvest_honest_jitter((1,), scaled=False)[0].item() + 1.0) * 0.5)
+
+def _honest_uniform(a: float, b: float) -> float:
+    return a + (b - a) * _honest_float()
+
+def _honest_randint(a: int, b: int) -> int:
+    if a >= b:
+        return a
+    span = b - a + 1
+    return a + int(_honest_float() * span) % span
+
+def _honest_choice(seq):
+    idx = _honest_randint(0, len(seq) - 1)
+    return seq[idx]
+
 from src.core.yield_criteria import DruckerPragerProjection, MohrCoulombProjection
 from src.core.adaptive_skeleton_harness import EnemySubtype, AmbulatoryClass, AdaptiveSkeletonHarness
 from src.core.carnot_mobius_ledger import CarnotMobiusLedger
@@ -461,8 +482,8 @@ class ResourceDistributionInspector:
         drops = []
         for drop_rule in self.debris_drop_tables.get(entity_class, []):
             effective_chance = min(1.0, drop_rule["base_chance"] + looting_level * drop_rule["looting_bonus"])
-            if random.random() <= effective_chance:
-                count = random.randint(drop_rule["min"], drop_rule["max"] + looting_level)
+            if _honest_float() <= effective_chance:
+                count = _honest_randint(drop_rule["min"], drop_rule["max"] + looting_level)
                 if count > 0:
                     drops.append(ItemStack(item_id=drop_rule["item_id"], count=count))
         return drops
@@ -1218,13 +1239,13 @@ class FaunaGeneticsComponent:
     def breed_with(self, partner: 'FaunaGeneticsComponent') -> 'FaunaGeneticsComponent':
         """Generates offspring chromosomes with crossover and random mutation."""
         def crossover(a: Tuple[float, float], b: Tuple[float, float]) -> Tuple[float, float]:
-            gene1 = random.choice(a)
-            gene2 = random.choice(b)
+            gene1 = _honest_choice(a)
+            gene2 = _honest_choice(b)
             # Apply mutation
-            if random.random() < self.mutation_rate:
-                gene1 *= random.uniform(0.9, 1.15)
-            if random.random() < self.mutation_rate:
-                gene2 *= random.uniform(0.9, 1.15)
+            if _honest_float() < self.mutation_rate:
+                gene1 *= _honest_uniform(0.9, 1.15)
+            if _honest_float() < self.mutation_rate:
+                gene2 *= _honest_uniform(0.9, 1.15)
             return (gene1, gene2)
 
         return FaunaGeneticsComponent(
@@ -2306,9 +2327,9 @@ class IC2CropGenome:
     valence: ValenceFunctional = field(default_factory=ValenceFunctional)
 
     def cross_breed(self, partner: 'IC2CropGenome') -> 'IC2CropGenome':
-        new_growth = max(1, min(31, int((self.growth + partner.growth) * 0.5 + random.randint(-1, 2))))
-        new_gain = max(1, min(31, int((self.gain + partner.gain) * 0.5 + random.randint(-1, 2))))
-        new_res = max(1, min(31, int((self.resistance + partner.resistance) * 0.5 + random.randint(-1, 2))))
+        new_growth = max(1, min(31, int((self.growth + partner.growth) * 0.5 + _honest_randint(-1, 2))))
+        new_gain = max(1, min(31, int((self.gain + partner.gain) * 0.5 + _honest_randint(-1, 2))))
+        new_res = max(1, min(31, int((self.resistance + partner.resistance) * 0.5 + _honest_randint(-1, 2))))
         return IC2CropGenome(
             crop_species=self.crop_species,
             growth=new_growth,
@@ -2541,8 +2562,8 @@ class TracerOxygenAtmosphereEngine:
         ]
 
         for _ in range(self.num_molecules):
-            theta = random.uniform(0.0, 2.0 * math.pi)
-            phi = random.uniform(0.0, math.pi)
+            theta = _honest_uniform(0.0, 2.0 * math.pi)
+            phi = _honest_uniform(0.0, math.pi)
             vx = math.sin(phi) * math.cos(theta) * self.molecule_speed
             vy = math.sin(phi) * math.sin(theta) * self.molecule_speed
             vz = math.cos(phi) * self.molecule_speed
