@@ -16,6 +16,9 @@ from typing import Dict, Any, Optional, List
 import torch
 import torch.nn.functional as F
 import math
+import hashlib
+import hmac
+import os
 
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.models.diegetic_heads import DataAssociationLayer
@@ -24,10 +27,13 @@ from src.core.invariants import apply_asymmetry_preserving_reshape
 
 
 class CanonicalProjector:
-    def __init__(self, dim: int = 64, k: int = 5, device: str = 'cpu'):
+    def __init__(self, dim: int = 64, k: int = 5, device: str = 'cpu', hmac_key: Optional[bytes] = None,
+                 salt_path: Optional[str] = None, account: Optional[str] = None):
         self.dim = dim
         self.k = k
         self.device = device
+        self.account = account or os.environ.get('GYROID_ACCOUNT', 'default')
+        self.salt_path = salt_path or os.environ.get('GYROID_SALT_PATH') or os.environ.get('GYROID_NODE_SECRET_PATH')
 
         # Polynomial family consistent with repair subsystems
         self.poly_config = PolynomialCoprimeConfig(
@@ -44,6 +50,18 @@ class CanonicalProjector:
         self.edge_threshold = 0.12
         self.entropy_threshold = 0.75
         self.max_rois = 4
+        
+        # Load or generate persistent node HMAC secret for anti-poisoning topology
+        # Supports sovereign node accounts and external flashdrives (Option D)
+        if hmac_key is not None:
+            self._hmac_key = hmac_key
+        else:
+            try:
+                from src.safety.hardware_fingerprint import load_or_create_node_salt
+                self._hmac_key = load_or_create_node_salt(salt_path=self.salt_path, account=self.account)
+            except Exception:
+                self._hmac_key = b"gyroidic_canonical_node_secret_"
+
 
     # -----------------------------
     # Text/Topic projection helpers
@@ -78,7 +96,8 @@ class CanonicalProjector:
             vec[0, idx] += magnitude
 
         if len(text) > 0:
-            salt = sum(ord(c) for c in text) % self.dim
+            digest = hmac.new(self._hmac_key, text.encode('utf-8'), hashlib.sha256).digest()
+            salt = int.from_bytes(digest[:4], byteorder='big') % self.dim
             vec[0, salt] *= 1.1
 
         return vec / (vec.norm() + 1e-8)
