@@ -15,6 +15,7 @@ from src.core.polynomial_crt import PolynomialCRT
 from src.core.love_invariant_protector import SoftSaturatedGates
 from src.core.continuous_coprimality import ContinuousCoprimality
 from src.core.spectral_coherence_repair import BezoutCoefficientRefresh
+from src.core.honest_jitter import harvest_honest_jitter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ReactBenchEvaluator")
@@ -128,7 +129,7 @@ class ReactBenchEvaluator:
         and maintain numerical stability (finite condition number).
         """
         # Simulate drifted residues across batch
-        drifted_residues = torch.randn(4, self.k, self.degree + 1, device=self.device) * 2.0
+        drifted_residues = harvest_honest_jitter((4, self.k, self.degree + 1), device=self.device, scaled=False) * 2.0
         
         corrected = self.bezout_refresh.apply_crt_correction(drifted_residues)
         diagnostics = self.bezout_refresh.get_diagnostics()
