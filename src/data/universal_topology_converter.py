@@ -1,5 +1,11 @@
 import os
 import hashlib
+try:
+    import xxhash
+    _HAS_XXHASH = True
+except ImportError:
+    xxhash = None
+    _HAS_XXHASH = False
 import math
 import torch
 from pathlib import Path
@@ -152,18 +158,30 @@ class UniversalTopologyConverter:
         # Evaluate basis: returns [256, degree+1]
         basis_evals = self.polynomial_basis.evaluate(x_norm)
         
-        # Flatten and project to target_dim (deterministic pseudo-random projection)
+        # Flatten and project to target_dim via Silicon Sovereignty (Honest Jitter)
+        flattened_dim = 256 * (self.polynomial_basis.degree + 1)
         file_size = filepath.stat().st_size
         struct_str = f"{file_size}_{ext}_{torch.std(byte_map).item()}"
-        seed = int(hashlib.md5(struct_str.encode()).hexdigest()[:8], 16)
-        torch.manual_seed(seed)
+        if _HAS_XXHASH:
+            lsb_salt = float(xxhash.xxh64_intdigest(struct_str.encode()) % 1000000) / 1000000.0
+        else:
+            lsb_salt = float(int(hashlib.sha256(struct_str.encode()).hexdigest()[:8], 16) % 1000000) / 1000000.0
         
-        flattened_dim = 256 * (self.polynomial_basis.degree + 1)
-        projection_matrix = harvest_honest_jitter((flattened_dim, self.target_dim), device='cpu', scaled=False) / math.sqrt(flattened_dim)
+        if harvest_honest_jitter is not None:
+            # Sourced from hardware nanosecond time-stalls and DRAM friction
+            jitter_matrix = harvest_honest_jitter((flattened_dim, self.target_dim), device='cpu', scaled=False)
+            projection_matrix = (jitter_matrix + lsb_salt * 0.01) / math.sqrt(flattened_dim)
+        else:
+            # Deterministic Weyl sequence fallback anchored on metallic ratio
+            indices = torch.arange(flattened_dim * self.target_dim, dtype=torch.float64)
+            phi = (math.sqrt(5.0) - 1.0) / 2.0
+            weyl = ((indices + 1.0) * phi + lsb_salt) % 1.0
+            projection_matrix = ((weyl * 2.0 - 1.0).to(torch.float32)).view(flattened_dim, self.target_dim) / math.sqrt(flattened_dim)
         
         spectral_tensor = torch.matmul(basis_evals.view(1, -1), projection_matrix)
         
         return torch.tanh(spectral_tensor)
+
 
     def _compute_crt_pressure(self, byte_map: torch.Tensor) -> torch.Tensor:
         """
