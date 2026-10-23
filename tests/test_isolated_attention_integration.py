@@ -15,9 +15,15 @@ attention and cognitive routing subsystems into the Gyroidic Sparse Covariance F
 12. End-to-End Orchestrator, DiegeticPhysicsEngine, and PhysicalNodeEditor Integration
 """
 
+import os
+import sys
 import pytest
 import torch
 import torch.nn.functional as F
+
+_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if _root not in sys.path:
+    sys.path.insert(0, _root)
 
 from src.models.modular_attention import ModularAttention, ModularTransformerLayer
 from src.models.diegetic_heads import AutoeclecticResponderHead, DataAssociationLayer, ResonanceLarynx
@@ -267,3 +273,201 @@ class TestIsolatedAttentionIntegration:
         assert "knowledge_dyad" in tick_res
         assert "calm_veto" in tick_res
         assert "dynamic_attention_mask" in tick_res
+
+    def test_15_gyroid_covariance_probe_rehybridization(self):
+        """15. Validate complete rehybridization of SparseGyroidCovarianceProbe into ModularAttention and UniversalOrchestrator."""
+        from src.models.modular_attention import ModularAttention, ModularTransformerLayer
+        from src.core.polynomial_coprime import PolynomialCoprimeConfig
+        from src.core.orchestrator import UniversalOrchestrator
+        from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
+
+        poly_cfg = PolynomialCoprimeConfig(k=4, degree=3)
+        mod_attn = ModularAttention(hidden_dim=8, num_heads=2, poly_config=poly_cfg, num_functionals=4)
+
+        # 1. Verify probe initialization
+        assert hasattr(mod_attn, 'gyroid_probe')
+        assert isinstance(mod_attn.gyroid_probe, SparseGyroidCovarianceProbe)
+
+        # 2. Test compute_gyroid_violation
+        x = torch.randn(2, 6, 8)
+        violation_res = mod_attn.compute_gyroid_violation(x)
+        assert "total_pressure" in violation_res or "gcve_pressures" in violation_res
+        assert mod_attn.last_gyroid_violation is not None
+
+        # 3. Test dynamic masking in ModularAttention forward
+        out_masked = mod_attn(x, use_dynamic_mask=True)
+        assert out_masked.shape == (2, 6, 8)
+
+        # 4. Test ModularTransformerLayer delegation
+        layer = ModularTransformerLayer(hidden_dim=8, num_heads=2, poly_config=poly_cfg, num_functionals=4)
+        layer_violation = layer.compute_gyroid_violation(x)
+        assert "total_pressure" in layer_violation or "gcve_pressures" in layer_violation
+
+        # 5. Test UniversalOrchestrator gyroid probe integration
+        orch = UniversalOrchestrator(dim=8)
+        assert hasattr(orch, 'gyroid_probe')
+        assert isinstance(orch, UniversalOrchestrator)
+        assert orch.modular_attention.gyroid_probe is orch.gyroid_probe
+
+        # 6. Test run_modular_attention with auto-gyroid dynamic masking
+        out_orch, integrity = orch.run_modular_attention(x, use_gyroid_mask=True)
+        assert out_orch.shape == (2, 6, 8)
+        assert orch.last_gyroid_violation is not None
+
+    def test_16_chern_simons_breather_coupling(self):
+        """16. Validate Chern-Simons gauge coupling and chiral torsion in BreatherMode."""
+        from src.models.resonance_cavity import BreatherMode
+        breather = BreatherMode(num_breathers=6, dim=12)
+        x = torch.randn(2, 12)
+        gauge_field = torch.randn(4, 4)
+        
+        # Uncoupled evaluate
+        out_uncoupled = breather.evaluate(x)
+        assert out_uncoupled.shape == (2, 6)
+        
+        # Coupled evaluate with gauge field and chiral torsion
+        out_coupled = breather.evaluate(
+            x,
+            gauge_field=gauge_field,
+            chern_simons_level=2,
+            chiral_torsion=0.5
+        )
+        assert out_coupled.shape == (2, 6)
+        # Verify that coupling altered the soliton amplitudes while maintaining finite bounds
+        assert not torch.allclose(out_uncoupled, out_coupled)
+        assert not torch.isnan(out_coupled).any()
+        assert not torch.isinf(out_coupled).any()
+        
+        # Test forward pass with gauge coupling
+        out_fwd = breather(
+            x,
+            dt=0.1,
+            gauge_field=gauge_field,
+            chern_simons_level=2,
+            chiral_torsion=0.5
+        )
+        assert out_fwd.shape == (2, 12)
+
+    def test_17_chern_simons_gasket_breather_excitation(self):
+        """17. Validate ChernSimonsGasket.excite_chern_simons_breathers."""
+        from src.core.chern_simons_gasket import ChernSimonsGasket
+        from src.models.resonance_cavity import BreatherMode
+        gasket = ChernSimonsGasket(manifold_dim=3, level_k=1)
+        breather = BreatherMode(num_breathers=4, dim=16)
+        residue = torch.randn(2, 4, 16)
+        
+        # Test standalone excitation
+        packet_standalone = gasket.excite_chern_simons_breathers(residue, t=0.5)
+        assert packet_standalone.shape == residue.shape
+        assert not torch.isnan(packet_standalone).any()
+        
+        # Test excitation through BreatherMode module
+        packet_modular = gasket.excite_chern_simons_breathers(residue, breather_module=breather, t=0.5)
+        assert packet_modular.shape == residue.shape
+        assert not torch.isnan(packet_modular).any()
+
+    def test_18_agent_smith_chern_simons_breather_roundtrip(self):
+        """18. Validate Agent Smith export and substrate alignment with Chern-Simons breather packet."""
+        import tempfile
+        import os
+        from src.core.knowledge_dyad_fossilizer import KnowledgeDyad, DyadFossilizer
+        from src.core.agent_substrate_bridge import AgentSubstrateBridge
+        
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            fossilizer = DyadFossilizer(storage_dir=tmp_dir)
+            bridge = AgentSubstrateBridge()
+            
+            cs_soliton = torch.randn(16)
+            dyad = KnowledgeDyad(
+                linguistic_description="Chern-Simons breather identity",
+                video_breather={"chern_simons_breather": cs_soliton},
+                gyroid_residue=torch.randn(16)
+            )
+            primes = torch.tensor([2.0, 3.0, 5.0, 7.0, 11.0])
+            betti = {0: 1.0, 1: 0.0}
+            
+            filepath = fossilizer.export_agent_smith(
+                dyad=dyad,
+                prime_frequencies=primes,
+                betti_numbers=betti,
+                filename="smith_test",
+                gauge_field=torch.randn(3, 3)
+            )
+            assert os.path.exists(filepath)
+            
+            # Load and verify alignment
+            payload = torch.load(filepath, map_location='cpu')
+            assert "chern_simons_breather" in payload
+            assert payload["chern_simons_breather"] is not None
+            
+            aligned_payload = bridge.align_substrate(payload, expected_dim=16, hardware_trfc_ms=160.0)
+            assert "chern_simons_breather_aligned" in aligned_payload
+            assert aligned_payload["chern_simons_breather_aligned"].shape[-1] == 16
+
+    def test_19_rp4_projective_attention_void_regime(self):
+        """19. Validate Inverted Hypersphere Cosmology (IHC) RP4 projective routing in ModularAttention."""
+        from src.models.modular_attention import ModularAttention
+        from src.core.polynomial_coprime import PolynomialCoprimeConfig
+        
+        poly_cfg = PolynomialCoprimeConfig(k=4, degree=3)
+        attn = ModularAttention(hidden_dim=16, num_heads=2, poly_config=poly_cfg, num_functionals=4)
+        x = torch.randn(2, 4, 16)
+        
+        # Test standard forward
+        out_std = attn(x)
+        # Test VOID regime with RP4 projective attention
+        out_void = attn(x, regime='VOID')
+        assert out_void.shape == (2, 4, 16)
+        assert not torch.allclose(out_std, out_void)
+
+    def test_20_ihc_33_shell_ladder_polynomial_scaling(self):
+        """20. Validate IHC 33-shell golden ratio ladder scaling in PolynomialFunctionalEmbedder."""
+        from src.models.polynomial_embeddings import PolynomialFunctionalEmbedder
+        from src.core.polynomial_coprime import PolynomialCoprimeConfig
+        
+        config = PolynomialCoprimeConfig(k=5, degree=3)
+        embedder = PolynomialFunctionalEmbedder(text_dim=10, hidden_dim=20, poly_config=config, use_graph=False, use_num=False)
+        text_emb = torch.randn(2, 10)
+        
+        res = embedder(text_emb=text_emb)
+        assert "residue_distributions" in res
+        residues = res["residue_distributions"]
+        assert residues.shape == (2, 5, 4)
+        assert not torch.isnan(residues).any()
+
+    def test_21_folium_implicit_transversal_smooch_anchor(self):
+        """21. Validate Folium of Descartes implicit differentiation, transversal smooch (-1 slope), and Option D nutrient issuance."""
+        from src.core.cayley_cubic_probe import CayleyCubicProbe
+        from src.optimization.constraint_probe import ConstraintProbeOperator
+        from src.core.false_negative_subsystem import VoynichExemptionToken
+        
+        probe = CayleyCubicProbe(high_mischief_threshold=0.5, folium_scale=1.0)
+        smooch_pt = torch.tensor([[1.5, 1.5]], dtype=torch.float32)
+        
+        # 1. Anti-Lobotomy implicit residual: x^3 + y^3 - 3xy = 0
+        residual = probe.evaluate_folium_implicit(smooch_pt)
+        assert abs(residual.item()) < 1e-4
+        
+        # 2. Implicit derivative dy/dx = -1.0 (reciprocal exchange, dx + dy = 0)
+        slope = probe.compute_implicit_derivative(smooch_pt)
+        assert abs(slope.item() - (-1.0)) < 1e-4
+        
+        # 3. Transversal Smooch / PAS_h anchor evaluation
+        smooch_metrics = probe.evaluate_transversal_smooch(smooch_pt)
+        assert smooch_metrics["is_transversal_smooch"].item() is True
+        assert abs(smooch_metrics["reciprocal_score"].item() - 1.0) < 1e-3
+        
+        # 4. System 2 Constraint Probe evaluation without 1D scalar collapse
+        cov = torch.eye(2)
+        operator = ConstraintProbeOperator(constraint_index=0, sparse_covariance=cov)
+        operator_metrics = operator.evaluate_folium_transversality(smooch_pt)
+        assert operator_metrics["is_transversal_smooch"].item() is True
+        
+        # 5. Voynich Exemption Token Option D nutrient passport issuance
+        token = VoynichExemptionToken.issue_from_transversality({"state": smooch_pt})
+        assert token.is_valid_exemption is True
+        assert token.is_nutrient is True
+        assert token.honesty_score == 1.0
+        assert "Folium" in token.reason
+
+
