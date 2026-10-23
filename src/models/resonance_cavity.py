@@ -74,13 +74,15 @@ class HeritableTrustVault(nn.Module):
     
     Allows contradictory trusted patterns to coexist until selection.
     """
-    def __init__(self, table_size: int = 1024, k_dim: int = 5):
+    def __init__(self, table_size: int = 1024, k_dim: int = 5, salt: Optional[bytes] = None):
         """
         Initialize the Heritable Trust Vault.
         
         Args:
             table_size: Number of slots in the symbolic trust table.
             k_dim: Dimensionality of the residue patterns to be cached.
+            salt: Optional 16-byte salt for cross-run hash determinism. If None,
+                  uses GYROIDIC_HASH_SALT env var or a deterministic canonical salt.
         """
         super().__init__()
         self.table_size = table_size
@@ -92,7 +94,12 @@ class HeritableTrustVault(nn.Module):
         # Persistent salt: stored as buffer so it survives save/load cycles.
         # This guarantees the same residue hashes to the same slot across runs.
         import os
-        _salt_bytes = os.urandom(16)
+        if salt is not None:
+            _salt_bytes = bytes(salt)[:16].ljust(16, b'\x00')
+        elif 'GYROIDIC_HASH_SALT' in os.environ:
+            _salt_bytes = os.environ['GYROIDIC_HASH_SALT'].encode('utf-8')[:16].ljust(16, b'\x00')
+        else:
+            _salt_bytes = b"gyroid_trust_s16"
         self.register_buffer(
             '_hash_salt',
             torch.tensor(list(_salt_bytes), dtype=torch.uint8)
@@ -147,6 +154,10 @@ class HeritableTrustVault(nn.Module):
         """
         indices = self._hash(residues)
         return self.trust_scores[indices]
+
+
+# Canonical alias for SymbolicTrustTable (Wager #4 / RIC persistence)
+SymbolicTrustTable = HeritableTrustVault
 
 
 class BreatherMode(nn.Module):
