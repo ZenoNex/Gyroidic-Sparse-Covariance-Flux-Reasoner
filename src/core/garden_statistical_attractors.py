@@ -1591,7 +1591,8 @@ class MemoryPalace(nn.Module):
         target_id = seed_id or room_id or f"outlier_{len(self.rooms)}"
         target_center = center if center is not None else transversal_point
         if target_center is None:
-            target_center = torch.randn(self.feature_dim)
+            # SILICON SOVEREIGNTY: Replaced torch.randn with harvest_honest_jitter
+            target_center = harvest_honest_jitter((self.feature_dim,), scaled=False)
         target_tension = curvature if curvature is not None else seam_tension
         meta = metadata or {}
         meta['is_outlier_seed'] = True
