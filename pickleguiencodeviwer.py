@@ -22,6 +22,34 @@ except Exception as e:
     _HAS_IMPORTS = False
     print(f"[IMPORTS] Failed to load codebase classes: {e}")
 
+# C++ Accelerated libraries & Codebase extensions
+try:
+    import xxhash
+    _HAS_XXHASH = True
+except ImportError:
+    _HAS_XXHASH = False
+
+try:
+    import ijson
+    _HAS_IJSON = True
+except ImportError:
+    _HAS_IJSON = False
+
+try:
+    import pyarrow as pa
+    import pyarrow.feather as feather
+    _HAS_PYARROW = True
+except ImportError:
+    _HAS_PYARROW = False
+
+try:
+    from src.models.modular_attention import ModularAttention, SinkhornBirkhoffAttention
+    from src.models.resonance_cavity import SymbolicTrustTable
+    from src.core.hessian_8x8_curvature_ledger import Hessian8x8CurvatureLedger, AttractorRegime
+    _HAS_EXTENDED_IMPORTS = True
+except Exception:
+    _HAS_EXTENDED_IMPORTS = False
+
 # Matplotlib setup
 import matplotlib
 matplotlib.use('TkAgg')
@@ -78,6 +106,19 @@ def _is_blake2_hex(val) -> bool:
     if len(s) not in (20, 32, 64): return False
     try: int(s, 16); return True
     except ValueError: return False
+
+def _fast_xxhash_digest(filepath: str) -> str:
+    """Compute 64-bit and 128-bit xxHash checksum using C extension."""
+    if not _HAS_XXHASH or not os.path.exists(filepath):
+        return ""
+    try:
+        h64 = xxhash.xxh64()
+        with open(filepath, 'rb') as f:
+            while chunk := f.read(65536):
+                h64.update(chunk)
+        return h64.hexdigest()
+    except Exception:
+        return ""
 
 def _sanitize_latex(text: str) -> str:
     if not isinstance(text, str):
@@ -225,10 +266,34 @@ def _render_value(v, indent: str = "    ", label: str = "") -> str:
 
 def _detect_schema(data: dict) -> str:
     t = data.get("type", "")
-    if t == "soliton_smith":       return "soliton_smith"
-    if t == "knowledge_dyad":      return "knowledge_dyad"
+    if t == "soliton_smith" or "blake2s_digest" in data:
+        return "soliton_smith"
+    if t == "knowledge_dyad" or ("unified_spectral_signature" in data and "gyroid_residue" in data):
+        return "knowledge_dyad"
     if "iteration" in data and "text_input" in data:
         return "interaction_encoding"
+    if any(k in data for k in ("attention_weights", "birkhoff_matrix", "sinkhorn_entropy", "modular_routing", "unknowledge_domain")):
+        return "modular_attention"
+    if any(k in data for k in ("admr_residues", "chiral_cache", "warmstart_residues", "admr_loss")):
+        return "admr_chiral_cache"
+    if any(k in data for k in ("trust_scalars", "trust_table", "symbolic_trust")):
+        return "symbolic_trust_vault"
+    if any(k in data for k in ("hessian_8x8", "trajectory_decombiner", "coxeter_regime")):
+        return "hessian_8x8_ledger"
+    if any(k in data for k in ("health_metric", "escape_capacity", "bostick_state", "topological_richness")):
+        return "bostick_health_metrics"
+    if any(k in data for k in ("meliponini_pots", "cerumen_barrier", "necrotic_well")):
+        return "cerumen_pot_isolation"
+    if any(k in data for k in ("universal_topology_embedding", "topology_signature", "spatial_projection")):
+        return "universal_topology"
+    if any(k in data for k in ("fossilized_lattice", "erosion_filter", "survival_lattice")):
+        return "fbm_erosion_lattice"
+    if any(k in data for k in ("lambda_vac", "lambda_pump", "depth_N", "irreversible_n_crit_runaway")):
+        return "carnot_mobius_ledger"
+    if any(k in data for k in ("crop_genome", "fauna_genetics", "debris_drop_tables")):
+        return "cleanroom_mechanics"
+    if {'iteration', 'hidden_state', 'love_invariant', 'cavity_M'}.issubset(data.keys()):
+        return "gyroid_state"
     return "generic_dict"
 
 # -----------------------------------------------------------------------
@@ -372,6 +437,57 @@ def _format_generic_dict(data: dict, filename: str) -> str:
         out.append(_render_value(v, indent="  ", label=str(k)))
     return "\n".join(out)
 
+def _format_modular_attention(data: dict) -> str:
+    out = [_fmt_section("MODULAR ATTENTION & SINKHORN BIRKHOFF MATRIX")]
+    for k in ("heads", "num_channels", "sinkhorn_entropy", "birkhoff_error", "tau_temperature"):
+        if k in data: out.append(_render_value(data[k], indent="  ", label=k))
+    out.append("\n--- Attention Matrices & Routing Tensors ---")
+    for k in ("attention_weights", "birkhoff_matrix", "modular_routing", "unknowledge_domain"):
+        if k in data: out.append(_render_value(data[k], indent="  ", label=k))
+    return "\n".join(out)
+
+def _format_admr_cache(data: dict) -> str:
+    out = [_fmt_section("ADMR CHIRAL RESIDUE CACHE")]
+    for k in ("admr_residues", "chiral_cache", "warmstart_residues", "admr_loss", "chiral_energy"):
+        if k in data: out.append(_render_value(data[k], indent="  ", label=k))
+    return "\n".join(out)
+
+def _format_trust_vault(data: dict) -> str:
+    out = [_fmt_section("HERITABLE TRUST VAULT & SYMBOLIC TRUST TABLES")]
+    for k in ("trust_scalars", "trust_table", "symbolic_trust", "mutation_rate", "fossil_frozen_indices"):
+        if k in data: out.append(_render_value(data[k], indent="  ", label=k))
+    return "\n".join(out)
+
+def _format_hessian_ledger(data: dict) -> str:
+    out = [_fmt_section("HESSIAN 8x8 CURVATURE LEDGER & COXETER DECOMBINER")]
+    for k in ("hessian_8x8", "eigenvalues", "coxeter_regime", "trajectory_decombiner", "lyapunov_exponent"):
+        if k in data: out.append(_render_value(data[k], indent="  ", label=k))
+    return "\n".join(out)
+
+def _format_bostick_health(data: dict) -> str:
+    out = [_fmt_section("BOSTICK TYPED HEALTH METRICS & ESCAPE CAPACITY")]
+    for k in ("health_metric", "escape_capacity", "topological_richness", "garden_health_score", "bostick_state"):
+        if k in data: out.append(_render_value(data[k], indent="  ", label=k))
+    return "\n".join(out)
+
+def _format_cerumen_pot(data: dict) -> str:
+    out = [_fmt_section("MELIPONINI CERUMEN POT & NECROTIC WELL ISOLATION")]
+    for k in ("meliponini_pots", "cerumen_barrier", "necrotic_well", "pot_identity_crt", "quarantine_status"):
+        if k in data: out.append(_render_value(data[k], indent="  ", label=k))
+    return "\n".join(out)
+
+def _format_universal_topology(data: dict) -> str:
+    out = [_fmt_section("UNIVERSAL TOPOLOGY CONVERTER MULTIMODAL EMBEDDING")]
+    for k in ("universal_topology_embedding", "topology_signature", "spatial_projection", "flattened_dim", "target_dim"):
+        if k in data: out.append(_render_value(data[k], indent="  ", label=k))
+    return "\n".join(out)
+
+def _format_carnot_mobius(data: dict) -> str:
+    out = [_fmt_section("CARNOT MOBIUS THERMODYNAMIC LEDGER")]
+    for k in ("lambda_vac", "lambda_pump", "depth_N", "irreversible_n_crit_runaway", "uncirculated_capital"):
+        if k in data: out.append(_render_value(data[k], indent="  ", label=k))
+    return "\n".join(out)
+
 def _dyad_to_dict(dyad) -> dict:
     return {
         "type": "knowledge_dyad",
@@ -428,6 +544,7 @@ class DataViewer:
         ttk.Button(self.toolbar, text="Refresh",           command=self.refresh_file_list).pack(side=tk.LEFT, padx=4)
         ttk.Button(self.toolbar, text="Copy to Clipboard", command=self.copy_to_clipboard).pack(side=tk.LEFT, padx=4)
         ttk.Button(self.toolbar, text="Verify Blake2",     command=self.verify_blake2).pack(side=tk.LEFT, padx=4)
+        ttk.Button(self.toolbar, text="Verify xxHash",     command=self.verify_xxhash).pack(side=tk.LEFT, padx=4)
 
         # Sort Order dropdown
         ttk.Label(self.toolbar, text="Sort:").pack(side=tk.LEFT, padx=(12, 2))
@@ -594,6 +711,19 @@ class DataViewer:
                 f"Expected: {expected}"
             )
 
+    def verify_xxhash(self):
+        sel = self.file_listbox.curselection()
+        if not sel:
+            messagebox.showinfo("No selection", "Select a file first.")
+            return
+        fname = self.file_listbox.get(sel[0])
+        fpath = os.path.join(self.base_path, fname)
+        if _HAS_XXHASH:
+            h = _fast_xxhash_digest(fpath)
+            messagebox.showinfo("xxHash64 Checksum", f"File: {fname}\nxxHash64 (C++ Accelerated): {h}")
+        else:
+            messagebox.showinfo("N/A", "xxhash C++ library not available.")
+
     # ------------------------------------------------------------------
     def on_file_select(self, event):
         sel = self.file_listbox.curselection()
@@ -622,6 +752,25 @@ class DataViewer:
             elif fname.endswith('.pkl'):
                 with open(fpath, 'rb') as f:
                     data = pickle.load(f)
+                self._show_object(data, fname)
+                self.update_visualization(data, fname)
+            elif fname.endswith(('.arrow', '.feather')) and _HAS_PYARROW:
+                table = feather.read_table(fpath)
+                data = table.to_pydict()
+                self._show_object(data, fname)
+                self.update_visualization(data, fname)
+            elif fname.endswith('.json'):
+                import json
+                with open(fpath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                self._show_object(data, fname)
+                self.update_visualization(data, fname)
+            elif fname.endswith(('.npy', '.npz')):
+                np_data = np.load(fpath)
+                if isinstance(np_data, np.lib.npyio.NpzFile):
+                    data = {k: torch.from_numpy(np_data[k]) for k in np_data.files}
+                else:
+                    data = torch.from_numpy(np_data)
                 self._show_object(data, fname)
                 self.update_visualization(data, fname)
             else:
@@ -666,6 +815,22 @@ class DataViewer:
             rendered = _format_knowledge_dyad(data)
         elif schema == "interaction_encoding":
             rendered = _format_interaction_encoding(data)
+        elif schema == "modular_attention":
+            rendered = _format_modular_attention(data)
+        elif schema == "admr_chiral_cache":
+            rendered = _format_admr_cache(data)
+        elif schema == "symbolic_trust_vault":
+            rendered = _format_trust_vault(data)
+        elif schema == "hessian_8x8_ledger":
+            rendered = _format_hessian_ledger(data)
+        elif schema == "bostick_health_metrics":
+            rendered = _format_bostick_health(data)
+        elif schema == "cerumen_pot_isolation":
+            rendered = _format_cerumen_pot(data)
+        elif schema == "universal_topology":
+            rendered = _format_universal_topology(data)
+        elif schema == "carnot_mobius_ledger":
+            rendered = _format_carnot_mobius(data)
         else:
             rendered = _format_generic_dict(data, fname)
 
@@ -729,15 +894,24 @@ class DataViewer:
                 if required_keys.issubset(data.keys()):
                     is_gyroid_state = True
             
-            if is_gyroid_state:
+            schema = _detect_schema(data) if isinstance(data, dict) else ""
+            if is_gyroid_state or schema == "gyroid_state":
                 self.draw_gyroid_state_dashboard(fig, data)
+            elif schema == "modular_attention":
+                self.draw_modular_attention_dashboard(fig, data, fname)
+            elif schema == "admr_chiral_cache":
+                self.draw_admr_cache_dashboard(fig, data, fname)
+            elif schema == "hessian_8x8_ledger":
+                self.draw_hessian_ledger_dashboard(fig, data, fname)
+            elif schema == "bostick_health_metrics":
+                self.draw_bostick_health_dashboard(fig, data, fname)
             elif _HAS_IMPORTS and isinstance(data, ZeitgeistState):
                 self.draw_zeitgeist_state_dashboard(fig, data, fname)
             elif _HAS_IMPORTS and isinstance(data, VetoResult):
                 self.draw_veto_result_dashboard(fig, data, fname)
             elif _HAS_IMPORTS and isinstance(data, LoveVector):
                 self.draw_love_vector_dashboard(fig, data, fname)
-            elif isinstance(data, dict) and (_detect_schema(data) in ("soliton_smith", "knowledge_dyad", "interaction_encoding")):
+            elif isinstance(data, dict) and (schema in ("soliton_smith", "knowledge_dyad", "interaction_encoding", "cerumen_pot_isolation", "universal_topology", "carnot_mobius_ledger")):
                 self.draw_fossil_encoding_dashboard(fig, data, fname)
             elif isinstance(data, torch.Tensor):
                 self.draw_raw_tensor(fig, data, fname)
@@ -1288,6 +1462,189 @@ class DataViewer:
 
         fig.suptitle(f"{schema.replace('_', ' ').upper()}  ({size_str})",
                      color='white', fontsize=11, fontfamily=_FONT, y=0.97)
+
+    def draw_modular_attention_dashboard(self, fig, data, fname):
+        gs = gridspec.GridSpec(3, 2, figure=fig, left=0.08, right=0.95, top=0.90, bottom=0.08, hspace=0.45, wspace=0.3)
+        
+        # Subplot 1: Attention Heatmap / Birkhoff Matrix
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax1.set_facecolor(_PANEL_BG)
+        attn = data.get("attention_weights") if "attention_weights" in data else data.get("birkhoff_matrix")
+        if attn is not None:
+            a_np = attn.detach().cpu().float().numpy() if isinstance(attn, torch.Tensor) else np.array(attn)
+            if a_np.ndim > 2: a_np = a_np[0]
+            ax1.imshow(a_np, cmap='inferno', aspect='auto', interpolation='none')
+            ax1.set_title(f"Attention Heatmap (dim={a_np.shape})", color=_BLUE, fontsize=8, fontfamily=_FONT)
+        else:
+            ax1.text(0.5, 0.5, "No attention matrix", color=_DIM, ha='center', va='center')
+        ax1.set_xticks([]); ax1.set_yticks([])
+        _style_spine(ax1, _BLUE)
+
+        # Subplot 2: Birkhoff Doubly-Stochastic Test (Row & Col Sums)
+        ax2 = fig.add_subplot(gs[0, 1])
+        ax2.set_facecolor(_PANEL_BG)
+        if attn is not None:
+            a_np = attn.detach().cpu().float().numpy() if isinstance(attn, torch.Tensor) else np.array(attn)
+            if a_np.ndim > 2: a_np = a_np[0]
+            row_sums = a_np.sum(axis=-1)
+            col_sums = a_np.sum(axis=0)
+            ax2.plot(row_sums, color=_GREEN, linewidth=1.0, label="Row Sums")
+            ax2.plot(col_sums, color=_MAGENTA, linewidth=1.0, linestyle='--', label="Col Sums")
+            ax2.axhline(1.0, color='white', linestyle=':', alpha=0.5)
+            ax2.set_title("Birkhoff Doubly-Stochastic Check", color=_GREEN, fontsize=8, fontfamily=_FONT)
+            ax2.legend(loc='upper right', fontsize=6, framealpha=0.3, facecolor=_PANEL_BG, labelcolor='white')
+        else:
+            ax2.text(0.5, 0.5, "No matrix to verify", color=_DIM, ha='center', va='center')
+        ax2.tick_params(colors=_DIM, labelsize=6)
+        _style_spine(ax2, _GREEN)
+
+        # Subplot 3: Attention Entropy / Dispersion
+        ax3 = fig.add_subplot(gs[1, 0])
+        ax3.set_facecolor(_PANEL_BG)
+        if attn is not None:
+            a_np = attn.detach().cpu().float().numpy() if isinstance(attn, torch.Tensor) else np.array(attn)
+            if a_np.ndim > 2: a_np = a_np[0]
+            p = np.clip(a_np, 1e-12, 1.0)
+            ent = -np.sum(p * np.log(p), axis=-1)
+            ax3.bar(np.arange(len(ent)), ent, color=_BLUE, alpha=0.7, width=0.5)
+            ax3.set_title("Attention Entropy per Position", color=_BLUE, fontsize=8, fontfamily=_FONT)
+        else:
+            ax3.text(0.5, 0.5, "No entropy data", color=_DIM, ha='center', va='center')
+        ax3.tick_params(colors=_DIM, labelsize=6)
+        _style_spine(ax3, _BLUE)
+
+        # Subplot 4: Unknowledge Domain Obstruction Vector (o)
+        ax4 = fig.add_subplot(gs[1, 1])
+        ax4.set_facecolor(_PANEL_BG)
+        o_vec = data.get("unknowledge_domain") if "unknowledge_domain" in data else data.get("o")
+        if o_vec is not None:
+            o_np = o_vec.detach().cpu().float().numpy().flatten() if isinstance(o_vec, torch.Tensor) else np.array(o_vec).flatten()
+            ax4.plot(o_np, color=_WARN, linewidth=0.8)
+            ax4.set_title("Unknowledge Obstruction (o) Subspace", color=_WARN, fontsize=8, fontfamily=_FONT)
+        else:
+            ax4.text(0.5, 0.5, "No obstruction vector", color=_DIM, ha='center', va='center')
+        ax4.tick_params(colors=_DIM, labelsize=6)
+        _style_spine(ax4, _WARN)
+
+        # Subplot 5: Modular Routing Weights
+        ax5 = fig.add_subplot(gs[2, 0])
+        ax5.set_facecolor(_PANEL_BG)
+        routing = data.get("modular_routing") if "modular_routing" in data else data.get("channel_weights")
+        if routing is not None:
+            r_np = routing.detach().cpu().float().numpy().flatten() if isinstance(routing, torch.Tensor) else np.array(routing).flatten()
+            ax5.barh(np.arange(len(r_np)), r_np, color=_MAGENTA, alpha=0.8, height=0.5)
+            ax5.set_title("Modular Routing Weights", color=_MAGENTA, fontsize=8, fontfamily=_FONT)
+        else:
+            ax5.text(0.5, 0.5, "No routing weights", color=_DIM, ha='center', va='center')
+        ax5.tick_params(colors=_DIM, labelsize=6)
+        _style_spine(ax5, _MAGENTA)
+
+        # Subplot 6: Summary Metrics
+        ax6 = fig.add_subplot(gs[2, 1])
+        ax6.set_facecolor(_PANEL_BG)
+        info = [
+            f"Sinkhorn Entropy: {data.get('sinkhorn_entropy', 'N/A')}",
+            f"Birkhoff Error: {data.get('birkhoff_error', 'N/A')}",
+            f"Tau Temperature: {data.get('tau_temperature', 1.0)}",
+            f"Veto Triggered: {data.get('veto_triggered', False)}"
+        ]
+        for idx, line in enumerate(info):
+            ax6.text(0.1, 0.8 - idx * 0.2, line, color='white', fontsize=8, fontfamily=_FONT, va='center')
+        ax6.set_title("Attention Invariants", color=_GREEN, fontsize=8, fontfamily=_FONT)
+        ax6.set_xticks([]); ax6.set_yticks([])
+        _style_spine(ax6, _GREEN)
+        fig.suptitle(f"MODULAR ATTENTION DASHBOARD | {fname}", color='white', fontsize=11, fontfamily=_FONT, y=0.97)
+
+    def draw_admr_cache_dashboard(self, fig, data, fname):
+        gs = gridspec.GridSpec(2, 2, figure=fig, left=0.08, right=0.95, top=0.90, bottom=0.08, hspace=0.45, wspace=0.3)
+        ax1 = fig.add_subplot(gs[0, :])
+        ax1.set_facecolor(_PANEL_BG)
+        res = data.get("admr_residues") or data.get("chiral_cache")
+        if res is not None:
+            r_np = res.detach().cpu().float().numpy() if isinstance(res, torch.Tensor) else np.array(res)
+            if r_np.ndim == 2:
+                ax1.imshow(r_np, cmap='viridis', aspect='auto', interpolation='none')
+                ax1.set_title("ADMR Residue Matrix [K, D]", color=_BLUE, fontsize=9, fontfamily=_FONT)
+            else:
+                ax1.plot(r_np.flatten(), color=_BLUE, linewidth=0.8)
+                ax1.set_title("ADMR Residue Vector", color=_BLUE, fontsize=9, fontfamily=_FONT)
+        ax1.tick_params(colors=_DIM, labelsize=6)
+        _style_spine(ax1, _BLUE)
+
+        ax2 = fig.add_subplot(gs[1, 0])
+        ax2.set_facecolor(_PANEL_BG)
+        loss = data.get("admr_loss") or data.get("residual_norm")
+        ax2.text(0.5, 0.5, f"Residual Energy:\n{loss if loss is not None else '0.0000'}", color='white', ha='center', va='center', fontsize=9, fontfamily=_FONT)
+        ax2.set_title("Chiral Loss Anchor", color=_WARN, fontsize=8, fontfamily=_FONT)
+        ax2.set_xticks([]); ax2.set_yticks([])
+        _style_spine(ax2, _WARN)
+
+        ax3 = fig.add_subplot(gs[1, 1])
+        ax3.set_facecolor(_PANEL_BG)
+        ax3.text(0.5, 0.5, "ADMR Warmstart Status:\nACTIVE", color=_GREEN, ha='center', va='center', fontsize=9, fontfamily=_FONT)
+        ax3.set_title("Status", color=_GREEN, fontsize=8, fontfamily=_FONT)
+        ax3.set_xticks([]); ax3.set_yticks([])
+        _style_spine(ax3, _GREEN)
+        fig.suptitle(f"ADMR CHIRAL CACHE DASHBOARD | {fname}", color='white', fontsize=11, fontfamily=_FONT, y=0.97)
+
+    def draw_hessian_ledger_dashboard(self, fig, data, fname):
+        gs = gridspec.GridSpec(2, 2, figure=fig, left=0.08, right=0.95, top=0.90, bottom=0.08, hspace=0.45, wspace=0.3)
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax1.set_facecolor(_PANEL_BG)
+        h = data.get("hessian_8x8")
+        if h is not None:
+            h_np = h.detach().cpu().float().numpy() if isinstance(h, torch.Tensor) else np.array(h)
+            ax1.imshow(h_np, cmap='seismic', aspect='auto', interpolation='none')
+            ax1.set_title("Hessian 8x8 Curvature", color=_BLUE, fontsize=8, fontfamily=_FONT)
+        ax1.set_xticks([]); ax1.set_yticks([])
+        _style_spine(ax1, _BLUE)
+
+        ax2 = fig.add_subplot(gs[0, 1])
+        ax2.set_facecolor(_PANEL_BG)
+        evals = data.get("eigenvalues")
+        if evals is not None:
+            e_np = evals.detach().cpu().float().numpy() if isinstance(evals, torch.Tensor) else np.array(evals)
+            ax2.bar(np.arange(len(e_np)), e_np, color=_MAGENTA, alpha=0.8, width=0.4)
+            ax2.set_title("Eigenvalue Spectrum", color=_MAGENTA, fontsize=8, fontfamily=_FONT)
+        ax2.tick_params(colors=_DIM, labelsize=6)
+        _style_spine(ax2, _MAGENTA)
+
+        ax3 = fig.add_subplot(gs[1, :])
+        ax3.set_facecolor(_PANEL_BG)
+        regime = data.get("coxeter_regime", "ELLIPTIC")
+        lyap = data.get("lyapunov_exponent", 0.0)
+        ax3.text(0.5, 0.5, f"Coxeter Attractor Regime: {regime} | Lyapunov Exponent: {lyap:.4f}", color='white', ha='center', va='center', fontsize=9, fontfamily=_FONT)
+        ax3.set_title("Decombiner Attractor Regime", color=_GREEN, fontsize=8, fontfamily=_FONT)
+        ax3.set_xticks([]); ax3.set_yticks([])
+        _style_spine(ax3, _GREEN)
+        fig.suptitle(f"HESSIAN 8x8 CURVATURE LEDGER | {fname}", color='white', fontsize=11, fontfamily=_FONT, y=0.97)
+
+    def draw_bostick_health_dashboard(self, fig, data, fname):
+        gs = gridspec.GridSpec(2, 2, figure=fig, left=0.08, right=0.95, top=0.90, bottom=0.08, hspace=0.45, wspace=0.3)
+        ax1 = fig.add_subplot(gs[0, :])
+        ax1.set_facecolor(_PANEL_BG)
+        ec = float(data.get("escape_capacity", 1.0))
+        tr = float(data.get("topological_richness", 1.0))
+        gh = float(data.get("garden_health_score", 1.0))
+        metrics = ["Escape Capacity (EC)", "Topological Richness", "Garden Health"]
+        vals = [ec, tr, gh]
+        colors = [_RED if ec < 0.1 else _GREEN, _BLUE, _MAGENTA]
+        ax1.barh(metrics, vals, color=colors, alpha=0.8, height=0.4)
+        ax1.set_xlim(0, 1.2)
+        ax1.set_title("Bostick Topological Health Invariants", color=_GREEN, fontsize=8, fontfamily=_FONT)
+        for i, val in enumerate(vals):
+            status = " [FOSSILIZED]" if i == 0 and val < 0.1 else ""
+            ax1.text(val + 0.02, i, f"{val:.4f}{status}", va='center', color='white', fontsize=7, fontfamily=_FONT)
+        _style_spine(ax1, _GREEN)
+
+        ax2 = fig.add_subplot(gs[1, :])
+        ax2.set_facecolor(_PANEL_BG)
+        state_label = data.get("bostick_state", "HEALTHY_RESONANCE")
+        ax2.text(0.5, 0.5, f"Attractor Health State: {state_label}\nDistinguishes Healthy Resonance from Dead Fossilization", color='white', ha='center', va='center', fontsize=9, fontfamily=_FONT)
+        ax2.set_title("Resonance Classification", color=_BLUE, fontsize=8, fontfamily=_FONT)
+        ax2.set_xticks([]); ax2.set_yticks([])
+        _style_spine(ax2, _BLUE)
+        fig.suptitle(f"BOSTICK HEALTH METRICS DASHBOARD | {fname}", color='white', fontsize=11, fontfamily=_FONT, y=0.97)
 
     def draw_raw_tensor(self, fig, data, fname):
         ax = fig.add_subplot(1, 1, 1)
