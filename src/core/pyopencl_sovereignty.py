@@ -984,6 +984,84 @@ class SiliconSovereigntyEngine:
                 }
             }
         }
+
+        // 36. Continuous B-Splines Evaluation Kernel (Queue A execution hedging vs Queue B ADMR stalls)
+        __kernel void bspline_basis_eval(
+            __global const float *x_vals,
+            __global const float *knots,
+            __global float *out_bases,
+            int num_points,
+            int spline_order,
+            int num_bases,
+            int num_knots
+        ) {
+            int gid = get_global_id(0);
+            if (gid >= num_points) return;
+            
+            float x = x_vals[gid];
+            float temp[64];
+            for (int i = 0; i < 64; i++) {
+                temp[i] = 0.0f;
+            }
+            
+            // Level 0
+            for (int i = 0; i < num_knots - 1; i++) {
+                if (i < 64) {
+                    temp[i] = (x >= knots[i] && x < knots[i + 1]) ? 1.0f : 0.0f;
+                }
+            }
+            if (x >= knots[num_knots - 1] && (num_knots - 2) < 64) {
+                temp[num_knots - 2] = 1.0f;
+            }
+            
+            // Cox-de Boor recursion
+            for (int p = 1; p <= spline_order; p++) {
+                for (int i = 0; i < num_knots - 1 - p; i++) {
+                    if (i >= 64) break;
+                    float denom1 = knots[i + p] - knots[i] + 1e-8f;
+                    float term1 = ((x - knots[i]) / denom1) * temp[i];
+                    
+                    float denom2 = knots[i + p + 1] - knots[i + 1] + 1e-8f;
+                    float term2 = ((knots[i + p + 1] - x) / denom2) * temp[i + 1];
+                    
+                    temp[i] = term1 + term2;
+                }
+            }
+            
+            for (int b = 0; b < num_bases; b++) {
+                out_bases[gid * num_bases + b] = (b < 64) ? temp[b] : 0.0f;
+            }
+        }
+
+        // 37. Cayley Cubic Surface Hard Projection Kernel (x^2 + y^2 + z^2 - xyz = 4)
+        __kernel void project_cayley_surface(
+            __global float *data,
+            int num_items,
+            int stride
+        ) {
+            int gid = get_global_id(0);
+            if (gid >= num_items) return;
+            
+            int offset = gid * stride;
+            float x = data[offset];
+            float y = data[offset + 1];
+            float z = data[offset + 2];
+            
+            // V = x^2 + y^2 + z^2 - xyz - 4
+            float V = x*x + y*y + z*z - x*y*z - 4.0f;
+            
+            // grad V = (2x - yz, 2y - xz, 2z - xy)
+            float gx = 2.0f * x - y * z;
+            float gy = 2.0f * y - x * z;
+            float gz = 2.0f * z - x * y;
+            
+            float norm_sq = gx*gx + gy*gy + gz*gz + 1e-8f;
+            float step = -V / norm_sq;
+            
+            data[offset]     = x + step * gx;
+            data[offset + 1] = y + step * gy;
+            data[offset + 2] = z + step * gz;
+        }
         """
         
         import warnings
@@ -2111,6 +2189,116 @@ class SiliconSovereigntyEngine:
             out_shape = list(A.shape[:-1]) + [N]
             return res.view(out_shape)
         return res
+
+    def evaluate_bspline_basis(
+        self,
+        x: torch.Tensor,
+        spline_order: int = 3,
+        grid_size: int = 5
+    ) -> torch.Tensor:
+        """
+        Executes continuous B-splines evaluation on Queue A to hedge against Queue B (ADMR) DRAM stalls.
+        Uses OpenCL kernel when hardware is available; falls back to vectorized torch / scipy BSpline.
+        """
+        batch_shape = x.shape
+        x_flat = x.view(-1).float()
+        n = x_flat.shape[0]
+        num_bases = grid_size + spline_order
+        
+        # Knot vector
+        h = 2.0 / grid_size
+        knots = torch.arange(-spline_order, grid_size + spline_order + 1, dtype=torch.float32) * h - 1.0
+        
+        if self.is_initialized and self.queue_a is not None:
+            try:
+                mf = cl.mem_flags
+                x_np = x_flat.contiguous().numpy()
+                knots_np = knots.numpy()
+                out_np = np.zeros((n, num_bases), dtype=np.float32)
+                
+                cl_x = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=x_np)
+                cl_knots = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=knots_np)
+                cl_out = cl.Buffer(self.ctx, mf.WRITE_ONLY, out_np.nbytes)
+                
+                kernel = self._get_kernel('bspline_basis_eval')
+                kernel(
+                    self.queue_a, (n,), None,
+                    cl_x, cl_knots, cl_out,
+                    np.int32(n), np.int32(spline_order), np.int32(num_bases), np.int32(len(knots_np))
+                )
+                cl.enqueue_copy(self.queue_a, out_np, cl_out, is_blocking=True)
+                return torch.from_numpy(out_np).to(device=x.device, dtype=x.dtype).view(*batch_shape, num_bases)
+            except Exception as e:
+                self.logger.warning(f"OpenCL bspline dispatch failed: {e}. Falling back to tensor recursion.")
+        
+        # CPU / Vectorized PyTorch fallback
+        x_exp = x_flat.unsqueeze(-1).to(x.device)
+        knots_exp = knots.unsqueeze(0).to(x.device)
+        bases = ((x_exp >= knots_exp[:, :-1]) & (x_exp < knots_exp[:, 1:])).float()
+        bases[:, -1] = torch.where(x_flat.to(x.device) >= knots[-1].to(x.device), torch.ones_like(bases[:, -1]), bases[:, -1])
+        
+        for p in range(1, spline_order + 1):
+            t_i = knots_exp[:, :-1 - p]
+            t_ip = knots_exp[:, p:-1]
+            denom1 = t_ip - t_i + 1e-8
+            term1 = ((x_exp - t_i) / denom1) * bases[:, :-1]
+            
+            ti1 = knots_exp[:, 1:-p]
+            tip1 = knots_exp[:, p + 1:]
+            denom2 = tip1 - ti1 + 1e-8
+            term2 = ((tip1 - x_exp) / denom2) * bases[:, 1:]
+            bases = term1 + term2
+            
+        return bases[:, :num_bases].to(x.dtype).view(*batch_shape, num_bases)
+
+    def project_cayley_surface(
+        self,
+        tensor: torch.Tensor,
+        is_honeybee_mode: bool = False
+    ) -> torch.Tensor:
+        """
+        Projects state onto the Cayley Cubic surface (x^2 + y^2 + z^2 - xyz = 4) using OpenCL.
+        Bypassed if state dimension < 3 or if is_honeybee_mode is active (curvature collapse permitted).
+        """
+        if tensor.shape[-1] < 3 or is_honeybee_mode:
+            return tensor
+
+        shape = tensor.shape
+        stride = shape[-1]
+        num_items = tensor.numel() // stride
+
+        if self.is_initialized and self.queue_a is not None:
+            try:
+                mf = cl.mem_flags
+                np_data = tensor.detach().cpu().numpy().copy().astype(np.float32)
+                cl_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=np_data)
+
+                kernel = self._get_kernel("project_cayley_surface")
+                kernel(
+                    self.queue_a, (num_items,), None,
+                    cl_buf, np.int32(num_items), np.int32(stride)
+                )
+                cl.enqueue_copy(self.queue_a, np_data, cl_buf, is_blocking=True)
+                return torch.from_numpy(np_data).to(device=tensor.device, dtype=tensor.dtype).view(shape)
+            except Exception as e:
+                self.logger.warning(f"OpenCL Cayley projection failed: {e}. Falling back to PyTorch.")
+
+        # Vectorized PyTorch fallback
+        coords = tensor[..., :3]
+        x, y, z = coords[..., 0], coords[..., 1], coords[..., 2]
+        V = x**2 + y**2 + z**2 - x*y*z - 4.0
+        grad_x = 2.0 * x - y * z
+        grad_y = 2.0 * y - x * z
+        grad_z = 2.0 * z - x * y
+        norm_sq = grad_x**2 + grad_y**2 + grad_z**2 + 1e-8
+        step = -V / norm_sq
+
+        projected = tensor.clone()
+        projected[..., 0] = x + step * grad_x
+        projected[..., 1] = y + step * grad_y
+        projected[..., 2] = z + step * grad_z
+        return projected
+
 
 # Expose standard execution hook
 def create_engine():
