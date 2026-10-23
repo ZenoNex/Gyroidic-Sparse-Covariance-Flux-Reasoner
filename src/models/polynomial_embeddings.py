@@ -90,7 +90,10 @@ class PolynomialFunctionalEmbedder(nn.Module):
         ])
         
         # Bimodal Routing (evolutionary genome selection)
-        self.register_buffer('bimodal_genome', torch.randint(0, 2, (self.K,)))
+        # SILICON SOVEREIGNTY: Replaced torch.randint with Honest Jitter derivation
+        from ..core.honest_jitter import harvest_honest_jitter
+        initial_genome = (harvest_honest_jitter((self.K,), scaled=False) > 0.0).long()
+        self.register_buffer('bimodal_genome', initial_genome)
         
         # Learned Primitive Perturbation (Phase 6 optimization)
         # Allows adaptive quantization grid deformation
