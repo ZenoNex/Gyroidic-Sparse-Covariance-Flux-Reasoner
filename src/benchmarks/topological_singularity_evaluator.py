@@ -17,6 +17,7 @@ from src.core.zeitgeist_router import ZeitgeistRouter, ZeitgeistState
 from src.core.codes_constraint_framework import CODESConstraintFramework
 from src.core.carnot_mobius_ledger import CarnotMobiusLedger
 from src.topology.unknowledge_domain import UnknowledgeDomain
+from src.core.honest_jitter import harvest_honest_jitter
 from src.ui.diegetic_visualizer import brenier_pushforward, apply_oklab_luminance_absorption, srgb_to_oklab, oklab_to_srgb
 
 logging.basicConfig(level=logging.INFO)
@@ -63,7 +64,7 @@ class TopologicalSingularityEvaluator:
         spatial_metric = torch.eye(4, device=self.device)
         spatial_metric[0, 0] = 4.0
         spatial_metric[3, 3] = 4.0
-        x_in = torch.randn(1, self.state_dim, device=self.device)
+        x_in = harvest_honest_jitter((1, self.state_dim), device=self.device, scaled=False)
         
         mode, next_state, diag, x_steer = self.router(x_in, state, tadc_kwargs={'spatial_metric': spatial_metric})
         steered = self.router.temporal_inverse_kinematics(state, x_in, spatial_metric=spatial_metric)
@@ -98,7 +99,7 @@ class TopologicalSingularityEvaluator:
         diag = ledger(
             lambda_vac=torch.tensor(1.0),
             lambda_pump=torch.tensor(10.0),
-            admr_residues=torch.randn(4, 8),
+            admr_residues=harvest_honest_jitter((4, 8), device=self.device, scaled=False),
             depth_N=10,
             uncirculated_capital=torch.full((1, 8), 10.0),
             stagnation_velocity=0.0
@@ -116,7 +117,7 @@ class TopologicalSingularityEvaluator:
         }
 
     def evaluate_layer4_necrotic_quarantine_stagnation(self) -> Tuple[bool, Dict[str, Any]]:
-        stagnant_state = torch.randn(self.state_dim, device=self.device)
+        stagnant_state = harvest_honest_jitter((self.state_dim,), device=self.device, scaled=False)
         classification = self.unknowledge.classify_domain(stagnant_state, h_mischief=0.1, velocity_flow=1e-5)
         is_pass = (
             (classification.get("stagnant") is True or classification.get("terminal_stagnation") is True)
