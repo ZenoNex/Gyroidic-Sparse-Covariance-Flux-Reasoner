@@ -15,6 +15,7 @@ from src.core.garden_statistical_attractors import (
     MemoryPalaceRoom,
     _slerp
 )
+from src.core.honest_jitter import harvest_honest_jitter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("MemoryPalaceEvaluator")
@@ -83,7 +84,7 @@ class MemoryPalaceEvaluator:
         return is_pass, norm_val
 
     def evaluate_outlier_seeds(self) -> Tuple[bool, float]:
-        c_outlier = torch.randn(self.feature_dim, device=self.device)
+        c_outlier = harvest_honest_jitter((self.feature_dim,), device=self.device, scaled=False)
         seed = self.palace.plant_outlier_seed(
             seed_id="outlier_singularity_1",
             center=c_outlier,
@@ -100,7 +101,7 @@ class MemoryPalaceEvaluator:
 
     def evaluate_selective_puncture(self) -> Tuple[bool, float]:
         target = self.palace.rooms["chamber_a"].center.clone()
-        query = target + 0.05 * torch.randn(self.feature_dim, device=self.device)
+        query = target + 0.05 * harvest_honest_jitter((self.feature_dim,), device=self.device, scaled=False)
         puncture_ok, room, pull = self.palace.selective_puncture(
             query_state=query,
             room_id="chamber_a",
@@ -121,7 +122,7 @@ class MemoryPalaceEvaluator:
             room_id="necrotic_test",
             center=torch.zeros(self.feature_dim, device=self.device)
         )
-        well_coords = torch.randn(self.feature_dim, requires_grad=True, device=self.device)
+        well_coords = harvest_honest_jitter((self.feature_dim,), device=self.device, scaled=False).requires_grad_(True)
         residues = room.compress_necrotic_well(well_coords)
         is_pass = (
             room.sealed
