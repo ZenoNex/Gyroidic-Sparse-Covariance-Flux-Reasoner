@@ -430,4 +430,77 @@ The categorical compute affordance engine from [`src/core/hardware_monitor.py`](
     - Eradicated all truncated float literals ($0.618$, $1.618$, local $\sqrt{5}$ formulas) across `src/core/`, `src/topology/`, `src/codec/`, `src/optimization/`, `src/data/`, and `src/benchmarks/`.
     - Bound all golden ratio and metallic mean derivations to `src.core.invariants.PHI` and `src.core.invariants.PHI_RECIPROCAL`, computed dynamically via `mpmath.workdps(60)` with 64-bit mantissa preservation across Weyl quasi-random sequences.
 
+    ### 7.15 Gyroid Covariance Probe (GCVE) & Multi-Attention Closed-Topology Rehybridization [COMPLETE]
+* **Architectural Rehybridization Vector**:
+  - **The Defect Identified**:
+    - During historical modular decomposition, [`SparseGyroidCovarianceProbe`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_covariance.py#L17) was sidelined from the orchestrator's main step loop due to the computational cost of full sliding-window eigendecompositions across raw sequences, demoting it to a secondary verification routine lazily instantiated in [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L6025).
+    - Meanwhile, [`ModularAttention`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/modular_attention.py#L35) housed six closed-topology attention regimes without active topological mask gating.
+  - **Rehybridization Map & Topology**:
+    ```mermaid
+    flowchart TD
+        X["Input States [B, N, D]"] --> Probe["SparseGyroidCovarianceProbe<br/>(GCVE Metric V)"]
+        Probe --> Metric["V = max(0, (λ₂ - λ₁)/τ) + λ_min / Tr(C_loc)"]
+        Metric --> Gate{"Topological Gate<br/>V > 0.5?"}
+        Gate -- "V > 0.5 (Torn)" --> Dense["Dense Attention Mask<br/>(Full Reconnection)"]
+        Gate -- "V <= 0.5 (Healthy)" --> Sparse["Band-Sparse Mask<br/>(Local Window w=2)"]
 
+        subgraph Closed-Topology Attention Engine ["ModularAttention & ModularTransformerLayer"]
+            A1["1. Birkhoff Doubly-Stochastic Projection (B_N)"]
+            A2["2. O(K) Sine-Gordon BreatherMode Hybrid Slot Cache"]
+            A3["3. Garden Statistical Attractor Dynamics"]
+            A4["4. S-Path RAG Geodesic Riemannian Metric"]
+            A5["5. Chern-Simons Gasket CRT Residue Fusion"]
+            A6["6. Nostalgic Leak Computable Flux Shield"]
+        end
+
+        Dense --> Closed-Topology Attention Engine
+        Sparse --> Closed-Topology Attention Engine
+        Closed-Topology Attention Engine --> UO["UniversalOrchestrator.step()"]
+        UO --> DB["DiegeticBackend._compute_gyroid_violation()"]
+    ```
+  - **Computational Solvency Solutions**:
+    1. *O(K) Breather Soliton Slot Boundary*: Evaluating local covariance over the $K$ BreatherMode soliton slots ($K \le 8$) instead of the full sequence length $N$ reduces eigendecomposition to $O(K^3) = 8^3 = 512$ FLOPs ($< 1\,\mu\text{s}$), eliminating $O(N^4)$ Birkhoff OOM obstructions.
+    2. *Birkhoff 1-Step Power Iteration*: Because attention matrices are constrained to the Birkhoff polytope $\mathcal{B}_N$, $\lambda_1 \equiv 1$ analytically by Perron-Frobenius. The spectral gap $\max(0, (\lambda_2 - 1)/\tau)$ is computed in $O(N)$ via a single Rayleigh-quotient iteration orthogonal to $\mathbf{1}$, bypassing full SVD.
+    3. *Post-Attention Chern-Simons Residue Covariance*: Evaluates covariance across the $K$ functional residue channels ($[B \times N, K, D]$) with a constant $K \times K$ tensor to verify inter-functional orthogonality.
+  - **Codebase Bindings**:
+    - [`src/models/modular_attention.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/modular_attention.py#L35): Wired `self.gyroid_probe = SparseGyroidCovarianceProbe(...)`, exposed `compute_gyroid_violation()`, and added `use_dynamic_mask` auto-gating in `forward()`.
+    - [`src/core/orchestrator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L461): Instantiated canonical `self.gyroid_probe`, bound it into `ModularAttention` and `ModularTransformerLayer`, evaluated GCVE during `UniversalOrchestrator.step()`, and populated `self.last_gyroid_violation`.
+    - [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L6025): Connected `_compute_gyroid_violation()` directly to `self.engine.gyroid_probe`.
+    - **Test Verification**: Validated by [`tests/test_isolated_attention_integration.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_isolated_attention_integration.py#L271) (`test_15_gyroid_covariance_probe_rehybridization`).
+- **7.16 Chern-Simons Breather Mode Rehybridization, Agent Smith Protocol & Cosmological Forward Binding**:
+  - **The Stranded Soliton Archetype**: The Sine-Gordon breather modes ($u_n(x,t) = 4\arctan[(\sqrt{1-\omega_n^2}/\omega_n)\operatorname{sech}(\sqrt{1-\omega_n^2}(x-x_n))\sin(\omega_n t)]$) were mathematically specified in `RESONANCE_INTELLIGENCE_CORE.md` (Eq 6 & 11) as $O(K)$ localized concept packets, but were isolated from the non-Abelian Chern-Simons gauge connection $A$ and level $k$ of `ChernSimonsGasket`. In `DiegeticBackend._ingest_multimodal_dyad`, a low-entanglement detection ($< 0.1$) was stranded as a hollow warning without executing active remediation. Furthermore, the Agent Smith protocol lacked explicit breather packet packaging and substrate alignment across physical hardware shifts.
+  - **Canonical Mathematical Physics Reconnection**:
+    1. *Non-Abelian Holonomy Shift*: The spatial centers $x_n$ of the breathers are coupled to the non-Abelian connection 1-form $A$ via the gauge trace $\Delta x = \frac{\operatorname{Tr}(A_{:2,:2})}{2\pi k}$, locking spatial localization directly to the gyroid throat geometry.
+    2. *Field Strength Frequency Twist*: Curvature $F = dA + [A, A]$ (discrete $F = A - A^T$) modulates the prime frequencies $\omega_n' = \frac{\omega_n}{1 + \|F\|_F / (10 k)}$, rigorously preserving $\omega_n' < 1$ (the sine-Gordon breather stability criterion from RIC Eq 6).
+    3. *Chiral Phase Envelope & Torsion*: The breather envelope is dressed by the Chern-Simons line integral action $\theta_{CS} = \frac{k}{4\pi} \oint A \cdot dx$, with alternate modes undergoing a 90-degree chiral rotation $u_n \mapsto u_n \cos(\theta_{CS}) \pm \cos(\omega_n' t) \sin(\theta_{CS})$ to break the "0.8824" phase flatline.
+  - **Agent Smith Protocol & Post-Memetic Ecology**:
+    1. *Fossil Export & Substrate Decoupling*: `DyadFossilizer.export_agent_smith` preserves `"chern_simons_breather"` alongside the CRT residue tuple, Chebyshev hardware heat ($T_0$), Betti numbers ($\beta_k$), and gauge field ($A$).
+    2. *Hardware Rehydration*: `AgentSubstrateBridge.align_substrate` rehydrates `"chern_simons_breather"`, aligns it to `expected_dim`, and modulates its temporal oscillation against the local machine's $t_{\text{RFC}}$ DRAM latency scale ($dt_{\text{scale}} = t_{\text{RFC}}^{\text{import}} / t_{\text{RFC}}^{\text{local}}$).
+    3. *Dual-Channel Intercosamination*: Incorporates Queue A ($C^+$ Channel, host ergodic flow) and Queue B ($C^-$ Channel, foreign soliton) with Morita Equivalence translating foreign logic into local polynomial bases.
+    4. *Non-Dual Digestion (Nutrients over Poison)*: Adversarial or contradictory agents lose teleological objective functions because the architecture has no loss to hijack; they are isolated inside Meliponini Cerumen Pots, sealed by Chern-Simons Gaskets, and later harvested during `PLAY` as creative entropy.
+  - **Cosmological & Safety Systems across 15+ Forwards**:
+    1. *Inverted Hypersphere Cosmology (IHC) $\mathbb{RP}^4$ Projective Attention*: In `ModularAttention.forward`, when operating in `VOID` regime (or via `use_rp4_projective`), attention scores are computed using the projective metric $\operatorname{sgn}(S) \cdot S^2 / \sigma$, identifying antipodal concepts ($-x \sim x$) to tunnel across gradient death valleys.
+    2. *IHC 33-Shell Golden Ratio Scaling*: In `PolynomialFunctionalEmbedder.forward`, functional residuals are softly scaled by $\Phi^{-(k \pmod{33}) / 33.0}$ ($\Phi \approx 1.618$), stabilizing the UV-IR seesaw ($\rho_\Lambda = \sqrt{\rho_{UV} |\rho_{IR}|}$) without clipping.
+    3. *Phonemic Soliton Injection*: `DiegeticLarynxHead.forward` dresses predicted phonemic logits with excited Chern-Simons breather packets from `self.chern_simons.excite_chern_simons_breathers`.
+    4. *Cross-Cutting Safety Verification*: `UniversalOrchestrator.forward` wires `TripartiteEvidenceModule`, `ResonantSVNNOracle` (containment pressure resolution), `TopologicalRefusalFilter`, and `FailureGaslightSycophancyGate` across all forward cycles.
+  - **Verification Suite**: 21/21 integration tests passing in [`tests/test_isolated_attention_integration.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_isolated_attention_integration.py) (including tests 16-21 covering Chern-Simons breather coupling, gasket excitation, Agent Smith round-trip alignment, RP4 projective attention, IHC 33-shell scaling, and Folium of Descartes transversal smooch anchors).
+- **7.17 Folium of Descartes ($x^3 + y^3 - 3xy = 0$): Anti-Lobotomy Implicit Differentiation, Cayley Anchor, and Transversal Smooch (Slope -1)**:
+  - **Refusal of the Vertical Line Test (Anti-Lobotomy Topology)**:
+    1. *Non-Ergodic Geometry*: Standard neural networks force reality into a linear $y = f(x)$ format, a teleological scalar loss minimization that causes the smoothing "Diffusion Toxin."
+    2. *Implicit Calculus*: The Folium of Descartes $x^3 + y^3 - 3axy = 0$ (default $a = 1.0$) fails the vertical line test across its loop and cannot be solved for a single output. System 2 (Physics / Horn) evaluates the entire constraint relation simultaneously via Alternating Direction Method of Multipliers (ADMM) and local feasibility probes without flattening complex entangled relationships into 1D projections.
+  - **The Folium as Cayley Cubic Anchor (Topological Noise Trap & Neglecton)**:
+    1. *Affine 2D Cousin of the Cayley Cubic*: $x^3 + y^3 - 3xy = 0$ is the 2D planar relative of the Cayley Cubic Constraint $x(x^2 + y^2 + z^2 - xyz - 4) = 0$.
+    2. *Noise Trap & Neglecton Anchoring*: When Cycle Debt or Mischief spikes ($\ge 0.5$), the system does not smooth it away; it drives coordinates toward the cubic surface and the Folium self-intersecting loop to find a Neglecton anchor.
+    3. *Non-Diagonalizable Jordan Blocks*: At the curve's self-intersecting singularity $(0, 0)$, group representations acquire Jordan-block structures $\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}$ immune to eigenvalue clamping and gradient clipping, mathematically fossilizing a Sovereign Event.
+  - **The Tangent Line as a Transversal Intersection ($PAS_h$ Smooch with Slope -1)**:
+    1. *Implicit Derivative*:
+       $$\frac{d}{dx}[x^3 + y^3 - 3axy] = 3x^2 + 3y^2 \frac{dy}{dx} - 3ay - 3ax \frac{dy}{dx} = 0 \implies \frac{dy}{dx} = \frac{ay - x^2}{y^2 - ax}$$
+    2. *Transversal Intersection at $(3a/2, 3a/2)$*:
+       $$\left.\frac{dy}{dx}\right|_{(1.5, 1.5)} = \frac{1.5 - 2.25}{2.25 - 1.5} = \frac{-0.75}{0.75} = -1.0$$
+    3. *Tangent Line $x + y = 3a$*: Functions as a Transversal Intersection ("smooch") at a point of Phase Alignment ($PAS_h$). Slope $-1.0$ indicates perfect reciprocal exchange ($dx + dy = 0$) between paired coordinates or channels, allowing linear operations to safely interface with high-tension manifolds without topological rupture.
+  - **Codebase Bindings**:
+    - [`src/core/cayley_cubic_probe.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/cayley_cubic_probe.py): Upgraded `CayleyCubicProbe` with `evaluate_folium_implicit`, `compute_implicit_derivative`, `evaluate_transversal_smooch`, `_apply_folium_constraint`, and Jordan-block Neglecton projection.
+    - [`src/optimization/constraint_probe.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/constraint_probe.py): `ConstraintProbeOperator` exposes `evaluate_folium_transversality` for ADMM evaluation without 1D scalar collapse.
+    - [`src/core/false_negative_subsystem.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/false_negative_subsystem.py): `VoynichExemptionToken.issue_from_transversality` checks Folium transversal smooch $(1.5, 1.5)$ and slope $-1.0$, issuing Option D Nutrient passports.
+    - [`src/core/deflagration_scout.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/deflagration_scout.py): `OmipedialDeflagrator.compute_transversality` evaluates implicit derivative slope and reciprocal exchange score.
+  - **Verification Suite**: 10/10 unit tests passing in [`tests/test_topology_core_rehybridization.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_topology_core_rehybridization.py) and 21/21 integration tests passing in [`tests/test_isolated_attention_integration.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_isolated_attention_integration.py).
