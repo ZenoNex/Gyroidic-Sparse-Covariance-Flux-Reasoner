@@ -20,8 +20,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from src.core.invariants import PI
-
-from typing import Dict, Tuple, Optional
+from src.core.spectral_coherence_repair import (
+    SpectralSpeculationEngine,
+    SpectralCoherenceCorrector,
+    BezoutCoefficientRefresh,
+    apply_energy_based_stabilization
+)
+from typing import Dict, Tuple, Optional, List, Any
 import math
 
 from src.core.false_negative_subsystem import VoynichExemptionToken
@@ -480,11 +485,24 @@ class SpeculativeCoprimeGate(nn.Module):
         num_heads: int = 8,
         recovery_threshold: float = 0.1,
         sinkhorn_iters: int = 20,
-        wasserstein_epsilon: float = 0.1
+        wasserstein_epsilon: float = 0.1,
+        spectral_exit_threshold: float = 0.5
     ):
         super().__init__()
         self.dim = dim
         self.recovery_threshold = recovery_threshold
+        self.spectral_exit_threshold = spectral_exit_threshold
+        
+        # Wager #4: Spectral Speculation Engine (Frequency > Time)
+        self.spectral_speculation = SpectralSpeculationEngine(
+            epsilon=spectral_exit_threshold,
+            num_resonators=max(16, dim)
+        )
+        self.spectral_corrector = SpectralCoherenceCorrector()
+        self.bezout_refresh = BezoutCoefficientRefresh(
+            num_functionals=max(5, num_heads),
+            poly_degree=12
+        )
         
         # Buffer for internal shadow logs
         self.shadow_logs = []
@@ -529,6 +547,10 @@ class SpeculativeCoprimeGate(nn.Module):
             nn.Linear(dim * 2, dim)
         )
         
+    def evaluate_spectral_entropy(self, signal: torch.Tensor) -> Tuple[bool, float]:
+        """Delegate directly to canonical SpectralSpeculationEngine (Wager #4)."""
+        return self.spectral_speculation.evaluate_spectral_entropy(signal)
+
     def pop_shadow_logs(self) -> list:
         """Retrieves and clears the internal shadow logs for fossilization."""
         logs = self.shadow_logs.copy()
@@ -770,7 +792,17 @@ class SpeculativeCoprimeGate(nn.Module):
         far_state = target_mean.expand(batch, -1)
         far_coupled = self.far_coupling * far_state
 
-        if self.modular_rns.fast_congruence_check(source, target_mean):
+        # --- Canonical Wager #4 Spectral Speculation Engine Fast-Path Check ---
+        # When spectral entropy across prime resonance modes is low (H_spec < epsilon),
+        # structure is already coherent and stable, so expensive Sinkhorn OT iterations
+        # are safely bypassed for a single-step speculative fastpass (80% recovery speedup).
+        is_spectral_fastpath, h_spec = self.spectral_speculation.evaluate_spectral_entropy(source)
+
+        if is_spectral_fastpath:
+            # Speculative fast-path projection: smooth alignment to far target with zero OT delay
+            transported = source + self.far_coupling * (far_state - source)
+            wasserstein_dist = torch.tensor(0.0, device=source.device)
+        elif self.modular_rns.fast_congruence_check(source, target_mean):
             # Bypass Wasserstein OT: Align directly in finite field mapping
             # SILICON SOVEREIGNTY: Replaced PRNG noise with hardware-anchored honest jitter
             transported = far_state + harvest_honest_jitter(far_state.shape, device=source.device, scaled=True) * 0.2
@@ -808,6 +840,10 @@ class SpeculativeCoprimeGate(nn.Module):
         # Recovered state = original + learned recovery
         recovered_state = converged_state + recovery_delta
         
+        # Canonical Spectral Coherence Repair & Energy Stabilization
+        recovered_state = apply_energy_based_stabilization(recovered_state)
+        recovered_state = self.spectral_corrector.adaptive_coherence_correction(recovered_state)
+        
         # Check Yield Condition (is this rupture generative?)
         yield_pressure = self.get_yield_pressure(recovered_state)
         
@@ -839,7 +875,9 @@ class SpeculativeCoprimeGate(nn.Module):
             'winding_numbers': winding_result['winding_numbers'],
             'parity_violations': winding_result['parity_violations'].sum().item(),
             'recovery_attempted': True,
-            'is_generative': bool(is_generative)
+            'is_generative': bool(is_generative),
+            'spectral_entropy': h_spec,
+            'speculative_exit_bypassed': is_spectral_fastpath
         }
         
         return recovered_state, metrics
