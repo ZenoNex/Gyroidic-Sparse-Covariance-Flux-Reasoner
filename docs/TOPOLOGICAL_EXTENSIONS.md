@@ -351,4 +351,44 @@ $$\Upsilon_{valley} = \sum_{j} \oint_{\partial \gamma_j} (\nabla \times \boldsym
   - Integrated into cleanroom mechanics via [`VoxelboxterHookIntegrator.evaluate_valley_vorticity_sweep`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py#L3998).
   - Accessible via node script graph [`PhysicalNodeEditor.hook_valley_vorticity_sweep`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L1497).
 
+---
+
+### 10. Gyroid Covariance Probes & Closed-Topology Multi-Attention Map
+
+#### 10.1 Gyroidic Covariance Violation Exploration (GCVE) Formulation
+The canonical Gyroid Covariance Violation score $V$ measures deviation from minimal-surface equilibrium without requiring a teleological target state:
+
+$$V = \max\left(0, \frac{\lambda_2 - \lambda_1}{\tau_{\text{decay}}}\right) + \frac{\lambda_{\min}}{\text{tr}(C_{\text{loc}})}$$
+
+- **Term 1 (Spectral Gap)**: $\max(0, (\lambda_2 - \lambda_1)/\tau_{\text{decay}})$ detects manifold tearing and disconnected cluster formation.
+- **Term 2 (Flatness Penalty)**: $\lambda_{\min}/\text{tr}(C_{\text{loc}})$ penalizes uniform degenerate collapse into lower-dimensional sub-manifolds.
+
+#### 10.2 The 5-Probe Topological Taxonomy Map
+The reasoner distributes manifold integrity verification across five specialized probes:
+
+| Probe Name | Canonical Source | Mathematical Responsibility | Operational Role |
+| :--- | :--- | :--- | :--- |
+| **`SparseGyroidCovarianceProbe`** | [`src/topology/gyroid_covariance.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_covariance.py) | $V = \max(0, \frac{\lambda_2 - \lambda_1}{\tau}) + \frac{\lambda_{\min}}{\text{Tr}(C)}$ | Gates dense vs band-sparse attention; detects tearing/collapse |
+| **`ApproximatePHProbe`** | [`src/topology/approximate_ph.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/approximate_ph.py) | Greedy maxmin landmark persistence barcodes | Detects global topological homology changes across macro-steps |
+| **`DModuleRankProbe`** | [`src/core/birkhoff_projection.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/birkhoff_projection.py) | Birkhoff doubly-stochastic projection & CRT rank | Tracks algebraic differential module ranks and stochasticity |
+| **`EntropicMischiefProbe`** | [`src/topology/unknowledge_domain.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/unknowledge_domain.py) | $H_{\text{mischief}} = -\sum p_i \ln p_i$ | Modulates local strain tolerance dynamically |
+| **`CayleyCubicProbe`** | [`src/core/cayley_cubic_probe.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/cayley_cubic_probe.py) | $x y z + x^2 + y^2 + z^2 - 1 = 0$ | Checks algebraic surface singularities and triadic reciprocity |
+
+#### 10.3 The Closed-Topology Attention System Map
+The multi-field attention subsystem ([`ModularAttention`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/modular_attention.py#L35)) unifies seven closed-topology mechanisms:
+
+1. **Birkhoff Doubly-Stochastic Projection ($A \in \mathcal{B}_N$)**: Sinkhorn-Knopp projection ensures row/column sum conservation ($\sum_j A_{ij} = 1, \sum_i A_{ij} = 1$).
+2. **$O(K)$ Sine-Gordon Breather Soliton Slot Cache**: Bypasses token-level explosion by evaluating $K$ localized soliton modes in $O(1)$ time.
+3. **Garden Statistical Attractor Dynamics**: Evolves attention states across hyperbolic Lyapunov basins via `GardenOrchestrator`.
+4. **S-Path RAG Geodesic Bias**: Injects structural Riemannian distance vectors directly into alignment logits ($S + \text{bias}_{\text{geo}}$).
+5. **Dynamic Topological Mask Gating**:
+   $$M_{ij} = \begin{cases} 0.0 & \text{if } V > 0.5 \text{ or } |i - j| \le 2 \\ -10000.0 & \text{otherwise} \end{cases}$$
+6. **Chern-Simons Gasket CRT Residue Fusion**: Enforces coprime polynomial conservation across field outputs using dynamic Chebyshev coefficients.
+7. **Nostalgic Leak Computable Flux Shield**: Replaces crude stochastic dropout with non-contractible unknowledge domain flux.
+
+#### 10.4 Codebase Bindings & Validation
+- **Module Bindings**: [`ModularAttention`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/modular_attention.py#L35), [`ModularTransformerLayer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/modular_attention.py#L403), [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L461), and [`DiegeticBackend`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L6025).
+- **Test Suite**: Verified by 15 tests in [`tests/test_isolated_attention_integration.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_isolated_attention_integration.py#L271).
+
+
 
