@@ -146,6 +146,15 @@ class BonfireNetwork:
                 if successes:
                     self.cached_consensus_p_success = sum(successes) / len(successes)
 
+            # Bidirectional Telemetry: Synchronize with HardwareMonitor P2P_MESH affordance
+            try:
+                from src.core.hardware_monitor import HardwareMonitor
+                monitor = HardwareMonitor.get_instance()
+                ratio = len(active_healthy) / max(1, len(peers_to_check)) if peers_to_check else 0.5
+                monitor.update_p2p_mesh(ratio)
+            except Exception:
+                pass
+
     def synchronize_invariants(self, local_signature: str) -> List[str]:
         """Non-blocking: Returns the last cached peer signatures and updates local signature."""
         with self.lock:
@@ -229,9 +238,18 @@ class BonfireNetwork:
 
     def distribute_admr_to_synthetic_endpoint(self, state: torch.Tensor) -> Optional[torch.Tensor]:
         """
-        Offloads ADMR calculations to a healthy peer if available.
+        Offloads ADMR calculations to a healthy peer if available and affordance permits.
+        Gated by ComputeAffordanceType.P2P_MESH to avoid network stalls when mesh headroom is depleted.
         Uses a short, strict timeout to avoid blocking if the endpoint is unresponsive.
         """
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            monitor = HardwareMonitor.get_instance()
+            if not monitor.has_compute_affordance(ComputeAffordanceType.P2P_MESH):
+                return None
+        except Exception:
+            pass
+
         with self.lock:
             targets = list(self.healthy_peers)
             
