@@ -180,7 +180,8 @@ class GyroidicFluxReasoner(nn.Module):
                 text_dim=text_dim,
                 graph_dim=graph_dim,
                 num_dim=num_dim,
-                hidden_dim=hidden_dim
+                hidden_dim=hidden_dim,
+                poly_config=self.poly_config
             )
         except Exception:
             self.modular_embedder = None
