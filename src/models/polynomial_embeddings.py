@@ -37,7 +37,8 @@ class PolynomialFunctionalEmbedder(nn.Module):
         use_text: bool = True,
         use_graph: bool = True,
         use_num: bool = True,
-        use_saturation: bool = False
+        use_saturation: bool = False,
+        use_kan_heads: bool = False
     ):
         """
         Args:
@@ -49,6 +50,8 @@ class PolynomialFunctionalEmbedder(nn.Module):
             use_text: Whether to use text modality
             use_graph: Whether to use graph modality
             use_num: Whether to use numerical modality
+            use_saturation: Whether to use saturation gate
+            use_kan_heads: Whether to use True B-spline KANLayer heads instead of Linear
         """
         super().__init__()
         
@@ -84,10 +87,17 @@ class PolynomialFunctionalEmbedder(nn.Module):
         )
         
         # Per-functional structure predictors (JEPA abstract representations)
-        # Projects to topological dimensions directly
-        self.coeff_heads = nn.ModuleList([
-            nn.Linear(hidden_dim, self.D) for _ in range(self.K)
-        ])
+        # Projects to topological dimensions directly using True B-Splines or Linear projections
+        use_bspline = (getattr(self.config, 'basis_type', '') == 'bspline') or use_kan_heads
+        if use_bspline:
+            from ..surrogates.kagh_networks import KANLayer
+            self.coeff_heads = nn.ModuleList([
+                KANLayer(hidden_dim, self.D, grid_size=5, spline_order=3) for _ in range(self.K)
+            ])
+        else:
+            self.coeff_heads = nn.ModuleList([
+                nn.Linear(hidden_dim, self.D) for _ in range(self.K)
+            ])
         
         # Bimodal Routing (evolutionary genome selection)
         # SILICON SOVEREIGNTY: Replaced torch.randint with Honest Jitter derivation
@@ -299,14 +309,33 @@ class PolynomialFunctionalEmbedder(nn.Module):
         
         Evaluates the potential through the Input Convex Neural Network (ICNN):
         E_JEPA = E_x[psi(x)] + E_y[psi^*(y)] scaled by shell depth and PAS anisotropy.
-        Binds the context latent to the Cayley cubic surface when not in honeybee mode.
+        Binds the context latent to the Cayley cubic surface (projected via PyOpenCL when available).
+        Dynamically triggers Honeybee collective mode (curvature collapse) when ALGORITHMIC affordance drops.
         """
-        # Encode context and target through the embedder fusion network
-        context_out = self.forward(text_emb=context_state)
-        target_out = self.forward(text_emb=target_state)
-        
-        context_h = context_out['fused_hidden']
-        target_h = target_out['fused_hidden']
+        # Affordance-gated Honeybee mode activation
+        try:
+            from ..core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            monitor = HardwareMonitor.get_instance()
+            if not is_honeybee_mode:
+                algo_aff = monitor.get_typed_affordance(ComputeAffordanceType.ALGORITHMIC)
+                if not algo_aff.is_admissible or algo_aff.gauge < 0.25:
+                    is_honeybee_mode = True
+        except Exception:
+            pass
+
+        # Encode context and target through the embedder fusion network if not already in fused space
+        hidden_dim = self.fusion[-1].out_features if hasattr(self.fusion[-1], 'out_features') else 512
+        if context_state.shape[-1] == hidden_dim:
+            context_h = context_state
+        else:
+            context_out = self.forward(text_emb=context_state)
+            context_h = context_out['fused_hidden']
+
+        if target_state.shape[-1] == hidden_dim:
+            target_h = target_state
+        else:
+            target_out = self.forward(text_emb=target_state)
+            target_h = target_out['fused_hidden']
         
         if moment_transport is None:
             from ..core.conjugate_moment_transport import ConjugateMomentTransport
@@ -314,7 +343,7 @@ class PolynomialFunctionalEmbedder(nn.Module):
             
         # Hard-project context state to Cayley Cubic surface V(C) = 0 if outside honeybee mode
         if not is_honeybee_mode and hasattr(moment_transport, 'project_to_cayley_surface'):
-            context_h = moment_transport.project_to_cayley_surface(context_h, is_honeybee_mode=False)
+            context_h = moment_transport.project_to_cayley_surface(context_h, is_honeybee_mode=is_honeybee_mode)
             
         if pas_anisotropy is None:
             # Default to isotropic PAS unity
