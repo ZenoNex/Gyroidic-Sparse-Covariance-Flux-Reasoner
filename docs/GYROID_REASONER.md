@@ -18,8 +18,8 @@ graph TB
     end
 
     subgraph "System 1: Horse (Intuition)"
-        EMB["PolynomialFunctionalEmbedder<br/>→ residues [B, K, D]"]
-        TF["ModularTransformerLayer ×4<br/>+ dynamic attention mask"]
+        EMB["PolynomialFunctionalEmbedder<br/> residues [B, K, D]"]
+        TF["ModularTransformerLayer 4<br/>+ dynamic attention mask"]
         RC["ResonanceCavity<br/>(memory + residue prior)"]
     end
 
@@ -42,7 +42,7 @@ graph TB
     TF --> |"failure_mask"| ADMM
     ADMM --> |"refined residues"| CRT["CRT Reconstruction"]
     TF --> CRT
-    CRT --> OUT["output_proj → [B, 1]"]
+    CRT --> OUT["output_proj  [B, 1]"]
 
     GCVE -.-> |"violation pressure"| TF
     GCVE -.-> |"gcve_pressure"| KAGH
@@ -85,7 +85,7 @@ graph TB
 ### Core Pipeline
 | Module | Class | Role |
 |--------|-------|------|
-| `embedder` | `PolynomialFunctionalEmbedder` | Multi-modal → CRT residue distributions |
+| `embedder` | `PolynomialFunctionalEmbedder` | Multi-modal  CRT residue distributions |
 | `layers[0..3]` | `ModularTransformerLayer` | Multi-field attention with Birkhoff projection |
 | `crt` | `DecoupledPolynomialCRT` | GDPO-enhanced CRT reconstruction |
 | `output_proj` | `nn.Linear(hidden, 1)` | Final scalar output |
@@ -129,50 +129,51 @@ The 490-line forward method executes 9 stages:
 
 ### Stage 1: Embedding
 ```
-text_emb, graph_emb, num_features → embedder → residue_distributions [B, K, D], h [B, 1, hidden]
+text_emb, graph_emb, num_features  embedder  residue_distributions [B, K, D], h [B, 1, hidden]
 ```
 
 ### Stage 2: Gyroid Probes & Dynamic Attention
-- `gyroid_probe(h)` → `total_topological_pressure`, `gcve_pressures`
-- If `seq_len ≥ 32`: creates dynamic attention mask:
-  - Local window (±4 tokens): always dense
-  - High violation (>0.7): dense to/from all positions
-  - Low violation (<0.1): sparsified (every 4th position beyond window)
-- `sparse_explorer` detects deep failures → triggers evolutionary restart if >5 aborts
+- **Probe**: [`SparseGyroidCovarianceProbe`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_covariance.py#L17) evaluates local spectral gap and eigenvalue decay:
+  $$V = \max\left(0, \frac{\lambda_2 - \lambda_1}{\tau_{\text{decay}}}\right) + \frac{\lambda_{\min}}{\text{tr}(C_{\text{loc}})}$$
+- **Dynamic Topological Gating**:
+  - High violation ($V > 0.5$): Dense attention across full sequence to heal topological defects and reconnect torn clusters.
+  - Low violation ($V \le 0.5$): Band-sparse attention (local half-window $w=2$) preserving linear computational solvency.
+  - Over $O(K)$ Sine-Gordon Breather soliton slots ($K \le 8$), covariance eigendecomposition executes in $O(K^3) = O(1)$ (< 512 FLOPs), completely eliminating $O(N^4)$ Birkhoff OOM obstructions.
+- **Explorer & Recovery**: `SparseExplorerRouting` monitors trajectory aborts and triggers paraconsistent restarts upon persistent topological deadlock.
 
 ### Stage 3a: Transformer Processing
 ```
-h → ModularTransformerLayer ×4 (with mask + trust_scalars) → h
+h -> ModularTransformerLayer x 4 (with dynamic mask + trust_scalars) -> h
 ```
 
 ### Stage 3b: Phase 1 Repair Pipeline
-1. **Spectral Coherence Correction** — adaptive consonant clustering fix
-2. **Bézout Coefficient Refresh** — CRT modulus drift correction
-3. **Chern-Simons Gasket** — plug logic leaks via polynomial co-prime system
-4. **Love Invariant Protection** — prevent scalarization of love vector
-5. **Soft Saturated Gates** — prevent binary clipping, PAS_h-adaptive hardening
+1. **Spectral Coherence Correction**  adaptive consonant clustering fix
+2. **Bzout Coefficient Refresh**  CRT modulus drift correction
+3. **Chern-Simons Gasket**  plug logic leaks via polynomial co-prime system
+4. **Love Invariant Protection**  prevent scalarization of love vector
+5. **Soft Saturated Gates**  prevent binary clipping, PAS_h-adaptive hardening
 
 ### Stage 3c: Pressure Measurement & ADMM Repair
 - `failure_mask = (reconstruction_pressure > 0.5) | (topological_pressure > budget)`
 - In SERIOUSNESS regime: threshold tightens to 0.2
-- If failures exist: `admm_primitive(initial_c, kagh_surrogate, gcve_pressure)` → refined residues
+- If failures exist: `admm_primitive(initial_c, kagh_surrogate, gcve_pressure)`  refined residues
 - Trust update: survivors freeze, failures mutate
 
 ### Stage 3d: Universal Orchestration
 ```
-orchestrator(h, pressure_grad, pas_h, coherence) → h_orchestrated, regime, routing
+orchestrator(h, pressure_grad, pas_h, coherence)  h_orchestrated, regime, routing
 ```
 
 ### Stage 4: CRT Reconstruction
 ```
-crt(residue_distributions, group_ids, trust_scalars) → reconstruction
+crt(residue_distributions, group_ids, trust_scalars)  reconstruction
 ```
 
 ### Stages 5-8: Diagnostics & Pressure
 - **CRT kernel violations** and cycle detection
 - **Introspection** (geometric self-model probes)
 - **Resonance cavity** update (memory state, heritable trust)
-- **Pressure separation** (selection vs containment — never scalarized):
+- **Pressure separation** (selection vs containment  never scalarized):
 
 | Pressure | Components | Purpose |
 |----------|-----------|---------|
@@ -181,7 +182,7 @@ crt(residue_distributions, group_ids, trust_scalars) → reconstruction
 
 ### Stage 9: Output
 ```
-h → mean_pool → output_proj → [B, 1]
+h  mean_pool  output_proj  [B, 1]
 ```
 Followed by soliton healing on final residues.
 
