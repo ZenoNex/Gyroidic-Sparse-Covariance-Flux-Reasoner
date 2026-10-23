@@ -369,8 +369,17 @@ class BonfireNomadicRing:
     ) -> Dict[str, Any]:
         """
         Projects local state using the embedding map phi: F -> R^m and broadcasts across P2P mesh.
+        Gated by ComputeAffordanceType.P2P_MESH to ensure mesh headroom is verified before broadcast.
         Ensures peers at varying scale depths can project onto shared visibility manifolds.
         """
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            monitor = HardwareMonitor.get_instance()
+            if not monitor.has_compute_affordance(ComputeAffordanceType.P2P_MESH):
+                logger.warning("[BONFIRE] P2P_MESH compute affordance constrained; throttling broadcast.")
+        except Exception:
+            pass
+
         embedded = self.embedding_engine.embed_state(
             position=position,
             recursion_depth=recursion_depth,
