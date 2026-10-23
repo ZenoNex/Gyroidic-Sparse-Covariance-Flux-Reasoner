@@ -16,6 +16,7 @@ from src.core.legibility_audit import LegibilityTripwire, NarrativeCoherenceEsti
 from src.core.daqf_operator import DAQUFOperator
 from src.governance.interoceptive.pomni_uncertainty import PomniUncertaintyPredictor
 from src.core.neuromodulatory_bus import NeuromodulatoryBus
+from src.core.honest_jitter import harvest_honest_jitter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("NarrativeYieldEvaluator")
@@ -84,7 +85,7 @@ class NarrativeYieldEvaluator:
         # Make selected embeddings match the "legible" templates
         templates = self.legibility_tripwire.coherence_estimator.narrative_templates.clone()
         selected_embeddings = templates[:5].to(self.device)
-        rejected_embeddings = torch.randn(5, 64, device=self.device)
+        rejected_embeddings = harvest_honest_jitter((5, 64), device=self.device, scaled=False)
         
         # Feed enough steps to populate correlation window
         res = {}
@@ -101,8 +102,8 @@ class NarrativeYieldEvaluator:
         Tests if the DAQUF Operator successfully fossilizes a contradiction (Unknowledge)
         into a structural scar rather than letting the system crash or diverge.
         """
-        failures = torch.randn(10, device=self.device)
-        flux_scores = torch.randn(1, 10, device=self.device)
+        failures = harvest_honest_jitter((10,), device=self.device, scaled=False)
+        flux_scores = harvest_honest_jitter((1, 10), device=self.device, scaled=False)
         results = {
             'mischief_scores': torch.tensor(0.8, dtype=torch.float32, device=self.device),
             'valence': torch.tensor(0.5, dtype=torch.float32, device=self.device)
@@ -121,7 +122,7 @@ class NarrativeYieldEvaluator:
         Verifies that when external parasitic drag is high, the model exerts
         active boundary resistance to prevent rank collapse into passive enabling.
         """
-        state = torch.randn(1, 64, device=self.device)
+        state = harvest_honest_jitter((1, 64), device=self.device, scaled=False)
         
         # High drag condition (Jax exploiting grace)
         state_friction = self.pomni_predictor(state, gyroid_entropy=0.8, bus=self.neuro_bus, parasitic_drag=0.8)
@@ -142,8 +143,8 @@ class NarrativeYieldEvaluator:
         Tests that the system actively alarms when topological Betti complexity collapses
         under low gradient pressure, preventing covert artificial lobotomization.
         """
-        residues = [torch.randn(6, 3, device=self.device), torch.randn(6, 3, device=self.device)]
-        manifold = torch.randn(6, 3, device=self.device)
+        residues = [harvest_honest_jitter((6, 3), device=self.device, scaled=False), harvest_honest_jitter((6, 3), device=self.device, scaled=False)]
+        manifold = harvest_honest_jitter((6, 3), device=self.device, scaled=False)
         
         # First step: establish healthy baseline
         self.entropy_monitor.last_betti_count = 0.0
