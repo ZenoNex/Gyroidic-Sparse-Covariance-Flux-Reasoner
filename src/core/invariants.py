@@ -564,6 +564,15 @@ class PrimeResonanceLadder(nn.Module):
         }
 
 
+# Canonical home for SpectralSpeculationEngine (Wager #4) is src.core.spectral_coherence_repair.
+# Re-exported dynamically for backward compatibility.
+def __getattr__(name: str):
+    if name == "SpectralSpeculationEngine":
+        from src.core.spectral_coherence_repair import SpectralSpeculationEngine
+        return SpectralSpeculationEngine
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+
 _CANONICAL_PRIME_LADDER = None
 
 def get_prime_ladder(n: int, device: torch.device = None) -> torch.Tensor:
