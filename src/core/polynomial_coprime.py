@@ -46,7 +46,7 @@ class PolynomialBasis:
         """
         Args:
             degree: Maximum polynomial degree
-            basis_type: 'chebyshev', 'legendre', or 'hermite'
+            basis_type: 'chebyshev', 'legendre', 'hermite', or 'bspline'
             domain: Domain for polynomial evaluation
         """
         self.degree = degree
@@ -76,6 +76,8 @@ class PolynomialBasis:
             basis_vals = self._legendre(x_flat)
         elif self.basis_type == 'hermite':
             basis_vals = self._hermite(x_flat)
+        elif self.basis_type == 'bspline':
+            basis_vals = self._bspline(x_flat)
         else:
             raise ValueError(f"Unknown basis type: {self.basis_type}")
         
@@ -137,6 +139,52 @@ class PolynomialBasis:
             He[:, i] = x * He[:, i-1] - (i - 1) * He[:, i-2]
         
         return He
+    
+    def _bspline(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        True B-spline basis functions via Cox-de Boor recursion.
+        
+        Evaluates B_{i, k}(x) across normalized knot intervals on [-1, 1].
+        Yields localized, differentiable continuous representations.
+        """
+        n = x.shape[0]
+        k = min(self.degree, 3)
+        if k < 1:
+            k = 1
+        grid_size = max(1, self.dim - k)
+        
+        h = 2.0 / grid_size
+        grid = torch.arange(-k, grid_size + k + 1, device=x.device, dtype=x.dtype) * h - 1.0
+        
+        x_exp = x.unsqueeze(-1)
+        grid_exp = grid.unsqueeze(0)
+        
+        bases = ((x_exp >= grid_exp[:, :-1]) & (x_exp < grid_exp[:, 1:])).to(x.dtype)
+        # Catch right boundary point
+        bases[:, -1] = torch.where(x >= grid[-1], torch.ones_like(bases[:, -1]), bases[:, -1])
+        
+        for p in range(1, k + 1):
+            t_i = grid_exp[:, :-1 - p]
+            t_i_p = grid_exp[:, p:-1]
+            denom1 = t_i_p - t_i + 1e-8
+            term1 = ((x_exp - t_i) / denom1) * bases[:, :-1]
+            
+            t_i_1 = grid_exp[:, 1:-p]
+            t_i_p_1 = grid_exp[:, p + 1:]
+            denom2 = t_i_p_1 - t_i_1 + 1e-8
+            term2 = ((t_i_p_1 - x_exp) / denom2) * bases[:, 1:]
+            
+            bases = term1 + term2
+            
+        target_dim = self.dim
+        if bases.shape[-1] > target_dim:
+            bases = bases[:, :target_dim]
+        elif bases.shape[-1] < target_dim:
+            pad = torch.zeros(n, target_dim - bases.shape[-1], device=x.device, dtype=x.dtype)
+            bases = torch.cat([bases, pad], dim=-1)
+            
+        return bases
+
 
 
 class SaturatedPolynomialGate(nn.Module):
