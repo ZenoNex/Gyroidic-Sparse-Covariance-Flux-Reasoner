@@ -160,7 +160,9 @@ class ChatGPTFrictionHarvester:
         self.export_dir = export_dir or "data/service_llm_archive"
         self.dim = dim
         self.fossilizer = fossilizer
-        self.creator_aliases: List[str] = ["ila", "akkaris", "willabusta"]
+        # Node user account / operator aliases (Option D: creator_aliases tombstoned)
+        self.node_operator_aliases: List[str] = ["ila", "akkaris", "willabusta"]
+        self.creator_aliases: List[str] = self.node_operator_aliases
         self.ai_archetype_keywords: List[str] = [
             "archetype", "entity", "system", "architecture", "non-human", "ai"
         ]
@@ -180,10 +182,11 @@ class ChatGPTFrictionHarvester:
     # ------------------------------------------------------------------
 
     def register_alias(self, alias: str) -> None:
-        """Allow external entities to inject new aliases dynamically."""
+        """Allow external entities to inject new operator aliases dynamically."""
         a = alias.lower()
-        if a not in self.creator_aliases:
-            self.creator_aliases.append(a)
+        if a not in self.node_operator_aliases:
+            self.node_operator_aliases.append(a)
+
 
     def register_roleplay_pattern(self, pattern: str) -> None:
         """Allow external entities to inject new roleplay patterns dynamically."""
@@ -424,8 +427,9 @@ class ChatGPTFrictionHarvester:
         text_lower = text.lower()
         tags: Dict[str, Any] = {}
 
-        if any(a in text_lower for a in self.creator_aliases):
+        if any(a in text_lower for a in self.node_operator_aliases):
             tags["is_human_alias"] = 1.0
+
 
         if any(k in text_lower for k in self.ai_archetype_keywords):
             tags["is_nonhuman_archetype"] = 1.0
