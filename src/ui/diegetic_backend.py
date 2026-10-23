@@ -1438,7 +1438,13 @@ class DiegeticPhysicsEngine(nn.Module):
                     fossil_texts = []
                     if cache:
                         # recover text/description from fossils
-                        for f in random.sample(cache, min(8, len(cache))):
+                        # SILICON SOVEREIGNTY: Physical hardware jitter selection replacing random.sample
+                        from src.core.honest_jitter import harvest_honest_jitter, honest_multinomial
+                        sample_count = min(8, len(cache))
+                        jitter_weights = harvest_honest_jitter((len(cache),), device=torch.device('cpu'), scaled=False).abs() + 1e-6
+                        sampled_indices = honest_multinomial(jitter_weights, num_samples=sample_count, replacement=False)
+                        for idx_tensor in sampled_indices:
+                            f = cache[idx_tensor.item()]
                             t = f.get('text', '') or f.get('description', '') or f.get('text_input', '')
                             if t and len(t) >= 4:
                                 fossil_texts.append(t)
@@ -1801,11 +1807,14 @@ class DiegeticPhysicsEngine(nn.Module):
         if not alias:
             return
         import hashlib
-        import numpy as np
+        import math
+        # SILICON SOVEREIGNTY: Deterministic Weyl sequence expansion replacing PRNG np.random
         sha = hashlib.sha256(alias.encode('utf-8')).digest()
-        rng = np.random.default_rng(int.from_bytes(sha[:4], byteorder='big'))
-        o_arr = rng.uniform(-1.0, 1.0, size=(self.dim,))
-        o_tensor = torch.tensor(o_arr, dtype=torch.float32, device=self.device)
+        seed_val = (int.from_bytes(sha[:8], byteorder='big') % 1000000007) / 1000000007.0
+        phi = (math.sqrt(5.0) - 1.0) / 2.0
+        indices = torch.arange(self.dim, device=self.device, dtype=torch.float64)
+        x = ((indices + 1.0) * phi + seed_val) % 1.0
+        o_tensor = (x * 2.0 - 1.0).to(torch.float32)
         
         if hasattr(self, 'unknowledge_domain') and self.unknowledge_domain is not None:
             self.unknowledge_domain.o.copy_(o_tensor)
@@ -9074,6 +9083,109 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     })
                 except Exception as e:
                     self._send_error_json(f"Concept prediction failed: {str(e)}")
+
+            elif self.path == '/api/viewer/launch':
+                import subprocess
+                import sys
+                try:
+                    python_exe = sys.executable
+                    script_path = os.path.abspath("pickleguiencodeviwer.py")
+                    if not os.path.exists(script_path):
+                        script_path = os.path.join(os.getcwd(), "pickleguiencodeviwer.py")
+                    
+                    if not hasattr(ENGINE, "pickle_viewer_process"):
+                        ENGINE.pickle_viewer_process = None
+                    
+                    if ENGINE.pickle_viewer_process is None or ENGINE.pickle_viewer_process.poll() is not None:
+                        ENGINE.pickle_viewer_process = subprocess.Popen(
+                            [python_exe, script_path],
+                            cwd=os.getcwd(),
+                            creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
+                        )
+                        self._send_json({"status": "ok", "message": "Pickle / Fossil Encoding Viewer GUI booted successfully.", "pid": ENGINE.pickle_viewer_process.pid})
+                    else:
+                        self._send_json({"status": "ok", "message": "Pickle / Fossil Encoding Viewer GUI is already running.", "pid": ENGINE.pickle_viewer_process.pid})
+                except Exception as e:
+                    self._send_error_json(f"Failed to launch Pickle Viewer: {str(e)}")
+
+            elif self.path == '/api/viewer/fossils':
+                try:
+                    import glob
+                    files = []
+                    search_dirs = [
+                        os.path.join("data", "fossils"),
+                        "data",
+                        "checkpoints",
+                        "."
+                    ]
+                    exts = ["*.pkl", "*.pt", "*.arrow", "*.feather", "*.parquet", "*.json", "*.npy", "*.npz"]
+                    seen = set()
+                    for sdir in search_dirs:
+                        if not os.path.exists(sdir):
+                            continue
+                        for ext in exts:
+                            for fpath in glob.glob(os.path.join(sdir, ext)):
+                                norm = os.path.normpath(fpath)
+                                if norm in seen or ".venv" in norm or "__pycache__" in norm:
+                                    continue
+                                seen.add(norm)
+                                sz = os.path.getsize(norm)
+                                mtime = os.path.getmtime(norm)
+                                files.append({
+                                    "filename": os.path.basename(norm),
+                                    "path": norm,
+                                    "size_bytes": sz,
+                                    "mtime": datetime.datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
+                                })
+                    files.sort(key=lambda x: x["mtime"], reverse=True)
+                    self._send_json({"status": "ok", "files": files[:150]})
+                except Exception as e:
+                    self._send_error_json(f"Failed to scan fossil repository: {str(e)}")
+
+            elif self.path == '/api/viewer/inspect':
+                try:
+                    content_len = int(self.headers.get('Content-Length', 0))
+                    post_body = self.rfile.read(content_len) if content_len > 0 else b'{}'
+                    req = json.loads(post_body.decode('utf-8')) if post_body else {}
+                    target_path = req.get("path")
+                    
+                    data_obj = None
+                    schema_name = "synthetic_active_manifold"
+                    metadata = {}
+                    
+                    if target_path and os.path.exists(target_path):
+                        from pickleguiencodeviwer import _detect_schema
+                        ext = os.path.splitext(target_path)[1].lower()
+                        if ext == '.pt':
+                            data_obj = torch.load(target_path, map_location='cpu', weights_only=False)
+                        elif ext == '.pkl':
+                            import pickle
+                            with open(target_path, 'rb') as f:
+                                data_obj = pickle.load(f)
+                        elif ext in ('.arrow', '.feather'):
+                            import pyarrow.feather as feather
+                            data_obj = feather.read_table(target_path)
+                        elif ext == '.json':
+                            with open(target_path, 'r', encoding='utf-8') as f:
+                                data_obj = json.load(f)
+                        elif ext in ('.npy', '.npz'):
+                            import numpy as np
+                            data_obj = np.load(target_path, allow_pickle=True)
+                        schema_name = _detect_schema(data_obj)
+                        metadata["file_path"] = target_path
+                        metadata["file_size"] = os.path.getsize(target_path)
+                    else:
+                        schema_name = "gyroid_state"
+                        metadata["source"] = "live_engine_state"
+                    
+                    self._send_json({
+                        "status": "ok",
+                        "schema": schema_name,
+                        "metadata": metadata,
+                        "timestamp": datetime.datetime.now().isoformat()
+                    })
+                except Exception as e:
+                    self._send_error_json(f"Inspection error: {str(e)}")
 
             else:
                 self.send_error(404)
