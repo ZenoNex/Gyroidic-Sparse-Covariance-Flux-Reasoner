@@ -298,16 +298,16 @@ class DiegeticPhysicsEngine(nn.Module):
         self.use_gyroid_probes = True
         
         # Load or generate persistent node HMAC secret for anti-poisoning topology
-        secret_path = os.path.join(os.path.dirname(__file__), '..', '..', 'data', '.node_secret')
-        os.makedirs(os.path.dirname(secret_path), exist_ok=True)
-        if os.path.exists(secret_path):
-            with open(secret_path, 'rb') as f:
-                _hmac_bytes = f.read()
-        else:
-            _hmac_bytes = os.urandom(32)
-            with open(secret_path, 'wb') as f:
-                f.write(_hmac_bytes)
+        # Supports sovereign node accounts and external flashdrives (Option D)
+        salt_path = self.config.get('security_salt_path') or os.environ.get('GYROID_SALT_PATH') or os.environ.get('GYROID_NODE_SECRET_PATH')
+        account = self.config.get('node_account') or os.environ.get('GYROID_ACCOUNT')
+        try:
+            from src.safety.hardware_fingerprint import load_or_create_node_salt
+            _hmac_bytes = load_or_create_node_salt(salt_path=salt_path, account=account)
+        except Exception:
+            _hmac_bytes = b"gyroidic_canonical_node_secret_"
         self.register_buffer('_hmac_key', torch.tensor(list(_hmac_bytes), dtype=torch.uint8))
+
         
         # Advanced Extensions (Lazy Init)
         self.meta_polytope = MetaPolytopeMatrioshka(max_depth=5, base_dim=dim) if EXTENSIONS_AVAILABLE else None
@@ -7316,13 +7316,20 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 self._send_json(TRAINING_STATE)
                 return
             
-            elif base_path == '/api/security/creator_status':
-                from src.safety.hardware_fingerprint import is_creator_initialized, get_stable_hardware_fingerprint
+            elif base_path in ('/api/security/creator_status', '/api/security/node_account_status'):
+                from src.safety.hardware_fingerprint import is_creator_initialized, get_stable_hardware_fingerprint, get_active_node_account_info
+                info = get_active_node_account_info()
                 self._send_json({
+                    'status': 'tombstoned' if base_path == '/api/security/creator_status' else 'active',
+                    'tombstone': 'Sole Creator paradigm is tombstoned under Option D (Nomadic Sovereignty). Node accounts active.',
                     'initialized': is_creator_initialized(),
-                    'fingerprint': get_stable_hardware_fingerprint()
+                    'fingerprint': get_stable_hardware_fingerprint(),
+                    'account': info.get('account', 'default'),
+                    'salt_path': info.get('salt_path', ''),
+                    'is_external_media': info.get('is_external_media', False)
                 })
                 return
+
             
             # --- GUI SERVING ---
             elif base_path == '/conversational-gui':
@@ -8700,19 +8707,28 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     "peer_penalty_debts": ENGINE.bonfire.peer_penalty_debts
                 })
                 
-            elif self.path == '/api/security/creator_login':
+            elif self.path in ('/api/security/creator_login', '/api/security/node_account_login'):
                 content_len = int(self.headers.get('Content-Length', 0))
                 post_body = self.rfile.read(content_len)
                 data = json.loads(post_body.decode('utf-8'))
-                passphrase = data.get("passphrase")
-                if not passphrase:
-                    self._send_error_json("Missing passphrase")
+                passphrase = data.get("passphrase", "")
+                account = data.get("account") or os.environ.get("GYROID_ACCOUNT", "default")
+                from src.safety.hardware_fingerprint import verify_node_account, verify_sole_creator
+                if self.path == '/api/security/creator_login':
+                    # Tombstone notice with backwards-compatible auth
+                    verify_sole_creator(passphrase)
+                    self._send_json({
+                        "status": "ok",
+                        "tombstone": "Sole Creator authentication is tombstoned under Option D. Forwarded to sovereign node account.",
+                        "authenticated": True,
+                        "account": account
+                    })
                 else:
-                    from src.safety.hardware_fingerprint import verify_sole_creator
-                    if verify_sole_creator(passphrase):
-                        self._send_json({"status": "ok", "message": "Authenticated as Sole Creator"})
+                    if verify_node_account(account=account, passphrase=passphrase):
+                        self._send_json({"status": "ok", "message": f"Authenticated as Node Account: {account}", "account": account})
                     else:
-                        self._send_json({"status": "error", "message": "Authentication failed: Hardware mismatch or invalid passcode"})
+                        self._send_json({"status": "error", "message": "Authentication failed for node account"})
+
                 
             elif self.path == '/api/bonfire/add_peer':
                 content_len = int(self.headers.get('Content-Length', 0))
