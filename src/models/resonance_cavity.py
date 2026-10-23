@@ -16,6 +16,12 @@ import hashlib
 import struct
 import sys
 import os
+try:
+    import xxhash
+    _HAS_XXHASH = True
+except ImportError:
+    xxhash = None
+    _HAS_XXHASH = False
 from typing import Dict, List, Optional, Tuple, Any
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.core.honest_jitter import harvest_honest_jitter, fractal_pad
@@ -109,11 +115,11 @@ class HeritableTrustVault(nn.Module):
         """
         Hash symbolic residues [batch, K] to [batch] table indices.
 
-        Uses hashlib.sha256 with a persistent per-instance salt so that:
+        Uses xxhash.xxh64 (C-accelerated) with persistent salt for high throughput,
+        falling back to hashlib.sha256 if xxhash is not available:
         - The same residue pattern always maps to the same table slot (deterministic).
         - Cross-run determinism is guaranteed because the salt is stored as a buffer
-          and restored via state_dict (unlike Python's built-in hash which is
-          randomised per process by PYTHONHASHSEED).
+          and restored via state_dict.
         """
         # Detach and move to CPU for byte-level hashing (no gradient flow here)
         r_cpu = residues.detach().cpu()
@@ -122,9 +128,11 @@ class HeritableTrustVault(nn.Module):
         for row in r_cpu:
             # Quantise to int16 to stabilise floating-point jitter before hashing
             row_ints = (row.float().clamp(-3e4, 3e4) * 100).short().numpy().tobytes()
-            digest = hashlib.sha256(salt_bytes + row_ints).digest()
-            # Take first 8 bytes as a uint64 and reduce modulo table_size
-            slot = struct.unpack_from('<Q', digest)[0] % self.table_size
+            if _HAS_XXHASH:
+                slot = xxhash.xxh64_intdigest(salt_bytes + row_ints) % self.table_size
+            else:
+                digest = hashlib.sha256(salt_bytes + row_ints).digest()
+                slot = struct.unpack_from('<Q', digest)[0] % self.table_size
             indices.append(slot)
         return torch.tensor(indices, dtype=torch.long, device=residues.device)
 
