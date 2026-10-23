@@ -9,7 +9,7 @@ ingesting knowledge dyads (text/image pairs).
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from src.core.chern_simons_gasket import ChernSimonsGasket
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.invariants import PHI, get_ihc_ladder_tensor
@@ -182,16 +182,22 @@ class ResonanceLarynx(nn.Module):
         conf = self.confidence(safe_state)
         return predicted_state, conf
         
-    def hebbian_update(self, state_trace: torch.Tensor, symbol_trace: torch.Tensor, rate: float = 0.01):
+    def hebbian_update(self, state_trace: torch.Tensor, symbol_trace: Optional[torch.Tensor] = None, target_state: Optional[torch.Tensor] = None, rate: float = 0.01):
         """
         Reinforce the path from state -> symbol.
         delta_W = rate * (symbol * state^T)
         
         Args:
             state_trace: [batch, hidden_dim] (The topological context)
-            target_state: [batch, hidden_dim] (The topological target)
+            symbol_trace: [batch, hidden_dim] (The topological symbol trace / target)
+            target_state: [batch, hidden_dim] (The topological target, alias for symbol_trace)
             rate: Learning rate (Reward)
         """
+        if target_state is None:
+            target_state = symbol_trace
+        if target_state is None:
+            return
+
         with torch.no_grad():
             # target_state: [B, H], state_trace: [B, H]
             # update: [H, H]
@@ -206,6 +212,39 @@ class ResonanceLarynx(nn.Module):
             # Normalization to prevent blowup (Oja's rule style damping)
             # W = W / norm(W)
             self.proj.weight.div_(torch.norm(self.proj.weight, dim=1, keepdim=True) + 1e-8)
+
+    def compute_jepa_transition_energy(
+        self,
+        current_state: torch.Tensor,
+        target_state: torch.Tensor,
+        moment_transport: Optional[Any] = None
+    ) -> torch.Tensor:
+        """
+        Computes JEPA Monge-Ampere predictive energy for topological transitions under
+        compute affordance gating. Falls back to normalized cosine distance in honeybee mode.
+        """
+        from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+        hw = HardwareMonitor()
+        if not hw.has_compute_affordance(ComputeAffordanceType.ALGORITHMIC):
+            norm_curr = torch.nn.functional.normalize(current_state, p=2, dim=-1)
+            norm_tgt = torch.nn.functional.normalize(target_state, p=2, dim=-1)
+            return (1.0 - (norm_curr * norm_tgt).sum(dim=-1)).mean()
+            
+        if moment_transport is None:
+            from src.core.conjugate_moment_transport import ConjugateMomentTransport
+            moment_transport = ConjugateMomentTransport(dim=current_state.shape[-1]).to(current_state.device)
+            
+        # Hard-project context state to Cayley Cubic surface
+        if hasattr(moment_transport, 'project_to_cayley_surface'):
+            current_state = moment_transport.project_to_cayley_surface(current_state, is_honeybee_mode=False)
+            
+        pas_anisotropy = torch.ones(current_state.shape[0], 1, device=current_state.device)
+        return moment_transport.compute_context_adaptive_monge_ampere_loss(
+            source=current_state,
+            target=target_state,
+            pas_anisotropy=pas_anisotropy,
+            shell_depth=0
+        )
 
     def generate_response(self, 
                           text_input: str, 
