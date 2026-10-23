@@ -48,6 +48,7 @@ from src.core.noncommutativity_curvature import NonCommutativityCurvature
 from src.core.manifold_time import TwoCopsSchedule
 from src.core.archetype_engines import ArchetypalSynthesisEngine
 from src.models.modular_attention import ModularAttention, ModularTransformerLayer
+from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
 from src.models.diegetic_heads import AutoeclecticResponderHead, DataAssociationLayer
 from src.surrogates.calm_predictor import CALM
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
@@ -457,7 +458,17 @@ class UniversalOrchestrator(nn.Module):
         self.last_dyad = None
         self.last_fossil_path = None
 
-        # 7.28 Attention Subsystem Suite (Multi-Field Modular Attention, CALM Veto & Diegetic Heads)
+        # 7.28 Attention Subsystem Suite (Multi-Field Modular Attention, Gyroid Probes, CALM Veto & Diegetic Heads)
+        self.gyroid_probe = SparseGyroidCovarianceProbe(
+            hidden_dim=dim,
+            window_size=min(32, dim),
+            k_hop=2,
+            num_eigenvalues=min(8, dim),
+            violation_threshold=0.5,
+            use_saturation_detection=True,
+            adaptive_threshold=True
+        )
+        self.last_gyroid_violation = None
         self.poly_config = PolynomialCoprimeConfig(k=5, degree=4, basis_type='chebyshev', learnable=True, use_saturation=True)
         attn_heads = 4 if dim % 4 == 0 else max([h for h in [4, 2, 1] if dim % h == 0], default=1)
         self.modular_attention = ModularAttention(
@@ -465,13 +476,15 @@ class UniversalOrchestrator(nn.Module):
             num_heads=attn_heads,
             poly_config=self.poly_config,
             num_functionals=5,
-            use_birkhoff=True
+            use_birkhoff=True,
+            gyroid_probe=self.gyroid_probe
         )
         self.modular_transformer = ModularTransformerLayer(
             hidden_dim=dim,
             num_heads=attn_heads,
             poly_config=self.poly_config,
-            num_functionals=5
+            num_functionals=5,
+            gyroid_probe=self.gyroid_probe
         )
         self.autoeclectic_head = AutoeclecticResponderHead(hidden_dim=dim, output_dim=dim)
         self.data_association = DataAssociationLayer(input_dim=dim, hidden_dim=dim, k=5)
@@ -1411,17 +1424,34 @@ class UniversalOrchestrator(nn.Module):
         }
 
         # Multi-Field Modular Attention (Birkhoff Projection & Sine-Gordon Breather slots)
-        attn_out = self.modular_attention(state_flat_attn)
+        # Gyroidic Covariance Violation Exploration (GCVE) Dynamic Attention Sparsification Gate
+        gyroid_res = self.gyroid_probe(state_flat_attn)
+        self.last_gyroid_violation = gyroid_res
+        gyroid_total_press = gyroid_res.get('total_pressure', gyroid_res.get('gcve_pressures', torch.tensor([0.0]))).mean()
+
+        # If sequence length > 1, generate dynamic attention mask guided by gyroidic violation
+        if state_flat_attn.shape[1] > 1:
+            dynamic_attn_mask = self.construct_dynamic_attention_mask(
+                violations=gyroid_total_press,
+                seq_len=state_flat_attn.shape[1]
+            )
+            attn_out = self.modular_attention(state_flat_attn, mask=dynamic_attn_mask)
+        else:
+            attn_out = self.modular_attention(state_flat_attn)
         attn_integrity = self.modular_attention.validate_structural_integrity()
         self.last_attention_integrity = attn_integrity
 
         # Excite ResonanceCavity with attention states: dC/dt = -Gamma*C + alpha*A_ij^H*R_ij
         if hasattr(self, 'resonance_cavity') and self.resonance_cavity is not None:
             try:
+                g_field = getattr(self.larynx.chern_simons, 'gauge_field', None) if hasattr(self, 'larynx') and hasattr(self.larynx, 'chern_simons') else None
+                g_level = getattr(self.larynx.chern_simons, 'level_k', 1) if hasattr(self, 'larynx') and hasattr(self.larynx, 'chern_simons') else 1
                 self.resonance_cavity(
                     attention_states=attn_out,
                     introspection_directions=state_flat_attn.squeeze(1),
-                    dt=dt
+                    dt=dt,
+                    gauge_field=g_field,
+                    chern_simons_level=g_level
                 )
             except Exception:
                 pass
@@ -2170,9 +2200,16 @@ class UniversalOrchestrator(nn.Module):
         self,
         x: torch.Tensor,
         path_topology_vectors: Optional[torch.Tensor] = None,
-        mask: Optional[torch.Tensor] = None
+        mask: Optional[torch.Tensor] = None,
+        use_gyroid_mask: bool = True
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute modular multi-field attention and return attended tensor and structural integrity."""
+        if mask is None and use_gyroid_mask and x.shape[1] > 1:
+            gyroid_res = self.gyroid_probe(x)
+            self.last_gyroid_violation = gyroid_res
+            press = gyroid_res.get('total_pressure', gyroid_res.get('gcve_pressures', torch.tensor([0.0]))).mean()
+            mask = self.construct_dynamic_attention_mask(violations=press, seq_len=x.shape[1])
+
         out = self.modular_attention(x, mask=mask, path_topology_vectors=path_topology_vectors)
         integrity = self.modular_attention.validate_structural_integrity()
         return out, integrity
