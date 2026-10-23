@@ -204,6 +204,21 @@ $$
 *   **Term 1 (Spectral Gap)**: Detects disconnected components or topological tearing.
 *   **Term 2 (Flatness)**: Detects dimensional collapse (degeneracy).
 
+### 5.2 Probe Integration & Closed-Topology Attention Map
+The scalar violation score $V$ directly gates the dynamic attention topology across the reasoning layers:
+
+$$
+\text{Attention Mask } M_{ij} = \begin{cases} 
+0.0 & \text{if } V > \theta_{\text{dense}} \quad (\text{global dense defect resolution}) \\
+0.0 & \text{if } |i - j| \le w \quad (\text{local band-diagonal window}) \\
+-10^4 & \text{otherwise} \quad (\text{sparsified manifold})
+\end{cases}
+$$
+
+By evaluating local covariance over the $O(K)$ Sine-Gordon BreatherMode soliton slots rather than raw sequence length $N$, eigendecomposition is executed in $O(K^3) = O(1)$ complexity without violating closed-topology constraints.
+
+Canonical implementation: [`SparseGyroidCovarianceProbe`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_covariance.py) bound into [`ModularAttention`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/modular_attention.py) and [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py).
+
 ### 5.3 Technical Caveats on Heuristics
 
 The gyroid violation metric $\psi$ and the residue obstruction graph are **heuristically motivated proxies**. While they effectively detect manifold tears and logic pivots, they lack a formal algebraic proof of completeness. They function as **containment pressures**filters that reject inadmissible states without guaranteeing a unique physical truth.
