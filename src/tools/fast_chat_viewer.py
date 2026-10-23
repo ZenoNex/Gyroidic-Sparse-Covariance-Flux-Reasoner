@@ -169,7 +169,9 @@ class FrictionTagger:
     extracted so the viewer can apply visual tags without importing
     torch or triggering the full harvester init.
     """
-    CREATOR_ALIASES = ["ila", "akkaris", "willabusta"]
+    # Node operator aliases (Option D: CREATOR_ALIASES tombstoned)
+    NODE_OPERATOR_ALIASES = ["ila", "akkaris", "willabusta"]
+    CREATOR_ALIASES = NODE_OPERATOR_ALIASES
     AI_KEYWORDS = ["archetype", "entity", "system", "architecture", "non-human", "ai"]
     ROLEPLAY_PATTERNS = [
         "i am ", "i will act as ", "playing the role of ", "persona: ",
@@ -184,8 +186,9 @@ class FrictionTagger:
         text_lower = text.lower()
         tags: dict = {}
 
-        if any(a in text_lower for a in self.CREATOR_ALIASES):
+        if any(a in text_lower for a in self.NODE_OPERATOR_ALIASES):
             tags["is_human_alias"] = 1.0
+
         if any(k in text_lower for k in self.AI_KEYWORDS):
             tags["is_nonhuman_archetype"] = 1.0
         if any(p in text_lower for p in self.ROLEPLAY_PATTERNS):
