@@ -15,6 +15,7 @@ from src.optimization.codes_driver import CODES, CODESDriver
 from src.core.invariants import PrimeResonanceLadder, PHI_RECIPROCAL
 from src.core.fgrt_primitives import CoherentPrimeResonance
 from src.surrogates.kagh_networks import TrigonometricUnfolding
+from src.core.honest_jitter import harvest_honest_jitter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ChordlockEvaluator")
@@ -40,7 +41,7 @@ class ChordlockEvaluator:
 
     def evaluate_chordlock_identity(self) -> Tuple[bool, float]:
         """Verify chordlock projection preserves shape and anchors resonant signals."""
-        latent = torch.randn(10, device=self.device)
+        latent = harvest_honest_jitter((10,), device=self.device, scaled=False)
         locked = self.codes.chordlock(latent, primes=[])
         shape_ok = (locked.shape == latent.shape) and torch.isfinite(locked).all().item()
 
@@ -82,7 +83,7 @@ class ChordlockEvaluator:
 
     def evaluate_chiral_unfolding(self) -> Tuple[bool, float]:
         """Verify chiral branch selection produces finite unfolded tensors."""
-        x = torch.randn(2, self.state_dim, device=self.device)
+        x = harvest_honest_jitter((2, self.state_dim), device=self.device, scaled=False)
         unfolded = self.codes.chiral_branches(x)
         var_norm = float(torch.var(unfolded).item())
         is_pass = (unfolded.shape == x.shape) and torch.isfinite(unfolded).all().item() and (var_norm > 0.0)
