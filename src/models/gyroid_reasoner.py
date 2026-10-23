@@ -1155,3 +1155,30 @@ class GyroidicFluxReasoner(nn.Module):
         if self.use_introspection and hasattr(self, 'introspection') and self.introspection is not None:
             self.introspection.unlearn_rigidity(current_time=current_time, overlap_window=overlap_window, decay_rate=decay_rate)
 
+    def compute_jepa_monge_ampere_energy(
+        self,
+        context_state: torch.Tensor,
+        target_state: torch.Tensor,
+        moment_transport: Optional[Any] = None,
+        pas_anisotropy: Optional[torch.Tensor] = None,
+        shell_depth: int = 0,
+        is_honeybee_mode: Optional[bool] = None
+    ) -> torch.Tensor:
+        """
+        Compute JEPA Monge-Ampere transport energy between context and target states,
+        delegating to the polynomial functional embedder with compute affordance gating.
+        """
+        from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+        hw = HardwareMonitor()
+        if not hw.has_compute_affordance(ComputeAffordanceType.ALGORITHMIC):
+            if is_honeybee_mode is None:
+                is_honeybee_mode = True
+        return self.embedder.compute_jepa_monge_ampere_energy(
+            context_state=context_state,
+            target_state=target_state,
+            moment_transport=moment_transport,
+            pas_anisotropy=pas_anisotropy,
+            shell_depth=shell_depth,
+            is_honeybee_mode=is_honeybee_mode if is_honeybee_mode is not None else False
+        )
+
