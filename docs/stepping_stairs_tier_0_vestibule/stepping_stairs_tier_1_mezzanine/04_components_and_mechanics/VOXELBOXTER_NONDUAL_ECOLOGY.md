@@ -30,14 +30,15 @@ are the exact equations that physically generate the voxel terrain, simulate veh
 When external signals (3D meshes, audio streams, text documents, or video frames) enter the system through `UniversalTopologyConverter`, `IVSTEncoder`, or `SovereignIngestor`, the objective is **Topological Distillation**:
 
 1. **Decoupling Surface Expression from Structural Topology**:
-   - Visual and acoustic media pass through Hann-windowed frame energy evaluations and Chebyshev $T_k$ recurrence polynomials.
+   - Visual and acoustic media pass through Hann-windowed frame energy evaluations across the canonical orthogonal polynomial spectrum (Chebyshev $T_k$, Legendre $P_k$, Hermite $He_k$, Laguerre $L_k$, and localized Cox-de Boor B-splines via [`image_extension.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/image_extension.py) and [`src/ui/diegetic_visualizer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_visualizer.py)).
    - Raw pixels, protected Euclidean coordinates, and audio samples are discarded.
-   - The engine retains only a 96-coefficient visual fingerprint (32 modes across L/Cr/Cb channels) or a 64-coefficient audio harmonic vector.
-   - High-frequency Chebyshev coefficients capture spectral texture density and invariant geometry rather than copyrightable surface expression.
+   - The engine retains only a 96-coefficient visual fingerprint (32 modes across L/Cr/Cb channels), a 64-coefficient audio harmonic vector, or a compact 16-bin Chromata homotopy filament / Geometrize mass tensor.
+   - High-frequency coefficients capture spectral texture density and invariant geometry rather than copyrightable surface expression.
 
-2. **Topological Invariants & CRT Signatures**:
-   - The `IVSTEncoder` projects byte-frequency histograms through polynomial bases into phase space.
-   - It computes Betti numbers ($\beta_0, \beta_1$), surface-area-to-volume ratios, intrinsic graph volume, and Chinese Remainder Theorem (CRT) residue pressure signatures using dynamic prime ladders.
+2. **Topological Invariants & Vector Streamline Filaments (Chromata & Geometrize)**:
+   - **Chromata Flowline Separatrices**: Instead of raster grids, autonomous multi-agent tracers navigate the continuous gradient vector field $\nabla I$ with saturation avoidance, identifying the critical Morse-Smale homotopy separatrices and generating invariant arc-length and winding number distributions.
+   - **Geometrize Parametric Decomposition**: Replaces $O(N^3)$ voxel grid bloat by decomposing visual fields into continuous parametric geometric primitives (ellipsoids, superquadrics, oriented boxes), computing closed-form mass-moment tensors and principal eccentricities without spatial discretization.
+   - **CRT Signatures & Betti Barcodes**: The `IVSTEncoder` projects byte-frequency histograms through polynomial bases into phase space, computing Betti numbers ($\beta_0, \beta_1$), surface-area-to-volume ratios, intrinsic graph volume, and Chinese Remainder Theorem (CRT) residue pressure signatures using dynamic prime ladders.
 
 3. **Immediate Diegetic Population**:
    - Distilled topological signatures do not sit behind glass or inside cold databases.

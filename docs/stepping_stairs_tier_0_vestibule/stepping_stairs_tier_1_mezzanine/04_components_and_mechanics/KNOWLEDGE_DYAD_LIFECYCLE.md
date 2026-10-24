@@ -24,31 +24,78 @@ All dyad types share the same ingestion path: Chebyshev projection  `_build_fp_b
 The old 137-dim histogram (`{r:[32], g:[32], b:[32], l:[32], texture, edges:[8]}`) has been retired. The new pipeline matches the audio pipeline exactly:
 
 ```
-Image file (PNG, JPEG, WebP, )
-     Canvas 6464 (in browser)
-     BT.601 L / Cr / Cb decomposition     4096 floats per channel
-     K = clamp(round(4096 / 4), 5, 32)   derived from pixel count; never hardcoded
-     Per channel: Hann-windowed frame energies (K+1 frames)
-                  Chebyshev T_k recurrence (k = 0  K-1)
-                  Birkhoff row normalisation  (L1  probability row)
-                  Xorshift32 LSB stochastic rounding (scale=1024)
-     Payload: { chebyshev_degree: K, L:[K], Cr:[K], Cb:[K] }
+Image file (PNG, JPEG, WebP, ...)
+    --> Canvas 64x64 (in browser or Python)
+    --> BT.601 L / Cr / Cb decomposition -> 4096 floats per channel
+    --> K = clamp(round(4096 / 4), 5, 32) -> derived from pixel count; never hardcoded
+    --> Ingestion Pathways:
+        1. Multi-Basis Spectral Decomposition (PolynomialBasis: Chebyshev, Legendre, Hermite, Laguerre, B-Spline)
+        2. Chromata Streamline Flowline Tracer (Homotopy filaments with saturation avoidance)
+        3. Geometrize Parametric Primitive Decomposer (Closed-form superquadrics & ellipsoids)
+    --> Birkhoff row normalisation -> (L1 -> probability row)
+    --> Xorshift32 LSB stochastic rounding (scale=1024)
+    --> Payload: { basis_type, degree: K, L:[K], Cr:[K], Cb:[K], chromata_filaments, geometrize_primitives }
 ```
 
-**Why Chebyshev instead of histograms?**
+### 2.1 The Multi-Basis Polynomial Spectrum
 
-Histograms aggregate colour and cannot distinguish two images with identical colour distributions but different spatial structure. Chebyshev coefficients are **spectral**: T_k at higher k captures higher-frequency variations in the windowed energy envelope. An image of uniform blue sky loads T_0; an image of fine-grained turbulence loads T_{K-1}. The coefficient vector is a faithful topological fingerprint of the image's information density.
+Moving beyond single-basis representations, [`image_extension.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/image_extension.py) and [`src/ui/diegetic_visualizer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_visualizer.py) provide multi-basis polynomial decomposition across canonical orthogonal families:
+
+- **Chebyshev ($T_n$)**: Weight $w(x) = (1 - x^2)^{-1/2}$. Minimax equiripple error distribution across the frequency band. Optimal for perceptual hashing and edge-preserving texture frequency analysis.
+- **Legendre ($P_n$)**: Weight $w(x) = 1$. Flat $L^2$ uniform energy weighting. Unlike Chebyshev, which clusters evaluation nodes near boundary points ($\pm 1$), Legendre weights interior visual density equally, making it ideal for interior mass and volumetric contrast.
+- **Hermite ($He_n$)**: Weight $w(x) = e^{-x^2 / 2}$ on $(-\infty, \infty)$. Matches the optical Gaussian point-spread function (PSF) and human visual fovea (Gabor filters). Provides superior invariance against Gaussian blur, out-of-focus optics, and atmospheric scattering.
+- **Laguerre ($L_n$)**: Weight $w(x) = e^{-x}$ on $[0, \infty)$. Evaluated on radial distance $r = \|\mathbf{x} - \mathbf{c}\|$ from the visual center of mass, yielding rotation-invariant radial harmonic signatures.
+- **True B-Splines / KAN (Cox-de Boor)**: Compact local support: $B_{i, k}(x) = 0$ outside $[t_i, t_{i+k+1}]$. Unlike global polynomials where local tampering corrupts all coefficients, B-spline coefficients localize image modifications (watermarks, occlusions, inpainting) strictly to local knot intervals.
+
+### 2.2 Chromata Vector Streamlines & Homotopy Filaments
+
+Traditional pixel hashing suffers from rigid Cartesian grid alignment. Inspired by Chromata (Michael Bromley), autonomous multi-agent path finders walk the continuous 2D/3D gradient vector field $\mathbf{v}(x, y) = \nabla I(x, y)$ or Hamiltonian isoline field $\mathbf{v}^\perp$:
+
+$$\frac{d\mathbf{x}_a}{dt} = \mathbf{v}(\mathbf{x}_a)$$
+
+- **Saturation Avoidance**: Agents deposit a traversal footprint in a spatial spatial-hash grid. If an adjacent coordinate is saturated, agents deflect orthogonally ($\mathbf{v}_{\text{avoid}} \perp \mathbf{v}$).
+- **Homotopy Separatrices**: Streamlines lock onto the structural ridge lines and critical separatrices of the image topology rather than arbitrary pixel grids.
+- **Topological Invariants**: Extracts arc-length spectra, winding numbers $\mathcal{W} = \frac{1}{2\pi} \oint d\theta$, and curvature integrals $\kappa = \int \|\dot{\mathbf{x}} \times \ddot{\mathbf{x}}\| / \|\dot{\mathbf{x}}\|^3 dt$, providing complete affine, scale, and rotation invariance.
+
+### 2.3 Geometrize Parametric Decomposition (Bypassing Voxel Bloat)
+
+Rather than storing raster matrices or volumetric voxel cubes (which suffer from $O(N^3)$ voxel bloat), the Geometrize cleanroom decomposes visual fields into continuous parametric primitives $\mathcal{P} = \{(\mathbf{c}_m, \mathbf{r}_m, \mathbf{q}_m, \mathbf{col}_m, \alpha_m)\}_{m=1}^M$:
+
+- **Parametric Primitives**: Ellipsoids, superquadrics, oriented boxes, and Bezier ribbons.
+- **Algebraic Mass-Moment Tensor**:
+  $$\mathbf{I} = \sum_{m=1}^M \alpha_m \mathcal{V}_m [(\mathbf{c}_m - \mathbf{\bar{c}})^2 \mathbf{1} - (\mathbf{c}_m - \mathbf{\bar{c}})(\mathbf{c}_m - \mathbf{\bar{c}})^T]$$
+- **Principal Eccentricities**: Eigenvalues of $\mathbf{I}$ yield rotation- and scale-invariant geometric eccentricities $(\varepsilon_1, \varepsilon_2)$ and sphericity $\mathcal{S}$.
+- **Direct Codec Intersection**: In [`GyroidImageProjector`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/gyroidic_codec.py), continuous primitives algebraically intersect the gyroid minimal surface $G(\mathbf{x}) = 0$, evaluating boundary integrals directly into $GL(n)$ matrix residues without intermediate raster downsampling.
+
+### 2.4 Comparative Fingerprinting Matrix
+
+| Fingerprint Paradigm | Mathematical Domain | Affine Invariance | Occlusion Tolerance | Topological Scars | Computational Footprint |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **aHash (Average)** | Discrete Luminance Grid | None (Fragile) | Poor ($< 5\%$) | None (Scalar Mean) | 64 bits (Trivial) |
+| **dHash (Difference)** | Discrete Adjacent Gradients | None (Shift sensitive) | Poor ($< 10\%$) | None (Binary Mask) | 64 bits (Trivial) |
+| **pHash (DCT)** | Discrete Cosine Spectral | Moderate (Scale only) | Moderate ($< 20\%$) | Weak (Global Spectral) | 64 bits (Low) |
+| **wHash (Wavelet)** | Multi-Resolution DWT | Moderate | Moderate ($< 25\%$) | Sub-band Energy | 64-128 bits |
+| **Chebyshev ($T_k$)** | Minimax Orthogonal Poly | High (Windowed) | Good ($< 35\%$) | High-Frequency Scar | 96 floats (548 bytes) |
+| **Legendre / Hermite** | Flat $L^2$ / Gaussian Kernel | High | High ($< 40\%$) | PSF / Radial Gaussian | 96 floats (548 bytes) |
+| **B-Spline (Cox-de Boor)**| Localized Knot Splines | High | Exceptional ($< 60\%$) | Localized Knot Scars | $K \times \text{knots}$ |
+| **Chromata Streamline**| Continuous Gradient Vector | Invariant (Continuous)| Exceptional ($< 70\%$) | Homotopy Filaments | 16-bin Filament + Winding |
+| **Geometrize Primitive**| Continuous Superquadrics | Full Invariance | Exceptional ($< 75\%$) | Analytical Mass Tensors | $M$ Parametric Primitives |
 
 **Backend reception** (`fingerprint_proj = nn.Linear(96, dim)`, orthogonal init):
 
 ```python
-# L, Cr, Cb each padded/truncated to K_IMAGE_MAX=32  concat  96 dims
-flat = L_coeffs + Cr_coeffs + Cb_coeffs
-t = torch.tensor(flat).float()[:96]
-fp_bias = fingerprint_proj(t.unsqueeze(0))   # [1, dim]
+# Ingestion via canonical ImageProcessor or direct visualizer extraction
+from image_extension import ImageProcessor
+from src.codec.vision_utilities import project_multimodal_fingerprint_to_96
+
+proc = ImageProcessor(device='cpu')
+# Generates multi-basis, Chromata filaments, or Geometrize primitives
+fp = proc.extract_spectral_fingerprint(image_input, k=32, basis_type='chebyshev')
+t96 = project_multimodal_fingerprint_to_96(fp)   # [96] canonical tensor
+fp_bias = fingerprint_proj(t96.unsqueeze(0))     # [1, dim]
 ```
 
-Legacy 137-dim histogram dicts are still accepted via a reshape shim for backward compatibility.
+Legacy 137-dim histogram dicts and structured Chromata/Geometrize dicts are natively resolved by [`GyroidicCodec.encode()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/gyroidic_codec.py#L852-L920).
 
 ---
 
