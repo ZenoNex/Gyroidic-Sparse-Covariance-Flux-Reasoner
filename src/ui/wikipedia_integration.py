@@ -152,16 +152,16 @@ class WikipediaIntegration:
                 return result
             
             else:
-                print(f"⚠️  Wikipedia API error for '{title}': {response.status_code}")
+                print(f"[WARN]  Wikipedia API error for '{title}': {response.status_code}")
                 self.stats['failed_requests'] += 1
                 return None
                 
         except requests.exceptions.RequestException as e:
-            print(f"⚠️  Network error fetching '{title}': {e}")
+            print(f"[WARN]  Network error fetching '{title}': {e}")
             self.stats['failed_requests'] += 1
             return None
         except Exception as e:
-            print(f"⚠️  Unexpected error fetching '{title}': {e}")
+            print(f"[WARN]  Unexpected error fetching '{title}': {e}")
             self.stats['failed_requests'] += 1
             return None
     
@@ -190,7 +190,7 @@ class WikipediaIntegration:
                 self.stats['total_chars_filtered'] += filtered_chars
                 return cleaned
             except Exception as e:
-                print(f"⚠️  WikiExtractor cleaning failed for '{title}': {e}")
+                print(f"[WARN]  WikiExtractor cleaning failed for '{title}': {e}")
                 # Fall through to fallback cleaning
         
         # Fallback cleaning (enhanced version of existing filter)
@@ -274,7 +274,7 @@ class WikipediaIntegration:
         content = re.sub(r'\[edit\]', '', content, flags=re.IGNORECASE)
         
         # Remove coordinate references
-        content = re.sub(r'Coordinates:\s*\d+°[^.]*\.', '', content)
+        content = re.sub(r'Coordinates:\s*\d+[^.]*\.', '', content)
         
         # Remove "See also" and "References" section headers if they appear at the end
         content = re.sub(r'\n\s*(?:See also|References|External links|Further reading)\s*\n.*$', '', content, flags=re.IGNORECASE | re.DOTALL)

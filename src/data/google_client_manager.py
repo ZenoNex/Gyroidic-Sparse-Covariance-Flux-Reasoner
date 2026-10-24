@@ -10,11 +10,11 @@ Created: April 2026
 
 import os
 import json
-import pickle
 from typing import List, Optional, Any
 from pathlib import Path
 
 from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build, Resource
 
@@ -42,7 +42,7 @@ class GoogleClientManager:
         
         # Default token path in the same directory as secrets if not provided
         if token_path is None:
-            self.token_path = self.client_secrets_path.parent / 'token.pickle'
+            self.token_path = self.client_secrets_path.parent / 'token.json'
         else:
             self.token_path = Path(token_path)
             
@@ -62,21 +62,22 @@ class GoogleClientManager:
 
     def _load_credentials(self):
         """Load credentials from disk or run the auth flow."""
-        # The file token.pickle stores the user's access and refresh tokens
+        # The file token.json stores the user's access and refresh tokens securely
         if self.token_path.exists():
-            with open(self.token_path, 'rb') as token:
-                self.creds = pickle.load(token)
+            with open(self.token_path, 'r') as token:
+                info = json.load(token)
+                self.creds = Credentials.from_authorized_user_info(info, self.scopes)
                 
         # If there are no (valid) credentials available, let the user log in.
         if not self.creds or not self.creds.valid:
             if self.creds and self.creds.expired and self.creds.refresh_token:
-                print("🔄 Refreshing expired Google credentials...")
+                print(" Refreshing expired Google credentials...")
                 self.creds.refresh(Request())
             else:
                 if not self.client_secrets_path.exists():
-                    raise FileNotFoundError(f"❌ Client secret not found at {self.client_secrets_path}")
+                    raise FileNotFoundError(f"[ERR] Client secret not found at {self.client_secrets_path}")
                 
-                print("🌐 Initializing Google OAuth Flow...")
+                print(" Initializing Google OAuth Flow...")
                 flow = InstalledAppFlow.from_client_secrets_file(
                     str(self.client_secrets_path), 
                     self.scopes
@@ -84,10 +85,10 @@ class GoogleClientManager:
                 # This opens a local server for the consent flow
                 self.creds = flow.run_local_server(port=0)
                 
-            # Save the credentials for the next run
-            with open(self.token_path, 'wb') as token:
-                pickle.dump(self.creds, token)
-                print(f"💾 Credentials saved to {self.token_path}")
+            # Save the credentials for the next run securely as JSON
+            with open(self.token_path, 'w') as token:
+                token.write(self.creds.to_json())
+                print(f"[SAVE] Credentials saved to {self.token_path}")
 
     def build_service(self, service_name: str, version: str = 'v1') -> Resource:
         """

@@ -11,9 +11,9 @@ Implements soliton preservation using:
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 from typing import Dict, Tuple, Optional
+from src.core.invariants import get_prime_ladder, PI, PHI
 from src.core.honest_jitter import harvest_honest_jitter
 
 class EnergyBasedSolitonHealer(nn.Module):
@@ -50,31 +50,21 @@ class EnergyBasedSolitonHealer(nn.Module):
         self.healing_history = []
         self.max_history = 100
     
-    @staticmethod
-    def _generate_primes(n: int) -> list:
-        """Generate the first n primes via centralized FGRT ladder to preserve Lazarus synchronization."""
-        from src.core.fgrt_primitives import PrimeResonanceLadder
-        ladder = PrimeResonanceLadder(num_resonators=n)
-        return ladder.primes.tolist()
-    
     def _create_soliton_template(self) -> torch.Tensor:
         """
         Create stable soliton template based on number theory.
         Uses golden ratio and dynamically generated prime-based spacing for stability.
         """
         # Golden ratio for natural stability
-        phi = (1 + np.sqrt(5)) / 2
-        
-        # Create template with golden ratio spacing
         indices = torch.arange(self.state_dim, dtype=torch.float32)
-        template = torch.cos(2 * np.pi * indices / phi)
+        template = torch.cos(2 * PI * indices / PHI)
         
         # Add prime-based modulation for number-theoretic stability
         # Dynamically generated  no hardcoded prime lists (anti-lobotomy compliance)
         num_primes = min(10, self.state_dim // 8)
-        primes = torch.tensor(self._generate_primes(max(num_primes, 1)), dtype=torch.float32)
+        primes = get_prime_ladder(max(num_primes, 1)).to(torch.float32)
         for i, p in enumerate(primes[:num_primes]):
-            modulation = torch.sin(2 * np.pi * indices / p) * 0.1
+            modulation = torch.sin(2 * PI * indices / p) * 0.1
             template += modulation
         
         # Normalize to unit energy

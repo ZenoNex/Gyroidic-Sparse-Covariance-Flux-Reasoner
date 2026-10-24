@@ -338,8 +338,8 @@ def monitor_chat_system(state: 'ResMut<PatchStateResource>'):
             
             if tox_val > 0.05: # S-VNN Noise threshold
                 # Flagged for toxicity. Map to Sovereign Exemption Tokens.
-                y_tensor = harvest_honest_jitter((10, 32), scaled=False)
-                z_tensor = harvest_honest_jitter((10, 32), scaled=False)
+                y_tensor = chat_voxel_embed.repeat(10, 1) if chat_voxel_embed.dim() == 2 else chat_voxel_embed.unsqueeze(0).repeat(10, 1)
+                z_tensor = harvest_honest_jitter(y_tensor.shape, scaled=False)
                 u_dirs = state.pca_mapper.fit_transform(z_tensor, y_tensor)
                 
                 if u_dirs is not None and u_dirs.shape[1] > 0:
@@ -351,7 +351,8 @@ def monitor_chat_system(state: 'ResMut<PatchStateResource>'):
                         exemption_token = torch.cat([exemption_token, pad])
                         
                     state.red_team_proj.register_failure_mode(exemption_token)
-                    logging.info(f"[Voxelblockter] Toxic voxel flagged (Tox: {tox_val:.2f}, Subv: {subv_val:.2f}). Registered Sovereign Exemption Token.")
+                    token_obj = state.pca_mapper.generate_sovereign_exemption_token(exemption_token, chat_voxel_embed)
+                    logging.info(f"[Voxelblockter] Toxic voxel flagged (Tox: {tox_val:.2f}, Subv: {subv_val:.2f}). Registered Sovereign Exemption Token (Honesty: {token_obj.honesty_score:.2f}).")
                 else:
                     logging.warning("[Voxelblockter] Toxic voxel flagged, but failed to extract exemption token.")
             elif subv_val > 0.01:

@@ -388,12 +388,12 @@ class ConversationalAPITrainer:
     def train_on_conversations(self, conversations: List[Conversation], 
                              num_epochs: int = 3) -> Dict[str, Any]:
         """Train model on real conversational data."""
-        print(f"🚀 Training on {len(conversations)} conversations for {num_epochs} epochs")
+        print(f"[START] Training on {len(conversations)} conversations for {num_epochs} epochs")
         
         epoch_results = []
         
         for epoch in range(num_epochs):
-            print(f"\n📚 Epoch {epoch + 1}/{num_epochs}")
+            print(f"\n[DOCS] Epoch {epoch + 1}/{num_epochs}")
             
             epoch_metrics = {
                 'conversational_loss': [],
@@ -422,7 +422,7 @@ class ConversationalAPITrainer:
                         print(f"  Conversation {i+1:3d}: PAS_h={avg_pas_h:.3f}")
                 
                 except Exception as e:
-                    print(f"⚠️ Failed to train on conversation {conversation.conversation_id}: {e}")
+                    print(f"[WARN] Failed to train on conversation {conversation.conversation_id}: {e}")
                     continue
             
             # Compute epoch averages
@@ -455,7 +455,7 @@ class ConversationalAPITrainer:
             epoch_results.append(epoch_summary)
             
             # Print epoch summary
-            print(f"\n📊 Epoch {epoch + 1} Summary:")
+            print(f"\n[METRICS] Epoch {epoch + 1} Summary:")
             print(f"   Conversational Loss: {epoch_summary.get('conversational_loss', 0):.3f}")
             print(f"   API Extraction Loss: {epoch_summary.get('api_extraction_loss', 0):.3f}")
             print(f"   Temporal Coherence: {epoch_summary.get('temporal_coherence', 0):.3f}")
@@ -616,18 +616,18 @@ class ConversationalAPITrainer:
 
 def run_conversational_api_training():
     """Run conversational API training demonstration."""
-    print("🗣️ Conversational API Training Integration")
+    print("️ Conversational API Training Integration")
     print("=" * 45)
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'  # Force CPU usage for stability
     print(f"Device: {device}")
     
     # Create API ingestor
-    print("\n🔧 Setting up API ingestor...")
+    print("\n Setting up API ingestor...")
     api_ingestor = ConversationalAPIIngestor(device=device)
     
     # Create model
-    print("🏗️ Creating conversational temporal model...")
+    print("[BUILD] Creating conversational temporal model...")
     model = ConversationalTemporalModel(
         input_dim=768,
         hidden_dim=256,
@@ -636,22 +636,22 @@ def run_conversational_api_training():
         device=device
     )
     
-    print(f"✅ Model created with {sum(p.numel() for p in model.parameters()):,} parameters")
+    print(f"[OK] Model created with {sum(p.numel() for p in model.parameters()):,} parameters")
     
     # Create trainer
-    print("🎯 Creating trainer...")
+    print("[GOAL] Creating trainer...")
     trainer = ConversationalAPITrainer(model, api_ingestor)
     
     # Generate synthetic conversational data (simulating API ingestion)
-    print("\n📊 Generating synthetic conversational data...")
+    print("\n[METRICS] Generating synthetic conversational data...")
     synthetic_conversations = generate_synthetic_api_conversations(device)
     
-    print(f"✅ Generated {len(synthetic_conversations)} synthetic conversations")
+    print(f"[OK] Generated {len(synthetic_conversations)} synthetic conversations")
     
     # Show sample conversation
     if synthetic_conversations:
         sample = synthetic_conversations[0]
-        print(f"\n💬 Sample Conversation ({sample.conversation_id}):")
+        print(f"\n Sample Conversation ({sample.conversation_id}):")
         for i, turn in enumerate(sample.turns[:3]):
             print(f"   Turn {i+1} ({turn.speaker_id}): {turn.text[:80]}...")
             if turn.affordance_gradients:
@@ -659,11 +659,11 @@ def run_conversational_api_training():
                 print(f"      Top gradients: {top_gradients}")
     
     # Train on conversational data
-    print(f"\n🚀 Starting conversational training...")
+    print(f"\n[START] Starting conversational training...")
     training_results = trainer.train_on_conversations(synthetic_conversations, num_epochs=3)
     
     # Analyze results
-    print(f"\n📊 Training Results Analysis:")
+    print(f"\n[METRICS] Training Results Analysis:")
     print(f"   Final Trust Scalars: {[f'{t:.3f}' for t in training_results['final_trust']]}")
     
     epoch_results = training_results['epoch_results']
@@ -674,7 +674,7 @@ def run_conversational_api_training():
         print(f"   Conversational Loss Evolution: {conv_loss_values}")
     
     # Test final model
-    print(f"\n🧪 Testing final model...")
+    print(f"\n[TEST] Testing final model...")
     test_conversation = synthetic_conversations[0] if synthetic_conversations else None
     
     if test_conversation and test_conversation.turns:
@@ -698,7 +698,7 @@ def run_conversational_api_training():
                 print(f"      Polynomial Coefficient Norm: {poly_diag['coefficient_norm']:.3f}")
     
     # Integration with diegetic backend
-    print(f"\n🔗 Integration Notes:")
+    print(f"\n Integration Notes:")
     print(f"   • Model can be integrated with diegetic backend")
     print(f"   • Affordance gradients work with conversational patterns")
     print(f"   • PAS_h computation includes conversational context")
@@ -795,14 +795,14 @@ def generate_synthetic_api_conversations(device: str) -> List[Conversation]:
 
 
 if __name__ == "__main__":
-    print("🗣️ Conversational API Training Integration")
+    print("️ Conversational API Training Integration")
     print("Demonstrates integration of real conversational data with temporal training")
     print("=" * 75)
     
     try:
         model, trainer, results = run_conversational_api_training()
         
-        print(f"\n✅ Conversational API training completed successfully!")
+        print(f"\n[OK] Conversational API training completed successfully!")
         print(f"\nKey achievements:")
         print(f"• Integrated conversational affordance gradients")
         print(f"• Proper PAS_h computation with conversational context")
@@ -817,7 +817,7 @@ if __name__ == "__main__":
         print(f"• Monitor affordance gradient evolution over time")
         
     except Exception as e:
-        print(f"\n❌ Training failed with error: {e}")
+        print(f"\n[ERR] Training failed with error: {e}")
         import traceback
         traceback.print_exc()
 

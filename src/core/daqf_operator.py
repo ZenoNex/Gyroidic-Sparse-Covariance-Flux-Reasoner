@@ -1,5 +1,5 @@
 """
-DAQUF — Diegetic Amortized Quantized Unknowledge Fossilization Operator.
+DAQUF  Diegetic Amortized Quantized Unknowledge Fossilization Operator.
 
 Implements the structural operator for:
 1. Fossil selection under unknowledge contradiction load.
@@ -70,7 +70,7 @@ class DAQUFOperator(nn.Module):
         valence: Optional[torch.Tensor] = None
     ):
         """
-        χ(f_i) = sum(I(Phi(f_i) = bot)) + PlayMutation + Valence
+        (f_i) = sum(I(Phi(f_i) = bot)) + PlayMutation + Valence
         """
         # Load includes standard failures
         load = failures.detach()

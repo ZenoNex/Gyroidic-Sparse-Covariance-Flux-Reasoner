@@ -26,7 +26,7 @@ def simulate_garbled_output():
     D = 4  # Polynomial degree + 1
     hidden_dim = 256
     
-    print("🔧 Testing Garbled Output Repair System")
+    print(" Testing Garbled Output Repair System")
     print("=" * 50)
     
     # Simulate problematic residues (high consonant clustering)
@@ -296,7 +296,7 @@ def test_integrated_repair():
 
 
 if __name__ == "__main__":
-    print("🧪 Gyroidic Flux Reasoner - Garbled Output Repair Test")
+    print("[TEST] Gyroidic Flux Reasoner - Garbled Output Repair Test")
     print("Testing fixes for 'nccmtsmneltcclrclcnl,tncsectsead' type outputs")
     print("=" * 60)
     
@@ -312,7 +312,7 @@ if __name__ == "__main__":
         # Test integrated pipeline
         test_integrated_repair()
         
-        print("\n✅ All repair tests completed successfully!")
+        print("\n[OK] All repair tests completed successfully!")
         print("\nThe repair system should fix:")
         print("• Consonant clustering (spectral fragmentation)")
         print("• CRT modulus drift (stale Bezout coefficients)")
@@ -322,6 +322,6 @@ if __name__ == "__main__":
         print("• Binary clipping (linguistic flow loss)")
         
     except Exception as e:
-        print(f"\n❌ Test failed with error: {e}")
+        print(f"\n[ERR] Test failed with error: {e}")
         import traceback
         traceback.print_exc()

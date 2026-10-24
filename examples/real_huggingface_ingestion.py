@@ -44,22 +44,22 @@ from examples.conversational_api_training import (
 
 def test_real_hf_connection():
     """Test connection to Hugging Face with the provided token."""
-    print("🔗 Testing Hugging Face Connection")
+    print(" Testing Hugging Face Connection")
     print("=" * 35)
     
     try:
         hf_ingestor = HuggingFaceConversationalIngestor(hf_token=HF_TOKEN)
         
         # Test API connection by listing datasets
-        print("📡 Testing API connection...")
+        print(" Testing API connection...")
         datasets = hf_ingestor.list_conversational_datasets()
         
         if datasets:
-            print(f"✅ Successfully connected to Hugging Face API")
+            print(f"[OK] Successfully connected to Hugging Face API")
             print(f"   Found {len(datasets)} conversational datasets")
             
             # Show first few datasets
-            print(f"\n📊 Available Conversational Datasets:")
+            print(f"\n[METRICS] Available Conversational Datasets:")
             for i, dataset in enumerate(datasets[:5]):
                 dataset_id = dataset.get('id', 'Unknown')
                 downloads = dataset.get('downloads', 0)
@@ -67,17 +67,17 @@ def test_real_hf_connection():
             
             return True
         else:
-            print("⚠️ Connected but no datasets found")
+            print("[WARN] Connected but no datasets found")
             return False
             
     except Exception as e:
-        print(f"❌ Failed to connect to Hugging Face: {e}")
+        print(f"[ERR] Failed to connect to Hugging Face: {e}")
         return False
 
 
 def ingest_lmsys_chat_data(max_samples: int = 500):
     """Ingest real data from LMSYS Chat dataset."""
-    print(f"\n🗣️ Ingesting LMSYS Chat Data")
+    print(f"\n️ Ingesting LMSYS Chat Data")
     print("=" * 30)
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
@@ -87,18 +87,18 @@ def ingest_lmsys_chat_data(max_samples: int = 500):
         ingestor = ConversationalAPIIngestor(device=device)
         
         # Ingest LMSYS chat data
-        print(f"📥 Downloading {max_samples} samples from lmsys/lmsys-chat-1m...")
+        print(f" Downloading {max_samples} samples from lmsys/lmsys-chat-1m...")
         conversations = ingestor.ingest_huggingface_dataset(
             'lmsys/lmsys-chat-1m', 
             max_samples=max_samples
         )
         
         if conversations:
-            print(f"✅ Successfully ingested {len(conversations)} conversations")
+            print(f"[OK] Successfully ingested {len(conversations)} conversations")
             
             # Get summary statistics
             summary = ingestor.get_ingestion_summary(conversations)
-            print(f"\n📊 Ingestion Summary:")
+            print(f"\n[METRICS] Ingestion Summary:")
             print(f"   Total conversations: {summary['total_conversations']}")
             print(f"   Total turns: {summary['total_turns']}")
             print(f"   Avg turns per conversation: {summary['avg_turns_per_conversation']:.2f}")
@@ -106,12 +106,12 @@ def ingest_lmsys_chat_data(max_samples: int = 500):
             
             # Show affordance gradient statistics
             if 'affordance_gradient_stats' in summary:
-                print(f"\n🎯 Affordance Gradient Analysis:")
+                print(f"\n[GOAL] Affordance Gradient Analysis:")
                 for gradient_type, stats in summary['affordance_gradient_stats'].items():
                     print(f"   {gradient_type}: mean={stats['mean']:.3f}, std={stats['std']:.3f}, max={stats['max']:.3f}")
             
             # Show sample conversations
-            print(f"\n💬 Sample Conversations:")
+            print(f"\n Sample Conversations:")
             for i, conv in enumerate(conversations[:3]):
                 print(f"\n   Conversation {i+1} ({conv.conversation_id}):")
                 print(f"      Source: {conv.source}")
@@ -127,11 +127,11 @@ def ingest_lmsys_chat_data(max_samples: int = 500):
             
             return conversations
         else:
-            print("❌ No conversations ingested")
+            print("[ERR] No conversations ingested")
             return []
             
     except Exception as e:
-        print(f"❌ Failed to ingest LMSYS data: {e}")
+        print(f"[ERR] Failed to ingest LMSYS data: {e}")
         import traceback
         traceback.print_exc()
         return []
@@ -139,7 +139,7 @@ def ingest_lmsys_chat_data(max_samples: int = 500):
 
 def ingest_openassistant_data(max_samples: int = 300):
     """Ingest real data from OpenAssistant dataset."""
-    print(f"\n🤖 Ingesting OpenAssistant Data")
+    print(f"\n Ingesting OpenAssistant Data")
     print("=" * 32)
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
@@ -149,18 +149,18 @@ def ingest_openassistant_data(max_samples: int = 300):
         ingestor = ConversationalAPIIngestor(device=device)
         
         # Ingest OpenAssistant data
-        print(f"📥 Downloading {max_samples} samples from OpenAssistant/oasst2...")
+        print(f" Downloading {max_samples} samples from OpenAssistant/oasst2...")
         conversations = ingestor.ingest_huggingface_dataset(
             'OpenAssistant/oasst2', 
             max_samples=max_samples
         )
         
         if conversations:
-            print(f"✅ Successfully ingested {len(conversations)} conversations")
+            print(f"[OK] Successfully ingested {len(conversations)} conversations")
             
             # Get summary statistics
             summary = ingestor.get_ingestion_summary(conversations)
-            print(f"\n📊 OpenAssistant Summary:")
+            print(f"\n[METRICS] OpenAssistant Summary:")
             print(f"   Total conversations: {summary['total_conversations']}")
             print(f"   Total turns: {summary['total_turns']}")
             print(f"   Sources: {summary['sources']}")
@@ -168,7 +168,7 @@ def ingest_openassistant_data(max_samples: int = 300):
             # Show sample with quality labels
             if conversations:
                 sample = conversations[0]
-                print(f"\n💬 Sample OpenAssistant Conversation:")
+                print(f"\n Sample OpenAssistant Conversation:")
                 print(f"   ID: {sample.conversation_id}")
                 print(f"   Labels: {sample.labels}")
                 print(f"   Context: {sample.context}")
@@ -178,11 +178,11 @@ def ingest_openassistant_data(max_samples: int = 300):
             
             return conversations
         else:
-            print("❌ No OpenAssistant conversations ingested")
+            print("[ERR] No OpenAssistant conversations ingested")
             return []
             
     except Exception as e:
-        print(f"❌ Failed to ingest OpenAssistant data: {e}")
+        print(f"[ERR] Failed to ingest OpenAssistant data: {e}")
         import traceback
         traceback.print_exc()
         return []
@@ -190,11 +190,11 @@ def ingest_openassistant_data(max_samples: int = 300):
 
 def train_on_real_conversations(conversations: List, model_name: str = "real_hf_model"):
     """Train the conversational temporal model on real HF data."""
-    print(f"\n🚀 Training on Real Conversational Data")
+    print(f"\n[START] Training on Real Conversational Data")
     print("=" * 40)
     
     if not conversations:
-        print("❌ No conversations provided for training")
+        print("[ERR] No conversations provided for training")
         return None, None
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
@@ -202,7 +202,7 @@ def train_on_real_conversations(conversations: List, model_name: str = "real_hf_
     print(f"Training conversations: {len(conversations)}")
     
     # Create model
-    print("🏗️ Creating conversational temporal model...")
+    print("[BUILD] Creating conversational temporal model...")
     model = ConversationalTemporalModel(
         input_dim=768,
         hidden_dim=256,
@@ -211,14 +211,14 @@ def train_on_real_conversations(conversations: List, model_name: str = "real_hf_
         device=device
     )
     
-    print(f"✅ Model created with {sum(p.numel() for p in model.parameters()):,} parameters")
+    print(f"[OK] Model created with {sum(p.numel() for p in model.parameters()):,} parameters")
     
     # Create trainer
     api_ingestor = ConversationalAPIIngestor(device=device)
     trainer = ConversationalAPITrainer(model, api_ingestor)
     
     # Train on real conversations
-    print(f"\n🎯 Starting training on real HF conversations...")
+    print(f"\n[GOAL] Starting training on real HF conversations...")
     start_time = time.time()
     
     training_results = trainer.train_on_conversations(conversations, num_epochs=2)
@@ -227,7 +227,7 @@ def train_on_real_conversations(conversations: List, model_name: str = "real_hf_
     print(f"\n⏱️ Training completed in {training_time:.1f} seconds")
     
     # Analyze results
-    print(f"\n📊 Real Data Training Results:")
+    print(f"\n[METRICS] Real Data Training Results:")
     print(f"   Final Trust Scalars: {[f'{t:.3f}' for t in training_results['final_trust']]}")
     
     epoch_results = training_results['epoch_results']
@@ -238,7 +238,7 @@ def train_on_real_conversations(conversations: List, model_name: str = "real_hf_
         print(f"   Conversational Loss Evolution: {conv_loss_values}")
     
     # Test model on sample conversation
-    print(f"\n🧪 Testing trained model...")
+    print(f"\n[TEST] Testing trained model...")
     test_conversation = conversations[0] if conversations else None
     
     if test_conversation and test_conversation.turns:
@@ -267,18 +267,18 @@ def train_on_real_conversations(conversations: List, model_name: str = "real_hf_
         'conversations_count': len(conversations)
     }, model_path)
     
-    print(f"💾 Model saved to {model_path}")
+    print(f"[SAVE] Model saved to {model_path}")
     
     return model, training_results
 
 
 def analyze_real_affordance_patterns(conversations: List):
     """Analyze affordance patterns in real conversational data."""
-    print(f"\n🔍 Analyzing Real Affordance Patterns")
+    print(f"\n Analyzing Real Affordance Patterns")
     print("=" * 35)
     
     if not conversations:
-        print("❌ No conversations to analyze")
+        print("[ERR] No conversations to analyze")
         return
     
     # Collect all affordance gradients
@@ -321,7 +321,7 @@ def analyze_real_affordance_patterns(conversations: List):
             conversation_types[conv_type] = conversation_types.get(conv_type, 0) + 1
     
     # Print analysis
-    print(f"📊 Affordance Pattern Analysis:")
+    print(f"[METRICS] Affordance Pattern Analysis:")
     for gradient_type, values in all_gradients.items():
         if values:
             import numpy as np
@@ -334,13 +334,13 @@ def analyze_real_affordance_patterns(conversations: List):
             print(f"      Mean: {mean_val:.3f}, Std: {std_val:.3f}")
             print(f"      Range: {min_val:.3f} - {max_val:.3f}")
     
-    print(f"\n🏷️ Conversation Type Distribution:")
+    print(f"\n️ Conversation Type Distribution:")
     for conv_type, count in conversation_types.items():
         percentage = (count / len(conversations)) * 100
         print(f"   {conv_type}: {count} ({percentage:.1f}%)")
     
     # Find most interesting conversations
-    print(f"\n🌟 Most Interesting Conversations:")
+    print(f"\n Most Interesting Conversations:")
     
     # High conversational affordance
     high_conv_conversations = []
@@ -379,12 +379,12 @@ def analyze_real_affordance_patterns(conversations: List):
 
 def run_comprehensive_real_hf_test():
     """Run comprehensive test with real Hugging Face data."""
-    print("🤗 Real Hugging Face Conversational Data Integration")
+    print(" Real Hugging Face Conversational Data Integration")
     print("=" * 55)
     
     # Test 1: Connection
     if not test_real_hf_connection():
-        print("❌ Cannot proceed without HF connection")
+        print("[ERR] Cannot proceed without HF connection")
         return False
     
     # Test 2: Ingest LMSYS data
@@ -399,10 +399,10 @@ def run_comprehensive_real_hf_test():
     all_conversations = lmsys_conversations + oasst_conversations
     
     if not all_conversations:
-        print("❌ No conversations ingested, cannot proceed with training")
+        print("[ERR] No conversations ingested, cannot proceed with training")
         return False
     
-    print(f"\n📊 Combined Dataset:")
+    print(f"\n[METRICS] Combined Dataset:")
     print(f"   LMSYS conversations: {len(lmsys_conversations)}")
     print(f"   OpenAssistant conversations: {len(oasst_conversations)}")
     print(f"   Total conversations: {len(all_conversations)}")
@@ -416,15 +416,15 @@ def run_comprehensive_real_hf_test():
     model, training_results = train_on_real_conversations(all_conversations, "real_hf_trained_model")
     
     if model and training_results:
-        print(f"\n🎯 Final Results Summary:")
-        print(f"   ✅ Successfully connected to Hugging Face API")
-        print(f"   ✅ Ingested {len(all_conversations)} real conversations")
-        print(f"   ✅ Computed affordance gradients for all conversations")
-        print(f"   ✅ Trained conversational temporal model")
-        print(f"   ✅ Achieved proper PAS_h computation (not 0.000!)")
-        print(f"   ✅ Model saved with training results")
+        print(f"\n[GOAL] Final Results Summary:")
+        print(f"   [OK] Successfully connected to Hugging Face API")
+        print(f"   [OK] Ingested {len(all_conversations)} real conversations")
+        print(f"   [OK] Computed affordance gradients for all conversations")
+        print(f"   [OK] Trained conversational temporal model")
+        print(f"   [OK] Achieved proper PAS_h computation (not 0.000!)")
+        print(f"   [OK] Model saved with training results")
         
-        print(f"\n🚀 Ready for Production:")
+        print(f"\n[START] Ready for Production:")
         print(f"   • Real conversational data pipeline working")
         print(f"   • Affordance gradients detecting conversation patterns")
         print(f"   • PAS_h computation showing meaningful values")
@@ -433,12 +433,12 @@ def run_comprehensive_real_hf_test():
         
         return True
     else:
-        print(f"\n❌ Training failed")
+        print(f"\n[ERR] Training failed")
         return False
 
 
 if __name__ == "__main__":
-    print("🤗 Real Hugging Face Conversational Data Integration")
+    print(" Real Hugging Face Conversational Data Integration")
     print("Using provided API token for live data ingestion")
     print("=" * 65)
     
@@ -446,7 +446,7 @@ if __name__ == "__main__":
         success = run_comprehensive_real_hf_test()
         
         if success:
-            print(f"\n✅ Real HF integration completed successfully!")
+            print(f"\n[OK] Real HF integration completed successfully!")
             print(f"\nThe system is now trained on real conversational data from:")
             print(f"• LMSYS Chat (real human-AI conversations)")
             print(f"• OpenAssistant (high-quality labeled dialogues)")
@@ -456,10 +456,10 @@ if __name__ == "__main__":
             print(f"• Monitor affordance gradient evolution over time")
             print(f"• Deploy for real-world conversational AI applications")
         else:
-            print(f"\n❌ Real HF integration failed")
+            print(f"\n[ERR] Real HF integration failed")
             print(f"Check API token and network connection")
             
     except Exception as e:
-        print(f"\n❌ Integration failed with error: {e}")
+        print(f"\n[ERR] Integration failed with error: {e}")
         import traceback
         traceback.print_exc()

@@ -1,11 +1,11 @@
 """
-Tabby ML Client — Connects to a local Tabby ML instance for code completion
+Tabby ML Client  Connects to a local Tabby ML instance for code completion
 and chat, following the OpenAI-compatible API format.
 
 Tabby ML runs locally and provides:
-  - /v1/completions — code completion
-  - /v1/chat/completions — chat-style interaction
-  - /v1/health — health check
+  - /v1/completions  code completion
+  - /v1/chat/completions  chat-style interaction
+  - /v1/health  health check
 
 No API token needed for local Tabby instances.
 """
@@ -63,7 +63,7 @@ class TabbyResponse:
 class TabbyClient:
     """
     Client for interacting with a local Tabby ML instance.
-    Uses stdlib urllib only — no external dependencies.
+    Uses stdlib urllib only  no external dependencies.
     """
     
     def __init__(self, config: TabbyConfig = None):

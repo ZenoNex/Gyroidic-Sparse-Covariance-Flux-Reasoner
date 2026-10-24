@@ -1,0 +1,115 @@
+﻿TECHNICAL SPECIFICATION: TO-MSR-OT-2026-CMM
+TITLE: GENERATIVE MODELING VIA CONJUGATE MOMENT MEASURE FACTORIZATION SOURCE SEMINAR: Sample and Map from a Single Convex Potential: Generation using Conjugate Moment Measures CLASSIFICATION: UNCLASSIFIED / PHD-LEVEL MATHEMATICAL SPECIFICATION STANDARDIZATION STANDARD: ASD-STE100 / MIL-STD TECHNICAL ORDER STRUCTURE
+1.0 SYSTEM OBJECTIVE AND OPERATIONAL PURPOSE
+Generative models in machine learning require two distinct mechanisms:
+1. A sampling mechanism to draw base noise vectors.
+2. A transport mechanism to map noise into the target empirical distribution.
+Standard frameworks decouple these mechanisms. This technical order specifies an architecture that couples the base sampling density and the optimal transport map into a single scalar convex potential [05:51].
+2.0 BASELINE SPECIFICATION: STANDARD MOMENT MEASURES
+2.1 Theoretical Framework
+Let \rho \in \mathcal{P}(\mathbb{R}^d) be a target probability measure. Assume \rho admits a first moment, has barycenter at zero (\int x \, d\rho(x) = 0), and is not supported on any affine hyperplane [00:02].
+The classical theorem of Cordero-Erausquin and Klartag (2015) establishes the existence of a convex potential U: \mathbb{R}^d \to \mathbb{R} such that:
+\rho = (\nabla U)_\# \mu_U
+where \mu_U is the Gibbs (log-concave) prior density defined by:
+d\mu_U(x) = \frac{1}{Z_U} \exp(-U(x)) \, dx
+with normalizing partition function Z_U = \int_{\mathbb{R}^d} \exp(-U(x)) \, dx [00:18].
+2.2 Optimal Transport Duality
+By Brenier’s theorem, the gradient \nabla U of a convex potential is the unique L^2-optimal transport map pushing forward \mu_U to \rho under the quadratic Monge cost c(x, y) = \frac{1}{2}\Vert{}x - y\Vert{}^2 [04:13].
+Santambrogio (2016) proved this identity by showing that \mu_U minimizes the functional:
+\mathcal{J}(\mu) = \mathcal{H}(\mu) + \mathcal{W}_2^2\text{-dual}(\mu, \rho)
+where \mathcal{H}(\mu) = \int \mu \log \mu represents the negative Shannon entropy and the second term is the dual Kantorovich formulation [03:03].
+3.0 FAILURE MODE ANALYSIS: MOMENT MEASURE DEGENERACY
+Standard moment measures fail in generative modeling applications [06:13].
+3.1 Dual Representation via Legendre Conjugate
+The minimization problem over convex functions can be rewritten using the Kullback-Leibler divergence [07:11]:
+\min_U \left\{ \mathrm{KL}\left(\rho \,\Vert{}\, \mu_{U^*}\right) + \log Z_{U^*} + \log Z_U \right\}
+where U^*(y) = \sup_x \{\langle x, y \rangle - U(x)\} is the Legendre-Fenchel conjugate of U.
+This functional enforces proximity between the target \rho and \mu_{U^*}. It provides no guarantee that the base prior \mu_U aligns with \rho [08:04].
+3.2 Covariance Inversion (Gaussian Pathology)
+Let \rho = \mathcal{N}(0, \Sigma) be a multivariate Gaussian target with covariance tensor \Sigma \succ 0 [08:34].
+* The exact analytical solution yields quadratic potential U(x) = \frac{1}{2} x^\top \Sigma x + C.
+* The base prior distribution is: \mu_U = \mathcal{N}(0, \Sigma^{-1})
+Target Dispersion (Sigma)  <---->  Prior Noise Dispersion (Sigma^-1)
+[  Spread / High Variance  ]  --->  [ Hyper-Concentrated at Zero ]
+[ Concentrated at Zero     ]  --->  [ Broad / Diffuse Tails       ]
+
+3.3 Lipschitz Instability
+When target \rho exhibits high directional variance, prior \mu_U becomes hyper-concentrated around zero [09:18].
+* The transport map \nabla U(x) = \Sigma x must stretch concentrated samples across wide target domains.
+* The Lipschitz constant \mathrm{Lip}(\nabla U) = \Vert{}\Sigma\Vert{}_{\mathrm{op}} explodes [09:46].
+* This condition causes severe numerical instability, vanishing gradients, and failure on non-Gaussian manifolds [10:32].
+4.0 SYSTEM MODIFICATION: CONJUGATE MOMENT MEASURES
+To correct covariance inversion, the transport direction must be mathematically inverted [12:09].
+4.1 Mathematical Formulation
+Let \rho \in \mathcal{P}_{\mathrm{ac}}(\mathbb{R}^d) be supported on a compact convex domain K \subset \mathbb{R}^d. There exists a lower semi-continuous convex potential W: \mathbb{R}^d \to \mathbb{R} satisfying the Conjugate Moment Measure Factorization [11:20]:
+\rho = (\nabla W^*)_\# \mu_W, \quad \text{where } d\mu_W(x) = \frac{1}{Z_W} \exp(-W(x)) \, dx
+Applying convex duality identity (\nabla W^*)^{-1} = \nabla W yields the dual push-forward form:
+\mu_W = (\nabla W)_\# \rho
+Here, W is the Brenier potential that transports the target measure \rho directly to the base log-concave density \mu_W [12:42].
+4.2 Covariance Rectification (Gaussian Benchmark)
+For a Gaussian target \rho = \mathcal{N}(0, \Sigma), the conjugate potential yields [15:30]:
+\mu_W = \mathcal{N}\left(0, \Sigma^{1/3}\right)
+* The covariance exponent shifts from negative -1 to positive +1/3.
+* The prior dispersion scales monotonically with target variance.
+* The generative transport map \nabla W^*(z) = \Sigma^{2/3} z possesses a bounded Lipschitz constant \mathrm{Lip}(\nabla W^*) = \Vert{}\Sigma^{2/3}\Vert{}_{\mathrm{op}}, preventing gradient explosion [16:06].
+5.0 EXISTENCE PROOF VIA FIXED-POINT OPERATOR
+The existence of W cannot be established via the classical variational arguments of Klartag or Santambrogio [14:33].
+1. Operator Definition: Define the operator \mathcal{T} mapping convex potential V to the Brenier potential between target \rho and Gibbs density \mu_V: \mathcal{T}(V) = \mathrm{BrenierPotential}\left(\rho, \frac{1}{Z_V} e^{-V}\right)
+2. Fixed-Point Equivalence: A potential W satisfies the conjugate moment measure factorization if and only if \mathcal{T}(W) = W [13:33].
+3. Schauder Theorem Application: Because \rho has compact convex support, \mathcal{T} acts continuously on a compact convex subset of continuous functions in Banach space C(K). By the Schauder fixed-point theorem, \mathcal{T} possesses at least one fixed point W [14:33, 43:29].
+6.0 OPERATIONAL AND COMPUTATIONAL PROTOCOL
++-------------------------------------------------------------------------------+
+|                       OFFLINE TRAINING WORKFLOW                               |
+|                                                                               |
+|  Empirical Samples y ~ rho --------+                                         |
+|                                    v                                          |
+|  ICNN Potential W_theta  ===> Kantorovich Dual Loss ===> Update theta via     |
+|                                    ^                     Single-Step SGD      |
+|  Langevin Prior Samples z ~ mu_W --+                                         |
++-------------------------------------------------------------------------------+
+                                    |
+                                    v
++-------------------------------------------------------------------------------+
+|                         ONLINE GENERATION INFERENCE                           |
+|                                                                               |
+|  1. Initialize z_0                                                            |
+|  2. Execute Langevin Monte Carlo: z_{k+1} = z_k - gamma \nabla W(z_k) + sqrt  |
+|  3. Push-forward via Conjugate Gradient: x = \nabla W^*(z_K)                  |
+|  4. Output Synthetic Sample x ~ rho                                           |
++-------------------------------------------------------------------------------+
+
+6.1 Neural Network Parameterization
+In dimension d > 1, closed-form quantile solutions do not exist [18:12, 20:52].
+* Potential W_\theta is parameterized via an Input Convex Neural Network (ICNN) (Amos et al., 2017) [21:25].
+* Layer weights satisfy non-negativity constraints W_{l} \ge 0, and activation functions are convex non-decreasing, ensuring x \mapsto W_\theta(x) is convex [22:00].
+6.2 Dual Kantorovich Optimization
+Train W_\theta by minimizing the relaxed Monge-Kantorovich dual objective [22:48]:
+\mathcal{L}(\theta) = \mathbb{E}_{z \sim \mu_{W_\theta}}[W_\theta(z)] + \mathbb{E}_{y \sim \rho}[W_\theta^*(y)]
+where W_\theta^*(y) = \sup_x \{\langle x, y \rangle - W_\theta(x)\}.
+* Amortized Fenchel Conjugate: An auxiliary Multi-Layer Perceptron (MLP) predicts the optimal argument x^*(y) to warm-start gradient ascent on the concave sub-problem [24:14].
+* Stochastic Single-Step Convergence: Full inner convergence of the Brenier map at each step is not required. Executing a single stochastic gradient step per mini-batch drives convergence of the fixed-point sequence [25:46].
+6.3 Sampling via Langevin Monte Carlo
+Because W_\theta is convex, base prior \mu_{W_\theta} \propto \exp(-W_\theta) is strictly log-concave. Draw samples z \sim \mu_{W_\theta} via Unadjusted Langevin Monte Carlo (LMC) [26:31]:
+z_{k+1} = z_k - \gamma \nabla W_\theta(z_k) + \sqrt{2\gamma} \, \xi_k, \quad \xi_k \sim \mathcal{N}(0, I_d)
+The step size is scheduled adaptively against network curvature:
+\gamma_t \approx \frac{1}{\lambda_{\max}(\nabla^2 W_\theta)}
+where \lambda_{\max} is the spectral norm of the Hessian [27:46].
+6.4 Push-Forward Generation
+Push prior samples into the target domain using the conjugate gradient:
+x = \nabla W_\theta^*(z) = \arg\max_{x'} \left\{ \langle x', z \rangle - W_\theta(x') \right\}
+This step is evaluated rapidly via the amortized conjugate regression network [28:30].
+7.0 MONGE-AMPÈRE DENSITY FORMULATION AND SECONDARY MODES
+7.1 Exact Likelihood Evaluation
+Applying the change-of-variables formula to \mu_W = (\nabla W)_\# \rho yields the Monge-Ampère partial differential equation at the density level [34:00]:
+\log \rho(x) = -W(\nabla W(x)) - \log Z_W + \log \det\left( \nabla^2 W(x) \right)
+This expression provides tractable, unnormalized log-likelihood access. It enables gradient-based image restoration, inpainting, and corrupt sample denoising by ascending \nabla_x \log \rho(x) [35:08].
+7.2 Energy-Based Target Density Fitting
+When empirical samples are unavailable but target density \rho(x) \propto \exp(-E(x)) is known up to a partition function:
+* Regress the Monge-Ampère log-density directly against -E(x) [36:10].
+* This optimizes W_\theta for unnormalized sampling without requiring standard MCMC chains in target data space [36:37].
+8.0 SYSTEM LIMITATIONS AND OPEN DISCREPANCIES
+1. ICNN Expressivity Bottleneck: Non-negative weight constraints limit the expressive capacity of ICNNs compared to standard UNet diffusion backbones [32:45].
+2. Uniqueness Non-Identifiability: While the standard moment measure is unique up to translation [39:44], formal proof for the analytical uniqueness of conjugate potential W remains unestablished (though confirmed empirically) [37:43, 41:41].
+3. Compact Support Restriction: The Schauder fixed-point theorem requires compactness of support K [43:29]. Relaxing this condition to arbitrary sub-Gaussian distributions remains an open theoretical objective [38:01].
+YouTube video views will be stored in your YouTube History, and your data will be stored and used by YouTube according to its Terms of Service
+YouTube video views will be stored in your YouTube History, and your data will be stored and used by YouTube according to its Terms of Service

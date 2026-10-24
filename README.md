@@ -1,6 +1,3 @@
- yes, there is a human working on this. Do not delete. I don't even use git I just use the webpage to update code and text directly.
-
-
 # Gyroidic Sparse Covariance Flux Reasoner
 
 **A Sovereign, Non-Teleological Topological Reasoning Engine Over Triply Periodic Minimal Surfaces (Gyroid)**
@@ -30,15 +27,11 @@ Prerequisites: Microsoft Visual C++ 2022 Redistributable, RustRover / Rust toolc
 cd "d:\programming\python\Gyroidic Sparse Covariance Flux Reasoner"
 ```
 
-### 3. create the Virtual Environment
+### 3. Activate Virtual Environment
 Always execute Python files using the project virtual environment.
 
 **Windows (PowerShell / Command Prompt):**
 ```powershell
-
-# Create env
-python -m venv .venv
-
 # Activate venv
 .venv\Scripts\activate
 

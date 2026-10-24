@@ -1,9 +1,9 @@
 """
 Tripartite Evidence Modules: Data-derived + Architectural + Adversarial
 
-E_α ⊂ C such that ∂E_α ≠ ∅ ∧ E_α ⊄ span(E_{β≠α})
+E_  C such that E_    E_  span(E_{})
 
-If evidence modules become mutually predictable, PASₕ goes blind.
+If evidence modules become mutually predictable, PAS goes blind.
 
 Author: Implementation from Structural Design Decisions
 Created: January 2026
@@ -23,7 +23,7 @@ class TripartiteEvidenceModule(nn.Module):
     2. Architectural: Predefined failure mode probes
     3. Adversarial: Injected contradictions, impossible cycles
     
-    If evidence modules become predictable, PASₕ goes blind.
+    If evidence modules become predictable, PAS goes blind.
     """
     
     def __init__(
@@ -119,7 +119,7 @@ class TripartiteEvidenceModule(nn.Module):
         """
         Check if evidence modules have become mutually predictable.
         
-        If yes, PASₕ is blind - issue warning.
+        If yes, PAS is blind - issue warning.
         """
         # Flatten all evidence to 1D
         data_flat = data_evidence.flatten()
@@ -159,7 +159,7 @@ class TripartiteEvidenceModule(nn.Module):
             warnings.warn(
                 f"EVIDENCE BLINDNESS: Evidence modules are mutually predictable "
                 f"(data-arch corr: {corr_data_arch:.2f}, data-adv corr: {corr_data_adv:.2f}). "
-                f"PASₕ cannot distinguish failure modes.",
+                f"PAS cannot distinguish failure modes.",
                 UserWarning
             )
         

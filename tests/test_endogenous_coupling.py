@@ -78,5 +78,36 @@ class TestEndogenousCoupling(unittest.TestCase):
         res3 = engine._process_input_internal("completely unrelated mathematics and geometry of golden spiral")
         self.assertIn("response", res3)
 
+    def test_user_alias_geometric_shielding(self):
+        engine = DiegeticPhysicsEngine(dim=64, k=5, device='cpu')
+        
+        # Initial obstruction point should be zero
+        initial_o = engine.unknowledge_domain.o.clone()
+        self.assertEqual(initial_o.abs().sum().item(), 0.0)
+        
+        # Setting alias should change the obstruction vector o
+        engine.set_active_user_alias("willabusta")
+        new_o = engine.unknowledge_domain.o.clone()
+        self.assertNotEqual(new_o.abs().sum().item(), 0.0)
+        
+        # Test that state close to o gets shielded
+        state_close = new_o.unsqueeze(0)  # [1, 64]
+        # Dist is 0.0, which is < 1.0 threshold, so it should be shielded
+        shield_close = engine.unknowledge_domain.is_shielded(
+            v_m=torch.tensor([0.5]), 
+            h_mischief=0.1, 
+            state=state_close
+        )
+        self.assertTrue(shield_close.item())
+        
+        # Test that state far from o does NOT get shielded (under low mischief)
+        state_far = new_o.unsqueeze(0) + 10.0
+        shield_far = engine.unknowledge_domain.is_shielded(
+            v_m=torch.tensor([0.5]), 
+            h_mischief=0.1, 
+            state=state_far
+        )
+        self.assertFalse(shield_far.item())
+
 if __name__ == "__main__":
     unittest.main()

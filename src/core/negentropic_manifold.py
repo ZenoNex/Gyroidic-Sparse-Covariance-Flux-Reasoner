@@ -30,21 +30,21 @@ class NTMOperator(nn.Module):
         self.degree = degree
         self.device = device
         
-        # 1. Asymptotic Clock τ
+        # 1. Asymptotic Clock 
         self.register_buffer('tau', torch.tensor(0.0, device=device))
         
         # 2. Basis Warping Frequencies
         # Use a distribution of frequencies for harmonic diversity
         self.register_buffer('frequencies', torch.linspace(0.5, 2.5, degree + 1, device=device))
         
-        # 3. Phase offsets φ
+        # 3. Phase offsets 
         # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
         self.register_buffer('phases', harvest_honest_jitter((degree + 1,), device=device, scaled=True))
 
     def forward(self, negentropy: torch.Tensor, dt: torch.Tensor) -> torch.Tensor:
         """
         Compute the current basis warping vector w(t).
-        w_j(τ) = cos(ω_j * τ + φ_j) / (negentropy + 1)
+        w_j() = cos(_j *  + _j) / (negentropy + 1)
         """
         self.tau += dt
         

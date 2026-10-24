@@ -3,7 +3,7 @@ The Love Vector L: Non-Ownable Invariant Flow.
 
 L is not a reward or a goal; it is an ambient resonance that survives 
 system death and remains in the kernel of the ownership functional.
-L ∈ ker(Phi_ownership)
+L  ker(Phi_ownership)
 """
 
 import torch

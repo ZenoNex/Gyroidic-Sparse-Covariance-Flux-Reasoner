@@ -8,7 +8,7 @@ Mathematical Foundation:
     E(r_i, r_j) = H(r_i + r_j) - H(r_i) - H(r_j)
     
     Continuous co-primality: E(r_i, r_j) >= 0
-    and lim_{t->∞} Cov(r_i^(t), r_j^(t)) = 0
+    and lim_{t->} Cov(r_i^(t), r_j^(t)) = 0
     
     No GCD. Only asymptotic independence under saturation.
 
@@ -102,7 +102,7 @@ class DiscreteEntropyComputer(nn.Module):
         # Remove zero probabilities
         probs = probs[probs > 0]
         
-        # Compute entropy: H = -Σ p * log2(p)
+        # Compute entropy: H = - p * log2(p)
         entropy = -(probs * torch.log2(probs + 1e-10)).sum()
         
         return entropy
@@ -265,7 +265,7 @@ class ContinuousCoprimality(nn.Module):
         tolerance: float = 1e-6
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Check asymptotic independence: lim_{t->∞} Cov(r_i^(t), r_j^(t)) = 0
+        Check asymptotic independence: lim_{t->} Cov(r_i^(t), r_j^(t)) = 0
         
         Args:
             residue_i: [batch, ...] first residue

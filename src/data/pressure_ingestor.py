@@ -541,7 +541,7 @@ result = verify()
         results = {}
         
         for phase in phases:
-            print(f"🔧 {source_name}: {phase} phase")
+            print(f" {source_name}: {phase} phase")
             
             # Generate code for this phase
             code = self.generate_phase_code(source, phase, state)
@@ -552,17 +552,17 @@ result = verify()
             
             # Check for success
             if 'error' in result:
-                print(f"❌ {source_name}: {phase} failed - {result['error']}")
+                print(f"[ERR] {source_name}: {phase} failed - {result['error']}")
                 state.failure_mode = FailureMode.DISCOVERY_FAILED  # Simplified
                 break
             else:
                 # Prove success
                 success = self.prove_success(source_name, phase, result)
                 if success:
-                    print(f"✅ {source_name}: {phase} succeeded")
+                    print(f"[OK] {source_name}: {phase} succeeded")
                     state.metadata.update(result)
                 else:
-                    print(f"⚠️  {source_name}: {phase} completed but verification failed")
+                    print(f"[WARN]  {source_name}: {phase} completed but verification failed")
                     break
         
         return {
@@ -577,7 +577,7 @@ result = verify()
         if source_names is None:
             source_names = list(self.sources.keys())
         
-        print("🔥 FORCING CONSTRAINT PRESSURE INGESTION")
+        print(" FORCING CONSTRAINT PRESSURE INGESTION")
         print("=" * 50)
         
         results = {}
@@ -586,7 +586,7 @@ result = verify()
         rigidity_distribution = []
         
         for source_name in source_names:
-            print(f"\n🎯 Materializing {source_name}")
+            print(f"\n[GOAL] Materializing {source_name}")
             print("-" * 30)
             
             result = self.materialize_source(source_name)
@@ -604,7 +604,7 @@ result = verify()
                 if rigidity.get('mean', 0) > 0:
                     rigidity_distribution.append(rigidity['mean'])
                 
-                print(f"📊 {source_name}: {constraints} constraints, {collisions} collisions")
+                print(f"[METRICS] {source_name}: {constraints} constraints, {collisions} collisions")
         
         # Compute pressure metrics (enhanced calculation)
         # Compute pressure metrics (enhanced calculation)
@@ -640,18 +640,18 @@ result = verify()
             'source_results': results
         }
         
-        print(f"\n🔥 PRESSURE INGESTION COMPLETE")
-        print(f"📊 Total constraints: {total_constraints}")
-        print(f"💥 Total collisions: {total_collisions}")
-        print(f"⚡ Pressure density: {pressure_density:.3f}")
-        print(f"🌀 Rigidity variance: {rigidity_variance:.3f}")
+        print(f"\n PRESSURE INGESTION COMPLETE")
+        print(f"[METRICS] Total constraints: {total_constraints}")
+        print(f" Total collisions: {total_collisions}")
+        print(f"[POWER] Pressure density: {pressure_density:.3f}")
+        print(f"[GYROID] Rigidity variance: {rigidity_variance:.3f}")
         
         if pressure_density > 0.5:
-            print("🚨 HIGH PRESSURE: System under significant constraint stress")
+            print(" HIGH PRESSURE: System under significant constraint stress")
         elif pressure_density > 0.2:
-            print("⚡ MEDIUM PRESSURE: Constraint conflicts detected")
+            print("[POWER] MEDIUM PRESSURE: Constraint conflicts detected")
         elif pressure_density > 0.05:
-            print("🌡️  LOW-MEDIUM PRESSURE: Some constraint forcing detected")
+            print("️  LOW-MEDIUM PRESSURE: Some constraint forcing detected")
         else:
             print("❄️  LOW PRESSURE: Insufficient constraint forcing")
         
@@ -659,12 +659,15 @@ result = verify()
     
     def get_constraint_batch(self, batch_size: int = 32) -> torch.Tensor:
         """Get batch of constraint tensors for gyroidic expansion."""
-        if not self.constraint_tensors:
-            # Generate synthetic constraints if none available
-            return torch.randn(batch_size, 512, device=self.device)
+        from src.core.honest_jitter import harvest_honest_jitter, honest_multinomial
         
-        # Sample from available constraints
-        indices = torch.randint(0, len(self.constraint_tensors), (batch_size,))
+        if not self.constraint_tensors:
+            # SILICON SOVEREIGNTY: Replaced torch.randn with harvest_honest_jitter
+            return harvest_honest_jitter((batch_size, 512), device=self.device, scaled=False)
+        
+        # Sample from available constraints using honest multinomial
+        probs = torch.ones(len(self.constraint_tensors), device=self.device) / len(self.constraint_tensors)
+        indices = honest_multinomial(probs, batch_size, replacement=True)
         batch = torch.stack([self.constraint_tensors[i] for i in indices])
         
         return batch.to(self.device, non_blocking=True)

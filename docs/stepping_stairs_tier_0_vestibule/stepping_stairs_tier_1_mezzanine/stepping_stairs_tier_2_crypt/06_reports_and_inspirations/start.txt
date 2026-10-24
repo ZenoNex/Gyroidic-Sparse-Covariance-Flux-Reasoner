@@ -1,0 +1,23 @@
+to run the back end that you talk to and train in diegetic_terminal.html, run: python -u -X utf8 src/ui/diegetic_backend.py 
+then run open_terminal.py
+to build the graph in the docs folder, run: python -X utf8 examples/export_manifold_graph.py 
+
+# AI System Context & Hints
+# -------------------------
+# Core Architecture: docs/SYSTEM_ARCHITECTURE.md
+#
+# Tensor Shapes (Repair System):
+#   State Vector: [Batch, Dim] (Default Dim=64)
+#   Residues: [Batch, K, Dim // K] (Poly-Coprime decomposed, K=5)
+#   Love Vector: [Dim // 4] (Invariant Subspace, Dim=16)
+#   Dyad Input: [Batch, Dim] (Text embedding via Polynomial Hash)
+#   Polynomial Coeffs: [K, Degree] (Chebyshev/Legendre basis)
+#
+# Repair System Pipeline (docs/GARBLED_OUTPUT_REPAIR.md):
+#   Spectral -> Bezout -> ChernSimons -> Soliton -> Love -> SoftGates
+#
+# Backend API Commands:
+#   Standard Gen: process_input(text) -> Generates response
+#   Ingestion Mode: process_input(text, generate_response=False) -> Skips generation
+#   Wikipedia Extract: POST /wikipedia-extract -> {"urls": [...], "options": {...}}
+#   Association: POST /associate -> {"source": "Concept", "target": "Content"}

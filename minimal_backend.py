@@ -65,8 +65,8 @@ class MinimalHandler(http.server.SimpleHTTPRequestHandler):
 </head>
 <body>
     <div class="container">
-        <h1>🧠 Gyroidic AI Chat Interface</h1>
-        <div class="status">✅ Minimal backend running - Basic functionality available</div>
+        <h1>[BRAIN] Gyroidic AI Chat Interface</h1>
+        <div class="status">[OK] Minimal backend running - Basic functionality available</div>
         
         <div id="chat-box" class="chat-box">
             <div class="message ai">
@@ -158,7 +158,7 @@ class MinimalHandler(http.server.SimpleHTTPRequestHandler):
             return "I'm running in minimal mode due to import conflicts in the full backend. But I'm functional!"
         
         elif 'test' in text_lower:
-            return "✅ Minimal backend test successful! The full system components work individually, but the integrated backend has import issues."
+            return "[OK] Minimal backend test successful! The full system components work individually, but the integrated backend has import issues."
         
         elif 'help' in text_lower:
             return """Available commands:
@@ -168,7 +168,7 @@ class MinimalHandler(http.server.SimpleHTTPRequestHandler):
 • The full backend has Python import issues that need fixing."""
         
         elif 'status' in text_lower:
-            return "🔧 Status: Minimal backend running. Core AI components work individually but integration has import conflicts."
+            return " Status: Minimal backend running. Core AI components work individually but integration has import conflicts."
         
         else:
             return f"I received: '{text}'. I'm in minimal mode, so my responses are basic. The full AI system needs import fixes to work properly."
@@ -184,20 +184,20 @@ def main():
     """Start the minimal backend server."""
     port = 8000
     
-    print("🚀 Minimal Gyroidic Backend")
+    print("[START] Minimal Gyroidic Backend")
     print("=" * 30)
-    print(f"🌐 Starting server on port {port}...")
+    print(f" Starting server on port {port}...")
     
     try:
         with socketserver.TCPServer(("", port), MinimalHandler) as httpd:
-            print(f"✅ Server running at http://localhost:{port}")
-            print("🔧 This is a minimal version due to import issues in the full backend")
+            print(f"[OK] Server running at http://localhost:{port}")
+            print(" This is a minimal version due to import issues in the full backend")
             print("⏹️  Press Ctrl+C to stop")
             httpd.serve_forever()
     except KeyboardInterrupt:
         print("\n⏹️  Server stopped")
     except Exception as e:
-        print(f"❌ Server error: {e}")
+        print(f"[ERR] Server error: {e}")
 
 if __name__ == "__main__":
     main()

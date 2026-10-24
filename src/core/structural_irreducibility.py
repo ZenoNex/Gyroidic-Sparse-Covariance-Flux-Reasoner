@@ -9,7 +9,7 @@ Mathematical Foundation:
     
     Residue r is structurally irreducible iff:
     - <pi_alpha Phi(r), pi_beta Phi(r)> = 0 for alpha != beta
-    - rank(⊕_alpha pi_alpha Phi(r)) > 1
+    - rank(_alpha pi_alpha Phi(r)) > 1
 
 Phase 3: Advanced Constraints Implementation
 
@@ -159,7 +159,7 @@ class StructuralIrreducibilityChecker(nn.Module):
                     orthogonality_violations.append(violation)
                     is_irreducible = is_irreducible & (~violation)
         
-        # Check rank: rank(⊕_alpha pi_alpha Phi(r)) > 1
+        # Check rank: rank(_alpha pi_alpha Phi(r)) > 1
         # Stack projections: [num_modules, batch, d_alpha] -> [batch, num_modules, d_alpha]
         # Then check rank of each batch element
         max_proj_dim = max(proj.shape[-1] for proj in projections)

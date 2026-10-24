@@ -307,9 +307,21 @@ class ConjugateMomentTransport(nn.Module):
         Projects the first 3 dimensions onto the Cayley Cubic surface: x^2 + y^2 + z^2 - xyz = 4.
         Bypassed if state has fewer than 3 dimensions, or if we are under high computational load
         ('Honeybee' collective computing mode) where curvature collapse is permitted.
+        Leverages PyOpenCL SiliconSovereigntyEngine when GPU affordance permits.
         """
         if state.shape[-1] < 3 or is_honeybee_mode:
             return state
+
+        # Check GPU sovereignty affordance
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            if HardwareMonitor.get_instance().has_compute_affordance(ComputeAffordanceType.GPU_SOVEREIGN):
+                from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+                engine = SiliconSovereigntyEngine()
+                if engine.is_initialized:
+                    return engine.project_cayley_surface(state, is_honeybee_mode=is_honeybee_mode)
+        except Exception:
+            pass
             
         coords = state[..., :3]
         # Evaluate Cayley polynomial V = x^2 + y^2 + z^2 - xyz - 4

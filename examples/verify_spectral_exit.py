@@ -19,7 +19,7 @@ def main():
     # The actual CALM assessment is internal to process_input.
     # We can just run process_input and see what happens.
     # To reliably trigger CALM abort, we might need a very destabilizing input.
-    destabilizing_input = "💥" * 50
+    destabilizing_input = "" * 50
     try:
         metrics1 = engine.process_input(destabilizing_input)
         print(f"Metrics 1 Status: {metrics1.get('calm_diagnostics', {}).get('trajectory_status', 'UNKNOWN')}")

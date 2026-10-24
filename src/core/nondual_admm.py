@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Tuple
 
 class NonDualProbe(nn.Module):
     """
-    Implements P_k: r ↦ argmin_{c ∈ C_k} L_k(r, c) + β * H_mischief.
+    Implements P_k: r  argmin_{c  C_k} L_k(r, c) +  * H_mischief.
     
     A constraint probe that rewards "Good Bugs" (mischief) as 
     positive energy rather than just minimizing strain.
@@ -46,7 +46,7 @@ class NonDualProbe(nn.Module):
         
         # Non-dual step: If mischief is high, we "allow" more strain 
         # as it represents a playful reveal (Good Bug).
-        # β * H_mischief acts as a relaxation margin.
+        #  * H_mischief acts as a relaxation margin.
         effective_penalty = torch.clamp(strain - self.beta * h_mischief.unsqueeze(-1), min=0.0)
         
         # Multiplicative Remainder (ADMR) refinement:
@@ -61,7 +61,7 @@ class NonDualProbe(nn.Module):
 
 class UnravelingClosure(nn.Module):
     """
-    Computes H(r) = ∮_C ∇_top Φ(r) + ∫ ψ_l(r) dr.
+    Computes H(r) = _C _top (r) +  _l(r) dr.
     
     Ensures that "unknowledge" leaks are included in the 
     topological closure check.

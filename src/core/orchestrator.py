@@ -34,6 +34,7 @@ from src.core.erosion_filter import TopologicalErosionFBM
 from src.core.valence_drive import ValenceFunctional
 from src.core.leontief_governor import LeontiefGovernor
 from src.core.collapse_poisoner import CollapsePathPoisoner
+from src.core.spectral_coherence_repair import SpectralCoherenceCorrector, BezoutCoefficientRefresh, apply_energy_based_stabilization
 
 from src.core.structural_monitors import AntiScalingMonitor, MetaInfraIntraMonitor, FailureGaslightSycophancyGate
 from src.core.jspace_pca_mapper import JSpacePCAMapper
@@ -52,6 +53,7 @@ from src.topology.gyroid_covariance import SparseGyroidCovarianceProbe
 from src.models.diegetic_heads import AutoeclecticResponderHead, DataAssociationLayer
 from src.surrogates.calm_predictor import CALM
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
+from src.core.hardware_monitor import has_compute_affordance, ComputeAffordanceType
 
 
 class GeneralUserAliasTracker(nn.Module):
@@ -151,11 +153,18 @@ class UniversalOrchestrator(nn.Module):
         # 2. Dynamics & Asymptotics
         self.mischief_probe = EntropicMischiefProbe()
         self.quantizer = Polychoron600Quantizer()
+        from src.core.context_aware_quantizer import ContextAwareQuantizer
+        self.caq = ContextAwareQuantizer(dim=dim, max_depth=33)
+        self._last_boundary_state = None
         from src.core.feature_preservation import FeaturePreservationProjection
         self.feature_preservation = FeaturePreservationProjection(dim=dim)
         
         from src.topology.unknowledge_domain import ParadoxHardeningGate
         self.paradox_gate = ParadoxHardeningGate()
+        
+        # Canonical Spectral Coherence Repair & Bezout CRT Refresh
+        self.spectral_corrector = SpectralCoherenceCorrector()
+        self.bezout_refresh = BezoutCoefficientRefresh(num_functionals=5, poly_degree=12)
         
         self.deflagrator = OmipedialDeflagrator()
         
@@ -230,6 +239,9 @@ class UniversalOrchestrator(nn.Module):
         from src.safety.subversive_oracle import ResonantSVNNOracle
         self.evidence_module = TripartiteEvidenceModule(hidden_dim=dim)
         self.subversive_oracle = ResonantSVNNOracle(hidden_dim=dim, orchestrator=self)
+        
+        # 5c. J-Space PCA Mapper & Jacobian Lens
+        self.jspace_mapper = JSpacePCAMapper(n_components=min(10, dim))
         
         # 6. Archetypal Synthesis Governor (The "Mandy/Billy" Logic / TADC)
         from src.core.archetype_engines import ArchetypalSynthesisEngine
@@ -395,6 +407,7 @@ class UniversalOrchestrator(nn.Module):
             self.mandelbulb_augmenter = None
         self.last_dyad_codec_result = None
         self.last_dyad_entanglement = 0.0
+        self.telemetry_state = {}
 
         # 7.31 Unified Knowledge Dyad Ingestor Suite (Dyadic Transfer, Video, Investor, ArXiv, Minecraft, Open Science)
         from src.core.dyadic_transfer import DyadicTransferMap
@@ -974,16 +987,35 @@ class UniversalOrchestrator(nn.Module):
                 tension = harvest_honest_jitter(current_state.shape, device=current_state.device) * 0.15
                 current_state = current_state - tension
 
+            # OKLab Moment Transport & JEPA Predictive Abstract Representation
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hw_monitor = HardwareMonitor.get_instance()
+            has_algo_affordance = hw_monitor.has_compute_affordance(ComputeAffordanceType.ALGORITHMIC)
+
             # OKLab Moment Transport (Visual Perceptual Grounding)
             # Drift current_state along the perceptual prior manifold to anchor heuristics to reality
-            if self.moment_transport is not None:
+            if self.moment_transport is not None and has_algo_affordance:
                 current_state = self.moment_transport.langevin_prior_drift(current_state, steps=1, coh=pas_h)
 
             # JEPA Predictive Abstract Representation (Topology -> Structural Future)
-            if hasattr(self, 'jepa_embedder'):
+            if hasattr(self, 'jepa_embedder') and has_algo_affordance:
                 jepa_outputs = self.jepa_embedder(current_state)
                 if 'fused_hidden' in jepa_outputs:
-                    current_state = current_state + 0.05 * jepa_outputs['fused_hidden']
+                    predicted_future = current_state + 0.05 * jepa_outputs['fused_hidden']
+                    # Calculate Monge-Ampere energy between current state and predicted future
+                    if hasattr(self, 'moment_transport') and self.moment_transport is not None:
+                        try:
+                            jepa_energy = self.jepa_embedder.compute_jepa_monge_ampere_energy(
+                                context_state=current_state,
+                                target_state=predicted_future,
+                                moment_transport=self.moment_transport,
+                                shell_depth=getattr(self, 'current_depth', 0)
+                            )
+                            if hasattr(self, 'telemetry_state') and isinstance(self.telemetry_state, dict):
+                                self.telemetry_state['jepa_monge_ampere_energy'] = float(jepa_energy.detach().item())
+                        except Exception:
+                            pass
+                    current_state = predicted_future
 
             # Scout for Anisotropic Ruptures (Fast Scout)
             defects = self.deflagrator.scout_defects(self.expected_flux, actual_flux)
@@ -1087,11 +1119,49 @@ class UniversalOrchestrator(nn.Module):
                 print(f"[ORCHESTRATOR] Applying True North pull toward Love Invariant. (is_red_zone={is_red_zone}, cycle_debt={cycle_debt.item():.3f})", flush=True)
                 pull = self.gyrocompass.find_true_north(state_sync, self.love.L)
                 state_sync = state_sync + pull
+                
+                # J-Space Jacobian Lens: Extract sensitivity direction and issue Sovereign Exemption Token
+                if hasattr(self, 'jspace_mapper'):
+                    try:
+                        def constraint_loss(z):
+                            return (z - state_sync).norm()
+                        flat_target = state_sync.reshape(-1, self.dim)[:1]
+                        j_dir = self.jspace_mapper.extract_j_space(constraint_loss, flat_target)
+                        if j_dir is not None:
+                            self.telemetry_state['jspace_direction'] = j_dir.detach()
+                            if hasattr(self, 'red_team_projector') and hasattr(self.red_team_projector, 'safe_subspace'):
+                                self.red_team_projector.safe_subspace.register_failure_mode(j_dir)
+                            exemption = self.jspace_mapper.generate_sovereign_exemption_token(j_dir, flat_target)
+                            self.telemetry_state['sovereign_exemption_token'] = exemption
+                    except Exception as j_err:
+                        pass
             
-            # Apply 600-Cell Quantization (Lattice Gating) with Feature Preservation Projection
+            # Apply Context-Aware Quantization (CAQ) and 600-Cell Quantization
             flat_sync = state_sync.reshape(-1, self.dim) if state_sync.dim() > 1 else state_sync.unsqueeze(0)
             preservation_report = self.feature_preservation(flat_sync)
             
+            # Full-dimensional Context-Aware Quantization with PAS and Trust modulation
+            if hasattr(self, 'caq'):
+                try:
+                    pas_scores = self.gyroid_probe.last_pas_scores if hasattr(self.gyroid_probe, 'last_pas_scores') else None
+                    trust_scores = getattr(self, 'trust_scalars', None)
+                    mischief_val = float(self.mischief_probe.H_mischief.item()) if hasattr(self, 'mischief_probe') and hasattr(self.mischief_probe, 'H_mischief') else 0.0
+                    
+                    state_caq, boundary_state = self.caq(
+                        flat_sync,
+                        pas_scores=pas_scores,
+                        trust_scores=trust_scores,
+                        mischief_entropy=mischief_val
+                    )
+                    state_sync = state_caq.view_as(state_sync)
+                    self._last_boundary_state = boundary_state
+                    if boundary_state is not None and boundary_state.is_critical():
+                        # Critical shell boundary hit: execute Matrioshka shell escape
+                        print(f"[ORCHESTRATOR] Critical Matrioshka boundary hit (level={boundary_state.level}/{boundary_state.max_level}). Executing shell escape rotation.", flush=True)
+                        state_sync = self.gluer(state_sync)
+                except Exception as caq_err:
+                    print(f"[ORCHESTRATOR] CAQ step fallback: {caq_err}", flush=True)
+
             if state_sync.shape[-1] >= 4:
                 quantized_4d = self.quantizer(state_sync[..., :4])
                 state_quant = state_sync.clone()
@@ -1124,18 +1194,37 @@ class UniversalOrchestrator(nn.Module):
                 
             state_glued = self.gluer(state_to_glue)
             
-            # 5. Non-Teleological Flow Guidance (Hyper-Ring)
-            # We simulate a flow step across the hyper-ring if K > 1
+            # 5. Non-Teleological Flow Guidance (Hyper-Ring with 3-5 Orthogonal Joint Physical Embeddings)
+            # We simulate a flow step across the hyper-ring using J-Space orthogonal embeddings
             if state_glued.dim() == 2:
-                 batch_size = state_glued.shape[0]
-                 # Project state to 5 polytopes by repeating mean stat
-                 poly_stats = state_glued.mean(dim=-1).unsqueeze(-1).expand(batch_size, 5)
-                 connectivity = self.hyper_ring(poly_stats)
-                 # Apply flow to state (broadcasted)
-                 flow = self.hyper_ring.flow_step(state_glued.unsqueeze(1).expand(-1, 5, -1), connectivity).mean(dim=1)
-                 state_final = state_glued + 0.01 * flow
+                # Project state into 5 distinct orthogonal joint physical embeddings across hyper-ring
+                if hasattr(self, 'jspace_mapper'):
+                    poly_states, poly_stats = self.jspace_mapper.project_orthogonal_physical_embeddings(
+                        state_glued,
+                        num_polytopes=self.hyper_ring.num_polytopes
+                    )
+                else:
+                    batch_size = state_glued.shape[0]
+                    poly_states = state_glued.unsqueeze(1).expand(-1, self.hyper_ring.num_polytopes, -1)
+                    poly_stats = state_glued.mean(dim=-1).unsqueeze(-1).expand(batch_size, self.hyper_ring.num_polytopes)
+                
+                # Compute non-Euclidean connectivity across the 5 distinct polytope functionals
+                connectivity = self.hyper_ring(poly_stats)
+                
+                # Apply flow step across distinct orthogonal polytope physical embeddings modulated by ManifoldClock dt
+                dt_val = self.dt.item() if hasattr(self, 'dt') and isinstance(self.dt, torch.Tensor) else 1.0
+                flow_states = self.hyper_ring.flow_step(poly_states, connectivity, dt=dt_val)
+                flow = flow_states.mean(dim=1) - state_glued
+                state_final = state_glued + 0.01 * flow
+                
+                # Record J-space operable 3D projection for real-time visualization and telemetry
+                if hasattr(self, 'jspace_mapper'):
+                    operable_3d = self.jspace_mapper.project_hyper_ring_invariants(state_final, target_dim=3)
+                    if not hasattr(self, 'telemetry_state') or not isinstance(self.telemetry_state, dict):
+                        self.telemetry_state = {}
+                    self.telemetry_state['jspace_operable_3d'] = operable_3d.detach()
             else:
-                 state_final = state_glued
+                state_final = state_glued
                  
             # 5.5 Phase 4 Topological Integration Check
             # Approximate PH triggers on relative barcode changes
@@ -1511,6 +1600,18 @@ class UniversalOrchestrator(nn.Module):
         larynx_logits, larynx_conf = self.larynx(state_shielded)
         gasket_diags = self.larynx.chern_simons.get_diagnostics()
         
+        # Compute JEPA Monge-Ampere energy on topological transition if affordance allows
+        if self.jepa_embedder is not None and has_compute_affordance(ComputeAffordanceType.ALGORITHMIC):
+            try:
+                larynx_jepa_energy = self.jepa_embedder.compute_jepa_monge_ampere_energy(
+                    context_state=state_shielded,
+                    target_state=larynx_logits,
+                    moment_transport=self.moment_transport
+                )
+                self.telemetry_state['larynx_jepa_monge_ampere_energy'] = larynx_jepa_energy.item()
+            except Exception:
+                pass
+        
         # Audience Mapping: Final human-readable projection
         ui_readout = self.audience_projector(state_shielded)
 
@@ -1655,6 +1756,11 @@ class UniversalOrchestrator(nn.Module):
             if not is_red_zone and gasket_diags.get('seam_tension', 0) < 0.1:
                 self.zk_aggregator.prove_chern_simons_invariant(state_shielded, current_state)
         
+        if hasattr(self, 'jspace_mapper') and self.jspace_mapper is not None:
+            if 'jspace_operable_3d' not in self.telemetry_state:
+                operable_3d = self.jspace_mapper.project_hyper_ring_invariants(state_shielded, target_dim=3)
+                self.telemetry_state['jspace_operable_3d'] = operable_3d.detach()
+
         return state_shielded, regime, routing, stacked_target
 
     def check_rupture(self, state: torch.Tensor, losses: Dict[int, torch.Tensor]) -> Optional[FailureToken]:

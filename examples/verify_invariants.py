@@ -44,9 +44,9 @@ def test_determinism():
     print(f"  Difference between two runs: {diff}")
     
     if diff == 0.0:
-        print("  ✅ Determinism Confirmed (Bit-Exact)")
+        print("  [OK] Determinism Confirmed (Bit-Exact)")
     else:
-        print("  ❌ Determinism FAILED")
+        print("  [ERR] Determinism FAILED")
 
 def test_invariants():
     print("\n[2/5] Testing Phase Alignment Invariants (PAS_h)...")
@@ -73,9 +73,9 @@ def test_invariants():
     print(f"  Large drift: {drift.mean().item():.4f} (Violation: {violation.any().item()})")
     
     if violation.any():
-         print("  ✅ APAS_zeta Correctly Bounded Drift")
+         print("  [OK] APAS_zeta Correctly Bounded Drift")
     else:
-         print("  ❌ APAS_zeta Failed to detect large drift")
+         print("  [ERR] APAS_zeta Failed to detect large drift")
 
 def test_chirality():
     print("\n[3/5] Testing Chirality...")
@@ -94,7 +94,7 @@ def test_chirality():
     print(f"  Chirality (High Freq): {c_high.item():.4f}")
     
     if c_low < c_high:
-        print("  ✅ Chirality Index Correctly Distinguishes Frequencies")
+        print("  [OK] Chirality Index Correctly Distinguishes Frequencies")
 
 
 def test_operational_admm():
@@ -118,7 +118,7 @@ def test_operational_admm():
     # Gradients should be None as per current backward implementation (zero leakage)
     print(f"  Gradient on Initial C: {initial_c.grad is not None}")
     if initial_c.grad is None:
-        print("  ✅ Zero Leakage Confirmed (Symbolic Non-Revisability)")
+        print("  [OK] Zero Leakage Confirmed (Symbolic Non-Revisability)")
 
 def main():
     test_determinism()

@@ -115,7 +115,7 @@ class DiegeticConversationalBackend:
                          video_dyad_b64: Optional[str] = None,
                          user_id: str = "user") -> Dict[str, Any]:
         """Start a new conversation with affordance and multimodal analysis."""
-        print(f"\n🗣️ Starting new conversation")
+        print(f"\n️ Starting new conversation")
         print(f"User: {initial_message}")
         
         # Create new conversation
@@ -467,7 +467,7 @@ def demo_diegetic_conversational_integration():
     # Run demo scenarios
     for scenario in demo_scenarios:
         print(f"\n" + "="*60)
-        print(f"🎬 Demo Scenario: {scenario['name']}")
+        print(f" Demo Scenario: {scenario['name']}")
         print("="*60)
         
         # Start conversation
@@ -484,7 +484,7 @@ def demo_diegetic_conversational_integration():
         
         # Continue conversation
         for message in scenario['messages'][1:]:
-            print(f"\n👤 User: {message}")
+            print(f"\n User: {message}")
             
             result = backend.process_user_input(message, user_id="demo_user")
             

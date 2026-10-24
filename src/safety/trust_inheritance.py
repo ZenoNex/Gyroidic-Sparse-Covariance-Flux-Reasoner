@@ -10,7 +10,7 @@ veto activations. If this decays to zero, the system has undergone
 "Trust Collapse" (lobotomy).
 
 Reference:
-    new_generations_safety_and_nonlobotomy_implementation_plan.txt §VI
+    new_generations_safety_and_nonlobotomy_implementation_plan.txt VI
 """
 
 import torch

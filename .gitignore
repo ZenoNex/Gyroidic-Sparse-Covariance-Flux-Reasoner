@@ -1,0 +1,40 @@
+# Environments and Virtualenvs
+.venv/
+env/
+venv/
+ENV/
+
+# Data and Encodings (Large Hazard Directories)
+data/
+test_raw_data/
+test_storage/
+tmp/
+.pytest_cache/
+.coverage
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Local runtime state and databases
+*.vscdb
+*.log
+state*.vscdb
+
+# OS and Editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Large media and archives (exceed GitHub size limits)
+*.m4a
+*.mp3
+*.wav
+*.zip
+*.rar
+*.7z
+*.tar*
+

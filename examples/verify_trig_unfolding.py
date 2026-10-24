@@ -31,9 +31,9 @@ def test_trig_unfolding():
     print(f"  Unfolded Output Norm: {torch.norm(out).item():.4f}")
     
     if torch.norm(out) > 0:
-        print("  ✅ Unfolding Produced Signal")
+        print("  [OK] Unfolding Produced Signal")
     else:
-        print("  ❌ Unfolding Output Null")
+        print("  [ERR] Unfolding Output Null")
 
 def test_huxley_trig_bypass():
     print("\n[2/2] Testing HuxleyRD Trig Bypass...")
@@ -52,9 +52,9 @@ def test_huxley_trig_bypass():
     print(f"  High Pressure Output Mean: {out_high.mean().item():.4f}")
     
     if not torch.allclose(out_low, out_high):
-        print("  ✅ Dynamic response to violation detected (Unfolding active)")
+        print("  [OK] Dynamic response to violation detected (Unfolding active)")
     else:
-        print("  ⚠️ Outputs identical - check unfolding sensitivity")
+        print("  [WARN] Outputs identical - check unfolding sensitivity")
 
 def main():
     test_trig_unfolding()

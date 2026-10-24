@@ -62,7 +62,7 @@ class ConfabulationDetector(nn.Module):
         """
         Tri-State Logic router based on the Unified Theory's Five-Gate Pipeline.
         
-        Following §255: min_pas_h is modulated by the Mischief (Play) drive.
+        Following 255: min_pas_h is modulated by the Mischief (Play) drive.
         Higher mischief (play) allows for lower phase alignment before confabulating.
         """
         # Dynamic Threshold: min_pas_h scaled from [0.4] down to [0.1] by mischief

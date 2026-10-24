@@ -47,9 +47,9 @@ def test_implicated_dynamics():
     diff = torch.norm(state_ab - state_ba).item()
     print(f"Commutativity Difference ||S_ab - S_ba||: {diff:.6f}")
     if diff > 1e-6:
-        print("✅ Order-Sensitivity Verified (Laryngeal Operator is non-commutative)")
+        print("[OK] Order-Sensitivity Verified (Laryngeal Operator is non-commutative)")
     else:
-        print("❌ Commutativity detected - Check Laryngeal Operator logic")
+        print("[ERR] Commutativity detected - Check Laryngeal Operator logic")
 
     # 3. Test Response Degradation
     print("\n[3] Testing Response Degradation...")
@@ -59,9 +59,9 @@ def test_implicated_dynamics():
     print(f"High Damage Response: {res['response']}")
     
     if any(c in res['response'] for c in ['Δ', '⊥', '†', '◊', '∑', '∏']):
-        print("✅ Response Degradation Verified (Paraconsistent Glitching active)")
+        print("[OK] Response Degradation Verified (Paraconsistent Glitching active)")
     else:
-        print("❌ No degradation detected at high damage level")
+        print("[ERR] No degradation detected at high damage level")
 
 if __name__ == "__main__":
     test_implicated_dynamics()

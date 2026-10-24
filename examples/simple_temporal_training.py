@@ -386,7 +386,7 @@ class SimpleTemporalTrainer:
                 'step': len(self.history['association_accuracy']),
                 'fossilized_functionals': fossilized_indices.tolist()
             })
-            print(f"🔒 Fossilized functionals: {fossilized_indices.tolist()}")
+            print(f"[LOCK] Fossilized functionals: {fossilized_indices.tolist()}")
     
     def train_epoch(self, num_batches: int = 50) -> Dict[str, float]:
         """Train for one epoch."""
@@ -426,12 +426,12 @@ def run_simple_temporal_training():
     """Run simple temporal association training."""
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
-    print(f"🧠 Simple Temporal Association Training")
+    print(f"[BRAIN] Simple Temporal Association Training")
     print(f"Device: {device}")
     print("=" * 50)
     
     # Create model
-    print("🏗️ Creating model...")
+    print("[BUILD] Creating model...")
     model = SimpleGyroidModel(
         input_dim=768,
         hidden_dim=256,
@@ -440,11 +440,11 @@ def run_simple_temporal_training():
         device=device
     )
     
-    print(f"✅ Model created with {sum(p.numel() for p in model.parameters()):,} parameters")
+    print(f"[OK] Model created with {sum(p.numel() for p in model.parameters()):,} parameters")
     print(f"   Trust scalars: {model.trust_scalars.tolist()}")
     
     # Create dataset
-    print("📊 Creating dataset...")
+    print("[METRICS] Creating dataset...")
     dataset = SimpleTemporalDataset(
         sequence_length=8,
         num_concepts=50,
@@ -452,11 +452,11 @@ def run_simple_temporal_training():
         device=device
     )
     
-    print(f"✅ Dataset created with {dataset.num_concepts} concepts")
+    print(f"[OK] Dataset created with {dataset.num_concepts} concepts")
     print(f"   Association example: {list(dataset.associations.items())[:2]}")
     
     # Create trainer
-    print("🎯 Creating trainer...")
+    print("[GOAL] Creating trainer...")
     trainer = SimpleTemporalTrainer(
         model=model,
         dataset=dataset,
@@ -465,10 +465,10 @@ def run_simple_temporal_training():
         fossilization_threshold=0.85
     )
     
-    print("✅ Trainer created")
+    print("[OK] Trainer created")
     
     # Test with sample batch
-    print("\n🧪 Testing with sample batch...")
+    print("\n[TEST] Testing with sample batch...")
     sample_batch = dataset.get_batch(batch_size=2)
     print(f"   Sequences shape: {sample_batch['sequences'].shape}")
     print(f"   Targets shape: {sample_batch['targets'].shape}")
@@ -483,17 +483,17 @@ def run_simple_temporal_training():
     num_epochs = 5
     batches_per_epoch = 30
     
-    print(f"\n🚀 Starting training: {num_epochs} epochs, {batches_per_epoch} batches each")
+    print(f"\n[START] Starting training: {num_epochs} epochs, {batches_per_epoch} batches each")
     print("-" * 60)
     
     for epoch in range(num_epochs):
-        print(f"\n📚 Epoch {epoch + 1}/{num_epochs}")
+        print(f"\n[DOCS] Epoch {epoch + 1}/{num_epochs}")
         
         # Train epoch
         epoch_metrics = trainer.train_epoch(num_batches=batches_per_epoch)
         
         # Print epoch summary
-        print(f"\n📊 Epoch {epoch + 1} Summary:")
+        print(f"\n[METRICS] Epoch {epoch + 1} Summary:")
         print(f"   Association Accuracy: {epoch_metrics['association_accuracy']:.3f}")
         print(f"   Temporal Coherence: {epoch_metrics['temporal_coherence']:.3f}")
         print(f"   Trust Mean: {epoch_metrics['trust_mean']:.3f} ± {epoch_metrics['trust_std']:.3f}")
@@ -504,7 +504,7 @@ def run_simple_temporal_training():
         print(f"   Trust Scalars: {[f'{t:.3f}' for t in current_trust.tolist()]}")
         
         # Test repair system
-        print(f"\n🔧 Repair System Status:")
+        print(f"\n Repair System Status:")
         with torch.no_grad():
             test_input = torch.randn(1, 768, device=device)
             repair_output = model(test_input, return_analysis=True)
@@ -519,7 +519,7 @@ def run_simple_temporal_training():
             print(f"   System temperature: {soft_gates_diag.get('dt', 'N/A')}")
     
     # Final results
-    print(f"\n🎯 Training Complete!")
+    print(f"\n[GOAL] Training Complete!")
     print("=" * 50)
     
     final_trust = model.trust_scalars
@@ -528,7 +528,7 @@ def run_simple_temporal_training():
     print(f"Fossilization Events: {len(trainer.history['fossilization_events'])}")
     
     # Test final system
-    print(f"\n🧪 Final System Test:")
+    print(f"\n[TEST] Final System Test:")
     test_cases = [
         "High variance input (chaos)",
         "Low variance input (order)",
@@ -551,14 +551,14 @@ def run_simple_temporal_training():
 
 
 if __name__ == "__main__":
-    print("🧠 Simple Temporal Association Training")
+    print("[BRAIN] Simple Temporal Association Training")
     print("This script demonstrates temporal association training with repair system")
     print("=" * 70)
     
     try:
         model, trainer = run_simple_temporal_training()
         
-        print(f"\n✅ Training completed successfully!")
+        print(f"\n[OK] Training completed successfully!")
         print(f"The system now has:")
         print(f"• Temporal association memory")
         print(f"• Evolved trust scalars")
@@ -566,6 +566,6 @@ if __name__ == "__main__":
         print(f"• Fossilization capability")
         
     except Exception as e:
-        print(f"\n❌ Training failed with error: {e}")
+        print(f"\n[ERR] Training failed with error: {e}")
         import traceback
         traceback.print_exc()

@@ -6,10 +6,10 @@ without treating them as errors. Failure tokens are discrete signals that
 prevent gradient flow, repair attempts, and memory updates.
 
 Mathematical Foundation:
-    R(r) = 1 if exists k: L_k(r, c_k) = ∞
+    R(r) = 1 if exists k: L_k(r, c_k) = 
     R(r) = 0 otherwise
     
-    On R(r) = 1: r -> ⊥ (no gradient, no repair, no memory update)
+    On R(r) = 1: r ->  (no gradient, no repair, no memory update)
 
 Phase 1: Core Constraint Probe Implementation
 
@@ -25,7 +25,7 @@ from enum import Enum
 
 class FailureTokenType(Enum):
     """Types of failure tokens."""
-    BOT = "⊥"  # Rupture - no recovery possible
+    BOT = ""  # Rupture - no recovery possible
     REPAIRED = "repaired"  # Successfully repaired
     ALTERNATIVE = "alternative"  # Alternative solution found
     PENDING = "pending"  # Still processing
@@ -100,7 +100,7 @@ class RuptureFunctional(nn.Module):
     This is NOT an error condition - it's a structural rupture that prevents
     further processing.
     
-    R(r) = 1 if exists k: L_k(r, c_k) = ∞ or L_k(r, c_k) > threshold
+    R(r) = 1 if exists k: L_k(r, c_k) =  or L_k(r, c_k) > threshold
     R(r) = 0 otherwise
     """
     

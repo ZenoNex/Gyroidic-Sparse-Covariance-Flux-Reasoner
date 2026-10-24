@@ -1,0 +1,249 @@
+Source Tree Architecture Map: src/
+===================================
++--- augmentation/
+|   +--- mandelbulb_gyroidic_augmenter.py
+|   \--- mandelbulb_pipeline.py
++--- benchmarks/
+|   +--- __init__.py
+|   +--- __main__.py
+|   +--- ai_reasoner_evaluator.py
+|   +--- chordlock_evaluator.py
+|   +--- memory_palace_evaluator.py
+|   +--- narrative_yield_evaluator.py
+|   +--- reactbench_evaluator.py
+|   +--- run_all_benchmarks.py
+|   +--- topobench_evaluator.py
+|   \--- topological_singularity_evaluator.py
++--- codec/
+|   +--- __init__.py
+|   +--- conformal_log_polar.py
+|   +--- gyroidic_codec.py
+|   +--- vision_surgery.py
+|   \--- vision_utilities.py
++--- core/
+|   +--- __init__.py
+|   +--- adaptive_skeleton_harness.py
+|   +--- admr_solver.py
+|   +--- advanced_extensions_bridge.py
+|   +--- agent_substrate_bridge.py
+|   +--- archetype_engines.py
+|   +--- audience_mapping.py
+|   +--- birkhoff_projection.py
+|   +--- bulletin_board.py
+|   +--- carnot_mobius_ledger.py
+|   +--- cayley_cubic_probe.py
+|   +--- chern_simons_gasket.py
+|   +--- codes_constraint_framework.py
+|   +--- collapse_poisoner.py
+|   +--- conjugate_moment_transport.py
+|   +--- context_aware_quantizer.py
+|   +--- continuous_coprimality.py
+|   +--- daqf_operator.py
+|   +--- decoupled_polynomial_crt.py
+|   +--- deflagration_scout.py
+|   +--- device_utils.py
+|   +--- diegetic_physics_engine.py
+|   +--- dyadic_transfer.py
+|   +--- energy_based_soliton_healer.py
+|   +--- energy_monitor.py
+|   +--- enhanced_bezout_crt.py
+|   +--- erosion_filter.py
+|   +--- evidence_modules.py
+|   +--- failure_token.py
+|   +--- false_negative_subsystem.py
+|   +--- feature_preservation.py
+|   +--- federated_router.py
+|   +--- fgrt_primitives.py
+|   +--- fgrt_rnn_cells.py
+|   +--- five_gate_pipeline.py
+|   +--- fractal_meta_functional.py
+|   +--- garden_statistical_attractors.py
+|   +--- gdpo_normalization.py
+|   +--- gluing_operator.py
+|   +--- hardware_monitor.py
+|   +--- hessian_8x8_curvature_ledger.py
+|   +--- honest_jitter.py
+|   +--- invariant_optimization.py
+|   +--- invariants.py
+|   +--- investor_news_ingestor.py
+|   +--- jspace_pca_mapper.py
+|   +--- knowledge_dyad_fossilizer.py
+|   +--- legibility_audit.py
+|   +--- leontief_governor.py
+|   +--- ley_line_tracker.py
+|   +--- love_invariant_protector.py
+|   +--- love_vector.py
+|   +--- manifold_time.py
+|   +--- martinova_correlation.py
+|   +--- meta_invariant.py
+|   +--- meta_polytope_matrioshka.py
+|   +--- modular_virtualization.py
+|   +--- narrative_collapse.py
+|   +--- negentropic_manifold.py
+|   +--- neuromodulatory_bus.py
+|   +--- non_dual_coin.py
+|   +--- non_ergodic_entropy.py
+|   +--- noncommutativity_curvature.py
+|   +--- nondual_admm.py
+|   +--- number_theoretic_stabilizer.py
+|   +--- numerical_d_module.py
+|   +--- orchestrator.py
+|   +--- polychoron_quantization.py
+|   +--- polynomial_coprime.py
+|   +--- polynomial_crt.py
+|   +--- polynomial_scaffold.py
+|   +--- pressure_typing.py
+|   +--- primitive_ops.py
+|   +--- pyopencl_sovereignty.py
+|   +--- quantum_inspired_reasoning.py
+|   +--- quantum_tda.py
+|   +--- relational_kappa.py
+|   +--- situational_batching.py
+|   +--- sparse_higher_order_tensors.py
+|   +--- spectral_coherence_repair.py
+|   +--- speculative_coprime_gate.py
+|   +--- structural_blueprints.py
+|   +--- structural_irreducibility.py
+|   +--- structural_monitors.py
+|   +--- superposed_tag_stacker.py
+|   +--- texture_dsp.py
+|   +--- topological_gyrocompass.py
+|   +--- topological_ingestion_validator.py
+|   +--- unknowledge_flux.py
+|   +--- valence_drive.py
+|   +--- veto_subspace.py
+|   +--- video_dyad_parser.py
+|   +--- voynich_architecture.py
+|   +--- yield_criteria.py
+|   \--- zeitgeist_router.py
++--- data/
+|   +--- logs/
+|   |   \--- log1.txt
+|   +--- canonical_projection.py
+|   +--- chatgpt_friction_harvester.py
+|   +--- conversational_api_ingestor.py
+|   +--- conversational_types.py
+|   +--- economic_news_linker.py
+|   +--- freenet_bulletin_router.py
+|   +--- freenet_ghost_caller.py
+|   +--- gltf_splat_ingestor.py
+|   +--- google_client_manager.py
+|   +--- google_cloud_ingestor.py
+|   +--- google_drive_ingestor.py
+|   +--- ivst_encoder.py
+|   +--- knowledge_ingestor.py
+|   +--- local_data_loader.py
+|   +--- local_dataset_ingestor.py
+|   +--- minecraft_ingestor.py
+|   +--- open_science_ingestor.py
+|   +--- pressure_ingestor.py
+|   +--- sovereign_ingestor.py
+|   +--- sterile_data_reruns.py
+|   +--- textbook_filter.py
+|   +--- universal_topology_converter.py
+|   \--- webp_prompt_extractor.py
++--- environment/
+|   +--- caine_precision.py
+|   \--- cleanroom_mechanics.py
++--- governance/
+|   +--- fast/
+|   |   +--- jax_shell.py
+|   |   \--- ragatha_bonding.py
+|   +--- interoceptive/
+|   |   \--- pomni_uncertainty.py
+|   +--- medium/
+|   |   \--- gangle_oscillator.py
+|   +--- slow/
+|   |   \--- kinger_consolidation.py
+|   +--- ultrafast/
+|   |   \--- zooble_autonomy.py
+|   \--- bio_archetypal_governor.py
++--- integrations/
+|   +--- __init__.py
+|   \--- tabby_client.py
++--- models/
+|   +--- __init__.py
+|   +--- diegetic_heads.py
+|   +--- gyroid_reasoner.py
+|   +--- introspection_head.py
+|   +--- modular_attention.py
+|   +--- modular_embeddings.py
+|   +--- polynomial_embeddings.py
+|   \--- resonance_cavity.py
++--- optimization/
+|   +--- __init__.py
+|   +--- codes_driver.py
+|   +--- constraint_probe.py
+|   +--- fractional_operators.py
+|   +--- operational_admm.py
+|   +--- ricci_flow_optimizer.py
+|   \--- sic_fa_admm.py
++--- p2p/
+|   +--- bonfire_consensus.py
+|   +--- freenet_ws_client.py
+|   \--- zk_aggregator.py
++--- safety/
+|   +--- hardware_fingerprint.py
+|   +--- red_teaming.py
+|   +--- subversive_oracle.py
+|   \--- trust_inheritance.py
++--- scripting/
+|   \--- node_environment.py
++--- surrogates/
+|   +--- __init__.py
+|   +--- calm_predictor.py
+|   \--- kagh_networks.py
++--- tda/
+|   \--- chebyshev_filtration.py
++--- terminal/
+|   +--- __init__.py
+|   +--- udp_server_colonizer.py
+|   \--- update_client.py
++--- tools/
+|   +--- fast_chat_viewer.py
+|   +--- probe_html.py
+|   +--- test_hardware_monitor_calm.py
+|   \--- validate_cmmf.py
++--- topology/
+|   +--- __init__.py
+|   +--- approximate_ph.py
+|   +--- betti_router.py
+|   +--- bonfire_network.py
+|   +--- embedding_graph.py
+|   +--- gyroid_covariance.py
+|   +--- gyroid_differentiation.py
+|   +--- homology_pressure.py
+|   +--- hyper_ring.py
+|   +--- hyper_ring_closure.py
+|   +--- modular_homology_fft.py
+|   +--- persistence_obstruction.py
+|   +--- soliton_stability.py
+|   +--- speculative_homology.py
+|   +--- triadic_reciprocity.py
+|   \--- unknowledge_domain.py
++--- training/
+|   +--- __init__.py
+|   +--- enhanced_temporal_training.py
+|   +--- fgrt_fgrt_trainer.py
+|   +--- fgrt_trainer.py
+|   +--- gdpo_trainer.py
+|   +--- temporal_association_trainer.py
+|   +--- trainer.py
+|   \--- training_manager.py
++--- ui/
+|   +--- benchmark_dashboard.html
+|   +--- conversational_backend_server.py
+|   +--- conversational_gui.py
+|   +--- conversational_web_gui.html
+|   +--- diegetic_backend.py
+|   +--- diegetic_terminal.html
+|   +--- diegetic_terminal.py
+|   +--- diegetic_visualizer.py
+|   +--- manifold_graph.html
+|   +--- voxelboxter_backend.py
+|   +--- voxelboxter_client.py
+|   +--- voxelboxter_simulation.py
+|   +--- wikipedia_integration.py
+|   \--- wikipedia_trainer.html
++--- __init__.py
+\--- map.txt

@@ -190,7 +190,7 @@ def test_no_hardcoded_primes():
 
 
 def main():
-    print("\n🔬 Resonance Unification Verification Suite\n")
+    print("\n Resonance Unification Verification Suite\n")
     tests = [
         test_fibonacci_resonance_entropy,
         test_coherent_prime_resonance,
@@ -219,7 +219,7 @@ def main():
     print(f"\n{'=' * 50}")
     print(f"  {passed}/{total} tests passed")
     if passed == total:
-        print("  🎉 All resonance unification tests passed!")
+        print("  [SUCCESS] All resonance unification tests passed!")
     return 0 if passed == total else 1
 
 

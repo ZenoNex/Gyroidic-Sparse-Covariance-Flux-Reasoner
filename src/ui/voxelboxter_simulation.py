@@ -15,7 +15,7 @@ import time
 import math
 import numpy as np
 from src.surrogates.kagh_networks import KANLayer
-from src.core.invariants import SelfReferenceAdmissibility, PrimeResonanceLadder
+from src.core.invariants import SelfReferenceAdmissibility, PrimeResonanceLadder, SpectralSpeculationEngine
 from src.core.fgrt_primitives import GyroidicAdmissibilityFilter, GyroidManifold
 
 # ==========================================
@@ -745,46 +745,7 @@ class VoxelboxterAdmissibilityGate:
         }
 
 
-class SpectralSpeculationEngine:
-    """
-    Enforces Wager #4 (Spectral Speculation: Frequency > Time) of The Efficiency Singularity.
-    Analyzes construct vibrational/deformation modes using PrimeResonanceLadder.
-    If spectral entropy H_spec < epsilon, triggers a single-step speculative fastpass,
-    bypassing expensive System 2 continuous physics and repair loops.
-    """
-    def __init__(self, epsilon: float = 0.15, num_resonators: int = 16):
-        self.epsilon = epsilon
-        self.ladder = PrimeResonanceLadder(num_resonators=num_resonators)
-        self.fastpass_count: int = 0
-        self.full_solve_count: int = 0
-
-    def evaluate_spectral_entropy(self, signal: torch.Tensor) -> Tuple[bool, float]:
-        """
-        Computes spectral entropy H_spec across prime resonance frequencies.
-        Returns (can_speculative_fastpass, h_spec).
-        """
-        with torch.no_grad():
-            if signal.dim() == 1:
-                v = signal.unsqueeze(0)
-            else:
-                v = signal
-            dim = v.shape[-1]
-            freqs = self.ladder.frequencies[:dim]
-            if freqs.shape[0] < dim:
-                freqs = F.pad(freqs, (0, dim - freqs.shape[0]), value=1.0)
-            elif freqs.shape[0] > dim:
-                freqs = freqs[:dim]
-
-            # Modulate with prime frequencies and compute spectral mode distribution
-            modes = torch.abs(v * freqs)
-            prob = modes / (torch.sum(modes, dim=-1, keepdim=True) + 1e-8)
-            h_spec = -torch.sum(prob * torch.log(prob + 1e-8)).item() / max(1.0, math.log(max(2, prob.shape[-1])))
-            can_fastpass = h_spec < self.epsilon
-            if can_fastpass:
-                self.fastpass_count += 1
-            else:
-                self.full_solve_count += 1
-            return can_fastpass, h_spec
+# SpectralSpeculationEngine is canonically imported from src.core.invariants (Wager #4).
 
 
 # ==========================================

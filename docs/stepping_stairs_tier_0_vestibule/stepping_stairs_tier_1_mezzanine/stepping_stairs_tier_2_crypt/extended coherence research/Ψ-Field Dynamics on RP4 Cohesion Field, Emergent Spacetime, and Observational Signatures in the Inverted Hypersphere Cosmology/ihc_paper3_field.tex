@@ -1,0 +1,158 @@
+%% MDPI International Journal of Theoretical Physics (journal) submission
+%% IHC Paper III: Psi-Field Dynamics
+%% IHC Paper III — Cohesion Field Dynamics on RP4
+%% Note: MDPI editorial office applies mdpi.cls during production.
+%%       This file uses standard article class for compilation during review.
+
+\documentclass[12pt,a4paper]{article}
+
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{cleveref}
+\usepackage{xspace}
+
+\tolerance=5000
+\hbadness=5000
+
+%% Line numbers for review (MDPI requires these)
+\usepackage{lineno}
+\linenumbers
+
+%% Theorem environments
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{postulate}[theorem]{Postulate}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+%% Macros
+\newcommand{\vp}{\varphi}
+\newcommand{\RP}{\mathbb{RP}}
+\newcommand{\RS}{R_S}
+\newcommand{\Mpc}{\,\mathrm{Mpc}}
+\newcommand{\GeV}{\,\mathrm{GeV}}
+
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+
+\bibliographystyle{unsrtnat}
+
+%=======================================================================
+\begin{document}
+
+%% Title
+\title{\textbf{$\Psi$-Field Dynamics on $\mathbb{RP}^4$: Cohesion Field,
+Emergent Spacetime, and Observational Signatures in the
+Inverted Hypersphere Cosmology}}
+
+\author{
+  Samuel Peacock$^{*}$
+  \and
+  Lauren Hall
+}
+
+\date{}
+
+\maketitle
+
+\noindent
+$^*$ Correspondence: \texttt{eliasverdan660@gmail.com}\\[6pt]
+\noindent
+\textbf{Received:} \quad \textbf{Revised:} \quad \textbf{Accepted:} \quad \textbf{Published:}
+
+%-----------------------------------------------------------------------
+\begin{abstract}
+We introduce the $\Psi$-field (Cohesion Field) as the proposed dynamical substrate
+of the Inverted Hypersphere Cosmology (IHC) framework on real projective 4-space
+($\mathbb{RP}^4$). The $\Psi$-field is a conformally coupled real scalar field
+respecting the antipodal identification $x \sim -x$, governed by the
+Cohesion Field Equation (CFE):
+\begin{equation*}
+\Box\Psi - \tfrac{1}{3}R\Psi + \tfrac{\lambda}{6}\!\left(\Psi^2-\Psi_0^2\right)\Psi = 0,
+\end{equation*}
+with vacuum value $\Psi_0 = c^4/(8\pi GR_H^2) = \rho_{\rm crit}/3
+\approx 2.56\times10^{-10}$~J/m$^3$ postulated from the Hubble radius $R_H = c/H_0$.
+We prove two exact identities of the 33-shell geometry:
+the total rotational inertia $\sum_{k=0}^{32}\varphi^{-2k} = \varphi$ (golden ratio),
+and the counter/co-rotating imbalance $I_{\rm counter}-I_{\rm co} = \tfrac{1}{2}$.
+The coherence length $\ell_{\rm coh} \approx 346$~Mpc is derived from
+field correlations; the linearised CFE admits a $\mathbb{Z}_3$ standing-wave
+solution with period $\lambda_{Z_3} = R_H/11 = 404.4$~Mpc and fractional
+amplitude $A_{Z_3} = \beta_{\rm coh}/\beta = 0.442\%$, producing a $90^\circ$
+quadrature modulation of BAO distances~$D_M$ and~$D_H$.
+Applied to all 33 BAO measurements across 7 surveys, the IHC point prediction
+achieves $\chi^2/{\rm dof} = 0.916$ with zero free parameters
+(Bayes factor $\ln B = +4.76$ over $\Lambda$CDM); on the BOSS~DR12 subset alone,
+residuals fall below $0.13\sigma$ with $\chi^2/{\rm dof} = 0.0110$.
+Observational predictions include: galaxy correlation suppression below
+$\Lambda$CDM at $r \gtrsim \ell_{\rm coh}$ (testable with DESI Year~5 and Euclid),
+CMB power suppression at $\ell < 40$, and $\Psi$-field Fibonacci resonances at
+$\ell \in \{144, 233, 377, 610, 987\}$.
+All predictions are parameter-free and falsifiable within the next decade.
+\end{abstract}
+
+\noindent\textbf{Keywords:}
+cohesion field; $\Psi$-field dynamics; real projective space; $\mathbb{RP}^4$
+topology; emergent spacetime; coherence length; large-scale structure; CMB
+anomalies; cosmological constant; golden ratio
+
+%-----------------------------------------------------------------------
+
+%% Define \chapter (not defined in article class)
+\newcommand{\chapter}[1]{}
+
+\input{ihc_paper3_field_body}
+
+\bibliography{ihc_paper3_field_refs}
+
+%-----------------------------------------------------------------------
+%% MDPI Required Sections
+
+\section*{Author Contributions}
+
+Conceptualization, S.P.; Methodology, S.P. and L.H.; Software, S.P. and L.H.;
+Validation, S.P. and L.H.; Formal analysis, S.P. and L.H.; Investigation, S.P. and
+L.H.; Writing---original draft preparation, S.P.;
+Writing---review and editing, S.P. and L.H.; Visualization, S.P. and L.H.
+All authors have read and agreed to the published version of the manuscript.
+
+\section*{Funding}
+
+This research received no external funding.
+
+\section*{Data Availability Statement}
+
+All observational data used for context in this work are publicly available
+from the original survey collaborations cited in the text (Planck 2018, BOSS
+DR12, DESI DR2). No new observational data were generated or analysed in this
+study. Python validation scripts (\texttt{ihc\_bao\_validation.py},
+\texttt{ihc\_coherence\_vs\_observations.py}) are provided as Supplementary
+Material. The full IHC validation suite (\texttt{ihc\_validation\_suite.py}
+and companion scripts) is provided as Supplementary Material to Paper~I
+\citep{Peacock2026a}. A preprint of this manuscript is archived at
+Zenodo: \url{https://doi.org/10.5281/zenodo.19242976}.
+
+\section*{AI Tools Disclosure}
+
+Manuscript preparation made use of Claude (Anthropic) as an AI writing and
+analysis assistant for \LaTeX{} compilation, numerical cross-checking, and
+editorial review. All scientific content, derivations, and conclusions are
+the sole responsibility of the authors.
+
+\section*{Conflicts of Interest}
+
+The authors declare no conflicts of interest.
+
+\end{document}

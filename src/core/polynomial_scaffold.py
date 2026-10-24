@@ -15,7 +15,7 @@ from src.core.polynomial_coprime import PolynomialBasis
 
 class PolynomialCoefficientFunctional(nn.Module):
     """
-    Implements S_i(t) = Σ a_n(t) * p_n(S_i(t)).
+    Implements S_i(t) =  a_n(t) * p_n(S_i(t)).
     
     Where p_n are orthogonal basis functions.
     Coefficients a_n are modulated by phase-space variance 
@@ -72,7 +72,7 @@ class PolynomialCoefficientFunctional(nn.Module):
         resonance_contribution: torch.Tensor
     ):
         """
-        a_n(t+1) = a_n(t) + λ * (∇ I(S) + R(S))
+        a_n(t+1) = a_n(t) +  * ( I(S) + R(S))
         """
         # Simple gradient-based update within the non-teleological loop
         # update should have shape [state_dim, degree + 1]

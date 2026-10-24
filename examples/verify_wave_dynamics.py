@@ -64,9 +64,9 @@ def test_huxley_dynamics():
     
     # Peak shift implies soliton movement or diffusion spreading
     if out.argmax().item() != x.argmax().item():
-        print("  ✅ Dynamics Active (Shift/Diffusion detected)")
+        print("  [OK] Dynamics Active (Shift/Diffusion detected)")
     else:
-        print("  ⚠️ No shift detected (Check velocity/tau)")
+        print("  [WARN] No shift detected (Check velocity/tau)")
 
 def test_calm_positivity():
     print("\n[3/3] Testing CALM Positivity...")
@@ -80,9 +80,9 @@ def test_calm_positivity():
     print(f"  Min predicted value: {min_val:.6f}")
     
     if min_val >= 0:
-        print("  ✅ Positivity Maintained (Softplus active)")
+        print("  [OK] Positivity Maintained (Softplus active)")
     else:
-        print("  ❌ Positivity Violated!")
+        print("  [ERR] Positivity Violated!")
 
 def main():
     test_wave_decomposition()

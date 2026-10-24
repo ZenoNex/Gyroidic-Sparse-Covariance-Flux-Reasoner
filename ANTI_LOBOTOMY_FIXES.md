@@ -36,24 +36,7 @@ This document summarizes the fixes applied to remove hardcoded prime sequences t
 **Issue**: Algorithmic prime generation `_generate_primes(num_heads)` for winding number checks
 **Fix**: Replaced with Legendre polynomial coefficient generation
 
-### 9. `src/models/modular_embeddings.py`
-**Issue**: Hardcoded prime list `primes: List[int] = [3, 5, 7, 11, 13]` and missing documented architectures.
-**Fix**: 
-- Completely purged hardcoded primes; dynamically derived from canonical `PolynomialCoprimeConfig` and `get_prime_ladder(num_primes)` in `src.core.invariants`.
-- Implemented `LearnedModalityEmbedder` dual-head projection yielding orthogonal polynomial basis coefficients `[batch, K, D]` and IHC 33-shell scaled residue distributions `[batch, K, max(p_k)]` per `MODULE_INVENTORY.md`.
-- Implemented `CRTModularEmbeddingTable` with structural residue class bias per `MODULE_INVENTORY.md`.
-- Implemented `IVSTEncoder` (Intrinsic Volume and Spectral Tensor eigenvalues) and reconnected `SimpleGraphEncoder` / `SimpleTextEncoder` per `DATA_PIPELINE.md`.
-
-### 10. IHC 33-Shell Golden Ratio Ladder Reconnection
-**Issue**: Hardcoded float `1.618033988749895` and isolated formulas in `src/models/polynomial_embeddings.py`.
-**Fix**: Bound to canonical `PHI` and `get_ihc_ladder_scale(k, num_shells=33)` / `get_ihc_ladder_tensor` in `src.core.invariants`, interconnected across `PolynomialFunctionalEmbedder`, `LearnedModalityEmbedder`, `DataAssociationLayer`, `ModularAttention`, and `BreatherMode`.
-
-### 11. `src/core/adaptive_skeleton_harness.py`
-**Issue**: Hardcoded moduli list `moduli=[2, 3, 5, 17, 41]`.
-**Fix**: Replaced with canonical `PolynomialCoprimeConfig(k=5, degree=4)` adhering to anti-lobotomy coprime polynomial functionals.
-
 ## Architectural Principles Enforced
-
 
 1. **No Hardcoded Primes**: All hardcoded prime sequences removed
 2. **Polynomial Co-Prime Functionals**: Using orthogonal polynomial basis (Chebyshev, Legendre) instead
@@ -76,9 +59,9 @@ Where:
 
 ## Compliance Status
 
-[OK] **COMPLIANT**: No hardcoded prime sequences remain
-[OK] **COMPLIANT**: Polynomial co-prime functionals implemented
-[OK] **COMPLIANT**: Evolutionary trust selection preserved
-[OK] **COMPLIANT**: Anti-lobotomy clauses satisfied
+✅ **COMPLIANT**: No hardcoded prime sequences remain
+✅ **COMPLIANT**: Polynomial co-prime functionals implemented
+✅ **COMPLIANT**: Evolutionary trust selection preserved
+✅ **COMPLIANT**: Anti-lobotomy clauses satisfied
 
 The system now follows the proper non-lobotomy architecture as specified in the documentation, using polynomial functionals with evolutionary trust selection instead of hardcoded prime-based modular arithmetic.

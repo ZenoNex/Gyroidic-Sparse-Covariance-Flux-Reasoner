@@ -322,6 +322,10 @@ class GovernanceManager:
                         saved_config = data.get('config')
                         saved_ports = data.get('ports')
                         if saved_config and saved_ports:
+                            if os.environ.get('GYROID_ACCOUNT'):
+                                saved_config['node_account'] = os.environ.get('GYROID_ACCOUNT')
+                            if os.environ.get('GYROID_SALT_PATH'):
+                                saved_config['security_salt_path'] = os.environ.get('GYROID_SALT_PATH')
                             return saved_ports, saved_config
                 except Exception:
                     pass
@@ -359,8 +363,11 @@ class GovernanceManager:
                 'birkhoff_max_iterations': int(os.environ.get('GYROID_BIRKHOFF_MAX_ITER', '100')),
                 'tda_landmarks': int(os.environ.get('GYROID_TDA_LANDMARKS', '50')),
                 'ego_death_limit': float(os.environ.get('GYROID_EGO_DEATH_LIMIT', '1.5')),
-                'udp_colonizer_enabled': os.environ.get('GYROID_UDP_COLONIZER', '0') == '1'
+                'udp_colonizer_enabled': os.environ.get('GYROID_UDP_COLONIZER', '0') == '1',
+                'node_account': os.environ.get('GYROID_ACCOUNT', 'default'),
+                'security_salt_path': os.environ.get('GYROID_SALT_PATH', os.environ.get('GYROID_NODE_SECRET_PATH', ''))
             }
+
             
         print("\n" + "="*50)
         print("      GYROIDIC GOVERNANCE INTERFACE ")
@@ -455,8 +462,11 @@ class GovernanceManager:
             'chatgpt_ingestor_verbosity': 'normal',
             'open_science_ingestor_enabled': True,
             'open_science_ingestor_verbosity': 'normal',
-            'udp_colonizer_enabled': False
+            'udp_colonizer_enabled': False,
+            'node_account': os.environ.get('GYROID_ACCOUNT', 'default'),
+            'security_salt_path': os.environ.get('GYROID_SALT_PATH', os.environ.get('GYROID_NODE_SECRET_PATH', ''))
         }
+
 
         print("\n" + "="*50)
         print("      SYSTEM PARAMETER CONFIGURATION")
@@ -560,6 +570,16 @@ class GovernanceManager:
             fnp = get_input("[?] Locutus/Freenet WebSocket Port", str(config.get('freenet_ws_port', 3000)), "The port your local Freenet node uses for WebSocket.")
             try: config['freenet_ws_port'] = int(fnp)
             except: config['freenet_ws_port'] = 3000
+            
+            node_acc = get_input("[?] Sovereign Node Account Identifier", config.get('node_account', 'default'), "Account name for local operator under Option D nomadic architecture.")
+            config['node_account'] = node_acc or 'default'
+            os.environ['GYROID_ACCOUNT'] = config['node_account']
+
+            salt_loc = get_input("[?] Security Salt / Keyfile Path (Flashdrive e.g. E:\\node_salt.key or [Enter] for local data/.node_secret)", config.get('security_salt_path', ''), "Path to security salt for anti-poisoning HMAC topology.")
+            config['security_salt_path'] = salt_loc
+            if salt_loc:
+                os.environ['GYROID_SALT_PATH'] = salt_loc
+
             
         else:
             print("[INFO] Defaulting to all standard configuration values.")
@@ -2204,7 +2224,7 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         
         # Delegate specific paths to DiegeticRequestHandler
-        if parsed_path.path in ['/graph', '/health', '/api/minecraft/scan', '/conversational-gui', '/wikipedia-trainer', '/api/index_size', '/api/splats/scan', '/api/fs/drives', '/api/security/creator_status', '/api/security/status', '/api/tags', '/api/state'] or parsed_path.path.startswith('/api/freenet/'):
+        if parsed_path.path in ['/graph', '/health', '/api/minecraft/scan', '/conversational-gui', '/wikipedia-trainer', '/api/index_size', '/api/splats/scan', '/api/fs/drives', '/api/security/creator_status', '/api/security/status', '/api/tags', '/api/state'] or parsed_path.path.startswith('/api/freenet/') or parsed_path.path.startswith('/api/bonfire/'):
             from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
             DiegeticRequestHandler.do_GET(self)
             return
@@ -2330,7 +2350,7 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         
         # Delegate specific paths to DiegeticRequestHandler
-        if parsed_path.path in ['/api/minecraft/ingest', '/wikipedia-extract', '/api/test_resonance_link', '/api/tabby_complete', '/api/tabby_generate_training', '/api/run_sim', '/api/analyze_sim', '/api/fs/drives', '/api/security/creator_login', '/api/splats/ingest', '/api/convert_topology', '/api/rss/feeds', '/api/rss/ingest'] or parsed_path.path.startswith('/api/fs/'):
+        if parsed_path.path in ['/api/minecraft/ingest', '/wikipedia-extract', '/api/test_resonance_link', '/api/tabby_complete', '/api/tabby_generate_training', '/api/run_sim', '/api/analyze_sim', '/api/fs/drives', '/api/security/creator_login', '/api/splats/ingest', '/api/convert_topology', '/api/rss/feeds', '/api/rss/ingest'] or parsed_path.path.startswith('/api/fs/') or parsed_path.path.startswith('/api/bonfire/') or parsed_path.path.startswith('/api/freenet/'):
             from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
             DiegeticRequestHandler.do_POST(self)
             return
@@ -3273,6 +3293,36 @@ atexit.register(clean_exit_handler)
 def main():
     """Start the Gyroidic Backend with Governance and Persistence."""
     global AI_SYSTEM
+
+    # Parse command line flags for sovereign node accounts and external flashdrives
+    import argparse
+    parser = argparse.ArgumentParser(description="Gyroidic Sparse Covariance Flux Reasoner - Startup CLI")
+    parser.add_argument("-u", "--account", type=str, default=None,
+                        help="Node user account identifier (Option D nomadic sovereignty)")
+    parser.add_argument("-s", "--salt-path", "--keyfile", dest="salt_path", type=str, default=None,
+                        help="Path to external security salt / keyfile (e.g., USB flashdrive E:\\node_salt.key)")
+    parser.add_argument("-p", "--ports", type=str, default=None,
+                        help="Comma-separated list of ports to listen on (e.g. '8000,8080')")
+    parser.add_argument("--non-interactive", action="store_true", default=False,
+                        help="Run non-interactively without prompting")
+    parser.add_argument("--regime", type=str, default=None,
+                        help="Operational regime (goo, etc.)")
+    parser.add_argument("--check-updates", action="store_true", default=False,
+                        help="Check for remote updates before booting")
+
+    cli_args, _ = parser.parse_known_args()
+    if cli_args.non_interactive:
+        os.environ["NON_INTERACTIVE"] = "1"
+    if cli_args.account:
+        os.environ["GYROID_ACCOUNT"] = cli_args.account
+    if cli_args.salt_path:
+        os.environ["GYROID_SALT_PATH"] = cli_args.salt_path
+    if cli_args.ports:
+        os.environ["GYROID_PORTS"] = cli_args.ports
+    if cli_args.regime:
+        os.environ["GYROID_REGIME"] = cli_args.regime
+    if cli_args.check_updates:
+        os.environ["GYROID_CHECK_UPDATES"] = "1"
     
     # Ensure all python libraries in requirements.txt are installed into the active environment
     try:
@@ -3312,6 +3362,23 @@ def main():
     else:
         active_ports = startup_res
         config = {}
+    
+    # Report Option D sovereign node account and external security salt status
+    try:
+        from src.safety.hardware_fingerprint import get_active_node_account_info
+        account_info = get_active_node_account_info(
+            salt_path=config.get('security_salt_path'),
+            account=config.get('node_account')
+        )
+        print("\n[SECURITY] Sovereign Node Account Status (Option D):")
+        print(f"   • Account: {account_info['account']}")
+        print(f"   • Salt / Keyfile: {account_info['salt_path']}")
+        print(f"   • Storage Medium: {'External Removable Media / Flashdrive' if account_info['is_external_media'] else 'Local Node Vault'}")
+        print(f"   • Initialized: {'[OK]' if account_info['is_initialized'] else '[CREATING ON BOOT]'}")
+        print("   • Sole Creator Paradigm: [TOMBSTONED - Decentralized Nomadic Peer Model Active]")
+    except Exception as sec_e:
+        print(f"[SECURITY] Node account status check notice: {sec_e}")
+
     
     print("\n[START] Gyroidic Hybrid Backend (Sovereign Mode)")
     print("=" * 45)

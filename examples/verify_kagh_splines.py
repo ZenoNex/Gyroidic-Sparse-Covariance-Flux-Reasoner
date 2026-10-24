@@ -35,9 +35,9 @@ def verify_b_spline_properties():
     print(f"Basis Sum Variance: {center_variance:.6f}")
     
     if abs(center_mean - 1.0) < 0.1:
-        print("✅ Partition of Unity holds approximately.")
+        print("[OK] Partition of Unity holds approximately.")
     else:
-        print("⚠️ Partition of Unity deviation (expected at boundaries).")
+        print("[WARN] Partition of Unity deviation (expected at boundaries).")
 
     # 3. Test Quantization
     print("\n[Test 2] Saturated Quantization")
@@ -52,9 +52,9 @@ def verify_b_spline_properties():
     
     # Check that gradients exist
     if layer.spline_weight.grad is not None:
-        print("✅ Gradients flow through SaturatedQuantizer (STE working).")
+        print("[OK] Gradients flow through SaturatedQuantizer (STE working).")
     else:
-        print("❌ No gradients on spline_weight!")
+        print("[ERR] No gradients on spline_weight!")
         
     # Check if effective weights used were quantized?
     # We can invoke the quantizer manually to check logic
@@ -67,7 +67,7 @@ def verify_b_spline_properties():
     print("\n[Test 3] Forward Pass")
     y = layer(x)
     print(f"Output shape: {y.shape}")
-    print("✅ Forward pass successful.")
+    print("[OK] Forward pass successful.")
 
 if __name__ == "__main__":
     verify_b_spline_properties()

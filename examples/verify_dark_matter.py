@@ -37,9 +37,9 @@ def test_flux_alignment():
     print(f"  Violated Scaling: {scaling_violated.item():.4f}")
     
     if scaling_violated < scaling_clean:
-        print("  ✅ Trust-based Warping Active (Violation dampens functional trust)")
+        print("  [OK] Trust-based Warping Active (Violation dampens functional trust)")
     else:
-        print("  ❌ Trust-based Warping Failed")
+        print("  [ERR] Trust-based Warping Failed")
 
 def test_soliton_fusion():
     print("\n[2/3] Testing Ergodic Soliton Fusion (Implicit in HuxleyRD)...")
@@ -48,7 +48,7 @@ def test_soliton_fusion():
     x = torch.randn(1, 64)
     out = layer(x)
     print(f"  Fusion Output Shape: {out.shape}")
-    print("  ✅ Fusion Logic Executable")
+    print("  [OK] Fusion Logic Executable")
 
 
 def test_chiral_drift_optimizer():
@@ -63,7 +63,7 @@ def test_chiral_drift_optimizer():
 
     score = cdo.compute_score(c, drift_val, degree)
     print(f"  Computed Stabilizer Score: {score.item():.4f}")
-    print("  ✅ Chiral Drift Score contributes to Evolutionary Trust")
+    print("  [OK] Chiral Drift Score contributes to Evolutionary Trust")
 
 def main():
     test_flux_alignment()

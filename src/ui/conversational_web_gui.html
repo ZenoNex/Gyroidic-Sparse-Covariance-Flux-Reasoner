@@ -434,29 +434,29 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎭 Gyroidic Conversational API</h1>
+            <h1> Gyroidic Conversational API</h1>
             <p>Local-first training • Tabby ML integration • Real data ingestion</p>
         </div>
 
         <div class="tabs">
-            <button class="tab active" onclick="showTab('setup')">🔑 Setup</button>
-            <button class="tab" onclick="showTab('datasets')">📊 Datasets</button>
-            <button class="tab" onclick="showTab('ingestion')">📥 Ingest</button>
-            <button class="tab" onclick="showTab('training')">🚀 Training</button>
-            <button class="tab" onclick="showTab('tabby')">🐱 Tabby ML</button>
-            <button class="tab" onclick="showTab('chat')">💬 Chat</button>
+            <button class="tab active" onclick="showTab('setup')"> Setup</button>
+            <button class="tab" onclick="showTab('datasets')">[METRICS] Datasets</button>
+            <button class="tab" onclick="showTab('ingestion')"> Ingest</button>
+            <button class="tab" onclick="showTab('training')">[START] Training</button>
+            <button class="tab" onclick="showTab('tabby')"> Tabby ML</button>
+            <button class="tab" onclick="showTab('chat')"> Chat</button>
         </div>
 
         <!-- Setup Tab -->
         <div id="setup" class="tab-content active">
-            <h2>🔑 Connection Setup</h2>
+            <h2> Connection Setup</h2>
 
             <div class="mode-toggle">
                 <button class="mode-btn active" onclick="setMode('local')" id="mode-local">
-                    📁 Local Mode<br><small>No token needed — use data/raw/</small>
+                     Local Mode<br><small>No token needed — use data/raw/</small>
                 </button>
                 <button class="mode-btn" onclick="setMode('hf')" id="mode-hf">
-                    🤗 HuggingFace Mode<br><small>Requires API token</small>
+                     HuggingFace Mode<br><small>Requires API token</small>
                 </button>
             </div>
 
@@ -471,21 +471,21 @@
                     </div>
 
                     <div>
-                        <button class="btn" onclick="testToken()">🧪 Test Token</button>
-                        <button class="btn btn-secondary" onclick="saveToken()">💾 Save Token</button>
-                        <button class="btn btn-danger" onclick="clearToken()">🗑️ Clear Token</button>
+                        <button class="btn" onclick="testToken()">[TEST] Test Token</button>
+                        <button class="btn btn-secondary" onclick="saveToken()">[SAVE] Save Token</button>
+                        <button class="btn btn-danger" onclick="clearToken()">️ Clear Token</button>
                     </div>
                 </form>
             </div>
 
             <div id="local-setup">
-                <button class="btn btn-success" onclick="activateLocalMode()">✅ Activate Local Mode</button>
+                <button class="btn btn-success" onclick="activateLocalMode()">[OK] Activate Local Mode</button>
             </div>
 
             <div id="token-status" class="status info">Select a mode above to begin</div>
 
             <div class="instructions">
-                <h3>📋 Quick Start</h3>
+                <h3> Quick Start</h3>
                 <ol>
                     <li><strong>Local Mode (Recommended):</strong>
                         <ul>
@@ -514,27 +514,27 @@
 
         <!-- Dataset Access Tab -->
         <div id="datasets" class="tab-content">
-            <h2>📊 Dataset Access</h2>
+            <h2>[METRICS] Dataset Access</h2>
 
-            <button class="btn" onclick="refreshLocalDatasets()">🔄 Scan Local Datasets</button>
-            <button class="btn btn-secondary" onclick="refreshDatasetStatus()">🌐 Check Remote (HF)</button>
+            <button class="btn" onclick="refreshLocalDatasets()"> Scan Local Datasets</button>
+            <button class="btn btn-secondary" onclick="refreshDatasetStatus()"> Check Remote (HF)</button>
 
             <div id="local-datasets-section">
-                <h3 style="margin: 20px 0 10px;">📁 Local Datasets (data/raw/)</h3>
+                <h3 style="margin: 20px 0 10px;"> Local Datasets (data/raw/)</h3>
                 <div class="local-dataset-grid" id="local-dataset-grid">
                     <div class="status info">Click "Scan Local Datasets" to discover available data</div>
                 </div>
             </div>
 
             <div id="remote-datasets-section" style="display:none;">
-                <h3 style="margin: 20px 0 10px;">🌐 Remote Datasets (HuggingFace)</h3>
+                <h3 style="margin: 20px 0 10px;"> Remote Datasets (HuggingFace)</h3>
                 <div class="dataset-list">
                     <div class="dataset-item">
                         <h3>LMSYS Chat 1M</h3>
                         <p>Large-scale conversational dataset with human-AI interactions</p>
                         <span class="dataset-status restricted" id="lmsys-status">Agreement Required</span>
                         <div style="margin-top: 10px;">
-                            <a href="https://huggingface.co/datasets/lmsys/lmsys-chat-1m" target="_blank" class="btn">🌐
+                            <a href="https://huggingface.co/datasets/lmsys/lmsys-chat-1m" target="_blank" class="btn">
                                 Open Dataset Page</a>
                         </div>
                     </div>
@@ -545,7 +545,7 @@
                         <span class="dataset-status available" id="oasst-status">Available</span>
                         <div style="margin-top: 10px;">
                             <a href="https://huggingface.co/datasets/OpenAssistant/oasst2" target="_blank"
-                                class="btn">🌐 Open Dataset Page</a>
+                                class="btn"> Open Dataset Page</a>
                         </div>
                     </div>
 
@@ -555,7 +555,7 @@
                         <span class="dataset-status available" id="dialogpt-status">Available</span>
                         <div style="margin-top: 10px;">
                             <a href="https://huggingface.co/datasets/microsoft/DialoGPT-medium" target="_blank"
-                                class="btn">🌐 Open Dataset Page</a>
+                                class="btn"> Open Dataset Page</a>
                         </div>
                     </div>
                 </div>
@@ -564,7 +564,7 @@
 
         <!-- Data Ingestion Tab -->
         <div id="ingestion" class="tab-content">
-            <h2>📥 Data Ingestion</h2>
+            <h2> Data Ingestion</h2>
 
             <div class="form-group">
                 <label for="dataset-select">Select Dataset:</label>
@@ -584,7 +584,7 @@
                 </div>
             </div>
 
-            <button class="btn" onclick="startIngestion()" id="ingest-btn">📥 Start Ingestion</button>
+            <button class="btn" onclick="startIngestion()" id="ingest-btn"> Start Ingestion</button>
 
             <div class="progress-bar">
                 <div class="progress-fill" id="ingestion-progress"></div>
@@ -594,15 +594,15 @@
                 Select a source and click Start Ingestion.
 
                 Modes:
-                📁 Local: Reads from data/raw/ — no internet needed
-                🌐 Remote: Downloads from HuggingFace — requires token
+                 Local: Reads from data/raw/ — no internet needed
+                 Remote: Downloads from HuggingFace — requires token
 
                 Quality filtering is applied automatically (textbook filter).</div>
         </div>
 
         <!-- Training Tab -->
         <div id="training" class="tab-content">
-            <h2>🚀 Model Training</h2>
+            <h2>[START] Model Training</h2>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                 <div class="form-group">
@@ -617,11 +617,11 @@
             </div>
 
             <div>
-                <button class="btn" onclick="startTraining()" id="train-btn">🚀 Start Training</button>
+                <button class="btn" onclick="startTraining()" id="train-btn">[START] Start Training</button>
                 <button class="btn btn-danger" onclick="stopTraining()" id="stop-btn" disabled>⏹️ Stop
                     Training</button>
-                <button class="btn btn-secondary" onclick="saveModel()">💾 Save Model</button>
-                <button class="btn btn-secondary" onclick="loadModel()">📁 Load Model</button>
+                <button class="btn btn-secondary" onclick="saveModel()">[SAVE] Save Model</button>
+                <button class="btn btn-secondary" onclick="loadModel()"> Load Model</button>
             </div>
 
             <div class="progress-bar">
@@ -633,7 +633,7 @@
 
         <!-- Tabby ML Tab -->
         <div id="tabby" class="tab-content">
-            <h2>🐱 Tabby ML Integration</h2>
+            <h2> Tabby ML Integration</h2>
 
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
                 <div class="form-group">
@@ -652,9 +652,9 @@
             </div>
 
             <div style="margin: 15px 0;">
-                <button class="btn btn-tabby" onclick="testTabby()">🔌 Test Connection</button>
-                <button class="btn btn-tabby" onclick="tabbyComplete()">⚡ Test Completion</button>
-                <button class="btn btn-tabby" onclick="tabbyGenerate()">🎓 Generate Training Sample</button>
+                <button class="btn btn-tabby" onclick="testTabby()"> Test Connection</button>
+                <button class="btn btn-tabby" onclick="tabbyComplete()">[POWER] Test Completion</button>
+                <button class="btn btn-tabby" onclick="tabbyGenerate()"> Generate Training Sample</button>
             </div>
 
             <div class="form-group">
@@ -667,20 +667,20 @@
             <div class="log-area" id="tabby-log">Tabby ML Integration
 
                 Connect to a local Tabby ML instance for:
-                ⚡ Code completion
-                🎓 Synthetic training sample generation
-                💬 Chat completions
+                [POWER] Code completion
+                 Synthetic training sample generation
+                 Chat completions
 
                 Configure host:port above and click Test Connection.</div>
         </div>
 
         <!-- Live Chat Tab -->
         <div id="chat" class="tab-content">
-            <h2>💬 Live Conversational Interface</h2>
+            <h2> Live Conversational Interface</h2>
 
             <div class="chat-area" id="chat-area">
                 <div class="chat-message assistant">
-                    <strong>🤖 Assistant:</strong> Hello! I'm ready to chat using the trained conversational model. The
+                    <strong> Assistant:</strong> Hello! I'm ready to chat using the trained conversational model. The
                     system includes affordance gradient detection, PAS_h computation, and temporal association learning.
                 </div>
             </div>
@@ -765,7 +765,7 @@
         function activateLocalMode() {
             const statusDiv = document.getElementById('token-status');
             statusDiv.className = 'status info';
-            statusDiv.textContent = '🔄 Activating local mode...';
+            statusDiv.textContent = ' Activating local mode...';
 
             // Test with LOCAL_MODE pseudo-token
             fetch('/api/test_token', {
@@ -777,7 +777,7 @@
                 .then(data => {
                     if (data.success) {
                         statusDiv.className = 'status success';
-                        statusDiv.textContent = `✅ ${data.message}`;
+                        statusDiv.textContent = `[OK] ${data.message}`;
                         currentToken = 'LOCAL_MODE';
                         conversations = true;
                         model = true;  // Local mode allows immediate chat
@@ -785,12 +785,12 @@
                         refreshLocalDatasets();
                     } else {
                         statusDiv.className = 'status error';
-                        statusDiv.textContent = `❌ ${data.message}`;
+                        statusDiv.textContent = `[ERR] ${data.message}`;
                     }
                 })
                 .catch(err => {
                     statusDiv.className = 'status error';
-                    statusDiv.textContent = `❌ Backend not running: ${err.message}`;
+                    statusDiv.textContent = `[ERR] Backend not running: ${err.message}`;
                 });
         }
 
@@ -809,12 +809,12 @@
 
             if (!token) {
                 statusDiv.className = 'status error';
-                statusDiv.textContent = '❌ No token entered';
+                statusDiv.textContent = '[ERR] No token entered';
                 return;
             }
 
             statusDiv.className = 'status info';
-            statusDiv.textContent = '🔄 Testing token with Hugging Face API...';
+            statusDiv.textContent = ' Testing token with Hugging Face API...';
 
             currentToken = token;
 
@@ -827,20 +827,20 @@
                 .then(data => {
                     if (data.success) {
                         statusDiv.className = 'status success';
-                        statusDiv.textContent = `✅ Token valid! Connected as: ${data.username}`;
+                        statusDiv.textContent = `[OK] Token valid! Connected as: ${data.username}`;
                         currentToken = token;
                         localStorage.setItem('hf_token', token);
                         conversations = true;
                         document.getElementById('remote-datasets-section').style.display = 'block';
                     } else {
                         statusDiv.className = 'status error';
-                        statusDiv.textContent = `❌ Verification failed: ${data.message}`;
+                        statusDiv.textContent = `[ERR] Verification failed: ${data.message}`;
                         currentToken = null;
                     }
                 })
                 .catch(err => {
                     statusDiv.className = 'status error';
-                    statusDiv.textContent = `❌ Connection error: ${err.message}. Is the backend running?`;
+                    statusDiv.textContent = `[ERR] Connection error: ${err.message}. Is the backend running?`;
                 });
         }
 
@@ -867,7 +867,7 @@
         // ================================================================
         function refreshLocalDatasets() {
             const grid = document.getElementById('local-dataset-grid');
-            grid.innerHTML = '<div class="status info">🔄 Scanning data/raw/...</div>';
+            grid.innerHTML = '<div class="status info"> Scanning data/raw/...</div>';
 
             fetch('/api/local_datasets')
                 .then(r => r.json())
@@ -877,11 +877,11 @@
                         renderLocalDatasets(localDatasets);
                         populateIngestionDropdown(localDatasets);
                     } else {
-                        grid.innerHTML = '<div class="status error">❌ Failed to scan datasets</div>';
+                        grid.innerHTML = '<div class="status error">[ERR] Failed to scan datasets</div>';
                     }
                 })
                 .catch(err => {
-                    grid.innerHTML = `<div class="status error">❌ Backend error: ${err.message}</div>`;
+                    grid.innerHTML = `<div class="status error">[ERR] Backend error: ${err.message}</div>`;
                 });
         }
 
@@ -898,7 +898,7 @@
                 const ds = datasets[name];
                 return `
                     <div class="local-ds" onclick="selectDataset('${name}')">
-                        <h4>📁 ${name}</h4>
+                        <h4> ${name}</h4>
                         <p style="font-size: 13px; color: #666; margin: 5px 0;">${ds.description || ''}</p>
                         <div class="ds-meta">
                             ${ds.file_count} files • ${ds.total_size_mb} MB • ${ds.format}
@@ -915,7 +915,7 @@
             Object.keys(datasets).forEach(name => {
                 const opt = document.createElement('option');
                 opt.value = name;
-                opt.textContent = `📁 ${name} (${datasets[name].total_size_mb} MB)`;
+                opt.textContent = ` ${name} (${datasets[name].total_size_mb} MB)`;
                 select.appendChild(opt);
             });
 
@@ -924,7 +924,7 @@
                 ['lmsys/lmsys-chat-1m', 'OpenAssistant/oasst2', 'microsoft/DialoGPT-medium'].forEach(name => {
                     const opt = document.createElement('option');
                     opt.value = name;
-                    opt.textContent = `🌐 ${name}`;
+                    opt.textContent = ` ${name}`;
                     select.appendChild(opt);
                 });
             }
@@ -974,7 +974,7 @@
             const ingestBtn = document.getElementById('ingest-btn');
 
             ingestBtn.disabled = true;
-            logArea.textContent = `🔄 Starting ingestion of ${dataset}...\n`;
+            logArea.textContent = ` Starting ingestion of ${dataset}...\n`;
             progressBar.style.width = '20%';
 
             fetch('/api/ingest_local', {
@@ -990,36 +990,36 @@
                 .then(data => {
                     progressBar.style.width = '100%';
                     if (data.success) {
-                        logArea.textContent += `✅ Ingestion Complete!\n\n`;
+                        logArea.textContent += `[OK] Ingestion Complete!\n\n`;
                         logArea.textContent += `Dataset: ${data.dataset}\n`;
                         logArea.textContent += `Samples loaded: ${data.samples_loaded}\n`;
 
                         if (data.quality_stats) {
                             const qs = data.quality_stats;
-                            logArea.textContent += `\n📊 Quality Stats:\n`;
+                            logArea.textContent += `\n[METRICS] Quality Stats:\n`;
                             logArea.textContent += `  Total assessed: ${qs.count}\n`;
                             logArea.textContent += `  Passing: ${qs.passing} (${(qs.pass_rate * 100).toFixed(1)}%)\n`;
                             logArea.textContent += `  Mean score: ${qs.mean_score}\n`;
                             logArea.textContent += `  Range: ${qs.min_score} — ${qs.max_score}\n`;
 
                             if (qs.flag_counts && Object.keys(qs.flag_counts).length > 0) {
-                                logArea.textContent += `\n⚠️ Flags:\n`;
+                                logArea.textContent += `\n[WARN] Flags:\n`;
                                 Object.entries(qs.flag_counts).forEach(([flag, count]) => {
                                     logArea.textContent += `  ${flag}: ${count}\n`;
                                 });
                             }
                         }
 
-                        logArea.textContent += `\n🎯 Ready for training!\n`;
+                        logArea.textContent += `\n[GOAL] Ready for training!\n`;
                         conversations = true;
                     } else {
-                        logArea.textContent += `❌ Ingestion failed: ${data.error || 'Unknown error'}\n`;
+                        logArea.textContent += `[ERR] Ingestion failed: ${data.error || 'Unknown error'}\n`;
                     }
                     ingestBtn.disabled = false;
                 })
                 .catch(err => {
                     progressBar.style.width = '0%';
-                    logArea.textContent += `❌ Error: ${err.message}\n`;
+                    logArea.textContent += `[ERR] Error: ${err.message}\n`;
                     ingestBtn.disabled = false;
                 });
         }
@@ -1039,7 +1039,7 @@
             trainBtn.disabled = true;
             stopBtn.disabled = false;
 
-            logArea.textContent = `🚀 Starting training: ${epochs} epochs...\n`;
+            logArea.textContent = `[START] Starting training: ${epochs} epochs...\n`;
 
             function trainingLoop() {
                 if (!trainingActive) return;
@@ -1062,7 +1062,7 @@
                             setTimeout(trainingLoop, 1000);
                         } else {
                             if (data.results && data.results.success) {
-                                logArea.textContent += `✅ Training completed successfully!\n`;
+                                logArea.textContent += `[OK] Training completed successfully!\n`;
                                 model = true;
                             } else {
                                 logArea.textContent += `⏹️ Training stopped or finished.\n`;
@@ -1073,7 +1073,7 @@
                         }
                     })
                     .catch(err => {
-                        logArea.textContent += `⚠️ Status poll error: ${err}\n`;
+                        logArea.textContent += `[WARN] Status poll error: ${err}\n`;
                         setTimeout(trainingLoop, 2000);
                     });
             }
@@ -1089,14 +1089,14 @@
                     if (data.success) {
                         trainingLoop();
                     } else {
-                        logArea.textContent += `❌ Failed to start: ${data.message}\n`;
+                        logArea.textContent += `[ERR] Failed to start: ${data.message}\n`;
                         trainingActive = false;
                         trainBtn.disabled = false;
                         stopBtn.disabled = true;
                     }
                 })
                 .catch(err => {
-                    logArea.textContent += `❌ Connection error: ${err}\n`;
+                    logArea.textContent += `[ERR] Connection error: ${err}\n`;
                     trainingActive = false;
                     trainBtn.disabled = false;
                     stopBtn.disabled = true;
@@ -1135,7 +1135,7 @@
             const dot = document.getElementById('tabby-dot');
             const statusText = document.getElementById('tabby-status-text');
 
-            logArea.textContent += `\n🔌 Testing connection to ${host}:${port}...\n`;
+            logArea.textContent += `\n Testing connection to ${host}:${port}...\n`;
 
             fetch('/api/tabby_test', {
                 method: 'POST',
@@ -1147,20 +1147,20 @@
                     if (data.connected) {
                         dot.classList.add('connected');
                         statusText.textContent = `Connected to ${host}:${port}`;
-                        logArea.textContent += `✅ ${data.message}\n`;
+                        logArea.textContent += `[OK] ${data.message}\n`;
                         if (data.server_info) {
                             logArea.textContent += `Server info: ${JSON.stringify(data.server_info, null, 2)}\n`;
                         }
                     } else {
                         dot.classList.remove('connected');
                         statusText.textContent = 'Not connected';
-                        logArea.textContent += `❌ ${data.message}\n`;
+                        logArea.textContent += `[ERR] ${data.message}\n`;
                     }
                 })
                 .catch(err => {
                     dot.classList.remove('connected');
                     statusText.textContent = 'Connection failed';
-                    logArea.textContent += `❌ Error: ${err.message}\n`;
+                    logArea.textContent += `[ERR] Error: ${err.message}\n`;
                 });
         }
 
@@ -1168,7 +1168,7 @@
             const prompt = document.getElementById('tabby-prompt').value;
             const logArea = document.getElementById('tabby-log');
 
-            logArea.textContent += `\n⚡ Requesting completion...\n`;
+            logArea.textContent += `\n[POWER] Requesting completion...\n`;
 
             fetch('/api/tabby_complete', {
                 method: 'POST',
@@ -1178,14 +1178,14 @@
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        logArea.textContent += `✅ Completion:\n${data.text}\n`;
+                        logArea.textContent += `[OK] Completion:\n${data.text}\n`;
                         if (data.model) logArea.textContent += `Model: ${data.model}\n`;
                     } else {
-                        logArea.textContent += `❌ ${data.error}\n`;
+                        logArea.textContent += `[ERR] ${data.error}\n`;
                     }
                 })
                 .catch(err => {
-                    logArea.textContent += `❌ Error: ${err.message}\n`;
+                    logArea.textContent += `[ERR] Error: ${err.message}\n`;
                 });
         }
 
@@ -1195,7 +1195,7 @@
                 'sorting algorithms', 'hash tables', 'recursion', 'tree structures'];
             const topic = topics[Math.floor(Math.random() * topics.length)];
 
-            logArea.textContent += `\n🎓 Generating training sample: "${topic}"...\n`;
+            logArea.textContent += `\n Generating training sample: "${topic}"...\n`;
 
             fetch('/api/tabby_generate_training', {
                 method: 'POST',
@@ -1205,15 +1205,15 @@
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        logArea.textContent += `✅ Generated sample (${data.text.length} chars):\n`;
+                        logArea.textContent += `[OK] Generated sample (${data.text.length} chars):\n`;
                         logArea.textContent += `${data.text.substring(0, 500)}...\n`;
                         logArea.textContent += `\n[Sample ingested into training pipeline]\n`;
                     } else {
-                        logArea.textContent += `❌ ${data.error}\n`;
+                        logArea.textContent += `[ERR] ${data.error}\n`;
                     }
                 })
                 .catch(err => {
-                    logArea.textContent += `❌ Error: ${err.message}\n`;
+                    logArea.textContent += `[ERR] Error: ${err.message}\n`;
                 });
         }
 
@@ -1249,7 +1249,7 @@
                     if (data.response) {
                         const assistantDiv = document.createElement('div');
                         assistantDiv.className = 'chat-message assistant';
-                        assistantDiv.innerHTML = `<strong>🤖 Assistant:</strong> ${data.response}`;
+                        assistantDiv.innerHTML = `<strong> Assistant:</strong> ${data.response}`;
                         chatArea.appendChild(assistantDiv);
                         chatArea.scrollTop = chatArea.scrollHeight;
                     }

@@ -1,7 +1,7 @@
 """
 Invariant Optimization and Lexicographical Hierarchy.
 
-This module enforces "The Semiotic Hierarchy" — a mathematical logic 
+This module enforces "The Semiotic Hierarchy"  a mathematical logic 
 shielding System 2 by assigning Invariant Admissibility as the primary index,
 and System 1's heuristic speed (the "Horse") as the secondary index. 
 

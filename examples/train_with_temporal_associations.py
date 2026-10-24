@@ -34,7 +34,7 @@ def run_temporal_association_training():
     """Run temporal association training session."""
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
-    print(f"🧠 Temporal Association Training")
+    print(f"[BRAIN] Temporal Association Training")
     print(f"Device: {device}")
     print("=" * 50)
     
@@ -74,13 +74,13 @@ def run_temporal_association_training():
         'fossilization_threshold': 0.85,
     }
     
-    print("📊 Configuration:")
+    print("[METRICS] Configuration:")
     print(f"  Model: {model_config['num_functionals']} functionals, {model_config['hidden_dim']} hidden dim")
     print(f"  Dataset: {dataset_config['num_concepts']} concepts, {dataset_config['sequence_length']} seq length")
     print(f"  Training: {training_config['learning_rate']} lr, {training_config['fossilization_threshold']} fossilization threshold")
     
     # Create training session
-    print("\n🏗️ Creating training session...")
+    print("\n[BUILD] Creating training session...")
     trainer = create_training_session(
         model_config=model_config,
         dataset_config=dataset_config,
@@ -88,18 +88,18 @@ def run_temporal_association_training():
         device=device
     )
     
-    print(f"✅ Training session created")
+    print(f"[OK] Training session created")
     print(f"   Model parameters: {sum(p.numel() for p in trainer.model.parameters()):,}")
     print(f"   Trainable parameters: {sum(p.numel() for p in trainer.model.parameters() if p.requires_grad):,}")
     
     # Initial state
-    print(f"\n📈 Initial State:")
+    print(f"\n Initial State:")
     print(f"   Trust scalars: {trainer.model.trust_scalars}")
     print(f"   Mean trust: {trainer.model.trust_scalars.mean():.3f}")
     print(f"   Fossilized functionals: {(trainer.model.trust_scalars > trainer.fossilization_threshold).sum().item()}")
     
     # Test with sample data
-    print(f"\n🧪 Testing with sample data...")
+    print(f"\n[TEST] Testing with sample data...")
     sample_batch = trainer.dataset.get_temporal_sequence(batch_size=2)
     print(f"   Sample sequences shape: {sample_batch['sequences'].shape}")
     print(f"   Sample associations shape: {sample_batch['associations'].shape}")
@@ -118,20 +118,20 @@ def run_temporal_association_training():
     num_epochs = 5
     batches_per_epoch = 50
     
-    print(f"\n🚀 Starting training: {num_epochs} epochs, {batches_per_epoch} batches each")
+    print(f"\n[START] Starting training: {num_epochs} epochs, {batches_per_epoch} batches each")
     print("-" * 60)
     
     training_results = []
     
     for epoch in range(num_epochs):
-        print(f"\n📚 Epoch {epoch + 1}/{num_epochs}")
+        print(f"\n[DOCS] Epoch {epoch + 1}/{num_epochs}")
         
         # Train epoch
         epoch_metrics = trainer.train_epoch(num_batches=batches_per_epoch)
         training_results.append(epoch_metrics)
         
         # Print epoch summary
-        print(f"\n📊 Epoch {epoch + 1} Summary:")
+        print(f"\n[METRICS] Epoch {epoch + 1} Summary:")
         print(f"   Association Accuracy: {epoch_metrics['association_accuracy']:.3f}")
         print(f"   Temporal Coherence: {epoch_metrics['temporal_coherence']:.3f}")
         print(f"   Survivorship Pressure: {epoch_metrics['survivorship_pressure']:.3f}")
@@ -143,7 +143,7 @@ def run_temporal_association_training():
         print(f"   Trust Scalars: {[f'{t:.3f}' for t in current_trust.tolist()]}")
         
         # Test repair system after each epoch
-        print(f"\n🔧 Testing repair system after epoch {epoch + 1}:")
+        print(f"\n Testing repair system after epoch {epoch + 1}:")
         test_garbled_text = "nccmtsmneltcclrclcnl"
         
         # Get repair diagnostics from last training step
@@ -163,7 +163,7 @@ def run_temporal_association_training():
                 print(f"   Fossilized gates: {soft_gates_diag.get('num_fossilized', 'N/A')}")
     
     # Final analysis
-    print(f"\n🎯 Training Complete!")
+    print(f"\n[GOAL] Training Complete!")
     print("=" * 50)
     
     final_trust = trainer.model.trust_scalars
@@ -173,14 +173,14 @@ def run_temporal_association_training():
     print(f"Fossilized Functionals: {(final_trust > trainer.fossilization_threshold).sum().item()}/{len(final_trust)}")
     
     # Show training progression
-    print(f"\n📈 Training Progression:")
+    print(f"\n Training Progression:")
     for i, result in enumerate(training_results):
         print(f"   Epoch {i+1}: Assoc={result['association_accuracy']:.3f}, "
               f"Coherence={result['temporal_coherence']:.3f}, "
               f"Fossilized={result['final_num_fossilized']}")
     
     # Test final system with various inputs
-    print(f"\n🧪 Final System Test:")
+    print(f"\n[TEST] Final System Test:")
     test_inputs = [
         "nccmtsmneltcclrclcnl,tncsectsead",  # Original garbled
         "hello world this is a test",         # Normal text
@@ -208,7 +208,7 @@ def run_temporal_association_training():
     save_path = "temporal_training_state.pt"
     trainer.save_training_state(save_path)
     
-    print(f"\n💾 Training state saved to {save_path}")
+    print(f"\n[SAVE] Training state saved to {save_path}")
     print(f"   You can resume training by loading this state")
     
     # Save training results
@@ -233,7 +233,7 @@ def run_temporal_association_training():
             'training_config': training_config
         }, f, indent=2)
     
-    print(f"📊 Training results saved to {results_path}")
+    print(f"[METRICS] Training results saved to {results_path}")
     
     return trainer, training_results
 
@@ -241,7 +241,7 @@ def run_temporal_association_training():
 def demonstrate_temporal_patterns():
     """Demonstrate the temporal patterns the system learns."""
     
-    print(f"\n🔍 Demonstrating Temporal Patterns")
+    print(f"\n Demonstrating Temporal Patterns")
     print("=" * 40)
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu' if torch.cuda.is_available() else 'cpu'
@@ -266,7 +266,7 @@ def demonstrate_temporal_patterns():
 
 
 if __name__ == "__main__":
-    print("🧠 Gyroidic Flux Reasoner - Temporal Association Training")
+    print("[BRAIN] Gyroidic Flux Reasoner - Temporal Association Training")
     print("This script trains the repaired system with temporal data and associations")
     print("=" * 70)
     
@@ -277,7 +277,7 @@ if __name__ == "__main__":
         # Run main training
         trainer, results = run_temporal_association_training()
         
-        print(f"\n✅ Training completed successfully!")
+        print(f"\n[OK] Training completed successfully!")
         print(f"The system now has:")
         print(f"• Temporal association memory")
         print(f"• Evolved trust scalars")
@@ -291,6 +291,6 @@ if __name__ == "__main__":
         print(f"• Monitor fossilization and trust evolution")
         
     except Exception as e:
-        print(f"\n❌ Training failed with error: {e}")
+        print(f"\n[ERR] Training failed with error: {e}")
         import traceback
         traceback.print_exc()

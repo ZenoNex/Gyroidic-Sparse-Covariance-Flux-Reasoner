@@ -45,15 +45,15 @@ if __name__ == "__main__":
     print("Running Non-Scalarization Verifications...")
     try:
         test_domain_isolation()
-        print("  ✅ Domain Isolation Confirmed.")
+        print("  [OK] Domain Isolation Confirmed.")
         test_same_domain_summation()
-        print("  ✅ Same-Domain Summation Confirmed.")
+        print("  [OK] Same-Domain Summation Confirmed.")
         test_scalar_weighting()
-        print("  ✅ Scalar Weighting Confirmed.")
+        print("  [OK] Scalar Weighting Confirmed.")
         test_pytorch_compatibility()
-        print("  ✅ PyTorch Compatibility Confirmed.")
+        print("  [OK] PyTorch Compatibility Confirmed.")
     except Exception as e:
-        print(f"  ❌ Verification Failed: {e}")
+        print(f"  [ERR] Verification Failed: {e}")
         exit(1)
     
     print("\nLogic Hardening: Structural Tripwires are ACTIVE.")

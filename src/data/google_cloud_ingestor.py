@@ -39,7 +39,7 @@ class GoogleCloudIngestor:
         Returns:
             conversations: List of conversations derived from rows.
         """
-        print(f"📊 Running Sovereign Query on BigQuery manifold...")
+        print(f"[METRICS] Running Sovereign Query on BigQuery manifold...")
         body = {'query': query, 'useLegacySql': False}
         
         try:
@@ -73,7 +73,7 @@ class GoogleCloudIngestor:
             
             return conversations
         except Exception as e:
-            print(f"❌ BigQuery Ingestion failed: {e}")
+            print(f"[ERR] BigQuery Ingestion failed: {e}")
             return []
 
     def list_gcs_objects(self, bucket_name: str, prefix: str = '') -> List[str]:
@@ -91,7 +91,7 @@ class GoogleCloudIngestor:
         """
         Download a GCS blob and process its content.
         """
-        print(f"☁️ Ingesting GCS Blob: {object_name}...")
+        print(f"️ Ingesting GCS Blob: {object_name}...")
         try:
             request = self.gcs_service.objects().get_media(
                 bucket=bucket_name,
@@ -102,5 +102,5 @@ class GoogleCloudIngestor:
             # Logic to parse the content based on suffix (similar to DriveIngestor)
             return []
         except Exception as e:
-            print(f"❌ GCS Ingestion failed for {object_name}: {e}")
+            print(f"[ERR] GCS Ingestion failed for {object_name}: {e}")
             return []

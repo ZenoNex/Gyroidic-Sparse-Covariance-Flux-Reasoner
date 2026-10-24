@@ -33,7 +33,6 @@ import torch.nn.functional as F
 import numpy as np
 import math
 from typing import Dict, List, Tuple, Optional, Any
-import random
 from dataclasses import dataclass
 import json
 from pathlib import Path
@@ -90,7 +89,10 @@ class NonLobotomyTemporalModel(nn.Module):
         ])
         
         # Bimodal Routing (Hard/Soft genome) - evolutionary selection
-        self.register_buffer('bimodal_genome', torch.randint(0, 2, (self.K,), device=device))
+        # SILICON SOVEREIGNTY: Replaced torch.randint with Honest Jitter derivation
+        from src.core.honest_jitter import harvest_honest_jitter
+        initial_genome = (harvest_honest_jitter((self.K,), device=device, scaled=False) > 0.0).long()
+        self.register_buffer('bimodal_genome', initial_genome)
         
         # Saturated Polynomial Gates
         self.saturated_gates = nn.ModuleList([

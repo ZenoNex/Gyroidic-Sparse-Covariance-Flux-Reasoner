@@ -11,8 +11,8 @@ structural features that live on the polytope boundary while discarding
 noise in non-structural directions.
 
 References:
-    - ai project report_2-2-2026.txt §"Feature Preservation"
-    - VETO_SUBSPACE_ARCHITECTURE.md §5 (BoundaryState)
+    - ai project report_2-2-2026.txt "Feature Preservation"
+    - VETO_SUBSPACE_ARCHITECTURE.md 5 (BoundaryState)
     - SYSTEM_ARCHITECTURE.md (Matrioshka shell dynamics)
 """
 
@@ -25,7 +25,7 @@ from src.core.honest_jitter import harvest_honest_jitter
 
 class FeaturePreservationProjection(nn.Module):
     """
-    F^(d)_active = Q_Δ(∂^d x / ∂f_i^d)  for i ∈ active_facets
+    F^(d)_active = Q_(^d x / f_i^d)  for i  active_facets
     
     Computes quantized directional derivatives along active polytope facets.
     
@@ -33,10 +33,10 @@ class FeaturePreservationProjection(nn.Module):
         1. Compute facet normal directions from learnable facet embeddings
         2. Project state onto each active facet normal
         3. Compute d-th order finite differences along projected directions
-        4. Quantize: round(deriv / Δ) * Δ with context-dependent step sizes
+        4. Quantize: round(deriv / ) *  with context-dependent step sizes
         
-    Features on active facets are preserved (high resolution / small Δ).
-    Features on inactive facets are coarsened (large Δ) or dropped entirely.
+    Features on active facets are preserved (high resolution / small ).
+    Features on inactive facets are coarsened (large ) or dropped entirely.
     """
     
     def __init__(
@@ -68,7 +68,7 @@ class FeaturePreservationProjection(nn.Module):
             F.normalize(harvest_honest_jitter((num_facets, dim), scaled=True), dim=-1)
         )
         
-        # Per-facet trust scores: high trust → small delta → preserved features
+        # Per-facet trust scores: high trust  small delta  preserved features
         self.register_buffer('facet_trust', torch.ones(num_facets) * 0.5)
         
         # Derivative kernels per order (finite difference stencils)
@@ -83,10 +83,10 @@ class FeaturePreservationProjection(nn.Module):
         """
         Context-dependent quantization step size.
         
-        Δ_i = Δ_min + (Δ_max - Δ_min) * (1 - trust_i)
+        _i = _min + (_max - _min) * (1 - trust_i)
         
-        High trust → small Δ → fine resolution (features preserved)
-        Low trust → large Δ → coarse resolution (noise suppressed)
+        High trust  small   fine resolution (features preserved)
+        Low trust  large   coarse resolution (noise suppressed)
         """
         trust = self.facet_trust[facet_idx].item()
         return self.delta_min + (self.delta_max - self.delta_min) * (1.0 - trust)
@@ -120,7 +120,7 @@ class FeaturePreservationProjection(nn.Module):
         Compute d-th order directional derivative along facet normal.
         
         Uses central finite differences:
-            ∂^d f / ∂n^d ≈ Σ_k stencil[k] * f(x + k*h*n) / h^d
+            ^d f / n^d  _k stencil[k] * f(x + k*h*n) / h^d
         
         Args:
             x: [batch, dim] state vectors
@@ -151,7 +151,7 @@ class FeaturePreservationProjection(nn.Module):
     
     def quantize(self, value: torch.Tensor, delta: float) -> torch.Tensor:
         """
-        Context-aware quantization: Q_Δ(v) = round(v / Δ) * Δ
+        Context-aware quantization: Q_(v) = round(v / ) * 
         """
         return torch.round(value / delta) * delta
     
@@ -225,8 +225,8 @@ class FeaturePreservationProjection(nn.Module):
         """
         Update facet trust based on stability feedback.
         
-        Stable facets gain trust (→ finer quantization, better preservation).
-        All facets decay slowly (→ trust must be continuously earned).
+        Stable facets gain trust ( finer quantization, better preservation).
+        All facets decay slowly ( trust must be continuously earned).
         """
         with torch.no_grad():
             # Decay all

@@ -70,7 +70,7 @@ class GoogleDriveIngestor:
         while not done:
             status, done = downloader.next_chunk()
             if status:
-                print(f"📥 Download progressed {int(status.progress() * 100)}%")
+                print(f" Download progressed {int(status.progress() * 100)}%")
         
         return fh.getvalue()
 
@@ -85,7 +85,7 @@ class GoogleDriveIngestor:
         Returns:
             conversations: List of parsed conversations.
         """
-        print(f"📄 Ingesting Cloud Shard: {file_name}...")
+        print(f" Ingesting Cloud Shard: {file_name}...")
         raw_bytes = self.download_file_to_bytes(file_id)
         
         # Determine parsing strategy by file extension
@@ -102,7 +102,7 @@ class GoogleDriveIngestor:
                 # (Logic to convert text blocks to Conversation turns)
                 return []
         except Exception as e:
-            print(f"❌ Failed to parse Drive shard {file_name}: {e}")
+            print(f"[ERR] Failed to parse Drive shard {file_name}: {e}")
             
         return []
 
@@ -121,7 +121,7 @@ class GoogleDriveIngestor:
         folders = results.get('files', [])
         
         if not folders:
-            print(f"⚠️ Cloud Folder '{folder_name}' not found.")
+            print(f"[WARN] Cloud Folder '{folder_name}' not found.")
             return []
             
         folder_id = folders[0]['id']
