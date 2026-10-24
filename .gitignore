@@ -4,13 +4,27 @@ env/
 venv/
 ENV/
 
-# Data and Encodings (Large Hazard Directories)
+# Data, Datasets, and Encodings (Large Hazard Directories)
 data/
+datasets/
+wikipedia extracter/
 test_raw_data/
 test_storage/
+recovered_files/
+node_modules/
 tmp/
 .pytest_cache/
 .coverage
+.zk_proofs/
+
+# Large model checkpoints and weights
+*.pt
+*.pth
+*.bin
+*.h5
+*.hdf5
+*.safetensors
+*.onnx
 
 # Python bytecode and caches
 __pycache__/
