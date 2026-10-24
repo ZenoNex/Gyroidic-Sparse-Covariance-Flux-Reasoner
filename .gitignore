@@ -52,3 +52,13 @@ Thumbs.db
 *.7z
 *.tar*
 
+# Secrets, API Keys, and Credentials (Strictly Excluded)
+*secret*
+*Secret*
+*credential*
+*Credential*
+*.key
+*.pem
+google secret/
+
+
