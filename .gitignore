@@ -62,3 +62,6 @@ Thumbs.db
 google secret/
 
 
+
+# Agent configurations and rules (Excluded)
+.agents/
