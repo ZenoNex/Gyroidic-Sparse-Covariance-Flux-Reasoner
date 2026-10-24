@@ -758,6 +758,39 @@ class SparseExplorerRouting(nn.Module):
             'total_restarts': total_restarts
         }
 
+    def trace_streamlines_chromata(
+        self,
+        hidden_states: torch.Tensor,
+        violation_indices: torch.Tensor,
+        step_size: float = 0.4
+    ) -> List[List[Tuple[float, float, float]]]:
+        """
+        Cleanroom Chromata Streamline Path-Finder Explorer.
+        Deploys autonomous vector walkers across 3D projection of latent violation states.
+        Walkers follow local gradient flow lines and apply saturation avoidance to discover
+        topological manifolds without brute-force random walking.
+        """
+        from src.environment.cleanroom_mechanics import ChromataStreamlineTracer
+        tracer = ChromataStreamlineTracer(num_agents=len(violation_indices), max_steps=self.walk_length, step_size=step_size)
+
+        # Project high-dim states to 3D via first 3 principal coordinates
+        sub_states = hidden_states[violation_indices] if len(violation_indices) > 0 else hidden_states[:1]
+        seeds = []
+        for i in range(sub_states.shape[0]):
+            vec = sub_states[i, :3].tolist() if sub_states.shape[-1] >= 3 else [0.0, 0.0, 0.0]
+            seeds.append((float(vec[0]), float(vec[1]), float(vec[2])))
+
+        # Local gradient function: attraction to low-norm / low-violation manifold
+        def local_grad(pos: Tuple[float, float, float]) -> Tuple[float, float, float]:
+            x, y, z = pos
+            # Gyroid-inspired gradient: dG/dx, dG/dy, dG/dz
+            dg_dx = math.cos(x) * math.cos(y) - math.sin(z) * math.sin(x)
+            dg_dy = math.cos(y) * math.cos(z) - math.sin(x) * math.sin(y)
+            dg_dz = math.cos(z) * math.cos(x) - math.sin(y) * math.sin(z)
+            return (dg_dx, dg_dy, dg_dz)
+
+        return tracer.trace_field(seeds, local_grad)
+
 
 class GyroidCovarianceEstimator(nn.Module):
     """

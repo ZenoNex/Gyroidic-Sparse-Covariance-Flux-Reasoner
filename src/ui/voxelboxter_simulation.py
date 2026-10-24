@@ -2211,8 +2211,28 @@ class VoxelboxterEngine:
         self.spectral_speculation = SpectralSpeculationEngine(epsilon=0.15)
 
         # Modular Weapon Bayesian Network & D-Wave Annealing Arbitration
-        from src.environment.cleanroom_mechanics import ModularWeaponBayesianNetwork
+        from src.environment.cleanroom_mechanics import (
+            ModularWeaponBayesianNetwork,
+            PurgatoryBufferMap,
+            CausalityClock50Hz,
+            KeyEmulationBus,
+            GridSovereigntyGovernor,
+            TensorGridSpacetime,
+            HolographicBoundaryScreen,
+            MorphicFieldEngine,
+            ChromataStreamlineTracer,
+            GeometrizePrimitiveDecomposer
+        )
         self.weapon_network = ModularWeaponBayesianNetwork()
+        self.purgatory = PurgatoryBufferMap()
+        self.causality_clock = CausalityClock50Hz()
+        self.key_bus = KeyEmulationBus()
+        self.grid_sovereignty = GridSovereigntyGovernor()
+        self.tensor_grid = TensorGridSpacetime()
+        self.boundary_screen = HolographicBoundaryScreen()
+        self.morphic_field = MorphicFieldEngine()
+        self.streamline_tracer = ChromataStreamlineTracer()
+        self.primitive_decomposer = GeometrizePrimitiveDecomposer()
 
     def evaluate_modular_weapon_damage(
         self,

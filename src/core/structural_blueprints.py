@@ -8,7 +8,7 @@ networks, Harmonic Wave Decompositions, and Mohr-Coulomb Fossilization.
 
 import torch
 import time
-from typing import Tuple, List, Optional, Dict
+from typing import Tuple, List, Optional, Dict, Any
 from dataclasses import dataclass
 
 from src.ui.voxelboxter_simulation import StructuralGraph, Block, SliderSettings, InventoryComponent
@@ -73,6 +73,26 @@ class MangostienBSplineMod(AddonLayer):
                     b = Block(local_cell=cell, rotation=(0,0,0,1), 
                               material_id=self.settings.material_id, health=health)
                     graph.add_block(b)
+
+    def execute_non_voxelbloxter_primitives(self, gcve_pressure: Optional[torch.Tensor] = None) -> List[Any]:
+        """
+        Geometrize Cleanroom: Decomposes continuous B-spline mapping into parametric
+        geometric primitives (superquadrics, bounding ellipsoids) without discrete block allocation.
+        """
+        from src.environment.cleanroom_mechanics import GeometrizePrimitiveDecomposer
+        decomposer = GeometrizePrimitiveDecomposer(target_primitive_count=32)
+
+        def eval_field(pt: Tuple[float, float, float]) -> float:
+            t = torch.tensor([[pt[0], pt[1], pt[2]]], dtype=torch.float32)
+            with torch.no_grad():
+                out = self.kagh(t, use_boltzmann=False, gcve_pressure=gcve_pressure)
+                return float(torch.norm(out - t).item())
+
+        return decomposer.fit_primitives(
+            target_field=eval_field,
+            bounding_box=((-5.0, -5.0, -5.0), (5.0, 5.0, 5.0)),
+            max_mutations_per_shape=15
+        )
 
 class DarkMatterAttractorLayer(AddonLayer):
     """

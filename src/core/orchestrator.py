@@ -506,6 +506,11 @@ class UniversalOrchestrator(nn.Module):
         self.last_calm_veto = None
         self.last_diegetic_response = None
         self.last_attention_integrity = None
+        try:
+            from src.environment.cleanroom_mechanics import PurgatoryBufferMap
+            self.purgatory = PurgatoryBufferMap()
+        except Exception:
+            self.purgatory = None
         
         # 8. P2P & External Integrations
         self.freenet_router = None
@@ -1409,7 +1414,12 @@ class UniversalOrchestrator(nn.Module):
         # instead of illegal scalar psychological states.
         
         # Stranded geometry: Represents the topological trauma/void directly
-        stranded_states = torch.empty((0, self.dim), device=state_final.device)
+        # Recalls persistent stranded states from PurgatoryBufferMap if available
+        recalled_stranded = self.purgatory.recall_stranded_states("orchestrator") if getattr(self, 'purgatory', None) is not None else None
+        if recalled_stranded is not None and recalled_stranded.numel() > 0:
+            stranded_states = recalled_stranded.to(state_final.device)
+        else:
+            stranded_states = torch.empty((0, self.dim), device=state_final.device)
         
         # Flux Tensor: Represents actual rendering pressure/volition
         flux_tensor = actual_flux if isinstance(actual_flux, torch.Tensor) else torch.tensor([actual_flux], device=state_final.device)

@@ -18,7 +18,7 @@ ecological, and industrial gameplay systems:
 import math
 import time
 import copy
-from typing import Dict, List, Tuple, Optional, Any, Set, Union
+from typing import Dict, List, Tuple, Optional, Any, Set, Union, Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
@@ -4036,6 +4036,1375 @@ class VoxelboxterHookIntegrator:
             # Also flush stagnant octree debris if sweeping
             self.octree.sweep_valley_vorticity(tau_crit=tau_crit)
         return swept_fields, triggered, diag
+
+
+# =========================================================================
+# 11. PHYSICAL NODE ONTOLOGY & BESIEGE KINETICS (BESIEGE CLEANROOM)
+# =========================================================================
+
+class ColliderType(Enum):
+    BOX = auto()
+    SPHERE = auto()
+    CAPSULE = auto()
+
+
+@dataclass
+class PhysicalCollider:
+    """
+    Volumetric constraint and collision geometry for AI nodes.
+    Supports solid physical barriers and intangible trigger sensor zones.
+    """
+    collider_type: ColliderType = ColliderType.BOX
+    dimensions: Tuple[float, float, float] = (1.0, 1.0, 1.0)  # Width, Height, Depth or Radius, Height
+    is_trigger: bool = False  # Intangible sensor zone for near-field data propagation
+    trigger_radius: float = 5.0
+
+    def check_overlap(
+        self,
+        self_pos: Tuple[float, float, float],
+        other: 'PhysicalCollider',
+        other_pos: Tuple[float, float, float]
+    ) -> Tuple[bool, float]:
+        """Calculates physical collision or trigger overlap distance."""
+        dx = other_pos[0] - self_pos[0]
+        dy = other_pos[1] - self_pos[1]
+        dz = other_pos[2] - self_pos[2]
+        dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+
+        if self.is_trigger or other.is_trigger:
+            threshold = self.trigger_radius if self.is_trigger else other.trigger_radius
+            return (dist <= threshold, max(0.0, threshold - dist))
+
+        # Approximate bounding radius for physical colliders
+        r_self = 0.5 * math.sqrt(sum(d * d for d in self.dimensions))
+        r_other = 0.5 * math.sqrt(sum(d * d for d in other.dimensions))
+        overlap = (r_self + r_other) - dist
+        return (overlap > 0.0, max(0.0, overlap))
+
+
+@dataclass
+class ConnectionPoint:
+    """Connection joint for node attachment (BasePoint or AddingPoints)."""
+    point_id: str
+    point_type: str = "BasePoint"   # "BasePoint" or "AddingPoints"
+    position: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+    normal: Tuple[float, float, float] = (0.0, 1.0, 0.0)
+    break_force: float = 6187.0     # Default Besiege tensile threshold
+
+
+@dataclass
+class PhysicalNodeOntology:
+    """
+    Physicalized AI computational node adhering to Besiege structural physics:
+    - Mass: Memory footprint / computational resistance to acceleration.
+    - Health: Redundancy threshold before data corruption.
+    - DamageType: kinetic, thermal, or electromagnetic/entropic data corruption.
+    - BasePoint / AddingPoints: Connection joints with breakForce tensile limits (default 6187.0).
+    - Stickiness: Auto-clustering affinity with adjacent nodes.
+    - burnDuration: Time-To-Live under high computational load.
+    """
+    node_id: str
+    mass: float = 1.0                # Processing weight or memory footprint
+    health: float = 100.0            # Redundancy threshold before data corruption
+    max_health: float = 100.0
+    damage_type: str = "kinetic"     # "kinetic", "thermal", "electromagnetic"
+    base_point: ConnectionPoint = field(default_factory=lambda: ConnectionPoint("base_0", "BasePoint", break_force=6187.0))
+    adding_points: List[ConnectionPoint] = field(default_factory=list)
+    break_force: float = 6187.0      # Tensile strength of joint (Besiege default)
+    break_radius: float = 0.0        # Cottage: power=200/r=6, Windmill: power=200/r=2
+    stickiness: float = 1.0          # Affinity for auto-clustering with neighbors
+    burn_duration: float = 30.0      # Time-To-Live under heavy processing load
+    current_burn: float = 0.0
+    is_broken: bool = False
+    is_burning: bool = False
+    collider: PhysicalCollider = field(default_factory=PhysicalCollider)
+    connections: Dict[str, float] = field(default_factory=dict)  # target_id -> accumulated kinetic stress
+    position: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+    velocity: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+
+    def apply_kinetic_stress(self, target_id: str, force: float) -> bool:
+        """
+        Applies kinetic force (e.g. data request surge or packet congestion).
+        If stress exceeds breakForce, physically severs the connection to isolate failure.
+        """
+        curr = self.connections.get(target_id, 0.0) + force
+        if curr >= self.break_force:
+            self.connections.pop(target_id, None)
+            return True  # Connection physically severed
+        self.connections[target_id] = curr
+        return False
+
+    def ignite(self):
+        """Ignites node under thermal computational stress."""
+        self.is_burning = True
+
+    def tick_thermodynamics(self, dt: float) -> bool:
+        """Processes burn duration. Returns True if node was consumed."""
+        if not self.is_burning:
+            return False
+        self.current_burn += dt
+        if self.current_burn >= self.burn_duration:
+            self.health = 0.0
+            self.is_broken = True
+            return True
+        return False
+
+    def trigger_algorithmic_fuse(self, network_congestion_stress: float) -> bool:
+        """
+        Acts as a physical fuse during DDoS attacks or algorithmic runaway events,
+        isolating corrupted AI sub-routines through structural failure.
+        """
+        if network_congestion_stress >= self.break_force:
+            self.connections.clear()
+            self.is_broken = True
+            return True
+        return False
+
+    @staticmethod
+    def create_cottage_fuse(node_id: str, position: Tuple[float, float, float] = (0.0, 0.0, 0.0)) -> 'PhysicalNodeOntology':
+        """Besiege Cottage reference entity: break power 200, radius 6."""
+        return PhysicalNodeOntology(
+            node_id=node_id,
+            mass=2.0,
+            health=200.0,
+            break_force=200.0,
+            break_radius=6.0,
+            position=position
+        )
+
+    @staticmethod
+    def create_windmill_fuse(node_id: str, position: Tuple[float, float, float] = (0.0, 0.0, 0.0)) -> 'PhysicalNodeOntology':
+        """Besiege Windmill reference entity: break power 200, radius 2."""
+        return PhysicalNodeOntology(
+            node_id=node_id,
+            mass=3.0,
+            health=200.0,
+            break_force=200.0,
+            break_radius=2.0,
+            position=position
+        )
+
+
+class FireInteractionTrigger:
+    """
+    Besiege FireInteraction trigger: detects burnable nodes within spherical radius
+    and ignites them based on proximity and thermal exposure time.
+    """
+    def __init__(self, radius: float = 6.0, ignition_rate: float = 2.0):
+        self.radius = radius
+        self.ignition_rate = ignition_rate
+
+    def evaluate_proximity(
+        self,
+        fire_pos: Tuple[float, float, float],
+        target_nodes: List[PhysicalNodeOntology],
+        dt: float
+    ) -> List[str]:
+        ignited_ids = []
+        for node in target_nodes:
+            dx = node.position[0] - fire_pos[0]
+            dy = node.position[1] - fire_pos[1]
+            dz = node.position[2] - fire_pos[2]
+            dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+            if dist <= self.radius and not node.is_burning:
+                node.ignite()
+                ignited_ids.append(node.node_id)
+        return ignited_ids
+
+
+class DataPropagationTrigger:
+    """
+    Near-field data induction trigger: wirelessly synchronizes state changes to
+    adjacent nodes entering physical trigger radius.
+    """
+    def __init__(self, sync_radius: float = 5.0):
+        self.sync_radius = sync_radius
+
+    def sync_adjacent(
+        self,
+        origin_pos: Tuple[float, float, float],
+        state_payload: Dict[str, Any],
+        peer_nodes: List[PhysicalNodeOntology]
+    ) -> int:
+        synced_count = 0
+        for node in peer_nodes:
+            dx = node.position[0] - origin_pos[0]
+            dy = node.position[1] - origin_pos[1]
+            dz = node.position[2] - origin_pos[2]
+            if math.sqrt(dx * dx + dy * dy + dz * dz) <= self.sync_radius:
+                synced_count += 1
+        return synced_count
+
+
+class ModBlockBehaviour:
+    """
+    Besiege ModBlockBehaviour lifecycle callbacks for networked AI physics:
+    - simulate_update_host: Host authoritative physics execution.
+    - simulate_update_client: Local client execution accepting authoritative updates.
+    - simulate_update_always: Synchronous invariant updates running regardless of simulation mode.
+    """
+    def __init__(self, is_host: bool = True, is_local_simulation: bool = False):
+        self.is_host = is_host
+        self.is_local_simulation = is_local_simulation
+
+    def simulate_update_host(self, node: PhysicalNodeOntology, dt: float) -> Dict[str, Any]:
+        """Calculates authoritative physical simulation steps."""
+        node.tick_thermodynamics(dt)
+        return {"node_id": node.node_id, "pos": node.position, "health": node.health}
+
+    def simulate_update_client(self, node: PhysicalNodeOntology, authoritative_state: Dict[str, Any]):
+        """Accepts authoritative physical updates from the macro-grid."""
+        if "pos" in authoritative_state:
+            node.position = authoritative_state["pos"]
+        if "health" in authoritative_state:
+            node.health = authoritative_state["health"]
+
+    def simulate_update_always(self, node: PhysicalNodeOntology, dt: float):
+        """Invariant checks executed unconditionally across all clients."""
+        if node.health <= 0.0:
+            node.is_broken = True
+
+
+class ModNetworking:
+    """
+    Network message constructor validating structured data types between processing clusters.
+    """
+    @staticmethod
+    def create_message_type(data_type_a: str, data_type_b: str) -> str:
+        return f"Msg_{data_type_a}_{data_type_b}"
+
+
+class SteeringModule:
+    """
+    Besiege SteeringModule: dynamic angular steering actor directing construct
+    orientation and dataflow direction.
+    """
+    def __init__(self, max_turn_rate: float = 45.0, return_to_center: bool = True):
+        self.max_turn_rate = max_turn_rate
+        self.current_angle: float = 0.0
+        self.return_to_center = return_to_center
+
+    def steer(self, input_axis: float, dt: float) -> float:
+        target = max(-self.max_turn_rate, min(self.max_turn_rate, input_axis * self.max_turn_rate))
+        delta = target - self.current_angle
+        self.current_angle += delta * min(1.0, 5.0 * dt)
+        return self.current_angle
+
+
+class SpinningModule:
+    """
+    Besiege SpinningModule: continuous rotational kinetic actor exerting rotational
+    torque on adjacent computational nodes.
+    """
+    def __init__(self, rpm: float = 60.0, axis: Tuple[float, float, float] = (0.0, 1.0, 0.0)):
+        self.rpm = rpm
+        self.axis = axis
+        self.angular_position: float = 0.0
+
+    def step(self, dt: float) -> float:
+        degrees_per_sec = (self.rpm / 60.0) * 360.0
+        self.angular_position = (self.angular_position + degrees_per_sec * dt) % 360.0
+        return self.angular_position
+
+
+@dataclass
+class DataProjectile:
+    """
+    Physical projectile representation of a data packet traversing voxel space.
+    Subject to mass, drag, angular drag, and spatial attenuation.
+    If despawn_on_impact is False, physical debris remains in the voxel grid,
+    causing memory clutter unless managed by garbage collection routines.
+    """
+    packet_id: str
+    payload: Any
+    mass: float = 0.1
+    drag: float = 0.02
+    angular_drag: float = 0.01
+    entity_damage: float = 10.0      # Payload impact magnitude
+    position: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+    velocity: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+    power_slider: float = 1.0        # Computational energy expended at launch
+    despawn_on_impact: bool = True
+    has_impacted: bool = False
+    debris_voxel: Optional[Tuple[int, int, int]] = None
+    age: float = 0.0
+    ttl: float = 10.0
+
+    def step(self, dt: float) -> Tuple[float, float, float]:
+        """Steps projectile physics through spatial grid."""
+        if self.has_impacted:
+            return self.position
+        vx, vy, vz = self.velocity
+        speed = math.sqrt(vx * vx + vy * vy + vz * vz)
+        drag_factor = max(0.0, 1.0 - (self.drag * speed * dt))
+        vx *= drag_factor
+        vy *= drag_factor
+        vz *= drag_factor
+        self.velocity = (vx, vy, vz)
+        self.position = (
+            self.position[0] + vx * dt,
+            self.position[1] + vy * dt,
+            self.position[2] + vz * dt
+        )
+        self.age += dt
+        if self.age >= self.ttl:
+            self.has_impacted = True
+            if not self.despawn_on_impact and self.debris_voxel is None:
+                self.debris_voxel = (
+                    int(round(self.position[0])),
+                    int(round(self.position[1])),
+                    int(round(self.position[2]))
+                )
+        return self.position
+
+
+class ShootingDataModule:
+    """
+    Physical data transmitter that launches voxel projectiles across the coordinate grid.
+    Bottlenecked by physical cooldown periods and launch energy (power slider).
+    Manages active projectiles and physical debris clutter in the voxel grid.
+    """
+    def __init__(self, rate_of_fire: float = 10.0, power_slider: float = 20.0):
+        self.rate_of_fire = rate_of_fire
+        self.power_slider = power_slider
+        self.cooldown = 0.0
+        self.active_projectiles: List[DataProjectile] = []
+        self.debris_grid: Dict[Tuple[int, int, int], float] = {}  # coord -> creation_time
+
+    def launch(
+        self,
+        packet_id: str,
+        payload: Any,
+        origin: Tuple[float, float, float],
+        direction: Tuple[float, float, float],
+        damage: float = 10.0,
+        despawn_on_impact: bool = True
+    ) -> Optional[DataProjectile]:
+        if self.cooldown > 0.0:
+            return None
+        mag = math.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2) + 1e-8
+        norm_dir = (direction[0] / mag, direction[1] / mag, direction[2] / mag)
+        vel = (
+            norm_dir[0] * self.power_slider,
+            norm_dir[1] * self.power_slider,
+            norm_dir[2] * self.power_slider
+        )
+        proj = DataProjectile(
+            packet_id=packet_id,
+            payload=payload,
+            power_slider=self.power_slider,
+            entity_damage=damage,
+            position=origin,
+            velocity=vel,
+            despawn_on_impact=despawn_on_impact
+        )
+        self.active_projectiles.append(proj)
+        self.cooldown = 1.0 / max(0.1, self.rate_of_fire)
+        return proj
+
+    def step(self, dt: float) -> List[DataProjectile]:
+        self.cooldown = max(0.0, self.cooldown - dt)
+        surviving = []
+        for p in self.active_projectiles:
+            p.step(dt)
+            if not p.has_impacted:
+                surviving.append(p)
+            elif not p.despawn_on_impact and p.debris_voxel is not None:
+                self.debris_grid[p.debris_voxel] = time.time()
+        self.active_projectiles = surviving
+        return self.active_projectiles
+
+    def collect_garbage(self, max_debris_age: float = 60.0) -> int:
+        """
+        Garbage collection routine reclaiming voxel memory from physical projectile debris clutter.
+        """
+        now = time.time()
+        to_remove = [c for c, t in self.debris_grid.items() if (now - t) >= max_debris_age]
+        for c in to_remove:
+            del self.debris_grid[c]
+        return len(to_remove)
+
+
+class SpewingParticleType(Enum):
+    WATER = auto()
+    FIRE = auto()
+    STEAM = auto()
+
+
+class SpewingDataModule:
+    """
+    Ambient data induction via particle clouds (water, fire, steam).
+    Broadcasts data to nodes passing through the particle volume.
+    Includes collision reflection (dampen, bounce, lifetime loss) so dense architectural
+    spaces naturally degrade signal strength, enforcing direct line-of-sight communication.
+    """
+    def __init__(
+        self,
+        particle_type: SpewingParticleType = SpewingParticleType.STEAM,
+        dampen: float = 0.85,
+        bounce: float = 0.25,
+        lifetime_loss: float = 0.05
+    ):
+        self.particle_type = particle_type
+        self.dampen = dampen
+        self.bounce = bounce
+        self.lifetime_loss = lifetime_loss
+        self.active_particles: List[Dict[str, Any]] = []
+
+    def spew(
+        self,
+        origin: Tuple[float, float, float],
+        direction: Tuple[float, float, float],
+        data_payload: Any,
+        particle_count: int = 8
+    ) -> List[Dict[str, Any]]:
+        for _ in range(particle_count):
+            jitter_x = _honest_uniform(-0.2, 0.2)
+            jitter_y = _honest_uniform(-0.2, 0.2)
+            jitter_z = _honest_uniform(-0.2, 0.2)
+            p = {
+                "pos": (origin[0] + jitter_x, origin[1] + jitter_y, origin[2] + jitter_z),
+                "vel": (direction[0] + jitter_x, direction[1] + jitter_y, direction[2] + jitter_z),
+                "payload": data_payload,
+                "lifetime": 5.0,
+                "type": self.particle_type.name
+            }
+            self.active_particles.append(p)
+        return self.active_particles
+
+    def handle_barrier_collision(
+        self,
+        particle: Dict[str, Any],
+        barrier_normal: Tuple[float, float, float]
+    ):
+        """
+        Reflects particle off a physical obstacle, dampening momentum and incurring lifetime loss.
+        """
+        vx, vy, vz = particle["vel"]
+        nx, ny, nz = barrier_normal
+        dot = vx * nx + vy * ny + vz * nz
+        # Reflect velocity: v' = v - 2(v . n)n
+        rx = (vx - 2.0 * dot * nx) * self.bounce * self.dampen
+        ry = (vy - 2.0 * dot * ny) * self.bounce * self.dampen
+        rz = (vz - 2.0 * dot * nz) * self.bounce * self.dampen
+        particle["vel"] = (rx, ry, rz)
+        particle["lifetime"] -= self.lifetime_loss
+
+    def step(self, dt: float) -> List[Dict[str, Any]]:
+        surviving = []
+        for p in self.active_particles:
+            px, py, pz = p["pos"]
+            vx, vy, vz = p["vel"]
+            p["pos"] = (px + vx * dt * self.dampen, py + vy * dt * self.dampen, pz + vz * dt * self.dampen)
+            p["lifetime"] -= (dt + self.lifetime_loss)
+            if p["lifetime"] > 0.0:
+                surviving.append(p)
+        self.active_particles = surviving
+        return self.active_particles
+
+    @staticmethod
+    def has_line_of_sight(
+        transmitter_pos: Tuple[float, float, float],
+        receiver_pos: Tuple[float, float, float],
+        obstacles: List[Tuple[float, float, float, float]]  # (x, y, z, bounding_radius)
+    ) -> bool:
+        """
+        Checks if critical receivers have direct line-of-sight to data exhaust vents.
+        """
+        dx = receiver_pos[0] - transmitter_pos[0]
+        dy = receiver_pos[1] - transmitter_pos[1]
+        dz = receiver_pos[2] - transmitter_pos[2]
+        length = math.sqrt(dx * dx + dy * dy + dz * dz)
+        if length < 1e-4:
+            return True
+        dir_x, dir_y, dir_z = dx / length, dy / length, dz / length
+
+        for ox, oy, oz, r in obstacles:
+            # Vector from transmitter to obstacle
+            tox = ox - transmitter_pos[0]
+            toy = oy - transmitter_pos[1]
+            toz = oz - transmitter_pos[2]
+            proj = tox * dir_x + toy * dir_y + toz * dir_z
+            if 0.0 <= proj <= length:
+                perp_dist_sq = (tox * tox + toy * toy + toz * toz) - (proj * proj)
+                if perp_dist_sq <= (r * r):
+                    return False  # Line of sight blocked by physical barrier
+        return True
+
+
+class CausalityClock50Hz:
+    """
+    Universal 50Hz Causality Clock (0.02s per tick, matching Besiege automation clock).
+    Enforces deterministic micro-delays between physical logic operations to prevent
+    infinite loops and enforce physical distance in computation.
+    """
+    TICK_PERIOD: float = 0.02  # 50 Hz
+
+    def __init__(self):
+        self.accumulated_time: float = 0.0
+        self.total_ticks: int = 0
+
+    def step(self, wall_dt: float) -> int:
+        """Steps the clock. Returns the number of discrete 50Hz causality ticks to execute."""
+        self.accumulated_time += wall_dt
+        ticks_to_run = 0
+        while self.accumulated_time >= self.TICK_PERIOD:
+            self.accumulated_time -= self.TICK_PERIOD
+            self.total_ticks += 1
+            ticks_to_run += 1
+        return ticks_to_run
+
+
+class KeyEmulationBus:
+    """
+    Decentralized logic communication via simulated keystrokes.
+    Includes explicit self-actuation loop prevention by checking against
+    the emitting block's own activation keys.
+    """
+    def __init__(self):
+        self.active_emulations: Dict[str, float] = {}  # key_string -> duration_remaining
+        self.block_activation_keys: Dict[str, Set[str]] = {}  # node_id -> set of owned keys
+
+    def register_block_keys(self, node_id: str, keys: Set[str]):
+        self.block_activation_keys[node_id] = set(keys)
+
+    def emulate_key(self, source_node_id: str, key_string: str, duration: float = 0.1) -> bool:
+        """
+        Emulates a key press. Aborts if source node owns this key to prevent infinite loops.
+        """
+        owned = self.block_activation_keys.get(source_node_id, set())
+        if key_string in owned:
+            return False  # Self-actuation loop blocked
+        self.active_emulations[key_string] = duration
+        return True
+
+    def is_key_active(self, key_string: str) -> bool:
+        return self.active_emulations.get(key_string, 0.0) > 0.0
+
+    def step(self, dt: float):
+        expired = []
+        for k, v in self.active_emulations.items():
+            self.active_emulations[k] = v - dt
+            if self.active_emulations[k] <= 0.0:
+                expired.append(k)
+        for k in expired:
+            del self.active_emulations[k]
+
+    def evaluate_expression(self, expr: str) -> bool:
+        """
+        Evaluates boolean key strings like 'KeyA & !(KeyB | !KeyC)'.
+        """
+        tokens = expr.replace("(", " ( ").replace(")", " ) ").replace("!", " ! ").replace("&", " and ").replace("|", " or ").split()
+        resolved = []
+        for t in tokens:
+            if t in ("and", "or", "not", "(", ")"):
+                resolved.append(t)
+            elif t == "!":
+                resolved.append("not")
+            else:
+                resolved.append(str(self.is_key_active(t)))
+        try:
+            return bool(eval(" ".join(resolved)))
+        except Exception:
+            return False
+
+
+class PhysicalLogicGateType(Enum):
+    AND = auto()
+    OR = auto()
+    XOR = auto()
+    SR_LATCH = auto()
+    COUNTER = auto()
+
+
+@dataclass
+class PhysicalLogicGate:
+    """
+    Physical logic gate block occupying concrete 3D volume (0.9 x 1.1 x 0.5) and mass (0.5).
+    Turing-complete physical logic imposing volumetric spatial costs for intelligence.
+    """
+    gate_id: str
+    gate_type: PhysicalLogicGateType
+    position: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+    width: float = 0.9
+    height: float = 1.1
+    depth: float = 0.5
+    mass: float = 0.5
+    latch_state: bool = False
+    counter_accum: int = 0
+    counter_threshold: int = 4
+
+    def evaluate(self, inputs: List[bool], reset: bool = False) -> bool:
+        if self.gate_type == PhysicalLogicGateType.AND:
+            return len(inputs) > 0 and all(inputs)
+        elif self.gate_type == PhysicalLogicGateType.OR:
+            return any(inputs)
+        elif self.gate_type == PhysicalLogicGateType.XOR:
+            return sum(1 for x in inputs if x) % 2 == 1
+        elif self.gate_type == PhysicalLogicGateType.SR_LATCH:
+            set_sig = inputs[0] if len(inputs) > 0 else False
+            if reset:
+                self.latch_state = False
+            elif set_sig:
+                self.latch_state = True
+            return self.latch_state
+        elif self.gate_type == PhysicalLogicGateType.COUNTER:
+            pulse = inputs[0] if len(inputs) > 0 else False
+            if pulse:
+                self.counter_accum += 1
+            if self.counter_accum >= self.counter_threshold:
+                self.counter_accum = 0
+                return True
+            return False
+        return False
+
+
+# =========================================================================
+# 12. HYPERNET EXPLORER STATE MANAGEMENT & PURGATORY BUFFER MAP
+# =========================================================================
+
+class PurgatoryBufferMap:
+    """
+    Hidden, non-spatial buffer map for dormant and stranded nodes (Hypernet Explorer NPCs Purgatory).
+    When nodes fall outside the active rendering budget or are stranded across the topological void,
+    their computational state is suspended here rather than deleted, preventing memory leaks and
+    preserving continuity.
+    """
+    def __init__(self):
+        self.suspended_nodes: Dict[str, Dict[str, Any]] = {}
+        self.suspended_stranded_tensors: Dict[str, torch.Tensor] = {}
+        self.access_history: List[str] = []
+
+    def suspend_node(self, node_id: str, state_dict: Dict[str, Any]) -> str:
+        """Suspends an active node into the Purgatory latent space."""
+        self.suspended_nodes[node_id] = {
+            "state": copy.deepcopy(state_dict),
+            "timestamp": time.time()
+        }
+        self.access_history.append(node_id)
+        return node_id
+
+    def reinstantiate_node(self, node_id: str) -> Optional[Dict[str, Any]]:
+        """Reinstantiates a suspended node back into the active spatial grid."""
+        record = self.suspended_nodes.pop(node_id, None)
+        if record is None:
+            return None
+        return record["state"]
+
+    def suspend_stranded_states(self, stranded_tensor: torch.Tensor, origin_id: str = "orchestrator") -> int:
+        """
+        Stores stranded geometric states (e.g. from RP4 void or high-friction trauma)
+        in latent Purgatory space until an attentional fovea recovers them.
+        """
+        if stranded_tensor is None or stranded_tensor.numel() == 0:
+            return 0
+        self.suspended_stranded_tensors[origin_id] = stranded_tensor.clone().detach()
+        return stranded_tensor.shape[0] if stranded_tensor.dim() >= 1 else 1
+
+    def recall_stranded_states(self, origin_id: str = "orchestrator") -> Optional[torch.Tensor]:
+        """Recalls suspended stranded states for re-injection into the active manifold."""
+        return self.suspended_stranded_tensors.pop(origin_id, None)
+
+    @property
+    def total_suspended(self) -> int:
+        return len(self.suspended_nodes) + len(self.suspended_stranded_tensors)
+
+
+class RadiantAStarPathfinder:
+    """
+    A* pathfinding driving biological imperatives (Socializing, Resting, Nourishment).
+    Governed by entity traits such as 'Night owl' to process low-priority defragmentation
+    during systemic network lulls. Supports claiming procedural houses as permanent memory
+    locations and Door/Teleport transitions across segregated macro-grids.
+    """
+    def __init__(self):
+        self.social_target_offset: float = 1.5
+        self.is_night_cycle: bool = False
+        self.node_traits: Dict[str, Set[str]] = {}
+        self.claimed_houses: Dict[str, Tuple[int, int, int]] = {}
+
+    def toggle_day_night(self, is_night: bool):
+        self.is_night_cycle = is_night
+
+    def register_node_trait(self, node_id: str, trait: str):
+        self.node_traits.setdefault(node_id, set()).add(trait)
+
+    def claim_procedural_house(self, node_id: str, house_coord: Tuple[int, int, int]):
+        """Node claims procedural house as permanent memory location to return to."""
+        self.claimed_houses[node_id] = house_coord
+
+    def get_claimed_house(self, node_id: str) -> Optional[Tuple[int, int, int]]:
+        return self.claimed_houses.get(node_id)
+
+    def heuristic(self, a: Tuple[int, int, int], b: Tuple[int, int, int]) -> float:
+        return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2 + (a[2] - b[2])**2)
+
+    def find_path(
+        self,
+        start: Tuple[int, int, int],
+        goal: Tuple[int, int, int],
+        blocked: Set[Tuple[int, int, int]],
+        max_expansions: int = 500
+    ) -> List[Tuple[int, int, int]]:
+        """Computes discrete 3D spatial path from start to goal avoiding blocked cells."""
+        import heapq
+        open_set = [(0.0, start)]
+        came_from = {}
+        g_score = {start: 0.0}
+        f_score = {start: self.heuristic(start, goal)}
+        expansions = 0
+
+        neighbors = [
+            (1, 0, 0), (-1, 0, 0),
+            (0, 1, 0), (0, -1, 0),
+            (0, 0, 1), (0, 0, -1)
+        ]
+
+        while open_set and expansions < max_expansions:
+            expansions += 1
+            _, current = heapq.heappop(open_set)
+            if current == goal:
+                path = [current]
+                while current in came_from:
+                    current = came_from[current]
+                    path.append(current)
+                path.reverse()
+                return path
+
+            for dx, dy, dz in neighbors:
+                nb = (current[0] + dx, current[1] + dy, current[2] + dz)
+                if nb in blocked:
+                    continue
+                tentative_g = g_score[current] + 1.0
+                if tentative_g < g_score.get(nb, float('inf')):
+                    came_from[nb] = current
+                    g_score[nb] = tentative_g
+                    f = tentative_g + self.heuristic(nb, goal)
+                    f_score[nb] = f
+                    heapq.heappush(open_set, (f, nb))
+
+        return []  # No path found within budget
+
+    def execute_socializing(
+        self,
+        start_coord: Tuple[int, int, int],
+        peer_cluster_coord: Tuple[int, int, int],
+        blocked: Set[Tuple[int, int, int]]
+    ) -> Tuple[List[Tuple[int, int, int]], bool]:
+        """
+        Socializing imperative: node physically travels to adjacent cluster to perform
+        handshake protocols and sync data sets, ensuring consistency across macro-network.
+        """
+        path = self.find_path(start_coord, peer_cluster_coord, blocked)
+        success = len(path) > 0
+        return path, success
+
+    def execute_resting(
+        self,
+        node: PhysicalNodeOntology,
+        cooling_amount: float = 10.0
+    ) -> Dict[str, Any]:
+        """
+        Resting imperative: node enters low-power state, defragmenting internal storage,
+        clearing cache, and shedding excess thermal metrics generated by continuous logic.
+        If node has 'Night owl' trait, receives high-compute defragmentation during night cycle.
+        """
+        traits = self.node_traits.get(node.node_id, set())
+        is_night_owl = "Night owl" in traits
+        multiplier = 2.0 if (self.is_night_cycle and is_night_owl) else 1.0
+
+        effective_cooling = cooling_amount * multiplier
+        node.current_burn = max(0.0, node.current_burn - effective_cooling)
+        if node.current_burn == 0.0:
+            node.is_burning = False
+
+        return {
+            "node_id": node.node_id,
+            "resting_state": "low_power_defrag",
+            "effective_cooling": effective_cooling,
+            "is_night_owl_active": is_night_owl and self.is_night_cycle,
+            "residual_burn": node.current_burn
+        }
+
+    def execute_nourishment(
+        self,
+        start_coord: Tuple[int, int, int],
+        resource_voxel_coord: Tuple[int, int, int],
+        blocked: Set[Tuple[int, int, int]],
+        credit_reward: float = 100.0
+    ) -> Tuple[List[Tuple[int, int, int]], float]:
+        """
+        Nourishment imperative: node navigates toward resource voxels to absorb
+        computational credits or raw data necessary to perform high-tier logic execution.
+        """
+        path = self.find_path(start_coord, resource_voxel_coord, blocked)
+        credits_absorbed = credit_reward if len(path) > 0 else 0.0
+        return path, credits_absorbed
+
+    def handle_door_teleport(
+        self,
+        node_id: str,
+        current_map: str,
+        target_map: str,
+        door_coord: Tuple[int, int, int],
+        target_spawn_coord: Tuple[int, int, int]
+    ) -> Dict[str, Any]:
+        """
+        Door / Teleport event: node transitions across segregated macro-grids,
+        fading from current map and reappearing in linked map along the TENSOR_GRID.
+        """
+        return {
+            "node_id": node_id,
+            "event": "map_teleport",
+            "from_map": current_map,
+            "to_map": target_map,
+            "exit_portal": door_coord,
+            "spawn_coord": target_spawn_coord,
+            "status": "faded_and_reappeared"
+        }
+
+
+# =========================================================================
+# 13. OOLITE EVENT-DRIVEN ONTOLOGIES & LIFECYCLE HOOKS
+# =========================================================================
+
+class NodePrototype:
+    """
+    Prototypical inheritance chain ensuring physical consistency across nodes.
+    Base physics properties (collision, mass, drag) live on the prototype;
+    individual nodes store only unique payload and state variables.
+    """
+    def __init__(self, name: str, base_mass: float = 1.0, base_health: float = 100.0):
+        self.name = name
+        self.base_mass = base_mass
+        self.base_health = base_health
+        self.base_break_force = 6187.0
+        self.properties: Dict[str, Any] = {}
+
+    def clone_instance(self, node_id: str, custom_payload: Any = None) -> Dict[str, Any]:
+        return {
+            "node_id": node_id,
+            "prototype": self.name,
+            "mass": self.base_mass,
+            "health": self.base_health,
+            "break_force": self.base_break_force,
+            "payload": custom_payload,
+            "timestamp": time.time()
+        }
+
+
+class OoliteWorldScriptManager:
+    """
+    Global sandbox lifecycle, time acceleration, and event hooks (Oolite Cleanroom).
+    - timeAccelerationFactor (TAF): 0.0625 to 16.0.
+    - Event hooks: shipWillLaunch, shipLaunched, witchspace entry/exit, docking, clearance revocation.
+    - Profiling tools (Debug.oxp JavaScript console): profile(func) for execution timing.
+    - Dynamic macro expansions (:setM) for real-time command injection into the physical sandbox.
+    """
+    def __init__(self):
+        self.clock: float = 0.0
+        self.time_acceleration_factor: float = 1.0  # TAF in [0.0625, 16.0]
+        self.event_subscribers: Dict[str, List[Callable[[Dict[str, Any]], None]]] = {}
+
+    def set_taf(self, taf: float):
+        self.time_acceleration_factor = max(0.0625, min(16.0, float(taf)))
+
+    def register_hook(self, event_name: str, handler: Callable[[Dict[str, Any]], None]):
+        self.event_subscribers.setdefault(event_name, []).append(handler)
+
+    def trigger_hook(self, event_name: str, event_data: Dict[str, Any]):
+        for handler in self.event_subscribers.get(event_name, []):
+            try:
+                handler(event_data)
+            except Exception:
+                pass
+
+    def step(self, real_dt: float) -> float:
+        sim_dt = real_dt * self.time_acceleration_factor
+        self.clock += sim_dt
+        return sim_dt
+
+    def scrambled_pseudo_random_number(self, system_salt: int) -> float:
+        """Deterministic reproducible noise based on system salt and hardware friction."""
+        import hashlib
+        salt_bytes = str(system_salt).encode('utf-8')
+        h = hashlib.blake2b(salt_bytes, digest_size=8).digest()
+        val = int.from_bytes(h, byteorder='big') / float(1 << 64)
+        return float(val)
+
+    # Canonical Lifecycle Event Hooks
+    def ship_will_launch_from_station(self, packet_info: Dict[str, Any]) -> bool:
+        """Verifies structural integrity of data packet before exposure to external physics."""
+        self.trigger_hook("shipWillLaunchFromStation", packet_info)
+        return packet_info.get("health", 100.0) > 0.0
+
+    def ship_launched_from_station(self, packet_info: Dict[str, Any]):
+        """Packet leaves node boundary, becoming physical projectile subject to external physics."""
+        self.trigger_hook("shipLaunchedFromStation", packet_info)
+
+    def player_will_enter_witchspace(self, packet_info: Dict[str, Any]):
+        """Suspends local physics during massive inter-cluster spatial translation."""
+        self.trigger_hook("playerWillEnterWitchspace", packet_info)
+
+    def ship_exited_wormhole(self, packet_info: Dict[str, Any]):
+        """Restores local physics at destination coordinate after inter-cluster routing."""
+        self.trigger_hook("shipExitedWormhole", packet_info)
+
+    def ship_will_dock_with_station(self, packet_info: Dict[str, Any], station_id: str) -> bool:
+        """Packet enters receiver trigger radius, initializing handshake protocol."""
+        data = dict(packet_info)
+        data["target_station"] = station_id
+        self.trigger_hook("shipWillDockWithStation", data)
+        return True
+
+    def station_withdrew_docking_clearance(self, packet_info: Dict[str, Any], station_id: str):
+        """
+        Critical error handling event: receiving node destroyed or gate closed.
+        Rejects packet, forcing it to locate secondary docking port via A* or degrade.
+        """
+        data = dict(packet_info)
+        data["target_station"] = station_id
+        data["status"] = "rejected_must_reroute"
+        self.trigger_hook("stationWithdrewDockingClearance", data)
+
+    # Profiling & Dynamic Macro Tools
+    def profile(self, func: Callable, *args, **kwargs) -> Tuple[Any, float]:
+        """
+        Debug.oxp JavaScript console profile(func) equivalent.
+        Times specific function execution to identify physical bottlenecks in AI logic chains.
+        """
+        t0 = time.perf_counter()
+        res = func(*args, **kwargs)
+        duration = time.perf_counter() - t0
+        return res, duration
+
+    def execute_set_m(self, macro_expr: str, target_state: Dict[str, Any]) -> bool:
+        """
+        Dynamic macro expansion (:setM) allowing real-time command injection into the physical sandbox.
+        Format: ':setM key=value'
+        """
+        if not macro_expr.startswith(":setM "):
+            return False
+        payload = macro_expr[6:].strip()
+        if "=" in payload:
+            k, v = payload.split("=", 1)
+            k = k.strip()
+            v = v.strip()
+            try:
+                target_state[k] = eval(v)
+            except Exception:
+                target_state[k] = v
+            return True
+        return False
+
+
+# =========================================================================
+# 14. GRID SOVEREIGNTY, TENSOR_GRID & ARCHITECTS ENGINE
+# =========================================================================
+
+class VoxelEditingMode(Enum):
+    SLICE_BASED = auto()      # 2D raster manipulation of volumetric slices
+    SCULPTURE = auto()        # Density information without strict topology constraints
+    BUILDING_BLOCKS = auto()  # Construction-set toy rigid architectural design
+
+
+class GridSovereigntyGovernor:
+    """
+    Macro-grid territorial sovereignty and Landauer thermal limits (Drop Command Cleanroom).
+    Enforces rigid 10x10x10 volumetric constraints on processing hubs.
+    Dropped Command Centers exert regional territorial sovereignty over Planetary Interaction pins.
+    Governs in-situ efficiency and Electric-Field Energy Harvesting equations.
+    """
+    def __init__(self, max_hub_dimension: int = 10):
+        self.max_hub_dimension = max_hub_dimension
+        self.claimed_zones: Dict[str, Tuple[Tuple[int, int, int], Tuple[int, int, int]]] = {}
+        self.command_centers: Dict[str, Tuple[Tuple[int, int, int], float]] = {}  # center_id -> (coord, radius)
+        self.pi_pins: Dict[str, Dict[str, Any]] = {}  # Planetary Interaction high-throughput pins
+        self.editing_mode: VoxelEditingMode = VoxelEditingMode.BUILDING_BLOCKS
+        self.ambient_temperature_k: float = 300.0
+        self.k_B: float = 1.380649e-23
+
+    def set_editing_mode(self, mode: VoxelEditingMode):
+        self.editing_mode = mode
+
+    def drop_command_center(
+        self,
+        center_id: str,
+        coord: Tuple[int, int, int],
+        sovereignty_radius: float = 10.0
+    ):
+        """Drops physical Command Center structure into world to exert territorial sovereignty."""
+        self.command_centers[center_id] = (coord, sovereignty_radius)
+
+    def register_pi_pin(
+        self,
+        pin_id: str,
+        coord: Tuple[int, int, int],
+        throughput_bandwidth: float = 1000.0
+    ):
+        """Registers high-value Planetary Interaction pin where data throughput is highest."""
+        self.pi_pins[pin_id] = {
+            "coord": coord,
+            "throughput_bandwidth": throughput_bandwidth,
+            "claimed_by": None
+        }
+
+    def claim_territory(
+        self,
+        hub_id: str,
+        min_corner: Tuple[int, int, int],
+        max_corner: Tuple[int, int, int]
+    ) -> bool:
+        """Enforces 10x10x10 space constraint on territorial processing hubs."""
+        dx = max_corner[0] - min_corner[0] + 1
+        dy = max_corner[1] - min_corner[1] + 1
+        dz = max_corner[2] - min_corner[2] + 1
+        if dx > self.max_hub_dimension or dy > self.max_hub_dimension or dz > self.max_hub_dimension:
+            return False  # Violation of grid sovereignty volumetric limit
+        self.claimed_zones[hub_id] = (min_corner, max_corner)
+        return True
+
+    def calculate_landauer_heat(self, bits_erased: int, temperature_k: Optional[float] = None) -> float:
+        """Computes minimum Landauer heat dissipation: Q = k_B * T * ln(2) * N."""
+        T = temperature_k or self.ambient_temperature_k
+        return float(self.k_B * T * math.log(2.0) * max(0, bits_erased))
+
+    def calculate_insitu_efficiency(
+        self,
+        t_operating: float,
+        t_crit: float = 373.15,
+        eta_0: float = 1.0
+    ) -> float:
+        """
+        Governing equation for in-situ efficiency:
+        eta_insitu = eta_0 * max(0, 1 - (T_operating - T_ambient) / (T_crit - T_ambient))
+        Determines how much computational work a node performs before requiring cooldown.
+        """
+        delta_t = max(0.0, t_operating - self.ambient_temperature_k)
+        max_delta = max(1.0, t_crit - self.ambient_temperature_k)
+        return float(eta_0 * max(0.0, 1.0 - (delta_t / max_delta)))
+
+    def calculate_electric_field_energy_harvesting(
+        self,
+        e_field_v_per_m: float,
+        throughput_rate: float,
+        epsilon_0: float = 8.8541878128e-12
+    ) -> float:
+        """
+        Electric-Field Energy Harvesting equation:
+        P_harvest = 0.5 * epsilon_0 * E^2 * throughput_rate
+        Supplies supplemental energy to offset computational work in high-flux environments.
+        """
+        return float(0.5 * epsilon_0 * (e_field_v_per_m ** 2) * max(0.0, throughput_rate))
+
+
+class TensorGridSpacetime:
+    """
+    Spacetime as TENSOR_GRID: metric of apparent separation enforcing latency and bandwidth.
+    Bypasses instantaneous data teleportation and anchors cognitive nodes in causal physics.
+    """
+    def __init__(self, speed_of_causality: float = 50.0):
+        self.c = speed_of_causality
+
+    def compute_transmission_delay(
+        self,
+        coord_a: Tuple[float, float, float],
+        coord_b: Tuple[float, float, float]
+    ) -> float:
+        dist = math.sqrt(
+            (coord_a[0] - coord_b[0])**2 +
+            (coord_a[1] - coord_b[1])**2 +
+            (coord_a[2] - coord_b[2])**2
+        )
+        return float(dist / max(1e-3, self.c))
+
+
+class HolographicBoundaryScreen:
+    """
+    Holographic limit of perception and wave-function collapse.
+    Limits active rendering to nodes within the attentional fovea; collapses
+    unobserved probability amplitudes from Purgatory into definite states upon observation.
+    Maintains dynamic scheduling efficiency to match human frame rate discernment (60-100 FPS).
+    """
+    def __init__(self, perception_radius: float = 32.0, target_fps: float = 60.0):
+        self.perception_radius = perception_radius
+        self.target_fps = max(60.0, min(100.0, target_fps))
+
+    def set_target_fidelity(self, target_fps: float):
+        """Sets frame rate discernment target within 60-100 FPS."""
+        self.target_fps = max(60.0, min(100.0, target_fps))
+
+    def collapse_unobserved_states(
+        self,
+        fovea_pos: Tuple[float, float, float],
+        purgatory: PurgatoryBufferMap
+    ) -> List[Dict[str, Any]]:
+        """Recovers nodes within the perception radius from Purgatory into the active simulation."""
+        collapsed = []
+        to_recover = []
+        for node_id, data in purgatory.suspended_nodes.items():
+            pos = data["state"].get("position", (0.0, 0.0, 0.0))
+            dist = math.sqrt(
+                (pos[0] - fovea_pos[0])**2 +
+                (pos[1] - fovea_pos[1])**2 +
+                (pos[2] - fovea_pos[2])**2
+            )
+            if dist <= self.perception_radius:
+                to_recover.append(node_id)
+
+        for nid in to_recover:
+            state = purgatory.reinstantiate_node(nid)
+            if state is not None:
+                collapsed.append(state)
+        return collapsed
+
+    def cast_ballistic_vector(
+        self,
+        origin: Tuple[float, float, float],
+        direction: Tuple[float, float, float],
+        fovea_angle_deg: float = 30.0,
+        max_range: float = 64.0,
+        purgatory: Optional[PurgatoryBufferMap] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Attentional fovea ballistic vector: focuses observation along a ray/cone,
+        collapsing local indeterminate probability amplitudes from Purgatory
+        instantaneously into definite physical voxel states.
+        """
+        if purgatory is None:
+            return []
+        dir_len = math.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2) + 1e-8
+        ndir = (direction[0] / dir_len, direction[1] / dir_len, direction[2] / dir_len)
+        cos_threshold = math.cos(math.radians(fovea_angle_deg))
+
+        collapsed = []
+        to_recover = []
+        for node_id, data in purgatory.suspended_nodes.items():
+            pos = data["state"].get("position", (0.0, 0.0, 0.0))
+            vx = pos[0] - origin[0]
+            vy = pos[1] - origin[1]
+            vz = pos[2] - origin[2]
+            dist = math.sqrt(vx * vx + vy * vy + vz * vz)
+            if dist > max_range:
+                continue
+            if dist < 1e-4:
+                to_recover.append(node_id)
+                continue
+            nvx, nvy, nvz = vx / dist, vy / dist, vz / dist
+            dot = nvx * ndir[0] + nvy * ndir[1] + nvz * ndir[2]
+            if dot >= cos_threshold:
+                to_recover.append(node_id)
+
+        for nid in to_recover:
+            st = purgatory.reinstantiate_node(nid)
+            if st is not None:
+                collapsed.append(st)
+        return collapsed
+
+
+class MorphicFieldEngine:
+    """
+    Ambient morphic tension and structural entrainment (level.cache).
+    Historical patterns executed in a region create morphic resonance that entrains
+    newly spawned nodes toward established, optimized behavioral postures.
+    """
+    def __init__(self):
+        self.field_memory: Dict[Tuple[int, int, int], float] = {}
+
+    def inject_activity(self, coord: Tuple[int, int, int], intensity: float = 1.0):
+        grid_key = (int(coord[0] // 4), int(coord[1] // 4), int(coord[2] // 4))
+        self.field_memory[grid_key] = self.field_memory.get(grid_key, 0.0) + intensity
+
+    def get_ambient_tension(self, coord: Tuple[int, int, int]) -> float:
+        grid_key = (int(coord[0] // 4), int(coord[1] // 4), int(coord[2] // 4))
+        return self.field_memory.get(grid_key, 0.0)
+
+
+# =========================================================================
+# 15. CHROMATA VECTOR STREAMLINE TRACER (CHROMATA CLEANROOM)
+# =========================================================================
+
+@dataclass
+class StreamlineWalker:
+    """
+    Autonomous streamline agent tracing continuous flow-line filaments across
+    gyroid manifolds and tensor fields without brute-force rasterization.
+    """
+    position: Tuple[float, float, float]
+    velocity: Tuple[float, float, float]
+    history: List[Tuple[float, float, float]] = field(default_factory=list)
+    max_steps: int = 32
+    step_size: float = 0.5
+    is_active: bool = True
+
+
+class ChromataStreamlineTracer:
+    """
+    Cleanroom multi-agent vector streamline tracer inspired by Chromata (Michael Bromley).
+    Seeds autonomous path finders on continuous scalar or tensor fields.
+    Walkers steer along gradient vectors, avoid crossed trails (saturation avoidance),
+    and trace continuous topological filaments rather than discrete voxel blocks.
+    """
+    def __init__(self, num_agents: int = 16, max_steps: int = 32, step_size: float = 0.4):
+        self.num_agents = num_agents
+        self.max_steps = max_steps
+        self.step_size = step_size
+        self.visited_grid: Set[Tuple[int, int, int]] = set()
+
+    def trace_field(
+        self,
+        seed_points: List[Tuple[float, float, float]],
+        gradient_fn: Callable[[Tuple[float, float, float]], Tuple[float, float, float]]
+    ) -> List[List[Tuple[float, float, float]]]:
+        """
+        Traces continuous streamline filaments across the vector field.
+        Applies local saturation avoidance so agents do not re-trace existing paths.
+        """
+        trajectories: List[List[Tuple[float, float, float]]] = []
+
+        for seed in seed_points:
+            pos = seed
+            path = [pos]
+            vx, vy, vz = 0.0, 0.0, 0.0
+
+            for _ in range(self.max_steps):
+                gx, gy, gz = gradient_fn(pos)
+                g_mag = math.sqrt(gx * gx + gy * gy + gz * gz) + 1e-8
+
+                # Steer towards field vector with inertia
+                vx = 0.7 * vx + 0.3 * (gx / g_mag)
+                vy = 0.7 * vy + 0.3 * (gy / g_mag)
+                vz = 0.7 * vz + 0.3 * (gz / g_mag)
+
+                next_pos = (
+                    pos[0] + vx * self.step_size,
+                    pos[1] + vy * self.step_size,
+                    pos[2] + vz * self.step_size
+                )
+
+                # Saturation avoidance: avoid already traversed cells
+                cell_key = (int(round(next_pos[0])), int(round(next_pos[1])), int(round(next_pos[2])))
+                if cell_key in self.visited_grid:
+                    # Perturb orthogonally via honest jitter
+                    jitter = _honest_float() * 0.2
+                    vx += jitter
+                    vy -= jitter
+
+                self.visited_grid.add(cell_key)
+                path.append(next_pos)
+                pos = next_pos
+
+            trajectories.append(path)
+
+        return trajectories
+
+
+# =========================================================================
+# 16. GEOMETRIZE PARAMETRIC PRIMITIVE DECOMPOSER (NON-VOXELBLOXTER)
+# =========================================================================
+
+class PrimitiveType(Enum):
+    TRIANGLE = auto()
+    ELLIPSOID = auto()
+    ORIENTED_BOX = auto()
+    BEZIER_RIBBON = auto()
+    SUPERQUADRIC = auto()
+
+
+@dataclass
+class GeometricPrimitive:
+    """
+    Parametric continuous geometric primitive.
+    Replaces discrete voxel bloat with closed-form mathematical boundary surfaces.
+    """
+    primitive_type: PrimitiveType
+    center: Tuple[float, float, float]
+    radii: Tuple[float, float, float]  # Semi-axes (a, b, c) or dimensions
+    rotation_quat: Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)
+    material_id: int = 1
+    opacity: float = 1.0
+
+    def contains_point(self, pt: Tuple[float, float, float]) -> bool:
+        """Evaluates signed distance / algebraic containment (f(x) <= 1.0)."""
+        dx = (pt[0] - self.center[0]) / max(1e-4, self.radii[0])
+        dy = (pt[1] - self.center[1]) / max(1e-4, self.radii[1])
+        dz = (pt[2] - self.center[2]) / max(1e-4, self.radii[2])
+
+        if self.primitive_type == PrimitiveType.ELLIPSOID:
+            return (dx * dx + dy * dy + dz * dz) <= 1.0
+        elif self.primitive_type == PrimitiveType.ORIENTED_BOX:
+            return abs(dx) <= 1.0 and abs(dy) <= 1.0 and abs(dz) <= 1.0
+        elif self.primitive_type == PrimitiveType.SUPERQUADRIC:
+            # Superellipsoid with square exponent
+            return (dx**4 + dy**4 + dz**4) <= 1.0
+        return (dx * dx + dy * dy + dz * dz) <= 1.0
+
+    @property
+    def analytical_volume(self) -> float:
+        a, b, c = self.radii
+        if self.primitive_type == PrimitiveType.ELLIPSOID:
+            return (4.0 / 3.0) * math.pi * a * b * c
+        elif self.primitive_type == PrimitiveType.ORIENTED_BOX:
+            return 8.0 * a * b * c
+        elif self.primitive_type == PrimitiveType.SUPERQUADRIC:
+            return 6.0 * a * b * c
+        return a * b * c
+
+
+class GeometrizePrimitiveDecomposer:
+    """
+    Cleanroom continuous geometric primitive decomposer inspired by Geometrize (Sam Twidale / Michael Fogleman).
+    Decomposes continuous 3D fields or meshes into a sparse sequence of explicit parametric primitives.
+    Avoids discrete voxel grid bloat by operating in continuous coordinate space.
+    """
+    def __init__(self, target_primitive_count: int = 32):
+        self.target_primitive_count = target_primitive_count
+        self.primitives: List[GeometricPrimitive] = []
+
+    def fit_primitives(
+        self,
+        target_field: Callable[[Tuple[float, float, float]], float],
+        bounding_box: Tuple[Tuple[float, float, float], Tuple[float, float, float]],
+        max_mutations_per_shape: int = 20
+    ) -> List[GeometricPrimitive]:
+        """
+        Fits continuous parametric shapes to target scalar field using simulated annealing /
+        energy minimization. Mutations are driven by physical friction from harvest_honest_jitter.
+        """
+        min_b, max_b = bounding_box
+        self.primitives.clear()
+
+        for _ in range(self.target_primitive_count):
+            # Propose candidate primitive
+            cx = min_b[0] + (max_b[0] - min_b[0]) * _honest_float()
+            cy = min_b[1] + (max_b[1] - min_b[1]) * _honest_float()
+            cz = min_b[2] + (max_b[2] - min_b[2]) * _honest_float()
+            ra = max(0.5, (max_b[0] - min_b[0]) * 0.2 * _honest_float())
+            rb = max(0.5, (max_b[1] - min_b[1]) * 0.2 * _honest_float())
+            rc = max(0.5, (max_b[2] - min_b[2]) * 0.2 * _honest_float())
+
+            best_primitive = GeometricPrimitive(
+                primitive_type=PrimitiveType.ELLIPSOID,
+                center=(cx, cy, cz),
+                radii=(ra, rb, rc),
+                material_id=1
+            )
+            best_energy = target_field((cx, cy, cz))
+
+            # Mutate candidate
+            for _ in range(max_mutations_per_shape):
+                mcx = cx + _honest_uniform(-0.5, 0.5)
+                mcy = cy + _honest_uniform(-0.5, 0.5)
+                mcz = cz + _honest_uniform(-0.5, 0.5)
+                candidate_energy = target_field((mcx, mcy, mcz))
+                if abs(candidate_energy) < abs(best_energy):
+                    best_energy = candidate_energy
+                    best_primitive.center = (mcx, mcy, mcz)
+
+            self.primitives.append(best_primitive)
+
+        return self.primitives
+
 
 
 

@@ -74,7 +74,15 @@ from src.environment.cleanroom_mechanics import (
     BagOfHolding, BagTier, IC2CropGenome, GiantCropCluster, FoodQualityTier,
     GasTubeTier, GasDumpingMode, MekanismScubaTank, RotaryCondensentrator,
     TracerOxygenAtmosphereEngine, U1GaugeAtmosphereBridge,
-    ModularWeaponBayesianNetwork, WeaponComponentConfig, ArmorConfig
+    ModularWeaponBayesianNetwork, WeaponComponentConfig, ArmorConfig,
+    PhysicalNodeOntology, PhysicalCollider, DataProjectile,
+    ShootingDataModule, SpewingDataModule, CausalityClock50Hz,
+    KeyEmulationBus, PhysicalLogicGate, PhysicalLogicGateType,
+    PurgatoryBufferMap, RadiantAStarPathfinder, NodePrototype,
+    OoliteWorldScriptManager, GridSovereigntyGovernor,
+    TensorGridSpacetime, HolographicBoundaryScreen, MorphicFieldEngine,
+    ChromataStreamlineTracer, GeometrizePrimitiveDecomposer,
+    GeometricPrimitive, PrimitiveType
 )
 
 logger = logging.getLogger(__name__)
