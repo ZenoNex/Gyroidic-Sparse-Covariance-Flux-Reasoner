@@ -134,10 +134,10 @@ def main():
     print(f"Official library: {'✓' if lib_success else '✗'}")
     
     if lib_success and not endpoint_success:
-        print(f"\n💡 The official library works but our API calls don't!")
+        print(f"\n The official library works but our API calls don't!")
         print(f"This suggests we need to use the huggingface_hub library instead of direct API calls.")
     elif not any([endpoint_success, curl_success, lib_success]):
-        print(f"\n❌ Nothing works - there might be an account or token issue.")
+        print(f"\n[ERR] Nothing works - there might be an account or token issue.")
     else:
         print(f"\n✓ At least one method works!")
 

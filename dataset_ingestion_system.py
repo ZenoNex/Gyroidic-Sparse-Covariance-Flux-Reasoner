@@ -1640,9 +1640,19 @@ class DatasetIngestionSystem:
                     sparsity_threshold=0.1,
                     pressure_adaptation=True
                 )
-                augmenter = MandelbulbGyroidicAugmenter(augmentation_config)
-                self.augmenters[f"{model_name}_{dataset_name}"] = augmenter
-                print("   [OK] Mandelbulb augmentation ready")
+                try:
+                    from src.augmentation.mandelbulb_pipeline import MandelbulbAugmentedDataset
+                    dataset = MandelbulbAugmentedDataset(
+                        base_dataset=dataset,
+                        augmentation_config=augmentation_config,
+                        augmentation_factor=training_config.augmentation_factor,
+                        apply_online=True
+                    )
+                    augmenter = dataset.augmenter
+                    self.augmenters[f"{model_name}_{dataset_name}"] = augmenter
+                    print("   [OK] Mandelbulb-Gyroidic augmentation pipeline engaged successfully")
+                except Exception as e:
+                    print(f"   [WARN] Mandelbulb augmentation wrap failed: {e}")
             
             # Create trainer
             trainer = NonLobotomyTemporalTrainer(

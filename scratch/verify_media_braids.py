@@ -4,7 +4,7 @@ from src.ui.diegetic_backend import DiegeticPhysicsEngine
 import os
 
 def test_media_braid_logic():
-    print("⬡ TESTING HETEROGENEOUS MEDIA BRAID...")
+    print("[INIT] TESTING HETEROGENEOUS MEDIA BRAID...")
     
     # Initialize engine
     # Note: Using a minimal setup if possible, or mocking necessary parts

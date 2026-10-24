@@ -13,13 +13,13 @@ def fix_encoding():
             try:
                 with open('src/ui/diegetic_backend.py', 'r', encoding=encoding) as f:
                     content = f.read()
-                print(f"✅ Successfully read with {encoding} encoding")
+                print(f"[OK] Successfully read with {encoding} encoding")
                 break
             except UnicodeDecodeError as e:
-                print(f"❌ Failed with {encoding}: {e}")
+                print(f"[ERR] Failed with {encoding}: {e}")
         
         if content is None:
-            print("❌ Could not read file with any encoding")
+            print("[ERR] Could not read file with any encoding")
             return
         
         # Clean the content - remove problematic characters
@@ -29,15 +29,15 @@ def fix_encoding():
         with open('src/ui/diegetic_backend.py', 'w', encoding='utf-8') as f:
             f.write(cleaned_content)
         
-        print("✅ File cleaned and saved as UTF-8")
+        print("[OK] File cleaned and saved as UTF-8")
         
         # Test if it's now valid
         import ast
         ast.parse(cleaned_content)
-        print("✅ Syntax is now valid")
+        print("[OK] Syntax is now valid")
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"[ERR] Error: {e}")
 
 if __name__ == "__main__":
     fix_encoding()

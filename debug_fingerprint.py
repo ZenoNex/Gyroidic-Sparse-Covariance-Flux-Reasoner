@@ -8,7 +8,7 @@ import numpy as np
 
 def debug_fingerprint():
     """Debug fingerprint values."""
-    print("🔍 Debugging Fingerprint Generation")
+    print(" Debugging Fingerprint Generation")
     print("=" * 40)
     
     # Create a red square fingerprint like in the test

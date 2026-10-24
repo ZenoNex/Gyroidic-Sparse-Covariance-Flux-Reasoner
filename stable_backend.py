@@ -17,13 +17,13 @@ def kill_port_8000():
             try:
                 for conn in proc.info['connections'] or []:
                     if conn.laddr.port == 8000:
-                        print(f"🔧 Killing process {proc.info['pid']} ({proc.info['name']}) using port 8000")
+                        print(f" Killing process {proc.info['pid']} ({proc.info['name']}) using port 8000")
                         proc.kill()
                         time.sleep(1)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
     except Exception as e:
-        print(f"⚠️  Could not check port 8000: {e}")
+        print(f"[WARN]  Could not check port 8000: {e}")
 
 def check_system_resources():
     """Check if system has enough resources."""
@@ -31,32 +31,32 @@ def check_system_resources():
         memory = psutil.virtual_memory()
         cpu_percent = psutil.cpu_percent(interval=1)
         
-        print(f"💾 Memory: {memory.percent:.1f}% used ({memory.available // (1024**3):.1f}GB available)")
-        print(f"🖥️  CPU: {cpu_percent:.1f}% used")
+        print(f"[SAVE] Memory: {memory.percent:.1f}% used ({memory.available // (1024**3):.1f}GB available)")
+        print(f"️  CPU: {cpu_percent:.1f}% used")
         
         if memory.percent > 90:
-            print("⚠️  WARNING: Low memory! This may cause crashes.")
+            print("[WARN]  WARNING: Low memory! This may cause crashes.")
             return False
         
         if cpu_percent > 95:
-            print("⚠️  WARNING: High CPU usage! This may cause instability.")
+            print("[WARN]  WARNING: High CPU usage! This may cause instability.")
             return False
             
         return True
         
     except Exception as e:
-        print(f"⚠️  Could not check system resources: {e}")
+        print(f"[WARN]  Could not check system resources: {e}")
         return True
 
 def run_backend_with_monitoring():
     """Run the backend with crash monitoring and auto-restart."""
     
-    print("🚀 Stable Gyroidic Backend Launcher")
+    print("[START] Stable Gyroidic Backend Launcher")
     print("=" * 40)
     
     # Check system resources
     if not check_system_resources():
-        print("⚠️  System resources are low. Backend may be unstable.")
+        print("[WARN]  System resources are low. Backend may be unstable.")
         response = input("Continue anyway? (y/n): ")
         if response.lower() != 'y':
             return 1
@@ -69,7 +69,7 @@ def run_backend_with_monitoring():
     
     while restart_count < max_restarts:
         try:
-            print(f"\n🌐 Starting backend (attempt {restart_count + 1}/{max_restarts})...")
+            print(f"\n Starting backend (attempt {restart_count + 1}/{max_restarts})...")
             
             # Set environment variables to reduce MKL issues
             env = os.environ.copy()
@@ -89,7 +89,7 @@ def run_backend_with_monitoring():
             bufsize=1
             )
             
-            print(f"✅ Backend started with PID: {process.pid}")
+            print(f"[OK] Backend started with PID: {process.pid}")
             
             # Monitor the process
             start_time = time.time()
@@ -98,7 +98,7 @@ def run_backend_with_monitoring():
             while True:
                 # Check if process is still running
                 if process.poll() is not None:
-                    print(f"❌ Backend process exited with code: {process.returncode}")
+                    print(f"[ERR] Backend process exited with code: {process.returncode}")
                     break
                 
                 # Read output
@@ -110,12 +110,12 @@ def run_backend_with_monitoring():
                         
                         # Check for successful startup
                         if "STATUS: MANIFOLD COHERENT" in output:
-                            print("✅ Backend is ready and stable!")
-                            print("🌐 Open http://localhost:8000 in your browser")
+                            print("[OK] Backend is ready and stable!")
+                            print(" Open http://localhost:8000 in your browser")
                             print("⏹️  Press Ctrl+C to stop")
                             
                 except Exception as e:
-                    print(f"⚠️  Output reading error: {e}")
+                    print(f"[WARN]  Output reading error: {e}")
                 
                 # Check for timeout (no output for 30 seconds after startup)
                 if time.time() - start_time > 30 and time.time() - last_output_time > 30:
@@ -132,18 +132,18 @@ def run_backend_with_monitoring():
             runtime = time.time() - start_time
             
             if runtime < 10:
-                print(f"❌ Backend crashed quickly ({runtime:.1f}s). This suggests a serious issue.")
+                print(f"[ERR] Backend crashed quickly ({runtime:.1f}s). This suggests a serious issue.")
                 restart_count += 1
             elif runtime < 60:
-                print(f"⚠️  Backend ran for {runtime:.1f}s before crashing. Restarting...")
+                print(f"[WARN]  Backend ran for {runtime:.1f}s before crashing. Restarting...")
                 restart_count += 1
             else:
-                print(f"✅ Backend ran successfully for {runtime:.1f}s")
+                print(f"[OK] Backend ran successfully for {runtime:.1f}s")
                 # Reset restart count for long-running sessions
                 restart_count = 0
             
             if restart_count < max_restarts:
-                print(f"🔄 Restarting in 3 seconds...")
+                print(f" Restarting in 3 seconds...")
                 time.sleep(3)
             
         except KeyboardInterrupt:
@@ -156,12 +156,12 @@ def run_backend_with_monitoring():
             return 0
             
         except Exception as e:
-            print(f"❌ Unexpected error: {e}")
+            print(f"[ERR] Unexpected error: {e}")
             restart_count += 1
             time.sleep(3)
     
-    print(f"❌ Backend failed to start after {max_restarts} attempts.")
-    print("🔧 Possible solutions:")
+    print(f"[ERR] Backend failed to start after {max_restarts} attempts.")
+    print(" Possible solutions:")
     print("   • Restart your computer")
     print("   • Check if another program is using port 8000")
     print("   • Run: netstat -ano | findstr :8000")
@@ -172,5 +172,5 @@ if __name__ == "__main__":
     try:
         sys.exit(run_backend_with_monitoring())
     except Exception as e:
-        print(f"❌ Critical error: {e}")
+        print(f"[ERR] Critical error: {e}")
         sys.exit(1)

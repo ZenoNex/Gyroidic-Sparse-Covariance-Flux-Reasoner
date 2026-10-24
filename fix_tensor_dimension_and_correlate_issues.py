@@ -21,7 +21,7 @@ def fix_torch_correlate_issues():
     Fix all instances of torch.correlate which doesn't exist in PyTorch.
     Replace with proper autocorrelation using convolution.
     """
-    print("🔧 Fixing torch.correlate issues...")
+    print(" Fixing torch.correlate issues...")
     
     files_to_fix = [
         'src/data/constraint_geometry_ingestor.py',
@@ -30,7 +30,7 @@ def fix_torch_correlate_issues():
     
     for file_path in files_to_fix:
         if os.path.exists(file_path):
-            print(f"📝 Fixing {file_path}...")
+            print(f" Fixing {file_path}...")
             
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -80,18 +80,18 @@ def compute_autocorrelation(x: torch.Tensor) -> torch.Tensor:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
             
-            print(f"✅ Fixed torch.correlate in {file_path}")
+            print(f"[OK] Fixed torch.correlate in {file_path}")
 
 def fix_tensor_dimension_issues():
     """
     Fix tensor dimension mismatches in unfolding closure checks.
     Based on energy-based learning constraint satisfaction.
     """
-    print("🔧 Fixing tensor dimension issues...")
+    print(" Fixing tensor dimension issues...")
     
     backend_file = 'src/ui/diegetic_backend.py'
     if not os.path.exists(backend_file):
-        print(f"❌ {backend_file} not found")
+        print(f"[ERR] {backend_file} not found")
         return
     
     with open(backend_file, 'r', encoding='utf-8') as f:
@@ -169,13 +169,13 @@ def fix_tensor_dimension_issues():
     with open(backend_file, 'w', encoding='utf-8') as f:
         f.write(content)
     
-    print("✅ Fixed tensor dimension issues in unfolding closure check")
+    print("[OK] Fixed tensor dimension issues in unfolding closure check")
 
 def create_energy_based_soliton_preservation():
     """
     Create enhanced soliton preservation based on energy-based learning principles.
     """
-    print("🔧 Creating energy-based soliton preservation...")
+    print(" Creating energy-based soliton preservation...")
     
     soliton_file = 'src/core/energy_based_soliton_healer.py'
     
@@ -443,14 +443,14 @@ def create_energy_based_healer(state_dim: int = 64) -> EnergyBasedSolitonHealer:
     with open(soliton_file, 'w', encoding='utf-8') as f:
         f.write(soliton_code)
     
-    print(f"✅ Created energy-based soliton healer: {soliton_file}")
+    print(f"[OK] Created energy-based soliton healer: {soliton_file}")
 
 def create_codes_constraint_framework():
     """
     Create CODES (Constraint-Oriented Differential Equation System) framework
     based on energy-based learning principles.
     """
-    print("🔧 Creating CODES constraint framework...")
+    print(" Creating CODES constraint framework...")
     
     codes_file = 'src/core/codes_constraint_framework.py'
     
@@ -760,13 +760,13 @@ def create_codes_framework(state_dim: int = 64, max_constraints: int = 32) -> CO
     with open(codes_file, 'w', encoding='utf-8') as f:
         f.write(codes_code)
     
-    print(f"✅ Created CODES constraint framework: {codes_file}")
+    print(f"[OK] Created CODES constraint framework: {codes_file}")
 
 def integrate_fixes_into_system():
     """
     Integrate all fixes into the main system components.
     """
-    print("🔧 Integrating fixes into system...")
+    print(" Integrating fixes into system...")
     
     # Update the spectral coherence repair to use new components
     spectral_file = 'src/core/spectral_coherence_repair.py'
@@ -796,14 +796,14 @@ from .codes_constraint_framework import CODESConstraintFramework
         try:
             self.soliton_healer = EnergyBasedSolitonHealer(state_dim=64)
         except Exception as e:
-            print(f"⚠️  Could not initialize energy-based soliton healer: {e}")
+            print(f"[WARN]  Could not initialize energy-based soliton healer: {e}")
             self.soliton_healer = None
             
         # CODES Constraint Framework
         try:
             self.codes_framework = CODESConstraintFramework(state_dim=64)
         except Exception as e:
-            print(f"⚠️  Could not initialize CODES framework: {e}")
+            print(f"[WARN]  Could not initialize CODES framework: {e}")
             self.codes_framework = None'''
         
         content = content.replace(old_init, new_init)
@@ -811,12 +811,12 @@ from .codes_constraint_framework import CODESConstraintFramework
         with open(spectral_file, 'w', encoding='utf-8') as f:
             f.write(content)
         
-        print("✅ Integrated energy-based components into spectral coherence repair")
+        print("[OK] Integrated energy-based components into spectral coherence repair")
 
 def main():
     """Main function to apply all fixes."""
-    print("🚀 Starting comprehensive system fixes...")
-    print("📚 Based on Energy-Based Learning principles and number theory")
+    print("[START] Starting comprehensive system fixes...")
+    print("[DOCS] Based on Energy-Based Learning principles and number theory")
     print()
     
     try:
@@ -840,9 +840,9 @@ def main():
         integrate_fixes_into_system()
         print()
         
-        print("✅ All fixes applied successfully!")
+        print("[OK] All fixes applied successfully!")
         print()
-        print("🎯 Key improvements:")
+        print("[GOAL] Key improvements:")
         print("  • Fixed torch.correlate issues with proper FFT-based autocorrelation")
         print("  • Resolved tensor dimension mismatches in unfolding closure checks")
         print("  • Implemented energy-based soliton preservation following EBM principles")
@@ -850,7 +850,7 @@ def main():
         print("  • Applied number-theoretic stability guarantees")
         print("  • Integrated margin-based robustness from energy-based learning")
         print()
-        print("🧠 Theoretical foundation:")
+        print("[BRAIN] Theoretical foundation:")
         print("  • Energy functions E(W,Y,X) measure state compatibility")
         print("  • Lower energy = more stable/correct configurations")
         print("  • Margin-based loss functions ensure robust learning")
@@ -858,7 +858,7 @@ def main():
         print("  • Constraint satisfaction through energy minimization")
         
     except Exception as e:
-        print(f"❌ Error during fixes: {e}")
+        print(f"[ERR] Error during fixes: {e}")
         import traceback
         traceback.print_exc()
         return False

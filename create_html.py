@@ -103,22 +103,22 @@ https://en.wikipedia.org/wiki/Machine_learning"></textarea>
             <div class="panel-title">Extraction Options</div>
             <label><input type="checkbox" id="filter-noise" checked> Smart noise filtering</label><br>
             <label><input type="checkbox" id="auto-concepts" checked> Auto-detect source concepts</label><br><br>
-            <button class="btn" onclick="startExtraction()">🚀 Start Training</button>
+            <button class="btn" onclick="startExtraction()">[START] Start Training</button>
         </div>
 
         <div class="panel">
             <div class="panel-title">Training Status</div>
             <div class="log-container" id="log-container">
-                <div class="log-entry log-info">🔧 Wikipedia Knowledge Ingestion System initialized</div>
-                <div class="log-entry log-info">📚 Ready to process Wikipedia content</div>
+                <div class="log-entry log-info"> Wikipedia Knowledge Ingestion System initialized</div>
+                <div class="log-entry log-info">[DOCS] Ready to process Wikipedia content</div>
             </div>
         </div>
     </div>
 
     <script>
         function startExtraction() {
-            addLog('🚀 Starting Wikipedia extraction...', 'info');
-            addLog('✅ System is working! HTML loaded successfully.', 'success');
+            addLog('[START] Starting Wikipedia extraction...', 'info');
+            addLog('[OK] System is working! HTML loaded successfully.', 'success');
         }
 
         function addLog(message, type = 'info') {
@@ -131,7 +131,7 @@ https://en.wikipedia.org/wiki/Machine_learning"></textarea>
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            addLog('🔧 System ready for Wikipedia knowledge ingestion', 'info');
+            addLog(' System ready for Wikipedia knowledge ingestion', 'info');
         });
     </script>
 </body>
@@ -144,5 +144,5 @@ os.makedirs('src/ui', exist_ok=True)
 with open('src/ui/wikipedia_trainer.html', 'w', encoding='utf-8') as f:
     f.write(html_content)
 
-print(f"✅ HTML file created successfully!")
-print(f"📊 File size: {os.path.getsize('src/ui/wikipedia_trainer.html')} bytes")
+print(f"[OK] HTML file created successfully!")
+print(f"[METRICS] File size: {os.path.getsize('src/ui/wikipedia_trainer.html')} bytes")

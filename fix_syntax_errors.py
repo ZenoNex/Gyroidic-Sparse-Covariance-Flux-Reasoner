@@ -76,12 +76,12 @@ def fix_file_syntax(file_path: Path):
         return False
         
     except Exception as e:
-        print(f"❌ Error fixing {file_path}: {e}")
+        print(f"[ERR] Error fixing {file_path}: {e}")
         return False
 
 def main():
     """Fix syntax errors in problematic files."""
-    print("🔧 Fixing Syntax Errors")
+    print(" Fixing Syntax Errors")
     print("=" * 25)
     
     # Files that had syntax errors
@@ -95,19 +95,19 @@ def main():
     for file_path_str in problem_files:
         file_path = Path(file_path_str)
         if file_path.exists():
-            print(f"🔧 Fixing {file_path}...")
+            print(f" Fixing {file_path}...")
             if fix_file_syntax(file_path):
-                print(f"   ✅ Fixed syntax errors")
+                print(f"   [OK] Fixed syntax errors")
                 fixed_count += 1
             else:
-                print(f"   ⚠️  No changes needed")
+                print(f"   [WARN]  No changes needed")
         else:
-            print(f"   ❌ File not found: {file_path}")
+            print(f"   [ERR] File not found: {file_path}")
     
-    print(f"\n📊 Fixed {fixed_count} files")
+    print(f"\n[METRICS] Fixed {fixed_count} files")
     
     if fixed_count > 0:
-        print(f"🧪 Test the fixes:")
+        print(f"[TEST] Test the fixes:")
         print(f"   python debug_imports.py")
 
 if __name__ == "__main__":

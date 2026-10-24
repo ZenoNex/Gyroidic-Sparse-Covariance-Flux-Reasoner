@@ -21,11 +21,11 @@ def fix_nan_inf_stabilization():
     Fix NaN/inf value detection and apply proper numerical stabilization
     based on energy-based learning principles.
     """
-    print("🔧 Fixing NaN/inf stabilization...")
+    print(" Fixing NaN/inf stabilization...")
     
     spectral_file = 'src/core/spectral_coherence_repair.py'
     if not os.path.exists(spectral_file):
-        print(f"❌ {spectral_file} not found")
+        print(f"[ERR] {spectral_file} not found")
         return
     
     with open(spectral_file, 'r', encoding='utf-8') as f:
@@ -46,7 +46,7 @@ def apply_energy_based_stabilization(state: torch.Tensor,
     """
     # Check for NaN/inf values
     if torch.isnan(state).any() or torch.isinf(state).any():
-        print("⚠️  Detected NaN/inf values, applying emergency stabilization")
+        print("[WARN]  Detected NaN/inf values, applying emergency stabilization")
         # Replace NaN/inf with small random values
         state = torch.where(torch.isnan(state) | torch.isinf(state), 
                           torch.randn_like(state) * stability_margin, 
@@ -73,26 +73,26 @@ def apply_energy_based_stabilization(state: torch.Tensor,
         content = content[:import_end] + stabilization_function + content[import_end:]
     
     # Replace the old stabilization calls
-    old_stabilization = '''⚠️  Detected NaN/inf values, applying emergency stabilization'''
+    old_stabilization = '''[WARN]  Detected NaN/inf values, applying emergency stabilization'''
     new_stabilization = '''state = apply_energy_based_stabilization(state)'''
     
     # Find and replace the emergency stabilization
     content = content.replace(
-        '⚠️  Detected NaN/inf values, applying emergency stabilization',
+        '[WARN]  Detected NaN/inf values, applying emergency stabilization',
         'state = apply_energy_based_stabilization(state)'
     )
     
     with open(spectral_file, 'w', encoding='utf-8') as f:
         f.write(content)
     
-    print("✅ Enhanced NaN/inf stabilization with energy-based principles")
+    print("[OK] Enhanced NaN/inf stabilization with energy-based principles")
 
 def enhance_bezout_crt_implementation():
     """
     Enhance Bezout coefficient handling with proper Chinese Remainder Theorem.
     Based on number theory principles for numerical stability.
     """
-    print("🔧 Enhancing Bezout CRT implementation...")
+    print(" Enhancing Bezout CRT implementation...")
     
     bezout_file = 'src/core/enhanced_bezout_crt.py'
     
@@ -391,13 +391,13 @@ def create_enhanced_bezout_crt(state_dim: int = 64) -> EnhancedBezoutCRT:
     with open(bezout_file, 'w', encoding='utf-8') as f:
         f.write(bezout_code)
     
-    print(f"✅ Created enhanced Bezout CRT: {bezout_file}")
+    print(f"[OK] Created enhanced Bezout CRT: {bezout_file}")
 
 def create_number_theoretic_stabilizer():
     """
     Create a comprehensive number-theoretic stabilizer for the entire system.
     """
-    print("🔧 Creating number-theoretic stabilizer...")
+    print(" Creating number-theoretic stabilizer...")
     
     stabilizer_file = 'src/core/number_theoretic_stabilizer.py'
     
@@ -766,13 +766,13 @@ def create_number_theoretic_stabilizer(state_dim: int = 64) -> NumberTheoreticSt
     with open(stabilizer_file, 'w', encoding='utf-8') as f:
         f.write(stabilizer_code)
     
-    print(f"✅ Created number-theoretic stabilizer: {stabilizer_file}")
+    print(f"[OK] Created number-theoretic stabilizer: {stabilizer_file}")
 
 def integrate_enhanced_components():
     """
     Integrate all enhanced components into the main system.
     """
-    print("🔧 Integrating enhanced components...")
+    print(" Integrating enhanced components...")
     
     # Update spectral coherence repair with new components
     spectral_file = 'src/core/spectral_coherence_repair.py'
@@ -796,28 +796,28 @@ from .number_theoretic_stabilizer import NumberTheoreticStabilizer
         try:
             self.codes_framework = CODESConstraintFramework(state_dim=64)
         except Exception as e:
-            print(f"⚠️  Could not initialize CODES framework: {e}")
+            print(f"[WARN]  Could not initialize CODES framework: {e}")
             self.codes_framework = None'''
         
         new_init_pattern = '''        # CODES Constraint Framework
         try:
             self.codes_framework = CODESConstraintFramework(state_dim=64)
         except Exception as e:
-            print(f"⚠️  Could not initialize CODES framework: {e}")
+            print(f"[WARN]  Could not initialize CODES framework: {e}")
             self.codes_framework = None
             
         # Enhanced Bezout CRT
         try:
             self.enhanced_bezout = EnhancedBezoutCRT(state_dim=64)
         except Exception as e:
-            print(f"⚠️  Could not initialize enhanced Bezout CRT: {e}")
+            print(f"[WARN]  Could not initialize enhanced Bezout CRT: {e}")
             self.enhanced_bezout = None
             
         # Number-Theoretic Stabilizer
         try:
             self.nt_stabilizer = NumberTheoreticStabilizer(state_dim=64)
         except Exception as e:
-            print(f"⚠️  Could not initialize number-theoretic stabilizer: {e}")
+            print(f"[WARN]  Could not initialize number-theoretic stabilizer: {e}")
             self.nt_stabilizer = None'''
         
         content = content.replace(old_init_pattern, new_init_pattern)
@@ -825,13 +825,13 @@ from .number_theoretic_stabilizer import NumberTheoreticStabilizer
         with open(spectral_file, 'w', encoding='utf-8') as f:
             f.write(content)
         
-        print("✅ Integrated enhanced components into spectral coherence repair")
+        print("[OK] Integrated enhanced components into spectral coherence repair")
 
 def create_comprehensive_test():
     """
     Create a comprehensive test to verify all fixes work correctly.
     """
-    print("🔧 Creating comprehensive test...")
+    print(" Creating comprehensive test...")
     
     test_file = 'test_comprehensive_fixes.py'
     
@@ -851,7 +851,7 @@ sys.path.insert(0, 'src')
 
 def test_energy_based_soliton_healer():
     """Test the energy-based soliton healer."""
-    print("🧪 Testing Energy-Based Soliton Healer...")
+    print("[TEST] Testing Energy-Based Soliton Healer...")
     
     try:
         from core.energy_based_soliton_healer import EnergyBasedSolitonHealer
@@ -863,25 +863,25 @@ def test_energy_based_soliton_healer():
         
         healed_state, diagnostics = healer.heal_soliton(test_state, iteration_count=3)
         
-        print(f"  ✅ Initial energy: {diagnostics['initial_energy'][0]:.4f}")
-        print(f"  ✅ Final energy: {diagnostics['final_energy'][0]:.4f}")
-        print(f"  ✅ Healing steps: {diagnostics['healing_steps'][0]}")
-        print(f"  ✅ Stability achieved: {diagnostics['stability_achieved'][0]}")
+        print(f"  [OK] Initial energy: {diagnostics['initial_energy'][0]:.4f}")
+        print(f"  [OK] Final energy: {diagnostics['final_energy'][0]:.4f}")
+        print(f"  [OK] Healing steps: {diagnostics['healing_steps'][0]}")
+        print(f"  [OK] Stability achieved: {diagnostics['stability_achieved'][0]}")
         
         assert healed_state.shape == test_state.shape
         assert not torch.isnan(healed_state).any()
         assert not torch.isinf(healed_state).any()
         
-        print("  ✅ Energy-based soliton healer test passed!")
+        print("  [OK] Energy-based soliton healer test passed!")
         return True
         
     except Exception as e:
-        print(f"  ❌ Energy-based soliton healer test failed: {e}")
+        print(f"  [ERR] Energy-based soliton healer test failed: {e}")
         return False
 
 def test_codes_framework():
     """Test the CODES constraint framework."""
-    print("🧪 Testing CODES Constraint Framework...")
+    print("[TEST] Testing CODES Constraint Framework...")
     
     try:
         from core.codes_constraint_framework import CODESConstraintFramework
@@ -898,26 +898,26 @@ def test_codes_framework():
         
         evolved_state, diagnostics = framework.evolve_state(test_state, num_steps=5)
         
-        print(f"  ✅ Final energy: {diagnostics['final_energy']:.4f}")
-        print(f"  ✅ Energy reduction: {diagnostics['energy_reduction']:.4f}")
-        print(f"  ✅ Convergence steps: {diagnostics['convergence_steps']}")
-        print(f"  ✅ Converged: {diagnostics['converged']}")
-        print(f"  ✅ Stability score: {diagnostics['stability_score']:.4f}")
+        print(f"  [OK] Final energy: {diagnostics['final_energy']:.4f}")
+        print(f"  [OK] Energy reduction: {diagnostics['energy_reduction']:.4f}")
+        print(f"  [OK] Convergence steps: {diagnostics['convergence_steps']}")
+        print(f"  [OK] Converged: {diagnostics['converged']}")
+        print(f"  [OK] Stability score: {diagnostics['stability_score']:.4f}")
         
         assert evolved_state.shape == test_state.shape
         assert not torch.isnan(evolved_state).any()
         assert not torch.isinf(evolved_state).any()
         
-        print("  ✅ CODES framework test passed!")
+        print("  [OK] CODES framework test passed!")
         return True
         
     except Exception as e:
-        print(f"  ❌ CODES framework test failed: {e}")
+        print(f"  [ERR] CODES framework test failed: {e}")
         return False
 
 def test_enhanced_bezout_crt():
     """Test the enhanced Bezout CRT."""
-    print("🧪 Testing Enhanced Bezout CRT...")
+    print("[TEST] Testing Enhanced Bezout CRT...")
     
     try:
         from core.enhanced_bezout_crt import EnhancedBezoutCRT
@@ -929,24 +929,24 @@ def test_enhanced_bezout_crt():
         
         refreshed_state, diagnostics = bezout.refresh_bezout_coefficients(test_state)
         
-        print(f"  ✅ Condition number: {diagnostics['bezout_condition_number']:.4f}")
-        print(f"  ✅ Moduli mean: {diagnostics['moduli_mean']:.4f}")
-        print(f"  ✅ Reconstruction error: {diagnostics['crt_reconstruction_error']:.6f}")
+        print(f"  [OK] Condition number: {diagnostics['bezout_condition_number']:.4f}")
+        print(f"  [OK] Moduli mean: {diagnostics['moduli_mean']:.4f}")
+        print(f"  [OK] Reconstruction error: {diagnostics['crt_reconstruction_error']:.6f}")
         
         assert refreshed_state.shape == test_state.shape
         assert not torch.isnan(refreshed_state).any()
         assert not torch.isinf(refreshed_state).any()
         
-        print("  ✅ Enhanced Bezout CRT test passed!")
+        print("  [OK] Enhanced Bezout CRT test passed!")
         return True
         
     except Exception as e:
-        print(f"  ❌ Enhanced Bezout CRT test failed: {e}")
+        print(f"  [ERR] Enhanced Bezout CRT test failed: {e}")
         return False
 
 def test_number_theoretic_stabilizer():
     """Test the number-theoretic stabilizer."""
-    print("🧪 Testing Number-Theoretic Stabilizer...")
+    print("[TEST] Testing Number-Theoretic Stabilizer...")
     
     try:
         from core.number_theoretic_stabilizer import NumberTheoreticStabilizer
@@ -958,26 +958,26 @@ def test_number_theoretic_stabilizer():
         
         stabilized_state, diagnostics = stabilizer.comprehensive_stabilization(test_state)
         
-        print(f"  ✅ Stabilization error: {diagnostics['stabilization_error']:.4f}")
-        print(f"  ✅ Final norm: {diagnostics['final_norm']:.4f}")
-        print(f"  ✅ Stability score: {diagnostics['numerical_stability_score']:.4f}")
-        print(f"  ✅ Prime base size: {diagnostics['prime_base_size']}")
+        print(f"  [OK] Stabilization error: {diagnostics['stabilization_error']:.4f}")
+        print(f"  [OK] Final norm: {diagnostics['final_norm']:.4f}")
+        print(f"  [OK] Stability score: {diagnostics['numerical_stability_score']:.4f}")
+        print(f"  [OK] Prime base size: {diagnostics['prime_base_size']}")
         
         assert stabilized_state.shape == test_state.shape
         assert not torch.isnan(stabilized_state).any()
         assert not torch.isinf(stabilized_state).any()
         assert torch.norm(stabilized_state).item() < 100.0  # Should be stabilized
         
-        print("  ✅ Number-theoretic stabilizer test passed!")
+        print("  [OK] Number-theoretic stabilizer test passed!")
         return True
         
     except Exception as e:
-        print(f"  ❌ Number-theoretic stabilizer test failed: {e}")
+        print(f"  [ERR] Number-theoretic stabilizer test failed: {e}")
         return False
 
 def test_autocorrelation_fix():
     """Test the autocorrelation fix."""
-    print("🧪 Testing Autocorrelation Fix...")
+    print("[TEST] Testing Autocorrelation Fix...")
     
     try:
         # Test the autocorrelation function directly
@@ -1000,24 +1000,24 @@ def test_autocorrelation_fix():
         
         autocorr = compute_autocorrelation(test_signal)
         
-        print(f"  ✅ Autocorrelation shape: {autocorr.shape}")
-        print(f"  ✅ Max autocorrelation: {autocorr.max().item():.4f}")
-        print(f"  ✅ Autocorrelation at zero lag: {autocorr[63].item():.4f}")  # Should be maximum
+        print(f"  [OK] Autocorrelation shape: {autocorr.shape}")
+        print(f"  [OK] Max autocorrelation: {autocorr.max().item():.4f}")
+        print(f"  [OK] Autocorrelation at zero lag: {autocorr[63].item():.4f}")  # Should be maximum
         
         assert not torch.isnan(autocorr).any()
         assert not torch.isinf(autocorr).any()
         assert autocorr.shape[0] == 2 * len(test_signal) - 1
         
-        print("  ✅ Autocorrelation fix test passed!")
+        print("  [OK] Autocorrelation fix test passed!")
         return True
         
     except Exception as e:
-        print(f"  ❌ Autocorrelation fix test failed: {e}")
+        print(f"  [ERR] Autocorrelation fix test failed: {e}")
         return False
 
 def main():
     """Run all comprehensive tests."""
-    print("🚀 Running Comprehensive System Tests")
+    print("[START] Running Comprehensive System Tests")
     print("=" * 50)
     
     tests = [
@@ -1037,16 +1037,16 @@ def main():
                 passed += 1
             print()
         except Exception as e:
-            print(f"  ❌ Test failed with exception: {e}")
+            print(f"  [ERR] Test failed with exception: {e}")
             print()
     
     print("=" * 50)
-    print(f"📊 Test Results: {passed}/{total} tests passed")
+    print(f"[METRICS] Test Results: {passed}/{total} tests passed")
     
     if passed == total:
-        print("🎉 ALL TESTS PASSED! System fixes are working correctly.")
+        print("[SUCCESS] ALL TESTS PASSED! System fixes are working correctly.")
         print()
-        print("🎯 Key achievements:")
+        print("[GOAL] Key achievements:")
         print("  • Energy-based learning principles implemented")
         print("  • Number-theoretic stability guaranteed")
         print("  • CODES constraint framework operational")
@@ -1055,7 +1055,7 @@ def main():
         print("  • Comprehensive error handling in place")
         return True
     else:
-        print(f"⚠️  {total - passed} tests failed. Please check the implementation.")
+        print(f"[WARN]  {total - passed} tests failed. Please check the implementation.")
         return False
 
 if __name__ == "__main__":
@@ -1066,12 +1066,12 @@ if __name__ == "__main__":
     with open(test_file, 'w', encoding='utf-8') as f:
         f.write(test_code)
     
-    print(f"✅ Created comprehensive test: {test_file}")
+    print(f"[OK] Created comprehensive test: {test_file}")
 
 def main():
     """Main function to apply all enhanced fixes."""
-    print("🚀 Starting enhanced system fixes...")
-    print("📚 Based on Energy-Based Learning and advanced number theory")
+    print("[START] Starting enhanced system fixes...")
+    print("[DOCS] Based on Energy-Based Learning and advanced number theory")
     print()
     
     try:
@@ -1095,9 +1095,9 @@ def main():
         create_comprehensive_test()
         print()
         
-        print("✅ All enhanced fixes applied successfully!")
+        print("[OK] All enhanced fixes applied successfully!")
         print()
-        print("🎯 Enhanced improvements:")
+        print("[GOAL] Enhanced improvements:")
         print("  • Energy-based numerical stabilization")
         print("  • Advanced Bezout coefficient handling with CRT")
         print("  • Comprehensive number-theoretic stabilizer")
@@ -1107,7 +1107,7 @@ def main():
         print("  • Quadratic residue theory for energy optimization")
         print("  • Galois field operations for finite precision")
         print()
-        print("🧠 Advanced theoretical foundation:")
+        print("[BRAIN] Advanced theoretical foundation:")
         print("  • Chinese Remainder Theorem for modular decomposition")
         print("  • Extended Euclidean algorithm for Bezout coefficients")
         print("  • Golden ratio normalization for natural stability")
@@ -1115,7 +1115,7 @@ def main():
         print("  • Energy minimization following EBM principles")
         
     except Exception as e:
-        print(f"❌ Error during enhanced fixes: {e}")
+        print(f"[ERR] Error during enhanced fixes: {e}")
         import traceback
         traceback.print_exc()
         return False

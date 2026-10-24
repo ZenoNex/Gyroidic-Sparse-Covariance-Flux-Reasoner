@@ -54,7 +54,7 @@ def fix_file_imports(file_path: Path, src_root: Path):
         return []
         
     except Exception as e:
-        print(f"❌ Error processing {file_path}: {e}")
+        print(f"[ERR] Error processing {file_path}: {e}")
         return []
 
 def add_path_setup(file_path: Path):
@@ -108,19 +108,19 @@ def add_path_setup(file_path: Path):
         return True
         
     except Exception as e:
-        print(f"❌ Error adding path setup to {file_path}: {e}")
+        print(f"[ERR] Error adding path setup to {file_path}: {e}")
         return False
 
 def main():
     """Fix all import issues in the project."""
-    print("🔧 Fixing Project Import Structure")
+    print(" Fixing Project Import Structure")
     print("=" * 40)
     
     project_root = Path('.')
     src_root = project_root / 'src'
     
     if not src_root.exists():
-        print("❌ src directory not found!")
+        print("[ERR] src directory not found!")
         return 1
     
     # Find all Python files in src
@@ -128,7 +128,7 @@ def main():
     for pattern in ['**/*.py']:
         python_files.extend(src_root.glob(pattern))
     
-    print(f"🔍 Found {len(python_files)} Python files in src/")
+    print(f" Found {len(python_files)} Python files in src/")
     
     total_changes = 0
     files_modified = 0
@@ -138,18 +138,18 @@ def main():
         if file_path.name == '__init__.py':
             continue  # Skip __init__.py files
             
-        print(f"🔧 Processing {file_path.relative_to(project_root)}...")
+        print(f" Processing {file_path.relative_to(project_root)}...")
         
         changes = fix_file_imports(file_path, src_root)
         if changes:
-            print(f"   ✅ Fixed {len(changes)} imports: {', '.join(changes[:3])}{'...' if len(changes) > 3 else ''}")
+            print(f"   [OK] Fixed {len(changes)} imports: {', '.join(changes[:3])}{'...' if len(changes) > 3 else ''}")
             files_modified += 1
             total_changes += len(changes)
         
         # Add path setup for problematic files
         if any(problem in str(file_path) for problem in ['training', 'models']):
             if add_path_setup(file_path):
-                print(f"   ✅ Added path setup")
+                print(f"   [OK] Added path setup")
     
     # Also fix the main files that import from src
     main_files = [
@@ -160,21 +160,21 @@ def main():
     for main_file in main_files:
         file_path = project_root / main_file
         if file_path.exists():
-            print(f"🔧 Processing {main_file}...")
+            print(f" Processing {main_file}...")
             if add_path_setup(file_path):
-                print(f"   ✅ Added path setup")
+                print(f"   [OK] Added path setup")
     
-    print(f"\n📊 Import Fix Summary:")
+    print(f"\n[METRICS] Import Fix Summary:")
     print(f"   Files modified: {files_modified}")
     print(f"   Total imports fixed: {total_changes}")
     
     if total_changes > 0:
-        print(f"\n✅ Import structure fixed!")
-        print(f"🧪 Test the fixes:")
+        print(f"\n[OK] Import structure fixed!")
+        print(f"[TEST] Test the fixes:")
         print(f"   python debug_imports.py")
         print(f"   python dataset_command_interface.py --help")
     else:
-        print(f"\n⚠️  No import issues found to fix")
+        print(f"\n[WARN]  No import issues found to fix")
     
     return 0
 
