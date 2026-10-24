@@ -2369,6 +2369,57 @@ SVD decomposition of covariance matrices is $O(d^3)$. To ensure zero latency imp
 
 ---
 
+## 74. Einstein Monotile Aperiodic Spatial Engine & Frequency-Space Duality
+
+### 74.1 Mathematical Thesis: Frequency vs. Spatial Non-Periodicity
+In the frequency and temporal domain, the reasoner enforces strict non-periodicity through the **Prime Resonance Ladder**:
+$$f_{p_n} = 2\pi \ln p_n, \quad p_n \in \mathbb{P}$$
+Because the logarithms of distinct prime numbers are linearly independent over the rational field $\mathbb{Q}$, superpositions of prime harmonic modes can never collapse into periodic harmonic cycles or mode-locked monocultures.
+
+The **Einstein Monotile** (the aperiodic monotile, specifically the "Hat" and "Spectre" chiral continuum) acts as the exact **geometric and spatial dual** of this prime resonance ladder:
+- **100% Space-Filling Coverage**: Tiles the continuous 2D surface with zero gaps, zero overlaps, and zero void leaks.
+- **Strict Translational Aperiodicity**: Admits zero non-trivial translational symmetries:
+  $$\forall \mathbf{v} \in \mathbb{R}^2 \setminus \{\mathbf{0}\}, \quad T_{\mathbf{v}}\mathcal{T} \neq \mathcal{T}$$
+- **Hierarchical Self-Similarity**: Generates infinite non-repeating patch hierarchies via aperiodic substitution clusters, maintaining scale invariance across depth transitions.
+
+### 74.2 The Five Domain Interventions
+The Einstein monotile resolves five geometric failure modes across the architecture:
+
+1. **Voxelboxter Sub-Voxel Lattice (`PointerlessOctree`)**:
+   - Replaces rigid cubic voxel snapping with continuous projection to local Hat polykite centroids via [get_monotile_subvoxel_coord](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py).
+   - Mohr-Coulomb shear fractures are carved along the local aperiodic orientation $\theta_k$ ([shear_fracture_monotile](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py)):
+     $$\mathbf{v}_{\text{shear}} = \mathbf{R}(\theta_k) \nabla P$$
+     eliminating artificial $90^\circ$ Cartesian grid bias in ray marching and stress rupture.
+
+2. **ZeitgeistRouter Polytope Boundary Grazing**:
+   - Sliding along polytope boundaries ($\langle \mathbf{n}_j, \mathbf{x} \rangle \approx c_j$) risks falling into repeating 2-cycle or limit-cycle deadlocks.
+   - Facet thresholds $c_j$ are modulated by the Hat substitution phase ([modulate_grazing_thresholds](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/zeitgeist_router.py)):
+     $$c_j(t) = c_j + \varepsilon \sin(\theta_{j}) \cos(2\pi (t \Phi + j / \sqrt{3}))$$
+     guaranteeing infinite boundary traversal without cycle debt.
+
+3. **Resonance Cavity Mode-Lock Breaking**:
+   - Boundary walls are structured with an aperiodic reflection operator $\mathbf{R}_{\text{monotile}}$ ([break_spatial_mode_lock](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/resonance_cavity.py)):
+     $$\mathbf{R}_{\text{monotile}} = \text{diag}(\cos(\Phi_k)) + \mathbf{\Omega}_{\text{chiral}}$$
+     preventing Bessel $J_0$ cylindrical standing waves from freezing into degenerate spatial nodal traps.
+
+4. **Meliponini Cerumen Pot Isolation**:
+   - Memory palace room centers $\boldsymbol{\mu}_k$ are distributed via [generate_aperiodic_pot_centers](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/garden_statistical_attractors.py).
+   - Sovereign gaps ($\phi < \phi_{\text{RCP}}$) between pots are non-linear and non-periodic across all angular directions, completely blocking straight-line gradient diffusion tunnels and shielding the Love Invariant $\mathcal{L}$.
+
+5. **P2P Bonfire Nomadic Rings**:
+   - [compute_monotile_sightline](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/bonfire_consensus.py) embeds peer coordinates into continuous monotile patch coordinates across Matrioshka depth jumps ($2^{-\ell}$), eliminating boundary seam tearing across radical scale divides.
+
+### 74.3 Compute Affordance System Rehybridization
+The isolated compute affordance systems are unified into a typed dispatch architecture managed by `UniversalOrchestrator`:
+- `COMPUTE_BATCH`: Gated by `SituationalBatchSampler` and `MandelbulbEmbedder`.
+- `DIEGETIC`: Gated by `DiegeticPhysicsEngine`.
+- `ALGORITHMIC`: Gated by topological invariants and CRT solvers.
+- `P2P_MESH`: Gated by `BonfireConsensus`.
+- `GPU_SOVEREIGN`: Gated by Silicon/GPU allocation.
+All 8 channels (`silicon_ok`, `thermal_ok`, `gpu_sovereign_ok`, `topological_ok`, `p2p_mesh_ok`, `diegetic_ok`, `algorithmic_ok`, `compute_batch_ok`) report continuous live telemetry.
+
+---
+
 ## Appendix B: Mathematical Codebase Translation (Integration Mapping)
 
 The theoretical derivations contained in this document are directly mapped to executable Python code across the `src/` hierarchy. The mathematical topology is enforced by the following core operators:
@@ -2387,3 +2438,7 @@ The theoretical derivations contained in this document are directly mapped to ex
 
 5. **`src/core/topological_gyrocompass.py`**:
    Enforces precessional boundary redirection (`precess_torque`), True North trajectory alignment (`find_true_north`), and SVD null-space projection (`gimbal_lock_shield`) to protect the Love Invariant from outer shell rotations and resolve Drucker-Prager convexity failure.
+
+6. **`src/topology/einstein_monotile.py`**:
+   Implements the Einstein Monotile aperiodic spatial engine (`EinsteinMonotile`, `EinsteinMonotileTessellation`). Acts as the spatial counterpart to the prime resonance ladder, providing gapless aperiodic sub-voxel indexing, anisotropic shear vector calculation, aperiodic facet grazing modulation, non-mode-locking cavity boundary reflection operators, cerumen pot isolation constellations, and scale-invariant sightline coordinates.
+

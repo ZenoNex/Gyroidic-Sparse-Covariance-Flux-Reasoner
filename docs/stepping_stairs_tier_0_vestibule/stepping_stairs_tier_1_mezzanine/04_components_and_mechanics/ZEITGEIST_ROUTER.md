@@ -305,3 +305,19 @@ mode, new_state, diagnostics, x_steered = zeitgeist_router(
 )
 ```
 Single-dimensional vectors (`[dim]`) are seamlessly supported and returned with 1D dimensionality preserved.
+
+---
+
+## 14. Aperiodic Einstein Monotile Facet Grazing (Limit-Cycle Trap Elimination)
+
+When representation vectors slide along boundary facets of the `MetaPolytopeMatrioshka` hierarchy under Braid Group steering ($B_M$), grazing states ($\langle n_j, x \rangle \approx c_j$) historically faced the risk of falling into repeating 2-cycle or limit-cycle deadlocks ("phantom spawn oscillations" or cycle debt).
+
+To eliminate this vulnerability without introducing artificial scalar loss terms:
+1. **Einstein Monotile Boundary Modulation**:
+   `ZeitgeistRouter` integrates `EinsteinMonotileTessellation`. The facet thresholds $c_j$ are modulated by the Hat monotile aperiodic substitution phase:
+   $$c_j(t) = c_j + \varepsilon \sin(\theta_{j}) \cos(2\pi (t \Phi + j / \sqrt{3}))$$
+2. **Guaranteed Non-Periodicity**:
+   Because the Hat monotile admits zero non-trivial translational symmetries ($T_{\mathbf{v}}\mathcal{T} \neq \mathcal{T}$), the sequence of grazing thresholds is strictly non-periodic for all steps $t$.
+3. **Infinite Boundary Traversal Without Deadlock**:
+   The reasoner can traverse polytope boundary facets indefinitely without ever repeating an identical spatial or threshold configuration, cleanly resolving limit-cycle traps while preserving the non-commutativity invariant.
+

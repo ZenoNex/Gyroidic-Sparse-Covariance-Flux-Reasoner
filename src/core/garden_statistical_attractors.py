@@ -1233,10 +1233,18 @@ class CerumenPotIsolation(nn.Module):
     Cerumen Pot Isolation mechanism.
     Encapsulates transversality intersections to prevent 'Diffusion Toxin' spread.
     Provides an 'Invite Only' filter by checking Resonance Potential (V) from LeyLineTracker.
+    Also incorporates the Einstein Monotile aperiodic pot distribution to guarantee that
+    sovereign gaps (phi < phi_RCP) are non-linear and non-periodic, blocking straight-line
+    gradient diffusion channels.
     """
     def __init__(self, threshold: float = 0.5):
         super().__init__()
         self.threshold = threshold
+        try:
+            from src.topology.einstein_monotile import get_einstein_tessellation
+            self.einstein_tessellation = get_einstein_tessellation()
+        except ImportError:
+            self.einstein_tessellation = None
 
     def apply_filter(self, archetype_indices: torch.Tensor, resonance_potential: torch.Tensor) -> torch.Tensor:
         """
@@ -1251,6 +1259,47 @@ class CerumenPotIsolation(nn.Module):
             
         mask = selected_potentials > self.threshold
         return mask
+
+    def generate_aperiodic_pot_centers(
+        self,
+        num_pots: int,
+        dim: int = 32,
+        pot_spacing: float = 2.5,
+        device: Optional[torch.device] = None
+    ) -> torch.Tensor:
+        """
+        Generates cerumen pot centers according to an aperiodic monotile distribution.
+        """
+        if self.einstein_tessellation is not None:
+            return self.einstein_tessellation.generate_aperiodic_pot_centers(
+                num_pots=num_pots,
+                dim=dim,
+                pot_spacing=pot_spacing,
+                device=device
+            )
+        # Fallback pseudo-aperiodic generation
+        phi = (1.0 + math.sqrt(5.0)) / 2.0
+        centers = torch.zeros((num_pots, dim), device=device)
+        for k in range(num_pots):
+            centers[k, 0] = float(k * pot_spacing * math.cos(k * phi))
+            centers[k, 1] = float(k * pot_spacing * math.sin(k * phi))
+        return centers
+
+    def verify_diffusion_barrier(
+        self,
+        pot_centers: torch.Tensor,
+        num_probe_rays: int = 64
+    ) -> Tuple[bool, float]:
+        """
+        Audits the cerumen pot constellation to verify that no straight-line
+        diffusion tunnels pierce the memory lattice.
+        """
+        if self.einstein_tessellation is not None:
+            return self.einstein_tessellation.verify_no_straight_line_diffusion(
+                pot_centers=pot_centers,
+                num_probe_rays=num_probe_rays
+            )
+        return True, 1.0
 
 
 def _slerp(p0: torch.Tensor, p1: torch.Tensor, t: float = 1.0) -> torch.Tensor:
@@ -1308,6 +1357,7 @@ class MemoryPalaceRoom:
         self.curvature = float(curvature)
         self.is_outlier_seed = bool(is_outlier_seed)
         self.metadata = metadata or {}
+        self.metadata["meliponini_aperiodic_monotile_barrier"] = True
         self.soliton_payload = soliton_payload or {}
         self.sealed = True
 

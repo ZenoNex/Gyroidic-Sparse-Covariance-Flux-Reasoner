@@ -330,6 +330,12 @@ class ZeitgeistRouter(nn.Module):
         # One threshold per modulus.  Initialise near zero so the grazing
         # zone initially covers a small hypersphere shell.
         self.facet_thresholds = nn.Parameter(torch.zeros(self.M))
+        try:
+            from src.topology.einstein_monotile import get_einstein_tessellation
+            self.einstein_tessellation = get_einstein_tessellation()
+        except ImportError:
+            self.einstein_tessellation = None
+        self.iteration_count = 0
 
         #  Switching pressure gate  #
         # Projects state  per-modulus switching pressure  (0,1).
@@ -471,12 +477,22 @@ class ZeitgeistRouter(nn.Module):
         n_norm = F.normalize(self.facet_normals, dim=-1)   # [M, dim]
         return x_norm @ n_norm.T                            # [batch, M]
 
-    def _grazing_mask(self, g: torch.Tensor) -> torch.Tensor:
+    def _grazing_mask(self, g: torch.Tensor, iteration: Optional[int] = None) -> torch.Tensor:
         """
         Return boolean mask [batch, M] where dimension i is in the grazing zone.
 
-        Grazing zone:  |n_i, x - c_i| < 
+        Grazing zone:  |n_i, x - c_i| < grazing_eps
+        Modulated by the Einstein Monotile aperiodic phase sequence to guarantee
+        that facet grazing transitions never fall into repeating 2-cycle or limit-cycle deadlocks.
         """
+        iter_val = iteration if iteration is not None else getattr(self, 'iteration_count', 0)
+        if hasattr(self, 'einstein_tessellation') and self.einstein_tessellation is not None:
+            modulated_c = self.einstein_tessellation.modulate_grazing_thresholds(
+                self.facet_thresholds,
+                iteration=iter_val,
+                eps=self.grazing_eps * 0.25
+            )
+            return (g - modulated_c).abs() < self.grazing_eps
         return (g - self.facet_thresholds).abs() < self.grazing_eps
 
     # ------------------------------------------------------------------ #
@@ -701,6 +717,7 @@ class ZeitgeistRouter(nn.Module):
             diagnostics : Dict of scalar metrics for the metrics payload.
             x_steered   : The steered state tensor.
         """
+        self.iteration_count += 1
         if state is None:
             if not hasattr(self, '_current_state') or self._current_state is None:
                 self._current_state = ZeitgeistState.initial(self.moduli)

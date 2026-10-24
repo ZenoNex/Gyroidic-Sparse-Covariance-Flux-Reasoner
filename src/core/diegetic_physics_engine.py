@@ -89,6 +89,13 @@ class DiegeticPhysicsEngine(nn.Module):
         # --- Stage 1: Control & Affordance Ingestion ---
         # Map physical controller inputs (throttle, yaw) to the semantic state vector
         # Compute PAS_h (Phase Alignment Score) to check baseline coherence.
+        diegetic_affordance_ok = True
+        try:
+            from src.core.hardware_monitor import has_compute_affordance, ComputeAffordanceType
+            diegetic_affordance_ok = bool(has_compute_affordance(ComputeAffordanceType.DIEGETIC))
+        except Exception:
+            pass
+
         input_tensor = torch.tensor([
             controller_input.get('throttle', 0.0),
             controller_input.get('yaw', 0.0),
@@ -254,7 +261,8 @@ class DiegeticPhysicsEngine(nn.Module):
             "diegetic_response": diegetic_out.squeeze(0).detach(),
             "calm_total_veto": total_veto,
             "calm_gauge": gauge_val,
-            "calm_constraints": calm_constraints.squeeze(0).detach()
+            "calm_constraints": calm_constraints.squeeze(0).detach(),
+            "diegetic_affordance_ok": diegetic_affordance_ok
         }
 
     def ingest_knowledge_dyad(self, text_emb: torch.Tensor, image_emb: torch.Tensor) -> torch.Tensor:

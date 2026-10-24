@@ -69,6 +69,14 @@ try:
 except ImportError:
     SpeculativeHomologyEngine = None
 
+# Einstein Monotile (Aperiodic Monotile Spatial Engine)
+try:
+    from .einstein_monotile import EinsteinMonotile, EinsteinMonotileTessellation, get_einstein_tessellation
+except ImportError:
+    EinsteinMonotile = None
+    EinsteinMonotileTessellation = None
+    get_einstein_tessellation = None
+
 __all__ = [
     'SparseGyroidCovarianceProbe',
     'SparseExplorerRouting',
@@ -95,6 +103,9 @@ __all__ = [
     'AlexanderWildEmbeddingOperator',
     'AlexanderTransversalityReport',
     'SpeculativeHomologyEngine',
+    'EinsteinMonotile',
+    'EinsteinMonotileTessellation',
+    'get_einstein_tessellation',
 ]
 
 

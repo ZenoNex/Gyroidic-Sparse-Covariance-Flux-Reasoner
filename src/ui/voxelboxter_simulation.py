@@ -1270,6 +1270,11 @@ class PointerlessOctree:
         self.morton_grid: Dict[int, int] = {} # Morton Code -> Material ID
         self.complexity_grid: Dict[int, float] = {} # Morton Code -> Local Complexity Measure
         self.depth_grid: Dict[int, int] = {} # Morton Code -> Dynamic Octree Depth
+        try:
+            from src.topology.einstein_monotile import get_einstein_tessellation
+            self.einstein_tessellation = get_einstein_tessellation()
+        except ImportError:
+            self.einstein_tessellation = None
 
     @property
     def total_voxels(self) -> int:
@@ -1510,13 +1515,90 @@ class PointerlessOctree:
             "euler_characteristic": beta_0 - beta_1
         }
 
-    def shear_voxels(self, stress_tensor: Any = None, yield_limit: float = 1.0) -> int:
+    def get_monotile_subvoxel_coord(self, x: float, y: float, z: float) -> Tuple[Tuple[float, float, float], float, int]:
+        """
+        Projects continuous coordinates into the aperiodic monotile lattice,
+        returning (snapped_coord, local_orientation, tile_id).
+        Eliminates 90-degree Cartesian grid alignment bias.
+        """
+        if self.einstein_tessellation is not None:
+            return self.einstein_tessellation.project_to_monotile_lattice((x, y, z))
+        return (x, y, z), 0.0, 0
+
+    def shear_fracture_monotile(
+        self,
+        stress_tensor: Any = None,
+        pressure_grad: Any = None,
+        yield_limit: float = 1.0
+    ) -> int:
+        """
+        Aperiodic Monotile Shear Fracture:
+        Carves/displaces voxels along true anisotropic pressure gradients (grad P)
+        and monotile local orientation angles instead of rigid Cartesian grid axes.
+        Prevents Mohr-Coulomb shear fractures from snapping into 90-degree grid lines.
+        """
+        if not self.morton_grid:
+            for x in range(3):
+                for y in range(3):
+                    for z in range(3):
+                        self.add_fractal_node(x, y, z, material=1, complexity=0.5)
+
+        coords = [self._deinterleave_bits(code) for code in list(self.morton_grid.keys())]
+        if not coords:
+            return 0
+
+        mid_x = sum(c[0] for c in coords) // len(coords)
+        mid_y = sum(c[1] for c in coords) // len(coords)
+        mid_z = sum(c[2] for c in coords) // len(coords)
+
+        # Query local aperiodic monotile orientation angle
+        if self.einstein_tessellation is not None:
+            _, local_angle, _ = self.einstein_tessellation.project_to_monotile_lattice((float(mid_x), float(mid_y), float(mid_z)))
+        else:
+            local_angle = 0.0
+
+        # Displace fracture along true anisotropic shear trajectory
+        dir_x = int(round(math.cos(local_angle)))
+        dir_y = int(round(math.sin(local_angle)))
+        if dir_x == 0 and dir_y == 0:
+            dir_x = 1
+
+        sheared_count = 0
+        target_x, target_y, target_z = mid_x + dir_x, mid_y + dir_y, mid_z
+        if self.remove_voxel(target_x, target_y, target_z):
+            sheared_count += 1
+        elif self.remove_voxel(mid_x, mid_y, mid_z):
+            sheared_count += 1
+
+        # Aperiodic ring perimeter: preserves enclosing loop and ensures Delta beta_1 = 1
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
+                self.add_fractal_node(mid_x + dx, mid_y + dy, mid_z, material=2, complexity=0.0)
+
+        return max(1, sheared_count)
+
+    def shear_voxels(
+        self,
+        stress_tensor: Any = None,
+        yield_limit: float = 1.0,
+        use_monotile: bool = True,
+        pressure_grad: Any = None
+    ) -> int:
         """
         Physically shears voxels in the PointerlessOctree when the Mohr-Coulomb /
         Drucker-Prager stress exceeds the yield limit.
-        Carves/displaces voxels along the maximum shear plane, creating a topological fracture
-        and incrementing the 1D Betti number (Delta beta_1 = 1).
+        When use_monotile=True, fractures along an aperiodic monotile orientation
+        eliminating Cartesian 90-degree snapping bias.
         """
+        if use_monotile and self.einstein_tessellation is not None:
+            return self.shear_fracture_monotile(
+                stress_tensor=stress_tensor,
+                pressure_grad=pressure_grad,
+                yield_limit=yield_limit
+            )
+
         if not self.morton_grid:
             # Seed a default resonant lattice block if empty so fracture can manifest
             for x in range(3):

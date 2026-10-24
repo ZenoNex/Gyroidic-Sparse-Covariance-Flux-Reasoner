@@ -102,6 +102,18 @@ Peers broadcast their embedded state $\phi(P, \ell, c)$ over the `"bonfire_sight
 $$T = \exp\left(-\frac{d_m}{R}\right) \cdot \frac{\log(|c_a - c_b| + 1)}{|c_a - c_b| + \epsilon}$$
 Peers maintain clear line-of-sight if $d_m \le R$ and $T > 0.01$, allowing macroscopic players (depth 0) to detect and communicate with microscopic explorers (depth $\ge 2$) across scale layers without coordinate tearing.
 
+### 5.3 Aperiodic Einstein Monotile Scale-Invariant Sightlines (`compute_monotile_sightline`)
+To eliminate boundary seam tearing across large Matrioshka scale contraction jumps ($2^{-\ell}$, such as depth 3 to depth 7 with a $16\times$ scale discrepancy), [FractalDiscontinuityEmbedding](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/bonfire_consensus.py) incorporates the aperiodic monotile geometry:
+1. **Self-Similar Continuous Anchoring**:
+   - The Hat aperiodic monotile exhibits hierarchical self-similarity across substitution generations without periodic repetition.
+   - When peers situated at differing depths evaluate mutual sightlines, [compute_scale_invariant_sightline_coordinates](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/einstein_monotile.py) embeds continuous position coordinates into the local monotile patch.
+2. **Seam Coherence Verification**:
+   - Continuous orientation phases $(\cos\theta_k, \sin\theta_k)$ align sightline vectors across depth gaps.
+   - `seam_coherence` evaluates whether the inter-scale transition preserves topological continuity:
+   $$\text{coherence} = \exp\left(-\frac{|\Delta \ell|}{8.0}\right) \cdot \frac{1}{1 + d_{\text{sightline}}}$$
+   allowing peers across radical scale divides to maintain mutual topological awareness without boundary artifacts.
+
+
 ---
 
 ## 6. Compute Affordance Governance & Collective Compute Arbitration

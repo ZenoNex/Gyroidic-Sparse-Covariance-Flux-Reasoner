@@ -433,6 +433,13 @@ class ResonanceCavity(nn.Module):
             harvest_honest_jitter((self.K, num_modes, hidden_dim), scaled=True)
         )
         
+        # Spatial Non-Mode-Locking via Einstein Monotile Wall Reflections
+        try:
+            from src.topology.einstein_monotile import get_einstein_tessellation
+            self.einstein_tessellation = get_einstein_tessellation()
+        except ImportError:
+            self.einstein_tessellation = None
+        
         # 2. Dark Matter Store (Speculative Latent states)
         # Counterfactual/unrealized topological flows
         self.register_buffer(
@@ -683,6 +690,15 @@ class ResonanceCavity(nn.Module):
         # Update Memory for Non-Teleological Flow
         # dt represents the "Manifold Clock"
         self.M[field_idx] = self.M[field_idx] + dt * dC_dt
+
+        # --- EINSTEIN MONOTILE WALL REFLECTION (Spatial Non-Mode-Locking) ---
+        # The Einstein tile acts as the spatial mirror of the Prime Resonance Ladder:
+        # Reflects modes off an aperiodic monotile boundary so spatial nodal lines
+        # never form degenerate periodic interference patterns or rigid standing traps.
+        if hasattr(self, 'einstein_tessellation') and self.einstein_tessellation is not None:
+            self.M[field_idx] = self.einstein_tessellation.break_spatial_mode_lock(
+                self.M[field_idx], coupling_gain=0.015
+            )
         
         # --- Speculative Neuroscience Layer: Dark Matter Accumulation ---
         # Dark matter captures the "unreconciled" residues (the holes).

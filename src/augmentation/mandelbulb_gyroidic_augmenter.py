@@ -103,9 +103,18 @@ class MandelbulbEmbedder(nn.Module):
         return coords
     
     def _mandelbulb_iteration(self, coords: torch.Tensor) -> torch.Tensor:
-        """Apply Mandelbulb iteration to 3D coordinates with numerical stability."""
+        """Apply Mandelbulb iteration to 3D coordinates with numerical stability and compute affordance gating."""
         batch_size, feature_dim, _ = coords.shape
         
+        # Check Compute Affordance for Mandelbulb compute-batch capacity
+        effective_max_iterations = self.max_iterations
+        try:
+            from src.core.hardware_monitor import has_compute_affordance, ComputeAffordanceType
+            if not has_compute_affordance(ComputeAffordanceType.COMPUTE_BATCH):
+                effective_max_iterations = max(10, self.max_iterations // 4)
+        except Exception:
+            pass
+
         # PyOpenCL Hardware Offload Attempt
         try:
             from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
@@ -118,7 +127,7 @@ class MandelbulbEmbedder(nn.Module):
             
             result_np = self.silicon_engine.apply_mandelbulb_iteration(
                 coords=coords_np,
-                max_iterations=self.max_iterations,
+                max_iterations=effective_max_iterations,
                 escape_radius=self.escape_radius,
                 power=self.power
             )
@@ -141,7 +150,7 @@ class MandelbulbEmbedder(nn.Module):
         z = 5.0 * torch.tanh((z + salt_z) / 5.0)
         c = 5.0 * torch.tanh((c + salt_c) / 5.0)
         
-        for iteration in range(self.max_iterations):
+        for iteration in range(effective_max_iterations):
             # Compute magnitude with numerical stability
             z_magnitude = torch.norm(z, dim=2, keepdim=True)  # [batch, feature_dim, 1]
             

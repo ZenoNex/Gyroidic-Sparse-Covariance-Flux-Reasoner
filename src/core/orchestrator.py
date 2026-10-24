@@ -726,11 +726,14 @@ class UniversalOrchestrator(nn.Module):
             from src.core.hardware_monitor import get_affordance_gauges, has_compute_affordance, ComputeAffordanceType
             return {
                 "gauges": get_affordance_gauges(),
-                "topological_ok": bool(has_compute_affordance(ComputeAffordanceType.TOPOLOGICAL)),
-                "thermal_ok": bool(has_compute_affordance(ComputeAffordanceType.THERMAL)),
                 "silicon_ok": bool(has_compute_affordance(ComputeAffordanceType.SILICON)),
+                "thermal_ok": bool(has_compute_affordance(ComputeAffordanceType.THERMAL)),
+                "gpu_sovereign_ok": bool(has_compute_affordance(ComputeAffordanceType.GPU_SOVEREIGN)),
+                "topological_ok": bool(has_compute_affordance(ComputeAffordanceType.TOPOLOGICAL)),
+                "p2p_mesh_ok": bool(has_compute_affordance(ComputeAffordanceType.P2P_MESH)),
+                "diegetic_ok": bool(has_compute_affordance(ComputeAffordanceType.DIEGETIC)),
                 "algorithmic_ok": bool(has_compute_affordance(ComputeAffordanceType.ALGORITHMIC)),
-                "diegetic_ok": bool(has_compute_affordance(ComputeAffordanceType.DIEGETIC))
+                "compute_batch_ok": bool(has_compute_affordance(ComputeAffordanceType.COMPUTE_BATCH))
             }
         except Exception as e:
             return {"error": str(e)}

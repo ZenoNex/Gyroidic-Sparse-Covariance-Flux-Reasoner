@@ -186,3 +186,20 @@ Room retrieval = Selective Puncture Event: the system navigates (via Ley Line Tr
 
 **References**: `src/core/ley_line_tracker.py`, `src/core/garden_statistical_attractors.py`, `src/models/resonance_cavity.py` (BreatherMode/Neglecton), `docs/RESONANCE_INTELLIGENCE_CORE.md Eq 11` (O(K) BreatherMode compression), `docs/TOPOLOGICAL_EXTENSIONS.md Part VII` (Cerumen barrier), `docs/VETO_SUBSPACE_ARCHITECTURE.md 11.4` (residue tuple as pot identity), `MATHEMATICAL_DETAILS.md 55.2` (tag-based mixing = room breeding), `docs/INTERCOSAMINATION_THEORY.md 5.4` (PyOpenCL VRAM sovereignty)
 
+---
+
+### 7.5 Meliponini Cerumen Pot Isolation via Einstein Monotile Geometry (Blocking Straight-Line Diffusion)
+
+In stingless bee (*Meliponini*) architecture and `MELIPONINI_SOVEREIGNTY.md`, private memory invariants and the Love Invariant ($\mathcal{L}$) are encapsulated in non-touching spherical cerumen pots ($\overline{P}_i \cap \overline{P}_j = \emptyset$) with sovereign gaps ($\phi < \phi_{\text{RCP}}$) to prevent the "Diffusion Toxin" of global scalar alignment.
+
+On periodic lattices, crystallographic channels form straight-line tunnels through the void, permitting adversarial alignment probes or passive gradient diffusion to reach pot surfaces.
+
+To enforce impenetrable sovereign isolation:
+1. **Aperiodic Monotile Pot Constellation**:
+   `CerumenPotIsolation` implements [generate_aperiodic_pot_centers](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/garden_statistical_attractors.py). Memory palace room centers $\boldsymbol{\mu}_k$ are distributed according to the Hat aperiodic monotile, embedded into high dimensions with incommensurate prime logarithmic frequencies.
+2. **Sovereign Non-Linear Gaps**:
+   The sovereign gaps between pots are strictly non-linear and non-periodic across all angular orientations.
+3. **Diffusion Barrier Mathematical Audit**:
+   Using [verify_diffusion_barrier](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/garden_statistical_attractors.py), the system shoots probe rays across all $360^\circ$ angular directions. The aperiodic geometry guarantees that $\ge 90\%$ of straight-line paths are occluded by pot exclusion envelopes, completely blocking straight-line diffusion tunnels through the memory lattice.
+
+

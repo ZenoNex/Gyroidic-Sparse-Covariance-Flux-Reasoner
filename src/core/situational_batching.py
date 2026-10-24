@@ -80,6 +80,15 @@ class SituationalBatchSampler(Sampler[List[int]]):
         seeds = torch.argsort(jitter).tolist()
         consumed = set()
         
+        # Check Compute Affordance for situational batching headroom
+        target_batch_size = self.batch_size
+        try:
+            from src.core.hardware_monitor import has_compute_affordance, ComputeAffordanceType
+            if not has_compute_affordance(ComputeAffordanceType.COMPUTE_BATCH):
+                target_batch_size = max(2, self.batch_size // 2)
+        except Exception:
+            pass
+
         for i in seeds:
             if i in consumed:
                 continue
@@ -88,7 +97,7 @@ class SituationalBatchSampler(Sampler[List[int]]):
             consumed.add(i)
             
             # 1. Mischievous & Resonant Selection (Co-arising)
-            num_coupled = self.batch_size - int(self.batch_size * self.play_ratio) - 1
+            num_coupled = target_batch_size - int(target_batch_size * self.play_ratio) - 1
             if num_coupled > 0:
                 # Combined score: R_ij + M_ij
                 coupling = (self.R[i] + self.M[i])
@@ -112,7 +121,7 @@ class SituationalBatchSampler(Sampler[List[int]]):
                         consumed.add(n)
             
             # 2. Playful Sampling (Non-dual exploration)
-            num_play = self.batch_size - len(batch)
+            num_play = target_batch_size - len(batch)
             if num_play > 0:
                 remaining = list(set(range(self.num_samples)) - consumed)
                 if remaining:

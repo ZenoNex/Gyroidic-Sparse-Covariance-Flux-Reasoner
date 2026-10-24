@@ -67,6 +67,17 @@ Vehicle collisions, tool chiseling, and projectile impacts interact with the vox
    $$\alpha I_1 + \sqrt{J_2} - k = 0$$
    Wraps local rupture sites in a smooth, convex yield envelope. Global vehicle momentum and terrain contour flow smoothly around fractured zones without non-manifold mesh crashes.
 
+### C.1 Einstein Monotile Aperiodic Sub-Voxel Tessellation
+To eliminate Cartesian grid alignment bias along the rigid $X, Y,$ and $Z$ axes, [PointerlessOctree](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py) incorporates the aperiodic monotile ("The Hat"):
+1. **Gapless Aperiodic Space-Filling**:
+   - The sub-voxel lattice is indexed via [get_monotile_subvoxel_coord](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py), projecting continuous coordinates $(x, y, z)$ to the nearest Hat polykite centroid.
+   - Provides 100% gapless spatial coverage with strict translational aperiodicity ($T_{\mathbf{v}}\mathcal{T} \neq \mathcal{T}$ for $\mathbf{v} \neq \mathbf{0}$).
+2. **Anisotropic Shear Fracture Carving (`shear_voxels(use_monotile=True)`)**:
+   - Instead of snapping Mohr-Coulomb shear planes into artificial $90^\circ$ grid lines, [shear_fracture_monotile](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py) computes shear vectors directly along the local aperiodic monotile basis orientation $\theta_k$:
+   $$\mathbf{v}_{\text{shear}} = \mathbf{R}(\theta_k) \nabla P$$
+   - Physical stress vectors, vehicle tire marks, and FBM weathering gullies carve along true anisotropic pressure gradients $\nabla P$ without void leaks or Cartesian artifacts.
+
+
 ### D. Dynamic Euler-Poincaré Algebraic Betti Numbers (`compute_terrain_betti`)
 Terrain and construct topological invariants are computed in real time without mock stubs or $O(n^3)$ persistent homology latency bottlenecks:
 1. **0-th Betti Number ($\beta_0$)**: Measures discrete connected components (terrain landmasses, floating islands, fractured debris clusters) via BFS graph search on the voxel lattice:
