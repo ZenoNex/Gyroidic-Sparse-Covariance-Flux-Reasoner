@@ -65,3 +65,8 @@ google secret/
 
 # Agent configurations and rules (Excluded)
 .agents/
+
+# Brain state files (Strictly Excluded)
+gyroid_state.pt
+gyroid_state.pt.meta
+*.pt.meta
