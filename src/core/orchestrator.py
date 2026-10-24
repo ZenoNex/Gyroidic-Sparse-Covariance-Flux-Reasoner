@@ -835,7 +835,10 @@ class UniversalOrchestrator(nn.Module):
         # Rehybridized Safety & Energy Diagnostics
         try:
             ev_metrics = self.evidence_module(state_shielded)
-            board_metrics["blindness_detected"] = ev_metrics.get("blindness_detected", False)
+            board_metrics["blindness_detected"] = bool(ev_metrics.get("blindness_detected", False) or ev_metrics.get("is_blind", False))
+            board_metrics["evidence_irreducible"] = bool(ev_metrics.get("is_irreducible", True))
+            if "evidence_metrics" not in self.telemetry_state:
+                self.telemetry_state["evidence_metrics"] = ev_metrics
         except Exception:
             pass
         try:
@@ -1705,6 +1708,66 @@ class UniversalOrchestrator(nn.Module):
         if self.bonfire_ring is not None:
             k_bar = self.bonfire_ring.compute_egalitarian_consensus()
 
+        # Rehybridized Tripartite Evidence & Structural Irreducibility Diagnostics
+        ev_metrics = None
+        subversion_val = 0.0
+        toxicity_val = 0.0
+        try:
+            if hasattr(self, 'subversive_oracle') and self.subversive_oracle is not None:
+                try:
+                    oracle_in = state_shielded
+                    if oracle_in.dim() == 1:
+                        oracle_in = oracle_in.unsqueeze(0).unsqueeze(0)
+                    elif oracle_in.dim() == 2:
+                        oracle_in = oracle_in.unsqueeze(1)
+                    subv, tox = self.subversive_oracle(oracle_in)
+                    subversion_val = float(subv.mean().item())
+                    toxicity_val = float(tox.mean().item())
+                except Exception:
+                    pass
+
+            data_signals = {
+                "gyroid_violation": float(gyroid_total_press.mean().item()) if 'gyroid_total_press' in locals() and isinstance(gyroid_total_press, torch.Tensor) else 0.0,
+                "b0": float(b0),
+                "b1": float(b1),
+                "hessian_trace": float(trace_morse),
+                "bouligand_kink": float(kink_norm),
+                "covariance_variance": float(actual_flux.var().item()) if 'actual_flux' in locals() and actual_flux is not None and actual_flux.numel() > 1 else 0.05
+            }
+            arch_signals = {
+                "atrophy": float(atrophy),
+                "legibility_risk": float(getattr(self.legibility_audit, 'last_risk', 0.0)) if hasattr(self, 'legibility_audit') else 0.0,
+                "sycophancy": float(getattr(self.sycophancy_gate, 'sycophancy_score', 0.0)) if hasattr(self, 'sycophancy_gate') else 0.0,
+                "mischief": float(mischief_metrics.get('H_mischief', 0.0)) if 'mischief_metrics' in locals() and isinstance(mischief_metrics, dict) else 0.0,
+                "cycle_debt": float(cycle_debt.item()) if 'cycle_debt' in locals() and isinstance(cycle_debt, torch.Tensor) else float(cycle_debt) if 'cycle_debt' in locals() else 0.0,
+                "defects": float(len(defects)) if 'defects' in locals() and hasattr(defects, '__len__') else 0.0,
+                "anti_scaling": float(getattr(self.anti_scaling_monitor, 'scaling_entropy', 0.0)) if hasattr(self, 'anti_scaling_monitor') else 0.0
+            }
+            adv_signals = {
+                "pce_score": subversion_val,
+                "toxicity": toxicity_val,
+                "value_gap": float(getattr(self.topological_refusal, 'last_value_gap', 0.0)) if hasattr(self, 'topological_refusal') else 0.0
+            }
+
+            if hasattr(self, 'evidence_module') and self.evidence_module is not None:
+                ev_metrics = self.evidence_module(
+                    state_shielded,
+                    data_signals=data_signals,
+                    arch_signals=arch_signals,
+                    adv_signals=adv_signals
+                )
+                self.telemetry_state['evidence_metrics'] = ev_metrics
+                
+                # If mutual predictability or rank collapse detected, inject orthogonal adversarial perturbation
+                if ev_metrics.get("blindness_detected", False) and "adversarial_injection" in ev_metrics:
+                    inj = ev_metrics["adversarial_injection"]
+                    if inj.shape == state_shielded.shape:
+                        state_shielded = state_shielded + 0.05 * inj
+                    else:
+                        state_shielded = state_shielded + 0.05 * inj.view_as(state_shielded)
+        except Exception:
+            pass
+
         # Post Diagnostic Payload to Bulletin Board (including Scars/Tension/Hunger)
         board_metrics = {
             "b0": b0,
@@ -1730,7 +1793,11 @@ class UniversalOrchestrator(nn.Module):
             "pas_cyclotomic": float(pas_cyclotomic),
             "calm_veto": self.last_calm_veto.get("vetoed", False) if self.last_calm_veto else False,
             "calm_gauge": self.last_calm_veto.get("gauge", 0.5) if self.last_calm_veto else 0.5,
-            "attention_integrity": bool(attn_integrity.all().item()) if 'attn_integrity' in locals() and hasattr(attn_integrity, 'all') else True
+            "attention_integrity": bool(attn_integrity.all().item()) if 'attn_integrity' in locals() and hasattr(attn_integrity, 'all') else True,
+            "blindness_detected": ev_metrics.get("blindness_detected", False) if ev_metrics else False,
+            "evidence_irreducible": bool(ev_metrics.get("is_irreducible", torch.tensor(True)).item()) if ev_metrics and hasattr(ev_metrics.get("is_irreducible"), "item") else True,
+            "subversion_pce": subversion_val,
+            "toxicity_score": toxicity_val
         }
         self.bulletin_board.post_metrics(board_metrics)
         
