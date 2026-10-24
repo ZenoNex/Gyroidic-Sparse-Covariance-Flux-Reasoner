@@ -11,7 +11,7 @@
 |----------|-------------|
 | [SYSTEM_ARCHITECTURE.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/SYSTEM_ARCHITECTURE.md) | Three-system design (Horse/Horn/Magic), interaction flow, operational modes |
 | [MATHEMATICAL_DETAILS.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/MATHEMATICAL_DETAILS.md) | Polynomial co-prime functionals, Birkhoff polytope, CRT, GCVE, ADMM, breather modes |
-| [MATHEMATICAL_DETAILS_FOSSILIZED.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/MATHEMATICAL_DETAILS_FOSSILIZED.md) | Preserved deprecated design routes (🦴): discrete primes, Galois fields, Hungarian, Morse theory, quantum/hyperbolic/category theory reasoning |
+| [MATHEMATICAL_DETAILS_FOSSILIZED.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/MATHEMATICAL_DETAILS_FOSSILIZED.md) | Preserved deprecated design routes (): discrete primes, Galois fields, Hungarian, Morse theory, quantum/hyperbolic/category theory reasoning |
 | [RESONANCE_INTELLIGENCE_CORE.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/RESONANCE_INTELLIGENCE_CORE.md) | Central spec for RIC equations: resonance, entropy, PAS, CPR, Matryoshka, harmonic-differential equivalence |
 | [PRIME_RESONANCE_LADDER.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/PRIME_RESONANCE_LADDER.md) | Prime frequency lattice, Fibonacci-structured entropy, incommensurate frequencies |
 | [RESONANCE_CAVITY.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/RESONANCE_CAVITY.md) | Memory module for meta-cognition, Dark Matter primitives, governing ODE |
@@ -52,7 +52,7 @@
 | [DETERMINISM_AND_PERSISTENCE.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/DETERMINISM_AND_PERSISTENCE.md) | Deterministic IDs, non-strict loading, non-finite repair, numeric-only reporting |
 | [RESIDUE_SHAPE_COMPATIBILITY.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/RESIDUE_SHAPE_COMPATIBILITY.md) | Residue pipeline, coefficient adaptation, forward commutativity for checkpoints |
 | [OUTPUT_BOUNDARY_POLICY.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/OUTPUT_BOUNDARY_POLICY.md) | Finite-only outputs, deterministic repairs, numeric-first reporting |
-| [OPEN_QUESTIONS.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/OPEN_QUESTIONS.md) | 12 open questions tracked, most ✅ RESOLVED. Failure-mode table with detection/response |
+| [OPEN_QUESTIONS.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/OPEN_QUESTIONS.md) | 12 open questions tracked, most [OK] RESOLVED. Failure-mode table with detection/response |
 | [FAILURES_AND_ABORTABILITY.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/FAILURES_AND_ABORTABILITY.md) | FAILURE as first-class object, failure composition, trust decay, mischief as revelation |
 | [EFFICIENCY_BY_NON_SCALAR_REWARD.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/EFFICIENCY_BY_NON_SCALAR_REWARD.md) | Four efficiency wagers (90/10 rejection, 80/20 fossilization, 99/1 structure/weight, spectral speculation), Kelly criterion |
 
@@ -114,19 +114,19 @@ The documentation in `RESONANCE_INTELLIGENCE_CORE.md` and `PRIME_RESONANCE_LADDE
 - Continuous attractor networks, dialogue state tracking
 
 ### 3. Open Questions Status
-From `OPEN_QUESTIONS.md`: 10 of 12 questions are ✅ resolved. Remaining theoretical boundaries:
+From `OPEN_QUESTIONS.md`: 10 of 12 questions are [OK] resolved. Remaining theoretical boundaries:
 - Symbolic co-primality reframed as **Symbolic Transversality** (no formal proof)
 - Gyroid violation is **necessary but not sufficient** (requires >95% empirical detection)
 - Failure-space topology reframed as **Bipartite Obstruction Complex** (heuristic)
 
 ### 4. Implementation Completeness  
 From `IMPLEMENTATION_PLAN_FORMALISM.md` and `FORMALISM_IMPLEMENTATION.md`: All 6 phases are **COMPLETE**:
-- Phase 1: Core Constraint Probe ✅
-- Phase 2: Topological Guarantees ✅
-- Phase 3: Advanced Constraints ✅
-- Phase 4: Sparse Operational Pointers ✅
-- Phase 5: Structural Design Decisions ✅
-- Phase 6: Non-Ergodic Fractal Entropy ✅
+- Phase 1: Core Constraint Probe [OK]
+- Phase 2: Topological Guarantees [OK]
+- Phase 3: Advanced Constraints [OK]
+- Phase 4: Sparse Operational Pointers [OK]
+- Phase 5: Structural Design Decisions [OK]
+- Phase 6: Non-Ergodic Fractal Entropy [OK]
 
 ### 5. Anti-Backsliding Checklist
 From `IMPLEMENTATION_INTEGRITY_GUIDE.md` and `TEMPORAL_ASSOCIATION_TRAINING.md`:
@@ -138,9 +138,19 @@ From `IMPLEMENTATION_INTEGRITY_GUIDE.md` and `TEMPORAL_ASSOCIATION_TRAINING.md`:
 
 ---
 
-## Next Steps for Development
-1. **Code cross-referencing**: Compare documentation equations with `src/` implementations
-2. **Web interface issues**: Fix mismatched API routes between frontends and backends
-3. **Mandelbulb augmentation**: Implementation is documented but may need code integration
-4. **Fossilized route recovery**: Evaluate which recovered approaches could benefit current system
-5. **Resonance unification**: Verify recent breather/Fibonacci/CPR implementations match docs
+## Recent Architectural Milestones Completed
+1. **Einstein Monotile Aperiodic Spatial Engine (`src/topology/einstein_monotile.py`)**:
+   - Resolved Cartesian 90-degree grid bias in `PointerlessOctree` shear fracture.
+   - Eliminated 2-cycle and limit-cycle traps in `ZeitgeistRouter` facet grazing.
+   - Disrupted Bessel $J_0$ standing wave mode-locks in `ResonanceCavity` via $R_{\text{monotile}}$.
+   - Blocked straight-line diffusion channels in `CerumenPotIsolation`.
+   - Guaranteed scale-invariant sightlines in `FractalDiscontinuityEmbedding`.
+2. **Tripartite Evidence 13 Diagnostic Channels (`src/core/evidence_modules.py`)**:
+   - Reconnected all isolated diagnostic channels (spectral coherence, Bezout drift, Chern-Simons twist, soliton healing, Love norm, soft saturation, etc.).
+   - Implemented collinearity detection and pairwise mutual predictability warnings for evidence blindness.
+3. **Compute Affordance System Rehybridization (`src/core/orchestrator.py`)**:
+   - Unified `COMPUTE_BATCH`, `DIEGETIC`, `ALGORITHMIC`, `P2P_MESH`, and `GPU_SOVEREIGN` with live telemetry.
+4. **Unified Backend & Service Controller**:
+   - Unified `hybrid_backend.py` hosting chat at http://localhost:8000 and Wikipedia trainer.
+   - Cross-platform daemon controllers (`scripts/reasoner_ctl.ps1` and `scripts/reasoner_ctl.sh`).
+

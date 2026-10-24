@@ -1,6 +1,6 @@
 # How to Access the Diegetic Terminal Interface
 
-## ❌ WRONG WAY (Causes CORS Errors)
+## [ERR] WRONG WAY (Causes CORS Errors)
 Do NOT open the HTML file directly in your browser:
 ```
 file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/ui/diegetic_terminal.html
@@ -11,16 +11,20 @@ This causes the error:
 Access to fetch at 'file:///D:/interact' from origin 'null' has been blocked by CORS policy
 ```
 
-## ✅ CORRECT WAY
+## [OK] CORRECT WAY
 
 ### Step 1: Start the Backend
-```bash
-python hybrid_backend.py
+```powershell
+# Directly via Python virtual environment:
+.venv\scripts\python.exe hybrid_backend.py
+
+# OR in the background via service controller:
+.\scripts\reasoner_ctl.ps1 -Action Start
 ```
 
 Wait for this message:
 ```
-✅ Hybrid backend running at http://localhost:8000
+[OK] Hybrid backend running at http://localhost:8000
 ```
 
 ### Step 2: Access via HTTP Server
@@ -36,10 +40,10 @@ http://localhost:8000
 
 *Note: Running `hybrid_backend.py` and accessing the UI via the browser is the preferred system architecture. However, individual Python scripts like `src/ui/diegetic_terminal.py` are preserved for user choice.*
 
-## 🚀 Quick Start Script
-Run this to automatically open the terminal:
-```bash
-python open_terminal.py
+## [START] Quick Start Script
+Run this to automatically start the backend and open the terminal:
+```powershell
+.venv\scripts\python.exe open_terminal.py
 ```
 
 ## Why This Happens
@@ -50,6 +54,6 @@ python open_terminal.py
 ## Troubleshooting
 If you get connection errors:
 1. Make sure `python hybrid_backend.py` is running
-2. Check that you see "✅ Hybrid backend running at http://localhost:8000"
+2. Check that you see "[OK] Hybrid backend running at http://localhost:8000"
 3. Access via `http://localhost:8000` (not file://)
 4. Check browser console for any remaining errors

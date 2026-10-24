@@ -6,7 +6,7 @@ This manual covers all the ways you can interact with the AI system, from simple
 
 ---
 
-##  Table of Contents
+## [TOC] Table of Contents
 
 1. [Getting Started](#getting-started)
 2. [Web Chat Interface](#web-chat-interface)
@@ -22,32 +22,32 @@ This manual covers all the ways you can interact with the AI system, from simple
 
 ## [START] Getting Started
 
-### Installation
-```bash
+### Installation & Verification
+```powershell
 # 1. Install Python dependencies
-pip install -r requirements.txt
+.venv\scripts\python.exe -m pip install -r requirements.txt
 
-# 2. Verify everything works
-python test_fixes_verification.py
+# 2. Verify everything works (Einstein Monotile and Affordance tests)
+.venv\scripts\python.exe -m pytest tests/test_einstein_monotile_integration.py -v
 
-# 3. Start the system
-python src/ui/diegetic_terminal.py
+# 3. Start the hybrid backend (UI at http://localhost:8000)
+.venv\scripts\python.exe hybrid_backend.py
 ```
 
 ### First Steps
-1. **Chat with the AI**: Open http://localhost:8000 after starting the terminal
+1. **Chat with the AI**: Open http://localhost:8000 after starting the backend
 2. **Train on data**: Use the dataset commands to teach the AI new topics
 3. **Upload images**: Drag images into the chat to have the AI analyze them
 4. **Check status**: Monitor system health and storage usage
 
 ---
 
-##  Web Chat Interface
+## [CHAT] Web Chat Interface
 
 ### Starting the Chat
-```bash
-# Start the backend server
-python src/ui/diegetic_terminal.py
+```powershell
+# Start the unified backend server
+.venv\scripts\python.exe hybrid_backend.py
 
 # Open your browser to: http://localhost:8000
 ```
@@ -213,7 +213,7 @@ python dataset_command_interface.py add-wikipedia --topics "Machine_learning,Neu
 
 ---
 
-## ️ Image Processing
+##  Image Processing
 
 ### Image Analysis in Chat
 1. Start the chat interface: `python src/ui/diegetic_terminal.py`

@@ -6,33 +6,25 @@ This guide will get you up and running with the AI system in just a few minutes.
 
 ---
 
-## [START] Step 1: Install (2 minutes)
+## [START] Step 1: Install & Verify (2 minutes)
 
 ### Install Python Dependencies
-```bash
-pip install -r requirements.txt
+```powershell
+.venv\scripts\python.exe -m pip install -r requirements.txt
 ```
 
 ### Test Everything Works
-```bash
-python test_fixes_verification.py
-```
-
-You should see:
-```
-[OK] PIL Compatibility: PASS
-[OK] pas_h Type Handling: PASS  
-[OK] Simple Integration: PASS
-[START] All fixes verified! Ready to proceed with image integration.
+```powershell
+.venv\scripts\python.exe -m pytest tests/test_einstein_monotile_integration.py -v
 ```
 
 ---
 
-##  Step 2: Start Chatting (3 minutes)
+## [CHAT] Step 2: Start Chatting (3 minutes)
 
 ### Launch the Web Interface
-```bash
-python src/ui/diegetic_terminal.py
+```powershell
+.venv\scripts\python.exe hybrid_backend.py
 ```
 
 ### Open Your Browser
@@ -60,8 +52,8 @@ This will:
 4. Take about 5-10 minutes
 
 ### Check What Happened
-```bash
-python dataset_command_interface.py status
+```powershell
+.venv\scripts\python.exe dataset_command_interface.py status
 ```
 
 ### Test the Results
@@ -71,7 +63,7 @@ Go back to the chat interface and ask:
 
 ---
 
-##  What You Just Accomplished
+## [OK] What You Just Accomplished
 
 ### [OK] You Have a Working AI System
 - The AI can chat with you coherently

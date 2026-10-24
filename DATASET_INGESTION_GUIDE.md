@@ -19,21 +19,21 @@ This guide shows you how to train the AI system on different types of data, from
 ## [START] Quick Start Examples
 
 ### Train on Movie Reviews (5 minutes)
-```bash
+```powershell
 # This will download movie reviews and train the AI to understand sentiment
-python dataset_command_interface.py quick-start --dataset imdb --samples 500 --epochs 3
+.venv\scripts\python.exe dataset_command_interface.py quick-start --dataset imdb --samples 500 --epochs 3
 ```
 
 ### Learn Physics from Wikipedia (10 minutes)
-```bash
+```powershell
 # This downloads physics articles and teaches the AI about physics
-python dataset_command_interface.py add-wikipedia --topics physics --samples 300 --train
+.venv\scripts\python.exe dataset_command_interface.py add-wikipedia --topics physics --samples 300 --train
 ```
 
 ### Train on Your Documents (varies)
-```bash
+```powershell
 # This trains the AI on your own files
-python dataset_command_interface.py train-local --path ./my_documents/ --epochs 5
+.venv\scripts\python.exe dataset_command_interface.py train-local --path ./my_documents/ --epochs 5
 ```
 
 ---
@@ -548,6 +548,33 @@ Direct dataset downloads:
 # Download and process
 python dataset_ingestion_system.py add-dataset --name "web_dataset" --source url --path "https://example.com/dataset.zip" --preprocessing text
 ```
+
+### Portal Ingestion (Universal Gateway)
+The Portal is a "Universal Ingestion Gateway" that allows you to mix and match any data source in a single training run.
+
+```bash
+# Create a portal file (mixed sources)
+echo "https://example.com/data.zip" > my_portal.txt
+echo "hf:imdb" >> my_portal.txt
+echo "wiki:Quantum_mechanics" >> my_portal.txt
+echo "./my_local_logs.json" >> my_portal.txt
+
+# Ingest and merge everything
+python dataset_command_interface.py full-pipeline --source portal --dataset ./my_portal.txt --samples 1000
+```
+
+**Supported Identifiers:**
+- `https://...` - Direct file downloads
+- `hf:<name>` - HuggingFace datasets (e.g., `hf:squad`)
+- `wiki:<topic>` - Wikipedia articles
+- `imdb`, `squad`, `arxiv` - Direct popular dataset names
+- `path/to/file` - Local documents
+
+**How it works:**
+1. The system parses each line and identifies the source type.
+2. It fetches/downloads all data into a temporary manifold workspace.
+3. It merges all processed samples and downloaded files into a single, cohesive dataset.
+4. It attaches the combined knowledge to the reasoner in one go.
 
 ---
 

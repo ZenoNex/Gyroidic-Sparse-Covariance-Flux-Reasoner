@@ -1,13 +1,13 @@
 (base) (.venv) PS D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner> python -m examples.verify_persistence
-✅ Advanced Extensions loaded successfully!
-🔧 Initializing Garbled Output Repair System...
-✅ Garbled Output Repair System initialized
+[OK] Advanced Extensions loaded successfully!
+ Initializing Garbled Output Repair System...
+[OK] Garbled Output Repair System initialized
 Verifying Diegetic System Persistence...
 Instantiating Engine A (Initial)...
-🔧 Initializing Garbled Output Repair System...
-✅ Garbled Output Repair System initialized
+ Initializing Garbled Output Repair System...
+[OK] Garbled Output Repair System initialized
 Engine A: Processing input 'Hello Resonance'...
-🔧 Affordance Gradients Computed:
+ Affordance Gradients Computed:
    Executability: 0.0000
    Formal symbols: 0.0000
    Expandability: 0.0000
@@ -15,67 +15,67 @@ Engine A: Processing input 'Hello Resonance'...
    Conversational: 0.0000
    API extraction: 0.0000
    Constraint forcing: 0.0000
-🔧 Applying repair to state: torch.Size([1, 64])
-🔧 Phase 2.1: Applying Spectral Coherence Correction...
-🔧 Input state shape: torch.Size([1, 64]), device: cpu
-🔧 Corrected state shape: torch.Size([1, 1, 64])
-🔍 Spectral Coherence: θ=0.700, energy_ratio=0.000
-🔧 Stored diagnostics: {'theta_coherence': 0.699999988079071, 'soliton_energy': 0.0, 'ergodic_energy': 3.6491856575012207, 'energy_ratio': 0.0}
-🔧 Phase 2.2: Applying Bezout Coefficient Refresh...
-🔧 Squeezed state for Bezout processing: torch.Size([1, 64])
-🔧 Applied Symmetry-Preserving padding for Bezout: 64 -> 65
-🔧 Created residues for Bezout: torch.Size([1, 5, 13])
+ Applying repair to state: torch.Size([1, 64])
+ Phase 2.1: Applying Spectral Coherence Correction...
+ Input state shape: torch.Size([1, 64]), device: cpu
+ Corrected state shape: torch.Size([1, 1, 64])
+ Spectral Coherence: θ=0.700, energy_ratio=0.000
+ Stored diagnostics: {'theta_coherence': 0.699999988079071, 'soliton_energy': 0.0, 'ergodic_energy': 3.6491856575012207, 'energy_ratio': 0.0}
+ Phase 2.2: Applying Bezout Coefficient Refresh...
+ Squeezed state for Bezout processing: torch.Size([1, 64])
+ Applied Symmetry-Preserving padding for Bezout: 64 -> 65
+ Created residues for Bezout: torch.Size([1, 5, 13])
  Restored original dimensions after Bezout: 65 -> 64
-🔍 Bezout CRT: condition_number=1.000
-🔧 Phase 2.2 skipped - continuing with spectral correction only
-🔧 Applying numerical stabilization...
-✅ Phase 2.1 repair complete. State shape: torch.Size([1, 64])
-🔧 Final seed state shape: torch.Size([1, 64]) (expected: [1, 64])
-🔧 Applied numerical stabilization. State range: [-0.277, 0.413]
-🔧 Phase 2.3: Applying Chern-Simons Gasket (Logic Leak Prevention)...
-🔧 Applied Symmetry-Preserving padding for Chern-Simons: 64 -> 65
-🔧 Expanded polynomial coeffs via evaluation: torch.Size([5, 5]) -> torch.Size([5, 13])
-🔧 Using proper polynomial coefficients: torch.Size([5, 13])
-🔧 Restored original dimensions: 65 -> 64
-🔍 Chern-Simons: level_k=2.0
-🔧 Gasket-corrected state shape: torch.Size([1, 64])
-🔧 Phase 2.4: Applying Soliton Stability Healer (Fracture Healing)...
-🔧 Applied Symmetry-Preserving padding for Soliton: 64 -> 65
-🔧 Created residues for Soliton healing: torch.Size([1, 5, 13])
-🔧 Restored original dimensions after Soliton healing: 65 -> 64
-🔍 Soliton Healer: α=1.000, progress=0.002
-🔧 Phase 2.5: Applying Love Invariant Protector & Soft Saturated Gates...
-🔧 Phase 2.5a: Applying Love Invariant Protection...
-🔍 Love Protection: norm=4.685, violations=0
-🔧 Phase 2.5b: Applying Soft Saturated Gates...
-🔧 Applied Symmetry-Preserving padding for Soft Gates: 64 -> 65
-🔧 Created residues for Soft Saturation: torch.Size([1, 5, 13])
-🔧 Restored original dimensions after Soft Saturation: 65 -> 64
-🔍 Soft Gates: λ=0.300, dt=0.532, fossilized=0
-✅ Phase 2.5 Love Invariant Protection & Soft Saturation complete
-🔧 Starting text generation with fully repaired state...
-🔧 Phase 3: Response Quality Optimization...
-🔧 Phase 3: Dyad-Aware Response Generation
-🔧 Enhanced response generation with linguistic optimization (DEPRECATED PATH)
-✅ Generated dyad-aware response: %4TaLH*6QR8jN4ODwC?6]EWWY4^zCGYs?ZkDIblfD!UUq)Bt(HGiI
-🔧 Response length: 53 characters
-🔧 Phase 4: Advanced Feature Integration...
-🔧 Phase 4.1: Computing Full Gyroid Violation Score...
-🔧 Phase 4.3: Performing Advanced Topological Analysis...
-📊 Phase 4 Gyroid Violation Score: 0.9768
-📊 Phase 4 Unfolding Closure: False
-📊 Phase 4 Topological Features: 9 detected
-📊 Spectral Diagnostics: {'theta_coherence': 0.699999988079071, 'soliton_energy': 0.0, 'ergodic_energy': 3.6491856575012207, 'energy_ratio': 0.0}
-📊 Bezout Diagnostics: {'bezout_condition_number': 1.0, 'moduli_mean': 1.0, 'moduli_std': 0.0, 'drift_threshold': 0.5}
-📊 Chern-Simons Diagnostics: {'twist_energy': 9.486373464540065e-09, 'level_k': 2.0, 'gauge_field_norm': 19.869176864624023}
-📊 Soliton Diagnostics: {'alpha': 1.0, 'healing_progress': 0.0024999999441206455, 'iteration_count': 1}
-📊 Love Diagnostics: {'love_norm': 4.68455696105957, 'violation_detected': 0.0, 'violation_count': 0, 'violation_magnitude': 0.0}
-📊 Soft Gates Diagnostics: {'lambda_adaptive': 0.30000001192092896, 'dt': 0.5315443277359009, 'num_fossilized': 0, 'avg_persistence': 0.025919515639543533}
-📤 Returning metrics
+ Bezout CRT: condition_number=1.000
+ Phase 2.2 skipped - continuing with spectral correction only
+ Applying numerical stabilization...
+[OK] Phase 2.1 repair complete. State shape: torch.Size([1, 64])
+ Final seed state shape: torch.Size([1, 64]) (expected: [1, 64])
+ Applied numerical stabilization. State range: [-0.277, 0.413]
+ Phase 2.3: Applying Chern-Simons Gasket (Logic Leak Prevention)...
+ Applied Symmetry-Preserving padding for Chern-Simons: 64 -> 65
+ Expanded polynomial coeffs via evaluation: torch.Size([5, 5]) -> torch.Size([5, 13])
+ Using proper polynomial coefficients: torch.Size([5, 13])
+ Restored original dimensions: 65 -> 64
+ Chern-Simons: level_k=2.0
+ Gasket-corrected state shape: torch.Size([1, 64])
+ Phase 2.4: Applying Soliton Stability Healer (Fracture Healing)...
+ Applied Symmetry-Preserving padding for Soliton: 64 -> 65
+ Created residues for Soliton healing: torch.Size([1, 5, 13])
+ Restored original dimensions after Soliton healing: 65 -> 64
+ Soliton Healer: α=1.000, progress=0.002
+ Phase 2.5: Applying Love Invariant Protector & Soft Saturated Gates...
+ Phase 2.5a: Applying Love Invariant Protection...
+ Love Protection: norm=4.685, violations=0
+ Phase 2.5b: Applying Soft Saturated Gates...
+ Applied Symmetry-Preserving padding for Soft Gates: 64 -> 65
+ Created residues for Soft Saturation: torch.Size([1, 5, 13])
+ Restored original dimensions after Soft Saturation: 65 -> 64
+ Soft Gates: λ=0.300, dt=0.532, fossilized=0
+[OK] Phase 2.5 Love Invariant Protection & Soft Saturation complete
+ Starting text generation with fully repaired state...
+ Phase 3: Response Quality Optimization...
+ Phase 3: Dyad-Aware Response Generation
+ Enhanced response generation with linguistic optimization (DEPRECATED PATH)
+[OK] Generated dyad-aware response: %4TaLH*6QR8jN4ODwC?6]EWWY4^zCGYs?ZkDIblfD!UUq)Bt(HGiI
+ Response length: 53 characters
+ Phase 4: Advanced Feature Integration...
+ Phase 4.1: Computing Full Gyroid Violation Score...
+ Phase 4.3: Performing Advanced Topological Analysis...
+[METRICS] Phase 4 Gyroid Violation Score: 0.9768
+[METRICS] Phase 4 Unfolding Closure: False
+[METRICS] Phase 4 Topological Features: 9 detected
+[METRICS] Spectral Diagnostics: {'theta_coherence': 0.699999988079071, 'soliton_energy': 0.0, 'ergodic_energy': 3.6491856575012207, 'energy_ratio': 0.0}
+[METRICS] Bezout Diagnostics: {'bezout_condition_number': 1.0, 'moduli_mean': 1.0, 'moduli_std': 0.0, 'drift_threshold': 0.5}
+[METRICS] Chern-Simons Diagnostics: {'twist_energy': 9.486373464540065e-09, 'level_k': 2.0, 'gauge_field_norm': 19.869176864624023}
+[METRICS] Soliton Diagnostics: {'alpha': 1.0, 'healing_progress': 0.0024999999441206455, 'iteration_count': 1}
+[METRICS] Love Diagnostics: {'love_norm': 4.68455696105957, 'violation_detected': 0.0, 'violation_count': 0, 'violation_magnitude': 0.0}
+[METRICS] Soft Gates Diagnostics: {'lambda_adaptive': 0.30000001192092896, 'dt': 0.5315443277359009, 'num_fossilized': 0, 'avg_persistence': 0.025919515639543533}
+ Returning metrics
 State persisted to gyroid_state.pt
 Instantiating Engine B (Fresh)...
-🔧 Initializing Garbled Output Repair System...
-✅ Garbled Output Repair System initialized
+ Initializing Garbled Output Repair System...
+[OK] Garbled Output Repair System initialized
 Weight Difference (A vs Fresh B): 2.992750883102417
 Engine B: Loading persisted state...
 Failed to load state: Error(s) in loading state_dict for DiegeticPhysicsEngine:
@@ -90,18 +90,18 @@ Cleanup: Removed state file.
 
 [1/5] Testing Determinism (Fixed Point)...
   Difference between two runs: 0.0
-  ✅ Determinism Confirmed (Bit-Exact)
+  [OK] Determinism Confirmed (Bit-Exact)
 
 [2/5] Testing Phase Alignment Invariants (PAS_h)...
   PAS_h scores: [0.46014363 0.56947255 0.6219152  0.53123623]
   Small drift: 0.0001 (Violation: False)
   Large drift: 0.0412 (Violation: True)
-  ✅ APAS_zeta Correctly Bounded Drift
+  [OK] APAS_zeta Correctly Bounded Drift
 
 [3/5] Testing Chirality...
   Chirality (Low Freq): -1.0000
   Chirality (High Freq): 0.6000
-  ✅ Chirality Index Correctly Distinguishes Frequencies
+  [OK] Chirality Index Correctly Distinguishes Frequencies
 
 [4/5] Testing Operational ADMM Primitive...
 Traceback (most recent call last):
