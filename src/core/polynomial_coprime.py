@@ -78,8 +78,11 @@ class PolynomialBasis:
             basis_vals = self._hermite(x_flat)
         elif self.basis_type == 'bspline':
             basis_vals = self._bspline(x_flat)
+        elif self.basis_type == 'laguerre':
+            basis_vals = self._laguerre(x_flat)
         else:
             raise ValueError(f"Unknown basis type: {self.basis_type}")
+
         
         # Reshape to [..., dim]
         return basis_vals.reshape(*batch_shape, self.dim)
@@ -139,6 +142,28 @@ class PolynomialBasis:
             He[:, i] = x * He[:, i-1] - (i - 1) * He[:, i-2]
         
         return He
+
+    def _laguerre(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Laguerre polynomials: L_n(x).
+        
+        Recurrence: L_0(x) = 1, L_1(x) = 1 - x,
+                   (n+1) L_{n+1}(x) = (2n + 1 - x) L_n(x) - n L_{n-1}(x)
+        """
+        n = x.shape[0]
+        L = torch.zeros(n, self.dim, device=x.device, dtype=x.dtype)
+        # Shift domain [-1, 1] to non-negative [0, 2] for Laguerre definition
+        x_pos = x + 1.0
+        
+        L[:, 0] = 1.0  # L_0(x) = 1
+        if self.dim > 1:
+            L[:, 1] = 1.0 - x_pos  # L_1(x) = 1 - x
+        
+        for i in range(2, self.dim):
+            n_idx = i - 1
+            L[:, i] = ((2 * n_idx + 1 - x_pos) * L[:, i-1] - n_idx * L[:, i-2]) / (n_idx + 1)
+        
+        return L
     
     def _bspline(self, x: torch.Tensor) -> torch.Tensor:
         """

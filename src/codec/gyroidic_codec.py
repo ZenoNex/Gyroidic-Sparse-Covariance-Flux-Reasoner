@@ -377,6 +377,12 @@ class GyroidImageProjector(nn.Module):
         if img_input is None:
             img_input = audio_harmonics
 
+        # Direct projection of structured multimodal fingerprint dicts (Chromata, Geometrize, Multi-Basis)
+        if isinstance(img_input, dict):
+            from src.codec.vision_utilities import project_multimodal_fingerprint_to_96
+            img_input = project_multimodal_fingerprint_to_96(img_input).to(self.config.device)
+
+
         # Synergistic Mandelbulb-Gyroidic prefolding stage
         apply_mandelbulb = use_mandelbulb_prefold if use_mandelbulb_prefold is not None else (self.mandelbulb_embedder is not None)
         if img_input is not None and apply_mandelbulb:

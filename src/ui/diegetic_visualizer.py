@@ -514,12 +514,14 @@ def _chebyshev_png_luminance(png_bytes: bytes) -> List[float]:
         return []
 
 
-def _chebyshev_project_np(arr: np.ndarray, K: int) -> List[float]:
+def _chebyshev_project_np(arr: np.ndarray, K: int, basis_type: str = "chebyshev") -> List[float]:
     """
-    Hann-windowed frame energies  Chebyshev recurrence 
-    Birkhoff normalisation  LSB stochastic rounding.
-    Matches the JS chebyshevProject() function exactly.
+    Hann-windowed frame energies -> Orthogonal polynomial recurrence ->
+    Birkhoff normalisation -> LSB stochastic rounding.
+    Matches the JS chebyshevProject() function exactly when basis_type='chebyshev',
+    and evaluates canonical PolynomialBasis across Legendre, Hermite, Laguerre, or B-spline.
     """
+    import torch
     N = len(arr)
     # Normalise to [-1, 1]
     vmin, vmax = arr.min(), arr.max()
@@ -544,9 +546,9 @@ def _chebyshev_project_np(arr: np.ndarray, K: int) -> List[float]:
     e_range = max(float(e_max - e_min), 1e-12)
     x_f = 2.0 * (frame_energies - e_min) / e_range - 1.0
 
-    # Chebyshev T_k recurrence via canonical PolynomialBasis
+    # Orthogonal polynomial recurrence via canonical PolynomialBasis
     from src.core.polynomial_coprime import PolynomialBasis
-    basis = PolynomialBasis(degree=K - 1, basis_type='chebyshev', domain=(-1.0, 1.0))
+    basis = PolynomialBasis(degree=K - 1, basis_type=basis_type, domain=(-1.0, 1.0))
     t_xf = torch.from_numpy(x_f.astype(np.float32))
     # basis.evaluate returns [frame_count, K]
     T_mat = basis.evaluate(t_xf).detach().cpu().numpy()
@@ -559,9 +561,75 @@ def _chebyshev_project_np(arr: np.ndarray, K: int) -> List[float]:
     else:
         theta = np.ones(K, dtype=np.float64) / K
 
-    # LSB stochastic rounding (Xorshift32  matches SiliconSovereigntyEngine)
+    # LSB stochastic rounding (Xorshift32 - matches SiliconSovereigntyEngine)
     rounded = _lsb_round_np(theta.astype(np.float32), scale=1024.0)
     return rounded.tolist()
+
+
+def extract_spectral_image_fingerprint(
+    image_input: Any,
+    K: int = 32,
+    basis_type: str = "chebyshev"
+) -> Dict[str, Any]:
+    """
+    Decomposes an image across L, Cr, Cb channels into orthogonal polynomial spectra
+    (Chebyshev, Legendre, Hermite, Laguerre, or B-spline).
+    Matches JS chebyshevProject() in diegetic_terminal.html and backend ingestion.
+    """
+    try:
+        from PIL import Image
+    except ImportError:
+        Image = None
+
+    if isinstance(image_input, str):
+        if Image is not None:
+            with Image.open(image_input) as img:
+                rgb = img.convert('RGB')
+                arr = np.array(rgb, dtype=np.float64) / 255.0
+        else:
+            arr = plt.imread(image_input)
+            if arr.ndim == 2:
+                arr = np.stack([arr, arr, arr], axis=-1)
+            elif arr.shape[-1] > 3:
+                arr = arr[:, :, :3]
+            arr = arr.astype(np.float64)
+    elif Image is not None and isinstance(image_input, Image.Image):
+        rgb = image_input.convert('RGB')
+        arr = np.array(rgb, dtype=np.float64) / 255.0
+    else:
+        arr = np.asarray(image_input, dtype=np.float64)
+        if arr.max() > 1.0:
+            arr = arr / 255.0
+
+    if arr.ndim == 2:
+        r = g = b = arr
+        h, w = arr.shape
+    elif arr.shape[-1] >= 3:
+        r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
+        h, w = arr.shape[:2]
+    else:
+        r = g = b = arr[:, :, 0]
+        h, w = arr.shape[:2]
+
+    # BT.601 color transform matching diegetic_terminal.html:3912-3914
+    lum = 0.299 * r + 0.587 * g + 0.114 * b
+    cr = 0.500 * r - 0.419 * g - 0.081 * b + 0.5
+    cb = -0.169 * r - 0.331 * g + 0.500 * b + 0.5
+
+    l_coeffs = _chebyshev_project_np(lum.flatten(), K, basis_type=basis_type)
+    cr_coeffs = _chebyshev_project_np(cr.flatten(), K, basis_type=basis_type)
+    cb_coeffs = _chebyshev_project_np(cb.flatten(), K, basis_type=basis_type)
+
+    return {
+        "chebyshev_degree": K,
+        "basis_type": basis_type,
+        "L": l_coeffs,
+        "Cr": cr_coeffs,
+        "Cb": cb_coeffs,
+        "px_width": w,
+        "px_height": h,
+    }
+
 
 
 def _lsb_round_np(arr: np.ndarray, scale: float = 1024.0) -> np.ndarray:

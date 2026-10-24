@@ -13,7 +13,12 @@ from .gyroidic_codec import (
 )
 from .conformal_log_polar import ConformalLogPolarProjector
 from .vision_surgery import IntercosaminationOperator, MirrorTestProbe
-from .vision_utilities import get_russian_doll_projection
+from .vision_utilities import (
+    get_russian_doll_projection,
+    project_chromata_filaments,
+    project_geometrize_primitives,
+    project_multimodal_fingerprint_to_96
+)
 
 __all__ = [
     'GyroidicCodec',
@@ -24,4 +29,8 @@ __all__ = [
     'IntercosaminationOperator',
     'MirrorTestProbe',
     'get_russian_doll_projection',
+    'project_chromata_filaments',
+    'project_geometrize_primitives',
+    'project_multimodal_fingerprint_to_96',
 ]
+
