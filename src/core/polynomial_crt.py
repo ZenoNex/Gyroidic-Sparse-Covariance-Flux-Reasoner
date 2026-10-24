@@ -233,7 +233,7 @@ class PolynomialCRT(nn.Module):
         -1.0 represents highly dispersed "Meliponini" pots,
         1.0 represents densely packed "Apis" lattices.
         """
-        from core.martinova_correlation import compute_bounded_correlation
+        from src.core.martinova_correlation import compute_bounded_correlation
         # residue_distributions: [batch, K, D]
         # Calculate local spatial correlation across the K functionals (residue patterns)
         phi = compute_bounded_correlation(residue_distributions)

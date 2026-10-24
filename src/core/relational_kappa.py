@@ -72,7 +72,7 @@ class RelationalKappa(nn.Module):
         history = self.tension_history[:filled]
         
         mu = history.mean()
-        from core.martinova_correlation import compute_bounded_correlation
+        from src.core.martinova_correlation import compute_bounded_correlation
         corr = compute_bounded_correlation(history.unsqueeze(-1).unsqueeze(0)).squeeze(0)
         sigma = corr
         
@@ -113,7 +113,7 @@ class RelationalKappa(nn.Module):
         if filled >= self.min_history:
             history = self.tension_history[:filled]
             mu = history.mean()
-            from core.martinova_correlation import compute_bounded_correlation
+            from src.core.martinova_correlation import compute_bounded_correlation
             corr = compute_bounded_correlation(history.unsqueeze(-1).unsqueeze(0)).squeeze(0)
             sigma = corr
         else:
@@ -149,6 +149,6 @@ class RelationalKappa(nn.Module):
             return False
         
         history = self.tension_history[:filled]
-        from core.martinova_correlation import compute_bounded_correlation
+        from src.core.martinova_correlation import compute_bounded_correlation
         corr = compute_bounded_correlation(history.unsqueeze(-1).unsqueeze(0)).squeeze(0)
         return corr.abs() < 1e-4 or history.std() < 1e-8

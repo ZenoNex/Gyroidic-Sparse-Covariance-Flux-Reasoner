@@ -706,6 +706,6 @@ class MartinovaCorrelationInvariant(nn.Module):
         self.r = neighborhood_radius
         
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        from core.martinova_correlation import compute_bounded_correlation
+        from src.core.martinova_correlation import compute_bounded_correlation
         return compute_bounded_correlation(X, self.r)
 

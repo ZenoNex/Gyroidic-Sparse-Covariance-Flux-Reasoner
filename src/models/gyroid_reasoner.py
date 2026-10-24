@@ -626,7 +626,7 @@ class GyroidicFluxReasoner(nn.Module):
         # 3. Chern-Simons Gasket (plug logic leaks)
         # Use proper polynomial co-prime functional system (anti-lobotomy)
         if not hasattr(self, 'polynomial_config'):
-            from core.polynomial_coprime import PolynomialCoprimeConfig
+            from src.core.polynomial_coprime import PolynomialCoprimeConfig
             self.polynomial_config = PolynomialCoprimeConfig(
                 k=self.K,
                 degree=4,  # Default polynomial degree

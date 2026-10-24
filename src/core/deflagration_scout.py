@@ -54,7 +54,7 @@ class OmipedialDeflagrator(nn.Module):
         self.defect_count.add_(defects.mean().detach())
         
         # Highlight points with correlation -1.0 as structural gaps/topological holes
-        from core.martinova_correlation import compute_bounded_correlation
+        from src.core.martinova_correlation import compute_bounded_correlation
         corr = compute_bounded_correlation(actual_flux)
         self.structural_gaps = (corr <= -0.8).float()
         

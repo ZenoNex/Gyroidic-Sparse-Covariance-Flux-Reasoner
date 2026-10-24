@@ -421,45 +421,48 @@ class StructuralAdaptor:
                     self.daquf.check_invariants(self.original_L)
                 
             # --- GARDEN ATTRACTORS & DEFLAGRATION FEEDBACK ---
-            # 1. Update Resonance Potential & Ley Lines
-            # Mocking neighbor states and adjacency for now
-            # In real scenario, neighbor states come from situational batch sampling
-            self.ley_tracker.update_potential(
-                adjacency=torch.zeros(len(batch['indices']), len(batch['indices']), device=self.device),
-                love_magnitudes=torch.norm(self.S_i[batch['indices']] if self.S_i is not None else torch.zeros(len(batch['indices']), device=self.device), dim=1)**2 if self.S_i is not None else torch.zeros(len(batch['indices']), device=self.device),
-                defects=torch.zeros(len(batch['indices']), device=self.device)
-            )
-            
-            # 2. Defect Scouting & Omipedial Jumps
-            predicted_flux = v_m.repeat(len(batch['indices']))
-            actual_flux = p_tensor.repeat(len(batch['indices'])) # Difference between actual and unknowledge pressure
-            defects = self.deflagrator.scout_defects(predicted_flux, actual_flux)
-            jumps = self.deflagrator.omipedial_jump(self.ley_tracker.V[batch['indices']])
-            
-            # 2.5 Update NTM Scaffold
-            # dt is the manifold clock tick
-            dt_tensor = torch.tensor(dt, device=self.device) if isinstance(dt, (float, int)) else dt
-            self.ntm(torch.tensor(m_metrics['H_mischief'], device=self.device), dt_tensor)
-            self.admr.update_scaffold(torch.tensor(m_metrics['H_mischief'], device=self.device), dt_tensor)
-
-            # 3. ADMR Multiplicative Reconciliation with Valence Hunger
-            if self.S_i is not None:
-                # Mock neighbor states and weights for ADMR
-                neighbor_states = self.S_i[batch['indices']].unsqueeze(1) # Identity for now
-                
-                # Get adjacency from relational graph (Mocking R_ik)
-                r_ik = torch.ones(len(batch['indices']), 1, device=self.device)
-                
-                # ADMR multiplicative interaction with Valence
-                self.S_i[batch['indices']] = self.admr(
-                    self.S_i[batch['indices']], 
-                    neighbor_states, 
-                    r_ik,
-                    valence=current_valence if 'current_valence' in locals() else None
+            from src.core.hardware_monitor import has_compute_affordance, ComputeAffordanceType
+            jumps = torch.tensor([0], device=self.device)
+            if has_compute_affordance(ComputeAffordanceType.ALGORITHMIC):
+                # 1. Update Resonance Potential & Ley Lines
+                # Mocking neighbor states and adjacency for now
+                # In real scenario, neighbor states come from situational batch sampling
+                self.ley_tracker.update_potential(
+                    adjacency=torch.zeros(len(batch['indices']), len(batch['indices']), device=self.device),
+                    love_magnitudes=torch.norm(self.S_i[batch['indices']] if self.S_i is not None else torch.zeros(len(batch['indices']), device=self.device), dim=1)**2 if self.S_i is not None else torch.zeros(len(batch['indices']), device=self.device),
+                    defects=torch.zeros(len(batch['indices']), device=self.device)
                 )
                 
-                # 4. Polynomial Shaping
-                self.S_i[batch['indices']] = self.poly_scaffold(self.S_i[batch['indices']])
+                # 2. Defect Scouting & Omipedial Jumps
+                predicted_flux = v_m.repeat(len(batch['indices']))
+                actual_flux = p_tensor.repeat(len(batch['indices'])) # Difference between actual and unknowledge pressure
+                defects = self.deflagrator.scout_defects(predicted_flux, actual_flux)
+                jumps = self.deflagrator.omipedial_jump(self.ley_tracker.V[batch['indices']])
+                
+                # 2.5 Update NTM Scaffold
+                # dt is the manifold clock tick
+                dt_tensor = torch.tensor(dt, device=self.device) if isinstance(dt, (float, int)) else dt
+                self.ntm(torch.tensor(m_metrics['H_mischief'], device=self.device), dt_tensor)
+                self.admr.update_scaffold(torch.tensor(m_metrics['H_mischief'], device=self.device), dt_tensor)
+
+                # 3. ADMR Multiplicative Reconciliation with Valence Hunger
+                if self.S_i is not None:
+                    # Mock neighbor states and weights for ADMR
+                    neighbor_states = self.S_i[batch['indices']].unsqueeze(1) # Identity for now
+                    
+                    # Get adjacency from relational graph (Mocking R_ik)
+                    r_ik = torch.ones(len(batch['indices']), 1, device=self.device)
+                    
+                    # ADMR multiplicative interaction with Valence
+                    self.S_i[batch['indices']] = self.admr(
+                        self.S_i[batch['indices']], 
+                        neighbor_states, 
+                        r_ik,
+                        valence=current_valence if 'current_valence' in locals() else None
+                    )
+                    
+                    # 4. Polynomial Shaping
+                    self.S_i[batch['indices']] = self.poly_scaffold(self.S_i[batch['indices']])
             
             # Update metrics with Garden info
             metrics.update(self.ley_tracker.get_metrics())

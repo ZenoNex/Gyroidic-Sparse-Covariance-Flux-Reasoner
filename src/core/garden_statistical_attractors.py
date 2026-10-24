@@ -321,7 +321,7 @@ class InfluenceAttractor(nn.Module):
         """
         Map the density of attractor basins using the local correlation function.
         """
-        from core.martinova_correlation import compute_bounded_correlation
+        from src.core.martinova_correlation import compute_bounded_correlation
         # self.fossilized_basins: [num_attractors, feature_dim]
         # Treat basins as a spatial point pattern
         density_corr = compute_bounded_correlation(self.fossilized_basins.unsqueeze(0)).squeeze(0)

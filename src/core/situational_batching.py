@@ -142,7 +142,7 @@ class SituationalBatchSampler(Sampler[List[int]]):
             attempts = 0
             while attempts < 5 and len(batch) > 2:
                 batch_features = self.R[batch]
-                from core.martinova_correlation import compute_bounded_correlation
+                from src.core.martinova_correlation import compute_bounded_correlation
                 corr = compute_bounded_correlation(batch_features.unsqueeze(0)).squeeze(0).item()
                 if -0.7 <= corr <= 0.7:
                     break
@@ -172,9 +172,20 @@ class SituationalBatchSampler(Sampler[List[int]]):
         self.M *= self.decay
         self.O *= self.decay
         
-        # Broadcast scalar pressure if necessary
-        p_val = pressure if pressure.dim() > 0 else pressure.unsqueeze(0).repeat(len(indices))
-        m_val = mischief_scores if mischief_scores.dim() > 0 else mischief_scores.unsqueeze(0).repeat(len(indices))
+        # Broadcast scalar or 1-element pressure/mischief tensors if necessary
+        if pressure.numel() == 1:
+            p_val = pressure.view(1).repeat(len(indices))
+        elif pressure.dim() == 0:
+            p_val = pressure.unsqueeze(0).repeat(len(indices))
+        else:
+            p_val = pressure
+
+        if mischief_scores.numel() == 1:
+            m_val = mischief_scores.view(1).repeat(len(indices))
+        elif mischief_scores.dim() == 0:
+            m_val = mischief_scores.unsqueeze(0).repeat(len(indices))
+        else:
+            m_val = mischief_scores
 
         for i, idx_a in enumerate(indices):
             self.O[idx_a] += p_val[i].item()

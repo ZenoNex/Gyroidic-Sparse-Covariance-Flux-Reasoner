@@ -175,6 +175,13 @@ class TrainingManager:
                     current_step += 1
                     self.progress = int((current_step / total_steps) * 100)
                     
+                    # Affordance-Gated Dynamics: Check thermal and silicon headroom
+                    from src.core.hardware_monitor import has_compute_affordance, ComputeAffordanceType
+                    if not has_compute_affordance(ComputeAffordanceType.THERMAL):
+                        time.sleep(0.3)
+                    elif not has_compute_affordance(ComputeAffordanceType.SILICON):
+                        time.sleep(0.15)
+                    
                     # Dispatch training step based on active trainer and trainer_mode
                     if trainer_mode == "gdpo" and gdpo_adaptor is not None:
                         # ---------------- DEDICATED GDPO SOVEREIGNTY ADAPTOR PATH ----------------
@@ -312,7 +319,17 @@ class TrainingManager:
                         try:
                             situational_batch = next(sampler_iter)
                             pressure_tensor = torch.tensor([gyroid_pressure], device=self.ai_system.device)
-                            mischief_tensor = torch.tensor([abs(loss)], device=self.ai_system.device) # Proxy for mischief
+                            # Ground entropic mischief in authentic metrics rather than scalar loss proxy
+                            mischief_val = 0.5
+                            if 'adapt_metrics' in locals() and isinstance(adapt_metrics, dict):
+                                mischief_val = adapt_metrics.get('H_mischief', adapt_metrics.get('v_m', 0.5))
+                            elif 'step_metrics' in locals() and isinstance(step_metrics, dict):
+                                mischief_val = step_metrics.get('H_mischief', step_metrics.get('v_m', 0.5))
+                            elif 'metrics' in locals() and isinstance(metrics, dict):
+                                mischief_val = metrics.get('H_mischief', abs(loss))
+                            else:
+                                mischief_val = abs(loss)
+                            mischief_tensor = torch.tensor([float(mischief_val)], device=self.ai_system.device)
                             self.ai_system.situational_sampler.update_pusafiliacrimonto(
                                 situational_batch, pressure_tensor, mischief_tensor
                             )
