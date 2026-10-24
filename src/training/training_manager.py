@@ -124,14 +124,21 @@ class TrainingManager:
                 # 3. StructuralAdaptor and ConstraintDataset (Island 2)
                 try:
                     from src.training.trainer import StructuralAdaptor, ConstraintDataset
-                    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate) if hasattr(model, 'parameters') else None
+                    from src.optimization.muon_hybrid import MuonRicciHybridOptimizer
+                    optimizer = MuonRicciHybridOptimizer(
+                        model.parameters(),
+                        lr=learning_rate,
+                        lr_1d=learning_rate * 0.1,
+                        momentum=0.95,
+                        nesterov=True
+                    ) if hasattr(model, 'parameters') else None
                     structural_adaptor = StructuralAdaptor(
                         model=model,
                         optimizer=optimizer,
                         device=str(self.ai_system.device)
                     )
                     constraint_dataset = ConstraintDataset(num_samples=max(10, total_steps))
-                    self.log.append("[BUILD] StructuralAdaptor (LeCun EBM / Negentropic Manifold) engaged.")
+                    self.log.append("[BUILD] StructuralAdaptor (Muon-Ricci Hybrid / Negentropic Manifold) engaged.")
                 except Exception as e:
                     self.log.append(f"[WARN] StructuralAdaptor initialization deferred: {e}")
 

@@ -42,11 +42,20 @@ class FGRTStructuralTrainer:
         gluing_dim: int = 4
     ):
         self.model = model
-        self.optimizer = RicciFlowOptimizer(
-            model.parameters(), 
-            lr=lr, 
-            seam_width=seam_width
-        )
+        try:
+            from src.optimization.muon_hybrid import MuonRicciHybridOptimizer
+            self.optimizer = MuonRicciHybridOptimizer(
+                model.parameters(),
+                lr=lr,
+                lr_1d=lr * 0.1,
+                seam_width=seam_width
+            )
+        except Exception:
+            self.optimizer = RicciFlowOptimizer(
+                model.parameters(), 
+                lr=lr, 
+                seam_width=seam_width
+            )
         self.willmore = BouligandWillmoreGasket()
         try:
             self.gluer = GluingOperator(gluing_dim)

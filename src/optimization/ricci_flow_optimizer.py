@@ -12,6 +12,7 @@ from src.core.invariants import PHI, PHI_RECIPROCAL
 
 from torch.optim import Optimizer
 import warnings
+from typing import Optional
 
 try:
     from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
@@ -54,8 +55,8 @@ class RicciFlowOptimizer(Optimizer):
     Implements Ricci Flow: dg/dt = -2Ric.
     Erradicates proxies by utilizing the SplitBeamInterfactorization with the Chern-Simons gasket.
     """
-    def __init__(self, params, lr=1e-3, seam_width=0.1, engine=None):
-        defaults = dict(lr=lr, seam_width=seam_width)
+    def __init__(self, params, lr=1e-3, seam_width=0.1, engine=None, orthogonalize: bool = False, ns_steps: Optional[int] = None):
+        defaults = dict(lr=lr, seam_width=seam_width, orthogonalize=orthogonalize, ns_steps=ns_steps)
         super(RicciFlowOptimizer, self).__init__(params, defaults)
         self.engine = engine
         self.split_beam = SplitBeamInterfactorization(engine=engine)
@@ -71,6 +72,8 @@ class RicciFlowOptimizer(Optimizer):
         for group in self.param_groups:
             lr = group['lr']
             seam_width = group['seam_width']
+            orthogonalize = group.get('orthogonalize', False)
+            ns_steps = group.get('ns_steps', None)
             
             for p in group['params']:
                 if p.grad is None:
@@ -106,6 +109,13 @@ class RicciFlowOptimizer(Optimizer):
                         # Broadcast tension across feature dims
                         twist_expand = seam_tension.unsqueeze(-1).expand_as(p)
                         d_p = grad_pressure + twist_expand
+
+                    if orthogonalize and p.dim() == 2 and min(p.shape) >= 4:
+                        from src.optimization.muon_hybrid import zeropower_via_newtonschulz5
+                        import math
+                        d_p = zeropower_via_newtonschulz5(d_p, steps=ns_steps)
+                        scale = max(1.0, math.sqrt(p.size(0) / max(1, p.size(1))))
+                        d_p = d_p * scale
                 
                 # Update weights directly driven by non-scalarized phase alignment
                 p.add_(d_p, alpha=-lr)
