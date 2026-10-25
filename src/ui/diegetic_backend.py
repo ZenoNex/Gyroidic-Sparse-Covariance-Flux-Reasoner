@@ -7435,6 +7435,17 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 })
                 return
 
+            elif base_path in ('/api/autorun', '/api/autostart'):
+                from hybrid_backend import GovernanceManager
+                paths = GovernanceManager.get_autostart_paths()
+                self._send_json({
+                    'status': 'ok',
+                    'autorun_enabled': GovernanceManager.get_autostart_status(),
+                    'platform': paths['platform'],
+                    'target_file': paths['target_file']
+                })
+                return
+
             
             # --- GUI SERVING ---
             elif base_path == '/conversational-gui':
@@ -8652,6 +8663,26 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_json(result)
                 else:
                     self._send_json({'error': 'No message provided'})
+
+            elif self.path in ('/api/autorun', '/api/autostart'):
+                content_len = int(self.headers.get('Content-Length', 0))
+                post_body = self.rfile.read(content_len) if content_len > 0 else b'{}'
+                try:
+                    data = json.loads(post_body.decode('utf-8'))
+                except Exception:
+                    data = {}
+                from hybrid_backend import GovernanceManager
+                enabled = bool(data.get('enabled', True))
+                GovernanceManager.set_autostart(enabled)
+                paths = GovernanceManager.get_autostart_paths()
+                self._send_json({
+                    'status': 'ok',
+                    'autorun_enabled': GovernanceManager.get_autostart_status(),
+                    'platform': paths['platform'],
+                    'target_file': paths['target_file'],
+                    'message': f"Autorun {'enabled' if enabled else 'disabled'}"
+                })
+                return
             
             # ================================================================
             # PHASE 3: TABBY ML ENDPOINTS

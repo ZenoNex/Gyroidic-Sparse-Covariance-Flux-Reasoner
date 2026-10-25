@@ -311,6 +311,198 @@ class GovernanceManager:
                 print(f"[FAIL] Could not shutdown {pid}: {e}")
 
     @staticmethod
+    def get_autostart_paths():
+        """Get relevant autostart file paths for the current operating system."""
+        repo_root = os.path.dirname(os.path.abspath(__file__))
+        python_exe = os.path.join(repo_root, ".venv", "Scripts", "python.exe")
+        if not os.path.exists(python_exe):
+            python_exe = os.path.join(repo_root, ".venv", "bin", "python")
+        if not os.path.exists(python_exe):
+            python_exe = sys.executable
+
+        if sys.platform == 'win32':
+            startup_dir = os.path.join(os.environ.get('APPDATA', ''), r'Microsoft\Windows\Start Menu\Programs\Startup')
+            target_file = os.path.join(startup_dir, "GyroidicReasonerAutostart.vbs")
+            return {
+                'platform': 'windows',
+                'target_file': target_file,
+                'startup_dir': startup_dir,
+                'repo_root': repo_root,
+                'python_exe': python_exe
+            }
+        elif sys.platform == 'darwin':
+            agent_dir = os.path.expanduser('~/Library/LaunchAgents')
+            target_file = os.path.join(agent_dir, 'com.gyroidic.reasoner.plist')
+            return {
+                'platform': 'darwin',
+                'target_file': target_file,
+                'startup_dir': agent_dir,
+                'repo_root': repo_root,
+                'python_exe': python_exe
+            }
+        else:
+            service_dir = os.path.expanduser('~/.config/systemd/user')
+            target_file = os.path.join(service_dir, 'gyroidic-reasoner.service')
+            return {
+                'platform': 'linux',
+                'target_file': target_file,
+                'startup_dir': service_dir,
+                'repo_root': repo_root,
+                'python_exe': python_exe
+            }
+
+    @staticmethod
+    def get_autostart_status():
+        """Check if background autorun/autostart is currently enabled on the system."""
+        info = GovernanceManager.get_autostart_paths()
+        target = info['target_file']
+        return os.path.exists(target)
+
+    @staticmethod
+    def set_autostart(enabled: bool):
+        """Enable or disable silent background autorun on computer boot."""
+        info = GovernanceManager.get_autostart_paths()
+        platform = info['platform']
+        target_file = info['target_file']
+        repo_root = info['repo_root']
+        python_exe = info['python_exe']
+
+        if platform == 'windows':
+            if enabled:
+                try:
+                    os.makedirs(info['startup_dir'], exist_ok=True)
+                    vbs_content = (
+                        'Set WshShell = CreateObject("WScript.Shell")\r\n'
+                        f'WshShell.CurrentDirectory = "{repo_root}"\r\n'
+                        'WshShell.Environment("PROCESS")("NON_INTERACTIVE") = "1"\r\n'
+                        'WshShell.Environment("PROCESS")("PYTHONPATH") = "."\r\n'
+                        f'WshShell.Run """{python_exe}"" -u hybrid_backend.py", 0, False\r\n'
+                    )
+                    with open(target_file, 'w', encoding='ascii') as f:
+                        f.write(vbs_content)
+                    # Also keep scripts/start_reasoner_silent.vbs in sync
+                    silent_vbs = os.path.join(repo_root, "scripts", "start_reasoner_silent.vbs")
+                    try:
+                        os.makedirs(os.path.dirname(silent_vbs), exist_ok=True)
+                        with open(silent_vbs, 'w', encoding='ascii') as f:
+                            f.write(vbs_content)
+                    except Exception:
+                        pass
+                    print(f"[OK] Windows 10/11 autorun enabled in Startup folder: {target_file}")
+                    return True
+                except Exception as e:
+                    print(f"[FAIL] Failed to enable Windows autorun: {e}")
+                    return False
+            else:
+                if os.path.exists(target_file):
+                    try:
+                        os.remove(target_file)
+                        print(f"[OK] Windows autorun disabled. Removed: {target_file}")
+                    except Exception as e:
+                        print(f"[WARN] Could not remove {target_file}: {e}")
+                else:
+                    print("[INFO] Windows autorun is already disabled.")
+                return False
+
+        elif platform == 'darwin':
+            if enabled:
+                try:
+                    os.makedirs(info['startup_dir'], exist_ok=True)
+                    plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.gyroidic.reasoner</string>
+    <key>WorkingDirectory</key>
+    <string>{repo_root}</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>NON_INTERACTIVE</key>
+        <string>1</string>
+        <key>PYTHONPATH</key>
+        <string>.</string>
+    </dict>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{python_exe}</string>
+        <string>-u</string>
+        <string>hybrid_backend.py</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>{os.path.join(repo_root, "server_startup.log")}</string>
+    <key>StandardErrorPath</key>
+    <string>{os.path.join(repo_root, "server_startup.log")}</string>
+</dict>
+</plist>"""
+                    with open(target_file, 'w', encoding='utf-8') as f:
+                        f.write(plist_content)
+                    subprocess.run(['launchctl', 'load', '-w', target_file], capture_output=True)
+                    print(f"[OK] macOS autorun enabled: {target_file}")
+                    return True
+                except Exception as e:
+                    print(f"[FAIL] Failed to enable macOS autorun: {e}")
+                    return False
+            else:
+                if os.path.exists(target_file):
+                    subprocess.run(['launchctl', 'unload', '-w', target_file], capture_output=True)
+                    try:
+                        os.remove(target_file)
+                    except Exception:
+                        pass
+                print("[OK] macOS autorun disabled.")
+                return False
+
+        else: # Linux
+            if enabled:
+                try:
+                    os.makedirs(info['startup_dir'], exist_ok=True)
+                    service_content = f"""[Unit]
+Description=Gyroidic Sparse Covariance Flux Reasoner
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory={repo_root}
+Environment="NON_INTERACTIVE=1"
+Environment="PYTHONPATH=."
+ExecStart={python_exe} -u hybrid_backend.py
+Restart=on-failure
+RestartSec=5s
+KillSignal=SIGINT
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=default.target
+"""
+                    with open(target_file, 'w', encoding='utf-8') as f:
+                        f.write(service_content)
+                    subprocess.run(['systemctl', '--user', 'daemon-reload'], capture_output=True)
+                    subprocess.run(['systemctl', '--user', 'enable', 'gyroidic-reasoner.service'], capture_output=True)
+                    print(f"[OK] Linux systemd autorun enabled: {target_file}")
+                    return True
+                except Exception as e:
+                    print(f"[FAIL] Failed to enable Linux systemd autorun: {e}")
+                    return False
+            else:
+                subprocess.run(['systemctl', '--user', 'disable', 'gyroidic-reasoner.service'], capture_output=True)
+                if os.path.exists(target_file):
+                    try:
+                        os.remove(target_file)
+                    except Exception:
+                        pass
+                subprocess.run(['systemctl', '--user', 'daemon-reload'], capture_output=True)
+                print("[OK] Linux systemd autorun disabled.")
+                return False
+
+    @staticmethod
     def startup_menu():
         """Interactive console menu for lifecycle control."""
         if os.environ.get('NON_INTERACTIVE') == '1':
@@ -326,6 +518,8 @@ class GovernanceManager:
                                 saved_config['node_account'] = os.environ.get('GYROID_ACCOUNT')
                             if os.environ.get('GYROID_SALT_PATH'):
                                 saved_config['security_salt_path'] = os.environ.get('GYROID_SALT_PATH')
+                            if 'autorun_enabled' in saved_config:
+                                GovernanceManager.set_autostart(bool(saved_config['autorun_enabled']))
                             return saved_ports, saved_config
                 except Exception:
                     pass
@@ -365,7 +559,8 @@ class GovernanceManager:
                 'ego_death_limit': float(os.environ.get('GYROID_EGO_DEATH_LIMIT', '1.5')),
                 'udp_colonizer_enabled': os.environ.get('GYROID_UDP_COLONIZER', '0') == '1',
                 'node_account': os.environ.get('GYROID_ACCOUNT', 'default'),
-                'security_salt_path': os.environ.get('GYROID_SALT_PATH', os.environ.get('GYROID_NODE_SECRET_PATH', ''))
+                'security_salt_path': os.environ.get('GYROID_SALT_PATH', os.environ.get('GYROID_NODE_SECRET_PATH', '')),
+                'autorun_enabled': GovernanceManager.get_autostart_status()
             }
 
             
@@ -416,6 +611,8 @@ class GovernanceManager:
             ans = safe_input("\n[?] Found saved startup settings (.gyroid_config.json). Do you want to use your last settings or select new settings? (Y/n): ", "y").lower()
             if ans in ('', 'y', 'yes'):
                 print(f"[OK] Loaded saved configuration. Manifold scaled to ports: {saved_ports}")
+                if 'autorun_enabled' in saved_config:
+                    GovernanceManager.set_autostart(bool(saved_config['autorun_enabled']))
                 return saved_ports, saved_config
 
         print("\n[CONFIG] Port Selection Infrastructure")
@@ -464,7 +661,8 @@ class GovernanceManager:
             'open_science_ingestor_verbosity': 'normal',
             'udp_colonizer_enabled': False,
             'node_account': os.environ.get('GYROID_ACCOUNT', 'default'),
-            'security_salt_path': os.environ.get('GYROID_SALT_PATH', os.environ.get('GYROID_NODE_SECRET_PATH', ''))
+            'security_salt_path': os.environ.get('GYROID_SALT_PATH', os.environ.get('GYROID_NODE_SECRET_PATH', '')),
+            'autorun_enabled': GovernanceManager.get_autostart_status()
         }
 
 
@@ -579,6 +777,16 @@ class GovernanceManager:
             config['security_salt_path'] = salt_loc
             if salt_loc:
                 os.environ['GYROID_SALT_PATH'] = salt_loc
+
+            # Autostart / Autorun Configuration (§4 Cross-Platform Autostart Architecture)
+            is_ar_active = GovernanceManager.get_autostart_status()
+            ar_choice = get_input(
+                "[?] Enable computer startup autorun (autostart service) (yes/no)",
+                'yes' if config.get('autorun_enabled', is_ar_active) else 'no',
+                "Configures the Gyroidic Reasoner to automatically and silently start on system login."
+            ).lower()
+            config['autorun_enabled'] = ar_choice in ('yes', 'y')
+            GovernanceManager.set_autostart(config['autorun_enabled'])
 
             
         else:
@@ -2349,6 +2557,14 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 self._send_json({'status': 'ok', 'tags': tag_map})
             except Exception as e:
                 self._send_error_json(str(e))
+        elif parsed_path.path in ('/api/autorun', '/api/autostart'):
+            paths = GovernanceManager.get_autostart_paths()
+            self._send_json({
+                'status': 'ok',
+                'autorun_enabled': GovernanceManager.get_autostart_status(),
+                'platform': paths['platform'],
+                'target_file': paths['target_file']
+            })
         elif parsed_path.path == '/api/voxelboxter/proxy_status':
             try:
                 from src.ui.voxelboxter_backend import MAIN_BACKEND_URL
@@ -2390,7 +2606,24 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             DiegeticRequestHandler.do_POST(self)
             return
             
-        if parsed_path.path == '/interact':
+        if parsed_path.path in ('/api/autorun', '/api/autostart'):
+            try:
+                content_length = int(self.headers.get('Content-Length', 0))
+                post_data = self.rfile.read(content_length) if content_length > 0 else b'{}'
+                req_data = json.loads(post_data.decode('utf-8'))
+            except Exception:
+                req_data = {}
+            enabled = bool(req_data.get('enabled', True))
+            GovernanceManager.set_autostart(enabled)
+            paths = GovernanceManager.get_autostart_paths()
+            self._send_json({
+                'status': 'ok',
+                'autorun_enabled': GovernanceManager.get_autostart_status(),
+                'platform': paths['platform'],
+                'target_file': paths['target_file'],
+                'message': f"Autorun {'enabled' if enabled else 'disabled'}"
+            })
+        elif parsed_path.path == '/interact':
             self._handle_chat()
         elif parsed_path.path == '/api/chat':
             self._handle_api_chat()
@@ -2756,18 +2989,60 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 diag = {
                     "suppress_ui": True,
                     "retrieval_state": "KNOWN",
-                    "resonance_score": 0.95
+                    "resonance_score": 0.0
                 }
                 if AI_SYSTEM:
                     if hasattr(AI_SYSTEM, 'iteration'):
                         diag['iteration'] = AI_SYSTEM.iteration
+                    elif hasattr(AI_SYSTEM, 'iteration_count'):
+                        diag['iteration'] = AI_SYSTEM.iteration_count
                     elif hasattr(AI_SYSTEM, 'engine') and hasattr(AI_SYSTEM.engine, 'iteration'):
                         diag['iteration'] = AI_SYSTEM.engine.iteration
                     
                     if hasattr(AI_SYSTEM, 'engine') and AI_SYSTEM.engine is not None:
                         engine = AI_SYSTEM.engine
-                        diag['resonance_score'] = float(getattr(engine, '_last_resonance_score', 0.95))
-                        diag['retrieval_state'] = getattr(engine, '_last_retrieval_state', 'KNOWN')
+                        # Resolve resonance score from canonical engine attribute
+                        res_val = getattr(engine, '_last_resonance', None)
+                        
+                        # If zero/unset, query ResonanceCavity matching or cached fossil resonance
+                        if (res_val is None or res_val == 0.0) and hasattr(engine, 'meta_state') and engine.meta_state is not None:
+                            cavity = getattr(engine, 'resonance_cavity', None) or getattr(engine, 'cavity', None)
+                            if cavity is not None and hasattr(cavity, 'query'):
+                                try:
+                                    q_state = engine.meta_state.unsqueeze(0) if engine.meta_state.dim() == 1 else engine.meta_state
+                                    query_res = cavity.query(q_state)
+                                    scores = query_res.get('resonance_scores')
+                                    if scores is not None and scores.numel() > 0:
+                                        res_val = float(scores.mean().item())
+                                        engine._last_resonance = res_val
+                                except Exception:
+                                    pass
+
+                            if (res_val is None or res_val == 0.0):
+                                cache = getattr(engine, 'fossil_cache', [])
+                                if cache:
+                                    s_flat = engine.meta_state.flatten()
+                                    s_norm = torch.norm(s_flat) + 1e-8
+                                    best_r = 0.0
+                                    for f in cache[:16]:
+                                        if 'residue_vector' in f:
+                                            r_vec = f['residue_vector'].to(engine.device).flatten()
+                                            r_norm = torch.norm(r_vec) + 1e-8
+                                            score = float(torch.dot(s_flat, r_vec).item() / (s_norm * r_norm).item())
+                                            if score > best_r:
+                                                best_r = score
+                                    if best_r > 0.0:
+                                        res_val = best_r
+                                        engine._last_resonance = res_val
+
+                        diag['resonance_score'] = float(res_val if res_val is not None else 0.0)
+                        diag['retrieval_state'] = getattr(engine, '_last_retrieval_state', getattr(getattr(engine, '_tri_state_gate', None), 'retrieval_state', 'KNOWN'))
+                        
+                        if hasattr(engine, '_compute_pas_h') and hasattr(engine, 'meta_state') and engine.meta_state is not None:
+                            diag['pas_h'] = float(engine._compute_pas_h(engine.meta_state))
+                        elif hasattr(engine, '_last_pas_h'):
+                            diag['pas_h'] = float(engine._last_pas_h)
+
                         diag['phase4_diagnostics'] = {
                             'topological_analysis': {
                                 'topological_complexity': float(getattr(engine, '_last_complexity', 1.0)),
@@ -2777,6 +3052,13 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                                 ]
                             }
                         }
+                    elif hasattr(AI_SYSTEM, 'resonance_attractor') and hasattr(AI_SYSTEM, 'hidden_state') and AI_SYSTEM.hidden_state is not None:
+                        try:
+                            _, phase = AI_SYSTEM.resonance_attractor.compute_spectral_decomposition(AI_SYSTEM.hidden_state)
+                            diag['resonance_score'] = float(torch.cos(phase).mean().abs().item())
+                        except Exception:
+                            diag['resonance_score'] = 0.0
+
                 return self._send_json({
                     'response': '',
                     'diagnostics': diag,
@@ -3400,8 +3682,21 @@ def main():
                         help="Operational regime (goo, etc.)")
     parser.add_argument("--check-updates", action="store_true", default=False,
                         help="Check for remote updates before booting")
+    parser.add_argument("--enable-autostart", action="store_true", default=False,
+                        help="Enable background autorun on computer boot and exit")
+    parser.add_argument("--disable-autostart", action="store_true", default=False,
+                        help="Disable background autorun on computer boot and exit")
 
     cli_args, _ = parser.parse_known_args()
+    if cli_args.enable_autostart:
+        GovernanceManager.set_autostart(True)
+        print("[OK] Startup autorun service successfully enabled.")
+        sys.exit(0)
+    if cli_args.disable_autostart:
+        GovernanceManager.set_autostart(False)
+        print("[OK] Startup autorun service successfully disabled.")
+        sys.exit(0)
+
     if cli_args.non_interactive:
         os.environ["NON_INTERACTIVE"] = "1"
     if cli_args.account:
@@ -3467,6 +3762,7 @@ def main():
         print(f"   • Storage Medium: {'External Removable Media / Flashdrive' if account_info['is_external_media'] else 'Local Node Vault'}")
         print(f"   • Initialized: {'[OK]' if account_info['is_initialized'] else '[CREATING ON BOOT]'}")
         print("   • Sole Creator Paradigm: [TOMBSTONED - Decentralized Nomadic Peer Model Active]")
+        print(f"   • Computer Startup Autorun: {'[ENABLED]' if GovernanceManager.get_autostart_status() else '[DISABLED]'}")
     except Exception as sec_e:
         print(f"[SECURITY] Node account status check notice: {sec_e}")
 
