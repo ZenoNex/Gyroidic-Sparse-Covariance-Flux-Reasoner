@@ -2243,6 +2243,10 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_json({'error': str(e)})
             else:
                 self._send_json({'nodes': [], 'links': []})
+        elif parsed_path.path == '/favicon.ico':
+            self.send_response(204)
+            self.end_headers()
+            return
         elif parsed_path.path == '/ping':
             self._send_json({'status': 'ok', 'message': 'Hybrid backend running', 'components': {
                 'temporal_model': TEMPORAL_MODEL_AVAILABLE,
@@ -2821,11 +2825,14 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
     
     def _send_json(self, data):
         """Send JSON response."""
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-        self.wfile.write(json.dumps(data, cls=TensorEncoder).encode())
-        
+        try:
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(data, cls=TensorEncoder).encode())
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            pass
+
     def _send_error_json(self, message, code=500):
         """Send JSON error response."""
         try:
@@ -2834,6 +2841,8 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             error_data = json.dumps({"error": message}).encode('utf-8')
             self.wfile.write(error_data)
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            pass
         except Exception as e:
             print(f"[FAIL] Could not send error JSON: {e}")
     
@@ -3258,29 +3267,47 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self._send_json({'success': False, 'message': str(e)})
 
+SERVER_INSTANCES = []
+FOSSIL_SAVED = False
+
 def start_server(port):
     """Start a server on a specific port."""
     try:
         class ReusableThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
             allow_reuse_address = True
+            daemon_threads = True
             
-        with ReusableThreadedTCPServer(("127.0.0.1", port), HybridHandler) as httpd:
-            print(f"[OK] Hybrid backend running at http://127.0.0.1:{port}")
-            httpd.serve_forever()
+        httpd = ReusableThreadedTCPServer(("127.0.0.1", port), HybridHandler)
+        SERVER_INSTANCES.append(httpd)
+        print(f"[OK] Hybrid backend running at http://127.0.0.1:{port}")
+        httpd.serve_forever()
     except Exception as e:
-        print(f"[FAIL] Server error on port {port}: {e}")
+        if not FOSSIL_SAVED:
+            print(f"[FAIL] Server error on port {port}: {e}")
+
+def stop_servers():
+    """Gracefully shutdown and close all active HTTP servers to prevent thread spawn during exit."""
+    for s in list(SERVER_INSTANCES):
+        try:
+            s.shutdown()
+            s.server_close()
+        except Exception:
+            pass
+    SERVER_INSTANCES.clear()
 
 import atexit
 
 def clean_exit_handler():
-    global AI_SYSTEM
+    global AI_SYSTEM, FOSSIL_SAVED
+    stop_servers()
     pid_file = os.path.join(root_dir, '.backend.pid')
     try:
         if os.path.exists(pid_file):
             os.remove(pid_file)
     except Exception:
         pass
-    if AI_SYSTEM:
+    if AI_SYSTEM and not FOSSIL_SAVED:
+        FOSSIL_SAVED = True
         print("[FOSSIL] Clean exit triggered. Running Fossilization Protocol...", flush=True)
         try:
             message = AI_SYSTEM.save_model_state()
@@ -3449,7 +3476,11 @@ def main():
         original_sigint = signal.getsignal(signal.SIGINT)
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         
-        if AI_SYSTEM:
+        # Stop servers immediately so incoming client requests don't hit interpreter shutdown
+        stop_servers()
+        
+        if AI_SYSTEM and not FOSSIL_SAVED:
+            FOSSIL_SAVED = True
             print("[FOSSIL] Triggering emergency Fossilization Protocol...")
             print("[INFO]  Ignoring further interrupts to ensure manifold integrity.", flush=True)
             try:

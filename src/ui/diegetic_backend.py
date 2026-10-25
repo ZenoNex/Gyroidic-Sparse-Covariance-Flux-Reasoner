@@ -7599,7 +7599,6 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     return
             elif base_path == '/api/fs/drives':
                 drives = []
-                import os
                 if os.name == 'nt':
                     import string
                     import ctypes

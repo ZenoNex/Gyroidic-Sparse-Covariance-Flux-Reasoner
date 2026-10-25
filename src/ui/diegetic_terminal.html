@@ -211,13 +211,21 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 15px 0;
-            gap: 12px;
+            padding: 10px 0;
+            gap: 8px;
             z-index: 10;
             backdrop-filter: blur(8px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: none;
+        }
+
+        .panel-toolbar::-webkit-scrollbar {
+            display: none;
         }
 
         .panel-toggle-btn {
+            flex-shrink: 0;
             width: 34px;
             height: 34px;
             border-radius: 6px;
@@ -252,6 +260,10 @@
         .sidebar.right>div {
             display: none;
             animation: fadeInPanel 0.3s ease-out forwards;
+        }
+
+        .sidebar.right>hr {
+            display: none;
         }
 
         @keyframes fadeInPanel {
@@ -1938,23 +1950,21 @@
                         COMMIT DYAD ASSOCIATION
                     </button>
                 </div>
+                <!-- CHAINING SYSTEM EXPLANATION -->
+                <div
+                    style="background: rgba(0, 242, 255, 0.05); border: 1px dashed var(--terminal-blue); padding: 10px; margin: 10px 0; border-radius: 4px;">
+                    <div
+                        style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--terminal-blue); margin-bottom: 5px; font-weight: bold;">
+                        [?] CHAINING SYSTEM</div>
+                    <div style="font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; line-height: 1.4;">
+                        The Chaining System allows you to pipe the output of one Panel directly into another. By committing
+                        a Dyad (Panel A), you can utilize its topological signature as the implicit input context for
+                        Semantic Documents (Panel B) or Audio (Panel C), enabling multi-modal cross-attention.
+                    </div>
+                </div>
+
                 <div id="assoc-log" class="small-log"></div>
             </div>
-
-            <!-- CHAINING SYSTEM EXPLANATION -->
-            <div
-                style="background: rgba(0, 242, 255, 0.05); border: 1px dashed var(--terminal-blue); padding: 10px; margin: 10px 0; border-radius: 4px;">
-                <div
-                    style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--terminal-blue); margin-bottom: 5px; font-weight: bold;">
-                    [?] CHAINING SYSTEM</div>
-                <div style="font-family: var(--font-mono); font-size: 0.65rem; color: #aaa; line-height: 1.4;">
-                    The Chaining System allows you to pipe the output of one Panel directly into another. By committing
-                    a Dyad (Panel A), you can utilize its topological signature as the implicit input context for
-                    Semantic Documents (Panel B) or Audio (Panel C), enabling multi-modal cross-attention.
-                </div>
-            </div>
-
-            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
 
             <!-- PANEL B: TEXT-TO-TEXT ASSOCIATION -->
             <div class="association-panel" id="panel-b-container">
@@ -2014,10 +2024,9 @@
                     </div>
                     <div id="semantic-log" class="small-log"></div>
                 </div>
+            </div>
 
-                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
-
-                <!-- PANEL C: AUDIO DYAD INGESTOR -->
+            <!-- PANEL C: AUDIO DYAD INGESTOR -->
                 <div class="audio-panel" id="panel-c-container">
                     <div class="section-title panel-c-title">Panel C: Audio Dyad
                         <small id="audio-status" style="color:#555;">IDLE</small>
@@ -2062,8 +2071,6 @@
                     <div id="audio-log" class="small-log"></div>
                 </div>
 
-                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
-
                 <!-- PANEL D: VIDEO DYAD INGESTOR -->
                 <div class="video-panel" id="panel-d-container">
                     <div class="section-title">Panel D: Video Dyad
@@ -2105,8 +2112,6 @@
                     <div id="video-log" class="small-log"></div>
                 </div>
 
-                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
-
                 <!-- PANEL E: IMAGE-MUSIC BRAID -->
                 <div class="chain-panel" id="panel-e-container">
                     <div class="section-title panel-e-title">Panel E: Image-Music Braid</div>
@@ -2127,8 +2132,6 @@
                         BI-MODAL BRAID</button>
                     <div id="log-e" class="small-log"></div>
                 </div>
-
-                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
 
                 <!-- PANEL F: HETEROGENEOUS CHAIN -->
                 <div class="chain-panel" id="panel-f-container">
@@ -2155,8 +2158,6 @@
                         MANIFOLD BRAID</button>
                     <div id="log-f" class="small-log"></div>
                 </div>
-
-                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
 
                 <!-- PANEL G: MINECRAFT INGESTOR -->
                 <div class="minecraft-panel" id="panel-g-container">
@@ -2199,8 +2200,6 @@
                     <div id="minecraft-log" class="small-log" style="height: 120px;"></div>
                 </div>
 
-                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
-
                 <!-- PANEL H: GLTF SPLAT MATRIX -->
                 <div class="splat-panel" id="panel-h-container">
                     <div class="section-title" style="color: #ff00ff;">Panel H: GLTF/Splat Matrix
@@ -2236,8 +2235,6 @@
                     <div id="splat-log" class="small-log" style="height: 120px; color: #ff00ff;"></div>
                 </div>
 
-                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
-
                 <!-- PANEL I: UNIVERSAL TOPOLOGY CONVERTER -->
                 <div class="converter-panel" id="panel-i-container">
                     <div class="section-title" style="color: #00f2ff;">Panel I: Universal Converter
@@ -2269,8 +2266,6 @@
                     </div>
                     <div id="converter-log" class="small-log" style="height: 120px; color: #00f2ff;"></div>
                 </div>
-
-                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
 
                 <!-- PANEL J: MADOC SOVEREIGN INGESTOR -->
                 <div class="converter-panel" id="panel-j-container">
