@@ -2224,7 +2224,20 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         
         # Delegate specific paths to DiegeticRequestHandler
-        if parsed_path.path in ['/graph', '/health', '/api/minecraft/scan', '/conversational-gui', '/wikipedia-trainer', '/api/index_size', '/api/splats/scan', '/api/fs/drives', '/api/security/creator_status', '/api/security/status', '/api/tags', '/api/state'] or parsed_path.path.startswith('/api/freenet/') or parsed_path.path.startswith('/api/bonfire/'):
+        if (
+            parsed_path.path in [
+                '/graph', '/health', '/api/minecraft/scan', '/conversational-gui',
+                '/wikipedia-trainer', '/api/index_size', '/api/splats/scan',
+                '/api/fs/drives', '/api/security/creator_status', '/api/security/status',
+                '/api/tags', '/api/state', '/api/madoc/info', '/benchmark_dashboard.html',
+                '/api/affordances', '/api/bulletin_board'
+            ]
+            or parsed_path.path.startswith('/api/freenet/')
+            or parsed_path.path.startswith('/api/bonfire/')
+            or parsed_path.path.startswith('/api/viewer/')
+            or parsed_path.path.startswith('/api/madoc/')
+            or parsed_path.path.startswith('/api/benchmark/')
+        ):
             from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
             DiegeticRequestHandler.do_GET(self)
             return
@@ -2354,7 +2367,25 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         
         # Delegate specific paths to DiegeticRequestHandler
-        if parsed_path.path in ['/api/minecraft/ingest', '/wikipedia-extract', '/api/test_resonance_link', '/api/tabby_complete', '/api/tabby_generate_training', '/api/run_sim', '/api/analyze_sim', '/api/fs/drives', '/api/security/creator_login', '/api/splats/ingest', '/api/convert_topology', '/api/rss/feeds', '/api/rss/ingest'] or parsed_path.path.startswith('/api/fs/') or parsed_path.path.startswith('/api/bonfire/') or parsed_path.path.startswith('/api/freenet/'):
+        if (
+            parsed_path.path in [
+                '/api/minecraft/ingest', '/wikipedia-extract', '/api/test_resonance_link',
+                '/api/tabby_complete', '/api/tabby_generate_training', '/api/run_sim',
+                '/api/analyze_sim', '/api/fs/drives', '/api/security/creator_login',
+                '/api/splats/ingest', '/api/convert_topology', '/api/rss/feeds', '/api/rss/ingest'
+            ]
+            or parsed_path.path.startswith('/api/fs/')
+            or parsed_path.path.startswith('/api/bonfire/')
+            or parsed_path.path.startswith('/api/freenet/')
+            or parsed_path.path.startswith('/api/viewer/')
+            or parsed_path.path.startswith('/api/madoc/')
+            or parsed_path.path.startswith('/api/benchmark/')
+            or parsed_path.path.startswith('/api/voxelboxter/')
+            or parsed_path.path.startswith('/api/crawlers/')
+            or parsed_path.path.startswith('/api/concept/')
+            or parsed_path.path.startswith('/api/curvature/')
+            or parsed_path.path.startswith('/api/trajectory/')
+        ):
             from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
             DiegeticRequestHandler.do_POST(self)
             return
@@ -3319,7 +3350,7 @@ atexit.register(clean_exit_handler)
 
 def main():
     """Start the Gyroidic Backend with Governance and Persistence."""
-    global AI_SYSTEM
+    global AI_SYSTEM, FOSSIL_SAVED
 
     # Parse command line flags for sovereign node accounts and external flashdrives
     import argparse

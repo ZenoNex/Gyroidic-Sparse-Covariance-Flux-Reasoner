@@ -9170,18 +9170,21 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     if not os.path.exists(script_path):
                         script_path = os.path.join(os.getcwd(), "pickleguiencodeviwer.py")
                     
-                    if not hasattr(ENGINE, "pickle_viewer_process"):
-                        ENGINE.pickle_viewer_process = None
+                    global PICKLE_VIEWER_PROCESS
+                    if 'PICKLE_VIEWER_PROCESS' not in globals():
+                        PICKLE_VIEWER_PROCESS = None
                     
-                    if ENGINE.pickle_viewer_process is None or ENGINE.pickle_viewer_process.poll() is not None:
-                        ENGINE.pickle_viewer_process = subprocess.Popen(
+                    if PICKLE_VIEWER_PROCESS is None or PICKLE_VIEWER_PROCESS.poll() is not None:
+                        PICKLE_VIEWER_PROCESS = subprocess.Popen(
                             [python_exe, script_path],
                             cwd=os.getcwd(),
                             creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
                         )
-                        self._send_json({"status": "ok", "message": "Pickle / Fossil Encoding Viewer GUI booted successfully.", "pid": ENGINE.pickle_viewer_process.pid})
+                        if ENGINE is not None:
+                            ENGINE.pickle_viewer_process = PICKLE_VIEWER_PROCESS
+                        self._send_json({"status": "ok", "message": "Pickle / Fossil Encoding Viewer GUI booted successfully.", "pid": PICKLE_VIEWER_PROCESS.pid})
                     else:
-                        self._send_json({"status": "ok", "message": "Pickle / Fossil Encoding Viewer GUI is already running.", "pid": ENGINE.pickle_viewer_process.pid})
+                        self._send_json({"status": "ok", "message": "Pickle / Fossil Encoding Viewer GUI is already running.", "pid": PICKLE_VIEWER_PROCESS.pid})
                 except Exception as e:
                     self._send_error_json(f"Failed to launch Pickle Viewer: {str(e)}")
 
