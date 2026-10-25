@@ -2750,6 +2750,39 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             # Enhanced Diagnostic Log
             video_size_mb = len(video_dyad_b64)//1024//1024 if video_dyad_b64 else 0
             print(f"[POST] /interact | Text: {user_text[:50]}... | Video: {'YES (' + str(video_size_mb) + ' MB)' if video_size_mb else 'NO'}", flush=True)
+
+            # Gate IDLE_RESONANCE_HEARTBEAT: bypass full AI_SYSTEM.process_text() to preserve CPU
+            if user_text == "IDLE_RESONANCE_HEARTBEAT":
+                diag = {
+                    "suppress_ui": True,
+                    "retrieval_state": "KNOWN",
+                    "resonance_score": 0.95
+                }
+                if AI_SYSTEM:
+                    if hasattr(AI_SYSTEM, 'iteration'):
+                        diag['iteration'] = AI_SYSTEM.iteration
+                    elif hasattr(AI_SYSTEM, 'engine') and hasattr(AI_SYSTEM.engine, 'iteration'):
+                        diag['iteration'] = AI_SYSTEM.engine.iteration
+                    
+                    if hasattr(AI_SYSTEM, 'engine') and AI_SYSTEM.engine is not None:
+                        engine = AI_SYSTEM.engine
+                        diag['resonance_score'] = float(getattr(engine, '_last_resonance_score', 0.95))
+                        diag['retrieval_state'] = getattr(engine, '_last_retrieval_state', 'KNOWN')
+                        diag['phase4_diagnostics'] = {
+                            'topological_analysis': {
+                                'topological_complexity': float(getattr(engine, '_last_complexity', 1.0)),
+                                'features': [
+                                    f"betti_0={int(getattr(engine, '_last_betti_0', 1))}",
+                                    f"betti_1={int(getattr(engine, '_last_betti_1', 0))}"
+                                ]
+                            }
+                        }
+                return self._send_json({
+                    'response': '',
+                    'diagnostics': diag,
+                    'output_length': 0,
+                    'backend': 'hybrid_heartbeat_gated'
+                })
             
             fingerprint = data.get('fingerprint')  # Chebyshev image fingerprint {L, Cr, Cb}
             # Handle potential stringified JSON from FormData

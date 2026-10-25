@@ -77,6 +77,11 @@ class SparseGyroidCovarianceProbe(nn.Module):
             
         # Global Manifold Estimator (System 2 Driver)
         self.gyroid_cov = GyroidCovarianceEstimator(dim=hidden_dim)
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine, PYOPENCL_AVAILABLE
+            self.engine = SiliconSovereigntyEngine() if PYOPENCL_AVAILABLE else None
+        except Exception:
+            self.engine = None
     
     def compute_local_covariance(
         self,
@@ -109,7 +114,14 @@ class SparseGyroidCovarianceProbe(nn.Module):
         window_normalized = window - window.mean(dim=0, keepdim=True)
         window_normalized = window_normalized / (torch.norm(window_normalized, dim=1, keepdim=True) + 1e-8)
         
-        C_loc = torch.mm(window_normalized, window_normalized.t())  # [actual_window, actual_window]
+        # Hardware sovereign GPU matrix multiplication via OpenCL Kernel 20
+        if hasattr(self, 'engine') and self.engine is not None and hasattr(self.engine, 'hardware_sovereign_matmul'):
+            try:
+                C_loc = self.engine.hardware_sovereign_matmul(window_normalized, window_normalized.t()).to(window.device)
+            except Exception:
+                C_loc = torch.mm(window_normalized, window_normalized.t())
+        else:
+            C_loc = torch.mm(window_normalized, window_normalized.t())
         
         # Pad if necessary
         if actual_window < self.window_size:
@@ -816,6 +828,11 @@ class GyroidCovarianceEstimator(nn.Module):
         
         # EMA-smoothed covariance estimate
         self.register_buffer('cov_ema', torch.eye(dim) * 0.1)
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine, PYOPENCL_AVAILABLE
+            self.engine = SiliconSovereigntyEngine() if PYOPENCL_AVAILABLE else None
+        except Exception:
+            self.engine = None
         
     def update_buffer(self, sample: torch.Tensor):
         """Add a sample to the rolling buffer."""
@@ -844,9 +861,17 @@ class GyroidCovarianceEstimator(nn.Module):
         mean = samples.mean(dim=0, keepdim=True)
         centered = samples - mean
         
-        # Compute covariance: C = (X^T X) / (n-1)
+        # Compute covariance: C = (X^T X) / (n-1) via OpenCL GPU when available
         n = samples.shape[0]
-        cov = torch.mm(centered.T, centered) / max(n - 1, 1)
+        if hasattr(self, 'engine') and self.engine is not None and hasattr(self.engine, 'hardware_sovereign_matmul'):
+            try:
+                cov = self.engine.hardware_sovereign_matmul(
+                    centered.T, centered, alpha=1.0 / max(n - 1, 1)
+                ).to(samples.device)
+            except Exception:
+                cov = torch.mm(centered.T, centered) / max(n - 1, 1)
+        else:
+            cov = torch.mm(centered.T, centered) / max(n - 1, 1)
         
         # EMA update
         self.cov_ema = self.ema_decay * self.cov_ema + (1 - self.ema_decay) * cov

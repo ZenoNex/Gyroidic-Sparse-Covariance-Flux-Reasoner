@@ -793,11 +793,12 @@ async def auto_temporal_training_loop(
                     tc = metrics.get("temporal_coherence", 0) if metrics else 0
                     print(f"[Harvester] Ingested {count} dyads. Temporal Coherence: {tc:.3f}")
 
-                await asyncio.sleep(delay)
+                await asyncio.sleep(max(delay, 0.25))
                 
         except Exception as e:
             print(f"[Harvester] Training loop iteration error: {e}")
             
-        # Sleep for a longer period before re-scanning for new fossils/interactions
-        await asyncio.sleep(5.0)
+        # Throttle idle sleep interval: back off to 60s when idle to preserve CPU
+        idle_sleep = 60.0 if count == 0 else 15.0
+        await asyncio.sleep(idle_sleep)
 

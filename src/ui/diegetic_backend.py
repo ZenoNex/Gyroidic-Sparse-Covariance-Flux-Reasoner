@@ -6262,14 +6262,26 @@ class DiegeticPhysicsEngine(nn.Module):
                 target_dim = min(hyper_ring.shape[-1], constraint_manifold.shape[-1])
                 
                 if hyper_ring.shape[-1] > target_dim:
-                    # Project hyper_ring down
+                    # Project hyper_ring down via GPU OpenCL when available
                     projection_matrix = torch.eye(target_dim, hyper_ring.shape[-1], device=hyper_ring.device)
-                    hyper_ring = torch.mm(hyper_ring, projection_matrix.t())
+                    if hasattr(self, 'sovereignty_engine') and self.sovereignty_engine is not None and hasattr(self.sovereignty_engine, 'hardware_sovereign_matmul'):
+                        try:
+                            hyper_ring = self.sovereignty_engine.hardware_sovereign_matmul(hyper_ring, projection_matrix.t()).to(hyper_ring.device)
+                        except Exception:
+                            hyper_ring = torch.mm(hyper_ring, projection_matrix.t())
+                    else:
+                        hyper_ring = torch.mm(hyper_ring, projection_matrix.t())
                 
                 if constraint_manifold.shape[-1] > target_dim:
-                    # Project constraint_manifold down
+                    # Project constraint_manifold down via GPU OpenCL when available
                     projection_matrix = torch.eye(target_dim, constraint_manifold.shape[-1], device=constraint_manifold.device)
-                    constraint_manifold = torch.mm(constraint_manifold, projection_matrix.t())
+                    if hasattr(self, 'sovereignty_engine') and self.sovereignty_engine is not None and hasattr(self.sovereignty_engine, 'hardware_sovereign_matmul'):
+                        try:
+                            constraint_manifold = self.sovereignty_engine.hardware_sovereign_matmul(constraint_manifold, projection_matrix.t()).to(constraint_manifold.device)
+                        except Exception:
+                            constraint_manifold = torch.mm(constraint_manifold, projection_matrix.t())
+                    else:
+                        constraint_manifold = torch.mm(constraint_manifold, projection_matrix.t())
             
             # Perform closure check with aligned dimensions
             closure_result = self._closure_checker(hyper_ring, constraint_manifold)
@@ -6396,9 +6408,15 @@ class DiegeticPhysicsEngine(nn.Module):
             # Identity mapping if dimensions match
             manifold_projected = state
         else:
-            # Project to lower dimension
+            # Project to lower dimension via GPU OpenCL when available
             constraint_dirs = torch.eye(constraint_dim, dim, device=state.device)
-            manifold_projected = torch.mm(state, constraint_dirs.t())
+            if hasattr(self, 'sovereignty_engine') and self.sovereignty_engine is not None and hasattr(self.sovereignty_engine, 'hardware_sovereign_matmul'):
+                try:
+                    manifold_projected = self.sovereignty_engine.hardware_sovereign_matmul(state, constraint_dirs.t()).to(state.device)
+                except Exception:
+                    manifold_projected = torch.mm(state, constraint_dirs.t())
+            else:
+                manifold_projected = torch.mm(state, constraint_dirs.t())
         
         return manifold_projected
     

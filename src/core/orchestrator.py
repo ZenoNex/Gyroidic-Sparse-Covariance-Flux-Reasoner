@@ -1610,8 +1610,13 @@ class UniversalOrchestrator(nn.Module):
             # Flatten to [N, dim] to compute feature-wise correlation
             samples = state_safe.reshape(-1, self.dim)
             normalized_samples = F.normalize(samples, dim=-1)
-            # Correlation matrix [dim, dim]
-            adj_proxy = torch.matmul(normalized_samples.T, normalized_samples) / max(1, samples.shape[0])
+            # Correlation matrix [dim, dim] via SiliconSovereigntyEngine on OpenCL GPU
+            if hasattr(self, 'silicon_engine') and self.silicon_engine is not None and hasattr(self.silicon_engine, 'hardware_sovereign_matmul'):
+                adj_proxy = self.silicon_engine.hardware_sovereign_matmul(
+                    normalized_samples.T, normalized_samples, alpha=1.0 / max(1, samples.shape[0])
+                ).to(state_safe.device)
+            else:
+                adj_proxy = torch.matmul(normalized_samples.T, normalized_samples) / max(1, samples.shape[0])
             
             # [ARCHITECTURAL REMEDIATION] Use HybridLassoQuantizer to avoid arbitrary structural destruction
             from src.core.non_ergodic_entropy import HybridLassoQuantizer

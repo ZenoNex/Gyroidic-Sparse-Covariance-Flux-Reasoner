@@ -1286,7 +1286,8 @@ class SovereignConversationalIngestor:
         while True:
             try:
                 # 1. Check Valence (Hunger for new nutrients)
-                sleep_interval = backoff_interval if backoff_interval > 60 else 60
+                baseline_idle = 300 # 5 minutes default between heavy background drips
+                sleep_interval = max(backoff_interval, baseline_idle)
                 if self.router and hasattr(self.router, '_valence'):
                     metrics = self.router._valence.get_metrics()
                     hunger = metrics.get('current_hunger_drive', 1.0)
@@ -1296,9 +1297,11 @@ class SovereignConversationalIngestor:
                     if satisfaction > 0.9:
                         print(f"Manifold Saturation High ({satisfaction:.2f}). Deep dormancy...")
                         sleep_interval = 3600 # 1 hour
-                    elif hunger < 0.1:
+                    elif hunger < 0.2:
                         print(f" Manifold Hunger Low ({hunger:.2f}). Slowing drip...")
-                        sleep_interval = 600 # 10 minutes
+                        sleep_interval = 900 # 15 minutes
+                    elif hunger < 0.5:
+                        sleep_interval = 450 # 7.5 minutes
                 
                 # 2. logical Drip (Hacker News / Stack Exchange)
                 print(" Extracting Sovereign Logic drip...")
@@ -1313,6 +1316,7 @@ class SovereignConversationalIngestor:
                     try:
                         image_convo = next(cifar_drip)
                         self._fossilize_batch([image_convo])
+                        time.sleep(0.5) # Yield CPU between image projections
                     except StopIteration:
                         # Reset generator if exhausted or loop back
                         cifar_drip = self.local_images.cifar10_generator(limit=5000)
