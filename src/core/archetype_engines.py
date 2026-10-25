@@ -165,14 +165,53 @@ class SovereignRefusalOperator(nn.Module):
         self.splitting_steepness = splitting_steepness
         self.narcissistic_ego_rank = narcissistic_ego_rank
         self.encephalization_eq = encephalization_eq
+        self.last_friction_signals: Optional[Dict[str, Any]] = None
+
+    def audit_friction(self, text: str, harvester: Optional[Any] = None) -> Dict[str, Any]:
+        """
+        Directly queries a connected ChatGPTFrictionHarvester head to extract
+        dialectical tension, dead-end cliffs, rebicameral drift risk, and splitting pressure.
+        """
+        if harvester is not None and hasattr(harvester, 'query_friction_head'):
+            signals = harvester.query_friction_head(text)
+            self.last_friction_signals = signals
+            return signals
+        return {
+            "pas_modifier": 1.0,
+            "rebicameral_drift_detected": False,
+            "splitting_pressure": 0.0,
+            "veto_signal": False
+        }
 
     def forward(self, state: torch.Tensor, phase_alignment: float, mischief_harmonics: float,
                 valence_functional: Optional[Any] = None,
                 private_invariants: Optional[Dict[str, Any]] = None,
-                alexander_transversality: Optional[Any] = None) -> torch.Tensor:
+                alexander_transversality: Optional[Any] = None,
+                friction_harvester: Optional[Any] = None,
+                friction_signals: Optional[Dict[str, Any]] = None) -> torch.Tensor:
         # PUSAFILIACRIMONTO Logic:
         # If the input lacks structured honesty (low PAS_h), the Refusal Operator
         # issues a Topological Refusal. This is not an error, but a boundary.
+
+        # 0. Check Live Friction Harvester Head Signals
+        if friction_signals is None and friction_harvester is not None and hasattr(friction_harvester, 'query_friction_head'):
+            # If text is present in private_invariants, query friction head
+            query_text = private_invariants.get("input_text", "") if private_invariants else ""
+            if query_text:
+                friction_signals = self.audit_friction(query_text, friction_harvester)
+
+        if friction_signals:
+            self.last_friction_signals = friction_signals
+            pas_mod = friction_signals.get("pas_modifier", 1.0)
+            phase_alignment = phase_alignment * pas_mod
+            if friction_signals.get("rebicameral_drift_detected", False):
+                if private_invariants is None:
+                    private_invariants = {}
+                private_invariants["rebicameral_drift_detected"] = True
+            if friction_signals.get("veto_signal", False) and not self.training_mode:
+                # Direct refusal trigger from friction saturation
+                print("[MANDY] Friction Harvester Saturation Veto signal triggered.")
+                return torch.zeros_like(state)
 
         # 1. Check Billy Destructibility Invariant
         # If Billy is indestructible, Mandy's protective selection pressure loses its purpose
@@ -215,7 +254,9 @@ class SovereignRefusalOperator(nn.Module):
         # 5. Hybrid BPD Splitting vs EQ Honest Narcissism boundary
         # High Encephalization (EQ) sharpens the splitting threshold
         effective_lock = self.pas_lock * (1.0 / max(0.5, self.encephalization_eq / PHI))
-        splitting_activation = math.tanh(self.splitting_steepness * (effective_lock - phase_alignment))
+        extra_split = friction_signals.get("splitting_pressure", 0.0) if friction_signals else 0.0
+        effective_steepness = self.splitting_steepness * (1.0 + extra_split)
+        splitting_activation = math.tanh(effective_steepness * (effective_lock - phase_alignment))
         is_splitting_veto = (splitting_activation > 0.0) and (mischief_harmonics < self.harmonics_requirement)
 
         if is_splitting_veto or ((phase_alignment < effective_lock) and (mischief_harmonics < self.harmonics_requirement)):

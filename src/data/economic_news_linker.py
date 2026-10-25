@@ -31,12 +31,122 @@ class EconomicAgentLinker:
     Sovereign Integration Linker bridging real Bittensor Finney network gateways,
     Autonolas Gnosis Mechs, and sovereign business news feeds.
     """
-    def __init__(self, timeout: float = 3.0):
+    def __init__(self, timeout: float = 3.0, larynx: Optional[Any] = None, engine: Optional[Any] = None):
         self.timeout = timeout
+        self.larynx = larynx
+        self.engine = engine
         self.default_news_feeds = [
             "https://www.sec.gov/news/pressreleases.rss",
             "https://feeds.finance.yahoo.com/rss/2.0/headline?s=AAPL,MSFT,GOOG,NVDA&region=US&lang=en-US",
         ]
+
+    def set_larynx(self, larynx: Any):
+        """Connect external ResonanceLarynx module for autoregressive economic query generation."""
+        self.larynx = larynx
+
+    def bind_engine(self, engine: Any):
+        """Bind parent engine or orchestrator."""
+        self.engine = engine
+        if hasattr(engine, 'larynx') and engine.larynx is not None:
+            self.larynx = engine.larynx
+
+    def generate_larynx_economic_query(
+        self,
+        state: Optional[Any] = None,
+        engine: Optional[Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Uses the canonical ResonanceLarynx (from src.models.diegetic_heads) with Chern-Simons
+        Gasket boundary repair, syllable-coherent vowel/consonant modulation, and autoregressive
+        feedback to dynamically draft Bittensor subnet forecast payloads and economic queries.
+        """
+        import re
+        import torch
+
+        active_engine = engine or self.engine
+        larynx = self.larynx
+        if larynx is None and active_engine is not None and hasattr(active_engine, 'larynx'):
+            larynx = active_engine.larynx
+
+        dim = 256
+        if larynx is not None and hasattr(larynx, 'hidden_dim'):
+            dim = larynx.hidden_dim
+        elif active_engine is not None and hasattr(active_engine, 'dim'):
+            dim = active_engine.dim
+
+        device = torch.device('cpu')
+        if larynx is not None:
+            try:
+                device = next(larynx.parameters()).device
+            except Exception:
+                pass
+        elif state is not None and isinstance(state, torch.Tensor):
+            device = state.device
+
+        curr_state = None
+        if state is not None and isinstance(state, torch.Tensor):
+            curr_state = state.clone().detach().to(device)
+            if curr_state.dim() == 1:
+                curr_state = curr_state.unsqueeze(0)
+        else:
+            curr_state = torch.zeros((1, dim), device=device)
+
+        query_text = ""
+        if larynx is not None:
+            try:
+                vowels = set('aeiouAEIOU')
+                generated_chars = []
+                with torch.no_grad():
+                    for _ in range(30):
+                        logits, _ = larynx(curr_state, temperature=1.1)
+                        if logits.dim() == 1:
+                            logits = logits.unsqueeze(0)
+
+                        for idx in range(min(128, logits.shape[-1])):
+                            if idx < 32 or idx > 126:
+                                logits[0, idx] = -1e9
+
+                        prev_char = generated_chars[-1] if generated_chars else ' '
+                        if prev_char not in vowels and prev_char.isalpha():
+                            for v in vowels:
+                                if ord(v) < logits.shape[-1]:
+                                    logits[0, ord(v)] *= 1.4
+                        elif prev_char in vowels:
+                            for v in vowels:
+                                if ord(v) < logits.shape[-1]:
+                                    logits[0, ord(v)] *= 0.4
+
+                        probs = torch.softmax(logits, dim=-1)
+                        char_idx = torch.multinomial(probs[0], 1).item()
+                        char = chr(max(32, min(126, char_idx)))
+
+                        if char in ('.', '!', '?', ';', '\n'):
+                            break
+                        generated_chars.append(char)
+
+                        if hasattr(larynx, 'proj') and hasattr(larynx.proj, 'weight') and char_idx < larynx.proj.weight.shape[0]:
+                            feedback = torch.tanh(larynx.proj.weight[char_idx].unsqueeze(0))
+                            if feedback.shape == curr_state.shape:
+                                curr_state = 0.9 * curr_state + 0.1 * feedback
+
+                query_text = "".join(generated_chars).strip()
+            except Exception:
+                pass
+
+        if not query_text or len(query_text) < 3:
+            query_text = "sovereign yield curve macro forecast"
+
+        forecast_val = float(torch.tanh(curr_state.flatten()[:1]).item()) if curr_state.numel() > 0 else 0.0
+        conf_val = float(torch.sigmoid(curr_state.flatten()[:2].norm()).item()) if curr_state.numel() >= 2 else 0.5
+        subnet_id = 41 if any(w in query_text.lower() for w in ["sport", "event", "binary"]) else 8
+
+        return {
+            "query": query_text,
+            "subnet_id": subnet_id,
+            "forecast_value": forecast_val,
+            "confidence": conf_val,
+            "phi_scaled_expectation": float(forecast_val * float(PHI_RECIPROCAL))
+        }
 
     # =========================================================================
     # 1. BITTENSOR SUBNET PROTOCOL (Finney Mainnet netuid 41 / netuid 8)

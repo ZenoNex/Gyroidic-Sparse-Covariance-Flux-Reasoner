@@ -36,9 +36,159 @@ class OpenScienceIngestor:
             pass
 
         self.verbosity = verbosity
+        self.larynx: Optional[Any] = None
+        self.engine: Optional[Any] = None
         self.cache_dir.mkdir(exist_ok=True, parents=True)
         if self.verbosity != "low":
             print(f"[INGEST] OpenScienceIngestor initialized. Cache: {self.cache_dir} | Email: {self.email} | Verbosity: {self.verbosity}")
+
+    def set_larynx(self, larynx: Any):
+        """Connect external ResonanceLarynx module for autoregressive scientific query generation."""
+        self.larynx = larynx
+
+    def bind_engine(self, engine: Any):
+        """Bind parent physics engine or orchestrator."""
+        self.engine = engine
+        if hasattr(engine, 'larynx') and engine.larynx is not None:
+            self.larynx = engine.larynx
+
+    def generate_larynx_science_query(
+        self,
+        state: Optional[torch.Tensor] = None,
+        engine: Optional[Any] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Uses the canonical ResonanceLarynx (from src.models.diegetic_heads) with Chern-Simons
+        Gasket boundary repair, syllable-coherent vowel/consonant modulation, and autoregressive
+        feedback to dynamically draft multi-modal scientific query configurations from manifold state.
+        """
+        active_engine = engine or self.engine
+        larynx = self.larynx
+        if larynx is None and active_engine is not None and hasattr(active_engine, 'larynx'):
+            larynx = active_engine.larynx
+
+        dim = 256
+        if larynx is not None and hasattr(larynx, 'hidden_dim'):
+            dim = larynx.hidden_dim
+        elif active_engine is not None and hasattr(active_engine, 'dim'):
+            dim = active_engine.dim
+
+        device = torch.device('cpu')
+        if larynx is not None:
+            try:
+                device = next(larynx.parameters()).device
+            except Exception:
+                pass
+        elif state is not None and isinstance(state, torch.Tensor):
+            device = state.device
+
+        curr_state = None
+        if state is not None and isinstance(state, torch.Tensor):
+            curr_state = state.clone().detach().to(device)
+            if curr_state.dim() == 1:
+                curr_state = curr_state.unsqueeze(0)
+        else:
+            curr_state = torch.zeros((1, dim), device=device)
+
+        # Autoregressive Larynx query synthesis with syllable-coherent vowel/consonant feedback
+        query_text = ""
+        if larynx is not None:
+            try:
+                vowels = set('aeiouAEIOU')
+                generated_chars = []
+                with torch.no_grad():
+                    for step_idx in range(30):
+                        logits, _ = larynx(curr_state, temperature=1.1)
+                        if logits.dim() == 1:
+                            logits = logits.unsqueeze(0)
+
+                        # Clean vocabulary filtering
+                        for idx in range(min(128, logits.shape[-1])):
+                            if idx < 32 or idx > 126:
+                                logits[0, idx] = -1e9
+
+                        # Syllable-coherent vowel modulation (Chern-Simons gasket acoustic rule)
+                        prev_char = generated_chars[-1] if generated_chars else ' '
+                        if prev_char not in vowels and prev_char.isalpha():
+                            for v in vowels:
+                                if ord(v) < logits.shape[-1]:
+                                    logits[0, ord(v)] *= 1.4
+                        elif prev_char in vowels:
+                            for v in vowels:
+                                if ord(v) < logits.shape[-1]:
+                                    logits[0, ord(v)] *= 0.4
+
+                        probs = torch.softmax(logits, dim=-1)
+                        char_idx = torch.multinomial(probs[0], 1).item()
+                        char = chr(max(32, min(126, char_idx)))
+
+                        if char in ('.', '!', '?', ';', '\n'):
+                            break
+                        generated_chars.append(char)
+
+                        # Tanh feedback from projection weights into continuous manifold
+                        if hasattr(larynx, 'proj') and hasattr(larynx.proj, 'weight') and char_idx < larynx.proj.weight.shape[0]:
+                            feedback = torch.tanh(larynx.proj.weight[char_idx].unsqueeze(0))
+                            if feedback.shape == curr_state.shape:
+                                curr_state = 0.9 * curr_state + 0.1 * feedback
+
+                query_text = "".join(generated_chars).strip().lower()
+            except Exception:
+                pass
+
+        # Scientific modalities catalog
+        ligo_events = [
+            {"event": "GW190521", "detector": "H1", "duration": 2.0},
+            {"event": "GW150914", "detector": "L1", "duration": 4.0},
+            {"event": "GW170817", "detector": "H1", "duration": 4.0},
+            {"event": "GW190814", "detector": "V1", "duration": 2.0},
+        ]
+        ncbi_accessions = [
+            {"accession_id": "AM743169.1", "db": "nucleotide"},
+            {"accession_id": "NC_000913.3", "db": "nucleotide"},
+            {"accession_id": "NM_000546.6", "db": "nucleotide"},
+            {"accession_id": "M10098.1", "db": "nucleotide"},
+        ]
+        sdss_catalogs = [
+            {"catalog_id": "J/A+A/540/A106", "row_limit": 50},
+            {"catalog_id": "V/147/sdss12", "row_limit": 50},
+        ]
+        openneuro_datasets = [
+            {"dataset_id": "ds003445", "subject_id": "sub-01", "run_id": "run-1"},
+            {"dataset_id": "ds000030", "subject_id": "sub-10159", "run_id": "run-1"},
+        ]
+
+        # Determine target modality from Larynx vocalization or manifold state hash
+        has_gravitational = any(k in query_text for k in ["grav", "wave", "strain", "ligo", "hole", "curv"])
+        has_genetic = any(k in query_text for k in ["gene", "dna", "rna", "seq", "nucleo", "organ", "prot"])
+        has_astro = any(k in query_text for k in ["galax", "star", "astro", "sdss", "redshift", "spec"])
+        has_neuro = any(k in query_text for k in ["brain", "fmri", "neuro", "cortex", "scan", "aal"])
+
+        state_norm = float(curr_state.flatten()[:8].norm().item()) if curr_state.numel() >= 8 else 1.0
+        hash_idx = int(state_norm * 1000) % 100
+
+        configs: List[Dict[str, Any]] = []
+        if has_gravitational or (not has_genetic and not has_astro and not has_neuro and hash_idx % 4 == 0):
+            event_cfg = ligo_events[hash_idx % len(ligo_events)]
+            configs.append({"type": "ligo", **event_cfg})
+        if has_genetic or (not has_gravitational and not has_astro and not has_neuro and hash_idx % 4 == 1):
+            ncbi_cfg = ncbi_accessions[hash_idx % len(ncbi_accessions)]
+            configs.append({"type": "ncbi", **ncbi_cfg})
+        if has_astro or (not has_gravitational and not has_genetic and not has_neuro and hash_idx % 4 == 2):
+            sdss_cfg = sdss_catalogs[hash_idx % len(sdss_catalogs)]
+            configs.append({"type": "sdss", **sdss_cfg})
+        if has_neuro or (not has_gravitational and not has_genetic and not has_astro and hash_idx % 4 == 3):
+            neuro_cfg = openneuro_datasets[hash_idx % len(openneuro_datasets)]
+            configs.append({"type": "openneuro", **neuro_cfg})
+
+        if not configs:
+            # Default to canonical complementary dyad: 1 astrophysical + 1 biological
+            configs = [
+                {"type": "ligo", **ligo_events[hash_idx % len(ligo_events)]},
+                {"type": "ncbi", **ncbi_accessions[hash_idx % len(ncbi_accessions)]}
+            ]
+
+        return configs
 
     # =========================================================================
     # 1. LIGO Strain Data Ingestion

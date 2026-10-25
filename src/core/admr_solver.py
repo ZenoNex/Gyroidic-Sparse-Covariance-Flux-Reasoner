@@ -813,25 +813,35 @@ class PolynomialADMRSolver(nn.Module):
         batch_size = states.shape[0]
         device = states.device
         
-        # Hardware Arbitration: Dynamically scale tournament size
+        # Hardware Arbitration via Central Compute Affordance: Dynamically scale tournament size
         try:
-            import psutil
-            cpu_load = psutil.cpu_percent(interval=None)
-            if cpu_load > 80.0:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hw = HardwareMonitor.get_instance()
+            batch_aff = hw.get_typed_affordance(ComputeAffordanceType.COMPUTE_BATCH)
+            if not batch_aff.is_admissible or batch_aff.gauge < 0.35 or hw.thermal_runaway:
                 num_drafts = max(2, num_drafts - 2)
-            elif cpu_load < 40.0:
+            elif batch_aff.gauge > 0.70:
                 num_drafts = min(10, num_drafts + 2)
-        except ImportError:
+        except Exception:
             pass
         
         drafts = []
         
+        # Ensure neighbor_states and adjacency_weight are appropriately shaped (B, N, D) and (B, N)
+        if neighbor_states.dim() == 2:
+            neighbor_states = neighbor_states.unsqueeze(1)
+        if adjacency_weight.dim() == 1:
+            adjacency_weight = adjacency_weight.unsqueeze(1)
+            
         # Unicorn Kinematics (TIK): Non-Abelian Temporal Inverse Kinematics
         # We compute a retrocausal timing delay matrix by measuring the commutator
         # variance between current states and neighbor states. This dynamically scales dt.
         # [states, neighbor_states] = states * neighbor_states - neighbor_states * states
         # Since these are vectors, we use cross-covariance or simply variance of difference.
-        tik_delay = torch.var(states - neighbor_states, dim=-1, keepdim=True)
+        diff = states.unsqueeze(1) - neighbor_states if states.dim() == 2 else states - neighbor_states
+        tik_delay = torch.var(diff, dim=-1, keepdim=True)
+        if tik_delay.dim() == 3:
+            tik_delay = tik_delay.mean(dim=1)
         # Normalize and apply to dt
         dynamic_dt = dt * (1.0 / (1.0 + tik_delay))
         
@@ -856,8 +866,19 @@ class PolynomialADMRSolver(nn.Module):
         drafts_tensor = torch.stack(drafts, dim=1) # [batch, num_drafts, state_dim]
         
         # Test for topological closure without leakage
-        # Assuming HyperRingClosureChecker works on sequences/windows, we treat drafts as a window
-        closure_results = self.hyper_ring_checker.test_closure(drafts_tensor)
+        if hasattr(self.hyper_ring_checker, 'check_closure'):
+            hr = torch.norm(drafts_tensor.mean(dim=1), dim=-1)
+            cm = states
+            is_valid, _ = self.hyper_ring_checker.check_closure(hr, cm)
+            leakage = torch.norm(drafts_tensor.std(dim=1), dim=-1)
+            closure_results = {'is_closed': is_valid, 'leakage': leakage}
+        elif hasattr(self.hyper_ring_checker, 'test_closure'):
+            closure_results = self.hyper_ring_checker.test_closure(drafts_tensor)
+        else:
+            closure_results = {
+                'is_closed': torch.ones(batch_size, dtype=torch.bool, device=device),
+                'leakage': torch.zeros(batch_size, device=device)
+            }
         
         is_closed = closure_results['is_closed'] # [batch]
         leakage = closure_results['leakage'] # [batch]
@@ -867,15 +888,16 @@ class PolynomialADMRSolver(nn.Module):
         # Route failed proofs to DAQUFOperator
         if failures.any():
             # Pass failures into DAQUFOperator
-            # We mock the flux scores from leakage for simplicity
-            flux_scores = leakage.unsqueeze(1).expand(-1, self.daquf_operator.num_fossils)
+            num_f = self.daquf_operator.num_fossils
+            flux_scores = leakage.unsqueeze(1).expand(-1, num_f)
+            fossil_leakage = leakage.mean().unsqueeze(0).expand(num_f)
             results = {
-                'mischief_scores': leakage,
-                'energy_gaps': torch.ones_like(leakage) * 0.1,
-                'valence': torch.zeros_like(leakage)
+                'mischief_scores': fossil_leakage,
+                'energy_gaps': torch.ones(num_f, device=device) * 0.1,
+                'valence': torch.zeros(num_f, device=device)
             }
             daquf_outputs = self.daquf_operator.apply_daquf(
-                failures=failures.sum().unsqueeze(0).expand(self.daquf_operator.num_fossils), # Scalar load
+                failures=failures.sum().unsqueeze(0).expand(num_f), # Scalar load
                 flux_scores=flux_scores,
                 results=results
             )

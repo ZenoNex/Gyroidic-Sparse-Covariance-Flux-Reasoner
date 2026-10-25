@@ -454,6 +454,160 @@ class ChatGPTFrictionHarvester:
 
         return tags
 
+    # ------------------------------------------------------------------
+    # Psychodynamic & Bioplausible Query Head
+    # ------------------------------------------------------------------
+
+    def query_friction_head(self, user_text: str, assistant_text: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Queries the friction harvester head to provide live bioplausible
+        and psychodynamic signals (e.g. for SovereignRefusalOperator / Mandy).
+        """
+        u_tags = self._extract_tags(user_text)
+        a_tags = self._extract_tags(assistant_text) if assistant_text else {}
+        
+        # Coherence / Jaccard calculation
+        u_toks = set(user_text.lower().split())
+        a_toks = set(assistant_text.lower().split()) if assistant_text else set()
+        jaccard = len(u_toks & a_toks) / max(1, len(u_toks | a_toks)) if (u_toks and a_toks) else 0.5
+        
+        # Dead-end cliff check
+        dead_end = False
+        if assistant_text and len(user_text) > 400 and len(assistant_text) < 50:
+            dead_end = True
+            
+        # Rebicameral drift risk: high when repetitive validation loop detected
+        rebicameral_risk = 0.0
+        if dead_end:
+            rebicameral_risk += 0.4
+        if "is_human_alias" in u_tags and jaccard > 0.65:
+            rebicameral_risk += 0.3
+            
+        # PAS_h modifier: penalizes dead ends and saturation escalation
+        pas_modifier = 1.0
+        if dead_end:
+            pas_modifier *= 0.5
+        if u_tags.get("veto_status") == "saturation_escalation":
+            pas_modifier *= 0.3
+            
+        # Splitting pressure for Mandy (BPD splitting / Honest Narcissism)
+        splitting_pressure = max(
+            0.0,
+            (1.0 - jaccard) * 0.5 + (0.5 if dead_end else 0.0) + (0.6 if u_tags.get("veto_status") == "saturation_escalation" else 0.0)
+        )
+        
+        return {
+            "pas_modifier": float(pas_modifier),
+            "rebicameral_drift_detected": bool(rebicameral_risk > 0.5),
+            "rebicameral_risk": float(rebicameral_risk),
+            "splitting_pressure": float(splitting_pressure),
+            "veto_signal": bool(u_tags.get("veto_status") == "saturation_escalation" or dead_end),
+            "archetype_identity": u_tags.get("roleplay_entity") or ("Archetype" if u_tags.get("is_character_play") else None),
+            "is_character_play": bool(u_tags.get("is_character_play", 0.0) > 0.5),
+            "jaccard_coherence": float(jaccard)
+        }
+
+    # ------------------------------------------------------------------
+    # Windows Memory Access & Slow-Drip File Accesses
+    # ------------------------------------------------------------------
+
+    def slow_drip_batch_ingest(
+        self,
+        export_path: Optional[str] = None,
+        batch_size: int = 16,
+        drip_delay: float = 0.05,
+        limit: Optional[int] = None,
+        cancel_token: Optional[Any] = None
+    ) -> Generator[Tuple[torch.Tensor, torch.Tensor, Dict[str, Any], str, str], None, None]:
+        """
+        Slow-drip throttled generator that reads conversations via memory-mapped
+        chunking and yields dyads with yield-pacing to prevent Windows paging stalls,
+        cache misses, and high CPU/RAM saturation.
+        """
+        active_dir = export_path or self.export_dir
+        if not active_dir or not os.path.exists(active_dir):
+            return
+            
+        import time
+        import gc
+        
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            monitor = HardwareMonitor()
+        except Exception:
+            monitor = None
+            
+        yielded_count = 0
+        batch_count = 0
+        
+        saved_export_dir = self.export_dir
+        self.export_dir = active_dir
+        try:
+            for messages in self._conversation_source():
+                if cancel_token and getattr(cancel_token, 'is_cancelled', False):
+                    break
+                if not messages:
+                    continue
+                for dyad in self._harvest_conv(messages):
+                    yield dyad
+                    yielded_count += 1
+                    batch_count += 1
+                    
+                    if limit and yielded_count >= limit:
+                        return
+                        
+                    if batch_count >= batch_size:
+                        batch_count = 0
+                        # Affordance-governed slow drip
+                        if drip_delay > 0:
+                            time.sleep(drip_delay)
+                        if monitor and not monitor.has_compute_affordance(ComputeAffordanceType.ALGORITHMIC):
+                            time.sleep(drip_delay * 2)
+                        # Windows memory reclamation
+                        try:
+                            import psutil
+                            if psutil.virtual_memory().percent > 75.0:
+                                gc.collect()
+                        except Exception:
+                            pass
+        finally:
+            self.export_dir = saved_export_dir
+
+    # ------------------------------------------------------------------
+    # Local & Community Compute (Mesh Federation)
+    # ------------------------------------------------------------------
+
+    def federate_to_mesh(self, dyad: Any, mesh_consensus: Optional[Any] = None) -> bool:
+        """
+        Federate non-ergodic dyad state to community compute / P2P nomadic ring
+        when network affordance is satisfied.
+        """
+        import time
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            monitor = HardwareMonitor()
+            if not monitor.has_compute_affordance(ComputeAffordanceType.P2P_MESH):
+                return False
+        except Exception:
+            pass
+            
+        consensus = mesh_consensus
+        if consensus is None and hasattr(self, 'mesh_consensus'):
+            consensus = self.mesh_consensus
+            
+        if consensus is not None and hasattr(consensus, 'submit_proposal'):
+            try:
+                summary = {
+                    "source": "chatgpt_friction_harvester",
+                    "timestamp": time.time(),
+                    "tags": getattr(dyad, 'metadata', {}).get('tags', [])
+                }
+                consensus.submit_proposal(str(summary).encode('utf-8'))
+                return True
+            except Exception:
+                return False
+        return False
+
 
 def is_semisimple_or_sterile(data: dict) -> bool:
     """

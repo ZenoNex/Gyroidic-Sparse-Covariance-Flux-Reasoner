@@ -315,7 +315,11 @@ class HyperRingClosureChecker(nn.Module):
             )
             
             # If the OpenCL mask rejects the path, force it open (not closed)
-            opencl_mask_tensor = torch.from_numpy(opencl_mask).to(is_closed.device).view_as(is_closed)
+            opencl_mask_tensor = torch.from_numpy(opencl_mask).to(is_closed.device)
+            if opencl_mask_tensor.numel() == constraint_manifold.numel():
+                opencl_mask_tensor = opencl_mask_tensor.view(constraint_manifold.shape).all(dim=-1)
+            else:
+                opencl_mask_tensor = opencl_mask_tensor.view(-1)[:is_closed.shape[0]]
             is_closed = is_closed & opencl_mask_tensor
         
         return is_closed

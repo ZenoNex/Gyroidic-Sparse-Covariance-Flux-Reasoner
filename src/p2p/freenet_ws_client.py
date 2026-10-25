@@ -19,11 +19,13 @@ def get_freenet_udp_port() -> int:
             name = proc.info.get('name', '')
             if name and ('java' in name.lower() or 'wrapper' in name.lower() or 'locutus' in name.lower() or 'freenet' in name.lower()):
                 try:
-                    for conn in proc.connections(kind='udp'):
-                        if conn.status == 'NONE' or conn.status == '':
-                            # UDP doesn't really have a 'LISTEN' state, check if port is bound
-                            if conn.laddr and conn.laddr.port > 0:
-                                return conn.laddr.port
+                    conn_fn = getattr(proc, 'net_connections', getattr(proc, 'connections', None))
+                    if conn_fn:
+                        for conn in conn_fn(kind='udp'):
+                            if conn.status == 'NONE' or conn.status == '':
+                                # UDP doesn't really have a 'LISTEN' state, check if port is bound
+                                if conn.laddr and conn.laddr.port > 0:
+                                    return conn.laddr.port
                 except (psutil.AccessDenied, psutil.NoSuchProcess):
                     continue
     except ImportError:
@@ -64,10 +66,12 @@ def get_freenet_tcp_port() -> int:
             name = proc.info.get('name', '')
             if name and ('java' in name.lower() or 'wrapper' in name.lower() or 'locutus' in name.lower() or 'freenet' in name.lower()):
                 try:
-                    for conn in proc.connections(kind='tcp'):
-                        if conn.status == 'LISTEN':
-                            if conn.laddr and conn.laddr.port > 0:
-                                candidate_ports.append(conn.laddr.port)
+                    conn_fn = getattr(proc, 'net_connections', getattr(proc, 'connections', None))
+                    if conn_fn:
+                        for conn in conn_fn(kind='tcp'):
+                            if conn.status == 'LISTEN':
+                                if conn.laddr and conn.laddr.port > 0:
+                                    candidate_ports.append(conn.laddr.port)
                 except (psutil.AccessDenied, psutil.NoSuchProcess):
                     continue
     except ImportError:

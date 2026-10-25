@@ -1418,6 +1418,10 @@ class SovereignConversationalIngestor:
                 print(traceback.format_exc())
                 continue
 
+    def ingest_batch(self, conversations: List[Conversation]):
+        """Alias for _fossilize_batch for canonical ingestion gateway compliance."""
+        return self._fossilize_batch(conversations)
+
     def ingest_local_mirrors(self) -> List[Conversation]:
         """Ingest from local snapshots (IRC logs, MADOC)."""
         convs = self.sovereign.ingest_irc_logs()

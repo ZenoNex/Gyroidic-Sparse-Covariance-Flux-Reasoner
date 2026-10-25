@@ -282,6 +282,7 @@ class UniversalOrchestrator(nn.Module):
         from src.models.polynomial_embeddings import PolynomialFunctionalEmbedder
         # Embeds state -> structurally predictive state space
         self.jepa_embedder = PolynomialFunctionalEmbedder(text_dim=dim, graph_dim=dim, num_dim=dim, hidden_dim=dim)
+        self.poly_embedder = self.jepa_embedder
         
         # 7.8 Memory Palace (MEMPALACE Meliponini Planted Attractor Chambers)
         from src.core.garden_statistical_attractors import MemoryPalace
@@ -467,6 +468,24 @@ class UniversalOrchestrator(nn.Module):
             self.local_dataset_ingestor = LocalDatasetIngestor(datasets_root="data/local_datasets", device=str(_device))
         except Exception:
             self.local_dataset_ingestor = None
+
+        try:
+            from src.data.universal_topology_converter import UniversalTopologyConverter
+            self.universal_converter = UniversalTopologyConverter(target_dim=dim)
+        except Exception:
+            self.universal_converter = None
+
+        try:
+            from src.topology.bonfire_network import BonfireNetwork
+            self.bonfire_network = BonfireNetwork(node_id="universal_orchestrator")
+        except Exception:
+            self.bonfire_network = None
+
+        try:
+            from src.data.canonical_projection import CanonicalProjector
+            self.canonical_projector = CanonicalProjector(dim=dim, device=str(_device))
+        except Exception:
+            self.canonical_projector = None
             
         self.last_dyad = None
         self.last_fossil_path = None
@@ -1477,6 +1496,9 @@ class UniversalOrchestrator(nn.Module):
         
         state_governed = arch_results.active_state
         stacked_target = getattr(arch_results, 'stacked_target', None)
+        bio_governance = getattr(arch_results, 'bio_governance', None)
+        if bio_governance is not None:
+            self.telemetry_state['bio_governance'] = bio_governance
         
         # Determine active contexts from tag weights for Alias Tracker
         is_alias_active = False
@@ -1812,6 +1834,8 @@ class UniversalOrchestrator(nn.Module):
             "subversion_pce": subversion_val,
             "toxicity_score": toxicity_val
         }
+        if bio_governance is not None:
+            board_metrics['bio_governance'] = bio_governance
         self.bulletin_board.post_metrics(board_metrics)
         
         # Update EMA Flux for next scout
@@ -1830,6 +1854,16 @@ class UniversalOrchestrator(nn.Module):
             )
             # Modulate hunger with the Kelly consensus
             self.current_hunger.fill_(self.current_hunger.item() * (0.5 + 0.5 * k_bar))
+
+        if hasattr(self, 'bonfire_network') and self.bonfire_network is not None:
+            try:
+                self.bonfire_network.update_local_status(
+                    signature=f"betti_{b0}_{b1}",
+                    kelly=float(k_bar),
+                    p_success=float(pas_h)
+                )
+            except Exception:
+                pass
             
         if self.zk_aggregator is not None:
             # Generate ZK Proof of Chern-Simons invariant when system is stable
@@ -1947,9 +1981,8 @@ class UniversalOrchestrator(nn.Module):
                 pass
         if level_val == VetoLevel.BUDGET.value:
             try:
-                import psutil
-                mem = psutil.virtual_memory().percent
-                return mem > 98.0
+                silicon_ok = self.check_compute_affordance(self.ComputeAffordanceType.SILICON)
+                return not silicon_ok
             except Exception:
                 return False
         return False
@@ -2133,23 +2166,57 @@ class UniversalOrchestrator(nn.Module):
 
         # 2. Harmonize text and image embeddings to [1, dim]
         if text_emb is None:
-            if text_raw is not None and hasattr(self, 'poly_embedder') and self.poly_embedder is not None:
-                try:
-                    text_emb = self.poly_embedder(text_raw).to(dev)
-                except Exception:
-                    text_emb = torch.zeros((1, target_dim), device=dev)
-            else:
+            if text_raw is not None:
+                embedder = getattr(self, 'poly_embedder', None) or getattr(self, 'jepa_embedder', None) or getattr(self, 'embedder', None)
+                if embedder is None:
+                    try:
+                        from src.models.polynomial_embeddings import PolynomialFunctionalEmbedder
+                        self.poly_embedder = PolynomialFunctionalEmbedder(text_dim=target_dim, graph_dim=target_dim, num_dim=target_dim, hidden_dim=target_dim).to(dev)
+                        self.jepa_embedder = self.poly_embedder
+                        embedder = self.poly_embedder
+                    except Exception:
+                        embedder = None
+                        
+                if embedder is not None:
+                    try:
+                        res = embedder(text_raw)
+                        if isinstance(res, dict):
+                            text_emb = res.get('fused_hidden', res.get('state', None))
+                            if text_emb is not None:
+                                text_emb = text_emb.to(dev)
+                        elif isinstance(res, torch.Tensor):
+                            text_emb = res.to(dev)
+                    except Exception:
+                        text_emb = None
+                if text_emb is None and hasattr(self, 'canonical_projector') and self.canonical_projector is not None:
+                    try:
+                        text_emb = self.canonical_projector._text_to_tensor(text_raw).to(dev)
+                    except Exception:
+                        text_emb = None
+            if text_emb is None:
                 text_emb = torch.zeros((1, target_dim), device=dev)
         else:
-            text_emb = text_emb.to(dev)
+            if isinstance(text_emb, torch.Tensor):
+                text_emb = text_emb.to(dev)
+            else:
+                from src.codec.vision_utilities import project_multimodal_fingerprint_to_96
+                text_emb = project_multimodal_fingerprint_to_96(text_emb).unsqueeze(0).to(dev)
 
         if image_emb is None:
             if signal_tensor is not None:
-                image_emb = signal_tensor.to(dev)
+                if isinstance(signal_tensor, torch.Tensor):
+                    image_emb = signal_tensor.to(dev)
+                else:
+                    from src.codec.vision_utilities import project_multimodal_fingerprint_to_96
+                    image_emb = project_multimodal_fingerprint_to_96(signal_tensor).unsqueeze(0).to(dev)
             else:
                 image_emb = torch.zeros((1, target_dim), device=dev)
         else:
-            image_emb = image_emb.to(dev)
+            if isinstance(image_emb, torch.Tensor):
+                image_emb = image_emb.to(dev)
+            else:
+                from src.codec.vision_utilities import project_multimodal_fingerprint_to_96
+                image_emb = project_multimodal_fingerprint_to_96(image_emb).unsqueeze(0).to(dev)
 
         if text_emb.dim() == 1:
             text_emb = text_emb.unsqueeze(0)
@@ -2347,7 +2414,7 @@ class UniversalOrchestrator(nn.Module):
         conversation_id: Optional[str] = None,
         **kwargs
     ) -> torch.Tensor:
-        """Ingest user-assistant conversational exchange as a unified KnowledgeDyad."""
+        """Ingest user-assistant conversational exchange as a unified KnowledgeDyad enriched with friction tags."""
         text_raw = f"User: {user_text} | Assistant: {assistant_text}"
         meta = {
             "source": "conversational",
@@ -2355,7 +2422,79 @@ class UniversalOrchestrator(nn.Module):
             "user_prompt": user_text,
             "assistant_response": assistant_text
         }
+        
+        # Interconnect with ChatGPTFrictionHarvester if mounted
+        if getattr(self, 'chatgpt_harvester', None) is not None:
+            try:
+                head_signals = self.chatgpt_harvester.query_friction_head(user_text, assistant_text)
+                meta["friction_signals"] = head_signals
+                meta["pas_modifier"] = head_signals.get("pas_modifier", 1.0)
+                meta["rebicameral_drift_detected"] = head_signals.get("rebicameral_drift_detected", False)
+                if head_signals.get("search_engrams"):
+                    meta["search_engrams"] = head_signals["search_engrams"]
+                if head_signals.get("archetype_identity"):
+                    meta["archetype_identity"] = head_signals["archetype_identity"]
+                    
+                # Sync aliases with GeneralUserAliasTracker
+                if getattr(self, 'general_alias_tracker', None) is not None:
+                    for alias in getattr(self.chatgpt_harvester, 'node_operator_aliases', []):
+                        if hasattr(self.general_alias_tracker, 'register_alias'):
+                            self.general_alias_tracker.register_alias(alias)
+            except Exception as e:
+                meta["harvester_error"] = str(e)
+                
         return self.ingest_knowledge_dyad(text_raw=text_raw, modality="Dialogue", metadata=meta, **kwargs)
+
+    def harvest_friction_archives(
+        self,
+        export_dir: Optional[str] = None,
+        limit: Optional[int] = 100,
+        slow_drip: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Harvest multi-LLM conversation archives via ChatGPTFrictionHarvester with Windows-safe
+        slow-drip memory pacing, fossilizing dyads directly into DyadFossilizer.
+        """
+        if getattr(self, 'chatgpt_harvester', None) is None:
+            from src.data.chatgpt_friction_harvester import ChatGPTFrictionHarvester
+            self.chatgpt_harvester = ChatGPTFrictionHarvester(
+                export_dir=export_dir,
+                dim=self.dim,
+                fossilizer=self.fossilizer
+            )
+            
+        harvester = self.chatgpt_harvester
+        if export_dir:
+            harvester.export_dir = export_dir
+
+        stats = {
+            "conversations_ingested": 0,
+            "fossilized_count": 0,
+            "export_dir": str(harvester.export_dir),
+            "status": "ok"
+        }
+
+        try:
+            dyad_gen = (
+                harvester.slow_drip_batch_ingest(export_path=export_dir, limit=limit)
+                if slow_drip else harvester.harvest_interactions()
+            )
+            for in_tensor, out_tensor, tags, u_text, a_text in dyad_gen:
+                stats["conversations_ingested"] += 1
+                self.ingest_conversational_dyad(
+                    user_text=u_text,
+                    assistant_text=a_text,
+                    conversation_id=f"harvest_{stats['conversations_ingested']}",
+                    fossilize=True
+                )
+                stats["fossilized_count"] += 1
+                if limit and stats["conversations_ingested"] >= limit:
+                    break
+        except Exception as e:
+            stats["status"] = "error"
+            stats["error"] = str(e)
+
+        return stats
 
     def ingest_minecraft_dyad(
         self,
@@ -2399,4 +2538,100 @@ class UniversalOrchestrator(nn.Module):
         out = self.modular_attention(x, mask=mask, path_topology_vectors=path_topology_vectors)
         integrity = self.modular_attention.validate_structural_integrity()
         return out, integrity
+
+    def ingest_universal_artifact(
+        self,
+        filepath: Any,
+        **kwargs
+    ) -> torch.Tensor:
+        """
+        Ingests arbitrary multi-modal artifacts (code, documents, audio, video, 3D)
+        via UniversalTopologyConverter into fossilized knowledge dyads.
+        """
+        from pathlib import Path
+        if not hasattr(self, 'universal_converter') or self.universal_converter is None:
+            from src.data.universal_topology_converter import UniversalTopologyConverter
+            self.universal_converter = UniversalTopologyConverter(target_dim=self.dim)
+            
+        data = self.universal_converter.process_artifact(filepath)
+        spec = data.get("spectral_tensor", None)
+        desc = data.get("linguistic_description", f"Artifact {filepath}")
+        meta = {
+            "source": "universal_artifact",
+            "filepath": str(filepath),
+            "crt_pressures": data.get("crt_pressures", {}),
+            "defect_anomalies": data.get("defect_anomalies", [])
+        }
+        return self.ingest_knowledge_dyad(
+            signal_tensor=spec,
+            text_raw=desc,
+            modality="UniversalArtifact",
+            metadata=meta,
+            **kwargs
+        )
+
+    def ingest_local_dataset(
+        self,
+        datasets_root: Optional[str] = None,
+        dataset_name: str = 'mnist',
+        limit: int = 100,
+        **kwargs
+    ) -> List[torch.Tensor]:
+        """
+        Drip-feeds samples from local datasets (MNIST, CIFAR) into knowledge dyads.
+        """
+        from src.data.local_dataset_ingestor import LocalDatasetIngestor
+        root = datasets_root or getattr(getattr(self, 'local_dataset_ingestor', None), 'root', 'data/local_datasets')
+        dev = next(self.parameters()).device if list(self.parameters()) else torch.device('cpu')
+        ingestor = LocalDatasetIngestor(datasets_root=str(root), device=str(dev))
+        
+        results = []
+        gen = ingestor.cifar10_generator(limit=limit) if dataset_name.lower() in ['cifar', 'cifar10', 'cifar-10'] else ingestor.mnist_generator(limit=limit)
+        for conv in gen:
+            label_text = conv.turns[0].text if conv.turns else f"{dataset_name} sample"
+            img_emb = conv.turns[1].embedding if len(conv.turns) > 1 else None
+            meta = conv.context or {}
+            meta['dataset'] = dataset_name
+            t = self.ingest_knowledge_dyad(
+                text_raw=label_text,
+                image_emb=img_emb,
+                modality=f"LocalDataset_{dataset_name}",
+                metadata=meta,
+                **kwargs
+            )
+            results.append(t)
+        return results
+
+    def ingest_google_cloud(
+        self,
+        project_id: str,
+        query: str,
+        client_manager: Optional[Any] = None,
+        **kwargs
+    ) -> List[torch.Tensor]:
+        """Queries BigQuery through GoogleCloudIngestor and ingests resulting conversations."""
+        from src.data.google_cloud_ingestor import GoogleCloudIngestor
+        from src.data.google_client_manager import GoogleClientManager
+        mgr = client_manager or GoogleClientManager()
+        ingestor = GoogleCloudIngestor(mgr)
+        convs = ingestor.query_bigquery(project_id=project_id, query=query)
+        tensors = []
+        for conv in convs:
+            t = self.ingest_conversations([conv], **kwargs)
+            tensors.append(t)
+        return tensors
+
+    def ingest_google_drive(
+        self,
+        folder_id: str = 'root',
+        client_manager: Optional[Any] = None,
+        **kwargs
+    ) -> List[Dict[str, Any]]:
+        """Lists and discovers nutrients in Google Drive folders via GoogleDriveIngestor."""
+        from src.data.google_drive_ingestor import GoogleDriveIngestor
+        from src.data.google_client_manager import GoogleClientManager
+        mgr = client_manager or GoogleClientManager()
+        ingestor = GoogleDriveIngestor(mgr)
+        return ingestor.list_folder_contents(folder_id=folder_id)
+
 

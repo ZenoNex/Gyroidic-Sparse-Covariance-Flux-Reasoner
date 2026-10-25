@@ -172,6 +172,7 @@ class GyroidicFluxReasoner(nn.Module):
             poly_config=self.poly_config,
             use_saturation=use_saturation
         )
+        self.poly_embedder = self.embedder
         
         # Modular residue embedder (multi-modal residue projection)
         try:
@@ -361,6 +362,8 @@ class GyroidicFluxReasoner(nn.Module):
         # Phase 4: Universal Orchestration (Deep Dynamics)
         from src.core.orchestrator import UniversalOrchestrator
         self.orchestrator = UniversalOrchestrator(dim=hidden_dim)
+        self.orchestrator.poly_embedder = self.embedder
+        self.orchestrator.jepa_embedder = self.embedder
         if self.engine is not None:
             self.orchestrator.silicon_engine = self.engine
             if hasattr(self.orchestrator, 'curvature_ledger'):

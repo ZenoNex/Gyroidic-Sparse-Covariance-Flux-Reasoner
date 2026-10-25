@@ -10,7 +10,7 @@ Created: January 2026
 
 import torch
 import torch.nn as nn
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Union
 
 from ..core.polynomial_coprime import PolynomialCoprimeConfig
 from ..core.primitive_ops import FixedPointField, LearnedPrimitivePerturbation
@@ -109,9 +109,19 @@ class PolynomialFunctionalEmbedder(nn.Module):
         # Allows adaptive quantization grid deformation
         self.primitive_perturbation = LearnedPrimitivePerturbation(dim=self.D)
     
+    def embed(
+        self,
+        text: Optional[Union[str, torch.Tensor]] = None,
+        graph: Optional[torch.Tensor] = None,
+        num: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Convenience method returning the fused hidden state [batch, hidden_dim]."""
+        out = self.forward(text_emb=text, graph_emb=graph, num_features=num)
+        return out['fused_hidden']
+
     def forward(
         self,
-        text_emb: Optional[torch.Tensor] = None,
+        text_emb: Optional[Union[torch.Tensor, str]] = None,
         graph_emb: Optional[torch.Tensor] = None,
         num_features: Optional[torch.Tensor] = None
     ) -> Dict[str, torch.Tensor]:
@@ -119,7 +129,7 @@ class PolynomialFunctionalEmbedder(nn.Module):
         Encode multi-modal inputs into polynomial coefficient distributions.
         
         Args:
-            text_emb: [batch, text_dim] text embeddings
+            text_emb: [batch, text_dim] text embeddings or raw str
             graph_emb: [batch, graph_dim] graph embeddings
             num_features: [batch, num_dim] numerical features
             
@@ -130,6 +140,13 @@ class PolynomialFunctionalEmbedder(nn.Module):
                 - 'coeff_logits': List of [batch, D] logits per functional
                 - 'fused_hidden': [batch, hidden_dim] fused representation
         """
+        if isinstance(text_emb, str):
+            from ..data.canonical_projection import CanonicalProjector
+            dev = next(self.parameters()).device if list(self.parameters()) else torch.device("cpu")
+            in_dim = getattr(self.text_proj, 'in_features', 768) if hasattr(self, 'text_proj') else 768
+            proj = CanonicalProjector(dim=in_dim, device=str(dev))
+            text_emb = proj._text_to_tensor(text_emb)
+
         batch_size = (
             text_emb.shape[0] if text_emb is not None else
             graph_emb.shape[0] if graph_emb is not None else
@@ -240,13 +257,11 @@ class PolynomialFunctionalEmbedder(nn.Module):
         support_num: Optional[torch.Tensor] = None,
         steps: int = 1,
         lr: float = 0.01,
-        entropy: Optional[torch.Tensor] = None
+        entropy: Optional[Any] = None
     ) -> 'PolynomialFunctionalEmbedder':
         """
-        Perform online inner-loop adaptation (MAML step) on support data.
+        Perform online inner-loop adaptation (MAML step) on multimodal dyad support data.
         Returns an adapted instance of PolynomialFunctionalEmbedder.
-        
-        Dynamic LR: scaled by (1.0 + entropy.mean()) if entropy is provided.
         """
         def clone_module(module):
             import copy

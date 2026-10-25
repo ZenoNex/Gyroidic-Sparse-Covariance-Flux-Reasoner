@@ -229,23 +229,51 @@ class InvestorNewsIngestor(nn.Module):
                 if curr_state.dim() == 1:
                     curr_state = curr_state.unsqueeze(0)
                     
+                vowels = set('aeiouAEIOU')
                 generated_chars = []
                 with torch.no_grad():
                     from src.core.gluing_operator import LazarusSoftmax
                     lazarus = LazarusSoftmax(dim=-1).to(device)
-                    for _ in range(25):
+                    for step_idx in range(30):
                         logits, _ = larynx(curr_state, temperature=1.1)
+                        if logits.dim() == 1:
+                            logits = logits.unsqueeze(0)
+
+                        # Clean vocabulary filtering
+                        for idx in range(min(128, logits.shape[-1])):
+                            if idx < 32 or idx > 126:
+                                logits[0, idx] = -1e9
+
+                        # Syllable-coherent vowel modulation (Chern-Simons gasket acoustic rule)
+                        prev_char = generated_chars[-1] if generated_chars else ' '
+                        if prev_char not in vowels and prev_char.isalpha():
+                            for v in vowels:
+                                if ord(v) < logits.shape[-1]:
+                                    logits[0, ord(v)] *= 1.4
+                        elif prev_char in vowels:
+                            for v in vowels:
+                                if ord(v) < logits.shape[-1]:
+                                    logits[0, ord(v)] *= 0.4
+
                         probs, _ = lazarus(logits, 0.0, 0.0)
                         char_idx = torch.multinomial(probs[0], 1).item()
                         char = chr(max(32, min(126, char_idx)))
+
                         if char in ('.', '!', '?', ';', '\n'):
                             break
                         generated_chars.append(char)
-                        
+
+                        # Autoregressive tanh feedback from projection weights
+                        if hasattr(larynx, 'proj') and hasattr(larynx.proj, 'weight') and char_idx < larynx.proj.weight.shape[0]:
+                            feedback = torch.tanh(larynx.proj.weight[char_idx].unsqueeze(0))
+                            if feedback.shape == curr_state.shape:
+                                curr_state = 0.9 * curr_state + 0.1 * feedback
+
                 query = "".join(generated_chars).strip()
-                if len(query) >= 3:
-                    return query
-            except Exception as e:
+                cleaned_query = re.sub(r'[^a-zA-Z0-9_\-\s]', ' ', query).strip()
+                if len(cleaned_query) >= 3:
+                    return cleaned_query
+            except Exception:
                 pass
 
         # Honest jitter fallback from financial concepts

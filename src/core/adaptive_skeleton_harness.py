@@ -288,7 +288,8 @@ class AdaptiveSkeletonHarness(nn.Module):
         gradient_proxy = torch.abs(base_activation * (1 - base_activation))
         
         # 1.14 Honest Jitter Harvesting: Add hardware variance
-        cpu_jitter = psutil.cpu_percent(interval=0.0) / 100.0
+        from src.core.honest_jitter import harvest_honest_jitter
+        cpu_jitter = float(harvest_honest_jitter((1,), scaled=True).item()) * 0.05
         
         # $\Phi(x) = \tilde{x} + A_{micro} \cdot |d\tilde{x}/dx| \cdot \sin(\omega_{micro} x)$
         micro_wave = gradient_proxy * torch.sin(self.omega_micro * x + cpu_jitter)
@@ -399,7 +400,7 @@ class AdaptiveSkeletonHarness(nn.Module):
 
         # Position typed compute affordances rather than raw memory percentage
         affordance_eval = self.evaluate_compute_affordance()
-        available_budget = affordance_eval.get("combined_budget", 1.0 - (psutil.virtual_memory().percent / 100.0))
+        available_budget = affordance_eval.get("combined_budget", 0.5)
         available_budget = max(0.20, float(available_budget))
 
         # Modulate derivative time (dt) based on demand pressure potential

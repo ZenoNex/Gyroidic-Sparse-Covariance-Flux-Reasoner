@@ -267,9 +267,22 @@ class HardwareMonitor:
 
     get_hardware_core_layout = get_cpu_gpu_layout
 
-    def update_p2p_mesh(self, mesh_gauge: float):
-        """Update collective nomadic ring mesh budget."""
-        self.p2p_mesh_gauge = max(0.0, min(1.0, float(mesh_gauge)))
+    def update_p2p_mesh(
+        self,
+        mesh_gauge: float,
+        freenet_online: Optional[bool] = None,
+        active_peers: int = 0
+    ):
+        """Update collective nomadic ring mesh budget with live Freenet and peer telemetry."""
+        base_gauge = max(0.0, min(1.0, float(mesh_gauge)))
+        if freenet_online is not None:
+            self.freenet_online = bool(freenet_online)
+            if freenet_online:
+                base_gauge = max(base_gauge, 0.70)
+        if active_peers > 0:
+            self.active_mesh_peers = int(active_peers)
+            base_gauge = min(1.0, max(base_gauge, 0.50 + 0.10 * active_peers))
+        self.p2p_mesh_gauge = base_gauge
 
     def get_typed_affordance(
         self,
@@ -376,7 +389,11 @@ class HardwareMonitor:
                 affordance_type=atype,
                 gauge=mesh_gauge,
                 is_admissible=mesh_admissible,
-                telemetry={"p2p_mesh_gauge": mesh_gauge}
+                telemetry={
+                    "p2p_mesh_gauge": mesh_gauge,
+                    "freenet_online": getattr(self, 'freenet_online', False),
+                    "active_peers": getattr(self, 'active_mesh_peers', 0)
+                }
             )
 
         elif atype == ComputeAffordanceType.DIEGETIC:

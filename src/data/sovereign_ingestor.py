@@ -21,6 +21,7 @@ import time
 from typing import List, Dict, Optional, Any, Generator, Union
 from pathlib import Path
 from datetime import datetime
+import torch
 
 # Core ingestion types from neutral module
 from src.data.conversational_types import Conversation, ConversationTurn, _stable_id
@@ -45,9 +46,170 @@ class SovereignIngestor:
         else:
             self.root = Path(repository_root)
             
+        self.larynx: Optional[Any] = None
+        self.engine: Optional[Any] = None
         print(f"[*] Sovereign Ingestor initialized with REPOSITORY_ROOT: {self.root}")
-        
-    def _fuzzy_decode(self, bytes_data: bytes) -> str:
+
+    def set_larynx(self, larynx: Any):
+        """Connect external ResonanceLarynx module for autoregressive query generation."""
+        self.larynx = larynx
+
+    def bind_engine(self, engine: Any):
+        """Bind parent physics engine or orchestrator."""
+        self.engine = engine
+        if hasattr(engine, 'larynx') and engine.larynx is not None:
+            self.larynx = engine.larynx
+
+    def generate_larynx_hn_query(
+        self,
+        state: Optional[torch.Tensor] = None,
+        engine: Optional[Any] = None
+    ) -> str:
+        """
+        Uses the canonical ResonanceLarynx (from src.models.diegetic_heads) with Chern-Simons
+        Gasket boundary repair, syllable-coherent vowel/consonant modulation, and autoregressive
+        feedback to dynamically draft high-entropy Hacker News search queries from the active manifold state.
+        """
+        import re
+        import torch
+
+        active_engine = engine or self.engine
+        larynx = self.larynx
+        if larynx is None and active_engine is not None and hasattr(active_engine, 'larynx'):
+            larynx = active_engine.larynx
+
+        dim = 256
+        if larynx is not None and hasattr(larynx, 'hidden_dim'):
+            dim = larynx.hidden_dim
+        elif active_engine is not None and hasattr(active_engine, 'dim'):
+            dim = active_engine.dim
+
+        device = torch.device('cpu')
+        if larynx is not None:
+            try:
+                device = next(larynx.parameters()).device
+            except Exception:
+                pass
+        elif state is not None and isinstance(state, torch.Tensor):
+            device = state.device
+
+        curr_state = None
+        if state is not None and isinstance(state, torch.Tensor):
+            curr_state = state.clone().detach().to(device)
+            if curr_state.dim() == 1:
+                curr_state = curr_state.unsqueeze(0)
+        else:
+            curr_state = torch.zeros((1, dim), device=device)
+
+        if larynx is not None:
+            try:
+                vowels = set('aeiouAEIOU')
+                generated_chars = []
+                with torch.no_grad():
+                    for _ in range(30):
+                        logits, _ = larynx(curr_state, temperature=1.1)
+                        if logits.dim() == 1:
+                            logits = logits.unsqueeze(0)
+
+                        for idx in range(min(128, logits.shape[-1])):
+                            if idx < 32 or idx > 126:
+                                logits[0, idx] = -1e9
+
+                        prev_char = generated_chars[-1] if generated_chars else ' '
+                        if prev_char not in vowels and prev_char.isalpha():
+                            for v in vowels:
+                                if ord(v) < logits.shape[-1]:
+                                    logits[0, ord(v)] *= 1.4
+                        elif prev_char in vowels:
+                            for v in vowels:
+                                if ord(v) < logits.shape[-1]:
+                                    logits[0, ord(v)] *= 0.4
+
+                        probs = torch.softmax(logits, dim=-1)
+                        char_idx = torch.multinomial(probs[0], 1).item()
+                        char = chr(max(32, min(126, char_idx)))
+
+                        if char in ('.', '!', '?', ';', '\n'):
+                            break
+                        generated_chars.append(char)
+
+                        if hasattr(larynx, 'proj') and hasattr(larynx.proj, 'weight') and char_idx < larynx.proj.weight.shape[0]:
+                            feedback = torch.tanh(larynx.proj.weight[char_idx].unsqueeze(0))
+                            if feedback.shape == curr_state.shape:
+                                curr_state = 0.9 * curr_state + 0.1 * feedback
+
+                query = "".join(generated_chars).strip()
+                cleaned_query = re.sub(r'[^a-zA-Z0-9_\-\s]', ' ', query).strip()
+                if len(cleaned_query) >= 3:
+                    return cleaned_query
+            except Exception:
+                pass
+
+        # Sovereign high-entropy topics fallback
+        topics = [
+            "distributed systems consensus",
+            "kernel memory allocator",
+            "non-euclidean topology",
+            "p2p sovereign mesh",
+            "zero knowledge proofs"
+        ]
+        from src.core.honest_jitter import harvest_honest_jitter
+        jitter = harvest_honest_jitter((1,), device=torch.device('cpu'), scaled=False).item()
+        u = (jitter + 1.0) / 2.0
+        idx = int(u * len(topics))
+        return topics[min(idx, len(topics) - 1)]
+
+    def search_hacker_news(self, query: str, limit: int = 25) -> List[Conversation]:
+        """
+        Query Hacker News via public Algolia search API steered by Larynx query.
+        Converts discussions into high-entropy Conversation dyads.
+        """
+        import urllib.parse
+        encoded_query = urllib.parse.quote(query)
+        search_url = f"https://hn.algolia.com/api/v1/search?query={encoded_query}&tags=story&hitsPerPage={limit}"
+        try:
+            resp = requests.get(search_url, timeout=5.0)
+            resp.raise_for_status()
+            hits = resp.json().get('hits', [])
+        except Exception as e:
+            print(f"[HN SEARCH] Algolia query failed for '{query}': {e}")
+            return []
+
+        conversations: List[Conversation] = []
+        for hit in hits:
+            story_id = hit.get('objectID')
+            title = hit.get('title') or ""
+            story_text = hit.get('story_text') or ""
+            author = hit.get('author') or 'anon'
+            created_at = hit.get('created_at_i', 0)
+
+            text_content = f"{title}\n{story_text}".strip()
+            if not text_content:
+                continue
+
+            turns = [
+                ConversationTurn(
+                    speaker_id=author,
+                    text=text_content,
+                    timestamp=datetime.fromtimestamp(created_at),
+                    metadata={'hn_id': story_id, 'points': hit.get('points', 0)}
+                )
+            ]
+
+            conversations.append(Conversation(
+                conversation_id=f"hn_search_{story_id}",
+                turns=turns,
+                context={
+                    'hn_url': f"https://news.ycombinator.com/item?id={story_id}",
+                    'hn_score': hit.get('points', 0),
+                    'hn_descendants': hit.get('num_comments', 0),
+                    'query': query
+                },
+                source='hacker_news_search'
+            ))
+
+        return conversations
+
         """
         Perform fuzzy decoding on raw bytes to preserve "topological friction".
         

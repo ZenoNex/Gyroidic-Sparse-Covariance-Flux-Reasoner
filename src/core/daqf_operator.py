@@ -73,15 +73,21 @@ class DAQUFOperator(nn.Module):
         (f_i) = sum(I(Phi(f_i) = bot)) + PlayMutation + Valence
         """
         # Load includes standard failures
-        load = failures.detach()
+        load = failures.detach().clone()
         
         # Mischief boost rewards "Good Bugs"
         if mischief_boost is not None:
-            load += mischief_boost.detach()
+            mb = mischief_boost.detach()
+            if mb.shape != load.shape:
+                mb = mb.mean().expand_as(load)
+            load = load + mb
             
         # Valence amplifies the load based on training hunger
         if valence is not None:
-            load = load * (1.0 + valence.detach())
+            val = valence.detach()
+            if val.shape != load.shape:
+                val = val.mean().expand_as(load)
+            load = load * (1.0 + val)
             
         self.contradiction_load += load
         self.diegetic_cost += load
@@ -116,14 +122,22 @@ class DAQUFOperator(nn.Module):
         Persistence via Non-Collapse (Speculative Decoding).
         A fossil persists if it achievement flux OR represents a stable mischief soliton.
         """
-        # 1. Flux Persistence
-        flux_persistence = (flux_scores != 0).any(dim=1).float()
+        # 1. Flux Persistence across fossils
+        if flux_scores.dim() > 1:
+            flux_persistence = (flux_scores != 0).any(dim=0).float()
+        else:
+            flux_persistence = (flux_scores != 0).float()
+            
+        if flux_persistence.shape != self.gap_stability.shape:
+            flux_persistence = flux_persistence.mean().expand_as(self.gap_stability)
         
         # 2. Mischief Stability (The Unknowledge Loop)
         if mischief_scores is not None and energy_gaps is not None:
             # A skeleton is stable if gap > margin OR mischief > threshold
             # (Failure as reveal)
             satisfied = ((energy_gaps > self.fossil_margin) | (mischief_scores > 0.5)).float()
+            if satisfied.shape != self.gap_stability.shape:
+                satisfied = satisfied.mean().expand_as(self.gap_stability)
             self.gap_stability = (self.gap_stability + 1.0) * satisfied
             
         stable_persistence = (self.gap_stability >= self.persistence_threshold).float()

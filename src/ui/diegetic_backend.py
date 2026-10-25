@@ -525,6 +525,10 @@ class DiegeticPhysicsEngine(nn.Module):
         from src.core.modular_virtualization import ModularVirtualizationLayer
         self.modular_rns = ModularVirtualizationLayer(dim=dim, base=2)
 
+        # Polynomial Functional Embedder for MAML Online Adaptation
+        from src.models.polynomial_embeddings import PolynomialFunctionalEmbedder
+        self.poly_embedder = PolynomialFunctionalEmbedder(text_dim=dim, graph_dim=dim, num_dim=dim, hidden_dim=dim).to(self.device)
+
         # =============================================
         # PHASE 17: CONTEXT-AWARE QUANTIZER (CAQ)
         # Implements per-axis Matrioshka quantization:
@@ -987,7 +991,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 new_idx = 128 + len(self.unicode_to_idx)
                 self.unicode_to_idx[c] = new_idx
                 self.idx_to_unicode.append(c)
-                print(f"[VOCAB] Registered new emoji/unicode character: '{c}' -> index {new_idx}")
+                safe_repr = c.encode('ascii', 'backslashreplace').decode('ascii')
+                print(f"[VOCAB] Registered new emoji/unicode character: {safe_repr} -> index {new_idx}")
                 return new_idx
             return 32 # Fallback to space if out of space
 
@@ -1449,20 +1454,29 @@ class DiegeticPhysicsEngine(nn.Module):
                             if t and len(t) >= 4:
                                 fossil_texts.append(t)
 
-                    # Sense computational load (CPU and RAM) to throttle background ingestion
+                    # Topologically-Aware Compute Affordance Arbitration (CPU, Thermal, and Community P2P Mesh)
                     scientific_texts = []
                     rss_texts = []
                     try:
-                        import psutil
-                        cpu_percent = psutil.cpu_percent(interval=0.1)
-                        ram_percent = psutil.virtual_memory().percent
-                        # If computational load is low, seed background learning with scientific datasets
-                        if cpu_percent < 50.0 and ram_percent < 80.0:
+                        from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+                        hw = HardwareMonitor.get_instance()
+                        silicon_aff = hw.get_typed_affordance(ComputeAffordanceType.SILICON)
+                        mesh_aff = hw.get_typed_affordance(ComputeAffordanceType.P2P_MESH)
+                        
+                        # Background ingestion is admissible if Silicon has headroom or P2P community compute budget is available
+                        can_ingest = (silicon_aff.is_admissible and silicon_aff.gauge > 0.25) or (mesh_aff.is_admissible and mesh_aff.gauge > 0.40)
+                        if can_ingest and not hw.thermal_runaway:
                             if getattr(self, 'open_science_ingestor', None) is not None:
-                                query_configs = [
-                                    {"type": "ligo", "event": "GW190521", "detector": "H1", "duration": 2.0},
-                                    {"type": "ncbi", "accession_id": "AM743169.1", "db": "nucleotide"}
-                                ]
+                                if hasattr(self.open_science_ingestor, 'generate_larynx_science_query'):
+                                    query_configs = self.open_science_ingestor.generate_larynx_science_query(
+                                        state=getattr(self, 'state', None),
+                                        engine=self
+                                    )
+                                else:
+                                    query_configs = [
+                                        {"type": "ligo", "event": "GW190521", "detector": "H1", "duration": 2.0},
+                                        {"type": "ncbi", "accession_id": "AM743169.1", "db": "nucleotide"}
+                                    ]
                                 
                                 # Determine which queries are already registered as tags
                                 active_configs = []
@@ -4582,15 +4596,16 @@ class DiegeticPhysicsEngine(nn.Module):
         self.larynx.train()
         self.optimizer.zero_grad()
         
-        # Adaptive Performance Weighting
-        # Dynamically scale the sequence truncation based on current hardware stress
-        import psutil
-        cpu_load = psutil.cpu_percent(interval=None) # Quick non-blocking read
-        mem_free = psutil.virtual_memory().available / (1024 ** 3) # Free RAM in GB
+        # Adaptive Performance Weighting via Central Compute Affordance System
+        # Dynamically scale sequence truncation based on Silicon, Thermal, and Batch gauges
+        from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+        hw = HardwareMonitor.get_instance()
+        silicon_aff = hw.get_typed_affordance(ComputeAffordanceType.SILICON)
+        g = silicon_aff.gauge
         
-        if cpu_load > 85.0 or mem_free < 2.0:
-            max_seq = 16  # Heavy constraint
-        elif cpu_load > 60.0 or mem_free < 4.0:
+        if not silicon_aff.is_admissible or g < 0.25 or hw.thermal_runaway:
+            max_seq = 16  # Heavy constraint under thermal/silicon load
+        elif g < 0.60:
             max_seq = 64  # Moderate constraint
         else:
             max_seq = 256 # Free operation
@@ -4603,13 +4618,15 @@ class DiegeticPhysicsEngine(nn.Module):
         
         for i in range(len(chars) - 1):
             logits, _ = self.larynx(current_state, temperature=1.0)
-            target_idx = torch.tensor([chars[i + 1]], device=self.device, dtype=torch.long)
+            vocab_size = logits.shape[-1]
+            target_char_idx = chars[i + 1] % vocab_size
+            target_idx = torch.tensor([target_char_idx], device=self.device, dtype=torch.long)
             loss = self.criterion(logits, target_idx) / seq_len
             loss.backward()
             
             with torch.no_grad():
                 # Phase-Aligned Feedback: Dissolve Teacher's Pet trap via Phase Alignment
-                idx = chars[i + 1]
+                idx = target_char_idx
                 feedback = torch.tanh(self.larynx.proj.weight[idx].detach().unsqueeze(0))
                 pas_step = float(F.cosine_similarity(current_state, feedback).clamp(0.0, 1.0).item())
                 # Autonomous trajectories proceed with minimal forced token snapping
@@ -6917,6 +6934,10 @@ class HybridPhysicsBackend(nn.Module):
         self._engine = engine
         if hasattr(engine, 'larynx'):
             self.set_larynx(engine.larynx)
+        if hasattr(engine, 'poly_embedder') and engine.poly_embedder is not None:
+            self.poly_embedder = engine.poly_embedder
+        elif hasattr(engine, 'jepa_embedder') and engine.jepa_embedder is not None:
+            self.poly_embedder = engine.jepa_embedder
 
     @property
     def engine(self):
