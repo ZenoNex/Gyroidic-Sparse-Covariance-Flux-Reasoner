@@ -239,6 +239,11 @@ class BonfireNomadicRing:
         self.zk_aggregator = ZKAggregator()
         self.pending_crt_channels: Dict[int, torch.Tensor] = {}
 
+        # Prime Resonance Ladder for Chebyshev-Chebyshev oscillator and CRT fallback
+        from src.core.invariants import PrimeResonanceLadder
+        self.prime_ladder = PrimeResonanceLadder(num_resonators=32)
+        self.primes = self.prime_ladder.primes.tolist()
+
         # Embedding & Sightline Engine (Fractal Discontinuity Embedding phi: F -> R^m)
         self.embedding_engine = FractalDiscontinuityEmbedding()
         self.peer_embedded_states: Dict[str, Dict[str, Any]] = {}
@@ -349,7 +354,7 @@ class BonfireNomadicRing:
                 # Map state to [-1, 1] for Chebyshev domain
                 x_norm = torch.tanh(engine_meta_state)
                 # Apply T_p(x) = cos(p * arccos(x)) for the first prime p=2
-                p = float(self.primes[0]) if self.primes else 2.0
+                p = float(self.primes[0]) if getattr(self, 'primes', None) else 2.0
                 oscillator = torch.cos(p * torch.acos(x_norm))
                 # Sustain local substrate stability using the oscillator
                 engine_meta_state.copy_(engine_meta_state * 0.9 + oscillator * 0.1)
