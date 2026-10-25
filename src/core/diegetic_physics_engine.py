@@ -14,6 +14,7 @@ from src.models.modular_attention import ModularAttention
 from src.models.diegetic_heads import AutoeclecticResponderHead, DataAssociationLayer, ResonanceLarynx
 from src.surrogates.calm_predictor import CALM
 from src.core.polynomial_coprime import PolynomialCoprimeConfig
+from src.core.valence_drive import ValenceFunctional
 
 class DiegeticPhysicsEngine(nn.Module):
     """
@@ -55,6 +56,7 @@ class DiegeticPhysicsEngine(nn.Module):
         self.terrain_octree = PointerlessOctree(max_depth=8)
         self.mohr_coulomb = MohrCoulombProjection(friction_angle=30.0, cohesion=0.8).to(device)
         self.drucker_prager = DruckerPragerProjection(alpha=0.2, k=1.0).to(device)
+        self.valence_drive = ValenceFunctional(device=device)
         self.initialize_spatial_metric()
         
         # Strict low-pass damping filter for spin precession / PSH telemetry
@@ -156,9 +158,27 @@ class DiegeticPhysicsEngine(nn.Module):
         topo_complexity = 1.0 + 0.1 * max(0, b0 - 1) + 0.25 * b1
         violation_v = torch.norm(c_sym) * pas_h.mean() * topo_complexity
 
+        # --- Stage 4.1: Valence Drive (Structural Dissonance & Metaphysical Entropy) ---
+        mischief_val = track_state.get('mischief', None)
+        if mischief_val is not None and not isinstance(mischief_val, torch.Tensor):
+            mischief_val = torch.tensor(mischief_val, dtype=torch.float32, device=self.device)
+        entropy_val = track_state.get('entropy', None)
+        if entropy_val is not None and not isinstance(entropy_val, torch.Tensor):
+            entropy_val = torch.tensor(entropy_val, dtype=torch.float32, device=self.device)
+        categories_val = track_state.get('categories', None)
+        if categories_val is not None and not isinstance(categories_val, torch.Tensor):
+            categories_val = torch.tensor(categories_val, dtype=torch.float32, device=self.device)
+            
+        valence_hunger = self.valence_drive(
+            current_pressure=violation_v.view(1),
+            mischief=mischief_val,
+            entropy=entropy_val,
+            categories=categories_val
+        )
+
         # --- Stage 5: System 2 ADMM & ADMR Constraint Probes ---
-        # Check constraints (tire slip, structural breakage).
-        admr_output = self.admr(c_sym)
+        # Check constraints (tire slip, structural breakage) modulated by valence hunger.
+        admr_output = self.admr(c_sym, valence=valence_hunger)
 
         # CALM Trajectory Veto Gating (TOPOLOGICAL_EXTENSIONS.md Part VI §7)
         history_c = c_in.unsqueeze(0).repeat(1, 8, 1)  # [1, 8, state_dim]
@@ -262,8 +282,18 @@ class DiegeticPhysicsEngine(nn.Module):
             "calm_total_veto": total_veto,
             "calm_gauge": gauge_val,
             "calm_constraints": calm_constraints.squeeze(0).detach(),
-            "diegetic_affordance_ok": diegetic_affordance_ok
+            "diegetic_affordance_ok": diegetic_affordance_ok,
+            "valence_hunger": float(valence_hunger.mean().item()),
+            "valence_metrics": self.valence_drive.get_metrics()
         }
+
+    def step(self, track_state: Dict[str, Any], controller_input: Optional[Dict[str, Any]] = None, vehicle_state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Step method alias for the 9-stage physics loop.
+        """
+        v_state = vehicle_state or {}
+        c_input = controller_input if isinstance(controller_input, dict) else {'throttle': 0.5, 'yaw': 0.0}
+        return self.process_input(vehicle_state=v_state, track_state=track_state, controller_input=c_input)
 
     def ingest_knowledge_dyad(self, text_emb: torch.Tensor, image_emb: torch.Tensor) -> torch.Tensor:
         """

@@ -589,6 +589,7 @@ class DiegeticPhysicsEngine(nn.Module):
             self.zeitgeist_router = None
             self.router = None
             self._zeitgeist_state = None
+        self.betti_router = getattr(self.router, 'betti_router', None)
 
         # Harmonic Wave Decomposition: Separate signal (non-ergodic) from noise (ergodic)
         self.harmonic_decomp = HarmonicWaveDecomposition(dim=dim)
@@ -1233,6 +1234,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Update persistent meta-state (detach to prevent graph blowup here)
         # Replace hard Euclidean box clamp with smooth Hein-Kahler / analog limiter
         # to preserve high-entropy tails and prevent manifold flattening
+        new_meta = meta_out['s_fractal'].detach()
         meta_norm = torch.norm(new_meta, p=2, dim=-1, keepdim=True)
         r_max = 10.0
         # Smooth asymptotic soft-bounding: preserves unit direction while smoothly compressing magnitude

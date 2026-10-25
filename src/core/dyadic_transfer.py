@@ -17,18 +17,22 @@ import torch
 import torch.nn as nn
 from typing import Dict, Tuple, Optional
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.birkhoff_projection import BouligandBirkhoffManifold
 
 class DyadicTransferMap(nn.Module):
     """
     Manages the learned non-commutative transfer map between tasks.
     
     T_{ij}: Task i -> Task j transfer coefficient.
+    Rehybridized with BouligandBirkhoffManifold to guarantee doubly-stochastic
+    proficiency conservation flow.
     """
-    def __init__(self, num_tasks: int, embedding_dim: int, leakage_threshold: float = 0.7):
+    def __init__(self, num_tasks: int, embedding_dim: int, leakage_threshold: float = 0.7, use_birkhoff: bool = True):
         super().__init__()
         self.num_tasks = num_tasks
         self.embedding_dim = embedding_dim
         self.leakage_threshold = leakage_threshold
+        self.use_birkhoff = use_birkhoff
         
         # Learnable transfer matrix (Directed Graph)
         # We model this as an attention mechanism or direct matrix
@@ -37,12 +41,19 @@ class DyadicTransferMap(nn.Module):
         self.task_embeddings = nn.Parameter(harvest_honest_jitter((num_tasks, embedding_dim)))
         self.transfer_bilinear = nn.Bilinear(embedding_dim, embedding_dim, 1)
         
+        # Birkhoff manifold projector for doubly-stochastic conservation
+        if self.use_birkhoff:
+            self.birkhoff = BouligandBirkhoffManifold(n=num_tasks)
+        else:
+            self.birkhoff = None
+        
         # Commutator oracle is implicitly this learned structure
         
-    def get_transfer_coefficients(self) -> torch.Tensor:
+    def get_transfer_coefficients(self, project_birkhoff: Optional[bool] = None) -> torch.Tensor:
         """
         Compute the full NxN transfer matrix.
         Returns T where T[i,j] is transfer from i TO j.
+        When project_birkhoff is True, projects onto the Birkhoff polytope (doubly stochastic).
         """
         # Efficient all-to-all bilinear
         # Expand for broadcasting
@@ -58,8 +69,14 @@ class DyadicTransferMap(nn.Module):
         
         transfer_scores = self.transfer_bilinear(u_i_flat, u_j_flat)
         transfer_matrix = transfer_scores.reshape(self.num_tasks, self.num_tasks)
+        raw_t = torch.sigmoid(transfer_matrix)
         
-        return torch.sigmoid(transfer_matrix)
+        do_birkhoff = self.use_birkhoff if project_birkhoff is None else project_birkhoff
+        if do_birkhoff and self.birkhoff is not None:
+            # Project onto Birkhoff polytope [1, N, N] -> [N, N]
+            return self.birkhoff(raw_t.unsqueeze(0)).squeeze(0)
+            
+        return raw_t
 
     def forward(self, task_states: torch.Tensor, proficiency_scores: torch.Tensor) -> torch.Tensor:
         """

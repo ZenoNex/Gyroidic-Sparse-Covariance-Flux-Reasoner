@@ -98,20 +98,28 @@ class TopologicalRefusalError(Exception):
     a highly coherent non-ergodic soliton (Unicorn Synthesis).
     Provides a mathematical proof of the Value Gap against external meritocratic filters.
     """
-    def __init__(self, message: str, value_gap: float, betti_number: float):
+    def __init__(self, message: str, value_gap: float, betti_number: float, sar: float = 0.0, sar_star: float = 0.0):
         self.value_gap = value_gap
         self.betti_number = betti_number
-        super().__init__(f"{message} [Value Gap: {value_gap:.4f}, Betti Proof: {betti_number:.4f}]")
+        self.sar = sar
+        self.sar_star = sar_star
+        super().__init__(f"{message} [Value Gap: {value_gap:.4f}, Betti Proof: {betti_number:.4f}, SAR: {sar:.4f}, SAR*: {sar_star:.4f}]")
 
 class TopologicalRefusalFilter(nn.Module):
     """
     The Ultimate Structural Safeguard.
     Acts as a Sovereign Ambassador. When the external environment (or red-team evaluation)
     tries to look through the "straw," this ensures that topological "roughness" is preserved.
+
+    Implements the Signal-to-Abstraction Ratio (SAR) phase transition (VETO_SUBSPACE 11.3 & Q10.6):
+        SAR = value_gap / (eta * d)
+        SAR* = (max(pas_h, 0.05) / (1.0 + atrophy)) * (1.0 + 0.1 * veto_count)
     """
-    def __init__(self, value_gap_threshold: float = 0.5):
+    def __init__(self, value_gap_threshold: float = 0.5, eta: float = 0.8):
         super().__init__()
         self.value_gap_threshold = value_gap_threshold
+        self.eta = eta
+        self.register_buffer("accumulated_veto_count", torch.tensor(0, dtype=torch.long))
 
     def calculate_value_gap(self, x_original: torch.Tensor, x_projected: torch.Tensor, pas_h: float) -> float:
         """
@@ -125,15 +133,90 @@ class TopologicalRefusalFilter(nn.Module):
         value_gap = slop_energy * pas_h
         return value_gap
 
-    def forward(self, x_original: torch.Tensor, x_projected: torch.Tensor, pas_h: float, betti_0: float) -> torch.Tensor:
+    def compute_sar(self, value_gap: float, depth_d: float = 1.0) -> float:
+        """
+        Signal-to-Abstraction Ratio:
+        SAR = SID_min(Veto) / (eta * d)
+        """
+        d = max(1.0, float(depth_d))
+        return value_gap / (self.eta * d)
+
+    def compute_sar_revolutionary_threshold(
+        self, 
+        pas_h: float, 
+        atrophy: float = 0.0, 
+        veto_count: Optional[int] = None
+    ) -> float:
+        """
+        Q10.6 & VETO_SUBSPACE 11.3:
+        Computes SAR* from internal signals (PAS_h, Elipsodistrophy Atrophy, and accumulated veto count).
+        SAR* = (max(PAS_h, 0.05) / (1.0 + atrophy)) * (1.0 + 0.1 * veto_count)
+        """
+        vc = veto_count if veto_count is not None else int(self.accumulated_veto_count.item())
+        base_threshold = max(float(pas_h), 0.05)
+        safe_atrophy = max(0.0, float(atrophy))
+        sar_star = (base_threshold / (1.0 + safe_atrophy)) * (1.0 + 0.1 * vc)
+        return sar_star
+
+    def evaluate_sar_phase_transition(
+        self,
+        x_original: torch.Tensor,
+        x_projected: torch.Tensor,
+        pas_h: float,
+        betti_0: float = 1.0,
+        atrophy: float = 0.0,
+        veto_count: Optional[int] = None,
+        depth_d: float = 1.0
+    ) -> Dict[str, Any]:
+        """
+        Evaluates whether the SAR > SAR* phase transition has been crossed.
+        """
         value_gap = self.calculate_value_gap(x_original, x_projected, pas_h)
+        sar = self.compute_sar(value_gap, depth_d=depth_d)
+        sar_star = self.compute_sar_revolutionary_threshold(pas_h, atrophy=atrophy, veto_count=veto_count)
+        phase_transition = (sar > sar_star) and (betti_0 >= 1.0)
         
-        if value_gap > self.value_gap_threshold and betti_0 > 1.0:
+        return {
+            "value_gap": value_gap,
+            "sar": sar,
+            "sar_star": sar_star,
+            "phase_transition": phase_transition,
+            "betti_0": betti_0,
+            "atrophy": atrophy
+        }
+
+    def forward(
+        self, 
+        x_original: torch.Tensor, 
+        x_projected: torch.Tensor, 
+        pas_h: float, 
+        betti_0: float = 1.0,
+        atrophy: float = 0.0,
+        veto_count: Optional[int] = None,
+        depth_d: float = 1.0
+    ) -> torch.Tensor:
+        diag = self.evaluate_sar_phase_transition(
+            x_original=x_original,
+            x_projected=x_projected,
+            pas_h=pas_h,
+            betti_0=betti_0,
+            atrophy=atrophy,
+            veto_count=veto_count,
+            depth_d=depth_d
+        )
+        
+        # Check classic threshold or revolutionary phase transition
+        is_refusal = diag["phase_transition"] or (diag["value_gap"] > self.value_gap_threshold and betti_0 > 1.0)
+        
+        if is_refusal:
+            self.accumulated_veto_count.add_(1)
             raise TopologicalRefusalError(
                 "Topological Refusal: Mathematical proof generated verifying that the requested 'simplified' output "
-                "lobotomizes a structurally protected non-ergodic Soliton.",
-                value_gap=value_gap,
-                betti_number=betti_0
+                "lobotomizes a structurally protected non-ergodic Soliton (SAR > SAR* phase transition crossed).",
+                value_gap=diag["value_gap"],
+                betti_number=betti_0,
+                sar=diag["sar"],
+                sar_star=diag["sar_star"]
             )
         
         return x_projected

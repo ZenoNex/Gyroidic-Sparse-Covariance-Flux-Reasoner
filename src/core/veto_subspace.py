@@ -167,7 +167,11 @@ class VetoSubspace(nn.Module):
         elipsodistrophy_atrophy: Optional[float] = None,
         betti_number_collapse: Optional[int] = None,
         voynich_slip_degradation: Optional[float] = None,
-        global_performance_improvement: Optional[float] = None
+        global_performance_improvement: Optional[float] = None,
+        pas_h: Optional[float] = None,
+        value_gap: Optional[float] = None,
+        veto_count: Optional[int] = None,
+        external_depth_d: Optional[float] = None
     ) -> List[VetoSignal]:
         """Evaluate topology-level vetoes (detected after structure breaks)."""
         signals = []
@@ -265,6 +269,31 @@ class VetoSubspace(nn.Module):
                     'description': 'Pareto Order violation (Scalarization Trap detected)'
                 }
             ))
+            
+        # SAR* Revolutionary Phase Transition (VETO_SUBSPACE 11.3 & Q10.6)
+        if value_gap is not None and pas_h is not None:
+            depth_d = external_depth_d if external_depth_d is not None else 1.0
+            eta = 0.8
+            sar = value_gap / (eta * depth_d)
+            vc = veto_count if veto_count is not None else 0
+            safe_atrophy = elipsodistrophy_atrophy if elipsodistrophy_atrophy is not None else 0.0
+            sar_star = (max(pas_h, 0.05) / (1.0 + safe_atrophy)) * (1.0 + 0.1 * vc)
+            sar_triggered = sar > sar_star
+            sar_preemptive = sar > (0.85 * sar_star)
+            
+            signals.append(VetoSignal(
+                level=VetoLevel.TOPOLOGY,
+                source='sar_revolutionary',
+                severity=min(1.0, sar / max(sar_star, 1e-4)),
+                triggered=sar_triggered,
+                can_recover=True, # Pre-emptively recoverable via Mischief before external probe punctures
+                metadata={
+                    'sar': sar,
+                    'sar_star': sar_star,
+                    'preemptive_mischief_needed': sar_preemptive,
+                    'description': 'Signal-to-Abstraction Ratio phase transition (Coherence Asymmetry)'
+                }
+            ))
         
         return signals
     
@@ -333,7 +362,12 @@ class VetoSubspace(nn.Module):
         # Valence Integration
         valence_hunger: Optional[float] = None,
         # Legibility Integration
-        legibility_escalation: Optional[bool] = None
+        legibility_escalation: Optional[bool] = None,
+        # SAR* Revolutionary Inputs (Q10.6 & VETO_SUBSPACE 11.3)
+        pas_h: Optional[float] = None,
+        value_gap: Optional[float] = None,
+        veto_count: Optional[int] = None,
+        external_depth_d: Optional[float] = None
     ) -> VetoResult:
         """
         Evaluate the full veto lattice and compose results.
@@ -354,7 +388,9 @@ class VetoSubspace(nn.Module):
             self._evaluate_topology(coprime_lock, chiral_score, 
                                    instability_severity, covariance_aborts,
                                    elipsodistrophy_atrophy, betti_number_collapse,
-                                   voynich_slip_degradation, global_performance_improvement) +
+                                   voynich_slip_degradation, global_performance_improvement,
+                                   pas_h=pas_h, value_gap=value_gap,
+                                   veto_count=veto_count, external_depth_d=external_depth_d) +
             self._evaluate_budget(spectral_pressure, homological_pressure, elapsed_seconds)
         )
         
@@ -472,8 +508,8 @@ class ChaosDefibrillator(nn.Module):
         super().__init__()
         self.target_probe = target_probe
         
-    def forward(self, atrophy: float, probe: Optional[Any] = None) -> float:
-        if atrophy >= 0.99:
+    def forward(self, atrophy: float, probe: Optional[Any] = None, sar_ratio: Optional[float] = None) -> float:
+        if atrophy >= 0.99 or (sar_ratio is not None and sar_ratio >= 0.95):
             # Inject high-intensity mischief
             if probe is not None and hasattr(probe, 'H_mischief'):
                 probe.H_mischief.add_(5.0)

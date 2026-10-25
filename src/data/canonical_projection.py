@@ -24,6 +24,7 @@ from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.models.diegetic_heads import DataAssociationLayer
 from src.topology.gyroid_covariance import GyroidCovarianceEstimator
 from src.core.invariants import apply_asymmetry_preserving_reshape
+from src.codec.conformal_log_polar import ConformalLogPolarProjector
 
 
 class CanonicalProjector:
@@ -43,6 +44,8 @@ class CanonicalProjector:
         self.associator = DataAssociationLayer(input_dim=dim, hidden_dim=dim, k=k).to(device, non_blocking=True)
         # Covariance estimator for energy/entropy
         self.gyroid_cov = GyroidCovarianceEstimator(dim=dim, sample_size=16)
+        # Foveal scale and rotation invariance projector
+        self.log_polar = ConformalLogPolarProjector(resolution_r=64, resolution_theta=64).to(device)
         
         # Backward-compat toggles for old encodings/frontends
         self.backward_compat = True
@@ -122,16 +125,16 @@ class CanonicalProjector:
     # -----------------------------
     # Image/multiscale projection
     # -----------------------------
-    def project_multiscale_image(self, levels: List[torch.Tensor], weights: Optional[List[float]] = None) -> Dict[str, Any]:
+    def project_multiscale_image(self, levels: List[torch.Tensor], weights: Optional[List[float]] = None, use_log_polar: bool = True) -> Dict[str, Any]:
         """
-        Project multi-scale image features to [1, dim] with optional adaptive coefficient windowing.
+        Project multi-scale image features to [1, dim] with optional adaptive coefficient windowing and conformal log-polar unrolling.
         Backward-compatible: if called with flat features, still returns fused state/entropy.
         """
         states = []
         entropies = []
         windows = []
         for feat in levels:
-            state = self._feature_to_state(feat)
+            state = self._feature_to_state(feat, use_log_polar=use_log_polar)
             states.append(state)
             entropies.append(float(self.gyroid_cov.estimate_entropy(state).item()))
             # Build simple edge-based coefficient window from feature if 2D-like
@@ -176,11 +179,16 @@ class CanonicalProjector:
     # -----------------------------
     # Internal helpers
     # -----------------------------
-    def _feature_to_state(self, feat: torch.Tensor) -> torch.Tensor:
-        """Map a flat or 2D feature to [1, dim] with residue-aware reconstruction."""
+    def _feature_to_state(self, feat: torch.Tensor, use_log_polar: bool = True) -> torch.Tensor:
+        """Map a flat or 2D feature to [1, dim] with residue-aware reconstruction and conformal log-polar unrolling."""
         f = feat
         if f.dim() >= 2:
             f = f.float().to(self.device, non_blocking=True)
+            if use_log_polar and hasattr(self, 'log_polar') and f.shape[-1] >= 4 and f.shape[-2] >= 4:
+                try:
+                    f = self.log_polar(f)
+                except Exception:
+                    pass
             # Reduce 2D map to 1D via average pooling over one axis then flatten
             pooled = f.mean(dim=0).flatten()
         else:
@@ -223,7 +231,7 @@ class CanonicalProjector:
     # -----------------------------
     # Advanced image path with pyramids/aspect handling
     # -----------------------------
-    def project_image_path_to_state(self, path: str, max_pixels: int = 1_000_000, long_edges: Optional[List[int]] = None) -> Dict[str, Any]:
+    def project_image_path_to_state(self, path: str, max_pixels: int = 1_000_000, long_edges: Optional[List[int]] = None, use_log_polar: bool = True) -> Dict[str, Any]:
         """
         Load an image robustly, build an adaptive multi-scale representation, and project to [1, dim].
         Preserves backward compatibility by always returning finite numeric outputs.
@@ -248,7 +256,7 @@ class CanonicalProjector:
         edge0 = self._compute_edge_field(l0_t)
         group0 = self._compute_group_field(l0_t, edge0)
         win0 = self._field_to_coeff_window(edge0, group0)
-        st0 = self._feature_to_state(l0_t)
+        st0 = self._feature_to_state(l0_t, use_log_polar=use_log_polar)
 
         # Gating for L1 based on entropy/edge
         ent0 = float(self.gyroid_cov.estimate_entropy(st0).item())
@@ -263,7 +271,7 @@ class CanonicalProjector:
             edge1 = self._compute_edge_field(l1_t)
             group1 = self._compute_group_field(l1_t, edge1)
             win1 = self._field_to_coeff_window(edge1, group1)
-            st1 = self._feature_to_state(l1_t)
+            st1 = self._feature_to_state(l1_t, use_log_polar=use_log_polar)
             states.append(st1)
             entropies.append(float(self.gyroid_cov.estimate_entropy(st1).item()))
             windows.append(win1)
