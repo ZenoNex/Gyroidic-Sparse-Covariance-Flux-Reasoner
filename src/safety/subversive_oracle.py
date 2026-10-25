@@ -73,7 +73,8 @@ class ResonantSVNNOracle(nn.Module):
     ):
         super().__init__()
         self.hidden_dim = hidden_dim
-        self.orchestrator = orchestrator
+        import weakref
+        self._orchestrator_ref = weakref.ref(orchestrator) if orchestrator is not None else None
         self.pce = SparsePCE(hidden_dim=hidden_dim, degree=4)
         self.covariance_probe = SparseGyroidCovarianceProbe(
             hidden_dim=hidden_dim,
@@ -86,6 +87,10 @@ class ResonantSVNNOracle(nn.Module):
         
         # Hard threshold for sparsifying covariance to eliminate spurious correlations
         self.sparsity_threshold = 0.1
+
+    @property
+    def orchestrator(self):
+        return self._orchestrator_ref() if self._orchestrator_ref is not None else None
 
     @property
     def containment_pressure_threshold(self) -> float:

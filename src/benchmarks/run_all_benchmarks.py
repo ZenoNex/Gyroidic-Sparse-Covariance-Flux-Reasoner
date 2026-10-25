@@ -131,9 +131,18 @@ class BenchmarkSuiteRunner:
         }
         return final_summary
 
+    async def async_run_all(self) -> Dict[str, Any]:
+        """Asynchronously executes all 7 benchmark suites in a background thread."""
+        import asyncio
+        return await asyncio.to_thread(self.run_all)
+
 def run_all_benchmarks(device: str = 'cpu') -> Dict[str, Any]:
     runner = BenchmarkSuiteRunner(device=device)
     return runner.run_all()
+
+async def run_all_benchmarks_async(device: str = 'cpu') -> Dict[str, Any]:
+    runner = BenchmarkSuiteRunner(device=device)
+    return await runner.async_run_all()
 
 if __name__ == "__main__":
     results = run_all_benchmarks()

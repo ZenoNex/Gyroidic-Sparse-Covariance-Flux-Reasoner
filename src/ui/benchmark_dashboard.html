@@ -1249,30 +1249,55 @@
             }
         }
 
-        async function fetchLiveTelemetry() {
+        window.fetchLiveTelemetry = async function() {
             try {
                 const res = await fetch('/api/benchmark/status');
                 if (res.ok) {
                     const data = await res.json();
                     if (data.status === 'ok') {
                         const live = data.live_benchmarks || {};
-                        appendConsole(`[LIVE TELEMETRY POLL] Fetched live background metrics at ${new Date().toLocaleTimeString()}`);
+                        const suite = data.suite_results || {};
+                        appendConsole(`[LIVE TELEMETRY POLL] Fetched backend status at ${new Date().toLocaleTimeString()}`);
                         if (live.topobench && live.topobench.twist_energy !== undefined) {
                             document.getElementById('val-topo-1').innerText = `Live Twist: ${live.topobench.twist_energy.toFixed(4)}`;
                         }
                         if (live.reactbench && live.reactbench.reconstruction_pressure !== undefined) {
                             document.getElementById('val-react-1').innerText = `Live Press: ${live.reactbench.reconstruction_pressure.toFixed(4)}`;
                         }
+                        if (live.narrative && live.narrative.active_hunger !== undefined) {
+                            const valNarr = document.getElementById('val-narr-1');
+                            if (valNarr) valNarr.innerText = `Hunger: ${live.narrative.active_hunger.toFixed(3)}`;
+                        }
+                        // If latest suite results exist from previous runs, render them
+                        if (suite.TopoBenchEvaluator) renderTopoBenchReport(suite.TopoBenchEvaluator);
+                        if (suite.ReactBenchEvaluator) renderReactBenchReport(suite.ReactBenchEvaluator);
+                        if (suite.NarrativeYieldEvaluator) renderNarrativeReport(suite.NarrativeYieldEvaluator);
+                        if (suite.AIReasonerEvaluator) renderAIReasonerReport(suite.AIReasonerEvaluator);
+                        if (suite.ChordlockEvaluator) renderChordlockReport(suite.ChordlockEvaluator);
+                        if (suite.MemoryPalaceEvaluator) renderMemoryPalaceReport(suite.MemoryPalaceEvaluator);
+                        if (suite.TopologicalSingularityEvaluator) renderSingularitiesReport(suite.TopologicalSingularityEvaluator);
                     }
                 }
             } catch (err) {
                 console.warn('Could not poll /api/benchmark/status:', err);
             }
-        }
+        };
 
-        // Initial poll on load
+        // Listen for postMessage from parent diegetic terminal
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'REFRESH_BENCHMARKS') {
+                window.fetchLiveTelemetry();
+            }
+        });
+
+        // Initial poll on load with scheduled retries while engine warms up
         window.addEventListener('DOMContentLoaded', () => {
-            fetchLiveTelemetry();
+            window.fetchLiveTelemetry();
+            // Retry after 1.5s and 4.0s to synchronize with async backend boot
+            setTimeout(window.fetchLiveTelemetry, 1500);
+            setTimeout(window.fetchLiveTelemetry, 4000);
+            // Standalone periodic refresh every 15s
+            setInterval(window.fetchLiveTelemetry, 15000);
         });
     </script>
 </body>

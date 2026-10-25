@@ -37,12 +37,12 @@ class InvestorNewsIngestor(nn.Module):
         self.state_dim = state_dim
         self.user_agent = user_agent
         self.larynx = larynx
-        self.engine = engine
+        import weakref
+        self._engine_ref = weakref.ref(engine) if engine is not None else None
         self.maml_adapter = maml_adapter
         self.rp_cache: Dict[str, urllib.robotparser.RobotFileParser] = {}
         self._feed_cache: Dict[str, Any] = {}
-        
-        # Linear projection for market sentiment to state space
+
         self.sentiment_proj = nn.Linear(state_dim, state_dim, bias=False)
         nn.init.orthogonal_(self.sentiment_proj.weight, gain=0.25)
         
@@ -55,6 +55,10 @@ class InvestorNewsIngestor(nn.Module):
             "commercial real estate land rent debt",
             "interbank counterparty clearing stress"
         ]
+
+    @property
+    def engine(self):
+        return self._engine_ref() if hasattr(self, '_engine_ref') and self._engine_ref is not None else None
 
     def set_larynx(self, larynx: Any):
         """Connect external Larynx module for autoregressive market query generation."""

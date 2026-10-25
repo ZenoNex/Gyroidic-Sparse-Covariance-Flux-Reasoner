@@ -244,6 +244,11 @@ class AIReasonerEvaluator:
         results['success'] = (results['passed_count'] == results['total_count'])
         return results
 
+    async def async_run_suite(self) -> Dict[str, Any]:
+        """Asynchronously executes the AIReasoner suite in a background thread."""
+        import asyncio
+        return await asyncio.to_thread(self.run_suite)
+
 
 if __name__ == "__main__":
     evaluator = AIReasonerEvaluator()

@@ -126,6 +126,11 @@ class ChordlockEvaluator:
         results['success'] = (results['passed_count'] == results['total_count'])
         return results
 
+    async def async_run_suite(self) -> Dict[str, Any]:
+        """Asynchronously executes the Chordlock suite in a background thread."""
+        import asyncio
+        return await asyncio.to_thread(self.run_suite)
+
 
 def run_chordlock_benchmark(device: str = 'cpu') -> Dict[str, Any]:
     evaluator = ChordlockEvaluator(device=device)

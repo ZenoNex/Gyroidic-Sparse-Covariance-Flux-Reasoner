@@ -119,7 +119,8 @@ class DirectBirkhoffProjection(nn.Module):
         # Explicitly free memory
         del A
         del A_inv
-        if device is not None and device.type == 'cuda':
+        dev_type = device.type if hasattr(device, 'type') else str(device)
+        if dev_type == 'cuda':
             torch.cuda.empty_cache()
 
     def forward(self, T: torch.Tensor) -> torch.Tensor:

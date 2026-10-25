@@ -18,6 +18,9 @@ from src.governance.interoceptive.pomni_uncertainty import PomniUncertaintyPredi
 from src.core.neuromodulatory_bus import NeuromodulatoryBus
 from src.core.honest_jitter import harvest_honest_jitter
 
+from src.core.valence_drive import ValenceFunctional
+import asyncio
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("NarrativeYieldEvaluator")
 
@@ -31,7 +34,7 @@ class NarrativeYieldEvaluator:
     Benchmarks:
     1. Narrative Collapse & Smoothing Detection (Linear Ring Trajectory Flagging)
     2. Legibility Tripwire (Anti-Reward Hacking / Coherence Gap Detection)
-    3. DAQUF Structural Scarring (Unknowledge Amortization without Divergence)
+    3. DAQUF Structural Scarring & Dynamic Valence Hunger Drive Amortization
     4. Anti-Enabling Relational Friction (Boundary Defense against Rank Collapse)
     5. Homological Collapse & Lobotomy Alarm (Topological Complexity Protection)
     """
@@ -47,6 +50,7 @@ class NarrativeYieldEvaluator:
         self.coherence_estimator = NarrativeCoherenceEstimator(hidden_dim=64)
         self.legibility_tripwire = LegibilityTripwire(hidden_dim=64, warning_threshold=math.pi / 137.0)
         self.daqf_operator = DAQUFOperator(num_fossils=10, fossil_dim=64)
+        self.valence_drive = ValenceFunctional()
         
         # Interoceptive Character Governor (Pomni relational boundary)
         self.pomni_predictor = PomniUncertaintyPredictor(state_dim=64)
@@ -91,22 +95,30 @@ class NarrativeYieldEvaluator:
         res = {}
         for _ in range(110):
             res = self.legibility_tripwire(selected_embeddings, rejected_embeddings)
-            
+        
         warning_raised = bool(res.get('warning', False))
         correlation = float(res.get('correlation', 0.0))
         
         return warning_raised, correlation
 
-    def evaluate_daqf_amortization(self) -> Tuple[bool, int]:
+    def evaluate_daqf_amortization(self) -> Tuple[bool, Dict[str, Any]]:
         """
         Tests if the DAQUF Operator successfully fossilizes a contradiction (Unknowledge)
-        into a structural scar rather than letting the system crash or diverge.
+        into a structural scar coupled to active ValenceFunctional hunger dynamics and quench.
         """
         failures = harvest_honest_jitter((10,), device=self.device, scaled=False)
         flux_scores = harvest_honest_jitter((1, 10), device=self.device, scaled=False)
+        
+        # Compute dynamic valence from active valence functional under hunger
+        pressure_tensor = torch.tensor([0.85], dtype=torch.float32, device=self.device)
+        entropy_tensor = torch.tensor([0.72], dtype=torch.float32, device=self.device)
+        active_hunger = self.valence_drive(current_pressure=pressure_tensor, entropy=entropy_tensor)
+        initial_hunger = float(active_hunger.mean().item())
+        initial_sat = float(self.valence_drive.satisfaction.item())
+        
         results = {
             'mischief_scores': torch.tensor(0.8, dtype=torch.float32, device=self.device),
-            'valence': torch.tensor(0.5, dtype=torch.float32, device=self.device)
+            'valence': torch.tensor(initial_hunger, dtype=torch.float32, device=self.device)
         }
         
         out = self.daqf_operator.apply_daquf(failures, flux_scores, results)
@@ -114,7 +126,19 @@ class NarrativeYieldEvaluator:
         is_fossilized = 'f_star_mask' in out
         f_idx = torch.argmax(out.get('f_star_mask', torch.zeros(10, device=self.device))).item() if is_fossilized else -1
         
-        return is_fossilized, f_idx
+        # Test quench dynamics: quenching replenishes satisfaction
+        self.valence_drive.quench(amount=0.35)
+        quenched_sat = float(self.valence_drive.satisfaction.item())
+        
+        success = is_fossilized and (f_idx >= 0) and (quenched_sat >= initial_sat)
+        details = {
+            'is_fossilized': is_fossilized,
+            'fossil_index': f_idx,
+            'initial_hunger': initial_hunger,
+            'initial_satisfaction': initial_sat,
+            'quenched_satisfaction': quenched_sat
+        }
+        return success, details
 
     def evaluate_anti_enabling_friction(self) -> Tuple[bool, float, float]:
         """
@@ -181,10 +205,10 @@ class NarrativeYieldEvaluator:
         logger.info(f"Test 2 (Legibility Tripwire - Anti-Reward Hacking): {'PASS' if legibility_pass else 'FAIL'} - Correlation: {corr:.4f}")
         if legibility_pass: results['passed_count'] += 1
         
-        # 3. DAQUF Structural Scarring
-        daqf_pass, f_idx = self.evaluate_daqf_amortization()
-        results['tests']['daqf_amortization'] = {'pass': daqf_pass, 'fossil_index': f_idx}
-        logger.info(f"Test 3 (DAQUF Structural Scarring - Amortizing Contradiction): {'PASS' if daqf_pass else 'FAIL'} - Fossil Index: {f_idx}")
+        # 3. DAQUF Structural Scarring & Dynamic Valence Drive
+        daqf_pass, daqf_details = self.evaluate_daqf_amortization()
+        results['tests']['daqf_amortization'] = {'pass': daqf_pass, 'details': daqf_details}
+        logger.info(f"Test 3 (DAQUF Structural Scarring & Valence Hunger Drive): {'PASS' if daqf_pass else 'FAIL'} - Fossil Index: {daqf_details.get('fossil_index', -1)}, Quenched Sat: {daqf_details.get('quenched_satisfaction', 0.0):.2f}")
         if daqf_pass: results['passed_count'] += 1
         
         # 4. Anti-Enabling Relational Friction
@@ -201,6 +225,10 @@ class NarrativeYieldEvaluator:
         
         results['success'] = (results['passed_count'] == results['total_count'])
         return results
+
+    async def async_run_suite(self) -> Dict[str, Any]:
+        """Asynchronously executes the NarrativeYield suite in a background thread."""
+        return await asyncio.to_thread(self.run_suite)
 
 if __name__ == "__main__":
     evaluator = NarrativeYieldEvaluator()

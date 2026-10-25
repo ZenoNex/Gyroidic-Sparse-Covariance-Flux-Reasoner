@@ -1034,9 +1034,9 @@
                 style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-magenta);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;width:100px;border-radius:3px;outline:none;letter-spacing:1px;">
             <span style="color:#333;">│</span>
             <span id="creator-lock-status" style="color:var(--terminal-green);cursor:pointer;font-weight:bold;"
-                onclick="promptCreatorAuth()">🔓 GUEST</span>
+                onclick="promptCreatorAuth()">[GUEST]</span>
             <span style="color:#333;">│</span>
-            <button id="btn-top-launch-viewer" onclick="launchPickleViewerGUI()" style="background:rgba(255,0,242,0.15);border:1px solid var(--terminal-magenta);color:#fff;font-family:var(--font-mono);font-size:0.65rem;padding:3px 8px;border-radius:3px;cursor:pointer;font-weight:bold;transition:all 0.2s;" title="Boot standalone C++ accelerated DearPyGui / Tkinter Fossil and Pickle Encoding Viewer">⚡ LAUNCH FOSSIL / PICKLE VIEWER</button>
+            <button id="btn-top-launch-viewer" onclick="launchPickleViewerGUI()" style="background:rgba(255,0,242,0.15);border:1px solid var(--terminal-magenta);color:#fff;font-family:var(--font-mono);font-size:0.65rem;padding:3px 8px;border-radius:3px;cursor:pointer;font-weight:bold;transition:all 0.2s;" title="Boot standalone C++ accelerated DearPyGui / Tkinter Fossil and Pickle Encoding Viewer">LAUNCH FOSSIL / PICKLE VIEWER</button>
         </div>
     </header>
 
@@ -1644,7 +1644,7 @@
 
             <!-- Tab: Evaluators Dashboard -->
             <div class="tab-pane" id="pane-evaluators" style="background: #030303; flex: 1; position: relative;">
-                <iframe src="benchmark_dashboard.html" style="width: 100%; height: 100%; border: none;"></iframe>
+                <iframe id="evaluators-iframe" name="evaluators-iframe" src="benchmark_dashboard.html" style="width: 100%; height: 100%; border: none;"></iframe>
             </div>
 
             <!-- Tab: Voxelboxter Simulation -->
@@ -2465,6 +2465,9 @@
                     if (tab.dataset.tab === "freenet") {
                         setTimeout(refreshFreenetStatus, 100);
                     }
+                    if (tab.dataset.tab === "evaluators") {
+                        setTimeout(refreshEvaluatorsDashboard, 100);
+                    }
                     initialized = true;
                 }
 
@@ -2490,6 +2493,9 @@
                     }
                     if (tab.dataset.tab === "freenet") {
                         refreshFreenetStatus();
+                    }
+                    if (tab.dataset.tab === "evaluators") {
+                        refreshEvaluatorsDashboard();
                     }
                 });
             });
@@ -2517,6 +2523,22 @@
             div.innerHTML = `<span style="color:#666;">[${timeStr}]</span> ${msg}`;
             consoleEl.appendChild(div);
             consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function refreshEvaluatorsDashboard() {
+            const iframe = document.getElementById('evaluators-iframe');
+            if (iframe && iframe.contentWindow) {
+                try {
+                    if (typeof iframe.contentWindow.fetchLiveTelemetry === 'function') {
+                        iframe.contentWindow.fetchLiveTelemetry();
+                    } else {
+                        iframe.contentWindow.postMessage({ type: 'REFRESH_BENCHMARKS' }, '*');
+                    }
+                } catch (e) {
+                    // Fallback to iframe reload if cross-origin or uninitialized
+                    iframe.src = iframe.src;
+                }
+            }
         }
 
         async function refreshFreenetStatus() {
@@ -2768,10 +2790,10 @@
                 const lockEl = document.getElementById('creator-lock-status');
                 if (lockEl) {
                     if (data.initialized) {
-                        lockEl.textContent = "🔒 LOCKED GUEST";
+                        lockEl.textContent = "[LOCKED GUEST]";
                         lockEl.style.color = "var(--terminal-blue)";
                     } else {
-                        lockEl.textContent = "🔓 REGISTER SOLE CREATOR";
+                        lockEl.textContent = "[REGISTER SOLE CREATOR]";
                         lockEl.style.color = "var(--terminal-yellow)";
                     }
                 }
@@ -2803,11 +2825,11 @@
                 const lockEl = document.getElementById('creator-lock-status');
                 if (lockEl) {
                     if (data.status === 'ok') {
-                        lockEl.textContent = "🔑 SOLE CREATOR";
+                        lockEl.textContent = "[SOLE CREATOR]";
                         lockEl.style.color = "var(--terminal-magenta)";
                         lockEl.style.textShadow = "0 0 8px var(--terminal-magenta)";
                     } else {
-                        lockEl.textContent = "❌ AUTH FAILED";
+                        lockEl.textContent = "[AUTH FAILED]";
                         lockEl.style.color = "red";
                     }
                 }

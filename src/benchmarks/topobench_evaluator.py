@@ -7,6 +7,7 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 import torch
+import asyncio
 import logging
 from typing import Dict, Any, Tuple
 
@@ -15,6 +16,8 @@ from src.core.polynomial_coprime import PolynomialCoprimeConfig
 from src.core.love_invariant_protector import LoveInvariantProtector
 from src.topology.speculative_homology import SpeculativeHomologyEngine
 from src.topology.gyroid_differentiation import GyroidFlowConstraint
+from src.core.cayley_cubic_probe import CayleyCubicProbe
+from src.core.birkhoff_projection import DirectBirkhoffProjection
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("TopoBenchEvaluator")
@@ -30,6 +33,8 @@ class TopoBenchEvaluator:
     3. Anti-Lobotomy Geometric Shield (Love Invariant Null-Space Projection)
     4. Persistent Homology & Euler Characteristic Preservation (Betti 0 / Betti 1)
     5. Gyroid Flow Orthogonality & Minimal Surface Invariant (Orthogonal Flow Constraint)
+    6. Folium of Descartes Transversality & Reciprocal Exchange (Smooch dy/dx = -1.0)
+    7. Birkhoff Polytope Doubly Stochastic Subspace Integrity (Sturmfels-Thomas Row/Col Conservation)
     """
     def __init__(self, manifold_dim: int = 3, level_k: int = 1, device: str = 'cpu'):
         self.manifold_dim = manifold_dim
@@ -58,6 +63,13 @@ class TopoBenchEvaluator:
         
         # Gyroid Geometric Flow Constraint
         self.flow_constraint = GyroidFlowConstraint(tolerance=0.05)
+
+        # Cayley-Folium Transversal Probe
+        self.cayley_probe = CayleyCubicProbe(folium_scale=1.0)
+
+        # Birkhoff Sturmfels-Thomas Direct Projector
+        self.birkhoff_dim = 4
+        self.birkhoff_projector = DirectBirkhoffProjection(n=self.birkhoff_dim, device=device)
         
         logger.info(f"Initialized TopoBench Evaluator (dim={manifold_dim}, level_k={level_k})")
 
@@ -172,6 +184,56 @@ class TopoBenchEvaluator:
         
         return is_orthogonal, max_violation
 
+    def evaluate_folium_transversality(self) -> Tuple[bool, Dict[str, float]]:
+        """
+        Tests the Folium of Descartes Transversal Smooch (x^3 + y^3 - 3axy = 0).
+        Verifies that at the symmetric loop point (1.5a, 1.5a) the implicit derivative
+        dy/dx equals -1.0, representing exact reciprocal exchange (dx + dy = 0)
+        and Phase Alignment (PAS_h) without collapsing topological complexity.
+        """
+        smooch_coords = torch.tensor([[1.5, 1.5]], dtype=torch.float32, device=self.device)
+        smooch_eval = self.cayley_probe.evaluate_transversal_smooch(smooch_coords, a=1.0, tol=0.1)
+        
+        slope = float(smooch_eval["slope"].item())
+        residual = float(smooch_eval["residual"].item())
+        is_smooch = bool(smooch_eval["is_transversal_smooch"].item())
+        
+        # dy/dx must be -1.0 within tolerance, and implicit residual must be 0
+        slope_error = abs(slope - (-1.0))
+        success = (slope_error < 0.05) and (residual < 0.05) and is_smooch
+        details = {
+            'slope': slope,
+            'residual': residual,
+            'slope_error': slope_error,
+            'is_smooch': is_smooch
+        }
+        return success, details
+
+    def evaluate_birkhoff_polytope_integrity(self) -> Tuple[bool, float]:
+        """
+        Tests the Sturmfels-Thomas direct projection onto the Birkhoff polytope.
+        Verifies exact conservation of doubly stochastic constraints:
+        sum_j T_{ij} = 1.0 and sum_i T_{ij} = 1.0 without iterative drift.
+        """
+        # Unconstrained arbitrary transfer matrix
+        t_raw = torch.tensor([
+            [2.5, 0.1, -0.4, 1.2],
+            [0.3, 3.1, 0.0, -1.0],
+            [-0.5, 0.2, 2.0, 1.5],
+            [1.0, -0.8, 0.5, 2.2]
+        ], dtype=torch.float32, device=self.device).unsqueeze(0)
+        
+        t_proj = self.birkhoff_projector(t_raw).squeeze(0)
+        row_sums = torch.sum(t_proj, dim=-1)
+        col_sums = torch.sum(t_proj, dim=-2)
+        
+        row_err = torch.max(torch.abs(row_sums - 1.0)).item()
+        col_err = torch.max(torch.abs(col_sums - 1.0)).item()
+        max_err = max(row_err, col_err)
+        
+        success = max_err < 1e-4
+        return success, max_err
+
     def run_suite(self) -> Dict[str, Any]:
         """Runs the complete TopoBench suite and returns aggregated metrics."""
         logger.info("Running TopoBench Topological Constraint Suite via Core Codebase...")
@@ -179,7 +241,7 @@ class TopoBenchEvaluator:
             'suite_name': 'TopoBenchEvaluator',
             'tests': {},
             'passed_count': 0,
-            'total_count': 5,
+            'total_count': 7,
             'success': False
         }
         
@@ -223,11 +285,28 @@ class TopoBenchEvaluator:
         results['tests']['gyroid_flow'] = {'pass': flow_pass, 'violation': flow_violation}
         logger.info(f"Test 5 (Gyroid Flow Orthogonality Constraint): {'PASS' if flow_pass else 'FAIL'} - Violation: {flow_violation:.6e}")
         if flow_pass: results['passed_count'] += 1
+
+        # 6. Folium of Descartes Transversality
+        folium_pass, folium_details = self.evaluate_folium_transversality()
+        results['tests']['folium_transversality'] = {'pass': folium_pass, 'details': folium_details}
+        logger.info(f"Test 6 (Folium Transversal Smooch & Reciprocal Exchange): {'PASS' if folium_pass else 'FAIL'} - Slope: {folium_details['slope']:.4f}")
+        if folium_pass: results['passed_count'] += 1
+
+        # 7. Birkhoff Polytope Doubly Stochastic Subspace Integrity
+        birkhoff_pass, birkhoff_err = self.evaluate_birkhoff_polytope_integrity()
+        results['tests']['birkhoff_polytope_integrity'] = {'pass': birkhoff_pass, 'max_error': birkhoff_err}
+        logger.info(f"Test 7 (Birkhoff Doubly Stochastic Subspace Integrity): {'PASS' if birkhoff_pass else 'FAIL'} - Max Error: {birkhoff_err:.2e}")
+        if birkhoff_pass: results['passed_count'] += 1
         
         results['success'] = (results['passed_count'] == results['total_count'])
         return results
+
+    async def async_run_suite(self) -> Dict[str, Any]:
+        """Asynchronously executes the TopoBench suite in a background thread."""
+        return await asyncio.to_thread(self.run_suite)
 
 if __name__ == "__main__":
     evaluator = TopoBenchEvaluator()
     res = evaluator.run_suite()
     sys.exit(0 if res['success'] else 1)
+
