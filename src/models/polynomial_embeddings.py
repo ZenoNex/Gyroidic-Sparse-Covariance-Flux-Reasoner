@@ -168,19 +168,52 @@ class PolynomialFunctionalEmbedder(nn.Module):
 
         if self.use_text:
             if text_emb is not None:
-                modality_features.append(self.text_proj(text_emb))
+                if text_emb.shape[-1] != self.text_proj.in_features:
+                    in_feat = self.text_proj.in_features
+                    if text_emb.dim() >= 2:
+                        orig_shape = text_emb.shape
+                        flat_t = text_emb.reshape(-1, orig_shape[-1])
+                        adapted_t = torch.nn.functional.adaptive_avg_pool1d(
+                            flat_t.unsqueeze(1), in_feat
+                        ).squeeze(1).reshape(*orig_shape[:-1], in_feat)
+                        modality_features.append(self.text_proj(adapted_t))
+                    else:
+                        adapted_t = torch.nn.functional.adaptive_avg_pool1d(
+                            text_emb.unsqueeze(0).unsqueeze(1), in_feat
+                        ).squeeze()
+                        modality_features.append(self.text_proj(adapted_t))
+                else:
+                    modality_features.append(self.text_proj(text_emb))
             else:
                 modality_features.append(torch.zeros(*prefix_shape, self.text_proj.out_features, device=device, dtype=dtype))
         
         if self.use_graph:
             if graph_emb is not None:
-                modality_features.append(self.graph_proj(graph_emb))
+                if graph_emb.shape[-1] != self.graph_proj.in_features:
+                    in_feat = self.graph_proj.in_features
+                    orig_shape = graph_emb.shape
+                    flat_g = graph_emb.reshape(-1, orig_shape[-1])
+                    adapted_g = torch.nn.functional.adaptive_avg_pool1d(
+                        flat_g.unsqueeze(1), in_feat
+                    ).squeeze(1).reshape(*orig_shape[:-1], in_feat)
+                    modality_features.append(self.graph_proj(adapted_g))
+                else:
+                    modality_features.append(self.graph_proj(graph_emb))
             else:
                 modality_features.append(torch.zeros(*prefix_shape, self.graph_proj.out_features, device=device, dtype=dtype))
         
         if self.use_num:
             if num_features is not None:
-                modality_features.append(self.num_proj(num_features))
+                if num_features.shape[-1] != self.num_proj.in_features:
+                    in_feat = self.num_proj.in_features
+                    orig_shape = num_features.shape
+                    flat_n = num_features.reshape(-1, orig_shape[-1])
+                    adapted_n = torch.nn.functional.adaptive_avg_pool1d(
+                        flat_n.unsqueeze(1), in_feat
+                    ).squeeze(1).reshape(*orig_shape[:-1], in_feat)
+                    modality_features.append(self.num_proj(adapted_n))
+                else:
+                    modality_features.append(self.num_proj(num_features))
             else:
                 modality_features.append(torch.zeros(*prefix_shape, self.num_proj.out_features, device=device, dtype=dtype))
         
