@@ -33,6 +33,8 @@ from src.core.invariants import (
 )
 from src.core.chern_simons_gasket import ChernSimonsGasket
 
+logger = logging.getLogger(__name__)
+
 @dataclass
 class KnowledgeDyad:
     """
@@ -599,7 +601,7 @@ class DyadFossilizer:
             soliton_entropy = entropy_results['soliton_entropy'].item()
             
             # Anti-Lobotomy: Log the redistributed metrics for verification
-            print(f"[FOSSILIZER] Redistributed Invariants: Chiral={chiral_shift:.4f}, Torsion={chiral_torsion:.4f}, Entropy={spectral_entropy:.4f}", flush=True)
+            logger.debug(f"[FOSSILIZER] Redistributed Invariants: Chiral={chiral_shift:.4f}, Torsion={chiral_torsion:.4f}, Entropy={spectral_entropy:.4f}")
             
             # D. Topological Invariants (Quantum Betti numbers)
             with torch.no_grad():

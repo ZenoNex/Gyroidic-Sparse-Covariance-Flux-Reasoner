@@ -37,7 +37,7 @@ class ZKAggregator:
             json.dump(witness_data, f)
             
         # For the Gyroidic ecosystem, we simulate the snarkjs pipeline if circuits aren't built
-        logger.info(f"[ZKAggregator] Generating proof for {invariant_name}...")
+        logger.debug(f"[ZKAggregator] Generating proof for {invariant_name}...")
         
         # Simulated proof output (until actual circom circuits are defined for the tensor ops)
         proof = {
@@ -64,7 +64,7 @@ class ZKAggregator:
             logger.warning(f"[ZKAggregator] Proof verification failed for {invariant_name}")
             return False
             
-        logger.info(f"[ZKAggregator] Proof verified successfully for {invariant_name}")
+        logger.debug(f"[ZKAggregator] Proof verified successfully for {invariant_name}")
         return True
 
     def prove_chern_simons_invariant(self, state_tensor: torch.Tensor, gauge_field: torch.Tensor) -> dict:

@@ -383,7 +383,7 @@ class BonfireNomadicRing:
         }
         
         self.freenet.publish(self.contract_id, payload)
-        logger.info(f"[BONFIRE] Shared topological signature: Betti={betti_numbers}, Kelly={kelly_fraction:.3f}")
+        logger.debug(f"[BONFIRE] Shared topological signature: Betti={betti_numbers}, Kelly={kelly_fraction:.3f}")
 
         # Puncture Event for Cerumen Pot (Meliponini Topology)
         # If variance is low enough, broadcast to global Freenet boards

@@ -67,6 +67,18 @@ class SiliconSovereigntyEngine:
     - Love Invariant Synchronization: Hardware-level pre-emption on violation.
     """
 
+    _shared_ctx = None
+    _shared_queue_a = None
+    _shared_queue_b = None
+    _shared_device = None
+    _shared_program = None
+    _shared_hardware_layout = None
+    _shared_compute_units = 1
+    _shared_max_work_group_size = 256
+    _shared_max_work_item_sizes = [256, 256, 64]
+    _shared_is_gpu = True
+    _logged_device_init = False
+
     def __init__(self, use_gpu=True, target_lipschitz=1.0, love_protector=None):
         """
         Initialize the SiliconSovereigntyEngine.
@@ -88,6 +100,28 @@ class SiliconSovereigntyEngine:
         
         if not PYOPENCL_AVAILABLE:
             self.logger.warning("PyOpenCL is not installed. Silicon Sovereignty running in CPU Mock mode.")
+            return
+
+        import os
+        has_override = bool(
+            os.environ.get("Sovereign_GPU_Index") or 
+            os.environ.get("GPU_INDEX") or 
+            os.environ.get("PYOPENCL_DEVICE_INDEX")
+        )
+
+        # Fast path: Reuse shared OpenCL context and pre-compiled kernels across instances
+        if use_gpu and not has_override and SiliconSovereigntyEngine._shared_ctx is not None:
+            self.device = SiliconSovereigntyEngine._shared_device
+            self.ctx = SiliconSovereigntyEngine._shared_ctx
+            self.queue_a = SiliconSovereigntyEngine._shared_queue_a
+            self.queue_b = SiliconSovereigntyEngine._shared_queue_b
+            self.program = SiliconSovereigntyEngine._shared_program
+            self.hardware_layout = SiliconSovereigntyEngine._shared_hardware_layout
+            self.compute_units = SiliconSovereigntyEngine._shared_compute_units
+            self.max_work_group_size = SiliconSovereigntyEngine._shared_max_work_group_size
+            self.max_work_item_sizes = SiliconSovereigntyEngine._shared_max_work_item_sizes
+            self.is_gpu = SiliconSovereigntyEngine._shared_is_gpu
+            self.logger.debug(f"Silicon Sovereignty binding to cached context on: {self.device.name}")
             return
 
         try:
@@ -115,7 +149,6 @@ class SiliconSovereigntyEngine:
                     pass
 
             # Favor discrete GPU (e.g. GTX 1050 Ti, NVIDIA) over integrated GPU (e.g. Intel HD Graphics)
-            import os
             selected_device = None
             
             # Check environment overrides first for explicit GPU selection (e.g. GPU 0 or GPU 1)
@@ -154,26 +187,39 @@ class SiliconSovereigntyEngine:
                         name_lower = dev.name.lower()
                         if "nvidia" in name_lower or "geforce" in name_lower or "gtx" in name_lower or "discrete" in name_lower:
                             selected_device = dev
-                            self.logger.info(f"Targeting Discrete GPU (GPU 1): {dev.name}")
+                            if not SiliconSovereigntyEngine._logged_device_init:
+                                self.logger.info(f"Targeting Discrete GPU (GPU 1): {dev.name}")
+                            else:
+                                self.logger.debug(f"Targeting Discrete GPU (GPU 1): {dev.name}")
                             break
                     # Fallback to any other GPU (e.g. Intel iGPU / GPU 0) if no discrete GPU is found
                     if selected_device is None:
                         for dev in gpu_devices:
                             selected_device = dev
-                            self.logger.info(f"Targeting Integrated/Available GPU (GPU 0): {dev.name}")
+                            if not SiliconSovereigntyEngine._logged_device_init:
+                                self.logger.info(f"Targeting Integrated/Available GPU (GPU 0): {dev.name}")
+                            else:
+                                self.logger.debug(f"Targeting Integrated/Available GPU (GPU 0): {dev.name}")
                             break
             
             # Absolute fallback to first available device (e.g. CPU)
             if selected_device is None:
                 if other_devices:
                     selected_device = other_devices[0]
-                    self.logger.info(f"Targeting Fallback Device: {selected_device.name}")
+                    if not SiliconSovereigntyEngine._logged_device_init:
+                        self.logger.info(f"Targeting Fallback Device: {selected_device.name}")
+                    else:
+                        self.logger.debug(f"Targeting Fallback Device: {selected_device.name}")
                 else:
                     raise RuntimeError("No OpenCL devices found.")
                 
             self.device = selected_device
             self.ctx = cl.Context([self.device])
-            self.logger.info(f"Silicon Sovereignty Initialized on: {self.device.name}")
+            if not SiliconSovereigntyEngine._logged_device_init:
+                self.logger.info(f"Silicon Sovereignty Initialized on: {self.device.name}")
+                SiliconSovereigntyEngine._logged_device_init = True
+            else:
+                self.logger.debug(f"Silicon Sovereignty Initialized on: {self.device.name}")
             
             # Dual-Command Queue Architecture
             # We need two queues to process Odd/Even CRT moduli in parallel without serial friction.
@@ -193,6 +239,18 @@ class SiliconSovereigntyEngine:
             self.is_gpu = bool(self.device.type & cl.device_type.GPU) if hasattr(cl, "device_type") else True
             
             self._build_kernels()
+
+            if not has_override:
+                SiliconSovereigntyEngine._shared_device = self.device
+                SiliconSovereigntyEngine._shared_ctx = self.ctx
+                SiliconSovereigntyEngine._shared_queue_a = self.queue_a
+                SiliconSovereigntyEngine._shared_queue_b = self.queue_b
+                SiliconSovereigntyEngine._shared_program = self.program
+                SiliconSovereigntyEngine._shared_hardware_layout = self.hardware_layout
+                SiliconSovereigntyEngine._shared_compute_units = self.compute_units
+                SiliconSovereigntyEngine._shared_max_work_group_size = self.max_work_group_size
+                SiliconSovereigntyEngine._shared_max_work_item_sizes = self.max_work_item_sizes
+                SiliconSovereigntyEngine._shared_is_gpu = self.is_gpu
         except Exception as e:
             self.logger.warning(f"Failed to initialize OpenCL context/queues: {e}. Silicon Sovereignty running in CPU Mock mode.")
             self.ctx = None

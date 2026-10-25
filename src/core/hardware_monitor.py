@@ -154,9 +154,9 @@ class HardwareMonitor:
 
     def update_thermodynamics(
         self,
-        p_waste: float,
-        p_cool_max: float,
-        thermal_runaway: bool,
+        p_waste: float = 0.0,
+        p_cool_max: float = 1000.0,
+        thermal_runaway: bool = False,
         eta_stack: float = 1.0,
         source: str = "carnot_mobius"
     ):

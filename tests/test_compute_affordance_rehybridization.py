@@ -20,6 +20,7 @@ from src.ui.diegetic_backend import DiegeticPhysicsEngine
 class TestComputeAffordanceRehybridization(unittest.TestCase):
     def setUp(self):
         self.hw = HardwareMonitor.get_instance()
+        self.hw.update_thermodynamics(p_waste=0.0, thermal_runaway=False)
 
     def test_typed_affordances_across_all_regimes(self):
         for atype in ComputeAffordanceType:

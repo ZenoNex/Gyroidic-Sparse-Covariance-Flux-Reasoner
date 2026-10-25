@@ -189,6 +189,13 @@ class TopologicalSingularityEvaluator:
         results['tests']['layer5_pushforward_luminance'] = {'pass': l5_pass, 'luminance_drop': l5_details.get('luminance_drop', 0.2), 'details': l5_details}
         if l5_pass: results['passed_count'] += 1
 
+        # Clean up synthetic thermal runaway state injected on the HardwareMonitor singleton during Layer 3
+        try:
+            from src.core.hardware_monitor import HardwareMonitor
+            HardwareMonitor.get_instance().update_thermodynamics(p_waste=0.0, thermal_runaway=False)
+        except Exception:
+            pass
+
         results['success'] = (results['passed_count'] == results['total_count'])
         return results
 
