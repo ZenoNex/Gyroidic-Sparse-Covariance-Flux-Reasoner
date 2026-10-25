@@ -1182,7 +1182,10 @@
                         <span>NON-HIERARCHICAL TAGS</span>
                     </label>
 
-                    <button onclick="refreshGraph()"
+                    <button id="btn-toggle-graph-physics" onclick="toggleGraphPhysics()"
+                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;">PHYSICS: FROZEN</button>
+
+                    <button onclick="refreshGraph(true)"
                         style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; border: 1px solid var(--terminal-blue); transition: all 0.2s;">REFRESH</button>
                 </div>
                 <div id="graph-container"
@@ -2455,8 +2458,9 @@
                         targetPane.classList.add("active");
                     }
                     if (tab.dataset.tab === "graph") {
-                        // slight delay to let DOM paint before D3 runs
-                        setTimeout(refreshGraph, 100);
+                        if (!window.Graph) {
+                            setTimeout(() => refreshGraph(false), 100);
+                        }
                     }
                     if (tab.dataset.tab === "freenet") {
                         setTimeout(refreshFreenetStatus, 100);
@@ -2478,9 +2482,11 @@
 
                     localStorage.setItem("active_console_tab", tab.dataset.tab);
 
-                    // Auto refresh graph if selected
+                    // Only initialize graph if not already instantiated
                     if (tab.dataset.tab === "graph") {
-                        refreshGraph();
+                        if (!window.Graph) {
+                            refreshGraph(false);
+                        }
                     }
                     if (tab.dataset.tab === "freenet") {
                         refreshFreenetStatus();
@@ -2814,10 +2820,61 @@
         let graphSimulation = null;
         let graphSvg = null;
         let graphDataGlobal = null;
+        let graphPhysicsFrozen = true;
+        const graphNodePositions = new Map();
 
-        async function refreshGraph() {
+        function toggleGraphPhysics() {
+            if (!window.Graph) return;
+            graphPhysicsFrozen = !graphPhysicsFrozen;
+            const btn = document.getElementById('btn-toggle-graph-physics');
+            const gData = window.Graph.graphData();
+            if (graphPhysicsFrozen) {
+                (gData.nodes || []).forEach(n => {
+                    n.fx = n.x;
+                    n.fy = n.y;
+                    n.fz = n.z;
+                    graphNodePositions.set(n.id, { x: n.x, y: n.y, z: n.z });
+                });
+                window.Graph.cooldownTicks(0);
+                if (btn) {
+                    btn.innerText = "PHYSICS: FROZEN";
+                    btn.style.color = "var(--terminal-blue)";
+                    btn.style.borderColor = "var(--terminal-blue)";
+                }
+            } else {
+                (gData.nodes || []).forEach(n => {
+                    delete n.fx;
+                    delete n.fy;
+                    delete n.fz;
+                });
+                window.Graph.cooldownTicks(50);
+                window.Graph.resetCountdown();
+                if (btn) {
+                    btn.innerText = "PHYSICS: ACTIVE";
+                    btn.style.color = "var(--terminal-green)";
+                    btn.style.borderColor = "var(--terminal-green)";
+                }
+            }
+        }
+
+        async function refreshGraph(forceReload = false) {
             const container = document.getElementById('graph-canvas-container');
             if (!container) return;
+
+            // Preserve existing node positions before reload
+            if (window.Graph) {
+                const existing = window.Graph.graphData();
+                if (existing && existing.nodes) {
+                    existing.nodes.forEach(n => {
+                        if (n.x !== undefined) {
+                            const px = n.fx !== undefined ? n.fx : n.x;
+                            const py = n.fy !== undefined ? n.fy : n.y;
+                            const pz = n.fz !== undefined ? n.fz : n.z;
+                            graphNodePositions.set(n.id, { x: px, y: py, z: pz });
+                        }
+                    });
+                }
+            }
 
             // Show loading overlay instead of wiping container
             let loadingOverlay = document.getElementById('graph-loading-overlay');
@@ -2869,6 +2926,20 @@
                         type: node.type || 'fossil',
                         tags: node.tags || []
                     };
+
+                    // Anchor with cached position and freeze coordinates if physics is halted
+                    if (graphNodePositions.has(node.id)) {
+                        const pos = graphNodePositions.get(node.id);
+                        gNode.x = pos.x;
+                        gNode.y = pos.y;
+                        gNode.z = pos.z;
+                        if (graphPhysicsFrozen) {
+                            gNode.fx = pos.x;
+                            gNode.fy = pos.y;
+                            gNode.fz = pos.z;
+                        }
+                    }
+
                     gData.nodes.push(gNode);
                     fossilIdMap.set(node.id, gNode);
 
@@ -2889,12 +2960,25 @@
 
                 if (includeTags) {
                     seenTags.forEach(tag => {
-                        gData.nodes.push({
-                            id: 'tag_' + tag,
+                        const tagId = 'tag_' + tag;
+                        const tagNode = {
+                            id: tagId,
                             label: '#' + tag,
                             type: 'tag',
                             tags: [tag]
-                        });
+                        };
+                        if (graphNodePositions.has(tagId)) {
+                            const pos = graphNodePositions.get(tagId);
+                            tagNode.x = pos.x;
+                            tagNode.y = pos.y;
+                            tagNode.z = pos.z;
+                            if (graphPhysicsFrozen) {
+                                tagNode.fx = pos.x;
+                                tagNode.fy = pos.y;
+                                tagNode.fz = pos.z;
+                            }
+                        }
+                        gData.nodes.push(tagNode);
                     });
                 }
 
@@ -2913,7 +2997,20 @@
 
                 // Initialize ForceGraph3D
                 if (window.Graph) {
-                    // if it already exists, just update data
+                    // Update data while respecting physics freeze state
+                    if (graphPhysicsFrozen) {
+                        gData.nodes.forEach(n => {
+                            if (n.x !== undefined) {
+                                n.fx = n.x;
+                                n.fy = n.y;
+                                n.fz = n.z;
+                            }
+                        });
+                        window.Graph.cooldownTicks(0);
+                    } else {
+                        window.Graph.cooldownTicks(50);
+                        window.Graph.resetCountdown();
+                    }
                     window.Graph.graphData(gData);
                 } else {
                     window.Graph = ForceGraph3D({
@@ -2921,6 +3018,29 @@
                     })(container)
                         .backgroundColor('#030303')
                         .nodeId('id')
+                        .warmupTicks(30)
+                        .cooldownTicks(graphPhysicsFrozen ? 0 : 50)
+                        .onEngineStop(() => {
+                            // Freeze all node positions to stop continuous physics calculation
+                            if (window.Graph) {
+                                const currentData = window.Graph.graphData();
+                                if (currentData && currentData.nodes) {
+                                    currentData.nodes.forEach(node => {
+                                        node.fx = node.x;
+                                        node.fy = node.y;
+                                        node.fz = node.z;
+                                        graphNodePositions.set(node.id, { x: node.x, y: node.y, z: node.z });
+                                    });
+                                }
+                            }
+                            graphPhysicsFrozen = true;
+                            const btn = document.getElementById('btn-toggle-graph-physics');
+                            if (btn) {
+                                btn.innerText = "PHYSICS: FROZEN";
+                                btn.style.color = "var(--terminal-blue)";
+                                btn.style.borderColor = "var(--terminal-blue)";
+                            }
+                        })
                         .nodeLabel(node => {
                             return `<div style="font-family: var(--font-mono); font-size: 0.7rem; background: rgba(0,0,0,0.8); padding: 5px; border: 1px solid var(--terminal-blue); border-radius: 3px;">
                                 <strong style="color:var(--terminal-blue);">${node.id}</strong><br/>

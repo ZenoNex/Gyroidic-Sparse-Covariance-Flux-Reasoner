@@ -26,21 +26,29 @@ class RagathaBonding(nn.Module):
         self.suppressed_grief = nn.Parameter(harvest_honest_jitter((state_dim,), scaled=True) * 0.15)
         self.grief_counter = 0.0
         
-    def forward(self, state: torch.Tensor, bus: NeuromodulatoryBus, boundary_friction: float = 0.0) -> torch.Tensor:
+    def forward(
+        self, 
+        state: torch.Tensor, 
+        bus: NeuromodulatoryBus, 
+        boundary_friction: float = 0.0,
+        valence_hunger: float = 0.0
+    ) -> torch.Tensor:
         """
-        Calculates oxytocinergic bonding, tracking caregiver burnout and suppressed grief.
+        Calculates oxytocinergic bonding, tracking caregiver burnout and suppressed grief,
+        soothing structural distress and valence hunger.
         """
         noradrenaline = bus.read('noradrenaline')
         serotonin = bus.read('serotonin')
         
-        # If external distress is high, Ragatha reflexively produces Oxytocin
-        oxytocin_release = min(1.0, noradrenaline * 1.2)
+        # If external distress or hunger is high, Ragatha reflexively produces Oxytocin
+        effective_distress = max(noradrenaline, 0.5 * min(1.0, valence_hunger))
+        oxytocin_release = min(1.0, effective_distress * 1.2)
         bus.broadcast('oxytocin', oxytocin_release)
         
         # Suppressed Grief Accumulation:
         # When distress is high but serotonin (authenticity/safety) is low,
         # Ragatha swallows her grief to maintain the positive facade.
-        if noradrenaline > 0.5 and serotonin < 0.4:
+        if effective_distress > 0.5 and serotonin < 0.4:
             self.grief_counter = min(2.0, self.grief_counter + 0.05)
         elif serotonin > 0.6:
             # Genuine safety allows grief to be safely processed and discharged
@@ -49,7 +57,7 @@ class RagathaBonding(nn.Module):
         # Dissociative Mask:
         # High distress or high accumulated grief forces dissociative damping
         dissociation_mask = 1.0
-        if noradrenaline > 0.7 or self.grief_counter > 1.0:
+        if effective_distress > 0.7 or self.grief_counter > 1.0:
             dissociation_mask = max(0.4, 0.9 - 0.2 * self.grief_counter)
             
         # Care layer attempts to smooth the state

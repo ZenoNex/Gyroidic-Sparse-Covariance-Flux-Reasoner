@@ -37,6 +37,7 @@ class EconomicAgentLinker:
         self.engine = engine
         self.default_news_feeds = [
             "https://www.sec.gov/news/pressreleases.rss",
+            "https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC,%5EDJI,%5EIXIC&region=US&lang=en-US",
             "https://feeds.finance.yahoo.com/rss/2.0/headline?s=AAPL,MSFT,GOOG,NVDA&region=US&lang=en-US",
         ]
 

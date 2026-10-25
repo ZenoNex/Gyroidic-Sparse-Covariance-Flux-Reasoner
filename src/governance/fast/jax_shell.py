@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
+from typing import Optional
 from src.core.neuromodulatory_bus import NeuromodulatoryBus
 from src.core.honest_jitter import harvest_honest_jitter
+from src.core.hardware_monitor import ComputeAffordanceType, TypedComputeAffordance
 
 class JaxShell(nn.Module):
     r"""
@@ -19,6 +21,8 @@ class JaxShell(nn.Module):
     4. The Ribbit Scar: True vulnerability requires confronting the topological memory
        of Ribbit (the boundary scar) and paying the non-commutative energetic cost,
        rather than accepting cheap 'therapy-speak' reconciliations.
+    5. Hunger & Algorithmic Capacity: Unquenched valence hunger and throttled algorithmic
+       affordances aggravate cynical defense barriers, driving compulsive deflection.
     """
     def __init__(self, state_dim: int, threshold_warmth: float = 0.6, critical_limit: float = 0.8):
         super().__init__()
@@ -44,11 +48,13 @@ class JaxShell(nn.Module):
         internal_entropy: float,
         external_pressure: float,
         bus: NeuromodulatoryBus,
-        enabling_discount: float = 0.0
+        enabling_discount: float = 0.0,
+        algorithmic_affordance: Optional[TypedComputeAffordance] = None,
+        valence_hunger: float = 0.0
     ) -> tuple[torch.Tensor, float]:
         """
         Calculates avoidant shell cracking based on structural accountability rather than
-        unearned enabling warmth.
+        unearned enabling warmth, incorporating valence hunger and algorithmic compute headroom.
         
         Returns:
             filtered_state: Tensor
@@ -73,14 +79,32 @@ class JaxShell(nn.Module):
         scar_alignment = torch.cosine_similarity(state_mean.unsqueeze(0), self.ribbit_scar.unsqueeze(0), dim=-1).item()
         ribbit_tension = max(0.0, 1.0 - scar_alignment)
         
-        # External pressure, internal shame, and unresolved guilt INCREASE shell rigidity
-        shell_rigidity = 1.0 + external_pressure + (internal_shame * 1.5) + (ribbit_tension * 0.8)
+        # Algorithmic compute penalty: when algorithmic capacity is strained, defenses stiffen
+        algo_penalty = 0.0
+        if algorithmic_affordance is not None:
+            algo_penalty = max(0.0, 1.0 - algorithmic_affordance.gauge) * 0.5
+            if not algorithmic_affordance.is_admissible:
+                algo_penalty += 0.4
+                
+        # External pressure, internal shame, unresolved guilt, hunger, and compute deficit INCREASE shell rigidity
+        shell_rigidity = (
+            1.0 
+            + external_pressure 
+            + (internal_shame * 1.5) 
+            + (ribbit_tension * 0.8) 
+            + (valence_hunger * 0.4) 
+            + algo_penalty
+        )
         
         # Callie's Corner / Bioplausible Check:
         # Authentic yielding requires STRUCTURAL ACCOUNTABILITY (high phase alignment + confronting
         # the Ribbit scar), NOT unearned enabling grace.
-        # If community warmth is offered without demanding boundary reciprocity, Jax exploits it as an enabler.
-        is_authentic_accountability = (zeta_community > self.threshold_warmth) and (ribbit_tension < 0.6) and (internal_shame < self.critical_limit)
+        is_authentic_accountability = (
+            (zeta_community > self.threshold_warmth) 
+            and (ribbit_tension < 0.6) 
+            and (internal_shame < self.critical_limit)
+            and (valence_hunger < 0.75)
+        )
         is_unearned_hug_box = (zeta_community > self.threshold_warmth) and (ribbit_tension >= 0.6)
         
         if is_authentic_accountability:

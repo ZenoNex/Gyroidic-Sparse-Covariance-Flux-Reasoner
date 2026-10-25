@@ -10,6 +10,8 @@ from src.governance.bio_archetypal_governor import BioArchetypalGovernor
 from src.governance.fast.jax_shell import JaxShell
 from src.governance.slow.kinger_consolidation import KingerConsolidation
 from src.governance.ultrafast.zooble_autonomy import ZoobleAutonomy
+from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType, TypedComputeAffordance
+from src.core.valence_drive import ValenceFunctional
 
 @dataclass
 class TypedPressure:
@@ -807,6 +809,8 @@ class ArchetypalSynthesisEngine(nn.Module):
         
         # The new Multi-Scale Temporal Homeostasis biological layer
         self.bio_governor = BioArchetypalGovernor(state_dim)
+        # Canonical Valence Drive
+        self.valence_drive = ValenceFunctional(decay=0.99, hunger_scale=1.0)
 
     def set_training_mode(self, enabled: bool):
         """
@@ -976,7 +980,8 @@ class ArchetypalSynthesisEngine(nn.Module):
 
         # 1a. Apply Mandy (Cynicism / Refusal)
         alexander_transversality = kwargs.get("alexander_transversality", None)
-        state = self.mandy(state, phase_alignment, current_mischief, valence_functional=valence_functional, private_invariants=private_invariants, alexander_transversality=alexander_transversality)
+        active_valence = valence_functional if valence_functional is not None else getattr(self, 'valence_drive', None)
+        state = self.mandy(state, phase_alignment, current_mischief, valence_functional=active_valence, private_invariants=private_invariants, alexander_transversality=alexander_transversality)
         
         # --- BIO-PLAUSIBLE GOVERNANCE LAYER (Replaces flat Pomni/Jax/Gangle/Kinger/Zooble) ---
         bio_results = self.bio_governor(
@@ -987,11 +992,12 @@ class ArchetypalSynthesisEngine(nn.Module):
             bulletin_board=bulletin_board,
             resonance_cavity=resonance_cavity,
             fossilizer=fossilizer,
-            valence_functional=valence_functional,
+            valence_functional=active_valence,
             moment_transport=moment_transport,
             private_invariants=private_invariants,
             gyroid_entropy=structural_entropy,
-            luminosity=env_luminosity
+            luminosity=env_luminosity,
+            current_mischief=current_mischief
         )
         state = bio_results["state"]
         # ----------------------------------------------------------------------------------

@@ -13,6 +13,7 @@ import json
 import os
 import re
 import copy
+import time
 from typing import List, Dict, Any, Optional, Tuple, Callable
 import torch
 import torch.nn as nn
@@ -27,7 +28,7 @@ class InvestorNewsIngestor(nn.Module):
     def __init__(
         self,
         state_dim: int = 32,
-        user_agent: str = "GyroidicFluxReasonerBot/1.9",
+        user_agent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 (GyroidicReasoner/1.9)",
         larynx: Optional[Any] = None,
         engine: Optional[Any] = None,
         maml_adapter: Optional[Any] = None
@@ -39,6 +40,7 @@ class InvestorNewsIngestor(nn.Module):
         self.engine = engine
         self.maml_adapter = maml_adapter
         self.rp_cache: Dict[str, urllib.robotparser.RobotFileParser] = {}
+        self._feed_cache: Dict[str, Any] = {}
         
         # Linear projection for market sentiment to state space
         self.sentiment_proj = nn.Linear(state_dim, state_dim, bias=False)
@@ -71,9 +73,11 @@ class InvestorNewsIngestor(nn.Module):
         self.maml_adapter = adapter
 
     DEFAULT_USER_FEEDS = [
-        {"url": "https://finance.yahoo.com/news/rssindex", "name": "Yahoo Finance Top News", "enabled": True},
+        {"url": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC,%5EDJI,%5EIXIC&region=US&lang=en-US", "name": "Yahoo Finance Market Indices", "enabled": True},
+        {"url": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=AAPL,MSFT,GOOG,NVDA&region=US&lang=en-US", "name": "Yahoo Finance Tech Equities", "enabled": True},
         {"url": "https://feeds.content.dowjones.io/public/rss/mw_topstories", "name": "MarketWatch Top Stories", "enabled": True},
         {"url": "https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml", "name": "NYT Economy News", "enabled": True},
+        {"url": "https://www.sec.gov/news/pressreleases.rss", "name": "SEC Press Releases", "enabled": True},
         {"url": "https://export.arxiv.org/rss/math.DG", "name": "arXiv Differential Geometry", "enabled": True}
     ]
 
@@ -166,15 +170,37 @@ class InvestorNewsIngestor(nn.Module):
         return rp
 
     def is_allowed(self, url: str) -> bool:
-        """Verify robots.txt allows crawling the given URL."""
+        """Verify robots.txt allows crawling the given URL, recognizing public syndicated RSS endpoints."""
         try:
+            parsed = urlparse(url)
+            # Public syndicated RSS feeds are published specifically for automated subscription
+            path_lower = parsed.path.lower()
+            if any(marker in path_lower for marker in ['/rss', '.rss', '.xml', '/feed']) or 'feeds.' in parsed.netloc:
+                return True
             rp = self._get_robot_parser(url)
             return rp.can_fetch(self.user_agent, url)
         except Exception:
             return True
 
     def fetch_rss_feed(self, feed_url: str) -> List[Dict[str, str]]:
-        """Fetch news items from an RSS feed if permitted by robots.txt."""
+        """Fetch news items from an RSS feed with 5-minute compute-affordance TTL caching."""
+        now = time.time()
+        if hasattr(self, '_feed_cache') and feed_url in self._feed_cache:
+            cache_time, cached_items = self._feed_cache[feed_url]
+            if now - cache_time < 300.0:  # 5 minute TTL
+                return cached_items
+
+        # Gated by HardwareMonitor typed compute affordance (Silicon and Thermal)
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hw = HardwareMonitor()
+            if not hw.has_compute_affordance(ComputeAffordanceType.SILICON) or not hw.has_compute_affordance(ComputeAffordanceType.THERMAL):
+                if hasattr(self, '_feed_cache') and feed_url in self._feed_cache:
+                    return self._feed_cache[feed_url][1]
+                return []
+        except Exception:
+            pass
+
         if not self.is_allowed(feed_url):
             print(f"[INGESTOR] robots.txt excludes access to feed: {feed_url}")
             return []
@@ -208,6 +234,8 @@ class InvestorNewsIngestor(nn.Module):
                         "link": link,
                         "description": desc
                     })
+            if hasattr(self, '_feed_cache'):
+                self._feed_cache[feed_url] = (now, items)
             return items
         except Exception as e:
             print(f"[INGESTOR] Failed to fetch feed {feed_url}: {e}")

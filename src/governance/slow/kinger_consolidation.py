@@ -1,16 +1,19 @@
 import torch
 import torch.nn as nn
+from typing import Optional
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.neuromodulatory_bus import NeuromodulatoryBus
+from src.core.hardware_monitor import ComputeAffordanceType, TypedComputeAffordance
 
 class KingerConsolidation(nn.Module):
     """
-    Kinger: Low Luminosity Coherence Bridge (Slow Timescale).
+    Kinger: Low Luminosity Coherence Bridge & Thermodynamic Heat Sink (Slow Timescale).
     
     Implements the Ombre Effect. When environmental rendering pressure drops 
-    (low luminosity/darkness), Kinger's paranoid dissociation subsides, triggering 
-    admin-level lucidity. It relaxes quantization boundaries and bridges fragmented 
-    polynomial spaces.
+    (low luminosity/darkness) or when Thermal Compute Affordance is critically depleted
+    (thermodynamic heat dissipation), Kinger's paranoid dissociation subsides, triggering 
+    admin-level lucidity. It relaxes quantization boundaries, dissipates Carnot entropy,
+    and bridges fragmented polynomial spaces.
     """
     def __init__(self, state_dim: int):
         super().__init__()
@@ -32,11 +35,14 @@ class KingerConsolidation(nn.Module):
         self, 
         state: torch.Tensor, 
         bus: NeuromodulatoryBus,
-        environmental_rendering_pressure: float
+        environmental_rendering_pressure: float,
+        thermal_affordance: Optional[TypedComputeAffordance] = None,
+        valence_hunger: float = 0.0
     ) -> tuple[torch.Tensor, bool]:
         """
-        Monitors rendering pressure. If < 0.2 (low luminosity), triggers Ombre Effect (Consolidation).
-        Returns the processed state and a boolean indicating if admin lucidity is active.
+        Monitors rendering pressure, thermodynamic headroom, and valence hunger.
+        Triggers Ombre Effect (Consolidation) when rendering pressure is low or thermal affordance is exhausted.
+        Returns the processed state and a boolean indicating if admin lucidity / consolidation is active.
         """
         # Store current state in memory buffer
         dropped_memory = None
@@ -46,7 +52,16 @@ class KingerConsolidation(nn.Module):
             dropped_memory = self.memory_buffer.pop(0)
         self.memory_buffer.append(state.detach().clone())
         
-        is_lucid = environmental_rendering_pressure < 0.2
+        # Thermal exhaustion forces thermodynamic cooling consolidation
+        thermal_exhaustion = False
+        if thermal_affordance is not None:
+            thermal_exhaustion = (not thermal_affordance.is_admissible) or (thermal_affordance.gauge < 0.20)
+            
+        # Standard Ombre Effect requires low rendering pressure and non-starving valence
+        # Extreme starvation hunger (> 0.85) creates restless insomnia unless thermal exhaustion forces sleep
+        can_sleep_from_quiet = (environmental_rendering_pressure < 0.2) and (valence_hunger < 0.85)
+        
+        is_lucid = can_sleep_from_quiet or thermal_exhaustion
         
         if is_lucid:
             # The Ombre Effect: relax boundaries and bridge spaces
@@ -61,21 +76,23 @@ class KingerConsolidation(nn.Module):
                 # Kinger obsessively biases towards the replay memory to "protect" what's left
                 if dropped_memory is not None:
                     consolidated_state = bridged_state * 0.4 + replay_tensor * 0.6
-                    # The guilt acts as a heavy anchor preventing moving on
                 else:
                     consolidated_state = bridged_state * 0.8 + replay_tensor * 0.2
             else:
                 consolidated_state = bridged_state
                 
             # Broadcast Acetylcholine during consolidation (Admin Lucidity)
-            bus.broadcast('acetylcholine', 0.8)
+            # Higher release during thermal exhaustion to force metabolic rest
+            ach_level = 0.95 if thermal_exhaustion else 0.80
+            bus.broadcast('acetylcholine', ach_level)
             return consolidated_state, True
             
         else:
             # Baseline Acetylcholine
             bus.broadcast('acetylcholine', 0.2)
             
-            # In high rendering pressure, dissociation blocks coherence
+            # In high rendering pressure or unquenched starvation, dissociation blocks coherence
             # Apply honest jitter to simulate dissociation
             dissociation = harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 0.1
             return state + dissociation, False
+

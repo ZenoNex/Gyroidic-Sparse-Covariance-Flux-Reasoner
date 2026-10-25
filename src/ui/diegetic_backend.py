@@ -1456,18 +1456,25 @@ class DiegeticPhysicsEngine(nn.Module):
                             if t and len(t) >= 4:
                                 fossil_texts.append(t)
 
-                    # Topologically-Aware Compute Affordance Arbitration (CPU, Thermal, and Community P2P Mesh)
+                    # Topologically-Aware Compute Affordance Arbitration (Silicon, Thermal, P2P Mesh, Diegetic)
                     scientific_texts = []
                     rss_texts = []
                     try:
                         from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
                         hw = HardwareMonitor.get_instance()
                         silicon_aff = hw.get_typed_affordance(ComputeAffordanceType.SILICON)
+                        thermal_aff = hw.get_typed_affordance(ComputeAffordanceType.THERMAL)
                         mesh_aff = hw.get_typed_affordance(ComputeAffordanceType.P2P_MESH)
+                        diegetic_aff = hw.get_typed_affordance(ComputeAffordanceType.DIEGETIC)
                         
-                        # Background ingestion is admissible if Silicon has headroom or P2P community compute budget is available
-                        can_ingest = (silicon_aff.is_admissible and silicon_aff.gauge > 0.25) or (mesh_aff.is_admissible and mesh_aff.gauge > 0.40)
-                        if can_ingest and not hw.thermal_runaway:
+                        # Background external search requires Silicon + Thermal headroom and minimum 180s cooldown
+                        now = time.time()
+                        last_ext_search = getattr(self, '_last_bg_external_search_time', 0.0)
+                        can_search_ext = (silicon_aff.is_admissible and silicon_aff.gauge > 0.30) and \
+                                         (thermal_aff.is_admissible and thermal_aff.gauge > 0.20) and \
+                                         not hw.thermal_runaway and (now - last_ext_search >= 180.0)
+                        
+                        if can_search_ext:
                             if getattr(self, 'open_science_ingestor', None) is not None:
                                 if hasattr(self.open_science_ingestor, 'generate_larynx_science_query'):
                                     query_configs = self.open_science_ingestor.generate_larynx_science_query(
@@ -1531,31 +1538,36 @@ class DiegeticPhysicsEngine(nn.Module):
 
                                             print(f"[BGLEARN] Registered scientific tag: '{t_name}' in SuperposedTagStacker and fossilized KnowledgeDyad.")
 
-                        # Valence Hunger Prodding for User-Selected RSS Feeds
-                        if (current_hunger > 0.6 or is_stagnant) and hasattr(self, 'investor_ingestor'):
-                            active_urls = self.investor_ingestor.get_active_feed_urls()
-                            if active_urls:
-                                rss_payloads = self.investor_ingestor.fetch_financial_feeds(feeds=active_urls, state=self.meta_state)
-                                for p in rss_payloads[:4]:
-                                    if p and len(p) >= 4 and not p.startswith("Equities flux neutral"):
-                                        rss_texts.append(p)
-                                        vec = self._text_to_tensor(p).to(self.device)
-                                        if hasattr(self, 'archetypal_governor') and hasattr(self.archetypal_governor, 'tag_stacker'):
-                                            t_name = f"rss_hunger_{int(time.time()) % 1000}"
-                                            self.archetypal_governor.harvest_named_coordinate(t_name, vec, p, parent_engine=self)
-                                        
-                                        # Canonical Dyad Fossilization
-                                        if hasattr(self, 'fossilizer') and self.fossilizer is not None:
-                                            try:
-                                                from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
-                                                r_dyad = KnowledgeDyad(
-                                                    linguistic_description=p,
-                                                    metadata={"source": "rss_feed", "timestamp": time.time()},
-                                                    source="investor_rss"
-                                                )
-                                                self.fossilizer.fossilize(r_dyad, vec, seed_state=self.meta_state)
-                                            except Exception:
-                                                pass
+                            # Valence Hunger Prodding for User-Selected RSS Feeds
+                            if (current_hunger > 0.6 or is_stagnant) and hasattr(self, 'investor_ingestor'):
+                                active_urls = self.investor_ingestor.get_active_feed_urls()
+                                if active_urls:
+                                    rss_payloads = self.investor_ingestor.fetch_financial_feeds(feeds=active_urls, state=self.meta_state)
+                                    for p in rss_payloads[:4]:
+                                        if p and len(p) >= 4 and not p.startswith("Equities flux neutral"):
+                                            rss_texts.append(p)
+                                            vec = self._text_to_tensor(p).to(self.device)
+                                            if hasattr(self, 'archetypal_governor') and hasattr(self.archetypal_governor, 'tag_stacker'):
+                                                t_name = f"rss_hunger_{int(time.time()) % 1000}"
+                                                self.archetypal_governor.harvest_named_coordinate(t_name, vec, p, parent_engine=self)
+                                            
+                                            # Canonical Dyad Fossilization
+                                            if hasattr(self, 'fossilizer') and self.fossilizer is not None:
+                                                try:
+                                                    from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
+                                                    r_dyad = KnowledgeDyad(
+                                                        linguistic_description=p,
+                                                        metadata={"source": "rss_feed", "timestamp": time.time()},
+                                                        source="investor_rss"
+                                                    )
+                                                    self.fossilizer.fossilize(r_dyad, vec, seed_state=self.meta_state)
+                                                except Exception:
+                                                    pass
+                            
+                            self._last_bg_external_search_time = now
+                            if (scientific_texts or rss_texts) and hasattr(self, 'valence_drive') and hasattr(self.valence_drive, 'quench'):
+                                self.valence_drive.quench(0.40)
+                                print(f"[BGLEARN] Quenched valence hunger via ingestion of {len(scientific_texts)} science + {len(rss_texts)} rss items.")
                     except Exception as load_err:
                         # Log but do not crash background thread
                         print(f"[BGLEARN] Load sensing or query failed: {load_err}")
@@ -7227,6 +7239,27 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 except Exception as e:
                     self._send_error_json(str(e), 500)
                 return
+            elif base_path == '/api/affordances':
+                try:
+                    from src.core.hardware_monitor import get_affordance_gauges, has_compute_affordance, ComputeAffordanceType
+                    aff_telemetry = {
+                        'status': 'ok',
+                        'gauges': get_affordance_gauges(),
+                        'headroom': {
+                            'topological': bool(has_compute_affordance(ComputeAffordanceType.TOPOLOGICAL)),
+                            'thermal': bool(has_compute_affordance(ComputeAffordanceType.THERMAL)),
+                            'silicon': bool(has_compute_affordance(ComputeAffordanceType.SILICON)),
+                            'algorithmic': bool(has_compute_affordance(ComputeAffordanceType.ALGORITHMIC)),
+                            'diegetic': bool(has_compute_affordance(ComputeAffordanceType.DIEGETIC)),
+                            'p2p_mesh': bool(has_compute_affordance(ComputeAffordanceType.P2P_MESH)),
+                            'gpu_sovereign': bool(has_compute_affordance(ComputeAffordanceType.GPU_SOVEREIGN)),
+                            'compute_batch': bool(has_compute_affordance(ComputeAffordanceType.COMPUTE_BATCH))
+                        }
+                    }
+                    self._send_json(aff_telemetry)
+                except Exception as e:
+                    self._send_error_json(str(e), 500)
+                return
             elif base_path == '/api/state':
                 try:
                     love_val = 0.0
@@ -8823,7 +8856,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 content_len = int(self.headers.get('Content-Length', 0))
                 post_body = self.rfile.read(content_len)
                 data = json.loads(post_body.decode('utf-8'))
-                feeds = data.get("feeds", ["https://finance.yahoo.com/news/rssindex"])
+                feeds = data.get("feeds", ["https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC,%5EDJI,%5EIXIC&region=US&lang=en-US"])
                 payloads = ENGINE.investor_ingestor.ingest_market_topologies(feeds)
                 ingested_count = 0
                 for text in payloads[:10]:

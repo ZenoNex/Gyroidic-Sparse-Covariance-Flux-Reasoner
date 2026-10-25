@@ -164,6 +164,15 @@ class SovereignIngestor:
         Query Hacker News via public Algolia search API steered by Larynx query.
         Converts discussions into high-entropy Conversation dyads.
         """
+        # Gated by HardwareMonitor typed compute affordance
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hw = HardwareMonitor()
+            if not hw.has_compute_affordance(ComputeAffordanceType.SILICON) or not hw.has_compute_affordance(ComputeAffordanceType.THERMAL):
+                return []
+        except Exception:
+            pass
+
         import urllib.parse
         encoded_query = urllib.parse.quote(query)
         search_url = f"https://hn.algolia.com/api/v1/search?query={encoded_query}&tags=story&hitsPerPage={limit}"
@@ -229,6 +238,15 @@ class SovereignIngestor:
         Ingest from Hacker News Firebase API.
         Focuses on 'ask' and 'recent' to maximize entropy per Option D.
         """
+        # Gated by HardwareMonitor typed compute affordance
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hw = HardwareMonitor()
+            if not hw.has_compute_affordance(ComputeAffordanceType.SILICON) or not hw.has_compute_affordance(ComputeAffordanceType.THERMAL):
+                return []
+        except Exception:
+            pass
+
         print(f"Fetching HN {mode} stories for High-Entropy Ingestion...")
         base_url = "https://hacker-news.firebaseio.com/v0"
         

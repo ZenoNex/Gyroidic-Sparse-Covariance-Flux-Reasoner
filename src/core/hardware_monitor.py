@@ -509,7 +509,7 @@ class HardwareMonitor:
             return False
 
         try:
-            cpu_load = psutil.cpu_percent(interval=0.1)
+            cpu_load = psutil.cpu_percent(interval=None)
             mem_info = psutil.virtual_memory()
             free_ram_gb = mem_info.available / (1024 ** 3)
             

@@ -136,4 +136,15 @@ class ValenceFunctional(nn.Module):
             'current_hunger_drive': current_hunger
         }
 
+    def quench(self, amount: float = 0.35):
+        """
+        Replenishes satisfaction baseline and resets starvation timer when
+        novel knowledge residues or feeds are ingested into the manifold.
+        """
+        with torch.no_grad():
+            self.satisfaction.add_(amount).clamp_(0.0, 1.0)
+            self.last_update_time = time.time()
+            if hasattr(self, '_last_hunger') and isinstance(self._last_hunger, torch.Tensor):
+                self._last_hunger = torch.clamp(self._last_hunger - amount, min=0.15)
+
 
