@@ -7,6 +7,8 @@ from .operational_admm import OperationalAdmm, OperationalAdmmPrimitive
 from .ricci_flow_optimizer import RicciFlowOptimizer, SplitBeamInterfactorization, BouligandWillmoreGasket, WillmoreEnergy
 from .muon_hybrid import zeropower_via_newtonschulz5, MuonOptimizer, MuonRicciHybridOptimizer
 
+from .local_qp_operator import LocalActuationQPOperator
+
 __all__ = [
     'frac_apply',
     'frac_apply_diagonal',
@@ -21,5 +23,6 @@ __all__ = [
     'WillmoreEnergy',
     'zeropower_via_newtonschulz5',
     'MuonOptimizer',
-    'MuonRicciHybridOptimizer'
+    'MuonRicciHybridOptimizer',
+    'LocalActuationQPOperator'
 ]

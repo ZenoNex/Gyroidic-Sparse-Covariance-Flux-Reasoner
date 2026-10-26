@@ -985,6 +985,100 @@ class AeronauticContraption:
             inventory=inventory
         )
 
+    def map_to_qubo_hamiltonian(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        D-Wave QUBO Mapping for Aeronautic Multi-Subsystem Flight Arbitration:
+        Maps discrete flight subsystem engagement into QUBO matrix Q and linear cost c:
+        E(x) = x^T Q x + c^T x
+        where binary variables x represent:
+        x[0]: Boost thrust engagement (0: cruise throttle, 1: max boost)
+        x[1]: Buoyancy gas venting (0: maintain helium envelope, 1: rapid descent vent)
+        x[2]: Plasma air induction (0: standard ABEB discharge, 1: high-efficiency arc ionization)
+        x[3]: Sleeve-valve timing advance (0: standard 12.5 deg, 1: aggressive 25 deg advance)
+        """
+        n_vars = 4
+        Q = torch.zeros((n_vars, n_vars), dtype=torch.float32)
+        c = torch.zeros(n_vars, dtype=torch.float32)
+
+        # Linear costs: energy consumption vs lift necessity
+        c[0] = 15.0   # Boost thrust costs battery charge
+        c[1] = 20.0   # Gas venting costs unrecoverable balloon volume
+        c[2] = -10.0  # Plasma air induction improves oxidation efficiency (favorable)
+        c[3] = 5.0    # Sleeve timing advance increases thermal stress
+
+        # Couplings:
+        # Boost thrust (x[0]) with gas venting (x[1]) is contradictory and causes extreme structural shear
+        Q[0, 1] = 30.0
+        Q[1, 0] = 30.0
+
+        # Boost thrust (x[0]) synergizes strongly with plasma air induction (x[2])
+        Q[0, 2] = -18.0
+        Q[2, 0] = -18.0
+
+        # Sleeve advance (x[3]) synergizes with plasma induction (x[2]) for combustion completion
+        Q[2, 3] = -8.0
+        Q[3, 2] = -8.0
+
+        # Sleeve advance (x[3]) with boost (x[0]) risks engine knocking if thermal budget is constrained
+        Q[0, 3] = 12.0
+        Q[3, 0] = 12.0
+
+        return Q, c
+
+    def solve_qubo_subsystem_arbitration(
+        self,
+        steps: int = 50,
+        initial_temp: float = 8.0,
+        cooling_rate: float = 0.95
+    ) -> Tuple[torch.Tensor, float, Dict[str, Any]]:
+        """
+        D-Wave simulated annealing over aeronautic flight subsystem Hamiltonians.
+        Finds ground state flight configuration minimizing energy loss and structural shear.
+        """
+        from src.core.hardware_monitor import has_compute_affordance, ComputeAffordanceType
+        if not has_compute_affordance(ComputeAffordanceType.THERMAL):
+            steps = min(15, steps)
+
+        Q, c = self.map_to_qubo_hamiltonian()
+        n_vars = Q.shape[0]
+
+        raw_bits = harvest_honest_jitter((n_vars,), scaled=False)
+        state = (raw_bits > 0.0).float()
+
+        def energy(s: torch.Tensor) -> float:
+            return float((s @ Q @ s + c @ s).item())
+
+        current_energy = energy(state)
+        best_state = state.clone()
+        best_energy = current_energy
+        temp = initial_temp
+
+        for step in range(steps):
+            jitter_scalar = harvest_honest_jitter((1,), scaled=False).item()
+            flip_idx = int(abs(jitter_scalar * 1000000.0 + step * 31)) % n_vars
+            candidate = state.clone()
+            candidate[flip_idx] = 1.0 - candidate[flip_idx]
+            cand_energy = energy(candidate)
+
+            delta_e = cand_energy - current_energy
+            acceptance_thresh = (harvest_honest_jitter((1,), scaled=False).item() + 1.0) * 0.5
+            if delta_e < 0.0 or math.exp(-delta_e / max(1e-4, temp)) > acceptance_thresh:
+                state = candidate
+                current_energy = cand_energy
+                if current_energy < best_energy:
+                    best_state = state.clone()
+                    best_energy = current_energy
+            temp *= cooling_rate
+
+        config_summary = {
+            "boost_thrust": bool(best_state[0] > 0.5),
+            "gas_venting": bool(best_state[1] > 0.5),
+            "plasma_induction": bool(best_state[2] > 0.5),
+            "timing_advance": bool(best_state[3] > 0.5),
+            "ground_energy": best_energy
+        }
+        return best_state, best_energy, config_summary
+
 
 # =========================================================================
 # 7. NUTRITIONAL DIVERSITY & SPICE OF LIFE (CARROT & ONION CLEANROOM)
@@ -1089,6 +1183,61 @@ class RedNet16BundledCable:
             if self.channels.get(c, 0) > 0:
                 mask |= (1 << i)
         return mask
+
+    def arbitrate_channels_qubo(
+        self,
+        steps: int = 40,
+        priority_weights: Optional[Dict[str, float]] = None
+    ) -> Tuple[Dict[str, bool], float]:
+        """
+        D-Wave QUBO Channel Arbitration:
+        Arbitrates 16 conflicting redstone channels into a mutually compatible active mask
+        minimizing line interference and bandwidth collision.
+        """
+        n_vars = len(self.COLORS)
+        Q = torch.zeros((n_vars, n_vars), dtype=torch.float32)
+        c = torch.zeros(n_vars, dtype=torch.float32)
+        p_weights = priority_weights or {}
+
+        for i, col in enumerate(self.COLORS):
+            sig = self.channels.get(col, 0)
+            p_val = p_weights.get(col, 1.0)
+            c[i] = -float(sig) * p_val * 0.1
+
+        for i in range(n_vars - 1):
+            Q[i, i + 1] = 5.0
+            Q[i + 1, i] = 5.0
+
+        raw_bits = harvest_honest_jitter((n_vars,), scaled=False)
+        state = (raw_bits > 0.0).float()
+
+        def energy(s: torch.Tensor) -> float:
+            return float((s @ Q @ s + c @ s).item())
+
+        current_energy = energy(state)
+        best_state = state.clone()
+        best_energy = current_energy
+        temp = 10.0
+
+        for step in range(steps):
+            jitter_scalar = harvest_honest_jitter((1,), scaled=False).item()
+            flip_idx = int(abs(jitter_scalar * 1000000.0 + step * 17)) % n_vars
+            candidate = state.clone()
+            candidate[flip_idx] = 1.0 - candidate[flip_idx]
+            cand_energy = energy(candidate)
+
+            delta_e = cand_energy - current_energy
+            acceptance = (harvest_honest_jitter((1,), scaled=False).item() + 1.0) * 0.5
+            if delta_e < 0.0 or math.exp(-delta_e / max(1e-4, temp)) > acceptance:
+                state = candidate
+                current_energy = cand_energy
+                if current_energy < best_energy:
+                    best_state = state.clone()
+                    best_energy = current_energy
+            temp *= 0.95
+
+        arbitrated = {col: bool(best_state[i] > 0.5) for i, col in enumerate(self.COLORS)}
+        return arbitrated, best_energy
 
 
 class CompositeVoxelConduit:

@@ -57,6 +57,13 @@ class DiegeticPhysicsEngine(nn.Module):
         self.mohr_coulomb = MohrCoulombProjection(friction_angle=30.0, cohesion=0.8).to(device)
         self.drucker_prager = DruckerPragerProjection(alpha=0.2, k=1.0).to(device)
         self.valence_drive = ValenceFunctional(device=device)
+
+        # Quadratic & Convex Local Feasibility Subsystems
+        from src.core.codes_constraint_framework import CODESConstraintFramework
+        from src.optimization.local_qp_operator import LocalActuationQPOperator
+        self.codes_constraint = CODESConstraintFramework(state_dim=state_dim).to(device)
+        self.qp_probe = LocalActuationQPOperator(constraint_index=0, actuation_dim=state_dim, device=device)
+
         self.initialize_spatial_metric()
         
         # Strict low-pass damping filter for spin precession / PSH telemetry
@@ -205,13 +212,18 @@ class DiegeticPhysicsEngine(nn.Module):
             depth_N=10
         )
         
-        # We invoke OperationalAdmmPrimitive via an inline forward operator for the probe.
-        def _dummy_forward(x, *args, **kwargs): return x
+        # Stage 5: Local Feasibility Probing & Quadratic Well Relaxation
+        def _feasibility_forward_op(state_tensor, *args, **kwargs):
+            if hasattr(self, 'codes_constraint') and self.codes_constraint is not None:
+                relaxed_state, _ = self.codes_constraint.evolve_state(state_tensor, num_steps=2)
+                return relaxed_state
+            return state_tensor
         
+        probes = [self.qp_probe] if hasattr(self, 'qp_probe') and self.qp_probe is not None else None
         admm_state, admm_status = OperationalAdmmPrimitive.apply(
-            c_sym, _dummy_forward, 
+            c_sym, _feasibility_forward_op, 
             0.1, 0.01, 10, 0.5, 3, 
-            None, None, False, None, 1, None
+            None, None, True, probes, len(probes) if probes else 1, None
         )
 
         # --- Stage 6: SCCCG Recovery & Fossilization ---

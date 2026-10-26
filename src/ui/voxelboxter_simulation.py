@@ -2234,6 +2234,24 @@ class VoxelboxterEngine:
         self.streamline_tracer = ChromataStreamlineTracer()
         self.primitive_decomposer = GeometrizePrimitiveDecomposer()
 
+        # Quadratic & Convex Local Actuation Probes
+        from src.optimization.local_qp_operator import LocalActuationQPOperator
+        u_min_act = torch.tensor([-1.0, -1.0, -1.0, -1.0], dtype=torch.float32)
+        u_max_act = torch.tensor([1.0, 1.0, 1.0, 1.0], dtype=torch.float32)
+        self.qp_actuation_probe = LocalActuationQPOperator(
+            constraint_index=0, actuation_dim=4, u_min=u_min_act, u_max=u_max_act
+        )
+
+    def probe_actuation_feasibility(
+        self,
+        command_tensor: torch.Tensor
+    ) -> Tuple[torch.Tensor, Optional[Any], Dict[str, Any]]:
+        """
+        Evaluates physical actuation commands (e.g. throttle, yaw, pitch, roll)
+        against box limits and Gyroid zero-level set bounds using LocalActuationQPOperator.
+        """
+        return self.qp_actuation_probe.solve_local_feasibility(command_tensor)
+
     def evaluate_modular_weapon_damage(
         self,
         barrel: str = "B1",

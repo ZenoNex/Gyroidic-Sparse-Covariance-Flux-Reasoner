@@ -74,9 +74,10 @@ except ImportError:
     Trajectory8x8Decombiner = None
 
 try:
-    from .texture_dsp import TextureDSPEngine
+    from .texture_dsp import TextureDSPEngine, AdaptiveGaborWindowController
 except ImportError:
     TextureDSPEngine = None
+    AdaptiveGaborWindowController = None
 
 try:
     from .hardware_monitor import (

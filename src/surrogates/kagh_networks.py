@@ -381,9 +381,9 @@ class HarmonicWaveDecomposition(nn.Module):
         """
         Returns (ergodic_component, non_ergodic_component)
         """
-        # 1. Harmonic Decomposition (RFFT)
-        # Treat features as spatial signal
-        x_freq = torch.fft.rfft(x, dim=-1)
+        # 1. Harmonic Decomposition (RFFT) with Parseval energy-conserving invariance
+        # Treat features as spatial signal; norm="ortho" enforces unitary 1/sqrt(N) scaling
+        x_freq = torch.fft.rfft(x, dim=-1, norm="ortho")
         
         # 2. Spectral Gating
         # High freq -> Non-Ergodic (Solitons)
@@ -395,8 +395,8 @@ class HarmonicWaveDecomposition(nn.Module):
         ergodic_freq = x_freq * gate
         non_ergodic_freq = x_freq * (1.0 - gate)
         
-        ergodic_part = torch.fft.irfft(ergodic_freq, n=self.dim, dim=-1)
-        non_ergodic_part = torch.fft.irfft(non_ergodic_freq, n=self.dim, dim=-1)
+        ergodic_part = torch.fft.irfft(ergodic_freq, n=self.dim, dim=-1, norm="ortho")
+        non_ergodic_part = torch.fft.irfft(non_ergodic_freq, n=self.dim, dim=-1, norm="ortho")
         
         return ergodic_part, non_ergodic_part
 
@@ -425,7 +425,7 @@ class TrigonometricUnfolding(nn.Module):
         # cos(3phi) = [3V - tr(C)/tau] / [2 * (-det(PAS))^1.5]
         # Approximate stats from u_h
         tr_c = torch.sum(u_h**2, dim=-1) # Local covariance trace proxy
-        u_h_freq = torch.fft.rfft(u_h, dim=-1)
+        u_h_freq = torch.fft.rfft(u_h, dim=-1, norm="ortho")
         det_pas_proxy = torch.var(torch.abs(u_h_freq), dim=-1) + 1e-6 # Spectral variance
         
         denominator = 2 * (torch.sqrt(det_pas_proxy))**3 + 1e-8
@@ -503,11 +503,11 @@ class HuxleyRD(nn.Module):
         u_ergodic_next = u_ergodic + self.tau * du_ergodic
         
         # --- Non-Ergodic Dynamics (Soliton / Phase Shift) ---
-        # Apply pure phase shift
-        u_ne_freq = torch.fft.rfft(u_non_ergodic, dim=-1)
+        # Apply pure phase shift with Parseval energy-conserving invariance
+        u_ne_freq = torch.fft.rfft(u_non_ergodic, dim=-1, norm="ortho")
         k_indices = torch.arange(u_ne_freq.shape[-1], device=u.device)
         phase_shift = torch.exp(-1j * 2 * math.pi * k_indices * self.soliton_velocity / u.shape[-1])
-        u_ne_shifted = torch.fft.irfft(u_ne_freq * phase_shift, n=u.shape[-1], dim=-1)
+        u_ne_shifted = torch.fft.irfft(u_ne_freq * phase_shift, n=u.shape[-1], dim=-1, norm="ortho")
         
         # Triple-Angle Branch Selection (originally referred to as Trigonometric Unfolding / Geometric Revelation)
         # When violations are high, select the best branch to avoid collapse

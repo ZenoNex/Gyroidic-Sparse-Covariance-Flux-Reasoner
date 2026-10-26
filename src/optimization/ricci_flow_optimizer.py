@@ -55,10 +55,18 @@ class RicciFlowOptimizer(Optimizer):
     Implements Ricci Flow: dg/dt = -2Ric.
     Erradicates proxies by utilizing the SplitBeamInterfactorization with the Chern-Simons gasket.
     """
-    def __init__(self, params, lr=1e-3, seam_width=0.1, engine=None, orthogonalize: bool = False, ns_steps: Optional[int] = None):
-        defaults = dict(lr=lr, seam_width=seam_width, orthogonalize=orthogonalize, ns_steps=ns_steps)
+    def __init__(self, params, lr=1e-3, seam_width=0.1, engine=None, orthogonalize: bool = False, ns_steps: Optional[int] = None, use_convex_regularization: bool = False, convex_lambda: float = 0.01, convex_potential=None):
+        defaults = dict(
+            lr=lr, 
+            seam_width=seam_width, 
+            orthogonalize=orthogonalize, 
+            ns_steps=ns_steps,
+            use_convex_regularization=use_convex_regularization,
+            convex_lambda=convex_lambda
+        )
         super(RicciFlowOptimizer, self).__init__(params, defaults)
         self.engine = engine
+        self.convex_potential = convex_potential
         self.split_beam = SplitBeamInterfactorization(engine=engine)
 
     @torch.no_grad()
@@ -73,7 +81,9 @@ class RicciFlowOptimizer(Optimizer):
             lr = group['lr']
             seam_width = group['seam_width']
             orthogonalize = group.get('orthogonalize', False)
-            ns_steps = group.get('ns_steps', None)
+            ns_steps = group.get('ns_steps', 5)
+            use_convex = group.get('use_convex_regularization', False)
+            convex_lambda = group.get('convex_lambda', 0.01)
             
             for p in group['params']:
                 if p.grad is None:
@@ -116,6 +126,23 @@ class RicciFlowOptimizer(Optimizer):
                         d_p = zeropower_via_newtonschulz5(d_p, steps=ns_steps)
                         scale = max(1.0, math.sqrt(p.size(0) / max(1, p.size(1))))
                         d_p = d_p * scale
+
+                # Channel C (Convex Potential Factorization):
+                # Restores contractive geodesic stability via non-negative Hessian gradient
+                if use_convex:
+                    if self.convex_potential is not None:
+                        with torch.enable_grad():
+                            p_detach = p.detach().clone().requires_grad_(True)
+                            psi_val = self.convex_potential(p_detach).sum()
+                            grad_psi = torch.autograd.grad(psi_val, p_detach)[0]
+                        d_p = d_p + convex_lambda * grad_psi
+                    else:
+                        # Canonical contractive Monge-Ampère potential gradient: nabla Psi(p) = sym(p)
+                        if p.dim() >= 2 and p.shape[-1] == p.shape[-2]:
+                            grad_psi = 0.5 * (p + p.t())
+                        else:
+                            grad_psi = p
+                        d_p = d_p + convex_lambda * grad_psi
                 
                 # Update weights directly driven by non-scalarized phase alignment
                 p.add_(d_p, alpha=-lr)

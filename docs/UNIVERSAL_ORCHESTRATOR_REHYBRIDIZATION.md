@@ -607,3 +607,37 @@ The categorical compute affordance engine from [`src/core/hardware_monitor.py`](
     - 9/9 algebraic invariant tests passing in [`tests/test_algebraic_invariants.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_algebraic_invariants.py).
     - 5/5 affordance tests passing in [`tests/test_compute_affordance_rehybridization.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_compute_affordance_rehybridization.py).
     - 10/10 core systems tests passing in [`tests/test_core_systems.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_core_systems.py).
+- **7.25 Rehybridization of Quadratic & Convex Optimization Primitives: Local Actuation QP Operator, Stage 5 Feasibility Probing, Aeronautic/RedNet QUBO, and Contractive Ricci Flow Metric Regularization**:
+  - **The Architecture of Local Non-Teleological Primitives**:
+    1. *Local Actuation QP Operator (`LocalActuationQPOperator`)*:
+       - Encapsulated strictly as a Local Constraint Probe Operator ($\mathcal{P}_{\text{QP}}: r \mapsto \arg\min_{c \in \mathcal{C}_{\text{QP}}} \mathcal{L}_{\text{QP}}(r, c)$).
+       - Evaluates physical control actuation bounds (e.g., thrust, yaw/pitch/roll, sleeve valve timing, and Gyroid zero-level set bounds) as a local feasibility check.
+       - Emits a discrete `FailureToken(FailureTokenType.BOT)` on constraint rupture or infeasibility, guaranteeing zero smooth gradient leakage to System 1.
+       - Internal quadratic cost parameters ($Q, q$) evolve exclusively via geometric Ricci Flow ($dQ/dt = -2 \operatorname{Ric}(Q)$) preserving positive definiteness on the cone ($Q \succeq 0.01 I$) or Evolutionary Trust Selection, strictly avoiding end-to-end backpropagation.
+    2. *Diegetic Physics Engine Stage 5 Local Feasibility Probing*:
+       - Replaced the ungrounded placeholder identity dummy forward operator (`def _dummy_forward(x, *args, **kwargs): return x`) in Stage 5 of `DiegeticPhysicsEngine` with canonical `CODESConstraintFramework` quadratic well relaxation (`evolve_state`) and bound `LocalActuationQPOperator` into `OperationalAdmmPrimitive.apply`, executing authentic cyclic constraint traversal with high-curvature gyroid prioritization.
+    3. *Cross-Module QUBO Combinatorial Arbitration in Cleanroom Mechanics*:
+       - Generalized D-Wave QUBO simulated quantum annealing beyond weapons into `AeronauticContraption` (multi-subsystem flight arbitration across boost thrust, helium gas venting, plasma air induction, and sleeve-valve timing) and `RedNet16BundledCable` (16-channel conflict and cross-talk arbitration).
+    4. *Convex Potential Factorization in Metric Deformation*:
+       - Enhanced `RicciFlowOptimizer` with `use_convex_regularization=True` and `convex_lambda` support, incorporating contractive Monge-Ampère / ICNN convex potentials ($\nabla^2 \Psi \succeq 0$) into the Riemannian metric update ($d_p = d_p + \lambda_{\text{convex}} \nabla \Psi(p)$) to prevent metric degeneration and singular flatlines.
+    5. *Verification*: Validated by [`tests/test_qp_convex_primitives_rehybridization.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_qp_convex_primitives_rehybridization.py).
+- **7.26 Rehybridization of Signal Analysis & Fourier Analysis Systems (ECE2026 L42 Revelations)**:
+  - **The Signal Processing & Spectral Geometry Integrations**:
+    1. *Parseval Unitary Invariance in Spectral Decomposition*:
+       - Bound `norm="ortho"` across all forward `torch.fft.rfft` and inverse `torch.fft.irfft` passes in `HarmonicWaveDecomposition`, `TrigonometricUnfolding`, and `HuxleyRD` ([`src/surrogates/kagh_networks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/surrogates/kagh_networks.py)).
+       - Eliminates artificial energy dilation and spurious containment pressure when residue slices and time frames dilate under `ManifoldClock` time-dilation ($dt$).
+    2. *Incommensurate Frequency Leakage Suppression via Window Tapering & Cyclotomic Phase Locking*:
+       - In [`TextureDSPEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/texture_dsp.py), implemented `apply_cyclotomic_taper_window` (supporting 2D Hann, Blackman, and Cyclotomic root-of-unity phase shields via `CyclotomicTDACompressor`).
+       - Prevents continuous spectral energy leakage across rectangular DFT frames caused by prime logarithm frequencies ($f_p = 2\pi \ln p$) which are incommensurate and linearly independent over $\mathbb{Q}$.
+       - Implemented native device 2D FFT (`torch.fft.fft2` and `ifft2` with `norm="ortho"`) directly on GPU/CPU tensors.
+    3. *Adaptive Gabor-Frame Window Controller ($H_{\text{spec}}$)*:
+       - Created [`AdaptiveGaborWindowController`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/texture_dsp.py) to resolve the time-frequency trade-off in streaming media:
+         - When Spectral Entropy $H_{\text{spec}}$ spikes (transient switch / Dirac epiphany), the window automatically contracts to preserve temporal/spatial resolution and eliminate vertical switching smear.
+         - When $H_{\text{spec}}$ drops (stationary prime harmonic regime), the window automatically expands to preserve prime harmonic purity.
+       - Added `partition_adaptive_gabor_tiles` for dynamic multiscale image and texture tiling.
+    4. *Polynomial Basis Degree Adaptation (Zero-Padding Trap Resolution)*:
+       - Added `adapt_degree_for_window(window_len, alpha)` to [`PolynomialBasis`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/polynomial_coprime.py).
+       - Explicitly addresses the ECE2026 L42 revelation that zero-padding only interpolates Dirichlet sidelobes without adding spectral resolution; expanding the observation window $L$ now dynamically scales polynomial degree $D = \text{clamp}(\lfloor \alpha L \rfloor, D_{\min}, D_{\max})$ to authentically resolve higher-frequency thought modes.
+  - **Verification Suite**:
+    - Validated by [`tests/test_signal_analysis_fourier_rehybridization.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_signal_analysis_fourier_rehybridization.py) (5/5 passing).
+

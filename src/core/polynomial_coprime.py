@@ -53,6 +53,27 @@ class PolynomialBasis:
         self.basis_type = basis_type
         self.domain = domain
         self.dim = degree + 1  # Number of basis functions
+
+    def adapt_degree_for_window(
+        self,
+        window_len: int,
+        alpha: float = 0.25,
+        min_degree: int = 2,
+        max_degree: int = 32
+    ) -> int:
+        """
+        Dynamically adjusts polynomial degree D based on observation window length L.
+        In accordance with ECE2026 L42, increasing frequency resolution requires expanding
+        the physical observation window L and scaling polynomial basis capacity D,
+        avoiding the 'zero-padding interpolation trap' where padding short frames merely
+        interpolates Dirichlet sidelobes without increasing true resolution.
+        """
+        import math
+        adaptive_deg = int(math.floor(alpha * float(window_len)))
+        new_degree = max(min_degree, min(max_degree, adaptive_deg))
+        self.degree = new_degree
+        self.dim = new_degree + 1
+        return self.degree
     
     def evaluate(self, x: torch.Tensor) -> torch.Tensor:
         """
