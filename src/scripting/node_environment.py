@@ -459,7 +459,7 @@ class PhysicalNodeEditor:
         
         # Life, Hunger & Ego Death
         self.valence = ValenceFunctional(decay=0.98, hunger_scale=1.0)
-        self.ego_death_monitor = EgoDeathThresholdMonitor(abstraction_limit=0.85)
+        self.ego_death_monitor = EgoDeathThresholdMonitor(abstraction_limit=1.0, sensitivity=0.6)
         self.health = 100.0
         self.hunger = 100.0
         self.saturation = 20.0
@@ -2613,3 +2613,7 @@ class PhysicalNodeEditor:
             self.thread.join(timeout=2.0)
         if self.eval_thread:
             self.eval_thread.join(timeout=2.0)
+
+
+# Canonical alias for scripting environment
+NodeEnvironment = PhysicalNodeEditor

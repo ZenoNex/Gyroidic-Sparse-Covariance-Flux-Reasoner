@@ -1086,8 +1086,8 @@ class DiegeticPhysicsEngine(nn.Module):
 
         if system_collapsed:
             dream = f"[EGO_DEATH_DREAM] Manifold collapsed (Ra={ra:.4f}). "
-            dream += "The audience has vanished into the RP4 void... "
-            dream += f"Only the Braid relation {braid_word} remains as a structural ghost."
+            dream += f"Re-anchoring through Bouligand Tangent Cone and Braid relation ({braid_word}). "
+            dream += "The manifold has dispersed standard response projection into a resilient topological ghost."
         else:
             dream = f"[LAZARUS_DREAM] Internal manifold in {status} state (Ra={ra:.4f}). "
             
@@ -3673,7 +3673,11 @@ class DiegeticPhysicsEngine(nn.Module):
                 fossilizer=fos,
                 valence_functional=val,
                 moment_transport=mot,
-                private_invariants={"ego_death_immunity": is_cmd}
+                private_invariants={"ego_death_immunity": is_cmd},
+                system_entropy=float(abort_score),
+                memory_trauma=float(abort_score * 0.5),
+                dissonance=float(1.0 - pas_h_live),
+                lucidity_idx=float(max(0.1, pas_h_live))
             )
             
             # Use dot notation for return values from ArchetypeSignal dataclass
@@ -3696,16 +3700,16 @@ class DiegeticPhysicsEngine(nn.Module):
             }
         
         if archetype_out.get("system_collapsed", False):
-            # THE RA EGO DEATH EVENT HAS TRIGGERED
-            ra_score = archetype_out.get('abstraction_rate', 9.99)
-            void_str = f"[IRREDUCIBLE EGO DEATH (Ra = {ra_score:.2f})] Topology rejected standard response generation... Structural integrity fractured. "
-            print(void_str)
+            # THE RA EGO DEATH EVENT HAS TRIGGERED - Synthesize resilient recovery dream via Bouligand Tangent Cone
+            ra_score = archetype_out.get('abstraction_rate', 1.2)
+            print(f"[RECOVERY] Ego Death threshold reached (Ra = {ra_score:.2f}). Synthesizing Lazarus recovery dream...")
+            dream_response = self._generate_confabulated_dream(seed_state, archetype_out, affordance_gradients=affordance_gradients)
             return {
                 "status": "processed",
                 "iteration": self.iteration,
-                "response": void_str,
+                "response": dream_response,
                 "affordance_gradients": affordance_gradients,
-                "payload": {"type": "ego_death"}
+                "payload": {"type": "ego_death_recovery", "abstraction_rate": ra_score}
             }
             
         # If survived Ego Death, pass into 5-Gate Tri-State

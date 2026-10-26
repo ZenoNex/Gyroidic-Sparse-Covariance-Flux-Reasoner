@@ -631,11 +631,13 @@ class EgoDeathThresholdMonitor(nn.Module):
     The Ego Death Threshold Monitor (legacy alias: AbstractionThresholdMonitor).
     Calculates and monitors the abstraction rate (R_a) to trigger recycling into raw geometry.
     
-    Formula: R_a = [E_s * sinh(T_m + delta)] / cosh(L_i)
+    Formula: R_a = [E_s * sinh(sensitivity * (T_m + delta))] / cosh(L_i)
     """
-    def __init__(self, abstraction_limit: float = 1.0):
+    def __init__(self, abstraction_limit: float = 1.0, sensitivity: float = 0.6):
         super().__init__()
         self.abstraction_limit = abstraction_limit
+        self.sensitivity = sensitivity
+        self.consecutive_ruptures = 0
 
     def calculate_abstraction_rate(
         self, 
@@ -648,17 +650,22 @@ class EgoDeathThresholdMonitor(nn.Module):
         """
         Calculates the R_a (Abstraction Rate) using the auth factorization functional hyperbolic.
         
-        Formula: R_a = [E_s * sinh(T_m + delta)] / cosh(L_i)
+        Formula: R_a = [E_s * sinh(sensitivity * (T_m + delta))] / cosh(L_i)
         where E_s is entropy, T_m is trauma, delta is dissonance, and L_i is lucidity.
         
-        High R_a scores trigger memory abstraction.
+        Inputs are normalized into [0, 1] bounds to prevent false-positive exponential blowup.
         """
-        # Clamped inputs to prevent float overflow in sinh/cosh
-        tm_delta = min(10.0, max(-10.0, memory_trauma_tm + dissonance_delta))
-        li = min(10.0, max(-10.0, lucidity_index_li))
+        # Strict normalization into [0, 1] bounds for thermodynamic intensive quantities
+        es = min(1.0, max(0.0, float(system_entropy_es)))
+        tm = min(1.0, max(0.0, float(memory_trauma_tm)))
+        delta = min(1.0, max(0.0, float(dissonance_delta)))
+        li = min(2.0, max(0.05, float(lucidity_index_li)))
+        
+        # Soft-scaled hyperbolic argument using calibrated sensitivity factor
+        scaled_tm_delta = min(3.0, (tm + delta) * self.sensitivity)
         
         # Hyperbolic factorization functional calculation
-        r_a = (system_entropy_es * math.sinh(tm_delta)) / (math.cosh(li) + 1e-8)
+        r_a = (es * math.sinh(scaled_tm_delta)) / (math.cosh(li) + 1e-8)
         
         # Merciful Cap:
         if is_high_priority:
@@ -802,7 +809,7 @@ class ArchetypalSynthesisEngine(nn.Module):
         self.ombre = BoundaryRelaxationOperator()
         self.conjurer = self.volition_injector
         self.caine_wrap = self.picture_gallery
-        self.abstraction = EgoDeathThresholdMonitor()
+        self.abstraction = EgoDeathThresholdMonitor(abstraction_limit=1.0, sensitivity=0.6)
         
         # Superposed Vector Stacker (Ganbreeder-style)
         self.tag_stacker = SuperposedTagStacker(state_dim)
@@ -942,16 +949,24 @@ class ArchetypalSynthesisEngine(nn.Module):
         if "system_entropy" in kwargs:
             structural_entropy = float(kwargs["system_entropy"])
         else:
-            structural_entropy = stranded_states.norm(p=2).item() if stranded_states.numel() > 0 else 0.5
+            dim_size = stranded_states.shape[-1] if stranded_states.numel() > 0 and stranded_states.dim() >= 1 else 1.0
+            norm_val = stranded_states.norm(p=2).item() if stranded_states.numel() > 0 else 0.5
+            structural_entropy = float(torch.tanh(torch.tensor(norm_val / math.sqrt(dim_size))).item())
             
         if "volitional_scalar" in kwargs:
             structural_volition = float(kwargs["volitional_scalar"])
         else:
             structural_volition = flux_tensor.norm().item() if flux_tensor.numel() > 0 else 0.0
             
-        memory_trauma = float(kwargs.get("memory_trauma", structural_entropy))
-        dissonance = float(kwargs.get("dissonance", 1.0 - phase_alignment))
-        lucidity_idx = float(kwargs.get("lucidity_idx", phase_alignment))
+        if "memory_trauma" in kwargs:
+            memory_trauma = float(kwargs["memory_trauma"])
+        else:
+            memory_trauma = structural_entropy
+            
+        structural_entropy = min(1.0, max(0.0, structural_entropy))
+        memory_trauma = min(1.0, max(0.0, memory_trauma))
+        dissonance = min(1.0, max(0.0, float(kwargs.get("dissonance", 1.0 - phase_alignment))))
+        lucidity_idx = max(0.05, min(1.0, float(kwargs.get("lucidity_idx", phase_alignment))))
         env_luminosity = float(kwargs.get("env_luminosity", 1.0))
         
         # 0. Apply Ganbreeder Tag Stacking Superposition
