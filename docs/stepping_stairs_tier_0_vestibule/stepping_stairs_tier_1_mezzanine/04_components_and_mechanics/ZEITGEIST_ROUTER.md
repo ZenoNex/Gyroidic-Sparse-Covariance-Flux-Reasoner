@@ -4,9 +4,9 @@
 **Status**: [OK] Fully Implemented  
 **Source**: [src/core/zeitgeist_router.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/zeitgeist_router.py)  
 **References**:
-- [ai project report II-VI](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/summaries/ai%20project%20report_2-2-2026.txt)
-- [SYSTEM_ARCHITECTURE 9.4-9.5](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/SYSTEM_ARCHITECTURE.md)
-- [BIOMIMETIC_SYNTHESIS_REPORT 4.4](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/BIOMIMETIC_SYNTHESIS_REPORT.md)
+- [ai project report II-VI](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/06_reports_and_inspirations/ai project report_2-2-2026.txt)
+- [SYSTEM_ARCHITECTURE 9.4-9.5](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/SYSTEM_ARCHITECTURE.md)
+- [BIOMIMETIC_SYNTHESIS_REPORT 4.4](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/06_reports_and_inspirations/BIOMIMETIC_SYNTHESIS_REPORT.md)
 - [NONCOMMUTATIVITY_DYNAMICS.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/NONCOMMUTATIVITY_DYNAMICS.md)
 - [CONTEXT_AWARE_QUANTIZER.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/CONTEXT_AWARE_QUANTIZER.md)
 

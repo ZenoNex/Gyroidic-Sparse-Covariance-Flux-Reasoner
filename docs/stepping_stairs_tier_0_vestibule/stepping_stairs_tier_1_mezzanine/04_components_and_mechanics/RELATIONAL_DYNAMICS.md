@@ -6,7 +6,7 @@
 
 ## 1. SituationalBatchSampler
 
-**Source**: [`src/core/situational_batching.py`](../src/core/situational_batching.py) (154 lines)
+**Source**: [`src/core/situational_batching.py`](../../../../src/core/situational_batching.py) (154 lines)
 
 Replaces i.i.d. sampling with **relational entanglement-based** batching. Indices are grouped by their historical interaction "scars."
 
@@ -47,7 +47,7 @@ All matrices decay by 0.99 each step to allow scar fading.
 
 ## 2. LeyLineTracker
 
-**Source**: [`src/core/ley_line_tracker.py`](../src/core/ley_line_tracker.py) (94 lines)
+**Source**: [`src/core/ley_line_tracker.py`](../../../../src/core/ley_line_tracker.py) (94 lines)
 
 Computes streamlines of the preferred-flow vector $\ell_i = \nabla_M V(x_i)$ along the gyroidic manifold.
 
@@ -69,4 +69,4 @@ $$V(x_i) = \sum_j \alpha \cdot R_{ij} \cdot \|\Phi_j - \Phi_i\|^2 + \beta \cdot 
 | `detect_shear_planes(pressure, threshold)` | Non-smooth gradient regions  corridors of rupture |
 | `get_preferred_flow(indices)` | Softmax over V[indices]  resonance gradient direction |
 
-**Connection**: Ley lines are the discrete approximation of the continuous streamline formalism from [MATHEMATICAL_DETAILS.md 27](MATHEMATICAL_DETAILS.md).
+**Connection**: Ley lines are the discrete approximation of the continuous streamline formalism from [MATHEMATICAL_DETAILS.md 27](../../02_math_physics_topology/MATHEMATICAL_DETAILS.md).

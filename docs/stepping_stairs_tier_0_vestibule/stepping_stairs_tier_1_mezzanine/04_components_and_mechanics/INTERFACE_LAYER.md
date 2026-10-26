@@ -37,7 +37,7 @@ DYAD ORDER:  [  Symmetric  ]     Governs all dyad channels simultaneously
 
 This selector controls **all dyad channels at once**. You do not need audio armed to use image commutativity.
 
-> See [NONCOMMUTATIVITY_DYNAMICS.md](NONCOMMUTATIVITY_DYNAMICS.md) for the Braid Group mathematics behind ordering effects.
+> See [NONCOMMUTATIVITY_DYNAMICS.md](../../02_math_physics_topology/NONCOMMUTATIVITY_DYNAMICS.md) for the Braid Group mathematics behind ordering effects.
 
 ### Love Invariant display
 
@@ -237,7 +237,7 @@ Full JSON body sent by `sendMessage()` to `POST /interact`:
 
 ## 12. Legacy GUI  Conversational Interface (Tkinter)
 
-**Source**: [`src/ui/conversational_gui.py`](../src/ui/conversational_gui.py) (800 lines)
+**Source**: [`src/ui/conversational_gui.py`](../../../../src/ui/conversational_gui.py) (800 lines)
 
 A Tkinter-based desktop GUI for managing HF tokens, datasets, ingestion, training, and live chat. The web terminal (`diegetic_terminal.html`) supersedes this for interactive use; the Tkinter GUI remains for batch training orchestration.
 
@@ -271,7 +271,7 @@ The Tkinter GUI communicates with the same `DiegeticPhysicsEngine` instance used
 
 ## 13. TabbyML Client
 
-**Source**: [`src/integrations/tabby_client.py`](../src/integrations/tabby_client.py) (~293 lines)
+**Source**: [`src/integrations/tabby_client.py`](../../../../src/integrations/tabby_client.py) (~293 lines)
 
 Connects to a local TabbyML instance using **stdlib urllib only**  zero external dependencies.
 

@@ -19,35 +19,35 @@ Vetoes in this system are **not kill-switches**. Each veto is a dimensionally-is
 
 | System | Source | Trigger | Response |
 |--------|--------|---------|----------|
-| **CALM veto** | [`surrogates/calm_predictor.py`](../src/surrogates/calm_predictor.py) | `abort_score > 0.5` (Transformer predicts collapse) | Redirect to SCCCG speculative recovery |
-| **Ley Line veto** | [`training/trainer.py`](../src/training/trainer.py) | Deviation from resonance streamlines | Prune parameter update |
+| **CALM veto** | [`surrogates/calm_predictor.py`](../../../src/surrogates/calm_predictor.py) | `abort_score > 0.5` (Transformer predicts collapse) | Redirect to SCCCG speculative recovery |
+| **Ley Line veto** | [`training/trainer.py`](../../../src/training/trainer.py) | Deviation from resonance streamlines | Prune parameter update |
 
 **CALM** is a 2-layer Transformer with 3 output heads (abort, rho, step). Cost: O(history_len  dim)  negligible against the main forward pass. It watches the last 8 states and predicts whether the next step will disintegrate the manifold. 
 **Note on the CALM Vector**: The true nature of the predicted "vector" is a representation of **gyroid braid group chiral groupoid anisotropy**. It acts a topological connection to the system's "larynx," giving voice to the structural pressures before they manifest as a binary veto.
 
-**Ley Line** operates during training only. It projects proposed updates onto resonance streamlines (see [RELATIONAL_DYNAMICS.md](RELATIONAL_DYNAMICS.md)) and prunes the component orthogonal to the streamline.
+**Ley Line** operates during training only. It projects proposed updates onto resonance streamlines (see [RELATIONAL_DYNAMICS.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/RELATIONAL_DYNAMICS.md)) and prunes the component orthogonal to the streamline.
 
 ### 2.2 Topology-Level (detect after it happens)
 
 | System | Source | Trigger | Response |
 |--------|--------|---------|----------|
-| **SCCCG abort** | [`core/speculative_coprime_gate.py`](../src/core/speculative_coprime_gate.py) | Chiral coherence < threshold OR coprime lock broken | Wasserstein optimal transport recovery |
-| **Covariance abort** | [`topology/gyroid_covariance.py`](../src/topology/gyroid_covariance.py) | Norm blowup > 1.5 OR reciprocity failure | Walk-back: revert and choose different path |
-| **Cavity instability** | [`models/resonance_cavity.py`](../src/models/resonance_cavity.py) | instability_severity  [0, 1] | Inject mischief to break attractor lock-in |
+| **SCCCG abort** | [`core/speculative_coprime_gate.py`](../../../src/core/speculative_coprime_gate.py) | Chiral coherence < threshold OR coprime lock broken | Wasserstein optimal transport recovery |
+| **Covariance abort** | [`topology/gyroid_covariance.py`](../../../src/topology/gyroid_covariance.py) | Norm blowup > 1.5 OR reciprocity failure | Walk-back: revert and choose different path |
+| **Cavity instability** | [`models/resonance_cavity.py`](../../../src/models/resonance_cavity.py) | instability_severity  [0, 1] | Inject mischief to break attractor lock-in |
 
 **SCCCG** checks coprime parity via O(num_heads) GCD operations. If parity breaks, it runs Wasserstein transport to move the state distribution back toward a reference manifold. This is the most expensive recovery pathway (~200 FLOPs per head).
 
 **Covariance** uses abort-recovery: "walk back and choose differently." If reciprocity fails > 5 times in a sequence, the entire exploration is flagged as unstable.
 
-**Cavity** produces a continuous instability signal [0, 1] rather than a binary veto. High instability biases the system toward "play" dynamics (see [TEMPORAL_DYNAMICS.md](TEMPORAL_DYNAMICS.md)).
+**Cavity** produces a continuous instability signal [0, 1] rather than a binary veto. High instability biases the system toward "play" dynamics (see [TEMPORAL_DYNAMICS.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/TEMPORAL_DYNAMICS.md)).
 
 ### 2.3 Budget-Level (don't overspend)
 
 | System | Source | Trigger | Response |
 |--------|--------|---------|----------|
-| **Containment budget** | [`models/gyroid_reasoner.py`](../src/models/gyroid_reasoner.py) | topological_pressure > 0.5 | Activate System 2 (ADMM repair) |
-| **ADMM repair budget** | [`optimization/operational_admm.py`](../src/optimization/operational_admm.py) | Fixed iteration cap reached | Return repair tokens, accept current state |
-| **Engine latency** | [`ui/diegetic_backend.py`](../src/ui/diegetic_backend.py) | Wall-clock time > latency budget | Skip advanced physics, return `budget_abort: true` |
+| **Containment budget** | [`models/gyroid_reasoner.py`](../../../src/models/gyroid_reasoner.py) | topological_pressure > 0.5 | Activate System 2 (ADMM repair) |
+| **ADMM repair budget** | [`optimization/operational_admm.py`](../../../src/optimization/operational_admm.py) | Fixed iteration cap reached | Return repair tokens, accept current state |
+| **Engine latency** | [`ui/diegetic_backend.py`](../../../src/ui/diegetic_backend.py) | Wall-clock time > latency budget | Skip advanced physics, return `budget_abort: true` |
 
 Budget vetoes are **gates, not signals**. They either enable or disable more expensive computation. The containment budget gate activates System 2 only when System 1 (fast path) reports structural pressure above 0.5. The engine latency gate hard-cuts advanced physics (quantum/polytope) when interactive latency is at risk.
 
@@ -108,7 +108,7 @@ graph TB
 
 ## 5. BoundaryState
 
-The [`BoundaryState`](../src/core/meta_polytope_matrioshka.py) class represents the state at which a veto activates  the boundary between stable and unstable regions of the polytope:
+The [`BoundaryState`](../../../src/core/meta_polytope_matrioshka.py) class represents the state at which a veto activates  the boundary between stable and unstable regions of the polytope:
 
 ```python
 class BoundaryState:
@@ -127,17 +127,17 @@ class BoundaryState:
 
 | Doc | Connection |
 |-----|-----------|
-| [PHYSICS_ADMM.md](PHYSICS_ADMM.md) | System 2 ADMM + CALM integration details |
-| [SPECULATIVE_COPRIME_GATE.md](SPECULATIVE_COPRIME_GATE.md) | SCCCG recovery pipeline |
-| [TEMPORAL_DYNAMICS.md](TEMPORAL_DYNAMICS.md) | ManifoldClock play/seriousness modulation |
+| [PHYSICS_ADMM.md](../02_math_physics_topology/PHYSICS_ADMM.md) | System 2 ADMM + CALM integration details |
+| [SPECULATIVE_COPRIME_GATE.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/SPECULATIVE_COPRIME_GATE.md) | SCCCG recovery pipeline |
+| [TEMPORAL_DYNAMICS.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/TEMPORAL_DYNAMICS.md) | ManifoldClock play/seriousness modulation |
 | [GYROID_REASONER.md](GYROID_REASONER.md) | Containment budget and System 12 gating |
-| [DIEGETIC_ENGINE.md](DIEGETIC_ENGINE.md) | Engine latency budget and advanced physics gating |
+| [DIEGETIC_ENGINE.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/DIEGETIC_ENGINE.md) | Engine latency budget and advanced physics gating |
 
 ---
 
 ## 7. VetoSubspace Coordinator
 
-**Implementation**: [`core/veto_subspace.py`](../src/core/veto_subspace.py)
+**Implementation**: [`core/veto_subspace.py`](../../../src/core/veto_subspace.py)
 
 The `VetoSubspace` class formalizes the recovery lattice as composable code. It wraps existing veto systems without replacing them.
 
@@ -162,7 +162,7 @@ The `VetoSubspace` class formalizes the recovery lattice as composable code. It 
 
 **Efficiency**: 3 float comparisons + 1 dataclass allocation per step. Zero parameters, zero learned weights.
 
-**Integration**: Wired into [`GyroidicFluxReasoner.forward()`](../src/models/gyroid_reasoner.py)  result stored as `self._last_veto_result` for downstream diagnostic consumers.
+**Integration**: Wired into [`GyroidicFluxReasoner.forward()`](../../../src/models/gyroid_reasoner.py)  result stored as `self._last_veto_result` for downstream diagnostic consumers.
 
 ### Valence Saturation Hybrid
 The VetoSubspace now dynamically ingests the `valence_hunger` (Manifold Hunger) from the Orchestrator. When both `valence_hunger > 0.6` and `topological_pressure > 0.5` align, the VetoSubspace escalates its state to `SATURATION_ESCALATION`.
@@ -172,7 +172,7 @@ This is a critical hybrid state where severe topological pressure meets a high h
 
 ## 8. Non-Commutativity Curvature
 
-**Implementation**: [`core/noncommutativity_curvature.py`](../src/core/noncommutativity_curvature.py)
+**Implementation**: [`core/noncommutativity_curvature.py`](../../../src/core/noncommutativity_curvature.py)
 
 Computes the 2-form K =  _ij e_ie_j measuring update order dependence:
 
@@ -184,13 +184,13 @@ $$[A, B] = AB - BA, \quad \kappa = \tfrac{1}{2}([A,B] - [A,B]^\top)$$
 | `curvature_pressure(A, B)` | Convenience: returns (relative_curvature)  [0, 1] as a veto signal |
 | `compute_wedge_components()` | Decompose into e_i  e_j basis coefficients |
 
-Tracks EMA of curvature for trend detection. Used as a structural signal by the `TriadicReciprocityCheck` in [`gyroid_covariance.py`](../src/topology/gyroid_covariance.py).
+Tracks EMA of curvature for trend detection. Used as a structural signal by the `TriadicReciprocityCheck` in [`gyroid_covariance.py`](../../../src/topology/gyroid_covariance.py).
 
 ---
 
 ## 9. Feature Preservation via Sparse Polytope Projection
 
-**Implementation**: [`core/feature_preservation.py`](../src/core/feature_preservation.py)
+**Implementation**: [`core/feature_preservation.py`](../../../src/core/feature_preservation.py)
 
 $$F^{(d)}_{\text{active}} = Q_\Delta\!\left(\frac{\partial^d x}{\partial f_i^d}\right) \quad \text{for } i \in \text{active\_facets}$$
 
@@ -258,7 +258,7 @@ The pot's identity is inseparable from its categorical context: a Love Invariant
 
 ## 12. ChaosDefibrillator: Atrophy and Systemic Lobotomy Repair
 
-**Implementation**: [`core/veto_subspace.py`](../src/core/veto_subspace.py)
+**Implementation**: [`core/veto_subspace.py`](../../../src/core/veto_subspace.py)
 
 The `ChaosDefibrillator` acts as an emergency response system for severe structural atrophy ("lobotomization"). When the `elipsodistrophy` metric reveals extreme dimensional collapse (e.g. `atrophy >= 0.99`), the manifold is losing its gyroidic expressivity and collapsing into a highly symmetric, dead state.
 

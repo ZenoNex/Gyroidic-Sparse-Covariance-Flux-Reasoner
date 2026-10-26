@@ -4,9 +4,9 @@
 
 ---
 
-## 1. AdversarialStressTester
+## 1. CollapsePathPoisoner (AdversarialStressTester)
 
-**Source**: [`src/core/collapse_poisoner.py`](../src/core/collapse_poisoner.py) (155 lines)
+**Source**: [`src/core/collapse_poisoner.py`](../../../../src/core/collapse_poisoner.py) (155 lines)
 
 Generates synthetic "rupture" events to verify the Speculative Homology Engine detects structural failures correctly.
 
@@ -24,7 +24,7 @@ Generates synthetic "rupture" events to verify the Speculative Homology Engine d
 
 ## 2. LinguisticEntropyMonitor
 
-**Source**: [`src/core/narrative_collapse.py`](../src/core/narrative_collapse.py) (108 lines)
+**Source**: [`src/core/narrative_collapse.py`](../../../../src/core/narrative_collapse.py) (108 lines)
 
 Monitors reasoning chain smoothness to detect hallucination loops and artificial smoothing.
 
@@ -39,7 +39,7 @@ Uses `ResidueObstructionGraph` for PAS_h integration. Forward returns `{entropy,
 
 ## 3. RelationalKappa
 
-**Source**: [`src/core/relational_kappa.py`](../src/core/relational_kappa.py) (149 lines)
+**Source**: [`src/core/relational_kappa.py`](../../../../src/core/relational_kappa.py) (149 lines)
 
 Context-dependent soliton threshold  never learned, always architectural.
 
@@ -62,7 +62,7 @@ $$\kappa(t) = \mu_{\text{rupture}}(t) + \lambda \cdot \sigma_{\text{rupture}}(t)
 
 ## 4. Yield Criteria
 
-**Source**: [`src/core/yield_criteria.py`](../src/core/yield_criteria.py) (76 lines)
+**Source**: [`src/core/yield_criteria.py`](../../../../src/core/yield_criteria.py) (76 lines)
 
 Dual-regime plasticity for information flow:
 
@@ -85,7 +85,7 @@ Provides a convex envelope over MC rupture sites. Smoothly scales back pressure 
 
 ## 5. ValenceFunctional
 
-**Source**: [`src/core/valence_drive.py`](../src/core/valence_drive.py) (54 lines)
+**Source**: [`src/core/valence_drive.py`](../../../../src/core/valence_drive.py) (54 lines)
 
 Measures the manifold's "hunger"  the drive to resolve structural dissonance.
 
@@ -160,7 +160,7 @@ Shapes the energy surface so that soliton states have lower energy than anti-sol
 
 ## 7. ContextAdaptiveLatentMomentum (CALM)
 
-**Source**: `src/surrogates/calm_predictor.py`
+**Source**: [`src/surrogates/calm_predictor.py`](../../../../src/surrogates/calm_predictor.py)
 
 The CALM predictor acts as the continuous Non-Dual Supervisor determining whether the system should follow mathematical/geometric bounds or defer to learned/empirical trajectories.
 

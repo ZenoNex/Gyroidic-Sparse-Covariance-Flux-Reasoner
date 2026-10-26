@@ -15,24 +15,24 @@ Below is the directory structure mapping core algorithms to their corresponding 
 ### 1. Core Mathematical Foundations
 *   **Decoupled Polynomial CRT & Bezout Identity**
     *   *Implementation*: [decoupled_polynomial_crt.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/decoupled_polynomial_crt.py) & [enhanced_bezout_crt.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/enhanced_bezout_crt.py)
-    *   *Documentation*: [MATHEMATICAL_DETAILS.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/MATHEMATICAL_DETAILS.md) & [FORMALISM_IMPLEMENTATION.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/FORMALISM_IMPLEMENTATION.md)
+    *   *Documentation*: [MATHEMATICAL_DETAILS.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md) & [FORMALISM_IMPLEMENTATION.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/FORMALISM_IMPLEMENTATION.md)
 *   **Birkhoff Projections & Quantum TDA (Betti Numbers)**
     *   *Implementation*: [birkhoff_projection.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/birkhoff_projection.py) & [quantum_tda.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/quantum_tda.py)
-    *   *Documentation*: [TOPOLOGICAL_AI_FRAMEWORK.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/TOPOLOGICAL_AI_FRAMEWORK.md)
+    *   *Documentation*: [TOPOLOGICAL_AI_FRAMEWORK.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/TOPOLOGICAL_AI_FRAMEWORK.md)
 *   **Manifold Hunger & Leontief Economics**
     *   *Implementation*: [valence_drive.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/valence_drive.py) & [leontief_governor.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/leontief_governor.py)
-    *   *Documentation*: [UN_KNOWLEDGE_GUIDE.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/UN_KNOWLEDGE_GUIDE.md)
+    *   *Documentation*: [UN_KNOWLEDGE_GUIDE.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/UN_KNOWLEDGE_GUIDE.md)
 *   **Bostick & Garden Statistical Attractors**
-    *   *Implementation*: [garden_attractors.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/garden_attractors.py) (implied via integrations)
-    *   *Documentation*: [GARDEN_STATISTICAL_ATTRACTORS.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/GARDEN_STATISTICAL_ATTRACTORS.md)
+    *   *Implementation*: [garden_statistical_attractors.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/garden_statistical_attractors.py)
+    *   *Documentation*: [GARDEN_STATISTICAL_ATTRACTORS.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/GARDEN_STATISTICAL_ATTRACTORS.md)
 *   **CODES Taxonomy & Overloaded Acronym Resolution**
     *   *Implementation*: [codes_driver.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/codes_driver.py) & [codes_constraint_framework.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/codes_constraint_framework.py)
-    *   *Documentation*: [CODES_RESOLUTIONS.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/CODES_RESOLUTIONS.md) & [Codes v40.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/Codes%20v40.md)
+    *   *Documentation*: [CODES_RESOLUTIONS.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/CODES_RESOLUTIONS.md) & [Codes v40.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/Codes v40.md)
 
 ### 2. Psycho-Topological Archetypes (The Amazing Digital Circus & Sovereign Gaps)
 *   **The Master Governor & Synthesis Framework**
     *   *Implementation*: [archetype_engines.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/archetype_engines.py)
-    *   *Documentation*: [TADC lore.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/TADC%20lore.md)
+    *   *Documentation*: [TADC lore.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/TADC lore.md)
 *   **Full Archetype System & Traumatic Gating Modules**
     *   **Pomni** (`ResilientCoherenceStabilizer`): Empathy and resilience engine injecting stabilizing phase nudges under high disorientation.
     *   **Jax** (`JaxShell`): Active defensive shell protecting internal high-entropy states. Yields only to warm community support, otherwise enforcing cynical mask deflection (containment pressure).
@@ -91,10 +91,10 @@ graph TD
 ### 3. Multimodal Topology & Codecs
 *   **Gyroidic Codec & Visual Residues**
     *   *Implementation*: [gyroidic_codec.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/gyroidic_codec.py)
-    *   *Documentation*: [GYROIDIC_CODEC.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/GYROIDIC_CODEC.md)
+    *   *Documentation*: [GYROIDIC_CODEC.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/GYROIDIC_CODEC.md)
 *   **Intercosamination (Handle-Attachment Surgery)**
     *   *Implementation*: [vision_surgery.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/vision_surgery.py)
-    *   *Documentation*: [INTERCOSAMINATION_THEORY.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/INTERCOSAMINATION_THEORY.md)
+    *   *Documentation*: [INTERCOSAMINATION_THEORY.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/INTERCOSAMINATION_THEORY.md)
 
 ---
 
@@ -104,7 +104,7 @@ graph TD
     *   *Role*: Primary starting backend engine of the Gyroidic Reasoner. Handles HTTP/WebSocket endpoints, Option D Master Server Colonizer, PyOpenCL hardware acceleration, and emergency fossilization on shutdown.
 *   **Diegetic Terminal & Sovereign UI**
     *   *Implementation*: [conversational_backend_server.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/conversational_backend_server.py) & [diegetic_backend.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py)
-    *   *Documentation*: [INTERFACE_LAYER.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/INTERFACE_LAYER.md)
+    *   *Documentation*: [INTERFACE_LAYER.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/INTERFACE_LAYER.md)
 *   **Voxelboxter Client & Simulation**
     *   *Implementation*: [voxelboxter_client.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_client.py) & [voxelboxter_simulation.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py)
     *   *Documentation*: [VOXELBOXTER_NONDUAL_ECOLOGY.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/VOXELBOXTER_NONDUAL_ECOLOGY.md)
@@ -114,26 +114,26 @@ graph TD
 
 ## 📂 Consolidated Task & Implementation Summaries
 
-Floating summary files have been organized into the [docs/summaries/](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/summaries) directory to preserve all details of our breakthrough implementation history.
+Floating summary files have been organized into the [docs/summaries/](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/summaries) directory to preserve all details of our breakthrough implementation history.
 
 | Summary Report | Focus Area | Key Achievements |
 | :--- | :--- | :--- |
-| [ANTI_LOBOTOMY_FIXES.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/summaries/ANTI_LOBOTOMY_FIXES.md) | Safety / Autonomy | Replaced hardcoded CALM vetoes with dynamic Fibonacci-prime envelopes. |
-| [BOSTICK_TYPED_HEALTH_METRICS.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/summaries/BOSTICK_TYPED_HEALTH_METRICS_COMPLETION.md) | Metrics / Instrumentation | Enforced strictly typed health metrics (cycle debt, spectral radius). |
-| [CONVERSATIONAL_API_INTEGRATION.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/summaries/CONVERSATIONAL_API_INTEGRATION_SUMMARY.md) | UI & API | Bridged the diegetic terminal to the backend websocket/HTTP protocol. |
-| [DIEGETIC_TERMINAL_RESTORATION.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/summaries/DIEGETIC_TERMINAL_RESTORATION_SUMMARY.md) | UI / Terminal | Restored raw retro green/blue terminal layouts and SOMA overlays. |
-| [GARDEN_ATTRACTORS_INTEGRATION.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/summaries/GARDEN_ATTRACTORS_INTEGRATION_SUMMARY.md) | Dynamics | Integrated Bostick and Garden Statistical Attractors into main loop. |
-| [LARYNX_INTEGRATION.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/summaries/LARYNX_INTEGRATION_SUMMARY.md) | Multimodal Response | Wired Resonance Larynx and Chern-Simons Gasket to text generation. |
-| [MULTIMODAL_SUCCESS.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/summaries/MULTIMODAL_SUCCESS_SUMMARY.md) | Ingestion / Processing | Unified 137-dim image fingerprints with text embeddings. |
-| [PLACEHOLDER_REMOVAL.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/summaries/PLACEHOLDER_REMOVAL_SUMMARY.md) | Code Quality | Removed all mock/randn placeholders in favor of deterministic physics. |
-| [Project_Audit_Report_Final.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/summaries/Project_Audit_Report_Final.md) | QA / Invariants | Finalized the audit of all 24 source modules and Voynich standards. |
+| [ANTI_LOBOTOMY_FIXES.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/summaries/ANTI_LOBOTOMY_FIXES.md) | Safety / Autonomy | Replaced hardcoded CALM vetoes with dynamic Fibonacci-prime envelopes. |
+| [BOSTICK_TYPED_HEALTH_METRICS.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/summaries/BOSTICK_TYPED_HEALTH_METRICS_COMPLETION.md) | Metrics / Instrumentation | Enforced strictly typed health metrics (cycle debt, spectral radius). |
+| [CONVERSATIONAL_API_INTEGRATION.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/summaries/CONVERSATIONAL_API_INTEGRATION_SUMMARY.md) | UI & API | Bridged the diegetic terminal to the backend websocket/HTTP protocol. |
+| [DIEGETIC_TERMINAL_RESTORATION.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/summaries/DIEGETIC_TERMINAL_RESTORATION_SUMMARY.md) | UI / Terminal | Restored raw retro green/blue terminal layouts and SOMA overlays. |
+| [GARDEN_ATTRACTORS_INTEGRATION.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/summaries/GARDEN_ATTRACTORS_INTEGRATION_SUMMARY.md) | Dynamics | Integrated Bostick and Garden Statistical Attractors into main loop. |
+| [LARYNX_INTEGRATION.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/summaries/LARYNX_INTEGRATION_SUMMARY.md) | Multimodal Response | Wired Resonance Larynx and Chern-Simons Gasket to text generation. |
+| [MULTIMODAL_SUCCESS.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/summaries/MULTIMODAL_SUCCESS_SUMMARY.md) | Ingestion / Processing | Unified 137-dim image fingerprints with text embeddings. |
+| [PLACEHOLDER_REMOVAL.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/summaries/PLACEHOLDER_REMOVAL_SUMMARY.md) | Code Quality | Removed all mock/randn placeholders in favor of deterministic physics. |
+| [Project_Audit_Report_Final.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/summaries/Project_Audit_Report_Final.md) | QA / Invariants | Finalized the audit of all 24 source modules and Voynich standards. |
 
 ---
 
 ## System Release Notes & Addendums
 
 *   **BrainBreeder Alpha 1.0.0 Release Addendum**
-    *   *Documentation*: [RELEASE_ADDENDUM_alpha_1.0.0.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/RELEASE_ADDENDUM_alpha_1.0.0.md)
+    *   *Documentation*: [RELEASE_ADDENDUM_alpha_1.0.0.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/RELEASE_ADDENDUM_alpha_1.0.0.md)
     *   *Focus*: Complete details on the pure topological archetype refactoring, Phase 18 CRT switching, and the PyOpenCL hardware integration profile.
 
 ---

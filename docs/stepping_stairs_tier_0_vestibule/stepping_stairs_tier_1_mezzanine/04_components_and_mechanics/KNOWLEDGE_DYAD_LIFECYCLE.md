@@ -258,7 +258,7 @@ DAQUF Fossilisation (on /ingest)
 
 ## 9. Internal Fusion  DataAssociationLayer & Residue Fusion
 
-**Source**: [`src/models/diegetic_heads.py`](../src/models/diegetic_heads.py)
+**Source**: [`src/models/diegetic_heads.py`](../../../../src/models/diegetic_heads.py)
 
 > This section describes what happens *inside* the engine after the Chebyshev fingerprint has biased the manifold. These are two distinct layers: the Chebyshev fingerprint (23) is the **external ingestion path** (raw signal  `meta_state` bias). The `DataAssociationLayer` is the **internal fusion path** (tensors already inside the engine  cross-modal residues  dark matter injection).
 

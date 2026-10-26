@@ -172,7 +172,7 @@ How existing Python components map to the PyOpenCL environment:
 
 ---
 
-**References:** [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md), [INTERCOSAMINATION_THEORY.md](INTERCOSAMINATION_THEORY.md), `src/core/admr_solver.py`, `src/core/pyopencl_sovereignty.py`
+**References:** [INVARIANT_OPTIMIZATION.md](stepping_stairs_tier_0_vestibule/02_math_physics_topology/INVARIANT_OPTIMIZATION.md), [INTERCOSAMINATION_THEORY.md](stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/INTERCOSAMINATION_THEORY.md), `src/core/admr_solver.py`, `src/core/pyopencl_sovereignty.py`
 
 
 ## Hardware Sovereignty & OpenCL Implementations

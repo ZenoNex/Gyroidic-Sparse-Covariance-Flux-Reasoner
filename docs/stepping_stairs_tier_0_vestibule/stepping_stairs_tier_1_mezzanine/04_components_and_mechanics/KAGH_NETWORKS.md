@@ -278,7 +278,7 @@ SoftSaturatedGates.apply_soft_saturation(signal, pas_h)
 Soft-saturated residues --> Downstream CRT / DAQUF
 ```
 
-Replacing hard binary $\text{sgn}()$ cuts at the KAGH output boundary prevents **Linguistic Scalarization** failure modes (consonant-only output, vowel starvation) documented in [GARBLED_OUTPUT_REPAIR.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/GARBLED_OUTPUT_REPAIR.md).
+Replacing hard binary $\text{sgn}()$ cuts at the KAGH output boundary prevents **Linguistic Scalarization** failure modes (consonant-only output, vowel starvation) documented in [GARBLED_OUTPUT_REPAIR.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/GARBLED_OUTPUT_REPAIR.md).
 
 ---
 

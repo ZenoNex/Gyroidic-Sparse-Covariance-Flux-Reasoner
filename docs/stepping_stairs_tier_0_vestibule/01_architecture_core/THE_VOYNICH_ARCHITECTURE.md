@@ -89,7 +89,7 @@ The problem it solves is *not* "we don't know what this Minecraft block ID means
 Because Voyenese logic is naturally opaque and highly entropic by design, standard efficiency gates (like Repunit Congruence) will kill the output as noise. The Linguist protects the high-entropy System 1 output by validating its structural honesty via PAS (Phase Alignment Score) and PAS_LOCK, allowing it to survive to the final stages. Conflating this with spatial context mapping (e.g., in `minecraft_ingestor.py`) is a fundamental error.
 
 ### Gate 5: Honest Confabulation
-The `check_honesty()` method returns a consensus score  the structural signal for detecting confidence vs uncertainty. This serves as the embryonic **Gate 5 (ConfabulationDetector)** in the five-part decision architecture. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full flow and [PHILOSOPHY.md 18](../vault_docs/PHILOSOPHY.md) for the ethics of honest confabulation.
+The `check_honesty()` method returns a consensus score  the structural signal for detecting confidence vs uncertainty. This serves as the embryonic **Gate 5 (ConfabulationDetector)** in the five-part decision architecture. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full flow and [SOVEREIGN_FRICTION_AND_ARCHETYPES.md](../stepping_stairs_tier_1_mezzanine/03_philosophy_lore/SOVEREIGN_FRICTION_AND_ARCHETYPES.md) for the ethics of honest confabulation.
 
 ### False Negatives & The Exemption Token
 Because Voyenese logic is naturally opaque and highly entropic by design, standard geometric efficiency gates (like Repunit Congruence and CALM Singularity prediction) historically misidentified Voynich structures as structural corruption. 

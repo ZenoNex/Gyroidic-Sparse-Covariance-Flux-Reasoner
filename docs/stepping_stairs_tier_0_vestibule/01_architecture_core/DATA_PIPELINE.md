@@ -6,7 +6,7 @@
 
 ## 1. Conversational API Ingestor
 
-**Source**: [`src/data/conversational_api_ingestor.py`](../src/data/conversational_api_ingestor.py) (1,107 lines)
+**Source**: [`src/data/conversational_api_ingestor.py`](../../../src/data/conversational_api_ingestor.py) (1,107 lines)
 
 Unified conversational data ingestion from multiple API sources.
 
@@ -44,7 +44,7 @@ Unified conversational data ingestion from multiple API sources.
 
 ## 2. Pressure Ingestor
 
-**Source**: [`src/data/pressure_ingestor.py`](../src/data/pressure_ingestor.py) (671 lines)
+**Source**: [`src/data/pressure_ingestor.py`](../../../src/data/pressure_ingestor.py) (671 lines)
 
 Runtime code generation for constraint forcing. **No polite APIs. No silent failures.**
 
@@ -81,7 +81,7 @@ Each source transitions through 4 phases, with code generated dynamically per ph
 
 ## 3. Textbook Filter
 
-**Source**: [`src/data/textbook_filter.py`](../src/data/textbook_filter.py) (335 lines)
+**Source**: [`src/data/textbook_filter.py`](../../../src/data/textbook_filter.py) (335 lines)
 
 Phi-1 "Textbooks Are All You Need" inspired quality filtering with **non-scalar admissibility**.
 
@@ -115,7 +115,7 @@ Detects code vs. instruction content automatically (`_is_code`) and applies diff
 
 ## 4. Sovereign Lore Ingestor (ArXiv + SearXNG)
 
-**Source**: [`src/data/knowledge_ingestor.py`](../src/data/knowledge_ingestor.py)
+**Source**: [`src/data/knowledge_ingestor.py`](../../../src/data/knowledge_ingestor.py)
 
 Background slow-drip ingestion pipeline fetching high-density lore residues from ArXiv (OAI-PMH and Atom API) and the Open Web via a privacy-preserving **SearXNG** integration (with strict `robots.txt` compliance and `BeautifulSoup` content extraction).
 
@@ -157,7 +157,7 @@ Specifically includes hard-to-find humanities and societal overlaps to maintain 
 
 ## 5. IVSTEncoder (Intrinsic Volume and Spectral Tensor)
 
-**Implementation**: [`models/modular_embeddings.py`](../src/models/modular_embeddings.py) (via `SimpleGraphEncoder` / `IVSTEncoder`)
+**Implementation**: [`models/modular_embeddings.py`](../../../src/models/modular_embeddings.py) (via `SimpleGraphEncoder` / `IVSTEncoder`)
 
 The `IVSTEncoder` captures non-local topological data across conversation graphs or structural topologies. Instead of simple message-passing, it maps node features into a spectral tensor representation that tracks:
 
@@ -170,7 +170,7 @@ This enables the reasoner to intuitively understand the macro-structure of data 
 
 ## 6. Multi-LLM Archive Friction Harvester
 
-**Implementation**: [`data/chatgpt_friction_harvester.py`](../src/data/chatgpt_friction_harvester.py)
+**Implementation**: [`data/chatgpt_friction_harvester.py`](../../../src/data/chatgpt_friction_harvester.py)
 
 The `ChatGPTFrictionHarvester` mines structural resistance directly from human-AI conversational datasets. Originally built solely for ChatGPT exports, it now natively supports multi-LLM conversational archives, dynamically parsing exports from **Google Takeout/Gemini, Grok, Claude, and Perplexity**. It features automatic, on-the-fly recursive parsing of raw `.json`, `.html`, and `.zip` archives directly from the `/data/service_llm_archive/` directory without requiring manual extraction. Unlike standard APIs that just extract text, this system tracks non-ergodic phenomena where conversational flow hits "friction".
 
@@ -187,7 +187,7 @@ The `ChatGPTFrictionHarvester` mines structural resistance directly from human-A
 
 ## 7. Open Science Ingestor
 
-**Source**: [`src/data/open_science_ingestor.py`](../src/data/open_science_ingestor.py)
+**Source**: [`src/data/open_science_ingestor.py`](../../../src/data/open_science_ingestor.py)
 
 The `OpenScienceIngestor` integrates high-density scientific datasets (including LIGO strain streams and EuropePMC paper queries) into the reasoner's manifold.
 
@@ -277,7 +277,7 @@ Reads region file headers and decompresses specific chunk NBT compounds.
 **Description:**
 Coordinates region file scans, script extractions, and spatial voxel projections.
 Fuses spatial NBT/Block parameters with textual scripts as Voxel-Text Dyads.
-Feeds directly into the cleanroom mechanics suite ([`src/environment/cleanroom_mechanics.py`](../src/environment/cleanroom_mechanics.py)):
+Feeds directly into the cleanroom mechanics suite ([`src/environment/cleanroom_mechanics.py`](../../../src/environment/cleanroom_mechanics.py)):
 - Extracted chest inventories and item compounds serialize into [`ExpandedInventorySystem`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py).
 - Paletted voxel chunk grids supply spatial ground-truth for [`ResourceDistributionInspector`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) Chebyshev depth distributions.
 - Sign posts, player death coordinates, and structural bounds populate [`JourneyTopoRadar`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) waypoints and stress fossils.

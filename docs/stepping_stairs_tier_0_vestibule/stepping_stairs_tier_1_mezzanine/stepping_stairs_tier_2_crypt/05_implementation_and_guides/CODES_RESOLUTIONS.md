@@ -10,17 +10,17 @@ The table below outlines the four co-existing meanings of CODES within the proje
 
 | Acronym Expansion | Domain / Level | Primary Source / Code File | Mathematical Core | Architectural Role |
 | :--- | :--- | :--- | :--- | :--- |
-| **Chirality of Dynamic Emergent Systems** | Theoretical / Physical | [Codes v40.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/Codes%20v40.md) | $PAS_h(S,t) = \sum w_m r_m(t)$, prime-chiral closure | Philosophical foundation; defines lawful emergence and replacement of probability with phase coherence. |
+| **Chirality of Dynamic Emergent Systems** | Theoretical / Physical | [Codes v40.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/Codes v40.md) | $PAS_h(S,t) = \sum w_m r_m(t)$, prime-chiral closure | Philosophical foundation; defines lawful emergence and replacement of probability with phase coherence. |
 | **Coherence-Oriented Deterministic Execution System** | Hardware / Simulation | [codes_driver.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/codes_driver.py) | Multiharmonic Phase Alignment Score ($PAS_h$) and exact projections | GPU-level warp/instruction gating simulation; runs AURA_OUT, TEMPOLOCK, and CHORDLOCK filters. |
 | **Constraint-Oriented Differential Equation System** | Algorithm / Learning | [codes_constraint_framework.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/codes_constraint_framework.py) | Energy minimization: $E(x) = x^T W x + b^T x$, damped gradient descent | Energy-Based Model (EBM) solver that optimizes network configurations under multi-modal constraints. |
-| **Constraint Oscillation Driven Evolutionary Selection** | Evolutionary / Mutation | [MODULE_INVENTORY.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/MODULE_INVENTORY.md) | Mutation rates based on $PAS_h$ and $PAS_{zeta}$ | Controls the mutation envelope for trust scalars and bimodal genomes, preventing teleological gradient drift. |
+| **Constraint Oscillation Driven Evolutionary Selection** | Evolutionary / Mutation | [MODULE_INVENTORY.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/MODULE_INVENTORY.md) | Mutation rates based on $PAS_h$ and $PAS_{zeta}$ | Controls the mutation envelope for trust scalars and bimodal genomes, preventing teleological gradient drift. |
 
 ---
 
 ## 2. Deep Dive: The Four Frameworks
 
 ### 2.1 Chirality of Dynamic Emergent Systems (Devin Bostick's Theory)
-The foundational physics and cognitive model described in [Codes v40.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/Codes%20v40.md).
+The foundational physics and cognitive model described in [Codes v40.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/Codes v40.md).
 *   **Core Concept**: Probability is an artifact of incomplete phase detection. Reality is a deterministic resonance field. Emergence occurs when chiral (asymmetric, direction-preserving) wave systems phase-lock at prime intervals.
 *   **Key Invariants**:
     *   $PAS_h$ (Harmonic Phase Alignment Score): The universal scale-free scalar invariant.
@@ -48,7 +48,7 @@ The learning block implemented in [codes_constraint_framework.py](file:///d:/pro
     *   Contrastive Learning: Optimizes parameters using margin-based loss to push down correct state energies and pull up incorrect ones.
 
 ### 2.4 Constraint Oscillation Driven Evolutionary Selection (Evolutionary Manager)
-The selection system monitored by the [Legibility Audit](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/INVARIANT_OPTIMIZATION.md#15-legibility-audit-srccorelegibility_auditpy).
+The selection system monitored by the [Legibility Audit](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/INVARIANT_OPTIMIZATION.md#15-legibility-audit-srccorelegibility_auditpy).
 *   **Core Concept**: Protects System 2 from teleological backsliding (optimizing trust scalars via backpropagation).
 *   **Key Features**:
     *   Trust Evolution: Evolves model coefficients and bimodal genomes through step-wise mutation and selection pressure (not gradient descent).

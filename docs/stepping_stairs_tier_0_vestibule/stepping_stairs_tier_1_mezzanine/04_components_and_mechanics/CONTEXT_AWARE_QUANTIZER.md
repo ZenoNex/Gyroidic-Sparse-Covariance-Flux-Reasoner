@@ -2,8 +2,8 @@
 
 **Phase**: 17  
 **Status**: [OK] Implemented  
-**Source**: [`src/core/context_aware_quantizer.py`](../src/core/context_aware_quantizer.py)  
-**References**: [ai project report 3](ai%20project%20report_2-2-2026.txt)  [VETO_SUBSPACE_ARCHITECTURE 5](VETO_SUBSPACE_ARCHITECTURE.md)  [SYSTEM_ARCHITECTURE 9.3](SYSTEM_ARCHITECTURE.md)
+**Source**: [`src/core/context_aware_quantizer.py`](../../../../src/core/context_aware_quantizer.py)  
+**References**: [ai project report 3](../stepping_stairs_tier_2_crypt/06_reports_and_inspirations/ai project report_2-2-2026.txt)  [VETO_SUBSPACE_ARCHITECTURE 5](../../01_architecture_core/VETO_SUBSPACE_ARCHITECTURE.md)  [SYSTEM_ARCHITECTURE 9.3](../../01_architecture_core/SYSTEM_ARCHITECTURE.md)
 
 ---
 
@@ -164,9 +164,9 @@ In the Phase 19 topology update, `ContextAwareQuantizer` is hybridized with the 
 
 ## Related Documents
 
-- [SYSTEM_ARCHITECTURE 9.39.4](SYSTEM_ARCHITECTURE.md)  Matrioshka nested polytopes and quantization formalism
-- [VETO_SUBSPACE_ARCHITECTURE 5](VETO_SUBSPACE_ARCHITECTURE.md)  BoundaryState and is_critical() threshold
+- [SYSTEM_ARCHITECTURE 9.39.4](../../01_architecture_core/SYSTEM_ARCHITECTURE.md)  Matrioshka nested polytopes and quantization formalism
+- [VETO_SUBSPACE_ARCHITECTURE 5](../../01_architecture_core/VETO_SUBSPACE_ARCHITECTURE.md)  BoundaryState and is_critical() threshold
 - [ZEITGEIST_ROUTER.md](ZEITGEIST_ROUTER.md)  Phase 18 consumer of the BoundaryState emitted here
-- [MATHEMATICAL_DETAILS 31.7](MATHEMATICAL_DETAILS.md)  Full BoundaryState tensor formalism
+- [MATHEMATICAL_DETAILS 31.7](../../02_math_physics_topology/MATHEMATICAL_DETAILS.md)  Full BoundaryState tensor formalism
 - [PRIME_RESONANCE_LADDER.md](PRIME_RESONANCE_LADDER.md)  Prime frequency lattice and Moiré beat spectrum
 

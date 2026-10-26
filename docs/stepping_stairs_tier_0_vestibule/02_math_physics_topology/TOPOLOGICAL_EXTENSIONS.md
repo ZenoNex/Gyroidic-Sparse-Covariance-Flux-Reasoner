@@ -199,7 +199,7 @@ The architecture explicitly prioritizes **Topological Discontinuity** over gradi
 
 ### 3. MohrCoulomb and DruckerPrager Governance
 
-The two pot regimes operate under dual yield criteria ([MATHEMATICAL_DETAILS.md:L582-L595](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/MATHEMATICAL_DETAILS.md#L582-L595)):
+The two pot regimes operate under dual yield criteria ([MATHEMATICAL_DETAILS.md:L582-L595](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md#L582-L595)):
 
 - **MohrCoulomb (local, brittle)**: $\tau = c + \sigma \tan\phi$  governs individual pot integrity. Each Meliponini pot has a local shear strength; global pressure below $\tau$ cannot breach the cerumen wall. This preserves situational truth (local implication integrity) without smoothing.
 - **DruckerPrager (global, smooth)**: $\alpha I_1 + \sqrt{J_2} - k = 0$  governs the global flow envelope around all pots. Allows system-wide navigability without flattening local structure. The pots can be organized and re-clustered without their contents being mixed.
@@ -207,9 +207,9 @@ The two pot regimes operate under dual yield criteria ([MATHEMATICAL_DETAILS.md:
 **References**: 
 - `src/safety/red_teaming.py` ([TopologicalRefusalFilter](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/safety/red_teaming.py#L81) as puncture gate)
 - `src/topology/gyroid_covariance.py` (ChernSimonsGasket as cerumen wall)
-- [VETO_SUBSPACE_ARCHITECTURE.md:L11](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/VETO_SUBSPACE_ARCHITECTURE.md#L11) (Meliponini pot isolation in veto architecture)
-- [NON_DUAL_DYNAMIC_EQUILIBRIUM.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/NON_DUAL_DYNAMIC_EQUILIBRIUM.md) (Domestic Sovereignty framing)
-- [MATHEMATICAL_DETAILS.md:L582-L595](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/MATHEMATICAL_DETAILS.md#L582-L595) (Yield Criteria definitions)
+- [VETO_SUBSPACE_ARCHITECTURE.md:L11](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/VETO_SUBSPACE_ARCHITECTURE.md#L11) (Meliponini pot isolation in veto architecture)
+- [NON_DUAL_DYNAMIC_EQUILIBRIUM.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/NON_DUAL_DYNAMIC_EQUILIBRIUM.md) (Domestic Sovereignty framing)
+- [MATHEMATICAL_DETAILS.md:L582-L595](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md#L582-L595) (Yield Criteria definitions)
 
 ---
 
@@ -314,7 +314,7 @@ The Alexander Wild Embedding & Negentropy Shear operator links directly to 12 de
 7. **`DiegeticPhysicsEngine`** ([`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py)): Projects dark matter residuals along Bouligand bubbles.
 8. **`BonfireConsensus`** ([`src/p2p/bonfire_consensus.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/bonfire_consensus.py)): Modulates complexity coordinates with L'Hôpital scaling $\frac{\ln(C+1)}{C}$.
 9. **`ResonanceCavity`** ([`src/models/resonance_cavity.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/resonance_cavity.py)): Integrates non-smooth jump vectors into dark matter field registers.
-10. **`CarnotMobiusLedger`** ([`src/p2p/carnot_ledger.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/carnot_ledger.py)): Bounds work extraction across non-orientable Möbius transitions.
+10. **`CarnotMobiusLedger`** ([`src/core/carnot_mobius_ledger.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/carnot_mobius_ledger.py)): Bounds work extraction across non-orientable Möbius transitions.
 11. **`HyperRingClosure`** ([`src/topology/hyper_ring_closure.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/hyper_ring_closure.py)): Enforces gyroidic differential inclusion via contingent cones.
 12. **`BettiRouter`** ([`src/topology/betti_router.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/betti_router.py)): Vetoes topological traffic jams along non-transversal routes.
 

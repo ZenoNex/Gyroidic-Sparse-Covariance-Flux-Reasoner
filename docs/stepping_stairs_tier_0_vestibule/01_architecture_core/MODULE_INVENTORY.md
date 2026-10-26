@@ -98,10 +98,10 @@ Originally a monolithic multimodal ingestor inside `src/core/`, `src/core/hybrid
 ---
 
 ### knowledge_dyad_fossilizer.py
-**Class**: `KnowledgeDyad`, `ResidueFusion`, `KnowledgeDyadFossilizer`  
+**Class**: `KnowledgeDyad`, `ResidueFusion`, `DyadFossilizer`  
 **Role**: Multi-modal knowledge dyad fossilization and Agent Smith identity serialization.
 
-Manages persistent storage of multi-modal knowledge units `(Image Fingerprint, Linguistic Description)`. `ResidueFusion` dynamically resizes projection layers (`_ensure_image_proj_dim`) to preserve full multimodal mass without un-lobotomized dimension truncation. `KnowledgeDyadFossilizer` exports and imports decoupled mathematical Agent Smith identities using `harvest_honest_jitter`.
+Manages persistent storage of multi-modal knowledge units `(Image Fingerprint, Linguistic Description)`. `ResidueFusion` dynamically resizes projection layers (`_ensure_image_proj_dim`) to preserve full multimodal mass without un-lobotomized dimension truncation. `DyadFossilizer` exports and imports decoupled mathematical Agent Smith identities using `harvest_honest_jitter`.
 
 ---
 
@@ -130,7 +130,7 @@ Replaces scalar loss proxies with dual-channel Split-Beam Interfactorization. Ch
 ---
 
 ### [`conjugate_moment_transport.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/conjugate_moment_transport.py)
-**Class**: `ConjugateMomentTransport`, `WassersteinOptimalTransport`  
+**Class**: `ConjugateMomentTransport` (Note: entropic `WassersteinOptimalTransport` lives in `src/core/speculative_coprime_gate.py`)  
 **Role**: Execute Conjugate Moment Measure Factorization (CMMF) for optimal transport.  
 
 This module couples base sampling and optimal transport into a single scalar convex potential $\psi(x)$. It parameterizes $\psi(x)$ using an Input Convex Neural Network (ICNN) to map base noise to target distributions via Legendre transform gradients $\nabla \psi^*(y)$. It adaptively scales the Monge-Ampère loss via the Phase Alignment Score ($\text{PAS}_h$). If standard Wasserstein transport fails, the continuous output is projected strictly onto the Cayley Cubic variety to prevent logic leaks. Includes **trigonometric unfolding for Casus Irreducibilis** (cubic root degeneracy), unfolding degenerate states into three ternary chiral angles ($\theta$, $\theta + \frac{2\pi}{3}$, $\theta - \frac{2\pi}{3}$) and selecting the branch that maximizes structural negentropy.
@@ -461,7 +461,7 @@ Enforces structural stability conditions derived from prime arithmetic  prime ga
 ---
 
 ### [`orchestrator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py)
-**Class**: `UniversalOrchestrator`, `TwoCopsGovernor`, `RegimePhase`  
+**Class**: `UniversalOrchestrator`, `GeneralUserAliasTracker` (drives `TwoCopsSchedule`, `RegimePhase` from `src/core/manifold_time.py`)  
 **Role**: Master Universal Orchestrator  dual-clock Fast/Slow Cops governor, Phase 2.5-3.0 scheduler, and multi-subsystem integrity nervous system.
 
 Features:
@@ -982,7 +982,7 @@ Token embeddings organized by CRT residue class  tokens sharing the same residue
 ---
 
 ### [`polynomial_embeddings.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/polynomial_embeddings.py)
-**Classes**: `PolynomialFunctionalEmbedder`, `PolynomialBasisEmbedding`  
+**Classes**: `PolynomialFunctionalEmbedder` (Basis polynomials parameterized via `PolynomialBasis` in `src/core/polynomial_coprime.py`)  
 **Role**: Polynomial basis token and multi-modal embeddings with continuous B-spline learning and Monge-Ampere JEPA latent energy.
 
 Represents tokens and continuous states not as arbitrary unconstrained vectors, but as coefficients in co-prime polynomial and B-spline functional bases (Chebyshev, Legendre, Hermite, B-spline). Features:
@@ -1034,7 +1034,7 @@ Physics-informed surrogate providing admissible constraint embeddings. KAN layer
 ## src/ui
 
 ### voxelboxter_simulation.py
-**Class**: `VoxelboxterSimulation`, `VoxelboxterEngine`, `BSplineCompiledMod`, `StructuralGraph`, `FloraComponent`, `FloraTreeSapling`, `PirangiCashewTree`, `AdventitiousRootNode`, `FaunaComponent`, `FaunaISN`, `EmergentBakingEngine`, `morton_encode`  
+**Class**: `VoxelboxterEngine`, `BSplineCompiledMod`, `StructuralGraph`, `FloraComponent`, `FloraTreeSapling`, `PirangiCashewTree`, `AdventitiousRootNode`, `FaunaComponent`, `FaunaISN`, `EmergentBakingEngine`, `morton_encode`  
 **Role**: Handles backend discrete mathematics for generating dynamic game structures, living ecologies, and delta graphs.  
 
 Manages the core simulation loop for the topological Minecraft-like patch. Crucially, it decouples `Role` from `GameMode` (enabling admins to play in Survival mode), enforces mass-deduction from `local_inventory` when adding layers, compiles true non-heuristic B-Spline surface features via `KANLayer` and the Cox-de Boor algorithm (`BSplineCompiledMod`), and simulates living flora mutations (the 'Cashew Tree of Pirangi' `PirangiCashewTree` inverted gravitropism, cantilever droop, adventitious ground rooting, secondary trunk metamorphosis, and single unified organism expansion). Also integrates dual-scale plasticity (Mohr-Coulomb local shear vs. Drucker-Prager global flow envelope), FBM weathering Ley line carving, animal fauna Inhibition-Stabilized Networks (`FaunaISN`), and the `EmergentBakingEngine`.
@@ -1193,11 +1193,11 @@ Protects structural identity and body schema against severe conformal cartoon co
 **Role**: Federated egalitarian consensus engine. Provides Kelly betting allocations for decentralized resource validation over Freenet. Features dynamic prime resonance ladders ($f_i = 2\pi\ln(p_i)$) replacing static primes, continuous fractal sightline projection ($\phi: F \to \mathbb{R}^m$), and hardware-sovereign throttling driven by [`hardware_monitor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py).
 
 ### [`zk_aggregator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/zk_aggregator.py)
-**Class**: `ZkAggregator`  
+**Class**: `ZKAggregator`  
 **Role**: Zero-knowledge accumulator for federated topological signatures and homological invariants across distributed peers.
 
 ### [`freenet_ws_client.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/freenet_ws_client.py)
-**Class**: `FreenetWsClient`  
+**Class**: `FreenetClient`  
 **Role**: Local Freenet WebSocket bridge facilitating the Bonfire Ring gossip protocol and nomadic peer-to-peer transport.
 
 ---

@@ -198,7 +198,7 @@ These questions from the original plan have been resolved:
 ## 9.6 Collapse Path Poisoner  Implementation Detail
 
 **Status**: [OK] **IMPLEMENTED**  
-**Source**: [`src/core/collapse_poisoner.py`](../src/core/collapse_poisoner.py)  aliased as `AdversarialStressTester`
+**Source**: [`src/core/collapse_poisoner.py`](../../../../../src/core/collapse_poisoner.py)  aliased as `AdversarialStressTester`
 
 The "collapse path poisoning" referenced in the Meta-Invariant entry is **defensive**, not offensive. It does not corrupt training data; it *injects synthetic topological ruptures* to verify that:
 

@@ -185,7 +185,7 @@ The transition between thermodynamic regimes is governed by the Integrated Emerg
 
 $$\mathcal{E}(t) = 1 \iff \text{PAS}_h \geq \theta_L \;\wedge\; |\Delta\text{PAS}| \leq \epsilon \;\wedge\; \text{CI} \geq \mu_{\text{CI}} \;\wedge\; \text{CPR} = 1 \;\wedge\; \text{GLYPHLOCK} \;\wedge\; H_1 \neq 0$$
 
-See [RESONANCE_INTELLIGENCE_CORE.md](RESONANCE_INTELLIGENCE_CORE.md) for the full specification.
+See [RESONANCE_INTELLIGENCE_CORE.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/RESONANCE_INTELLIGENCE_CORE.md) for the full specification.
 
 ### 7.7 L'Hôpital Boundary Regularization & Continuous Depth Scaling
 

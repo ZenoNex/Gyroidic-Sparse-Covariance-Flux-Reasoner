@@ -1,7 +1,7 @@
 # GyroidicFluxReasoner: Main Model
 
 > Complete Gyroidic Sparse Covariance Flux Reasoner integrating all three systems.
-> **Source**: [`src/models/gyroid_reasoner.py`](../src/models/gyroid_reasoner.py) (965 lines)
+> **Source**: [`src/models/gyroid_reasoner.py`](../../../src/models/gyroid_reasoner.py) (965 lines)
 
 ---
 
@@ -222,9 +222,9 @@ When `return_analysis=True`: adds `residue_distributions`, `introspection`, `gyr
 | Doc | Covers |
 |-----|--------|
 | [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) | Horse/Horn/Magic triad, system-level design |
-| [PHYSICS_ADMM.md](PHYSICS_ADMM.md) | System 2 probe formalism, KAGH, CALM, CODES |
-| [KAGH_NETWORKS.md](KAGH_NETWORKS.md) | KAGH-Boltzmann surrogate architecture |
-| [MATHEMATICAL_DETAILS.md](MATHEMATICAL_DETAILS.md) | CRT, Matrioshka, tensor dynamics, ADMR |
-| [FGRT_FORMALIZATION.md](FGRT_FORMALIZATION.md) | FGRT Annular (Ring) Pool manifold, chirality, chiral groupoid |
-| [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md) | Four Non-Negotiable Laws, meta-invariants |
-| [GARBLED_OUTPUT_REPAIR.md](GARBLED_OUTPUT_REPAIR.md) | Phase 1 repair pipeline details |
+| [PHYSICS_ADMM.md](../02_math_physics_topology/PHYSICS_ADMM.md) | System 2 probe formalism, KAGH, CALM, CODES |
+| [KAGH_NETWORKS.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/KAGH_NETWORKS.md) | KAGH-Boltzmann surrogate architecture |
+| [MATHEMATICAL_DETAILS.md](../02_math_physics_topology/MATHEMATICAL_DETAILS.md) | CRT, Matrioshka, tensor dynamics, ADMR |
+| [FGRT_FORMALIZATION.md](../02_math_physics_topology/FGRT_FORMALIZATION.md) | FGRT Annular (Ring) Pool manifold, chirality, chiral groupoid |
+| [INVARIANT_OPTIMIZATION.md](../02_math_physics_topology/INVARIANT_OPTIMIZATION.md) | Four Non-Negotiable Laws, meta-invariants |
+| [GARBLED_OUTPUT_REPAIR.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/GARBLED_OUTPUT_REPAIR.md) | Phase 1 repair pipeline details |

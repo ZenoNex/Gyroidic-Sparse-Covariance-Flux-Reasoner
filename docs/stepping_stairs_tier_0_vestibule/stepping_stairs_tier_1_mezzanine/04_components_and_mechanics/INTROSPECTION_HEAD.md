@@ -1,7 +1,7 @@
 # Introspection Head
 
 > Geometric self-modeling probes for extracting structural state from hidden representations.
-> **Source**: [`src/models/introspection_head.py`](../src/models/introspection_head.py) (280 lines)
+> **Source**: [`src/models/introspection_head.py`](../../../../src/models/introspection_head.py) (280 lines)
 
 ---
 

@@ -216,7 +216,7 @@ Returns a binary `is_nontrivial` tensor: closure is verified iff the combined lo
 | Dual (pressure accumulation) | Unchanged |
 | Closure (convergence check) | Extended with leak integral $\int \psi_l$ |
 
-**Consumer**: [`trainer.py`](../src/training/trainer.py)  invoked as System 2 repair logic during training.
+**Consumer**: [`trainer.py`](../../../src/training/trainer.py)  invoked as System 2 repair logic during training.
 
 ---
 

@@ -22,8 +22,8 @@ This documentation maintains **archaeological fossils** of deprecated design rou
 ## Table of Contents
 
 **External References:**
-- [System Architecture (High Level Synthesis)](SYSTEM_ARCHITECTURE.md)
-- [Resonance Cavity (Dark Matter Memory)](RESONANCE_CAVITY.md)
+- [System Architecture (High Level Synthesis)](../01_architecture_core/SYSTEM_ARCHITECTURE.md)
+- [Resonance Cavity (Dark Matter Memory)](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/RESONANCE_CAVITY.md)
 - [Invariant Optimization (Fixed Point & Ergodicity)](INVARIANT_OPTIMIZATION.md)
 
 **Sections in this document:**
@@ -223,7 +223,7 @@ Canonical implementation: [`SparseGyroidCovarianceProbe`](file:///d:/programming
 
 The gyroid violation metric $\psi$ and the residue obstruction graph are **heuristically motivated proxies**. While they effectively detect manifold tears and logic pivots, they lack a formal algebraic proof of completeness. They function as **containment pressures**filters that reject inadmissible states without guaranteeing a unique physical truth.
 
-See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for a formal list of theoretical boundaries.
+See [OPEN_QUESTIONS.md](../stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/OPEN_QUESTIONS.md) for a formal list of theoretical boundaries.
 
 ---
 
@@ -624,7 +624,7 @@ To guarantee that these physics calculations commute with real-time latency budg
 
 1. **Green Systems (Safe and High-Value to Inform)**:
    - `SpeculativeCoprimeGate` (`ChiralCoherenceEstimator`): Replaces crude heuristic index cuts (`[:half]`) with an explicit $2 \times 2$ block projection using Pauli matrices $\vec{\sigma}$ and local gradient $\vec{k}$. Eliminates artificial index-ordering artifacts and false negative recoveries. Gated by `has_headroom()`, expanding to full fractal superposition ($L=3$) under high affordance and falling back to base projection under low headroom.
-   - `VoxelboxterSimulation` (Fauna Kinematics & Flocking): Completely sandboxed in the diegetic simulation loop. Replaces discontinuous `sign(E - I)` switches with the continuous vector torque $\dot{\vec{s}} = \vec{\Omega}(\vec{v}) \times \vec{s}$, removing abrupt direction flipping and giving fauna smooth, persistent drift streamlines around obstacle clusters.
+   - `VoxelboxterEngine` (Fauna Kinematics & Flocking): Completely sandboxed in the diegetic simulation loop. Replaces discontinuous `sign(E - I)` switches with the continuous vector torque $\dot{\vec{s}} = \vec{\Omega}(\vec{v}) \times \vec{s}$, removing abrupt direction flipping and giving fauna smooth, persistent drift streamlines around obstacle clusters.
    - `BerryPhaseTracker` & `TorsionConnection`: Parameterizing `self.torsion` via $(\alpha, \beta)$ Pauli blocks replaces unconstrained random noise with exact gauge curvature, ensuring computed Berry holonomies $\Delta \phi$ match the physical solid angle swept by the latent state vector.
    - `NonCommutativityCurvature`: Observational telemetry probe emitting the scalar gauge invariant $\Delta_{\text{PSH}} = |\alpha^2 - \beta^2|$ alongside $K_{\text{rel}}$, providing a zero-cost detector for when the reasoner enters a dissipationless, self-stabilized reasoning trajectory.
 
@@ -1306,7 +1306,7 @@ $$ \text{Atrophy} = 1 - \frac{\sigma(\lambda)}{\lambda_{max} - \lambda_{min} + \
 - **Preservation** (Atrophy $< 0.85$): Dark matter (noise floor) intact. Symbolic Locking works  integer weights remain symbols.
 - **Danger** (Atrophy $> 0.85$): The splines lose expressiveness. The `VetoSubspace` emits a topology-level `elipsodistrophy` veto to trigger mischief injection.
 
-See [INTERCOSAMINATION_THEORY.md](INTERCOSAMINATION_THEORY.md) for the full theoretical connection to the double gyroid's dual-channel structure and endogenous memory.
+See [INTERCOSAMINATION_THEORY.md](../stepping_stairs_tier_1_mezzanine/03_philosophy_lore/INTERCOSAMINATION_THEORY.md) for the full theoretical connection to the double gyroid's dual-channel structure and endogenous memory.
 
 ### 31.6 Master Stability Condition (Matryoshka cont.)
 
@@ -1587,13 +1587,13 @@ Defects $\Delta D_i$ **guide and amplify** the line, preventing flattening. Key 
 
 **Implementation**: `src/core/garden_statistical_attractors.py` (ADMR solver), `src/core/ley_line_tracker.py` (streamline tracking).
 
-**Source**: [Garden Statistical Attractors](garden%20statistical%20attractors%20of%20influence,%20resonance,%20and%20defect%20propagation.txt).
+**Source**: [Garden Statistical Attractors](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/garden statistical attractors of influence, resonance, and defect propagation.txt).
 
 ---
 
 ## 36. Sparse Higher-Order Tensor Dynamics
 
-**Implementation**: [`src/core/sparse_higher_order_tensors.py`](../src/core/sparse_higher_order_tensors.py)
+**Implementation**: [`src/core/sparse_higher_order_tensors.py`](../../../src/core/sparse_higher_order_tensors.py)
 
 Higher-order tensor interactions are computed **sparsely** using Matrioshka shell indexing  only active polytope facets participate in $n$-th order dynamics.
 
@@ -1626,13 +1626,13 @@ Only the top 10% magnitude axes are treated as active  the rest are masked to ze
 
 At 90% sparsity, quadratic interactions are $\sim 100\times$ cheaper.
 
-**Connection**: Active facets correspond to the non-fossilized polytope facets from [SYSTEM_ARCHITECTURE.md 9.2](SYSTEM_ARCHITECTURE.md)  facets with non-zero variance and finite dual pressure.
+**Connection**: Active facets correspond to the non-fossilized polytope facets from [SYSTEM_ARCHITECTURE.md 9.2](../01_architecture_core/SYSTEM_ARCHITECTURE.md)  facets with non-zero variance and finite dual pressure.
 
 ---
 
 ## 37. Polychoron 600-Cell Quantization
 
-**Implementation**: [`src/core/polychoron_quantization.py`](../src/core/polychoron_quantization.py)
+**Implementation**: [`src/core/polychoron_quantization.py`](../../../src/core/polychoron_quantization.py)
 
 Quantizes 4D signals by projecting onto the 120 vertices of the **600-cell** (tetraplex), the four-dimensional analogue of the icosahedron. This preserves chirality and fixed-point accuracy through high-dimensional symmetry.
 
@@ -1660,15 +1660,15 @@ Forward: `x [..., 4]`  reshape to `[N, 4]`  `cdist` to all 120 vertices  `argmin
 
 - **Chirality preservation**: The 600-cell has icosahedral symmetry group $H_4$, ensuring quantization respects chiral orientation
 - **Fixed-point accuracy**: Vertices are algebraic (golden ratio), avoiding floating-point drift
-- **Connection**: Used within the meta-polytope framework from [9](SYSTEM_ARCHITECTURE.md) and [31](MATHEMATICAL_DETAILS.md) for shell-level quantization
+- **Connection**: Used within the meta-polytope framework from [9](../01_architecture_core/SYSTEM_ARCHITECTURE.md) and [31](MATHEMATICAL_DETAILS.md) for shell-level quantization
 
 ---
 
 ## 38. Chebyshev Minimax Filtration
 
-**Implementation**: [`src/tda/chebyshev_filtration.py`](../src/tda/chebyshev_filtration.py)
+**Implementation**: [`src/tda/chebyshev_filtration.py`](../../../src/tda/chebyshev_filtration.py)
 
-Approximates complex filtration functions with minimax polynomials in the Chebyshev basis, serving as the "Draft" model for [Speculative Betti Decoding](KAGH_NETWORKS.md).
+Approximates complex filtration functions with minimax polynomials in the Chebyshev basis, serving as the "Draft" model for [Speculative Betti Decoding](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/KAGH_NETWORKS.md).
 
 ### 38.1 Polynomial Evaluation
 
@@ -1692,7 +1692,7 @@ The equioscillation property guarantees near-optimal L error.
 
 ## 39. Ricci Flow Optimization & Willmore Energy
 
-**Implementation**: [`src/optimization/ricci_flow_optimizer.py`](../src/optimization/ricci_flow_optimizer.py)
+**Implementation**: [`src/optimization/ricci_flow_optimizer.py`](../../../src/optimization/ricci_flow_optimizer.py)
 
 ### 39.1 RicciFlowOptimizer
 
@@ -2116,10 +2116,17 @@ To bind recurrent state transitions endogenously to the modular algebra/arithmet
 
 In the presence of extreme ontological pressure or topological contradiction, the system triggers Abstraction (Ego Death) to recycle semantic memory without generating NaN states:
 
-1. **Hyperbolic Abstraction Rate**: The abstraction rate $R_a$ is computed using the hyperbolic functional relation:
-   $$R_a = \frac{E_s \cdot \sinh(T_m + \delta)}{\cosh(L_i) + 10^{-8}}$$
-   where $E_s$ is the semantic entropy, $T_m$ is the manifold torsion, and $L_i$ is the input loss. This ratio models the non-linear relationship between structural torsion and loss dissipation.
-2. **Tangent Cone Collapse**: Upon triggering an ego death event (where $R_a > \theta$), the state collapses and is projected onto the Bouligand tangent cone $T_{\mathcal{B}}(x)$ of the Birkhoff polytope using `DirectBirkhoffProjection` rather than returning unconstrained random noise. This ensures the collapsed state remains within the feasible boundaries of the base manifold.
+1. **Hyperbolic Abstraction Rate**: The abstraction rate $R_a$ is computed by [`EgoDeathThresholdMonitor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/archetype_engines.py) using the calibrated hyperbolic functional relation:
+   $$\text{scaled\_arg} = \min\Big(3.0, (T_m + \delta) \cdot \text{sensitivity}\Big)$$
+   $$R_a = \frac{E_s \cdot \sinh(\text{scaled\_arg})}{\cosh(L_i) + 10^{-8}}$$
+   where:
+   - $E_s \in [0, 1]$ is the system structural entropy (`system_entropy_es`), normalized via $\tanh(\|s\|_2 / \sqrt{D})$.
+   - $T_m \in [0, 1]$ is the manifold memory trauma / cumulative dissonance (`memory_trauma_tm`).
+   - $\delta \in [0, 1]$ is the current state perturbation dissonance (`dissonance_delta`).
+   - $L_i \in [0.05, 2.0]$ is the lucidity vitality index (`lucidity_index_li`, modeling cognitive wakefulness rather than loss).
+   - $\text{sensitivity} = 0.6$ scales the argument to prevent hyperbolic runaway during nominal perturbation while preserving sensitivity under catastrophic trauma.
+   - $\theta = 1.0$ is the calibrated abstraction limit (`abstraction_limit = 1.0`).
+2. **Tangent Cone Collapse & Resilient Confabulation**: An abstraction event triggers when $R_a \ge \theta$. Rather than crashing or emitting hard abort strings, [`DiegeticPhysicsEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py) executes `_generate_confabulated_dream`, projecting the state perturbation onto the Bouligand tangent cone $T_{\mathcal{B}}(x)$ of the Birkhoff polytope using `DirectBirkhoffProjection`. This recycles fractured representations while maintaining doubly stochastic feasibility on the base manifold.
 
 ### 61. Non-Teleological Ricci Flow with 0D Scalar Protection
 
@@ -2160,7 +2167,7 @@ To visualize the high-dimensional hidden state $h \in \mathbb{R}^d$ on a 2D canv
 ### 64. Polychron Moiré Quantization, Dynamic Continued Fractions & Entrypoint Hybridization
 
 1. **Polychron 600-Cell Moiré-via-Modular-Algebra & Bouligand CODES Bounding**:
-   The `PolychronQuantizer` (`src/core/polychoron_quantization.py`) extends 4D 600-cell polytope quantization with a 10-line Moiré beat spectrum across prime logarithm channels:
+   The `Polychoron600Quantizer` (also aliased as `PolychronQuantizer` in `src/core/polychoron_quantization.py`) extends 4D 600-cell polytope quantization with a 10-line Moiré beat spectrum across prime logarithm channels:
    $$\Lambda_{\text{moiré}} = \{ |\ln p_i - \ln p_j| \mid 1 \le i < j \le 5 \}$$
    Coupling across CRT residue channels uses carry-free bitwise XOR operations ($r_i \oplus r_j$) to isolate moduli. Quantization error bounds conform to the golden ratio seesaw identity $\frac{\phi}{2} - \frac{1}{2\phi} = \frac{1}{2}$, projecting non-teleological state updates onto Bouligand contingent cones $T_S(x)$ under the fourfold CODES framework (Constraint-Oriented Differential Equations, Chirality of Dynamic Emergent Systems, Coherence-Oriented Execution, Constraint Oscillation Evolutionary Selection) rather than unconstrained Gaussian diffusion.
 

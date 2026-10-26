@@ -130,6 +130,6 @@ All Phase 1-3 features are automatically enabled when using `GyroidicFluxReasone
 ## References
 
 - [Implementation Plan](IMPLEMENTATION_PLAN_FORMALISM.md): Detailed implementation plan
-- [System Architecture](SYSTEM_ARCHITECTURE.md): Overall system design
-- [Physics ADMM](PHYSICS_ADMM.md): System 2 specification
-- [Mathematical Details](MATHEMATICAL_DETAILS.md): Mathematical foundations
+- [System Architecture](../../../01_architecture_core/SYSTEM_ARCHITECTURE.md): Overall system design
+- [Physics ADMM](../../../02_math_physics_topology/PHYSICS_ADMM.md): System 2 specification
+- [Mathematical Details](../../../02_math_physics_topology/MATHEMATICAL_DETAILS.md): Mathematical foundations

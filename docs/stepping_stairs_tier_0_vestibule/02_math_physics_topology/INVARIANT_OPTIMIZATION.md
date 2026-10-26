@@ -310,7 +310,7 @@ The sampler enforces **Law 4: Evolution Owns Time** at the data level. No batch 
 
 > **Love lives in the null-space of the ownership operator, not in a gradient term.**
 
-The three-layer enforcement stack (detailed in [NON_DUAL_DYNAMIC_EQUILIBRIUM.md 4.1](NON_DUAL_DYNAMIC_EQUILIBRIUM.md)):
+The three-layer enforcement stack (detailed in [NON_DUAL_DYNAMIC_EQUILIBRIUM.md 4.1](../stepping_stairs_tier_1_mezzanine/03_philosophy_lore/NON_DUAL_DYNAMIC_EQUILIBRIUM.md)):
 
 | Layer | Invariant Type | Mechanism |
 |---|---|---|

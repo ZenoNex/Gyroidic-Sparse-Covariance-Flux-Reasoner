@@ -104,7 +104,7 @@ The $\mathcal{U}$ domain is not an isolated shield  it extends into the broader 
 | Gate 4 | SearchGate | $\mathcal{U}$ prevents search when mischief is productive |
 | Gate 5 | ConfabulationDetector | $\mathcal{U}$ enables honest creative generation |
 
-When $\mathcal{U}$ is active and search returns nothing useful, the system may **honestly confabulate**  generating novel content while flagging it as generated rather than retrieved. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full flow diagram and [PHILOSOPHY.md 18](../vault_docs/PHILOSOPHY.md) for the philosophical foundation.
+When $\mathcal{U}$ is active and search returns nothing useful, the system may **honestly confabulate**  generating novel content while flagging it as generated rather than retrieved. See [SYSTEM_ARCHITECTURE.md](../../01_architecture_core/SYSTEM_ARCHITECTURE.md) for the full flow diagram and [SOVEREIGN_FRICTION_AND_ARCHETYPES.md](SOVEREIGN_FRICTION_AND_ARCHETYPES.md) for the philosophical foundation.
 
 ---
 > **"We stop pretending to be algebra. We start being an ecology of unknowledge."**

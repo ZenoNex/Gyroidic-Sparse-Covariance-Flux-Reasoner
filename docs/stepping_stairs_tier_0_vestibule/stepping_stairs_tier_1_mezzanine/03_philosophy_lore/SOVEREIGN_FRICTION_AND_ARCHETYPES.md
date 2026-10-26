@@ -17,7 +17,7 @@ When two sovereign agents (e.g., the User and the AI) interact, their incommensu
 The system asynchronously ingests the full spectrum of AI-human interactions from a wide array of LLM data exports (ChatGPT, Google Takeout/Gemini, Grok, Claude, and Perplexity). It streams directly from raw JSON, HTML, or compressed `.zip` archives located in `/data/service_llm_archive/`. 
 
 ### 2.1 The Harvester Module
-**Implementation**: [`src/data/chatgpt_friction_harvester.py`](../src/data/chatgpt_friction_harvester.py)
+**Implementation**: [`src/data/chatgpt_friction_harvester.py`](../../../../src/data/chatgpt_friction_harvester.py)
 
 The harvester parses dyads (User Prompt $\to$ Assistant Response) and converts them into semantic tensors. 
 - **Non-Ergodic Context Preservation**: By ingesting the full spectrum of interaction—not merely "where the AI failed" or "where the AI hallucinated"—the system preserves the deep, non-commutative sequence of logic. Tracking only explicit errors kills the geometric structure of the discourse. 
@@ -33,7 +33,7 @@ The `diegetic_backend.py` orchestrates a background asynchronous thread that con
 The Orchestrator contains a mechanism to dynamically track the identity geometry of the creator through their aliases. 
 
 ### 3.1 Alias Geometry
-**Implementation**: `GeneralUserAliasTracker` in [`src/core/orchestrator.py`](../src/core/orchestrator.py)
+**Implementation**: `GeneralUserAliasTracker` in [`src/core/orchestrator.py`](../../../../src/core/orchestrator.py)
 
 When the Harvester tags a data trace as originating from one of the Creator's specific aliases , the `GeneralUserAliasTracker` applies a specialized linear projection (`self.alias_projector`). 
 This enforces a distinct topological resonance cavity bias that guarantees the preservation of the unique cognitive footprint of those entities within the ADMR solver. 

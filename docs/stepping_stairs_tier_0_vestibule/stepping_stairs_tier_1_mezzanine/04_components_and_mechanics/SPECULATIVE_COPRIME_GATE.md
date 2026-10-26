@@ -1,7 +1,7 @@
 # Speculative Coprime Chiral Coherence Gating (SCCCG)
 
 > Recovery of structure from "converged" states using coprime parity, chiral coherence, and Wasserstein optimal transport.
-> **Source**: [`src/core/speculative_coprime_gate.py`](../src/core/speculative_coprime_gate.py) (641 lines)
+> **Source**: [`src/core/speculative_coprime_gate.py`](../../../../src/core/speculative_coprime_gate.py) (641 lines)
 
 ---
 

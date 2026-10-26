@@ -1,7 +1,7 @@
 # Diegetic Physics Engine
 
 > The main runtime backend  4,500-line HTTP server integrating 30+ sub-modules into a single interactive physics engine.  
-> **Source**: [`src/ui/diegetic_backend.py`](../src/ui/diegetic_backend.py)
+> **Source**: [`src/ui/diegetic_backend.py`](../../../../src/ui/diegetic_backend.py)
 
 ---
 
@@ -260,7 +260,7 @@ The header bar contains a `DYAD ORDER:` dropdown with three options:
 
 ## 6. Diegetic Visualizer  Audience Projection (: M  A)
 
-**Source**: [`src/ui/diegetic_visualizer.py`](../src/ui/diegetic_visualizer.py)
+**Source**: [`src/ui/diegetic_visualizer.py`](../../../../src/ui/diegetic_visualizer.py)
 
 ### When it fires
 
@@ -344,7 +344,7 @@ Image (any size)
 ## 8. DAQUF Fossilization Operator
 
 **Class**: `DAQUFOperator`  Diegetic Amortized Quantized Unknowledge Fossilization  
-**Source**: [`src/core/daqf_operator.py`](../src/core/daqf_operator.py)
+**Source**: [`src/core/daqf_operator.py`](../../../../src/core/daqf_operator.py)
 
 | Stage | Formula | Purpose |
 |---|---|---|
@@ -436,10 +436,10 @@ The documentation outlines a planned **Topological Image Surrogate** to translat
 | Doc | Connection |
 |---|---|
 | [KNOWLEDGE_DYAD_LIFECYCLE.md](KNOWLEDGE_DYAD_LIFECYCLE.md) | Audio + image dyad ingestion details |
-| [NONCOMMUTATIVITY_DYNAMICS.md](NONCOMMUTATIVITY_DYNAMICS.md) | Mathematical foundation of commutativity routing |
+| [NONCOMMUTATIVITY_DYNAMICS.md](../../02_math_physics_topology/NONCOMMUTATIVITY_DYNAMICS.md) | Mathematical foundation of commutativity routing |
 | [INTERFACE_LAYER.md](INTERFACE_LAYER.md) | User-facing terminal and controls reference |
-| [GYROID_REASONER.md](GYROID_REASONER.md) | Core model architecture |
-| [PHYSICS_ADMM.md](PHYSICS_ADMM.md) | System 2 ADMM + CALM |
+| [GYROID_REASONER.md](../../01_architecture_core/GYROID_REASONER.md) | Core model architecture |
+| [PHYSICS_ADMM.md](../../02_math_physics_topology/PHYSICS_ADMM.md) | System 2 ADMM + CALM |
 | [RESONANCE_CAVITY.md](RESONANCE_CAVITY.md) | dM/dt cavity equation (source of the Introspection I term) |
 | [VOXELBOXTER_NONDUAL_ECOLOGY.md](VOXELBOXTER_NONDUAL_ECOLOGY.md) | Non-dual ecology, cleanroom industrial pipelines, and logistical systems |
 | [SCRIPTING_SYSTEMS.md](SCRIPTING_SYSTEMS.md) | Physical node environment and cleanroom visual scripting nodes |

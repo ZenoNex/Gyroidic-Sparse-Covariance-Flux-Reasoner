@@ -1,8 +1,8 @@
 # Non-Commutativity Dynamics
 
 **Status**: [OK] Implemented  
-**Source**: [`src/core/noncommutativity_curvature.py`](../src/core/noncommutativity_curvature.py)  
-**References**: [VETO_SUBSPACE_ARCHITECTURE](VETO_SUBSPACE_ARCHITECTURE.md)  [ai project report "Non-commutativity curvature tensor"](ai%20project%20report_2-2-2026.txt)  [ZEITGEIST_ROUTER.md](ZEITGEIST_ROUTER.md)
+**Source**: [`src/core/noncommutativity_curvature.py`](../../../src/core/noncommutativity_curvature.py)  
+**References**: [VETO_SUBSPACE_ARCHITECTURE](../01_architecture_core/VETO_SUBSPACE_ARCHITECTURE.md)  [ai project report "Non-commutativity curvature tensor"](../stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/06_reports_and_inspirations/ai project report_2-2-2026.txt)  [ZEITGEIST_ROUTER.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/ZEITGEIST_ROUTER.md)
 
 ---
 
@@ -156,17 +156,17 @@ This can be used by the veto subspace (VETO_SUBSPACE_ARCHITECTURE) to suppress o
 
 ## Related Documents
 
-- [ZEITGEIST_ROUTER.md](ZEITGEIST_ROUTER.md)  Phase 18 consumer of nc_curvature diagnostics
-- [VETO_SUBSPACE_ARCHITECTURE.md](VETO_SUBSPACE_ARCHITECTURE.md)  Veto lattice and BoundaryState
+- [ZEITGEIST_ROUTER.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/ZEITGEIST_ROUTER.md)  Phase 18 consumer of nc_curvature diagnostics
+- [VETO_SUBSPACE_ARCHITECTURE.md](../01_architecture_core/VETO_SUBSPACE_ARCHITECTURE.md)  Veto lattice and BoundaryState
 - [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md)  Chirality and Arrow of Time
-- [SYSTEM_ARCHITECTURE 9.4](SYSTEM_ARCHITECTURE.md)  Meta-Polytope dynamics and non-commutative switching
+- [SYSTEM_ARCHITECTURE 9.4](../01_architecture_core/SYSTEM_ARCHITECTURE.md)  Meta-Polytope dynamics and non-commutative switching
 
 ---
 
 ## 5. Runtime Enforcement  `process_input` Commutativity Routing (Phase 6.3)
 
 > **Status**: [OK] Implemented  
-> **Source**: [`src/ui/diegetic_backend.py`](../src/ui/diegetic_backend.py)  `process_input(commutativity=...)`  
+> **Source**: [`src/ui/diegetic_backend.py`](../../../src/ui/diegetic_backend.py)  `process_input(commutativity=...)`  
 > **UI Control**: `#commute-master` dropdown in `diegetic_terminal.html` header
 
 Non-commutativity was previously a *diagnostic* measured by `NonCommutativityCurvature`. In Phase 6.3 it becomes a **first-class pipeline parameter**: the `commutativity` argument to `process_input` controls the explicit ordering of the media bias operator relative to the text hash operator.

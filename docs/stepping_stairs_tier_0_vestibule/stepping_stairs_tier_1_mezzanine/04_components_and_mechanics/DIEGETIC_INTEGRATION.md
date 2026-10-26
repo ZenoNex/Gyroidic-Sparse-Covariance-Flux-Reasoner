@@ -13,7 +13,7 @@ Historically, text ingestion, archetypal governance, live adaptation loops, voca
 graph TD
     subgraph "Layer 1: Text Ingestion & Feed Chains"
         HTTP[Web Client / HTTP API<br/>/interact, /chat, /ingest] --> Hybrid[hybrid_backend.py<br/>HybridPhysicsBackend]
-        DataSys[DatasetIngestionSystem<br/>dataset_ingestion_system.py] --> Hybrid
+        DataSys[LocalDatasetIngestor<br/>local_dataset_ingestor.py] --> Hybrid
         OpenSci[Open Science Ingestor<br/>open_science_ingestor.py] --> Hybrid
         ChatFrict[ChatGPT Friction Harvester<br/>local export scraping] --> Hybrid
         ArXiv[Larynx ArXiv/SearXNG Search<br/>knowledge_ingestor.py] --> Hybrid
@@ -75,7 +75,7 @@ graph TD
 - **Interactive REST Endpoints**: `/interact`, `/chat`, `/ingest`, `/api/ingest_local`, `/wikipedia-extract`, `/api/convert_topology`.
 - **Dyad Input Protocols**: Accepts structured dyadic inputs prefixed with `INGEST_DYAD:`, `ASSOCIATE:`, `INGEST_AUDIO_DYAD:`, and `INGEST_VIDEO_DYAD:`.
 - **Continuous Feed Pipelines**:
-  1. [`DatasetIngestionSystem`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/dataset_ingestion_system.py): Processes batch data directly onto the torch hardware device.
+  1. [`LocalDatasetIngestor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/local_dataset_ingestor.py): Processes batch data directly onto the torch hardware device.
   2. [`OpenScienceIngestor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/open_science_ingestor.py): Pulls observational data (LIGO strain, SDSS spectral fields, VizieR catalogs) into calibrated tensor structures.
   3. **ChatGPT Friction Harvester**: Ingests local conversational exports to capture human friction and dialectical contradiction.
   4. **Dynamic Larynx Search Loop**: When the model requires external grounding, [`ResonanceLarynx`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/diegetic_heads.py) autoregressively hallucinates an ArXiv or SearXNG query string from its current manifold state, executing live web ingestion.

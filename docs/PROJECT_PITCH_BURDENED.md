@@ -57,7 +57,7 @@ graph TD
     end
 
     subgraph Memory["Long-Term Topological Memory"]
-        FastCommit --> Fossil["KnowledgeDyadFossilizer: Poincaré Memory Disk"]
+        FastCommit --> Fossil["DyadFossilizer: Poincaré Memory Disk"]
         Sovereign --> Fossil
         Scar --> Fossil
         Fossil --> Mesh["Decoupled Agent Smith Payload Export"]
@@ -99,7 +99,7 @@ We enforce **Non-Commutative Proficiency Transfer** via a directed gauge connect
 
 *   **The Bone (Fossils)**: Once a functional group or reasoning dyad achieves **Soliton Stability**:
     $$\text{Soliton Ratio} = \frac{\mathcal{D}(r)}{\Lambda(r)} < \kappa$$
-    it is **Fossilized** ([`KnowledgeDyadFossilizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py#L30)). It is converted into an immutable Feature Scar on the Poincaré disk model with `requires_grad = False`.
+    it is **Fossilized** ([`DyadFossilizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py)). It is converted into an immutable Feature Scar on the Poincaré disk model with `requires_grad = False`.
 *   **The Flesh (Boundary Plasticity)**: Subsequent learning occurs solely in the viscous boundary layer around the bone.
 *   **Anti-Theft Protection**: If an external party attempts to copy our trained parameters without the full history of fossilization steps and modular residue locks, the skeletal geometry collapses into "Grey Goo" (instant catastrophic forgetting). The historical scar trajectory *is* the architecture.
 
@@ -177,7 +177,7 @@ A **Polynomial Hash Map** that stores not isolated vector points, but **Interfer
 A hybrid **Polynomial ADMR / SIC-FA-ADMM** solver. It treats deduction as a **Continuum Mechanics** problem. A logical contradiction is not an abstract "falsehood"; it is a **Turbulent Shockwave** that ruptures the minimal surface. The solver minimizes physical turbulence, not scalar loss.
 
 ### System 3: The Substrate & Long-Term Memory (Dark Matter)
-Governed by the **Unknowledge Domain**, **DAQUF**, and **KnowledgeDyadFossilizer**. It houses high-frequency non-ergodic solitons and accumulated historical scars, decoupling local inference from long-term identity and preventing catastrophic forgetting across the Freenet/Bonfire mesh.
+Governed by the **Unknowledge Domain**, **DAQUF**, and **DyadFossilizer**. It houses high-frequency non-ergodic solitons and accumulated historical scars, decoupling local inference from long-term identity and preventing catastrophic forgetting across the Freenet/Bonfire mesh.
 
 ---
 
