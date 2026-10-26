@@ -116,6 +116,11 @@ except ImportError:
     PolynomialCoefficientFunctional = None
     SpeculativeHomologyEngine = None
 
+try:
+    from .euler_tour_lca import EulerTourSparseTableLCA
+except ImportError:
+    EulerTourSparseTableLCA = None
+
 __all__ = [
     # Core polynomial system
     'PolynomialBasis',
@@ -171,5 +176,6 @@ __all__ = [
     'MinimaxPolynomialApproximation',
     'PolynomialCoefficientFunctional',
     'SpeculativeHomologyEngine',
+    'EulerTourSparseTableLCA',
 ]
 

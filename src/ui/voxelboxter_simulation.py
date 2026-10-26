@@ -1341,6 +1341,73 @@ class PointerlessOctree:
             return v
         return (expand_bits(x) | (expand_bits(y) << 1) | (expand_bits(z) << 2))
 
+    def _deinterleave_bits(self, code: int) -> Tuple[int, int, int]:
+        """Deinterleaves a 3D Morton code into x, y, z integer coordinates."""
+        def compact_bits(v: int) -> int:
+            v &= 0x09249249
+            v = (v ^ (v >>  2)) & 0x030C30C3
+            v = (v ^ (v >>  4)) & 0x0300F00F
+            v = (v ^ (v >>  8)) & 0x030000FF
+            v = (v ^ (v >> 16)) & 0x000003FF
+            return v
+        x = compact_bits(code)
+        y = compact_bits(code >> 1)
+        z = compact_bits(code >> 2)
+        return (x, y, z)
+
+    def compute_morton_lca(self, code_a: int, code_b: int) -> Tuple[int, int]:
+        """
+        Bitwise Lowest Common Ancestor (LCA) in O(1) time.
+        
+        Calculates the common prefix octant of two 3D Morton codes via bitwise XOR
+        and 3-bit octree level alignment without tree pointer chasing.
+        
+        Args:
+            code_a: Morton code of first node
+            code_b: Morton code of second node
+            
+        Returns:
+            Tuple of (lca_morton_code, lca_depth)
+        """
+        if code_a == code_b:
+            depth = self.depth_grid.get(code_a, self.max_depth)
+            return (code_a, depth)
+            
+        xor_diff = code_a ^ code_b
+        highest_bit = xor_diff.bit_length() - 1
+        
+        # Each octree level corresponds to 3 coordinate bits (z, y, x)
+        level_block = highest_bit // 3
+        diverging_shift = (level_block + 1) * 3
+        
+        # Common prefix represents the LCA octant
+        lca_code = (code_a >> diverging_shift) << diverging_shift
+        lca_depth = max(0, self.max_depth - (level_block + 1))
+        
+        return (lca_code, lca_depth)
+
+    def find_spatial_lca(
+        self, 
+        coord_a: Tuple[int, int, int], 
+        coord_b: Tuple[int, int, int]
+    ) -> Tuple[int, int, Tuple[int, int, int]]:
+        """
+        Finds the LCA of two 3D spatial integer coordinates in O(1) time.
+        
+        Returns:
+            Tuple of (lca_code, lca_depth, lca_origin_coords)
+        """
+        code_a = self._interleave_bits(coord_a[0], coord_a[1], coord_a[2])
+        code_b = self._interleave_bits(coord_b[0], coord_b[1], coord_b[2])
+        lca_code, lca_depth = self.compute_morton_lca(code_a, code_b)
+        lca_coords = self._deinterleave_bits(lca_code)
+        return (lca_code, lca_depth, lca_coords)
+
+    def get_ancestral_material(self, code_a: int, code_b: int) -> int:
+        """Returns the material ID at the LCA node, or falls back to substrate bedrock (1)."""
+        lca_code, _ = self.compute_morton_lca(code_a, code_b)
+        return self.morton_grid.get(lca_code, 1)
+
     def add_adaptive_fractal_node(
         self,
         x: float,

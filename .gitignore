@@ -5,8 +5,8 @@ venv/
 ENV/
 
 # Data, Datasets, and Encodings (Large Hazard Directories)
-data/
-datasets/
+/data/
+/datasets/
 wikipedia extracter/
 test_raw_data/
 test_storage/

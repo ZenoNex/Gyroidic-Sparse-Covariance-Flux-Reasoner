@@ -32,15 +32,22 @@ from src.core.ley_line_tracker import LeyLineTracker
 from src.core.deflagration_scout import OmipedialDeflagrator
 from src.core.negentropic_manifold import NTMOperator
 from src.core.valence_drive import ValenceFunctional
+from src.augmentation.mandelbulb_gyroidic_augmenter import MandelbulbGyroidicAugmenter, AugmentationConfig
+from src.augmentation.mandelbulb_pipeline import MandelbulbAugmentedDataset, create_mandelbulb_pipeline
 
 
 class ConstraintDataset(Dataset):
     """
-    Dataset for constraint satisfaction problems.
+    Dataset for constraint satisfaction problems with foundational
+    multiscale geometric pre-tilling (MGDAS).
     
     Each sample is a multi-modal input (text, graph, numerical)
-    with a anchor value that should be CRT-reconstructible from
+    with an anchor value that should be CRT-reconstructible from
     valid residue assignments.
+    
+    Pre-tills the latent manifold using Mandelbulb recursive fractal embedding
+    and Gyroidic minimal surface constraints, resolving the Initialization Sensitivity
+    problem without high compute overhead.
     """
     
     def __init__(
@@ -50,7 +57,9 @@ class ConstraintDataset(Dataset):
         graph_dim: int = 256,
         num_dim: int = 64,
         max_anchor: int = 1000,
-        valid_ratio: float = 0.7
+        valid_ratio: float = 0.7,
+        use_geometric_prefold: bool = True,
+        augmentation_config: Optional[AugmentationConfig] = None
     ):
         """
         Args:
@@ -60,6 +69,8 @@ class ConstraintDataset(Dataset):
             num_dim: Numerical feature dimension
             max_anchor: Maximum anchor value
             valid_ratio: Ratio of valid (satisfiable) samples
+            use_geometric_prefold: Whether to pre-till features with Mandelbulb-Gyroidic geometry (default: True)
+            augmentation_config: Optional custom MGDAS configuration
         """
         self.num_samples = num_samples
         self.text_dim = text_dim
@@ -67,6 +78,21 @@ class ConstraintDataset(Dataset):
         self.num_dim = num_dim
         self.max_anchor = max_anchor
         self.valid_ratio = valid_ratio
+        self.use_geometric_prefold = use_geometric_prefold
+        
+        # Foundational MGDAS geometric soil
+        if self.use_geometric_prefold:
+            self.config = augmentation_config or AugmentationConfig(
+                mandelbulb_power=8,
+                max_iterations=15,
+                escape_radius=2.0,
+                gyroid_tolerance=1e-3,
+                pressure_adaptation=False
+            )
+            self.augmenter = MandelbulbGyroidicAugmenter(config=self.config)
+        else:
+            self.config = None
+            self.augmenter = None
         
         # Generate data
         self.data = self._generate_data()
@@ -77,27 +103,50 @@ class ConstraintDataset(Dataset):
     
     def __len__(self):
         return self.num_samples
+        
+    def _apply_geometric_prefold(self, raw_vec: np.ndarray) -> np.ndarray:
+        """
+        Applies Mandelbulb-Gyroidic Dataset Augmentation (MGDAS) pre-folding
+        to till the latent manifold into self-similar fractal depth and minimal surface constraints.
+        """
+        if not self.use_geometric_prefold or self.augmenter is None:
+            return raw_vec
+            
+        with torch.no_grad():
+            t = torch.from_numpy(raw_vec).unsqueeze(0).float()
+            folded, _ = self.augmenter(t, augmentation_factor=1, chromatic_mode='neutral')
+            return folded.squeeze(0).cpu().numpy().astype(np.float32)
     
     def __getitem__(self, idx):
-        """Dynamically generate sample on request (Dynamic Loading)."""
+        """Dynamically generate sample on request with geometric pre-folding."""
         # Determine if valid based on index/ratio
         num_valid = int(self.num_samples * self.valid_ratio)
         is_valid = idx < num_valid
         
         if is_valid:
             anchor = int(harvest_honest_jitter((1,), scaled=True).item() * self.max_anchor) % self.max_anchor
-            text_emb = harvest_honest_jitter((self.text_dim,), scaled=True).cpu().numpy()
+            raw_text = harvest_honest_jitter((self.text_dim,), scaled=True).cpu().numpy().astype(np.float32)
+            raw_graph = harvest_honest_jitter((self.graph_dim,), scaled=True).cpu().numpy().astype(np.float32)
+            raw_num = harvest_honest_jitter((self.num_dim,), scaled=True).cpu().numpy().astype(np.float32)
+            
+            text_emb = self._apply_geometric_prefold(raw_text)
             text_emb[0] = anchor / self.max_anchor
-            graph_emb = harvest_honest_jitter((self.graph_dim,), scaled=True).cpu().numpy()
+            
+            graph_emb = self._apply_geometric_prefold(raw_graph)
             graph_emb[0] = (anchor % 100) / 100.0
-            num_features = harvest_honest_jitter((self.num_dim,), scaled=True).cpu().numpy()
+            
+            num_features = self._apply_geometric_prefold(raw_num)
             num_features[0] = np.sin(anchor * 0.1)
             num_features[1] = np.cos(anchor * 0.1)
         else:
-            text_emb = harvest_honest_jitter((self.text_dim,), scaled=True).cpu().numpy().astype(np.float32)
-            graph_emb = harvest_honest_jitter((self.graph_dim,), scaled=True).cpu().numpy().astype(np.float32)
-            num_features = harvest_honest_jitter((self.num_dim,), scaled=True).cpu().numpy().astype(np.float32)
+            raw_text = harvest_honest_jitter((self.text_dim,), scaled=True).cpu().numpy().astype(np.float32)
+            raw_graph = harvest_honest_jitter((self.graph_dim,), scaled=True).cpu().numpy().astype(np.float32)
+            raw_num = harvest_honest_jitter((self.num_dim,), scaled=True).cpu().numpy().astype(np.float32)
             anchor = int(harvest_honest_jitter((1,), scaled=True).item() * self.max_anchor) % self.max_anchor
+            
+            text_emb = self._apply_geometric_prefold(raw_text)
+            graph_emb = self._apply_geometric_prefold(raw_graph)
+            num_features = self._apply_geometric_prefold(raw_num)
             
         return {
             'text_emb': text_emb.astype(np.float32),
@@ -204,6 +253,18 @@ class StructuralAdaptor:
         # Silicon Sovereignty: Substrate Bridge
         from src.core.agent_substrate_bridge import AgentSubstrateBridge
         self.substrate_bridge = AgentSubstrateBridge(device=device)
+        
+        # Multiscale Geometric Dataset Augmentation & Minimal Surface Invariant Auditor
+        self.geometric_config = kwargs.get('augmentation_config') or AugmentationConfig(
+            mandelbulb_power=8,
+            max_iterations=15,
+            pressure_adaptation=True
+        )
+        self.geometric_augmenter = MandelbulbGyroidicAugmenter(config=self.geometric_config)
+    
+    def wrap_geometric_dataset(self, dataset: Dataset, **kwargs) -> MandelbulbAugmentedDataset:
+        """Wraps any dataset with foundational MandelbulbAugmentedDataset geometric pre-tilling."""
+        return MandelbulbAugmentedDataset(dataset, augmentation_config=self.geometric_config, **kwargs)
     
     def adaptation_step(self, batch: Dict[str, torch.Tensor]) -> Dict[str, float]:
         """

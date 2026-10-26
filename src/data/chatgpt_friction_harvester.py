@@ -87,6 +87,31 @@ def _linearise_mapping(mapping: dict) -> List[Tuple[str, str]]:
     return messages
 
 
+def build_conversation_lca(mapping: dict):
+    """
+    Constructs an O(1) EulerTourSparseTableLCA engine from a ChatGPT conversation mapping.
+    Enables instant divergence analysis and common ancestor finding on branching dialogue trees.
+    """
+    from src.core.euler_tour_lca import EulerTourSparseTableLCA
+    return EulerTourSparseTableLCA.from_chatgpt_mapping(mapping)
+
+
+def find_branch_divergence(
+    mapping: dict,
+    branch_a_id: str,
+    branch_b_id: str
+) -> Tuple[Optional[str], List[str], List[str]]:
+    """
+    Locates the Lowest Common Ancestor bifurcation node and subsequent divergent paths
+    for two branches in a ChatGPT conversation tree in O(1) LCA lookup time.
+    
+    Returns:
+        Tuple of (lca_node_id, path_a_from_lca, path_b_from_lca)
+    """
+    engine = build_conversation_lca(mapping)
+    return engine.find_divergence(branch_a_id, branch_b_id)
+
+
 # ---------------------------------------------------------------------------
 # chat.html mmap-based conversation iterator
 # ---------------------------------------------------------------------------

@@ -138,7 +138,7 @@ class UniversalOrchestrator(nn.Module):
         with torch.no_grad():
             l_data = self.love.L.data
             self.love.L.data = (l_data / (l_data.norm() + 1e-8)) * 3.127
-            print(f'---  Love Vector Anchored: {self.love.L.norm():.3f} ---')
+            print(f'--- [ALIGNMENT] Love Vector Anchored: {self.love.L.norm():.3f} ---')
         self.gluer = GluingOperator(dim)
         self.rupture_fn = RuptureFunctional()
         
@@ -554,6 +554,20 @@ class UniversalOrchestrator(nn.Module):
             self.zk_aggregator = ZKAggregator()
         except ImportError as e:
             print(f"[ORCHESTRATOR] P2P Modules Not Loaded: {e}")
+
+        # 9. Semiotic Hierarchy & Lexicographical Ordering (System 2 Strictly Dominates System 1)
+        from src.core.invariant_optimization import LexicographicalOrderingDispatcher, SemioticState
+        self.semiotic_dispatcher = LexicographicalOrderingDispatcher(eps=1e-5)
+
+    def arbitrate_semiotic_state(
+        self,
+        candidate_states: List[Any]
+    ) -> Any:
+        """
+        Enforces the Semiotic Hierarchy via LexicographicalOrderingDispatcher.
+        System 2 Invariant Admissibility strictly dominates System 1 heuristic performance.
+        """
+        return self.semiotic_dispatcher.select_best(candidate_states)
 
     @property
     def affordance_status(self) -> bool:
