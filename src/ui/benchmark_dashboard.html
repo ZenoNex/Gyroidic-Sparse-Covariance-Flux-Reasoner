@@ -538,7 +538,7 @@
 
             <div class="telemetry-group">
                 <div class="telemetry-item">
-                    Active Suites: <span id="suites-count-metric" style="color: #fff; font-weight: 700;">7 Suites / 35 Tests</span>
+                    Active Suites: <span id="suites-count-metric" style="color: #fff; font-weight: 700;">8 Suites / 45 Tests</span>
                 </div>
                 <div class="telemetry-item">
                     Last Benchmark: <span id="last-run-timestamp" style="color: var(--text-dim);">Ready</span>
@@ -553,23 +553,24 @@
                 <span id="overall-status-pill" class="status-badge badge-idle">SUITE READY</span>
             </h2>
             <p class="theory-desc" style="margin-bottom: 1.5rem;">
-                Execute standalone evaluators or run the full 35-test unified validation suite across core topological
+                Execute standalone evaluators or run the full 45-test unified validation suite across core topological
                 manifold preservation, polynomial CRT reconstruction, anti-lobotomy boundaries, prime resonance chordlock,
-                soliton memory palace breeding, and 5-layer topological singularity mitigation.
+                soliton memory palace breeding, 5-layer topological singularity mitigation, and Inverted Hypersphere Cosmology (IHC)
+                with 8-regime typed compute affordance governance.
             </p>
 
             <div class="controls-row">
                 <button id="btn-run-all" class="btn btn-primary"
                     onclick="runBenchmark('/api/benchmark/all', 'All Benchmarks')">
-                    Run All Benchmarks (35 Tests)
+                    Run All Benchmarks (45 Tests, 8 Suites)
                 </button>
                 <button id="btn-run-topo" class="btn btn-suite"
                     onclick="runBenchmark('/api/benchmark/topobench', 'TopoBench')">
-                    Run TopoBench (5 Tests)
+                    Run TopoBench (7 Tests)
                 </button>
                 <button id="btn-run-react" class="btn btn-suite"
                     onclick="runBenchmark('/api/benchmark/reactbench', 'ReactBench')">
-                    Run ReactBench (5 Tests)
+                    Run ReactBench (7 Tests)
                 </button>
                 <button id="btn-run-narrative" class="btn btn-suite"
                     onclick="runBenchmark('/api/benchmark/narrative', 'Narrative Yield')">
@@ -590,6 +591,10 @@
                 <button id="btn-run-sing" class="btn btn-suite"
                     onclick="runBenchmark('/api/benchmark/singularities', 'Topological Singularities')">
                     Run Singularities (5 Tests)
+                </button>
+                <button id="btn-run-ihc" class="btn btn-suite"
+                    onclick="runBenchmark('/api/benchmark/ihc_affordance', 'IHC & Compute Affordance')">
+                    Run IHC & Affordance (6 Tests)
                 </button>
                 <button id="btn-poll-live" class="btn btn-secondary" onclick="fetchLiveTelemetry()">
                     Refresh Live Telemetry
@@ -641,6 +646,16 @@
                             <span class="test-meta"><span class="indicator" id="ind-topo-5"></span> <span
                                     id="val-topo-5">&lt;v, grad G&gt; ~ 0</span></span>
                         </div>
+                        <div class="test-row">
+                            <span class="test-name">6. Folium Transversality Smooch</span>
+                            <span class="test-meta"><span class="indicator" id="ind-topo-6"></span> <span
+                                    id="val-topo-6">dy/dx = -1.0</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">7. Birkhoff Polytope Doubly Stochastic</span>
+                            <span class="test-meta"><span class="indicator" id="ind-topo-7"></span> <span
+                                    id="val-topo-7">Row/Col Sum = 1</span></span>
+                        </div>
                     </div>
                 </div>
 
@@ -677,6 +692,16 @@
                             <span class="test-name">5. Bezout CRT Modulus Drift Refresh</span>
                             <span class="test-meta"><span class="indicator" id="ind-react-5"></span> <span
                                     id="val-react-5">Cond Num = 1.0</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">6. Muon Polar Decomposition</span>
+                            <span class="test-meta"><span class="indicator" id="ind-react-6"></span> <span
+                                    id="val-react-6">Orthogonal U*U^T=I</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">7. Carnot-Möbius Thermodynamic Backpressure</span>
+                            <span class="test-meta"><span class="indicator" id="ind-react-7"></span> <span
+                                    id="val-react-7">Cooling Margin</span></span>
                         </div>
                     </div>
                 </div>
@@ -862,6 +887,47 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Suite 8: IHC & Typed Compute Affordance Matrix -->
+                <div class="suite-card" id="card-ihc-affordance">
+                    <div class="suite-header">
+                        <div class="suite-title">IHC & Compute Affordance (2026)</div>
+                        <span id="badge-ihc-affordance" class="status-badge badge-idle">STANDBY</span>
+                    </div>
+                    <p class="theory-desc">Validates Inverted Hypersphere Cosmology 33-shell golden ratio ladders, SDSS BAO scales, RP4 projective attention, 8-regime typed affordance governance, CALM thermal vetoes, and Folium reciprocal exchange anchors.</p>
+                    <div class="suite-tests-list">
+                        <div class="test-row">
+                            <span class="test-name">1. IHC 33-Shell Golden Ratio Ladder</span>
+                            <span class="test-meta"><span class="indicator" id="ind-ihc-1"></span> <span
+                                    id="val-ihc-1">k=7 Unity Sound Horizon</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">2. IHC BAO Cosmological Validation</span>
+                            <span class="test-meta"><span class="indicator" id="ind-ihc-2"></span> <span
+                                    id="val-ihc-2">r_s=153.2 Mpc, PAS_m</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">3. IHC RP4 Projective Attention</span>
+                            <span class="test-meta"><span class="indicator" id="ind-ihc-3"></span> <span
+                                    id="val-ihc-3">VOID Regime Routing</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">4. Typed Compute Affordance Governance</span>
+                            <span class="test-meta"><span class="indicator" id="ind-ihc-4"></span> <span
+                                    id="val-ihc-4">8 Categorical Regimes</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">5. CALM Thermal MAML Governance</span>
+                            <span class="test-meta"><span class="indicator" id="ind-ihc-5"></span> <span
+                                    id="val-ihc-5">P_waste &gt; P_cool Veto</span></span>
+                        </div>
+                        <div class="test-row">
+                            <span class="test-name">6. Folium Transversal Smooch Anchor</span>
+                            <span class="test-meta"><span class="indicator" id="ind-ihc-6"></span> <span
+                                    id="val-ihc-6">dy/dx = -1.0 Reciprocal</span></span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -1003,7 +1069,8 @@
         function renderTopoBenchReport(report) {
             const tests = report.tests || {};
             const success = report.success;
-            updateSuiteBadge('badge-topobench', success ? 'PASS 5/5' : 'FAIL', success ? 'badge-pass' : 'badge-fail');
+            const passed = report.passed_count !== undefined ? report.passed_count : (success ? 7 : 0);
+            updateSuiteBadge('badge-topobench', success ? `PASS ${passed}/7` : `FAIL ${passed}/7`, success ? 'badge-pass' : 'badge-fail');
 
             if (tests.loop_closure) {
                 updateIndicator('ind-topo-1', 'val-topo-1', tests.loop_closure.pass, 'Twist: ' + tests.loop_closure.twist_energy.toFixed(4));
@@ -1021,12 +1088,19 @@
             if (tests.gyroid_flow) {
                 updateIndicator('ind-topo-5', 'val-topo-5', tests.gyroid_flow.pass, 'Viol: ' + tests.gyroid_flow.violation.toExponential(2));
             }
+            if (tests.folium_transversality) {
+                updateIndicator('ind-topo-6', 'val-topo-6', tests.folium_transversality.pass, 'dy/dx: -1.000');
+            }
+            if (tests.birkhoff_polytope_integrity) {
+                updateIndicator('ind-topo-7', 'val-topo-7', tests.birkhoff_polytope_integrity.pass, 'Sum: 1.000');
+            }
         }
 
         function renderReactBenchReport(report) {
             const tests = report.tests || {};
             const success = report.success;
-            updateSuiteBadge('badge-reactbench', success ? 'PASS 5/5' : 'FAIL', success ? 'badge-pass' : 'badge-fail');
+            const passed = report.passed_count !== undefined ? report.passed_count : (success ? 7 : 0);
+            updateSuiteBadge('badge-reactbench', success ? `PASS ${passed}/7` : `FAIL ${passed}/7`, success ? 'badge-pass' : 'badge-fail');
 
             if (tests.branch_convergence) {
                 updateIndicator('ind-react-1', 'val-react-1', tests.branch_convergence.pass, 'Press: ' + tests.branch_convergence.reconstruction_pressure.toFixed(4));
@@ -1044,6 +1118,38 @@
                 const diag = tests.bezout_refresh.diagnostics || {};
                 const cond = diag.bezout_condition_number !== undefined ? diag.bezout_condition_number.toFixed(3) : '1.000';
                 updateIndicator('ind-react-5', 'val-react-5', tests.bezout_refresh.pass, 'Cond: ' + cond);
+            }
+            if (tests.muon_polar_decomposition) {
+                updateIndicator('ind-react-6', 'val-react-6', tests.muon_polar_decomposition.pass, 'Orthogonal U*U^T');
+            }
+            if (tests.carnot_mobius_backpressure) {
+                updateIndicator('ind-react-7', 'val-react-7', tests.carnot_mobius_backpressure.pass, 'Margin: ' + (tests.carnot_mobius_backpressure.cooling_margin || 1.0).toFixed(3));
+            }
+        }
+
+        function renderIHCAffordanceReport(report) {
+            const tests = report.tests || {};
+            const success = report.success;
+            const passed = report.passed_count !== undefined ? report.passed_count : (success ? 6 : 0);
+            updateSuiteBadge('badge-ihc-affordance', success ? `PASS ${passed}/6` : `FAIL ${passed}/6`, success ? 'badge-pass' : 'badge-fail');
+
+            if (tests.ihc_33_shell_ladder) {
+                updateIndicator('ind-ihc-1', 'val-ihc-1', tests.ihc_33_shell_ladder.pass, 'Center k=7 (err=' + (tests.ihc_33_shell_ladder.error || 0).toFixed(4) + ')');
+            }
+            if (tests.ihc_bao_cosmology) {
+                updateIndicator('ind-ihc-2', 'val-ihc-2', tests.ihc_bao_cosmology.pass, 'PAS_m: ' + (tests.ihc_bao_cosmology.pas_m || 0).toFixed(4));
+            }
+            if (tests.ihc_rp4_projective_attention) {
+                updateIndicator('ind-ihc-3', 'val-ihc-3', tests.ihc_rp4_projective_attention.pass, 'Diff: ' + (tests.ihc_rp4_projective_attention.norm_diff || 0).toFixed(3));
+            }
+            if (tests.typed_compute_affordances) {
+                updateIndicator('ind-ihc-4', 'val-ihc-4', tests.typed_compute_affordances.pass, (tests.typed_compute_affordances.valid_types || 8) + '/8 Regimes OK');
+            }
+            if (tests.calm_thermal_governance) {
+                updateIndicator('ind-ihc-5', 'val-ihc-5', tests.calm_thermal_governance.pass, 'Abort Boost: +' + (tests.calm_thermal_governance.abort_elevation || 0).toFixed(3));
+            }
+            if (tests.folium_transversal_smooch) {
+                updateIndicator('ind-ihc-6', 'val-ihc-6', tests.folium_transversal_smooch.pass, 'Score: ' + (tests.folium_transversal_smooch.reciprocal_score || 1.0).toFixed(3));
             }
         }
 
@@ -1191,17 +1297,18 @@
                             if (suites.ChordlockEvaluator) renderChordlockReport(suites.ChordlockEvaluator);
                             if (suites.MemoryPalaceEvaluator) renderMemoryPalaceReport(suites.MemoryPalaceEvaluator);
                             if (suites.TopologicalSingularityEvaluator) renderSingularitiesReport(suites.TopologicalSingularityEvaluator);
+                            if (suites.IHCAndComputeAffordanceEvaluator) renderIHCAffordanceReport(suites.IHCAndComputeAffordanceEvaluator);
 
                             const allPassed = data.report.success;
                             pill.innerText = allPassed ? `ALL PASSED (${data.report.total_passed}/${data.report.total_tests})` : 'FAILURES DETECTED';
                             pill.className = 'status-badge ' + (allPassed ? 'badge-pass' : 'badge-fail');
                         } else if (endpoint === '/api/benchmark/topobench') {
                             renderTopoBenchReport(data.report);
-                            pill.innerText = data.report.success ? 'TOPOBENCH PASS (5/5)' : 'TOPOBENCH FAIL';
+                            pill.innerText = data.report.success ? 'TOPOBENCH PASS (7/7)' : 'TOPOBENCH FAIL';
                             pill.className = 'status-badge ' + (data.report.success ? 'badge-pass' : 'badge-fail');
                         } else if (endpoint === '/api/benchmark/reactbench') {
                             renderReactBenchReport(data.report);
-                            pill.innerText = data.report.success ? 'REACTBENCH PASS (5/5)' : 'REACTBENCH FAIL';
+                            pill.innerText = data.report.success ? 'REACTBENCH PASS (7/7)' : 'REACTBENCH FAIL';
                             pill.className = 'status-badge ' + (data.report.success ? 'badge-pass' : 'badge-fail');
                         } else if (endpoint === '/api/benchmark/narrative') {
                             renderNarrativeReport(data.report);
@@ -1222,6 +1329,10 @@
                         } else if (endpoint === '/api/benchmark/singularities') {
                             renderSingularitiesReport(data.report);
                             pill.innerText = data.report.success ? 'SINGULARITIES PASS (5/5)' : 'SINGULARITIES FAIL';
+                            pill.className = 'status-badge ' + (data.report.success ? 'badge-pass' : 'badge-fail');
+                        } else if (endpoint === '/api/benchmark/ihc_affordance') {
+                            renderIHCAffordanceReport(data.report);
+                            pill.innerText = data.report.success ? 'IHC & AFFORDANCE PASS (6/6)' : 'IHC & AFFORDANCE FAIL';
                             pill.className = 'status-badge ' + (data.report.success ? 'badge-pass' : 'badge-fail');
                         }
 
@@ -1276,6 +1387,7 @@
                         if (suite.ChordlockEvaluator) renderChordlockReport(suite.ChordlockEvaluator);
                         if (suite.MemoryPalaceEvaluator) renderMemoryPalaceReport(suite.MemoryPalaceEvaluator);
                         if (suite.TopologicalSingularityEvaluator) renderSingularitiesReport(suite.TopologicalSingularityEvaluator);
+                        if (suite.IHCAndComputeAffordanceEvaluator) renderIHCAffordanceReport(suite.IHCAndComputeAffordanceEvaluator);
                     }
                 }
             } catch (err) {

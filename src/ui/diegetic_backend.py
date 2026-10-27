@@ -9183,6 +9183,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 '/api/benchmark/chordlock',
                 '/api/benchmark/memory_palace',
                 '/api/benchmark/singularities',
+                '/api/benchmark/ihc_affordance',
                 '/api/benchmark/all'
             ):
                 import io
@@ -9226,6 +9227,11 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                             evaluator = TopologicalSingularityEvaluator()
                             report = evaluator.run_suite()
                             suite_name = "TopologicalSingularityEvaluator"
+                        elif self.path == '/api/benchmark/ihc_affordance':
+                            from src.benchmarks.ihc_and_compute_affordance_evaluator import IHCAndComputeAffordanceEvaluator
+                            evaluator = IHCAndComputeAffordanceEvaluator()
+                            report = evaluator.run_suite()
+                            suite_name = "IHCAndComputeAffordanceEvaluator"
                         else:  # /api/benchmark/all
                             from src.benchmarks.run_all_benchmarks import BenchmarkSuiteRunner
                             runner = BenchmarkSuiteRunner()
