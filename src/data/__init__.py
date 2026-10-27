@@ -42,6 +42,11 @@ try:
 except ImportError:
     LocalDatasetIngestor = None
 
+try:
+    from .sterile_data_reruns import run_background_topology_analysis
+except ImportError:
+    run_background_topology_analysis = None
+
 __all__ = [
     'GltfSplatIngestionPipeline',
     'WebPPromptExtractor',
@@ -57,4 +62,5 @@ __all__ = [
     'OpenScienceIngestor',
     'MinecraftIngestionPipeline',
     'LocalDatasetIngestor',
+    'run_background_topology_analysis',
 ]

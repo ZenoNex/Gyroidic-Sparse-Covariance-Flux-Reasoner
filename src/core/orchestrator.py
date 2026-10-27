@@ -35,6 +35,7 @@ from src.core.valence_drive import ValenceFunctional
 from src.core.leontief_governor import LeontiefGovernor
 from src.core.collapse_poisoner import CollapsePathPoisoner
 from src.core.spectral_coherence_repair import SpectralCoherenceCorrector, BezoutCoefficientRefresh, apply_energy_based_stabilization
+from src.core.number_theoretic_stabilizer import NumberTheoreticStabilizer, create_number_theoretic_stabilizer
 
 from src.core.structural_monitors import AntiScalingMonitor, MetaInfraIntraMonitor, FailureGaslightSycophancyGate
 from src.core.jspace_pca_mapper import JSpacePCAMapper
@@ -165,6 +166,7 @@ class UniversalOrchestrator(nn.Module):
         # Canonical Spectral Coherence Repair & Bezout CRT Refresh
         self.spectral_corrector = SpectralCoherenceCorrector()
         self.bezout_refresh = BezoutCoefficientRefresh(num_functionals=5, poly_degree=12)
+        self.number_theoretic_stabilizer = NumberTheoreticStabilizer(state_dim=self.dim)
         
         self.deflagrator = OmipedialDeflagrator()
         
@@ -976,6 +978,11 @@ class UniversalOrchestrator(nn.Module):
                     current_state[..., :p_len] = current_state[..., :p_len] + 0.01 * prime_phase
                 else:
                     current_state[:p_len] = current_state[:p_len] + 0.01 * prime_phase
+
+            # Number-Theoretic prime residue bounding during high micro-drift
+            if hasattr(self, 'number_theoretic_stabilizer') and self.number_theoretic_stabilizer is not None:
+                if torch.norm(current_state) > 40.0 or drift_micro > 0.35:
+                    current_state = self.number_theoretic_stabilizer.apply_modular_stabilization(current_state)
             
             # Inject Mischief: Perturb the state to explore trajectories
             if (needs_erosion or atrophy > 0.85) and pressure_grad is not None:
@@ -1711,6 +1718,15 @@ class UniversalOrchestrator(nn.Module):
                         phase_shift=float(bezout_diag.get('crt_reconstruction_error', 0.0))
                     )
                 self.telemetry_state['bezout_condition_number'] = bezout_diag.get('bezout_condition_number', 1.0)
+            except Exception:
+                pass
+
+        # Number-Theoretic Stabilization (Prime-modular & Diophantine overflow bounds)
+        if hasattr(self, 'number_theoretic_stabilizer') and self.number_theoretic_stabilizer is not None:
+            try:
+                if torch.isnan(state_shielded).any() or torch.isinf(state_shielded).any() or torch.norm(state_shielded) > 25.0:
+                    state_shielded, nt_diag = self.number_theoretic_stabilizer.comprehensive_stabilization(state_shielded)
+                    self.telemetry_state['number_theoretic_stabilization'] = nt_diag
             except Exception:
                 pass
             

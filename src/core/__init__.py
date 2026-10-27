@@ -121,6 +121,12 @@ try:
 except ImportError:
     EulerTourSparseTableLCA = None
 
+try:
+    from .number_theoretic_stabilizer import NumberTheoreticStabilizer, create_number_theoretic_stabilizer
+except ImportError:
+    NumberTheoreticStabilizer = None
+    create_number_theoretic_stabilizer = None
+
 __all__ = [
     # Core polynomial system
     'PolynomialBasis',
@@ -177,5 +183,7 @@ __all__ = [
     'PolynomialCoefficientFunctional',
     'SpeculativeHomologyEngine',
     'EulerTourSparseTableLCA',
+    'NumberTheoreticStabilizer',
+    'create_number_theoretic_stabilizer',
 ]
 

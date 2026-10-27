@@ -96,6 +96,7 @@ sys.path.append(os.getcwd())
 from src.core.polynomial_coprime import PolynomialCoprimeConfig, PolynomialBasis
 from src.core.leontief_governor import LeontiefGovernor
 from src.training.fgrt_fgrt_trainer import SpectralStructuralTrainer
+from src.training.training_manager import TrainingManager
 from src.models.resonance_cavity import ResonanceCavity
 from src.models.diegetic_heads import ResonanceLarynx, DataAssociationLayer
 from src.codec.gyroidic_codec import GyroidicCodec, CodecConfig
@@ -875,6 +876,14 @@ class DiegeticPhysicsEngine(nn.Module):
         except Exception as _be:
             self._last_live_benchmarks = {}
             self._last_suite_results = {}
+
+        # Training Manager Integration (Island Rehybridization)
+        try:
+            self.temporal_model = None
+            self.training_manager = TrainingManager(self)
+        except Exception as _tme:
+            print(f"[TRAINING] TrainingManager init failed: {_tme}")
+            self.training_manager = None
 
     def _on_agent_smith_received(self, filepath: str):
         """Triggered by the P2P layer when a foreign Agent Smith payload is received."""
@@ -7422,7 +7431,10 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 return
             
             elif base_path == '/api/training_status':
-                self._send_json(TRAINING_STATE)
+                if ENGINE and hasattr(ENGINE, 'training_manager') and ENGINE.training_manager is not None:
+                    self._send_json(ENGINE.training_manager.get_status())
+                else:
+                    self._send_json(TRAINING_STATE)
                 return
             
             elif base_path in ('/api/security/creator_status', '/api/security/node_account_status'):
@@ -8484,7 +8496,6 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     print(f" Wikipedia extraction endpoint error: {e}")
                     self._send_error_json(f"Wikipedia extraction failed: {e}")
                 
-            
             # ================================================================
             # PHASE 1: LOCAL DATA ENDPOINTS (No HF Token Required)
             # ================================================================
@@ -8570,47 +8581,53 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 post_body = self.rfile.read(content_len)
                 data = json.loads(post_body.decode('utf-8'))
                 epochs = int(data.get('epochs', 3))
+                trainer_mode = str(data.get('trainer_mode', data.get('mode', 'auto')))
+                learning_rate = float(data.get('learning_rate', data.get('lr', 0.001)))
                 
-                TRAINING_STATE['active'] = True
-                TRAINING_STATE['progress'] = 0
-                TRAINING_STATE['log'] = [f'Training started: {epochs} epochs']
-                TRAINING_STATE['results'] = None
-                
-                # Run lightweight structural training
-                import threading
-                def _training_worker(n_epochs):
-                    try:
-                        for epoch in range(n_epochs):
-                            TRAINING_STATE['log'].append(f'Epoch {epoch+1}/{n_epochs}...')
-                            TRAINING_STATE['progress'] = int((epoch / n_epochs) * 100)
+                if ENGINE and hasattr(ENGINE, 'training_manager') and ENGINE.training_manager is not None:
+                    ok, msg = ENGINE.training_manager.start_training(epochs=epochs, learning_rate=learning_rate, trainer_mode=trainer_mode)
+                    self._send_json({'success': ok, 'message': msg})
+                else:
+                    TRAINING_STATE['active'] = True
+                    TRAINING_STATE['progress'] = 0
+                    TRAINING_STATE['log'] = [f'Training started: {epochs} epochs']
+                    TRAINING_STATE['results'] = None
+                    
+                    # Run lightweight structural training
+                    import threading
+                    def _training_worker(n_epochs):
+                        try:
+                            for epoch in range(n_epochs):
+                                TRAINING_STATE['log'].append(f'Epoch {epoch+1}/{n_epochs}...')
+                                TRAINING_STATE['progress'] = int((epoch / n_epochs) * 100)
+                                
+                                # Load a batch of local data and train
+                                for ds_name in list(LOCAL_LOADER._datasets.keys())[:3]:
+                                    batch = LOCAL_LOADER.load_batch(ds_name, batch_size=16, max_samples=50)
+                                    for sample in batch:
+                                        try:
+                                            ENGINE.process_input(sample.text[:300], generate_response=False)
+                                        except Exception:
+                                            pass
+                                
+                                TRAINING_STATE['log'].append(
+                                    f'Epoch {epoch+1} complete -- iteration {ENGINE.iteration}'
+                                )
                             
-                            # Load a batch of local data and train
-                            for ds_name in list(LOCAL_LOADER._datasets.keys())[:3]:
-                                batch = LOCAL_LOADER.load_batch(ds_name, batch_size=16, max_samples=50)
-                                for sample in batch:
-                                    try:
-                                        ENGINE.process_input(sample.text[:300], generate_response=False)
-                                    except Exception:
-                                        pass
-                            
-                            TRAINING_STATE['log'].append(
-                                f'Epoch {epoch+1} complete -- iteration {ENGINE.iteration}'
-                            )
-                        
-                        ENGINE.save_state()
-                        TRAINING_STATE['progress'] = 100
-                        TRAINING_STATE['results'] = {'success': True}
-                        TRAINING_STATE['log'].append('Training complete!')
-                    except Exception as e:
-                        TRAINING_STATE['log'].append(f'Error: {str(e)}')
-                        TRAINING_STATE['results'] = {'success': False, 'error': str(e)}
-                    finally:
-                        TRAINING_STATE['active'] = False
-                
-                t = threading.Thread(target=_training_worker, args=(epochs,), daemon=True)
-                t.start()
-                
-                self._send_json({'success': True, 'message': f'Training started: {epochs} epochs'})
+                            ENGINE.save_state()
+                            TRAINING_STATE['progress'] = 100
+                            TRAINING_STATE['results'] = {'success': True}
+                            TRAINING_STATE['log'].append('Training complete!')
+                        except Exception as e:
+                            TRAINING_STATE['log'].append(f'Error: {str(e)}')
+                            TRAINING_STATE['results'] = {'success': False, 'error': str(e)}
+                        finally:
+                            TRAINING_STATE['active'] = False
+                    
+                    t = threading.Thread(target=_training_worker, args=(epochs,), daemon=True)
+                    t.start()
+                    
+                    self._send_json({'success': True, 'message': f'Training started: {epochs} epochs'})
             
             elif self.path == '/api/test_resonance_link':
                 print("API REQUEST: /api/test_resonance_link")
@@ -8753,9 +8770,13 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 return
             
             elif self.path == '/api/stop_training':
-                TRAINING_STATE['active'] = False
-                TRAINING_STATE['log'].append('Training stopped by user')
-                self._send_json({'success': True, 'message': 'Training stop requested'})
+                if ENGINE and hasattr(ENGINE, 'training_manager') and ENGINE.training_manager is not None:
+                    ok, msg = ENGINE.training_manager.stop_training()
+                    self._send_json({'success': ok, 'message': msg})
+                else:
+                    TRAINING_STATE['active'] = False
+                    TRAINING_STATE['log'].append('Training stopped by user')
+                    self._send_json({'success': True, 'message': 'Training stop requested'})
             
             elif self.path == '/api/save_model':
                 ENGINE.save_state()
@@ -8792,6 +8813,14 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     'target_file': paths['target_file'],
                     'message': f"Autorun {'enabled' if enabled else 'disabled'}"
                 })
+                return
+
+            elif self.path == '/api/rehydrate_sterile_data':
+                from src.data.sterile_data_reruns import run_background_topology_analysis
+                import threading
+                t = threading.Thread(target=run_background_topology_analysis, daemon=True)
+                t.start()
+                self._send_json({'success': True, 'message': 'Background sterile data topology audit and non-semisimple refresh started'})
                 return
             
             # ================================================================

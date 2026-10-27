@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Any, List
 
 from src.data.textbook_filter import TextbookFilter, QualityReport
 
@@ -153,6 +153,109 @@ class SuperposedTagStacker(nn.Module):
                 target += param * alpha
                 
         return target.to(torch.float32)
+
+    def breed_into_state(
+        self,
+        active_state: torch.Tensor,
+        tag_weights: Optional[Dict[str, float]] = None,
+        alpha: float = 0.5,
+        kappa_seal: float = 0.1,
+        hyperbolic_shear: float = 0.05,
+        engine: Optional[Any] = None
+    ) -> torch.Tensor:
+        """
+        Pathway 1: The OpenCL Breeding Route.
+        Breeds the active state with the composite stacked target using the
+        asymmetric dual-GPU engine (Device B / Queue B on Intel HD Graphics 630).
+        Preserves honest hardware jitter and avoids scalarization collapse.
+        """
+        stacked_target = self.compute_composite_target(tag_weights=tag_weights, current_state=active_state)
+        if stacked_target is None or torch.norm(stacked_target) < 1e-6:
+            return active_state
+
+        target_shaped = stacked_target.to(active_state.device, active_state.dtype)
+        if active_state.dim() > 1:
+            target_shaped = target_shaped.expand_as(active_state)
+
+        # Offload to SiliconSovereigntyEngine if available
+        if engine is None:
+            try:
+                from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+                engine = SiliconSovereigntyEngine()
+                if not engine._is_healthy():
+                    engine = None
+            except Exception:
+                engine = None
+
+        if engine is not None and hasattr(engine, 'matrix_mix_breeding'):
+            try:
+                a_np = active_state.detach().cpu().numpy()
+                b_np = target_shaped.detach().cpu().numpy()
+                mixed_np = engine.matrix_mix_breeding(
+                    matrix_a=a_np,
+                    matrix_b=b_np,
+                    alpha=alpha,
+                    kappa_seal=kappa_seal,
+                    hyperbolic_shear=hyperbolic_shear
+                )
+                mixed = torch.from_numpy(mixed_np).to(active_state.device, active_state.dtype)
+                # Straight-through gradient estimator
+                return active_state + (mixed - active_state).detach()
+            except Exception:
+                pass
+
+        # Fallback PyTorch CPU / CUDA blending with honest jitter
+        from src.core.honest_jitter import harvest_honest_jitter
+        jitter = harvest_honest_jitter(active_state.shape, device=active_state.device, scaled=False) * 0.02
+        mixed = (1.0 - alpha) * active_state + alpha * target_shaped + jitter
+        return torch.clamp(mixed, -5.0, 5.0)
+
+    def route_to_speculative_gate(
+        self,
+        gate: Any,
+        converged_state: torch.Tensor,
+        tag_weights: Optional[Dict[str, float]] = None,
+        residues: Optional[torch.Tensor] = None,
+        exemption_token: Optional[Any] = None,
+        mode: str = 'PLAY'
+    ) -> Tuple[torch.Tensor, Dict]:
+        """
+        Pathway 2: The Gravity Well Route (Speculative Recovery).
+        Routes the composite stacked target directly to SpeculativeCoprimeGate
+        as the chirality_target to bias Wasserstein optimal transport without snapping.
+        """
+        stacked_target = self.compute_composite_target(tag_weights=tag_weights, current_state=converged_state)
+        target_tensor = stacked_target.to(converged_state.device, converged_state.dtype) if stacked_target is not None else None
+        
+        if hasattr(gate, 'speculative_recovery'):
+            return gate.speculative_recovery(
+                converged_state=converged_state,
+                residues=residues,
+                chirality_target=target_tensor,
+                exemption_token=exemption_token,
+                mode=mode
+            )
+        elif callable(gate):
+            return gate(converged_state), {}
+        return converged_state, {"error": "gate does not support speculative_recovery"}
+
+    def save_macro_coordinate(
+        self,
+        macro_name: str,
+        tag_weights: Dict[str, float],
+        context_text: str = "Nested composite macro coordinate stack"
+    ) -> Tuple[bool, QualityReport]:
+        """
+        Feature: Subsequent Stacking & Nested Coordinate Hierarchies.
+        Computes the composite superposition of existing tags and saves it as
+        a new named 'macro' tag in the catalog, subject to TextbookFilter gating.
+        """
+        composite = self.compute_composite_target(tag_weights=tag_weights)
+        if composite is None or torch.norm(composite) < 1e-6:
+            from src.data.textbook_filter import QualityReport
+            return False, QualityReport(text=context_text, source="macro_stacking", dimension_gates={}, admissible=False)
+            
+        return self.add_tag(tag_name=macro_name, vector=composite, context_text=context_text)
 
     def get_catalog_summary(self) -> Dict[str, Dict]:
         """Returns a summary of the currently learned coordinates."""

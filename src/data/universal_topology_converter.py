@@ -19,6 +19,8 @@ try:
 except ImportError:
     harvest_honest_jitter = None
 
+from src.data.webp_prompt_extractor import WebPPromptExtractor
+
 class UniversalTopologyConverter:
     """
     High-Dimensional Universal Topology Converter (Inspired by p2r3/convert).
@@ -72,8 +74,17 @@ class UniversalTopologyConverter:
                     compensation_factor = vis_topo.get("b_channel_compensation", 1.0)
                     spectral_base = spectral_base * compensation_factor
                 
+                # Extract hidden prompts if WebP image artifact
+                hidden_prompt_meta = {}
+                if ext == '.webp':
+                    try:
+                        webp_extractor = WebPPromptExtractor(filepath.parent)
+                        hidden_prompt_meta = webp_extractor.extract_from_webp(filepath)
+                    except Exception:
+                        hidden_prompt_meta = {}
+
                 # Early return with IVST extraction
-                return {
+                res = {
                     "format": ext,
                     "spectral_tensor": spectral_base,  # Needs unified projector
                     "pressure_signature": torch.zeros(1, self.num_moduli),
@@ -83,6 +94,10 @@ class UniversalTopologyConverter:
                     "honesty_jitter": ivst_data.get("honesty_jitter", 0.0),
                     "ivst_metadata": ivst_data
                 }
+                if hidden_prompt_meta.get("extracted_prompts"):
+                    res["hidden_prompts"] = hidden_prompt_meta["extracted_prompts"]
+                    res["prompt_sha256"] = hidden_prompt_meta.get("prompt_sha256")
+                return res
 
         # 1. Compute Base Entropy Map (Raw Bytes -> Frequency Density)
         byte_map = self._compute_byte_histogram(filepath)
