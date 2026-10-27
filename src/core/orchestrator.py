@@ -284,9 +284,10 @@ class UniversalOrchestrator(nn.Module):
         self.jepa_embedder = PolynomialFunctionalEmbedder(text_dim=dim, graph_dim=dim, num_dim=dim, hidden_dim=dim)
         self.poly_embedder = self.jepa_embedder
         
-        # 7.8 Memory Palace (MEMPALACE Meliponini Planted Attractor Chambers)
-        from src.core.garden_statistical_attractors import MemoryPalace
+        # 7.8 Memory Palace & Garden Statistical Attractors (Non-Ergodic Attractor Networks)
+        from src.core.garden_statistical_attractors import MemoryPalace, GardenOrchestrator
         self.memory_palace = MemoryPalace(feature_dim=dim)
+        self.garden_orchestrator = GardenOrchestrator(num_attractors=min(8, dim), feature_dim=dim, device=str(torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
         
         # 7.9 Resonance Cavity (Bio-Plausible Memory Time Dilation)
         from src.models.resonance_cavity import ResonanceCavity
@@ -1144,6 +1145,9 @@ class UniversalOrchestrator(nn.Module):
         curv_metrics = self.curvature_engine.compute_curvature(state.unsqueeze(-1) @ state.unsqueeze(-2), current_state.unsqueeze(-1) @ current_state.unsqueeze(-2))
         is_red_zone = curv_metrics['is_strongly_noncommutative']
         
+        zg_mode = "interior"
+        zg_diags = {}
+
         if should_sync or is_red_zone or is_good_bug:
             # GEOMETRIC SYNC: Apply Love Invariant and Topological Bridges
             if is_red_zone: print(f"[ORCHESTRATOR] Red Zone Detected (RelCurv: {curv_metrics['relative_curvature']:.3f}) - Syncing Slow Cop.")
@@ -1342,6 +1346,29 @@ class UniversalOrchestrator(nn.Module):
                 # Shatter the state
                 state_final = state_final + harvest_honest_jitter(state_final.shape, device=state_final.device, scaled=True) * 0.5
 
+            # Rosheim Joint Non-Singular Gimbal Lock Shield
+            if hasattr(self, 'gyrocompass') and self.gyrocompass is not None:
+                try:
+                    dx_prop = state_final - current_state
+                    if martinova_corr.mean().item() > 0.80:
+                        dx_shielded = self.gyrocompass.gimbal_lock_shield(dx_prop, state_final)
+                        state_final = current_state + dx_shielded
+                except Exception:
+                    pass
+
+            # Phase 20b: Enhanced Bezout CRT & Inverse Kinematic Solver Trajectory Synchronization
+            if hasattr(self, 'enhanced_bezout_crt') and self.enhanced_bezout_crt is not None:
+                try:
+                    state_final, bezout_diag = self.enhanced_bezout_crt.refresh_bezout_coefficients(state_final)
+                    if bezout_diag.get('bezout_condition_number', 1.0) > 50.0:
+                        self.enhanced_bezout_crt.ik_solver.synchronize_phase(
+                            note_event_time=float(self.iteration.item() if hasattr(self, 'iteration') and isinstance(self.iteration, torch.Tensor) else 1.0),
+                            phase_shift=float(bezout_diag.get('crt_reconstruction_error', 0.0))
+                        )
+                    self.telemetry_state['bezout_condition_number'] = bezout_diag.get('bezout_condition_number', 1.0)
+                except Exception:
+                    pass
+
             # Phase 21: Sturmfels-Thomas Direct Birkhoff Polytope Projection (Doubly Stochastic Transition)
             if hasattr(self, 'birkhoff_projector') and dummy_A is not None:
                 try:
@@ -1398,12 +1425,25 @@ class UniversalOrchestrator(nn.Module):
 
             # Phase 24: Zeitgeist CRT Polytope Routing (Phase 18 Multi-Meaning Dispatch)
             zg_mode = "interior"
+            zg_diags = {}
             if hasattr(self, 'zeitgeist_router'):
                 try:
                     zg_mode, self._zeitgeist_state, zg_diags, state_final = self.zeitgeist_router(
                         state_final,
                         state=self._zeitgeist_state
                     )
+                except Exception:
+                    pass
+
+            # Phase 24b: Garden Statistical Attractors (Cymatic Chladni Nodal Lines & Play-to-Seriousness Transition)
+            if hasattr(self, 'garden_orchestrator') and self.garden_orchestrator is not None:
+                try:
+                    h_mischief = float(mischief_metrics.get('H_mischief', 0.5))
+                    garden_res = self.garden_orchestrator.evolve_garden(state_final, dt=float(dt))
+                    if h_mischief < 0.4 and isinstance(garden_res, dict) and 'evolved_concepts' in garden_res:
+                        evolved = garden_res['evolved_concepts']
+                        if evolved.shape == state_final.shape:
+                            state_final = 0.85 * state_final + 0.15 * evolved
                 except Exception:
                     pass
 
@@ -1487,6 +1527,16 @@ class UniversalOrchestrator(nn.Module):
             except Exception:
                 pass
 
+        # Compute live void friction from Zeitgeist routing, CODES bypass, and flux
+        f_void_val = float(actual_flux.mean().item() if isinstance(actual_flux, torch.Tensor) else actual_flux)
+        zg_pressure = float(zg_diags.get('grazing_pressure', 0.0)) if 'zg_diags' in locals() and isinstance(zg_diags, dict) else 0.0
+        is_void = bool(zg_diags.get('is_lazarus_void', False)) if 'zg_diags' in locals() and isinstance(zg_diags, dict) else False
+        if zg_mode == 'switching' or is_void or f_void_val > 0.8:
+            computed_void_friction = max(0.85, zg_pressure, f_void_val)
+        else:
+            computed_void_friction = max(zg_pressure, f_void_val * 0.5)
+        void_frictions_tensor = torch.tensor([computed_void_friction], device=state_final.device)
+
         arch_results = self.archetype_governor.run_archetypes(
             current_state=state_final,
             stranded_states=stranded_states,
@@ -1494,7 +1544,7 @@ class UniversalOrchestrator(nn.Module):
             current_mischief=mischief_metrics['H_mischief'],
             phase_alignment=pas_h,
             love_strengths=torch.norm(self.love.L),
-            void_frictions=torch.tensor([0.0], device=state_final.device),
+            void_frictions=void_frictions_tensor,
             global_dt=dt,
             raw_unquantized_state=current_state,
             is_high_priority=is_good_bug,
@@ -1650,6 +1700,19 @@ class UniversalOrchestrator(nn.Module):
             # If refusal triggered, we fall back to original governed state to preserve richness
             print(f"[ORCHESTRATOR] {e}")
             state_shielded = state_governed
+
+        # Enhanced Bezout CRT & Inverse Kinematic Solver Trajectory Synchronization
+        if hasattr(self, 'enhanced_bezout_crt') and self.enhanced_bezout_crt is not None:
+            try:
+                state_shielded, bezout_diag = self.enhanced_bezout_crt.refresh_bezout_coefficients(state_shielded)
+                if bezout_diag.get('bezout_condition_number', 1.0) > 50.0:
+                    self.enhanced_bezout_crt.ik_solver.synchronize_phase(
+                        note_event_time=float(self.iteration.item() if hasattr(self, 'iteration') and isinstance(self.iteration, torch.Tensor) else 1.0),
+                        phase_shift=float(bezout_diag.get('crt_reconstruction_error', 0.0))
+                    )
+                self.telemetry_state['bezout_condition_number'] = bezout_diag.get('bezout_condition_number', 1.0)
+            except Exception:
+                pass
             
         # 6. DIEGETIC RESPONSE (The "Larynx" & "Scars")
         # -----------------------------------------------

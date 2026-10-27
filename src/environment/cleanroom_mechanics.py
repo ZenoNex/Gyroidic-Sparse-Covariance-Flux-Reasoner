@@ -264,6 +264,37 @@ class ExpandedInventorySystem:
     def get_gas(self, gas_id: str) -> Optional[GasStack]:
         return self.gas_tanks.get(gas_id)
 
+    def add_fluid(self, stack: FluidStack) -> float:
+        """Adds fluid to tanks up to max_fluid_capacity_mb. Returns leftover mB not added."""
+        current = self.fluid_tanks.get(stack.fluid_id)
+        if current is None:
+            to_add = min(self.max_fluid_capacity_mb, stack.amount_mb)
+            self.fluid_tanks[stack.fluid_id] = FluidStack(
+                fluid_id=stack.fluid_id,
+                amount_mb=to_add,
+                temperature_k=stack.temperature_k
+            )
+            return stack.amount_mb - to_add
+        else:
+            space = self.max_fluid_capacity_mb - current.amount_mb
+            to_add = min(space, stack.amount_mb)
+            current.amount_mb += to_add
+            return stack.amount_mb - to_add
+
+    def remove_fluid(self, fluid_id: str, amount_mb: float) -> float:
+        """Removes up to amount_mb of fluid_id. Returns actual mB removed."""
+        if fluid_id not in self.fluid_tanks:
+            return 0.0
+        current = self.fluid_tanks[fluid_id]
+        taken = min(current.amount_mb, amount_mb)
+        current.amount_mb -= taken
+        if current.amount_mb <= 1e-6:
+            del self.fluid_tanks[fluid_id]
+        return taken
+
+    def get_fluid(self, fluid_id: str) -> Optional[FluidStack]:
+        return self.fluid_tanks.get(fluid_id)
+
 
 # =========================================================================
 # 2. JOURNEY TOPO RADAR (JOURNEYMAP CLEANROOM)
@@ -710,6 +741,127 @@ class MekanismProcessingPipeline:
             feedstock_grade=feedstock_grade
         )
 
+    def process_synthetic_diesel_synthesis(
+        self,
+        carbon_count: int,
+        hydrogen_mb: float,
+        route: str = "gasification_fischer_tropsch",
+        tier: int = 2,
+        energy_fe: float = 2000.0,
+        acid_reagent_mb: float = 0.0
+    ) -> "SyntheticDieselResult":
+        """
+        Synthesizes diesel-range hydrocarbons (C10-C20, avg C15H32) from carbon and hydrogen feedstocks.
+        Supports two primary cleanroom chemical routes:
+        1. Pyrolysis & Hydrogen-Assisted Upgrading (Hydroprocessing):
+           Thermal pyrolysis converts carbonaceous waste into heavy hydrocarbon oils,
+           followed by hydrocracking under high-pressure H2.
+        2. Gasification / Reforming + Fischer-Tropsch (FT) Synthesis:
+           Carbon undergoes gasification into syngas (CO + H2), balanced with electrolytic
+           H2 to an optimal H2:CO ratio (~2:1), then passed through catalytic FT reactors.
+
+        Reaction kinetics scale from Tier 1 (1x) up to Tier 5 (5x with H2SO4/HCl cracking).
+        Coupled to CarnotMobiusLedger for thermodynamic waste heat and stack efficiency limits.
+        """
+        tier = max(1, min(5, tier))
+        route_norm = route.lower().strip()
+        if route_norm not in ("pyrolysis_hydroprocessing", "gasification_fischer_tropsch"):
+            route_norm = "gasification_fischer_tropsch"
+
+        # Stoichiometry parameters
+        if route_norm == "gasification_fischer_tropsch":
+            # Syngas balancing (H2:CO ~ 2:1): 200 mB H2 per 1 carbon unit
+            h2_per_carbon = 200.0
+            base_yield_mb_per_carbon = 50.0  # 50 mB per carbon at Tier 1
+            energy_per_carbon_fe = 30.0
+        else:
+            # Pyrolysis & hydrocracking: 150 mB H2 per 1 carbon unit
+            h2_per_carbon = 150.0
+            base_yield_mb_per_carbon = 40.0  # 40 mB per carbon at Tier 1
+            energy_per_carbon_fe = 45.0      # Higher thermal energy for initial pyrolysis
+
+        # Acid cracking reagent boost for high tiers (HCl in Tier 4, H2SO4 in Tier 5)
+        acid_boost = 1.0
+        if tier == 4 and acid_reagent_mb > 0:
+            acid_boost = min(1.3, 1.0 + (acid_reagent_mb / 1000.0) * 0.3)
+        elif tier == 5 and acid_reagent_mb > 0:
+            acid_boost = min(1.5, 1.0 + (acid_reagent_mb / 1000.0) * 0.5)
+
+        # Capacity constrained by carbon, hydrogen, and energy
+        max_by_carbon = max(0, carbon_count)
+        max_by_h2 = int(hydrogen_mb / max(1.0, h2_per_carbon)) if hydrogen_mb > 0 else 0
+        max_by_energy = int(energy_fe / max(1.0, energy_per_carbon_fe)) if energy_fe > 0 else 0
+        processed_carbon = min(max_by_carbon, max_by_h2, max_by_energy)
+
+        if processed_carbon <= 0:
+            return SyntheticDieselResult(
+                diesel_fuel_mb=0.0,
+                consumed_carbon_count=0,
+                consumed_hydrogen_mb=0.0,
+                remaining_carbon_count=carbon_count,
+                remaining_hydrogen_mb=hydrogen_mb,
+                route=route_norm,
+                tier=tier,
+                spent_energy_fe=0.0,
+                waste_heat_flux=0.0,
+                thermal_runaway=False,
+                thermodynamic_eta=1.0,
+                stoichiometric_ratio=h2_per_carbon
+            )
+
+        consumed_h2 = processed_carbon * h2_per_carbon
+        spent_energy = processed_carbon * energy_per_carbon_fe
+
+        # Tier multiplier: Tier 1: 1x, Tier 2: 2x, Tier 3: 3x, Tier 4: 4x, Tier 5: 5x
+        tier_multiplier = float(tier) * acid_boost
+        produced_diesel_mb = processed_carbon * base_yield_mb_per_carbon * tier_multiplier
+
+        # Thermodynamic waste heat evaluation via CarnotMobiusLedger
+        l_vac = torch.tensor(1.0)
+        l_pump = torch.tensor(max(2.0, 1.0 + float(tier) * 2.0))
+        admr = torch.tensor([float(tier * processed_carbon) / 1000.0])
+        thermo = self.carnot_ledger(l_vac, l_pump, admr, depth_N=tier)
+
+        p_waste = float(thermo["p_waste"].item())
+        eta_stack = float(thermo["eta_stack"].item())
+        is_thermal_runaway = bool(thermo["thermal_runaway"])
+
+        # If thermal runaway occurs, throttle yield safely
+        if is_thermal_runaway:
+            produced_diesel_mb *= max(0.2, eta_stack)
+
+        return SyntheticDieselResult(
+            diesel_fuel_mb=produced_diesel_mb,
+            consumed_carbon_count=processed_carbon,
+            consumed_hydrogen_mb=consumed_h2,
+            remaining_carbon_count=carbon_count - processed_carbon,
+            remaining_hydrogen_mb=hydrogen_mb - consumed_h2,
+            route=route_norm,
+            tier=tier,
+            spent_energy_fe=spent_energy,
+            waste_heat_flux=p_waste,
+            thermal_runaway=is_thermal_runaway,
+            thermodynamic_eta=eta_stack,
+            stoichiometric_ratio=h2_per_carbon
+        )
+
+
+@dataclass
+class SyntheticDieselResult:
+    """Output metrics from a cleanroom synthetic diesel fuel synthesis run."""
+    diesel_fuel_mb: float
+    consumed_carbon_count: int
+    consumed_hydrogen_mb: float
+    remaining_carbon_count: int
+    remaining_hydrogen_mb: float
+    route: str  # "pyrolysis_hydroprocessing" or "gasification_fischer_tropsch"
+    tier: int
+    spent_energy_fe: float
+    waste_heat_flux: float
+    thermal_runaway: bool
+    thermodynamic_eta: float
+    stoichiometric_ratio: float
+
 
 @dataclass
 class SEMPrecipitateResult:
@@ -721,6 +873,7 @@ class SEMPrecipitateResult:
     spent_energy_fe: float
     recycled_saltwater_mb: float
     efficiency_ratio: float       # Active yield coefficient based on membrane durability
+    hydrogen_gas_mb: float = 0.0  # Pressurized electrolytic H2 gas generated at cathode
 
 
 class SEMElectrochemicalExtractor:
@@ -739,6 +892,7 @@ class SEMElectrochemicalExtractor:
       active chlorine, hypochlorite, dilute acid) from saltwater.
     - Dissolved metal ions migrate and electrodeposit directly at the cathode
       as solid precipitates / powders.
+    - Divided cathode generates compressed H2 gas as an electrochemical byproduct.
     - Closed-loop recirculation recycles >95% of the saline solution without
       requiring late-game toxic chemical plants (e.g. gaseous HCl or H2SO4).
     """
@@ -761,6 +915,7 @@ class SEMElectrochemicalExtractor:
         Standard conversion:
         - 1 unit tailings requires 50 mB saltwater and 150 FE electricity.
         - Produces precious metal precipitate flakes, base metals, and rare earths.
+        - Generates cathodic electrolytic hydrogen gas (H2).
         - Recycles 95% of saltwater in a closed loop.
         """
         max_by_tailings = max(0, tailings_count)
@@ -776,7 +931,8 @@ class SEMElectrochemicalExtractor:
                 tailings_consumed=0,
                 spent_energy_fe=0.0,
                 recycled_saltwater_mb=saltwater_mb,
-                efficiency_ratio=0.0
+                efficiency_ratio=0.0,
+                hydrogen_gas_mb=0.0
             )
 
         spent_energy = processed * 150.0
@@ -788,6 +944,9 @@ class SEMElectrochemicalExtractor:
         precious = (processed * 0.005) * eff
         base = (processed * 0.02) * eff
         rare = (processed * 0.001) * eff
+
+        # Cathodic hydrogen evolution: water splitting produces 2:1 stoichiometric gas
+        hydrogen_produced = (water_used * 2.0) * eff
 
         # Membrane wear per run: 0.01% degradation per processed block
         self.membrane_durability = max(0.05, self.membrane_durability - (processed * 0.0001))
@@ -801,7 +960,8 @@ class SEMElectrochemicalExtractor:
             tailings_consumed=processed,
             spent_energy_fe=spent_energy,
             recycled_saltwater_mb=recycled_water,
-            efficiency_ratio=eff
+            efficiency_ratio=eff,
+            hydrogen_gas_mb=hydrogen_produced
         )
 
     def maintain_membrane(self, salt_count: int, polymer_repair: float = 0.5):
@@ -2153,7 +2313,8 @@ class ProjectEEMCSolver:
             "gold_ingot": 2048,
             "dense_diamond": 8192,
             "singularity_crystal": 57344,
-            "netherite_crystal": 57344  # Compat alias
+            "netherite_crystal": 57344,  # Compat alias
+            "synthetic_diesel": 64
         }
         self.learned_items: Dict[str, Set[str]] = {}
         self.player_emc: Dict[str, int] = {}

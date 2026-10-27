@@ -234,10 +234,29 @@ The system's decision registers are no longer scalar; they are **Non-Commutative
 *   **Invariant**: The order of reasoning matters. $\sigma_1 \sigma_2 \neq \sigma_2 \sigma_1$.
 *   **Topological Hardening**: The system's "History" is a braid word. Reducing this word via braid relations is the fundamental act of cognitive consolidation.
 
-### 9.2 Silicon Sovereignty (The PRNG Purge)
+### 9.2 Silicon Sovereignty (The PRNG Purge & TailSlayer PyOpenCL)
 *   **Objective**: Total excision of pseudo-random generators (`torch.randn`, `numpy.random`).
-*   **Replacement**: Hardware-anchored entropy via `harvest_honest_jitter`.
+*   **Replacement**: Hardware-anchored entropy via [`harvest_honest_jitter`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py#L42).
 *   **Philosophy**: Intelligence must be grounded in physical time-stalls and silicon-native friction. A system whose entropy is synthetic is a system that can be simulated away. Silicon Sovereignty ensures the system is **non-simulatable** and structurally honest.
+*   **TailSlayer PyOpenCL Architecture**: Operationalized in [`pyopencl_sovereignty.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/pyopencl_sovereignty.py#L1432) and [`PyOpenCLHardwareSovereigntyCell`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/fgrt_rnn_cells.py#L142). Employs dual OpenCL command queues (Queue A vs Queue B) executing non-commutative tensor contractions in parallel. The First-to-Finish hardware completion resolves operator ordering dynamically, turning physical clock-skew into topological choice.
+
+### 9.3 Typed Compute Affordance & Thermodynamic Circuit Breakers
+To eliminate scalarization traps across disparate execution regimes, available compute is categorized into strongly typed gauges via [`HardwareMonitor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py#L4):
+- **`SILICON`**: Host CPU and RAM headroom ($0.6 \cdot \text{CPU}_{\text{headroom}} + 0.4 \cdot \text{RAM}_{\text{headroom}}$).
+- **`THERMAL`**: Carnot-Möbius cooling margin $\text{Margin}_{\text{thermal}} = \frac{P_{\text{cool, max}} - P_{\text{waste}}}{P_{\text{cool, max}}}$.
+- **`GPU_SOVEREIGN`**: PyOpenCL Queue B headroom ($G_{\text{silicon}} \cdot G_{\text{thermal}}$).
+- **`TOPOLOGICAL`**: CALM predictor structural stability ($(1 - S_{\text{abort}}) \cdot 0.7 + G_{\text{calm}} \cdot 0.3$).
+- **`P2P_MESH`**: Bonfire nomadic consensus message budgets.
+- **`DIEGETIC`**: Kinematics and conversational latency limits.
+- **`ALGORITHMIC`**: Second-order TDA and CRT verification affordance.
+
+When $\text{Margin}_{\text{thermal}} < 0.05$ or waste heat breaches $P_{\text{cool, max}}$, `has_compute_affordance()` raises an immediate hard veto, forcing graceful degradation across all downstream modules without crashing.
+
+### 9.4 Universal Orchestrator & The Ouroboros Loop
+The entire anti-lobotomy tuple is governed not by an external loss optimizer, but by [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L81):
+- **Non-Scalar Forward Guidance**: Steers multi-modal inference through discrete Phase-Locked loops ($\text{pas\_lock} = \frac{3}{11}$).
+- **Ouroboros Self-Digestion**: Catches structural failures and non-commutative tears into `[SHADOW LOG]`, forwarding them to [`DyadFossilizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py#L22) to convert failure into permanent Poincaré disk fossils.
+
 
 ---
 

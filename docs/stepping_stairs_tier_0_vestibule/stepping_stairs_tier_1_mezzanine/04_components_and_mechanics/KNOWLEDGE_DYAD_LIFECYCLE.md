@@ -294,3 +294,35 @@ Both layers interact with the manifold, but at different depths and through diff
 5. **Encoding**: State is fossilised to disk (`data/encodings/encoding_*.pt`).
 6. **Speculation**: Future "stuck" states use these fossilised dyads as gravity wells to bridge through the vacuum of noise.
 
+---
+
+## 11. Compute Affordance Scaling & TailSlayer PyOpenCL Acceleration
+
+Ingesting, decomposing, and fossilizing multi-modal knowledge dyads generates significant computational load. The pipeline dynamically self-regulates via [`HardwareMonitor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py#L4):
+
+### 11.1 Affordance-Driven Spectral Scaling
+- **Full Bandwidth (`G_silicon > 0.6` and `Margin_thermal >= 0.25`)**:
+  Extracts complete multi-basis orthogonal decompositions (Chebyshev $T_n$, Legendre $P_n$, Hermite $He_n$, B-Splines) at maximum degree $K=32$ with full Chromata streamline flowline tracing.
+- **Throttled Bandwidth (`0.25 <= G_silicon <= 0.6` or `0.05 <= Margin_thermal < 0.25`)**:
+  Damps polynomial degree to $K=8$ and falls back from continuous Chromata tracing to discrete parametric Geometrize primitive evaluation.
+- **Hard Runaway Veto (`Margin_thermal < 0.05` or `thermal_runaway == True`)**:
+  Suppresses real-time multi-modal ingestion. Heavy Agent Smith disk serialization is buffered into memory, preventing $O(N)$ disk I/O contention and thermal melting.
+
+### 11.2 TailSlayer PyOpenCL Zero-Copy Hardware Acceleration
+When [`SiliconSovereigntyEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/pyopencl_sovereignty.py#L80) detects an active OpenCL context, visual and acoustic multi-basis convolutions are offloaded to **TailSlayer Queue B**:
+- Executes zero-copy matrix contractions directly in GPU memory.
+- Bypasses PyTorch autograd graph overhead by evaluating Chebyshev recurrence relations ($T_{n+1}(x) = 2x T_n(x) - T_{n-1}(x)$) as a native OpenCL SIMD kernel.
+- Leverages the TailSlayer Bypass: if the host CPU completes the linguistic embedding before the GPU finishes the visual projection, the first-to-finish result immediately seeds the reasoner's forward state.
+
+---
+
+## 12. Interactive Topology: DaemonAton Generative Mind Map Integration
+
+To inspect, explore, and navigate the expanding manifold of fossilized Knowledge Dyads in real time, the reasoner integrates the **DaemonAton Generative Mind Map**:
+- **Interface**: Implemented in [`src/ui/generative_mind_map.html`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/generative_mind_map.html) and served live at `http://localhost:8080/mindmap`.
+- **D3 Radial Separation Engine**: Utilizes DaemonAton's radial tree spacing equation:
+  $$\text{separation}(a, b) = \text{baseSeparation} \cdot \max(1, 10 - d_a) \cdot \text{outerSpacing} \cdot 2^{d_a}$$
+  preventing visual node occlusion across deeply nested dyad hierarchies.
+- **Live Dyad Feed**: Connected to the backend `/api/mindmap-data` endpoint in [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L7560), streaming active Poincaré fossils from [`DyadFossilizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py#L22), archetype balances, and compute affordance gauges into the interactive matrix tree.
+
+

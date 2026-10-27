@@ -253,6 +253,15 @@ class PolynomialADMRSolver(nn.Module):
                     winning_drafts.append(surrogate_drafts[batch_idx, 0])
             
             projected = torch.stack(winning_drafts, dim=0)
+
+        # Apply Topological Gyrocompass to prevent gimbal lock on update step
+        if hasattr(self, 'gyrocompass') and self.gyrocompass is not None:
+            try:
+                dx = projected - interaction
+                dx_shielded = self.gyrocompass.gimbal_lock_shield(dx, interaction)
+                projected = interaction + dx_shielded
+            except Exception:
+                pass
                 
         if is_1d and projected.dim() == 2 and projected.shape[0] == 1:
             return projected.squeeze(0)

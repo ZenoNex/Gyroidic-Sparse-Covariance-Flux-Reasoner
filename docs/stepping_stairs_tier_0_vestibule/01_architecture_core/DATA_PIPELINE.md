@@ -6,7 +6,7 @@
 
 ## 1. Conversational API Ingestor
 
-**Source**: [`src/data/conversational_api_ingestor.py`](../../../src/data/conversational_api_ingestor.py) (1,107 lines)
+**Source**: [`src/data/conversational_api_ingestor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/conversational_api_ingestor.py) (1,461 lines)
 
 Unified conversational data ingestion from multiple API sources.
 
@@ -44,7 +44,7 @@ Unified conversational data ingestion from multiple API sources.
 
 ## 2. Pressure Ingestor
 
-**Source**: [`src/data/pressure_ingestor.py`](../../../src/data/pressure_ingestor.py) (671 lines)
+**Source**: [`src/data/pressure_ingestor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/pressure_ingestor.py) (673 lines)
 
 Runtime code generation for constraint forcing. **No polite APIs. No silent failures.**
 
@@ -81,35 +81,33 @@ Each source transitions through 4 phases, with code generated dynamically per ph
 
 ## 3. Textbook Filter
 
-**Source**: [`src/data/textbook_filter.py`](../../../src/data/textbook_filter.py) (335 lines)
+**Source**: [`src/data/textbook_filter.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/textbook_filter.py) (116 lines)
 
-Phi-1 "Textbooks Are All You Need" inspired quality filtering with **non-scalar admissibility**.
+Topological quality filter replacing the legacy heuristic/LSTM classifier with **structural invariant admissibility**. Rather than evaluating superficial syntax via learned style, it delegates directly to [`TopologicalIngestionValidator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/topological_ingestion_validator.py) (310 lines) across a shared [`PolynomialCoprimeConfig`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/polynomial_coprime.py).
 
-### Quality Dimensions
+### Quality Dimensions (Topological Invariants)
 
-| Dimension | Threshold | Measures |
-|-----------|-----------|----------|
-| `self_contained` | 0.3 | Minimal external dependencies, complete examples |
-| `instructive` | 0.3 | Teaching patterns, explanations, commented code |
-| `algorithmic` | 0.15 | Algorithm keywords, data structure mentions |
-| `clarity` | 0.3 | Readability, structure, formatting quality |
-| `structural_honesty` | 0.8 | Anti-lobotomy filter, rejects placeholders/TODOs |
+| Dimension | Invariant Check | Structural Meaning |
+|-----------|-----------------|-------------------|
+| `structural_honesty` | `soliton_entropy > 1e-6` | Anti-lobotomy filter; requires non-zero soliton entropy. |
+| `self_contained` | `holonomic_rank >= max(1, int(0.3 * K))` | Enforces internal constraint structure against polynomial coprime basis. |
+| `instructive` | `not is_lazarus_void` | Rejects data trapped in high cohomological dimension ($d_{\text{cohom}} \ge K/2$). |
+| `algorithmic` | `pas_h > 0.1` | Preserves phase alignment with gyroidic manifold ($\text{PAS}_h$ resonant, not noisy). |
+| `clarity` | `holonomic_rank > 0` | Guarantees rank stability across rational snapping layers. |
 
 ### Admissibility
 
-Admissible iff **ALL** dimension gates pass independently  no cross-domain scalarization.
+Admissible if and only if **ALL** dimension gates pass independently:
 
-```
-QualityReport.admissible = all(dimension_gates.values())
+```python
+QualityReport.is_admissible = all(dimension_gates.values())
 ```
 
 | Method | Purpose |
 |--------|---------|
-| `assess(text, source)`  `QualityReport` | Score all 4 dimensions with per-dimension gates |
-| `filter_batch(texts)`  `[{text, admissible, report}]` | Batch filtering |
-| `get_statistics(reports)`  aggregate stats | Pass rates, flag counts |
-
-Detects code vs. instruction content automatically (`_is_code`) and applies different heuristics (`_assess_code` vs. `_assess_instruction`).
+| `assess(text, source)` -> `QualityReport` | Evaluates single text across all 5 topological gates. |
+| `filter_batch(texts)` -> `[{text, admissible, report}]` | Batch filtration preserving topological metadata. |
+| `get_statistics(reports)` -> aggregate stats | Calculates admission rate, average soliton entropy, and holonomic rank. |
 
 ---
 
@@ -202,15 +200,15 @@ The `OpenScienceIngestor` integrates high-density scientific datasets (including
 This section was auto-generated to document classes discovered in the codebase that were previously floating free from the architectural map.
 
 ### `ConstraintDataset`
-**Location:** `src\training\trainer.py`
+**Location:** [`src/training/trainer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/training/trainer.py)
 
 **Description:**
-No docstring provided.
+Dataset wrapping constraint tensors for gyroidic training loops.
 
 ---
 
 ### `DatasetInfo`
-**Location:** `src\data\local_data_loader.py`
+**Location:** [`src/data/local_data_loader.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/local_data_loader.py)
 
 **Description:**
 Metadata about a discovered local dataset.
@@ -218,44 +216,39 @@ Metadata about a discovered local dataset.
 ---
 
 ### `GltfSplatIngestionPipeline`
-**Location:** `src\data\gltf_splat_ingestor.py`
+**Location:** [`src/data/gltf_splat_ingestor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/gltf_splat_ingestor.py)
 
 **Description:**
-No docstring provided.
+Ingestion pipeline for 3D Gaussian splat and GLTF mesh data.
 
 ---
 
 ### `GoogleCloudIngestor`
-**Location:** `src\data\google_cloud_ingestor.py`
+**Location:** [`src/data/google_cloud_ingestor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/google_cloud_ingestor.py)
 
 **Description:**
-Ingestor for Google Cloud Platform services.
-
-Provides specialized methods for BigQuery and GCS data extraction.
+Ingestor for Google Cloud Platform services. Provides specialized methods for BigQuery and GCS data extraction.
 
 ---
 
 ### `GoogleDriveIngestor`
-**Location:** `src\data\google_drive_ingestor.py`
+**Location:** [`src/data/google_drive_ingestor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/google_drive_ingestor.py)
 
 **Description:**
-Ingestor for Google Drive content.
-
-Provides functionality to list folders, filter for "Nutrient" shards,
-and download content for manifold integration.
+Ingestor for Google Drive content. Provides functionality to list folders, filter for "Nutrient" shards, and download content for manifold integration.
 
 ---
 
 ### `InvestorNewsIngestor`
-**Location:** `src\core\investor_news_ingestor.py`
+**Location:** [`src/core/investor_news_ingestor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/investor_news_ingestor.py)
 
 **Description:**
-No docstring provided.
+News feed ingestor extracting market sentiment signals and macro sentiment tensors.
 
 ---
 
 ### `LocalDatasetIngestor`
-**Location:** `src\data\local_dataset_ingestor.py`
+**Location:** [`src/data/local_dataset_ingestor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/local_dataset_ingestor.py)
 
 **Description:**
 Ingestor for local assets found in DeepLearningStudio paths.
@@ -263,7 +256,7 @@ Ingestor for local assets found in DeepLearningStudio paths.
 ---
 
 ### `MCAReader`
-**Location:** `src\data\minecraft_ingestor.py`
+**Location:** [`src/data/minecraft_ingestor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/minecraft_ingestor.py)
 
 **Description:**
 Anvil region file (.mca) parser.
@@ -272,12 +265,12 @@ Reads region file headers and decompresses specific chunk NBT compounds.
 ---
 
 ### `MinecraftIngestionPipeline`
-**Location:** `src\data\minecraft_ingestor.py`
+**Location:** [`src/data/minecraft_ingestor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/minecraft_ingestor.py)
 
 **Description:**
 Coordinates region file scans, script extractions, and spatial voxel projections.
 Fuses spatial NBT/Block parameters with textual scripts as Voxel-Text Dyads.
-Feeds directly into the cleanroom mechanics suite ([`src/environment/cleanroom_mechanics.py`](../../../src/environment/cleanroom_mechanics.py)):
+Feeds directly into the cleanroom mechanics suite ([`src/environment/cleanroom_mechanics.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py)):
 - Extracted chest inventories and item compounds serialize into [`ExpandedInventorySystem`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py).
 - Paletted voxel chunk grids supply spatial ground-truth for [`ResourceDistributionInspector`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) Chebyshev depth distributions.
 - Sign posts, player death coordinates, and structural bounds populate [`JourneyTopoRadar`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) waypoints and stress fossils.
@@ -285,7 +278,7 @@ Feeds directly into the cleanroom mechanics suite ([`src/environment/cleanroom_m
 ---
 
 ### `NBTReader`
-**Location:** `src\data\minecraft_ingestor.py`
+**Location:** [`src/data/minecraft_ingestor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/minecraft_ingestor.py)
 
 **Description:**
 Stream-based decoder for Named Binary Tag (NBT) format.
@@ -294,7 +287,7 @@ Supports all tag types, lists, compounds, and array payloads, preserving full ne
 ---
 
 ### `SimpleTemporalDataset`
-**Location:** `src\training\enhanced_temporal_training.py`
+**Location:** [`src/training/enhanced_temporal_training.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/training/enhanced_temporal_training.py)
 
 **Description:**
 Simple temporal dataset for testing.
@@ -302,7 +295,7 @@ Simple temporal dataset for testing.
 ---
 
 ### `SovereignConversationalIngestor`
-**Location:** `src\data\conversational_api_ingestor.py`
+**Location:** [`src/data/conversational_api_ingestor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/conversational_api_ingestor.py)
 
 **Description:**
 Sovereign Ingestor Hub for zero-auth and cloud-sourced data.
@@ -313,7 +306,7 @@ the Reasoner's unified conversational pipeline.
 ---
 
 ### `SovereignIngestor`
-**Location:** `src\data\sovereign_ingestor.py`
+**Location:** [`src/data/sovereign_ingestor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/sovereign_ingestor.py)
 
 **Description:**
 Orchestrator for zero-auth "Sovereign" data sources and immutable local datasets.
@@ -325,7 +318,7 @@ Bypasses centralized platform constraints in favor of direct API access (Hacker 
 ---
 
 ### `TopologicalIngestionValidator`
-**Location:** `src\core\topological_ingestion_validator.py`
+**Location:** [`src/core/topological_ingestion_validator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/topological_ingestion_validator.py)
 
 **Description:**
 Deterministic topological gate for the ingestion boundary.

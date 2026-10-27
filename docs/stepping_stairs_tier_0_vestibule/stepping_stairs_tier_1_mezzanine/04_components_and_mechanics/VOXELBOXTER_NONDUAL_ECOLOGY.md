@@ -775,3 +775,95 @@ $$dt = dt_{\text{base}} \cdot \frac{\text{Play}}{1.0 + \text{Seriousness}}$$
 * **Productive Leontief Equilibrium**: In [`LeontiefGovernor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/leontief_governor.py), intermediate consumption is governed by a contractive transition matrix $A = 0.5 \cdot I$ ($\rho = 0.5 < 0.95$), guaranteeing the Hawkins-Simon condition. Internal procedural tasks are granted situational batch expansion ($\text{headroom\_mult} = 8 \cdot N_{\text{shells}}$) and exempted from P2P network slashing, eliminating self-poisoning of the cached Leontief inverse.
 * **Situational Batching**: Integrated via [`SituationalBatchSampler`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/situational_batching.py), grouping high-value relational generative updates based on historical resonance ($R_{ij}$) and mischief ($M_{ij}$) matrices, bounded within the Martinova optimal correlation window $[-0.7, 0.7]$.
 
+---
+
+## 20. Cleanroom Synthetic Diesel Pipeline & Physical Vehicle Mechanics
+
+Combining hydrogen and carbon feedstocks into synthetic diesel fuel fits directly into the **Mekanism industrial processing pipeline** and the **Voxelboxter physical vehicle mechanics** within the cleanroom architecture.
+
+Rather than relying on abstract, ungrounded recipe conversions, this integration bridges thermochemical fuel synthesis with the engine's **Residue Number System (RNS)**, [`ExpandedInventorySystem`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py#L174-L266), and [`CarnotMobiusLedger`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py) thermodynamic controls.
+
+### 20.1 Chemical Synthesis Pathways for Diesel Production
+
+In cleanroom implementations, converting raw carbon and hydrogen sources into diesel-range hydrocarbons ($C_{10}\text{--}C_{20}$, average formula $C_{15}H_{32}$) follows two primary chemical routes:
+
+1. **Pyrolysis & Hydrogen-Assisted Upgrading (Hydroprocessing)**:
+   - Carbonaceous waste or polymer scrap undergoes thermal pyrolysis to produce heavy hydrocarbon oils and waxes.
+   - These intermediate oils enter high-pressure hydrogenation chambers under compressed hydrogen gas ($H_2$) to hydrocrack long polymer chains into specification-compliant diesel fuel fractions.
+   - Chemical yield scales dramatically when supplemented with acid reagents ($HCl$ in Tier 4 or $H_2SO_4$ in Tier 5 dissolution).
+2. **Gasification / Reforming + Fischer–Tropsch (FT) Synthesis**:
+   - Solid carbon sources (crushed coal, charcoal, wood log, or gangue) undergo high-temperature gasification or reforming into synthesis gas ($CO + H_2$).
+   - Supplementary electrolytic hydrogen ($H_2$) is injected to balance the syngas stoichiometry to the optimal ratio:
+     $$\frac{H_2}{CO} \approx 2:1$$
+   - The conditioned syngas passes through catalytic Fischer–Tropsch reactors:
+     $$n\,CO + (2n + 1)\,H_2 \longrightarrow C_n H_{2n+2} + n\,H_2O$$
+     yielding clean, sulfur-free synthetic paraffinic diesel chains.
+
+```
+[ Carbon Feedstock (Coal/Waste) ] ──► Pyrolysis / Gasification Chamber
+                                               │ (Syngas / Hydrocarbon Oil)
+                                               ▼
+[ Saltwater Brine + FE ] ──► SEMElectrochemicalExtractor ──► Pressurized H2 Gas
+                                                                │
+                                                                ▼
+                                                   GasTubeTier (1k-64k mB/t)
+                                                                │
+                                                                ▼
+                                                     RotaryCondensentrator
+                                                                │
+                                                                ▼
+                                                MekanismProcessingPipeline
+                                               (Multi-Tier Chemical Reactor)
+                                                                │
+                                                                ▼
+                                                 Synthetic Diesel Fuel Stack
+```
+
+### 20.2 Mekanism Cleanroom Pipeline Integration ([cleanroom_mechanics.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py))
+
+The cleanroom architecture supplies the exact industrial machinery required to execute these reaction steps end-to-end:
+
+1. **Hydrogen Generation ([SEMElectrochemicalExtractor](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py#L765-L840))**:
+   - Early-game and cleanroom facilities generate high-purity hydrogen gas ($H_2$) using the **SEM TECH Saltwater Electrolyzer**.
+   - By consuming ambient saltwater brine ($NaCl + H_2O$) and Forge Energy ($FE$), the divided electrolysis cell cathode produces compressed $H_2$ as an electrochemical byproduct while leaching precious metals (Au, Ag, PGMs) from mining tailings.
+2. **Pressurized Gas Transport ([GasTubeTier](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py#L140-L161) & [RotaryCondensentrator](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py#L2559-L2620))**:
+   - Generated $H_2$ gas and syngas are piped through **Pressurized Gas Conduits** across basic to ultimate tiers (`BASIC`: $1\,000\text{ mB/t}$ to `ULTIMATE`: $64\,000\text{ mB/t}$).
+   - The gasses enter a **Rotary Condensentrator** to undergo phase transitions (condensentrating gasses into liquid reagents or decondensentrating liquid feedstocks) under thermodynamic entropy conservation.
+3. **Multi-Tier Reaction Chambers ([MekanismProcessingPipeline](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py#L654-L755))**:
+   - The carbon and hydrogen feeds are combined inside `process_synthetic_diesel_synthesis()`.
+   - Reaction kinetics scale from Tier 1 mechanical smelting up to Tier 5 chemical dissolution ($H_2SO_4$ / $HCl$ gas-assisted cracking), maximizing diesel yield per carbon block.
+4. **Mass-Energy & Inventory Tracking ([ExpandedInventorySystem](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py#L174-L266) & [ProjectEEMCSolver](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py#L2139-L2180))**:
+   - Output fuel is deposited into discrete fluid tanks via `ExpandedInventorySystem.add_fluid()`.
+   - Mass-energy conservation and recipe equivalence are validated recursively by `ProjectEEMCSolver` via Leontief matrix graphs (`(I - A)^{-1} d`) with spectral radius $\rho(A) < 1$.
+
+### 20.3 Voxelboxter Vehicle Kinetics & Combustion ([voxelboxter_simulation.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py))
+
+Once produced, synthetic diesel fuel interfaces directly with vehicle propulsion and world physics:
+
+* **Sleeve-Valve Engine Combustion ([VehicleEngine](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L405-L450))**:
+  - Synthesized diesel fuel is consumed by `VehicleEngine.consume_diesel_fuel()`.
+  - The sleeve-valve combustion model simulates electrical advance timings ($12.5^\circ$) and port overlap efficiency ($1.35\times$ boost factor), augmented by the ultra-clean combustion density of synthetic paraffinic diesel ($1.25\times$ boost factor).
+* **Plasma Air Induction ([AirBreathingBattery](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L380-L404))**:
+  - Pairs with `AirBreathingBattery` (ABEB) plasma air induction ($2.4\times$ boost factor), ionizing ambient atmospheric $N_2$ and $O_2$ to supply high-energy oxidizers for diesel combustion.
+* **Kinetic Collision & Delta-v Integration ([RigidBody](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L200-L245))**:
+  - Combustion power drives vehicle propulsors, generating net thrust and a kinetic collision impulse $J$ on the `RigidBody` component.
+  - Frame-by-frame velocity updates follow:
+    $$\Delta v = \frac{J}{m}$$
+    evaluating tiered structural damage or tire traction across the voxel terrain.
+
+### 20.4 DearPyGui Node Environment Scripting ([node_environment.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py))
+
+Automated factories and players manage this pipeline in the DearPyGui node environment using dedicated execution hooks:
+
+* [`hook_cleanroom_sem_tech()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L1022-L1048): Controls saltwater electrolyzer hydrogen throughput and buffers generated $H_2$ into inventory gas tanks.
+* [`hook_cleanroom_gasses()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L1107-L1190): Regulates pressurized gas tubes and Rotary Condensentrator phase changes.
+* [`hook_cleanroom_mekanism()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L977-L1012): Coordinates multi-tier chemical refining and metallurgical processing.
+* [`hook_cleanroom_synthetic_diesel()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L1050-L1095): Executes diesel synthesis, buffers fluid in tanks, and fuels the vehicle engine.
+* [`tick_vehicle_kinetics()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L704-L745): Simulates sleeve-valve engine RPM, fuel burn rates, combustion boost, and net thrust output.
+
+### 20.5 Thermodynamic Safety Controls ([CarnotMobiusLedger](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py))
+
+High-throughput chemical refining and engine combustion generate thermodynamic waste heat ($P_{\text{waste}}$). `CarnotMobiusLedger` computes the stack efficiency limit:
+$$\eta_{\text{stack}} = \eta_{\text{ideal}} e^{-N \xi \sigma_\epsilon^2}$$
+If thermal runaway occurs ($P_{\text{waste}} > P_{\text{cool, max}}$), the ledger triggers automatic machinery throttling and yield penalties, preventing non-physical infinite energy generation.
+

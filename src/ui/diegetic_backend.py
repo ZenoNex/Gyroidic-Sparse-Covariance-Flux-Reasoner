@@ -7535,6 +7535,112 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     import traceback
                     traceback.print_exc()
                     return
+
+            elif base_path in ('/mindmap', '/generative-mind-map'):
+                try:
+                    current_dir = os.path.dirname(os.path.abspath(__file__))
+                    mm_path = os.path.join(current_dir, 'generative_mind_map.html')
+                    if not os.path.exists(mm_path):
+                        mm_path = os.path.join('src', 'ui', 'generative_mind_map.html')
+                    if os.path.exists(mm_path):
+                        with open(mm_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'text/html; charset=utf-8')
+                        self.end_headers()
+                        self.wfile.write(content.encode('utf-8'))
+                        return
+                    else:
+                        self.send_error(404, "Generative mind map not found")
+                        return
+                except Exception as e:
+                    self.send_error(500, f"Error serving generative mind map: {e}")
+                    return
+
+            elif base_path == '/api/mindmap-data':
+                try:
+                    mindmap_tree = {
+                        "name": "Gyroidic Reasoner",
+                        "category": "Core Manifold",
+                        "details": "Non-Abelian minimal surface reasoning engine",
+                        "children": []
+                    }
+                    
+                    # 1. Resonance Cavity
+                    pas_val = getattr(ENGINE, 'last_pas', 0.2727) if ENGINE else 0.2727
+                    mindmap_tree["children"].append({
+                        "name": "Resonance Cavity",
+                        "category": "Spectral Physics",
+                        "details": f"Global resonance field. Active PAS: {pas_val:.4f}",
+                        "children": [
+                            {"name": "GlobalResonanceField", "category": "Substrate", "details": "Continuous resonance cavity"},
+                            {"name": "PhaseAlignment (PAS)", "category": "Metric", "details": "pas_lock = 3/11 target"},
+                            {"name": "LazarusSoftmax", "category": "Dissociative", "details": "Survives ego death via spectral projection"}
+                        ]
+                    })
+                    
+                    # 2. Knowledge Dyads
+                    dyad_children = [
+                        {"name": "Chebyshev Multibasis", "category": "Spectral", "details": "Orthogonal polynomial bases"},
+                        {"name": "Chromata Filaments", "category": "Flow", "details": "Continuous gradient vector field tracing"},
+                        {"name": "DyadFossilizer", "category": "Persistence", "details": "Poincaré disk fossil storage"}
+                    ]
+                    if ENGINE and hasattr(ENGINE, 'fossilizer') and ENGINE.fossilizer is not None:
+                        count = getattr(ENGINE.fossilizer, 'fossil_count', 0)
+                        dyad_children.append({"name": f"Active Fossils ({count})", "category": "Fossils", "details": f"{count} registered topological fossils"})
+                    mindmap_tree["children"].append({
+                        "name": "Knowledge Dyads (DAQUF)",
+                        "category": "Multimodal Anchors",
+                        "details": "Multimodal visual/acoustic and linguistic anchors",
+                        "children": dyad_children
+                    })
+                    
+                    # 3. Hardware & Silicon Sovereignty
+                    mindmap_tree["children"].append({
+                        "name": "Silicon Sovereignty (TailSlayer)",
+                        "category": "Hardware Layer",
+                        "details": "PyOpenCL dual-queue execution and honest jitter",
+                        "children": [
+                            {"name": "TailSlayer Queue A/B", "category": "PyOpenCL", "details": "First-to-finish non-commutative race"},
+                            {"name": "Hardware Jitter", "category": "Entropy", "details": "Silicon friction time-stall harvest"},
+                            {"name": "Compute Affordance", "category": "Governor", "details": "Silicon, thermal, and GPU typed gauges"}
+                        ]
+                    })
+                    
+                    # 4. Governance & Archetypes
+                    mindmap_tree["children"].append({
+                        "name": "Governance & Archetypes",
+                        "category": "TADC Subsystems",
+                        "details": "Four-tier cognitive governance framework",
+                        "children": [
+                            {"name": "Pomni (Interoception)", "category": "Uncertainty", "details": "Noradrenaline broadcasts"},
+                            {"name": "Gangle (Medium)", "category": "Oscillator", "details": "Bipolar mood phase transition"},
+                            {"name": "Zooble (Ultrafast)", "category": "Autonomy", "details": "Fast-reflex cognitive gating"},
+                            {"name": "Kinger (Slow)", "category": "Consolidation", "details": "Ombre sleep memory consolidation"}
+                        ]
+                    })
+                    
+                    # 5. Thermodynamics & Ledger
+                    mindmap_tree["children"].append({
+                        "name": "Carnot-Möbius Thermodynamics",
+                        "category": "Energy Balance",
+                        "details": "P_waste vs P_cool_max thermodynamic ledger",
+                        "children": [
+                            {"name": "CarnotMobiusLedger", "category": "Ledger", "details": "Thermal headroom monitor"},
+                            {"name": "ADMR Solver", "category": "Lubrication", "details": "Multiplicative remainder phase alignment"},
+                            {"name": "Parallel Sorting Entropy", "category": "Information", "details": "Gauge field circulation & Euler stiffness"}
+                        ]
+                    })
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(mindmap_tree).encode('utf-8'))
+                    return
+                except Exception as e:
+                    self.send_error(500, f"Error generating mindmap data: {e}")
+                    return
             elif base_path.startswith('/api/bonfire/status') or base_path.startswith('/api/freenet/status'):
                 try:
                     from src.safety.hardware_fingerprint import discover_public_ip

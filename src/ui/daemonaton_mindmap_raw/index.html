@@ -1,0 +1,2250 @@
+<html><head><base href=".">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+/* Global Color Palette */
+:root {
+    --primary-bg: #000000;
+    --secondary-bg: #000000;
+    --accent-color: #39FF14; /* neon green */
+    --text-color: #39FF14;
+    --shadow-color: rgba(0, 255, 20, 0.12);
+    --matrix-opacity: 0.12; /* reduced matrix visibility */
+    --menu-bg: rgba(10, 25, 47, 0.75);
+    --menu-border: rgba(57,255,20,0.18);
+}
+
+/* Refined Typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+* {
+    box-sizing: border-box;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+    color: var(--text-color);
+    line-height: 1.6;
+    overflow: hidden;
+}
+
+/* Sophisticated Background */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 10% 20%, rgba(100, 255, 218, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(100, 255, 218, 0.05) 0%, transparent 20%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Refined Menu Styles */
+.side-menu, .console-history {
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(57,255,20,0.08);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+    border-radius: 12px;
+    transition: all 0.4s ease;
+}
+
+/* Sophisticated Node Styling */
+.node circle {
+    transition: 
+        fill 0.3s ease, 
+        stroke 0.3s ease, 
+        transform 0.3s ease;
+}
+
+.node:hover circle {
+    transform: scale(1.05);
+    filter: 
+        drop-shadow(0 10px 15px rgba(100, 255, 218, 0.2)) 
+        brightness(1.2);
+}
+
+/* Elegant Loading Overlay */
+.loading-overlay {
+    background: linear-gradient(
+        135deg, 
+        rgba(10, 25, 47, 0.95) 0%, 
+        rgba(17, 34, 64, 0.95) 100%
+    );
+    backdrop-filter: blur(20px);
+}
+
+.spinner {
+    border: 4px solid rgba(57,255,20,0.12);
+    border-top-color: var(--accent-color);
+    box-shadow: 0 6px 30px rgba(57,255,20,0.18), inset 0 0 18px rgba(57,255,20,0.06);
+    animation: spin 1.2s linear infinite;
+}
+
+/* Button and Interactive Element Refinements */
+.back-button, .side-menu-toggle, .console-toggle, .floating-action-button {
+    background: rgba(100, 255, 218, 0.05);
+    border: 1px solid var(--accent-color);
+    box-shadow: 
+        0 4px 15px rgba(100, 255, 218, 0.1), 
+        inset 0 0 15px rgba(100, 255, 218, 0.05);
+    backdrop-filter: blur(10px);
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.back-button:hover, .side-menu-toggle:hover, .console-toggle:hover, .floating-action-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 
+        0 6px 20px rgba(100, 255, 218, 0.2), 
+        inset 0 0 20px rgba(100, 255, 218, 0.1);
+}
+
+/* Layer Item Sophistication */
+.layer-item {
+    background: rgba(17, 34, 64, 0.6);
+    border: 1px solid rgba(100, 255, 218, 0.1);
+    border-radius: 8px;
+    transition: all 0.4s ease;
+}
+
+.layer-item:hover {
+    background: rgba(100, 255, 218, 0.05);
+    transform: translateX(5px) scale(1.02);
+    border-color: var(--accent-color);
+}
+
+/* Console Window Elegance */
+.console-window {
+    background: linear-gradient(
+        to bottom right, 
+        rgba(17, 34, 64, 0.95) 0%, 
+        rgba(10, 25, 47, 0.95) 100%
+    );
+    border-radius: 12px;
+    box-shadow: 
+        0 25px 50px rgba(0,0,0,0.2), 
+        0 10px 20px rgba(0,0,0,0.1);
+}
+
+/* Remaining existing styles... */
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: 'Arial', sans-serif;
+    background: #000; /* solid black background */
+    color: var(--text-color);
+    overflow: hidden;
+    position: relative;
+}
+
+/* Matrix rain canvas overlay */
+#matrixCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    pointer-events: none;
+    opacity: var(--matrix-opacity);
+    mix-blend-mode: screen;
+    /* Ensure subtle neon tint for matrix so it reads as neon background */
+    background: transparent;
+}
+
+/* subtle translucent panel backgrounds remain but tinted neon */
+.side-menu, .console-history, .console-window, .custom-mindmap-modal {
+    background: linear-gradient(180deg, rgba(0,0,0,0.72), rgba(2,10,5,0.65));
+    border-color: var(--menu-border);
+    color: var(--text-color);
+    box-shadow: 0 8px 30px rgba(57,255,20,0.06), 0 0 30px rgba(57,255,20,0.03) inset;
+    backdrop-filter: blur(10px);
+}
+
+.container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#mindmap {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0; /* Prevents flex item from overflowing */
+}
+
+#mindmap svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.node circle {
+    fill: rgba(0,0,0,0.85);
+    stroke: var(--accent-color);
+    stroke-width: 2px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    filter: drop-shadow(0 0 8px rgba(57,255,20,0.18));
+}
+
+/* Adjust circle size based on depth */
+.node[data-depth="0"] circle {
+    r: 150; /* Increased size for root node */
+}
+
+.node[data-depth="1"] circle {
+    r: 120; /* Increased size for first level */
+}
+
+.node[data-depth="2"] circle {
+    r: 90; /* Smaller size for second level */
+}
+
+.node[data-depth="3"] circle {
+    r: 60; /* Even smaller size for outer nodes */
+}
+
+.node text {
+    fill: var(--text-color);
+    font-size: 12px;
+    font-weight: 500;
+    text-anchor: middle; /* Center text horizontally */
+    dominant-baseline: middle; /* Center text vertically */
+    pointer-events: none; /* Prevent text from interfering with click events */
+    text-shadow: 0 0 6px rgba(57,255,20,0.25);
+    word-wrap: break-word;
+}
+
+/* Adjust text size and wrapping to fit within circles */
+.node text tspan {
+    text-anchor: middle;
+}
+
+/* Adjust text size based on depth to match new circle sizes */
+.node[data-depth="0"] text {
+    font-size: 48px;
+}
+
+.node[data-depth="1"] text {
+    font-size: 36px;
+}
+
+.node[data-depth="2"] text {
+    font-size: 28px;
+}
+
+.node[data-depth="3"] text {
+    font-size: 18px;
+}
+
+.node:hover circle {
+    fill: rgba(100, 255, 218, 0.1);
+    stroke-width: 3px;
+    filter: drop-shadow(0 0 8px rgba(100, 255, 218, 1));
+}
+
+.node:hover text {
+    font-weight: 600;
+}
+
+.link {
+    fill: none;
+    stroke: rgba(57, 255, 20, 0.95);
+    stroke-width: 1.5px;
+    stroke-dasharray: 25, 13;
+    animation: flowLine 5s linear infinite;
+    filter: drop-shadow(0 0 6px rgba(57,255,20,0.25));
+}
+
+@keyframes flowLine {
+    to {
+        stroke-dashoffset: -100;
+        stroke: rgba(57,255,20,0.95);
+    }
+}
+
+.back-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 12px 24px;
+    background: rgba(57,255,20,0.10);
+    border: 1px solid var(--accent-color);
+    color: var(--accent-color);
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 1000;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 6px 20px rgba(57,255,20,0.06);
+}
+
+.back-button:hover {
+    background: rgba(100, 255, 218, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(100, 255, 218, 0.2);
+}
+
+.context-menu {
+    position: fixed;
+    background: rgba(10, 25, 47, 0.95);
+    border: 1px solid #64ffda;
+    border-radius: 8px;
+    padding: 12px;
+    z-index: 1000;
+    box-shadow: 
+        0 0 20px rgba(100, 255, 218, 0.2),
+        0 0 40px rgba(100, 255, 218, 0.1);
+    backdrop-filter: blur(10px);
+    animation: menuAppear 0.3s ease;
+    min-width: 180px;
+    max-width: 250px;
+}
+
+.context-menu button {
+    display: block;
+    width: 100%;
+    padding: 10px 20px;
+    margin: 6px 0;
+    background: transparent;
+    border: 1px solid rgba(100, 255, 218, 0.5);
+    color: #64ffda;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.context-menu button:hover {
+    background: rgba(100, 255, 218, 0.1);
+    transform: translateX(4px);
+    border-color: #64ffda;
+}
+
+.console-window {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10, 25, 47, 0.98);
+    border-top: 1px solid #64ffda;
+    padding: 24px;
+    max-height: 400px;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    box-shadow: 0 -5px 20px rgba(100, 255, 218, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.console-window.open {
+    transform: translateY(0);
+}
+
+.console-window .close-button {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: #64ffda;
+    cursor: pointer;
+    font-size: 24px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.console-window .close-button:hover {
+    background: rgba(100, 255, 218, 0.1);
+    transform: rotate(90deg);
+}
+
+.console-window h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 1.4em;
+    color: #64ffda;
+    border-bottom: 1px solid rgba(100, 255, 218, 0.2);
+    padding-bottom: 8px;
+}
+
+.clear-history-button {
+    background: rgba(255, 100, 100, 0.1);
+    border: 1px solid #ff6464;
+    color: #ff6464;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.clear-history-button:hover {
+    background: rgba(255, 100, 100, 0.2);
+    transform: translateY(-2px);
+}
+
+.error-message {
+    color: #ff6464;
+    background: rgba(255, 100, 100, 0.1);
+    border: 1px solid rgba(255, 100, 100, 0.5);
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+@media (max-width: 768px) {
+    .node text {
+        font-size: 12px;
+    }
+    
+    .console-window {
+        max-height: 60vh;
+        padding: 16px;
+    }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.85);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(57,255,20,0.22);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(57,255,20,0.4);
+}
+
+svg {
+    transition: transform 0.1s ease;
+}
+
+.node {
+    transition: transform 0.1s ease;
+}
+
+.side-menu {
+    position: fixed;
+    top: 80px;
+    left: -300px;
+    width: 300px;
+    height: calc(100vh - 100px);
+    background: rgba(10, 25, 47, 0.95);
+    border-right: 1px solid #64ffda;
+    transition: left 0.3s ease;
+    z-index: 900;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+    overflow-y: auto;
+}
+
+.side-menu.open {
+    left: 0;
+    border-right: 1px solid var(--accent-color);
+    /* Neon green translucent background for expanded menu */
+    background: linear-gradient(180deg, rgba(57,255,20,0.12), rgba(57,255,20,0.06));
+    color: #000; /* dark text for contrast on neon background */
+    box-shadow: 0 18px 60px rgba(57,255,20,0.22), 0 0 40px rgba(57,255,20,0.12) inset;
+    backdrop-filter: blur(6px);
+}
+
+.side-menu-toggle {
+    position: fixed;
+    left: 20px;
+    top: 80px;
+    background: rgba(57,255,20,0.08);
+    border: 1px solid var(--accent-color);
+    color: var(--accent-color);
+    padding: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 901;
+    transition: all 0.18s ease;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 6px 18px rgba(57,255,20,0.06);
+}
+
+.side-menu-toggle:hover {
+    background: rgba(100, 255, 218, 0.1);
+}
+
+.layer-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin: 5px 0;
+    background: rgba(100, 255, 218, 0.1);
+    border: 1px solid rgba(100, 255, 218, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.layer-item .layer-content {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+.download-layer-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.download-layer-btn:hover {
+    opacity: 1;
+}
+
+.layer-item:hover {
+    background: rgba(100, 255, 218, 0.2);
+    transform: translateX(5px);
+}
+
+.layer-item.active {
+    border-color: #64ffda;
+    background: rgba(100, 255, 218, 0.2);
+}
+
+.console-history {
+    position: fixed;
+    right: -300px;
+    top: 80px;
+    width: 300px;
+    height: calc(100vh - 100px);
+    background: rgba(10, 25, 47, 0.95);
+    border-left: 1px solid #64ffda;
+    transition: right 0.3s ease;
+    z-index: 900;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+    overflow-y: auto;
+}
+
+.console-history.open {
+    right: 0;
+    border-left: 1px solid var(--accent-color);
+    /* Neon green translucent background for expanded console */
+    background: linear-gradient(180deg, rgba(57,255,20,0.12), rgba(57,255,20,0.06));
+    color: #000;
+    box-shadow: -0 18px 60px rgba(57,255,20,0.22), 0 0 40px rgba(57,255,20,0.12) inset;
+    backdrop-filter: blur(6px);
+}
+
+.console-toggle {
+    position: fixed;
+    right: 20px;
+    top: 80px;
+    background: rgba(57,255,20,0.08);
+    border: 1px solid var(--accent-color);
+    color: var(--accent-color);
+    padding: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 901;
+    transition: all 0.18s ease;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 6px 18px rgba(57,255,20,0.06);
+}
+
+.console-toggle:hover {
+    background: rgba(100, 255, 218, 0.1);
+}
+
+.console-entry {
+    padding: 15px;
+    margin: 10px 0;
+    background: rgba(100, 255, 218, 0.1);
+    border: 1px solid rgba(100, 255, 218, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.console-entry h4 {
+    margin: 0 0 10px 0;
+    color: #64ffda;
+}
+
+.console-entry p {
+    margin: 0;
+    font-size: 0.9em;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Neon-tinted translucent overlay so loading screens feel neon */
+    background: linear-gradient(180deg, rgba(57,255,20,0.08), rgba(57,255,20,0.06));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.loading-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+    /* Stronger neon glow when active */
+    box-shadow: 0 0 120px rgba(57,255,20,0.18) inset, 0 0 80px rgba(57,255,20,0.12);
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(57,255,20,0.12);
+    border-radius: 50%;
+    border-top-color: var(--accent-color);
+    box-shadow: 0 8px 36px rgba(57,255,20,0.22), inset 0 0 12px rgba(57,255,20,0.06);
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    color: #64ffda;
+    font-size: 1.2em;
+    margin-top: 20px;
+    text-align: center;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.floating-action-button {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    background: rgba(57,255,20,0.12);
+    border: 2px solid var(--accent-color);
+    border-radius: 50%;
+    color: var(--primary-bg);
+    font-size: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    z-index: 1000;
+    box-shadow: 0 8px 30px rgba(57,255,20,0.08), inset 0 0 12px rgba(57,255,20,0.06);
+}
+
+.floating-action-button:hover {
+    transform: scale(1.1);
+    background: rgba(100, 255, 218, 0.2);
+    box-shadow: 0 6px 16px rgba(100, 255, 218, 0.2);
+}
+
+.custom-mindmap-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: rgba(10, 25, 47, 0.95);
+    border: 1px solid #64ffda;
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 500px;
+    z-index: 1100;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.custom-mindmap-modal.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -50%) scale(1);
+    /* Neon green modal background and glow when opened */
+    background: linear-gradient(180deg, rgba(57,255,20,0.15), rgba(57,255,20,0.08));
+    border-color: rgba(57,255,20,0.5);
+    color: #000;
+    box-shadow: 0 30px 80px rgba(57,255,20,0.25), inset 0 0 30px rgba(57,255,20,0.06);
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 25, 47, 0.7);
+    backdrop-filter: blur(3px);
+    z-index: 1050;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.modal-overlay.open {
+    opacity: 1;
+    visibility: visible;
+    /* Neon-tinted backdrop to match opened neon UI */
+    background: linear-gradient(180deg, rgba(57,255,20,0.06), rgba(57,255,20,0.04));
+    box-shadow: 0 0 80px rgba(57,255,20,0.08) inset;
+}
+
+.custom-mindmap-modal input {
+    width: 100%;
+    padding: 12px;
+    margin: 12px 0;
+    background: rgba(100, 255, 218, 0.1);
+    border: 1px solid rgba(100, 255, 218, 0.3);
+    border-radius: 6px;
+    color: #64ffda;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.custom-mindmap-modal input:focus {
+    outline: none;
+    border-color: #64ffda;
+    background: rgba(100, 255, 218, 0.15);
+}
+
+.custom-mindmap-modal .buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.custom-mindmap-modal button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.custom-mindmap-modal .generate-btn {
+    background: rgba(100, 255, 218, 0.1);
+    border: 1px solid #64ffda;
+    color: #64ffda;
+}
+
+.custom-mindmap-modal .generate-btn:hover {
+    background: rgba(100, 255, 218, 0.2);
+    transform: translateY(-2px);
+}
+
+.custom-mindmap-modal .cancel-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 100, 100, 0.5);
+    color: #ff6464;
+}
+
+.custom-mindmap-modal .cancel-btn:hover {
+    background: rgba(255, 100, 100, 0.1);
+    transform: translateY(-2px);
+}
+
+.console-window .content {
+    line-height: 1.6;
+    background: rgba(100, 255, 218, 0.05);
+    border-left: 4px solid #64ffda;
+    padding: 20px;
+    border-radius: 8px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.console-window .content h2 {
+    color: #64ffda;
+    border-bottom: 2px solid rgba(100, 255, 218, 0.3);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.console-window .content p {
+    margin-bottom: 15px;
+}
+
+.console-window .content blockquote {
+    border-left: 3px solid rgba(100, 255, 218, 0.5);
+    padding-left: 15px;
+    font-style: italic;
+    color: rgba(100, 255, 218, 0.8);
+    margin: 15px 0;
+}
+
+.console-window .content ul, 
+.console-window .content ol {
+    padding-left: 30px;
+    margin-bottom: 15px;
+}
+
+.console-window .content li {
+    margin-bottom: 10px;
+}
+
+.console-window .content strong {
+    color: #64ffda;
+}
+
+.console-window .content em {
+    color: rgba(100, 255, 218, 0.8);
+}
+</style>
+</head>
+<body>
+<canvas id="matrixCanvas"></canvas>
+<div class="loading-overlay">
+    <div class="loading-container">
+        <div class="spinner"></div>
+        <div class="loading-text">Generating content...</div>
+    </div>
+</div>
+<div class="container">
+    <button id="backButton" class="back-button" style="display: none;">← Back</button>
+    <div id="mindmap"></div>
+</div>
+
+<button class="side-menu-toggle">☰ Layers</button>
+<div class="side-menu">
+    <h3>Navigation Layers</h3>
+    <div id="layersList"></div>
+</div>
+
+<button class="console-toggle">☰ Console History</button>
+<div class="console-history">
+    <h3>Console History</h3>
+    <button class="clear-history-button">Clear History</button>
+    <div id="consoleHistory"></div>
+</div>
+
+<button class="floating-action-button" id="createCustomMindmap">+</button>
+
+<div class="modal-overlay" id="modalOverlay"></div>
+<div class="custom-mindmap-modal" id="customMindmapModal">
+    <h3>Create Custom Mind Map</h3>
+    <input type="text" id="customMindmapInput" placeholder="Enter your topic..." />
+    <div class="buttons">
+        <button class="generate-btn" id="generateCustomMindmap">Generate Mind Map</button>
+        <button class="cancel-btn" id="cancelCustomMindmap">Cancel</button>
+    </div>
+</div>
+
+<script>
+let currentLayer = 0;
+let history = [];
+let consoleHistory = [];
+let initialData = {
+    name: "Knowledge Domains",
+    children: [
+        {
+            name: "Mathematical Sciences",
+            children: [
+                {
+                    name: "Mathematics",
+                    children: [
+                        {name: "Algebra"},
+                        {name: "Calculus"},
+                        {name: "Geometry"},
+                        {name: "Number Theory"}
+                    ]
+                },
+                {
+                    name: "Physics",
+                    children: [
+                        {name: "Mechanics"},
+                        {name: "Quantum Physics"},
+                        {name: "Relativity"},
+                        {name: "Astrophysics"}
+                    ]
+                },
+                {
+                    name: "Chemistry",
+                    children: [
+                        {name: "Organic"},
+                        {name: "Inorganic"},
+                        {name: "Physical"},
+                        {name: "Biochemistry"}
+                    ]
+                },
+                {
+                    name: "Computer Science",
+                    children: [
+                        {name: "Programming"},
+                        {name: "AI"},
+                        {name: "Data Science"},
+                        {name: "Cybersecurity"}
+                    ]
+                },
+                {
+                    name: "Statistics",
+                    children: [
+                        {name: "Probability"},
+                        {name: "Data Analysis"},
+                        {name: "Inference"}
+                    ]
+                },
+                {
+                    name: "Engineering",
+                    children: [
+                        {name: "Mechanical"},
+                        {name: "Electrical"},
+                        {name: "Civil"},
+                        {name: "Chemical"}
+                    ]
+                },
+                {
+                    name: "Data Science",
+                    children: [
+                        {name: "Machine Learning"},
+                        {name: "Big Data"},
+                        {name: "Analytics"}
+                    ]
+                }
+            ]
+        },
+        {
+            name: "Human Sciences",
+            children: [
+                {
+                    name: "Philosophy",
+                    children: [
+                        {name: "Ethics"},
+                        {name: "Logic"},
+                        {name: "Metaphysics"},
+                        {name: "Epistemology"}
+                    ]
+                },
+                {
+                    name: "Sociology",
+                    children: [
+                        {name: "Culture"},
+                        {name: "Social Systems"},
+                        {name: "Institutions"},
+                        {name: "Demographics"}
+                    ]
+                },
+                {
+                    name: "History",
+                    children: [
+                        {name: "Ancient"},
+                        {name: "Medieval"},
+                        {name: "Modern"},
+                        {name: "Contemporary"}
+                    ]
+                },
+                {
+                    name: "Psychology",
+                    children: [
+                        {name: "Clinical"},
+                        {name: "Cognitive"},
+                        {name: "Behavioral"},
+                        {name: "Developmental"}
+                    ]
+                },
+                {
+                    name: "Linguistics",
+                    children: [
+                        {name: "Syntax"},
+                        {name: "Semantics"},
+                        {name: "Phonology"}
+                    ]
+                },
+                {
+                    name: "Economics",
+                    children: [
+                        {name: "Microeconomics"},
+                        {name: "Macroeconomics"},
+                        {name: "Finance"}
+                    ]
+                },
+                {
+                    name: "Political Science",
+                    children: [
+                        {name: "Governance"},
+                        {name: "International Relations"},
+                        {name: "Policy"}
+                    ]
+                }
+            ]
+        },
+        {
+            name: "Life Sciences",
+            children: [
+                {
+                    name: "Biology",
+                    children: [
+                        {name: "Genetics"},
+                        {name: "Ecology"},
+                        {name: "Evolution"},
+                        {name: "Microbiology"}
+                    ]
+                },
+                {
+                    name: "Medicine",
+                    children: [
+                        {name: "Anatomy"},
+                        {name: "Pathology"},
+                        {name: "Neurology"},
+                        {name: "Immunology"}
+                    ]
+                },
+                {
+                    name: "Environmental Science",
+                    children: [
+                        {name: "Conservation"},
+                        {name: "Climate Science"},
+                        {name: "Sustainability"}
+                    ]
+                },
+                {
+                    name: "Agriculture",
+                    children: [
+                        {name: "Crop Science"},
+                        {name: "Soil Science"},
+                        {name: "Animal Science"}
+                    ]
+                },
+                {
+                    name: "Neuroscience",
+                    children: [
+                        {name: "Brain Studies"},
+                        {name: "Cognitive Science"},
+                        {name: "Neural Networks"}
+                    ]
+                },
+                {
+                    name: "Biotechnology",
+                    children: [
+                        {name: "Genetic Engineering"},
+                        {name: "Bioprocessing"},
+                        {name: "Bioinformatics"}
+                    ]
+                }
+            ]
+        }
+    ]
+};
+let currentData = initialData;
+
+// Toggle menu functions
+document.querySelector('.side-menu-toggle').addEventListener('click', () => {
+    document.querySelector('.side-menu').classList.toggle('open');
+});
+
+document.querySelector('.console-toggle').addEventListener('click', () => {
+    document.querySelector('.console-history').classList.toggle('open');
+});
+
+function setLoading(isLoading) {
+    const overlay = document.querySelector('.loading-overlay');
+    if (isLoading) {
+        overlay.classList.add('active');
+    } else {
+        overlay.classList.remove('active');
+    }
+}
+
+async function getAIResponse(subject, type, d) {
+    try {
+        setLoading(true);
+        
+        // Gather context information
+        let context = '';
+        let parentContext = '';
+        let grandparentContext = '';
+        let grandGrandparentContext = '';
+        
+        if (d) {
+            // Get parent context
+            if (d.parent) {
+                parentContext = d.parent.data.name;
+                context += `within the context of ${parentContext}`;
+                
+                // Get grandparent context
+                if (d.parent.parent) {
+                    grandparentContext = d.parent.parent.data.name;
+                    context += ` and the broader field of ${grandparentContext}`;
+                    
+                    // Get grand grand parent context
+                    if (d.parent.parent.parent) {
+                        grandGrandparentContext = d.parent.parent.parent.data.name;
+                        context += `, ultimately rooted in the overarching domain of ${grandGrandparentContext}`;
+                    }
+                }
+            }
+        }
+        
+        // If we're asking to expand a single node, request a compact JSON list of child node names from the AI.
+        if (type === 'expand') {
+            // Number of children suggestion (smaller nodes for fractal feel)
+            const suggestedCount = 6;
+            const completion = await websim.chat.completions.create({
+                messages: [
+                    {
+                        role: "system",
+                        content: `You are an assistant that returns concise JSON arrays of related subtopics. Given a single topic, return a JSON object with a "children" array containing ${suggestedCount} short child node names (no descriptions), each representing a meaningful subtopic or extension of the topic. The output MUST be valid JSON and NOTHING else.`
+                    },
+                    {
+                        role: "user",
+                        content: `Provide ${suggestedCount} short child node names for the topic: "${subject}". Consider the broader contexts: parent="${parentContext}", grandparent="${grandparentContext}", grandgrandparent="${grandGrandparentContext}". Return: {"children":[{"name":"..."}, ...]}`
+                    }
+                ],
+                json: true
+            });
+
+            try {
+                const result = JSON.parse(completion.content);
+                if (result && Array.isArray(result.children)) {
+                    return result.children; // return array of {name: "..."}
+                } else {
+                    throw new Error('Invalid expand response structure');
+                }
+            } catch (err) {
+                // If parsing fails, fall back to a best-effort parse attempt
+                try {
+                    const parsed = JSON.parse(completion.content.match(/\{[\s\S]*\}/)[0]);
+                    return parsed.children || null;
+                } catch (e) {
+                    console.error('Expand parse error', e);
+                    return null;
+                }
+            }
+        }
+
+        if (type === 'mindmap') {
+            const completion = await websim.chat.completions.create({
+                messages: [
+                    {
+                        role: "system",
+                        content: `You are a mind map generation assistant. Generate a detailed mind map structure about "${subject}" that:
+                        - Is deeply connected to its parent context of "${parentContext}"
+                        - Considers the broader context of "${grandparentContext}"
+                        - Is ultimately influenced by the overarching domain of "${grandGrandparentContext}"
+                        - Follows this exact structure:
+                            * 1 root node (the main topic)
+                            * 3 main category branches
+                            * Each main category should have exactly 7 sub-branches
+                            * Each sub-branch should have exactly 4 child nodes
+                        
+                        Ensure the generated mind map reflects themes and subtopics that are:
+                        1. Directly related to ${subject}
+                        2. Contextually aligned with ${parentContext}
+                        3. Influenced by ${grandparentContext}
+                        4. Ultimately rooted in the broader understanding of ${grandGrandparentContext}
+
+                        Return only valid JSON matching this structure:
+                        {
+                            "name": "${subject}",
+                            "children": [
+                                {
+                                    "name": "Main Category 1 (Contextually Derived)",
+                                    "children": [
+                                        {
+                                            "name": "Sub-branch 1",
+                                            "children": [
+                                                {"name": "Child 1"},
+                                                {"name": "Child 2"},
+                                                {"name": "Child 3"},
+                                                {"name": "Child 4"}
+                                            ]
+                                        },
+                                        // Repeat for all 7 sub-branches
+                                    ]
+                                },
+                                // Repeat for all 3 main categories
+                            ]
+                        }`
+                    },
+                    {
+                        role: "user",
+                        content: `Create a detailed mind map about ${subject}, considering its context within ${parentContext}, ${grandparentContext}, and ${grandGrandparentContext}. Ensure the generated mind map maintains a strong thematic connection to its origin and broader contextual domains.`,
+                    }
+                ],
+                json: true,
+            });
+            
+            const mindMap = JSON.parse(completion.content);
+            
+            // Validate the structure matches our requirements
+            if (!validateMindMapStructure(mindMap)) {
+                throw new Error('Invalid mind map data structure received');
+            }
+            
+            return mindMap;
+        } else {
+            const completion = await websim.chat.completions.create({
+                messages: [
+                    {
+                        role: "system",
+                        content: `You are a knowledgeable assistant providing ${type === 'description' ? 'detailed descriptions' : 'thought-provoking reflections'} about various topics. When describing topics, provide deep contextual insights.`
+                    },
+                    {
+                        role: "user",
+                        content: `${type === 'description' ? 'Provide a detailed description of' : 'Share thought-provoking reflections about'} ${subject}. 
+                        
+                        Context details:
+                        - Direct parent context: ${parentContext}
+                        - Broader grandparent context: ${grandparentContext}
+                        - Overarching grand grandparent context: ${grandGrandparentContext}
+                        
+                        Explicitly connect this topic to its parent, broader, and overarching domains, revealing intricate relationships and interconnected insights.`,
+                    }
+                ]
+            });
+            
+            return { content: completion.content };
+        }
+    } catch (error) {
+        console.error('Error fetching AI response:', error);
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'error-message';
+        errorMessage.textContent = 'An error occurred while fetching data. Please try again later.';
+        document.body.appendChild(errorMessage);
+        setTimeout(() => {
+            errorMessage.remove();
+        }, 3000);
+        return null;
+    } finally {
+        setLoading(false);
+    }
+}
+
+// Add a new function to validate mind map structure
+function validateMindMapStructure(mindMap) {
+    try {
+        // Check root node
+        if (!mindMap.name || !Array.isArray(mindMap.children)) {
+            return false;
+        }
+
+        // Check main categories (should be exactly 3)
+        if (mindMap.children.length !== 3) {
+            return false;
+        }
+
+        // Check each main category
+        for (const mainCategory of mindMap.children) {
+            if (!mainCategory.name || !Array.isArray(mainCategory.children)) {
+                return false;
+            }
+
+            // Check sub-branches (should be exactly 7)
+            if (mainCategory.children.length !== 7) {
+                return false;
+            }
+
+            // Check each sub-branch
+            for (const subBranch of mainCategory.children) {
+                if (!subBranch.name || !Array.isArray(subBranch.children)) {
+                    return false;
+                }
+
+                // Check child nodes (should be exactly 4)
+                if (subBranch.children.length !== 4) {
+                    return false;
+                }
+
+                // Check each child node
+                for (const child of subBranch.children) {
+                    if (!child.name) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error validating mind map structure:', error);
+        return false;
+    }
+}
+
+function createVisualization(data) {
+    const existingSvg = d3.select("#mindmap svg");
+    if (!existingSvg.empty()) {
+        existingSvg.selectAll("*").each(function() {
+            d3.select(this).on('.', null);
+        });
+        existingSvg.remove();
+    }
+    
+    // Make container dimensions responsive
+    const container = d3.select("#mindmap");
+    const containerWidth = container.node().getBoundingClientRect().width;
+    const containerHeight = container.node().getBoundingClientRect().height;
+
+    // Create SVG with responsive dimensions
+    const svg = d3.select("#mindmap")
+        .append("svg")
+        .attr("width", "100%")
+        .attr("height", "100%")
+        .attr("viewBox", `0 0 ${containerWidth} ${containerHeight}`)
+        .attr("preserveAspectRatio", "xMidYMid meet");
+
+    const g = svg.append("g")
+        .attr("transform", `translate(${containerWidth/2},${containerHeight/2})`);
+
+    // Update tree size based on container dimensions
+    const tree = d3.tree()
+        .size([2 * Math.PI, Math.min(containerWidth, containerHeight) / 0.4])  // Reduced divisor to spread out more
+        .separation((a, b) => {
+            // More aggressive separation based on depth hierarchy
+            const baseSeparation = (a.parent == b.parent ? 5 : 8);
+            
+            const depthFactor = Math.max(1, 12 - a.depth);
+            
+            const outerNodeSpacing = a.depth >= 2 ? 8 : 4;
+            
+            // Exponential spacing increase for deeper levels
+            return baseSeparation * depthFactor * outerNodeSpacing * Math.pow(2.5, a.depth);
+        });
+
+    const root = d3.hierarchy(data);
+    const links = tree(root).links();
+    const nodes = root.descendants();
+
+    // Enhanced link generation
+    const link = g.selectAll(".link")
+        .data(links)
+        .enter()
+        .append("path")
+        .attr("class", "link")
+        .attr("d", d3.linkRadial()
+            .angle(d => d.x)
+            .radius(d => d.y))
+        .attr("fill", "none")
+        .attr("stroke", "rgba(100, 255, 218, 0.8)")
+        .attr("stroke-width", d => {
+            // Increase stroke width based on depth, making parent-child links more prominent
+            switch(d.source.depth) {
+                case 0: return 4;   // Root to first level
+                case 1: return 3;   // First to second level
+                case 2: return 2;   // Second to third level
+                default: return 1;  // Outer levels
+            }
+        })
+        .attr("stroke-dasharray", d => {
+            // More sophisticated dash pattern based on depth
+            switch(d.source.depth) {
+                case 0: return "0"; // Solid line for root connections
+                case 1: return "25, 10"; // Wider dash for first-level connections
+                case 2: return "15, 7";  // Smaller dash for second-level
+                default: return "10, 5";  // Smallest dash for outer connections
+            }
+        });
+
+    const node = g.selectAll(".node")
+        .data(nodes)
+        .enter()
+        .append("g")
+        .attr("class", "node")
+        .attr("data-depth", d => d.depth) 
+        .attr("transform", d => `translate(${project(d.x, d.y)})`)
+        .on("click", async function(event, d) {
+            if (d.data.name !== "Knowledge Domains") {
+                event.stopPropagation();
+                try {
+                    // Check if we already have a generated mind map for this node
+                    const existingMapIndex = history.findIndex(item => 
+                        item.sourceNode === d.data.name && 
+                        item.parent === d.parent?.data.name
+                    );
+
+                    let nextData;
+                    if (existingMapIndex !== -1) {
+                        // Use existing mind map
+                        nextData = history[existingMapIndex].data;
+                    } else {
+                        // Generate new mind map
+                        const response = await getAIResponse(d.data.name, 'mindmap', d);
+                        if (!response || !response.name || !response.children) {
+                            throw new Error('Invalid mind map data structure received');
+                        }
+                        nextData = response;
+                        
+                        // Add to history only if it's a new mind map
+                        history.push({
+                            data: nextData,
+                            sourceNode: d.data.name,
+                            parent: d.parent?.data.name,
+                            timestamp: new Date()
+                        });
+                    }
+
+                    currentData = nextData;
+                    currentLayer = existingMapIndex !== -1 ? existingMapIndex + 1 : history.length;
+                    document.getElementById('backButton').style.display = 'block';
+                    createVisualization(nextData);
+                    updateLayersList();
+                } catch (error) {
+                    console.error('Error generating mind map:', error);
+                    const errorMessage = document.createElement('div');
+                    errorMessage.className = 'error-message';
+                    errorMessage.textContent = 'Failed to generate new mind map. Please try again.';
+                    document.body.appendChild(errorMessage);
+                    setTimeout(() => {
+                        errorMessage.remove();
+                    }, 3000);
+                }
+            }
+        })
+        .on("contextmenu", function(event, d) {
+            event.preventDefault();
+            showContextMenu(event, d);
+        });
+
+    node.append("circle");
+
+    node.append("text")
+        .attr("dy", 0)
+        .attr("x", 0) 
+        .attr("y", 0) 
+        .each(function(d) {
+            const text = d3.select(this);
+            const words = d.data.name.split(/\s+/);
+            const depth = d.depth;
+            
+            // Determine max words per line based on depth
+            const maxWordsPerLine = depth === 0 ? 3 : depth === 1 ? 2 : 1;
+            
+            // Clear any existing text
+            text.text(null);
+            
+            // Function to create lines
+            const createLines = (words) => {
+                const lines = [];
+                let currentLine = [];
+                
+                words.forEach(word => {
+                    if (currentLine.length < maxWordsPerLine) {
+                        currentLine.push(word);
+                    } else {
+                        lines.push(currentLine.join(' '));
+                        currentLine = [word];
+                    }
+                });
+                
+                if (currentLine.length > 0) {
+                    lines.push(currentLine.join(' '));
+                }
+                
+                return lines;
+            };
+            
+            const lines = createLines(words);
+            
+            // Calculate vertical positioning
+            const lineHeight = depth === 0 ? 1.2 : depth === 1 ? 1.1 : 1;
+            const totalHeight = lines.length * lineHeight;
+            const startY = -(totalHeight / 2) + (lineHeight / 2);
+            
+            // Append lines
+            lines.forEach((line, i) => {
+                text.append("tspan")
+                    .attr("x", 0)
+                    .attr("dy", i === 0 ? startY + "em" : lineHeight + "em")
+                    .text(line);
+            });
+        });
+
+    const zoom = d3.zoom()
+        .scaleExtent([0.2, 5]) 
+        .wheelDelta((event) => {
+            return -event.deltaY * 0.002;
+        })
+        .on("zoom", zoomed);
+
+    // Compute bounding box of the drawn group and fit it into the SVG viewport.
+    // Give the browser a moment to ensure layout is ready (if needed).
+    setTimeout(() => {
+        try {
+            const bbox = g.node().getBBox();
+            const padding = 40; // padding around the content
+            const contentWidth = bbox.width + padding * 2;
+            const contentHeight = bbox.height + padding * 2;
+
+            // Compute appropriate scale to fit content into container
+            const scale = Math.max(0.2, Math.min(5, Math.min(containerWidth / contentWidth, containerHeight / contentHeight)));
+
+            // Compute translate to center content within the SVG
+            const translateX = (containerWidth / 2) - (bbox.x + bbox.width / 2) * scale;
+            const translateY = (containerHeight / 2) - (bbox.y + bbox.height / 2) * scale;
+
+            const initialTransform = d3.zoomIdentity.translate(translateX, translateY).scale(scale);
+
+            svg.call(zoom)
+               .call(zoom.transform, initialTransform);
+        } catch (e) {
+            // Fallback to identity transform if anything goes wrong
+            svg.call(zoom).call(zoom.transform, d3.zoomIdentity);
+            console.warn("Initial fit-to-view failed, using default transform.", e);
+        }
+    }, 0);
+
+    function zoomed(event) {
+        // Apply the current zoom/pan transform to the group
+        g.attr("transform", event.transform);
+    }
+}
+
+function project(x, y) {
+    const angle = x - Math.PI / 2;
+    return [y * Math.cos(angle), y * Math.sin(angle)];
+}
+
+function showContextMenu(event, d) {
+    event.preventDefault();
+    
+    d3.selectAll(".context-menu").each(function() {
+        d3.select(this).on('.', null);
+    }).remove();
+    
+    const menu = d3.select("body")
+        .append("div")
+        .attr("class", "context-menu");
+
+    menu.append("button")
+        .text("Describe Node")
+        .on("click", () => {
+            showConsoleWindow(d.data.name, 'description', null, d);
+            menu.remove();
+        });
+    
+    menu.append("button")
+        .text("Suggest Reflections")
+        .on("click", () => {
+            showConsoleWindow(d.data.name, 'reflections', null, d);
+            menu.remove();
+        });
+
+    menu.append("button")
+        .text("Expand Node")
+        .on("click", async () => {
+            menu.remove();
+            // Expand this node by asking AI for child names and attaching them as smaller outer nodes.
+            try {
+                setLoading(true);
+                const children = await getAIResponse(d.data.name, 'expand', d);
+                if (!children || !Array.isArray(children) || children.length === 0) {
+                    throw new Error('No children returned');
+                }
+                // Ensure the node has a children array
+                if (!d.data.children) d.data.children = [];
+                // Append generated children as minimal nodes for further expansion (fractal growth)
+                children.forEach(child => {
+                    // avoid duplicates
+                    if (!d.data.children.find(c => c.name === child.name)) {
+                        d.data.children.push({
+                            name: child.name,
+                            children: []
+                        });
+                    }
+                });
+                // Rebuild visualization centered on current root data
+                createVisualization(currentData);
+            } catch (err) {
+                console.error('Expand failed', err);
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'error-message';
+                errorMessage.textContent = 'Failed to expand node. Please try again.';
+                document.body.appendChild(errorMessage);
+                setTimeout(() => errorMessage.remove(), 3000);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+    // Get menu dimensions
+    const menuRect = menu.node().getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Calculate position
+    let left = event.pageX;
+    let top = event.pageY;
+
+    // Adjust horizontal position if menu would overflow viewport
+    if (left + menuRect.width > viewportWidth) {
+        left = viewportWidth - menuRect.width - 10; 
+    }
+
+    // Adjust vertical position if menu would overflow viewport
+    if (top + menuRect.height > viewportHeight) {
+        top = viewportHeight - menuRect.height - 10; 
+    }
+
+    // Ensure menu doesn't go off the left or top of the screen
+    left = Math.max(10, left);
+    top = Math.max(10, top);
+
+    // Apply calculated position
+    menu.style("left", left + "px")
+        .style("top", top + "px");
+    
+    // Add click handler to close menu when clicking outside
+    d3.select("body").on("click.context-menu", function(event) {
+        if (event.target.closest(".context-menu")) return;
+        menu.remove();
+        d3.select("body").on("click.context-menu", null);
+    });
+}
+
+async function showConsoleWindow(subject, type, existingContent = null, d = null) {
+    d3.selectAll(".context-menu").each(function() {
+        d3.select(this).on('.', null);
+    }).remove();
+    
+    const existingConsole = d3.select(".console-window");
+    if (!existingConsole.empty()) {
+        existingConsole.select(".close-button").on('click', null);
+        existingConsole.remove();
+    }
+    
+    let content;
+    if (existingContent) {
+        content = existingContent;
+    } else {
+        setLoading(true);
+        try {
+            const response = await getAIResponse(subject, type, d);
+            content = formatConsoleContent(response.content, subject, type, d);
+            
+            consoleHistory.push({
+                subject,
+                type,
+                content: content,
+                timestamp: new Date(),
+                context: d ? {
+                    parent: d.parent?.data.name,
+                    grandparent: d.parent?.parent?.data.name
+                } : null
+            });
+            updateConsoleHistory();
+        } finally {
+            setLoading(false);
+        }
+    }
+    
+    const contextInfo = d ? `
+        <div style="font-size: 0.9em; color: rgba(100, 255, 218, 0.7); margin-bottom: 10px;">
+            ${d.parent ? `Parent: ${d.parent.data.name}` : ''}
+            ${d.parent && d.parent.parent ? `<br>Broader Category: ${d.parent.parent.data.name}` : ''}
+        </div>
+    ` : '';
+    
+    const consoleWindow = d3.select("body")
+        .append("div")
+        .attr("class", "console-window")
+        .html(`
+            <button class="close-button">&times;</button>
+            <h3>${type === 'description' ? 'Description' : 'Reflections'}: ${subject}</h3>
+            ${contextInfo}
+            <div class="content">${content}</div>
+        `);
+    
+    setTimeout(() => {
+        consoleWindow.classed("open", true);
+    }, 10);
+    
+    const closeButton = consoleWindow.select(".close-button");
+    closeButton.on("click", function() {
+        consoleWindow.classed("open", false);
+        setTimeout(() => {
+            closeButton.on('click', null);
+            consoleWindow.remove();
+        }, 300);
+    });
+}
+
+/* Fractal-style expand helper: attach AI-generated outer children to a node
+   This function is implemented by calling getAIResponse(type='expand') above
+   and merging the results into the clicked node, then re-rendering. */
+
+/* New function to format console content */
+function formatConsoleContent(content, subject, type, d) {
+    // Basic markdown-like formatting
+    let formattedContent = content;
+
+    // Add a title
+    formattedContent = `<h2>${type === 'description' ? 'Detailed Insights' : 'Thought-Provoking Reflections'}</h2>` + formattedContent;
+
+    // Enhanced formatting
+    // Convert headers (## and ###)
+    formattedContent = formattedContent.replace(/##\s(.+)/g, '<h3>$1</h3>');
+    formattedContent = formattedContent.replace(/###\s(.+)/g, '<h4>$1</h4>');
+
+    // Convert bold text
+    formattedContent = formattedContent.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+    // Convert italics
+    formattedContent = formattedContent.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+    // Convert unordered lists
+    formattedContent = formattedContent.replace(/^\-\s(.+)$/gm, '<li>$1</li>');
+    formattedContent = formattedContent.replace(/(<li>.*<\/li>)+/g, '<ul>$&</ul>');
+
+    // Convert ordered lists
+    formattedContent = formattedContent.replace(/^\d+\.\s(.+)$/gm, '<li>$1</li>');
+    formattedContent = formattedContent.replace(/(<li>.*<\/li>)+/g, '<ol>$&</ol>');
+
+    // Add blockquotes
+    formattedContent = formattedContent.replace(/>\s(.+)/g, '<blockquote>$1</blockquote>');
+
+    // Paragraphs
+    formattedContent = formattedContent.split('\n\n').map(para => 
+        para.startsWith('<') ? para : `<p>${para}</p>`
+    ).join('\n');
+
+    return formattedContent;
+}
+
+// Function to update the layers list
+function updateLayersList() {
+    const layersList = document.getElementById('layersList');
+    layersList.innerHTML = '';
+    
+    // Start with initial data
+    const allLayers = [{
+        data: initialData,
+        sourceNode: "Knowledge Domains",
+        timestamp: new Date(0)
+    }, ...history];
+
+    allLayers.forEach((layer, index) => {
+        const layerItem = document.createElement('div');
+        layerItem.className = 'layer-item' + (index === currentLayer ? ' active' : '');
+        
+        const timestamp = layer.timestamp.toLocaleTimeString();
+        const nodeName = layer.data.name;
+        let parentInfo = '';
+        
+        if (layer.isCustom) {
+            parentInfo = ` (Custom: ${layer.parent})`;
+        } else if (layer.parent) {
+            parentInfo = ` (from ${layer.sourceNode})`;
+        }
+        
+        layerItem.innerHTML = `
+            <div class="layer-content">
+                <div>${nodeName}${parentInfo}</div>
+                <small style="color: rgba(100, 255, 218, 0.6);">${timestamp}</small>
+            </div>
+            <button class="download-layer-btn" title="Download Mind Map">⬇️</button>
+        `;
+        
+        // Layer navigation
+        layerItem.querySelector('.layer-content').addEventListener('click', () => {
+            currentLayer = index;
+            currentData = layer.data;
+            document.getElementById('backButton').style.display = index === 0 ? 'none' : 'block';
+            createVisualization(currentData);
+            updateLayersList();
+        });
+        
+        // Download button
+        const downloadBtn = layerItem.querySelector('.download-layer-btn');
+        downloadBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent layer selection
+            downloadMindMapAsPNG(layer.data);
+        });
+        
+        layersList.appendChild(layerItem);
+    });
+}
+
+// Function to update console history
+function updateConsoleHistory() {
+    const historyContainer = document.getElementById('consoleHistory');
+    historyContainer.innerHTML = '';
+    
+    consoleHistory.slice().reverse().forEach(entry => {
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'console-entry';
+        entryDiv.innerHTML = `
+            <h4>${entry.type === 'description' ? 'Description' : 'Reflections'}: ${entry.subject}</h4>
+            <p>${entry.content.substring(0, 150)}...</p>
+        `;
+        entryDiv.addEventListener('click', () => {
+            showConsoleWindow(entry.subject, entry.type, entry.content, entry.context ? {
+                parent: { data: { name: entry.context.parent } },
+                parent: { data: { name: entry.context.grandparent } }
+            } : null);
+        });
+        historyContainer.appendChild(entryDiv);
+    });
+}
+
+// Clear console history
+document.querySelector('.clear-history-button').addEventListener('click', () => {
+    consoleHistory = [];
+    updateConsoleHistory();
+});
+
+// Modify the back button handler to properly handle layer navigation
+document.getElementById('backButton').addEventListener('click', () => {
+    if (currentLayer > 0) {
+        currentLayer--;
+        // Get the data from the allLayers array to ensure we're using the correct data
+        const allLayers = [{
+            data: initialData,
+            sourceNode: "Knowledge Domains",
+            timestamp: new Date(0)
+        }, ...history];
+        currentData = allLayers[currentLayer].data;
+        if (currentLayer === 0) {
+            document.getElementById('backButton').style.display = 'none';
+        }
+        createVisualization(currentData);
+        updateLayersList();
+    }
+});
+
+// Debounce function for resize event
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Initial updates
+updateLayersList();
+updateConsoleHistory();
+
+createVisualization(currentData);
+
+window.addEventListener('load', () => {
+    const debouncedResize = debounce(() => {
+        const container = d3.select("#mindmap");
+        const containerWidth = container.node().getBoundingClientRect().width;
+        const containerHeight = container.node().getBoundingClientRect().height;
+        
+        const svg = container.select("svg");
+        if (!svg.empty()) {
+            svg.attr("viewBox", `0 0 ${containerWidth} ${containerHeight}`);
+            createVisualization(currentData);
+        }
+    }, 250); 
+
+    window.addEventListener('resize', debouncedResize);
+    
+    // Clean up
+    window.addEventListener('unload', () => {
+        window.removeEventListener('resize', debouncedResize);
+        d3.selectAll("*").on('.', null);
+    });
+
+    // Initial visualization
+    createVisualization(currentData);
+});
+
+async function downloadMindMapAsPNG(data) {
+    try {
+        setLoading(true);
+
+        // Create an export container off-screen
+        const exportContainer = d3.select("body")
+            .append("div")
+            .style("position", "absolute")
+            .style("top", "-9999px")
+            .style("left", "-9999px");
+
+        // Create SVG with explicit xmlns and styles (self-contained)
+        const svg = exportContainer
+            .append("svg")
+            .attr("xmlns", "http://www.w3.org/2000/svg")
+            .attr("xmlns:xlink", "http://www.w3.org/1999/xlink")
+            .style("background", "#000"); // ensure black background
+
+        const g = svg.append("g");
+
+        // Use the same tree layout logic as in the main visualization (mirrors createVisualization)
+        const tree = d3.tree()
+            .size([2 * Math.PI, Math.min(window.innerWidth, window.innerHeight) / 0.4])  
+            .separation((a, b) => {
+                const baseSeparation = (a.parent == b.parent ? 5 : 8);
+                const depthFactor = Math.max(1, 12 - a.depth);
+                const outerNodeSpacing = a.depth >= 2 ? 8 : 4;
+                return baseSeparation * depthFactor * outerNodeSpacing * Math.pow(2.5, a.depth);
+            });
+
+        const root = d3.hierarchy(data);
+        const links = tree(root).links();
+        const nodes = root.descendants();
+
+        // Recreate links with explicit hex/rgba colors and no dependencies on CSS variables
+        g.selectAll(".link")
+            .data(links)
+            .enter()
+            .append("path")
+            .attr("class", "link")
+            .attr("d", d3.linkRadial()
+                .angle(d => d.x)
+                .radius(d => d.y))
+            .attr("fill", "none")
+            .attr("stroke", "#39FF14")
+            .attr("stroke-linecap", "round")
+            .attr("stroke-linejoin", "round")
+            .attr("stroke-width", d => {
+                switch(d.source.depth) {
+                    case 0: return 4;
+                    case 1: return 3;
+                    case 2: return 2;
+                    default: return 1;
+                }
+            })
+            .attr("stroke-dasharray", d => {
+                switch(d.source.depth) {
+                    case 0: return "0";
+                    case 1: return "25,10";
+                    case 2: return "15,7";
+                    default: return "10,5";
+                }
+            });
+
+        // Recreate nodes with radial positioning
+        const node = g.selectAll(".node")
+            .data(nodes)
+            .enter()
+            .append("g")
+            .attr("class", "node")
+            .attr("data-depth", d => d.depth)
+            .attr("transform", d => `translate(${project(d.x, d.y)})`);
+
+        // Add circles with explicit styles
+        node.append("circle")
+            .attr("r", d => {
+                switch(d.depth) {
+                    case 0: return 150;
+                    case 1: return 120;
+                    case 2: return 90;
+                    case 3: return 60;
+                    default: return 30;
+                }
+            })
+            .attr("fill", "#061013")
+            .attr("stroke", "#39FF14")
+            .attr("stroke-width", 3);
+
+        // Add text with explicit fill and font sizes (no CSS variables)
+        node.append("text")
+            .attr("dy", 0)
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("fill", "#39FF14")
+            .attr("text-anchor", "middle")
+            .attr("alignment-baseline", "middle")
+            .style("font-family", "Inter, Arial, sans-serif")
+            .style("font-weight", "600")
+            .each(function(d) {
+                const text = d3.select(this);
+                const words = d.data.name.split(/\s+/);
+                const depth = d.depth;
+
+                const maxWordsPerLine = depth === 0 ? 3 : depth === 1 ? 2 : 1;
+
+                text.text(null);
+
+                const createLines = (words) => {
+                    const lines = [];
+                    let currentLine = [];
+
+                    words.forEach(word => {
+                        if (currentLine.length < maxWordsPerLine) {
+                            currentLine.push(word);
+                        } else {
+                            lines.push(currentLine.join(' '));
+                            currentLine = [word];
+                        }
+                    });
+
+                    if (currentLine.length > 0) {
+                        lines.push(currentLine.join(' '));
+                    }
+
+                    return lines;
+                };
+
+                const lines = createLines(words);
+
+                const lineHeight = depth === 0 ? 1.2 : depth === 1 ? 1.1 : 1;
+                const totalHeight = lines.length * lineHeight;
+                const startY = -(totalHeight / 2) + (lineHeight / 2);
+
+                const fontSize = depth === 0 ? 36 : depth === 1 ? 28 : depth === 2 ? 20 : 16;
+                text.style("font-size", `${fontSize}px`);
+
+                lines.forEach((line, i) => {
+                    text.append("tspan")
+                        .attr("x", 0)
+                        .attr("dy", i === 0 ? startY + "em" : lineHeight + "em")
+                        .text(line);
+                });
+            });
+
+        // Give browser a moment to layout the SVG
+        await new Promise(resolve => setTimeout(resolve, 80));
+
+        // Compute bounding box and required canvas size (preserve radial layout proportions)
+        const bbox = g.node().getBBox();
+        const diameter = Math.max(bbox.width, bbox.height);
+        const padding = diameter * 0.18; // slightly less padding to match on-screen look
+        const canvasSize = Math.ceil(diameter + 2 * padding);
+
+        // Set explicit width/height and viewBox for accurate rasterization
+        svg.attr("width", canvasSize)
+           .attr("height", canvasSize)
+           .attr("viewBox", `0 0 ${canvasSize} ${canvasSize}`);
+
+        // Center the group within the SVG so the exported layout matches the on-screen radial center
+        const translateX = (canvasSize - bbox.width) / 2 - bbox.x;
+        const translateY = (canvasSize - bbox.height) / 2 - bbox.y;
+        g.attr("transform", `translate(${translateX}, ${translateY})`);
+
+        // Inline small CSS to ensure consistent rendering when rasterized
+        const css = `
+            text { dominant-baseline: middle; }
+            tspan { white-space: pre; }
+        `;
+        svg.insert("style", ":first-child").text(css);
+
+        // Serialize SVG, create Image, draw to canvas and download
+        const serializer = new XMLSerializer();
+        let svgData = serializer.serializeToString(svg.node());
+
+        // Ensure proper XML header and encode
+        if (!svgData.match(/^<\?xml/)) {
+            svgData = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgData;
+        }
+        const svgBlob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+        const url = URL.createObjectURL(svgBlob);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
+        const ctx = canvas.getContext("2d");
+
+        // Ensure background is black
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const img = new Image();
+        img.onload = function() {
+            ctx.drawImage(img, 0, 0, canvasSize, canvasSize);
+
+            // Trigger download
+            canvas.toBlob(function(blob) {
+                const a = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                a.href = url;
+                // sanitize filename
+                const safeName = data.name.replace(/[^\w\-]/g, '_').substring(0, 120);
+                a.download = `${safeName}_mindmap.png`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                exportContainer.remove();
+                setLoading(false);
+            }, "image/png");
+        };
+        img.onerror = function(err) {
+            console.error("Image load error:", err);
+            exportContainer.remove();
+            setLoading(false);
+        };
+        img.src = url;
+    } catch (error) {
+        console.error('Error downloading mind map:', error);
+        setLoading(false);
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'error-message';
+        errorMessage.textContent = 'Failed to download mind map. Please try again.';
+        document.body.appendChild(errorMessage);
+        setTimeout(() => {
+            errorMessage.remove();
+        }, 3000);
+    }
+}
+
+function setupCustomMindmapModal() {
+    const createBtn = document.getElementById('createCustomMindmap');
+    const modal = document.getElementById('customMindmapModal');
+    const overlay = document.getElementById('modalOverlay');
+    const input = document.getElementById('customMindmapInput');
+    const generateBtn = document.getElementById('generateCustomMindmap');
+    const cancelBtn = document.getElementById('cancelCustomMindmap');
+
+    function openModal() {
+        modal.classList.add('open');
+        overlay.classList.add('open');
+        input.focus();
+    }
+
+    function closeModal() {
+        modal.classList.remove('open');
+        overlay.classList.remove('open');
+        input.value = '';
+    }
+
+    createBtn.addEventListener('click', openModal);
+    cancelBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', closeModal);
+
+    generateBtn.addEventListener('click', async () => {
+        const topic = input.value.trim();
+        if (!topic) {
+            return;
+        }
+
+        try {
+            setLoading(true);
+            
+            const response = await getAIResponse(topic, 'mindmap');
+            if (!response || !response.name || !response.children) {
+                throw new Error('Invalid mind map data structure received');
+            }
+
+            // Add to history with custom topic flag
+            history.push({
+                data: response,
+                sourceNode: 'Custom Topic',
+                parent: topic,
+                timestamp: new Date(),
+                isCustom: true
+            });
+
+            currentData = response;
+            currentLayer = history.length; // Set current layer to the newly added custom mind map
+            document.getElementById('backButton').style.display = 'block';
+            createVisualization(currentData);
+            updateLayersList();
+            closeModal();
+        } catch (error) {
+            console.error('Error generating custom mind map:', error);
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'error-message';
+            errorMessage.textContent = 'Failed to generate mind map. Please try again.';
+            document.body.appendChild(errorMessage);
+            setTimeout(() => {
+                errorMessage.remove();
+            }, 3000);
+        } finally {
+            setLoading(false);
+        }
+    });
+
+    // Handle Enter key in input
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            generateBtn.click();
+        }
+    });
+}
+
+/* Matrix rain effect setup */
+(function setupMatrix() {
+    const canvas = document.getElementById('matrixCanvas');
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    // Slightly larger font for readability and fewer columns so numbers don't visually overwhelm nodes
+    const fontSize = 16;
+    let columns = Math.floor(width / fontSize);
+    let drops = Array(columns).fill(1);
+
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        columns = Math.floor(width / fontSize);
+        drops = Array(columns).fill(1);
+    }
+    window.addEventListener('resize', resize);
+
+    function draw() {
+        // Reduce trailing opacity so the matrix doesn't heavily overlay the mind map
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+        ctx.fillRect(0, 0, width, height);
+
+        // Use numeric characters (0-9) and a slightly different, more yellow-leaning neon for contrast
+        ctx.fillStyle = 'rgba(150,255,120,0.55)'; // slightly different neon green/yellow tint
+        ctx.font = fontSize + 'px monospace';
+        ctx.textBaseline = 'top';
+
+        for (let i = 0; i < drops.length; i++) {
+            const num = String.fromCharCode(48 + Math.floor(Math.random() * 10)); // '0'..'9'
+            ctx.fillText(num, i * fontSize, drops[i] * fontSize);
+
+            // reset drop with a slightly higher threshold so columns don't reset too often
+            if (drops[i] * fontSize > height && Math.random() > 0.985) {
+                drops[i] = 0;
+            }
+            drops[i]++;
+        }
+        requestAnimationFrame(draw);
+    }
+    draw();
+})();
+
+ // Call setup function when the page loads
+document.addEventListener('DOMContentLoaded', setupCustomMindmapModal);
+</script>
+</body>
+</html>

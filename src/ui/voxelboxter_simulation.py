@@ -417,6 +417,37 @@ class VehicleEngine:
     electrical_timing_degrees: float = 12.5 # Advance angle for rotary sleeve port alignment
     sleeve_port_overlap_efficiency: float = 1.35
 
+    # Synthetic Diesel Fuel Combustion System
+    diesel_fuel_mb: float = 0.0
+    max_diesel_capacity_mb: float = 10000.0
+    fuel_burn_rate_mb_per_sec: float = 5.0
+    synthetic_diesel_boost_factor: float = 1.25 # Clean synthetic paraffinic diesel gives extra combustion density
+
+    def add_diesel_fuel(self, amount_mb: float) -> float:
+        """Adds synthetic diesel fuel to engine tank. Returns remaining overflow not added."""
+        space = max(0.0, self.max_diesel_capacity_mb - self.diesel_fuel_mb)
+        to_add = min(space, amount_mb)
+        self.diesel_fuel_mb += to_add
+        return amount_mb - to_add
+
+    def consume_diesel_fuel(self, dt: float) -> Tuple[bool, float, float]:
+        """
+        Consumes diesel fuel during combustion stroke.
+        Returns (is_combusting, fuel_consumed_mb, combustion_boost_multiplier).
+        Takes into account sleeve-valve timing advance and port overlap efficiency.
+        """
+        if self.diesel_fuel_mb <= 1e-6 or self.throttle <= 1e-6 or not self.is_operational:
+            return False, 0.0, 1.0
+
+        needed = self.fuel_burn_rate_mb_per_sec * self.throttle * dt
+        consumed = min(self.diesel_fuel_mb, needed)
+        self.diesel_fuel_mb -= consumed
+
+        # Combustion boost scaled by sleeve valve timing and port overlap efficiency
+        timing_eff = math.cos(math.radians(self.electrical_timing_degrees)) * self.sleeve_port_overlap_efficiency
+        boost = 1.0 + (self.synthetic_diesel_boost_factor - 1.0) * timing_eff * (consumed / max(1e-6, needed))
+        return True, consumed, boost
+
 @dataclass
 class EnvironmentalAtmosphere:
     """World voxel chunk telemetry for ambient air pressure and voxel density."""

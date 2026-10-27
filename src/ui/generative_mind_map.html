@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gyroidic Generative Mind Map - DaemonAton Integration</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-bg: #030708;
+            --secondary-bg: #050f0c;
+            --accent-color: #39FF14;
+            --accent-dim: rgba(57, 255, 20, 0.35);
+            --text-color: #39FF14;
+            --text-muted: #8ae99c;
+            --shadow-color: rgba(0, 255, 20, 0.15);
+            --card-bg: rgba(6, 18, 14, 0.85);
+            --card-border: rgba(57, 255, 20, 0.25);
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'Fira Code', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-main);
+            background: radial-gradient(circle at 50% 50%, var(--secondary-bg) 0%, var(--primary-bg) 100%);
+            color: var(--text-color);
+            line-height: 1.6;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem 1.5rem;
+            background: rgba(3, 7, 8, 0.85);
+            border-bottom: 1px solid var(--card-border);
+            backdrop-filter: blur(12px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .title-block {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .title {
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent-color);
+            text-shadow: 0 0 10px var(--shadow-color);
+        }
+
+        .subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        button, .btn {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        button:hover, .btn:hover {
+            background: rgba(57, 255, 20, 0.15);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 12px var(--shadow-color);
+        }
+
+        #mindmap-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        svg:active {
+            cursor: grabbing;
+        }
+
+        .link {
+            fill: none;
+            stroke: rgba(57, 255, 20, 0.28);
+            stroke-width: 1.2px;
+        }
+
+        .node circle {
+            fill: #030708;
+            stroke: var(--accent-color);
+            stroke-width: 1.8px;
+            cursor: pointer;
+        }
+
+        .node:hover circle {
+            fill: rgba(57, 255, 20, 0.3);
+            stroke-width: 2.8px;
+            filter: drop-shadow(0 0 8px var(--accent-color));
+        }
+
+        .node text {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            fill: var(--text-muted);
+            pointer-events: none;
+            text-shadow: 0 1px 4px #000;
+        }
+
+        .node:hover text {
+            fill: #ffffff;
+            font-weight: 600;
+        }
+
+        /* Sidebar Inspector */
+        #inspector-panel {
+            position: fixed;
+            right: 1.5rem;
+            bottom: 1.5rem;
+            width: 320px;
+            max-height: 480px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            padding: 1.2rem;
+            backdrop-filter: blur(16px);
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+            display: none;
+            overflow-y: auto;
+            font-size: 0.85rem;
+        }
+
+        #inspector-panel h3 {
+            margin: 0 0 0.5rem 0;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 0.4rem;
+        }
+
+        .detail-row {
+            margin-bottom: 0.4rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .detail-key {
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        .detail-val {
+            color: #ffffff;
+            font-family: var(--font-mono);
+            font-weight: 600;
+        }
+
+        /* Status Pill */
+        .status-pill {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            box-shadow: 0 0 8px var(--accent-color);
+            margin-right: 6px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="title-block">
+            <span class="status-pill"></span>
+            <div>
+                <div class="title">Gyroidic Generative Mind Map</div>
+                <div class="subtitle">Architecture by DaemonAton &bull; Radial D3 Manifold Topology</div>
+            </div>
+        </div>
+        <div class="controls">
+            <button id="btn-refresh" title="Reload live topology from backend">[REFRESH TOPO]</button>
+            <button id="btn-reset-zoom" title="Reset View">[RESET ZOOM]</button>
+            <a href="/" class="btn" title="Back to Diegetic Terminal">[TERMINAL]</a>
+        </div>
+    </header>
+
+    <div id="mindmap-container"></div>
+
+    <div id="inspector-panel">
+        <h3 id="inspect-title">Node Inspector</h3>
+        <div id="inspect-content"></div>
+    </div>
+
+    <script>
+        // DaemonAton Generative Radial Tree Separation Engine
+        function daemonatonSeparation(a, b) {
+            const baseSeparation = (a.parent === b.parent ? 4 : 6);
+            const depthFactor = Math.max(1, 10 - a.depth);
+            const outerNodeSpacing = a.depth >= 2 ? 6 : 3;
+            return baseSeparation * depthFactor * outerNodeSpacing * Math.pow(2, a.depth);
+        }
+
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const radius = Math.min(width, height) / 2;
+
+        const svg = d3.select("#mindmap-container")
+            .append("svg")
+            .attr("viewBox", [-width / 2, -height / 2, width, height]);
+
+        const g = svg.append("g");
+
+        // Zoom Behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.15, 4.0])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        document.getElementById("btn-reset-zoom").addEventListener("click", () => {
+            svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
+        });
+
+        // Fallback Base Manifold Topology
+        const defaultTopology = {
+            name: "Gyroidic Reasoner",
+            category: "Core Engine",
+            details: "Minimal surface non-Abelian flux manifold",
+            children: [
+                {
+                    name: "Resonance Cavity",
+                    category: "Spectral Physics",
+                    details: "Global resonance field forward phase alignment (PAS)",
+                    children: [
+                        { name: "GlobalResonanceField", category: "Substrate", details: "Mind at Large continuous cavity" },
+                        { name: "PhaseAlignment (PAS)", category: "Metric", details: "Knot-theoretic pas_lock = 3/11" },
+                        { name: "LazarusSoftmax", category: "Survival", details: "Dissociative boundary survival" }
+                    ]
+                },
+                {
+                    name: "Knowledge Dyads (DAQUF)",
+                    category: "Memory & Fossils",
+                    details: "Multimodal visual/acoustic and linguistic anchors",
+                    children: [
+                        { name: "Chebyshev Multibasis", category: "Signal", details: "Minimax polynomial spectral projection" },
+                        { name: "Chromata Filaments", category: "Vector Flow", details: "Continuous gradient streamline tracing" },
+                        { name: "DyadFossilizer", category: "Persistence", details: "O(1) Poincaré disk snapshot indexing" },
+                        { name: "Ouroboros Loop", category: "Self-Digestion", details: "Internal failure shadow-trapping" }
+                    ]
+                },
+                {
+                    name: "Silicon Sovereignty (TailSlayer)",
+                    category: "Hardware",
+                    details: "Zero-copy PyOpenCL dual-queue execution",
+                    children: [
+                        { name: "PyOpenCL Queue A/B", category: "Compute", details: "Hedged first-to-finish race" },
+                        { name: "Honest Hardware Jitter", category: "Entropy", details: "Physical time-stall entropy harvest" },
+                        { name: "Compute Affordance", category: "Governor", details: "Typed headroom: silicon, thermal, gpu" }
+                    ]
+                },
+                {
+                    name: "Governance & Archetypes",
+                    category: "TADC Subsystems",
+                    details: "Four-tier cognitive governance framework",
+                    children: [
+                        { name: "Pomni (Interoception)", category: "Uncertainty", details: "Noradrenaline broadcasts" },
+                        { name: "Gangle (Medium)", category: "Oscillation", details: "Bipolar mood phase transition" },
+                        { name: "Zooble (Ultrafast)", category: "Autonomy", details: "Dynamic cognitive gating" },
+                        { name: "Kinger (Slow)", category: "Consolidation", details: "Ombre sleep memory fossilization" }
+                    ]
+                },
+                {
+                    name: "Thermodynamics & Ledger",
+                    category: "Energy Balance",
+                    details: "Carnot-Möbius thermodynamic limits",
+                    children: [
+                        { name: "CarnotMobiusLedger", category: "Thermodynamics", details: "P_waste vs P_cool_max limits" },
+                        { name: "ADMR Lubrication", category: "Optimization", details: "Multiplicative remainder phase alignment" },
+                        { name: "Parallel Sorting Entropy", category: "Information", details: "Gauge field circulation & Euler stiffness" }
+                    ]
+                },
+                {
+                    name: "Voxelboxter Ecology",
+                    category: "Simulation",
+                    details: "Cleanroom physics & nondual terrain",
+                    children: [
+                        { name: "Synthetic Diesel", category: "Industrial", details: "Hydrogen-carbon hydroprocessing" },
+                        { name: "Fauna Vector Torque", category: "Kinematics", details: "Non-Euclidean orientation tensor" },
+                        { name: "Meliponini Cerumen Pots", category: "Topology", details: "Discrete S2 alter cluster isolation" }
+                    ]
+                }
+            ]
+        };
+
+        function renderMindMap(data) {
+            g.selectAll("*").remove();
+
+            const treeLayout = d3.tree()
+                .size([2 * Math.PI, radius * 0.85])
+                .separation(daemonatonSeparation);
+
+            const root = d3.hierarchy(data);
+            treeLayout(root);
+
+            // Links (radial smooth curves)
+            const linkGenerator = d3.linkRadial()
+                .angle(d => d.x)
+                .radius(d => d.y);
+
+            g.append("g")
+                .selectAll("path")
+                .data(root.links())
+                .join("path")
+                .attr("class", "link")
+                .attr("d", linkGenerator);
+
+            // Nodes
+            const node = g.append("g")
+                .selectAll("g")
+                .data(root.descendants())
+                .join("g")
+                .attr("class", "node")
+                .attr("transform", d => `
+                    rotate(${d.x * 180 / Math.PI - 90})
+                    translate(${d.y},0)
+                `)
+                .on("click", (event, d) => {
+                    inspectNode(d);
+                });
+
+            node.append("circle")
+                .attr("r", d => d.depth === 0 ? 8 : (d.children ? 5.5 : 3.8));
+
+            node.append("text")
+                .attr("dy", "0.31em")
+                .attr("x", d => d.x < Math.PI === !d.children ? 8 : -8)
+                .attr("text-anchor", d => d.x < Math.PI === !d.children ? "start" : "end")
+                .attr("transform", d => d.x >= Math.PI ? "rotate(180)" : null)
+                .text(d => d.data.name);
+        }
+
+        function inspectNode(d) {
+            const panel = document.getElementById("inspector-panel");
+            const title = document.getElementById("inspect-title");
+            const content = document.getElementById("inspect-content");
+
+            panel.style.display = "block";
+            title.textContent = d.data.name;
+
+            let html = `
+                <div class="detail-row">
+                    <span class="detail-key">Category:</span>
+                    <span class="detail-val">${d.data.category || 'General'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-key">Depth:</span>
+                    <span class="detail-val">${d.depth}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-key">Sub-Nodes:</span>
+                    <span class="detail-val">${d.children ? d.children.length : 0}</span>
+                </div>
+            `;
+
+            if (d.data.details) {
+                html += `
+                    <div style="margin-top: 0.6rem; color: #8ae99c; font-size: 0.8rem; border-top: 1px solid rgba(57, 255, 20, 0.2); padding-top: 0.5rem;">
+                        ${d.data.details}
+                    </div>
+                `;
+            }
+
+            content.innerHTML = html;
+        }
+
+        async function fetchLiveTopology() {
+            try {
+                const response = await fetch('/api/mindmap-data');
+                if (response.ok) {
+                    const liveData = await response.json();
+                    renderMindMap(liveData);
+                    return;
+                }
+            } catch (e) {
+                console.log("[MINDMAP] Backend API unreachable, rendering canonical manifold topology.");
+            }
+            renderMindMap(defaultTopology);
+        }
+
+        document.getElementById("btn-refresh").addEventListener("click", fetchLiveTopology);
+
+        // Initial Load
+        fetchLiveTopology();
+    </script>
+</body>
+</html>

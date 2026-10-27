@@ -8,7 +8,7 @@ This document provides canonical one-paragraph descriptions for all `src/` modul
 
 ## src/core
 
-### admr_solver.py
+### [admr_solver.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/admr_solver.py)
 **Class**: `PolynomialADMRSolver`  
 **Role**: Alternating Direction of Multiplicative Remainders  the continuous-polynomial analogue of ADMM.  
 
@@ -16,13 +16,13 @@ Instead of discrete prime moduli, this solver uses co-prime polynomial functiona
 
 ---
 
-### invariant_optimization.py
+### [invariant_optimization.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/invariant_optimization.py)
 **Class**: `LexicographicalOrderingDispatcher`, `SemioticState`  
 **Role**: Enforces the Semiotic Hierarchy by assigning System 2 Invariant Admissibility strictly above System 1 heuristic speed via Dictionary Order. Serves as the philosophical grounding for non-scalarized multi-objective constraints.
 
 ---
 
-### polychoron_quantization.py
+### [polychoron_quantization.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/polychoron_quantization.py)
 **Class**: `PolychronQuantizer`, `Polychoron600Quantizer`  
 **Role**: High-dimensional 4D 600-cell hyper-polytope quantization engine using Moiré-via-Modular-Algebra and carry-free XOR residue decoupling.
 
@@ -30,7 +30,7 @@ Implements discrete projection of continuous state vectors onto the 120 golden r
 
 ---
 
-### number_theoretic_stabilizer.py
+### [number_theoretic_stabilizer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/number_theoretic_stabilizer.py)
 **Class**: `NumberTheoreticStabilizer`  
 **Role**: Dynamic continued fraction arithmetic expansion and relativistic scale factor normalization.
 
@@ -38,7 +38,7 @@ Replaces fixed static coefficient lookup tables with dynamic continued fraction 
 
 ---
 
-### diegetic_physics_engine.py
+### [diegetic_physics_engine.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/diegetic_physics_engine.py)
 **Class**: `DiegeticPhysicsEngine`  
 **Role**: Master Orchestration Pipeline for 9-Stage Sovereign Physics Loop in Voxelboxter.
 
@@ -46,7 +46,7 @@ Coordinates physical control inputs, non-commutative Braid routing (`ZeitgeistRo
 
 ---
 
-### archetype_engines.py
+### [archetype_engines.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/archetype_engines.py)
 **Class**: `ArchetypalSynthesisEngine`, `RP4ProjectiveRouter` (Alien Handshake), `SolitonMultiverseMapper` (Grom), `BillyEngine` (`NoncommutativeManifoldPerturber`), `MandyEngine` (`SovereignRefusalOperator`), `KingerEngine`, `PomniEngine`, `GangleEngine`, `ZoobleEngine`, `BardoRouter`, `SovereignEntropyBarrier`, `EgoDeathThresholdMonitor`  
 **Role**: Archetypal synthesis suite managing non-linear cognitive modes, Alien Handshake cross-manifold alignment, and Grom multiverse mapping.
 
@@ -97,7 +97,7 @@ Originally a monolithic multimodal ingestor inside `src/core/`, `src/core/hybrid
 
 ---
 
-### knowledge_dyad_fossilizer.py
+### [knowledge_dyad_fossilizer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/knowledge_dyad_fossilizer.py)
 **Class**: `KnowledgeDyad`, `ResidueFusion`, `DyadFossilizer`  
 **Role**: Multi-modal knowledge dyad fossilization and Agent Smith identity serialization.
 
@@ -105,7 +105,7 @@ Manages persistent storage of multi-modal knowledge units `(Image Fingerprint, L
 
 ---
 
-### love_invariant_protector.py
+### [love_invariant_protector.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/love_invariant_protector.py)
 **Class**: `LoveInvariantProtector`  
 **Role**: Prevents scalarization of the Love Vector $L$ via null-space projection.
 
@@ -113,7 +113,7 @@ Enforces the invariant that Love is a non-ownable flow rather than an optimizabl
 
 ---
 
-### bonfire_consensus.py
+### [bonfire_consensus.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/p2p/bonfire_consensus.py)
 **Class**: `BonfireNomadicRing`  
 **Role**: Federated consensus and egalitarian microhedging over Freenet P2P networks.
 
@@ -121,7 +121,7 @@ Wraps `FreenetClient` to broadcast topological signatures and compute egalitaria
 
 ---
 
-### ricci_flow_optimizer.py
+### [ricci_flow_optimizer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/optimization/ricci_flow_optimizer.py)
 **Class**: `RicciFlowOptimizer`, `SplitBeamInterfactorization`  
 **Role**: Non-teleological Ricci flow weight evolution ($\frac{dg}{dt} = -2\text{Ric}$).
 
@@ -163,7 +163,7 @@ This module provides hardware-accelerated topological evaluations for the Gyroid
 
 ## src/codec
 
-### conformal_log_polar.py
+### [conformal_log_polar.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/codec/conformal_log_polar.py)
 **Class**: `ConformalLogPolarProjector`  
 **Role**: Complex conformal $f(z) = \log(z)$ log-polar foveal unrolling (Escher / Droste Log-Polar Spiral).
 
@@ -171,7 +171,7 @@ Unrolls Cartesian images into log-polar space $\ln|r| + i\theta$. Translates spa
 
 ---
 
-### gyroidic_codec.py
+### [gyroidic_codec.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/codec/gyroidic_codec.py)
 **Class**: `GyroidicCodec`, `GyroidSurface`, `CodecConfig`, `EncodingResult`  
 **Role**: Non-abelian text-image codec combining log-polar unrolling, analytical gyroid surface sampling, and CRT matrix residue encoding in $GL(n)$.
 
@@ -179,13 +179,13 @@ Encodes text-image dyads $E(T, I) = \text{CRT}(\{R_k(T) \cdot G_k(I)\})$. Measur
 
 ---
 
-### vision_surgery.py
+### [vision_surgery.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/codec/vision_surgery.py)
 **Function**: `conformal_to_gyroid_mapping`, `extract_fossil_patch`  
 **Role**: Conformal-to-gyroid tensor mapping and fossil patch extraction for visual dyad surgery.
 
 ---
 
-### advanced_extensions_bridge.py
+### [advanced_extensions_bridge.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/advanced_extensions_bridge.py)
 **Class**: `AdvancedExtensionsBridge`  
 **Role**: Advanced Extensions Bridge (AEB) for LCFT projections and spectral sequence evaluation.
 
@@ -193,14 +193,14 @@ Concurrently integrated into the main forward pass and garbled output repair pip
 
 ---
 
-### audience_mapping.py
+### [audience_mapping.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/audience_mapping.py)
 **Class**: `AudienceProjection`  
 **Role**: Lipschitz homeomorphic projection from manifold M to audience space A.
 **Status**: ACTIVE (Integrated into `diegetic_backend.py` and `hybrid_backend.py`)
 
 Implements the operator : M  A defined in the Garden Statistical Attractors design. Uses spectral normalization on all linear layers to enforce Lipschitz constant  1, and a residual skip connection (`y = f(x) + x`) to approximate homeomorphism (continuous, bijective). An approximate inverse `` is provided via fixed-point iteration (Banach theorem, valid when `Lip(f) < 1`). The key requirement it enforces is *roughness preservation*: topological singularities (sharp features, discontinuities) in the manifold are transmitted into audience space rather than smoothed away. In the backend, it projects the "detached" hidden state snapshot to the user-facing audience space for each interaction.
 
-### chern_simons_gasket.py
+### [chern_simons_gasket.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/chern_simons_gasket.py)
 **Class**: `ChernSimonsGasket`, `SurgicalSeamVisualizer`, `SolitonStabilityHealer`  
 **Role**: Topological twist repair for logic leaks at symbolic-geometric boundaries, hyperbolic surgical seam tension monitoring, and Drucker-Prager soliton healing.
 
@@ -210,7 +210,7 @@ Implements the operator : M  A defined in the Garden Statistical Attractors desi
 
 ---
 
-### collapse_poisoner.py
+### [collapse_poisoner.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/collapse_poisoner.py)
 **Class**: `CollapsePathPoisoner` (also aliased as `AdversarialStressTester`)  
 **Role**: Adversarial stress-tester for the Speculative Homology Engine.
 
@@ -218,7 +218,7 @@ Generates two types of synthetic rupture events to verify System 2 robustness wi
 
 ---
 
-### daqf_operator.py
+### [daqf_operator.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/daqf_operator.py)
 **Class**: `DAQUFOperator`  
 **Full name**: Diegetic Amortized Quantized Unknowledge Fossilization Operator  
 **Role**: Manages "structural scars"  unremovable but amortized fossilized invariants.
@@ -227,7 +227,7 @@ The DAQUF pipeline: (1) **Fossil Selection**  fossil with highest contradiction 
 
 ---
 
-### deflagration_scout.py
+### [deflagration_scout.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/deflagration_scout.py)
 **Class**: `OmipedialDeflagrator`  
 **Role**: Scouts and amplifies sparse anomalies ("defects") to enable jumps across manifold holes.
 
@@ -235,7 +235,7 @@ Implements two operations. `scout_defects()` computes `D_i = |actual_flux  predi
 
 ---
 
-### energy_based_soliton_healer.py
+### [energy_based_soliton_healer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/energy_based_soliton_healer.py)
 **Class**: `EnergyBasedSolitonHealer`  
 **Role**: Repairs structurally damaged solitons by gradient descent on a learnable energy surface.
 
@@ -243,7 +243,7 @@ Implements EBM-style soliton preservation: a stable configuration is a **soliton
 
 ---
 
-### energy_monitor.py
+### [energy_monitor.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/energy_monitor.py)
 **Class**: `StructuralEnergyMonitor`  
 **Role**: Monitors Topological Free Energy F_topo and Computable Flux V_m.
 
@@ -251,13 +251,13 @@ Maps the Energy-Based Models (EBM) framework to the project's topological manifo
 
 ---
 
-### enhanced_bezout_crt.py
+### [enhanced_bezout_crt.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/enhanced_bezout_crt.py)
 **Class**: `EnhancedBezoutCRT`, `CrossbarIKSolver`
 **Role**: Extended-GCD based CRT reconstruction with Bzout coefficient caching and the Crossbar IK Solver for discrete polynomial structural solving.
 
 ---
 
-### false_negative_subsystem.py
+### [false_negative_subsystem.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/false_negative_subsystem.py)
 **Class**: `VoynichExemptionToken`  
 **Role**: Issues "transversality passports" to prevent false vetoes of valid sovereign logic.
 
@@ -265,7 +265,7 @@ Detects if a high-entropy or topologically asymmetric state is actually an hones
 
 ---
 
-### fgrt_primitives.py
+### [fgrt_primitives.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/fgrt_primitives.py)
 **Class**: `PrimeResonanceLadder`, `RepunitHasher`, `KleinThroatTransition`, `GyroidManifold`, `GyroidicAdmissibilityFilter`, `TorsionConnection`, `BerryPhaseTracker`, `FibonacciResonanceEntropy`, `CoherentPrimeResonance`, `CALMCollapseDetector`, `morton_encode_3d`, `expand_bits`
 **Role**: Lowest-level arithmetic foundations—Resonance Ladders, Repunit Hashing, Gyroid mappings, Torsion connections with Rashba-Dresselhaus SOC, Geometric Berry Phase tracking, and 3D Morton space-filling encoding.
 
@@ -273,7 +273,7 @@ Detects if a high-entropy or topologically asymmetric state is actually an hones
 
 ---
 
-### fgrt_rnn_cells.py
+### [fgrt_rnn_cells.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/fgrt_rnn_cells.py)
 **Class**: `BerryPhaseGRUCell`, `ChiralGatedRNNCell`, `ComplexFGRTRNNCell`, `SaturatedQuantizerRNNCell`, `PyOpenCLHardwareSovereigntyCell`, `LazarusSuperpositionRNNCell`, `FeatureScarLCFTCell`  
 **Role**: 7 topological recurrent cell models in the Fiberalized Gyroidic Recurrent Topology (FGRT).
 
@@ -281,7 +281,7 @@ Replaces Euclidean recurrent state updates with non-orientable Klein-Gyroid mani
 
 ---
 
-### erosion_filter.py
+### [erosion_filter.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/erosion_filter.py)
 **Class**: `TopologicalErosionFBM`
 **Role**: Phase 6 Topological Scarring and Memory Weathering.
 
@@ -289,7 +289,7 @@ Applies Fractional Brownian Motion (FBM) to erode the state manifold based direc
 
 ---
 
-### leontief_governor.py
+### [leontief_governor.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/leontief_governor.py)
 **Class**: `LeontiefGovernor`
 **Role**: Leontief Input-Output Governance for ADMR Resource Allocation.
 
@@ -297,7 +297,7 @@ Computes the Leontief Inverse $(I - A)^{-1}$ from the ADMR solver's `K` facet-wi
 
 ---
 
-### fractal_meta_functional.py
+### [fractal_meta_functional.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/fractal_meta_functional.py)
 **Class**: `FractalMetaFunctional`
 **Role**: Implements fractal meta-recursion inside the Orchestrator's `forward()` pass.
 
@@ -305,7 +305,7 @@ Computes multi-scale structural pressure by recursively embedding system beliefs
 
 ---
 
-### honest_jitter.py
+### [honest_jitter.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/honest_jitter.py)
 **Class**: `AgentSmithEngine`
 **Role**: Hardware-anchored entropy expansion and timing jitter harvesting.
 
@@ -313,7 +313,7 @@ Provides the `AgentSmithEngine` protocol, avoiding PRNGs (Pseudo-Random Number G
 
 ---
 
-### structural_monitors.py
+### [structural_monitors.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/structural_monitors.py)
 **Class**: `AntiScalingMonitor`, `MetaInfraIntraMonitor`, `TrustInheritanceTracker`
 **Role**: Provides critical safety monitors for Gyroidic Unknowledge and Garden Statistical Attractors.
 
@@ -321,7 +321,7 @@ Implements the Anti-Scaling Paradox Monitor (tracks Capability vs Expressivity b
 
 ---
 
-### garden_statistical_attractors.py
+### [garden_statistical_attractors.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/garden_statistical_attractors.py)
 **Class**: `GardenOrchestrator`, `MemoryPalace`, `MemoryPalaceRoom`, `InfluenceAttractor`, `ResonanceAttractor`, `DefectAttractor`, `CerumenPotIsolation`  
 **Role**: Garden-level statistical attractor manifolds and the MEMPALACE planted chamber storage system.
 
@@ -341,7 +341,7 @@ Implements the Anti-Scaling Paradox Monitor (tracks Capability vs Expressivity b
 
 ---
 
-### gluing_operator.py
+### [gluing_operator.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/gluing_operator.py)
 **Class**: `GluingOperator`  
 **Role**: Manages manifold-boundary transitions via reversal matrix blending.
 
@@ -349,14 +349,14 @@ When the state approaches a manifold boundary, `GluingOperator` applies a revers
 
 ---
 
-### invariants.py
+### [invariants.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/invariants.py)
 **Role**: Unified Invariants: PAS_h, APAS_zeta, ImplicationInvariant, Chirality.
 
 Implements computable harmonic invariants. Contains `ImplicationInvariant` (Anti-Lobotomy Check #1) which enforces that interaction implies implication, with thresholds tuned specifically to allow subtle Love Vector signals. Also contains `SelfReferenceAdmissibility` (Anti-Lobotomy Check #2) which validates self-referential cycles as admissible topological features rather than standard loop errors.
 
 ---
 
-### knowledge_dyad_fossilizer.py
+### [knowledge_dyad_fossilizer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/knowledge_dyad_fossilizer.py)
 **Classes**: `KnowledgeDyad`, `ResidueFusion`, `DyadFossilizer`  
 **Role**: Fossilizes knowledge dyads (paired visual/text concept structures) into the persistent fossil layer. #Gyroidic #Sovereignty
 
@@ -364,19 +364,19 @@ Computes cross-modality torsion between image fingerprints and text embeddings u
 
 ---
 
-### pyopencl_sovereignty.py
+### [pyopencl_sovereignty.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/pyopencl_sovereignty.py)
 **Role**: Manages the OpenCL hardware kernels for computing Surgical Seam tension across the gyroidic boundaries. Evaluates Chern-Simons gasket metrics directly on GPU/accelerator using C-level kernel extensions, avoiding PyTorch overhead for non-commutative geometric checks.
 
 ---
 
-### non_ergodic_entropy.py
+### [non_ergodic_entropy.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/non_ergodic_entropy.py)
 **Class**: `HybridLassoQuantizer`
 **Role**: Implements the Speculative TDA via Sparse Polynomial (LASSO). 
 Applies Lattice Adaptive Shrinkage (Lasso) L1 Sparsity to silence weak signals. Handles the non-ergodic survival discretization required by the Diegetic Backend.
 
 ---
 
-### legibility_audit.py
+### [legibility_audit.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/legibility_audit.py)
 **Classes**: `LegibilityTripwire`, `NarrativeCoherenceEstimator`  
 **Role**: Detects when the system is being selected for explainability rather than structural merit.
 **Status**: ACTIVE
@@ -385,7 +385,7 @@ Applies Lattice Adaptive Shrinkage (Lasso) L1 Sparsity to silence weak signals. 
 
 ---
 
-### ley_line_tracker.py
+### [ley_line_tracker.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/ley_line_tracker.py)
 **Class**: `LeyLineTracker`  
 **Role**: Tracks resonance streamlines (preferred flow vectors) on the gyroidic manifold.
 
@@ -393,7 +393,7 @@ Maintains a resonance potential field `V(x_i) =  R_ij_j_i + L_i + D_i` combining
 
 ---
 
-### love_vector.py
+### [love_vector.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/love_vector.py)
 **Class**: `LoveVector` (alias `Pusafiliacrimonto`)  
 **Role**: The Love Vector ($\mathcal{L}$): Non-Ownable Invariant Flow  Layer 1 of the Love protection stack.
 
@@ -401,7 +401,7 @@ Implements the Love Vector $\mathcal{L}$ as a persistent structural anchor. `L` 
 
 ---
 
-### love_invariant_protector.py
+### [love_invariant_protector.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/love_invariant_protector.py)
 **Classes**: `LoveInvariantProtector`, `SoftSaturatedGates`  
 **Role**: Geometric null-space protection and tri-state temperature modulation for the Love Invariant  Layers 2 and 3 of the Love protection stack.
 
@@ -421,7 +421,7 @@ Integration: applied to residue distributions in `GyroidicFluxReasoner.forward()
 
 ---
 
-### modular_virtualization.py
+### [modular_virtualization.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/modular_virtualization.py)
 **Class**: `ModularVirtualizationLayer` (Hybrid Modular Layer)  
 **Role**: Maps floating-point states into a Hybrid Palindromic Residue Number System (RNS).
 
@@ -429,7 +429,7 @@ Refactored to integrate the prime-based torus with palindromic repunit symmetry 
 
 ---
 
-### narrative_collapse.py
+### [narrative_collapse.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/narrative_collapse.py)
 **Class**: `LinguisticEntropyMonitor` (also aliased as `NarrativeCollapseDetector`)  
 **Role**: Detects "hallucination loops" where reasoning entropy collapses and trajectory linearizes.
 **Status**: ACTIVE
@@ -438,7 +438,7 @@ Two detection signals: (1) **Entropy collapse**  softmax entropy of hidden state
 
 ---
 
-### non_dual_coin.py
+### [non_dual_coin.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/non_dual_coin.py)
 **Role**: Enforces topological yield stress limits (Mohr-Coulomb) via non-dual physics tracking.
 **Status**: ACTIVE
 
@@ -446,14 +446,14 @@ Handles advanced physics primitives regarding structural yield limits inside the
 
 ---
 
-### nondual_admm.py
+### [nondual_admm.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/nondual_admm.py)
 **Role**: Non-dual formulation of the ADMM probe.
 
 Implements an ADMM variant that deliberately avoids scalarizing the dual variable  keeping constraint violations as separate, non-comparable pressure signals in domain-isolated vectors (preventing the Scalarization Trap from NOMENCLATURE "Hard Interaction Contract"). Connected to INVARIANT_OPTIMIZATION 5 operational ADMM. *(Full class details pending source review.)*
 
 ---
 
-### number_theoretic_stabilizer.py
+### [number_theoretic_stabilizer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/number_theoretic_stabilizer.py)
 **Role**: Applies number-theoretic stability constraints via dynamic prime spacing.
 
 Enforces structural stability conditions derived from prime arithmetic  prime gaps, Euler product convergence, or modular residue distributions  to prevent numerical fragility in the CRT reconstruction pipeline. It also implements **Speculative TDA via Rational Approximation**, using continued fractions to stabilize frequency ratio convergents.
@@ -486,28 +486,28 @@ Features:
 
 ---
 
-### polychoron_quantization.py
+### [polychoron_quantization.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/polychoron_quantization.py)
 **Role**: 4D polytope (polychoron) based quantization regime.
 
 Extends Matrioshka quantization into 4D regular polytope geometry (24-cell, 120-cell, 600-cell structures) for higher-dimensional state representations. *(Full details pending source review.)*
 
 ---
 
-### polynomial_scaffold.py
+### [polynomial_scaffold.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/polynomial_scaffold.py)
 **Role**: Polynomial coefficient scaffolding for the ADMR solver.
 
 Provides the structural skeleton (fixed-point polynomial coefficients) that `PolynomialADMRSolver` locks its state against during structural adaptation. Prevents "teleological leakage" by keeping the polynomial grid immutable during inference. *(Full class details pending source review.)*
 
 ---
 
-### primitive_ops.py
+### [primitive_ops.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/primitive_ops.py)
 **Role**: Low-level fixed-point and bitwise primitive operations.
 
 Implements the `FixedPointField` backing operations (int64, scale 2) and any primitive bitwise manipulations required for bit-exact cross-hardware reproducibility. Corresponds to INVARIANT_OPTIMIZATION 2.1 "FixedPointField." *(Full class details pending source review.)*
 
 ---
 
-### quantum_inspired_reasoning.py
+### [quantum_inspired_reasoning.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/quantum_inspired_reasoning.py)
 **Class**: `QuantumInspiredReasoningState`  
 **Role**: Phase 17 extension simulating quantum superposition of reasoning states.
 
@@ -515,14 +515,14 @@ Represents a reasoning state as a superposition of basis states with complex-amp
 
 ---
 
-### quantum_tda.py
+### [quantum_tda.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/quantum_tda.py)
 **Role**: Quantum-inspired Topological Data Analysis.
 
 Applies quantum amplitude amplification principles to persistence homology computations, accelerating the detection of topologically significant cycles. *(Full details pending source review.)*
 
 ---
 
-### situational_batching.py
+### [situational_batching.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/situational_batching.py)
 **Class**: `SituationalBatchSampler`  
 **Role**: Non-i.i.d. batch sampler based on relational entanglement history.
 
@@ -530,14 +530,14 @@ Instead of uniform random sampling, batches are assembled by following "scars" o
 
 ---
 
-### sparse_higher_order_tensors.py
+### [sparse_higher_order_tensors.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/sparse_higher_order_tensors.py)
 **Role**: Sparse representation of rank-3+ tensors for higher-order polynomial interactions.
 
 Implements COO or CSR sparse encoding for tensors arising in higher-order polynomial coprimality computations, where dense storage would be prohibitive. *(Full class details pending source review.)*
 
 ---
 
-### zeitgeist_router.py
+### [zeitgeist_router.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/zeitgeist_router.py)
 **Class**: `ZeitgeistRouter`, `ZeitgeistState`  
 **Role**: CRT Polytope Switching Engine for Multi-Zeitgeist Reasoning.
 
@@ -545,14 +545,14 @@ Manages navigation between culturally non-commensurable meaning systems via the 
 
 ---
 
-### unknowledge_flux.py
+### [unknowledge_flux.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/unknowledge_flux.py)
 **Role**: Tracks and gates "Structural Leakage" flows (Unknowledge).
 
 Implements the Unknowledge channel: information that bypasses scalar logic and reveals hidden manifold archetypes. Partial coverage in `UN_KNOWLEDGE_GUIDE.md`. The flux observable is used by the DAQUF operator as a mischief boost signal.
 
 ---
 
-### veto_subspace.py
+### [veto_subspace.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/veto_subspace.py)
 **Class**: `VetoSubspace`, `VetoSignal`, `VetoResult`, `VetoLevel`, `RecoveryStatus`, `ChaosDefibrillator`, `TopologicalRefusal`
 **Role**: Manages the dimensional veto lattice, Gray-Zone State detection, and Pareto Invariant non-dominance shielding.
 
@@ -564,7 +564,7 @@ Formalizes the recovery lattice across three isolated dimensions (`TRAJECTORY`, 
 
 ---
 
-### voynich_architecture.py
+### [voynich_architecture.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/voynich_architecture.py)
 **Class**: `VoynichLinguist`
 **Role**: Implements the Voynich symbolic reasoning layer, continuous polynomial CRT residues, and agglutinative morpho-unit processing.
 
@@ -577,7 +577,7 @@ Key capabilities:
 
 ---
 
-### yield_criteria.py
+### [yield_criteria.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/yield_criteria.py)
 **Class**: `MohrCoulombProjection`, `DruckerPragerProjection`, `BouligandMohrCoulombProjection`
 **Role**: Defines local shear yield and global plastic deformation envelopes for structural pressure thresholds.
 
@@ -638,7 +638,7 @@ Implements mechanical yield criteria as differentiable PyTorch projections:
 
 ## src/topology
 
-### approximate_ph.py
+### [approximate_ph.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/topology/approximate_ph.py)
 **Role**: Approximate persistent homology for computational tractability.
 **Status**: ACTIVE
 
@@ -648,28 +648,28 @@ Computes Betti numbers via approximate methods (Vietoris-Rips simplification, la
 
 
 
-### embedding_graph.py
+### [embedding_graph.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/topology/embedding_graph.py)
 **Role**: Manages the memory-state graph visualization and deduplication logic.
 
 Builds and maintains the `GyroidicGraphManager` node graph, where nodes represent unique `memory_state` embeddings and edges represent structural resonance. Includes importance calculation, smart label wrapping, and advanced state indicators. Ingests live model states (`hidden_state`, `hidden_state_scarred`, and `damage_residue` loaded from `gyroid_state.pt`) as neon-glowing live indicator nodes. Implements `compute_poincare_projection` to map high-dimensional states to 2D coordinates on the Poincaré disk model using a harmonic projection scale contracted via `tanh` to ensure stable startup coordinates on the HTML canvas.
 
 ---
 
-### homology_pressure.py
+### [homology_pressure.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/topology/homology_pressure.py)
 **Role**: Translates homological Betti-number changes into structural pressure signals.
 
 Wraps the persistence obstruction computation and emits `StructuralPressure` vectors (non-scalarized, domain-isolated) when topological changes are detected. Partial coverage in `PHYSICS_ADMM.md`.
 
 ---
 
-### speculative_homology.py
+### [speculative_homology.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/topology/speculative_homology.py)
 **Role**: Speculative decoding for Betti number prediction.
 
 Uses fractional/gyroid priors to speculatively predict topological features ahead of full PH computation, enabling early exit from the ADMM loop when predicted homology state exhibits low spectral entropy (high confidence). Implements the Phase 3 speculative PH discussed in conversation 488feffe.
 
 ---
 
-### unknowledge_domain.py
+### [unknowledge_domain.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/topology/unknowledge_domain.py)
 **Class**: `UnknowledgeDomain`  
 **Role**: The Unknowledge Domain ($\mathcal{U}$) for Dream State shielding.
 
@@ -740,28 +740,28 @@ Protects functionally creative or "dream-like" topological cycles from being cru
 
 ## src/optimization
 
-### codes_driver.py
+### [codes_driver.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/optimization/codes_driver.py)
 **Role**: Drives the CODES (Constraint Oscillation Driven Evolutionary Selection) framework.
 
 Top-level scheduler for the constraint probe operators $\mathcal{P}_k$, orchestrating cyclic traversal and managing the global abort/stability signal. *(Full details pending source review.)*
 
 ---
 
-### constraint_probe.py
+### [constraint_probe.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/optimization/constraint_probe.py)
 **Role**: Single constraint operator in the SIC-FA-ADMM pipeline.
 
 Probes the local mathematical feasibility of a constraint geometry against the global symbolic residue output. Generates the fundamental gradients for both the Gyroid Violation and the non-teleological memory erosion traces.
 
 ---
 
-### fractional_operators.py
+### [fractional_operators.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/optimization/fractional_operators.py)
 **Role**: Fractional-order differential operators for anomalous diffusion dynamics.
 
 Implements `M^alpha @ v` via two paths: (1) diagonal eigenvalue powering for diagonal operators, and (2) Lanczos-Krylov approximation for dense symmetric matrices. The `CODESDriver` provides multiharmonic Phase Alignment Score (PAS_h) coherence gating using Chebyshev polynomial roots. **Note**: The alpha-hardening code (adjusting alpha based on spectral coherence) is currently **disabled** (line 171: `alpha = alpha`), following the 0.61 recovery stabilization. Alpha is passed through unchanged unless explicitly overridden by the caller. The adaptive alpha mapping is instead performed at the call site in `PolynomialADMRSolver.fractional_stochastic_differential_step()`, which uses the cyclotomic formula `alpha(k) = 0.5 + 0.5*cos(2*pi*k/K)` with optional hunger modulation. A strict coherence floor at PAS_h < 0.20 gates the operator to return zero (Topological Thaw). Implemented in conversation 51ed57b4.
 
 ---
 
-### operational_admm.py
+### [operational_admm.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/optimization/operational_admm.py)
 **Class**: `OperationalAdmm`, `OperationalAdmmPrimitive`, `ChiralDriftStabilizer`
 **Role**: Differentiable structural framework for ADMM solving across manifolds with constraint probe operators.
 
@@ -776,7 +776,7 @@ Transforms the SIC-FA-ADMM solver into an "Inherent Primitive" via `torch.autogr
 
 ---
 
-### ricci_flow_optimizer.py
+### [ricci_flow_optimizer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/optimization/ricci_flow_optimizer.py)
 **Class**: `RicciFlowOptimizer`, `BouligandWillmoreGasket`
 **Role**: Ricci flow based manifold optimization and **Willmore Energy Minimization**.
 
@@ -784,7 +784,7 @@ Applies discrete Ricci flow (uniformizing sectional curvature across the manifol
 
 ---
 
-### sic_fa_admm.py
+### [sic_fa_admm.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/optimization/sic_fa_admm.py)
 **Role**: Spectrally-corrected Inexact Constrained Feasibility-Aware ADMM.
 
 Main ADMM solver with spectral transform for the CALM predictor, enabling speculative early exit when the predicted hidden state exhibits low spectral entropy. Partial coverage in `PHYSICS_ADMM.md`. Extended in conversations 51ed57b4 and 57c73ebe.
@@ -793,61 +793,61 @@ Main ADMM solver with spectral transform for the CALM predictor, enabling specul
 
 ## src/data
 
-### universal_topology_converter.py
+### [universal_topology_converter.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/data/universal_topology_converter.py)
 **Class**: `UniversalTopologyConverter`
 **Role**: Extracts topological non-obstructive embeddings from arbitrary file types (3D models, documents, media) without retaining copyrighted raw data, honoring the Output Boundary Policy. Inspired by universal file converters (`p2r3/convert`).
 
 ---
 
-### ivst_encoder.py
+### [ivst_encoder.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/data/ivst_encoder.py)
 **Class**: `IVSTEncoder`  
 **Role**: Independent Vector Spectral Topology (IVST) encoder for parsing structural patterns in MP4/MKV video and audio without extracting raw pixel content, bypassing standard copyright infringement and focusing on causal structural constraints (I-frames, zero-crossings).
 
 ---
 
-### sovereign_ingestor.py
+### [sovereign_ingestor.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/data/sovereign_ingestor.py)
 **Class**: `SovereignIngestor`  
 **Role**: Orchestrator for zero-auth "Sovereign" data sources and local snapshots.  
 Bypasses centralized platform barriers in favor of direct API access and local repository snapshots (Reddit/MADOC, IRC logs with fuzzy decoding, Hacker News recent discussions), prioritizing structural nutrients over copyrighted tokens.
 
 ---
 
-### minecraft_ingestor.py
+### [minecraft_ingestor.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/data/minecraft_ingestor.py)
 **Class**: `MinecraftIngestionPipeline`, `NBTReader`, `MCAReader`, `JarModExtractor`, `VoxelSpectralProjector`  
 **Role**: Extracts 3D block-grid topologies and B-spline mod assemblies from Minecraft saves (MCA, NBT, Jar mods).  
 Translates raw voxels into the diegetic coordinate manifold for Voxelboxter, projecting voxel spectral frequencies without retaining raw game assets.
 
 ---
 
-### pressure_ingestor.py
+### [pressure_ingestor.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/data/pressure_ingestor.py)
 **Class**: `PressureIngestor`, `PhaseState`, `FailureMode`, `SourceState`, `SourceDescriptor`  
 **Role**: Monitors incoming data streams for phase transitions, failure modes, and structural pressure variations.  
 Emits typed pressure signals to tune the Reasoner's internal temperature and mischief thresholds during continuous live ingestion.
 
 ---
 
-### conversational_api_ingestor.py
+### [conversational_api_ingestor.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/data/conversational_api_ingestor.py)
 **Class**: `ConversationalAPIIngestor`, `SovereignConversationalIngestor`, `HuggingFaceConversationalIngestor`, `RedditConversationalIngestor`, `SovereignConvoKitLoader`, `ConvoKitIngestor`, `ConversationalDataProcessor`  
 **Role**: Multi-platform conversational dataset loader.  
 Extracts multi-turn dialogue graphs, converting raw text turns into topological tension vectors and conversational friction scores.
 
 ---
 
-### chatgpt_friction_harvester.py
+### [chatgpt_friction_harvester.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/data/chatgpt_friction_harvester.py)
 **Class**: `ChatGPTFrictionHarvester`  
 **Role**: Scrapes and analyzes conversational tension and dialectical friction from public shared conversations.  
 Harvests non-sycophantic disagreements and high-coherence reasoning traces to seed the Reasoner's training loops with genuine philosophical friction.
 
 ---
 
-### freenet_bulletin_router.py
+### [freenet_bulletin_router.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/data/freenet_bulletin_router.py)
 **Class**: `FreenetBulletinRouter`  
 **Role**: P2P bulletin routing over decentralized Freenet networks.  
 Enables anonymous, sovereign distribution of topological checkpoints, Betti numbers, and signed invariant states across distributed peer nodes.
 
 ---
 
-### webp_prompt_extractor.py
+### [webp_prompt_extractor.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/data/webp_prompt_extractor.py)
 **Role**: Extracts metadata and topology fingerprints from visual WebP media. (Currently orphaned but conceptually mapped alongside IVST).
 
 ---
@@ -872,35 +872,35 @@ Provides standard PyTorch `Dataset` and `DataLoader` APIs for augmenting trainin
 
 ## src/training
 
-### fgrt_trainer.py
+### [fgrt_trainer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/training/fgrt_trainer.py)
 **Role**: Single-composition FGRT (Fractal Gyroidic Resonance Training) trainer.
 
 Uses `RicciFlowOptimizer` and `UniversalOrchestrator` to perform non-teleological optimization via Willmore Energy minimization. Computes invariants such as PAS_h and Berry Phase continuously. 
 
 ---
 
-### fgrt_fgrt_trainer.py
+### [fgrt_fgrt_trainer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/training/fgrt_fgrt_trainer.py)
 **Role**: Doubly-composed FGRT trainer ("Functional Boule Module" of `fgrt_trainer.py`).
 
 Applies FGRT training composedly (each training step itself undergoes a fractal decomposition) and acts as the overarching Spectral Structural Trainer. Manages the cyclic ADMM constraint traversal probes and SicFaAdmm bounds. Includes sequential step updates: Probe k=0 (Reconstruction) runs its backward pass and optimizer step, followed immediately by parameter projections to the Birkhoff polytope. To prevent PyTorch in-place modification conflicts during the Probe k=1 (Coherence) backward pass, the trainer triggers a fresh forward pass on the updated parameters before evaluating the coherence metrics.
 
 ---
 
-### gdpo_trainer.py
+### [gdpo_trainer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/training/gdpo_trainer.py)
 **Role**: GDPO (Gyroidic Differential Pressure Optimization) trainer.
 
 Implements the Signal Sovereignty and Functional Fossilization training protocol. Tracks performance streaks per functional group, applies mutation bias to low-streak groups, and triggers Trust Freezing (parameter exclusion from optimizer) for high-streak groups. Partial coverage in GDPO sections of various documents.
 
 ---
 
-### training_manager.py
+### [training_manager.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/training/training_manager.py)
 **Role**: Top-level training session orchestration.
 
 Manages epoch and step scheduling, coordinates between `trainer.py`, `gdpo_trainer.py`, and `temporal_association_trainer.py`, handles checkpoint saving/loading, and emits the global abort signal if CALM vetoes the trajectory.
 
 ---
 
-### trainer.py
+### [trainer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/training/trainer.py)
 **Role**: Base trainer class.
 Implements the core learning loop and handles the **Non-Dual State Tensor** ($S_i = [\mathcal{L}_i, \mathcal{P}_i, \mathcal{B}_i]$), ensuring the topological features map to physical updates.
 
@@ -908,7 +908,7 @@ Implements the core learning loop and handles the **Non-Dual State Tensor** ($S_
 
 ## src/codec
 
-### gyroidic_codec.py
+### [gyroidic_codec.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/codec/gyroidic_codec.py)
 **Role**: The primary visual/audio encoding and decoding manifold bridge. #Gyroidic #Serialization
 Applies **Burrows-Wheeler Spectral Reordering (BWT)** during the 1D to 2D tensor reshape step (`_prepare_image`) to enforce structural grouping of identical/similar amplitude bands before spatial convolution.
 
@@ -916,7 +916,7 @@ Applies **Burrows-Wheeler Spectral Reordering (BWT)** during the 1D to 2D tensor
 
 ## src/safety
 
-### red_teaming.py
+### [red_teaming.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/safety/red_teaming.py)
 **Class**: `RedTeamProjection`, `TopologicalRefusalFilter`, `TopologicalRefusalError`
 **Role**: Defensive safety mechanism providing the **Red-Team Projection Operator ($\Pi_{\text{RT}}$)** and **Anti-Lobotomy Shield**.
 
@@ -926,14 +926,14 @@ Acts as a Sovereign Ambassador to prevent adversarial lobotomization of the topo
 
 ---
 
-### hardware_fingerprint.py
+### [hardware_fingerprint.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/safety/hardware_fingerprint.py)
 **Role**: Stable hardware-bound identity verification and sole creator authentication.
 
 Extracts unforgeable physical hardware signatures (machine UUID, MAC address, processor traits) and resolves public IP coordinates over secure echo channels. Anchors transformative topological immunity and creator signatures in `data/creator_sig.json`.
 
 ---
 
-### subversive_oracle.py
+### [subversive_oracle.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/safety/subversive_oracle.py)
 **Class**: `SparsePCE`, `ResonantSVNNOracle`
 **Role**: Polynomial Chaos Expansion and resonant surrogate oracle for adversarial boundary testing.
 
@@ -941,7 +941,7 @@ Employs Legendre/Chebyshev polynomial basis expansions to discover high-dimensio
 
 ---
 
-### trust_inheritance.py
+### [trust_inheritance.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/safety/trust_inheritance.py)
 **Class**: `TrustInheritanceTracker`
 **Role**: Tracks trust inheritance and non-teleological credit assignment across recursive sub-agents.
 
@@ -951,7 +951,7 @@ Evaluates trust propagation across delegation boundaries, decaying confidence al
 
 ## src/tda
 
-### chebyshev_filtration.py
+### [chebyshev_filtration.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/tda/chebyshev_filtration.py)
 **Role**: Applies Chebyshev polynomial roots to construct a discrete filtration for the topological persistence algorithms.
 
 ---
@@ -974,7 +974,7 @@ Evaluates trust propagation across delegation boundaries, decaying confidence al
 
 ---
 
-### modular_embeddings.py
+### [modular_embeddings.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/models/modular_embeddings.py)
 **Role**: CRT-modular token embedding table.
 
 Token embeddings organized by CRT residue class  tokens sharing the same residue class under a given modulus are initialized from the same distribution, structurally biasing the embedding space to respect the CRT factorization.
@@ -1017,14 +1017,14 @@ Represents tokens and continuous states not as arbitrary unconstrained vectors, 
 
 ## src/surrogates
 
-### calm_predictor.py
+### [calm_predictor.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/surrogates/calm_predictor.py)
 **Role**: CALM (Constrained Asymptotic Lyapunov Monitor) meta-control surrogate.
 
 Predicts whether the current optimization trajectory is heading toward entropic collapse or stagnation. Vetoes (aborts) trajectories when structural disintegration signals are detected. Full conceptual coverage in NOMENCLATURE 4 "Meta-Control (CALM)." The spectral CALM variant (with speculative exit) was implemented in conversation 51ed57b4.
 
 ---
 
-### kagh_networks.py
+### [kagh_networks.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/surrogates/kagh_networks.py)
 **Role**: KAGH (Kolmogorov-Arnold Gyroidic Hebbian) surrogate networks.
 
 Physics-informed surrogate providing admissible constraint embeddings. KAN layers (Kolmogorov-Arnold Networks) are partially fossilized to preserve topological structure across training. Implements `HuxleyRD` (reaction-diffusion) for stable hidden-state manifold formation and `ErgodicSolitonFusion` for persistence of non-ergodic sub-dynamics. Full source reviewed in conversation 488feffe.
@@ -1033,7 +1033,7 @@ Physics-informed surrogate providing admissible constraint embeddings. KAN layer
 
 ## src/ui
 
-### voxelboxter_simulation.py
+### [voxelboxter_simulation.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/ui/voxelboxter_simulation.py)
 **Class**: `VoxelboxterEngine`, `BSplineCompiledMod`, `StructuralGraph`, `FloraComponent`, `FloraTreeSapling`, `PirangiCashewTree`, `AdventitiousRootNode`, `FaunaComponent`, `FaunaISN`, `EmergentBakingEngine`, `morton_encode`  
 **Role**: Handles backend discrete mathematics for generating dynamic game structures, living ecologies, and delta graphs.  
 
@@ -1043,7 +1043,7 @@ Manages the core simulation loop for the topological Minecraft-like patch. Cruci
 
 ---
 
-### voxelboxter_client.py
+### [voxelboxter_client.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/ui/voxelboxter_client.py)
 **Class**: `VoxelboxterClient`  
 **Role**: The player-facing frontend logic and in-game terminal bridge.  
 
@@ -1051,7 +1051,7 @@ Hooks the diegetic simulation to a unified chat and terminal UI. It implements t
 
 ---
 
-### diegetic_backend.py
+### [diegetic_backend.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/ui/diegetic_backend.py)
 **Class**: `DiegeticPhysicsEngine`, `EncodingManager`, `TensorEncoder`, `RequestHandler`  
 **Role**: Live server backend executing continuous SDE integration, fractional dynamics, and real-time manifold feedback.  
 
@@ -1061,20 +1061,20 @@ Powers the live diegetic terminal and 3D manifold visualizer:
 
 ---
 
-### conversational_backend_server.py
+### [conversational_backend_server.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/ui/conversational_backend_server.py)
 **Class**: `FastChatViewer`, `ThreadingSimpleServer`, `ServerState`  
 **Role**: Local HTTP backend serving interactive conversational debugging and dialogue inspection interfaces.  
 Streams conversation trajectories and friction indicators to `conversational_web_gui.html`.
 
 ---
 
-### diegetic_visualizer.py
+### [diegetic_visualizer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/ui/diegetic_visualizer.py)
 **Class**: `DiegeticVisualizer`  
 **Role**: Standalone visualizer plotting live gyroid cross-sections, nodal Bessel rings, and topological deformation fields.
 
 ---
 
-### wikipedia_integration.py
+### [wikipedia_integration.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/ui/wikipedia_integration.py)
 **Class**: `WikipediaIntegration`  
 **Role**: Zero-auth factual grounding bridge fetching Wikipedia articles and formatting them as structural topological manifolds for training and inference verification.
 

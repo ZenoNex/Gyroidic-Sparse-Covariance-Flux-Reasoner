@@ -1,0 +1,11 @@
+const tree = d3.tree()
+    .size([2 * Math.PI, Math.min(containerWidth, containerHeight) / 0.5])  
+    .separation((a, b) => {
+        const baseSeparation = (a.parent == b.parent ? 4 : 6);
+        
+        const depthFactor = Math.max(1, 10 - a.depth);
+        
+        const outerNodeSpacing = a.depth >= 2 ? 6 : 3;
+        
+        return baseSeparation * depthFactor * outerNodeSpacing * Math.pow(2, a.depth);
+    });

@@ -180,7 +180,16 @@ Domain transformations are governed by directional transfer couplings:
 - $\text{gauge}_{\text{thermal} \to \text{gpu}} = G_{\text{thermal}}$: Drops to $0.0$ immediately upon thermal runaway, shielding GPU queues.
 - $\text{gauge}_{\text{thermal} \to \text{algorithmic}} = G_{\text{thermal}}^2$: Quadratically throttles expensive verification checks before physical limits are reached.
 - $\text{gauge}_{\text{topo} \to \text{algorithmic}} = \max(0, 1 - S_{\text{abort}})$: Suppresses non-critical tasks during topological rupture.
-- $\text{gauge}_{\text{silicon} \to \text{p2p}} = \min(G_{\text{silicon}}, G_{\text{p2p}})$: Harmonizes local physical constraints with distributed consensus budgets.
+### 5.5 UniversalOrchestrator Dynamic Thermodynamic Loop
+[`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L81) maintains continuous bidirectional communication with [`CarnotMobiusLedger`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/carnot_mobius_ledger.py#L17) during every inference and adaptation cycle:
+1. **Dynamic MAML Learning Rate Damping**:
+   Under moderate thermal contraction ($0.05 \le \text{Margin}_{\text{thermal}} < 0.25$), `UniversalOrchestrator` damps online meta-learning step sizes:
+   $$\alpha_{\text{eff}} = \alpha \cdot \left(\frac{\text{Margin}_{\text{thermal}}}{0.25}\right)$$
+   preventing optimizer-induced thermal spiking.
+2. **CALM Prediction Horizon Contraction**:
+   The forward lookahead horizon of [`CALMPredictor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/surrogates/calm_predictor.py#L22) contracts from $H=16$ to $H=4$ when thermal affordance is restricted, shifting compute toward topological stabilization.
+3. **Emergency Phase-Field Venting**:
+   If $P_{\text{waste}} > P_{\text{cool, max}}$, `UniversalOrchestrator` engages the `DiegeticPhysicsEngine` optimal transport dissipation gradient $\nabla \psi^*$ to vent accumulated contortion energy directly into the vacuum sink $\Lambda_{\text{vac}}$.
 
 ---
 

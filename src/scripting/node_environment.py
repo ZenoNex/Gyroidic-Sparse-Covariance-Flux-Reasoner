@@ -726,6 +726,12 @@ class PhysicalNodeEditor:
             self.battery.current_charge = 0.0
 
         net_thrust = sum(p.thrust for p in self.propulsors) * self.engine.throttle * power_satisfied * timing_eff
+
+        # Synthetic diesel fuel combustion stroke & boost
+        is_combusting, diesel_consumed, combustion_boost = self.engine.consume_diesel_fuel(dt)
+        if is_combusting:
+            net_thrust *= combustion_boost
+
         accel = net_thrust / max(1.0, self.rigid_body.mass)
         vx, vy, vz = self.rigid_body.linear_velocity
         vz += accel * dt
@@ -739,7 +745,10 @@ class PhysicalNodeEditor:
             "net_thrust": net_thrust,
             "speed": abs(vz),
             "accumulated_delta_v": self.rigid_body.accumulated_delta_v,
-            "last_tier": self.rigid_body.last_impulse_tier
+            "last_tier": self.rigid_body.last_impulse_tier,
+            "diesel_fuel_mb": self.engine.diesel_fuel_mb,
+            "diesel_consumed_mb": diesel_consumed,
+            "combustion_boost": combustion_boost if is_combusting else 1.0
         }
 
     def hook_voxelboxter_efficiency_singularity(
@@ -1025,6 +1034,11 @@ class PhysicalNodeEditor:
             saltwater_mb=saltwater_mb,
             energy_fe=energy_fe
         )
+        # Deposit generated cathodic hydrogen gas into expanded inventory gas tanks
+        if res.hydrogen_gas_mb > 0:
+            from src.environment.cleanroom_mechanics import GasStack
+            self.expanded_inventory.add_gas(GasStack(gas_id="hydrogen", amount_mb=res.hydrogen_gas_mb))
+
         return {
             "precious_metal_units": res.precious_metal_units,
             "base_metal_units": res.base_metal_units,
@@ -1033,7 +1047,57 @@ class PhysicalNodeEditor:
             "spent_energy_fe": res.spent_energy_fe,
             "recycled_saltwater_mb": res.recycled_saltwater_mb,
             "efficiency_ratio": res.efficiency_ratio,
+            "hydrogen_gas_mb": res.hydrogen_gas_mb,
             "membrane_durability": self.sem_extractor.membrane_durability
+        }
+
+    def hook_cleanroom_synthetic_diesel(
+        self,
+        carbon_count: int = 16,
+        hydrogen_mb: float = 4000.0,
+        route: str = "gasification_fischer_tropsch",
+        tier: int = 2,
+        energy_fe: float = 2000.0,
+        acid_reagent_mb: float = 0.0,
+        deposit_to_vehicle: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Hook for Mekanism multi-tier synthetic diesel synthesis pipeline.
+        Bridges carbon feedstocks and electrolytic hydrogen into diesel fuel
+        deposited into ExpandedInventorySystem and consumed by VehicleEngine.
+        """
+        res = self.mekanism.process_synthetic_diesel_synthesis(
+            carbon_count=carbon_count,
+            hydrogen_mb=hydrogen_mb,
+            route=route,
+            tier=tier,
+            energy_fe=energy_fe,
+            acid_reagent_mb=acid_reagent_mb
+        )
+
+        # Deposit produced fluid into inventory tanks
+        if res.diesel_fuel_mb > 0:
+            from src.environment.cleanroom_mechanics import FluidStack
+            self.expanded_inventory.add_fluid(
+                FluidStack(fluid_id="synthetic_diesel", amount_mb=res.diesel_fuel_mb)
+            )
+            if deposit_to_vehicle:
+                self.engine.add_diesel_fuel(res.diesel_fuel_mb)
+
+        return {
+            "diesel_fuel_mb": res.diesel_fuel_mb,
+            "consumed_carbon_count": res.consumed_carbon_count,
+            "consumed_hydrogen_mb": res.consumed_hydrogen_mb,
+            "remaining_carbon_count": res.remaining_carbon_count,
+            "remaining_hydrogen_mb": res.remaining_hydrogen_mb,
+            "route": res.route,
+            "tier": res.tier,
+            "spent_energy_fe": res.spent_energy_fe,
+            "waste_heat_flux": res.waste_heat_flux,
+            "thermal_runaway": res.thermal_runaway,
+            "thermodynamic_eta": res.thermodynamic_eta,
+            "stoichiometric_ratio": res.stoichiometric_ratio,
+            "engine_tank_level_mb": self.engine.diesel_fuel_mb
         }
 
     def hook_cleanroom_aeronautics(
@@ -2059,6 +2123,7 @@ class PhysicalNodeEditor:
         mek_res = self.hook_cleanroom_mekanism(tier=mek_tier, raw_ore=mek_ore, chemical_reagent_mb=mek_reagent)
         self.sem_extractor.membrane_durability = sem_membrane
         sem_res = self.hook_cleanroom_sem_tech(tailings_count=sem_tailings, saltwater_mb=sem_saltwater, energy_fe=sem_energy)
+        diesel_res = self.hook_cleanroom_synthetic_diesel(carbon_count=8, hydrogen_mb=2000.0, route="gasification_fischer_tropsch", tier=mek_tier)
         aero_res = self.hook_cleanroom_aeronautics(balloon_volume_m3=aero_volume, gas_type=aero_gas, propeller_rpm=aero_rpm, dt=dt)
         nutr_res = self.hook_cleanroom_nutrition(food_id=food_id, nutrition=food_nutr, saturation=food_sat)
         conduit_res = self.hook_cleanroom_conduits_rednet(channel_color=rednet_color, signal_strength=rednet_signal, power_active=conduit_power, fluid_active=conduit_fluid)
@@ -2111,6 +2176,7 @@ class PhysicalNodeEditor:
             "multi_mine": mm_res,
             "mekanism": mek_res,
             "sem_tech": sem_res,
+            "synthetic_diesel": diesel_res,
             "aeronautics": aero_res,
             "nutrition": nutr_res,
             "conduit_rednet": conduit_res,

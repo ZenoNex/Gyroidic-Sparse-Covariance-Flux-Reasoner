@@ -202,13 +202,58 @@ Different paths through the braid trace genuinely different trajectories in the 
 
 ### Measuring the curvature of the mode switch
 
-The `NonCommutativityCurvature` module (2-4 above) can be applied to the pre-and post-switch meta_states to quantify how much path-dependence is introduced. A high `K_rel` from this measurement would confirm that the commutativity choice is non-trivially affecting the trajectory:
+The [`NonCommutativityCurvature`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/noncommutativity_curvature.py#L12) module can be applied to the pre- and post-switch meta-states to quantify how much path-dependence is introduced:
 
 ```python
 nc = NonCommutativityCurvature(dim=dim)
 kappa_dict = nc.compute_curvature(A_mat, B_mat)
-# kappa_dict['relative_curvature'] > 0.3  strongly non-commutative regime
+# kappa_dict['relative_curvature'] > 0.3 indicates strongly non-commutative regime
 ```
 
-This is not currently called inside `process_input` on every request (cost), but can be enabled for diagnostic sessions.
+---
+
+## 6. Silicon Sovereignty: TailSlayer PyOpenCL Dual-Queue Hardware Racing
+
+In accordance with anti-simulatable silicon sovereignty, non-commutative operator ordering is physically anchored into hardware via the **TailSlayer PyOpenCL architecture** in [`pyopencl_sovereignty.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/pyopencl_sovereignty.py#L1432):
+
+### 6.1 The Dual-Queue Matrix Mixing Engine
+When evaluating non-commuting operators $A$ and $B$, rather than forcing a deterministic software serialization, the system dispatches:
+- **Queue A**: Evaluates forward path $A \cdot B$ on OpenCL Compute Queue 0.
+- **Queue B**: Evaluates reverse path $B \cdot A$ on OpenCL Compute Queue 1.
+
+### 6.2 The First-to-Finish TailSlayer Bypass
+The physical race between Queue A and Queue B resolves which strand of the Braid group crosses first:
+$$\text{Trajectory} = \begin{cases} A \cdot B & \text{if Queue A finishes first} \\ B \cdot A & \text{if Queue B finishes first} \end{cases}$$
+The winner of the hardware execution race determines the non-commutative manifold trajectory. The difference between execution completion times:
+$$\Delta t_{\text{silicon}} = |t_{\text{finish}}(A) - t_{\text{finish}}(B)|$$
+acts as a physical entropy harvest ([`harvest_honest_jitter`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py#L42)), eliminating synthetic pseudo-random number generation (`torch.randn`) from the reasoner's decision path.
+
+---
+
+## 7. Compute Affordance Gating & Thermal Throttling
+
+Evaluating the full antisymmetric curvature 2-form $\kappa = \frac{1}{2}([A, B] - [A, B]^\top)$ and Frobenius norm requires $O(d^3)$ matrix operations. Under constrained compute or elevated thermal loads, the system dynamically gates this pipeline via the Topologically-Aware Hardware Interface ([`HardwareMonitor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py#L4)):
+
+### 7.1 Affordance-Driven Execution Modes
+1. **Full Curvature Mode (`ComputeAffordanceType.ALGORITHMIC` >= 0.7)**:
+   Computes exact $[A, B]$, Frobenius norm $K_{\text{norm}}$, scale-invariant $K_{\text{rel}}$, and wedge product decomposition $\kappa_{ij} e_i \wedge e_j$.
+2. **Exponential Moving Average Fallback (`0.25 <= Affordance < 0.7`)**:
+   Bypasses full $O(d^3)$ matrix multiplication; updates and queries the running `curvature_ema` buffer with $O(d)$ diagonal projections.
+3. **Hard Thermal Veto (`Margin_thermal < 0.05` or `thermal_runaway == True`)**:
+   Instantly suppresses non-commutativity diagnostics across all downstream callers ([`ZeitgeistRouter`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/zeitgeist_router.py#L45), [`process_input`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L1820)), freezing current operator ordering to prevent critical melting depth $N_{\text{crit}}$ violations.
+
+---
+
+## 8. Universal Orchestrator Rehybridization & Ouroboros Shadow Logging
+
+The non-commutativity curvature tensor is natively rehybridized into [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L81) across all operational vectors:
+
+### 8.1 3-Strand Braid Group Automaton Control
+`UniversalOrchestrator` feeds curvature pressure $p_{\text{NC}} = \sigma(3 K_{\text{rel}} - 1)$ directly into the Braid group registers:
+- When $p_{\text{NC}} < 0.33$, the system remains in **interior mode** (operators commute sufficiently to allow parallel or symmetric execution).
+- When $p_{\text{NC}} \ge 0.33$, the system transitions to **switching/grazing mode**, applying the braid generators $\sigma_1, \sigma_2, \sigma_3$ to enforce rigid path-dependence.
+
+### 8.2 Ouroboros Failure Digestion
+If a non-commutative operation produces a topological rupture ($\kappa > \kappa_{\text{rupture}}$ or condition number $\kappa > 100$), the event is captured into the `[SHADOW LOG]` buffer of [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L81). At the end of the inference cycle, [`DyadFossilizer.fossilize()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py#L22) digests the rupture as a permanent topological scar on the Poincaré disk, transforming computational friction into irreducible memory.
+
 
