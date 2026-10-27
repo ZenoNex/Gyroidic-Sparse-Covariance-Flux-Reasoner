@@ -16,6 +16,7 @@ from src.benchmarks.ai_reasoner_evaluator import AIReasonerEvaluator
 from src.benchmarks.chordlock_evaluator import ChordlockEvaluator
 from src.benchmarks.memory_palace_evaluator import MemoryPalaceEvaluator
 from src.benchmarks.topological_singularity_evaluator import TopologicalSingularityEvaluator
+from src.benchmarks.ihc_and_compute_affordance_evaluator import IHCAndComputeAffordanceEvaluator
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,6 +34,7 @@ class BenchmarkSuiteRunner:
     - Chordlock: Harmonic Closure, Coherent Prime Resonance, Lattice Scaling, Hedged Read Path, Chiral Unfolding
     - MemoryPalace: High-D Spatial Isolation, SLERP Soliton Breeding, Outlier Resilience, Puncture Invariance, CRT Compression
     - TopologicalSingularity: Octree Multiplexing, Coprime Bypass, Mechanical Shear, Necrotic Stagnation, Push-Forward Luminance
+    - IHCAndComputeAffordance: 33-Shell Golden Ratio Ladder, BAO Cosmology, RP4 Projective Attention, Typed Affordances, CALM Thermal Governance, Folium Transversal Smooch
     """
     def __init__(self, device: str = 'cpu'):
         self.device = device
@@ -43,6 +45,7 @@ class BenchmarkSuiteRunner:
         self.chordlock = ChordlockEvaluator(device=device)
         self.memory_palace = MemoryPalaceEvaluator(device=device)
         self.topological_singularity = TopologicalSingularityEvaluator(device=device)
+        self.ihc_affordance = IHCAndComputeAffordanceEvaluator(device=device)
 
     def run_all(self) -> Dict[str, Any]:
         """
@@ -50,7 +53,7 @@ class BenchmarkSuiteRunner:
         and returns aggregated report dictionary.
         """
         start_time = time.time()
-        logger.info("Initiating Comprehensive Benchmark Evaluation across all 7 suites...")
+        logger.info("Initiating Comprehensive Benchmark Evaluation across all 8 suites...")
         
         suite_reports = {}
         
@@ -85,9 +88,14 @@ class BenchmarkSuiteRunner:
         suite_reports['MemoryPalaceEvaluator'] = mem_res
 
         # 7. Execute TopologicalSingularity
-        logger.info(">>> Executing Suite 7/7: TopologicalSingularityEvaluator")
+        logger.info(">>> Executing Suite 7/8: TopologicalSingularityEvaluator")
         sing_res = self.topological_singularity.run_suite()
         suite_reports['TopologicalSingularityEvaluator'] = sing_res
+
+        # 8. Execute IHCAndComputeAffordance
+        logger.info(">>> Executing Suite 8/8: IHCAndComputeAffordanceEvaluator")
+        ihc_res = self.ihc_affordance.run_suite()
+        suite_reports['IHCAndComputeAffordanceEvaluator'] = ihc_res
         
         elapsed = time.time() - start_time
         

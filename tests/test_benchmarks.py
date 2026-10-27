@@ -7,6 +7,7 @@ from src.benchmarks.ai_reasoner_evaluator import AIReasonerEvaluator
 from src.benchmarks.chordlock_evaluator import ChordlockEvaluator
 from src.benchmarks.memory_palace_evaluator import MemoryPalaceEvaluator
 from src.benchmarks.topological_singularity_evaluator import TopologicalSingularityEvaluator
+from src.benchmarks.ihc_and_compute_affordance_evaluator import IHCAndComputeAffordanceEvaluator
 from src.benchmarks.run_all_benchmarks import BenchmarkSuiteRunner, run_all_benchmarks, run_all_benchmarks_async
 
 def test_topobench_evaluator():
@@ -107,16 +108,34 @@ def test_topological_singularity_evaluator():
     assert results["tests"]["layer4_necrotic_stagnation"]["pass"] is True
     assert results["tests"]["layer5_pushforward_luminance"]["pass"] is True
 
+def test_ihc_and_compute_affordance_evaluator():
+    evaluator = IHCAndComputeAffordanceEvaluator(device="cpu")
+    results = evaluator.run_suite()
+    assert results["success"] is True
+    assert results["passed_count"] == 6
+    assert results["total_count"] == 6
+    assert results["tests"]["ihc_33_shell_ladder"]["pass"] is True
+    assert results["tests"]["ihc_bao_cosmology"]["pass"] is True
+    assert results["tests"]["ihc_rp4_projective_attention"]["pass"] is True
+    assert results["tests"]["typed_compute_affordances"]["pass"] is True
+    assert results["tests"]["calm_thermal_governance"]["pass"] is True
+    assert results["tests"]["folium_transversal_smooch"]["pass"] is True
+
+    # Async activation verification
+    async_res = asyncio.run(evaluator.async_run_suite())
+    assert async_res["success"] is True
+    assert async_res["passed_count"] == 6
+
 def test_unified_benchmark_runner():
     report = run_all_benchmarks(device="cpu")
     assert report["success"] is True
     assert report["total_passed"] == report["total_tests"]
-    assert report["total_passed"] == 39
-    assert report["total_tests"] == 39
-    assert len(report["suites"]) == 7
+    assert report["total_passed"] == 45
+    assert report["total_tests"] == 45
+    assert len(report["suites"]) == 8
 
     # Async unified benchmark runner verification
     async_report = asyncio.run(run_all_benchmarks_async(device="cpu"))
     assert async_report["success"] is True
-    assert async_report["total_passed"] == 39
+    assert async_report["total_passed"] == 45
 

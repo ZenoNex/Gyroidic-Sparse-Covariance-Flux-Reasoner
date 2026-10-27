@@ -15,6 +15,7 @@ from src.benchmarks.ai_reasoner_evaluator import AIReasonerEvaluator
 from src.benchmarks.chordlock_evaluator import ChordlockEvaluator
 from src.benchmarks.memory_palace_evaluator import MemoryPalaceEvaluator
 from src.benchmarks.topological_singularity_evaluator import TopologicalSingularityEvaluator
+from src.benchmarks.ihc_and_compute_affordance_evaluator import IHCAndComputeAffordanceEvaluator
 
 __all__ = [
     "TopoBenchEvaluator",
@@ -24,4 +25,5 @@ __all__ = [
     "ChordlockEvaluator",
     "MemoryPalaceEvaluator",
     "TopologicalSingularityEvaluator",
+    "IHCAndComputeAffordanceEvaluator",
 ]

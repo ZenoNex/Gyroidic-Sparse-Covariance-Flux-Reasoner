@@ -106,11 +106,13 @@ class NumberTheoreticStabilizer(nn.Module):
         Prevents overflow by reducing values modulo prime base.
         Preserves relative relationships while ensuring bounded values.
         """
+        orig_shape = state.shape
         if state.dim() == 1:
             state = state.unsqueeze(0)
         
-        batch_size, dim = state.shape
-        stabilized = state.clone()
+        dim = state.shape[-1]
+        flat_state = state.reshape(-1, dim)
+        stabilized = flat_state.clone()
         
         # Apply modular reduction for each prime
         for i, p in enumerate(self.primes[:min(len(self.primes), dim)]):
@@ -123,11 +125,7 @@ class NumberTheoreticStabilizer(nn.Module):
             reduced = torch.fmod(abs_val, p)
             stabilized[:, col_idx] = sign * reduced
         
-        # Restore original shape if needed
-        if state.shape[0] == 1 and len(state.shape) == 1:
-            stabilized = stabilized.squeeze(0)
-        
-        return stabilized
+        return stabilized.reshape(orig_shape)
     
     def solve_diophantine_constraint(self, 
                                    coefficients: torch.Tensor, 

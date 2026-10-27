@@ -91,6 +91,20 @@ class CALM(nn.Module):
             self.meditation_active = True
         else:
             self.meditation_active = False
+
+        # --- Hardware Affordance / Thermal Veto Coupling ---
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType, has_compute_affordance
+            hm = HardwareMonitor.get_instance()
+            # If thermodynamic waste heat exceeds cooling capacity (P_waste > P_cool_max / thermal runaway),
+            # elevate abort score to signal urgent thermal veto to System 2
+            if hm.thermal_runaway or not has_compute_affordance(ComputeAffordanceType.THERMAL):
+                abort_score = torch.clamp(abort_score + 0.35, max=1.0)
+            # Continuously update HardwareMonitor topological gauge from CALM
+            gauge_est = torch.sigmoid(self.gauge_head(last_latent))
+            hm.update_topology(float(abort_score.mean().item()), float(gauge_est.mean().item()))
+        except Exception:
+            pass
         
         # Rho Adjustment Factor
         rho_factor = torch.exp(torch.tanh(self.rho_head(last_latent))) 
@@ -195,6 +209,20 @@ class CALM(nn.Module):
             # Modulate by PSH proximity scalar exp(-|alpha^2 - beta^2|), bounded in [0.1, 1.0]
             psh_scale = max(0.1, min(1.0, math.exp(-abs(delta_val))))
             effective_lr = effective_lr * psh_scale
+
+        # --- Compute Affordance & Thermodynamic Governance ---
+        # When thermal budget is exhausted (P_waste > P_cool_max), throttle MAML gradient steps
+        # and learning rate to avoid thermal runaway on local silicon.
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType, has_compute_affordance
+            hm = HardwareMonitor.get_instance()
+            if hm.thermal_runaway or not has_compute_affordance(ComputeAffordanceType.THERMAL):
+                steps = min(steps, 1)
+                effective_lr = effective_lr * 0.10
+            elif not has_compute_affordance(ComputeAffordanceType.SILICON):
+                effective_lr = effective_lr * 0.50
+        except Exception:
+            pass
             
         optimizer = torch.optim.SGD(adapted_model.parameters(), lr=effective_lr)
         

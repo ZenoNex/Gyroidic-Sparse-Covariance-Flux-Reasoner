@@ -86,8 +86,10 @@ class AIReasonerEvaluator:
             }
             return success, details
         except Exception as e:
-            logger.error(f"Reasoner forward evaluation failed: {e}")
-            return False, {'error': str(e)}
+            import traceback
+            tb = traceback.format_exc()
+            logger.error(f"Reasoner forward evaluation failed: {e}\n{tb}")
+            return False, {'error': str(e), 'traceback': tb}
 
     def evaluate_8x8_hessian_ledger(self) -> Tuple[bool, Dict[str, Any]]:
         """
