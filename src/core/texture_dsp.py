@@ -13,6 +13,8 @@ except ImportError:
         sys.path.insert(0, root_dir)
     from image_extension import ImageProcessor, StructuralEntanglementNet, ConjugateColorTransport
 
+_SPECTRAL_MASK_CACHE = {}
+
 class TextureDSPEngine:
     """
     Applies Digital Signal Processing (DSP) algorithms (like FFT and filters)
@@ -121,16 +123,21 @@ class TextureDSPEngine:
                 F_spec = torch.fft.fft2(windowed_input, dim=(-2, -1), norm=fft_norm)
                 F_shifted = torch.fft.fftshift(F_spec, dim=(-2, -1))
                 
-                # Circular frequency mask
-                Y, X = torch.meshgrid(
-                    torch.arange(H, device=dev, dtype=torch.float32),
-                    torch.arange(W, device=dev, dtype=torch.float32),
-                    indexing='ij'
-                )
-                center_y, center_x = H / 2.0, W / 2.0
-                dist_from_center = torch.sqrt((X - center_x) ** 2 + (Y - center_y) ** 2)
-                max_radius = np.sqrt(center_x ** 2 + center_y ** 2)
-                mask = (dist_from_center <= (cutoff_freq * max_radius)).float()
+                # Circular frequency mask (cached to avoid redundant meshgrid compute on 2400MHz sysram)
+                mask_key = (H, W, round(float(cutoff_freq), 4), str(dev))
+                mask = _SPECTRAL_MASK_CACHE.get(mask_key)
+                if mask is None:
+                    Y, X = torch.meshgrid(
+                        torch.arange(H, device=dev, dtype=torch.float32),
+                        torch.arange(W, device=dev, dtype=torch.float32),
+                        indexing='ij'
+                    )
+                    center_y, center_x = H / 2.0, W / 2.0
+                    dist_from_center = torch.sqrt((X - center_x) ** 2 + (Y - center_y) ** 2)
+                    max_radius = np.sqrt(center_x ** 2 + center_y ** 2)
+                    mask = (dist_from_center <= (cutoff_freq * max_radius)).float()
+                    if len(_SPECTRAL_MASK_CACHE) < 128:
+                        _SPECTRAL_MASK_CACHE[mask_key] = mask
                 mask_broadcast = mask.unsqueeze(0).unsqueeze(0).expand(B, C, H, W)
                 
                 F_filtered = F_shifted * mask_broadcast

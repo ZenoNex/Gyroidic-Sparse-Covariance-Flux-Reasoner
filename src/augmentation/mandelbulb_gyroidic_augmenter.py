@@ -84,18 +84,26 @@ class MandelbulbEmbedder(nn.Module):
         # Create 3D coordinates using spherical mapping
         coords = torch.zeros(batch_size, feature_dim, 3, device=features.device)
         
-        for i in range(feature_dim):
-            if i < feature_dim - 2:
-                # Use consecutive features for spherical coordinates
-                theta = normalized[:, i]      # Azimuthal angle
-                phi = normalized[:, i + 1]    # Polar angle
-                r = torch.abs(features[:, i]) + torch.finfo(features.dtype).eps  # Radius (avoid zero)
-                
-                coords[:, i, 0] = r * torch.sin(phi) * torch.cos(theta)  # x
-                coords[:, i, 1] = r * torch.sin(phi) * torch.sin(theta)  # y
-                coords[:, i, 2] = r * torch.cos(phi)                     # z
-            else:
-                # Handle remaining dimensions
+        if feature_dim > 2:
+            theta = normalized[:, :-2]      # Azimuthal angle [batch, feature_dim - 2]
+            phi = normalized[:, 1:-1]       # Polar angle [batch, feature_dim - 2]
+            r = torch.abs(features[:, :-2]) + torch.finfo(features.dtype).eps
+            sin_phi = torch.sin(phi)
+            
+            coords[:, :-2, 0] = r * sin_phi * torch.cos(theta)
+            coords[:, :-2, 1] = r * sin_phi * torch.sin(theta)
+            coords[:, :-2, 2] = r * torch.cos(phi)
+            
+            # Handle remaining dimensions
+            coords[:, -2, 0] = features[:, -2]
+            coords[:, -2, 1] = features[:, (-2) % feature_dim]
+            coords[:, -2, 2] = features[:, (-1) % feature_dim]
+            
+            coords[:, -1, 0] = features[:, -1]
+            coords[:, -1, 1] = features[:, (-1) % feature_dim]
+            coords[:, -1, 2] = features[:, 0]
+        else:
+            for i in range(feature_dim):
                 coords[:, i, 0] = features[:, i]
                 coords[:, i, 1] = features[:, i % feature_dim]
                 coords[:, i, 2] = features[:, (i + 1) % feature_dim]

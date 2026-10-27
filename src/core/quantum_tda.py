@@ -120,22 +120,22 @@ class QuantumBettiApproximator(nn.Module):
         except Exception:
             engine = None
             
-        trace_est = 0.0
-        for _ in range(num_probes):
-            z = harvest_honest_jitter((dim_size, 1), device=L.device, scaled=True) * 1.0
-            x0 = z
+        # Batched Minimax Chebyshev trace estimation
+        # Vectorized across num_probes simultaneously to eliminate redundant single-vector kernel launches
+        Z = harvest_honest_jitter((dim_size, num_probes), device=L.device, scaled=True) * 1.0
+        x0 = Z
+        if engine is not None and dim_size >= 16:
+            x1 = engine.hardware_sovereign_matmul(L_norm, Z)
+        else:
+            x1 = torch.matmul(L_norm, Z)
+        y = 0.5 * x0 - 0.5 * x1
+        for k in range(2, poly_degree):
             if engine is not None and dim_size >= 16:
-                x1 = engine.hardware_sovereign_matmul(L_norm, z)
+                x2 = 2.0 * engine.hardware_sovereign_matmul(L_norm, x1) - x0
             else:
-                x1 = torch.matmul(L_norm, z)
-            y = 0.5 * x0 - 0.5 * x1
-            for k in range(2, poly_degree):
-                if engine is not None and dim_size >= 16:
-                    x2 = 2.0 * engine.hardware_sovereign_matmul(L_norm, x1) - x0
-                else:
-                    x2 = 2.0 * torch.matmul(L_norm, x1) - x0
-                y += ((-1)**k) * (1.0 / (k+1)) * x2
-                x0, x1 = x1, x2
-            trace_est += (z * y).sum().item()
+                x2 = 2.0 * torch.matmul(L_norm, x1) - x0
+            y += ((-1)**k) * (1.0 / (k+1)) * x2
+            x0, x1 = x1, x2
+        trace_est = (Z * y).sum().item()
         return max(1.0, trace_est * dim_size / num_probes)
 

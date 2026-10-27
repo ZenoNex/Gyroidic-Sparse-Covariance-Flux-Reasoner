@@ -72,6 +72,9 @@ class SiliconSovereigntyEngine:
     _shared_queue_b = None
     _shared_device = None
     _shared_program = None
+    _shared_device_b = None
+    _shared_ctx_b = None
+    _shared_program_b = None
     _shared_hardware_layout = None
     _shared_compute_units = 1
     _shared_max_work_group_size = 256
@@ -96,7 +99,15 @@ class SiliconSovereigntyEngine:
         self.ctx = None
         self.queue_a = None
         self.queue_b = None
-        self._kernel_cache = {}
+        self.device_a = None
+        self.ctx_a = None
+        self.program_a = None
+        self.device_b = None
+        self.ctx_b = None
+        self.program_b = None
+        self._kernel_cache_a = {}
+        self._kernel_cache_b = {}
+        self._kernel_cache = self._kernel_cache_a
         
         if not PYOPENCL_AVAILABLE:
             self.logger.warning("PyOpenCL is not installed. Silicon Sovereignty running in CPU Mock mode.")
@@ -111,17 +122,23 @@ class SiliconSovereigntyEngine:
 
         # Fast path: Reuse shared OpenCL context and pre-compiled kernels across instances
         if use_gpu and not has_override and SiliconSovereigntyEngine._shared_ctx is not None:
-            self.device = SiliconSovereigntyEngine._shared_device
-            self.ctx = SiliconSovereigntyEngine._shared_ctx
+            self.device_a = SiliconSovereigntyEngine._shared_device
+            self.ctx_a = SiliconSovereigntyEngine._shared_ctx
             self.queue_a = SiliconSovereigntyEngine._shared_queue_a
-            self.queue_b = SiliconSovereigntyEngine._shared_queue_b
-            self.program = SiliconSovereigntyEngine._shared_program
+            self.program_a = SiliconSovereigntyEngine._shared_program
+            self.device_b = SiliconSovereigntyEngine._shared_device_b or self.device_a
+            self.ctx_b = SiliconSovereigntyEngine._shared_ctx_b or self.ctx_a
+            self.queue_b = SiliconSovereigntyEngine._shared_queue_b or self.queue_a
+            self.program_b = SiliconSovereigntyEngine._shared_program_b or self.program_a
+            self.device = self.device_a
+            self.ctx = self.ctx_a
+            self.program = self.program_a
             self.hardware_layout = SiliconSovereigntyEngine._shared_hardware_layout
             self.compute_units = SiliconSovereigntyEngine._shared_compute_units
             self.max_work_group_size = SiliconSovereigntyEngine._shared_max_work_group_size
             self.max_work_item_sizes = SiliconSovereigntyEngine._shared_max_work_item_sizes
             self.is_gpu = SiliconSovereigntyEngine._shared_is_gpu
-            self.logger.debug(f"Silicon Sovereignty binding to cached context on: {self.device.name}")
+            self.logger.debug(f"Silicon Sovereignty binding to cached context on: {self.device.name} (Queue B on: {self.device_b.name})")
             return
 
         try:
@@ -180,51 +197,65 @@ class SiliconSovereigntyEngine:
                                 break
 
             # Standard selection logic if no override or override not matched
+            discrete_gpu = None
+            integrated_gpu = None
+            if use_gpu and gpu_devices:
+                for dev in gpu_devices:
+                    name_lower = dev.name.lower()
+                    if any(k in name_lower for k in ("nvidia", "geforce", "gtx", "rtx", "discrete", "radeon")):
+                        if discrete_gpu is None:
+                            discrete_gpu = dev
+                    elif any(k in name_lower for k in ("intel", "integrated", "uhd", "hd graphics")):
+                        if integrated_gpu is None:
+                            integrated_gpu = dev
+
             if selected_device is None:
-                if use_gpu and gpu_devices:
-                    # Look for NVIDIA/discrete GPU first (GPU 1)
-                    for dev in gpu_devices:
-                        name_lower = dev.name.lower()
-                        if "nvidia" in name_lower or "geforce" in name_lower or "gtx" in name_lower or "discrete" in name_lower:
-                            selected_device = dev
-                            if not SiliconSovereigntyEngine._logged_device_init:
-                                self.logger.info(f"Targeting Discrete GPU (GPU 1): {dev.name}")
-                            else:
-                                self.logger.debug(f"Targeting Discrete GPU (GPU 1): {dev.name}")
-                            break
-                    # Fallback to any other GPU (e.g. Intel iGPU / GPU 0) if no discrete GPU is found
-                    if selected_device is None:
-                        for dev in gpu_devices:
-                            selected_device = dev
-                            if not SiliconSovereigntyEngine._logged_device_init:
-                                self.logger.info(f"Targeting Integrated/Available GPU (GPU 0): {dev.name}")
-                            else:
-                                self.logger.debug(f"Targeting Integrated/Available GPU (GPU 0): {dev.name}")
-                            break
-            
-            # Absolute fallback to first available device (e.g. CPU)
-            if selected_device is None:
-                if other_devices:
+                if discrete_gpu is not None:
+                    selected_device = discrete_gpu
+                    if not SiliconSovereigntyEngine._logged_device_init:
+                        self.logger.info(f"Targeting Discrete GPU (Device A): {selected_device.name}")
+                    else:
+                        self.logger.debug(f"Targeting Discrete GPU (Device A): {selected_device.name}")
+                elif gpu_devices:
+                    selected_device = gpu_devices[0]
+                    if not SiliconSovereigntyEngine._logged_device_init:
+                        self.logger.info(f"Targeting Primary GPU (Device A): {selected_device.name}")
+                elif other_devices:
                     selected_device = other_devices[0]
                     if not SiliconSovereigntyEngine._logged_device_init:
                         self.logger.info(f"Targeting Fallback Device: {selected_device.name}")
-                    else:
-                        self.logger.debug(f"Targeting Fallback Device: {selected_device.name}")
                 else:
                     raise RuntimeError("No OpenCL devices found.")
-                
-            self.device = selected_device
-            self.ctx = cl.Context([self.device])
-            if not SiliconSovereigntyEngine._logged_device_init:
-                self.logger.info(f"Silicon Sovereignty Initialized on: {self.device.name}")
-                SiliconSovereigntyEngine._logged_device_init = True
+
+            # Secondary device (Device B) for memory-coupled streaming / zero-copy sysram
+            secondary_device = None
+            if integrated_gpu is not None and integrated_gpu != selected_device:
+                secondary_device = integrated_gpu
+            elif len(gpu_devices) > 1 and gpu_devices[1] != selected_device:
+                secondary_device = gpu_devices[1]
             else:
-                self.logger.debug(f"Silicon Sovereignty Initialized on: {self.device.name}")
+                secondary_device = selected_device
+                
+            self.device_a = selected_device
+            self.ctx_a = cl.Context([self.device_a])
+            self.queue_a = cl.CommandQueue(self.ctx_a, properties=cl.command_queue_properties.PROFILING_ENABLE)
+
+            if secondary_device != selected_device:
+                self.device_b = secondary_device
+                self.ctx_b = cl.Context([self.device_b])
+                self.queue_b = cl.CommandQueue(self.ctx_b, properties=cl.command_queue_properties.PROFILING_ENABLE)
+                if not SiliconSovereigntyEngine._logged_device_init:
+                    self.logger.info(f"Heterogeneous Dual-GPU: Queue A on {self.device_a.name} | Queue B on {self.device_b.name} (Zero-Copy DDR4 UMA)")
+            else:
+                self.device_b = self.device_a
+                self.ctx_b = self.ctx_a
+                self.queue_b = cl.CommandQueue(self.ctx_a, properties=cl.command_queue_properties.PROFILING_ENABLE)
+                if not SiliconSovereigntyEngine._logged_device_init:
+                    self.logger.info(f"Silicon Sovereignty Initialized on: {self.device_a.name}")
             
-            # Dual-Command Queue Architecture
-            # We need two queues to process Odd/Even CRT moduli in parallel without serial friction.
-            self.queue_a = cl.CommandQueue(self.ctx, properties=cl.command_queue_properties.PROFILING_ENABLE) # Odd
-            self.queue_b = cl.CommandQueue(self.ctx, properties=cl.command_queue_properties.PROFILING_ENABLE) # Even
+            self.device = self.device_a
+            self.ctx = self.ctx_a
+            SiliconSovereigntyEngine._logged_device_init = True
 
             # Topology recognition: Query Hardware Core Layout (CPU + GPU) via HardwareMonitor
             try:
@@ -241,11 +272,14 @@ class SiliconSovereigntyEngine:
             self._build_kernels()
 
             if not has_override:
-                SiliconSovereigntyEngine._shared_device = self.device
-                SiliconSovereigntyEngine._shared_ctx = self.ctx
+                SiliconSovereigntyEngine._shared_device = self.device_a
+                SiliconSovereigntyEngine._shared_ctx = self.ctx_a
                 SiliconSovereigntyEngine._shared_queue_a = self.queue_a
+                SiliconSovereigntyEngine._shared_program = self.program_a
+                SiliconSovereigntyEngine._shared_device_b = self.device_b
+                SiliconSovereigntyEngine._shared_ctx_b = self.ctx_b
                 SiliconSovereigntyEngine._shared_queue_b = self.queue_b
-                SiliconSovereigntyEngine._shared_program = self.program
+                SiliconSovereigntyEngine._shared_program_b = self.program_b
                 SiliconSovereigntyEngine._shared_hardware_layout = self.hardware_layout
                 SiliconSovereigntyEngine._shared_compute_units = self.compute_units
                 SiliconSovereigntyEngine._shared_max_work_group_size = self.max_work_group_size
@@ -255,10 +289,14 @@ class SiliconSovereigntyEngine:
             self.logger.warning(f"Failed to initialize OpenCL context/queues: {e}. Silicon Sovereignty running in CPU Mock mode.")
             self.ctx = None
 
-    def _get_kernel(self, name):
-        if name not in self._kernel_cache:
-            self._kernel_cache[name] = cl.Kernel(self.program, name)
-        return self._kernel_cache[name]
+    def _get_kernel(self, name, queue=None):
+        if queue is self.queue_b and self.program_b is not None:
+            if name not in self._kernel_cache_b:
+                self._kernel_cache_b[name] = cl.Kernel(self.program_b, name)
+            return self._kernel_cache_b[name]
+        if name not in self._kernel_cache_a:
+            self._kernel_cache_a[name] = cl.Kernel(self.program_a, name)
+        return self._kernel_cache_a[name]
 
     def _build_kernels(self):
         """Build the OpenCL kernels for the topological constraints."""
@@ -1124,8 +1162,17 @@ class SiliconSovereigntyEngine:
         
         import warnings
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore")  # NVIDIA PTX driver warns about kernel inlining  benign
-            self.program = cl.Program(self.ctx, kernel_src).build()
+            warnings.simplefilter("ignore")  # PTX driver warns about kernel inlining benign
+            self.program_a = cl.Program(self.ctx_a, kernel_src).build()
+            if hasattr(self, 'ctx_b') and self.ctx_b is not None and self.ctx_b != self.ctx_a:
+                try:
+                    self.program_b = cl.Program(self.ctx_b, kernel_src).build()
+                except Exception as e:
+                    self.logger.warning(f"Failed to build kernels on secondary device B: {e}")
+                    self.program_b = self.program_a
+            else:
+                self.program_b = self.program_a
+            self.program = self.program_a
 
     @property
     def is_initialized(self) -> bool:
@@ -1450,18 +1497,26 @@ class SiliconSovereigntyEngine:
         matrix_b = np.asarray(matrix_b, dtype=np.float32)
         output = np.empty_like(matrix_a, dtype=np.float32)
         
-        a_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=matrix_a)
-        b_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=matrix_b)
-        out_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, output.nbytes)
+        ctx = self.ctx_b if (hasattr(self, 'ctx_b') and self.ctx_b is not None) else self.ctx
+        queue = self.queue_b if (hasattr(self, 'queue_b') and self.queue_b is not None) else self.queue_a
+
+        mf = cl.mem_flags
+        matrix_a = np.asarray(matrix_a, dtype=np.float32)
+        matrix_b = np.asarray(matrix_b, dtype=np.float32)
+        output = np.empty_like(matrix_a, dtype=np.float32)
         
-        self._get_kernel('matrix_mix')(
-            self.queue_b, matrix_a.shape, None,
+        a_buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=matrix_a)
+        b_buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=matrix_b)
+        out_buf = cl.Buffer(ctx, mf.WRITE_ONLY, output.nbytes)
+        
+        self._get_kernel('matrix_mix', queue=queue)(
+            queue, matrix_a.shape, None,
             a_buf, b_buf, out_buf, 
             np.float32(alpha), np.float32(kappa_seal), np.float32(hyperbolic_shear), np.uint32(seed)
         )
         
-        cl.enqueue_copy(self.queue_b, output, out_buf, is_blocking=True)
-        self.logger.info(f"Matrix Mix Breeding Complete on Queue B (alpha={alpha})")
+        cl.enqueue_copy(queue, output, out_buf, is_blocking=True)
+        self.logger.debug(f"Matrix Mix Breeding Complete on Queue B (alpha={alpha})")
         return output
 
     def apply_surgical_integration(self, state, residues, braid_word, cs_phase, manifold_kappa=1.0, seed=None):
@@ -1521,30 +1576,41 @@ class SiliconSovereigntyEngine:
     def apply_mandelbulb_iteration(self, coords, max_iterations=50, escape_radius=2.0, power=8.0):
         """Execute Mandelbulb fractal iteration."""
         if self.ctx is None:
-            # CPU Mock mandelbulb
+            # Vectorized CPU Mandelbulb iteration (removes scalar loop latency)
             coords_np = np.asarray(coords, dtype=np.float32).copy()
+            orig_shape = coords_np.shape
+            pts = coords_np.reshape(-1, 3)
             p = min(power, 8.0)
-            for i in range(coords_np.size // 3):
-                offset = i * 3
-                z0 = np.clip(coords_np[offset], -5.0, 5.0)
-                z1 = np.clip(coords_np[offset + 1], -5.0, 5.0)
-                z2 = np.clip(coords_np[offset + 2], -5.0, 5.0)
-                c0, c1, c2 = z0, z1, z2
-                for iter_idx in range(max_iterations):
-                    r = math.sqrt(z0*z0 + z1*z1 + z2*z2)
-                    if r > escape_radius:
+            pts = np.clip(pts, -5.0, 5.0)
+            c = pts.copy()
+            active = np.ones(len(pts), dtype=bool)
+            for _ in range(max_iterations):
+                if not np.any(active):
+                    break
+                curr = pts[active]
+                x, y, z = curr[:, 0], curr[:, 1], curr[:, 2]
+                r = np.sqrt(x*x + y*y + z*z)
+                escaped_now = r > escape_radius
+                if np.any(escaped_now):
+                    active_indices = np.where(active)[0]
+                    active[active_indices[escaped_now]] = False
+                    curr = pts[active]
+                    if len(curr) == 0:
                         break
-                    xy_norm = math.sqrt(z0*z0 + z1*z1 + 1e-8)
-                    theta = math.atan2(xy_norm, z2)
-                    phi = math.atan2(z1, z0 + 1e-8)
-                    r_new = math.pow(max(1e-8, min(10.0, r)), p)
-                    theta_new = theta * power
-                    phi_new = phi * power
-                    z0 = r_new * math.sin(theta_new) * math.cos(phi_new) + c0
-                    z1 = r_new * math.sin(theta_new) * math.sin(phi_new) + c1
-                    z2 = r_new * math.cos(theta_new) + c2
-                coords_np[offset:offset+3] = [z0, z1, z2]
-            return coords_np
+                    x, y, z = curr[:, 0], curr[:, 1], curr[:, 2]
+                    r = r[~escaped_now]
+                xy_norm = np.sqrt(x*x + y*y + 1e-8)
+                theta = np.arctan2(xy_norm, z)
+                phi = np.arctan2(y, x + 1e-8)
+                r_new = np.power(np.clip(r, 1e-8, 10.0), p)
+                theta_new = theta * power
+                phi_new = phi * power
+                sin_th = np.sin(theta_new)
+                curr_c = c[active]
+                pts[active, 0] = r_new * sin_th * np.cos(phi_new) + curr_c[:, 0]
+                pts[active, 1] = r_new * sin_th * np.sin(phi_new) + curr_c[:, 1]
+                pts[active, 2] = r_new * np.cos(theta_new) + curr_c[:, 2]
+            return pts.reshape(orig_shape)
 
         mf = cl.mem_flags
         coords_np = np.asarray(coords, dtype=np.float32)
