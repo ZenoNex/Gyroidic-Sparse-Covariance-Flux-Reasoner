@@ -53,7 +53,7 @@ graph TD
   * [GYROIDIC_CODEC.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/GYROIDIC_CODEC.md)
   * [HYPER_RING_CLOSURE.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/HYPER_RING_CLOSURE.md)
   * [INVARIANT_OPTIMIZATION.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/INVARIANT_OPTIMIZATION.md)
-  * [TOPOLOGICAL_EXTENSIONS.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/TOPOLOGICAL_EXTENSIONS.md) (Section 10 Gyroid Probes & Closed-Topology Multi-Attention Map)
+  * [TOPOLOGICAL_EXTENSIONS.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/TOPOLOGICAL_EXTENSIONS.md) (Part X Gyroid Probes & Multi-Attention Map, Part XI Alexander 1924 RP4 Wild Embeddings, Part XII BB(5) State Machine Filtering, Hardware Sovereignty, & Anti-Scalarization)
   * [MATRYOSHKA_POLYTOPE_MAP.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATRYOSHKA_POLYTOPE_MAP.md)
   * [carnot_mobius_analysis.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/carnot_mobius_analysis.md)
 

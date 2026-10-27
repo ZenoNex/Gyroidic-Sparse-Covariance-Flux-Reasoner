@@ -443,21 +443,29 @@ class CoherentPrimeResonance(nn.Module):
 class CALMCollapseDetector(nn.Module):
     """
     CALM Collapse Detector.
-    Uses bounded local correlation to track structural collapse/stagnation
-    in trajectory history of states.
+    Uses bounded Martinova correlation and Collatz limit-cycle monitoring
+    to track structural collapse, stagnation, or non-terminating cycle debt (BB(5) Collatz coral)
+    in trajectory history of states. When cycle_debt > 0.5 or Martinova correlation >= warning_threshold,
+    triggers an entropic veto, diverting execution into the SpeculativeCoprimeGate (SCCCG) rather than stalling.
     """
-    def __init__(self, warning_threshold: float = 0.8):
+    def __init__(self, warning_threshold: float = 0.8, cycle_debt_threshold: float = 0.5):
         super().__init__()
         self.warning_threshold = warning_threshold
+        self.cycle_debt_threshold = cycle_debt_threshold
 
-    def forward(self, history: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self,
+        history: torch.Tensor,
+        cycle_debt: Optional[Union[float, torch.Tensor]] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Args:
             history: [batch, history_len, dim] trajectory history
+            cycle_debt: Optional cycle debt measure monitoring Collatz-like modular traps
             
         Returns:
-            is_collapsed: [batch] boolean indicator of collapse
-            correlation: [batch] local correlation score in [-1, 1]
+            is_collapsed: [batch] boolean indicator of collapse or entropic veto
+            correlation: [batch] local Martinova correlation score in [-1, 1]
         """
         from src.core.martinova_correlation import compute_bounded_correlation
         # Compute bounded correlation of history. Treat history_len as N points of dim-dimensional space.
@@ -465,7 +473,18 @@ class CALMCollapseDetector(nn.Module):
         
         # Stagnation/collapse is characterized by maximal clustering/fossilization (corr -> 1.0)
         is_collapsed = corr >= self.warning_threshold
+        
+        # Monitor non-terminating Collatz limit cycle debt (cycle_debt > 0.5)
+        if cycle_debt is not None:
+            if isinstance(cycle_debt, torch.Tensor):
+                c_val = cycle_debt.squeeze()
+                collatz_trap = c_val > self.cycle_debt_threshold
+            else:
+                collatz_trap = torch.tensor(cycle_debt > self.cycle_debt_threshold, device=history.device)
+            is_collapsed = is_collapsed | collatz_trap
+            
         return is_collapsed, corr
+
 
 
 class KleinThroatTransition(nn.Module):

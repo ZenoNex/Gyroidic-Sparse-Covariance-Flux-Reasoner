@@ -90,14 +90,17 @@ class GDPOSovereigntyPressureComputer:
             group_ids_extended = group_ids.unsqueeze(1).expand(batch_size, num_steps).reshape(-1)
         
         # Apply GDPO decoupled sovereignty normalization
-        aggregated_pressures, gdpo_diag = self.sovereignty(
+        decoupled_flat, gdpo_diag = self.sovereignty(
             pressures_flat,
             weights,
             group_ids_extended
         )
         
-        # Reshape back
-        aggregated_pressures = aggregated_pressures.view(batch_size, num_steps)
+        # Reshape decoupled pressures back: [batch, steps, num_pressures]
+        decoupled_p = decoupled_flat.view(batch_size, num_steps, num_pressures)
+        
+        # Aggregated scalar pressures after decoupled normalization: [batch, steps]
+        aggregated_pressures = torch.sum(decoupled_p * weights.view(1, 1, -1), dim=-1)
         
         # Compute GAE advantages per dimension
         advantages = torch.zeros((batch_size, num_steps, num_pressures), device=pressures.device)

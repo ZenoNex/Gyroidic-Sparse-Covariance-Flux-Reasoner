@@ -135,6 +135,52 @@ class GltfSplatIngestionPipeline:
                 })
         return splats
 
+    def extract_topological_betti_invariants(self, file_path: str) -> Dict[str, Any]:
+        """
+        DMCA/IP Safe Topological Extraction.
+        Extracts topological Betti invariants (beta_0: connected components, beta_1: 1-cycles/cavities)
+        and field density statistics without retaining copyrighted raw Euclidean polygon meshes.
+        """
+        primitives = self.extract_splat_primitives(file_path)
+        if not primitives:
+            return {"beta_0": 1, "beta_1": 0, "density_field": torch.zeros(self.target_dim), "raw_mesh_retained": False}
+
+        # Coordinates tensor
+        coords = torch.tensor([[p["x"], p["y"], p["z"]] for p in primitives], dtype=torch.float32)
+        n_points = coords.shape[0]
+
+        # Topological density field via radial distance distribution
+        centroid = coords.mean(dim=0, keepdim=True)
+        radial_dist = torch.norm(coords - centroid, dim=-1)
+        density_hist = torch.histc(radial_dist, bins=self.target_dim, min=0.0, max=float(radial_dist.max() + 1e-5))
+        density_field = density_hist / (density_hist.sum() + 1e-8)
+
+        # Betti invariant approximation: beta_0 = cluster components at threshold r
+        diff = coords.unsqueeze(1) - coords.unsqueeze(0)
+        dist_mat = torch.norm(diff, dim=-1)
+        r_thresh = float(radial_dist.std().item() + 1e-6)
+
+        adj = (dist_mat < r_thresh).float()
+        # beta_0 connected components via graph Laplacian rank
+        degrees = adj.sum(dim=-1)
+        laplacian = torch.diag(degrees) - adj
+        eigenvalues = torch.linalg.eigvalsh(laplacian)
+        beta_0 = int((eigenvalues < 1e-4).sum().item())
+        beta_0 = max(1, beta_0)
+
+        # beta_1 Euler characteristic heuristic for 1-skeleton (chi = V - E, beta_1 = beta_0 - chi)
+        edges = int((adj.sum().item() - n_points) // 2)
+        chi = n_points - edges
+        beta_1 = max(0, beta_0 - chi)
+
+        return {
+            "beta_0": beta_0,
+            "beta_1": beta_1,
+            "density_field": density_field,
+            "points_sampled": n_points,
+            "raw_mesh_retained": False, # DMCA / IP safe guarantee
+        }
+
 if __name__ == "__main__":
     # Test stub
     ingestor = GltfSplatIngestionPipeline()
