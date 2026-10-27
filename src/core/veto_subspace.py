@@ -23,6 +23,12 @@ from typing import Dict, Optional, List, Any
 from dataclasses import dataclass, field
 from enum import Enum
 
+try:
+    from src.safety.red_teaming import TopologicalRefusalError
+except ImportError:
+    class TopologicalRefusalError(Exception):
+        pass
+
 
 class VetoLevel(Enum):
     """Dimensional isolation of veto signals."""
@@ -127,6 +133,7 @@ class VetoSubspace(nn.Module):
         
         # Isolated heads (Meliponini Sovereignty)
         self.veto_mask: Optional[torch.Tensor] = None
+        self.topological_refusal = TopologicalRefusal(resonance_threshold=0.85)
     
     def _evaluate_trajectory(
         self,
@@ -171,10 +178,19 @@ class VetoSubspace(nn.Module):
         pas_h: Optional[float] = None,
         value_gap: Optional[float] = None,
         veto_count: Optional[int] = None,
-        external_depth_d: Optional[float] = None
+        external_depth_d: Optional[float] = None,
+        drucker_prager_flow: Optional[torch.Tensor] = None,
+        mohr_coulomb_yield: Optional[torch.Tensor] = None
     ) -> List[VetoSignal]:
         """Evaluate topology-level vetoes (detected after structure breaks)."""
         signals = []
+        
+        # Topological Refusal (Cerumen Pots / Mohr-Coulomb yield sovereignty)
+        if drucker_prager_flow is not None and mohr_coulomb_yield is not None:
+            signals.append(self.topological_refusal.evaluate(
+                drucker_prager_flow=drucker_prager_flow,
+                mohr_coulomb_yield=mohr_coulomb_yield
+            ))
         
         if coprime_lock is not None or chiral_score is not None:
             scccg_triggered = False
@@ -367,7 +383,10 @@ class VetoSubspace(nn.Module):
         pas_h: Optional[float] = None,
         value_gap: Optional[float] = None,
         veto_count: Optional[int] = None,
-        external_depth_d: Optional[float] = None
+        external_depth_d: Optional[float] = None,
+        # Topological Refusal inputs (Cerumen Pots / Mohr-Coulomb yield sovereignty)
+        drucker_prager_flow: Optional[torch.Tensor] = None,
+        mohr_coulomb_yield: Optional[torch.Tensor] = None
     ) -> VetoResult:
         """
         Evaluate the full veto lattice and compose results.
@@ -390,7 +409,9 @@ class VetoSubspace(nn.Module):
                                    elipsodistrophy_atrophy, betti_number_collapse,
                                    voynich_slip_degradation, global_performance_improvement,
                                    pas_h=pas_h, value_gap=value_gap,
-                                   veto_count=veto_count, external_depth_d=external_depth_d) +
+                                   veto_count=veto_count, external_depth_d=external_depth_d,
+                                   drucker_prager_flow=drucker_prager_flow,
+                                   mohr_coulomb_yield=mohr_coulomb_yield) +
             self._evaluate_budget(spectral_pressure, homological_pressure, elapsed_seconds)
         )
         
@@ -522,31 +543,104 @@ class TopologicalRefusal(nn.Module):
     """
     Hardens Cerumen Pots (The Sovereign Ceiling).
     If Drucker-Prager plastic flow attempts to smooth out a highly resonant 
-    Mohr-Coulomb yield limit (Morphological Set Point), throw a NaN boundary 
-    state and drop the dimension into the Unknowledge Domain.
+    Mohr-Coulomb yield limit (Morphological Set Point), emit a structured VetoSignal,
+    veto unauthorized smoothing flow, and optionally project to boundary states (NaN / unknowledge).
     """
     def __init__(self, resonance_threshold: float = 0.85):
         super().__init__()
         self.resonance_threshold = resonance_threshold
 
-    def forward(self, state_tensor: torch.Tensor, drucker_prager_flow: torch.Tensor, mohr_coulomb_yield: torch.Tensor) -> torch.Tensor:
+    def evaluate(
+        self,
+        drucker_prager_flow: Optional[torch.Tensor] = None,
+        mohr_coulomb_yield: Optional[torch.Tensor] = None,
+        raise_on_refusal: bool = False
+    ) -> VetoSignal:
+        """
+        Evaluate topological refusal against yield limits and plastic smoothing.
+        Returns typed VetoSignal and optionally raises TopologicalRefusalError.
+        """
+        if drucker_prager_flow is None or mohr_coulomb_yield is None:
+            return VetoSignal(
+                level=VetoLevel.TOPOLOGY,
+                source='topological_refusal',
+                severity=0.0,
+                triggered=False,
+                can_recover=False,
+                metadata={'status': 'bypassed'}
+            )
+
+        resonant_mask = mohr_coulomb_yield > self.resonance_threshold
+        smoothing_mask = torch.abs(drucker_prager_flow) > 0.5
+        refusal_mask = resonant_mask & smoothing_mask
+        triggered = bool(refusal_mask.any().item())
+
+        severity = 0.0
+        if triggered:
+            excess_flow = torch.abs(drucker_prager_flow)[refusal_mask]
+            severity = float(torch.clamp(excess_flow.mean(), 0.0, 1.0).item())
+
+        if triggered and raise_on_refusal:
+            raise TopologicalRefusalError(
+                message="Topological refusal: Mohr-Coulomb yield limit violated by unauthorized smoothing flow",
+                value_gap=severity,
+                betti_number=1.0
+            )
+
+        return VetoSignal(
+            level=VetoLevel.TOPOLOGY,
+            source='topological_refusal',
+            severity=severity,
+            triggered=triggered,
+            can_recover=False,
+            metadata={
+                'refusal_count': int(refusal_mask.sum().item()),
+                'resonance_threshold': self.resonance_threshold,
+                'description': 'Topological Refusal: Drucker-Prager smoothing of Mohr-Coulomb yield set-point vetoed'
+            }
+        )
+
+    def forward(
+        self,
+        state_tensor: torch.Tensor,
+        drucker_prager_flow: torch.Tensor,
+        mohr_coulomb_yield: torch.Tensor,
+        inject_nan: bool = False
+    ) -> torch.Tensor:
         """
         Evaluate and apply topological refusal.
         Args:
             state_tensor: The current state tensor.
             drucker_prager_flow: The magnitude of the smoothing flow applied.
             mohr_coulomb_yield: The morphological set point resonance.
+            inject_nan: If True, injects NaNs to force boundary state into Unknowledge Domain.
+                       If False (default), snaps refused dimensions by canceling unauthorized plastic smoothing flow.
         Returns:
-            State tensor with NaNs injected at refused boundaries.
+            Hardened state tensor.
         """
         resonant_mask = mohr_coulomb_yield > self.resonance_threshold
         smoothing_mask = torch.abs(drucker_prager_flow) > 0.5
-        
         refusal_mask = resonant_mask & smoothing_mask
+
         if refusal_mask.any():
-            # Throw NaN boundary state to drop into Unknowledge Domain
             state_tensor = state_tensor.clone()
-            # Inject NaNs to explicitly veto the smoothing
-            state_tensor[refusal_mask] = float('nan')
-            
+            if inject_nan:
+                # Throw NaN boundary state to drop into Unknowledge Domain
+                state_tensor[refusal_mask] = float('nan')
+            else:
+                # Hard snap: cancel the unauthorized plastic smoothing flow
+                state_tensor[refusal_mask] = state_tensor[refusal_mask] - drucker_prager_flow[refusal_mask]
+
         return state_tensor
+
+
+__all__ = [
+    'VetoLevel',
+    'RecoveryStatus',
+    'VetoSignal',
+    'VetoResult',
+    'VetoSubspace',
+    'ChaosDefibrillator',
+    'TopologicalRefusal',
+    'TopologicalRefusalError',
+]

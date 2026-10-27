@@ -154,8 +154,25 @@ class NonErgodicEntropyEstimator(nn.Module):
             # If both entropies are zero, it's a blanched blanket (slop)
             if entropy_dict['ergodic_entropy'].item() <= 1e-6:
                 return True
-            if text_metadata and any(trap in text_metadata for trap in ["As an AI", "I cannot fulfill"]):
-                return True
+            if text_metadata:
+                slop_traps = [
+                    "as an ai",
+                    "i cannot fulfill",
+                    "as a language model",
+                    "as a large language model",
+                    "i am unable to fulfill",
+                    "i cannot generate",
+                    "against my safety guidelines",
+                    "as an ethical ai",
+                    "i must decline",
+                    "my programming does not allow",
+                    "i apologize, but i cannot",
+                    "i am sorry, but i cannot",
+                    "it is important to remember that as an ai"
+                ]
+                text_lower = text_metadata.lower()
+                if any(trap in text_lower for trap in slop_traps):
+                    return True
         return False
 
 

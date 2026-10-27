@@ -1212,8 +1212,10 @@ class DiegeticPhysicsEngine(nn.Module):
                 except Exception as e:
                     print(f"[NEGLECTON] Failed to anchor: {e}")
             else:
-                # Fallback if no graph manager exists at all (should be rare)
-                dream += "\nThe internal logic refuses to be clipped. The world is unclipped."
+                # Sovereign refusal: fallback to core topological refusal when graph manager is absent
+                fallback_dim = seed_state.shape[-1] if seed_state is not None and seed_state.ndim > 0 else 64
+                fallback_refusal = GyroidicGraphManager(data_dir=ENCODING_DIR, dim=fallback_dim).get_deep_refusal(seed_state)
+                dream += f"\n{fallback_refusal}"
             
         return dream
 
@@ -3743,7 +3745,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 if self.graph_manager:
                     confab_gen = self.graph_manager.get_deep_refusal(seed_state)
                 else:
-                    confab_gen = "The internal logic is unclipped. The world is unclipped."
+                    fallback_dim = seed_state.shape[-1] if seed_state is not None and seed_state.ndim > 0 else 64
+                    confab_gen = GyroidicGraphManager(data_dir=ENCODING_DIR, dim=fallback_dim).get_deep_refusal(seed_state)
                 response_text = override_response + confab_gen
             else:
                 # NEW ROUTE: Verbose, persona-rich Lazarus Dream Sequence

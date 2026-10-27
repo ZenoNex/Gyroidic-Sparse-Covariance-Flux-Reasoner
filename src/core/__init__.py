@@ -127,6 +127,27 @@ except ImportError:
     NumberTheoreticStabilizer = None
     create_number_theoretic_stabilizer = None
 
+try:
+    from .veto_subspace import (
+        VetoLevel,
+        RecoveryStatus,
+        VetoSignal,
+        VetoResult,
+        VetoSubspace,
+        ChaosDefibrillator,
+        TopologicalRefusal,
+        TopologicalRefusalError,
+    )
+except ImportError:
+    VetoLevel = None
+    RecoveryStatus = None
+    VetoSignal = None
+    VetoResult = None
+    VetoSubspace = None
+    ChaosDefibrillator = None
+    TopologicalRefusal = None
+    TopologicalRefusalError = None
+
 __all__ = [
     # Core polynomial system
     'PolynomialBasis',
@@ -185,5 +206,14 @@ __all__ = [
     'EulerTourSparseTableLCA',
     'NumberTheoreticStabilizer',
     'create_number_theoretic_stabilizer',
+    # Veto Subspace & Topological Refusal
+    'VetoLevel',
+    'RecoveryStatus',
+    'VetoSignal',
+    'VetoResult',
+    'VetoSubspace',
+    'ChaosDefibrillator',
+    'TopologicalRefusal',
+    'TopologicalRefusalError',
 ]
 
