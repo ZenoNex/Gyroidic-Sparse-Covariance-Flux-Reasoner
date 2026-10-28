@@ -168,10 +168,20 @@ class HardwareMonitor:
         """
         self.p_waste = float(p_waste)
         self.p_cool_max = max(1e-4, float(p_cool_max))
-        self.thermal_runaway = bool(thermal_runaway) or (self.p_waste > self.p_cool_max)
-        self.eta_stack = float(eta_stack)
         self.thermal_margin = max(0.0, (self.p_cool_max - self.p_waste) / self.p_cool_max)
+        # Hysteretic cooling recovery: if waste heat drops below 75% cooling capacity and margin > 25%, clear thermal runaway
+        if self.thermal_runaway and self.p_waste <= self.p_cool_max * 0.75 and self.thermal_margin > 0.25 and not thermal_runaway:
+            self.thermal_runaway = False
+        else:
+            self.thermal_runaway = bool(thermal_runaway) or (self.p_waste > self.p_cool_max)
+        self.eta_stack = float(eta_stack)
         self.thermal_source = str(source)
+
+    def reset_thermodynamics(self):
+        """Manually reset thermal runaway latch and restore full compute affordance."""
+        self.thermal_runaway = False
+        self.p_waste = 0.0
+        self.thermal_margin = 1.0
 
     def get_cpu_gpu_layout(self) -> Dict[str, Any]:
         """

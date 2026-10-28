@@ -58,15 +58,35 @@ def get_ihc_ladder_tensor(num_functionals: int, device: Optional[torch.device] =
 
 
 def is_prime(n: int) -> bool:
-    """Optimized deterministic primality test."""
+    """Optimized deterministic primality test with Miller-Rabin for large integers."""
     if n < 2: return False
     if n in (2, 3): return True
     if n % 2 == 0 or n % 3 == 0: return False
-    i = 5
-    while i * i <= n:
-        if n % i == 0 or n % (i + 2) == 0:
+    if n < 1000000:
+        i = 5
+        while i * i <= n:
+            if n % i == 0 or n % (i + 2) == 0:
+                return False
+            i += 6
+        return True
+    # Deterministic Miller-Rabin for 64-bit integers using standard bases
+    d = n - 1
+    s = 0
+    while d % 2 == 0:
+        d //= 2
+        s += 1
+    for a in (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37):
+        if n <= a:
+            break
+        x = pow(a, d, n)
+        if x == 1 or x == n - 1:
+            continue
+        for _ in range(s - 1):
+            x = pow(x, 2, n)
+            if x == n - 1:
+                break
+        else:
             return False
-        i += 6
     return True
 
 class PhaseAlignmentInvariant(nn.Module):

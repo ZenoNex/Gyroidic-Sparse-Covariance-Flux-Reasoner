@@ -268,8 +268,12 @@ class DyadFossilizer:
         threading.Thread(target=self._init_index_async, daemon=True).start()
 
     def _init_index_async(self):
-        self._load_index()
-        self._index_ready.set()
+        try:
+            self._load_index()
+        except Exception as e:
+            print(f"[FOSSILIZER] Warning: Async index loading failed: {e}")
+        finally:
+            self._index_ready.set()
 
     def _load_index(self):
         """Loads or builds the fast fossil index to prevent O(N) startup bottlenecks."""

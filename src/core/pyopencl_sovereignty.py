@@ -1259,14 +1259,16 @@ class SiliconSovereigntyEngine:
         batch_size, num_tasks, dim = task_states.shape
         
         # 1. Bridge to OpenCL (Zero-Copy Host Pointers)
-        cl_states = push_to_opencl(task_states.float(), self.ctx)
-        cl_T = push_to_opencl(T_matrix.float(), self.ctx)
-        cl_gating = push_to_opencl(gating.float(), self.ctx)
+        # Enforce float32 contiguous layout to strictly match 32-bit single precision OpenCL kernel
+        states_f32 = task_states.float().contiguous()
+        cl_states = push_to_opencl(states_f32, self.ctx)
+        cl_T = push_to_opencl(T_matrix.float().contiguous(), self.ctx)
+        cl_gating = push_to_opencl(gating.float().contiguous(), self.ctx)
         
-        # 2. Output buffer
+        # 2. Output buffer sized for float32 elements
         import pyopencl as cl
         mf = cl.mem_flags
-        cl_out = cl.Buffer(self.ctx, mf.READ_WRITE, task_states.element_size() * task_states.nelement())
+        cl_out = cl.Buffer(self.ctx, mf.READ_WRITE, states_f32.element_size() * states_f32.nelement())
         
         # 3. Execute Kernel
         kernel = self._get_kernel("dyadic_proficiency_transfer")
@@ -1277,8 +1279,9 @@ class SiliconSovereigntyEngine:
                cl_states, cl_T, cl_gating, cl_out, 
                np.int32(num_tasks), np.int32(dim))
                
-        # 4. Pull back to PyTorch (Sovereign boundary enforces graph severing)
-        return pull_from_opencl(self.queue_a, cl_out, task_states.shape, task_states.dtype)
+        # 4. Pull back to PyTorch in float32 and cast back to task_states.dtype/device safely
+        out_f32 = pull_from_opencl(self.queue_a, cl_out, states_f32.shape, torch.float32)
+        return out_f32.to(dtype=task_states.dtype, device=task_states.device)
 
     def process_crt_dual_queue(self, moduli_odd_data, moduli_even_data):
         """
@@ -1292,16 +1295,23 @@ class SiliconSovereigntyEngine:
         mf = cl.mem_flags
         
         # Dispatch Odd data on Queue A
-        odd_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=moduli_odd_data)
+        odd_buf = cl.Buffer(self.ctx_a, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=moduli_odd_data)
         event_a = cl.enqueue_marker(self.queue_a)
         
-        # Dispatch Even data on Queue B
-        even_buf = cl.Buffer(self.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=moduli_even_data)
-        event_b = cl.enqueue_marker(self.queue_b)
+        # Dispatch Even data on Queue B (guarded against distinct context cl.LogicError)
+        ctx_b = getattr(self, 'ctx_b', None) or self.ctx_a
+        queue_b = getattr(self, 'queue_b', None) or self.queue_a
+        even_buf = cl.Buffer(ctx_b, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=moduli_even_data)
+        event_b = cl.enqueue_marker(queue_b)
         
         # The Chern-Simons Gasket sync barrier
-        # We wait for both queues to finish to define the completion of the Intercosamination.
-        cl.wait_for_events([event_a, event_b])
+        # OpenCL clWaitForEvents requires all events to belong to the identical context.
+        # If queue_b is initialized on a separate device context, wait on events independently.
+        if ctx_b is self.ctx_a:
+            cl.wait_for_events([event_a, event_b])
+        else:
+            event_a.wait()
+            event_b.wait()
         self.logger.info("Chern-Simons Sync Barrier Complete: Dual Queues Realigned.")
 
     def execute_braid_race(self, state_a, state_b) -> float:

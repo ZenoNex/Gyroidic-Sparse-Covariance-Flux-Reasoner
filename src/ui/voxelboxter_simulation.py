@@ -2732,6 +2732,11 @@ class VoxelboxterEngine:
         for tid, tree in self.active_flora.items():
             tree.grow_tick()
 
+        # 4. Tick Aeronautic Contraptions (Create: Aeronautics cleanroom)
+        for aname, contraption in self.aeronautics.items():
+            if hasattr(contraption, 'update_physics_step'):
+                contraption.update_physics_step(dt=dt)
+
     def _deform_terrain_mesh_pybevy(self, fractal_meta_state: Optional[torch.Tensor] = None):
         """
         Dynamically deforms the terrain voxel mesh natively in Python.

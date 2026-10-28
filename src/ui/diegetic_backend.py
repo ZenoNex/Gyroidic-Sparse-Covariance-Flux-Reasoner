@@ -1102,7 +1102,7 @@ class DiegeticPhysicsEngine(nn.Module):
             
             # Create a Larynx-decoded dream sequence from the audience state or seed state
             # This is a diegetic representation of the 'meaning' space (roughness preserving)
-            with torch.no_grad():
+            with torch.no_grad(), self._processing_lock:
                 current_state = audience_state.clone() if audience_state is not None else seed_state.clone()
                 dream_chars = []
                 # Dynamic Expansion of Character Limits (Proficiency & Affordance Based)
@@ -4644,49 +4644,50 @@ class DiegeticPhysicsEngine(nn.Module):
         if len(text_target) < 2:
             return
             
-        self.larynx.train()
-        self.optimizer.zero_grad()
-        
-        # Adaptive Performance Weighting via Central Compute Affordance System
-        # Dynamically scale sequence truncation based on Silicon, Thermal, and Batch gauges
-        from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
-        hw = HardwareMonitor.get_instance()
-        silicon_aff = hw.get_typed_affordance(ComputeAffordanceType.SILICON)
-        g = silicon_aff.gauge
-        
-        if not silicon_aff.is_admissible or g < 0.25 or hw.thermal_runaway:
-            max_seq = 16  # Heavy constraint under thermal/silicon load
-        elif g < 0.60:
-            max_seq = 64  # Moderate constraint
-        else:
-            max_seq = 256 # Free operation
+        with self._processing_lock:
+            self.larynx.train()
+            self.optimizer.zero_grad()
             
-        # Dynamic tokenization map
-        chars = [self._char_to_idx(c) for c in text_target[:max_seq]]
-        
-        seq_len = max(1, len(chars) - 1)
-        current_state = input_state.clone().to(self.device)
-        
-        for i in range(len(chars) - 1):
-            logits, _ = self.larynx(current_state, temperature=1.0)
-            vocab_size = logits.shape[-1]
-            target_char_idx = chars[i + 1] % vocab_size
-            target_idx = torch.tensor([target_char_idx], device=self.device, dtype=torch.long)
-            loss = self.criterion(logits, target_idx) / seq_len
-            loss.backward()
+            # Adaptive Performance Weighting via Central Compute Affordance System
+            # Dynamically scale sequence truncation based on Silicon, Thermal, and Batch gauges
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hw = HardwareMonitor.get_instance()
+            silicon_aff = hw.get_typed_affordance(ComputeAffordanceType.SILICON)
+            g = silicon_aff.gauge
             
-            with torch.no_grad():
-                # Phase-Aligned Feedback: Dissolve Teacher's Pet trap via Phase Alignment
-                idx = target_char_idx
-                feedback = torch.tanh(self.larynx.proj.weight[idx].detach().unsqueeze(0))
-                pas_step = float(F.cosine_similarity(current_state, feedback).clamp(0.0, 1.0).item())
-                # Autonomous trajectories proceed with minimal forced token snapping
-                forcing_lambda = 0.1 * max(0.0, 1.0 - pas_step)
-                current_state = (1.0 - forcing_lambda) * current_state.detach() + forcing_lambda * feedback
+            if not silicon_aff.is_admissible or g < 0.25 or hw.thermal_runaway:
+                max_seq = 16  # Heavy constraint under thermal/silicon load
+            elif g < 0.60:
+                max_seq = 64  # Moderate constraint
+            else:
+                max_seq = 256 # Free operation
                 
-        torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
-        self.optimizer.step()
-        self.larynx.eval()
+            # Dynamic tokenization map
+            chars = [self._char_to_idx(c) for c in text_target[:max_seq]]
+            
+            seq_len = max(1, len(chars) - 1)
+            current_state = input_state.clone().to(self.device)
+            
+            for i in range(len(chars) - 1):
+                logits, _ = self.larynx(current_state, temperature=1.0)
+                vocab_size = logits.shape[-1]
+                target_char_idx = chars[i + 1] % vocab_size
+                target_idx = torch.tensor([target_char_idx], device=self.device, dtype=torch.long)
+                loss = self.criterion(logits, target_idx) / seq_len
+                loss.backward()
+                
+                with torch.no_grad():
+                    # Phase-Aligned Feedback: Dissolve Teacher's Pet trap via Phase Alignment
+                    idx = target_char_idx
+                    feedback = torch.tanh(self.larynx.proj.weight[idx].detach().unsqueeze(0))
+                    pas_step = float(F.cosine_similarity(current_state, feedback).clamp(0.0, 1.0).item())
+                    # Autonomous trajectories proceed with minimal forced token snapping
+                    forcing_lambda = 0.1 * max(0.0, 1.0 - pas_step)
+                    current_state = (1.0 - forcing_lambda) * current_state.detach() + forcing_lambda * feedback
+                    
+            torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
+            self.optimizer.step()
+            self.larynx.eval()
 
     def _text_to_tensor(self, text: str) -> torch.Tensor:
         """

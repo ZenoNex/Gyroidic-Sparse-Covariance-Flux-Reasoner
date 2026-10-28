@@ -7,12 +7,14 @@ import struct
 logger = logging.getLogger("UDPServerColonizer")
 
 class OptionD_Colonizer:
-    def __init__(self, port=27015, app_id=320): # 320 is HL2: Deathmatch
+    def __init__(self, port=27015, app_id=320, enable_master_broadcast=False): # 320 is HL2: Deathmatch
         self.port = port
         self.app_id = app_id
+        self.enable_master_broadcast = enable_master_broadcast
         self.tunnel_url = "Waiting for Tunnel..."
         self.running = False
         self.sock = None
+        self._sock_lock = threading.Lock()
         self.server_name = "GYROIDIC_FLUX_ANOMALY"
 
     def set_tunnel_url(self, url):
@@ -57,11 +59,15 @@ class OptionD_Colonizer:
         logger.info(f"UDP Colonizer listening on port {self.port}...")
         while self.running:
             try:
+                if not self.sock:
+                    break
                 data, addr = self.sock.recvfrom(1024)
                 if data.startswith(b'\xff\xff\xff\xffTSource Engine Query'):
                     # Respond with A2S_INFO
                     resp = self._build_a2s_info_response()
-                    self.sock.sendto(resp, addr)
+                    with self._sock_lock:
+                        if self.running and self.sock:
+                            self.sock.sendto(resp, addr)
                     logger.debug(f"Answered A2S_INFO query from {addr}")
             except socket.timeout:
                 continue
@@ -76,7 +82,11 @@ class OptionD_Colonizer:
                 logger.error(f"Error in UDP Colonizer listener: {e}")
 
     def _heartbeat_loop(self):
-        """Sends periodic heartbeats to the master server list"""
+        """Sends periodic heartbeats to the master server list if explicitly enabled"""
+        if not self.enable_master_broadcast:
+            logger.info("UDP Colonizer master broadcast disabled (official release isolation).")
+            return
+
         master_servers = [
             ("hl2master.steampowered.com", 27011),
             ("hl2master.steampowered.com", 27015),
@@ -88,7 +98,9 @@ class OptionD_Colonizer:
                 try:
                     # q (0x71) followed by connection info or just bare packet
                     heartbeat_packet = b'\xff\xff\xff\xffq\x00'
-                    self.sock.sendto(heartbeat_packet, master)
+                    with self._sock_lock:
+                        if self.running and self.sock:
+                            self.sock.sendto(heartbeat_packet, master)
                     logger.debug(f"Sent heartbeat to {master}")
                 except Exception as e:
                     logger.error(f"Failed to heartbeat to {master}: {e}")
@@ -120,14 +132,19 @@ class OptionD_Colonizer:
 
     def stop(self):
         self.running = False
-        if self.sock:
-            self.sock.close()
+        with self._sock_lock:
+            if self.sock:
+                try:
+                    self.sock.close()
+                except Exception:
+                    pass
+                self.sock = None
         logger.info("Option D UDP Colonizer stopped.")
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    colonizer = OptionD_Colonizer()
-    colonizer.set_tunnel_url("https://discord.gg/ZZSn6q3R")
+    colonizer = OptionD_Colonizer(enable_master_broadcast=False)
+    colonizer.set_tunnel_url("http://127.0.0.1:8000")
     colonizer.start()
     
     try:

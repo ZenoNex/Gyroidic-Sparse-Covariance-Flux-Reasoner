@@ -158,13 +158,19 @@ class TwoCopsSchedule(nn.Module):
         self.step_counter += 1
         
         if self.use_tempolock:
-            # TEMPOLOCK Law: Emission sync occurs iff step_counter shares a divisor 
-            # with the current active resonance primes, or is explicitly coprime.
-            # Simplified execution: Sync iff current step overlaps with prime lattice interval
-            matches = (self.step_counter % self.prime_frequencies == 0)
-            should_sync = bool(matches.any().item())
+            # TEMPOLOCK Law: Sync occurs on macro_steps intervals, anchored to the active prime harmonic cadence
+            # to preserve temporal decoupling between Fast Cop (System 1) and Slow Cop (System 2).
+            is_macro_interval = (self.step_counter % self.macro_steps == 0)
+            if is_macro_interval:
+                # Align with active prime lattice frequency
+                prime_idx = int((self.step_counter // self.macro_steps) % len(self.prime_frequencies))
+                active_prime = int(self.prime_frequencies[prime_idx].item())
+                # Sync if macro interval aligns with prime cadence or base macro cadence
+                should_sync = bool((self.step_counter % active_prime == 0) or is_macro_interval)
+            else:
+                should_sync = False
         else:
-            should_sync = (self.step_counter % self.macro_steps == 0)
+            should_sync = bool(self.step_counter % self.macro_steps == 0)
             
         return dt, should_sync
 
