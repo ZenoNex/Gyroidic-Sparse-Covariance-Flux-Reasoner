@@ -32,9 +32,9 @@ Implements discrete projection of continuous state vectors onto the 120 golden r
 
 ### [number_theoretic_stabilizer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/number_theoretic_stabilizer.py)
 **Class**: `NumberTheoreticStabilizer`  
-**Role**: Dynamic continued fraction arithmetic expansion and relativistic scale factor normalization.
+**Role**: Dynamic continued fraction arithmetic expansion, Catalan Stieltjes continued fraction evaluation, unimodular Catalan Hankel conditioning, and relativistic scale factor normalization.
 
-Replaces fixed static coefficient lookup tables with dynamic continued fraction expansion functions (`get_cf_expansion(val, max_terms)`). Dynamically computes scaling powers ($10^{\text{scale\_power}}$) relative to active tensor norms to adhere to relativistic geometric scaling principles across Matrioshka polytope boundaries.
+Replaces fixed static coefficient lookup tables with dynamic continued fraction expansion functions (`get_cf_expansion(val, max_terms)`). Evaluates the Catalan Stieltjes continued fraction generating function $C(z) = \frac{1}{1 - z C(z)}$ inside the Chebyshev/Wigner semicircle convergence disk (`evaluate_catalan_stieltjes_cf`) and constructs unimodular Catalan Hankel moment matrices $H_n = [C_{i+j}]$ satisfying Touchard-Hankel unimodularity $\det(H_n) = 1$ (`build_catalan_hankel_stabilizer`, `apply_catalan_hankel_conditioning`). Dynamically computes scaling powers ($10^{\text{scale\_power}}$) relative to active tensor norms to adhere to relativistic geometric scaling principles across Matrioshka polytope boundaries.
 
 ---
 

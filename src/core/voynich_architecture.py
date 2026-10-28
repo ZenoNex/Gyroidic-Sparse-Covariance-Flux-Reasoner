@@ -23,7 +23,7 @@ from src.topology.triadic_reciprocity import TriadicReciprocityChecker
 from src.core.love_invariant_protector import LoveInvariantProtector
 from src.core.non_ergodic_entropy import NonErgodicEntropyEstimator
 from src.core.chern_simons_gasket import ChernSimonsGasket
-from src.core.invariants import PhaseAlignmentInvariant
+from src.core.invariants import PhaseAlignmentInvariant, catalan_number, segner_catalan_weights
 import math
 
 
@@ -273,3 +273,45 @@ class VoynichLinguist(nn.Module):
             pairs.append((s[:k], s[k:]))
             
         return pairs
+
+    @staticmethod
+    def split_catalan_weighted_sub_pairs(s: str) -> List[Dict[str, object]]:
+        """
+        Decomposes an agglutinative morpho-unit of length n into its internal
+        prefix-suffix binary parse cuts k in {1, ..., n - 1}, weighted by the
+        exact Segner-Catalan binary tree recurrence:
+            w_k = (C_{k-1} * C_{n-k-1}) / C_{n-1}
+            sum_{k=1}^{n-1} w_k = 1.0
+
+        Where C_{n-1} = (1 / n) * binom(2(n - 1), n - 1) is the total number of full
+        recursive binary parse trees (vertices of the Stasheff Associahedron K_n)
+        for an n-character morpho-unit.
+        """
+        n = len(s)
+        if n <= 1:
+            return [{
+                "prefix": s,
+                "suffix": "",
+                "split_index": n,
+                "left_trees": 1,
+                "right_trees": 1,
+                "total_catalan_trees": 1,
+                "catalan_weight": 1.0
+            }]
+
+        total_trees = catalan_number(n - 1)
+        weighted_cuts: List[Dict[str, object]] = []
+        for k in range(1, n):
+            left_c = catalan_number(k - 1)
+            right_c = catalan_number(n - k - 1)
+            weight = float(left_c * right_c) / float(total_trees)
+            weighted_cuts.append({
+                "prefix": s[:k],
+                "suffix": s[k:],
+                "split_index": k,
+                "left_trees": left_c,
+                "right_trees": right_c,
+                "total_catalan_trees": total_trees,
+                "catalan_weight": weight
+            })
+        return weighted_cuts

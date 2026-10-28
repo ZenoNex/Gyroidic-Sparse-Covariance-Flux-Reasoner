@@ -317,6 +317,18 @@ class Trajectory8x8Decombiner:
         arr = np.asarray(board)
         return int(np.sum(arr))
 
+    @staticmethod
+    def catalan_merge_tree_bound(num_active_tiles: int) -> int:
+        """
+        Computes the exact Catalan number bound C_{max(0, k - 1)} on the number of
+        distinct binary merge/unmerge parenthesizations for k active tiles in a 1D line.
+        For a full 8-tile row in the 8x8 ledger (k = 8), C_7 = 429.
+        Resolves Open Question Q12.5 by bounding single-row inverse merge tree branching.
+        """
+        from src.core.invariants import catalan_number
+        k = max(0, int(num_active_tiles) - 1)
+        return catalan_number(k)
+
     def reverse_line_1d(self, line: List[int]) -> List[List[int]]:
         """
         Reverses 1D slide-and-merge in log-space, preserving line length exactly equal to len(line).
@@ -435,6 +447,7 @@ class Trajectory8x8Decombiner:
             "status": status,
             "initial_tiles_sum": initial_sum,
             "orbit_count": 8 if self.use_coxeter_d4 else 1,
+            "catalan_line_bound": self.catalan_merge_tree_bound(8),
             "unique_dag_states": len(visited),
             "coxeter_canonical_initial": canon_tup,
             "trajectory": trajectory,

@@ -125,6 +125,31 @@ class PolynomialBasis:
             T[:, i] = 2.0 * x * T[:, i-1] - T[:, i-2]
         
         return T
+
+    def chebyshev_catalan_moments(
+        self,
+        max_order: Optional[int] = None,
+        device: Optional[torch.device] = None,
+        dtype: torch.dtype = torch.float32
+    ) -> torch.Tensor:
+        """
+        Computes the exact algebraic moments of the Chebyshev / Wigner semicircle
+        weight w(x) = (1 / (2*pi)) * sqrt(4 - x^2) on [-2, 2]:
+            mu_{2n} = C_n = (1 / (n + 1)) * binom(2n, n)
+            mu_{2n+1} = 0
+
+        Connects the continuous Chebyshev polynomial basis directly to the discrete
+        Catalan number sequence and its unimodular Hankel moment determinant det([C_{i+j}]) = 1.
+        """
+        from src.core.invariants import catalan_number
+        num_moments = max_order if max_order is not None else self.dim
+        moments = []
+        for m in range(num_moments):
+            if m % 2 == 0:
+                moments.append(float(catalan_number(m // 2)))
+            else:
+                moments.append(0.0)
+        return torch.tensor(moments, device=device, dtype=dtype)
     
     def _legendre(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -288,10 +313,16 @@ class HypergraphOrthogonalityPressure(nn.Module):
         global_phi = torch.cat(block_reps, dim=1)
         global_entropy = self._compute_subset_entropy(global_phi, min(self.k_order, num_blocks))
         
+        # 3. Catalan Russian-Doll (Matrioshka) Binary Parenthesization Capacity
+        # For num_blocks nested blocks, there are C_{num_blocks - 1} distinct binary merge/parse trees.
+        from src.core.invariants import catalan_number
+        catalan_capacity = float(catalan_number(max(0, num_blocks - 1)))
+        
         # Returns VECTOR of pressures, avoiding the Scalarization Trap.
         return {
             'local_entropy': torch.stack(local_entropies),
-            'global_entropy': global_entropy
+            'global_entropy': global_entropy,
+            'catalan_tree_capacity': torch.tensor(catalan_capacity, device=phi.device)
         }
 
     def _compute_subset_entropy(self, phi: torch.Tensor, k: int) -> torch.Tensor:

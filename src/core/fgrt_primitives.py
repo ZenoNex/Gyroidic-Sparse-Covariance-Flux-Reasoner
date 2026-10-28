@@ -10,7 +10,16 @@ Implements the base mathematical operators for:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from src.core.invariants import PI, is_prime, PrimeResonanceLadder, get_prime_ladder
+from src.core.invariants import (
+    PI,
+    is_prime,
+    PrimeResonanceLadder,
+    get_prime_ladder,
+    catalan_number,
+    get_catalan_ladder,
+    segner_catalan_weights,
+    CatalanBranchingInvariant
+)
 from typing import Tuple, Optional, Dict, Any, Union
 from src.core.honest_jitter import harvest_honest_jitter
 import time
@@ -214,9 +223,9 @@ class BerryPhaseTracker(nn.Module):
         
         return delta_phi
 
-# PrimeResonanceLadder is canonically defined upstream in src.core.invariants.
+# PrimeResonanceLadder and CatalanBranchingInvariant are canonically defined upstream in src.core.invariants.
 # Re-exported here for backwards compatibility.
-__all_primitives__ = ["PrimeResonanceLadder"]
+__all_primitives__ = ["PrimeResonanceLadder", "CatalanBranchingInvariant", "catalan_number", "get_catalan_ladder"]
 
 
 class RepunitHasher(nn.Module):
@@ -345,6 +354,84 @@ class FibonacciResonanceEntropy(nn.Module):
         product = torch.clamp(product, min=1.0)
         modulated = self.alpha / (torch.exp(torch.tensor(PI) / product) + 1.0)
         return modulated
+
+    def get_triadic_catalan_coupling(self, hunger: float = 0.0) -> torch.Tensor:
+        """
+        Computes the Triadic Prime-Fibonacci-Catalan Resonance Entropy matrix:
+            S_triad(i, j) = alpha / (exp(pi / (F_i * P_j * log(C_i + e) * (1 + H))) + 1)
+
+        Unifies additive recurrence (Fibonacci F_i), multiplicative irreducibility (Primes P_j),
+        and non-associative binary tree convolution (Catalan C_i).
+        """
+        import math
+        F_i = self.fibonacci.float().unsqueeze(1)
+        P_j = self.primes.float().unsqueeze(0)
+        c_logs = torch.tensor(
+            [math.log(float(catalan_number(k)) + math.e) for k in range(self.num_oscillators)],
+            dtype=torch.float32,
+            device=self.fibonacci.device
+        ).unsqueeze(1)
+        product = F_i * P_j * c_logs * (1.0 + hunger)
+        product = torch.clamp(product, min=1.0)
+        return self.alpha / (torch.exp(torch.tensor(PI, device=product.device) / product) + 1.0)
+
+
+class CatalanAssociahedronEntropy(nn.Module):
+    """
+    Catalan Associahedron Non-Associative Coupling & Bracket Entropy (RIC Eq 1.3).
+
+    Governs non-associative operator parenthesizations F(x) = B_k G_m E_n(x) across
+    the Stasheff Associahedron K_{n+1}, whose vertices correspond to the C_n binary
+    bracketings of n + 1 non-associative operators or dyad fusions.
+
+    Coupling Lattice:
+        S_catalan(i, j) = alpha / (exp(pi / (log(C_i + e) * P_j)) + 1)
+    """
+    def __init__(self, num_oscillators: int = 20, alpha: float = 1.0):
+        super().__init__()
+        import math
+        self.num_oscillators = num_oscillators
+        self.alpha = alpha
+
+        catalan_vals = [catalan_number(k) for k in range(num_oscillators)]
+        catalan_logs = [math.log(float(c) + math.e) for c in catalan_vals]
+        # Clamp int64 representation for buffer safety while keeping exact float logs
+        catalan_clamped = [min(c, (1 << 62) - 1) for c in catalan_vals]
+        self.register_buffer("catalan", torch.tensor(catalan_clamped, dtype=torch.long))
+        self.register_buffer("catalan_log", torch.tensor(catalan_logs, dtype=torch.float32))
+
+        primes = PrimeResonanceLadder(num_resonators=num_oscillators).primes
+        self.register_buffer("primes", primes)
+
+        C_i = self.catalan_log.unsqueeze(1)        # [N, 1]
+        P_j = primes.float().unsqueeze(0)          # [1, N]
+        product = torch.clamp(C_i * P_j, min=1.0)  # [N, N]
+        associahedron_matrix = alpha / (torch.exp(torch.tensor(PI) / product) + 1.0)
+        self.register_buffer("associahedron_matrix", associahedron_matrix)
+
+    def forward(self, i: Optional[int] = None, j: Optional[int] = None) -> torch.Tensor:
+        """Returns the full [N, N] Catalan-Prime Associahedron matrix or entry (i, j)."""
+        if i is not None and j is not None:
+            return self.associahedron_matrix[i, j]
+        return self.associahedron_matrix
+
+    def non_associative_bracket_convolution(self, left_state: torch.Tensor, right_state: torch.Tensor) -> torch.Tensor:
+        """
+        Computes the Segner-Catalan non-associative binary tree convolution of two latent states:
+            (u *_C v)_n = sum_{k=0}^{n} w_{n,k} * u_k * v_{n-k}
+        where w_{n,k} = (C_k * C_{n-k}) / C_{n+1} are the normalized Segner split weights.
+        """
+        orig_shape = left_state.shape
+        u = left_state.reshape(-1, orig_shape[-1])
+        v = right_state.reshape(-1, orig_shape[-1])
+        D = u.shape[-1]
+        out = torch.zeros_like(u)
+        for n in range(D):
+            w = segner_catalan_weights(n + 1, device=u.device, dtype=u.dtype)  # [n + 1]
+            u_slice = u[:, :n + 1]
+            v_slice = torch.flip(v[:, :n + 1], dims=[-1])
+            out[:, n] = torch.sum(w.unsqueeze(0) * u_slice * v_slice, dim=-1)
+        return out.reshape(orig_shape)
 
 
 class CoherentPrimeResonance(nn.Module):

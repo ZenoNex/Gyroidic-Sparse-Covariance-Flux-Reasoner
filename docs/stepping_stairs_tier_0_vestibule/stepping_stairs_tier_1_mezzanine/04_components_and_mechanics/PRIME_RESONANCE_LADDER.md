@@ -47,6 +47,21 @@ The cross-product $F_i \cdot P_j$ inherits both properties  no pair of products 
 - **High $(F_i \cdot P_j)$**: $S \to \alpha$  full statistical independence.
 - **Transition**: A smooth, monotonic increase without discontinuities.
 
+### 1.3 Catalan Associahedron Non-Associative Coupling (Eq 1.3)
+
+While Fibonacci numbers ($F_n = F_{n-1} + F_{n-2}$) govern linear two-term additive recurrence and Prime numbers ($p_n$) govern multiplicative irreducibility, **Catalan numbers** ($C_n$) govern **non-associative binary tree convolution, Stasheff Associahedron $K_{n+1}$ parenthesizations, and Dyck ballot path closure**:
+
+$$C_n = \frac{1}{n+1}\binom{2n}{n} = \sum_{i=0}^{n-1} C_i C_{n-1-i}$$
+
+In `CatalanAssociahedronEntropy` (`src/core/fgrt_primitives.py`) and `CatalanBranchingInvariant` (`src/core/invariants.py`), the Catalan-Prime Associahedron coupling matrix is defined as:
+
+$$S_{\text{catalan}}(i,j) = \frac{\alpha}{\exp\!\bigl(\pi / (\ln(C_i + e) \cdot P_j)\bigr) + 1}$$
+
+and the unified **Triadic Prime-Fibonacci-Catalan** coupling lattice (`get_triadic_catalan_coupling`) combines all three canonical sequences:
+- **Primes ($P_j$)**: Multiplicative independence ($\gcd(P_i, P_j) = 1$).
+- **Fibonacci ($F_i$)**: Linear additive recurrence ($F_i = F_{i-1} + F_{i-2}$).
+- **Catalan ($C_i$)**: Non-associative binary tree convolution ($C_i = \sum_{k=0}^{i-1} C_k C_{i-1-k}$) and unimodular Chebyshev semicircle Hankel matrices ($\det([C_{a+b}]) = 1$).
+
 ---
 
 ## 2. Oscillator Dynamics
@@ -175,6 +190,7 @@ The resulting distribution is **pseudo-Gaussian but strictly non-random** — a 
 | Amplitude Evolution | Selection Pressure | `UniversalOrchestrator.forward()` |
 | **Hybrid Basis (p, R_p)** | **Palindromic Symmetry** | `PrimeResonanceLadder` (updated) |
 | **Moiré XOR Lattice** | **600-Cell Quantization** | `PolychronQuantizer` |
+| **Catalan Associahedron (Eq 1.3)** | **Non-Associative Binary Tree Bracketing & Unimodular Hankel** | `CatalanBranchingInvariant`, `CatalanAssociahedronEntropy` |
 
 ---
 
@@ -222,5 +238,5 @@ $$H(t) = O_1^{\alpha(t)} O_2^{\beta(t)} \dots$$
 
 Because operator multiplication does not commute ($[O_i, O_j] \neq 0$), the homotopy class depends strictly on evaluation ordering. Closed loops are not classical equivalence classes; they form a **braid-like group structure**:
 $$\pi_1 \sim \text{Braid Group } B_n$$
-In this framework, algebraic residues directly measure the non-trivial topological **braid torsion** of the reasoning trajectory.
+In this framework, algebraic residues directly measure the non-trivial topological **braid torsion** of the reasoning trajectory. Furthermore, when operator composition is also **non-associative** ($(O_i O_j) O_k \neq O_i (O_j O_k)$), an expression of $n+1$ operators has exactly $C_n = \frac{1}{n+1}\binom{2n}{n}$ distinct binary parenthesizations corresponding to the vertices of the **Stasheff Associahedron** $K_{n+1}$, weighted by the Segner-Catalan distribution $w_k = \frac{C_k C_{n-1-k}}{C_n}$ (`segner_catalan_weights` in `src/core/invariants.py`).
 

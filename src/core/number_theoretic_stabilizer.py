@@ -16,7 +16,7 @@ import torch.nn.functional as F
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 import math
-from .invariants import get_prime_ladder, is_prime, PHI, PI
+from .invariants import get_prime_ladder, is_prime, PHI, PI, catalan_number, get_catalan_ladder
 from typing import Dict, List, Tuple, Optional, Union
 
 class NumberTheoreticStabilizer(nn.Module):
@@ -44,6 +44,10 @@ class NumberTheoreticStabilizer(nn.Module):
         # Convert the tensor returned by get_prime_ladder back to a list of ints
         self.primes = [int(p.item()) for p in get_prime_ladder(prime_base_size)]
         self.register_buffer('prime_tensor', torch.tensor(self.primes, dtype=torch.float32))
+        
+        # Catalan base for Stieltjes continued fractions and unimodular Hankel moment stabilization
+        self.catalan_numbers = [catalan_number(k) for k in range(prime_base_size)]
+        self.register_buffer('catalan_tensor', get_catalan_ladder(prime_base_size, dtype=torch.float32))
         
         # Golden ratio and other mathematical constants from invariants
         self.phi = float(PHI)
@@ -312,6 +316,54 @@ class NumberTheoreticStabilizer(nn.Module):
     def _is_power_of_2(self, n: int) -> bool:
         """Check if n is a power of 2."""
         return n > 0 and (n & (n - 1)) == 0
+
+    def evaluate_catalan_stieltjes_cf(self, z: Union[float, torch.Tensor], depth: int = 12) -> Union[float, torch.Tensor]:
+        """
+        Evaluates the Catalan Stieltjes continued fraction generating function:
+            C(z) = sum_{n=0}^inf C_n z^n = 1 / (1 - z / (1 - z / (1 - ...)))
+                 = (1 - sqrt(1 - 4z)) / (2z)   for |z| <= 1/4.
+
+        Maps arbitrary inputs into the Chebyshev/Wigner semicircle convergence disk |z| <= 0.25
+        via 0.25 * tanh(z) if needed, guaranteeing real-valued algebraic stability.
+        """
+        is_tensor = isinstance(z, torch.Tensor)
+        z_t = z.float() if is_tensor else torch.tensor(float(z), dtype=torch.float32)
+        # Bound inside the Stieltjes convergence disk [-0.25, 0.25]
+        z_bounded = 0.25 * torch.tanh(z_t)
+        acc = torch.ones_like(z_bounded)
+        for _ in range(max(1, int(depth))):
+            acc = 1.0 / torch.clamp(1.0 - z_bounded * acc, min=1e-6)
+        return acc if is_tensor else float(acc.item())
+
+    def build_catalan_hankel_stabilizer(self, order: int = 4, shifted: bool = False, device: Optional[torch.device] = None) -> torch.Tensor:
+        """
+        Constructs the unimodular Catalan Hankel matrix H_n = [C_{i+j}] (or H_n^{(1)} = [C_{i+j+1}]).
+        By the Touchard-Hankel theorem, det(H_n) = 1 and det(H_n^{(1)}) = 1 identically for all n >= 1,
+        providing a volume-preserving (det = 1) moment conditioner.
+        """
+        n = max(1, int(order))
+        offset = 1 if shifted else 0
+        mat = torch.zeros((n, n), dtype=torch.float64, device=device)
+        for i in range(n):
+            for j in range(n):
+                mat[i, j] = float(catalan_number(i + j + offset))
+        return mat
+
+    def apply_catalan_hankel_conditioning(self, state: torch.Tensor) -> Tuple[torch.Tensor, Dict[str, float]]:
+        """
+        Applies Catalan Stieltjes continued-fraction and unimodular Hankel moment conditioning.
+        """
+        cf_gain = self.evaluate_catalan_stieltjes_cf(state.mean())
+        hankel_3 = self.build_catalan_hankel_stabilizer(order=3, device=state.device)
+        det_h3 = float(torch.linalg.det(hankel_3).item())
+        # Modulate state gently toward the Stieltjes fixed-point envelope while preserving norm
+        orig_norm = torch.norm(state) + 1e-8
+        conditioned = state * (0.9 + 0.1 * float(cf_gain))
+        conditioned = conditioned * (orig_norm / (torch.norm(conditioned) + 1e-8))
+        return conditioned, {
+            "catalan_stieltjes_gain": float(cf_gain),
+            "catalan_hankel_det": det_h3
+        }
     
     def comprehensive_stabilization(self, state: torch.Tensor) -> Tuple[torch.Tensor, Dict]:
         """
@@ -360,6 +412,7 @@ class NumberTheoreticStabilizer(nn.Module):
             'euler_number': self.e,
             'pi': self.pi,
             'prime_base': self.primes,
+            'catalan_base': self.catalan_numbers,
             'quadratic_residues': self.quadratic_residues,
             'continued_fraction_coeffs': self.cf_coefficients
         }

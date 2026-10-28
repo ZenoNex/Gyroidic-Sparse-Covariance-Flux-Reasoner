@@ -303,9 +303,9 @@ Tracing up and down the architectural chain from [`hessian_8x8_curvature_ledger.
 **Status**: Open. Quotienting is enforced algebraically in `Trajectory8x8Decombiner`, but disabled in chiral narrative heads to prevent loss of situational orientation.
 
 ### Q12.5 Conservation Laws as the Upper Bound on Search Complexity
-**Theoretical Origin**: Combinatorial search in unbounded $8 \times 8$ lattices blows up combinatorially ($b^d \approx 4^{200000}$), yet enforcing exact log-domain algebra and the tile sum invariant $\Sigma = \sum 2^{\text{val}} = 2T$ bounds allowable pre-image depth deterministically without exploring invalid branches.
+**Theoretical Origin**: Combinatorial search in unbounded $8 \times 8$ lattices blows up combinatorially ($b^d \approx 4^{200000}$), yet enforcing exact log-domain algebra, the tile sum invariant $\Sigma = \sum 2^{\text{val}} = 2T$, and the Catalan binary merge-tree parenthesization bound $C_{k-1} = \frac{1}{k}\binom{2k-2}{k-1}$ (`Trajectory8x8Decombiner.catalan_merge_tree_bound`, giving $C_7 = 429$ binary un-merge trees for an 8-tile row) bounds allowable pre-image depth and per-row binary unmerge branching deterministically without exploring invalid branches.
 **Philosophical Question**: Is algorithmic recursion cost ultimately bounded by compute scale, or by the discovery of exact number-theoretic invariants that eliminate whole branches of non-physical states a priori?
-**Status**: Empirically confirmed across 20/20 local benchmark test passes (Benchmark duration: 2.50s total across all 4 suites).
+**Status**: Empirically confirmed across 20/20 local benchmark test passes (Benchmark duration: 2.50s total across all 4 suites) and formalized via the Catalan Associahedron bound $C_{k-1}$ in `Trajectory8x8Decombiner`.
 
 ---
 

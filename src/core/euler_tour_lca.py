@@ -255,3 +255,51 @@ class EulerTourSparseTableLCA:
         path_b.reverse()
         
         return (lca_node, path_a, path_b)
+
+    def to_dyck_word(self) -> List[int]:
+        """
+        Extracts the canonical Dyck word (+1 for downward tree edge traversal,
+        -1 for upward return traversal) from the Euler depth tour.
+
+        For a rooted tree with N nodes (N - 1 edges), the Euler tour has length 2N - 1
+        and its consecutive depth differences form a Dyck path of length 2(N - 1)
+        satisfying:
+            1. sum_{k=1}^m step_k >= 0 for all 1 <= m <= 2(N - 1) (Ballot non-negativity)
+            2. sum_{k=1}^{2(N - 1)} step_k == 0                   (Root closure)
+        """
+        if len(self.depth_tour) <= 1:
+            return []
+        return [
+            self.depth_tour[i + 1] - self.depth_tour[i]
+            for i in range(len(self.depth_tour) - 1)
+        ]
+
+    def catalan_tree_capacity(self) -> Dict[str, Any]:
+        """
+        Computes the Catalan combinatorial capacity C_{N-1} of the rooted tree topology.
+
+        The number of topologically distinct rooted ordered plane trees with N nodes
+        (N - 1 edges, bijective to Dyck words of length 2(N - 1)) is the Catalan number:
+            C_{N-1} = (1 / N) * binom(2(N - 1), N - 1)
+        """
+        from src.core.invariants import catalan_number
+        num_nodes = len(self.node_depth)
+        num_edges = max(0, num_nodes - 1)
+        c_n = catalan_number(num_edges)
+        dyck_steps = self.to_dyck_word()
+        prefix_sum = 0
+        ballot_valid = True
+        for s in dyck_steps:
+            prefix_sum += s
+            if prefix_sum < 0:
+                ballot_valid = False
+                break
+        ballot_valid = ballot_valid and (prefix_sum == 0)
+        return {
+            "num_nodes": num_nodes,
+            "num_edges": num_edges,
+            "catalan_tree_count": c_n,
+            "topological_entropy_bits": math.log2(float(c_n)) if c_n > 1 else 0.0,
+            "dyck_word_length": len(dyck_steps),
+            "dyck_ballot_valid": ballot_valid
+        }

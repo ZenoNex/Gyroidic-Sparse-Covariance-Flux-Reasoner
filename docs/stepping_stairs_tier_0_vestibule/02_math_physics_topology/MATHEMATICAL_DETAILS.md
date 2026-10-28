@@ -103,9 +103,9 @@ Exact calculation of hypergraph entropy is intractable ($O(2^K)$). We solve this
 2.  **Local Entropy**: $H_{local}$ is computed within each cluster.
 3.  **Global Coupling**: Representative signals from each cluster are used to compute $H_{global}$ at the meta-scale.
 
-$$ \text{Structural Pressures} = \{ H_{local, i} \}_{i=1}^{Clusters} \cup \{ H_{global} \} $$
+$$ \text{Structural Pressures} = \{ H_{local, i} \}_{i=1}^{Clusters} \cup \{ H_{global} \} \cup \{ C_{\text{Clusters}-1} \} $$
 
-This "Russian Doll" approach provides multi-scale independence. Crucially, these pressures are **non-scalarizable**; they are maintained as a vector of domain-isolated signals to prevent representation collapse.
+This "Russian Doll" approach provides multi-scale independence, where $C_{\text{Clusters}-1} = \frac{1}{\text{Clusters}}\binom{2(\text{Clusters}-1)}{\text{Clusters}-1}$ is the **Catalan number** enumerating the valid non-associative binary merge/parenthesization trees across the nested clusters (vertices of the Stasheff Associahedron $K_{\text{Clusters}}$). Furthermore, for the Chebyshev basis $T_n(x)$, the algebraic semicircle moments satisfy $\mu_{2n} = C_n$ with Touchard-Hankel unimodular determinant $\det([C_{i+j}]) = 1$. Crucially, these pressures are **non-scalarizable**; they are maintained as a vector of domain-isolated signals to prevent representation collapse.
 
 #### 1.3.1 Non-Ergodic Optimization (January 2026)
 

@@ -583,6 +583,24 @@ class PrimeResonanceLadder(nn.Module):
             'entropy_matrix': entropy.forward()
         }
 
+    def get_catalan_branching(self, alpha: float = 1.0) -> dict:
+        """
+        Bridge to CatalanAssociahedronEntropy.
+
+        Returns the prime frequencies, Catalan numbers C_n, and the
+        Catalan-Prime Associahedron non-associative coupling matrix.
+        """
+        from src.core.fgrt_primitives import CatalanAssociahedronEntropy
+        catalan_mod = CatalanAssociahedronEntropy(
+            num_oscillators=self.num_resonators,
+            alpha=alpha
+        )
+        return {
+            'frequencies': self.frequencies,
+            'catalan_numbers': catalan_mod.catalan,
+            'associahedron_matrix': catalan_mod.forward()
+        }
+
 
 # Canonical home for SpectralSpeculationEngine (Wager #4) is src.core.spectral_coherence_repair.
 # Re-exported dynamically for backward compatibility.
@@ -728,4 +746,170 @@ class MartinovaCorrelationInvariant(nn.Module):
     def forward(self, X: torch.Tensor) -> torch.Tensor:
         from src.core.martinova_correlation import compute_bounded_correlation
         return compute_bounded_correlation(X, self.r)
+
+
+# =========================================================================
+# CATALAN NUMBERS, DYCK BALLOT ADMISSIBILITY, & STASHEFF ASSOCIAHEDRON
+# =========================================================================
+
+def catalan_number(n: int) -> int:
+    """
+    Computes the n-th Catalan number exactly:
+        C_n = (1 / (n + 1)) * binom(2n, n) = sum_{i=0}^{n-1} C_i * C_{n-1-i}
+
+    Catalan numbers govern:
+    1. Non-associative binary bracketings (vertices of the Stasheff Associahedron K_{n+1}).
+    2. Dyck paths of length 2n satisfying the ballot non-negativity invariant.
+    3. Rooted ordered plane trees with n edges (Euler tour depth trajectories).
+    4. Polygon triangulations of a convex (n + 2)-gon into n triangles.
+    5. Unimodular Hankel moment matrices det([C_{i+j}]) = 1 of the Chebyshev semicircle law.
+    """
+    if n < 0:
+        raise ValueError(f"Catalan index n must be >= 0, got {n}")
+    if n <= 1:
+        return 1
+    return math.comb(2 * n, n) // (n + 1)
+
+
+def get_catalan_ladder(
+    n: int,
+    device: Optional[torch.device] = None,
+    dtype: torch.dtype = torch.float32,
+    log_scale: bool = False
+) -> torch.Tensor:
+    """
+    Generates the first n Catalan numbers [C_0, C_1, ..., C_{n-1}] as a tensor.
+
+    Args:
+        n: Number of Catalan terms to generate.
+        device: Target torch device.
+        dtype: Output tensor dtype.
+        log_scale: If True, returns log(C_k + 1) to prevent float32 overflow at large n
+                   (since C_n ~ 4^n / (n^{3/2} * sqrt(pi))).
+    """
+    target_n = max(int(n), 1)
+    if log_scale:
+        vals = [math.log(float(catalan_number(k)) + 1.0) for k in range(target_n)]
+    else:
+        vals = [float(catalan_number(k)) for k in range(target_n)]
+    return torch.tensor(vals, device=device, dtype=dtype)
+
+
+def segner_catalan_weights(
+    n_splits: int,
+    device: Optional[torch.device] = None,
+    dtype: torch.dtype = torch.float32
+) -> torch.Tensor:
+    """
+    Computes the normalized Segner recurrence probability distribution across
+    all binary tree root splits i in {0, ..., n_splits - 1}:
+        w_i = (C_i * C_{n_splits - 1 - i}) / C_{n_splits}
+        sum_{i=0}^{n_splits - 1} w_i = 1.0
+
+    Provides the canonical prior over binary decompositions of an (n_splits + 1)-leaf
+    non-associative expression or agglutinative morpho-unit.
+    """
+    if n_splits <= 0:
+        return torch.ones(1, device=device, dtype=dtype)
+    c_total = float(catalan_number(n_splits))
+    weights = [
+        (float(catalan_number(i)) * float(catalan_number(n_splits - 1 - i))) / c_total
+        for i in range(n_splits)
+    ]
+    return torch.tensor(weights, device=device, dtype=dtype)
+
+
+class CatalanBranchingInvariant(nn.Module):
+    """
+    Catalan Branching & Stasheff Associahedron Invariant (C_n).
+
+    Completes the Resonance Intelligence Core (RIC) number-theoretic triad:
+    - Primes (p_n): Multiplicative irreducibility & frequency incommensurability.
+    - Fibonacci (F_n): Additive two-term linear recurrence & golden-ratio scaling.
+    - Catalan (C_n): Non-associative binary tree convolution C_n = sum_{i=0}^{n-1} C_i C_{n-1-i},
+      enumerating vertices of the Stasheff Associahedron K_{n+1}, Dyck ballot paths,
+      and unimodular Chebyshev semicircle Hankel matrices (det H_n = 1).
+    """
+    def __init__(self, max_order: int = 16):
+        super().__init__()
+        self.max_order = max(int(max_order), 2)
+        catalan_seq = torch.tensor(
+            [float(catalan_number(k)) for k in range(self.max_order)],
+            dtype=torch.float64
+        )
+        catalan_log = torch.tensor(
+            [math.log(float(catalan_number(k)) + 1.0) for k in range(self.max_order)],
+            dtype=torch.float32
+        )
+        self.register_buffer("catalan_seq", catalan_seq)
+        self.register_buffer("catalan_log", catalan_log)
+
+    def verify_dyck_ballot(self, step_sequence: Union[torch.Tensor, list]) -> Tuple[bool, float]:
+        """
+        Verifies whether a +1/-1 step sequence forms an admissible Dyck path
+        (prefix sums >= 0 everywhere and total sum == 0) or measures its ballot
+        admissibility score in [0, 1].
+        """
+        if not isinstance(step_sequence, torch.Tensor):
+            steps = torch.tensor(step_sequence, dtype=torch.float32)
+        else:
+            steps = step_sequence.float()
+
+        if steps.numel() == 0:
+            return True, 1.0
+
+        prefix_sums = torch.cumsum(steps, dim=-1)
+        non_negative_fraction = (prefix_sums >= -1e-6).float().mean().item()
+        terminal_balance = float(torch.abs(prefix_sums[..., -1]).mean().item())
+        is_valid_dyck = (non_negative_fraction == 1.0) and (terminal_balance < 1e-5) and (steps.shape[-1] % 2 == 0)
+        score = non_negative_fraction / (1.0 + terminal_balance)
+        return is_valid_dyck, float(score)
+
+    def hankel_matrix(self, order: int = 4, shifted: bool = False, device: Optional[torch.device] = None) -> torch.Tensor:
+        """
+        Constructs the n x n Catalan Hankel matrix:
+            H_{i,j} = C_{i + j}       (if shifted=False)
+            H^{(1)}_{i,j} = C_{i+j+1} (if shifted=True)
+
+        By Touchard-Hankel theorem, det(H) == 1 and det(H^{(1)}) == 1 for all orders n >= 1.
+        """
+        n = max(1, int(order))
+        mat = torch.zeros((n, n), dtype=torch.float64, device=device)
+        offset = 1 if shifted else 0
+        for i in range(n):
+            for j in range(n):
+                mat[i, j] = float(catalan_number(i + j + offset))
+        return mat
+
+    def forward(self, coeffs: torch.Tensor) -> torch.Tensor:
+        """
+        Evaluates the Segner-Catalan non-associative binary tree convolution invariant
+        across the latent dimension D of coeffs.
+
+        Args:
+            coeffs: [batch, D] or [batch, K, D] or [D] tensor.
+
+        Returns:
+            catalan_coherence: [batch] (or scalar if 1D) score in [0, 1] measuring
+            alignment with the Segner-Catalan binary parenthesization profile.
+        """
+        is_1d = coeffs.dim() == 1
+        if is_1d:
+            x = coeffs.unsqueeze(0)
+        elif coeffs.dim() >= 3:
+            x = coeffs.reshape(coeffs.shape[0], -1)
+        else:
+            x = coeffs
+
+        B, D = x.shape
+        weights = segner_catalan_weights(D, device=x.device, dtype=x.dtype)  # [D], sums to 1
+        energy = x.pow(2)
+        energy_prob = energy / (energy.sum(dim=-1, keepdim=True) + 1e-8)
+
+        # Cosine alignment between empirical energy profile and Segner-Catalan envelope
+        dot = (energy_prob * weights.unsqueeze(0)).sum(dim=-1)
+        norm_e = torch.norm(energy_prob, dim=-1) + 1e-8
+        norm_w = torch.norm(weights) + 1e-8
+        coherence = dot / (norm_e * norm_w)
+        return coherence.squeeze(0) if is_1d else coherence
 

@@ -8,7 +8,7 @@ This document serves as the formal bridge between the theoretical architecture o
 **Theory**: Probability is an artifact of incomplete phase detection. Emergence arises from structured resonance.
 **Codebase Implementation**:
 - `src/core/quantum_inspired_reasoning.py`: Avoids standard stochastic modeling.
-- `src/core/fgrt_primitives.py` (**RIC Eq 1.2 & 7**): Implements `FibonacciResonanceEntropy` and `CoherentPrimeResonance`. Entropy is not modeled as random noise (diffusion toxins), but as an incommensurate coupling lattice built on the cross-product of Fibonacci numbers (additive recurrence) and primes (multiplicative independence).
+- `src/core/fgrt_primitives.py` (**RIC Eq 1.2, 1.3 & 7**) and `src/core/invariants.py`: Implements `FibonacciResonanceEntropy`, `CatalanAssociahedronEntropy`, `CatalanBranchingInvariant`, and `CoherentPrimeResonance`. Entropy is not modeled as random noise (diffusion toxins), but as an incommensurate coupling lattice built on the triad of Primes (multiplicative independence), Fibonacci numbers (additive linear recurrence), and Catalan numbers ($C_n = \frac{1}{n+1}\binom{2n}{n}$, non-associative binary tree convolution, Stasheff Associahedron parenthesizations, and unimodular Chebyshev semicircle Hankel matrices $\det([C_{i+j}]) = 1$).
 
 ## Phases II & III: The Lawful Substrates (Sections 16-27)
 ### Resonance Intelligence Core (RIC) and VESSELSEED
