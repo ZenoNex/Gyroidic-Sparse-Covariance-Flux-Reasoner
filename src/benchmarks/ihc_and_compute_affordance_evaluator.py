@@ -128,7 +128,15 @@ class IHCAndComputeAffordanceEvaluator:
 
         telemetry = get_compute_affordance_telemetry()
         telemetry_ok = (telemetry.get("status") == "ok") and ("gauges" in telemetry)
-        is_pass = (valid_count == len(ComputeAffordanceType)) and telemetry_ok
+        feelers = self.hw.probe_compute_feelers()
+        timing_plan = self.hw.evaluate_speculative_routing_timings(execution_ms=12.0, h_spec=0.15, pas_h=0.80)
+        feeler_ok = (
+            "t_rfc_feeler_ns" in feelers
+            and "community_p2p_mesh_gauge" in feelers
+            and timing_plan.get("speculative_horizon_steps", 0) >= 1
+            and timing_plan.get("catalan_associahedron_bound", 0) >= 1
+        )
+        is_pass = (valid_count == len(ComputeAffordanceType)) and telemetry_ok and feeler_ok
         return is_pass, valid_count
 
     def evaluate_calm_thermal_affordance_governance(self) -> Tuple[bool, float]:

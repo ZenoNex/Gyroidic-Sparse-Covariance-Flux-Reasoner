@@ -646,6 +646,8 @@ class SpeculativeCoprimeGate(nn.Module):
             recovered_state: [batch, dim] recovered state
             metrics: dict with recovery diagnostics
         """
+        import time
+        t_spec_start_ns = time.perf_counter_ns()
         batch = converged_state.shape[0]
         
         is_play = mode.upper() in ('PLAY', 'GOO')
@@ -714,7 +716,17 @@ class SpeculativeCoprimeGate(nn.Module):
             is_generative = yield_pressure.mean() > 0.0 or winding_result['coprime_lock']
             if is_generative and chiral_score > self.recovery_threshold:
                 self.update_manifold(recovered_state)
-                
+
+            speculative_recovery_ms = max(0.001, (time.perf_counter_ns() - t_spec_start_ns) / 1e6)
+            from src.core.hardware_monitor import HardwareMonitor
+            _, h_spec_play = self.spectral_speculation.evaluate_spectral_entropy(recovered_state)
+            spec_timing = HardwareMonitor.get_instance().evaluate_speculative_routing_timings(
+                execution_ms=speculative_recovery_ms,
+                h_spec=h_spec_play,
+                pas_h=float(chiral_score.item()),
+                epsilon_fastpass=self.spectral_speculation.epsilon,
+            )
+
             metrics = {
                 'coprime_lock': winding_result['coprime_lock'],
                 'chiral_score': chiral_score.item(),
@@ -723,7 +735,13 @@ class SpeculativeCoprimeGate(nn.Module):
                 'winding_numbers': winding_result['winding_numbers'],
                 'parity_violations': winding_result['parity_violations'].sum().item(),
                 'recovery_attempted': True,
-                'is_generative': bool(is_generative)
+                'is_generative': bool(is_generative),
+                'spectral_entropy': h_spec_play,
+                'speculative_recovery_ms': speculative_recovery_ms,
+                'exceeds_500ms_thermal_guard': spec_timing['exceeds_500ms_thermal_guard'],
+                'speculative_routing_mode': spec_timing['routing_mode'],
+                'speculative_horizon_steps': spec_timing['speculative_horizon_steps'],
+                'catalan_associahedron_bound': spec_timing['catalan_associahedron_bound'],
             }
             return recovered_state, metrics
             
@@ -796,6 +814,8 @@ class SpeculativeCoprimeGate(nn.Module):
         # When spectral entropy across prime resonance modes is low (H_spec < epsilon),
         # structure is already coherent and stable, so expensive Sinkhorn OT iterations
         # are safely bypassed for a single-step speculative fastpass (80% recovery speedup).
+        import time
+        t_spec_start_ns = time.perf_counter_ns()
         is_spectral_fastpath, h_spec = self.spectral_speculation.evaluate_spectral_entropy(source)
 
         if is_spectral_fastpath:
@@ -866,7 +886,16 @@ class SpeculativeCoprimeGate(nn.Module):
         # If generative lock achieved, update reference manifold
         if is_generative and chiral_score > self.recovery_threshold:
             self.update_manifold(recovered_state)
-        
+
+        speculative_recovery_ms = max(0.001, (time.perf_counter_ns() - t_spec_start_ns) / 1e6)
+        from src.core.hardware_monitor import HardwareMonitor
+        spec_timing = HardwareMonitor.get_instance().evaluate_speculative_routing_timings(
+            execution_ms=speculative_recovery_ms,
+            h_spec=h_spec,
+            pas_h=float(chiral_score.item()),
+            epsilon_fastpass=self.spectral_speculation.epsilon,
+        )
+
         metrics = {
             'coprime_lock': winding_result['coprime_lock'],
             'chiral_score': chiral_score.item(),
@@ -877,9 +906,14 @@ class SpeculativeCoprimeGate(nn.Module):
             'recovery_attempted': True,
             'is_generative': bool(is_generative),
             'spectral_entropy': h_spec,
-            'speculative_exit_bypassed': is_spectral_fastpath
+            'speculative_exit_bypassed': is_spectral_fastpath,
+            'speculative_recovery_ms': speculative_recovery_ms,
+            'exceeds_500ms_thermal_guard': spec_timing['exceeds_500ms_thermal_guard'],
+            'speculative_routing_mode': spec_timing['routing_mode'],
+            'speculative_horizon_steps': spec_timing['speculative_horizon_steps'],
+            'catalan_associahedron_bound': spec_timing['catalan_associahedron_bound'],
         }
-        
+
         return recovered_state, metrics
     
     def triple_angle_branch_selection(self, state: torch.Tensor) -> torch.Tensor:

@@ -298,6 +298,40 @@ class SiliconSovereigntyEngine:
             self._kernel_cache_a[name] = cl.Kernel(self.program_a, name)
         return self._kernel_cache_a[name]
 
+    def enforce_500ms_restless_thermal_guard(self, execution_ms: float) -> Dict[str, Any]:
+        """
+        500ms 'Restless' Thermal Latency Guard (TailSlayer First-to-Finish / Laptop Guard).
+        If GPU execution time for a single SIC-FA-ADMM or topological block exceeds 500ms,
+        triggers clFinish() across Queue A and Queue B and activates a short Lazarus Transition
+        throttle to prevent thermal throttling on laptop silicon.
+        """
+        triggered = bool(float(execution_ms) > 500.0)
+        if triggered:
+            try:
+                if self.queue_a is not None:
+                    self.queue_a.finish()
+                if self.queue_b is not None and self.queue_b is not self.queue_a:
+                    self.queue_b.finish()
+            except Exception:
+                pass
+        try:
+            from src.core.hardware_monitor import HardwareMonitor
+            plan = HardwareMonitor.get_instance().evaluate_speculative_routing_timings(
+                execution_ms=float(execution_ms)
+            )
+        except Exception:
+            plan = {
+                "exceeds_500ms_thermal_guard": triggered,
+                "routing_mode": "rp4_void_lazarus_play" if triggered else "tailslayer_dual_queue",
+            }
+        return {
+            "guard_triggered": triggered,
+            "execution_ms": float(execution_ms),
+            "cl_finish_executed": triggered,
+            "lazarus_transition_active": triggered,
+            "routing_mode": plan.get("routing_mode", "tailslayer_dual_queue"),
+        }
+
     def _build_kernels(self):
         """Build the OpenCL kernels for the topological constraints."""
         

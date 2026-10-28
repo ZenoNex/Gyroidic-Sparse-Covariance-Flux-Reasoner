@@ -717,6 +717,8 @@ class ZeitgeistRouter(nn.Module):
             diagnostics : Dict of scalar metrics for the metrics payload.
             x_steered   : The steered state tensor.
         """
+        import time
+        self._route_start_ns = time.perf_counter_ns()
         self.iteration_count += 1
         if state is None:
             if not hasattr(self, '_current_state') or self._current_state is None:
@@ -850,14 +852,28 @@ class ZeitgeistRouter(nn.Module):
                 new_cs_phase=new_cs_phase,
             )
 
-        #  4. ManifoldClock tick (breathing time)  #
+        #  4. ManifoldClock tick (breathing time) & Speculative Routing Timings  #
         # High switching pressure  smaller dt (seriousness)
         # Interior / low pressure  larger dt (play)
+        import time
+        from src.core.hardware_monitor import HardwareMonitor
+        t_route_start_ns = getattr(self, '_route_start_ns', time.perf_counter_ns())
+        routing_latency_ms = max(0.001, (time.perf_counter_ns() - t_route_start_ns) / 1e6)
+        pas_h_est = float(tadc_kwargs.get('pas_h', max(0.1, 1.0 - grazing_pressure))) if tadc_kwargs else max(0.1, 1.0 - grazing_pressure)
+        spec_timing = HardwareMonitor.get_instance().evaluate_speculative_routing_timings(
+            execution_ms=routing_latency_ms,
+            h_spec=float(entropy) if isinstance(entropy, (int, float)) else 0.3,
+            pas_h=pas_h_est,
+        )
+
         clock_dt = None
+        proper_time_tau = None
         if self._clock is not None:
-            pressure_tensor = torch.tensor(grazing_pressure)
+            pressure_tensor = torch.tensor(grazing_pressure, device=x.device, dtype=x.dtype)
             try:
-                clock_dt = self._clock.tick(pressure_tensor)
+                raw_dt = float(self._clock.tick(pressure_tensor))
+                clock_dt = raw_dt * float(spec_timing.get("recommended_dt_scale", 1.0))
+                proper_time_tau = float(self._clock.tau.item())
             except Exception:
                 pass
 
@@ -865,8 +881,18 @@ class ZeitgeistRouter(nn.Module):
         valence = None
         if self._valence is not None:
             try:
-                pressure_t = torch.tensor([[grazing_pressure]])
-                valence = float(self._valence(pressure_t).mean().item())
+                pressure_t = torch.tensor([grazing_pressure], device=x.device, dtype=x.dtype)
+                entropy_t = torch.tensor([float(entropy) if isinstance(entropy, (int, float)) else 0.5], device=x.device, dtype=x.dtype)
+                valence = float(self._valence(pressure_t, entropy=entropy_t).mean().item())
+            except Exception:
+                pass
+
+        #  5b. Refresh-Triggered Play (t_RFC Stall / 500ms Thermal Guard -> RP^4 Void Lazarus Transition)  #
+        if spec_timing.get("routing_mode") == "rp4_void_lazarus_play" and self._archetype is not None:
+            try:
+                if hasattr(self._archetype, "rp4_router"):
+                    x_rp4, _ = self._archetype.rp4_router(x, x.flip(-1))
+                    x = 0.85 * x + 0.15 * x_rp4
             except Exception:
                 pass
 
@@ -917,6 +943,8 @@ class ZeitgeistRouter(nn.Module):
             g, grazing_mask, mode, state, new_state,
             clock_dt=clock_dt, valence=valence, nc_curvature=nc_curvature,
             grazing_pressure=grazing_pressure,
+            proper_time_tau=proper_time_tau,
+            spec_timing=spec_timing,
         )
         self._current_state = new_state
         out_steered = x_steered.squeeze(0) if is_1d and x_steered.dim() == 2 and x_steered.shape[0] == 1 else x_steered
@@ -936,8 +964,11 @@ class ZeitgeistRouter(nn.Module):
         valence: Optional[float] = None,
         nc_curvature: Optional[float] = None,
         grazing_pressure: float = 0.0,
+        proper_time_tau: Optional[float] = None,
+        spec_timing: Optional[Dict] = None,
     ) -> Dict:
         """Build the diagnostics dictionary embedded in the metrics payload."""
+        spec_timing = spec_timing or {}
         d = {
             # Core state
             'mode': mode,
@@ -953,10 +984,17 @@ class ZeitgeistRouter(nn.Module):
             'grazing_pressure': grazing_pressure,
             'facet_norms_mean': float(g.abs().mean().item()),
             'betti_routing_bias': float(new_state.cs_phase), 
-            # Optional enrichments
+            # Optional enrichments & Speculative Routing Timings
             'clock_dt': clock_dt,
+            'proper_time_tau': proper_time_tau,
             'valence': valence,
             'nc_curvature': nc_curvature,
+            'speculative_routing_mode': spec_timing.get('routing_mode', 'scccg_gravity_well'),
+            'routing_latency_ms': spec_timing.get('execution_ms', 0.0),
+            't_rfc_feeler_ns': spec_timing.get('t_rfc_feeler_ns', 0),
+            't_rfc_stall_detected': spec_timing.get('t_rfc_stall_detected', False),
+            'speculative_horizon_steps': spec_timing.get('speculative_horizon_steps', 1),
+            'catalan_associahedron_bound': spec_timing.get('catalan_associahedron_bound', 1),
             # Braid Automaton diagnostics
             'braid_word': new_state.braid_word,
             'cs_phase': new_state.cs_phase,

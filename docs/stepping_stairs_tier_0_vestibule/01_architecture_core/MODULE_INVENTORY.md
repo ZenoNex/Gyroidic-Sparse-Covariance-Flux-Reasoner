@@ -2669,3 +2669,216 @@ Zero-Knowledge Proof aggregator compiling Gyroidic Chern-Simons constraints and 
 
 ---
 
+## Previously Uninventoried Modules & Classes (Full Coverage Audit)
+
+### [__main__.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/__main__.py), [ai_reasoner_evaluator.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/ai_reasoner_evaluator.py), [chordlock_evaluator.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/chordlock_evaluator.py), [ihc_and_compute_affordance_evaluator.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/ihc_and_compute_affordance_evaluator.py), [memory_palace_evaluator.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/memory_palace_evaluator.py), [topological_singularity_evaluator.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/topological_singularity_evaluator.py)
+**Classes**: `AIReasonerEvaluator`, `ChordlockEvaluator`, `IHCAndComputeAffordanceEvaluator`, `MemoryPalaceEvaluator`, `TopologicalSingularityEvaluator`  
+**Location**: `src/benchmarks/`  
+**Description**:  
+Complete sovereign benchmark harness suite and CLI entrypoint (`python -m src.benchmarks`). `AIReasonerEvaluator` evaluates end-to-end non-teleological reasoning and anti-lobotomy preservation; `ChordlockEvaluator` validates CODES prime-harmonic chordlock phase locking ($\text{PAS}_h$) and dynamic Bezout drift recovery; `IHCAndComputeAffordanceEvaluator` validates Inverted Hypersphere Cosmology ($N=33$ golden-ratio shells, BAO $\delta\theta$, $\mathbb{RP}^4$ antipodal attention), all 8 `ComputeAffordanceType` tokens, local/community compute feelers (`probe_compute_feelers`), speculative routing timings (`evaluate_speculative_routing_timings`), CALM thermal governance, and the Folium of Descartes transversal smooch anchor; `MemoryPalaceEvaluator` tests Meliponini Cerumen Pot room planting, SLERP room breeding, Selective Puncture retrieval, and antibody queries; `TopologicalSingularityEvaluator` evaluates Casus Irreducibilis triple-angle unfolding, Euler Tour LCA, Catalan Associahedron branching entropy, and Spectral Speculation fastpass.
+
+---
+
+### [vision_utilities.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/vision_utilities.py) & Additional `src/codec/gyroidic_codec.py` Classes
+**Classes**: `TextResidueProjector`, `GyroidImageProjector` (`src/codec/gyroidic_codec.py`), `vision_utilities.py` helpers  
+**Location**: `src/codec/`  
+**Description**:  
+`TextResidueProjector` maps discrete token sequences into $GL(n)$ CRT matrix residues, while `GyroidImageProjector` samples log-polar conformal unrolled images along analytical gyroid minimal surface coordinates $\sin x \cos y + \sin y \cos z + \sin z \cos x = 0$. `vision_utilities.py` provides tensor normalization, patch slicing, and color-space conversion helpers supporting `GyroidicCodec` and `vision_surgery.py`.
+
+---
+
+### [bulletin_board.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/bulletin_board.py)
+**Class**: `BulletinBoard`  
+**Location**: `src/core/bulletin_board.py`  
+**Description**:  
+Asynchronous inter-module stigmergic blackboard for non-blocking telemetry exchange across the 9-stage Sovereign Physics Loop. Stores Leontief supply-chain vetoes, Chern-Simons gasket twist alerts, Catalan branching entropy, and P2P Bonfire consensus announcements without coupling modules via synchronous call graphs.
+
+---
+
+### [cayley_cubic_probe.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/cayley_cubic_probe.py)
+**Class**: `CayleyCubicProbe`  
+**Location**: `src/core/cayley_cubic_probe.py`  
+**Description**:  
+Evaluates the SL(2, C) character variety Cayley Cubic surface $x^2 + y^2 + z^2 - xyz - 4 = 0$ and its four nodal singularities. Acts as the exact algebraic target variety for `ConjugateMomentTransport` and `TriadicReciprocityChecker` when continuous Wasserstein transport encounters degenerate curvature.
+
+---
+
+### [context_aware_quantizer.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/context_aware_quantizer.py)
+**Class**: `ContextAwareQuantizer`  
+**Location**: `src/core/context_aware_quantizer.py`  
+**Description**:  
+Topology-preserving quantizer snapping continuous hidden states onto discrete 600-cell / Weyl chamber lattice points while conditioning step widths on local spectral entropy and `ValenceFunctional` hunger, preventing representation collapse in `SaturatedQuantizerRNNCell`.
+
+---
+
+### [device_utils.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/device_utils.py)
+**Location**: `src/core/device_utils.py`  
+**Description**:  
+Hardware placement and tensor alignment utilities managing safe device transfers between PyTorch CPU/CUDA tensors and PyOpenCL `SiliconSovereigntyEngine` Queue A (discrete GPU) and Queue B (integrated zero-copy UMA).
+
+---
+
+### [euler_tour_lca.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/euler_tour_lca.py)
+**Class**: `EulerTourSparseTableLCA`  
+**Location**: `src/core/euler_tour_lca.py`  
+**Description**:  
+Enforces Wager #2 (Graph -> 1D Array) of The Efficiency Singularity (`tailslayer_pyopencl_mempalace_BigGan_inspirationdoc.md`). Flattens phylogenetic concept trees and Matrioshka hierarchies into a 1D Euler Tour array of length $2N-1$ with a Sparse Table for $O(1)$ Lowest Common Ancestor (LCA) queries without pointer chasing. Includes `verify_dyck_catalan_invariant()` to verify that the tour steps form a valid Dyck ballot path in bijection with the $N$-th Catalan number $C_{N-1}$.
+
+---
+
+### [evidence_modules.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/evidence_modules.py)
+**Class**: `TripartiteEvidenceModule`  
+**Location**: `src/core/evidence_modules.py`  
+**Description**:  
+Evaluates tripartite structural evidence across symbolic (System 1), geometric/topological (System 2), and thermodynamic (Carnot-Mobius) channels, feeding non-scalarized admissibility vectors into `LexicographicalOrderingDispatcher` and `VetoSubspace`.
+
+---
+
+### [martinova_correlation.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/martinova_correlation.py)
+**Location**: `src/core/martinova_correlation.py`  
+**Description**:  
+Computes bounded Martinova cross-channel correlation metrics (`compute_bounded_correlation`) used by `ValenceFunctional`, `CALMCollapseDetector`, and `MartinovaCorrelationInvariant` to detect category lock-in and trigger polynomial category dispersion when inter-channel correlation approaches 1.0.
+
+---
+
+### [meta_polytope_matrioshka.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/meta_polytope_matrioshka.py)
+**Classes**: `BoundaryState`, `MetaPolytopeMatrioshka`  
+**Location**: `src/core/meta_polytope_matrioshka.py`  
+**Description**:  
+Implements the 5-level nested Matrioshka Polytope hierarchy (`MATRYOSHKA_POLYTOPE_MAP.md`) tracking `BoundaryState` facet norms, level transitions, and spatial metric curvature across concentric polytope shells for `ZeitgeistRouter` and `UniversalOrchestrator`.
+
+---
+
+### [negentropic_manifold.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/negentropic_manifold.py)
+**Class**: `NTMOperator`  
+**Location**: `src/core/negentropic_manifold.py`  
+**Description**:  
+Negentropic Topological Manifold (NTM) operator computing local negentropy gradients and stabilizing soliton structures against thermal decoherence during high-mischief exploratory transitions.
+
+---
+
+### [noncommutativity_curvature.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/noncommutativity_curvature.py)
+**Class**: `NonCommutativityCurvature`  
+**Location**: `src/core/noncommutativity_curvature.py`  
+**Description**:  
+Measures the commutator curvature $[A, B] = AB - BA$ between instantaneous state covariance and rolling temporal gyroid covariance (`GyroidCovarianceEstimator`). Gates the Symmetric Tensor Shortcut in `ZeitgeistRouter` when relative non-commutativity falls below the palindromic threshold.
+
+---
+
+### [relational_kappa.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/relational_kappa.py)
+**Class**: `RelationalKappa`  
+**Location**: `src/core/relational_kappa.py`  
+**Description**:  
+Evaluates non-learnable relational condition number constraints ($\kappa$) across CRT moduli and ADMR transition facets, acting alongside `LeontiefGovernor` to veto ill-conditioned topological updates before numerical explosion occurs.
+
+---
+
+### [valence_drive.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/valence_drive.py)
+**Class**: `ValenceFunctional`  
+**Location**: `src/core/valence_drive.py`  
+**Description**:  
+Computes intrinsic Training Valence (Hunger) $V = \text{hunger\_scale} \cdot (\max(0, P - S) + \text{Dissonance})$ across the three Metaphysical Entropy Bands ($H_{\text{dementia}} + H_{\text{schizo}} + H_{\text{mischief}}$). Implements Wattsian Unlearning (accelerating satisfaction decay to 0.85 under low-entropy or low-variance stagnation) and feeds hunger directly into `PolynomialADMRSolver`, `ZeitgeistRouter`, and `NeuromodulatoryBus`.
+
+---
+
+### [video_dyad_parser.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/video_dyad_parser.py)
+**Class**: `VideoDyadParser`  
+**Location**: `src/core/video_dyad_parser.py`  
+**Description**:  
+Temporal multimodal stream parser extracting keyframe visual patches and synchronized transcript/audio residue trajectories into sequential `KnowledgeDyad` fossils.
+
+---
+
+### Additional `src/core/` Classes in Existing Inventoried Modules
+- **`src/core/adaptive_skeleton_harness.py`**: `InhibitionStabilizedTopologicalNetwork` — bio-plausible inhibition-stabilized recurrent network (ISN) balancing excitatory topological flux with fast inhibitory stabilization.
+- **`src/core/archetype_engines.py`**: `NonlinearHourglassDilation`, `LowLuminosityCoherenceBridge`, `ResilientCoherenceStabilizer`, `ExploratoryBandwidthCompressor`, `DeformationFirewallOperator` — specialized cognitive operators supporting the 12 archetypal engines under `ArchetypalSynthesisEngine`.
+- **`src/core/birkhoff_projection.py`**: `BouligandBirkhoffProjectionFunction`, `BouligandBirkhoffManifold` — piecewise-smooth Bouligand subdifferential extensions of doubly-stochastic Birkhoff polytope Sinkhorn projection.
+- **`src/core/carnot_mobius_ledger.py`**: `GENIUSOperator` — thermodynamic efficiency and generative negentropy accounting operator coupled with `CarnotMobiusLedger`.
+- **`src/core/dyadic_transfer.py`**: `DyadicTransferMap` — bit-shift dyadic map $x_{n+1} = 2x_n \bmod 1$ driving chaotic mixing and multiscale wavelet residue transfer.
+- **`src/core/fgrt_primitives.py`**: `CatalanAssociahedronEntropy` (Stasheff Associahedron $K_{n+1}$ tree-parenthesization entropy weighted by $C_n$), `FractalLHopitalRegularizer` ($0/0$ singularity limit resolver), `ValleyVorticitySweeper` (curl vorticity detector in saddle valleys).
+- **`src/core/fgrt_rnn_cells.py`**: `UnifiedFGRTRNNCell` — polymorphic dispatcher wrapping all 7 FGRT recurrent cell drafts into a single switchable recurrent interface.
+- **`src/core/five_gate_pipeline.py`**: `SearchGate`, `ConfabulationDetector` — epistemic verification gates detecting unsupported confabulation drift before emission.
+- **`src/core/garden_statistical_attractors.py`**: `HealthMetricType`, `HealthMetric` — typed diagnostic health telemetry descriptors for Garden attractor basins.
+- **`src/core/gdpo_normalization.py`**: `SignalSovereignty` — preserves channel-wise signal variance against group normalization flattening.
+- **`src/core/gluing_operator.py`**: `LazarusSoftmax` — non-collapsing temperature-adaptive softmax preventing logit underflow/overflow across Klein throat transitions.
+- **`src/core/invariants.py`**: `CatalanBranchingInvariant` — verifies that hierarchical dyadic bifurcation spectra match the normalized Catalan distribution $p_n \propto C_n / 4^n$.
+- **`src/core/non_dual_coin.py`**: `ChernSimonsValidator` — validates topological proof-of-honesty holonomy before `TripsodicLedger` minting.
+- **`src/core/non_ergodic_entropy.py`**: `NonErgodicEntropyEstimator`, `AdaptiveFractalPartitioner`, `NonErgodicFractalEntropy` — Russian-doll multiscale entropy estimators separating ergodic thermal noise from non-ergodic soliton structure.
+- **`src/core/nondual_admm.py`**: `NonDualProbe`, `UnravelingClosure` — non-dual constraint probe and cycle closure operators for ADMM primal-dual splitting.
+- **`src/core/polynomial_coprime.py`**: `SaturatedPolynomialGate`, `TopologicalNoveltyDispersion` — saturation-tolerant polynomial gating and novelty dispersion operators (augmented with `catalan_moment_projection`).
+- **`src/core/primitive_ops.py`**: `LearnedPrimitivePerturbation` — bounded learnable perturbation around fixed fixed-point primitive operations.
+- **`src/core/spectral_coherence_repair.py`**: `SpectralCoherenceCorrector`, `BezoutCoefficientRefresh`, `SpectralSpeculationEngine` — spectral repair cascade, dynamic Bezout CRT drift refresh, and Wager #4 Spectral Speculation Engine (`evaluate_spectral_entropy` and 7-step `draft_chebyshev_trajectory`).
+- **`src/core/speculative_coprime_gate.py`**: `CoprimeWindingTracker`, `ChiralCoherenceEstimator` — tracks integer winding numbers and chiral phase coherence across CRT residue channels for `SpeculativeCoprimeGate`.
+- **`src/core/superposed_tag_stacker.py`**: `FractionalQuotientTagStacker` — fractional-quotient extension of `SuperposedTagStacker` for continuous Meliponini pot breeding.
+- **`src/core/texture_dsp.py`**: `AdaptiveGaborWindowController` — dynamically adjusts Gabor time-frequency window widths based on local signal non-stationarity.
+
+---
+
+### [canonical_projection.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/canonical_projection.py), [conversational_types.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/conversational_types.py), [open_science_ingestor.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/open_science_ingestor.py), [sterile_data_reruns.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/sterile_data_reruns.py), [textbook_filter.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/textbook_filter.py), & `LocalDataLoader`
+**Classes**: `CanonicalProjector`, `ConversationTurn`, `Conversation`, `OpenScienceIngestor`, `QualityReport`, `TextbookFilter`, `LocalDataLoader` (`src/data/local_data_loader.py`)  
+**Location**: `src/data/`  
+**Description**:  
+Data ingestion, filtering, and projection pipeline modules. `CanonicalProjector` projects heterogeneous input modalities into the canonical CRT residue dimension; `ConversationTurn` and `Conversation` provide typed dialogue structures; `OpenScienceIngestor` ingests open-access scientific corpora; `sterile_data_reruns.py` rehydrates sterile/over-filtered datasets with honest silicon jitter and topological friction; `TextbookFilter` and `QualityReport` evaluate pedagogical density while guarding against sterile sanitization; `LocalDataLoader` streams multimodal `TrainingSample` batches from local storage.
+
+---
+
+### [tabby_client.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/integrations/tabby_client.py)
+**Classes**: `TabbyConfig`, `TabbyResponse`, `TabbyClient`  
+**Location**: `src/integrations/tabby_client.py`  
+**Description**:  
+Local TabbyAPI / ExLlamaV2 HTTP integration client providing optional local LLM token completion streams that are projected into the Gyroidic manifold as untrusted System 1 proposals.
+
+---
+
+### [introspection_head.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/introspection_head.py) & Additional `src/models/modular_embeddings.py` Classes
+**Classes**: `GeometricSelfModelProbe`, `AggregateGeometricSelfModel` (`src/models/introspection_head.py`), `CRTModularEmbeddingTable`, `SimpleGraphEncoder` (`src/models/modular_embeddings.py`)  
+**Location**: `src/models/`  
+**Description**:  
+`GeometricSelfModelProbe` and `AggregateGeometricSelfModel` enable the reasoner to introspect its own hidden manifold curvature, Betti numbers, and phase alignment without external supervision. `CRTModularEmbeddingTable` and `SimpleGraphEncoder` embed discrete tokens and graph topologies into coprime CRT residue tables.
+
+---
+
+### [local_qp_operator.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/local_qp_operator.py) & [muon_hybrid.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/muon_hybrid.py)
+**Classes**: `LocalActuationQPOperator`, `MuonOptimizer`, `MuonRicciHybridOptimizer`  
+**Location**: `src/optimization/`  
+**Description**:  
+`LocalActuationQPOperator` solves fast local quadratic programs for actuator control subject to Mohr-Coulomb and Drucker-Prager yield bounds. `MuonOptimizer` and `MuonRicciHybridOptimizer` combine Newton-Schulz orthogonalized momentum (Muon) with non-teleological Ricci flow curvature evolution (`RicciFlowOptimizer`).
+
+---
+
+### [alexander_wild_embedding.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/alexander_wild_embedding.py), [einstein_monotile.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/einstein_monotile.py), & Additional `src/topology/` Classes
+**Classes**: `AlexanderTransversalityReport`, `AlexanderWildEmbeddingOperator` (`src/topology/alexander_wild_embedding.py`), `EinsteinMonotile`, `EinsteinMonotileTessellation` (`src/topology/einstein_monotile.py`), `ApproximatePHProbe` (`src/topology/approximate_ph.py`), `HomologyPressure`, `WeightedBettiNumber`, `ResidueHomologyDrift` (`src/topology/homology_pressure.py`), `CyclotomicTDACompressor` (`src/topology/modular_homology_fft.py`), `ResidueFiltration`, `PersistentHomologyComputer` (`src/topology/persistence_obstruction.py`), `NostalgicLeakFunctional`, `EntropicMischiefProbe` (`src/topology/unknowledge_domain.py`)  
+**Location**: `src/topology/`  
+**Description**:  
+`AlexanderWildEmbeddingOperator` models wild topological embeddings (Alexander Horned Sphere) where complements are non-simply connected ($\pi_1 \neq 0$), protecting wild cognitive knots from smooth homeomorphic flattening. `EinsteinMonotile` and `EinsteinMonotileTessellation` implement the 13-sided chiral aperiodic "Hat/Spectre" monotile tiling (`Tile(1, 1)`) so memory manifolds never repeat periodically (`translational_periodicity_leak == 0.0`). `ApproximatePHProbe`, `HomologyPressure`, `WeightedBettiNumber`, `ResidueHomologyDrift`, `CyclotomicTDACompressor`, `ResidueFiltration`, `PersistentHomologyComputer`, `NostalgicLeakFunctional`, and `EntropicMischiefProbe` complete the persistent homology and unknowledge domain suite.
+
+---
+
+### [enhanced_temporal_training.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/training/enhanced_temporal_training.py) & Additional `src/training/` Classes
+**Classes**: `NonLobotomyTemporalModel`, `NonLobotomyTemporalTrainer`, `SimpleTemporalDataset` (`src/training/enhanced_temporal_training.py`), `SpectralStructuralTrainer` (`src/training/fgrt_fgrt_trainer.py`), `FGRTStructuralTrainer` (`src/training/fgrt_trainer.py`), `TemporalAssociationDataset`, `TemporalAssociationTrainer` (`src/training/temporal_association_trainer.py`), `StructuralAdaptor` (`src/training/trainer.py`)  
+**Location**: `src/training/`  
+**Description**:  
+Non-teleological structural training engines evolving FGRT recurrent cells, spectral resonance ladders, and temporal dyad associations under Love Invariant null-space protection and Semiotic Hierarchy ordering.
+
+---
+
+### [conversational_gui.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/conversational_gui.py), [diegetic_terminal.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_terminal.py), [voxelboxter_backend.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_backend.py), [probe_html.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/tools/probe_html.py), [validate_cmmf.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/tools/validate_cmmf.py), & Additional UI/Safety/Surrogate Classes
+**Classes**: `SecureTokenManager`, `DatasetAgreementManager`, `ConversationalGUI` (`src/ui/conversational_gui.py`), `PatchStateResource` (`src/ui/voxelboxter_client.py`), `Weapon`, `VoxelboxterAdmissibilityGate`, `FloraMutationType` (`src/ui/voxelboxter_simulation.py`), `AgentContainmentInvariants` (`src/safety/red_teaming.py`), `ResourceProperties`, `PatchState` (`src/scripting/node_environment.py`), `HarmonicWaveDecomposition`, `TrigonometricUnfolding` (`src/surrogates/kagh_networks.py`), `FractalDiscontinuityEmbedding` (`src/p2p/bonfire_consensus.py`)  
+**Description**:  
+Completes the UI, scripting, safety, surrogate, and P2P class inventory. `ConversationalGUI`, `diegetic_terminal.py`, and `voxelboxter_backend.py` provide interactive desktop/terminal/WebSocket interfaces; `probe_html.py` and `validate_cmmf.py` provide diagnostic verification utilities; `HarmonicWaveDecomposition` and `TrigonometricUnfolding` power KAGH surrogate unfolding; `FractalDiscontinuityEmbedding` embeds peer coordinates across Matrioshka scale boundaries in `BonfireNomadicRing`.
+
+---
+
+## Cross-Module & Cross-Document Inspirations, Local/Community Compute Feelers, and Speculative Routing Timings
+
+1. **Local vs. Community Compute Affordance Feelers (`HardwareMonitor` <-> `BonfireNomadicRing` <-> `FreenetGhostCaller`)**:
+   - [`HardwareMonitor.probe_compute_feelers()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py#L620) probes both local substrate friction (nanosecond DRAM $t_{\text{RFC}}$ refresh stall latency feeler `t_rfc_feeler_ns`, `SILICON`, `THERMAL`, `GPU_SOVEREIGN`, `TOPOLOGICAL`) and community P2P mesh telemetry (`P2P_MESH`, `ghost_latency_ms`, `kelly_consensus_headroom`, `active_mesh_peers`), computing directional non-scalarized gauge transfers `local_to_community_gauge` and `community_to_local_gauge`.
+   - [`BonfireNomadicRing.probe_community_compute_feeler()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/bonfire_consensus.py#L436) and [`FreenetGhostCaller.broadcast_ghost_call()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/freenet_ghost_caller.py#L19) feed live peer Kelly consensus allocations and topological echo round-trip latency (`last_ghost_latency_ms`) directly back into `HardwareMonitor.update_p2p_mesh()`.
+2. **Speculative Routing Times, Timings, and Cross-Document Inspirations (`tailslayer_pyopencl_mempalace_BigGan_inspirationdoc.md`)**:
+   - **7-Step Chebyshev Speculative Trajectory Draft**: [`SpectralSpeculationEngine.draft_chebyshev_trajectory()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/spectral_coherence_repair.py#L589) drafts $K_{\text{spec}} \in [1, 7]$ steps ahead using Chebyshev recurrence $T_{k+1}(x) = 2x T_k(x) - T_{k-1}(x)$ modulated by prime resonance frequencies, verifying the entire block in a single vector pass against multiharmonic Phase Alignment ($\text{PAS}_h$) and bounding parenthesization trees by the Catalan number $C_{K_{\text{spec}}-1}$.
+   - **500ms "Restless" Thermal Latency Guard**: [`SiliconSovereigntyEngine.enforce_500ms_restless_thermal_guard()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/pyopencl_sovereignty.py#L301) and [`HardwareMonitor.evaluate_speculative_routing_timings()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py#L676) monitor GPU/ADMM block execution times; if a block exceeds $500\text{ ms}$, `clFinish()` is triggered across Queue A and Queue B and routing switches to `rp4_void_lazarus_play`.
+   - **Refresh-Triggered Play ($t_{\text{RFC}}$ Stall $\to \mathbb{RP}^4$ Void Lazarus Transition)**: In [`ZeitgeistRouter.forward()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/zeitgeist_router.py#L853), when `evaluate_speculative_routing_timings` detects a DRAM $t_{\text{RFC}}$ stall or 500ms thermal guard, `ZeitgeistRouter` dilates `ManifoldClock` breathing time (`clock_dt`) into Play mode and routes the state through `RP4ProjectiveRouter` (Alien Handshake antipodal alignment), turning a hardware stall into a generative Lazarus Transition.
+
+---
+
+

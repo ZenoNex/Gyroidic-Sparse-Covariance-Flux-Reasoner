@@ -169,6 +169,9 @@ How existing Python components map to the PyOpenCL environment:
 | Tensor Contraction (GEMM) | PyTorch `torch.matmul` | `hardware_sovereign_gemm` zero-copy on-chip OpenCL execution |
 | Continuous B-Spline Basis | Python recursion / `scipy.interpolate` | `bspline_basis_eval` on Queue A executing parallel Cox-de Boor recursion on-chip |
 | Cayley Cubic Projection | PyTorch iterative tensor loops | `project_cayley_surface` parallel Newton-Raphson on Queue A ($x^2 + y^2 + z^2 - xyz = 4$) |
+| 500ms Restless Thermal Guard | Unbounded GPU kernel queue | `enforce_500ms_restless_thermal_guard` triggers `clFinish()` on Queue A/B + $\mathbb{RP}^4$ Lazarus Play |
+| 7-Step Speculative Draft | Step-by-step sequential solve | `SpectralSpeculationEngine.draft_chebyshev_trajectory` ($K_{\text{spec}} \le 7$, Catalan bound $C_6 = 132$) |
+| Local/Community Feelers | Static CPU/RAM check | `HardwareMonitor.probe_compute_feelers` ($t_{\text{RFC}}$ ns feeler + `BonfireNomadicRing` / `FreenetGhostCaller` latency) |
 
 ---
 

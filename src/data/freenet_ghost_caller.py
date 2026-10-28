@@ -15,9 +15,10 @@ class FreenetGhostCaller:
         self.port = port
         self.freenet_client = freenet_client
         self.broadcasted = False
+        self.last_ghost_latency_ms: float = 0.0
 
     def broadcast_ghost_call(self, topological_variance: float = 0.0, engine=None):
-        """Asynchronously dispatches the introductory ghost call over FCPv2."""
+        """Asynchronously dispatches the introductory ghost call over FCPv2 and feeds topological latency feeler into HardwareMonitor."""
         if self.broadcasted:
             return
             
@@ -37,6 +38,15 @@ class FreenetGhostCaller:
             return
 
         try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hm = HardwareMonitor.get_instance()
+            if not hm.has_compute_affordance(ComputeAffordanceType.P2P_MESH) and not hm.has_compute_affordance(ComputeAffordanceType.SILICON):
+                print("[FREENET WARN] P2P_MESH and SILICON compute affordances exhausted. Aborting broadcast.")
+                return
+        except Exception:
+            pass
+
+        try:
             import psutil
             cpu_percent = psutil.cpu_percent(interval=0.1)
             ram_percent = psutil.virtual_memory().percent
@@ -47,14 +57,37 @@ class FreenetGhostCaller:
             pass
             
         def _run():
+            t0_ns = time.perf_counter_ns()
             if self.freenet_client:
                 payload = self._generate_payload(engine=engine, variance=topological_variance)
                 self.freenet_client.publish("ghost_caller", {"payload": payload})
-                print("[FREENET] Ghost Call successfully dispatched via Locutus WebSocket.")
+                self.last_ghost_latency_ms = max(0.001, (time.perf_counter_ns() - t0_ns) / 1e6)
+                try:
+                    from src.core.hardware_monitor import HardwareMonitor
+                    hm = HardwareMonitor.get_instance()
+                    hm.update_p2p_mesh(
+                        mesh_gauge=hm.p2p_mesh_gauge,
+                        freenet_online=True,
+                        ghost_latency_ms=self.last_ghost_latency_ms,
+                    )
+                except Exception:
+                    pass
+                print(f"[FREENET] Ghost Call successfully dispatched via Locutus WebSocket ({self.last_ghost_latency_ms:.2f} ms).")
                 self.broadcasted = True
                 return
 
             if getattr(self, '_offline_mode', False) or not self.freenet_client:
+                self.last_ghost_latency_ms = max(0.001, (time.perf_counter_ns() - t0_ns) / 1e6)
+                try:
+                    from src.core.hardware_monitor import HardwareMonitor
+                    hm = HardwareMonitor.get_instance()
+                    hm.update_p2p_mesh(
+                        mesh_gauge=hm.p2p_mesh_gauge,
+                        freenet_online=False,
+                        ghost_latency_ms=self.last_ghost_latency_ms,
+                    )
+                except Exception:
+                    pass
                 if not getattr(self, '_ghost_offline_logged', False):
                     print("[FREENET] Offline Mode: Ghost calls will be simulated locally.")
                     self._ghost_offline_logged = True

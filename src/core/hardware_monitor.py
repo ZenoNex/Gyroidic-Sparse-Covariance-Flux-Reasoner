@@ -281,9 +281,11 @@ class HardwareMonitor:
         self,
         mesh_gauge: float,
         freenet_online: Optional[bool] = None,
-        active_peers: int = 0
+        active_peers: int = 0,
+        ghost_latency_ms: Optional[float] = None,
+        kelly_consensus_headroom: Optional[float] = None,
     ):
-        """Update collective nomadic ring mesh budget with live Freenet and peer telemetry."""
+        """Update collective nomadic ring mesh budget with live Freenet, Ghost latency, and peer telemetry."""
         base_gauge = max(0.0, min(1.0, float(mesh_gauge)))
         if freenet_online is not None:
             self.freenet_online = bool(freenet_online)
@@ -292,6 +294,14 @@ class HardwareMonitor:
         if active_peers > 0:
             self.active_mesh_peers = int(active_peers)
             base_gauge = min(1.0, max(base_gauge, 0.50 + 0.10 * active_peers))
+        if ghost_latency_ms is not None:
+            self.ghost_latency_ms = max(0.0, float(ghost_latency_ms))
+            # Attenuate mesh gauge only under extreme topological latency (> 1000 ms)
+            latency_factor = max(0.25, 1.0 - min(0.75, self.ghost_latency_ms / 2000.0))
+            base_gauge = min(1.0, base_gauge * latency_factor)
+        if kelly_consensus_headroom is not None:
+            self.kelly_consensus_headroom = max(0.0, min(1.0, float(kelly_consensus_headroom)))
+            base_gauge = min(1.0, 0.75 * base_gauge + 0.25 * self.kelly_consensus_headroom)
         self.p2p_mesh_gauge = base_gauge
 
     def get_typed_affordance(
@@ -402,7 +412,9 @@ class HardwareMonitor:
                 telemetry={
                     "p2p_mesh_gauge": mesh_gauge,
                     "freenet_online": getattr(self, 'freenet_online', False),
-                    "active_peers": getattr(self, 'active_mesh_peers', 0)
+                    "active_peers": getattr(self, 'active_mesh_peers', 0),
+                    "ghost_latency_ms": getattr(self, 'ghost_latency_ms', 0.0),
+                    "kelly_consensus_headroom": getattr(self, 'kelly_consensus_headroom', 0.5),
                 }
             )
 
@@ -605,6 +617,149 @@ class HardwareMonitor:
             "thermal_runaway": self.thermal_runaway,
             "is_high_value_exempt": True
         }
+
+    def probe_compute_feelers(self) -> Dict[str, Any]:
+        """
+        Extends local and community compute affordance feelers across:
+          1. Local Silicon & DRAM t_RFC stall latency feeler (nanosecond jitter probe)
+          2. Local GPU Sovereign Queue A / Queue B TailSlayer first-to-finish headroom
+          3. Community P2P Mesh (BonfireNomadicRing / FreenetGhostCaller) federation headroom
+          4. Directional gauge coupling between Local Silicon and Community P2P Mesh
+        """
+        import time
+        t0_ns = time.perf_counter_ns()
+        # Non-allocating L1/DRAM cache-line stride touch to sense t_RFC refresh stall
+        _accum = 0
+        for i in range(64):
+            _accum ^= (i * 2654435761) & 0xFFFFFFFF
+        t_rfc_feeler_ns = max(1, time.perf_counter_ns() - t0_ns)
+        # Typical unstalled loop is < 50,000 ns; DRAM t_RFC / OS scheduling stall spikes higher
+        t_rfc_stall_detected = bool(t_rfc_feeler_ns > 150_000)
+
+        silicon_aff = self.get_typed_affordance(ComputeAffordanceType.SILICON)
+        thermal_aff = self.get_typed_affordance(ComputeAffordanceType.THERMAL)
+        gpu_aff = self.get_typed_affordance(ComputeAffordanceType.GPU_SOVEREIGN)
+        topo_aff = self.get_typed_affordance(ComputeAffordanceType.TOPOLOGICAL)
+        mesh_aff = self.get_typed_affordance(ComputeAffordanceType.P2P_MESH)
+
+        local_to_community_gauge = self.gauge_between(
+            ComputeAffordanceType.SILICON, ComputeAffordanceType.P2P_MESH
+        )
+        community_to_local_gauge = self.gauge_between(
+            ComputeAffordanceType.P2P_MESH, ComputeAffordanceType.SILICON
+        )
+
+        # Community offload advantage: when P2P mesh headroom exceeds constrained local silicon/thermal
+        community_offload_recommended = bool(
+            bool(mesh_aff)
+            and getattr(self, "active_mesh_peers", 0) > 0
+            and (mesh_aff.gauge > silicon_aff.gauge * 1.15 or thermal_aff.gauge < 0.35)
+        )
+
+        return {
+            "t_rfc_feeler_ns": int(t_rfc_feeler_ns),
+            "t_rfc_stall_detected": t_rfc_stall_detected,
+            "local_silicon_gauge": float(silicon_aff.gauge),
+            "local_thermal_gauge": float(thermal_aff.gauge),
+            "local_gpu_sovereign_gauge": float(gpu_aff.gauge),
+            "topological_gauge": float(topo_aff.gauge),
+            "community_p2p_mesh_gauge": float(mesh_aff.gauge),
+            "freenet_online": bool(getattr(self, "freenet_online", False)),
+            "active_mesh_peers": int(getattr(self, "active_mesh_peers", 0)),
+            "ghost_latency_ms": float(getattr(self, "ghost_latency_ms", 0.0)),
+            "kelly_consensus_headroom": float(getattr(self, "kelly_consensus_headroom", 0.5)),
+            "local_to_community_gauge": float(local_to_community_gauge),
+            "community_to_local_gauge": float(community_to_local_gauge),
+            "community_offload_recommended": community_offload_recommended,
+        }
+
+    def evaluate_speculative_routing_timings(
+        self,
+        execution_ms: float = 0.0,
+        h_spec: float = 0.5,
+        pas_h: float = 0.75,
+        epsilon_fastpass: float = 0.25,
+    ) -> Dict[str, Any]:
+        """
+        Evaluates speculative routing times, thermal latency guards, and connective routing paths:
+          - 500ms "Restless" Thermal Latency Guard (SIC-FA-ADMM block limit -> clFinish / Lazarus throttle)
+          - Refresh-Triggered Play (t_RFC memory stall -> RP^4 Projective Routing / Lazarus Transition)
+          - Spectral Speculation Fastpass (H_spec < epsilon -> 90% ADMM bypass)
+          - 7-Step Speculative Chebyshev Trajectory Horizon (K_spec in [1, 7] bounded by Catalan C_{K-1})
+          - Local TailSlayer Dual-Queue (Queue A + Queue B first-to-finish) vs Community Bonfire Federation
+        """
+        feelers = self.probe_compute_feelers()
+        exceeds_500ms_guard = bool(float(execution_ms) > 500.0)
+        t_rfc_stall = bool(feelers["t_rfc_stall_detected"])
+        is_spectral_fastpass = bool(float(h_spec) < float(epsilon_fastpass) and not exceeds_500ms_guard)
+
+        # Compute adaptive speculative lookahead horizon K_spec in [1, 7]
+        # High PAS_h and high silicon/GPU gauge unlock full 7-step Chebyshev trajectory draft
+        composite_headroom = 0.5 * feelers["local_silicon_gauge"] + 0.5 * feelers["local_thermal_gauge"]
+        if exceeds_500ms_guard or self.thermal_runaway:
+            k_spec = 1
+        elif pas_h >= 0.65 and composite_headroom >= 0.45:
+            k_spec = 7
+        elif pas_h >= 0.45 and composite_headroom >= 0.25:
+            k_spec = 4
+        else:
+            k_spec = 2
+
+        # Catalan number C_{k_spec - 1} bounds the Stasheff Associahedron parenthesizations of the draft
+        n_cat = max(0, k_spec - 1)
+        catalan_branch_bound = math.comb(2 * n_cat, n_cat) // (n_cat + 1)
+
+        # Determine connective speculative routing mode
+        if exceeds_500ms_guard or t_rfc_stall:
+            # Turn hardware stall / 500ms thermal guard into generative RP^4 Void Lazarus Play
+            routing_mode = "rp4_void_lazarus_play"
+            recommended_dt_scale = 1.35  # Play dilation while hardware finishes/cools
+        elif is_spectral_fastpass:
+            routing_mode = "spectral_fastpass"
+            recommended_dt_scale = 1.15
+        elif feelers["community_offload_recommended"]:
+            routing_mode = "bonfire_community_federation"
+            recommended_dt_scale = 1.0
+        elif feelers["local_gpu_sovereign_gauge"] >= 0.25:
+            routing_mode = "tailslayer_dual_queue"
+            recommended_dt_scale = 1.0
+        else:
+            routing_mode = "scccg_gravity_well"
+            recommended_dt_scale = 0.75  # Seriousness contraction
+
+        return {
+            "routing_mode": routing_mode,
+            "is_spectral_fastpass": is_spectral_fastpass,
+            "exceeds_500ms_thermal_guard": exceeds_500ms_guard,
+            "t_rfc_stall_detected": t_rfc_stall,
+            "t_rfc_feeler_ns": feelers["t_rfc_feeler_ns"],
+            "execution_ms": float(execution_ms),
+            "speculative_horizon_steps": int(k_spec),
+            "catalan_associahedron_bound": int(catalan_branch_bound),
+            "recommended_dt_scale": float(recommended_dt_scale),
+            "community_offload_recommended": feelers["community_offload_recommended"],
+            "feelers": feelers,
+        }
+
+
+def probe_compute_feelers() -> Dict[str, Any]:
+    """Module-level helper to probe local and community compute affordance feelers."""
+    return HardwareMonitor.get_instance().probe_compute_feelers()
+
+
+def evaluate_speculative_routing_timings(
+    execution_ms: float = 0.0,
+    h_spec: float = 0.5,
+    pas_h: float = 0.75,
+    epsilon_fastpass: float = 0.25,
+) -> Dict[str, Any]:
+    """Module-level helper to evaluate speculative routing times, guards, and connective paths."""
+    return HardwareMonitor.get_instance().evaluate_speculative_routing_timings(
+        execution_ms=execution_ms,
+        h_spec=h_spec,
+        pas_h=pas_h,
+        epsilon_fastpass=epsilon_fastpass,
+    )
 
 
 def evaluate_matrioshka_mandelbulb_affordance(

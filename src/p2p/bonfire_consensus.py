@@ -224,8 +224,8 @@ class BonfireNomadicRing:
     Implements the Bonfire Nomadic Rings: Federated Consensus & Egalitarian Microhedging.
     Wraps the FreenetClient to broadcast topological signatures.
     """
-    def __init__(self, freenet_client: FreenetClient, contract_id: str = "bonfire_nomadic_ring"):
-        self.freenet = freenet_client
+    def __init__(self, freenet_client: Optional[FreenetClient] = None, contract_id: str = "bonfire_nomadic_ring"):
+        self.freenet = freenet_client if freenet_client is not None else FreenetClient()
         self.contract_id = contract_id
         
         self.ghost_caller = FreenetGhostCaller(freenet_client=self.freenet)
@@ -264,6 +264,17 @@ class BonfireNomadicRing:
         if peer_id != "unknown":
             self.peer_allocations[peer_id] = k_frac
             logger.debug(f"[BONFIRE] Received Kelly fraction {k_frac} from {peer_id}")
+            try:
+                from src.core.hardware_monitor import HardwareMonitor
+                mean_k = float(np.mean(list(self.peer_allocations.values())))
+                HardwareMonitor.get_instance().update_p2p_mesh(
+                    mesh_gauge=max(0.65, mean_k),
+                    freenet_online=True,
+                    active_peers=len(self.peer_allocations),
+                    kelly_consensus_headroom=mean_k,
+                )
+            except Exception:
+                pass
 
         # ZK CRT Integration: receive processed residue channel
         crt_residue = state_update.get("crt_residue")
@@ -411,6 +422,48 @@ class BonfireNomadicRing:
         if peer_id != "unknown":
             self.peer_embedded_states[peer_id] = state_update
             logger.debug(f"[BONFIRE] Received embedded state from {peer_id} (dim={state_update.get('dimension')})")
+            try:
+                from src.core.hardware_monitor import HardwareMonitor
+                active_count = max(len(self.peer_allocations), len(self.peer_embedded_states))
+                HardwareMonitor.get_instance().update_p2p_mesh(
+                    mesh_gauge=min(1.0, 0.55 + 0.10 * active_count),
+                    freenet_online=True,
+                    active_peers=active_count,
+                )
+            except Exception:
+                pass
+
+    def probe_community_compute_feeler(self) -> Dict[str, Any]:
+        """
+        Probes community compute affordance feelers across the Bonfire Nomadic Ring:
+        evaluates active peers, egalitarian Kelly consensus headroom, verified CRT channels,
+        and directional gauge transfer between Local Silicon and Community P2P Mesh.
+        """
+        from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+        hm = HardwareMonitor.get_instance()
+        active_peers = max(len(self.peer_allocations), len(self.peer_embedded_states))
+        kelly_headroom = (
+            float(np.mean(list(self.peer_allocations.values())))
+            if self.peer_allocations
+            else 0.5
+        )
+        hm.update_p2p_mesh(
+            mesh_gauge=hm.p2p_mesh_gauge,
+            freenet_online=active_peers > 0 or getattr(hm, "freenet_online", False),
+            active_peers=active_peers,
+            kelly_consensus_headroom=kelly_headroom,
+        )
+        feelers = hm.probe_compute_feelers()
+        return {
+            "active_peers": active_peers,
+            "kelly_consensus_headroom": kelly_headroom,
+            "verified_crt_channels": len(self.pending_crt_channels),
+            "embedded_sightline_peers": len(self.peer_embedded_states),
+            "p2p_mesh_gauge": feelers["community_p2p_mesh_gauge"],
+            "local_to_community_gauge": feelers["local_to_community_gauge"],
+            "community_to_local_gauge": feelers["community_to_local_gauge"],
+            "community_offload_recommended": feelers["community_offload_recommended"],
+        }
 
     def broadcast_peer_embedded_state(
         self,
