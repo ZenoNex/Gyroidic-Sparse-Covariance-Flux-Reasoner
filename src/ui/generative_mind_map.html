@@ -25,6 +25,12 @@
 
         * {
             box-sizing: border-box;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        button, .btn, .alien-script, .voynich-glyph {
+            user-select: none;
+            -webkit-user-select: none;
             transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 

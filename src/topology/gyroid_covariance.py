@@ -239,7 +239,9 @@ class SparseGyroidCovarianceProbe(nn.Module):
             'decay_rate': decay_rate,
             'trace': trace,
             'condition_number': condition_number,
-            'lambda_min': lambda_min
+            'lambda_min': lambda_min,
+            'percolation_occupancy': float((torch.abs(C_loc) > (1.0 - 0.592746)).float().mean().item()),
+            'percolation_threshold_pc': 0.592746
         }
     
     def compute_pressure_score(
@@ -366,8 +368,9 @@ class SparseGyroidCovarianceProbe(nn.Module):
             'gcve_scores': gcve_pressures,
             'fracture_scores': fracture_scores,
             'total_pressure': total_pressure,
-            'lambda_min': lambda_mins,
-            'trace_c': traces
+            'condition_number': condition_numbers,
+            'trace_c': traces,
+            'percolation_pc': 0.592746
         }
 
     def compute_interference_matrix(self, h: torch.Tensor) -> torch.Tensor:

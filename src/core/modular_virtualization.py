@@ -150,3 +150,52 @@ class ModularVirtualizationLayer(nn.Module):
         
         mean_dist = torch.mean(cyclic_dist / modulus)
         return mean_dist.item() < tolerance
+
+    def audit_collatz_carry_and_diophantine_near_miss(
+        self,
+        tensor: torch.Tensor,
+        max_exp: int = 12
+    ) -> dict:
+        """
+        Collatz-Style Carry-Cascade (3n + 1) vs. Bit-Shift Halving (n / 2) &
+        Diophantine Near-Miss (2^l approx 3^k) Audit.
+
+        Mathematical Foundation:
+        In binary arithmetic, 3n + 1 = (2n + n + 1) triggers carry-ripples across
+        adjacent bits (entropic bit-smearing), whereas n / 2 is a clean right bit-shift.
+        Heuristic averages (3/4 contraction per two steps) fail to rule out non-ergodic
+        outlier loops whenever 2^l approx 3^k produces a tiny Diophantine linear form
+        in logarithms |l * ln(2) - k * ln(3)|.
+        """
+        integerized = torch.abs((stochastic_round(tensor, self.scale_factor) * self.scale_factor).long())
+        odd_mask = (integerized & 1) == 1
+        odd_fraction = float(odd_mask.float().mean().item()) if integerized.numel() > 0 else 0.0
+
+        # Simulate one Collatz step to measure bitwise carry-ripple smearing (Hamming distance)
+        collatz_next = torch.where(odd_mask, 3 * integerized + 1, integerized >> 1)
+        xor_flips = integerized ^ collatz_next
+        # Count low-order bit flips across first 16 bitplanes
+        bit_flips = sum(((xor_flips >> b) & 1).float().mean().item() for b in range(16)) / 16.0
+
+        # Evaluate closest Diophantine near-miss |2^l - 3^k| / 3^k for 1 <= k <= max_exp
+        best_gap = 1.0
+        best_pair = (8, 5)  # 2^8 = 256 vs 3^5 = 243 (classic Collatz near-miss)
+        import math
+        for k in range(1, max(2, int(max_exp) + 1)):
+            l_est = max(1, int(round(k * math.log(3.0) / math.log(2.0))))
+            pow2 = float(2 ** l_est)
+            pow3 = float(3 ** k)
+            rel_gap = abs(pow2 - pow3) / pow3
+            if rel_gap < best_gap:
+                best_gap = rel_gap
+                best_pair = (l_est, k)
+
+        # Contraction heuristic: (3/4) when odd/even balanced; > 1.0 indicates hailstone excursion
+        effective_drift_factor = (3.0 ** odd_fraction) / (2.0 ** (1.0 - odd_fraction + 1e-6))
+        return {
+            "odd_parity_fraction": round(odd_fraction, 4),
+            "carry_ripple_bit_smearing": round(float(bit_flips), 4),
+            "diophantine_near_miss_2l_3k": {"l": best_pair[0], "k": best_pair[1], "relative_gap": round(best_gap, 6)},
+            "effective_collatz_drift": round(float(effective_drift_factor), 4),
+            "hailstone_excursion_active": bool(effective_drift_factor > 1.0)
+        }

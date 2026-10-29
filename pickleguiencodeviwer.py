@@ -525,6 +525,14 @@ class DataViewer:
         self.root = root
         self.root.title("Gyroidic Flux Reasoner - Data Inspector")
         self.root.geometry("1150x780")
+        try:
+            self.root.deiconify()
+            self.root.lift()
+            self.root.attributes('-topmost', True)
+            self.root.after(400, lambda: self.root.attributes('-topmost', False))
+            self.root.focus_force()
+        except Exception:
+            pass
 
         self.base_path = r"D:\programming\python\Gyroidic Sparse Covariance Flux Reasoner\data\encodings"
         if not os.path.exists(self.base_path):

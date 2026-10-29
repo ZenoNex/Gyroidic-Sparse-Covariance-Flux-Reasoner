@@ -813,9 +813,18 @@ WantedBy=default.target
 class HybridAI:
     """Hybrid AI system using only working components."""
     
-    def __init__(self, use_spectral_correction: bool = True, config: dict = None):
+    def __init__(self, use_spectral_correction: bool = True, config: dict = None, lightweight: bool = False):
         if config is None:
             config = {}
+        else:
+            config = dict(config)
+        self.lightweight = bool(lightweight or config.get('lightweight', False) or os.environ.get('Sovereign_Disable_Background') == '1')
+        if self.lightweight:
+            config['lightweight'] = True
+            config.setdefault('chatgpt_ingestor_enabled', False)
+            config.setdefault('open_science_ingestor_enabled', False)
+            config.setdefault('bg_scientific_learning', False)
+            config.setdefault('suppress_narration', True)
             
         from src.core import DEVICE
         self.device = DEVICE
@@ -966,8 +975,9 @@ class HybridAI:
             print(f"[FAIL] Multiplexed Feed Substrate initialization failed: {e}")
             self.physics_backend = None
 
-        # Valence & Hunger Initial Bootup Feed Ingestion
-        if self.engine and hasattr(self.engine, 'valence_drive'):
+        # Valence & Hunger Initial Bootup Feed Ingestion (Gated on lightweight & compute affordances)
+        from src.core.hardware_monitor import has_compute_affordance
+        if not getattr(self, 'lightweight', False) and has_compute_affordance() and self.engine and hasattr(self.engine, 'valence_drive'):
             try:
                 init_hunger = self.engine.valence_drive.get_metrics().get('current_hunger_drive', 1.0)
                 print(f"[BOOT] Evaluating Initial Valence Hunger Drive: {init_hunger:.3f}")
@@ -1028,7 +1038,9 @@ class HybridAI:
             os.makedirs(self.graph_dir, exist_ok=True)
             
             self.graph_manager = GyroidicGraphManager(data_dir=self.graph_dir, dim=256)
-            self.graph_manager.load_fossils(limit=150)
+            fossil_limit = 16 if getattr(self, 'lightweight', False) else 150
+            scan_limit = 32 if getattr(self, 'lightweight', False) else 250
+            self.graph_manager.load_fossils(limit=fossil_limit, scan_limit=scan_limit)
             print(f"[OK] Gyroidic Graph Manager initialized with {self.graph_manager.get_valid_node_count()} fossils")
         except Exception as e:
             print(f"[FAIL] Graph Manager init failed: {e}")
@@ -1039,6 +1051,39 @@ class HybridAI:
 
         # Superposed Tag Stacker (Ganbreeder fallback)
         self.tag_stacker = SuperposedTagStacker(state_dim=256, device=self.torch_device)
+
+        # Reconnect VoynichLinguist, RNS ModularVirtualizationLayer, InputConvexNeuralNetwork, and ResonanceCavity
+        try:
+            from src.core.voynich_architecture import VoynichLinguist
+            self.voynich_linguist = getattr(self.engine, 'voynich_linguist', None) if self.engine else None
+            if self.voynich_linguist is None:
+                self.voynich_linguist = VoynichLinguist(latent_dim=256).to(self.torch_device)
+        except Exception as e:
+            print(f"[WARN] VoynichLinguist init notice: {e}")
+            self.voynich_linguist = None
+
+        try:
+            from src.core.modular_virtualization import ModularVirtualizationLayer
+            self.rns_layer = ModularVirtualizationLayer(dim=256, device=self.torch_device)
+        except Exception as e:
+            print(f"[WARN] ModularVirtualizationLayer (RNS) init notice: {e}")
+            self.rns_layer = None
+
+        try:
+            from src.surrogates.kagh_networks import InputConvexNeuralNetwork
+            self.moment_transport = InputConvexNeuralNetwork(dim=256).to(self.torch_device)
+        except Exception as e:
+            print(f"[WARN] InputConvexNeuralNetwork (ICNN) init notice: {e}")
+            self.moment_transport = None
+
+        try:
+            from src.models.resonance_cavity import ResonanceCavity
+            self.resonance_cavity = getattr(self.engine, 'cavity', None) if self.engine else None
+            if self.resonance_cavity is None:
+                self.resonance_cavity = ResonanceCavity(hidden_dim=256, num_modes=64).to(self.torch_device)
+        except Exception as e:
+            print(f"[WARN] ResonanceCavity init notice: {e}")
+            self.resonance_cavity = None
 
         # Apply start configuration options to engine components recursively
         
@@ -1185,13 +1230,15 @@ class HybridAI:
             self._start_background_scientific_learning()
 
         # SOVEREIGN WARMSTART: Restore manifold if fossil exists (Thorium Protocol)
-        self.load_model_state()
+        if not getattr(self, 'lightweight', False):
+            self.load_model_state()
 
         # FREENET GHOST CALLER INTEGRATION
         try:
             from src.data.freenet_ghost_caller import FreenetGhostCaller
             self.ghost_caller = FreenetGhostCaller(host='127.0.0.1', port=7509, freenet_client=getattr(self, 'p2p_ws_client', None))
-            self.ghost_caller.broadcast_ghost_call()
+            if not getattr(self, 'lightweight', False):
+                self.ghost_caller.broadcast_ghost_call()
             print("[OK] Freenet Ghost Caller initialized and introductory call dispatched")
         except Exception as e:
             print(f"[FAIL] Freenet Ghost Caller init failed: {e}")
@@ -1366,6 +1413,8 @@ class HybridAI:
             print(f"[WARMSTART] Recovering manifold from {state_path}...")
             # Allow ZeitgeistState for safe deserialization
             from src.core.zeitgeist_router import ZeitgeistState
+            from src.core.meta_polytope_matrioshka import BoundaryState
+            torch.serialization.add_safe_globals([BoundaryState])
             torch.serialization.add_safe_globals([ZeitgeistState])
             
             # Load with map_location='cpu' for cross-hardware soul-transfer
@@ -1546,6 +1595,7 @@ class HybridAI:
             self._initialize_manifold_state()
 
         # --- DYNAMIC REGIME DETERMINATION (Integrated Emergence Condition, Eq 10) ---
+        self._last_process_start_perf = time.perf_counter()
         self.current_regime = 'goo'
         with torch.no_grad():
             pas_h_live_init = 0.61
@@ -1649,6 +1699,12 @@ class HybridAI:
             freq = (i + 1) * (ord(char) / 128.0) * 3.14159
             text_embedding += torch.sin(torch.linspace(0, freq, 768, device=self.torch_device))
             text_embedding = torch.tanh(text_embedding)
+
+        # Guarantee local bindings for hidden_state and distortion across all branches
+        if not hasattr(self, 'hidden_state_scarred') or self.hidden_state_scarred is None:
+            self._initialize_manifold_state()
+        hidden_state = self.hidden_state_scarred.clone()
+        distortion = self._harvest_honest_jitter(self.hidden_state_scarred.shape) * 0.01
             
         # --- INFERENCE CONNECTION ---
         # If the DiegeticPhysicsEngine is available, use it (CALM/KAGH/FGRT/Larynx)
@@ -1726,21 +1782,34 @@ class HybridAI:
                     model_out = self.temporal_model(model_input, return_analysis=True)
                 
                 # a) Update system state with REAL neural activation
-                self.hidden_state = model_out['hidden_state'].squeeze(0)  # [batch, dim]
+                raw_hidden = model_out['hidden_state'].squeeze(0)  # [dim]
                 
-                # b) Pythagorean Bridge: Project to 256D if needed (Legacy Support)
-                if self.hidden_state.shape[-1] == 768:
-                    self.hidden_state_scarred = self.hidden_state.view(256, 3).mean(dim=1)
+                # b) Pythagorean Bridge: Project 768D -> 256D so hidden_state and hidden_state_scarred match ADMR/Attractors
+                if raw_hidden.shape[-1] == 768:
+                    self.hidden_state = raw_hidden.view(256, 3).mean(dim=1)
+                elif raw_hidden.shape[-1] > 256:
+                    self.hidden_state = raw_hidden[:256]
+                elif raw_hidden.shape[-1] < 256:
+                    self.hidden_state = torch.nn.functional.pad(raw_hidden, (0, 256 - raw_hidden.shape[-1]))
                 else:
-                    self.hidden_state_scarred = self.hidden_state # Already correct dim or will be handled by ADMR
+                    self.hidden_state = raw_hidden
+                self.hidden_state_scarred = self.hidden_state.clone()
+                hidden_state = self.hidden_state.clone()
                 
                 # c) Temporal Evolution (ADMR Solver Integration)
                 hidden_state_256 = self.hidden_state_scarred.clone() # Anchor for negotiation loss
                 hidden_state_evolved = self.hidden_state.unsqueeze(0) # Default to static if solver missing
                 hidden_state_evolved_sq = self.hidden_state.clone()
                 
-                if hasattr(self, 'admr_solver'):
-                    neighbor_states = torch.stack([self.temporal_model.prev_states.mean(dim=0)] * 1).unsqueeze(0).to(self.torch_device)
+                if hasattr(self, 'admr_solver') and self.admr_solver is not None:
+                    prev_mean = self.temporal_model.prev_states.mean(dim=0)
+                    if prev_mean.shape[-1] == 768:
+                        prev_mean = prev_mean.view(256, 3).mean(dim=1)
+                    elif prev_mean.shape[-1] != 256:
+                        prev_mean = prev_mean.flatten()[:256]
+                        if prev_mean.shape[0] < 256:
+                            prev_mean = torch.nn.functional.pad(prev_mean, (0, 256 - prev_mean.shape[0]))
+                    neighbor_states = torch.stack([prev_mean] * 1).unsqueeze(0).to(self.torch_device)
                     adj_weight = torch.ones(1, neighbor_states.shape[1]).to(self.torch_device)
                     
                     # Run MAML online meta-optimization steps using the sliding support buffer
@@ -1873,9 +1942,14 @@ class HybridAI:
                 traceback.print_exc()
                 # Fallback to existing hidden state logic
                 model_diagnostics = {'error': str(e)}
+                if self.hidden_state_scarred.shape[-1] != 256:
+                    self.hidden_state_scarred = self.hidden_state_scarred.flatten()[:256]
+                self.hidden_state = self.hidden_state_scarred.clone()
+                hidden_state = self.hidden_state_scarred.clone()
                 hidden_state_256 = self.hidden_state_scarred.clone()
                 hidden_state_evolved_sq = self.hidden_state_scarred.clone()
                 hidden_state_evolved = self.hidden_state_scarred.clone().unsqueeze(0)
+                distortion = self._harvest_honest_jitter(self.hidden_state_scarred.shape) * 0.01
 
 
 
@@ -2058,6 +2132,51 @@ class HybridAI:
             except Exception as e:
                 print(f"[AUDIENCE] Projection failed: {e}")
 
+        # Apply VoynichLinguist, RNS ModularVirtualizationLayer, InputConvexNeuralNetwork, and ResonanceCavity
+        with torch.no_grad():
+            state_2d = self.hidden_state_scarred.detach().unsqueeze(0)
+            if getattr(self, 'voynich_linguist', None) is not None:
+                try:
+                    v_out = self.voynich_linguist(state_2d)
+                    if isinstance(v_out, tuple) and len(v_out) >= 4:
+                        _, _, v_honesty, v_token = v_out[:4]
+                        diagnostics['voynich_honesty'] = float(v_honesty.mean().item()) if isinstance(v_honesty, torch.Tensor) else float(v_honesty)
+                        diagnostics['voynich_exemption_reason'] = str(getattr(v_token, 'reason', ''))
+                    elif isinstance(v_out, dict):
+                        diagnostics['voynich_honesty'] = float(v_out.get('honesty_score', 1.0))
+                        if 'exemption_token' in v_out and hasattr(v_out['exemption_token'], 'reason'):
+                            diagnostics['voynich_exemption_reason'] = str(v_out['exemption_token'].reason)
+                except Exception as v_err:
+                    print(f"[WARN] VoynichLinguist telemetry sync notice: {v_err}")
+
+            if getattr(self, 'rns_layer', None) is not None:
+                try:
+                    rns_res = self.rns_layer.float_to_rns(state_2d, anchor_sym=state_2d)
+                    diagnostics['rns_residue_preview'] = [round(float(x), 2) for x in rns_res.flatten()[:8]]
+                    if hasattr(self.rns_layer, 'audit_collatz_carry_and_diophantine_near_miss'):
+                        diagnostics['rns_collatz_audit'] = self.rns_layer.audit_collatz_carry_and_diophantine_near_miss(state_2d)
+                except Exception as rns_err:
+                    print(f"[WARN] RNS layer telemetry sync notice: {rns_err}")
+
+            if getattr(self, 'moment_transport', None) is not None:
+                try:
+                    if hasattr(self.moment_transport, 'icnn'):
+                        mt_energy = self.moment_transport.icnn(state_2d)
+                    else:
+                        mt_energy = self.moment_transport(state_2d)
+                    diagnostics['moment_transport_energy'] = float(mt_energy.mean().item())
+                except Exception as mt_err:
+                    print(f"[WARN] ICNN moment transport telemetry sync notice: {mt_err}")
+
+            if getattr(self, 'resonance_cavity', None) is not None:
+                try:
+                    cav_in = state_2d.unsqueeze(1) if state_2d.dim() == 2 else state_2d
+                    cav_out = self.resonance_cavity(cav_in)
+                    if isinstance(cav_out, dict) and 'cavity_state' in cav_out:
+                        diagnostics['cavity_norm'] = float(torch.norm(cav_out['cavity_state']).item())
+                except Exception as cav_err:
+                    print(f"[WARN] ResonanceCavity telemetry sync notice: {cav_err}")
+
         # --- SYNCHRONIZE METRICS FOR RETRO TERMINAL UI ---
         # Ensure nested 'diagnostics' exists for diegetic_terminal.html's nested lookup
         if 'diagnostics' not in diagnostics or not isinstance(diagnostics['diagnostics'], dict):
@@ -2167,9 +2286,26 @@ class HybridAI:
                 print(f"[WARN] Phase 2 P2P Nomadic Ring Integration failed: {e}")
         # -----------------------------------------------------
 
+        try:
+            from src.core.hardware_monitor import enforce_500ms_restless_thermal_guard
+            step_elapsed_ms = (time.perf_counter() - getattr(self, '_last_process_start_perf', time.perf_counter())) * 1000.0
+            sovereignty_eng = getattr(self.engine, 'sovereignty_engine', None) if self.engine else None
+            thermal_guard_info = enforce_500ms_restless_thermal_guard(
+                execution_ms=step_elapsed_ms,
+                silicon_engine=sovereignty_eng,
+                pas_h=float(diagnostics.get('pas_h', 0.75)),
+                h_spec=float(diagnostics.get('spectral_entropy', 0.5))
+            )
+            diagnostics['thermal_guard'] = thermal_guard_info
+            if 'diagnostics' in diagnostics and isinstance(diagnostics['diagnostics'], dict):
+                diagnostics['diagnostics']['thermal_guard'] = thermal_guard_info
+        except Exception:
+            pass
+
         return {
             "response": response_text,
             'diagnostics': diagnostics,
+            'metrics': diagnostics,
             'output_length': len(response_text),
             'backend': 'hybrid_diegetic_integrated' if self.engine else 'hybrid'
         }
@@ -2574,6 +2710,11 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         elif parsed_path.path == '/api/rss/feeds':
             from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
             DiegeticRequestHandler.do_GET(self)
+            return
+        elif parsed_path.path == '/api/viewer/launch':
+            from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
+            self.path = '/api/viewer/launch'
+            DiegeticRequestHandler.do_POST(self)
             return
         else:
             super().do_GET()

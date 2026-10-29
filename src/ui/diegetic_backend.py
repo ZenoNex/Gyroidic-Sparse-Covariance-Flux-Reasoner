@@ -78,13 +78,21 @@ def compute_autocorrelation(x: torch.Tensor) -> torch.Tensor:
 
 
 def _compute_fossil_budget() -> int:
-    """Dynamically computes the fossil load budget based on true hardware dimensionality."""
+    """Dynamically computes the startup in-memory fossil load budget bounded by HardwareMonitor compute affordances."""
     try:
-        from src.core.hardware_monitor import get_headroom_dimensionality
-        return get_headroom_dimensionality()
+        from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType, get_headroom_dimensionality
+        hm = HardwareMonitor.get_instance()
+        if hm.thermal_runaway or not hm.has_compute_affordance(ComputeAffordanceType.SILICON):
+            return 16
+        silicon_aff = hm.get_typed_affordance(ComputeAffordanceType.SILICON)
+        thermal_aff = hm.get_typed_affordance(ComputeAffordanceType.THERMAL)
+        composite = 0.5 * silicon_aff.gauge + 0.5 * thermal_aff.gauge
+        raw_dim = get_headroom_dimensionality()
+        # Cap initial synchronous startup load to at most 150 nodes so 39,936 disk fossils never stall boot
+        return max(16, min(150, int(raw_dim * composite)))
     except Exception as e:
         print(f"[BUDGET ERROR] Failed to compute topological headroom: {e}")
-        return 150 # safe fallback
+        return 64 # safe fallback
 from urllib.parse import urlparse, parse_qs
 from typing import Dict, Any, List, Optional, Tuple, Union
 import hashlib
@@ -555,7 +563,8 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # Temporal Association Trainer state (eagerly initialized to support background loops)
         from src.training.temporal_association_trainer import TemporalAssociationTrainer, TemporalAssociationDataset
-        self._temporal_dataset = TemporalAssociationDataset(device=self.device)
+        is_lw = bool(self.config.get("lightweight", False)) or bool(os.environ.get("Sovereign_Disable_Background"))
+        self._temporal_dataset = TemporalAssociationDataset(device=self.device, lightweight=is_lw)
         self._temporal_trainer = TemporalAssociationTrainer(model=self, dataset=self._temporal_dataset)
         self._temporal_thread = None
         self._last_temporal_diag: dict = {}
@@ -741,8 +750,10 @@ class DiegeticPhysicsEngine(nn.Module):
                 device=self.device,
                 engine=self
             )
-            # Re-enable the background slow-drip learning (Valence Modulated)
-            if not os.environ.get("Sovereign_Disable_Background"):
+            # Re-enable the background slow-drip learning (Valence Modulated & Compute Affordance Gated)
+            from src.core.hardware_monitor import has_compute_affordance
+            disable_bg = bool(os.environ.get("Sovereign_Disable_Background")) or bool(self.config.get("lightweight", False)) or not has_compute_affordance()
+            if not disable_bg:
                 self.ingestor.start_background_learning()
                 print(" Sovereign Ingestor (Option D) initialized. Background learning ACTIVE.")
             else:
@@ -761,7 +772,9 @@ class DiegeticPhysicsEngine(nn.Module):
                 engine=self
             )
             self.arxiv_ingestor._engine_busy_fn = lambda: self._is_processing
-            if not os.environ.get("Sovereign_Disable_Background"):
+            from src.core.hardware_monitor import has_compute_affordance
+            disable_bg = bool(os.environ.get("Sovereign_Disable_Background")) or bool(self.config.get("lightweight", False)) or not has_compute_affordance()
+            if not disable_bg:
                 self.arxiv_ingestor.start_sovereign_loop()
                 print(" ArXiv Sovereign Ingestor ACTIVE. Realtime lore ingestion enabled.")
             else:
@@ -822,7 +835,9 @@ class DiegeticPhysicsEngine(nn.Module):
                 
                 loop.run_until_complete(auto_temporal_training_loop(self.chatgpt_harvester, self._temporal_trainer, delay=0.1))
                 
-            if not os.environ.get("Sovereign_Disable_Background"):
+            from src.core.hardware_monitor import has_compute_affordance
+            disable_bg = bool(os.environ.get("Sovereign_Disable_Background")) or bool(self.config.get("lightweight", False)) or not has_compute_affordance()
+            if not disable_bg:
                 self._chatgpt_harvester_thread = threading.Thread(target=run_harvester_loop, daemon=True)
                 self._chatgpt_harvester_thread.start()
                 if verbosity != 'low':
@@ -834,7 +849,9 @@ class DiegeticPhysicsEngine(nn.Module):
             self.chatgpt_harvester = None
             print(" ChatGPT Friction Harvester: disabled by configuration.")
 
-        if not os.environ.get("Sovereign_Disable_Background"):
+        from src.core.hardware_monitor import has_compute_affordance
+        disable_bg = bool(os.environ.get("Sovereign_Disable_Background")) or bool(self.config.get("lightweight", False)) or not has_compute_affordance()
+        if not disable_bg:
             self._start_background_larynx_trainer()
         else:
             print(" Background Larynx trainer: disabled by environment override.")
@@ -9154,7 +9171,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 import subprocess
                 import sys
                 try:
-                    python_exe = sys.executable
+                    venv_py = os.path.join(os.getcwd(), ".venv", "Scripts", "python.exe")
+                    python_exe = venv_py if os.path.exists(venv_py) else sys.executable
                     client_path = os.path.join("src", "ui", "voxelboxter_client.py")
                     
                     # Store process in ENGINE or global to prevent GC, and allow tracking if needed
@@ -9168,7 +9186,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                             cwd=os.getcwd(),
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,
-                            creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
+                            env=dict(os.environ, PYTHONPATH=os.getcwd())
                         )
                         self._send_json({"status": "ok", "message": "Voxelboxter Dual Engine booting..."})
                     else:
@@ -9359,11 +9377,12 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 except Exception as e:
                     self._send_error_json(f"Concept prediction failed: {str(e)}")
 
-            elif self.path == '/api/viewer/launch':
+            elif self.path.split('?')[0] == '/api/viewer/launch':
                 import subprocess
                 import sys
                 try:
-                    python_exe = sys.executable
+                    venv_py = os.path.join(os.getcwd(), ".venv", "Scripts", "python.exe")
+                    python_exe = venv_py if os.path.exists(venv_py) else sys.executable
                     script_path = os.path.abspath("pickleguiencodeviwer.py")
                     if not os.path.exists(script_path):
                         script_path = os.path.join(os.getcwd(), "pickleguiencodeviwer.py")
@@ -9376,7 +9395,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         PICKLE_VIEWER_PROCESS = subprocess.Popen(
                             [python_exe, script_path],
                             cwd=os.getcwd(),
-                            creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
+                            env=dict(os.environ, PYTHONPATH=os.getcwd())
                         )
                         if ENGINE is not None:
                             ENGINE.pickle_viewer_process = PICKLE_VIEWER_PROCESS
@@ -9539,7 +9558,7 @@ def main():
         daemon_threads = True
         
     try:
-        httpd = ThreadingSimpleServer(server_address, DiegeticHandler)
+        httpd = ThreadingSimpleServer(server_address, RequestHandler)
         print(f"Server safely bound to http://{server_address[0]}:{server_address[1]}")
         httpd.serve_forever()
     except KeyboardInterrupt:

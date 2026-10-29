@@ -1785,6 +1785,10 @@ class MemoryPalace(nn.Module):
     def get_diagnostics(self) -> Dict[str, Any]:
         """Return diagnostic metrics for the Ouroboros shadow log."""
         outlier_count = sum(1 for r in self.rooms.values() if r.is_outlier_seed)
+        from src.core.invariants import PERCOLATION_2D_SQUARE, evaluate_percolation_regime
+        unsealed_count = sum(1 for r in self.rooms.values() if not getattr(r, 'sealed', True))
+        occ_prob = float(unsealed_count) / float(max(1, len(self.rooms)))
+        perc_diag = evaluate_percolation_regime(occ_prob)
         tensions = [r.seam_tension for r in self.rooms.values()]
         avg_tension = sum(tensions) / len(tensions) if tensions else 0.0
         return {
@@ -1792,7 +1796,40 @@ class MemoryPalace(nn.Module):
             'outlier_seeds': outlier_count,
             'average_seam_tension': avg_tension,
             'cerumen_barrier_active': True,
-            'meliponini_isolation_enforced': True
+            'meliponini_isolation_enforced': perc_diag['regime'] == 'MELIPONINI_ISOLATED_CERUMEN',
+            'percolation_threshold_pc': PERCOLATION_2D_SQUARE,
+            'percolation_occupancy': occ_prob,
+            'percolation_regime': perc_diag['regime']
+        }
+
+    def reconnect_isolated_substrate_rooms(self, min_affinity: float = 0.25) -> Dict[str, Any]:
+        """
+        Rescues far-out isolated Cerumen Pot rooms whose cosine affinity to all other
+        substrate basins has dropped below min_affinity, gently tethering them via a
+        SLERP geodesic step scaled by (1 - PERCOLATION_2D_SQUARE) so they remain
+        reachable without collapsing into an Apis spanning cluster (p < p_c = 0.592746).
+        """
+        from src.core.invariants import PERCOLATION_2D_SQUARE
+        if len(self.rooms) < 2:
+            return {"reconnected_count": 0, "percolation_threshold_pc": PERCOLATION_2D_SQUARE}
+        room_list = list(self.rooms.values())
+        centers = torch.stack([r.center.float() for r in room_list])
+        norms = centers / (torch.norm(centers, dim=-1, keepdim=True) + 1e-8)
+        sim_mat = torch.mm(norms, norms.t())
+        sim_mat.fill_diagonal_(-1.0)
+        reconnected = 0
+        tether_step = 1.0 - PERCOLATION_2D_SQUARE  # ~0.407254 sub-critical tether
+        for idx, room in enumerate(room_list):
+            max_sim, best_j = torch.max(sim_mat[idx], dim=0)
+            if float(max_sim.item()) < min_affinity:
+                donor_center = room_list[int(best_j.item())].center.to(room.center.device)
+                room.center = _slerp(room.center, donor_center, t=tether_step * 0.25)
+                room.metadata['percolation_tethered'] = True
+                reconnected += 1
+        return {
+            "reconnected_count": reconnected,
+            "percolation_threshold_pc": PERCOLATION_2D_SQUARE,
+            "tether_step": round(tether_step * 0.25, 4)
         }
 
 

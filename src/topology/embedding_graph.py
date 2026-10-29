@@ -169,6 +169,8 @@ class GyroidicGraphManager:
         if os.path.exists(gyroid_path):
             try:
                 from src.core.zeitgeist_router import ZeitgeistState
+                from src.core.meta_polytope_matrioshka import BoundaryState
+                torch.serialization.add_safe_globals([BoundaryState])
                 torch.serialization.add_safe_globals([ZeitgeistState])
                 g_state = torch.load(gyroid_path, map_location='cpu')
                 iteration = g_state.get('iteration', 0)
@@ -346,6 +348,29 @@ class GyroidicGraphManager:
                         "type": "RESONANCE" if weight > 0.8 else "PROXIMITY"
                     })
                     
+        # Rescue far-out isolated substrate nodes (degree == 0) via sub-percolation tether (p_c = 0.592746)
+        if num_nodes > 1:
+            from src.core.invariants import PERCOLATION_2D_SQUARE
+            connected_ids = set()
+            for e in edges:
+                connected_ids.add(e["source"])
+                connected_ids.add(e["target"])
+            for i in range(num_nodes):
+                nid = str(self.nodes[i].node_id)
+                if nid not in connected_ids:
+                    row_sims = sim_matrix[i].clone()
+                    row_sims[i] = -1.0
+                    best_sim, best_j = torch.max(row_sims, dim=0)
+                    j_idx = int(best_j.item())
+                    bridge_weight = max(0.35, float(best_sim.item()) * PERCOLATION_2D_SQUARE)
+                    edges.append({
+                        "source": nid,
+                        "target": str(self.nodes[j_idx].node_id),
+                        "weight": bridge_weight,
+                        "type": "PERCOLATION_BRIDGE"
+                    })
+                    connected_ids.add(nid)
+
         return edges
 
     def get_memory_snapshot(self) -> Dict[str, Any]:

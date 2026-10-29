@@ -47,12 +47,28 @@ class TemporalAssociationDataset:
         sequence_length: int = 32,
         association_window: int = 8,
         num_concepts: int = 1000,
-        device: str = None
+        device: str = None,
+        lightweight: bool = False
     ):
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hm = HardwareMonitor.get_instance()
+            batch_aff = hm.get_typed_affordance(ComputeAffordanceType.COMPUTE_BATCH)
+            if lightweight or not bool(batch_aff) or batch_aff.gauge < 0.35:
+                num_concepts = min(num_concepts, 128)
+                sequence_length = min(sequence_length, 8)
+                association_window = min(association_window, 4)
+        except Exception:
+            if lightweight:
+                num_concepts = min(num_concepts, 128)
+                sequence_length = min(sequence_length, 8)
+                association_window = min(association_window, 4)
+
         self.sequence_length = sequence_length
         self.association_window = association_window
-        self.num_concepts = num_concepts
+        self.num_concepts = max(20, int(num_concepts))
         self.device = device
+        self.lightweight = bool(lightweight)
         
         # Generate concept embeddings
         # SILICON SOVEREIGNTY: Replace stochastic initialization with Honest Jitter
@@ -461,6 +477,23 @@ class TemporalAssociationTrainer:
         bouligand_div = torch.norm(tangent_proj, p=2, dim=1)**2 + 0.1 * torch.abs(torch.sum(diff * target_norm, dim=1))
         
         correlation_loss = bouligand_div.mean()
+
+        # --- MODIFIED L'HOPITAL FRACTAL BOUNDARY SCALING, IHC BAO SHELL & ENSO/INKBLOT EMERGENCE ---
+        try:
+            from src.core.invariants import (
+                compute_fractal_lhopital_boundary_ratio,
+                compute_ihc_bao_shell_modulation,
+                compute_enso_inkblot_emergence,
+            )
+            lhopital_diag = compute_fractal_lhopital_boundary_ratio(residue_norm, target_norm)
+            ihc_bao_diag = compute_ihc_bao_shell_modulation(z_effective=0.754)
+            enso_diag = compute_enso_inkblot_emergence(target_norm, diff)
+            self._last_fractal_lhopital_diag = lhopital_diag
+            self._last_ihc_bao_diag = ihc_bao_diag
+            self._last_enso_inkblot_diag = enso_diag
+            correlation_loss = correlation_loss * float(lhopital_diag['damping_factor']) * float(ihc_bao_diag['effective_rp4_bao_scale'])
+        except Exception:
+            pass
         
         # Manifold Flattening Guard: if entropy collapses, add structural penalty
         if correlation_loss < 0.1:
@@ -599,39 +632,54 @@ class TemporalAssociationTrainer:
             epsilon = 1e-4
             
             try:
-                from src.topology.gyroid_covariance import GyroidCovarianceEstimator
-                if getattr(self, '_gyroid_estimator_x', None) is None or self._gyroid_estimator_x.dim != h_dim:
-                    self._gyroid_estimator_x = GyroidCovarianceEstimator(dim=h_dim).to(h_stack.device)
-                if getattr(self, '_gyroid_estimator_y', None) is None or self._gyroid_estimator_y.dim != h_dim:
-                    self._gyroid_estimator_y = GyroidCovarianceEstimator(dim=h_dim).to(h_stack.device)
-                
-                # Topologically aware Gyroidic covariance instead of crude Euclidean X^T X silos
-                for row_idx in range(X.shape[0]):
-                    self._gyroid_estimator_x.update_buffer(X[row_idx])
-                    self._gyroid_estimator_y.update_buffer(Y[row_idx])
-                C_X = self._gyroid_estimator_x.compute_covariance()
-                C_Y = self._gyroid_estimator_y.compute_covariance()
-                
-                X_T_X_inv = torch.inverse(C_X + epsilon * I)
-                Y_T_Y_inv = torch.inverse(C_Y + epsilon * I)
-                
-                # Hardware sovereign tensor contractions via TailSlayer PyOpenCL when available
-                if self.engine is not None and hasattr(self.engine, 'hardware_sovereign_matmul'):
-                    XT_Y = self.engine.hardware_sovereign_matmul(X.T, Y)
-                    F_op = self.engine.hardware_sovereign_matmul(X_T_X_inv, XT_Y)
+                import math
+                from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+                hm = HardwareMonitor.get_instance()
+                algo_aff = hm.get_typed_affordance(ComputeAffordanceType.ALGORITHMIC)
+                thermal_aff = hm.get_typed_affordance(ComputeAffordanceType.THERMAL)
+
+                if hm.thermal_runaway or not bool(thermal_aff) or thermal_aff.gauge < 0.05:
+                    return survivorship_pressure, 0.0
+
+                if bool(algo_aff) and algo_aff.gauge >= 0.70 and h_dim <= 256:
+                    from src.topology.gyroid_covariance import GyroidCovarianceEstimator
+                    if getattr(self, '_gyroid_estimator_x', None) is None or self._gyroid_estimator_x.dim != h_dim:
+                        self._gyroid_estimator_x = GyroidCovarianceEstimator(dim=h_dim).to(h_stack.device)
+                    if getattr(self, '_gyroid_estimator_y', None) is None or self._gyroid_estimator_y.dim != h_dim:
+                        self._gyroid_estimator_y = GyroidCovarianceEstimator(dim=h_dim).to(h_stack.device)
                     
-                    YT_X = self.engine.hardware_sovereign_matmul(Y.T, X)
-                    B_op = self.engine.hardware_sovereign_matmul(Y_T_Y_inv, YT_X)
+                    for row_idx in range(X.shape[0]):
+                        self._gyroid_estimator_x.update_buffer(X[row_idx])
+                        self._gyroid_estimator_y.update_buffer(Y[row_idx])
+                    C_X = self._gyroid_estimator_x.compute_covariance()
+                    C_Y = self._gyroid_estimator_y.compute_covariance()
+                    
+                    X_T_X_inv = torch.inverse(C_X + epsilon * I)
+                    Y_T_Y_inv = torch.inverse(C_Y + epsilon * I)
+                    
+                    if self.engine is not None and hasattr(self.engine, 'hardware_sovereign_matmul'):
+                        XT_Y = self.engine.hardware_sovereign_matmul(X.T, Y)
+                        F_op = self.engine.hardware_sovereign_matmul(X_T_X_inv, XT_Y)
+                        YT_X = self.engine.hardware_sovereign_matmul(Y.T, X)
+                        B_op = self.engine.hardware_sovereign_matmul(Y_T_Y_inv, YT_X)
+                    else:
+                        F_op = torch.matmul(X_T_X_inv, torch.matmul(X.T, Y))
+                        B_op = torch.matmul(Y_T_Y_inv, torch.matmul(Y.T, X))
+                    
+                    if not hasattr(self, 'curvature_tracker') or self.curvature_tracker.dim != h_dim:
+                        from src.core.noncommutativity_curvature import NonCommutativityCurvature
+                        self.curvature_tracker = NonCommutativityCurvature(dim=h_dim).to(h_stack.device)
+                        
+                    _, time_asymmetry_score = self.curvature_tracker.arrow_of_time_inflection(F_op, B_op)
+                    asym_score = time_asymmetry_score.item()
                 else:
-                    F_op = torch.matmul(X_T_X_inv, torch.matmul(X.T, Y))
-                    B_op = torch.matmul(Y_T_Y_inv, torch.matmul(Y.T, X))
-                
-                if not hasattr(self, 'curvature_tracker') or self.curvature_tracker.dim != h_dim:
-                    from src.core.noncommutativity_curvature import NonCommutativityCurvature
-                    self.curvature_tracker = NonCommutativityCurvature(dim=h_dim).to(h_stack.device)
-                    
-                _, time_asymmetry_score = self.curvature_tracker.arrow_of_time_inflection(F_op, B_op)
-                asym_score = time_asymmetry_score.item()
+                    # Fast O(d) diagonal/EMA directional asymmetry when ALGORITHMIC affordance < 0.70 or h_dim > 256
+                    var_x = (X.pow(2).mean(dim=0) + epsilon)
+                    var_y = (Y.pow(2).mean(dim=0) + epsilon)
+                    xy_corr = (X * Y).mean(dim=0)
+                    f_diag = xy_corr / var_x
+                    b_diag = xy_corr / var_y
+                    asym_score = float(torch.norm(f_diag - b_diag, p=2).item() / (math.sqrt(float(h_dim)) + epsilon))
                 
                 # Context-shaped targets
                 is_causal_or_temporal = any(c in ('causal', 'temporal') for c in contexts)
@@ -665,13 +713,22 @@ class TemporalAssociationTrainer:
         return survivorship_pressure, asym_score
 
     def train_step(self, batch_data: Dict[str, torch.Tensor]) -> Dict[str, float]:
-        """Single training step with temporal associations."""
-        
+        """Single training step with temporal associations and 500ms Restless Thermal Latency Guard."""
+        step_start_time = time.perf_counter()
         sequences = batch_data['sequences']  # [batch, seq_len, 768]
         associations = batch_data['associations']  # [batch, seq_len * assoc_window]
         contexts = batch_data['contexts']
         
         batch_size, seq_len, embed_dim = sequences.shape
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hm = HardwareMonitor.get_instance()
+            if hm.thermal_runaway or not hm.has_compute_affordance(ComputeAffordanceType.THERMAL):
+                seq_len = min(seq_len, 2)
+            elif not hm.has_compute_affordance(ComputeAffordanceType.COMPUTE_BATCH):
+                seq_len = min(seq_len, 4)
+        except Exception:
+            pass
         
         # Process sequence step by step to build temporal dependencies
         sequence_outputs = []
@@ -818,6 +875,23 @@ class TemporalAssociationTrainer:
             'routing_sparsity': routing_sparsity
         }
         
+        elapsed_ms = (time.perf_counter() - step_start_time) * 1000.0
+        thermal_guard_diag = {}
+        try:
+            from src.core.hardware_monitor import enforce_500ms_restless_thermal_guard
+            thermal_guard_diag = enforce_500ms_restless_thermal_guard(
+                execution_ms=elapsed_ms,
+                silicon_engine=self.engine,
+                pas_h=float(temporal_coherence.item()),
+                h_spec=float(avg_association_loss.item())
+            )
+            repair_diagnostics['thermal_guard'] = thermal_guard_diag
+            repair_diagnostics['fractal_lhopital'] = getattr(self, '_last_fractal_lhopital_diag', {})
+            repair_diagnostics['ihc_bao_shell'] = getattr(self, '_last_ihc_bao_diag', {})
+            repair_diagnostics['enso_inkblot'] = getattr(self, '_last_enso_inkblot_diag', {})
+        except Exception:
+            pass
+
         return {
             'survivorship_pressure': survivorship_pressure.item(),
             'association_accuracy': association_accuracy,
@@ -827,7 +901,9 @@ class TemporalAssociationTrainer:
             'num_fossilized': (self.model.trust_scalars > self.fossilization_threshold).sum().item(),
             'repair_diagnostics': repair_diagnostics,
             'arrow_of_time_asymmetry': asym_score,
-            'routing_sparsity': routing_sparsity
+            'routing_sparsity': routing_sparsity,
+            'execution_ms': elapsed_ms,
+            'thermal_guard': thermal_guard_diag
         }
     
     def train_on_interaction(self, input_tensor: torch.Tensor, response_tensor: torch.Tensor, tag_weights: Optional[Dict[str, float]] = None) -> Dict[str, float]:

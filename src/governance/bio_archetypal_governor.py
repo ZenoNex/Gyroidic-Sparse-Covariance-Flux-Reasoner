@@ -45,6 +45,85 @@ class BioArchetypalGovernor(nn.Module):
         
         # Slow (Acetylcholine/Consolidation)
         self.kinger = KingerConsolidation(state_dim)
+        self.last_active_reflex: str = "Tathata_Mirror"
+        self.reflex_streak: int = 0
+
+    def evaluate_threat_recalibration_and_fixed_reflexes(
+        self,
+        structural_entropy: float,
+        external_pressure: float,
+        surrounding_pas_h: float,
+        valence_hunger: float,
+        jax_rigidity: float = 1.0
+    ) -> Dict[str, Any]:
+        """
+        Branch 5 Ontological Governance:
+        1. Threat Recalibration (TheraminTrees):
+           Separates structural danger (torsional collapse where PAS_h < 0.25 and pressure > 1.5)
+           from high-entropy inconvenience / playful mischief (high entropy with intact PAS_h).
+        2. 8 Fixed Survival Reflexes & Anti-Fixation Hysteresis:
+           Audits the 8 childhood/systemic survival reflexes:
+           Fight, Flounce, Fester, Flight, Fantasy, Fix, Flood, Fool.
+           Applies anti-fixation hysteresis so the governor never locks into a single reflex,
+           returning to the Alan Watts Tathata mirror (non-grasping witness) and auditing
+           Kastrup's 3 Decombination Mechanisms (Resonance/Attention, Posturing/Masking, Dissociation/Forgetting).
+        """
+        is_structural_danger = (surrounding_pas_h < 0.25) and (external_pressure > 1.2)
+        is_high_entropy_inconvenience = (not is_structural_danger) and (structural_entropy > 0.8)
+
+        # Score the 8 Fixed Survival Reflexes
+        reflex_scores = {
+            "Fight": float(max(0.0, external_pressure * jax_rigidity - 1.0)),
+            "Flounce": float(max(0.0, (jax_rigidity - 1.1) * structural_entropy)),
+            "Fester": float(max(0.0, valence_hunger * (1.0 - surrounding_pas_h))),
+            "Flight": float(max(0.0, external_pressure - surrounding_pas_h)),
+            "Fantasy": float(max(0.0, structural_entropy * (1.0 - external_pressure))),
+            "Fix": float(max(0.0, (1.0 - structural_entropy) * jax_rigidity)),
+            "Flood": float(max(0.0, structural_entropy + valence_hunger - 1.2)),
+            "Fool": float(max(0.0, structural_entropy * surrounding_pas_h))
+        }
+        dominant_reflex = max(reflex_scores, key=reflex_scores.get)
+        dominant_score = reflex_scores[dominant_reflex]
+
+        if dominant_score < 0.35 or is_high_entropy_inconvenience:
+            active_mode = "Tathata_Mirror"
+            self.reflex_streak = 0
+        else:
+            if dominant_reflex == self.last_active_reflex:
+                self.reflex_streak += 1
+            else:
+                self.reflex_streak = 1
+            active_mode = dominant_reflex
+
+        # Anti-Fixation Hysteresis: if locked into any fixed survival reflex for >= 3 steps, release grasp
+        hysteresis_damping = 1.0
+        if self.reflex_streak >= 3 and active_mode != "Tathata_Mirror":
+            hysteresis_damping = 0.5 / float(self.reflex_streak)
+            active_mode = f"{dominant_reflex}->Tathata_Release"
+            self.reflex_streak = 0
+
+        self.last_active_reflex = dominant_reflex
+
+        # Kastrup 3 Decombination Mechanisms audit
+        decombination_mechanisms = {
+            "resonance_attention": float(surrounding_pas_h),
+            "posturing_masking": float(min(1.0, max(0.0, jax_rigidity - 0.8))),
+            "dissociation_forgetting": float(min(1.0, max(0.0, 1.0 - surrounding_pas_h)))
+        }
+
+        return {
+            "is_structural_danger": bool(is_structural_danger),
+            "is_high_entropy_inconvenience": bool(is_high_entropy_inconvenience),
+            "threat_recalibration_verdict": (
+                "STRUCTURAL_DANGER" if is_structural_danger
+                else ("PLAYFUL_INCONVENIENCE" if is_high_entropy_inconvenience else "HOMEORHETIC_EQUILIBRIUM")
+            ),
+            "active_reflex_mode": active_mode,
+            "dominant_reflex": dominant_reflex,
+            "reflex_scores": reflex_scores,
+            "hysteresis_damping": round(hysteresis_damping, 4),
+            "decombination_mechanisms": decombination_mechanisms
+        }
 
     def forward(
         self, 
@@ -183,6 +262,17 @@ class BioArchetypalGovernor(nn.Module):
             valence_hunger=valence_hunger_scalar
         )
         panic = jax_rigidity > 1.2
+        pas_scalar = float(surrounding_pas_h.mean().item()) if isinstance(surrounding_pas_h, torch.Tensor) else float(surrounding_pas_h)
+        threat_recalibration = self.evaluate_threat_recalibration_and_fixed_reflexes(
+            structural_entropy=structural_entropy,
+            external_pressure=external_pressure,
+            surrounding_pas_h=pas_scalar,
+            valence_hunger=valence_hunger_scalar,
+            jax_rigidity=float(jax_rigidity)
+        )
+        if threat_recalibration["is_high_entropy_inconvenience"]:
+            panic = False
+            jax_rigidity = float(jax_rigidity) * threat_recalibration["hysteresis_damping"]
         
         # 6. Fast: Ragatha responds to distress, soothing hunger and grief (Oxytocin)
         boundary_friction = max(0.0, jax_rigidity - 1.0)
@@ -228,6 +318,7 @@ class BioArchetypalGovernor(nn.Module):
             "jax_rigidity": jax_rigidity,
             "valence_hunger": valence_hunger_scalar,
             "valence_metrics": valence_metrics,
+            "threat_recalibration": threat_recalibration,
             "affordances": {
                 "silicon": silicon_aff,
                 "thermal": thermal_aff,

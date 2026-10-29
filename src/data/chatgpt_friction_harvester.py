@@ -699,18 +699,26 @@ async def auto_temporal_training_loop(
     print(f"[Harvester] Starting auto-temporal training loop from {source_desc!r}...")
     
     while True:
-        # Check if PC is not taxed and scan for sterile/semisimple data to rerun
+        # Check HardwareMonitor compute affordances and scan bounded slice for sterile/semisimple data
         try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hm = HardwareMonitor.get_instance()
+            has_aff = hm.has_compute_affordance(ComputeAffordanceType.SILICON) and hm.has_compute_affordance(ComputeAffordanceType.THERMAL)
             import psutil
             cpu_load = psutil.cpu_percent(interval=0.1)
             ram_percent = psutil.virtual_memory().percent
             
-            if cpu_load < 40.0 and ram_percent < 75.0:
+            if has_aff and cpu_load < 40.0 and ram_percent < 75.0:
                 fossilizer = getattr(trainer.model, "fossilizer", None)
                 if fossilizer is not None and os.path.exists(fossilizer.storage_dir):
                     storage_dir = fossilizer.storage_dir
-                    for filename in os.listdir(storage_dir):
-                        if filename.endswith(".pt") and filename != "neglecton_snapshot.pt":
+                    all_files = [f for f in os.listdir(storage_dir) if f.endswith(".pt") and f != "neglecton_snapshot.pt"]
+                    # Bound scan to at most 8 files per idle tick to prevent 39,936-file disk/CPU lockup
+                    scan_offset = getattr(harvester, "_sterile_scan_offset", 0) % max(1, len(all_files))
+                    bounded_files = all_files[scan_offset:scan_offset + 8]
+                    harvester._sterile_scan_offset = (scan_offset + 8) % max(1, len(all_files))
+                    for filename in bounded_files:
+                        if True:
                             filepath = os.path.join(storage_dir, filename)
                             try:
                                 data = torch.load(filepath, map_location='cpu')

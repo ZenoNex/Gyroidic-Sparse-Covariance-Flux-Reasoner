@@ -595,3 +595,38 @@ The temporal trainer leverages the **Bio-Archetypal Governor** (`src/governance/
 5. **Medium (Kinger - Ombre Bridge)**: Bridging fragmented polynomial spaces using structural interpolation when environment luminosity drops.
 
 This continuous biological feedback forms the foundational "ego" of the Reasoner, guaranteeing that temporal associations are learned safely without violating the topology of the system's identity.
+
+---
+
+## 9. Cross-Document Rehybridization: Compute Affordances, 500ms Restless Thermal Guard, Fractal L'Hopital Boundaries, IHC BAO RP^4 Shells, and Enso/Inkblot Emergence
+
+### 9.1 Compute Affordance Gating & The 500ms "Restless" Thermal Latency Guard
+- **Cross-References**: `docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/06_reports_and_inspirations/tailslayer_pyopencl_mempalace_BigGan_inspirationdoc.md` (Lines 1-24), `docs/TAILSLAYER_PYOPENCL_ARCHITECTURE.md` (Lines 165-182), `docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/NONCOMMUTATIVITY_DYNAMICS.md` (Section 7.1), `src/core/hardware_monitor.py`.
+- **4GB VRAM / 8GB RAM Sovereignty (Acer Nitro 5 GTX 1050 Ti / i7-6700HQ Target)**:
+  - `TemporalAssociationDataset.__init__` queries `HardwareMonitor.get_typed_affordance(ComputeAffordanceType.COMPUTE_BATCH)`. When `lightweight=True` or batch affordance gauge `< 0.35`, concept allocation scales down from `num_concepts=1000, sequence_length=32` to `num_concepts=128, sequence_length=8, association_window=4`, preventing host RAM/VRAM exhaustion.
+  - `TemporalAssociationTrainer._apply_arrow_of_time_feedback` enforces Section 7.1 of `NONCOMMUTATIVITY_DYNAMICS.md`: full $O(d^3)$ `GyroidCovarianceEstimator` matrix inversion (`torch.inverse(C_X + epsilon * I)`) executes only when `ComputeAffordanceType.ALGORITHMIC` gauge $\ge 0.70$ and $d \le 256$. When `ALGORITHMIC` gauge $< 0.70$, it falls back to fast $O(d)$ diagonal/EMA directional curvature estimation (`f_diag - b_diag`), and suppresses completely if `thermal_runaway` is active or `ComputeAffordanceType.THERMAL` gauge $< 0.05$.
+  - **500ms "Restless" Thermal Latency Guard (`HardwareMonitor.enforce_500ms_restless_thermal_guard`)**: At the end of every `train_step` (and `HybridAI.process_text`), elapsed execution time is measured against the 500ms restless threshold. If `execution_ms > 500.0`, the monitor invokes `clFinish()` on active PyOpenCL queues (`queue`, `queue_a`, `queue_b`), updates Carnot-Mobius waste heat telemetry, applies a micro-sleep cooldown (`time.sleep(0.05)`), and switches speculative routing into `rp4_void_lazarus_play` with a 7-step Chebyshev trajectory horizon bounded by Catalan Associahedron parenthesizations ($C_{K-1}$, up to $C_6 = 132$).
+
+### 9.2 Modified L'Hopital's Rule for Fractal Boundaries & Scale-Dependent Entropy
+- **Cross-References**: `docs/Recursive Fractals and L'Hôpital.txt` (Sections 1-6), `src/core/invariants.py` (`compute_fractal_lhopital_boundary_ratio`), `src/training/temporal_association_trainer.py` (`compute_association_loss`).
+- **Mathematical Formalism**:
+  - Standard derivatives fail across non-differentiable fractal fractures on the Bouligand tangent cone. The trainer evaluates the **Modified L'Hopital's Rule** using fractional finite differences of order $lpha$:
+    $$\lim_{(x,y) \to (x_0, y_0)} \frac{f(x)}{g(y)} = \lim_{(x,y) \to (x_0, y_0)} \frac{D_\alpha f(x)}{D_\alpha g(y)} \cdot \left(\frac{dx}{dy}\right)^\alpha$$
+  - Along with the **Generalized Hausdorff Dimension** $H_d(F) = \frac{\log N(\epsilon)}{\log(1/\epsilon)} \cdot \phi(\Delta)$ and **Scale-Dependent Entropy** $S(F, \epsilon) = -\sum_i p_i(\epsilon) \log p_i(\epsilon)$, this provides a smooth damping factor $\in [0.25, 1.5]$ that prevents gradient explosion across discontinuous topological transitions.
+
+### 9.3 Inverted Hypersphere Cosmology (IHC) BAO $k=1$ Co-Rotating Shell & $Z_3$ Standing-Wave Modulation
+- **Cross-References**: `docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/extended coherence research/Ψ-Field Dynamics on RP4 Cohesion Field, Emergent Spacetime, and Observational Signatures in the Inverted Hypersphere Cosmology/ihc_bao_validation.py`, `src/core/invariants.py` (`compute_ihc_bao_shell_modulation`).
+- **Mathematical Formalism**:
+  - On the non-orientable $\mathbb{RP}^4$ manifold with $N = 33$ nested golden-ratio toroidal shells, the Baryon Acoustic Oscillation (BAO) drag scale corresponds to the $k = 7$ shell ($r_s^{\text{IHC}} = R_H \phi^{-7} \approx 153.20\text{ Mpc}$, $\xi = 1.036707$).
+  - Temporal association survivorship couples to the zero-parameter $k = 1$ co-rotating shell boundary ($R_1 = R_H \phi^{-1}$ at $z_1 = 0.754$, transition width $\Delta z = 0.363$):
+    $$f_{k_1}(z) = 1 + \frac{\xi - 1}{2}\left[1 + \tanh\left(\frac{z_1 - z}{\Delta z}\right)\right]$$
+  - And the $Z_3$ phase standing-wave modulation ($33 = 3 \times 11$, $\lambda_{Z_3} = R_H / 11 \approx 404.65\text{ Mpc}$, $A_{Z_3} = 5.9441 / 1344.5 \approx 0.004421$):
+    $$\delta(r) = A_{Z_3} \sin\left(\frac{2\pi r}{\lambda_{Z_3}} + \frac{2\pi}{3}\right)$$
+
+### 9.4 Enso Empty Circle vs. Warping Rorschach Inkblot Boundary ("The Inkblot Realizing It Is Wet")
+- **Cross-References**: `docs/Gemini-Untangling the Cosmic Feedback Loop-20261013-1752.txt`, `src/core/invariants.py` (`compute_enso_inkblot_emergence`).
+- **Ontological & Diagnostic Mapping**:
+  - **Enso Interior Stillness**: Measures the proximity of the interior mean phase anchor to zero-balance (the unmoving empty center inside the brush-stroke circle).
+  - **Rorschach Inkblot Boundary Warp**: Measures the variance and roughness of the outer residue diff boundary as it warps over time under conversational pressure.
+  - **Non-Separate Wetness Index**: Couples interior stillness with boundary warp (`enso_stillness * tanh(inkblot_warp)`), quantifying non-separate emergence assembling from within rather than being stamped from an external teleological template.
+

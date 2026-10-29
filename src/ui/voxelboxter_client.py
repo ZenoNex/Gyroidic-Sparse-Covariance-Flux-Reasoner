@@ -61,6 +61,16 @@ class PatchStateResource:
         
         # Self-gift admin role since we host the patch
         self.permissions.roles[self.local_peer_id] = Role.ADMIN
+        self.copyable_text_enabled = True
+        self.alien_script_locked = True
+        self.admin_password_tooltip = (
+            "[JEI INSPECTOR] Admin Password & Node Auth Files:\n"
+            "1. src/safety/hardware_fingerprint.py : verify_node_account(), verify_sole_creator(), resolve_node_salt_path()\n"
+            "2. data/.node_secret & data/creator_sig.json : 32-byte HMAC cryptographic node salt / keyfile\n"
+            "3. .gyroid_config.json & hybrid_backend.py : node_account (GYROID_ACCOUNT) & security_salt_path (GYROID_SALT_PATH)\n"
+            "4. src/ui/diegetic_backend.py : /api/security/creator_login & /api/security/node_account_login\n"
+            "5. src/ui/voxelboxter_client.py & src/ui/voxelboxter_simulation.py : Role.ADMIN granted via PermissionsManager"
+        )
         
         # Reasoner Telemetry
         self.fingerprint_energy = 0.0
@@ -303,6 +313,24 @@ def monitor_chat_system(state: 'ResMut<PatchStateResource>'):
                     switch_game_mode(state, EngineMode.PLAY)
                 elif cmd == "/create":
                     switch_game_mode(state, EngineMode.CREATION)
+                elif cmd.startswith("/copy"):
+                    text_to_copy = cmd[5:].strip() or state.admin_password_tooltip
+                    if "voynich:" in text_to_copy.lower() or "alien:" in text_to_copy.lower():
+                        logging.warning("[Unified Terminal] Alien / Voynich script is topologically sealed and non-copyable.")
+                    else:
+                        try:
+                            import tkinter as tk
+                            r = tk.Tk()
+                            r.withdraw()
+                            r.clipboard_clear()
+                            r.clipboard_append(text_to_copy)
+                            r.update()
+                            r.destroy()
+                        except Exception:
+                            pass
+                        logging.info(f"[Unified Terminal] Copied selectable text to clipboard ({len(text_to_copy)} chars).")
+                elif cmd in ("/admin_info", "/jei_admin", "/password_files"):
+                    logging.info(f"\n{state.admin_password_tooltip}")
                 elif cmd.startswith("/eval "):
                     if role in (Role.ADMIN, Role.BUILDER):
                         expr = cmd[6:].strip()

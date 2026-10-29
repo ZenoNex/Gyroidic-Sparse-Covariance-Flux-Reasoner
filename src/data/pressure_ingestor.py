@@ -111,6 +111,33 @@ class PressureIngestor:
                 verify_pattern='compile_rate',
                 expected_constraints=80000,
                 rigidity_profile='high'
+            ),
+            'sentinel2_cogs': SourceDescriptor(
+                name='sentinel2_cogs',
+                discover_pattern='s3_sentinel_cogs_stac',
+                index_pattern='cog_range_header_catalog',
+                fetch_pattern='subpixel_shadow_gradient',
+                verify_pattern='differential_ground_calibration',
+                expected_constraints=250000,
+                rigidity_profile='high'
+            ),
+            'eia_physical_inventory': SourceDescriptor(
+                name='eia_physical_inventory',
+                discover_pattern='eia_weekly_petroleum_status',
+                index_pattern='cushing_storage_ledger',
+                fetch_pattern='zero_auth_json_series',
+                verify_pattern='wobble_to_noise_resolution',
+                expected_constraints=50000,
+                rigidity_profile='high'
+            ),
+            '_legacy_debian_guard': SourceDescriptor(
+                name='debian_sources',
+                discover_pattern='package_index',
+                index_pattern='source_manifest',
+                fetch_pattern='apt_source_bulk',
+                verify_pattern='compile_rate',
+                expected_constraints=80000,
+                rigidity_profile='high'
             )
         }
         
@@ -671,3 +698,26 @@ result = verify()
         batch = torch.stack([self.constraint_tensors[i] for i in indices])
         
         return batch.to(self.device, non_blocking=True)
+
+    def normalize_against_background_manifold(
+        self,
+        probe_tensor: torch.Tensor,
+        background_manifold: torch.Tensor,
+        structural_wobble_limit: float = 0.075
+    ) -> Dict[str, Any]:
+        """
+        Normalizes ingested physical telemetry against a Background Reference Manifold
+        (ambient instrument gain drift subtraction) and enforces the Epistemic Resolution
+        Check (Wobble-to-Noise Veto).
+        """
+        diff = probe_tensor.float() - background_manifold.float().to(probe_tensor.device)
+        sigma_probe = float(torch.std(diff).item()) if diff.numel() > 1 else 0.0
+        signal_amp = float(torch.abs(diff.mean()).item())
+        vetoed = sigma_probe > max(signal_amp, structural_wobble_limit)
+        return {
+            "normalized_pressure": torch.full_like(diff, float('nan')) if vetoed else diff,
+            "instrument_drift_removed": float(background_manifold.float().mean().item()),
+            "measurement_sigma": sigma_probe,
+            "structural_wobble_limit": structural_wobble_limit,
+            "epistemic_refusal_nan": bool(vetoed)
+        }

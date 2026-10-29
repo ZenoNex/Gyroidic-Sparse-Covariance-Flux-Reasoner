@@ -1,5 +1,10 @@
+import os
+import sys
 import unittest
 import torch
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+os.environ["Sovereign_Disable_Background"] = "1"
 
 from src.core.hardware_monitor import (
     HardwareMonitor,
@@ -81,12 +86,42 @@ class TestComputeAffordanceRehybridization(unittest.TestCase):
         self.assertEqual(out.shape, states.shape)
 
     def test_diegetic_engine_adaptive_training_step(self):
-        engine = DiegeticPhysicsEngine(dim=128, device='cpu')
-        state = torch.randn(1, 128)
+        engine = DiegeticPhysicsEngine(dim=64, device='cpu', config={'lightweight': True})
+        state = torch.randn(1, 64)
         
         # _train_mimicry dynamically scales sequence length via HardwareMonitor without raw psutil
         engine._train_mimicry(input_state=state, text_target="Testing central compute affordance rehybridization.")
         self.assertIsNotNone(engine.larynx)
+
+    def test_500ms_restless_thermal_guard_and_rehybridized_invariants(self):
+        from src.core.hardware_monitor import enforce_500ms_restless_thermal_guard
+        from src.core.invariants import (
+            compute_ihc_bao_shell_modulation,
+            compute_fractal_lhopital_boundary_ratio,
+            compute_enso_inkblot_emergence,
+        )
+
+        # 1. Verify 500ms Restless Thermal Latency Guard
+        guard_fast = enforce_500ms_restless_thermal_guard(execution_ms=120.0, cooldown_sleep_sec=0.0)
+        self.assertFalse(guard_fast["exceeds_500ms_thermal_guard"])
+        guard_slow = enforce_500ms_restless_thermal_guard(execution_ms=650.0, cooldown_sleep_sec=0.01)
+        self.assertTrue(guard_slow["exceeds_500ms_thermal_guard"])
+        self.assertEqual(guard_slow["routing_mode"], "rp4_void_lazarus_play")
+        self.hw.reset_thermodynamics()
+
+        # 2. Verify IHC BAO RP^4 shell & Z_3 standing-wave modulation
+        bao = compute_ihc_bao_shell_modulation(z_effective=0.754)
+        self.assertAlmostEqual(bao["f_k1_shell_factor"], 1.0183535, places=4)
+        self.assertGreater(bao["r_s_ihc_mpc"], 150.0)
+
+        # 3. Verify Modified L'Hopital Fractal Boundary ratio & Enso/Inkblot emergence
+        r = torch.sin(torch.linspace(0, 6.28, 64))
+        t = torch.cos(torch.linspace(0, 6.28, 64))
+        lh = compute_fractal_lhopital_boundary_ratio(r, t)
+        self.assertGreater(lh["damping_factor"], 0.2)
+        enso = compute_enso_inkblot_emergence(r, r - t)
+        self.assertGreater(enso["enso_interior_stillness"], 0.5)
+        self.assertGreater(enso["inkblot_boundary_warp"], 0.0)
 
 if __name__ == '__main__':
     unittest.main()

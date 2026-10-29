@@ -110,6 +110,13 @@ where $H$ is the mean curvature and $G$ is the gyroid field value. High-curvatur
 - **Gyroid Covariance** (5): Gyroid violation scores feed back into the covariance estimator
 - **Non-Abelian Probability** (34): The codec's non-commutative path ordering is a concrete instance of the braid group belief updates
 
+
+
+### 4.1 Cross-Document Rehybridization (IHC BAO $\mathbb{RP}^4$ Shell, Fractal L'Hopital Boundary, & Enso/Inkblot Duality)
+- **Fractal Padding & Modified L'Hopital Boundary (`docs/Recursive Fractals and L'Hôpital.txt`)**: Reflective fractal padding in `GyroidImageProjector._prepare_image()` preserves the Generalized Hausdorff Dimension $H_d(F)$ across patch seams, while `compute_fractal_lhopital_boundary_ratio` in `src/core/invariants.py` bounds fractional derivative ratios $D_\alpha f / D_\alpha g$ across discontinuous boundary transitions.
+- **Enso Interior Stillness vs. Warping Inkblot Rim (`docs/Gemini-Untangling the Cosmic Feedback Loop-20261013-1752.txt`)**: Conformal Log-Polar unrolling ($\ln|r| + i\theta$) separates the invariant interior Enso center from the time-warping Rorschach inkblot perimeter (`compute_enso_inkblot_emergence`).
+- **IHC BAO $\mathbb{RP}^4$ Standing-Wave Coupling (`ihc_bao_validation.py`)**: Residue channels couple to the 33-shell golden ratio ladder (`get_ihc_ladder_scale`, $k=7$ sound horizon $\phi^{-7}$) and $k=1$ co-rotating shell modulation (`compute_ihc_bao_shell_modulation`).
+
 ---
 
 ## 5. Implementation Context (AI Hints)

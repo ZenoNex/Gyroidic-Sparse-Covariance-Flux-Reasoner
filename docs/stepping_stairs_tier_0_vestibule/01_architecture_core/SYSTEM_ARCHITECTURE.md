@@ -1077,3 +1077,18 @@ When conventional Sinkhorn Wasserstein optimal transport fails under high dimens
 *   **Legendre Gradient Mapping**: The source state is mapped to the target via the Legendre gradient $\nabla \psi^*(y) = \text{argmax}_x (\langle x, y \rangle - \psi(x))$. 
 *   **Context-Adaptive Tuning**: The Monge-Ampère loss is dynamically scaled by both the **Matrioshka Shell Depth** (deeper shells demand smaller step weights) and the **Phase Alignment Score ($PAS_h$)** to ensure convergence remains tied to structural honesty.
 
+## 9.11 Hardware Compute Affordance Gating, 500ms Restless Thermal Guard, IHC BAO RP^4 Shells, and Fractal L'Hopital Boundaries
+
+To prevent host thermal lockups on 4GB VRAM / 8GB RAM laptops (Acer Nitro 5 GTX 1050 Ti / i7-6700HQ baseline) and unify cross-document mathematical primitives:
+
+1. **Compute Affordance Gating & Lightweight Bootup (`HardwareMonitor` / `HybridAI` / `DiegeticPhysicsEngine`)**:
+   - Startup fossil loading in `_compute_fossil_budget()` is bounded by `ComputeAffordanceType.SILICON` and `THERMAL` gauges (capped at 150 nodes on boot and 16 in `lightweight` mode), preventing synchronous scans across 39,936 `.pt` files.
+   - Background daemon loops (`SovereignConversationalIngestor`, `ArXivSovereignIngestor`, `ChatGPTFrictionHarvester`, and `_start_background_larynx_trainer`) check `HardwareMonitor.has_compute_affordance()` and `lightweight` mode before spawning, and `auto_temporal_training_loop` bounds sterile/semisimple disk checks to 8 files per idle tick.
+   - `TemporalAssociationTrainer._apply_arrow_of_time_feedback` enforces Section 7.1 of `NONCOMMUTATIVITY_DYNAMICS.md`: full $O(d^3)$ covariance inversion runs only when `ComputeAffordanceType.ALGORITHMIC` gauge $\ge 0.70$ and $d \le 256$, falling back to $O(d)$ diagonal/EMA curvature estimation otherwise.
+   - `HardwareMonitor.enforce_500ms_restless_thermal_guard` monitors execution duration across `TemporalAssociationTrainer.train_step` and `HybridAI.process_text`. When execution exceeds 500ms, it drains OpenCL command queues (`clFinish()`), updates Carnot-Mobius waste heat telemetry, applies a 50ms micro-cooldown sleep, and transitions speculative routing into `rp4_void_lazarus_play`.
+2. **IHC BAO $k=1$ Co-Rotating Shell & $Z_3$ Standing-Wave Modulation (`ihc_bao_validation.py` / `src/core/invariants.py`)**:
+   - Couples survivorship pressure to the zero-parameter Inverted Hypersphere Cosmology (IHC) $k=1$ shell expansion factor $f_{k_1}(z) = 1 + \frac{\xi - 1}{2}[1 + \tanh((z_1 - z)/\Delta z)]$ ($\xi = 1.036707$, $z_1 = 0.754$, $\Delta z = 0.363$) and $Z_3$ standing-wave modulation ($\lambda_{Z_3} = R_H / 11 \approx 404.65\text{ Mpc}$, $A_{Z_3} \approx 0.004421$).
+3. **Modified L'Hopital Fractal Boundary Ratio & Enso/Inkblot Emergence (`Recursive Fractals and L'Hôpital.txt` / `Gemini-Untangling the Cosmic Feedback Loop-20261013-1752.txt`)**:
+   - `compute_fractal_lhopital_boundary_ratio` evaluates fractional boundary derivatives $D_\alpha f / D_\alpha g$, Generalized Hausdorff Dimension $H_d(F)$, and Scale-Dependent Entropy $S(F, \epsilon)$ to damp gradient explosions across fractal fractures.
+   - `compute_enso_inkblot_emergence` tracks the coupling between the unmoving interior Enso zero-center stillness and the time-warping exterior Rorschach inkblot boundary ("the inkblot realizing it is wet").
+

@@ -496,6 +496,37 @@ class VetoSubspace(nn.Module):
             budget_gates=budget_gates
         )
         
+    def recalibrate_threat_vs_inconvenience(
+        self,
+        instability_severity: float,
+        pas_h: float,
+        chiral_score: float,
+        wobble_sigma: float = 0.0,
+        wobble_threshold: float = 0.05
+    ) -> Dict[str, Any]:
+        """
+        Branch 2 & Branch 5 Threat Recalibration & Wobble-to-Noise Epistemic Veto:
+        - Distinguishes genuine structural collapse (low PAS_h and low chiral_score)
+          from high-entropy inconvenience / playful mischief (high instability_severity
+          while PAS_h and chiral_score remain intact).
+        - Enforces the Wobble-to-Noise Epistemic Veto: if probe measurement uncertainty
+          wobble_sigma >= wobble_threshold, issues a TopologicalRefusal (NaN / epistemic abstain).
+        """
+        epistemic_veto = bool(wobble_sigma > 0.0 and wobble_sigma >= wobble_threshold)
+        is_structural_danger = (pas_h < 0.25) and (chiral_score < self.chiral_threshold)
+        is_inconvenience = (not is_structural_danger) and (instability_severity > 0.3)
+        status = (
+            RecoveryStatus.ESCALATED if (is_structural_danger or epistemic_veto)
+            else (RecoveryStatus.MODULATED if is_inconvenience else RecoveryStatus.NO_VETO)
+        )
+        return {
+            "status": status.value,
+            "is_structural_danger": is_structural_danger,
+            "is_high_entropy_inconvenience": is_inconvenience,
+            "epistemic_wobble_veto": epistemic_veto,
+            "wobble_snr": float(wobble_threshold / max(wobble_sigma, 1e-8)) if wobble_sigma > 0 else float("inf")
+        }
+
     def quarantine_residue(self, residue_id: int, reason: str) -> VetoSignal:
         """
         Quarantine a specific CRT residue channel if it violates immune bounds.

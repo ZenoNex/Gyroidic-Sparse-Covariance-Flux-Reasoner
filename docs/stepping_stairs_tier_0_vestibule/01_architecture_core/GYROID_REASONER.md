@@ -228,3 +228,6 @@ When `return_analysis=True`: adds `residue_distributions`, `introspection`, `gyr
 | [FGRT_FORMALIZATION.md](../02_math_physics_topology/FGRT_FORMALIZATION.md) | FGRT Annular (Ring) Pool manifold, chirality, chiral groupoid |
 | [INVARIANT_OPTIMIZATION.md](../02_math_physics_topology/INVARIANT_OPTIMIZATION.md) | Four Non-Negotiable Laws, meta-invariants |
 | [GARBLED_OUTPUT_REPAIR.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/GARBLED_OUTPUT_REPAIR.md) | Phase 1 repair pipeline details |
+| [TEMPORAL_ASSOCIATION_TRAINING.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/TEMPORAL_ASSOCIATION_TRAINING.md) | Survivorship pressure, 500ms restless thermal guard, IHC BAO RP^4 shell, Fractal L'Hopital boundary, Enso/Inkblot emergence |
+| [NONCOMMUTATIVITY_DYNAMICS.md](../02_math_physics_topology/NONCOMMUTATIVITY_DYNAMICS.md) | Curvature tensor $\Omega_{ij}$, Arrow-of-Time inflection, and `ComputeAffordanceType.ALGORITHMIC` $O(d)$ fallback |
+| [TAILSLAYER_PYOPENCL_ARCHITECTURE.md](../../TAILSLAYER_PYOPENCL_ARCHITECTURE.md) | Dual-queue OpenCL execution, $t_{\text{RFC}}$ stall feelers, and 500ms Restless Thermal Latency Guard |

@@ -240,6 +240,25 @@ class LazarusSuperpositionRNNCell(nn.Module):
         h_t = h_prev + wave 
         return h_t
 
+    def audit_diophantine_frequency_near_miss(self, step: int) -> Dict[str, float]:
+        """
+        Audits the active prime resonator frequency f_{p_n} = 2*pi*ln(p_n) against
+        Collatz-Baker Diophantine near-misses (l*ln(2) - k*ln(3)) to verify that
+        recurrent superposition remains incommensurate and avoids rational limit-cycle lock.
+        """
+        idx = step % self.ladder.num_resonators
+        freq_val = float(self.ladder.frequencies[idx].item())
+        p_val = int(self.ladder.primes[idx].item())
+        # Classic Baker logarithmic form gap: |8*ln(2) - 5*ln(3)| = ln(256/243) approx 0.052115
+        baker_gap = abs(8.0 * float(np.log(2.0)) - 5.0 * float(np.log(3.0)))
+        phase_mod = abs(float(np.fmod(freq_val, baker_gap)))
+        return {
+            "prime_modulus": float(p_val),
+            "resonator_frequency": freq_val,
+            "baker_logarithmic_gap": baker_gap,
+            "incommensurate_margin": phase_mod
+        }
+
 # -----------------------------------------------------------------------------
 # Draft 7: The "Feature Scar" LCFT Memory Cell (Recommended)
 # -----------------------------------------------------------------------------

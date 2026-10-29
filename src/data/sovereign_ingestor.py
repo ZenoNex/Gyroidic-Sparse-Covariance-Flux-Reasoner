@@ -60,6 +60,64 @@ class SovereignIngestor:
         if hasattr(engine, 'larynx') and engine.larynx is not None:
             self.larynx = engine.larynx
 
+    def normalize_differential_telemetry(
+        self,
+        target_signal: torch.Tensor,
+        background_reference: torch.Tensor,
+        structural_wobble_threshold: float = 0.05,
+        sun_facing_semicircle_mask: Optional[torch.Tensor] = None
+    ) -> Dict[str, Any]:
+        """
+        First Law of Structural Honesty for Physical & Satellite Telemetry
+        (Sentinel-2 L2A `s3://sentinel-cogs`, EIA Cushing Inventory, NOAA GOES-R):
+
+        1. Differential Calibration (Instrument Gain Drift Subtraction):
+           Subtracts ambient reference drift (e.g. surrounding dirt/road darkening)
+           from the target proxy (e.g. floating tank roof crescent shadow):
+               signal_calibrated = target_signal - background_reference
+        2. Spatial Dilution Masking:
+           Restricts integration to the directional active locus (e.g. sun-facing
+           semicircle) rather than averaging over an isotropic disk.
+        3. Epistemic Resolution / Wobble-to-Noise Veto:
+           If measurement uncertainty sigma_probe >= structural_wobble_threshold,
+           issues a Topological Refusal (NaN boundary state) instead of committing noise.
+        """
+        t_sig = target_signal.float()
+        bg_ref = background_reference.float().to(t_sig.device)
+        if bg_ref.shape != t_sig.shape:
+            bg_ref = bg_ref.flatten()[:t_sig.numel()]
+            if bg_ref.numel() < t_sig.numel():
+                bg_ref = torch.nn.functional.pad(bg_ref, (0, t_sig.numel() - bg_ref.numel()))
+            bg_ref = bg_ref.reshape(t_sig.shape)
+
+        calibrated = t_sig - bg_ref
+        if sun_facing_semicircle_mask is not None:
+            mask = sun_facing_semicircle_mask.to(t_sig.device).float()
+            calibrated = calibrated * mask
+            active_slice = calibrated.reshape(-1)
+        else:
+            half = max(1, calibrated.numel() // 2)
+            active_slice = calibrated.reshape(-1)[:half]
+
+        sigma_probe = float(torch.std(active_slice).item()) if active_slice.numel() > 1 else 0.0
+        mean_signal = float(torch.mean(active_slice).item())
+        wobble_veto = sigma_probe > max(abs(mean_signal), structural_wobble_threshold)
+        refused_tensor = torch.full_like(calibrated, float('nan')) if wobble_veto else calibrated
+        return {
+            "calibrated_tensor": refused_tensor,
+            "raw_target_mean": float(t_sig.mean().item()),
+            "ambient_drift_mean": float(bg_ref.mean().item()),
+            "differential_signal_mean": mean_signal,
+            "measurement_sigma": sigma_probe,
+            "structural_wobble_threshold": structural_wobble_threshold,
+            "wobble_to_noise_veto": bool(wobble_veto),
+            "open_telemetry_sources": [
+                "s3://sentinel-cogs (ESA Copernicus Sentinel-2 L2A COGs)",
+                "https://api.eia.gov/v2/petroleum/stoc/wstk/ (EIA Weekly Cushing Inventory)",
+                "s3://noaa-goes16 (NOAA GOES-R ABI L2+ Thermal Flux)"
+            ]
+        }
+
     def generate_larynx_hn_query(
         self,
         state: Optional[torch.Tensor] = None,

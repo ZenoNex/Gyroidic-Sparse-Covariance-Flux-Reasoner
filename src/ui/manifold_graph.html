@@ -21,6 +21,15 @@
 
         body {
             background: var(--bg-color);
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        button, .btn, .alien-script, .voynich-glyph {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            background: var(--bg-color);
             color: #e0e0e0;
             font-family: var(--font-main);
             margin: 0;

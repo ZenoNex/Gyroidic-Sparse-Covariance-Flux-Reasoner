@@ -25,7 +25,59 @@
 
         * {
             box-sizing: border-box;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        button, .btn, .console-tab, .regime-btn, .panel-toggle-btn, .alien-script, .voynich-glyph {
             user-select: none;
+            -webkit-user-select: none;
+        }
+        .jei-tooltip-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .jei-tooltip-box {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            min-width: 440px;
+            max-width: 540px;
+            background: rgba(16, 0, 16, 0.96);
+            border: 2px solid #5000ff;
+            box-shadow: 0 0 0 2px #100010, 0 8px 24px rgba(0, 0, 0, 0.9);
+            color: #ffffff;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            line-height: 1.45;
+            padding: 10px 12px;
+            border-radius: 4px;
+            z-index: 99999;
+            pointer-events: auto;
+            user-select: text;
+            -webkit-user-select: text;
+            transition: opacity 0.15s ease-in-out;
+        }
+        .jei-tooltip-wrapper:hover .jei-tooltip-box {
+            visibility: visible;
+            opacity: 1;
+        }
+        .jei-tooltip-title {
+            color: #ff55ff;
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+            border-bottom: 1px solid rgba(80, 0, 255, 0.5);
+            padding-bottom: 3px;
+        }
+        .jei-tooltip-mod {
+            color: #5555ff;
+            font-style: italic;
+            margin-top: 6px;
+            display: block;
         }
 
         body {
@@ -414,7 +466,8 @@
             position: relative;
             animation: fadeIn 0.3s ease-out;
             overflow-wrap: break-word;
-            word-break: break-all;
+            word-break: break-word;
+            white-space: pre-wrap;
         }
 
         @keyframes fadeIn {
@@ -443,7 +496,8 @@
             font-family: var(--font-mono);
             color: #fff;
             overflow-wrap: break-word;
-            word-break: break-all;
+            word-break: break-word;
+            white-space: pre-wrap;
         }
 
         /* Mischief Solitons */
@@ -1041,12 +1095,12 @@
                 <option value="text_first">Text &#x2192; Media</option>
             </select>
             <span style="color:#333;">│</span>
-            <span style="color:#555;">USER CONTRACT (ALIAS):</span>
+            <span class="jei-tooltip-wrapper"><span style="color:#555;">USER CONTRACT (ALIAS):</span>
             <input type="text" id="user-alias" value="admin"
                 style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-magenta);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;width:100px;border-radius:3px;outline:none;letter-spacing:1px;">
             <span style="color:#333;">│</span>
             <span id="creator-lock-status" style="color:var(--terminal-green);cursor:pointer;font-weight:bold;"
-                onclick="promptCreatorAuth()">[GUEST]</span>
+                onclick="promptCreatorAuth()">[GUEST]</span><div class="jei-tooltip-box"><div class="jei-tooltip-title">[JEI INSPECTOR] Admin Password &amp; Node Auth Files</div><div style="color:#aaaaaa;margin-bottom:4px;">Hover/Copy Guide - Where to find or configure the Admin Passphrase &amp; Salt:</div><div>1. <span style="color:#55ffff;">src/safety/hardware_fingerprint.py</span> : Defines <span style="color:#ffff55;">verify_node_account()</span>, <span style="color:#ffff55;">verify_sole_creator()</span>, and <span style="color:#ffff55;">resolve_node_salt_path()</span>.</div><div>2. <span style="color:#55ffff;">data/.node_secret</span> (or <span style="color:#55ffff;">data/.node_secret_&lt;account&gt;</span>) &amp; <span style="color:#55ffff;">data/creator_sig.json</span> : Stores the 32-byte HMAC cryptographic node salt / keyfile.</div><div>3. <span style="color:#55ffff;">.gyroid_config.json</span> &amp; <span style="color:#55ffff;">hybrid_backend.py</span> : Configures <span style="color:#ffff55;">node_account</span> (<span style="color:#ffff55;">GYROID_ACCOUNT</span>) and <span style="color:#ffff55;">security_salt_path</span> (<span style="color:#ffff55;">GYROID_SALT_PATH</span>).</div><div>4. <span style="color:#55ffff;">src/ui/diegetic_backend.py</span> : Handles <span style="color:#ffff55;">/api/security/creator_login</span> &amp; <span style="color:#ffff55;">/api/security/node_account_login</span>.</div><div>5. <span style="color:#55ffff;">src/ui/voxelboxter_client.py</span> &amp; <span style="color:#55ffff;">src/ui/voxelboxter_simulation.py</span> : Grants <span style="color:#ffff55;">Role.ADMIN</span> to <span style="color:#ffff55;">ADMIN_OWNER_1337</span> via <span style="color:#ffff55;">PermissionsManager</span>.</div><span class="jei-tooltip-mod">Gyroidic Sparse Covariance Flux Reasoner // Option D Security</span></div></span>
             <span style="color:#333;">│</span>
             <button id="btn-top-launch-viewer" onclick="launchPickleViewerGUI()" style="background:rgba(255,0,242,0.15);border:1px solid var(--terminal-magenta);color:#fff;font-family:var(--font-mono);font-size:0.65rem;padding:3px 8px;border-radius:3px;cursor:pointer;font-weight:bold;transition:all 0.2s;" title="Boot standalone C++ accelerated DearPyGui / Tkinter Fossil and Pickle Encoding Viewer">LAUNCH FOSSIL / PICKLE VIEWER</button>
             <span style="color:#333;">│</span>
@@ -2428,7 +2482,7 @@
         const state = {
             iteration: 0,
             regime: 'goo',
-            backend_url: window.location.origin.includes('localhost') ? 'http://localhost:8000' : window.location.origin,
+            backend_url: window.location.protocol.startsWith('http') ? window.location.origin : 'http://localhost:8000',
             active_fingerprint: null,
             active_audio_dyad: null,
             active_video_dyad: null,
@@ -3935,7 +3989,7 @@
 
             let i = 0;
             const interval = setInterval(() => {
-                msg.innerText += text.charAt(i);
+                msg.textContent = text.slice(0, i + 1);
                 i++;
                 chatFeed.scrollTop = chatFeed.scrollHeight;
                 if (i >= text.length) {
@@ -5967,7 +6021,7 @@
                 try {
                     const btn = document.getElementById('btn-top-launch-viewer');
                     const origText = btn ? btn.innerText : '';
-                    if (btn) btn.innerText = '⚡ BOOTING...';
+                    if (btn) btn.innerText = '[BOOTING...]';
                     
                     const res = await fetch(`${state.backend_url}/api/viewer/launch`, {
                         method: 'POST',

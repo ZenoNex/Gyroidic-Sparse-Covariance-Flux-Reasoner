@@ -1,6 +1,7 @@
 import psutil
 import os
 import math
+import time
 from enum import Enum
 from typing import Dict, Any, Optional, Union
 
@@ -740,6 +741,79 @@ class HardwareMonitor:
             "community_offload_recommended": feelers["community_offload_recommended"],
             "feelers": feelers,
         }
+
+    def enforce_500ms_restless_thermal_guard(
+        self,
+        execution_ms: float,
+        silicon_engine: Optional[Any] = None,
+        cooldown_sleep_sec: float = 0.05,
+        pas_h: float = 0.75,
+        h_spec: float = 0.5,
+    ) -> Dict[str, Any]:
+        """
+        Enforces the 500ms "Restless" Thermal Latency Guard (Instruction 4,
+        tailslayer_pyopencl_mempalace_BigGan_inspirationdoc.md & TAILSLAYER_PYOPENCL_ARCHITECTURE.md):
+          - If a step or SIC-FA-ADMM block exceeds 500ms, calls clFinish() on active
+            OpenCL command queues (Queue A / Queue B) to drain pending hardware work.
+          - Updates Carnot-Mobius thermodynamic waste heat telemetry.
+          - Applies a micro-sleep cooldown (`time.sleep(cooldown_sleep_sec)`) to prevent
+            CPU/GPU thermal runaway and host lockup on 4GB VRAM / 8GB RAM laptops.
+          - Evaluates speculative routing timings to transition into RP^4 Void Lazarus Play.
+        """
+        exceeded = float(execution_ms) > 500.0
+        cl_finished = False
+
+        if exceeded:
+            # 1. Drain PyOpenCL queues via clFinish() if silicon_engine is present
+            if silicon_engine is not None:
+                for q_attr in ("queue", "queue_a", "queue_b"):
+                    q_obj = getattr(silicon_engine, q_attr, None)
+                    if q_obj is not None and hasattr(q_obj, "finish"):
+                        try:
+                            q_obj.finish()
+                            cl_finished = True
+                        except Exception:
+                            pass
+
+            # 2. Register transient thermal load spike without permanently latching runaway
+            inferred_waste = min(self.p_cool_max * 0.92, max(self.p_waste, (float(execution_ms) / 500.0) * 450.0))
+            self.update_thermodynamics(
+                p_waste=inferred_waste,
+                p_cool_max=self.p_cool_max,
+                thermal_runaway=False,
+                eta_stack=self.eta_stack,
+                source="restless_500ms_thermal_guard",
+            )
+
+            # 3. Apply non-blocking micro-cooldown sleep to protect host node
+            if cooldown_sleep_sec > 0.0:
+                time.sleep(min(0.25, float(cooldown_sleep_sec)))
+
+        routing = self.evaluate_speculative_routing_timings(
+            execution_ms=execution_ms,
+            h_spec=h_spec,
+            pas_h=pas_h,
+        )
+        routing["cl_finish_invoked"] = cl_finished
+        routing["cooldown_applied_sec"] = float(cooldown_sleep_sec) if exceeded else 0.0
+        return routing
+
+
+def enforce_500ms_restless_thermal_guard(
+    execution_ms: float,
+    silicon_engine: Optional[Any] = None,
+    cooldown_sleep_sec: float = 0.05,
+    pas_h: float = 0.75,
+    h_spec: float = 0.5,
+) -> Dict[str, Any]:
+    """Module-level helper for the 500ms Restless Thermal Latency Guard."""
+    return HardwareMonitor.get_instance().enforce_500ms_restless_thermal_guard(
+        execution_ms=execution_ms,
+        silicon_engine=silicon_engine,
+        cooldown_sleep_sec=cooldown_sleep_sec,
+        pas_h=pas_h,
+        h_spec=h_spec,
+    )
 
 
 def probe_compute_feelers() -> Dict[str, Any]:

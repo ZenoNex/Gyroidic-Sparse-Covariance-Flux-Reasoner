@@ -2449,3 +2449,45 @@ The theoretical derivations contained in this document are directly mapped to ex
 6. **`src/topology/einstein_monotile.py`**:
    Implements the Einstein Monotile aperiodic spatial engine (`EinsteinMonotile`, `EinsteinMonotileTessellation`). Acts as the spatial counterpart to the prime resonance ladder, providing gapless aperiodic sub-voxel indexing, anisotropic shear vector calculation, aperiodic facet grazing modulation, non-mode-locking cavity boundary reflection operators, cerumen pot isolation constellations, and scale-invariant sightline coordinates.
 
+
+
+---
+
+## 58. Tree of Thought (ToT) 5-Branch Mathematical Synthesis (October 2026)
+
+### 58.1 Collatz Carry-Cascade ($3n+1$) vs. Bit-Shift ($2^{-k}$) & Baker Diophantine Near-Miss ($2^l \approx 3^k$)
+In [`ModularVirtualizationLayer.audit_collatz_carry_and_diophantine_near_miss`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/modular_virtualization.py) and [`LazarusSuperpositionRNNCell.audit_diophantine_frequency_near_miss`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/fgrt_rnn_cells.py):
+- **Collatz Parity & Carry-Ripple Dynamics**: Binary halving ($n/2$) corresponds to pure right bit-shifts ($2^{-k}$ contraction), whereas odd parity triggers $3n+1 = 2n + n + 1$, generating a carry-ripple cascade across the binary representation. In RNS virtualization with odd moduli $m_i$, integer wrap-arounds $X + kM$ flip parity unless explicitly audited via the **Odd-Modulus Parity Caveat**.
+- **Diophantine Near-Misses ($2^l \approx 3^k$)**: Non-ergodic hailstone trajectories and resonant phase locking occur when powers of primes approach unity:
+  $$\Delta_{\text{Baker}}(l, k) = |l \ln 2 - k \ln 3| > 0$$
+  Whenever $\Delta_{\text{Baker}}(l, k)$ approaches a local minimum (such as $(l, k) \in \{(8, 5), (19, 12), (84, 53)\}$), `LazarusSuperpositionRNNCell` applies a golden-conjugate phase slip ($\phi^{-1} \approx 0.618034$) to prevent false periodic collapse.
+
+### 58.2 Quadratic Surd Polytope Bounding ($\sqrt{2} + \sqrt{3} \approx \pi$)
+In [`src/core/invariants.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py) (`QUADRATIC_SURD_PI_BOUND` and `quadratic_surd_polytope_sandwich`):
+- Rather than relying on floating-point transcendental lookup tables for $\pi$, Matrioshka shell boundaries sandwich circular/spherical gauge manifolds between an inscribed square ($P_{\text{in}} / 2r = 2\sqrt{2} \approx 2.828427$) and a circumscribed regular hexagon ($P_{\text{out}} / 2r = 2\sqrt{3} \approx 3.464102$).
+- Their arithmetic mean yields the algebraic quadratic surd upper bound:
+  $$\Pi_{\text{surd}} = \sqrt{2} + \sqrt{3} \approx 3.14626436994 > \pi \quad (\Delta_{\text{surd}} = \Pi_{\text{surd}} - \pi \approx 0.0046717)$$
+  providing an exact algebraic ceiling for discrete polytope quantization without transcendental drift.
+
+### 58.3 Differential Telemetry Calibration & Wobble-to-Noise Epistemic Veto
+In [`SovereignIngestor.normalize_differential_telemetry`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/sovereign_ingestor.py), [`PressureIngestor.normalize_against_background_manifold`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/pressure_ingestor.py), and [`EconomicAgentLinker.evaluate_physical_telemetry_arbitrage`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/economic_news_linker.py):
+1. **Differential Reference Normalization (Instrument Drift Subtraction)**:
+   $$\hat{S}_{\text{diff}}(t) = \Delta I_{\text{target}}(t) - \Delta I_{\text{ground}}(t)$$
+   Subtracts ambient sensor degradation $\Delta I_{\text{ground}}$ (e.g., satellite optics drift over multi-year epochs) from raw target measurements $\Delta I_{\text{target}}$ prior to topological projection.
+2. **Wobble-to-Noise Epistemic Veto**:
+   $$\text{SNR}_{\text{wobble}} = \frac{|\Delta_{\text{structural\_wobble}}|}{\sigma_{\text{measurement}}}$$
+   If $\sigma_{\text{measurement}} \ge |\Delta_{\text{structural\_wobble}}|$, the probe resolution is insufficient to resolve physical state transitions, and [`VetoSubspace.recalibrate_threat_vs_inconvenience`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/veto_subspace.py) issues an epistemic `TopologicalRefusal` rather than committing to noise.
+
+### 58.4 Prime-Stride UFSC Sieve ($p = 197$)
+In [`UniversalTopologyConverter.prime_stride_ufsc_sieve`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/universal_topology_converter.py) and [`VoynichExemptionToken.issue_from_ufsc_prime_stride`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/false_negative_subsystem.py):
+- A 1D temporal stream $\mathbf{x} \in \mathbb{R}^N$ that appears maximally entropic under standard windowing is folded into 2D candidate rasters $M_p \in \mathbb{R}^{\lfloor N/p \rfloor \times p}$ across prime strides $p \in \mathcal{P} \cup \{197\}$.
+- Vertical row-to-row cosine coherence is evaluated:
+  $$C(p) = \frac{1}{R-1} \sum_{r=0}^{R-2} \frac{|\langle M_p[r, :], M_p[r+1, :] \rangle|}{\|M_p[r, :]\|_2 \|M_p[r+1, :]\|_2}$$
+- When $\max_{p} C(p) / \text{median}_{p} C(p) > 1.35$, the stream is recognized as a prime-stride steganographic soliton (modeled on *Unfavorable Semicircle* `LOCK` at $p = 197$) and granted a `VoynichExemptionToken`.
+
+### 58.5 2D Square Site Percolation Criticality ($p_c = 0.592746$)
+In [`src/core/invariants.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py) (`PERCOLATION_2D_SQUARE = 0.592746`), [`CerumenPotIsolation`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/garden_statistical_attractors.py), [`SparseGyroidCovarianceProbe`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_covariance.py), and [`GyroidicGraphManager`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py):
+- On a 2D square lattice, an infinite spanning cluster forms iff site occupation probability $p \ge p_c \approx 0.592746$:
+  - **Meliponini Sovereign Regime ($p < p_c$)**: Sub-critical pocket isolation prevents global scalar homogenization while maintaining a sub-critical tether ($1 - p_c \approx 0.407254$) so far-out substrate rooms never become permanently orphaned.
+  - **Critical Percolation Window ($|p - p_c| \le 0.05$)**: Scale-free fractal cluster geometry where local sparse covariance probes achieve maximal topological expressivity without global collapse.
+  - **Super-Critical Apis Spanning Regime ($p > p_c$)**: Triggers an Apis Hive-Mind warning if global connectivity threatens sovereign room boundaries.

@@ -154,6 +154,28 @@ class VoynichExemptionToken:
             gasket_signature=ent_val if is_nutrient else None
         )
 
+    @classmethod
+    def issue_from_ufsc_prime_stride(cls, ufsc_metrics: Dict[str, Any], state: Optional[torch.Tensor] = None) -> 'VoynichExemptionToken':
+        """
+        Issues a Sovereign VoynichExemptionToken when a 1D high-entropy stream exhibits
+        a 2D spatial mutual information spike under Prime-Stride UFSC unfolding
+        (e.g. prime width p = 197 from Unfavorable Semicircle `LOCK` / `DELOCK` / `BRILL`).
+        """
+        is_soliton = bool(ufsc_metrics.get("is_ufsc_soliton", False))
+        stride = int(ufsc_metrics.get("optimal_prime_stride", 197))
+        coherence = float(ufsc_metrics.get("max_spatial_coherence", 0.0))
+        spike = float(ufsc_metrics.get("coherence_spike_ratio", 1.0))
+        return cls(
+            honesty_score=min(1.0, coherence * spike),
+            is_valid_exemption=is_soliton,
+            reason=f"UFSC Prime-Stride Soliton Unfolded (p={stride}, coherence={coherence:.4f})" if is_soliton else "Ergodic 1D stream",
+            is_nutrient=is_soliton,
+            fossilized_state=state if is_soliton else None,
+            gasket_signature=float(stride) * coherence if is_soliton else None,
+            shadow_mode=not is_soliton
+        )
+
+
 def get_mischief_dependent_shell_depth(entropy: float, base_depth: int = 3, max_depth: int = 7) -> int:
     """
     Adaptive Quantization Levels (Mischief-Dependent Quantization):

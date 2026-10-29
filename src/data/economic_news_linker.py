@@ -388,5 +388,45 @@ class EconomicAgentLinker:
             })
         return posts
 
+    def evaluate_physical_telemetry_arbitrage(
+        self,
+        raw_proxy_series: List[float],
+        ambient_ground_series: List[float],
+        weekly_physical_wobble: float = 1.5,
+        measurement_uncertainty: float = 20.0
+    ) -> Dict[str, Any]:
+        """
+        Physical Telemetry Structural Honesty & Target Ontology Validator
+        (Sentinel-2 Cushing Storage Tank Shadow Proxy vs. EIA Weekly Wobble):
+
+        1. Differential Calibration: Subtracts ambient sensor degradation
+           (e.g. -7.0 ground darkening) from raw proxy (-7.5 tank darkening).
+        2. Target Ontology Routing: Routes physical volume signals to infrastructure
+           storage operators (midstream capacity landlords: PAA, EPD, ENB) rather
+           than globally priced commodity futures (WTI).
+        3. Wobble-to-Noise Epistemic Veto: If measurement_uncertainty (+/- 20M bbl)
+           exceeds weekly_physical_wobble (+/- 1.5M bbl), issues a Topological Refusal
+           (NaN) rather than executing a live speculative commit.
+        """
+        n = min(len(raw_proxy_series), len(ambient_ground_series))
+        if n == 0:
+            calibrated_deltas = [0.0]
+        else:
+            calibrated_deltas = [float(raw_proxy_series[i]) - float(ambient_ground_series[i]) for i in range(n)]
+
+        mean_calibrated = sum(calibrated_deltas) / float(len(calibrated_deltas))
+        snr = float(weekly_physical_wobble) / max(float(measurement_uncertainty), 1e-6)
+        veto_triggered = float(measurement_uncertainty) > float(weekly_physical_wobble)
+        return {
+            "calibrated_differential_signal": round(mean_calibrated, 4),
+            "target_ontology": "INFRASTRUCTURE_STORAGE_LANDLORDS (PAA, EPD, ENB)" if not veto_triggered else "TOPOLOGICAL_REFUSAL_NAN",
+            "rejected_ontology": "GLOBAL_COMMODITY_FUTURES (WTI)",
+            "weekly_physical_wobble_mbbl": float(weekly_physical_wobble),
+            "measurement_uncertainty_mbbl": float(measurement_uncertainty),
+            "wobble_to_noise_snr": round(snr, 4),
+            "wobble_veto_triggered": bool(veto_triggered),
+            "forecast_commit_value": float('nan') if veto_triggered else mean_calibrated
+        }
+
 # Backward compatibility alias
 EconomicNewsLinker = EconomicAgentLinker

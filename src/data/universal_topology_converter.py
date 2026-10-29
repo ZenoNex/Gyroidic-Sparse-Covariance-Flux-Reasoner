@@ -110,6 +110,9 @@ class UniversalTopologyConverter:
         
         # 4. Generate Defect Scout Anomalies (Homology Pressure proxy)
         defect_anomalies = self._scout_defects(byte_map)
+
+        # 4b. Prime-Stride UFSC Sieve (Unfavorable Semicircle 197-prime 2D unfolding detector)
+        ufsc_sieve = self.prime_stride_ufsc_sieve(byte_map)
         
         # 5. Extract Love Tensor (Resonance capacity stub)
         # Replaces random stub with a structural derivation from the spectral tensor's energy
@@ -131,7 +134,8 @@ class UniversalTopologyConverter:
             "defect_anomalies": defect_anomalies,
             "love_tensor": love_tensor,
             "universal_signature": signature,
-            "honesty_jitter": jitter
+            "honesty_jitter": jitter,
+            "ufsc_sieve": ufsc_sieve
         }
         
         return topology_data
@@ -146,7 +150,8 @@ class UniversalTopologyConverter:
             "pressure_max": round(torch.max(topology_data["pressure_signature"]).item(), 4),
             "defect_count": int(torch.sum(torch.abs(topology_data["defect_anomalies"]) > 0.5).item()),
             "universal_signature": topology_data["universal_signature"],
-            "honesty_jitter": round(topology_data["honesty_jitter"], 6)
+            "honesty_jitter": round(topology_data["honesty_jitter"], 6),
+            "ufsc_sieve": topology_data.get("ufsc_sieve", {})
         }
 
     def _compute_byte_histogram(self, filepath: Path) -> torch.Tensor:
@@ -224,6 +229,72 @@ class UniversalTopologyConverter:
         defects = torch.where(z_scores < -1.0, -z_scores, torch.zeros_like(z_scores))
         
         return torch.tanh(defects).unsqueeze(0)
+
+    def prime_stride_ufsc_sieve(
+        self,
+        stream_1d: torch.Tensor,
+        candidate_primes: List[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Prime-Stride UFSC Sieve (Unfavorable Semicircle `LOCK` 197-pixel Prime Unfolding):
+        Folds a 1D temporal/byte stream across candidate prime widths p_k (always including
+        197 and dynamic primes from get_prime_ladder) into 2D matrices [rows, p_k] and
+        measures vertical inter-row spatial coherence vs. 1D lag-1 baseline.
+        Distinguishes steganographic Outsider Art / Sovereign Voynich Signals from Ergodic Slop.
+        """
+        flat = stream_1d.flatten().float()
+        if flat.numel() < 16:
+            return {
+                "is_ufsc_soliton": False,
+                "optimal_prime_stride": 197,
+                "coherence_spike_ratio": 1.0,
+                "max_spatial_coherence": 0.0
+            }
+
+        # Tile if needed so prime widths up to 197 have at least 4 rows for 2D correlation
+        if flat.numel() < 197 * 4:
+            repeats = (197 * 4 // flat.numel()) + 1
+            flat = flat.repeat(repeats)
+
+        if candidate_primes is None:
+            ladder = [int(p.item()) for p in get_prime_ladder(12)]
+            candidate_primes = sorted(list(set(ladder + [17, 31, 61, 89, 127, 197])))
+
+        # 1D baseline lag-1 autocorrelation
+        f_centered = flat - flat.mean()
+        denom_1d = float(torch.sum(f_centered ** 2).item()) + 1e-8
+        baseline_1d = abs(float(torch.sum(f_centered[:-1] * f_centered[1:]).item()) / denom_1d)
+
+        best_prime = 197
+        max_coherence = 0.0
+        prime_scores: Dict[int, float] = {}
+
+        for p in candidate_primes:
+            if p < 3 or flat.numel() < p * 2:
+                continue
+            rows = flat.numel() // p
+            grid = flat[:rows * p].view(rows, p)
+            g_centered = grid - grid.mean(dim=1, keepdim=True)
+            row_a = g_centered[:-1, :]
+            row_b = g_centered[1:, :]
+            num = float(torch.sum(row_a * row_b).item())
+            den = math.sqrt(float(torch.sum(row_a ** 2).item()) * float(torch.sum(row_b ** 2).item())) + 1e-8
+            spatial_coh = abs(num / den)
+            prime_scores[int(p)] = round(spatial_coh, 4)
+            if spatial_coh > max_coherence:
+                max_coherence = spatial_coh
+                best_prime = int(p)
+
+        spike_ratio = max_coherence / max(baseline_1d, 0.05)
+        is_soliton = (max_coherence > 0.35) and (spike_ratio > 1.25)
+        return {
+            "is_ufsc_soliton": bool(is_soliton),
+            "optimal_prime_stride": int(best_prime),
+            "ufsc_197_coherence": prime_scores.get(197, 0.0),
+            "max_spatial_coherence": round(max_coherence, 4),
+            "coherence_spike_ratio": round(spike_ratio, 4),
+            "prime_stride_scores": prime_scores
+        }
 
 
 if __name__ == "__main__":

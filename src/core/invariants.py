@@ -21,6 +21,9 @@ import time
 
 # Universal Mathematical & Topological Constants
 PI = math.pi
+PERCOLATION_2D_SQUARE = 0.592746
+QUADRATIC_SURD_PI_BOUND = math.sqrt(2.0) + math.sqrt(3.0)
+QUADRATIC_SURD_PI_GAP = QUADRATIC_SURD_PI_BOUND - PI
 try:
     import mpmath
     with mpmath.workdps(60):
@@ -912,4 +915,193 @@ class CatalanBranchingInvariant(nn.Module):
         norm_w = torch.norm(weights) + 1e-8
         coherence = dot / (norm_e * norm_w)
         return coherence.squeeze(0) if is_1d else coherence
+
+
+def quadratic_surd_polytope_sandwich(state: torch.Tensor) -> Dict[str, Any]:
+    """
+    Quadratic Surd Polytope Bounding (Inscribed Square vs. Circumscribed Hexagon):
+        pi_surd = sqrt(2) + sqrt(3) approx 3.14626436994...
+    Bounds the transcendental continuum pi between the inscribed 4-polytope
+    half-perimeter (2 * sqrt(2) approx 2.828427) and circumscribed 6-polytope
+    half-perimeter (2 * sqrt(3) approx 3.464102).
+    """
+    inscribed_half_perim = 2.0 * math.sqrt(2.0)
+    circumscribed_half_perim = 2.0 * math.sqrt(3.0)
+    norm_val = float(torch.norm(state.float()).item()) if state.numel() > 0 else 0.0
+    span = circumscribed_half_perim - inscribed_half_perim
+    wrapped_norm = inscribed_half_perim + math.fmod(abs(norm_val), span)
+    in_surd_corridor = abs(wrapped_norm - QUADRATIC_SURD_PI_BOUND) <= (span * 0.5)
+    return {
+        "inscribed_4_polytope_bound": inscribed_half_perim,
+        "circumscribed_6_polytope_bound": circumscribed_half_perim,
+        "quadratic_surd_pi_bound": QUADRATIC_SURD_PI_BOUND,
+        "transcendental_pi": PI,
+        "algebraic_surd_gap": QUADRATIC_SURD_PI_GAP,
+        "wrapped_norm": wrapped_norm,
+        "in_surd_corridor": bool(in_surd_corridor)
+    }
+
+
+def evaluate_percolation_regime(occupancy_prob: float) -> Dict[str, Any]:
+    """
+    Evaluates the 2D Square Lattice Site Percolation Phase Transition (p_c = 0.592746).
+    - Below p_c (p < 0.592746): Meliponini Cerumen Pot regime (isolated finite clusters).
+    - At or above p_c (p >= 0.592746): Apis Honeycomb regime (infinite spanning cluster).
+    """
+    p = float(max(0.0, min(1.0, occupancy_prob)))
+    is_spanning = p >= PERCOLATION_2D_SQUARE
+    margin = p - PERCOLATION_2D_SQUARE
+    return {
+        "occupancy_prob": p,
+        "percolation_threshold_pc": PERCOLATION_2D_SQUARE,
+        "is_spanning_cluster": is_spanning,
+        "regime": "APIS_SPANNING_HONEYCOMB" if is_spanning else "MELIPONINI_ISOLATED_CERUMEN",
+        "critical_margin": margin,
+        "requires_isolation_rescue": p < (PERCOLATION_2D_SQUARE * 0.35)
+    }
+
+
+# IHC BAO Validation Constants (Zero-Parameter Topological Cosmology on RP^4)
+IHC_HUBBLE_RADIUS_MPC = 4451.14
+IHC_SOUND_HORIZON_MPC = IHC_HUBBLE_RADIUS_MPC * (PHI ** -7.0)  # ~153.20 Mpc (k=7 shell)
+IHC_XI_RATIO = 1.036707  # r_s^IHC / r_s^Planck
+IHC_Z1_SHELL_REDSHIFT = 0.7540  # k=1 co-rotating shell boundary R_1 = R_H * phi^{-1}
+IHC_DELTA_Z_TRANSITION = 0.3630  # Geodesic width of the k=1 shell transition
+IHC_Z3_AMPLITUDE = 5.9441 / 1344.5  # ~0.004421 Z_3 phase standing-wave amplitude
+IHC_Z3_WAVELENGTH_MPC = IHC_HUBBLE_RADIUS_MPC / 11.0  # ~404.65 Mpc (N = 33 = 3 x 11)
+
+
+def compute_ihc_bao_shell_modulation(
+    z_effective: Union[float, torch.Tensor] = 0.754,
+    comoving_distance_mpc: Optional[Union[float, torch.Tensor]] = None,
+) -> Dict[str, Any]:
+    """
+    Computes the zero-parameter Inverted Hypersphere Cosmology (IHC) BAO shell
+    expansion factor f_{k_1}(z) and Z_3 standing-wave modulation on RP^4
+    (from ihc_bao_validation.py):
+        f_{k_1}(z) = 1 + ((xi - 1) / 2) * [1 + tanh((z_1 - z) / delta_z)]
+        delta(r) = A_{Z_3} * sin(2 * pi * r / lambda_{Z_3} + 2 * pi / 3)
+    """
+    if isinstance(z_effective, torch.Tensor):
+        z_val = float(z_effective.mean().item()) if z_effective.numel() > 0 else IHC_Z1_SHELL_REDSHIFT
+    else:
+        z_val = float(z_effective)
+
+    f_k1 = 1.0 + ((IHC_XI_RATIO - 1.0) / 2.0) * (
+        1.0 + math.tanh((IHC_Z1_SHELL_REDSHIFT - z_val) / IHC_DELTA_Z_TRANSITION)
+    )
+
+    if comoving_distance_mpc is None:
+        r_mpc = IHC_HUBBLE_RADIUS_MPC * (PHI ** -1.0)  # Default to R_1 = R_H * phi^{-1}
+    elif isinstance(comoving_distance_mpc, torch.Tensor):
+        r_mpc = float(comoving_distance_mpc.mean().item())
+    else:
+        r_mpc = float(comoving_distance_mpc)
+
+    z3_mod = IHC_Z3_AMPLITUDE * math.sin(2.0 * PI * r_mpc / IHC_Z3_WAVELENGTH_MPC + (2.0 * PI / 3.0))
+    effective_scale = f_k1 * (1.0 + z3_mod)
+
+    return {
+        "z_effective": z_val,
+        "f_k1_shell_factor": float(f_k1),
+        "z3_standing_wave_modulation": float(z3_mod),
+        "effective_rp4_bao_scale": float(effective_scale),
+        "r_s_ihc_mpc": float(IHC_SOUND_HORIZON_MPC),
+        "lambda_z3_mpc": float(IHC_Z3_WAVELENGTH_MPC),
+    }
+
+
+def compute_fractal_lhopital_boundary_ratio(
+    residue_state: torch.Tensor,
+    target_state: torch.Tensor,
+    alpha_fractional: float = 0.5,
+    epsilon: float = 1e-4,
+) -> Dict[str, Any]:
+    """
+    Implements the Modified L'Hopital's Rule for Fractal Boundaries and
+    Scale-Dependent Entropy (from docs/Recursive Fractals and L'Hopital.txt):
+        lim_{(x,y)->(x_0,y_0)} f(x)/g(y) = lim [D_alpha f(x) / D_alpha g(y)] * (dx/dy)^alpha
+        H_d(F) = [log N(epsilon) / log(1/epsilon)] * phi(Delta)
+        S(F, epsilon) = -sum p_i(epsilon) log p_i(epsilon)
+    Prevents gradient explosion across discontinuous fractal fractures during
+    survivorship / Bouligand tangent cone projection.
+    """
+    r_flat = residue_state.detach().float().flatten()
+    t_flat = target_state.detach().float().flatten()
+    min_len = min(r_flat.numel(), t_flat.numel())
+    if min_len < 2:
+        return {
+            "lhopital_fractional_ratio": 1.0,
+            "generalized_hausdorff_dim": 1.0,
+            "scale_dependent_entropy": 0.0,
+            "damping_factor": 1.0,
+        }
+
+    r_flat = r_flat[:min_len]
+    t_flat = t_flat[:min_len]
+
+    # Fractional difference proxy D_alpha f(x) ~ |Delta f|^alpha
+    df = torch.abs(r_flat[1:] - r_flat[:-1]) + epsilon
+    dg = torch.abs(t_flat[1:] - t_flat[:-1]) + epsilon
+    d_alpha_f = torch.pow(df, alpha_fractional).mean()
+    d_alpha_g = torch.pow(dg, alpha_fractional).mean()
+    lhopital_ratio = float((d_alpha_f / (d_alpha_g + epsilon)).clamp(0.05, 20.0).item())
+
+    # Box-counting proxy N(epsilon) and Generalized Hausdorff Dimension H_d(F)
+    active_boxes = float((df > epsilon).float().sum().item()) + 1.0
+    log_inv_eps = max(1.0, math.log(1.0 / max(epsilon, 1e-8)))
+    phi_delta = float(1.0 + torch.std(df).clamp(0.0, 1.0).item() * PHI_RECIPROCAL)
+    hausdorff_dim = (math.log(active_boxes) / log_inv_eps) * phi_delta
+
+    # Scale-Dependent Entropy S(F, epsilon)
+    probs = df / (df.sum() + 1e-8)
+    scale_entropy = float(-(probs * torch.log(probs + 1e-8)).sum().item())
+
+    # Smooth damping factor in [0.25, 1.5] so fractal fractures do not explode gradients
+    damping_factor = 1.0 / (1.0 + 0.15 * abs(lhopital_ratio - 1.0))
+
+    return {
+        "lhopital_fractional_ratio": lhopital_ratio,
+        "generalized_hausdorff_dim": float(hausdorff_dim),
+        "scale_dependent_entropy": scale_entropy,
+        "damping_factor": float(damping_factor),
+    }
+
+
+def compute_enso_inkblot_emergence(
+    interior_state: torch.Tensor,
+    boundary_residue: torch.Tensor,
+) -> Dict[str, Any]:
+    """
+    Implements the Enso Circle vs. Warping Rorschach Inkblot Boundary diagnostic
+    (from docs/Gemini-Untangling the Cosmic Feedback Loop-20261013-1752.txt):
+      - Interior Enso Emptiness: Non-separate zero-center harmonic anchor (the space
+        inside the circle that does not move while the rim warps).
+      - Exterior Rorschach Inkblot Boundary: Dynamic, time-warping boundary where
+        semantic projections and temporal friction occur ("the inkblot realizing it is wet").
+    """
+    int_flat = interior_state.detach().float().flatten()
+    bnd_flat = boundary_residue.detach().float().flatten()
+    if int_flat.numel() == 0 or bnd_flat.numel() == 0:
+        return {
+            "enso_interior_stillness": 1.0,
+            "inkblot_boundary_warp": 0.0,
+            "non_separate_wetness_index": 0.5,
+        }
+
+    # Enso interior stillness: proximity of mean interior phase/center to zero-balance
+    interior_mean_abs = float(torch.abs(int_flat.mean()).item())
+    enso_stillness = 1.0 / (1.0 + interior_mean_abs)
+
+    # Inkblot boundary warp: boundary variance / roughness across dimensions
+    inkblot_warp = float(torch.std(bnd_flat).item()) if bnd_flat.numel() > 1 else 0.0
+
+    # Non-separate wetness index: coupling between interior stillness and boundary warp
+    wetness_index = float(enso_stillness * math.tanh(inkblot_warp + 1e-4))
+
+    return {
+        "enso_interior_stillness": float(enso_stillness),
+        "inkblot_boundary_warp": float(inkblot_warp),
+        "non_separate_wetness_index": float(wetness_index),
+    }
 
