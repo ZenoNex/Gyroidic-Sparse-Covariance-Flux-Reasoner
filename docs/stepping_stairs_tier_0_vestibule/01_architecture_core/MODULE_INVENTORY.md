@@ -1721,7 +1721,7 @@ Draft 7 FGRT recurrent cell implementing Logarithmic Conformal Field Theory (LCF
 ### `FederatedNetworkMonitor`
 **Location:** `src/core/federated_router.py`  
 **Description:**  
-Network monitor auditing peer-to-peer consensus, Freenet WebSocket latency, and OpenRouter API throughput for distributed deployments.
+Network monitor auditing peer-to-peer consensus, Freenet WebSocket latency, OpenRouter API throughput, Bonfire Nomadic Ring peer budgets (`peer_allocations`), Egalitarian Consensus Kelly Allocations ($ar{K}$), and community compute affordances (`ComputeAffordanceType.P2P_MESH`) across distributed nodes.
 
 ---
 

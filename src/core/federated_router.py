@@ -47,10 +47,12 @@ class OpenRouterClient:
             return f"[OpenRouter Exception: {str(e)}]"
 
 class FederatedNetworkMonitor:
-    def __init__(self, freenet_ws=None, freenet_router=None, open_router=None):
+    def __init__(self, freenet_ws=None, freenet_router=None, open_router=None, bonfire_ring=None, hardware_monitor=None):
         self.freenet_ws = freenet_ws
         self.freenet_router = freenet_router
         self.open_router = open_router
+        self.bonfire_ring = bonfire_ring
+        self.hardware_monitor = hardware_monitor
         
     def get_telemetry(self) -> dict:
         telemetry = {
@@ -58,7 +60,12 @@ class FederatedNetworkMonitor:
             "freenet_ring_size": 0,
             "openrouter_status": "OFFLINE",
             "openrouter_latency": 0,
-            "openrouter_model": "None"
+            "openrouter_model": "None",
+            "bonfire_status": "OFFLINE",
+            "bonfire_peer_count": 0,
+            "egalitarian_kelly_consensus": 0.0,
+            "community_compute_affordance": 0.0,
+            "p2p_mesh_gauge": 0.8
         }
         
         if self.freenet_ws:
@@ -68,5 +75,21 @@ class FederatedNetworkMonitor:
             telemetry["openrouter_status"] = self.open_router.last_status
             telemetry["openrouter_latency"] = self.open_router.latency_ms
             telemetry["openrouter_model"] = self.open_router.default_model
+
+        if self.bonfire_ring:
+            peer_allocs = getattr(self.bonfire_ring, "peer_allocations", {})
+            telemetry["bonfire_status"] = "ONLINE" if peer_allocs else "INITIALIZED"
+            telemetry["bonfire_peer_count"] = len(peer_allocs)
+            if peer_allocs:
+                telemetry["egalitarian_kelly_consensus"] = float(sum(peer_allocs.values()) / max(1, len(peer_allocs)))
+
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hw = self.hardware_monitor or HardwareMonitor.get_instance()
+            aff = hw.get_compute_affordance(ComputeAffordanceType.P2P_MESH)
+            telemetry["community_compute_affordance"] = float(aff.gauge)
+            telemetry["p2p_mesh_gauge"] = float(getattr(hw, "p2p_mesh_gauge", 0.8))
+        except Exception:
+            pass
             
         return telemetry

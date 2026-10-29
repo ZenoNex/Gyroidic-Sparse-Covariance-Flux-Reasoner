@@ -1,10 +1,5 @@
-import os
-import sys
 import unittest
 import torch
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-os.environ["Sovereign_Disable_Background"] = "1"
 
 from src.core.hardware_monitor import (
     HardwareMonitor,
