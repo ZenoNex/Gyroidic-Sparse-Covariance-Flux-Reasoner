@@ -338,6 +338,7 @@ class SparseGyroidCovarianceProbe(nn.Module):
         gcve_pressures = []
         lambda_mins = []
         traces = []
+        condition_numbers = []
         
         # 1. Compute GCVE per batch element (Geometric/Spectral)
         for b in range(batch_size):
@@ -349,11 +350,13 @@ class SparseGyroidCovarianceProbe(nn.Module):
              gcve_pressures.append(score)
              lambda_mins.append(sig['lambda_min'])
              traces.append(sig['trace'])
+             condition_numbers.append(sig['condition_number'])
              violations.append(score > self.violation_threshold)
              
         gcve_pressures = torch.stack(gcve_pressures) # [batch]
         lambda_mins = torch.stack(lambda_mins)
         traces = torch.stack(traces)
+        condition_numbers = torch.stack(condition_numbers)
         violations = torch.stack(violations).float()     # [batch]
         
         # 2. Compute Saturation Fracture (Input Sensitivity)

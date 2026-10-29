@@ -231,14 +231,32 @@ class ModularAttention(nn.Module):
             
         batch_size, seq_len, _ = x.shape
 
+        # Dynamically sense hardware flux if load is not explicitly provided
+        effective_load = float(load)
+        hw_flux_factor = 1.0
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hw = HardwareMonitor.get_instance()
+            silicon_aff = hw.get_compute_affordance(ComputeAffordanceType.SILICON)
+            thermal_aff = hw.get_compute_affordance(ComputeAffordanceType.THERMAL)
+            sensed_load = max(0.0, min(1.0, max(1.0 - silicon_aff.gauge, 1.0 - thermal_aff.gauge)))
+            if getattr(hw, 'thermal_runaway', False):
+                sensed_load = max(sensed_load, 0.85)
+            effective_load = max(effective_load, sensed_load)
+            hw_flux_factor = max(0.2, 1.0 - 0.7 * effective_load)
+        except Exception:
+            pass
+
         # Dynamic Gyroid Attention Masking:
-        # If mask is omitted and dynamic gating is enabled, gate sparse/dense via gyroid probe
-        if mask is None and kwargs.get('use_dynamic_mask', False) and seq_len > 1:
+        # If mask is omitted and dynamic gating or high load is triggered, gate sparse/dense via gyroid probe
+        if mask is None and (kwargs.get('use_dynamic_mask', False) or effective_load > 0.6) and seq_len > 1:
             gyroid_eval = self.compute_gyroid_violation(x)
             press = gyroid_eval.get('total_pressure', gyroid_eval.get('gcve_pressures', torch.tensor([0.0]))).mean()
+            mask_threshold = 0.5 if effective_load <= 0.6 else 0.8
             mask = self.construct_dynamic_attention_mask(
                 violations=press,
                 seq_len=seq_len,
+                threshold=mask_threshold,
                 device=x.device
             )
         
@@ -251,10 +269,10 @@ class ModularAttention(nn.Module):
         # Adaptive Functional Sparsification: Drop outer shells under high load
         # Matryoshka nesting: k=0 (inner/stable), k=K-1 (outer/complex)
         active_k = self.K
-        if load > 0.0:
+        if effective_load > 0.0:
             # Linear reduction of functionals based on load
             # Ensures at least 1 functional (the inner shell) remains active
-            active_k = max(1, int(self.K * (1.0 - torch.clamp(torch.tensor(load), 0.0, 0.9).item())))
+            active_k = max(1, int(self.K * (1.0 - torch.clamp(torch.tensor(effective_load), 0.0, 0.9).item())))
             
         # Process each active field separately
         field_outputs = []
@@ -336,7 +354,8 @@ class ModularAttention(nn.Module):
                 # Reshape to match A_k: [batch, num_heads, seq_len, head_dim]
                 A_k_breather = breather_out.view(batch_size, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
                 
-                A_k = (1.0 - self.warmstart_mix) * A_k + self.warmstart_mix * A_k_breather
+                smooth_warmstart = self.warmstart_mix * hw_flux_factor
+                A_k = (1.0 - smooth_warmstart) * A_k + smooth_warmstart * A_k_breather
             
             # Update Structural Integrity tracker
             if self.use_birkhoff:
@@ -394,12 +413,13 @@ class ModularAttention(nn.Module):
         # instead of dropping out the attention weights.
         output = self.output_proj(fused)  # [batch, seq_len, hidden_dim]
         
-        # Apply Nostalgic Leak
+        # Apply Nostalgic Leak smoothed by hardware flux
         batch_size_out, seq_len_out, dim_out = output.shape
         output_flat = output.view(batch_size_out * seq_len_out, dim_out)
         self.dropout.to(output.device)
         output_leaked = self.dropout(output_flat)
-        output_flat = output_flat + 0.1 * output_leaked
+        leak_weight = 0.1 * hw_flux_factor
+        output_flat = output_flat + leak_weight * output_leaked
         output = output_flat.view(batch_size_out, seq_len_out, dim_out)
         
         if return_field_outputs:

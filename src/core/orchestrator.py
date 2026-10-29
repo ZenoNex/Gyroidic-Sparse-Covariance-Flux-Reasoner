@@ -1628,14 +1628,25 @@ class UniversalOrchestrator(nn.Module):
         gyroid_total_press = gyroid_res.get('total_pressure', gyroid_res.get('gcve_pressures', torch.tensor([0.0]))).mean()
 
         # If sequence length > 1, generate dynamic attention mask guided by gyroidic violation
+        path_topo = getattr(self, 'last_path_topo', None)
+        current_regime = getattr(self, 'current_regime', 'DIURNAL')
         if state_flat_attn.shape[1] > 1:
             dynamic_attn_mask = self.construct_dynamic_attention_mask(
                 violations=gyroid_total_press,
                 seq_len=state_flat_attn.shape[1]
             )
-            attn_out = self.modular_attention(state_flat_attn, mask=dynamic_attn_mask)
+            attn_out = self.modular_attention(
+                state_flat_attn,
+                mask=dynamic_attn_mask,
+                regime=current_regime,
+                path_topology_vectors=path_topo
+            )
         else:
-            attn_out = self.modular_attention(state_flat_attn)
+            attn_out = self.modular_attention(
+                state_flat_attn,
+                regime=current_regime,
+                path_topology_vectors=path_topo
+            )
         attn_integrity = self.modular_attention.validate_structural_integrity()
         self.last_attention_integrity = attn_integrity
 

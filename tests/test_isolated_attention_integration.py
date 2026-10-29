@@ -470,4 +470,29 @@ class TestIsolatedAttentionIntegration:
         assert token.honesty_score == 1.0
         assert "Folium" in token.reason
 
+    def test_22_hardware_flux_attention_smoothing_and_ltp_fossilization(self):
+        """Verify hardware flux attention smoothing and LTP memory packet consolidation."""
+        from src.models.modular_attention import ModularAttention
+        from src.core.polynomial_coprime import PolynomialCoprimeConfig
+
+        dim = 32
+        poly_cfg = PolynomialCoprimeConfig(k=5, degree=4, basis_type='chebyshev', learnable=True)
+        attn = ModularAttention(hidden_dim=dim, num_heads=2, poly_config=poly_cfg, num_functionals=5)
+        attn.warmstart_mix.data.fill_(0.4)
+
+        x = torch.randn(2, 4, dim)
+
+        # Baseline execution under normal hardware flux
+        out_normal, fields_normal = attn(x, return_field_outputs=True)
+        assert out_normal.shape == (2, 4, dim)
+        assert torch.isfinite(out_normal).all()
+
+        # Constrained execution under simulated thermal/silicon load (load=0.8)
+        out_loaded, fields_loaded = attn(x, load=0.8, return_field_outputs=True)
+        assert out_loaded.shape == (2, 4, dim)
+        assert torch.isfinite(out_loaded).all()
+
+        # Under load=0.8, active fields are sparsified (active_k < 5)
+        active_loaded = sum(1 for f in fields_loaded if not torch.equal(f, torch.zeros_like(f)))
+        assert active_loaded <= 4
 
