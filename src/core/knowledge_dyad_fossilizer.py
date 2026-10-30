@@ -246,7 +246,7 @@ class DyadFossilizer:
         
         # Threading event to ensure no fossilization occurs before the index is fully ready
         self._index_ready = threading.Event()
-        self._save_lock = threading.Lock()
+        self._save_lock = threading.RLock()
         
         # Topological Derivation Engines (Non-Lazy Implication Binding)
         self.homology_engine = SpeculativeHomologyEngine(feature_dim=feature_dim)
@@ -395,17 +395,16 @@ class DyadFossilizer:
         except Exception as e:
             print(f"[FOSSILIZER] Rebuilding index failed: {e}")
 
+    def get_index_snapshot(self) -> dict:
+        """ASD-STE100 Rules: Thread-safe snapshot of fast index."""
+        with self._save_lock:
+            return dict(self.fossil_index)
+
     def _save_index(self):
         """Saves current fast index to disk safely using an atomic write."""
         try:
-            while True:
-                try:
-                    index_snapshot = dict(self.fossil_index)
-                    break
-                except RuntimeError:
-                    import time
-                    time.sleep(0.01)
             with self._save_lock:
+                index_snapshot = dict(self.fossil_index)
                 tmp_file = self.index_file + ".tmp"
                 with open(tmp_file, "w", encoding="utf-8") as f:
                     json.dump(index_snapshot, f)
@@ -416,15 +415,9 @@ class DyadFossilizer:
     def get_all_arxiv_ids(self) -> set:
         """Returns the set of all indexed ArXiv IDs."""
         ids = set()
-        index_snapshot = {}
-        for _ in range(10):
-            try:
-                index_snapshot = dict(self.fossil_index)
-                break
-            except RuntimeError:
-                import time
-                time.sleep(0.01)
-        for f, info in index_snapshot.items():
+        with self._save_lock:
+            index_snapshot = list(self.fossil_index.values())
+        for info in index_snapshot:
             a_id = info.get('arxiv_id')
             if a_id:
                 ids.add(a_id)
@@ -726,12 +719,13 @@ class DyadFossilizer:
         self.fossilized_hashes.add(prompt_hash)
         
         # Update fast index
-        self.fossil_index[filename] = {
-            'prompt_hash': prompt_hash,
-            'arxiv_id': payload.get('dyad_metadata', {}).get('arxiv_id') if payload.get('dyad_metadata') else None,
-            'is_ouroboros': bool(payload.get('dyad_metadata', {}).get('failure_type') == 'ouroboros_shadow_loop') if payload.get('dyad_metadata') else False,
-            'mtime': datetime.datetime.now().timestamp()
-        }
+        with self._save_lock:
+            self.fossil_index[filename] = {
+                'prompt_hash': prompt_hash,
+                'arxiv_id': payload.get('dyad_metadata', {}).get('arxiv_id') if payload.get('dyad_metadata') else None,
+                'is_ouroboros': bool(payload.get('dyad_metadata', {}).get('failure_type') == 'ouroboros_shadow_loop') if payload.get('dyad_metadata') else False,
+                'mtime': datetime.datetime.now().timestamp()
+            }
         self._save_index()
         
         self.enforce_fossil_budget()
@@ -761,7 +755,10 @@ class DyadFossilizer:
         
         ouroboros_files = []
         regular_files = []
-        for filename, info in self.fossil_index.items():
+        with self._save_lock:
+            index_snapshot = list(self.fossil_index.items())
+
+        for filename, info in index_snapshot:
             if info.get('is_ouroboros', False):
                 ouroboros_files.append((filename, info.get('mtime', 0.0)))
             else:
@@ -791,10 +788,12 @@ class DyadFossilizer:
                     pass
                 except PermissionError:
                     print(f"[FOSSILIZER] Budget cleanup skipped {filename}: Access Denied (File in use)")
-            if filename in self.fossil_index:
-                if self.fossil_index[filename].get('prompt_hash') in self.fossilized_hashes:
-                    self.fossilized_hashes.remove(self.fossil_index[filename]['prompt_hash'])
-                del self.fossil_index[filename]
+            with self._save_lock:
+                if filename in self.fossil_index:
+                    prompt_hash = self.fossil_index[filename].get('prompt_hash')
+                    if prompt_hash and prompt_hash in self.fossilized_hashes:
+                        self.fossilized_hashes.remove(prompt_hash)
+                    del self.fossil_index[filename]
         except Exception as e:
             if not isinstance(e, KeyError):
                 print(f"[FOSSILIZER] Budget cleanup failed for {filename}: {e}")
@@ -832,11 +831,12 @@ class DyadFossilizer:
         if not os.path.exists(self.storage_dir):
             return fossils
             
-        sorted_files = sorted(
-            self.fossil_index.keys(),
-            key=lambda x: self.fossil_index[x].get('mtime', 0.0),
-            reverse=True
-        )
+        with self._save_lock:
+            sorted_files = sorted(
+                list(self.fossil_index.keys()),
+                key=lambda x: self.fossil_index.get(x, {}).get('mtime', 0.0),
+                reverse=True
+            )
         
         if limit is not None:
             sorted_files = sorted_files[:limit]
@@ -850,19 +850,10 @@ class DyadFossilizer:
                     fossils.append(data)
                 else:
                     print(f"[RECOVERY] Deleting invalid fossil (missing residue_vector): {f}")
-                    os.remove(filepath)
-                    if f in self.fossil_index:
-                        del self.fossil_index[f]
-                        self._save_index()
+                    self._delete_fossil(f, save_index=True)
             except Exception as e:
                 print(f"[RECOVERY] Deleting corrupted fossil {f}: {e}")
-                try:
-                    os.remove(filepath)
-                    if f in self.fossil_index:
-                        del self.fossil_index[f]
-                        self._save_index()
-                except:
-                    pass
+                self._delete_fossil(f, save_index=True)
         return fossils
 
     def generate_residue_tuple(self, seed_tensor: torch.Tensor) -> Tuple[int, int, int]:
@@ -994,11 +985,13 @@ class DyadFossilizer:
         torch.save(payload, tmp_filepath)
         os.replace(tmp_filepath, filepath)
         # Update fast index
-        self.fossil_index[filename] = {
-            'prompt_hash': blake2s_digest,
-            'arxiv_id': None,
-            'mtime': datetime.datetime.now().timestamp()
-        }
+        with self._save_lock:
+            self.fossil_index[filename] = {
+                'prompt_hash': blake2s_digest,
+                'arxiv_id': None,
+                'is_ouroboros': False,
+                'mtime': datetime.datetime.now().timestamp()
+            }
         self._save_index()
         
         # Non-invasive Memory Palace Chamber Planting (Meliponini Cerumen Barrier preserved)
@@ -1156,36 +1149,25 @@ class DyadFossilizer:
                     pass
                     
             deleted_count = 0
-            for p_hash, items in groups.items():
-                if len(items) == 1:
-                    item = items[0]
-                    if item['is_flat']:
-                        try:
-                            os.remove(item['filepath'])
-                            if item['filename'] in self.fossil_index:
-                                del self.fossil_index[item['filename']]
-                            deleted_count += 1
-                        except Exception:
-                            pass
-                    continue
+            with self._save_lock:
+                for p_hash, items in groups.items():
+                    if len(items) == 1:
+                        item = items[0]
+                        if item['is_flat']:
+                            try:
+                                os.remove(item['filepath'])
+                                if item['filename'] in self.fossil_index:
+                                    del self.fossil_index[item['filename']]
+                                deleted_count += 1
+                            except Exception:
+                                pass
+                        continue
+                        
+                    flat_items = [x for x in items if x['is_flat']]
+                    active_items = [x for x in items if not x['is_flat']]
                     
-                flat_items = [x for x in items if x['is_flat']]
-                active_items = [x for x in items if not x['is_flat']]
-                
-                # Delete all flat files in the duplicate group
-                for item in flat_items:
-                    try:
-                        os.remove(item['filepath'])
-                        if item['filename'] in self.fossil_index:
-                            del self.fossil_index[item['filename']]
-                        deleted_count += 1
-                    except Exception:
-                        pass
-                
-                # Keep only one active item
-                if len(active_items) > 1:
-                    active_items.sort(key=lambda x: (x['variance'], x['mtime']), reverse=True)
-                    for item in active_items[1:]:
+                    # Delete all flat files in the duplicate group
+                    for item in flat_items:
                         try:
                             os.remove(item['filepath'])
                             if item['filename'] in self.fossil_index:
@@ -1193,14 +1175,27 @@ class DyadFossilizer:
                             deleted_count += 1
                         except Exception:
                             pass
-                elif len(active_items) == 0 and len(flat_items) > 0:
-                    # If all were flat, we deleted them all.
-                    pass
+                    
+                    # Keep only one active item
+                    if len(active_items) > 1:
+                        active_items.sort(key=lambda x: (x['variance'], x['mtime']), reverse=True)
+                        for item in active_items[1:]:
+                            try:
+                                os.remove(item['filepath'])
+                                if item['filename'] in self.fossil_index:
+                                    del self.fossil_index[item['filename']]
+                                deleted_count += 1
+                            except Exception:
+                                pass
+                    elif len(active_items) == 0 and len(flat_items) > 0:
+                        # If all were flat, we deleted them all.
+                        pass
                             
             if deleted_count > 0:
                 self._save_index()
                 # Update hashes set to ensure index synchronization
-                self.fossilized_hashes = set(info['prompt_hash'] for info in self.fossil_index.values() if info.get('prompt_hash'))
+                with self._save_lock:
+                    self.fossilized_hashes = set(info['prompt_hash'] for info in list(self.fossil_index.values()) if info.get('prompt_hash'))
                 print(f"[FOSSILIZER] Cleaned up {deleted_count} duplicate/flat fossil files from disk.")
         except Exception as e:
             print(f"[FOSSILIZER] Cleanup failed: {e}")
@@ -1209,7 +1204,8 @@ class DyadFossilizer:
         """
         Targeted cleanup for a specific prompt_hash.
         """
-        matching_files = [f for f, info in self.fossil_index.items() if info.get('prompt_hash') == prompt_hash]
+        with self._save_lock:
+            matching_files = [f for f, info in list(self.fossil_index.items()) if info.get('prompt_hash') == prompt_hash]
         if not matching_files:
             return
             
@@ -1255,31 +1251,21 @@ class DyadFossilizer:
             return
             
         deleted_count = 0
-        if len(items) == 1:
-            if items[0]['is_flat']:
-                try:
-                    os.remove(items[0]['filepath'])
-                    if items[0]['filename'] in self.fossil_index:
-                        del self.fossil_index[items[0]['filename']]
-                    deleted_count += 1
-                except Exception:
-                    pass
-        else:
-            flat_items = [x for x in items if x['is_flat']]
-            active_items = [x for x in items if not x['is_flat']]
-            
-            for item in flat_items:
-                try:
-                    os.remove(item['filepath'])
-                    if item['filename'] in self.fossil_index:
-                        del self.fossil_index[item['filename']]
-                    deleted_count += 1
-                except Exception:
-                    pass
-                    
-            if len(active_items) > 1:
-                active_items.sort(key=lambda x: (x['variance'], x['mtime']), reverse=True)
-                for item in active_items[1:]:
+        with self._save_lock:
+            if len(items) == 1:
+                if items[0]['is_flat']:
+                    try:
+                        os.remove(items[0]['filepath'])
+                        if items[0]['filename'] in self.fossil_index:
+                            del self.fossil_index[items[0]['filename']]
+                        deleted_count += 1
+                    except Exception:
+                        pass
+            else:
+                flat_items = [x for x in items if x['is_flat']]
+                active_items = [x for x in items if not x['is_flat']]
+                
+                for item in flat_items:
                     try:
                         os.remove(item['filepath'])
                         if item['filename'] in self.fossil_index:
@@ -1287,6 +1273,17 @@ class DyadFossilizer:
                         deleted_count += 1
                     except Exception:
                         pass
+                        
+                if len(active_items) > 1:
+                    active_items.sort(key=lambda x: (x['variance'], x['mtime']), reverse=True)
+                    for item in active_items[1:]:
+                        try:
+                            os.remove(item['filepath'])
+                            if item['filename'] in self.fossil_index:
+                                del self.fossil_index[item['filename']]
+                            deleted_count += 1
+                        except Exception:
+                            pass
         
         if deleted_count > 0:
             self._save_index()
