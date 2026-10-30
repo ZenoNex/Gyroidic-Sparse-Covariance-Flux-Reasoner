@@ -183,6 +183,15 @@ The `ChatGPTFrictionHarvester` mines structural resistance directly from human-A
 
 ---
 
+## 8. Semantic Link Dropzone & Non-API Text Ingestion Pipeline
+
+**Source**: [`src/ui/diegetic_terminal.html`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_terminal.html), [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py)
+
+Provides an interactive, drag-and-drop and clipboard-driven ingestion portal in the Diegetic Terminal:
+- **Semantic Link Ingestion**: Automatically resolves and digests ArXiv, Wikipedia, IPFS, DOIs, and web URLs.
+- **Non-Link Free Text & Code Dyads**: Non-URL input strings and multi-line markdown/code snippets dropped into `#semantic-link-dropzone` bypass URL downloaders, directly engaging `DataAssociationLayer`, `GyroidicCodec`, and `DyadFossilizer` to mint permanent associative dyads.
+- **Extended Linguistic Charset**: Preserves full Greek alphabets, mathematical operators, and agglutinative Voynich bracket notations without character truncation or flattening.
+
 ## 7. Open Science Ingestor
 
 **Source**: [`src/data/open_science_ingestor.py`](../../../src/data/open_science_ingestor.py)

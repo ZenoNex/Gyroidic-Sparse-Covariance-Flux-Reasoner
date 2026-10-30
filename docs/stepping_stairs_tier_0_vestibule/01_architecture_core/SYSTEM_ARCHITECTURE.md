@@ -388,6 +388,8 @@ graph TD
     subgraph "Ingestion Layer"
         LIGO[open_science_ingestor.py]
         MCA[minecraft_ingestor.py] --> Val
+        CleanExt[cleanroom_advanced_extensions.py<br/>OpenGlider / KerBalloons / 4D Engine] --> Val
+        CraftArb[AutomaticCraftingArbitrationNode<br/>OreDict + ProjectE EMC + PAS_h Gate] --> Val
         TextB[textbook_filter.py] --> Val
         Local[local_dataset_ingestor.py]
         ArX[ArXivSovereignIngestor + SearXNG<br/>knowledge_ingestor.py]
@@ -569,7 +571,8 @@ The entire interface flow ensures user actions and continuous text feeds undergo
 ```mermaid
 graph TD
     subgraph "Sovereign Ingestion & UI Pipeline"
-        WebUI[conversational_web_gui.html / Terminal] -->|HTTP POST| Hyb[hybrid_backend.py<br/>Master Dispatch Substrate]
+        WebUI[conversational_web_gui.html / Terminal<br/>Autoscroll Toggle & Scrollable Tabs] -->|HTTP POST| Hyb[hybrid_backend.py<br/>Master Dispatch Substrate]
+        Dropzone[semantic-link-dropzone<br/>Free Text & Multi-Modal Dyads] --> Hyb
         Feeds[Dataset & Open Science Ingestor] --> Hyb
         
         Hyb -->|Agglutinative Seam Cuts| SplitSub[split_sub_pairs<br/>2-Cycle Boundary Sweep]

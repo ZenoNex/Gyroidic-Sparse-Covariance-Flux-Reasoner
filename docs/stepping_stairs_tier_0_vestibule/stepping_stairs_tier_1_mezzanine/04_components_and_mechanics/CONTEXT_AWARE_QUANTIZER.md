@@ -120,6 +120,19 @@ Call `reset_shell_state()` at session start or after a critical veto to return t
 
 ## Diagnostics
 
+`get_diagnostics()` returns (initialized with safe defaults at instantiation to ensure resilience during Speculative Spectral Exits):
+
+```mermaid
+flowchart LR
+    CAQ[ContextAwareQuantizer] --> Forward{forward call?}
+    Forward -- Executed --> Full[Live Step Statistics & BoundaryState]
+    Forward -- Speculative Exit --> Def[Default Level 0 & Base Step Fallback]
+    Full --> Diag[get_diagnostics]
+    Def --> Diag
+    Diag --> Backend[DiegeticBackend._last_matrioshka_diag]
+    Diag --> Gov[ArchetypalGovernor.harvest_named_coordinate]
+```
+
 `get_diagnostics()` returns (from last `forward()` call):
 
 | Key | Description |

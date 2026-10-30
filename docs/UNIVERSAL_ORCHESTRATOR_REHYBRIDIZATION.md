@@ -27,11 +27,11 @@ These modules originally experienced isolation due to four root causes (now syst
 ```mermaid
 flowchart TD
     subgraph Isolated Islands
-        IS1["Scripting & UI Island<br/>node_environment.py<br/>voxelboxter_client.py<br/>voxelboxter_backend.py"]
+        IS1["Scripting, UI & Cleanroom Suite<br/>node_environment.py (AutomaticCraftingArbitrationNode)<br/>cleanroom_advanced_extensions.py (OpenGlider, KerBalloons, 4D Engine)<br/>voxelboxter_client.py & voxelboxter_simulation.py"]
         IS2["Training & Energy Island<br/>trainer.py<br/>gdpo_trainer.py<br/>energy_monitor.py<br/>negentropic_manifold.py<br/>polynomial_scaffold.py"]
         IS3["Signal & DSP Island<br/>texture_dsp.py<br/>enhanced_bezout_crt.py<br/>modular_embeddings.py"]
         IS4["Safety & Oracle Island<br/>subversive_oracle.py<br/>evidence_modules.py"]
-        IS5["Data Ingestion Island<br/>wikipedia_integration.py<br/>conversational_backend_server.py<br/>conversational_gui.py<br/>webp_prompt_extractor.py"]
+        IS5["Data Ingestion & Diegetic Bridge<br/>wikipedia_integration.py<br/>universal_topology_converter.py<br/>semantic-link-dropzone & non-link free text<br/>diegetic_terminal.html (Autoscroll toggle & scrollable tabs)"]
         IS6["Augmentation Island<br/>mandelbulb_pipeline.py<br/>vision_surgery.py"]
     end
 
@@ -431,7 +431,23 @@ The categorical compute affordance engine from [`src/core/hardware_monitor.py`](
     - Eradicated all truncated float literals ($0.618$, $1.618$, local $\sqrt{5}$ formulas) across `src/core/`, `src/topology/`, `src/codec/`, `src/optimization/`, `src/data/`, and `src/benchmarks/`.
     - Bound all golden ratio and metallic mean derivations to `src.core.invariants.PHI` and `src.core.invariants.PHI_RECIPROCAL`, computed dynamically via `mpmath.workdps(60)` with 64-bit mantissa preservation across Weyl quasi-random sequences.
 
-    ### 7.15 Gyroid Covariance Probe (GCVE) & Multi-Attention Closed-Topology Rehybridization [COMPLETE]
+    ### 7.16 Automatic Crafting Arbitration & Polymorphic OreDict Integration [COMPLETE]
+* **Architectural Rehybridization Vector**:
+  - **Component Bound**: [`AutomaticCraftingArbitrationNode`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L362) natively integrates polymorphic `OreDictionary` matching (`ingotIron`, `gemDiamond`, `dustRedstone`), `ProjectEEMCSolver` recursive mass-energy equivalence, and Carnot waste heat limits.
+  - **AI Reasoner Gating**: Dynamically enforces the knot-theoretic threshold $\text{PAS}_h \ge 3/11$, rejecting runaway crafting requests under high thermodynamic entropy or degraded manifold coherence.
+
+### 7.17 Advanced Cleanroom Extensions & Voxelboxter 4D Aerodynamics [COMPLETE]
+* **Architectural Rehybridization Vector**:
+  - **Aerodynamics & Stratosphere**: Integrated OpenGlider continuous flight kinematics ($L = \frac{1}{2}\rho v^2 C_L, D = \frac{1}{2}\rho v^2 C_D$) combating ambient wind vectors $\mathbf{w}$, and KerBalloons sounding envelopes sampling cosmic ray flux up to burst altitude ($y_{\text{burst}} \ge 32\,000\text{ m}$).
+  - **Quantum & Hyperdimensional Topology**: Added non-local Entangled Blocks ($A \leftrightarrow B$), Large Veins triaxial fractal ore bodies, three-color rail teleportation frequency networks, and a Hyperdimensional 4D Tesseract perspective projection engine across all 6 rotation planes.
+
+### 7.18 Diegetic Terminal Character Expansion & Autoscroll Governance [COMPLETE]
+* **Architectural Rehybridization Vector**:
+  - **Character & Mathematical Encoding**: Expanded `allowed_chars` across whitespace (`\n`, `\t`, `\r`), mathematical operators, Greek alphabets, and Voynich brackets without lossy space fallback.
+  - **Diegetic Terminal UX**: Embedded `#btn-toggle-autoscroll` with live state indicators, horizontal tab scrolling (`.console-tabs`), and independent right sidebar scrolling (`.sidebar.right.open`).
+  - **Mandy Veto Warmstarting**: Warmstarted archetypal coordinate harvesting with `modular_attention.warmstart_mix` and `ContextAwareQuantizer` default diagnostic states to eliminate spurious `[MANDY VETO SLIP]` warnings.
+
+### 7.15 Gyroid Covariance Probe (GCVE) & Multi-Attention Closed-Topology Rehybridization [COMPLETE]
 * **Architectural Rehybridization Vector**:
   - **The Defect Identified**:
     - During historical modular decomposition, [`SparseGyroidCovarianceProbe`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_covariance.py#L17) was sidelined from the orchestrator's main step loop due to the computational cost of full sliding-window eigendecompositions across raw sequences, demoting it to a secondary verification routine lazily instantiated in [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L6025).
