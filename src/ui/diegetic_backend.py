@@ -329,8 +329,21 @@ class DiegeticPhysicsEngine(nn.Module):
         self.larynx = ResonanceLarynx(hidden_dim=dim) # Pure Topological
         self.unicode_to_idx = {}
         self.idx_to_unicode = []
-        # Centralized Allowed Characters list
-        self.allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,!?-'_()[]{}<>:=+/*;%#@$&|\\\"`~^")
+        # Centralized Extended Allowed Characters list (supporting ASCII, whitespace, math, Greek, and Voynich-adjacent symbols)
+        _base_allowed = (
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+            " \n\t\r.,!?-'_()[]{}<>:=+/*;%#@$&|\\\"`~^"
+            "≈≠≤≥∈∉⊕⊗∇∂Δ⊥→←↔⇒⇔∑∏√∞∫∝∡∠∢∧∨¬∩∪⊂⊃⊆⊇"
+            "αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ"
+            "⬡⬢⌭⏣⟦⟧⟨⟩⟪⟫"
+        )
+        self.allowed_chars = set(_base_allowed)
+        # Pre-seed non-ASCII allowed characters into unicode table
+        for _ch in _base_allowed:
+            if ord(_ch) >= 128 and _ch not in self.unicode_to_idx:
+                _new_idx = 128 + len(self.unicode_to_idx)
+                self.unicode_to_idx[_ch] = _new_idx
+                self.idx_to_unicode.append(_ch)
         self.associator = DataAssociationLayer(input_dim=dim, hidden_dim=dim, k=k)
         
         # 12. Gyroidic Codec (Gap B Integration)
@@ -1034,11 +1047,13 @@ class DiegeticPhysicsEngine(nn.Module):
             # Emojis/Unicode map dynamically to [128, 255]
             if c in self.unicode_to_idx:
                 return self.unicode_to_idx[c]
-            # Try to register a new one if space is available
-            if len(self.unicode_to_idx) < 128:
+            # Try to register a new one if space is available up to larynx proj width
+            max_dynamic = max(128, getattr(self, 'dim', 256) - 128)
+            if len(self.unicode_to_idx) < max_dynamic:
                 new_idx = 128 + len(self.unicode_to_idx)
                 self.unicode_to_idx[c] = new_idx
                 self.idx_to_unicode.append(c)
+                self.allowed_chars.add(c)
                 safe_repr = c.encode('ascii', 'backslashreplace').decode('ascii')
                 print(f"[VOCAB] Registered new emoji/unicode character: {safe_repr} -> index {new_idx}")
                 return new_idx
@@ -3699,12 +3714,15 @@ class DiegeticPhysicsEngine(nn.Module):
                         _boundary_hit = True
                         break
 
-                self._last_matrioshka_diag = self.caq.get_diagnostics()
+                diag = self.caq.get_diagnostics() if self.caq is not None else {}
+                self._last_matrioshka_diag = dict(diag)
                 self._last_matrioshka_diag['loop_steps'] = _loop + 1
                 self._last_matrioshka_diag['boundary_halt'] = _boundary_hit
+                lvl = self._last_matrioshka_diag.get('level', getattr(self.caq, '_level', 0))
+                s_mean = self._last_matrioshka_diag.get('step_mean', getattr(self.caq, 'base_step', 0.1))
                 print(f"[OK] Phase 2.6 Matrioshka loop complete: "
-                      f"level={self._last_matrioshka_diag['level']}, "
-                      f"step_mean={self._last_matrioshka_diag['step_mean']:.4f}")
+                      f"level={lvl}, "
+                      f"step_mean={s_mean:.4f}")
             except Exception as _caq_err:
                 print(f"  Matrioshka evolution loop failed: {_caq_err}")
 

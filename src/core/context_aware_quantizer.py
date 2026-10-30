@@ -84,7 +84,15 @@ class ContextAwareQuantizer(nn.Module):
         self._level: int = 0
 
         # Diagnostics cache
-        self._last_diag: Dict = {}
+        self._last_diag: Dict = {
+            "level": 0,
+            "alpha": 0,
+            "step_mean": base_step,
+            "step_min": base_step,
+            "step_max": base_step,
+            "shell_crossed": False,
+            "quant_error_rms": 0.0,
+        }
 
     # ------------------------------------------------------------------
     # Internal helpers

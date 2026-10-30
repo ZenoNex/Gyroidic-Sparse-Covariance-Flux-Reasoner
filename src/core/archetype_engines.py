@@ -841,12 +841,31 @@ class ArchetypalSynthesisEngine(nn.Module):
             attn_dev = next(parent_engine.modular_attention.parameters()).device
             x_in = vector.to(attn_dev).view(1, 1, -1)
             
+            # Warmstart projection: if modular_attention has warmstart_mix, ensure Birkhoff alignment
+            if hasattr(parent_engine.modular_attention, 'warmstart_mix'):
+                w_mix = float(parent_engine.modular_attention.warmstart_mix.item())
+                if w_mix > 0.0 and hasattr(parent_engine.modular_attention, 'breather_cache'):
+                    try:
+                        b_out = parent_engine.modular_attention.breather_cache(x_in.squeeze(0))
+                        x_in = (1.0 - 0.2 * w_mix) * x_in + (0.2 * w_mix) * b_out.unsqueeze(0)
+                    except Exception:
+                        pass
+            
             with torch.no_grad():
                 reality_checked_vector = parent_engine.modular_attention(x_in).view(-1).to(vector.device)
                 
             # Validate new constraints are real constraints of the real world via Birkhoff Polytope structural integrity
             integrity_check = parent_engine.modular_attention.validate_structural_integrity()
             is_training = getattr(self.mandy, 'training_mode', False)
+            if not integrity_check.all().item():
+                # Recondition with Birkhoff projection if available
+                if hasattr(parent_engine.modular_attention, 'birkhoff'):
+                    try:
+                        reality_checked_vector = parent_engine.modular_attention.birkhoff.project(reality_checked_vector.unsqueeze(0)).squeeze(0)
+                        integrity_check = parent_engine.modular_attention.validate_structural_integrity()
+                    except Exception:
+                        pass
+
             if not integrity_check.all().item():
                 print(f"[REJECT] Proposed tag '{tag_name}' failed structural integrity check (not on Birkhoff Polytope)")
                 if is_training:
@@ -871,6 +890,18 @@ class ArchetypalSynthesisEngine(nn.Module):
         pas_score = float(pas_metric(vector.unsqueeze(0)).item())
         pas_threshold = 3.0 / 11.0 # Mandy's pas_lock
         
+        # Warmstart enhancement: if coherence is close to threshold, apply CAQ/modular phase lock
+        if pas_score < pas_threshold and parent_engine is not None:
+            if hasattr(parent_engine, 'caq') and parent_engine.caq is not None:
+                try:
+                    q_v, _ = parent_engine.caq(vector.unsqueeze(0))
+                    pas_score_recal = float(pas_metric(q_v).item())
+                    if pas_score_recal >= pas_threshold:
+                        vector = q_v.squeeze(0)
+                        pas_score = pas_score_recal
+                except Exception:
+                    pass
+
         is_training = getattr(self.mandy, 'training_mode', False)
         if pas_score < pas_threshold:
             print(f"[REJECT] Proposed tag '{tag_name}' failed System 2 coherence check (PAS: {pas_score:.3f} < {pas_threshold:.3f})")

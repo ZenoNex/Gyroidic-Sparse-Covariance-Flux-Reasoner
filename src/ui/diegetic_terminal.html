@@ -253,6 +253,8 @@
             width: var(--sidebar-width);
             opacity: 1;
             padding: 1.5rem;
+            overflow-y: auto;
+            max-height: 100vh;
         }
 
         /* --- Panel Toolbar --- */
@@ -399,12 +401,26 @@
             background: rgba(0, 0, 0, 0.4);
             border-bottom: 1px solid var(--glass-border);
             z-index: 100;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            scrollbar-width: thin;
+            scrollbar-color: var(--glass-border) transparent;
+        }
+
+        .console-tabs::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .console-tabs::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 2px;
         }
 
         .console-tab {
-            flex: 1;
+            flex: 0 0 auto;
+            white-space: nowrap;
             text-align: center;
-            padding: 0.75rem;
+            padding: 0.75rem 1.1rem;
             cursor: pointer;
             font-family: var(--font-mono);
             font-size: 0.8rem;
@@ -1193,6 +1209,9 @@
                 <div class="console-tab" data-tab="encoding-viewer">FOSSIL &amp; ENCODING VIEWER</div>
             </div>
             <div class="tab-pane active" id="pane-terminal">
+                <div style="display:flex; justify-content:flex-end; align-items:center; padding:4px 12px; background:rgba(0,0,0,0.25); border-bottom:1px solid rgba(0,242,255,0.08); font-family:var(--font-mono); font-size:0.65rem;">
+                    <button id="btn-toggle-autoscroll" onclick="toggleAutoscroll()" style="background:rgba(0,242,255,0.08); border:1px solid var(--terminal-blue); color:var(--terminal-blue); font-family:var(--font-mono); font-size:0.65rem; padding:3px 8px; border-radius:3px; cursor:pointer; letter-spacing:1px; transition:all 0.2s;">AUTOSCROLL: ON</button>
+                </div>
                 <div id="chat-feed" style="flex: 1; overflow-y: auto;">
                     <!-- Messages appended here -->
                     <div class="message system">SYSTEM INITIALIZED. WAITING FOR MANIFOLD PERTURBATION.</div>
@@ -4057,6 +4076,27 @@
             }
         }
 
+        let autoscrollEnabled = true;
+
+        function toggleAutoscroll() {
+            autoscrollEnabled = !autoscrollEnabled;
+            const btn = document.getElementById('btn-toggle-autoscroll');
+            if (btn) {
+                if (autoscrollEnabled) {
+                    btn.innerText = "AUTOSCROLL: ON";
+                    btn.style.color = "var(--terminal-blue)";
+                    btn.style.borderColor = "var(--terminal-blue)";
+                    btn.style.background = "rgba(0,242,255,0.08)";
+                    chatFeed.scrollTop = chatFeed.scrollHeight;
+                } else {
+                    btn.innerText = "AUTOSCROLL: OFF";
+                    btn.style.color = "#ffaa00";
+                    btn.style.borderColor = "#ffaa00";
+                    btn.style.background = "rgba(255,170,0,0.08)";
+                }
+            }
+        }
+
         function appendMessage(type, text, curvature = 0) {
             const msg = document.createElement('div');
             msg.className = `message ${type}`;
@@ -4070,7 +4110,9 @@
             }
 
             chatFeed.appendChild(msg);
-            chatFeed.scrollTop = chatFeed.scrollHeight;
+            if (autoscrollEnabled) {
+                chatFeed.scrollTop = chatFeed.scrollHeight;
+            }
             return msg;
         }
 
@@ -4096,7 +4138,9 @@
             const interval = setInterval(() => {
                 msg.textContent = text.slice(0, i + 1);
                 i++;
-                chatFeed.scrollTop = chatFeed.scrollHeight;
+                if (autoscrollEnabled) {
+                    chatFeed.scrollTop = chatFeed.scrollHeight;
+                }
                 if (i >= text.length) {
                     clearInterval(interval);
                 }
