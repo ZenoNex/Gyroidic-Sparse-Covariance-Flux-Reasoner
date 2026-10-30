@@ -2468,6 +2468,41 @@ class HybridAI:
         """Generate response base on temporal model hidden state and damage Δ."""
         import re
         import random
+
+        # Reconnect to full Diegetic converged response pipeline if available
+        if hasattr(self, 'engine') and self.engine and hasattr(self.engine, '_generate_converged_response'):
+            try:
+                affordances = {'executability_pressure': 0.1, 'runtime_expandability': 0.1, 'conversational_embedding_pressure': 0.2, 'knowledge_seeking': 0.1}
+                s_tensor = hidden_state.unsqueeze(0) if hidden_state.dim() == 1 else hidden_state
+                return self.engine._generate_converged_response(text, s_tensor, fingerprint=None, affordance_gradients=affordances)
+            except Exception as e:
+                print(f"[HYBRID] Fallback from converged response notice: {e}")
+
+        # Modular forward passes for Voynich, Cavity, & RNS on HybridAI substrate
+        if hasattr(self, 'voynich_linguist') and self.voynich_linguist is not None:
+            try:
+                with torch.no_grad():
+                    _, v_glyphs, _ = self.voynich_linguist(hidden_state.unsqueeze(0) if hidden_state.dim() == 1 else hidden_state)
+                    if v_glyphs is not None:
+                        hidden_state = 0.9 * hidden_state + 0.1 * v_glyphs.flatten()[:hidden_state.shape[-1]]
+            except Exception:
+                pass
+        if hasattr(self, 'resonance_cavity') and self.resonance_cavity is not None:
+            try:
+                with torch.no_grad():
+                    cav_out = self.resonance_cavity(hidden_state.unsqueeze(0) if hidden_state.dim() == 1 else hidden_state)
+                    if isinstance(cav_out, dict) and 'filtered_state' in cav_out:
+                        hidden_state = 0.9 * hidden_state + 0.1 * cav_out['filtered_state'].flatten()[:hidden_state.shape[-1]]
+            except Exception:
+                pass
+        if hasattr(self, 'rns_layer') and self.rns_layer is not None:
+            try:
+                with torch.no_grad():
+                    r_res = self.rns_layer.get_residues(hidden_state)
+                    if isinstance(r_res, torch.Tensor):
+                        hidden_state = hidden_state + 0.02 * torch.sin(r_res.float().mean() * hidden_state)
+            except Exception:
+                pass
         
         # Analyze the hidden state and damage
         state_mean = float(torch.mean(hidden_state).detach().cpu())

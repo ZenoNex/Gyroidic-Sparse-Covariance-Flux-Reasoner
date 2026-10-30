@@ -2080,6 +2080,52 @@ class DiegeticPhysicsEngine(nn.Module):
         if video_dyad_b64:
             current_state = current_state * 1.05 
 
+        # --- REHYBRIDIZE ISOLATED FORWARDS: Voynich, Cavity, RNS, & Moment Transport ---
+        # 1. Voynich Linguistic Morphology & Continuous Honesty
+        if hasattr(self, 'voynich_linguist') and self.voynich_linguist is not None:
+            try:
+                with torch.no_grad():
+                    v_phonemes, v_glyphs, v_honesty = self.voynich_linguist(current_state)
+                    if v_glyphs is not None:
+                        g_flat = v_glyphs.flatten()[:current_state.shape[-1]]
+                        if g_flat.shape[-1] < current_state.shape[-1]:
+                            g_flat = F.pad(g_flat, (0, current_state.shape[-1] - g_flat.shape[-1]))
+                        current_state = 0.88 * current_state + 0.12 * g_flat.view_as(current_state)
+            except Exception as v_err:
+                pass
+
+        # 2. Resonance Cavity Acoustic Modes & Breathers
+        if hasattr(self, 'cavity') and self.cavity is not None:
+            try:
+                with torch.no_grad():
+                    cav_out = self.cavity(current_state)
+                    if isinstance(cav_out, dict) and 'filtered_state' in cav_out:
+                        current_state = 0.90 * current_state + 0.10 * cav_out['filtered_state']
+                    elif isinstance(cav_out, torch.Tensor):
+                        current_state = 0.90 * current_state + 0.10 * cav_out
+            except Exception as cav_err:
+                pass
+
+        # 3. Modular RNS Coprime Virtualization (p in {197, 211, 223})
+        if hasattr(self, 'modular_rns') and self.modular_rns is not None:
+            try:
+                with torch.no_grad():
+                    rns_residues = self.modular_rns.get_residues(current_state)
+                    if isinstance(rns_residues, torch.Tensor):
+                        harm = torch.sin(rns_residues.float().mean() * torch.linspace(0, 3.14159, current_state.shape[-1], device=self.device))
+                        current_state = current_state + 0.03 * harm.unsqueeze(0)
+            except Exception as rns_err:
+                pass
+
+        # 4. Input Convex Neural Network (ICNN / Moment Transport) Regularization
+        if hasattr(self, 'moment_transport') and self.moment_transport is not None:
+            try:
+                with torch.no_grad():
+                    t_pot = self.moment_transport(current_state)
+                    current_state = current_state - 0.015 * torch.tanh(t_pot) * current_state
+            except Exception:
+                pass
+
         # Advance state through ResonanceLarynx (Topology -> Next Topology)
         # We restore the full autoregressive text sequence generation instead of just
         # returning a tensor hash, properly utilizing Echo Suppression and Vowel Boosting 
@@ -2125,6 +2171,17 @@ class DiegeticPhysicsEngine(nn.Module):
                     )
 
                 logits, conf = self.larynx(current_state, temperature=iter_temp)
+
+                # Connect Voynich Phoneme Logits (Anti-consonant-clustering / Anti-vowel-starvation)
+                if hasattr(self, 'voynich_linguist') and self.voynich_linguist is not None:
+                    try:
+                        v_phonemes, _, _ = self.voynich_linguist(current_state)
+                        if v_phonemes is not None:
+                            v_flat = v_phonemes.flatten()
+                            min_sz = min(logits.shape[-1], v_flat.shape[-1])
+                            logits[0, :min_sz] += 0.12 * v_flat[:min_sz]
+                    except Exception:
+                        pass
                 
                 # Apply Echo Suppression with Coherent Legibility
                 # Penalize characters that were in the prompt to reduce rote echoing
@@ -2156,8 +2213,10 @@ class DiegeticPhysicsEngine(nn.Module):
                 if len(dream_chars) >= 40 and char in ('.', '!', '?'):
                     break
                 
-                # Feedback from own state using projection weight
+                # Feedback from own state using projection weight modulated by Cavity overtones
                 feedback = torch.tanh(self.larynx.proj.weight[char_idx].unsqueeze(0))
+                if hasattr(self, 'cavity') and hasattr(self.cavity, 'M') and self.cavity.M is not None:
+                    feedback = 0.88 * feedback + 0.12 * torch.sin(self.cavity.M.mean() * feedback)
                 if audience_guidance is not None:
                     current_state = 0.85 * current_state + 0.1 * feedback + 0.05 * audience_guidance + 0.02 * self._harvest_honest_jitter(current_state.shape)
                 else:
@@ -3780,6 +3839,9 @@ class DiegeticPhysicsEngine(nn.Module):
                 seed_state=seed_state,
                 fingerprint=fingerprint,
                 affordance_gradients=affordance_gradients,
+                audio_dyad=audio_dyad,
+                video_dyad_b64=video_dyad_b64,
+                audio_b64=audio_b64,
                 voynich_token=voynich_token
             )
             
@@ -7932,29 +7994,46 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                             file_data = form_fields.get('file')
                             url_or_link = form_fields.get('url') or form_fields.get('link') or form_fields.get('text')
                     
-                    # Handle Semantic Link Drop / Direct URL Ingestion
+                    # Handle Semantic Link Drop / Direct Non-Link Non-API Text Ingestion through Association Systems
                     if url_or_link:
                         import tempfile, urllib.request
                         from src.data.universal_topology_converter import UniversalTopologyConverter
-                        clean_url = str(url_or_link).strip()
+                        raw_text = str(url_or_link).strip()
                         raw_bytes = None
                         ext = ".txt"
-                        if clean_url.startswith("http://") or clean_url.startswith("https://"):
-                            req = urllib.request.Request(clean_url, headers={'User-Agent': 'GyroidicReasoner/1.0 (Topology Ingestion)'})
+                        is_remote_url = raw_text.startswith("http://") or raw_text.startswith("https://")
+                        
+                        # Extract source concept / topic for the semantic language bridge
+                        source_concept = None
+                        if isinstance(jdata if 'jdata' in locals() else None, dict):
+                            source_concept = jdata.get('source_concept')
+                        if not source_concept and 'form_fields' in locals() and isinstance(form_fields, dict):
+                            source_concept = form_fields.get('source_concept')
+                            
+                        if is_remote_url:
+                            req = urllib.request.Request(raw_text, headers={'User-Agent': 'GyroidicReasoner/1.0 (Topology Ingestion)'})
                             try:
                                 with urllib.request.urlopen(req, timeout=10) as resp:
                                     raw_bytes = resp.read()
-                                if ".pdf" in clean_url.lower(): ext = ".pdf"
-                                elif ".html" in clean_url.lower() or ".htm" in clean_url.lower(): ext = ".html"
-                                elif ".json" in clean_url.lower(): ext = ".json"
+                                if ".pdf" in raw_text.lower(): ext = ".pdf"
+                                elif ".html" in raw_text.lower() or ".htm" in raw_text.lower(): ext = ".html"
+                                elif ".json" in raw_text.lower(): ext = ".json"
                                 else: ext = ".html"
                             except Exception as fetch_err:
-                                raw_bytes = f"Semantic Link: {clean_url}\nResolution Notice: {fetch_err}".encode('utf-8')
+                                raw_bytes = f"Semantic Link: {raw_text}\nResolution Notice: {fetch_err}".encode('utf-8')
                                 ext = ".txt"
                         else:
-                            raw_bytes = clean_url.encode('utf-8')
+                            # Non-link, non-API semantic discourse text / markdown / code
+                            raw_bytes = raw_text.encode('utf-8')
                             ext = ".txt"
+                            if not source_concept:
+                                # Derive concept from first heading or sentence
+                                first_line = raw_text.split('\n')[0].strip('# ').strip()
+                                source_concept = first_line[:40] if first_line else "Semantic Discourse"
                         
+                        if not source_concept:
+                            source_concept = "Remote Landmark" if is_remote_url else "Semantic Concept"
+                            
                         with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
                             tmp.write(raw_bytes)
                             tmp_path = tmp.name
@@ -7966,8 +8045,32 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                             sig = topology_data["universal_signature"]
                             self.server.universal_topology_cache[sig] = topology_data
                             ui_summary = converter.get_ui_summary(topology_data)
-                            ui_summary["source_semantic_url"] = clean_url
-                            self._send_json({"status": "ok", "topology": ui_summary, "source": clean_url})
+                            ui_summary["source_semantic_url"] = raw_text if is_remote_url else f"Non-API Semantic Text: {source_concept}"
+                            ui_summary["source_concept"] = source_concept
+                            
+                            # Entangle into the isolated association systems (DataAssociationLayer & DyadFossilizer)
+                            association_report = "Semantic manifold projected."
+                            if ENGINE is not None:
+                                try:
+                                    # Create semantic link dyad: ASSOCIATE: <source_concept> <-> <text>
+                                    assoc_text = f"ASSOCIATE: {source_concept} <-> {raw_text[:500]}"
+                                    seed = ENGINE.meta_state.detach() if hasattr(ENGINE, 'meta_state') else None
+                                    if hasattr(ENGINE, '_handle_association_learning'):
+                                        association_report = ENGINE._handle_association_learning(assoc_text, fingerprint=None, seed_state=seed)
+                                    elif hasattr(ENGINE, '_handle_dyad_ingestion'):
+                                        association_report = ENGINE._handle_dyad_ingestion(assoc_text, fingerprint=None, seed_state=seed)
+                                    ui_summary["association_report"] = association_report
+                                    print(f"[SEMANTIC_LINKER] Connected non-link non-API text into association systems: {association_report}", flush=True)
+                                except Exception as a_err:
+                                    print(f"[SEMANTIC_LINKER] Association warning: {a_err}", flush=True)
+                            
+                            self._send_json({
+                                "status": "ok", 
+                                "topology": ui_summary, 
+                                "source": raw_text[:80], 
+                                "source_concept": source_concept,
+                                "association_report": association_report
+                            })
                         finally:
                             if os.path.exists(tmp_path):
                                 os.remove(tmp_path)

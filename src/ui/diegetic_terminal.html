@@ -2308,18 +2308,20 @@
                                 DROP ARBITRARY FILE<br>(OBJ, PDF, MP4, etc.)</div>
                         </div>
 
-                        <!-- Dropzone for Semantic Links / URLs -->
+                        <!-- Semantic Linker & Discourse Dropzone (Non-Link, Non-API Text & URLs) -->
                         <div id="semantic-link-dropzone"
-                            style="width: 100%; min-height: 80px; border: 2px dashed rgba(57, 255, 20, 0.4); background: rgba(57, 255, 20, 0.03); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; position: relative; padding: 6px;">
+                            style="width: 100%; min-height: 105px; border: 2px dashed rgba(57, 255, 20, 0.45); background: rgba(57, 255, 20, 0.04); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; position: relative; padding: 8px;">
                             <div style="font-size: 1.1rem; color: var(--terminal-green);">🔗</div>
-                            <div style="font-size: 0.62rem; color: #aaa; margin-top: 2px; text-align: center; letter-spacing: 0.5px;">
-                                DROP SEMANTIC LINK / URL<br><span style="color:#666;">(ArXiv, Wikipedia, IPFS, Web, DOI)</span>
+                            <div style="font-size: 0.65rem; color: #ddd; margin-top: 2px; text-align: center; font-weight: bold; letter-spacing: 0.5px;">
+                                SEMANTIC LINKER DROPZONE<br><span style="color:#888; font-weight: normal; font-size: 0.58rem;">Drop Non-Link / Non-API Text, Markdown, Notes, Code, or URLs</span>
                             </div>
-                            <div style="display:flex; width: 100%; gap: 4px; margin-top: 4px;" onclick="event.stopPropagation();">
-                                <input type="text" id="semantic-link-input" placeholder="Paste link (http://, arxiv, etc)..."
-                                    style="flex:1; background: #080808; border: 1px solid #333; color: var(--terminal-green); font-family: var(--font-mono); font-size: 0.65rem; padding: 3px 6px; border-radius: 3px; outline: none;">
+                            <div style="display:flex; flex-direction: column; width: 100%; gap: 4px; margin-top: 6px;" onclick="event.stopPropagation();">
+                                <input type="text" id="semantic-concept-input" placeholder="Source Concept Tag (optional, e.g. Betti Numbers)..."
+                                    style="background: #080808; border: 1px solid #333; color: var(--terminal-magenta); font-family: var(--font-mono); font-size: 0.65rem; padding: 3px 6px; border-radius: 3px; outline: none;">
+                                <textarea id="semantic-link-input" placeholder="Paste non-link text, discourse paragraphs, code, or URL..."
+                                    style="height: 55px; background: #080808; border: 1px solid #333; color: var(--terminal-green); font-family: var(--font-mono); font-size: 0.65rem; padding: 4px 6px; border-radius: 3px; outline: none; resize: vertical;"></textarea>
                                 <button id="btn-fetch-semantic-link" type="button"
-                                    style="background: rgba(57, 255, 20, 0.2); border: 1px solid var(--terminal-green); color: #fff; font-family: var(--font-mono); font-size: 0.65rem; padding: 2px 6px; border-radius: 3px; cursor: pointer;">FETCH</button>
+                                    style="background: rgba(57, 255, 20, 0.2); border: 1px solid var(--terminal-green); color: #fff; font-family: var(--font-mono); font-size: 0.68rem; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-weight: bold;">ENTANGLE SEMANTIC DISCOURSE</button>
                             </div>
                         </div>
 
@@ -5547,6 +5549,7 @@
         const universalDropzone = document.getElementById('universal-dropzone');
         const semanticDropzone = document.getElementById('semantic-link-dropzone');
         const semanticInput = document.getElementById('semantic-link-input');
+        const semanticConceptInput = document.getElementById('semantic-concept-input');
         const btnFetchSemantic = document.getElementById('btn-fetch-semantic-link');
         const commitConverterBtn = document.getElementById('commit-converter');
         const converterLog = document.getElementById('converter-log');
@@ -5562,34 +5565,51 @@
                 semanticDropzone.style.borderColor = 'rgba(57, 255, 20, 0.4)';
                 semanticDropzone.style.background = 'rgba(57, 255, 20, 0.03)';
             };
-            semanticDropzone.ondrop = (e) => {
+            semanticDropzone.ondrop = async (e) => {
                 e.preventDefault();
                 semanticDropzone.style.borderColor = 'rgba(57, 255, 20, 0.4)';
                 semanticDropzone.style.background = 'rgba(57, 255, 20, 0.03)';
-                const textLink = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
-                if (textLink && textLink.trim()) {
-                    processSemanticLink(textLink.trim());
-                } else if (e.dataTransfer.files.length > 0) {
-                    processUniversalFile(e.dataTransfer.files[0]);
+                
+                // 1. Text payload drag (non-link, non-API text or URI)
+                const textData = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('text/uri-list');
+                if (textData && textData.trim()) {
+                    semanticInput.value = textData.trim();
+                    processSemanticLink(textData.trim(), semanticConceptInput ? semanticConceptInput.value.trim() : '');
+                    return;
+                }
+                
+                // 2. File drag (read text files or fallback to universal binary)
+                if (e.dataTransfer.files.length > 0) {
+                    const file = e.dataTransfer.files[0];
+                    const textExts = ['.txt', '.md', '.py', '.json', '.csv', '.rs', '.cpp', '.c', '.h', '.html', '.css', '.js'];
+                    if (textExts.some(ext => file.name.toLowerCase().endsWith(ext))) {
+                        const reader = new FileReader();
+                        reader.onload = (re) => {
+                            const content = re.target.result;
+                            semanticInput.value = content;
+                            if (semanticConceptInput && !semanticConceptInput.value) {
+                                semanticConceptInput.value = file.name;
+                            }
+                            processSemanticLink(content, semanticConceptInput ? semanticConceptInput.value.trim() : file.name);
+                        };
+                        reader.readAsText(file);
+                    } else {
+                        processUniversalFile(file);
+                    }
                 }
             };
+
             if (btnFetchSemantic && semanticInput) {
                 btnFetchSemantic.onclick = (e) => {
                     e.stopPropagation();
-                    const link = semanticInput.value.trim();
-                    if (link) processSemanticLink(link);
-                };
-                semanticInput.onkeydown = (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const link = semanticInput.value.trim();
-                        if (link) processSemanticLink(link);
-                    }
+                    const text = semanticInput.value.trim();
+                    const concept = semanticConceptInput ? semanticConceptInput.value.trim() : '';
+                    if (text) processSemanticLink(text, concept);
                 };
             }
         }
 
-        async function processSemanticLink(linkUrl) {
+        async function processSemanticLink(linkUrl, sourceConcept = '') {
             document.getElementById('converter-status').innerText = 'RESOLVING LINK...';
             document.getElementById('converter-status').style.color = 'var(--terminal-warn)';
             document.getElementById('converter-proxies').innerText = `Resolving & ingesting semantic link:
@@ -5600,7 +5620,7 @@ Extracting topological manifolds...`;
                 const response = await fetch('/api/convert_topology', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: linkUrl })
+                    body: JSON.stringify({ url: linkUrl, text: linkUrl, source_concept: sourceConcept })
                 });
                 const data = await response.json();
 
@@ -5611,12 +5631,13 @@ Extracting topological manifolds...`;
                     commitConverterBtn.disabled = false;
 
                     commitConverterBtn.onclick = () => {
-                        logToTerminal(`Ingesting structural causality for semantic link [${linkUrl}] into manifold.`, 'system');
-                        appendMessage('system', `SEMANTIC LINK TOPOLOGY INGESTED.
+                        logToTerminal(`Ingesting structural causality for semantic discourse [${data.source_concept || 'Concept'}] into manifold.`, 'system');
+                        appendMessage('system', `SEMANTIC DISCOURSE ENTANGLED INTO MANIFOLD.
+Concept: ${data.source_concept || 'Discourse Invariant'}
 Format: ${data.topology.format}
 Signature: ${data.topology.universal_signature}
 Jitter: ${data.topology.honesty_jitter}
-Source: ${data.topology.source_semantic_url || linkUrl}`);
+Association: ${data.association_report || 'Entangled in Dyad Fossilizer'}`);
                         state.active_universal_signature = data.topology.universal_signature;
                         commitConverterBtn.disabled = true;
                         document.getElementById('converter-status').innerText = 'COMMITTED';
