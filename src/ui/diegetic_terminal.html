@@ -1095,12 +1095,13 @@
                 <option value="text_first">Text &#x2192; Media</option>
             </select>
             <span style="color:#333;">│</span>
-            <span class="jei-tooltip-wrapper"><span style="color:#555;">USER CONTRACT (ALIAS):</span>
-            <input type="text" id="user-alias" value="admin"
-                style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-magenta);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;width:100px;border-radius:3px;outline:none;letter-spacing:1px;">
+            <span class="jei-tooltip-wrapper" style="border: 1px dashed rgba(80, 0, 255, 0.4); padding: 2px 6px; border-radius: 4px; background: rgba(80, 0, 255, 0.08);"><span style="color:#aaa; font-weight: bold;">[JEI INFO: ADMIN KEY &amp; PASS FILES]</span>
+            <span style="color:#555;">USER CONTRACT (ALIAS):</span>
+            <input type="text" id="user-alias" value="admin" title="Hover for JEI instruction on admin password & files"
+                style="background:#0a0a0a;border:1px solid #333;color:var(--terminal-magenta);font-family:var(--font-mono);font-size:0.65rem;padding:2px 6px;width:90px;border-radius:3px;outline:none;letter-spacing:1px;">
             <span style="color:#333;">│</span>
             <span id="creator-lock-status" style="color:var(--terminal-green);cursor:pointer;font-weight:bold;"
-                onclick="promptCreatorAuth()">[GUEST]</span><div class="jei-tooltip-box"><div class="jei-tooltip-title">[JEI INSPECTOR] Admin Password &amp; Node Auth Files</div><div style="color:#aaaaaa;margin-bottom:4px;">Hover/Copy Guide - Where to find or configure the Admin Passphrase &amp; Salt:</div><div>1. <span style="color:#55ffff;">src/safety/hardware_fingerprint.py</span> : Defines <span style="color:#ffff55;">verify_node_account()</span>, <span style="color:#ffff55;">verify_sole_creator()</span>, and <span style="color:#ffff55;">resolve_node_salt_path()</span>.</div><div>2. <span style="color:#55ffff;">data/.node_secret</span> (or <span style="color:#55ffff;">data/.node_secret_&lt;account&gt;</span>) &amp; <span style="color:#55ffff;">data/creator_sig.json</span> : Stores the 32-byte HMAC cryptographic node salt / keyfile.</div><div>3. <span style="color:#55ffff;">.gyroid_config.json</span> &amp; <span style="color:#55ffff;">hybrid_backend.py</span> : Configures <span style="color:#ffff55;">node_account</span> (<span style="color:#ffff55;">GYROID_ACCOUNT</span>) and <span style="color:#ffff55;">security_salt_path</span> (<span style="color:#ffff55;">GYROID_SALT_PATH</span>).</div><div>4. <span style="color:#55ffff;">src/ui/diegetic_backend.py</span> : Handles <span style="color:#ffff55;">/api/security/creator_login</span> &amp; <span style="color:#ffff55;">/api/security/node_account_login</span>.</div><div>5. <span style="color:#55ffff;">src/ui/voxelboxter_client.py</span> &amp; <span style="color:#55ffff;">src/ui/voxelboxter_simulation.py</span> : Grants <span style="color:#ffff55;">Role.ADMIN</span> to <span style="color:#ffff55;">ADMIN_OWNER_1337</span> via <span style="color:#ffff55;">PermissionsManager</span>.</div><span class="jei-tooltip-mod">Gyroidic Sparse Covariance Flux Reasoner // Option D Security</span></div></span>
+                onclick="promptCreatorAuth()">[GUEST]</span><div class="jei-tooltip-box"><div class="jei-tooltip-title">[JEI INSPECTOR] Admin Password &amp; Node Auth Files</div><div style="color:#aaaaaa;margin-bottom:6px;">Hover/Copy Guide - Where to find, inspect, or configure the Admin Passphrase &amp; Salt:</div><div>1. <span style="color:#55ffff;">src/safety/hardware_fingerprint.py</span> : Defines <span style="color:#ffff55;">verify_node_account()</span>, <span style="color:#ffff55;">verify_sole_creator()</span>, and <span style="color:#ffff55;">resolve_node_salt_path()</span>.</div><div>2. <span style="color:#55ffff;">data/.node_secret</span> (or <span style="color:#55ffff;">data/.node_secret_&lt;account&gt;</span>) &amp; <span style="color:#55ffff;">data/creator_sig.json</span> : Stores the 32-byte HMAC cryptographic node salt / keyfile.</div><div>3. <span style="color:#55ffff;">.gyroid_config.json</span> &amp; <span style="color:#55ffff;">hybrid_backend.py</span> : Configures <span style="color:#ffff55;">node_account</span> (<span style="color:#ffff55;">GYROID_ACCOUNT</span>) and <span style="color:#ffff55;">security_salt_path</span> (<span style="color:#ffff55;">GYROID_SALT_PATH</span>).</div><div>4. <span style="color:#55ffff;">src/ui/diegetic_backend.py</span> : Handles <span style="color:#ffff55;">/api/security/creator_login</span> &amp; <span style="color:#ffff55;">/api/security/node_account_login</span>.</div><div>5. <span style="color:#55ffff;">src/ui/voxelboxter_client.py</span> &amp; <span style="color:#55ffff;">src/ui/voxelboxter_simulation.py</span> : Grants <span style="color:#ffff55;">Role.ADMIN</span> to <span style="color:#ffff55;">ADMIN_OWNER_1337</span> via <span style="color:#ffff55;">PermissionsManager</span>.</div><div style="margin-top:6px; color:#55ff55;">&bull; Tip: Default local dev test passphrase is 'admin', 'godmode', or node salt digest.</div><span class="jei-tooltip-mod">Gyroidic Sparse Covariance Flux Reasoner // Option D Security</span></div></span>
             <span style="color:#333;">│</span>
             <button id="btn-top-launch-viewer" onclick="launchPickleViewerGUI()" style="background:rgba(255,0,242,0.15);border:1px solid var(--terminal-magenta);color:#fff;font-family:var(--font-mono);font-size:0.65rem;padding:3px 8px;border-radius:3px;cursor:pointer;font-weight:bold;transition:all 0.2s;" title="Boot standalone C++ accelerated DearPyGui / Tkinter Fossil and Pickle Encoding Viewer">LAUNCH FOSSIL / PICKLE VIEWER</button>
             <span style="color:#333;">│</span>
@@ -2300,11 +2301,26 @@
                     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                         <!-- Dropzone for any file -->
                         <div id="universal-dropzone"
-                            style="width: 100%; height: 90px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; position: relative;">
-                            <div style="font-size: 1.4rem; color: #00f2ff;">⛬</div>
+                            style="width: 100%; height: 80px; border: 2px dashed rgba(0, 242, 255, 0.3); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; position: relative;">
+                            <div style="font-size: 1.3rem; color: #00f2ff;">⛬</div>
                             <div
-                                style="font-size: 0.65rem; color: #666; margin-top: 5px; text-align: center; letter-spacing: 0.5px;">
+                                style="font-size: 0.65rem; color: #666; margin-top: 4px; text-align: center; letter-spacing: 0.5px;">
                                 DROP ARBITRARY FILE<br>(OBJ, PDF, MP4, etc.)</div>
+                        </div>
+
+                        <!-- Dropzone for Semantic Links / URLs -->
+                        <div id="semantic-link-dropzone"
+                            style="width: 100%; min-height: 80px; border: 2px dashed rgba(57, 255, 20, 0.4); background: rgba(57, 255, 20, 0.03); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; position: relative; padding: 6px;">
+                            <div style="font-size: 1.1rem; color: var(--terminal-green);">🔗</div>
+                            <div style="font-size: 0.62rem; color: #aaa; margin-top: 2px; text-align: center; letter-spacing: 0.5px;">
+                                DROP SEMANTIC LINK / URL<br><span style="color:#666;">(ArXiv, Wikipedia, IPFS, Web, DOI)</span>
+                            </div>
+                            <div style="display:flex; width: 100%; gap: 4px; margin-top: 4px;" onclick="event.stopPropagation();">
+                                <input type="text" id="semantic-link-input" placeholder="Paste link (http://, arxiv, etc)..."
+                                    style="flex:1; background: #080808; border: 1px solid #333; color: var(--terminal-green); font-family: var(--font-mono); font-size: 0.65rem; padding: 3px 6px; border-radius: 3px; outline: none;">
+                                <button id="btn-fetch-semantic-link" type="button"
+                                    style="background: rgba(57, 255, 20, 0.2); border: 1px solid var(--terminal-green); color: #fff; font-family: var(--font-mono); font-size: 0.65rem; padding: 2px 6px; border-radius: 3px; cursor: pointer;">FETCH</button>
+                            </div>
                         </div>
 
                         <div class="metric-card" style="margin-bottom: 0px;">
@@ -2490,7 +2506,85 @@
             media_chain: [] // Array of {type, data, filename, icon}
         };
 
-        // Tab switching logic
+        // Tab switching logic with Buffer State Retention & Scroll Preservation
+        const tabBuffers = {}; // Map of tabName -> { scrollOffsets: {}, inputValues: {}, activeElementId: null }
+
+        function saveTabBuffer(tabName) {
+            if (!tabName) return;
+            const pane = document.getElementById("pane-" + tabName);
+            if (!pane) return;
+            
+            const buffer = { scrollOffsets: {}, inputValues: {}, activeElementId: null };
+            
+            // 1. Record scroll offsets for all scrollable elements in this pane
+            if (pane.scrollTop) buffer.scrollOffsets['__pane__'] = pane.scrollTop;
+            pane.querySelectorAll('*').forEach((el, idx) => {
+                if (el.scrollTop > 0 || el.scrollLeft > 0) {
+                    const key = el.id ? '#' + el.id : `el_${idx}_${el.className}`;
+                    buffer.scrollOffsets[key] = { top: el.scrollTop, left: el.scrollLeft };
+                }
+            });
+            
+            // 2. Record inputs and textareas
+            pane.querySelectorAll('input[type="text"], textarea').forEach(input => {
+                if (input.id) {
+                    buffer.inputValues[input.id] = input.value;
+                    if (document.activeElement === input) {
+                        buffer.activeElementId = input.id;
+                    }
+                }
+            });
+            
+            tabBuffers[tabName] = buffer;
+        }
+
+        function restoreTabBuffer(tabName) {
+            if (!tabName || !tabBuffers[tabName]) return;
+            const buffer = tabBuffers[tabName];
+            const pane = document.getElementById("pane-" + tabName);
+            if (!pane) return;
+
+            requestAnimationFrame(() => {
+                // Restore scroll positions
+                if (buffer.scrollOffsets['__pane__']) {
+                    pane.scrollTop = buffer.scrollOffsets['__pane__'];
+                }
+                for (const [selector, offset] of Object.entries(buffer.scrollOffsets)) {
+                    if (selector === '__pane__') continue;
+                    try {
+                        const target = selector.startsWith('#') ? document.getElementById(selector.slice(1)) : null;
+                        if (target) {
+                            target.scrollTop = offset.top || 0;
+                            target.scrollLeft = offset.left || 0;
+                        }
+                    } catch (e) {}
+                }
+
+                // Restore active element focus
+                if (buffer.activeElementId) {
+                    const el = document.getElementById(buffer.activeElementId);
+                    if (el && typeof el.focus === 'function') el.focus();
+                }
+            });
+        }
+
+        // Global Tab Key Interceptor for Indentation inside Code / Editor Buffers
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                const target = e.target;
+                if (target && (target.tagName === 'TEXTAREA' || (target.tagName === 'INPUT' && target.type === 'text'))) {
+                    // If target is in an editor or terminal textarea buffer, insert indentation
+                    if (target.id === 'user-input' || target.id === 'video-description-buffer' || target.id.includes('buffer') || target.id.includes('desc') || target.tagName === 'TEXTAREA') {
+                        e.preventDefault();
+                        const start = target.selectionStart;
+                        const end = target.selectionEnd;
+                        target.value = target.value.substring(0, start) + "    " + target.value.substring(end);
+                        target.selectionStart = target.selectionEnd = start + 4;
+                    }
+                }
+            }
+        });
+
         document.addEventListener("DOMContentLoaded", () => {
             const tabs = document.querySelectorAll(".console-tab");
             const panes = document.querySelectorAll(".tab-pane");
@@ -2498,11 +2592,11 @@
             tabs.forEach(t => t.classList.remove("active"));
             panes.forEach(p => p.classList.remove("active"));
 
-            const savedTab = localStorage.getItem("active_console_tab") || "terminal";
+            let currentActiveTab = localStorage.getItem("active_console_tab") || "terminal";
             let initialized = false;
 
             tabs.forEach(tab => {
-                if (tab.dataset.tab === savedTab) {
+                if (tab.dataset.tab === currentActiveTab) {
                     tab.classList.add("active");
                     const targetPane = document.getElementById("pane-" + tab.dataset.tab);
                     if (targetPane) {
@@ -2523,29 +2617,37 @@
                 }
 
                 tab.addEventListener("click", () => {
-                    // Remove active classes
+                    const newTab = tab.dataset.tab;
+                    if (newTab === currentActiveTab) return;
+
+                    // Save outgoing buffer state
+                    saveTabBuffer(currentActiveTab);
+
+                    // Switch active classes
                     tabs.forEach(t => t.classList.remove("active"));
                     panes.forEach(p => p.classList.remove("active"));
 
-                    // Add active class
                     tab.classList.add("active");
-                    const targetPane = document.getElementById("pane-" + tab.dataset.tab);
+                    const targetPane = document.getElementById("pane-" + newTab);
                     if (targetPane) {
                         targetPane.classList.add("active");
                     }
 
-                    localStorage.setItem("active_console_tab", tab.dataset.tab);
+                    currentActiveTab = newTab;
+                    localStorage.setItem("active_console_tab", newTab);
 
-                    // Only initialize graph if not already instantiated
-                    if (tab.dataset.tab === "graph") {
+                    // Restore incoming buffer state
+                    restoreTabBuffer(newTab);
+
+                    if (newTab === "graph") {
                         if (!window.Graph) {
                             refreshGraph(false);
                         }
                     }
-                    if (tab.dataset.tab === "freenet") {
+                    if (newTab === "freenet") {
                         refreshFreenetStatus();
                     }
-                    if (tab.dataset.tab === "evaluators") {
+                    if (newTab === "evaluators") {
                         refreshEvaluatorsDashboard();
                     }
                 });
@@ -2555,6 +2657,7 @@
             if (!initialized && tabs.length > 0) {
                 tabs[0].classList.add("active");
                 if (panes.length > 0) panes[0].classList.add("active");
+                currentActiveTab = tabs[0].dataset.tab;
             }
 
             // Setup submit link handler
@@ -5439,11 +5542,103 @@
                 });
         }
         // ==========================================
-        // PANEL I: UNIVERSAL TOPOLOGY CONVERTER
+        // PANEL I: UNIVERSAL TOPOLOGY CONVERTER & SEMANTIC LINK DROPZONE
         // ==========================================
         const universalDropzone = document.getElementById('universal-dropzone');
+        const semanticDropzone = document.getElementById('semantic-link-dropzone');
+        const semanticInput = document.getElementById('semantic-link-input');
+        const btnFetchSemantic = document.getElementById('btn-fetch-semantic-link');
         const commitConverterBtn = document.getElementById('commit-converter');
         const converterLog = document.getElementById('converter-log');
+
+        if (semanticDropzone) {
+            semanticDropzone.ondragover = (e) => {
+                e.preventDefault();
+                semanticDropzone.style.borderColor = 'var(--terminal-green)';
+                semanticDropzone.style.background = 'rgba(57, 255, 20, 0.08)';
+            };
+            semanticDropzone.ondragleave = (e) => {
+                e.preventDefault();
+                semanticDropzone.style.borderColor = 'rgba(57, 255, 20, 0.4)';
+                semanticDropzone.style.background = 'rgba(57, 255, 20, 0.03)';
+            };
+            semanticDropzone.ondrop = (e) => {
+                e.preventDefault();
+                semanticDropzone.style.borderColor = 'rgba(57, 255, 20, 0.4)';
+                semanticDropzone.style.background = 'rgba(57, 255, 20, 0.03)';
+                const textLink = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+                if (textLink && textLink.trim()) {
+                    processSemanticLink(textLink.trim());
+                } else if (e.dataTransfer.files.length > 0) {
+                    processUniversalFile(e.dataTransfer.files[0]);
+                }
+            };
+            if (btnFetchSemantic && semanticInput) {
+                btnFetchSemantic.onclick = (e) => {
+                    e.stopPropagation();
+                    const link = semanticInput.value.trim();
+                    if (link) processSemanticLink(link);
+                };
+                semanticInput.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const link = semanticInput.value.trim();
+                        if (link) processSemanticLink(link);
+                    }
+                };
+            }
+        }
+
+        async function processSemanticLink(linkUrl) {
+            document.getElementById('converter-status').innerText = 'RESOLVING LINK...';
+            document.getElementById('converter-status').style.color = 'var(--terminal-warn)';
+            document.getElementById('converter-proxies').innerText = `Resolving & ingesting semantic link:
+${linkUrl}
+Extracting topological manifolds...`;
+
+            try {
+                const response = await fetch('/api/convert_topology', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: linkUrl })
+                });
+                const data = await response.json();
+
+                if (data.status === 'ok') {
+                    document.getElementById('converter-status').innerText = 'ARMED';
+                    document.getElementById('converter-status').style.color = 'var(--terminal-green)';
+                    document.getElementById('converter-proxies').innerText = JSON.stringify(data.topology, null, 2);
+                    commitConverterBtn.disabled = false;
+
+                    commitConverterBtn.onclick = () => {
+                        logToTerminal(`Ingesting structural causality for semantic link [${linkUrl}] into manifold.`, 'system');
+                        appendMessage('system', `SEMANTIC LINK TOPOLOGY INGESTED.
+Format: ${data.topology.format}
+Signature: ${data.topology.universal_signature}
+Jitter: ${data.topology.honesty_jitter}
+Source: ${data.topology.source_semantic_url || linkUrl}`);
+                        state.active_universal_signature = data.topology.universal_signature;
+                        commitConverterBtn.disabled = true;
+                        document.getElementById('converter-status').innerText = 'COMMITTED';
+                        document.getElementById('converter-status').style.color = 'var(--terminal-blue)';
+                    };
+
+                    if (converterLog) {
+                        const logEntry = document.createElement('div');
+                        logEntry.innerText = `[${new Date().toLocaleTimeString()}] Semantic Link Armed: ${linkUrl.slice(0, 40)}...`;
+                        converterLog.prepend(logEntry);
+                    }
+                } else {
+                    document.getElementById('converter-status').innerText = 'ERROR';
+                    document.getElementById('converter-status').style.color = 'var(--terminal-alert)';
+                    document.getElementById('converter-proxies').innerText = `Rupture: ${data.error || 'Failed to resolve semantic link'}`;
+                }
+            } catch (err) {
+                document.getElementById('converter-status').innerText = 'ERROR';
+                document.getElementById('converter-status').style.color = 'var(--terminal-alert)';
+                document.getElementById('converter-proxies').innerText = `Network/Backend Rupture: ${err.message}`;
+            }
+        }
 
         if (universalDropzone) {
             universalDropzone.ondragover = (e) => {

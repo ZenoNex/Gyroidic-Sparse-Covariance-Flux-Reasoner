@@ -7838,6 +7838,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             self._send_error_json(str(e))
 
     def do_POST(self):
+        import os, sys, subprocess, json, time
         print(f"POST REQUEST RECEIVED: {self.path}")
         try:
             # --- SECURITY ENFORCEMENT ---
@@ -7911,58 +7912,92 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 try:
                     content_len = int(self.headers.get('Content-Length', 0))
                     post_body = self.rfile.read(content_len)
-                    
-                    # We expect multipart/form-data for file uploads
                     content_type = self.headers.get('Content-Type', '')
-                    if content_type.startswith('multipart/form-data'):
+                    
+                    url_or_link = None
+                    file_data = None
+                    
+                    if content_type.startswith('application/json'):
+                        jdata = json.loads(post_body.decode('utf-8'))
+                        url_or_link = jdata.get('url') or jdata.get('link') or jdata.get('text')
+                    elif content_type.startswith('multipart/form-data'):
                         boundary = b''
                         parts_ct = content_type.split(';')
                         for p in parts_ct:
                             p = p.strip()
                             if p.startswith('boundary='):
                                 boundary = p.split('=', 1)[1].encode('utf-8')
-                        
-                        if not boundary:
-                            raise ValueError("Multipart boundary not found in headers")
-                        
-                        form_fields = parse_multipart(post_body, boundary)
-                        file_data = form_fields.get('file')
-                        
-                        if isinstance(file_data, dict) and 'content' in file_data:
-                            # Save to a temporary file
-                            import tempfile
-                            from src.data.universal_topology_converter import UniversalTopologyConverter
-                            
-                            filename = file_data.get('filename', 'unknown_file')
-                            
-                            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
-                                tmp.write(file_data['content'])
-                                tmp_path = tmp.name
-                            
+                        if boundary:
+                            form_fields = parse_multipart(post_body, boundary)
+                            file_data = form_fields.get('file')
+                            url_or_link = form_fields.get('url') or form_fields.get('link') or form_fields.get('text')
+                    
+                    # Handle Semantic Link Drop / Direct URL Ingestion
+                    if url_or_link:
+                        import tempfile, urllib.request
+                        from src.data.universal_topology_converter import UniversalTopologyConverter
+                        clean_url = str(url_or_link).strip()
+                        raw_bytes = None
+                        ext = ".txt"
+                        if clean_url.startswith("http://") or clean_url.startswith("https://"):
+                            req = urllib.request.Request(clean_url, headers={'User-Agent': 'GyroidicReasoner/1.0 (Topology Ingestion)'})
                             try:
-                                converter = UniversalTopologyConverter()
-                                topology_data = converter.process_artifact(tmp_path)
-                                
-                                # Store the actual PyTorch tensors in the server state for ingestion
-                                # We can stash it in ENGINE or self if we maintain state. 
-                                # The UI sends 'universal_signature' during /interact to claim it.
-                                if not hasattr(self.server, 'universal_topology_cache'):
-                                    self.server.universal_topology_cache = {}
-                                
-                                sig = topology_data["universal_signature"]
-                                self.server.universal_topology_cache[sig] = topology_data
-                                
-                                ui_summary = converter.get_ui_summary(topology_data)
-                                self._send_json({"status": "ok", "topology": ui_summary})
-                            finally:
-                                if os.path.exists(tmp_path):
-                                    os.remove(tmp_path)
+                                with urllib.request.urlopen(req, timeout=10) as resp:
+                                    raw_bytes = resp.read()
+                                if ".pdf" in clean_url.lower(): ext = ".pdf"
+                                elif ".html" in clean_url.lower() or ".htm" in clean_url.lower(): ext = ".html"
+                                elif ".json" in clean_url.lower(): ext = ".json"
+                                else: ext = ".html"
+                            except Exception as fetch_err:
+                                raw_bytes = f"Semantic Link: {clean_url}\nResolution Notice: {fetch_err}".encode('utf-8')
+                                ext = ".txt"
                         else:
-                            self._send_error_json("No file provided in multipart request", 400)
-                    else:
-                        self._send_error_json("Expected multipart/form-data", 400)
+                            raw_bytes = clean_url.encode('utf-8')
+                            ext = ".txt"
+                        
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+                            tmp.write(raw_bytes)
+                            tmp_path = tmp.name
+                        try:
+                            converter = UniversalTopologyConverter()
+                            topology_data = converter.process_artifact(tmp_path)
+                            if not hasattr(self.server, 'universal_topology_cache'):
+                                self.server.universal_topology_cache = {}
+                            sig = topology_data["universal_signature"]
+                            self.server.universal_topology_cache[sig] = topology_data
+                            ui_summary = converter.get_ui_summary(topology_data)
+                            ui_summary["source_semantic_url"] = clean_url
+                            self._send_json({"status": "ok", "topology": ui_summary, "source": clean_url})
+                        finally:
+                            if os.path.exists(tmp_path):
+                                os.remove(tmp_path)
+                        return
+
+                    # Handle Arbitrary Binary / Multipart File Ingestion
+                    if isinstance(file_data, dict) and 'content' in file_data:
+                        import tempfile
+                        from src.data.universal_topology_converter import UniversalTopologyConverter
+                        filename = file_data.get('filename', 'unknown_file')
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
+                            tmp.write(file_data['content'])
+                            tmp_path = tmp.name
+                        try:
+                            converter = UniversalTopologyConverter()
+                            topology_data = converter.process_artifact(tmp_path)
+                            if not hasattr(self.server, 'universal_topology_cache'):
+                                self.server.universal_topology_cache = {}
+                            sig = topology_data["universal_signature"]
+                            self.server.universal_topology_cache[sig] = topology_data
+                            ui_summary = converter.get_ui_summary(topology_data)
+                            self._send_json({"status": "ok", "topology": ui_summary})
+                        finally:
+                            if os.path.exists(tmp_path):
+                                os.remove(tmp_path)
+                        return
+
+                    self._send_error_json("No valid file or semantic link URL provided", 400)
                 except Exception as e:
-                    print(f" Error processing file conversion: {e}")
+                    print(f" Error processing topology conversion: {e}")
                     import traceback
                     traceback.print_exc()
                     self._send_error_json(str(e))
@@ -9378,8 +9413,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_error_json(f"Concept prediction failed: {str(e)}")
 
             elif self.path.split('?')[0] == '/api/viewer/launch':
-                import subprocess
-                import sys
+                import os, sys, subprocess
                 try:
                     venv_py = os.path.join(os.getcwd(), ".venv", "Scripts", "python.exe")
                     python_exe = venv_py if os.path.exists(venv_py) else sys.executable

@@ -1593,6 +1593,9 @@ class HybridAI:
         # Ensure hidden_state is ready for cloning (isolation snapshot)
         if not hasattr(self, 'hidden_state') or self.hidden_state is None:
             self._initialize_manifold_state()
+        if not hasattr(self, 'hidden_state_scarred') or self.hidden_state_scarred is None:
+            self.hidden_state_scarred = self.hidden_state.clone()
+        distortion = self._harvest_honest_jitter(self.hidden_state_scarred.shape) * 0.01
 
         # --- DYNAMIC REGIME DETERMINATION (Integrated Emergence Condition, Eq 10) ---
         self._last_process_start_perf = time.perf_counter()
