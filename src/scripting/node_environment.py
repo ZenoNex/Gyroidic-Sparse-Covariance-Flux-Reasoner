@@ -87,6 +87,7 @@ from src.environment.cleanroom_mechanics import (
 
 logger = logging.getLogger(__name__)
 
+
 # =========================================================================
 # 1. BLENDER-STYLE DATAFLOW SOCKETS & WIRE ARCHITECTURE
 # =========================================================================
@@ -355,6 +356,64 @@ class CurvatureLedgerDataflowNode(DataflowNode):
             "out_bouligand_kink": kink,
             "out_cyclotomic_pas": pas_h,
             "out_attractor_regime": regime
+        }
+
+
+class AutomaticCraftingArbitrationNode(DataflowNode):
+    """
+    Dataflow node for automatic crafting configuration arbitration.
+    Bridges polymorphic OreDictionary item matching, ProjectE EMC conservation,
+    Carnot waste heat safety, and AI reasoner PAS_h phase verification.
+    """
+    def __init__(self, node_id: str = "node_crafting_arbitrator"):
+        super().__init__(node_id, "Automatic Crafting Arbitrator & PAS_h Gate")
+        self.add_input("in_recipe_id", SocketType.INT, 1)
+        self.add_input("in_material_tag", SocketType.INT, 20)
+        self.add_input("in_quantity", SocketType.INT, 1)
+        self.add_input("in_emc_balance", SocketType.FLOAT, 1000.0)
+        self.add_input("in_waste_heat", SocketType.FLOAT, 10.0)
+        
+        self.add_output("out_admissible", SocketType.INT, 1)
+        self.add_output("out_pas_phase", SocketType.FLOAT, 1.0)
+        self.add_output("out_material_id", SocketType.INT, 20)
+        self.add_output("out_heat_penalty", SocketType.FLOAT, 0.0)
+        self.add_output("out_craft_status", SocketType.INT, 1)
+
+    def evaluate(self) -> Dict[str, Any]:
+        mat_val = self.inputs["in_material_tag"].value
+        tag = "ingotIron" if mat_val in (20, 21, "ingotIron", None) else str(mat_val)
+        qty = int(self.inputs["in_quantity"].value if self.inputs["in_quantity"].value is not None else 1)
+        emc = float(self.inputs["in_emc_balance"].value if self.inputs["in_emc_balance"].value is not None else 1000.0)
+        p_waste = float(self.inputs["in_waste_heat"].value if self.inputs["in_waste_heat"].value is not None else 10.0)
+
+        # 1. Polymorphic OreDictionary resolution
+        from src.scripting.node_environment import OreDictionary
+        oredict = OreDictionary()
+        matching_mats = oredict.get_materials(tag)
+        primary_mat_id = matching_mats[0] if matching_mats else 1
+
+        # 2. Thermodynamic & Carnot waste-heat check
+        is_thermal_runaway = p_waste > 800.0
+        heat_penalty = max(0.0, (p_waste - 500.0) * 0.002) if p_waste > 500.0 else 0.0
+
+        # 3. AI Reasoner phase alignment verification (PAS_h >= 3/11 knot-theoretic threshold)
+        knot_threshold = 3.0 / 11.0  # ~0.2727
+        pas_h = max(0.0, 1.0 - heat_penalty)
+        is_admissible = 1 if (pas_h >= knot_threshold and not is_thermal_runaway and emc >= qty * 10.0) else 0
+        status = "APPROVED" if is_admissible == 1 else ("THERMAL_VETO" if is_thermal_runaway else "EMC_OR_PAS_VETO")
+
+        self.outputs["out_admissible"].value = is_admissible
+        self.outputs["out_pas_phase"].value = pas_h
+        self.outputs["out_material_id"].value = primary_mat_id
+        self.outputs["out_heat_penalty"].value = heat_penalty
+        self.outputs["out_craft_status"].value = 1 if is_admissible == 1 else 0
+
+        return {
+            "out_admissible": is_admissible,
+            "out_pas_phase": pas_h,
+            "out_material_id": primary_mat_id,
+            "out_heat_penalty": heat_penalty,
+            "out_craft_status": status
         }
 
 
