@@ -2340,6 +2340,34 @@ class VoxelboxterEngine:
             constraint_index=0, actuation_dim=4, u_min=u_min_act, u_max=u_max_act
         )
 
+        # Advanced Cleanroom Systems: Flight, Stratospheric Research, Rail Physics, & Hyperdimensions
+        from src.environment.cleanroom_advanced_extensions import (
+            OpenGliderKinematics, StratosphericBalloon, LargeVeinWorldGenerator,
+            RailNetworkSystem, EntangledBindingSystem, AutoPlantManager,
+            BiomeReactor, ClarityFogParameters, AnalogLever, SlurpInteraction,
+            MetalAnvil, DespawnCustomizer, LootBagSystem, BalancedToolTracker,
+            PortableUtilitiesKit, BlockPeripheralAdapter, RemoteCursorItem,
+            AutonomousLuggageStorage, SlimalyzerSensor, SonicGlassesSensor,
+            RecursiveSphericalPortal, Hyperdimensional4DEngine
+        )
+        self.glider = OpenGliderKinematics()
+        self.balloons: List[StratosphericBalloon] = []
+        self.large_veins = LargeVeinWorldGenerator()
+        self.rail_network = RailNetworkSystem()
+        self.entangled_bindings = EntangledBindingSystem()
+        self.auto_plant = AutoPlantManager()
+        self.biome_reactor = BiomeReactor()
+        self.clarity_fog = ClarityFogParameters()
+        self.analog_levers: Dict[Tuple[int, int, int], AnalogLever] = {}
+        self.metal_anvils: Dict[Tuple[int, int, int], MetalAnvil] = {}
+        self.despawn_controller = DespawnCustomizer()
+        self.lootbags = LootBagSystem()
+        self.portable_camp = PortableUtilitiesKit()
+        self.remote_cursor = RemoteCursorItem()
+        self.luggage_companions: Dict[str, AutonomousLuggageStorage] = {}
+        self.recursive_portal = RecursiveSphericalPortal()
+        self.engine_4d = Hyperdimensional4DEngine()
+
     def probe_actuation_feasibility(
         self,
         command_tensor: torch.Tensor

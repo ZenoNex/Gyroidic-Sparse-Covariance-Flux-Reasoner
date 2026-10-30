@@ -102,6 +102,53 @@ class PatchStateResource:
             self.silicon_sovereignty = None
             logging.warning("Silicon Sovereignty Engine not available. Running CPU Mock.")
 
+        # In-Game Configuration GUI & Advanced Cleanroom Extensions
+        from src.environment.cleanroom_advanced_extensions import (
+            GliderConfig, OpenGliderKinematics, StratosphericBalloon,
+            LargeVeinWorldGenerator, RailNetworkSystem, EntangledBindingSystem,
+            AutoPlantManager, BiomeReactor, ClarityFogParameters, AnalogLever,
+            SlurpInteraction, MetalAnvil, DespawnCustomizer, LootBagSystem,
+            BalancedToolTracker, PortableUtilitiesKit, BlockPeripheralAdapter,
+            RemoteCursorItem, AutonomousLuggageStorage, SlimalyzerSensor,
+            SonicGlassesSensor, RecursiveSphericalPortal, Hyperdimensional4DEngine
+        )
+        self.glider_config = GliderConfig()
+        self.glider = OpenGliderKinematics(config=self.glider_config)
+        self.balloons: list = []
+        self.vein_generator = LargeVeinWorldGenerator()
+        self.rail_network = RailNetworkSystem()
+        self.entangled_system = EntangledBindingSystem()
+        self.auto_plant = AutoPlantManager()
+        self.biome_reactor = BiomeReactor()
+        self.clarity_fog = ClarityFogParameters()
+        self.analog_levers: dict = {}
+        self.metal_anvils: dict = {}
+        self.despawn_manager = DespawnCustomizer()
+        self.lootbags = LootBagSystem()
+        self.camp_kit = PortableUtilitiesKit()
+        self.remote_cursor = RemoteCursorItem()
+        self.luggage_companions: dict = {}
+        self.recursive_portal = RecursiveSphericalPortal()
+        self.engine_4d = Hyperdimensional4DEngine()
+
+    def update_ingame_options_gui(self, options: dict) -> dict:
+        """In-game options config GUI for live tuning of wind, flight, and damage."""
+        if "wind_sensitivity" in options:
+            self.glider_config.wind_sensitivity = float(options["wind_sensitivity"])
+        if "durability_loss_per_km" in options:
+            self.glider_config.durability_loss_per_km = float(options["durability_loss_per_km"])
+        if "drag_coeff" in options:
+            self.glider_config.drag_coeff = float(options["drag_coeff"])
+        if "fog_density" in options:
+            self.clarity_fog.fog_density = float(options["fog_density"])
+        return {
+            "wind_sensitivity": self.glider_config.wind_sensitivity,
+            "durability_loss_per_km": self.glider_config.durability_loss_per_km,
+            "drag_coeff": self.glider_config.drag_coeff,
+            "fog_density": self.clarity_fog.fog_density,
+            "status": "CONFIG_APPLIED"
+        }
+
 def fetch_telemetry_loop(state: PatchStateResource):
     """Background thread to poll the Diegetic Engine for Freenet telemetry."""
     while True:
