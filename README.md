@@ -31,6 +31,10 @@ cd "d:\programming\python\Gyroidic Sparse Covariance Flux Reasoner"
 Always execute Python files using the project virtual environment.
 
 **Windows (PowerShell / Command Prompt):**
+
+**create env**
+python -m venv .venv
+
 ```powershell
 # Activate venv
 .venv\Scripts\activate
