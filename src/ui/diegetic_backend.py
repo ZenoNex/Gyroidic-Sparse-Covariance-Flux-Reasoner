@@ -289,9 +289,11 @@ class DiegeticPhysicsEngine(nn.Module):
     The Core Engine.
     Combines Cavity + Larynx + Persistence + Fractal Meta-Recursion + CALM + KAGH.
     """
-    def __init__(self, dim=256, k=5, calm_history_len=8, device=None, config=None):
+    def __init__(self, dim=256, k=5, calm_history_len=8, device=None, config=None, lightweight=False):
         super().__init__()
         self.config = config or {}
+        if lightweight:
+            self.config['lightweight'] = True
         if device is None:
             self.device = DEVICE
         else:
@@ -506,6 +508,20 @@ class DiegeticPhysicsEngine(nn.Module):
         )
         
         print(" Garbled Output Repair System initialized")
+        
+        # Budget CPU threads to prevent pegging 100% of cores during interactive generation
+        from src.core.hardware_monitor import budget_cpu_threads
+        budget_cpu_threads()
+
+        self._generation_progress = {
+            "is_generating": False,
+            "step": 0,
+            "total": 0,
+            "percent": 0.0,
+            "chars": 0,
+            "recent": "",
+            "elapsed_sec": 0.0
+        }
         
         # System 2 Modular Attention for reality-checking associations
         from src.models.modular_attention import ModularAttention
@@ -1153,7 +1169,7 @@ class DiegeticPhysicsEngine(nn.Module):
                     proficiency_multiplier += min(1.0, fossil_count * 0.05)
                     
                 dynamic_max_len = int((base_len + affordance_expansion) * proficiency_multiplier)
-                dynamic_max_len = max(50, min(dynamic_max_len, 2000))
+                dynamic_max_len = max(50, min(dynamic_max_len, 250))
 
                 # Autoregressive dream generation
                 for i in range(dynamic_max_len):
@@ -1656,6 +1672,18 @@ class DiegeticPhysicsEngine(nn.Module):
         t.start()
         print("[BGLEARN] Background Larynx coherence trainer ACTIVE (30s idle interval).")
 
+    def get_generation_progress(self) -> Dict[str, Any]:
+        """Returns live autoregressive generation progress telemetry."""
+        return dict(getattr(self, '_generation_progress', {
+            "is_generating": False,
+            "step": 0,
+            "total": 0,
+            "percent": 0.0,
+            "chars": 0,
+            "recent": "",
+            "elapsed_sec": 0.0
+        }))
+
     def get_manifold_state(self) -> Dict[str, Any]:
         """
         Extracts the full manifold 'Soul' for fossilization.
@@ -2100,7 +2128,8 @@ class DiegeticPhysicsEngine(nn.Module):
         if hasattr(self, 'voynich_linguist') and self.voynich_linguist is not None:
             try:
                 with torch.no_grad():
-                    v_phonemes, v_glyphs, v_honesty = self.voynich_linguist(current_state)
+                    v_res = self.voynich_linguist(current_state)
+                    v_glyphs = v_res[1] if isinstance(v_res, tuple) and len(v_res) >= 2 else (v_res if isinstance(v_res, torch.Tensor) else None)
                     if v_glyphs is not None:
                         g_flat = v_glyphs.flatten()[:current_state.shape[-1]]
                         if g_flat.shape[-1] < current_state.shape[-1]:
@@ -2174,27 +2203,70 @@ class DiegeticPhysicsEngine(nn.Module):
         # Prevent completely runaway generation while allowing deep explanation
         dynamic_max_len = max(50, min(dynamic_max_len, 2000))
         
+        # --- GIBBERISH & PATHOLOGICAL GARBLE AFFORDANCE GUARD ---
+        # Detect whether the prompt is ungrounded / gibberish to prevent generating 2000 characters of junk on CPU.
+        is_garbled = False
+        garble_reason = "NOMINAL"
+        if hasattr(self, 'voynich_linguist') and hasattr(self.voynich_linguist, '_is_pathological_garble'):
+            try:
+                is_garbled, garble_reason = self.voynich_linguist._is_pathological_garble(text_input)
+            except Exception:
+                pass
+        
+        trimmed_input = text_input.strip()
+        if len(trimmed_input) > 6:
+            alpha_chars = [c for c in trimmed_input if c.isalpha()]
+            if len(alpha_chars) < len(trimmed_input) * 0.35:
+                is_garbled = True
+                garble_reason = "LOW_ALPHABETIC_DENSITY"
+
+        if is_garbled:
+            old_len = dynamic_max_len
+            dynamic_max_len = min(dynamic_max_len, 80)
+            print(f"[LARYNX] Honest gibberish / pathological garble detected ({garble_reason}). Throttling max generation length from {old_len} to {dynamic_max_len} steps to preserve thermal affordance.", flush=True)
+
+        gen_start_time = time.time()
+        self._generation_progress = {
+            "is_generating": True,
+            "step": 0,
+            "total": dynamic_max_len,
+            "percent": 0.0,
+            "chars": 0,
+            "recent": "",
+            "elapsed_sec": 0.0
+        }
+        print(f"[LARYNX GENERATION] Commencing autoregression (target={dynamic_max_len} tokens, regime={getattr(self, 'current_regime', 'unknown')})...", flush=True)
+
+        cached_v_flat = None
+        
         with torch.no_grad():
             for i in range(dynamic_max_len): # Dynamically expanded limit
                 iter_temp = temperature * (1.0 + 0.002 * i) 
                 
-                # Coherent Legibility: Apply Spectral Coherence Repair to prevent garbling
+                # Coherent Legibility: Apply Spectral Coherence Repair periodically or on clustering
                 if hasattr(self, 'spectral_corrector') and len(dream_chars) >= 5:
-                    recent_text = "".join(dream_chars[-20:])
-                    current_state = self.spectral_corrector.adaptive_coherence_correction(
-                        current_state, output_text=recent_text
-                    )
+                    should_repair = (i % 8 == 0)
+                    if not should_repair and hasattr(self.spectral_corrector, 'detect_consonant_clustering'):
+                        should_repair = self.spectral_corrector.detect_consonant_clustering("".join(dream_chars[-10:]))
+                    if should_repair:
+                        recent_text = "".join(dream_chars[-20:])
+                        current_state = self.spectral_corrector.adaptive_coherence_correction(
+                            current_state, output_text=recent_text
+                        )
 
                 logits, conf = self.larynx(current_state, temperature=iter_temp)
 
                 # Connect Voynich Phoneme Logits (Anti-consonant-clustering / Anti-vowel-starvation)
                 if hasattr(self, 'voynich_linguist') and self.voynich_linguist is not None:
                     try:
-                        v_phonemes, _, _ = self.voynich_linguist(current_state)
-                        if v_phonemes is not None:
-                            v_flat = v_phonemes.flatten()
-                            min_sz = min(logits.shape[-1], v_flat.shape[-1])
-                            logits[0, :min_sz] += 0.12 * v_flat[:min_sz]
+                        if i % 4 == 0 or cached_v_flat is None:
+                            v_res = self.voynich_linguist(current_state)
+                            v_phonemes = v_res[0] if isinstance(v_res, tuple) else v_res
+                            if v_phonemes is not None:
+                                cached_v_flat = v_phonemes.flatten()
+                        if cached_v_flat is not None:
+                            min_sz = min(logits.shape[-1], cached_v_flat.shape[-1])
+                            logits[0, :min_sz] += 0.12 * cached_v_flat[:min_sz]
                     except Exception:
                         pass
                 
@@ -2236,6 +2308,44 @@ class DiegeticPhysicsEngine(nn.Module):
                     current_state = 0.85 * current_state + 0.1 * feedback + 0.05 * audience_guidance + 0.02 * self._harvest_honest_jitter(current_state.shape)
                 else:
                     current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * self._harvest_honest_jitter(current_state.shape)
+
+                # Live progress heartbeat to stdout and progress tracker every 15 chars
+                if (i + 1) % 15 == 0 or i == dynamic_max_len - 1:
+                    pct = ((i + 1) / dynamic_max_len) * 100
+                    elapsed = time.time() - gen_start_time
+                    recent_snippet = "".join(dream_chars[-20:]).replace('\n', ' ')
+                    print(f"[LARYNX GENERATION] Step {i+1}/{dynamic_max_len} ({pct:.1f}%) | chars={len(dream_chars)} | conf={conf.item():.2f} | recent='{recent_snippet}'", flush=True)
+                    self._generation_progress = {
+                        "is_generating": True,
+                        "step": i + 1,
+                        "total": dynamic_max_len,
+                        "percent": round(pct, 1),
+                        "chars": len(dream_chars),
+                        "recent": "".join(dream_chars[-30:]),
+                        "elapsed_sec": round(elapsed, 2)
+                    }
+
+                # Restless 500ms thermal guard check
+                step_elapsed_ms = (time.time() - gen_start_time) * 1000.0 / max(1, i + 1)
+                if step_elapsed_ms > 500.0:
+                    from src.core.hardware_monitor import enforce_500ms_restless_thermal_guard
+                    enforce_500ms_restless_thermal_guard(
+                        execution_ms=step_elapsed_ms,
+                        silicon_engine=getattr(self, 'sovereignty_engine', None),
+                        cooldown_sleep_sec=0.01
+                    )
+
+        total_gen_time = time.time() - gen_start_time
+        self._generation_progress = {
+            "is_generating": False,
+            "step": len(dream_chars),
+            "total": dynamic_max_len,
+            "percent": 100.0,
+            "chars": len(dream_chars),
+            "recent": "".join(dream_chars[-30:]),
+            "elapsed_sec": round(total_gen_time, 2)
+        }
+        print(f"[LARYNX GENERATION] Completed in {total_gen_time:.2f}s ({len(dream_chars)} tokens generated).", flush=True)
 
         avg_energy = energy_sum / max(1, len(dream_chars))
         avg_conf = conf_sum / max(1, len(dream_chars))
@@ -7384,6 +7494,21 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             elif base_path == '/api/index_size':
                 size = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0
                 self._send_json({"total_index": size})
+                return
+            elif base_path == '/api/progress':
+                try:
+                    prog = ENGINE.get_generation_progress() if ENGINE else {"is_generating": False}
+                    self._send_json({"status": "ok", "progress": prog})
+                except Exception as e:
+                    self._send_error_json(str(e), 500)
+                return
+            elif base_path in ('/api/hardware', '/api/gpus'):
+                try:
+                    from src.core.hardware_monitor import get_cpu_gpu_layout
+                    layout = get_cpu_gpu_layout()
+                    self._send_json({"status": "ok", "layout": layout})
+                except Exception as e:
+                    self._send_error_json(str(e), 500)
                 return
             elif base_path == '/health':
                 self._send_json({"status": "hyper-ring coherent", "version": "1.9.1"})

@@ -279,6 +279,26 @@ class HardwareMonitor:
 
     get_hardware_core_layout = get_cpu_gpu_layout
 
+    def budget_cpu_threads(self, max_threads: Optional[int] = None) -> int:
+        """
+        Budgets PyTorch and MKL thread pools to prevent pegging 100% of CPU physical cores
+        and freezing the host system during interactive generation loops.
+        """
+        import torch
+        if max_threads is None:
+            phys = psutil.cpu_count(logical=False) or 4
+            # Keep thread budget to at most half physical cores (max 2 threads)
+            max_threads = max(1, min(2, phys // 2))
+        try:
+            torch.set_num_threads(max_threads)
+        except Exception:
+            pass
+        try:
+            torch.set_num_interop_threads(1)
+        except Exception:
+            pass
+        return max_threads
+
     def audit_windows_task_scheduling(self) -> Dict[str, Any]:
         """
         Audits Windows task scheduling parameters and process/thread priority states via psutil.
@@ -1125,4 +1145,9 @@ def govern_task_priority(interactive: bool = True, target_priority: Optional[str
 def get_scheduler_telemetry() -> Dict[str, Any]:
     """Helper function to retrieve consolidated Windows task scheduling and process contention telemetry."""
     return HardwareMonitor.get_instance().get_scheduler_telemetry()
+
+def budget_cpu_threads(max_threads: Optional[int] = None) -> int:
+    """Helper function to budget CPU threads across PyTorch and MKL."""
+    return HardwareMonitor.get_instance().budget_cpu_threads(max_threads=max_threads)
+
 

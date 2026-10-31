@@ -3979,6 +3979,32 @@
             appendMessage('user', finalInput);
             userInput.value = '';
 
+            let progressPollTimer = null;
+            let progressEl = null;
+            if (chatFeed) {
+                progressEl = document.createElement('div');
+                progressEl.className = 'message system';
+                progressEl.style.cssText = 'color: #00ffcc; font-family: monospace; font-size: 0.85em; padding: 4px 10px; border-left: 2px solid #00ffcc; margin: 6px 0; background: rgba(0, 255, 204, 0.06); border-radius: 2px;';
+                progressEl.innerHTML = `<span style="font-weight: bold;">[MANIFOLD]</span> Ingesting input and converging topology...`;
+                chatFeed.appendChild(progressEl);
+                if (autoscrollEnabled) chatFeed.scrollTop = chatFeed.scrollHeight;
+
+                progressPollTimer = setInterval(async () => {
+                    try {
+                        const pRes = await fetch(`${state.backend_url}/api/progress`);
+                        if (pRes.ok) {
+                            const pData = await pRes.json();
+                            if (pData.progress && pData.progress.is_generating) {
+                                const p = pData.progress;
+                                const snippet = p.recent ? p.recent.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+                                progressEl.innerHTML = `<span style="font-weight: bold; color: #39ff14;">[LARYNX GENERATING]</span> Step ${p.step}/${p.total} (${p.percent}%) &bull; ${p.elapsed_sec}s &bull; <span style="opacity: 0.85;">"${snippet}"</span>`;
+                                if (autoscrollEnabled) chatFeed.scrollTop = chatFeed.scrollHeight;
+                            }
+                        }
+                    } catch (_) {}
+                }, 350);
+            }
+
             try {
                 const aliasEl = document.getElementById('user-alias');
                 const alias = aliasEl ? aliasEl.value : 'admin';
@@ -4049,6 +4075,9 @@
             } catch (err) {
                 console.error("Communication Rupture:", err);
                 appendMessage('system', "COMMUNICATION RUPTURE. BACKEND DISSOCIATED.");
+            } finally {
+                if (progressPollTimer) clearInterval(progressPollTimer);
+                if (progressEl && progressEl.parentNode) progressEl.remove();
             }
         }
 
