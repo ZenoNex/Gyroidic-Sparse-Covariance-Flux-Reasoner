@@ -344,3 +344,30 @@ entropy, high cohomological dimension) is refused at the door.
 
 ---
 
+
+
+## 8. Open Rolling Cache Orbital Telemetry & Decentralized P2P DHT
+
+**Sources**: 
+- [`src/data/sovereign_ingestor.py`](../../../src/data/sovereign_ingestor.py) (`SovereignIngestor.ingest_orbital_stac_telemetry`, `normalize_differential_telemetry`)
+- [`src/data/economic_news_linker.py`](../../../src/data/economic_news_linker.py) (`EconomicAgentLinker.evaluate_physical_telemetry_arbitrage`)
+- [`src/data/universal_topology_converter.py`](../../../src/data/universal_topology_converter.py) (`UniversalTopologyConverter.ingest_bep_dht_metadata`)
+
+### Public Cached Orbital Feeds (No Private Downlinks Required)
+To capture physical macroeconomic realities without relying on delayed, heavily managed centralized financial reports or fragile private ground stations, the system ingests open cached Cloud-Optimized GeoTIFFs (COGs) and STAC catalog items:
+- **Sentinel-5P TROPOMI (`sentinel-5p-l2-netcdf`)**: Daily tropospheric $\text{NO}_2$ and $\text{CH}_4$ (methane) column densities measuring regional industrial throughput, petrochemical refining, and flaring.
+- **Sentinel-1 SAR (`sentinel-1-grd`)**: Cloud-penetrating C-band synthetic aperture radar providing vessel counts, maritime chokepoint backlogs, and port container dwell times.
+- **VIIRS DNB (`viirs-dnb`)**: Daily nocturnal radiance composites tracking electric grid stability, blackout recoveries, and urban economic density.
+- **Sentinel-2 L2A & Landsat 8/9**: Surface reflectance and floating roof tank crescent shadows.
+
+### Epistemic Rules for Satellite Telemetry
+1. **Instrument Gain Drift Subtraction**: Ambient ground reference is subtracted from target proxy pixels before evaluation.
+2. **Target Ontology Routing**: Physical volumes route exclusively to infrastructure landlords (PAA, EPD, ENB, port authorities, regional refiners) rather than speculative derivative futures (WTI, SPY, freight spot rates).
+3. **Wobble-to-Noise Epistemic Veto**: If measurement uncertainty exceeds weekly physical wobble ($\sigma \ge \text{wobble}$), the system emits a `Topological Refusal (NaN)` rather than committing ungrounded noise.
+
+### Decentralized P2P DHT Swarm Ingestion (BEP 51, BEP 9, BEP 10, BEP 52)
+The reasoner ingests rolling swarm announcements across BitTorrent Distributed Hash Tables without downloading full file payloads:
+- **BEP 51**: DHT Infohash Indexing and scrape telemetry.
+- **BEP 9 / BEP 10**: Extension protocol handshake and `ut_metadata` descriptor exchange.
+- **BEP 52**: BitTorrent v2 hybrid SHA-256 infohash support.
+- **Prime-Stride UFSC Sieve**: Folds 1D announcement streams into prime widths (including $p = 197$) to extract steganographic solitons and filter ergodic slop.

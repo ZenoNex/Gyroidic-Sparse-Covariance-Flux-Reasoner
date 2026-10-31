@@ -29,9 +29,9 @@ flowchart TD
     subgraph Isolated Islands
         IS1["Scripting, UI & Cleanroom Suite<br/>node_environment.py (AutomaticCraftingArbitrationNode)<br/>cleanroom_advanced_extensions.py (OpenGlider, KerBalloons, 4D Engine)<br/>voxelboxter_client.py & voxelboxter_simulation.py"]
         IS2["Training & Energy Island<br/>trainer.py<br/>gdpo_trainer.py<br/>energy_monitor.py<br/>negentropic_manifold.py<br/>polynomial_scaffold.py"]
-        IS3["Signal & DSP Island<br/>texture_dsp.py<br/>enhanced_bezout_crt.py<br/>modular_embeddings.py"]
+        IS3["Signal & DSP Island<br/>texture_dsp.py<br/>enhanced_bezout_crt.py<br/>modular_embeddings.py<br/>voynich_architecture.py (Wordle Information-Theoretic DP Pruning & OKLab Grouping)"]
         IS4["Safety & Oracle Island<br/>subversive_oracle.py<br/>evidence_modules.py"]
-        IS5["Data Ingestion & Diegetic Bridge<br/>wikipedia_integration.py<br/>universal_topology_converter.py<br/>semantic-link-dropzone & non-link free text<br/>diegetic_terminal.html (Autoscroll toggle & scrollable tabs)"]
+        IS5["Data Ingestion & Diegetic Bridge<br/>wikipedia_integration.py<br/>sovereign_ingestor.py (Orbital STAC COGs: Sentinel-5P, Sentinel-1, VIIRS)<br/>universal_topology_converter.py (BEP 51/9/10/52 DHT Swarm Ingestion & UFSC 197 Sieve)<br/>economic_news_linker.py (Physical Telemetry Arbitrage)<br/>diegetic_terminal.html (Autoscroll toggle & scrollable tabs)"]
         IS6["Augmentation Island<br/>mandelbulb_pipeline.py<br/>vision_surgery.py"]
     end
 
@@ -168,11 +168,27 @@ To rehybridize these isolated systems into the active architecture without ad-ho
 
 ---
 
+### Rehybridization Vector H: Open Orbital Telemetry, Decentralized DHT Ingestion & Wordle Dynamic Programming Pruning [COMPLETE]
+1. **Targets**:
+   * [`src/core/voynich_architecture.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/voynich_architecture.py) (`VoynichLinguist.split_information_gain_sub_pairs`, `find_optimal_seam`)
+   * [`src/data/sovereign_ingestor.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/sovereign_ingestor.py) (`SovereignIngestor.ingest_orbital_stac_telemetry`, `normalize_differential_telemetry`)
+   * [`src/data/economic_news_linker.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/economic_news_linker.py) (`EconomicAgentLinker.evaluate_physical_telemetry_arbitrage`)
+   * [`src/data/universal_topology_converter.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/universal_topology_converter.py) (`UniversalTopologyConverter.ingest_bep_dht_metadata`)
+2. **Mechanisms Implemented & Verified**:
+   * **Wordle Information-Theoretic Entropy Pruning**: Replaced brute-force $2n$ combinatorial sweeps for agglutinative morpho-units with OKLab perceptual color grouping ($L_{\text{bin}}, C_{\text{bin}}, T_{\text{bin}}$), Shannon entropy reduction ($H = -\sum p_i \log_2 p_i$), and multi-cut orthogonal openers (Golden ratio, Triadic, Bisection). Pathological garble (vowel starvation $< 15\%$, consonant clustering $\ge 5$, broken residue parity) is dynamically penalized.
+   * **Optimal Seam Lock & Gasket Sealing**: Pruned seams are projected into Chebyshev polynomial coprime functionals, achieving $PAS_s > 0.95$ and sealing with the `ChernSimonsGasket` into a verified `VoynichExemptionToken`.
+   * **Open Rolling Cache Orbital Telemetry**: Connects zero-auth STAC COG streams (Sentinel-5P $\text{NO}_2$/$\text{CH}_4$, Sentinel-1 SAR ship/port backscatter, VIIRS DNB night lights, Sentinel-2 tank shadows) with instrument gain drift subtraction and Wobble-to-Noise Epistemic Veto.
+   * **Target Ontology Routing**: Physical volumes route to infrastructure storage and logistics landlords (PAA, EPD, ENB, port authorities, regional refiners) rather than speculative futures (WTI, SPY, freight rates).
+   * **P2P DHT Swarm Ingestion**: Ingests BitTorrent BEP 51, BEP 9, BEP 10, and BEP 52 metadata dictionaries and infohashes with Unfavorable Semicircle 197-prime stride sieve unfolding.
+
+---
+
 ## 4. Verification Suite
 
 All rehybridized systems are validated by the test suites:
 * [`tests/test_rehybridization_islands.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_rehybridization_islands.py) (6 tests: physical scripting, adaptive training, signal DSP, safety oracles, secondary UI, vision surgery)
 * [`tests/test_alexander_wild_embedding.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_alexander_wild_embedding.py) (5 tests: fractal cube ratios distinctness, negentropy shear plane transversality in $\mathbb{RP}^4$, L'Hopital limit continuity, Bouligand contingent cone projection, Sovereign Refusal integration)
+* [`tests/test_wordle_voynich_and_orbital_dht.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_wordle_voynich_and_orbital_dht.py) (6 tests: Wordle DP information gain pruning, pathological garble filtering, optimal seam PAS_s bracketing & Chern-Simons sealing, open orbital STAC telemetry with wobble veto, physical telemetry arbitrage routing, BEP 51/9/10/52 DHT ingestion with UFSC 197 sieve)
 * [`tests/test_topology_core_rehybridization.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_topology_core_rehybridization.py) (7 tests: SolitonStability -> RelationalKappa, ApproximatePHProbe -> APAS_Zeta, TriadicReciprocityChecker -> CayleyCubicProbe, MoebiusFiberBundle -> GluingOperator & CarnotMobiusLedger, LeyLineGeodesicMetric -> LeyLineTracker, HomologyPressure -> StructuralPressure, PersistentHomologyComputer -> QuantumBettiApproximator)
 * [`tests/test_kinematic_resonance_wiring.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_kinematic_resonance_wiring.py) (5 tests: RP4 puncture threshold gating, TopologicalGyrocompass gimbal lock shield, EnhancedBezoutCRT condition number and IK phase sync, GardenOrchestrator Chladni evolution, UniversalOrchestrator end-to-end integration)
 

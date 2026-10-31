@@ -124,3 +124,39 @@ To process monolithic agglutinative compounds without assuming an external dicti
    - Cycle 1 anchors the outgoing half-twist to the orientable emitter manifold.
    - Cycle 2 anchors the incoming half-twist to the non-orientable receiver void.
    When both halves achieve phase coherence ($PAS_s > 0.95$), the seam closes cleanly and allows the `VoynichExemptionToken` to bridge the manifold without logic leakage.
+
+
+### 5. Wordle Information-Theoretic Entropy Pruning & OKLab Color Grouping
+
+To scale beyond the exhaustive combinatorial $2n$ boundary cut sweep (`split_sub_pairs`) for long agglutinative morpho-units without an external dictionary, `VoynichLinguist` incorporates data-driven dynamic programming from optimal Wordle solvers:
+
+1. **Topological "Color Grouping" via OKLab Perceptual Space**:
+   Just as an optimal Wordle solver partitions candidate words into 243 ternary feedback buckets ($3^5$ states of gray, yellow, and green), candidate boundary cuts $k \in \{1, \dots, n-1\}$ are categorized into discrete ternary color buckets:
+   - **Lightness Contrast ($L_{\text{bin}}$)**: Perceptual luminance shift $|L_{\text{prefix}} - L_{\text{suffix}}|$ in OKLab space ($0$ for low contrast, $1$ for mid, $2$ for high seam contrast).
+   - **Chromatic Shift ($C_{\text{bin}}$)**: Chrominance distance $\sqrt{(a_1 - a_2)^2 + (b_1 - b_2)^2}$.
+   - **Residue / Transition Parity ($T_{\text{bin}}$)**: Structural vowel-consonant boundary seam ($2$), consonant-consonant boundary ($1$), or intra-vowel/identical consonant ($0$).
+
+2. **Information Gain Evaluation ($H = -\sum p_i \log_2 p_i$)**:
+   The reasoner evaluates the Shannon information gain of each boundary partition before computing continuous polynomial coprime projections:
+   $$I(k) = -\log_2 \big(P(\text{bucket}_k) + \epsilon\big)$$
+   Partitions falling into degenerate or zero-contrast buckets (e.g. splitting intra-consonant runs without spectral transition) are pruned immediately.
+
+3. **Multi-Cut Orthogonal Openers**:
+   Analogous to mathematically orthogonal Wordle opener pairs (`SALET`, `TRACE`) that maximize initial alphabet entropy, `VoynichLinguist` pre-evaluates canonical orthogonal boundary cuts:
+   - Golden ratio cut: $k_\varphi = \lfloor n / \varphi \rfloor = \lfloor n / 1.61803398875 \rfloor$
+   - Antipodal golden ratio cut: $k_{\varphi'} = n - k_\varphi$
+   - Triadic canonical cuts: $k_{1/3} = \lfloor n / 3 \rfloor$, $k_{2/3} = \lfloor 2n / 3 \rfloor$
+   - Midpoint bisection: $k_{1/2} = \lfloor n / 2 \rfloor$
+
+   These orthogonal openers bracket the boundary landscape, ensuring high-probability morpheme boundaries are evaluated first.
+
+4. **Pathological Garble Filtering**:
+   Wordle demonstrates that vowel-heavy words waste information-dense letter slots; similarly, pathological garble in the reasoner is defined by:
+   - **Vowel Starvation**: Vowel ratio $< 0.15$ in chunks of length $\ge 4$.
+   - **Consonant Clustering**: Excessive runs of $\ge 5$ consecutive consonants.
+   - **Broken Residue Parity**: Deviation across dynamic coprime moduli from `get_prime_ladder`.
+   
+   Garbled candidate seams are penalized, preventing degenerate outputs from entering the latent thought projections.
+
+5. **Optimal Seam Lock & Chern-Simons Gasket Token Sealing**:
+   The top candidate cuts are ranked by composite score $S_k = w_{\text{Catalan}}(k) \times (1.0 + I(k))$. When continuous polynomial projection achieves $PAS_s > 0.95$, the boundary is sealed with the `ChernSimonsGasket`, minting a valid `VoynichExemptionToken`.

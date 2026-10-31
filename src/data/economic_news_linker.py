@@ -393,7 +393,8 @@ class EconomicAgentLinker:
         raw_proxy_series: List[float],
         ambient_ground_series: List[float],
         weekly_physical_wobble: float = 1.5,
-        measurement_uncertainty: float = 20.0
+        measurement_uncertainty: float = 20.0,
+        signal_type: str = "TANK_SHADOW_OIL_STORAGE"
     ) -> Dict[str, Any]:
         """
         Physical Telemetry Structural Honesty & Target Ontology Validator
@@ -417,10 +418,35 @@ class EconomicAgentLinker:
         mean_calibrated = sum(calibrated_deltas) / float(len(calibrated_deltas))
         snr = float(weekly_physical_wobble) / max(float(measurement_uncertainty), 1e-6)
         veto_triggered = float(measurement_uncertainty) > float(weekly_physical_wobble)
+        # Ontology routing mapping for physical satellite & orbital proxies
+        ontology_map = {
+            "TANK_SHADOW_OIL_STORAGE": (
+                "INFRASTRUCTURE_STORAGE_LANDLORDS (PAA, EPD, ENB)",
+                "GLOBAL_COMMODITY_FUTURES (WTI)"
+            ),
+            "TROPOSPHERIC_NO2_MANUFACTURING": (
+                "REGIONAL_MANUFACTURING_AND_PETROCHEMICAL_REFINERS",
+                "BROAD_INDEX_FUTURES (SPY)"
+            ),
+            "SAR_MARITIME_PORT_CONGESTION": (
+                "PORT_OPERATORS_AND_LOGISTICS_LANDLORDS",
+                "SPOT_FREIGHT_RATES"
+            ),
+            "NOCTURNAL_RADIANCE_GRID_STABILITY": (
+                "ELECTRIC_UTILITY_TRANSMISSION_OPERATORS",
+                "POWER_SPECULATION"
+            )
+        }
+        target_ont, rej_ont = ontology_map.get(
+            signal_type,
+            ("PHYSICAL_INFRASTRUCTURE_OPERATORS", "FINANCIAL_DERIVATIVE_SPECULATION")
+        )
+
         return {
+            "signal_type": signal_type,
             "calibrated_differential_signal": round(mean_calibrated, 4),
-            "target_ontology": "INFRASTRUCTURE_STORAGE_LANDLORDS (PAA, EPD, ENB)" if not veto_triggered else "TOPOLOGICAL_REFUSAL_NAN",
-            "rejected_ontology": "GLOBAL_COMMODITY_FUTURES (WTI)",
+            "target_ontology": target_ont if not veto_triggered else "TOPOLOGICAL_REFUSAL_NAN",
+            "rejected_ontology": rej_ont,
             "weekly_physical_wobble_mbbl": float(weekly_physical_wobble),
             "measurement_uncertainty_mbbl": float(measurement_uncertainty),
             "wobble_to_noise_snr": round(snr, 4),
