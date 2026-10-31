@@ -104,11 +104,17 @@ class UniversalOrchestrator(nn.Module):
             get_affordance_gauges,
             get_compute_affordance_telemetry,
             get_thermal_affordance,
-            ComputeAffordanceType
+            ComputeAffordanceType,
+            audit_windows_task_scheduling,
+            govern_task_priority,
+            get_scheduler_telemetry
         )
         self.check_affordance = has_compute_affordance
         self.get_affordance_gauges = get_affordance_gauges
         self.get_affordance_telemetry = get_compute_affordance_telemetry
+        self.audit_windows_task_scheduling = audit_windows_task_scheduling
+        self.govern_task_priority = govern_task_priority
+        self.get_scheduler_telemetry = get_scheduler_telemetry
         
         # Dynamical phase transition thresholds (previously hardcoded)
         self.theta_L = 0.85

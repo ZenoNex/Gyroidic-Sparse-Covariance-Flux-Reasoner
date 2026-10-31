@@ -2,8 +2,9 @@ import psutil
 import os
 import math
 import time
+import sys
 from enum import Enum
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, List
 
 class ComputeAffordanceType(str, Enum):
     """
@@ -277,6 +278,154 @@ class HardwareMonitor:
         return layout
 
     get_hardware_core_layout = get_cpu_gpu_layout
+
+    def audit_windows_task_scheduling(self) -> Dict[str, Any]:
+        """
+        Audits Windows task scheduling parameters and process/thread priority states via psutil.
+        Monitors thread contention, priority class, CPU core affinity, I/O rates, and handle pressure
+        to ensure interactive UI serving threads (diegetic terminal, 3D graph) are not starved
+        by compute-intensive background loops.
+        """
+        telemetry = {
+            "platform": sys.platform,
+            "pid": os.getpid(),
+            "priority_class_raw": 32,
+            "priority_class_name": "NORMAL",
+            "cpu_affinity": [],
+            "thread_count": 1,
+            "handle_count": 0,
+            "ionice": None,
+            "ctx_switches": {"voluntary": 0, "involuntary": 0},
+            "io_counters": {},
+            "scheduler_admissibility": 1.0,
+            "status": "nominal"
+        }
+        try:
+            p = psutil.Process()
+            # 1. Process priority class
+            nice_val = p.nice()
+            nice_int = int(getattr(nice_val, 'value', nice_val))
+            telemetry["priority_class_raw"] = nice_int
+            win_prio_map = {
+                64: "IDLE",
+                16384: "BELOW_NORMAL",
+                32: "NORMAL",
+                32768: "ABOVE_NORMAL",
+                128: "HIGH",
+                256: "REALTIME"
+            }
+            telemetry["priority_class_name"] = win_prio_map.get(nice_int, str(nice_val))
+
+            # 2. CPU affinity
+            try:
+                telemetry["cpu_affinity"] = p.cpu_affinity()
+            except Exception:
+                telemetry["cpu_affinity"] = list(range(psutil.cpu_count(logical=True) or 1))
+
+            # 3. Thread count and context switches
+            telemetry["thread_count"] = p.num_threads()
+            try:
+                ctx = p.num_ctx_switches()
+                telemetry["ctx_switches"] = {
+                    "voluntary": ctx.voluntary,
+                    "involuntary": ctx.involuntary
+                }
+            except Exception:
+                pass
+
+            # 4. Windows handle count
+            if hasattr(p, "num_handles"):
+                try:
+                    telemetry["handle_count"] = p.num_handles()
+                except Exception:
+                    pass
+
+            # 5. I/O priority & counters
+            if hasattr(p, "ionice"):
+                try:
+                    io_val = p.ionice()
+                    telemetry["ionice"] = int(getattr(io_val, 'value', io_val))
+                except Exception:
+                    pass
+            try:
+                io = p.io_counters()
+                telemetry["io_counters"] = {
+                    "read_count": io.read_count,
+                    "write_count": io.write_count,
+                    "read_bytes": io.read_bytes,
+                    "write_bytes": io.write_bytes
+                }
+            except Exception:
+                pass
+
+            # 6. Contention heuristic & scheduler admissibility
+            phys_cores = psutil.cpu_count(logical=False) or 1
+            thread_ratio = telemetry["thread_count"] / max(1, phys_cores)
+            if nice_int in (64, 16384):  # IDLE or BELOW_NORMAL
+                telemetry["scheduler_admissibility"] = 0.5
+                telemetry["status"] = "throttled_background"
+            elif thread_ratio > 8.0:
+                telemetry["scheduler_admissibility"] = max(0.4, 1.0 - (thread_ratio - 8.0) * 0.05)
+                telemetry["status"] = "high_thread_contention"
+            else:
+                telemetry["scheduler_admissibility"] = 1.0
+                telemetry["status"] = "nominal"
+
+        except Exception as e:
+            telemetry["error"] = str(e)
+            telemetry["scheduler_admissibility"] = 0.8
+
+        return telemetry
+
+    def govern_task_priority(
+        self,
+        interactive: bool = True,
+        target_priority: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Governs process and thread priority via psutil.
+        When interactive=True, ensures process priority is at least NORMAL_PRIORITY_CLASS.
+        When interactive=False, lowers to BELOW_NORMAL_PRIORITY_CLASS for background batching.
+        """
+        report = {"success": False, "previous_priority": None, "new_priority": None}
+        try:
+            p = psutil.Process()
+            prev = p.nice()
+            report["previous_priority"] = prev
+
+            target_class = getattr(psutil, "NORMAL_PRIORITY_CLASS", 32)
+            if target_priority:
+                t_upper = target_priority.upper()
+                prio_names = {
+                    "IDLE": getattr(psutil, "IDLE_PRIORITY_CLASS", 64),
+                    "BELOW_NORMAL": getattr(psutil, "BELOW_NORMAL_PRIORITY_CLASS", 16384),
+                    "NORMAL": getattr(psutil, "NORMAL_PRIORITY_CLASS", 32),
+                    "ABOVE_NORMAL": getattr(psutil, "ABOVE_NORMAL_PRIORITY_CLASS", 32768),
+                    "HIGH": getattr(psutil, "HIGH_PRIORITY_CLASS", 128),
+                }
+                target_class = prio_names.get(t_upper, target_class)
+            elif not interactive:
+                target_class = getattr(psutil, "BELOW_NORMAL_PRIORITY_CLASS", 16384)
+            else:
+                target_class = getattr(psutil, "NORMAL_PRIORITY_CLASS", 32)
+
+            p.nice(target_class)
+            report["new_priority"] = p.nice()
+            report["success"] = True
+        except Exception as e:
+            report["error"] = str(e)
+            report["new_priority"] = report["previous_priority"]
+        return report
+
+    def get_scheduler_telemetry(self) -> Dict[str, Any]:
+        """Returns consolidated Windows task scheduling and process contention telemetry."""
+        audit = self.audit_windows_task_scheduling()
+        return {
+            "status": "ok",
+            "task_scheduling": audit,
+            "thermal_guard_active": not self.thermal_runaway,
+            "recommended_batch_concurrency": max(1, min(4, (psutil.cpu_count(logical=False) or 2) // 2))
+        }
 
     def update_p2p_mesh(
         self,
@@ -964,3 +1113,16 @@ def get_headroom_dimensionality() -> int:
     except Exception as e:
         print(f"[TAHI] Headroom computation degraded: {e}")
         return 50000
+
+def audit_windows_task_scheduling() -> Dict[str, Any]:
+    """Helper function to audit Windows task scheduling and thread contention telemetry."""
+    return HardwareMonitor.get_instance().audit_windows_task_scheduling()
+
+def govern_task_priority(interactive: bool = True, target_priority: Optional[str] = None) -> Dict[str, Any]:
+    """Helper function to govern Windows process and thread priority."""
+    return HardwareMonitor.get_instance().govern_task_priority(interactive=interactive, target_priority=target_priority)
+
+def get_scheduler_telemetry() -> Dict[str, Any]:
+    """Helper function to retrieve consolidated Windows task scheduling and process contention telemetry."""
+    return HardwareMonitor.get_instance().get_scheduler_telemetry()
+

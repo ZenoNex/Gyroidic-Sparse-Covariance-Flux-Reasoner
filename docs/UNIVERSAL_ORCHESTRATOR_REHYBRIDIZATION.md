@@ -463,6 +463,22 @@ The categorical compute affordance engine from [`src/core/hardware_monitor.py`](
   - **Diegetic Terminal UX**: Embedded `#btn-toggle-autoscroll` with live state indicators, horizontal tab scrolling (`.console-tabs`), and independent right sidebar scrolling (`.sidebar.right.open`).
   - **Mandy Veto Warmstarting**: Warmstarted archetypal coordinate harvesting with `modular_attention.warmstart_mix` and `ContextAwareQuantizer` default diagnostic states to eliminate spurious `[MANDY VETO SLIP]` warnings.
 
+### 7.19 Obsidian 3D Graph Controllability & Windows Task Scheduling Governance [COMPLETE]
+* **Architectural Rehybridization Vector**:
+  - **ContextMenu Panning Unblock**: Suppressed native browser context menu on `#graph-canvas-container` (`container.oncontextmenu = e => { e.preventDefault(); return false; }`), unblocking Three.js TrackballControls Right-Click panning.
+  - **Dynamic Navigation Modes & Sensitivity**:
+    - Embedded `[MODE: ROTATE]` / `[MODE: PAN]` toggle button (`#btn-toggle-graph-mode`) in `#pane-graph`, allowing single-click drag panning without right-click or trackpad strain.
+    - Added capture-phase mousedown listener mapping `Shift + Left-Click Drag` directly to Pan.
+    - Increased `panSpeed` from default 0.3 to 2.4, `zoomSpeed` from 1.2 to 2.5, and added instant toolbar zoom controls (`[+]`, `[-]`, `[FIT VIEW]`).
+  - **Resilient Non-Destructive Refresh & Route Caching**:
+    - Eliminated blocking pre-flight fetch to `/api/index_size`.
+    - Protected `#graph-canvas-container` WebGL context from destruction on desync by routing errors to non-destructive status banner `#graph-status-banner`.
+    - Optimized [`/graph`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py) route with memory-cached responses: disk `.pt` scanning is bypassed on ordinary tab switches and polls, and triggered only when `force=true` via the new `[RESCAN DISK]` button.
+  - **Windows Task Scheduling & psutil Priority Governance**:
+    - Extended [`HardwareMonitor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py) with `audit_windows_task_scheduling()`, inspecting Windows process priority class (`p.nice()`), CPU core affinity (`p.cpu_affinity()`), thread contention ratio, handle pressure, and I/O rates.
+    - Implemented `govern_task_priority(interactive=True)` to prevent background matrix batching from starving interactive HTTP / UI threads.
+    - Exposed `/api/scheduler` endpoint and bound telemetry into [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py).
+
 ### 7.15 Gyroid Covariance Probe (GCVE) & Multi-Attention Closed-Topology Rehybridization [COMPLETE]
 * **Architectural Rehybridization Vector**:
   - **The Defect Identified**:

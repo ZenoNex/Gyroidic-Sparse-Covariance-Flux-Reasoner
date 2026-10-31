@@ -7350,13 +7350,36 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             elif base_path.startswith('/graph'):
                 try:
                     limit = int(query.get('limit', [150])[0])
-                except ValueError:
+                except (ValueError, TypeError, IndexError):
                     limit = 150
-                
-                ENGINE.graph_manager.load_fossils(limit=limit) 
-                graph_data = json.loads(ENGINE.graph_manager.export_graph_json())
-                graph_data["total_index"] = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0
-                self._send_json(graph_data)
+
+                force_reload = query.get('force', ['false'])[0].lower() in ('true', '1')
+
+                try:
+                    # Serve cached graph structure immediately unless forced or uninitialized
+                    has_nodes = bool(getattr(ENGINE.graph_manager, 'nodes', None))
+                    if force_reload or not has_nodes:
+                        ENGINE.graph_manager.load_fossils(limit=limit)
+
+                    graph_data = json.loads(ENGINE.graph_manager.export_graph_json())
+                    graph_data["total_index"] = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0
+                    graph_data["cached"] = not force_reload and has_nodes
+                    self._send_json(graph_data)
+                except Exception as e:
+                    self._send_json({
+                        "nodes": [],
+                        "links": [],
+                        "error": str(e),
+                        "total_index": len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0,
+                        "cached": False
+                    })
+                return
+            elif base_path == '/api/scheduler':
+                try:
+                    from src.core.hardware_monitor import get_scheduler_telemetry
+                    self._send_json(get_scheduler_telemetry())
+                except Exception as e:
+                    self._send_json({"status": "error", "message": str(e)})
                 return
             elif base_path == '/api/index_size':
                 size = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0

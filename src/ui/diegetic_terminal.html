@@ -1305,7 +1305,7 @@
             <div class="tab-pane" id="pane-graph"
                 style="position: relative; flex-direction: column; background: #030303; flex: 1;">
                 <div
-                    style="padding: 0.5rem 1rem; display: flex; gap: 0.8rem; border-bottom: 1px solid var(--glass-border); align-items: center; justify-content: space-between; z-index: 10; flex-wrap: wrap;">
+                    style="padding: 0.5rem 1rem; display: flex; gap: 0.6rem; border-bottom: 1px solid var(--glass-border); align-items: center; justify-content: space-between; z-index: 10; flex-wrap: wrap;">
                     <input type="text" id="graph-search" placeholder="Search fossils or tags..."
                         style="flex: 2; min-width: 150px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; outline: none;">
 
@@ -1319,15 +1319,32 @@
                     <label
                         style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888; cursor: pointer;">
                         <input type="checkbox" id="graph-include-tags" checked
-                            style="accent-color: var(--terminal-blue); cursor: pointer;" onchange="refreshGraph()">
-                        <span>NON-HIERARCHICAL TAGS</span>
+                            style="accent-color: var(--terminal-blue); cursor: pointer;" onchange="refreshGraph(false)">
+                        <span>TAGS</span>
                     </label>
 
-                    <button id="btn-toggle-graph-physics" onclick="toggleGraphPhysics()"
-                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;">PHYSICS: FROZEN</button>
+                    <button id="btn-toggle-graph-mode" onclick="toggleGraphNavigationMode()"
+                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Toggle between Rotate and Pan on Left Drag">MODE: ROTATE</button>
 
-                    <button onclick="refreshGraph(true)"
-                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; border: 1px solid var(--terminal-blue); transition: all 0.2s;">REFRESH</button>
+                    <button id="btn-graph-fit" onclick="fitGraphView()"
+                        style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); color: #ccc; padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Reset camera to fit all nodes">FIT VIEW</button>
+
+                    <button id="btn-graph-zoom-in" onclick="zoomGraph(1.4)"
+                        style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); color: #ccc; padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Zoom In">[+]</button>
+
+                    <button id="btn-graph-zoom-out" onclick="zoomGraph(0.7)"
+                        style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); color: #ccc; padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Zoom Out">[-]</button>
+
+                    <button id="btn-toggle-graph-physics" onclick="toggleGraphPhysics()"
+                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;">PHYSICS: FROZEN</button>
+
+                    <button id="btn-graph-refresh" onclick="refreshGraph(false)"
+                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Quick refresh using memory index">REFRESH</button>
+
+                    <button id="btn-graph-force-refresh" onclick="refreshGraph(true)"
+                        style="background: rgba(255, 0, 128, 0.15); border: 1px solid #ff0080; color: #ff0080; padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Force re-scan fossils from disk">RESCAN DISK</button>
+
+                    <span style="font-family: var(--font-mono); font-size: 0.65rem; color: #666; margin-left: auto;">[DRAG: Rotate | SHIFT+DRAG / RIGHT-DRAG: Pan | WHEEL: Fast Zoom]</span>
                 </div>
                 <div id="graph-container"
                     style="flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 400px; height: 100%;">
@@ -2716,6 +2733,13 @@
                     if (newTab === "graph") {
                         if (!window.Graph) {
                             refreshGraph(false);
+                        } else {
+                            setTimeout(() => {
+                                const c = document.getElementById('graph-canvas-container');
+                                if (c && c.clientWidth > 0 && c.clientHeight > 0 && window.Graph) {
+                                    window.Graph.width(c.clientWidth).height(c.clientHeight);
+                                }
+                            }, 60);
                         }
                     }
                     if (newTab === "freenet") {
@@ -3071,7 +3095,60 @@
         let graphSvg = null;
         let graphDataGlobal = null;
         let graphPhysicsFrozen = true;
+        let graphNavMode = 'rotate'; // 'rotate' | 'pan'
         const graphNodePositions = new Map();
+
+        function toggleGraphNavigationMode() {
+            graphNavMode = (graphNavMode === 'rotate') ? 'pan' : 'rotate';
+            const btn = document.getElementById('btn-toggle-graph-mode');
+            if (btn) {
+                if (graphNavMode === 'pan') {
+                    btn.innerText = "MODE: PAN";
+                    btn.style.color = "var(--terminal-green)";
+                    btn.style.borderColor = "var(--terminal-green)";
+                    btn.style.background = "rgba(0, 255, 65, 0.15)";
+                } else {
+                    btn.innerText = "MODE: ROTATE";
+                    btn.style.color = "var(--terminal-blue)";
+                    btn.style.borderColor = "var(--terminal-blue)";
+                    btn.style.background = "rgba(0, 242, 255, 0.1)";
+                }
+            }
+            if (window.Graph && window.Graph.controls()) {
+                const ctrl = window.Graph.controls();
+                if (ctrl.mouseButtons) {
+                    ctrl.mouseButtons.LEFT = (graphNavMode === 'pan') ? 2 : 0;
+                }
+            }
+        }
+
+        function zoomGraph(factor) {
+            if (!window.Graph) return;
+            try {
+                const cur = window.Graph.cameraPosition();
+                const target = (window.Graph.controls() && window.Graph.controls().target) ? window.Graph.controls().target : { x: 0, y: 0, z: 0 };
+                const dx = cur.x - target.x;
+                const dy = cur.y - target.y;
+                const dz = cur.z - target.z;
+                const newPos = {
+                    x: target.x + dx * (1 / factor),
+                    y: target.y + dy * (1 / factor),
+                    z: target.z + dz * (1 / factor)
+                };
+                window.Graph.cameraPosition(newPos, target, 250);
+            } catch (err) {
+                console.warn("[GRAPH] Zoom adjustment degraded:", err);
+            }
+        }
+
+        function fitGraphView() {
+            if (!window.Graph) return;
+            try {
+                window.Graph.zoomToFit(600, 40);
+            } catch (err) {
+                window.Graph.cameraPosition({ x: 0, y: 0, z: 500 }, { x: 0, y: 0, z: 0 }, 500);
+            }
+        }
 
         function toggleGraphPhysics() {
             if (!window.Graph) return;
@@ -3111,6 +3188,12 @@
             const container = document.getElementById('graph-canvas-container');
             if (!container) return;
 
+            // Suppress native contextmenu on graph canvas to enable smooth right-click panning
+            container.oncontextmenu = (e) => {
+                e.preventDefault();
+                return false;
+            };
+
             // Preserve existing node positions before reload
             if (window.Graph) {
                 const existing = window.Graph.graphData();
@@ -3126,7 +3209,7 @@
                 }
             }
 
-            // Show loading overlay instead of wiping container
+            // Show non-destructive loading overlay
             let loadingOverlay = document.getElementById('graph-loading-overlay');
             if (!loadingOverlay) {
                 loadingOverlay = document.createElement('div');
@@ -3134,21 +3217,20 @@
                 loadingOverlay.style.cssText = 'position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:var(--terminal-blue); font-size:0.75rem; letter-spacing:1px; z-index:100; pointer-events: none; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px;';
                 container.appendChild(loadingOverlay);
             }
-            loadingOverlay.innerText = 'RE-SCANNING FIELD...';
+            loadingOverlay.innerText = forceReload ? 'FORCE RESCANNING COGNITIVE FIELD...' : 'POLLING COGNITIVE FIELD...';
             loadingOverlay.style.display = 'block';
 
             const limitEl = document.getElementById('graph-limit');
             const includeTagsEl = document.getElementById('graph-include-tags');
 
             try {
-                // Fetch the actual index size first to utilize full O(N) headroom
-                const sizeRes = await fetch(`${state.backend_url}/api/index_size`);
-                const sizeData = await sizeRes.json();
-
                 const limit = limitEl ? parseInt(limitEl.value) || 5000 : 5000;
                 const includeTags = includeTagsEl ? includeTagsEl.checked : true;
 
-                const response = await fetch(`${state.backend_url}/graph?limit=${limit}`);
+                const response = await fetch(`${state.backend_url}/graph?limit=${limit}&force=${forceReload ? 'true' : 'false'}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
                 const data = await response.json();
                 graphDataGlobal = data;
 
@@ -3163,7 +3245,7 @@
                 const seenTags = new Set();
                 const fossilIdMap = new Map();
 
-                data.nodes.forEach(node => {
+                (data.nodes || []).forEach(node => {
                     const gNode = {
                         id: node.id,
                         label: node.label,
@@ -3243,9 +3325,9 @@
                     }
                 });
 
-                populateLinkDropdowns(data.nodes, Array.from(seenTags));
+                populateLinkDropdowns(data.nodes || [], Array.from(seenTags));
 
-                // Initialize ForceGraph3D
+                // Initialize or update ForceGraph3D
                 if (window.Graph) {
                     // Update data while respecting physics freeze state
                     if (graphPhysicsFrozen) {
@@ -3317,11 +3399,49 @@
                         .linkDirectionalParticles(link => link.type === 'resonance' ? 2 : 0)
                         .linkDirectionalParticleSpeed(d => d.weight * 0.005)
                         .graphData(gData);
+
+                    // Configure TrackballControls for high-responsiveness panning and zooming
+                    if (window.Graph.controls()) {
+                        const controls = window.Graph.controls();
+                        controls.noPan = false;
+                        controls.panSpeed = 2.4;
+                        controls.zoomSpeed = 2.5;
+                        controls.rotateSpeed = 1.6;
+                        controls.staticMoving = true;
+                        controls.dynamicDampingFactor = 0.25;
+                        if (controls.mouseButtons) {
+                            controls.mouseButtons.LEFT = (graphNavMode === 'pan') ? 2 : 0;
+                            controls.mouseButtons.MIDDLE = 1;
+                            controls.mouseButtons.RIGHT = 2;
+                        }
+                    }
+
+                    // Dynamically map Left Click to Pan when holding Shift or right click
+                    container.addEventListener('mousedown', (e) => {
+                        const ctrl = window.Graph ? window.Graph.controls() : null;
+                        if (!ctrl || !ctrl.mouseButtons) return;
+                        if (e.shiftKey || e.button === 2 || graphNavMode === 'pan') {
+                            ctrl.mouseButtons.LEFT = 2; // PAN
+                        } else {
+                            ctrl.mouseButtons.LEFT = 0; // ROTATE
+                        }
+                    }, true);
+
+                    // Add window resize listener to maintain graph aspect ratio and bounds
+                    window.addEventListener('resize', () => {
+                        if (window.Graph) {
+                            const c = document.getElementById('graph-canvas-container');
+                            if (c && c.clientWidth > 0 && c.clientHeight > 0) {
+                                window.Graph.width(c.clientWidth).height(c.clientHeight);
+                            }
+                        }
+                    });
                 }
 
                 // Setup dynamic search filter
                 const searchInput = document.getElementById('graph-search');
-                if (searchInput) {
+                if (searchInput && !searchInput.dataset.bound) {
+                    searchInput.dataset.bound = "true";
                     searchInput.addEventListener('input', () => {
                         const query = searchInput.value.toLowerCase().trim();
                         if (!window.Graph) return;
@@ -3349,7 +3469,17 @@
 
             } catch (e) {
                 console.error(e);
-                container.innerHTML = '<div style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:red; font-size:0.75rem;">COGNITIVE BUS DISCONNECT</div>';
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                let banner = document.getElementById('graph-status-banner');
+                if (!banner) {
+                    banner = document.createElement('div');
+                    banner.id = 'graph-status-banner';
+                    banner.style.cssText = 'position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: 0.72rem; color: #ff6666; background: rgba(20,0,0,0.85); border: 1px solid #ff4444; padding: 4px 10px; border-radius: 4px; z-index: 200; pointer-events: none;';
+                    container.appendChild(banner);
+                }
+                banner.innerText = `[FIELD DESYNC]: ${e.message || e}`;
+                banner.style.display = 'block';
+                setTimeout(() => { if (banner) banner.style.display = 'none'; }, 4000);
             }
         }
 
