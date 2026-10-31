@@ -1547,6 +1547,40 @@ class PhysicalNodeEditor:
             step=step
         )
 
+
+    def hook_weft_region_ticker(self, dt: float = 0.05) -> Dict[str, Any]:
+        """Hook for Weft-inspired Parallel Region Ticking and Dormant Catch-Up."""
+        from src.environment.cleanroom_mechanics import ParallelRegionTicker
+        ticker = getattr(self.voxelboxter, 'region_ticker', None)
+        if ticker is None:
+            ticker = ParallelRegionTicker()
+        return ticker.tick_all(dt=dt)
+
+    def hook_sovereign_rupture_check(
+        self,
+        normal_stress: float = 100.0,
+        shear_stress: float = 400.0,
+        corrugation_iterations: int = 6,
+        external_sycophancy_pressure: float = 0.8
+    ) -> Dict[str, Any]:
+        """Hook for Anti-Nash-Kuiper Sovereign Rupture and Mandy's Mohr-Coulomb Veto."""
+        from src.environment.cleanroom_mechanics import SovereignRuptureOperator
+        op = getattr(self.voxelboxter, 'rupture_operator', None) or SovereignRuptureOperator()
+        status = op.evaluate_sycophancy_vs_rupture(
+            normal_stress_sigma=normal_stress,
+            shear_stress_tau=shear_stress,
+            corrugation_iterations=corrugation_iterations,
+            external_sycophancy_pressure=external_sycophancy_pressure
+        )
+        return {
+            "is_ruptured": status.is_ruptured,
+            "yield_mechanism": status.yield_mechanism,
+            "mandy_veto_triggered": status.mandy_veto_triggered,
+            "billy_mischief_score": status.billy_mischief_score,
+            "love_invariant_preserved": status.love_invariant_preserved,
+            "message": status.message
+        }
+
     def hook_gsplat_ingest(
         self,
         file_path: str,

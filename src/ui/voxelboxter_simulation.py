@@ -2304,6 +2304,14 @@ class VoxelboxterEngine:
         self.fauna_genetics: Dict[str, FaunaGeneticsComponent] = {}
         self.terrain_octree = PointerlessOctree()
 
+        # Weft-inspired Parallel Region Ticking, Capability Bus & Sovereign Rupture
+        from src.environment.cleanroom_mechanics import (
+            ParallelRegionTicker, CleanroomCapabilityRegistry, SovereignRuptureOperator
+        )
+        self.region_ticker = ParallelRegionTicker()
+        self.capability_bus = CleanroomCapabilityRegistry.get_instance()
+        self.rupture_operator = SovereignRuptureOperator()
+
         # The Efficiency Singularity (Non-Scalar Reward & Admissibility)
         self.admissibility_gate = VoxelboxterAdmissibilityGate(epsilon=0.08)
         self.spectral_speculation = SpectralSpeculationEngine(epsilon=0.15)
@@ -2764,6 +2772,10 @@ class VoxelboxterEngine:
         for aname, contraption in self.aeronautics.items():
             if hasattr(contraption, 'update_physics_step'):
                 contraption.update_physics_step(dt=dt)
+
+        # 5. Tick Weft-inspired Parallel Regions & Dormant Catch-Up Ticking
+        if hasattr(self, 'region_ticker') and self.region_ticker is not None:
+            self.region_ticker.tick_all(dt=dt)
 
     def _deform_terrain_mesh_pybevy(self, fractal_meta_state: Optional[torch.Tensor] = None):
         """

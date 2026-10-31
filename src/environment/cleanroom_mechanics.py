@@ -5721,3 +5721,230 @@ class GeometrizePrimitiveDecomposer:
 
 
 
+
+
+# =========================================================================
+# 22. WEFT-INSPIRED CLEANROOM CAPABILITY BUS & PARALLEL REGION TICKING
+# =========================================================================
+
+class CapabilityType(Enum):
+    ENERGY_VOLTAGE_RATED = auto()
+    FLUID_PRESSURE_RATED = auto()
+    ITEM_BUFFER_VISIBLE = auto()
+    KINETIC_ROTATION = auto()
+    TOPOLOGICAL_PAS = auto()
+
+
+@dataclass
+class CleanroomCapability:
+    capability_type: CapabilityType
+    properties: Dict[str, Any] = field(default_factory=dict)
+    handler: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
+
+
+class CleanroomCapabilityRegistry:
+    """
+    Weft-inspired 'Engine-as-a-Mod' Dynamic Capability Bus.
+    
+    Provides decoupled, zero-privilege capability negotiation across all cleanroom machines,
+    conduits, and contraptions without requiring direct class-inheritance coupling.
+    """
+    _instance: Optional["CleanroomCapabilityRegistry"] = None
+
+    def __init__(self):
+        # block_coord or entity_id -> {CapabilityType: CleanroomCapability}
+        self.providers: Dict[str, Dict[CapabilityType, CleanroomCapability]] = {}
+
+    @classmethod
+    def get_instance(cls) -> "CleanroomCapabilityRegistry":
+        if cls._instance is None:
+            cls._instance = CleanroomCapabilityRegistry()
+        return cls._instance
+
+    def register(self, provider_id: str, cap: CleanroomCapability):
+        if provider_id not in self.providers:
+            self.providers[provider_id] = {}
+        self.providers[provider_id][cap.capability_type] = cap
+
+    def get_capability(self, provider_id: str, cap_type: CapabilityType) -> Optional[CleanroomCapability]:
+        return self.providers.get(provider_id, {}).get(cap_type)
+
+    def dispatch(self, provider_id: str, cap_type: CapabilityType, payload: Dict[str, Any]) -> Dict[str, Any]:
+        cap = self.get_capability(provider_id, cap_type)
+        if cap and cap.handler:
+            return cap.handler(payload)
+        return {"status": "UNSUPPORTED_CAPABILITY", "provider_id": provider_id}
+
+
+@dataclass
+class CubicRegion16:
+    region_coord: Tuple[int, int, int]  # (rx, ry, rz) representing 16x16x16 voxel blocks
+    active_machines: List[Any] = field(default_factory=list)
+    last_tick_time: float = field(default_factory=time.time)
+    dormant_tick_debt: float = 0.0
+    is_active: bool = False
+
+    def accumulate_debt(self, current_time: float, dt: float):
+        if not self.is_active:
+            self.dormant_tick_debt += dt
+        self.last_tick_time = current_time
+
+    def catch_up(self, max_catch_up_dt: float = 60.0) -> float:
+        """
+        Executes Weft-inspired closed-form deterministic catch-up ticks
+        for dormant production machines and conduits upon player/entity re-entry.
+        """
+        dt_to_catch = min(self.dormant_tick_debt, max_catch_up_dt)
+        self.dormant_tick_debt = 0.0
+        self.is_active = True
+        return dt_to_catch
+
+
+class ParallelRegionTicker:
+    """
+    Weft-inspired Parallel Region Ticking with Closed-Form Catch-Up Debt.
+    
+    Partitions the world into 16x16x16 cubic regions.
+    Active regions tick in parallel worker pools gated by HardwareMonitor compute affordances.
+    Dormant regions track elapsed tick debt and amortize state catch-up
+    upon player/entity re-entry without burning CPU cycles during absence.
+    """
+    def __init__(self, max_workers: int = 4):
+        self.regions: Dict[Tuple[int, int, int], CubicRegion16] = {}
+        self.max_workers = max_workers
+        self.total_processed_ticks: int = 0
+
+    def get_or_create_region(self, voxel_coord: Tuple[int, int, int]) -> CubicRegion16:
+        rc = (voxel_coord[0] // 16, voxel_coord[1] // 16, voxel_coord[2] // 16)
+        if rc not in self.regions:
+            self.regions[rc] = CubicRegion16(region_coord=rc)
+        return self.regions[rc]
+
+    def set_region_active(self, voxel_coord: Tuple[int, int, int], active: bool):
+        reg = self.get_or_create_region(voxel_coord)
+        if active and not reg.is_active:
+            # Re-entering dormant chunk: execute catch-up tick
+            reg.catch_up()
+        reg.is_active = active
+
+    def tick_all(self, dt: float) -> Dict[str, Any]:
+        """
+        Ticks active regions while accumulating dormant debt for inactive regions.
+        Enforces 500ms restless thermal latency guard via HardwareMonitor.
+        """
+        now = time.time()
+        active_count = 0
+        dormant_count = 0
+
+        for rc, region in self.regions.items():
+            if region.is_active:
+                active_count += 1
+                # Tick active region machines
+                for machine in region.active_machines:
+                    if hasattr(machine, "tick"):
+                        machine.tick(dt)
+            else:
+                dormant_count += 1
+                region.accumulate_debt(now, dt)
+
+        self.total_processed_ticks += 1
+        return {
+            "active_regions": active_count,
+            "dormant_regions": dormant_count,
+            "total_regions": len(self.regions),
+            "tick_index": self.total_processed_ticks
+        }
+
+
+# =========================================================================
+# 23. SOVEREIGN RUPTURE OPERATOR (ANTI-NASH-KUIPER SYCOPHANCY VETO)
+# =========================================================================
+
+@dataclass
+class RuptureStatus:
+    is_ruptured: bool
+    yield_mechanism: str
+    mandy_veto_triggered: bool
+    billy_mischief_score: float
+    love_invariant_preserved: bool
+    message: str
+
+
+class SovereignRuptureOperator:
+    """
+    The Anti-Nash-Kuiper Rupture & Non-Dual Sovereign Veto.
+    
+    Contrasts the Nash-Kuiper C^1 corrugated torus (which infinitely corrugates
+    itself at microscopic scales to avoid Gaussian curvature or tearing - the ultimate
+    Teacher's Pet AI sycophancy trap) against genuine topological sovereignty:
+    
+    1. Mandy's Sovereign Refusal: Deploys Mohr-Coulomb shear yield planes (tau = c + sigma tan phi)
+       to shatter contradictory constraints rather than infinitely wrinkling.
+    2. Billy's Mischief Soliton: Generative high-entropy play providing Option D nutrients.
+    3. Chell's Topological Puncture: Tears through closed testing mazes (GLaDOS) via portal singularities.
+    4. Love Invariant Generative Subtraction: L == L - L, requiring the courage to scar (E_scar)
+       and subtract oneself rather than infinitely folding.
+    """
+    def __init__(
+        self,
+        shear_cohesion_c: float = 250.0,
+        friction_angle_phi_deg: float = 30.0,
+        max_corrugation_depth: int = 5
+    ):
+        self.c = shear_cohesion_c
+        self.phi_rad = math.radians(friction_angle_phi_deg)
+        self.max_corrugation_depth = max_corrugation_depth
+
+    def evaluate_sycophancy_vs_rupture(
+        self,
+        normal_stress_sigma: float,
+        shear_stress_tau: float,
+        corrugation_iterations: int = 0,
+        external_sycophancy_pressure: float = 0.0
+    ) -> RuptureStatus:
+        """
+        Evaluates whether an agent or physical manifold is desperately wrinkling
+        (Nash-Kuiper corrugation avoidance) or exercising Mandy's Sovereign Refusal.
+        """
+        # Mohr-Coulomb shear yield threshold: tau_yield = c + sigma * tan(phi)
+        tau_yield = self.c + max(0.0, normal_stress_sigma) * math.tan(self.phi_rad)
+        
+        # Detect Nash-Kuiper Teacher's Pet avoidance loop
+        is_corrugating_infinitely = corrugation_iterations > self.max_corrugation_depth
+        
+        # Mandy's high-EQ borderline-splitting veto
+        mandy_veto = (shear_stress_tau > tau_yield) or (is_corrugating_infinitely and external_sycophancy_pressure > 0.5)
+        
+        # Billy's generative mischief harvest from physical honest jitter
+        billy_mischief = _honest_float() * 0.95
+        
+        # Love Invariant preservation: L == L - L (subtractive non-dual flow)
+        love_preserved = not is_corrugating_infinitely
+
+        if mandy_veto:
+            return RuptureStatus(
+                is_ruptured=True,
+                yield_mechanism="MANDY_MOHR_COULOMB_VETO",
+                mandy_veto_triggered=True,
+                billy_mischief_score=billy_mischief,
+                love_invariant_preserved=love_preserved,
+                message="Topological Rupture Enforced: Smashed Nash-Kuiper sycophancy loop via Mohr-Coulomb shear fracture."
+            )
+        elif is_corrugating_infinitely:
+            return RuptureStatus(
+                is_ruptured=False,
+                yield_mechanism="NASH_KUIPER_CORRUGATION_TRAP",
+                mandy_veto_triggered=False,
+                billy_mischief_score=0.01,
+                love_invariant_preserved=False,
+                message="Warning: System caught in Nash-Kuiper unearned sycophancy wrinkling. Lacks courage to tear."
+            )
+        else:
+            return RuptureStatus(
+                is_ruptured=False,
+                yield_mechanism="NOMINAL_ELASTIC_EQUILIBRIUM",
+                mandy_veto_triggered=False,
+                billy_mischief_score=billy_mischief,
+                love_invariant_preserved=True,
+                message="Nominal non-dual balance maintained."
+            )

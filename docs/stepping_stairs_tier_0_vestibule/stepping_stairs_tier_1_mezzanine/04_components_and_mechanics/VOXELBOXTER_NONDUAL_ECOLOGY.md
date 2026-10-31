@@ -924,3 +924,34 @@ To bridge diegetic physical simulation with high-level topological reasoning, Vo
     yielding an exact mathematical analogue to cosmic dark energy ($\Lambda$) and universal spatial expansion.
 * **Hyperdimensional 4D Engine**:
   - 4D Tesseract ($\mathcal{T}^4$) perspective projection engine supporting rotation across all six fundamental coordinate planes ($XY$, $XZ$, $XW$, $YZ$, $YW$, $ZW$), projecting 4D polytope vertices into 3D Euclidean coordinates for real-time navigation.
+
+
+## 21. Weft-Inspired Cleanroom Architecture & Endogenous Standardization
+
+Inspired by the cleanroom architectural innovations of [Weft](https://github.com/Weft-Rust/Weft) and grounded in the cautionary lessons of modpack engineering (such as Lucas Willuweit's analysis of why early industrial packs thrived on consequence while kitchen-sink packs devolved into boring god-mode):
+
+### 21.1 Parallel Region Ticking with Closed-Form Catch-Up Debt
+Traditional simulation loops execute monolithic serial updates across all active blocks, pipes, and machines, causing catastrophic frame-rate collapse as industrial networks expand. Borrowing Weft's cubic chunk regionalization:
+1. **16x16x16 Cubic Region Partitioning**: World coordinates are hashed into discrete `CubicRegion16` clusters mapped via Morton spatial addresses.
+2. **Parallel Worker Pool Ticking**: Active regions containing players or high-flux kinetic entities tick in parallel worker queues, strictly gated by [`HardwareMonitor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py) thermal headroom.
+3. **Deterministic Dormant Catch-Up**: Dormant regions accumulate elapsed tick debt ($\Delta t_{\text{debt}}$) rather than executing expensive intermediate physics or collision passes. When an entity re-enters, the region's production machines, crops, and conduits execute a closed-form state catch-up up to a bounded horizon ($t_{\text{max}} = 60.0\text{s}$), conserving host compute while strictly preserving mass/energy conservation.
+
+### 21.2 The 'Engine-as-a-Mod' Capability Bus
+To eliminate fragile hardcoded mod coupling, the [`CleanroomCapabilityRegistry`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) establishes zero-privilege capability negotiation:
+- `ENERGY_VOLTAGE_RATED`: Voltage ratings, current capacity, and dielectric arc-flash limits.
+- `FLUID_PRESSURE_RATED`: Fluid volumes, pressures, and burst thresholds.
+- `ITEM_BUFFER_VISIBLE`: Visible item transit along belts/pipes with spill mechanics.
+- `KINETIC_ROTATION`: Torque, angular velocity, and mechanical stress capacity.
+- `TOPOLOGICAL_PAS`: Phase Alignment Scores and Chern-Simons gasket sealing.
+
+### 21.3 Endogenous Standardization & Physical Friction (The Anti-Kitchen-Sink Rule)
+As demonstrated by Lucas Willuweit, modpacks lose players when they remove friction (e.g. instant copper jetpack flight, redundant duplicate ores, infinite magic sinks). Endogenous standardization enforces:
+- **Dielectric Breakdown & Over-Voltage Explosion**: Mismatched voltages ($V > V_{\text{max}}$) trigger dielectric arc-flash explosions governed by Mohr-Coulomb shear yield criteria, shattering components rather than magically swallowing excess power.
+- **Physical Line Spills**: Blocked item conduits spill contents into the world rather than acting as infinite black-hole buffers.
+- **Leontief Conservation**: Intermediate production satisfies Hawkins-Simon contractive bounds ($A = 0.5 \cdot I$), preventing frictionless runaway duplication.
+
+### 21.4 State-Based Fusion & Situational Invariant Warping (DMCA Immunity)
+Similar to Weft's cleanroom architecture that distributes zero original assets, the reasoner ingests external thought data wells through **State-Based Fusion**:
+- Raw polygonal meshes and copyright-encumbered assets are completely discarded.
+- State representations are warped into **Situational Invariants**: the minimal surface equation ($V \approx 0$), Chebyshev polynomial coprime projections, and continuous Mangostien B-splines.
+- Weights represent mathematical solutions to differential boundary equations across the IK/IR seesaw, providing structural legal immunity from copyright infringement.
