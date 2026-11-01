@@ -237,6 +237,7 @@ def ensure_ffmpeg_binary() -> str:
 
 class GovernanceManager:
     """Manages Gyroidic process identification, port selection, and lifecycle."""
+    _searxng_proc = None
     
     @staticmethod
     def find_existing_processes():
@@ -352,6 +353,102 @@ class GovernanceManager:
             }
 
     @staticmethod
+    def is_searxng_installed() -> bool:
+        """Check if SearXNG is installed inside WSL Ubuntu on D: or default rootfs."""
+        if sys.platform != 'win32':
+            return False
+        if os.path.exists(r"D:\WSL\Ubuntu\ext4.vhdx"):
+            return True
+        try:
+            res = subprocess.run(
+                ["wsl", "-d", "Ubuntu", "--", "test", "-f", "/usr/local/searxng/searx-pyenv/bin/python"],
+                capture_output=True,
+                timeout=3,
+                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
+            )
+            return res.returncode == 0
+        except Exception:
+            return False
+
+    @staticmethod
+    def is_searxng_running(url: str = "http://127.0.0.1:8888") -> bool:
+        """Check if SearXNG is active and responding on its HTTP endpoint."""
+        try:
+            import urllib.request
+            req = urllib.request.Request(f"{url.rstrip('/')}/")
+            with urllib.request.urlopen(req, timeout=1.5) as resp:
+                return resp.status == 200
+        except Exception:
+            return False
+
+    @staticmethod
+    def start_searxng() -> bool:
+        """Boot up SearXNG daemon in WSL if installed and not already listening."""
+        if not GovernanceManager.is_searxng_installed():
+            return False
+        if GovernanceManager.is_searxng_running():
+            print("[SEARXNG] SearXNG instance already active on http://127.0.0.1:8888.")
+            return True
+
+        print("[SEARXNG] Booting SearXNG service inside WSL (D:\\WSL\\Ubuntu)...", flush=True)
+        try:
+            creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
+            cmd = [
+                "wsl", "-d", "Ubuntu", "--",
+                "env", "SEARXNG_SETTINGS_PATH=/etc/searxng/settings.yml",
+                "/usr/local/searxng/searx-pyenv/bin/python", "-m", "searx.webapp"
+            ]
+            GovernanceManager._searxng_proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=creation_flags
+            )
+            
+            # Poll for readiness up to 18 seconds (cold start)
+            for _ in range(36):
+                time.sleep(0.5)
+                if GovernanceManager.is_searxng_running():
+                    print("[SEARXNG] SearXNG successfully booted and listening on http://127.0.0.1:8888.", flush=True)
+                    return True
+            print("[SEARXNG] SearXNG process spawned in WSL. Awaiting full worker readiness...", flush=True)
+            return True
+        except Exception as e:
+            print(f"[SEARXNG] Failed to start SearXNG in WSL: {e}", flush=True)
+            return False
+
+    @staticmethod
+    def stop_searxng():
+        """Gracefully terminate SearXNG daemon in WSL."""
+        if sys.platform == 'win32' and GovernanceManager.is_searxng_installed():
+            if not GovernanceManager.is_searxng_running() and GovernanceManager._searxng_proc is None:
+                return
+            print("[SEARXNG] Terminating SearXNG daemon in WSL...", flush=True)
+            if GovernanceManager._searxng_proc is not None:
+                try:
+                    GovernanceManager._searxng_proc.terminate()
+                    GovernanceManager._searxng_proc.wait(timeout=2)
+                except Exception:
+                    try:
+                        GovernanceManager._searxng_proc.kill()
+                    except Exception:
+                        pass
+                GovernanceManager._searxng_proc = None
+
+            try:
+                creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
+                subprocess.run(
+                    ["wsl", "-d", "Ubuntu", "--", "pkill", "-f", "searx.webapp"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=5,
+                    creationflags=creation_flags
+                )
+                print("[SEARXNG] SearXNG daemon stopped.", flush=True)
+            except Exception as e:
+                print(f"[SEARXNG] Error stopping SearXNG: {e}", flush=True)
+
+    @staticmethod
     def get_autostart_status():
         """Check if background autorun/autostart is currently enabled on the system."""
         info = GovernanceManager.get_autostart_paths()
@@ -394,6 +491,7 @@ class GovernanceManager:
                     print(f"[FAIL] Failed to enable Windows autorun: {e}")
                     return False
             else:
+                GovernanceManager.stop_searxng()
                 if os.path.exists(target_file):
                     try:
                         os.remove(target_file)
@@ -3863,6 +3961,7 @@ def stop_servers():
         except Exception:
             pass
     SERVER_INSTANCES.clear()
+    GovernanceManager.stop_searxng()
 
 import atexit
 
@@ -4020,13 +4119,22 @@ def main():
     except Exception:
         pass
 
-    def _sigterm_handler(signum, frame):
+    # Boot SearXNG daemon if installed in WSL and available
+    try:
+        GovernanceManager.start_searxng()
+    except Exception as e:
+        print(f"[SEARXNG] Startup auto-boot check note: {e}")
+
+    def _graceful_interrupt_handler(signum, frame):
+        print(f"\n[INTERRUPT] Received system signal {signum}. Triggering graceful shutdown...", flush=True)
         raise KeyboardInterrupt
 
-    try:
-        signal.signal(signal.SIGTERM, _sigterm_handler)
-    except Exception:
-        pass
+    for sig_name in ('SIGTERM', 'SIGINT', 'SIGBREAK'):
+        if hasattr(signal, sig_name):
+            try:
+                signal.signal(getattr(signal, sig_name), _graceful_interrupt_handler)
+            except Exception:
+                pass
 
     for port in active_ports:
         t = threading.Thread(target=start_server, args=(port,), daemon=True, name=f"ServerThread-{port}")

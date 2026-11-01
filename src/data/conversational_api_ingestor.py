@@ -1324,6 +1324,9 @@ class SovereignConversationalIngestor:
                     except Exception as img_err:
                         print(f" [VISUAL] Local Image drip suspended gracefully: {img_err}")
                         break
+                    except Exception as img_err:
+                        print(f" [VISUAL] Local Image drip suspended gracefully: {img_err}")
+                        break
                 
                 time.sleep(sleep_interval)
                 

@@ -9884,18 +9884,56 @@ def main():
     class ThreadingSimpleServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
         daemon_threads = True
         
+    # Boot SearXNG daemon if installed in WSL and available
+    try:
+        from hybrid_backend import GovernanceManager
+        GovernanceManager.start_searxng()
+    except Exception as e:
+        print(f"[SEARXNG] Diegetic startup auto-boot check note: {e}")
+
+    def _diegetic_sig_handler(signum, frame):
+        print(f"\n[DIEGETIC] Signal {signum} received. Triggering graceful shutdown...", flush=True)
+        if 'httpd' in locals():
+            try:
+                httpd.shutdown()
+            except Exception:
+                pass
+        raise KeyboardInterrupt
+
+    import signal
+    for sig_name in ('SIGTERM', 'SIGINT', 'SIGBREAK'):
+        if hasattr(signal, sig_name):
+            try:
+                signal.signal(getattr(signal, sig_name), _diegetic_sig_handler)
+            except Exception:
+                pass
+
     try:
         httpd = ThreadingSimpleServer(server_address, RequestHandler)
         print(f"Server safely bound to http://{server_address[0]}:{server_address[1]}")
         httpd.serve_forever()
     except KeyboardInterrupt:
-        pass
+        print("\n[DIEGETIC] Keyboard interrupt received. Exiting gracefully...", flush=True)
     except Exception as e:
         print(f"Server initialization failed: {e}")
     finally:
         if 'httpd' in locals():
+            try:
+                httpd.shutdown()
+            except Exception:
+                pass
             httpd.server_close()
             print("Server stopped.")
+        if os.path.exists(pid_file):
+            try:
+                os.remove(pid_file)
+            except Exception:
+                pass
+        try:
+            from hybrid_backend import GovernanceManager
+            GovernanceManager.stop_searxng()
+        except Exception:
+            pass
 
 if __name__ == '__main__':
     main()
