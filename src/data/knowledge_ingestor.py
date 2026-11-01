@@ -899,7 +899,7 @@ class ArXivSovereignIngestor:
         if not cleaned_query or len(cleaned_query) < 3 or not any(c in "aeiouyAEIOUY" for c in cleaned_query):
             cleaned_query = self._get_dynamic_fallback()
             
-        configured_url = searxng_url or os.environ.get("SEARXNG_URL")
+        configured_url = searxng_url or os.environ.get("SEARXNG_URL", "http://127.0.0.1:8888")
         
         web_results = []
         source_label = "Open Web"
