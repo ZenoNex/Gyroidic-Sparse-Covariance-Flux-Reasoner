@@ -100,3 +100,35 @@ def test_api_progress_and_hardware_telemetry():
     assert "gpu" in layout
     assert layout["cpu"]["physical_cores"] >= 1
     assert isinstance(layout["gpu"]["devices"], list)
+
+
+def test_hybrid_and_diegetic_handlers_expose_progress_route():
+    """Verify that both HybridHandler and DiegeticRequestHandler route /api/progress without 404."""
+    import json
+    from hybrid_backend import HybridHandler
+    from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
+
+    # Test HybridHandler routing
+    mock_hybrid = MagicMock(spec=HybridHandler)
+    mock_hybrid.path = "/api/progress"
+    sent_data = []
+    mock_hybrid._send_json = lambda d: sent_data.append(d)
+    mock_hybrid._send_error_json = lambda err, code=500: sent_data.append({"error": err, "code": code})
+    
+    HybridHandler.do_GET(mock_hybrid)
+    assert len(sent_data) == 1
+    assert sent_data[0].get("status") == "ok"
+    assert "progress" in sent_data[0]
+
+    # Test DiegeticRequestHandler routing
+    mock_diegetic = MagicMock(spec=DiegeticRequestHandler)
+    mock_diegetic.path = "/api/progress"
+    d_sent_data = []
+    mock_diegetic._send_json = lambda d: d_sent_data.append(d)
+    mock_diegetic._send_error_json = lambda err, code=500: d_sent_data.append({"error": err, "code": code})
+    
+    DiegeticRequestHandler.do_GET(mock_diegetic)
+    assert len(d_sent_data) == 1
+    assert d_sent_data[0].get("status") == "ok"
+    assert "progress" in d_sent_data[0]
+

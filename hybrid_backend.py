@@ -826,6 +826,9 @@ class HybridAI:
             config.setdefault('bg_scientific_learning', False)
             config.setdefault('suppress_narration', True)
             
+        from src.core.hardware_monitor import budget_cpu_threads
+        budget_cpu_threads()
+        
         from src.core import DEVICE
         self.device = DEVICE
         # Torch tensors still use cpu when device is 'opencl' — PyOpenCL ops run via TailSlayer kernels
@@ -1584,6 +1587,19 @@ class HybridAI:
         if scaled:
             return (jitter_tensor - 0.5) * 0.1
         return jitter_tensor
+
+    def get_generation_progress(self) -> dict:
+        if hasattr(self, 'engine') and self.engine and hasattr(self.engine, 'get_generation_progress'):
+            return self.engine.get_generation_progress()
+        return {
+            "is_generating": False,
+            "step": 0,
+            "total": 0,
+            "percent": 0.0,
+            "chars": 0,
+            "recent": "",
+            "elapsed_sec": 0.0
+        }
 
     def process_text(self, text: str, video_dyad_b64: str = None, commutativity: str = 'non_commutative', fingerprint: dict = None, audio_dyad: dict = None, regime: str = 'goo', tag_weights: dict = None, ingestion_mode: bool = False) -> dict:
         # Override parameters if they match standard defaults and custom settings were chosen at startup
@@ -2482,7 +2498,8 @@ class HybridAI:
         if hasattr(self, 'voynich_linguist') and self.voynich_linguist is not None:
             try:
                 with torch.no_grad():
-                    _, v_glyphs, _ = self.voynich_linguist(hidden_state.unsqueeze(0) if hidden_state.dim() == 1 else hidden_state)
+                    v_res = self.voynich_linguist(hidden_state.unsqueeze(0) if hidden_state.dim() == 1 else hidden_state)
+                    v_glyphs = v_res[1] if isinstance(v_res, tuple) and len(v_res) >= 2 else (v_res if isinstance(v_res, torch.Tensor) else None)
                     if v_glyphs is not None:
                         hidden_state = 0.9 * hidden_state + 0.1 * v_glyphs.flatten()[:hidden_state.shape[-1]]
             except Exception:
@@ -2612,7 +2629,8 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 '/wikipedia-trainer', '/api/index_size', '/api/splats/scan',
                 '/api/fs/drives', '/api/security/creator_status', '/api/security/status',
                 '/api/tags', '/api/state', '/api/madoc/info', '/benchmark_dashboard.html',
-                '/api/affordances', '/api/bulletin_board'
+                '/api/affordances', '/api/bulletin_board', '/api/progress',
+                '/api/hardware', '/api/gpus', '/api/scheduler'
             ]
             or parsed_path.path.startswith('/api/freenet/')
             or parsed_path.path.startswith('/api/bonfire/')
@@ -2748,6 +2766,32 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         elif parsed_path.path == '/api/rss/feeds':
             from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
             DiegeticRequestHandler.do_GET(self)
+            return
+        elif parsed_path.path == '/api/progress':
+            try:
+                prog = {"is_generating": False}
+                if AI_SYSTEM and hasattr(AI_SYSTEM, 'engine') and AI_SYSTEM.engine:
+                    prog = AI_SYSTEM.engine.get_generation_progress()
+                elif AI_SYSTEM and hasattr(AI_SYSTEM, 'get_generation_progress'):
+                    prog = AI_SYSTEM.get_generation_progress()
+                self._send_json({'status': 'ok', 'progress': prog})
+            except Exception as e:
+                self._send_error_json(str(e), 500)
+            return
+        elif parsed_path.path in ('/api/hardware', '/api/gpus'):
+            try:
+                from src.core.hardware_monitor import get_cpu_gpu_layout
+                layout = get_cpu_gpu_layout()
+                self._send_json({'status': 'ok', 'layout': layout})
+            except Exception as e:
+                self._send_error_json(str(e), 500)
+            return
+        elif parsed_path.path == '/api/scheduler':
+            try:
+                from src.core.hardware_monitor import get_scheduler_telemetry
+                self._send_json(get_scheduler_telemetry())
+            except Exception as e:
+                self._send_json({'status': 'error', 'message': str(e)})
             return
         elif parsed_path.path == '/api/viewer/launch':
             from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler

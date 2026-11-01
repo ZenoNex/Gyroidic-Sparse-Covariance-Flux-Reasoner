@@ -2289,13 +2289,27 @@ class DiegeticPhysicsEngine(nn.Module):
                         if ord(v) < logits.shape[-1]:
                             logits[0, ord(v)] *= 0.3 # Suppress consecutive vowels
 
+                # Numerical stability guard: ensure logits and probs contain no NaN/Inf
+                logits = torch.nan_to_num(logits, nan=0.0, posinf=40.0, neginf=-40.0)
+                logits = torch.clamp(logits, -40.0, 40.0)
                 probs = torch.softmax(logits, dim=-1)
-                char_idx = torch.multinomial(probs[0], 1).item()
+                probs = torch.nan_to_num(probs, nan=0.0, posinf=0.0, neginf=0.0)
+                p_sum = probs[0].sum()
+                if p_sum <= 1e-8 or torch.isnan(p_sum) or torch.isinf(p_sum):
+                    probs = torch.ones_like(probs) / probs.shape[-1]
+                else:
+                    probs = probs / p_sum
+
+                try:
+                    char_idx = torch.multinomial(probs[0], 1).item()
+                except Exception:
+                    char_idx = int(torch.argmax(probs[0]).item())
                 char = self._idx_to_char(char_idx)
                 dream_chars.append(char)
                 
                 energy_sum += torch.norm(current_state).item()
-                conf_sum += conf.item()
+                conf_val = conf.item() if isinstance(conf, torch.Tensor) and not torch.isnan(conf).any() else 0.5
+                conf_sum += conf_val
                 
                 if len(dream_chars) >= 40 and char in ('.', '!', '?'):
                     break
@@ -2308,6 +2322,8 @@ class DiegeticPhysicsEngine(nn.Module):
                     current_state = 0.85 * current_state + 0.1 * feedback + 0.05 * audience_guidance + 0.02 * self._harvest_honest_jitter(current_state.shape)
                 else:
                     current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * self._harvest_honest_jitter(current_state.shape)
+                current_state = torch.nan_to_num(current_state, nan=0.0, posinf=10.0, neginf=-10.0)
+                current_state = torch.clamp(current_state, -10.0, 10.0)
 
                 # Live progress heartbeat to stdout and progress tracker every 15 chars
                 if (i + 1) % 15 == 0 or i == dynamic_max_len - 1:
@@ -7497,7 +7513,15 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 return
             elif base_path == '/api/progress':
                 try:
-                    prog = ENGINE.get_generation_progress() if ENGINE else {"is_generating": False}
+                    engine_inst = ENGINE
+                    if not engine_inst:
+                        try:
+                            import hybrid_backend
+                            if hybrid_backend.AI_SYSTEM and hasattr(hybrid_backend.AI_SYSTEM, 'engine') and hybrid_backend.AI_SYSTEM.engine:
+                                engine_inst = hybrid_backend.AI_SYSTEM.engine
+                        except Exception:
+                            pass
+                    prog = engine_inst.get_generation_progress() if engine_inst else {"is_generating": False}
                     self._send_json({"status": "ok", "progress": prog})
                 except Exception as e:
                     self._send_error_json(str(e), 500)
