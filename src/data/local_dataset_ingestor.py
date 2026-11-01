@@ -45,10 +45,27 @@ class LocalDatasetIngestor:
         cifar_path.mkdir(parents=True, exist_ok=True)
         tar_path = cifar_path / 'cifar-100-python.tar.gz'
         
-        if not tar_path.exists():
+        def _robust_download(url, dest_path):
             import ssl
-            ssl._create_default_https_context = ssl._create_unverified_context
-            urllib.request.urlretrieve("https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz", tar_path)
+            ctx = ssl._create_unverified_context()
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            temp_path = dest_path.with_suffix('.tmp')
+            with urllib.request.urlopen(req, context=ctx, timeout=60) as resp, open(temp_path, 'wb') as out_f:
+                while True:
+                    chunk = resp.read(1048576)
+                    if not chunk:
+                        break
+                    out_f.write(chunk)
+            if dest_path.exists():
+                dest_path.unlink()
+            temp_path.replace(dest_path)
+
+        if not tar_path.exists():
+            try:
+                _robust_download("https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz", tar_path)
+            except Exception as dl_err:
+                print(f" CIFAR-100 initial download failed: {dl_err}")
+                return
             
         print(" Extracting CIFAR-100...")
         try:
@@ -58,11 +75,13 @@ class LocalDatasetIngestor:
             print(f" Corrupt archive detected ({e}). Re-downloading CIFAR-100...")
             if tar_path.exists():
                 tar_path.unlink()
-            import ssl
-            ssl._create_default_https_context = ssl._create_unverified_context
-            urllib.request.urlretrieve("https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz", tar_path)
-            with tarfile.open(tar_path, 'r:gz') as tar:
-                tar.extractall(path=cifar_path)
+            try:
+                _robust_download("https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz", tar_path)
+                with tarfile.open(tar_path, 'r:gz') as tar:
+                    tar.extractall(path=cifar_path)
+            except Exception as retry_err:
+                print(f" CIFAR-100 re-download failed: {retry_err}")
+                return
             
         image_dir = cifar_path / 'images'
         image_dir.mkdir(exist_ok=True)

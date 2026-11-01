@@ -352,22 +352,37 @@ class ArXivSovereignIngestor:
         """Downloads the ArXiv source tarball and extracts embedded images (max 10)."""
         url = f"https://export.arxiv.org/e-print/{arxiv_id}"
         images = []
-        try:
-            # Respect ArXiv's rate limits for source downloads
-            self._wait_for_rate_limit()
-            response = requests.get(url, stream=True, timeout=15)
-            if response.status_code == 200:
-                # We do this in-memory to prevent disk pollution
-                with tarfile.open(fileobj=io.BytesIO(response.content), mode="r:gz") as tar:
-                    for member in tar.getmembers():
-                        if member.name.lower().endswith(('.png', '.jpg', '.jpeg')):
-                            f = tar.extractfile(member)
-                            if f:
-                                images.append(f.read())
-                                if len(images) >= 10: # Capped to prevent OOM
-                                    break
-        except Exception as e:
-            print(f" [LORE] Source extraction failed for {arxiv_id}: {e}")
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) GyroidicReasoner/1.0 (academic research)'
+        }
+        for attempt in range(2):
+            try:
+                # Respect ArXiv's rate limits for source downloads
+                self._wait_for_rate_limit()
+                response = requests.get(url, stream=True, timeout=30, headers=headers)
+                if response.status_code == 200:
+                    # Stream chunks safely into memory buffer to prevent IncompleteRead exceptions
+                    buf = io.BytesIO()
+                    for chunk in response.iter_content(chunk_size=65536):
+                        if chunk:
+                            buf.write(chunk)
+                    buf.seek(0)
+                    with tarfile.open(fileobj=buf, mode="r:*") as tar:
+                        for member in tar.getmembers():
+                            if member.name.lower().endswith(('.png', '.jpg', '.jpeg')):
+                                f = tar.extractfile(member)
+                                if f:
+                                    images.append(f.read())
+                                    if len(images) >= 10: # Capped to prevent OOM
+                                        break
+                    break
+                elif response.status_code in (403, 404, 429):
+                    break
+            except Exception as e:
+                if attempt == 0:
+                    time.sleep(1.0)
+                    continue
+                print(f" [LORE] Source extraction failed for {arxiv_id}: {e}")
         return images
 
     def _compute_multimodal_fingerprint(self, image_bytes_list: List[bytes]) -> torch.Tensor:

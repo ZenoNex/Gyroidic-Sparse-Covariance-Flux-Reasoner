@@ -1321,6 +1321,9 @@ class SovereignConversationalIngestor:
                         # Reset generator if exhausted or loop back
                         cifar_drip = self.local_images.cifar10_generator(limit=5000)
                         break
+                    except Exception as img_err:
+                        print(f" [VISUAL] Local Image drip suspended gracefully: {img_err}")
+                        break
                 
                 time.sleep(sleep_interval)
                 
