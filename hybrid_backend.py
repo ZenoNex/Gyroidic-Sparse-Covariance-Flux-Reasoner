@@ -373,13 +373,16 @@ class GovernanceManager:
     @staticmethod
     def is_searxng_running(url: str = "http://127.0.0.1:8888") -> bool:
         """Check if SearXNG is active and responding on its HTTP endpoint."""
-        try:
-            import urllib.request
-            req = urllib.request.Request(f"{url.rstrip('/')}/")
-            with urllib.request.urlopen(req, timeout=1.5) as resp:
-                return resp.status == 200
-        except Exception:
-            return False
+        for target_url in (url, "http://localhost:8888"):
+            try:
+                import urllib.request
+                req = urllib.request.Request(f"{target_url.rstrip('/')}/")
+                with urllib.request.urlopen(req, timeout=1.5) as resp:
+                    if resp.status == 200:
+                        return True
+            except Exception:
+                pass
+        return False
 
     @staticmethod
     def start_searxng() -> bool:
@@ -3988,6 +3991,7 @@ atexit.register(clean_exit_handler)
 def main():
     """Start the Gyroidic Backend with Governance and Persistence."""
     global AI_SYSTEM, FOSSIL_SAVED
+    import signal
 
     # Parse command line flags for sovereign node accounts and external flashdrives
     import argparse
@@ -4163,7 +4167,6 @@ def main():
         print("!" * 50)
         
         # Prevent double-interrupt from corrupting the save
-        import signal
         original_sigint = signal.getsignal(signal.SIGINT)
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         

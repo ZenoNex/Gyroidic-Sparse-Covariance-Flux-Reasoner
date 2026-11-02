@@ -929,8 +929,19 @@ class ArXivSovereignIngestor:
             params = {"q": cleaned_query, "format": "json"}
             try:
                 print(f"[INGEST] Performing SearXNG web search for: '{cleaned_query}' at {configured_url}...")
-                response = requests.get(configured_url, params=params, timeout=10)
-                if response.status_code == 200:
+                # Transient retry guard with 1.0s backoff in case SearXNG is mid-boot or socket handoff
+                response = None
+                for attempt in range(2):
+                    try:
+                        response = requests.get(configured_url, params=params, timeout=8)
+                        break
+                    except (requests.ConnectionError, requests.Timeout):
+                        if attempt == 0:
+                            time.sleep(1.0)
+                            continue
+                        raise
+
+                if response and response.status_code == 200:
                     data = response.json()
                     if isinstance(data, dict) and "results" in data:
                         raw_results = data.get("results", [])
@@ -940,7 +951,7 @@ class ArXivSovereignIngestor:
                             if u:
                                 web_results.append({'url': u, 'title': t, 'content': None})
                         source_label = "SearXNG"
-                else:
+                elif response:
                     print(f"[INGEST] SearXNG responded with HTTP {response.status_code}. Using Open Web Knowledge access.")
             except Exception as e:
                 print(f"[INGEST] SearXNG instance unreachable ({e}). Using Open Web Knowledge access.")
