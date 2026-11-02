@@ -94,19 +94,39 @@ class PolynomialCRT(nn.Module):
         # 2. Use polynomial coefficients as 'primes' for modular reconstruction
         # In a real CRT, we need M_k = M / m_k. 
         # Here we use the functional weights as proxies for the algebraic kernels.
+        # Adapt weights to input K dimension (RESIDUE_SHAPE_COMPATIBILITY)
+        k_in = residue_distributions.shape[1]
         weights_fp = (self.recon_weights * self.scaling_factor).to(torch.int64)
+        if weights_fp.shape[0] != k_in:
+            if weights_fp.shape[0] > k_in:
+                weights_fp = weights_fp[:k_in]
+            else:
+                pad_val = max(1, int(weights_fp.float().mean().item()))
+                pad = torch.full((k_in - weights_fp.shape[0],), pad_val, dtype=torch.int64, device=device)
+                weights_fp = torch.cat([weights_fp, pad])
         
         if trust_scalars is not None:
             trust_fp = (trust_scalars * self.scaling_factor).to(torch.int64)
+            if trust_fp.shape[-1] != k_in:
+                if trust_fp.shape[-1] > k_in:
+                    trust_fp = trust_fp[..., :k_in]
+                else:
+                    pad_ts = trust_fp.float().mean(dim=-1, keepdim=True).to(torch.int64).repeat(1, k_in - trust_fp.shape[-1])
+                    trust_fp = torch.cat([trust_fp, pad_ts], dim=-1)
             weights_fp = (weights_fp * trust_fp) // self.scaling_factor
             
         if veto_mask is not None:
             # Mask out vetoed channels [B, K]
-            # Convert bool/float mask to 0/1 multiplier
             mask_multiplier = (~veto_mask).to(torch.int64)
-            weights_fp = weights_fp.view(1, self.K) * mask_multiplier
+            if mask_multiplier.shape[-1] != k_in:
+                if mask_multiplier.shape[-1] > k_in:
+                    mask_multiplier = mask_multiplier[..., :k_in]
+                else:
+                    pad_m = torch.ones((mask_multiplier.shape[0], k_in - mask_multiplier.shape[-1]), dtype=torch.int64, device=device)
+                    mask_multiplier = torch.cat([mask_multiplier, pad_m], dim=-1)
+            weights_fp = weights_fp.view(1, k_in) * mask_multiplier
         else:
-            weights_fp = weights_fp.view(1, self.K)
+            weights_fp = weights_fp.view(1, k_in)
 
         # 3. Summation: L = sum(r_k * W_k)
         # In fixed-point: (r * S) * (W * S) / S = (r * W * S)
@@ -163,16 +183,36 @@ class PolynomialCRT(nn.Module):
             expected_residues = residue_distributions
         
         # Polynomial CRT reconstruction (Symbolic-weighted)
+        # Adapt weights to input K dimension (RESIDUE_SHAPE_COMPATIBILITY)
+        k_in = residue_distributions.shape[1]
         weights = self.recon_weights.unsqueeze(0)  # [1, K]
+        if weights.shape[1] != k_in:
+            if weights.shape[1] > k_in:
+                weights = weights[:, :k_in]
+            else:
+                pad = weights.mean(dim=1, keepdim=True).repeat(1, k_in - weights.shape[1])
+                weights = torch.cat([weights, pad], dim=1)
         if trust_scalars is not None:
+            if trust_scalars.shape[-1] != k_in:
+                if trust_scalars.shape[-1] > k_in:
+                    trust_scalars = trust_scalars[..., :k_in]
+                else:
+                    pad_ts = trust_scalars.mean(dim=-1, keepdim=True).repeat(1, k_in - trust_scalars.shape[-1])
+                    trust_scalars = torch.cat([trust_scalars, pad_ts], dim=-1)
             weights = weights * trust_scalars
             
         if veto_mask is not None:
             # Apply Meliponini isolation (Cerumen mask)
-            weights = weights * (~veto_mask).float()
+            vm = (~veto_mask).float()
+            if vm.shape[-1] != k_in:
+                if vm.shape[-1] > k_in:
+                    vm = vm[..., :k_in]
+                else:
+                    pad_v = torch.ones((vm.shape[0], k_in - vm.shape[-1]), device=vm.device)
+                    vm = torch.cat([vm, pad_v], dim=-1)
+            weights = weights * vm
             
         weights = weights / (weights.sum(dim=1, keepdim=True) + 1e-8)
-
         reconstruction = torch.sum(
             weights.unsqueeze(-1) * expected_residues,
             dim=1

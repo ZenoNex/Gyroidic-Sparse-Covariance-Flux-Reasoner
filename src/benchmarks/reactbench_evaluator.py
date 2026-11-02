@@ -67,7 +67,8 @@ class ReactBenchEvaluator:
         ReactBench demands tracking separate reactions converging into one state.
         Tests fixed_point_reconstruction and reconstruction pressure from PolynomialCRT.
         """
-        residues = torch.tensor([[branch_a, branch_b, branch_a, branch_b]], dtype=torch.float32, device=self.device)
+        branches = [branch_a if j % 2 == 0 else branch_b for j in range(self.k)]
+        residues = torch.tensor([branches], dtype=torch.float32, device=self.device)
         
         # The CRT synthesizes a single coherent polynomial output from distinct branches
         _ = self.crt.fixed_point_reconstruction(residues)
@@ -83,7 +84,8 @@ class ReactBenchEvaluator:
         """
         Tests cycle retention without signal loss using the CRT modal reconstruction.
         """
-        residues = torch.as_tensor([pathways], dtype=torch.float32, device=self.device)
+        adapted_pathways = [pathways[j % len(pathways)] for j in range(self.k)] if len(pathways) != self.k else pathways
+        residues = torch.as_tensor([adapted_pathways], dtype=torch.float32, device=self.device)
         
         # In modal CRT, consistent lattice solutions are selected
         reconstruction, _ = self.crt.forward(residues, mode='modal', return_diagnostics=True)

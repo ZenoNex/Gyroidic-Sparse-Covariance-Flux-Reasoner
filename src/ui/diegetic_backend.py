@@ -1501,12 +1501,13 @@ class DiegeticPhysicsEngine(nn.Module):
 
         def _loop():
             # Wait for system startup to stabilize
-            time.sleep(10)
-            while True:
+            if hasattr(self, '_shutdown_event') and self._shutdown_event.wait(timeout=10):
+                return
+            while not (hasattr(self, '_shutdown_event') and self._shutdown_event.is_set()):
                 try:
                     # Yield completely if engine is serving a user or in temporal training
                     if getattr(self, '_is_processing', False) or getattr(self, '_is_training_temporal', False):
-                        time.sleep(5)
+                        if hasattr(self, '_shutdown_event') and self._shutdown_event.wait(timeout=5): break
                         continue
 
                     # Dynamic McKenna Deconstruction trigger:
@@ -1538,7 +1539,7 @@ class DiegeticPhysicsEngine(nn.Module):
                     # Supplement with fossil cache samples
                     cache = getattr(self, 'fossil_cache', [])
                     if not replay_texts and not cache:
-                        time.sleep(30)
+                        if hasattr(self, '_shutdown_event') and self._shutdown_event.wait(timeout=30): break
                         continue
 
                     fossil_texts = []
@@ -1678,18 +1679,69 @@ class DiegeticPhysicsEngine(nn.Module):
                         if loss is not None:
                             total_loss += loss
                             n += 1
-                        time.sleep(0.1)  # Yield lock and CPU time slice to prevent starving main thread
+                        if hasattr(self, '_shutdown_event') and self._shutdown_event.wait(timeout=0.1): break  # Yield lock and CPU time slice
 
                     if n > 0:
                         src = f"{len(replay_texts)} shadow + {len(fossil_texts)} fossil + {len(scientific_texts)} science + {len(rss_texts)} rss"
                         print(f"[BGLEARN] step avg_loss={total_loss/n:.4f} ({src})")
                 except Exception as e:
-                    print(f"[BGLEARN] Error: {e}")
-                time.sleep(30)
+                    if not (hasattr(self, '_shutdown_event') and self._shutdown_event.is_set()):
+                        print(f"[BGLEARN] Error: {e}")
+                if hasattr(self, '_shutdown_event') and self._shutdown_event.wait(timeout=30): break
 
         t = threading.Thread(target=_loop, daemon=True, name="larynx-bglearn")
         t.start()
         print("[BGLEARN] Background Larynx coherence trainer ACTIVE (30s idle interval).")
+
+    def shutdown(self):
+        """Gracefully signal and stop all background threads, trainers, and ingestors."""
+        if hasattr(self, '_shutdown_event'):
+            self._shutdown_event.set()
+        if hasattr(self, 'arxiv_ingestor') and self.arxiv_ingestor is not None and hasattr(self.arxiv_ingestor, 'stop'):
+            try:
+                self.arxiv_ingestor.stop()
+            except Exception:
+                pass
+        if hasattr(self, '_science_ingestor') and self._science_ingestor is not None and hasattr(self._science_ingestor, 'stop'):
+            try:
+                self._science_ingestor.stop()
+            except Exception:
+                pass
+        if hasattr(self, 'open_science_ingestor') and self.open_science_ingestor is not None and hasattr(self.open_science_ingestor, 'stop'):
+            try:
+                self.open_science_ingestor.stop()
+            except Exception:
+                pass
+        if hasattr(self, 'chatgpt_harvester') and self.chatgpt_harvester is not None and hasattr(self.chatgpt_harvester, 'stop'):
+            try:
+                self.chatgpt_harvester.stop()
+            except Exception:
+                pass
+        if hasattr(self, '_temporal_trainer') and self._temporal_trainer is not None and hasattr(self._temporal_trainer, 'stop'):
+            try:
+                self._temporal_trainer.stop()
+            except Exception:
+                pass
+        if getattr(self, 'p2p_ws_client', None) and hasattr(self.p2p_ws_client, 'stop'):
+            try:
+                self.p2p_ws_client.stop()
+            except Exception:
+                pass
+        if getattr(self, 'ghost_caller', None) and hasattr(self.ghost_caller, 'stop'):
+            try:
+                self.ghost_caller.stop()
+            except Exception:
+                pass
+        if getattr(self, 'training_manager', None) and hasattr(self.training_manager, 'stop_training'):
+            try:
+                self.training_manager.stop_training()
+            except Exception:
+                pass
+        if getattr(self, 'dataset_system', None) and hasattr(self.dataset_system, 'stop'):
+            try:
+                self.dataset_system.stop()
+            except Exception:
+                pass
 
     def get_generation_progress(self) -> Dict[str, Any]:
         """Returns live autoregressive generation progress telemetry."""
@@ -4140,7 +4192,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 from src.benchmarks.reactbench_evaluator import ReactBenchEvaluator
                 from src.benchmarks.narrative_yield_evaluator import NarrativeYieldEvaluator
                 self._live_topobench = TopoBenchEvaluator(manifold_dim=3, level_k=1)
-                self._live_reactbench = ReactBenchEvaluator(k=4, degree=2)
+                self._live_reactbench = ReactBenchEvaluator(k=getattr(self, "k", 5), degree=2)
                 self._live_narrative = NarrativeYieldEvaluator()
                 self._last_live_benchmarks = {}
             
@@ -7858,7 +7910,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self.send_error(500, f"Error serving conversational GUI: {e}")
                     return
 
-            elif base_path in ('/benchmark-dashboard', '/benchmarks'):
+            elif base_path in ('/benchmark-dashboard', '/benchmarks', '/benchmark_dashboard.html', '/benchmark_dashboard', '/benchmark-dashboard.html'):
                 try:
                     current_dir = os.path.dirname(os.path.abspath(__file__))
                     bench_path = os.path.join(current_dir, 'benchmark_dashboard.html')
@@ -8184,7 +8236,12 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 return
 
             # Fallback for static files
-            return super().do_GET()
+            try:
+                from http.server import SimpleHTTPRequestHandler
+                return SimpleHTTPRequestHandler.do_GET(self)
+            except Exception:
+                self.send_error(404, f"File not found: {self.path}")
+                return
         except Exception as e:
             print(f"CRITICAL GET ERROR: {e}")
             self._send_error_json(str(e))

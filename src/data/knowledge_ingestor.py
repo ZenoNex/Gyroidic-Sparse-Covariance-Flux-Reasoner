@@ -65,6 +65,7 @@ class ArXivSovereignIngestor:
         self.base_url = "http://export.arxiv.org/oai2"
         self.last_request_time = 0
         self.rate_limit_seconds = 4.0 # Conservatively above the 3s requirement
+        self._stop_event = threading.Event()
         self._engine_busy_fn = None
         
         # Deduplication cache for already fossilized arxiv_ids
@@ -89,6 +90,10 @@ class ArXivSovereignIngestor:
             "physics:hist-ph", "cs:CY", "physics:physics.soc-ph", "cs:CL",
             "q-bio.NC", "cs:HC", "econ:TH", "q-fin:GN"
         ]
+
+    def stop(self):
+        """Stops the background ingestion loop gracefully."""
+        self._stop_event.set()
 
     def expand_categories(self, new_categories: List[str]) -> List[str]:
         """Dynamically expands scientific category corpus."""
@@ -1164,6 +1169,8 @@ class ArXivSovereignIngestor:
         return _honest_choice(default_concepts, device=self.device)
 
     def _generate_larynx_query(self) -> str:
+        if getattr(self, "_stop_event", None) and self._stop_event.is_set():
+            return ""
         """Uses the engine's larynx autoregressively to generate a search query from the current meta_state."""
         if self.engine is None or not hasattr(self.engine, 'larynx'):
             return self._get_dynamic_fallback()
@@ -1243,7 +1250,7 @@ class ArXivSovereignIngestor:
             sets = self.categories
             
             cycle = 0
-            while True:
+            while not self._stop_event.is_set():
                 cycle += 1
                 selected_set = "math" # Default fallback
                 try:
@@ -1305,7 +1312,8 @@ class ArXivSovereignIngestor:
                 # Slow-drip timing between pulls - adaptive sleep interval
                 is_busy = hasattr(self, '_engine_busy_fn') and self._engine_busy_fn is not None and self._engine_busy_fn()
                 sleep_sec = 300 if is_busy else 60
-                time.sleep(sleep_sec)
+                if self._stop_event.wait(timeout=sleep_sec):
+                    break
                 
         bg_thread = threading.Thread(target=_loop, daemon=True)
         bg_thread.start()

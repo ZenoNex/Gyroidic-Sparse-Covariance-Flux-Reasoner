@@ -430,7 +430,7 @@ class GovernanceManager:
             if GovernanceManager._searxng_proc is not None:
                 try:
                     GovernanceManager._searxng_proc.terminate()
-                    GovernanceManager._searxng_proc.wait(timeout=2)
+                    GovernanceManager._searxng_proc.wait(timeout=1.0)
                 except Exception:
                     try:
                         GovernanceManager._searxng_proc.kill()
@@ -444,7 +444,7 @@ class GovernanceManager:
                     ["wsl", "-d", "Ubuntu", "--", "pkill", "-f", "searx.webapp"],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
-                    timeout=5,
+                    timeout=2,
                     creationflags=creation_flags
                 )
                 print("[SEARXNG] SearXNG daemon stopped.", flush=True)
@@ -3964,6 +3964,11 @@ def stop_servers():
         except Exception:
             pass
     SERVER_INSTANCES.clear()
+    if AI_SYSTEM and hasattr(AI_SYSTEM, 'shutdown'):
+        try:
+            AI_SYSTEM.shutdown()
+        except Exception:
+            pass
     GovernanceManager.stop_searxng()
 
 import atexit
@@ -4210,8 +4215,10 @@ def main():
             pyarrow.fs.finalize_s3()
         except Exception:
             pass
-        # Execute normal sys.exit to allow proper threading cleanups instead of os._exit hard kill
-        sys.exit(0)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        # Fast exit to avoid lingering background threads swallowing console keystrokes
+        os._exit(0)
 
 if __name__ == "__main__":
     main()

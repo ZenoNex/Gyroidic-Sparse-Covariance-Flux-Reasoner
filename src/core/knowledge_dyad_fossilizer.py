@@ -780,24 +780,36 @@ class DyadFossilizer:
 
     def _delete_fossil(self, filename: str, save_index: bool = True):
         filepath = os.path.join(self.storage_dir, filename)
+        removed = False
         try:
             if os.path.exists(filepath):
                 try:
                     os.remove(filepath)
+                    removed = True
                 except FileNotFoundError:
-                    pass
+                    removed = True
                 except PermissionError:
-                    print(f"[FOSSILIZER] Budget cleanup skipped {filename}: Access Denied (File in use)")
-            with self._save_lock:
-                if filename in self.fossil_index:
-                    prompt_hash = self.fossil_index[filename].get('prompt_hash')
-                    if prompt_hash and prompt_hash in self.fossilized_hashes:
-                        self.fossilized_hashes.remove(prompt_hash)
-                    del self.fossil_index[filename]
+                    import gc
+                    gc.collect()
+                    try:
+                        os.remove(filepath)
+                        removed = True
+                    except Exception:
+                        print(f"[FOSSILIZER] Budget cleanup skipped {filename}: Access Denied (File in use)")
+            else:
+                removed = True
+
+            if removed:
+                with self._save_lock:
+                    if filename in self.fossil_index:
+                        prompt_hash = self.fossil_index[filename].get('prompt_hash')
+                        if prompt_hash and prompt_hash in self.fossilized_hashes:
+                            self.fossilized_hashes.remove(prompt_hash)
+                        del self.fossil_index[filename]
         except Exception as e:
             if not isinstance(e, KeyError):
                 print(f"[FOSSILIZER] Budget cleanup failed for {filename}: {e}")
-        if save_index:
+        if save_index and removed:
             self._save_index()
         
     def ouroboros_shadow_loop(self, 
