@@ -134,6 +134,11 @@ class TopologicalIngestionValidator(nn.Module):
         self.pas_h_tolerance = pas_h_tolerance
         self.snapper = RationalSnap(scale)
         self.entropy_estimator = _PersistentEntropyEstimator()
+        try:
+            from src.core.cayley_cubic_probe import CayleyAdversarialDecomposer
+            self.cayley_decomposer = CayleyAdversarialDecomposer()
+        except Exception:
+            self.cayley_decomposer = None
 
         # Deterministic structural projection matrix.
         # NOT learned. NOT random. Built from deterministic irrational frequency.
@@ -230,10 +235,35 @@ class TopologicalIngestionValidator(nn.Module):
         return float(torch.abs(dot / norm).item())
 
     def validate_text(self, text: str, manifold_state: Optional[torch.Tensor] = None) -> Dict[str, Any]:
-        """Validate a text string at the ingestion boundary."""
+        """Validate a text string at the ingestion boundary with Cayley Adversarial Hardening."""
+        decomp = None
+        target_text = text
+        if getattr(self, 'cayley_decomposer', None) is not None:
+            decomp = self.cayley_decomposer.decompose(text)
+            if decomp.get("is_adversarial", False) and decomp.get("clean_text"):
+                target_text = decomp["clean_text"]
+
         device = manifold_state.device if manifold_state is not None else torch.device('cpu')
-        x = self._text_to_tensor(text, device).unsqueeze(0)  # [1, state_dim]
-        return self.forward(x, manifold_state)
+        x = self._text_to_tensor(target_text, device).unsqueeze(0)  # [1, state_dim]
+
+        # If adversarial perturbations were captured, blend Cayley vector into first 3 dims
+        if decomp is not None and decomp.get("is_adversarial", False):
+            c_vec = decomp["cayley_vector"].to(device=device, dtype=x.dtype)
+            x[..., :3] = 0.5 * x[..., :3] + 0.5 * c_vec
+
+        res = self.forward(x, manifold_state)
+        if decomp is not None:
+            res["clean_text"] = decomp["clean_text"]
+            res["is_adversarial_gibberish"] = decomp["is_adversarial"]
+            res["cayley_vector"] = decomp["cayley_vector"]
+            res["cayley_scar_energy"] = decomp["cayley_scar_energy"]
+            res["perturbation_density"] = decomp["perturbation_density"]
+            # If adversarial with high scar energy, protect from being treated as sterile Lazarus void
+            if decomp["is_adversarial"] and res.get("is_lazarus_void", False):
+                res["is_lazarus_void"] = False
+                res["valid"] = True
+                res["reason"] = f"Adversarial Cayley Carrier: Scar Energy={decomp['cayley_scar_energy']:.3f}"
+        return res
 
     def validate_tensor(self, x: torch.Tensor, manifold_state: Optional[torch.Tensor] = None) -> Dict[str, Any]:
         """Validate an existing tensor at the ingestion boundary."""

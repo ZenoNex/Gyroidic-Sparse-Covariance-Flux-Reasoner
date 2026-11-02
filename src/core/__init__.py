@@ -148,6 +148,8 @@ except ImportError:
     TopologicalRefusal = None
     TopologicalRefusalError = None
 
+from .cayley_cubic_probe import CayleyCubicProbe, CayleyAdversarialDecomposer
+
 __all__ = [
     # Core polynomial system
     'PolynomialBasis',
@@ -215,5 +217,7 @@ __all__ = [
     'ChaosDefibrillator',
     'TopologicalRefusal',
     'TopologicalRefusalError',
+    'CayleyCubicProbe',
+    'CayleyAdversarialDecomposer',
 ]
 

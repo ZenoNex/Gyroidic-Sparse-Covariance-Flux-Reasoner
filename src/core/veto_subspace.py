@@ -317,11 +317,46 @@ class VetoSubspace(nn.Module):
         self,
         spectral_pressure: Optional[float] = None,
         homological_pressure: Optional[float] = None,
-        elapsed_seconds: Optional[float] = None
+        elapsed_seconds: Optional[float] = None,
+        compute_affordance: Optional[float] = None,
+        thermal_runaway: Optional[bool] = None
     ) -> List[VetoSignal]:
-        """Evaluate budget-level gates (binary enable/disable)."""
+        """Evaluate budget-level gates (enable/disable) with hardware compute affordance arbitration."""
         signals = []
         
+        # Probe HardwareMonitor dynamically if compute affordance parameters are not passed explicitly
+        if compute_affordance is None or thermal_runaway is None:
+            try:
+                from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+                hm = HardwareMonitor.get_instance()
+                if thermal_runaway is None:
+                    thermal_runaway = hm.thermal_runaway
+                if compute_affordance is None:
+                    algo_aff = hm.get_typed_affordance(ComputeAffordanceType.ALGORITHMIC)
+                    compute_affordance = algo_aff.gauge if algo_aff else 1.0
+            except Exception:
+                pass
+
+        if thermal_runaway:
+            signals.append(VetoSignal(
+                level=VetoLevel.BUDGET,
+                source='thermal_headroom',
+                severity=1.0,
+                triggered=True,
+                can_recover=False,
+                metadata={'reason': 'thermal_runaway_detected'}
+            ))
+
+        if compute_affordance is not None and compute_affordance < 0.15:
+            signals.append(VetoSignal(
+                level=VetoLevel.BUDGET,
+                source='compute_affordance',
+                severity=max(0.0, 1.0 - (compute_affordance / 0.15)),
+                triggered=True,
+                can_recover=False,
+                metadata={'affordance': compute_affordance, 'min_threshold': 0.15}
+            ))
+
         if spectral_pressure is not None:
             signals.append(VetoSignal(
                 level=VetoLevel.BUDGET,
@@ -375,6 +410,8 @@ class VetoSubspace(nn.Module):
         spectral_pressure: Optional[float] = None,
         homological_pressure: Optional[float] = None,
         elapsed_seconds: Optional[float] = None,
+        compute_affordance: Optional[float] = None,
+        thermal_runaway: Optional[bool] = None,
         # Valence Integration
         valence_hunger: Optional[float] = None,
         # Legibility Integration
@@ -412,7 +449,9 @@ class VetoSubspace(nn.Module):
                                    veto_count=veto_count, external_depth_d=external_depth_d,
                                    drucker_prager_flow=drucker_prager_flow,
                                    mohr_coulomb_yield=mohr_coulomb_yield) +
-            self._evaluate_budget(spectral_pressure, homological_pressure, elapsed_seconds)
+            self._evaluate_budget(spectral_pressure, homological_pressure, elapsed_seconds,
+                                  compute_affordance=compute_affordance,
+                                  thermal_runaway=thermal_runaway)
         )
         
         # Count active vetoes

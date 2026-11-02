@@ -423,6 +423,11 @@ class DiegeticPhysicsEngine(nn.Module):
             scale=65536.0,
             min_rank_ratio=0.3,
         ).to(self.device)
+        try:
+            from src.core.cayley_cubic_probe import CayleyAdversarialDecomposer
+            self.cayley_decomposer = CayleyAdversarialDecomposer()
+        except Exception:
+            self.cayley_decomposer = None
         
         # Introspection head for self-modeling
         from src.models.introspection_head import AggregateGeometricSelfModel
@@ -1060,6 +1065,15 @@ class DiegeticPhysicsEngine(nn.Module):
         if o < 128:
             return o
         else:
+            # Filter out invisible, formatting, or presentation forms from polluting vocabulary
+            import unicodedata
+            cat = unicodedata.category(c)
+            if (cat in ('Cf', 'Cc', 'Cs') or
+                (0x200B <= o <= 0x200D) or (0x2060 <= o <= 0x206F) or (o == 0xFEFF) or
+                (0x202A <= o <= 0x202E) or (0x2066 <= o <= 0x2069) or
+                (0xE0000 <= o <= 0xE007F) or (0xFE00 <= o <= 0xFE1F) or (0xFB00 <= o <= 0xFB4F) or (0xFE70 <= o <= 0xFEFF)):
+                return 32  # Map to neutral space fallback without consuming dynamic slot
+
             # Emojis/Unicode map dynamically to [128, 255]
             if c in self.unicode_to_idx:
                 return self.unicode_to_idx[c]
@@ -1343,6 +1357,11 @@ class DiegeticPhysicsEngine(nn.Module):
 
     def _train_mimicry_step(self, text: str) -> Optional[float]:
         """Gradient-enabled single Larynx training step on a text string, gated by topological validation and Phase Alignment."""
+        if hasattr(self, 'cayley_decomposer') and self.cayley_decomposer is not None:
+            decomp = self.cayley_decomposer.decompose(text)
+            if decomp.get("is_adversarial", False) and len(decomp.get("clean_text", "")) >= 2:
+                text = decomp["clean_text"]
+
         if len(text) < 2:
             return None
         acquired = self._processing_lock.acquire(timeout=5.0)
@@ -3930,6 +3949,36 @@ class DiegeticPhysicsEngine(nn.Module):
                 "system_collapsed": False
             }
         
+        # Rehydrate and preserve tunneled states from the RP4 void so they don't get stranded in compute
+        resurrections = archetype_out.get("resurrections", [])
+        if resurrections and hasattr(self, 'fossilizer') and self.fossilizer is not None:
+            palace = getattr(getattr(self, 'garden_orchestrator', None), 'memory_palace', None) or getattr(self, 'memory_palace', None)
+            for rec_tensor in resurrections:
+                if isinstance(rec_tensor, torch.Tensor) and torch.norm(rec_tensor) > 1e-5:
+                    with torch.no_grad():
+                        blend_factor = 0.15 * float(pas_h_live)
+                        if rec_tensor.shape == self.meta_state.shape:
+                            self.meta_state = (1.0 - blend_factor) * self.meta_state + blend_factor * rec_tensor
+                        elif rec_tensor.numel() == self.meta_state.numel():
+                            self.meta_state = (1.0 - blend_factor) * self.meta_state + blend_factor * rec_tensor.view_as(self.meta_state)
+                    if palace is not None and hasattr(self.fossilizer, 'tunnel_and_plant_stranded_dyad'):
+                        try:
+                            from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
+                            tunneled_dyad = KnowledgeDyad(
+                                linguistic_description="[RP4_TUNNELED_RESURRECTION] High-friction state recovered across projective boundary",
+                                meta_state=rec_tensor.detach(),
+                                resonance_score=float(pas_h_live)
+                            )
+                            self.fossilizer.tunnel_and_plant_stranded_dyad(
+                                dyad=tunneled_dyad,
+                                router=self.archetypal_governor.alien_handshake,
+                                void_friction=float(abort_score),
+                                memory_palace=palace,
+                                moment_transport=mot
+                            )
+                        except Exception:
+                            pass
+
         if archetype_out.get("system_collapsed", False):
             # THE RA EGO DEATH EVENT HAS TRIGGERED - Synthesize resilient recovery dream via Bouligand Tangent Cone
             ra_score = archetype_out.get('abstraction_rate', 1.2)
@@ -3943,13 +3992,42 @@ class DiegeticPhysicsEngine(nn.Module):
                 "payload": {"type": "ego_death_recovery", "abstraction_rate": ra_score}
             }
             
-        # If survived Ego Death, pass into 5-Gate Tri-State
+        # Define diegetic retrieval function connecting FiveGatePipeline to SearXNG / ArXiv / Local Knowledge
+        def _diegetic_search_retrieval(query_embedding: torch.Tensor):
+            # Arbitrate with compute affordance first!
+            try:
+                from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+                hm = HardwareMonitor.get_instance()
+                if hm.thermal_runaway:
+                    return None, False
+                thermal_aff = hm.get_typed_affordance(ComputeAffordanceType.THERMAL)
+                if not bool(thermal_aff) or thermal_aff.gauge < 0.10:
+                    return None, False
+            except Exception:
+                pass
+
+            if hasattr(self, 'arxiv_ingestor') and self.arxiv_ingestor is not None:
+                try:
+                    query = self.arxiv_ingestor._generate_larynx_query()
+                    if hasattr(self.arxiv_ingestor, 'ingest_searxng_by_query'):
+                        ok = self.arxiv_ingestor.ingest_searxng_by_query(query)
+                        if ok:
+                            return {"query": query, "source": "SearXNG"}, True
+                    if hasattr(self.arxiv_ingestor, 'ingest_arxiv_by_query'):
+                        ok = self.arxiv_ingestor.ingest_arxiv_by_query(query)
+                        if ok:
+                            return {"query": query, "source": "ArXiv"}, True
+                except Exception:
+                    pass
+            return None, False
+
+        # If survived Ego Death, pass into 5-Gate Tri-State with live retrieval & affordance arbitration
         gate_out = self.five_gate_pipeline.process_pipeline(
             query_state=seed_state[0],
             internal_certainty=1.0 - abort_score,
             current_pas_h=pas_h_live,
             target_mischief=self.mischief_probe.H_mischief.item(),
-            diegetic_retrieval_fn=None # Could plug the Wikipedia system here
+            diegetic_retrieval_fn=_diegetic_search_retrieval
         )
         
         # =============================================
@@ -4116,7 +4194,15 @@ class DiegeticPhysicsEngine(nn.Module):
         if honesty_score > 0.7:
             retrieval_state = "KNOWN" # System 2 Grounded
         else:
-            search_useful = False # Gate 4 Stub (No external search API wired yet)
+            # Arbitrate search utility against compute affordance and available services
+            try:
+                from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+                hm = HardwareMonitor.get_instance()
+                has_affordance = (not hm.thermal_runaway) and bool(hm.get_typed_affordance(ComputeAffordanceType.ALGORITHMIC))
+            except Exception:
+                has_affordance = True
+
+            search_useful = has_affordance and hasattr(self, 'arxiv_ingestor') and self.arxiv_ingestor is not None
             mischief_active = h_mischief > self.unknowledge_domain.tau_m
             
             if not search_useful and mischief_active:
@@ -4864,6 +4950,11 @@ class DiegeticPhysicsEngine(nn.Module):
 
     def _train_mimicry(self, input_state: torch.Tensor, text_target: str):
         """Train Larynx to decrypt the input state back to text autoregressively."""
+        if hasattr(self, 'cayley_decomposer') and self.cayley_decomposer is not None:
+            decomp = self.cayley_decomposer.decompose(text_target)
+            if decomp.get("is_adversarial", False) and len(decomp.get("clean_text", "")) >= 2:
+                text_target = decomp["clean_text"]
+
         if len(text_target) < 2:
             return
             
@@ -4914,10 +5005,19 @@ class DiegeticPhysicsEngine(nn.Module):
 
     def _text_to_tensor(self, text: str) -> torch.Tensor:
         """
-        Sequence-Aware Polynomial Rotating Hash.
+        Sequence-Aware Polynomial Rotating Hash with Cayley Adversarial Hardening.
         Uses polynomial coefficients instead of hardcoded primes (anti-lobotomy).
         Ensures word order and sentence structure influence the embedding.
         """
+        cayley_v = None
+        if hasattr(self, 'cayley_decomposer') and self.cayley_decomposer is not None:
+            decomp = self.cayley_decomposer.decompose(text)
+            if decomp.get("is_adversarial", False):
+                clean_text = decomp.get("clean_text", "")
+                if len(clean_text) >= 1:
+                    text = clean_text
+                cayley_v = decomp["cayley_vector"].to(device=self.device)
+
         vec = torch.zeros(1, self.dim)
         
         # Generate polynomial coefficients leveraging centralized PolynomialBasis

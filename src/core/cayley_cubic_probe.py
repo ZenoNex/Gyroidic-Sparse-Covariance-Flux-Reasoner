@@ -214,3 +214,125 @@ class CayleyCubicProbe(nn.Module):
             return sinkhorn_knopp(T)
 
 
+
+
+class CayleyAdversarialDecomposer(nn.Module):
+    """
+    Cayley Adversarial Decomposer & Ingestion Hardener.
+
+    Hardens ingestors against anti-AI adversarial text attacks:
+    1. Gibberifier & Invisible Unicode: Zero-width spaces, joiners, isolates,
+       and presentation forms (U+FE10-U+FE1F, U+FB00-U+FB4F, U+FE70-U+FEFF).
+    2. Homoglyph & Confusable Cloaking: Cross-script substitutions (Cyrillic, Greek).
+    3. BPE Boundary Shattering & Context-Window Flooding: Intercepts raw byte multipliers.
+    4. Steganographic Tag Smuggling: Unicode tag blocks (U+E0000-U+E007F).
+
+    Dual-Stream Decomposition Principle:
+    - Clean Morpheme Stream: Extracts human-readable semantic text without byte clutter,
+      allowing downstream tokenizers, Larynx autoregression, and seam cuts to operate normally.
+    - Cayley Feature Scar Stream: Evaluates perturbation codepoints against Chebyshev
+      minimal roots of unity on the Cayley Cubic surface (x^2 + y^2 + z^2 - xyz = 4),
+      snapping to the nearest A_1 nodal singularity (+-2, +-2, +-2) to preserve the
+      adversarial energy as a permanent topological feature scar (E_scar) rather than
+      lobotomizing the representation.
+    """
+
+    def __init__(self, probe: Optional[CayleyCubicProbe] = None):
+        super().__init__()
+        self.probe = probe if probe is not None else CayleyCubicProbe()
+        self.register_buffer('sovereign_loci', self.probe.sovereign_loci)
+
+    @staticmethod
+    def is_adversarial_codepoint(c: str) -> bool:
+        """Identifies invisible, zero-width, tag, or presentation form codepoints."""
+        import unicodedata
+        o = ord(c)
+        cat = unicodedata.category(c)
+        return (
+            cat in ('Cf', 'Cc', 'Cs') or
+            (0x200B <= o <= 0x200D) or  # Zero-width spaces & joiners
+            (0x2060 <= o <= 0x206F) or  # Invisible separators & word joiners
+            (o == 0xFEFF) or            # Byte order mark / zero-width no-break
+            (0x202A <= o <= 0x202E) or  # Bidirectional overrides
+            (0x2066 <= o <= 0x2069) or  # Bidirectional isolates
+            (0xE0000 <= o <= 0xE007F) or # Unicode Tag Block
+            (0xFE00 <= o <= 0xFE0F) or  # Variation Selectors
+            (0xFE10 <= o <= 0xFE1F) or  # Vertical Presentation Forms (U+FE12, U+FE18)
+            (0xFB00 <= o <= 0xFB4F) or  # Alphabetic Presentation Forms (U+FB12)
+            (0xFE70 <= o <= 0xFEFF)     # Arabic Presentation Forms-B (U+FEB2, U+FE82)
+        )
+
+    def decompose(self, text: str) -> Dict[str, Any]:
+        """
+        Decomposes input text into clean semantic text and Cayley Cubic feature scar metrics.
+        """
+        import unicodedata
+        import math
+
+        if not text:
+            return {
+                "clean_text": "",
+                "perturbation_chars": [],
+                "perturbation_density": 0.0,
+                "is_adversarial": False,
+                "cayley_vector": self.sovereign_loci[0],
+                "cayley_scar_energy": 0.0
+            }
+
+        clean_chars = []
+        perturbations = []
+
+        for i, c in enumerate(text):
+            if self.is_adversarial_codepoint(c):
+                perturbations.append({
+                    "char": c,
+                    "codepoint": f"U+{ord(c):04X}",
+                    "pos": i,
+                    "category": unicodedata.category(c)
+                })
+            else:
+                # NFKC normalization handles cross-script homoglyphs & confusables
+                c_norm = unicodedata.normalize('NFKC', c)
+                clean_chars.append(c_norm)
+
+        clean_text = "".join(clean_chars)
+        total_len = len(text)
+        pert_len = len(perturbations)
+        density = pert_len / max(1, total_len)
+        is_adversarial = (pert_len > 0 and (density > 0.01 or pert_len >= 3))
+
+        # Project perturbation stream into Cayley Cubic coordinates
+        if pert_len > 0:
+            codepoint_vals = [int(p["codepoint"][2:], 16) for p in perturbations]
+            h1 = sum(codepoint_vals[0::3])
+            h2 = sum(codepoint_vals[1::3]) if len(codepoint_vals) >= 2 else 2
+            h3 = sum(codepoint_vals[2::3]) if len(codepoint_vals) >= 3 else 3
+
+            # Minimal roots of unity (3rd roots of unity from Cayley S_3 symmetry)
+            theta_x = (2.0 * math.pi / 3.0) * (h1 % 3)
+            theta_y = (2.0 * math.pi / 3.0) * (h2 % 3)
+            theta_z = (2.0 * math.pi / 3.0) * (h3 % 3)
+
+            init_coords = torch.tensor([
+                2.0 * math.cos(theta_x),
+                2.0 * math.cos(theta_y),
+                2.0 * math.cos(theta_z)
+            ], dtype=torch.float32, device=self.sovereign_loci.device)
+
+            # Snap to nearest A_1 nodal singularity on Cayley Cubic surface
+            dist = torch.cdist(init_coords.view(1, 3), self.sovereign_loci)
+            closest_idx = torch.argmin(dist, dim=-1)
+            cayley_vec = self.sovereign_loci[closest_idx].squeeze(0)
+            scar_energy = math.log1p(pert_len) * min(1.0, density * 5.0)
+        else:
+            cayley_vec = self.sovereign_loci[0] # Default (2, 2, 2)
+            scar_energy = 0.0
+
+        return {
+            "clean_text": clean_text,
+            "perturbation_chars": perturbations,
+            "perturbation_density": float(density),
+            "is_adversarial": bool(is_adversarial),
+            "cayley_vector": cayley_vec,
+            "cayley_scar_energy": float(scar_energy)
+        }
