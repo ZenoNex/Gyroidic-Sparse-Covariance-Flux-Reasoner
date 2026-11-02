@@ -156,6 +156,7 @@ This can be used by the veto subspace (VETO_SUBSPACE_ARCHITECTURE) to suppress o
 
 ## Related Documents
 
+- [NON_HERMITIAN_FLOW_TAXONOMY.md](NON_HERMITIAN_FLOW_TAXONOMY.md) - Non-Hermitian flow disambiguation, open quantum dynamics, and Exceptional Points
 - [ZEITGEIST_ROUTER.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/ZEITGEIST_ROUTER.md)  Phase 18 consumer of nc_curvature diagnostics
 - [VETO_SUBSPACE_ARCHITECTURE.md](../01_architecture_core/VETO_SUBSPACE_ARCHITECTURE.md)  Veto lattice and BoundaryState
 - [INVARIANT_OPTIMIZATION.md](INVARIANT_OPTIMIZATION.md)  Chirality and Arrow of Time

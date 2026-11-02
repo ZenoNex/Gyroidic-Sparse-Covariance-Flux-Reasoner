@@ -284,7 +284,7 @@ For continuous-time regime:
 
 $$dx(t) = \left[ \sum_i A_i x_i(t) - \rho \sum_k (x - r(x_k)) \right] dt + \sigma\, dW$$
 
-where $A_i \in \mathbb{R}^{d \times d}$ are learnable non-selfadjoint transition operators (one per polynomial facet channel). The co-prime evaluation decomposes the state into facets; each facet evolves under its own non-Hermitian flow before polynomial projection re-locks the state to the co-prime manifold.
+where $A_i \in \mathbb{R}^{d \times d}$ are learnable non-selfadjoint transition operators (one per polynomial facet channel). The co-prime evaluation decomposes the state into facets; each facet evolves under its own [non-Hermitian flow (Meaning 1: Dynamical Evolution)](NON_HERMITIAN_FLOW_TAXONOMY.md#meaning-1-dynamical-evolution-generated-by-a-non-hermitian-operator) before polynomial projection re-locks the state to the co-prime manifold.
 
 #### 7.2.1 Love Invariant Null-Space Protection (Embedded in SDE Step)
 

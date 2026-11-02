@@ -50,6 +50,8 @@ graph TD
   * [MATHEMATICAL_DETAILS.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md) (Section 5 GCVE Metric & Dynamic Attention Map)
   * [FGRT_FORMALIZATION.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/FGRT_FORMALIZATION.md)
   * [PHYSICS_ADMM.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/PHYSICS_ADMM.md)
+  * [NON_HERMITIAN_FLOW_TAXONOMY.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/NON_HERMITIAN_FLOW_TAXONOMY.md)
+  * [NONCOMMUTATIVITY_DYNAMICS.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/NONCOMMUTATIVITY_DYNAMICS.md)
   * [GYROIDIC_CODEC.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/GYROIDIC_CODEC.md)
   * [HYPER_RING_CLOSURE.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/HYPER_RING_CLOSURE.md)
   * [INVARIANT_OPTIMIZATION.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/INVARIANT_OPTIMIZATION.md)
