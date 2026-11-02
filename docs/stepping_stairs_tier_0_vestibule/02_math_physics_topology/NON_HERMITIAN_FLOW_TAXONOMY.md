@@ -161,3 +161,4 @@ where $s$ is the scaling factor across the Reasoner's Matrioshka layers (from su
    The asymmetric elements of transition operators $A_i$ and the non-Hermitian perturbation generators must be seeded from `harvest_honest_jitter()`, never pseudo-random generators.
 3. **Restless Thermal Latency Guard**:
    Evaluating complex spectral decompositions for $O(d^3)$ non-Hermitian matrices must be gated by `ComputeAffordanceType.ALGORITHMIC` ($\ge 0.70$) to prevent thermal lockups on memory-constrained hardware.
+

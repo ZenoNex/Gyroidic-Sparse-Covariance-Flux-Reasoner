@@ -902,18 +902,37 @@ class ZeitgeistRouter(nn.Module):
         load = tadc_kwargs.get('load', 0.0) if tadc_kwargs else 0.0
         
         if self._nc_curvature is not None and mode in ('switching', 'grazing'):
-            # HIGH PRESSURE BYPASS: If system is under extreme load, skip expensive curvature
-            if load > 0.8 or grazing_pressure > 0.9:
-                nc_curvature = 0.0 # Bypassed
+            # AFFORDANCE & THERMAL LATENCY GUARD:
+            # Check real-time hardware affordance, thermal throttle, and predicted latency
+            hw = HardwareMonitor.get_instance()
+            is_thermal = hw.is_thermal_throttled()
+            affordance_type, affordance_score = hw.get_compute_affordance()
+            routing_mode = spec_timing.get("routing_mode", "normal") if spec_timing else "normal"
+            pred_latency = spec_timing.get("execution_ms", routing_latency_ms) if spec_timing else routing_latency_ms
+
+            if is_thermal or load > 0.8 or grazing_pressure > 0.9 or pred_latency > 500.0 or routing_mode == "rp4_void_lazarus_play":
+                # High pressure / thermal throttle bypass: use EMA fallback to respect 500ms restless thermal latency guard
+                nc_curvature = float(self._nc_curvature.curvature_ema.item())
             else:
                 try:
-                    # Compute relative curvature between state covariance and rolling temporal covariance (temporal drift)
-                    # This replaces the lobotomized x.T @ x crude silos
-                    self.gyroid_cov.update_buffer(x)
-                    rolling_cov = self.gyroid_cov.compute_covariance()
-                    current_cov = torch.mm(x.T, x) if x.dim() == 2 else torch.outer(x, x)
-                    
-                    nc_res = self._nc_curvature.compute_curvature(current_cov, rolling_cov)
+                    # Coherent operator selection:
+                    # If transitioning facets in switching mode and affordance is ALGORITHMIC (>= 0.7),
+                    # construct actual pre- and post-switch facet normal operators in state space:
+                    # A_pre = W^T @ alpha_prev @ W, A_post = W^T @ alpha_new @ W
+                    alpha_changed = not torch.equal(state.alpha_tensor, new_state.alpha_tensor)
+                    if alpha_changed and affordance_score >= 0.70 and hasattr(self, 'switch_gate'):
+                        W = self.switch_gate.weight.to(x.device, x.dtype) # [M, dim]
+                        a_prev = state.alpha_tensor.to(x.device, x.dtype) # [M, M]
+                        a_new = new_state.alpha_tensor.to(x.device, x.dtype) # [M, M]
+                        op_A = torch.matmul(W.T, torch.matmul(a_prev, W)) # [dim, dim]
+                        op_B = torch.matmul(W.T, torch.matmul(a_new, W)) # [dim, dim]
+                    else:
+                        # Otherwise evaluate spatial covariance vs. rolling temporal covariance
+                        self.gyroid_cov.update_buffer(x)
+                        op_B = self.gyroid_cov.compute_covariance()
+                        op_A = torch.mm(x.T, x) if x.dim() == 2 else torch.outer(x, x)
+
+                    nc_res = self._nc_curvature.compute_curvature(op_A, op_B)
                     nc_curvature = float(nc_res['curvature_norm'].item())
                     
                     # Symmetric Tensor Shortcut (Love Invariant)

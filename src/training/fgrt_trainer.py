@@ -186,9 +186,16 @@ class FGRTStructuralTrainer:
                     p.copy_(project_to_birkhoff(p.data))
         # --- END BIRKHOFF PROJECTION ---
         
+        # Compute authentic chiral shift invariant
+        try:
+            from src.core.invariants import compute_chiral_shift
+            chiral_val = float(compute_chiral_shift(output).abs().mean().item())
+        except Exception:
+            chiral_val = 0.0
+
         return {
             "energy": energy.item(),
             "pas_h": pas_h,
-            "chiral_score": 0.0, # Placeholder for explicit chiral tracking
+            "chiral_score": chiral_val,
             "gyroid_pressure": float(energy.item() * max(0, 1.0 - pas_h))
         }

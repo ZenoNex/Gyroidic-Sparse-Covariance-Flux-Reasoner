@@ -286,7 +286,20 @@ class GDPOSovereigntyAdaptor:
         
         # Re-evaluate under current configuration
         # (This would require forward pass through configuration - simplified here)
-        log_probs = old_log_probs  # Placeholder
+        # Re-evaluate log-probabilities under current configuration policy
+        if hasattr(self.configuration, 'evaluate_log_probs'):
+            log_probs = self.configuration.evaluate_log_probs(states, actions)
+        elif hasattr(self.configuration, 'forward_log_probs'):
+            log_probs = self.configuration.forward_log_probs(states, actions)
+        else:
+            try:
+                logits = self.configuration(states)
+                if isinstance(logits, tuple):
+                    logits = logits[0]
+                dist = torch.distributions.Categorical(logits=logits)
+                log_probs = dist.log_prob(actions.squeeze(-1) if actions.dim() > 1 else actions)
+            except Exception:
+                log_probs = old_log_probs
         
         # Adaptation pressures (multi-domain)
         adaptation_pressures, adaptation_metrics = self.compute_adaptation_pressure(

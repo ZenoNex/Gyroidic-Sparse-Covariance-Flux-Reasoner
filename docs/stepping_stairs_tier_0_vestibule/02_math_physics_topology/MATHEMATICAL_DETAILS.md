@@ -1265,7 +1265,7 @@ The coefficients ($\mathbf{a}_n$) are updated via:
 $$ \mathbf{a}_n(t+1) = \mathbf{a}_n(t) + \lambda \cdot (\nabla I(S) + R(S)) $$
 where $\nabla I(S)$ is the meta-invariant gradient and $R(S)$ is the resonance contribution.
 
-> **Implementation Note**: The `OmipedialDeflagrator` (defect scout in `deflagration_scout.py`) computes defect signals $\Delta D_i = \sum(R_{ij} - \hat{R}_{ij})$ that could feed into $R(S)$, but this wiring is **not yet implemented**  the two modules are independent. See `OPEN_QUESTIONS.md` for the planned integration.
+> **Implementation Note**: The `OmipedialDeflagrator` (defect scout in `deflagration_scout.py`) computes defect signals $\Delta D_i = \sum(R_{ij} - \hat{R}_{ij})$ and is actively integrated into `DeflagrationScout` across `false_negative_subsystem.py`, `orchestrator.py`, and `hyper_ring.py` for defect and anomaly mitigation.
 
 ### 27.3 Warm-Start Chiral Residues
 This design ensures that when the system encounters a contradiction and backtracks, it does not reset to a barren initialization. Instead, it "warm-starts" from the chiral residuesthe survived anomalies and "good bugs"left behind by previous computations, carrying forward the structural lessons of its failures.

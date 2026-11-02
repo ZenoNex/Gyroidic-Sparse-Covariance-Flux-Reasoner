@@ -195,10 +195,11 @@ class ObscuredBirkhoffManifold(nn.Module):
         target_obsc = torch.sigmoid(torch.mean(genome)) * 0.5
         self.delta_o = decay * self.delta_o + (1 - decay) * target_obsc
         
-    def project(self, T: torch.Tensor, max_iterations: Optional[int] = None) -> torch.Tensor:
+    def project(self, T: torch.Tensor, max_iterations: Optional[int] = None, temperature: Optional[float] = None) -> torch.Tensor:
         """Project matrix T onto Birkhoff subspace with obstruction."""
         # 1. Log-domain Sinkhorn-Knopp for numerical stability
-        temp = torch.clamp(self.temperature, min=0.01, max=10.0)
+        eff_t = temperature if temperature is not None else self.temperature
+        temp = torch.clamp(torch.as_tensor(eff_t, device=T.device, dtype=T.dtype), min=0.01, max=10.0)
         log_T = T / temp
         
         iters = max_iterations if max_iterations is not None else self.max_iterations
@@ -239,11 +240,14 @@ class ObscuredBirkhoffManifold(nn.Module):
             
         return torch.exp(log_T)
     
-    def forward(self, T: torch.Tensor, anneal: bool = False) -> torch.Tensor:
+    def forward(self, T: torch.Tensor, anneal: bool = False, decay_rate: float = 0.95) -> torch.Tensor:
         """
         Forward pass with optional annealing.
-        anneal is currently a placeholder for temperature scheduling.
+        When anneal is True, dynamically sharpens the Sinkhorn temperature.
         """
+        if anneal:
+            eff_temp = max(0.01, float(self.temperature) * decay_rate)
+            return self.project(T, temperature=eff_temp)
         return self.project(T)
 
 BirkhoffProjection = ObscuredBirkhoffManifold

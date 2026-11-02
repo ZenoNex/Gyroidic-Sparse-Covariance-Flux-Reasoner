@@ -101,19 +101,47 @@ Decomposes  into wedge product coefficients $\kappa_{ij} e_i \wedge e_j$. Return
 
 ## Integration with ZeitgeistRouter
 
-`NonCommutativityCurvature` is used as an **optional diagnostic** inside `ZeitgeistRouter`:
+`NonCommutativityCurvature` is used as a **diagnostic and symmetry shortcut** inside `ZeitgeistRouter`:
 
 ```python
 # Instantiated in ZeitgeistRouter.__init__ (if use_noncommutativity_check=True)
 self._nc_curvature = NonCommutativityCurvature(dim=dim)
 
-# Called in forward() during 'switching' or 'grazing' modes only
-nc_curvature = float(self._nc_curvature(x, x).mean().item())
+# Evaluated in forward() during 'switching' or 'grazing' modes
+# Gated by local & community compute affordance, thermal monitor, and latency predictions:
+if self._nc_curvature is not None and mode in ('switching', 'grazing'):
+    hw = HardwareMonitor.get_instance()
+    is_thermal = hw.is_thermal_throttled()
+    affordance_type, affordance_score = hw.get_compute_affordance()
+    pred_latency = spec_timing.get("execution_ms", routing_latency_ms)
+
+    if is_thermal or load > 0.8 or grazing_pressure > 0.9 or pred_latency > 500.0:
+        # High pressure / thermal throttle bypass: use EMA fallback to respect 500ms restless thermal latency guard
+        nc_curvature = float(self._nc_curvature.curvature_ema.item())
+    else:
+        # Authentic Dual-Operator Curvature:
+        # When switching facets under ALGORITHMIC affordance (>= 0.70), evaluate pre- and post-switch facet normals:
+        # A_pre = W^T @ alpha_prev @ W, A_post = W^T @ alpha_new @ W
+        if alpha_changed and affordance_score >= 0.70 and hasattr(self, 'switch_gate'):
+            W = self.switch_gate.weight
+            op_A = W.T @ state.alpha_tensor @ W
+            op_B = W.T @ new_state.alpha_tensor @ W
+        else:
+            # Fallback to instantaneous spatial covariance vs. rolling temporal covariance
+            op_A = torch.mm(x.T, x) if x.dim() == 2 else torch.outer(x, x)
+            op_B = self.gyroid_cov.compute_covariance()
+
+        nc_res = self._nc_curvature.compute_curvature(op_A, op_B)
+        nc_curvature = float(nc_res['curvature_norm'].item())
 ```
 
 The diagnostic value is emitted in `diagnostics['nc_curvature']` (the payload field in `metrics['zeitgeist']`).
 
-> **Note**: The current call passes `(x, x)`  measuring self-curvature of the state against itself. This serves as a proxy for the curvature of the facet-normal operators induced by $x$. A future enhancement would pass the actual pair of update operators (e.g., pre- and post-switch facet normals).
+> **Architectural Resolution**:
+> Rather than a crude `(x, x)` self-proxy or an ungrounded placeholder, the system dynamically arbitrates between two physically grounded operator pairs based on real-time hardware affordance and latency predictions:
+> 1. **Facet Normal Transitions $[A_{\text{pre}}, A_{\text{post}}]$**: When affordance is ALGORITHMIC ($\ge 0.70$) and the router crosses a polytope boundary ($\alpha_{\text{prev}} \neq \alpha_{\text{new}}$), it projects the $M \times M$ CRT residue matrices into state space via switch-gate weights $W \in \mathbb{R}^{M \times d}$, computing the true non-commutative curvature of the facet switch.
+> 2. **Spatial-Temporal Drift $[C_{\text{spatial}}, C_{\text{temporal}}]$**: When grazing inside a boundary or under moderate compute budget, it computes the commutator between instantaneous spatial covariance $x^\top x$ and rolling temporal covariance $\text{Cov}_{\text{gyroid}}(x)$.
+> 3. **Restless Thermal Latency Bypass**: If the system detects thermal throttling or predicted latency exceeds the 500ms thermal budget, $O(d^3)$ matrix commutators are bypassed and the running EMA is served.
 
 ### Why Only in Switching/Grazing Modes?
 
