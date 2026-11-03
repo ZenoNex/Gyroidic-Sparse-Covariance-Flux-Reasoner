@@ -211,6 +211,20 @@ The two pot regimes operate under dual yield criteria ([MATHEMATICAL_DETAILS.md:
 - [NON_DUAL_DYNAMIC_EQUILIBRIUM.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/NON_DUAL_DYNAMIC_EQUILIBRIUM.md) (Domestic Sovereignty framing)
 - [MATHEMATICAL_DETAILS.md:L582-L595](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md#L582-L595) (Yield Criteria definitions)
 
+### 4. Continuous Equation of State for Meliponini Packing Fraction & Percolation Decoupling
+
+To resolve the Scalarization Trap (INVARIANT_OPTIMIZATION Tripwire 3) that arises when conflating continuous geometric density tensor modulation with discrete network percolation connectivity, the system implements [`compute_meliponini_effective_packing_fraction(atrophy, beta=4.0)`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py):
+
+$$\phi_{\text{effective}}(\text{Atrophy}) = \phi_{\text{RCP}} + (\phi_{\text{max}} - \phi_{\text{RCP}}) \cdot \sigma\big(\beta (0.5 - \text{Atrophy})\big)$$
+
+where:
+- $\phi_{\text{RCP}} = 0.64000$: The Random Close Packing limit for disordered spherical cerumen pots.
+- $\phi_{\text{max}} = 0.74048$: The Kepler conjecture maximum sphere packing density for ordered Apis honeycomb cells ($\frac{\pi}{3\sqrt{2}}$).
+- $\beta = 4.0$: Sigmoid steepness parameter centered at neutral atrophy ($0.5$).
+
+**Independence from 2D Percolation Threshold**:
+This continuous density equation of state is strictly decoupled from the discrete 2D square site percolation critical threshold ($p_c = 0.592746$ via [`evaluate_percolation_regime`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py)). The continuous packing fraction governs tensor volume density without gating graph connectivity, while the discrete percolation threshold governs cluster spanning and substrate node rescue.
+
 ---
 
 ## Part VIII: Arithmetic Hardening and $O(N^4)$ Stability

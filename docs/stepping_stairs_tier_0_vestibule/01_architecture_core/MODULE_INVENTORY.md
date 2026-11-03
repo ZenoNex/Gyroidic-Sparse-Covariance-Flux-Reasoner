@@ -356,6 +356,14 @@ Implements computable harmonic invariants. Contains `ImplicationInvariant` (Anti
 
 ---
 
+### [huffman_entropy.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/huffman_entropy.py)
+**Classes**: `HuffmanNode`, `HuffmanEntropyCodec`  
+**Role**: Canonical Huffman entropy codec and variable-length prefix bitstream engine.
+
+Implements information-theoretic entropy coding grounded in Shannon's source coding theorem ($H(X) \le \bar{L} < H(X) + 1$). Used across `PointerlessOctree` for Morton delta and material ID bitstream compression, Cleanroom `RedNet16BundledCable` and `CompositeVoxelConduit` for analog telemetry wire compaction, `DyadFossilizer` for Agent Smith discrete syntax mesh serialization, and `UniversalTopologyConverter` for empirical Shannon entropy estimation.
+
+---
+
 ### [knowledge_dyad_fossilizer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/knowledge_dyad_fossilizer.py)
 **Classes**: `KnowledgeDyad`, `ResidueFusion`, `DyadFossilizer`  
 **Role**: Fossilizes knowledge dyads (paired visual/text concept structures) into the persistent fossil layer. #Gyroidic #Sovereignty
@@ -2807,6 +2815,7 @@ Temporal multimodal stream parser extracting keyframe visual patches and synchro
 - **`src/core/garden_statistical_attractors.py`**: `HealthMetricType`, `HealthMetric` — typed diagnostic health telemetry descriptors for Garden attractor basins.
 - **`src/core/gdpo_normalization.py`**: `SignalSovereignty` — preserves channel-wise signal variance against group normalization flattening.
 - **`src/core/gluing_operator.py`**: `LazarusSoftmax` — non-collapsing temperature-adaptive softmax preventing logit underflow/overflow across Klein throat transitions.
+- **`src/core/huffman_entropy.py`**: `HuffmanEntropyCodec`, `HuffmanNode` — Canonical Huffman prefix coding, Shannon entropy computation, run-length bitstream compression.
 - **`src/core/invariants.py`**: `CatalanBranchingInvariant` — verifies that hierarchical dyadic bifurcation spectra match the normalized Catalan distribution $p_n \propto C_n / 4^n$.
 - **`src/core/non_dual_coin.py`**: `ChernSimonsValidator` — validates topological proof-of-honesty holonomy before `TripsodicLedger` minting.
 - **`src/core/non_ergodic_entropy.py`**: `NonErgodicEntropyEstimator`, `AdaptiveFractalPartitioner`, `NonErgodicFractalEntropy` — Russian-doll multiscale entropy estimators separating ergodic thermal noise from non-ergodic soliton structure.

@@ -36,6 +36,8 @@ graph TD
   Hyperbolic quotient selector (gamma in Q) and Phase Alignment Score (PAS) hardware telemetry integration.
 * [docs/CONJUGATE_COLOR_AND_VOXELBOXTER_INTEGRATION.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/CONJUGATE_COLOR_AND_VOXELBOXTER_INTEGRATION.md)
   Conjugate color space and Morton Z-order curve bitwise kernel for PointerlessOctree spatial indexing.
+* [src/core/huffman_entropy.py](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/huffman_entropy.py)
+  Canonical Huffman entropy codec, Shannon source coding bounds, and variable-length prefix bitstream engine.
 
 ### Step 01: Core Architecture
 * Path: [docs/stepping_stairs_tier_0_vestibule/01_architecture_core/](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/)
@@ -132,6 +134,10 @@ graph TD
   * [collage_of_inspirations_4_15_2026.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/06_reports_and_inspirations/collage_of_inspirations_4_15_2026.md)
   * [tailslayer_pyopencl_mempalace_BigGan_inspirationdoc.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/06_reports_and_inspirations/tailslayer_pyopencl_mempalace_BigGan_inspirationdoc.md)
   * [mind your shape agent smith and natural log.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/06_reports_and_inspirations/mind%20your%20shape%20agent%20smith%20and%20natural%20log.md)
+  * [DeepSeek's New LLM Engine Just Made GPUs 3x More Valuable.txt](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/DeepSeek's%20New%20LLM%20Engine%20Just%20Made%20GPUs%203x%20More%20Valuable.txt)
+    Analysis of nonscalar serving efficiency, high-hit-rate in-memory KV/fossil caching, wide dispatching, and bounded retrieval budgets.
+  * [L3GWorld RealTime Infinite World Generation with Latent 3D Gaussian Memory Oct 2026.txt](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/L3GWorld%20RealTime%20Infinite%20World%20Generation%20with%20Latent%203D%20Gaussian%20Memory%20Oct%202026.txt)
+    Real-time infinite world generation, VAE Latent Lifting (bypassing RGB rasterization), selective Spawning vs. Refinement, K-means clustered query tokens, and hierarchical scene extent bounding.
 
 ### Deep Subterranean Foundations
 * [docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/extended coherence research/](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/extended%20coherence%20research/)
