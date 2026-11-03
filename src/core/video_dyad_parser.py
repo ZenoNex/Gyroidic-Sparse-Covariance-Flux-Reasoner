@@ -2,7 +2,7 @@ import base64
 import numpy as np
 import torch
 import torch.nn as nn
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 import time
 import math
 import subprocess
@@ -22,12 +22,13 @@ class VideoDyadParser(nn.Module):
     Explicitly uses non-mantissa/exponent math (integer-only representation initial casting)
     to retain pure structural honesty without floating-point artifacts.
     """
-    def __init__(self, chunk_size: int = 1024, max_chunks: int = 128, device: str = None):
+    def __init__(self, chunk_size: int = 1024, max_chunks: int = 128, device: str = None, p2p_ring: Optional[Any] = None):
         super().__init__()
         from src.core.device_utils import DEVICE
         self.chunk_size = chunk_size
         self.max_chunks = max_chunks
         self.device = device or DEVICE
+        self.p2p_ring = p2p_ring
         
         # Gaussian Mollifier Constant (originally Dirac Spectrum Constant in 45.2, ihc_paper3_field_body.tex)
         self.beta_coh = 6 * math.cos(math.pi / 23.0)  # ~5.944
@@ -155,14 +156,26 @@ class VideoDyadParser(nn.Module):
         # Preserve independent substream residue vector (31.7 compliance)
         substream_residue = torch.tensor(substream_data['atom_array'], device=self.device)
         
-        # 3. Silicon Sovereignty & Bonfire Nomadic Ring: PyOpenCL Chunking & P2P Compute
+        # 3. Silicon Sovereignty & Bonfire Nomadic Ring: PyOpenCL Chunking & P2P Collective Compute
+        t_parse_start = time.time()
+        from src.core.hardware_monitor import (
+            HardwareMonitor,
+            ComputeAffordanceType,
+            enforce_500ms_restless_thermal_guard,
+        )
+        hw = HardwareMonitor.get_instance()
+        silicon_aff = hw.get_typed_affordance(ComputeAffordanceType.SILICON)
+        thermal_aff = hw.get_typed_affordance(ComputeAffordanceType.THERMAL)
+        p2p_aff = hw.get_typed_affordance(ComputeAffordanceType.P2P_MESH)
+        cross_coupling = hw.gauge_between(ComputeAffordanceType.SILICON, ComputeAffordanceType.P2P_MESH)
+
         # Delegate load across P2P ring peers based on telemetry shape prediction.
         if getattr(self, 'p2p_ring', None) is None:
             try:
                 from src.p2p.bonfire_consensus import BonfireNomadicRing
                 from src.p2p.freenet_ws_client import FreenetClient
                 self.p2p_ring = BonfireNomadicRing(FreenetClient("ws://127.0.0.1:8080/ws"))
-            except ImportError:
+            except (ImportError, Exception):
                 self.p2p_ring = None
 
         if not hasattr(self, 'silicon_engine'):
@@ -172,12 +185,34 @@ class VideoDyadParser(nn.Module):
         raw_np = np.frombuffer(raw_bytes, dtype=np.uint8)
         n_elements = len(raw_bytes)
         
-        # Latency shape prediction based on peer Kelly fractions (affordances)
-        if self.p2p_ring and len(self.p2p_ring.peer_allocations) > 0 and n_elements > 50000:
-            print(f"[P2P_DYAD] Delegating {n_elements} bytes across {len(self.p2p_ring.peer_allocations)} Bonfire peers for collective compute.", flush=True)
-            chunked_np = self.silicon_engine.apply_video_dyad_chunking(raw_np, self.chunk_size, self.max_chunks)
-        else:
-            chunked_np = self.silicon_engine.apply_video_dyad_chunking(raw_np, self.chunk_size, self.max_chunks)
+        # Compute collective egalitarian consensus and active peer count
+        k_bar = 1.0
+        active_peers = 0
+        if self.p2p_ring is not None and hasattr(self.p2p_ring, 'peer_allocations'):
+            active_peers = len(self.p2p_ring.peer_allocations)
+            if hasattr(self.p2p_ring, 'compute_egalitarian_consensus'):
+                try:
+                    k_bar = float(self.p2p_ring.compute_egalitarian_consensus())
+                except Exception:
+                    k_bar = 1.0
+
+        # Dynamic chunk budgeting governed by local hardware and P2P collective affordances
+        effective_chunk_size = self.chunk_size
+        effective_max_chunks = self.max_chunks
+
+        if not silicon_aff.is_admissible or silicon_aff.gauge < 0.35 or hw.thermal_runaway:
+            # Constrained local environment: check if P2P mesh collective compute is available
+            if p2p_aff.is_admissible and hw.has_compute_affordance(ComputeAffordanceType.P2P_MESH) and active_peers > 0:
+                print(f"[P2P_DYAD] Local compute constrained (silicon={silicon_aff.gauge:.2f}). Delegating {n_elements} bytes across {active_peers} Bonfire peers (K_bar={k_bar:.3f}).", flush=True)
+                effective_max_chunks = max(16, int(self.max_chunks * min(1.0, k_bar * (1.0 + 0.1 * active_peers))))
+            else:
+                effective_max_chunks = max(8, self.max_chunks // 4)
+                effective_chunk_size = max(256, self.chunk_size // 2)
+        elif self.p2p_ring and active_peers > 0 and n_elements > 50000:
+            print(f"[P2P_DYAD] Distributing {n_elements} bytes across {active_peers} Bonfire peers for collective compute (K_bar={k_bar:.3f}).", flush=True)
+            effective_max_chunks = min(self.max_chunks * 2, int(self.max_chunks * max(1.0, k_bar)))
+
+        chunked_np = self.silicon_engine.apply_video_dyad_chunking(raw_np, effective_chunk_size, effective_max_chunks)
         
         # Final topological signal (float for manifold operations)
         signal = torch.from_numpy(chunked_np).to(self.device)
@@ -208,6 +243,14 @@ class VideoDyadParser(nn.Module):
         if extract_audio:
             audio_harmonics = self.extract_audio_harmonics(video_b64)
 
+        parse_elapsed_ms = (time.time() - t_parse_start) * 1000.0
+        if parse_elapsed_ms > 500.0:
+            enforce_500ms_restless_thermal_guard(
+                execution_ms=parse_elapsed_ms,
+                silicon_engine=getattr(self, 'silicon_engine', None),
+                cooldown_sleep_sec=0.01
+            )
+
         return {
             'sparse_covariance': sparse_cov,
             'fractal_entropy': entropy_metrics,
@@ -215,7 +258,18 @@ class VideoDyadParser(nn.Module):
             'signal_length': torch.tensor(n_elements, dtype=torch.float32),
             'substream_entropy': torch.tensor(substream_data['atom_entropy'], device=self.device),
             'honest_jitter': torch.tensor(honest_jitter, device=self.device),
-            'audio_harmonics': audio_harmonics if audio_harmonics is not None else torch.zeros(32, device=self.device)
+            'audio_harmonics': audio_harmonics if audio_harmonics is not None else torch.zeros(32, device=self.device),
+            'local_affordance': {
+                'silicon': float(silicon_aff.gauge),
+                'thermal': float(thermal_aff.gauge),
+                'admissible': bool(silicon_aff.is_admissible and not hw.thermal_runaway)
+            },
+            'collective_affordance': {
+                'p2p_mesh': float(p2p_aff.gauge),
+                'cross_coupling': float(cross_coupling),
+                'active_peers': active_peers,
+                'kelly_consensus': float(k_bar)
+            }
         }
 
     def _compute_fractal_anisotropic_entropy(self, 

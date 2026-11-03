@@ -912,6 +912,10 @@ class DiegeticPhysicsEngine(nn.Module):
         self.zk_aggregator = ZKAggregator()
         self.bonfire_nomadic_ring = BonfireNomadicRing(self.freenet_client)
         self.bonfire_nomadic_ring.on_agent_smith_received = self._on_agent_smith_received
+        
+        # Video Dyad Parser with Bonfire Nomadic Ring collective compute binding
+        from src.core.video_dyad_parser import VideoDyadParser
+        self.video_parser = VideoDyadParser(device=self.device, p2p_ring=self.bonfire_nomadic_ring)
 
         # Pre-warmed live benchmark evaluators and baseline telemetry for UI synchronization
         try:
@@ -2877,7 +2881,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 if isinstance(target_b64, str):
                     if not hasattr(self, 'video_parser'):
                         from src.core.video_dyad_parser import VideoDyadParser
-                        self.video_parser = VideoDyadParser(device=self.device)
+                        self.video_parser = VideoDyadParser(device=self.device, p2p_ring=getattr(self, 'bonfire_nomadic_ring', None))
                     
                     # 1. Parse enriched metrics with ResonanceCavity healing reference
                     # Pull stable residue patterns from the cavity to provide backward context (45)
@@ -5922,7 +5926,7 @@ class DiegeticPhysicsEngine(nn.Module):
                     # Raw Audio B64 (Taking advantage of ffmpeg 1.4)
                     if not hasattr(self, 'video_parser'):
                         from src.core.video_dyad_parser import VideoDyadParser
-                        self.video_parser = VideoDyadParser(device=self.device)
+                        self.video_parser = VideoDyadParser(device=self.device, p2p_ring=getattr(self, 'bonfire_nomadic_ring', None))
                     v_audio_harmonics = self.video_parser.extract_audio_harmonics(primary_item)
                     if v_audio_harmonics is not None:
                         t = v_audio_harmonics
@@ -5944,7 +5948,7 @@ class DiegeticPhysicsEngine(nn.Module):
             elif pmt_type == 'video' or pmt_type == 'gif':
                 if not hasattr(self, 'video_parser'):
                     from src.core.video_dyad_parser import VideoDyadParser
-                    self.video_parser = VideoDyadParser(device=self.device)
+                    self.video_parser = VideoDyadParser(device=self.device, p2p_ring=getattr(self, 'bonfire_nomadic_ring', None))
                 
                 target_b64 = primary_item
                 if isinstance(target_b64, str) and ',' in target_b64:
@@ -6054,7 +6058,7 @@ class DiegeticPhysicsEngine(nn.Module):
             if audio_b64:
                 if not hasattr(self, 'video_parser'):
                     from src.core.video_dyad_parser import VideoDyadParser
-                    self.video_parser = VideoDyadParser(device=self.device)
+                    self.video_parser = VideoDyadParser(device=self.device, p2p_ring=getattr(self, 'bonfire_nomadic_ring', None))
                 v_audio_harmonics = self.video_parser.extract_audio_harmonics(audio_b64)
                 if v_audio_harmonics is not None:
                     # Pad/truncate to 96
@@ -6079,7 +6083,7 @@ class DiegeticPhysicsEngine(nn.Module):
         elif active_modality == "Video" and video_dyad_b64:
             if not hasattr(self, 'video_parser'):
                 from src.core.video_dyad_parser import VideoDyadParser
-                self.video_parser = VideoDyadParser(device=self.device)
+                self.video_parser = VideoDyadParser(device=self.device, p2p_ring=getattr(self, 'bonfire_nomadic_ring', None))
             
             # parse_video_b64 now handles audio extraction internally for a unified signature
             breather_modes = self.video_parser.parse_video_b64(video_dyad_b64, healing_ref=seed_state, extract_audio=True)

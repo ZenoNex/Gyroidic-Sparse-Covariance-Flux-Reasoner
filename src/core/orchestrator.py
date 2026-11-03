@@ -559,6 +559,8 @@ class UniversalOrchestrator(nn.Module):
             self.freenet_ws = FreenetClient()
             self.freenet_ws.start()
             self.bonfire_ring = BonfireNomadicRing(self.freenet_ws)
+            if hasattr(self, 'video_dyad_parser') and self.video_dyad_parser is not None:
+                self.video_dyad_parser.p2p_ring = self.bonfire_ring
             
             self.open_router = OpenRouterClient()
             self.federated_monitor = FederatedNetworkMonitor(self.freenet_ws, self.freenet_router, self.open_router)
@@ -2495,26 +2497,107 @@ class UniversalOrchestrator(nn.Module):
         extract_audio: bool = True,
         **kwargs
     ) -> torch.Tensor:
-        """Ingest video stream/b64 bitstream through VideoDyadParser into a KnowledgeDyad."""
+        """
+        Ingest video stream/b64 bitstream through VideoDyadParser into a KnowledgeDyad.
+        Directly links local compute affordance (Silicon, Thermal) and P2P collective compute affordance (BonfireNomadicRing).
+        Extracts 96-dimensional unified spectral signature and constructs full video_breather diagnostics.
+        """
+        import time
+        t_start = time.time()
+        from src.core.hardware_monitor import (
+            HardwareMonitor,
+            ComputeAffordanceType,
+            enforce_500ms_restless_thermal_guard,
+        )
+        hw = HardwareMonitor.get_instance()
+        silicon_aff = hw.get_typed_affordance(ComputeAffordanceType.SILICON)
+        thermal_aff = hw.get_typed_affordance(ComputeAffordanceType.THERMAL)
+        p2p_aff = hw.get_typed_affordance(ComputeAffordanceType.P2P_MESH)
+        cross_coupling = hw.gauge_between(ComputeAffordanceType.SILICON, ComputeAffordanceType.P2P_MESH)
+
         if getattr(self, 'video_dyad_parser', None) is not None:
-            parsed = self.video_dyad_parser.parse_video_b64(video_b64, extract_audio=extract_audio)
-            sig = parsed.get('substream_residue')
+            # Bind P2P collective compute ring if available
+            if getattr(self.video_dyad_parser, 'p2p_ring', None) is None and getattr(self, 'bonfire_ring', None) is not None:
+                self.video_dyad_parser.p2p_ring = self.bonfire_ring
+
+            healing_ref = getattr(self, 'working_state', None)
+            parsed = self.video_dyad_parser.parse_video_b64(
+                video_b64,
+                healing_ref=healing_ref,
+                extract_audio=extract_audio
+            )
+
+            # 1. Extract 96-dimensional unified spectral signature (Covariance + Fractal Entropy + Residue/Harmonics)
+            sig_96 = self.video_dyad_parser.extract_96_spectral_signature(parsed)
             aud = parsed.get('audio_harmonics')
             cov = parsed.get('sparse_covariance')
+
+            # 2. Compute P2P collective consensus and peer metrics
+            active_peers = 0
+            k_bar = 1.0
+            if getattr(self, 'bonfire_ring', None) is not None:
+                active_peers = len(getattr(self.bonfire_ring, 'peer_allocations', {}))
+                if hasattr(self.bonfire_ring, 'compute_egalitarian_consensus'):
+                    try:
+                        k_bar = float(self.bonfire_ring.compute_egalitarian_consensus())
+                    except Exception:
+                        k_bar = 1.0
+
+            # 3. Build comprehensive video breather diagnostics
+            video_breather = {
+                "sparse_covariance": cov.detach().cpu() if cov is not None else None,
+                "fractal_entropy": parsed['fractal_entropy'].detach().cpu() if torch.is_tensor(parsed.get('fractal_entropy')) else parsed.get('fractal_entropy', 0.0),
+                "substream_residue": parsed['substream_residue'].detach().cpu() if parsed.get('substream_residue') is not None else None,
+                "signal_length": parsed['signal_length'].item() if torch.is_tensor(parsed.get('signal_length')) else float(parsed.get('signal_length', 0.0)),
+                "substream_entropy": parsed['substream_entropy'].item() if torch.is_tensor(parsed.get('substream_entropy')) else float(parsed.get('substream_entropy', 0.0)),
+                "honest_jitter": parsed['honest_jitter'].item() if torch.is_tensor(parsed.get('honest_jitter')) else float(parsed.get('honest_jitter', 0.0)),
+                "audio_harmonics": aud.detach().cpu() if aud is not None else torch.zeros(32),
+                "local_affordance": {
+                    "silicon_gauge": float(silicon_aff.gauge),
+                    "thermal_gauge": float(thermal_aff.gauge),
+                    "admissible": bool(silicon_aff.is_admissible and not hw.thermal_runaway)
+                },
+                "collective_affordance": {
+                    "p2p_mesh_gauge": float(p2p_aff.gauge),
+                    "cross_coupling": float(cross_coupling),
+                    "active_peers": active_peers,
+                    "kelly_consensus": float(k_bar)
+                }
+            }
+
             meta = {
                 "source": "video",
-                "substream_entropy": float(parsed.get('substream_entropy', 0.0).item()) if torch.is_tensor(parsed.get('substream_entropy')) else float(parsed.get('substream_entropy', 0.0)),
-                "signal_length": float(parsed.get('signal_length', 0.0).item()) if torch.is_tensor(parsed.get('signal_length')) else float(parsed.get('signal_length', 0.0))
+                "substream_entropy": float(video_breather["substream_entropy"]),
+                "signal_length": float(video_breather["signal_length"]),
+                "local_silicon_gauge": float(silicon_aff.gauge),
+                "local_thermal_gauge": float(thermal_aff.gauge),
+                "p2p_mesh_gauge": float(p2p_aff.gauge),
+                "cross_coupling": float(cross_coupling),
+                "collective_peers": active_peers,
+                "kelly_consensus": float(k_bar)
             }
-            return self.ingest_knowledge_dyad(
+
+            residues = self.ingest_knowledge_dyad(
                 image_emb=cov.flatten().unsqueeze(0) if cov is not None else None,
                 audio_emb=aud,
-                signal_tensor=sig,
+                signal_tensor=sig_96,
+                video_breather=video_breather,
                 text_raw=description or "Video_Bitstream_Dyad",
                 modality="Video",
                 metadata=meta,
                 **kwargs
             )
+
+            # Enforce 500ms restless thermal latency guard
+            elapsed_ms = (time.time() - t_start) * 1000.0
+            if elapsed_ms > 500.0:
+                enforce_500ms_restless_thermal_guard(
+                    execution_ms=elapsed_ms,
+                    silicon_engine=getattr(self.video_dyad_parser, 'silicon_engine', None),
+                    cooldown_sleep_sec=0.01
+                )
+            return residues
+
         return self.ingest_knowledge_dyad(text_raw=description or "Video_Bitstream_Dyad", modality="Video", **kwargs)
 
     def ingest_investor_news_dyad(
