@@ -6098,9 +6098,9 @@ class DiegeticPhysicsEngine(nn.Module):
                 print("[VIDEO_PARSER] Audio stream isolated and projected into harmonic space.", flush=True)
                 
             video_breather = {
-                'fractal_entropy': breather_modes['fractal_entropy'].item(),
-                'substream_entropy': breather_modes['substream_entropy'].item(),
-                'signal_length': breather_modes['signal_length'].item(),
+                'fractal_entropy': breather_modes['fractal_entropy'].item() if torch.is_tensor(breather_modes.get('fractal_entropy')) else float(breather_modes.get('fractal_entropy', 0.0)),
+                'substream_entropy': breather_modes['substream_entropy'].item() if torch.is_tensor(breather_modes.get('substream_entropy')) else float(breather_modes.get('substream_entropy', 0.0)),
+                'signal_length': breather_modes['signal_length'].item() if torch.is_tensor(breather_modes.get('signal_length')) else float(breather_modes.get('signal_length', 0.0)),
                 'audio_detected': breather_modes.get('audio_harmonics') is not None,
                 'sparse_covariance': breather_modes['sparse_covariance'].detach().cpu() if isinstance(breather_modes.get('sparse_covariance'), torch.Tensor) else None,
                 'unified_spectral_signature': signal_tensor.detach().cpu(),
@@ -8539,10 +8539,14 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         
                         video_file = form_fields.get('video_dyad_file')
                         if isinstance(video_file, dict) and 'content' in video_file:
-                            import base64
-                            b64_str = base64.b64encode(video_file['content']).decode('utf-8')
-                            data['video_dyad_b64'] = b64_str
-                            print(f"[BACKEND] Ingested video file from multipart upload ({len(video_file['content'])} bytes).", flush=True)
+                            filename = os.path.basename(video_file.get('filename', 'video_upload.mp4'))
+                            upload_dir = os.path.join("data", "raw_video_to_ingest", "uploads")
+                            os.makedirs(upload_dir, exist_ok=True)
+                            save_path = os.path.join(upload_dir, f"{int(time.time())}_{filename}")
+                            with open(save_path, 'wb') as f_out:
+                                f_out.write(video_file['content'])
+                            data['video_dyad_b64'] = f"[FILE_POINTER:{save_path}]"
+                            print(f"[BACKEND] Ingested video file from multipart upload ({len(video_file['content'])} bytes) saved to {save_path}.", flush=True)
                         else:
                             data['video_dyad_b64'] = form_fields.get('video_dyad_b64', None)
                         

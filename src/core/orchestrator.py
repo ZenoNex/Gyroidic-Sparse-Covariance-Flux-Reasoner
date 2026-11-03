@@ -428,6 +428,8 @@ class UniversalOrchestrator(nn.Module):
         
         self.dyadic_transfer = DyadicTransferMap(num_tasks=8, embedding_dim=dim)
         self.video_dyad_parser = VideoDyadParser(device=str(_device))
+        self.video_breather = None
+        self.last_video_breather = None
         self.investor_ingestor = InvestorNewsIngestor(
             state_dim=dim,
             engine=self,
@@ -2564,6 +2566,8 @@ class UniversalOrchestrator(nn.Module):
                     "kelly_consensus": float(k_bar)
                 }
             }
+            self.video_breather = video_breather
+            self.last_video_breather = video_breather
 
             meta = {
                 "source": "video",

@@ -122,9 +122,64 @@ class VideoDyadParser(nn.Module):
             'atom_array': [float(v != -1) for v in atoms.values()]
         }
 
+    def _scan_substream_atoms_from_file(self, filepath: str) -> Dict[str, float]:
+        """
+        Performs a streaming Substream Entropy Scan directly from disk.
+        Reads only the header (first 8MB) and trailer (last 4MB) to locate container atoms
+        without loading multi-gigabyte video streams into RAM.
+        """
+        try:
+            file_size = os.path.getsize(filepath)
+            head_size = min(file_size, 8 * 1024 * 1024)
+            tail_size = min(file_size - head_size, 4 * 1024 * 1024) if file_size > head_size else 0
+            
+            with open(filepath, 'rb') as f:
+                head_bytes = f.read(head_size)
+                tail_bytes = b''
+                if tail_size > 0:
+                    f.seek(file_size - tail_size)
+                    tail_bytes = f.read(tail_size)
+            scan_bytes = head_bytes + tail_bytes
+            return self._scan_substream_atoms(scan_bytes)
+        except Exception as e:
+            print(f"[VIDEO_PARSER] Atom file scan warning: {e}", flush=True)
+            return {
+                'substream_presence': 0.0,
+                'atom_entropy': 0.0,
+                'audio_detected': 0.0,
+                'atom_array': [0.0] * 6
+            }
+
+    def _chunk_file_to_signal(self, filepath: str, chunk_size: int, max_chunks: int) -> np.ndarray:
+        """
+        Extracts representative 1D signal slices across the file via targeted seek-sampling.
+        Matches the topology of apply_video_dyad_chunking without loading multi-gigabyte files into RAM.
+        """
+        file_size = os.path.getsize(filepath)
+        total_possible_chunks = file_size // chunk_size
+        if total_possible_chunks == 0:
+            total_possible_chunks = 1
+        output_chunks = min(total_possible_chunks, max_chunks)
+        step_size = 0.0
+        if total_possible_chunks > max_chunks and max_chunks > 1:
+            step_size = float(total_possible_chunks - 1) / float(max_chunks - 1)
+        
+        output_signal = np.zeros((output_chunks, chunk_size), dtype=np.float32)
+        with open(filepath, 'rb') as f:
+            for chunk_idx in range(output_chunks):
+                source_chunk = 0 if max_chunks == 1 else int(round(chunk_idx * step_size))
+                source_idx = source_chunk * chunk_size
+                f.seek(source_idx)
+                raw_data = f.read(chunk_size)
+                chunk_arr = np.frombuffer(raw_data, dtype=np.uint8)
+                if len(chunk_arr) < chunk_size:
+                    chunk_arr = np.pad(chunk_arr, (0, chunk_size - len(chunk_arr)))
+                output_signal[chunk_idx] = chunk_arr.astype(np.float32)
+        return output_signal
+
     def parse_video_b64(self, video_b64: str, healing_ref: Optional[torch.Tensor] = None, extract_audio: bool = True) -> Dict[str, torch.Tensor]:
         """
-        Ingests a Base64 encoded video (mp4, avi) as a pure 1D byte sequence.
+        Ingests a Base64 encoded video (mp4, avi) or [FILE_POINTER:<path>] as a pure 1D byte sequence.
         Restores Natural Log Topological Rotation and Anisotropic Comparison.
         
         If extract_audio is True, it also attempts to surgically isolate the 
@@ -140,21 +195,73 @@ class VideoDyadParser(nn.Module):
                 'signal_length': torch.tensor(0.0, device=self.device),
                 'substream_entropy': torch.tensor(0.0, device=self.device),
                 'honest_jitter': torch.tensor(0.0, device=self.device),
-                'audio_harmonics': torch.zeros(32, device=self.device)
+                'audio_harmonics': torch.zeros(32, device=self.device),
+                'audio_detected': torch.tensor(0.0, device=self.device)
             }
 
-        # Strip potential data URI prefix if passed directly from Javascript
-        if ',' in video_b64:
-            video_b64 = video_b64.split(',', 1)[1]
-            
-        # 1. Decode to bytes and Harvest Honest Jitter
-        raw_bytes = base64.b64decode(video_b64)
         honest_jitter = self._probe_silicon_jitter()
-        
-        # 2. Substream Entropy Scan (MP4 Atoms / Audio)
-        substream_data = self._scan_substream_atoms(raw_bytes)
-        # Preserve independent substream residue vector (31.7 compliance)
-        substream_residue = torch.tensor(substream_data['atom_array'], device=self.device)
+
+        # Check for disk file pointer: [FILE_POINTER:<path>] or direct filepath
+        disk_filepath = None
+        if isinstance(video_b64, str):
+            stripped = video_b64.strip()
+            if stripped.startswith("[FILE_POINTER:") and stripped.endswith("]"):
+                candidate = stripped[len("[FILE_POINTER:"): -1].strip()
+                if os.path.isfile(candidate):
+                    disk_filepath = candidate
+                else:
+                    print(f"[VIDEO_PARSER] Warning: File pointer specified but file not found: {candidate}", flush=True)
+            elif os.path.isfile(stripped):
+                disk_filepath = stripped
+
+        if disk_filepath is not None:
+            n_elements = os.path.getsize(disk_filepath)
+            substream_data = self._scan_substream_atoms_from_file(disk_filepath)
+            substream_residue = torch.tensor(substream_data['atom_array'], device=self.device)
+            raw_np = None
+        else:
+            # Strip potential data URI prefix if passed directly from Javascript
+            if ',' in video_b64:
+                video_b64 = video_b64.split(',', 1)[1]
+                
+            # 1. Decode to bytes and Harvest Honest Jitter with memory exhaustion safeguards
+            try:
+                raw_bytes = base64.b64decode(video_b64)
+            except (MemoryError, OverflowError) as mem_err:
+                print(f"[VIDEO_PARSER] MemoryError during base64 decoding ({mem_err}). Returning safe zero-state.", flush=True)
+                return {
+                    'sparse_covariance': torch.zeros((32, 32), device=self.device),
+                    'fractal_entropy': torch.tensor(0.0, device=self.device),
+                    'substream_residue': torch.zeros(6, device=self.device),
+                    'signal_length': torch.tensor(0.0, device=self.device),
+                    'substream_entropy': torch.tensor(0.0, device=self.device),
+                    'honest_jitter': torch.tensor(honest_jitter, device=self.device),
+                    'audio_harmonics': torch.zeros(32, device=self.device),
+                    'audio_detected': torch.tensor(0.0, device=self.device),
+                    'local_affordance': {'silicon': 0.0, 'thermal': 0.0, 'admissible': False},
+                    'collective_affordance': {'p2p_mesh': 0.0, 'cross_coupling': 0.0, 'active_peers': 0, 'kelly_consensus': 1.0}
+                }
+            except Exception as decode_err:
+                print(f"[VIDEO_PARSER] Error decoding base64 video payload: {decode_err}. Returning safe zero-state.", flush=True)
+                return {
+                    'sparse_covariance': torch.zeros((32, 32), device=self.device),
+                    'fractal_entropy': torch.tensor(0.0, device=self.device),
+                    'substream_residue': torch.zeros(6, device=self.device),
+                    'signal_length': torch.tensor(0.0, device=self.device),
+                    'substream_entropy': torch.tensor(0.0, device=self.device),
+                    'honest_jitter': torch.tensor(honest_jitter, device=self.device),
+                    'audio_harmonics': torch.zeros(32, device=self.device),
+                    'audio_detected': torch.tensor(0.0, device=self.device),
+                    'local_affordance': {'silicon': 0.0, 'thermal': 0.0, 'admissible': False},
+                    'collective_affordance': {'p2p_mesh': 0.0, 'cross_coupling': 0.0, 'active_peers': 0, 'kelly_consensus': 1.0}
+                }
+
+            # 2. Substream Entropy Scan (MP4 Atoms / Audio)
+            substream_data = self._scan_substream_atoms(raw_bytes)
+            # Preserve independent substream residue vector (31.7 compliance)
+            substream_residue = torch.tensor(substream_data['atom_array'], device=self.device)
+            raw_np = np.frombuffer(raw_bytes, dtype=np.uint8)
+            n_elements = len(raw_bytes)
         
         # 3. Silicon Sovereignty & Bonfire Nomadic Ring: PyOpenCL Chunking & P2P Collective Compute
         t_parse_start = time.time()
@@ -181,9 +288,6 @@ class VideoDyadParser(nn.Module):
         if not hasattr(self, 'silicon_engine'):
             from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
             self.silicon_engine = SiliconSovereigntyEngine()
-            
-        raw_np = np.frombuffer(raw_bytes, dtype=np.uint8)
-        n_elements = len(raw_bytes)
         
         # Compute collective egalitarian consensus and active peer count
         k_bar = 1.0
@@ -212,7 +316,10 @@ class VideoDyadParser(nn.Module):
             print(f"[P2P_DYAD] Distributing {n_elements} bytes across {active_peers} Bonfire peers for collective compute (K_bar={k_bar:.3f}).", flush=True)
             effective_max_chunks = min(self.max_chunks * 2, int(self.max_chunks * max(1.0, k_bar)))
 
-        chunked_np = self.silicon_engine.apply_video_dyad_chunking(raw_np, effective_chunk_size, effective_max_chunks)
+        if disk_filepath is not None:
+            chunked_np = self._chunk_file_to_signal(disk_filepath, effective_chunk_size, effective_max_chunks)
+        else:
+            chunked_np = self.silicon_engine.apply_video_dyad_chunking(raw_np, effective_chunk_size, effective_max_chunks)
         
         # Final topological signal (float for manifold operations)
         signal = torch.from_numpy(chunked_np).to(self.device)
@@ -241,7 +348,8 @@ class VideoDyadParser(nn.Module):
         # 7. Optional Audio Extraction
         audio_harmonics = None
         if extract_audio:
-            audio_harmonics = self.extract_audio_harmonics(video_b64)
+            audio_source = disk_filepath if disk_filepath is not None else video_b64
+            audio_harmonics = self.extract_audio_harmonics(audio_source)
 
         parse_elapsed_ms = (time.time() - t_parse_start) * 1000.0
         if parse_elapsed_ms > 500.0:
@@ -259,6 +367,7 @@ class VideoDyadParser(nn.Module):
             'substream_entropy': torch.tensor(substream_data['atom_entropy'], device=self.device),
             'honest_jitter': torch.tensor(honest_jitter, device=self.device),
             'audio_harmonics': audio_harmonics if audio_harmonics is not None else torch.zeros(32, device=self.device),
+            'audio_detected': torch.tensor(substream_data.get('audio_detected', 1.0), device=self.device),
             'local_affordance': {
                 'silicon': float(silicon_aff.gauge),
                 'thermal': float(thermal_aff.gauge),
@@ -403,18 +512,25 @@ class VideoDyadParser(nn.Module):
         signature = torch.cat([spectral_dominance, fractal_trace, meta_mix])
         return signature
 
-    def extract_audio_harmonics(self, video_b64: str) -> Optional[torch.Tensor]:
+    def extract_audio_harmonics(self, video_source: str) -> Optional[torch.Tensor]:
         """
-        Surgically extracts audio from the video bitstream using ffmpeg
+        Surgically extracts audio from the video bitstream or disk filepath using ffmpeg
         and projects it into the prime-resonance harmonic space.
         """
-        if ',' in video_b64:
-            video_b64 = video_b64.split(',', 1)[1]
-            
-        video_bytes = base64.b64decode(video_b64)
-        
-        
-        
+        if not video_source:
+            return None
+
+        disk_path = None
+        is_temp = False
+        if isinstance(video_source, str):
+            s = video_source.strip()
+            if s.startswith("[FILE_POINTER:") and s.endswith("]"):
+                cand = s[len("[FILE_POINTER:"): -1].strip()
+                if os.path.isfile(cand):
+                    disk_path = cand
+            elif os.path.isfile(s):
+                disk_path = s
+
         # .venv scripts directory
         venv_bin = os.path.dirname(sys.executable)
         venv_ffmpeg = os.path.join(venv_bin, 'ffmpeg.exe') if os.name == 'nt' else os.path.join(venv_bin, 'ffmpeg')
@@ -427,13 +543,19 @@ class VideoDyadParser(nn.Module):
                 ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
             except Exception:
                 ffmpeg_bin = 'ffmpeg' # Last resort: system PATH
-        
 
         try:
-            # Create a temporary file for the video input
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_in:
-                tmp_in.write(video_bytes)
-                tmp_in_path = tmp_in.name
+            if disk_path is not None:
+                tmp_in_path = disk_path
+            else:
+                b64_str = video_source
+                if ',' in b64_str:
+                    b64_str = b64_str.split(',', 1)[1]
+                video_bytes = base64.b64decode(b64_str)
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_in:
+                    tmp_in.write(video_bytes)
+                    tmp_in_path = tmp_in.name
+                is_temp = True
 
             # Output to WAV on stdout
             cmd = [
@@ -445,8 +567,11 @@ class VideoDyadParser(nn.Module):
             process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = process.communicate()
             
-            if os.path.exists(tmp_in_path):
-                os.remove(tmp_in_path)
+            if is_temp and os.path.exists(tmp_in_path):
+                try:
+                    os.remove(tmp_in_path)
+                except Exception:
+                    pass
                 
             if process.returncode != 0:
                 print(f"[VIDEO_PARSER] ffmpeg error: {stderr.decode(errors='ignore')}", flush=True)

@@ -3281,15 +3281,58 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 for key in form.keys():
                     field_item = form[key]
                     if field_item.filename:
-                        # It's a file upload
-                        file_data = field_item.file.read()
-                        if key == 'video_dyad_file':
-                            print(f"[BINARY] Received video file: {field_item.filename} ({len(file_data)} bytes)", flush=True)
-                            # Convert to Base64 for the engine which currently expects B64 string
-                            b64_data = base64.b64encode(file_data).decode('utf-8')
-                            data['video_dyad_b64'] = f"data:video/mp4;base64,{b64_data}"
+                        # Stream large binary uploads directly to disk to prevent RAM exhaustion (3.9GB+ hardening)
+                        safe_filename = os.path.basename(field_item.filename)
+                        is_video = (key == 'video_dyad_file') or safe_filename.lower().endswith(
+                            ('.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.m4v')
+                        )
+                        if is_video:
+                            upload_dir = os.path.join("data", "raw_video_to_ingest", "uploads")
+                            os.makedirs(upload_dir, exist_ok=True)
+                            save_path = os.path.join(upload_dir, f"{int(time.time())}_{safe_filename}")
+                            total_bytes = 0
+                            with open(save_path, "wb") as f_out:
+                                while True:
+                                    chunk = field_item.file.read(1024 * 1024)
+                                    if not chunk:
+                                        break
+                                    f_out.write(chunk)
+                                    total_bytes += len(chunk)
+                            print(f"[BINARY] Streamed video file: {field_item.filename} -> {save_path} ({total_bytes} bytes)", flush=True)
+                            data['video_dyad_b64'] = f"[FILE_POINTER:{save_path}]"
                         else:
-                            data[key] = file_data.decode('utf-8', errors='ignore')
+                            # Stream non-video file with memory threshold
+                            MAX_MEM_BYTES = 10 * 1024 * 1024  # 10MB
+                            chunks = []
+                            total_read = 0
+                            exceeded_mem = False
+                            while True:
+                                chunk = field_item.file.read(1024 * 1024)
+                                if not chunk:
+                                    break
+                                chunks.append(chunk)
+                                total_read += len(chunk)
+                                if total_read > MAX_MEM_BYTES:
+                                    exceeded_mem = True
+                                    break
+                            if exceeded_mem:
+                                upload_dir = os.path.join("data", "raw", "uploads")
+                                os.makedirs(upload_dir, exist_ok=True)
+                                save_path = os.path.join(upload_dir, f"{int(time.time())}_{safe_filename}")
+                                with open(save_path, "wb") as f_out:
+                                    for c in chunks:
+                                        f_out.write(c)
+                                    while True:
+                                        chunk = field_item.file.read(1024 * 1024)
+                                        if not chunk:
+                                            break
+                                        f_out.write(chunk)
+                                        total_read += len(chunk)
+                                print(f"[BINARY] Streamed large non-video file: {field_item.filename} -> {save_path} ({total_read} bytes)", flush=True)
+                                data[key] = f"[FILE_POINTER:{save_path}]"
+                            else:
+                                file_data = b"".join(chunks)
+                                data[key] = file_data.decode('utf-8', errors='ignore')
                     else:
                         data[key] = field_item.value
             else:
@@ -3304,9 +3347,16 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             user_text = data.get('text', '').strip()
             video_dyad_b64 = data.get('video_dyad_b64')
             
-            # Enhanced Diagnostic Log
-            video_size_mb = len(video_dyad_b64)//1024//1024 if video_dyad_b64 else 0
-            print(f"[POST] /interact | Text: {user_text[:50]}... | Video: {'YES (' + str(video_size_mb) + ' MB)' if video_size_mb else 'NO'}", flush=True)
+            # Enhanced Diagnostic Log (handles both base64 and [FILE_POINTER:<path>])
+            video_size_mb = 0
+            if video_dyad_b64:
+                if isinstance(video_dyad_b64, str) and video_dyad_b64.startswith("[FILE_POINTER:") and video_dyad_b64.endswith("]"):
+                    ptr_file = video_dyad_b64[len("[FILE_POINTER:"): -1].strip()
+                    if os.path.isfile(ptr_file):
+                        video_size_mb = os.path.getsize(ptr_file) // (1024 * 1024)
+                else:
+                    video_size_mb = len(video_dyad_b64) // (1024 * 1024)
+            print(f"[POST] /interact | Text: {user_text[:50]}... | Video: {'YES (' + str(video_size_mb) + ' MB)' if video_dyad_b64 else 'NO'}", flush=True)
 
             # Gate IDLE_RESONANCE_HEARTBEAT: bypass full AI_SYSTEM.process_text() to preserve CPU
             if user_text == "IDLE_RESONANCE_HEARTBEAT":
