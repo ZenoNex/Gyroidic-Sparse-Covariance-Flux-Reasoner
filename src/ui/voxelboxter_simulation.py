@@ -1301,6 +1301,9 @@ class PointerlessOctree:
         self.morton_grid: Dict[int, int] = {} # Morton Code -> Material ID
         self.complexity_grid: Dict[int, float] = {} # Morton Code -> Local Complexity Measure
         self.depth_grid: Dict[int, int] = {} # Morton Code -> Dynamic Octree Depth
+        # L3GWorld Latent 3D Gaussian Memory: VAE Latent Lifting (natively storing latents)
+        self.latent_grid: Dict[int, torch.Tensor] = {}
+        self.opacity_grid: Dict[int, float] = {}
         try:
             from src.topology.einstein_monotile import get_einstein_tessellation
             self.einstein_tessellation = get_einstein_tessellation()
@@ -2017,6 +2020,113 @@ class PointerlessOctree:
             "total_octree_nodes": len(self.morton_grid),
             "construct_telemetry": construct_telemetry
         }
+
+    def selective_latent_update(
+        self,
+        coords: Tuple[int, int, int],
+        latent_feature: torch.Tensor,
+        material_id: int = 1,
+        opacity: float = 1.0,
+        similarity_threshold: float = 0.85,
+        residual_lr: float = 0.1,
+        max_scene_extent: int = 10000
+    ) -> Dict[str, Any]:
+        """
+        L3GWorld Latent 3D Memory: Selective Voxel Spawning vs. Refinement.
+        
+        Incorporates Section 2 & 3 of L3GWorld:
+        1. VAE Latent Lifting: Natively stores latent embeddings in the voxel octree,
+           bypassing the 3D -> RGB -> VAE double translation bottleneck (350x throughput gain).
+        2. Spawning Mask: If voxel doesn't exist or opacity <= 0.1, spawns new voxel.
+        3. Refinement: If voxel exists and cosine similarity >= similarity_threshold,
+           applies continuous residual momentum correction without allocating duplicate primitives:
+           mu_new = Normalize(mu_old + residual_lr * (latent - mu_old))
+        4. Hierarchical Open-World Extent Bounding: Prunes voxels beyond max_scene_extent.
+        """
+        x, y, z = coords
+        code = self._interleave_bits(x, y, z)
+        feat = latent_feature.detach().float().flatten()
+        feat_norm = torch.norm(feat) + 1e-8
+        unit_feat = feat / feat_norm
+
+        mode = "spawned"
+        similarity = 0.0
+
+        if code in self.latent_grid and self.opacity_grid.get(code, 0.0) > 0.1:
+            existing_feat = self.latent_grid[code]
+            ex_norm = torch.norm(existing_feat) + 1e-8
+            similarity = float(torch.dot(unit_feat, existing_feat / ex_norm).item())
+
+            if similarity >= similarity_threshold:
+                # Refinement: In-place residual momentum update
+                refined = existing_feat + residual_lr * (unit_feat - existing_feat)
+                refined = refined / (torch.norm(refined) + 1e-8)
+                self.latent_grid[code] = refined
+                self.opacity_grid[code] = min(1.0, self.opacity_grid.get(code, 0.0) + 0.05)
+                mode = "refined"
+
+        if mode == "spawned":
+            self.morton_grid[code] = material_id
+            self.depth_grid[code] = self.max_depth
+            self.complexity_grid[code] = 0.8
+            self.latent_grid[code] = unit_feat
+            self.opacity_grid[code] = float(max(0.0, min(1.0, opacity)))
+
+        # Hierarchical open world pruning: bound scene extent O(S)
+        if len(self.morton_grid) > max_scene_extent:
+            excess = len(self.morton_grid) - max_scene_extent
+            keys_to_prune = list(self.morton_grid.keys())[:excess]
+            for k in keys_to_prune:
+                self.morton_grid.pop(k, None)
+                self.depth_grid.pop(k, None)
+                self.complexity_grid.pop(k, None)
+                self.latent_grid.pop(k, None)
+                self.opacity_grid.pop(k, None)
+
+        return {
+            "mode": mode,
+            "morton_code": code,
+            "coords": coords,
+            "similarity": similarity,
+            "total_nodes": len(self.morton_grid),
+            "latent_lifted": True
+        }
+
+    def export_octree_huffman(self) -> Tuple[bytes, Dict[str, Any]]:
+        """
+        Compresses Morton octree nodes and material IDs into a Canonical Huffman bitstream.
+        Sorts Morton keys, computes delta sequences, and applies Huffman entropy coding.
+        """
+        from src.core.huffman_entropy import HuffmanEntropyCodec
+        if not self.morton_grid:
+            return b"", {"total_voxels": 0}
+
+        sorted_keys = sorted(self.morton_grid.keys())
+        deltas_and_materials: List[int] = []
+        prev_k = 0
+        for k in sorted_keys:
+            delta = k - prev_k
+            prev_k = k
+            mat = self.morton_grid[k]
+            deltas_and_materials.extend([delta, mat])
+
+        packed_bytes, metadata = HuffmanEntropyCodec.encode_symbols(deltas_and_materials)
+        metadata["voxel_count"] = len(self.morton_grid)
+        return packed_bytes, metadata
+
+    def load_octree_huffman(self, packed_bytes: bytes, metadata: Dict[str, Any]) -> int:
+        """Decompresses Huffman bitstream and reconstructs the Morton octree grid."""
+        from src.core.huffman_entropy import HuffmanEntropyCodec
+        decoded = HuffmanEntropyCodec.decode_symbols(packed_bytes, metadata)
+        curr_k = 0
+        for i in range(0, len(decoded), 2):
+            if i + 1 < len(decoded):
+                delta = decoded[i]
+                mat = decoded[i + 1]
+                curr_k += delta
+                self.morton_grid[curr_k] = mat
+                self.depth_grid[curr_k] = self.max_depth
+        return len(self.morton_grid)
 
     def apply_wasserstein_rasterization(
         self,

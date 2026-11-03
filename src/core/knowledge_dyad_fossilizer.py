@@ -906,6 +906,16 @@ class DyadFossilizer:
                 self._delete_fossil(f, save_index=True)
         return fossils
 
+    def compress_payload_huffman(self, symbols: List[int]) -> Tuple[bytes, Dict[str, Any]]:
+        """Compresses discrete symbol sequences using Canonical Huffman prefix coding."""
+        from src.core.huffman_entropy import HuffmanEntropyCodec
+        return HuffmanEntropyCodec.encode_symbols(symbols)
+
+    def decompress_payload_huffman(self, packed_bytes: bytes, metadata: Dict[str, Any]) -> List[int]:
+        """Decompresses Huffman bitstream back to discrete symbol sequence."""
+        from src.core.huffman_entropy import HuffmanEntropyCodec
+        return HuffmanEntropyCodec.decode_symbols(packed_bytes, metadata)
+
     def generate_residue_tuple(self, seed_tensor: torch.Tensor) -> Tuple[int, int, int]:
         """Generates the CRT Residue Tuple for the Meliponini pot identity."""
         val = int(seed_tensor.sum().abs().item() * 1000)
@@ -1030,6 +1040,21 @@ class DyadFossilizer:
             "warmstart_states": getattr(_AGENT_SMITH_ENGINE, 'warmstart_states', {}) if _AGENT_SMITH_ENGINE is not None else {},
             "dyad_metadata": dyad.metadata 
         }
+
+        # Huffman Entropy Coding: Compact discrete syntax bitstream for low-bandwidth mesh sharing
+        try:
+            discrete_tokens = [int(pot_id[0]), int(pot_id[1]), int(pot_id[2])]
+            for bk, bv in betti_numbers.items():
+                discrete_tokens.extend([int(bk), int(round(float(bv) * 100))])
+            from src.core.huffman_entropy import HuffmanEntropyCodec
+            huff_bytes, huff_meta = HuffmanEntropyCodec.encode_symbols(discrete_tokens)
+            payload["huffman_discrete_syntax"] = {
+                "bitstream": huff_bytes,
+                "metadata": huff_meta
+            }
+        except Exception as huff_err:
+            print(f"[AGENT_SMITH] Huffman syntax compression warning: {huff_err}")
+
         filepath = os.path.join(self.storage_dir, filename)
         tmp_filepath = filepath + ".tmp"
         torch.save(payload, tmp_filepath)

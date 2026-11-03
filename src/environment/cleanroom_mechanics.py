@@ -1345,6 +1345,23 @@ class RedNet16BundledCable:
                 mask |= (1 << i)
         return mask
 
+    def pack_huffman_telemetry(self) -> Tuple[bytes, Dict[str, Any]]:
+        """
+        Compresses 16-channel analog redstone states into a Canonical Huffman bitstream.
+        Low-entropy and idle subnet states (0) collapse into 1-2 bit codes.
+        """
+        from src.core.huffman_entropy import HuffmanEntropyCodec
+        signals = [self.channels.get(c, 0) for c in self.COLORS]
+        return HuffmanEntropyCodec.encode_symbols(signals)
+
+    def unpack_huffman_telemetry(self, packed_bytes: bytes, metadata: Dict[str, Any]) -> Dict[str, int]:
+        """Decompresses Huffman bitstream and updates 16-channel subnet state."""
+        from src.core.huffman_entropy import HuffmanEntropyCodec
+        decoded = HuffmanEntropyCodec.decode_symbols(packed_bytes, metadata)
+        for i, val in enumerate(decoded[:len(self.COLORS)]):
+            self.channels[self.COLORS[i]] = val
+        return self.channels
+
     def arbitrate_channels_qubo(
         self,
         steps: int = 40,
@@ -1435,6 +1452,38 @@ class CompositeVoxelConduit:
         self.fluid_mb_stored += amount
         self.fluid_transfer_mb_t = amount
         return amount
+
+    def pack_conduit_state_huffman(self) -> Tuple[bytes, Dict[str, Any]]:
+        """
+        Compresses multi-stream conduit configuration and buffers into a Canonical Huffman bitstream.
+        Enables high-frequency telemetry streaming across PyOpenCL and network boundaries.
+        """
+        from src.core.huffman_entropy import HuffmanEntropyCodec
+        state_symbols = [
+            int(self.has_power_conduit),
+            int(self.has_fluid_conduit),
+            int(self.has_item_conduit),
+            int(self.has_rednet_conduit),
+            int(self.has_gas_conduit),
+            min(255, int(round(self.power_fe_stored))),
+            min(255, int(round(self.fluid_mb_stored))),
+            int(self.gas_tier.value) if hasattr(self.gas_tier, 'value') else 1
+        ]
+        return HuffmanEntropyCodec.encode_symbols(state_symbols)
+
+    def unpack_conduit_state_huffman(self, packed_bytes: bytes, metadata: Dict[str, Any]):
+        """Decompresses Huffman bitstream and restores conduit configuration."""
+        from src.core.huffman_entropy import HuffmanEntropyCodec
+        vals = HuffmanEntropyCodec.decode_symbols(packed_bytes, metadata)
+        if len(vals) >= 5:
+            self.has_power_conduit = bool(vals[0])
+            self.has_fluid_conduit = bool(vals[1])
+            self.has_item_conduit = bool(vals[2])
+            self.has_rednet_conduit = bool(vals[3])
+            self.has_gas_conduit = bool(vals[4])
+        if len(vals) >= 7:
+            self.power_fe_stored = float(vals[5])
+            self.fluid_mb_stored = float(vals[6])
 
     def transfer_gas(self, stack: GasStack, atmosphere: Optional[Any] = None) -> float:
         """

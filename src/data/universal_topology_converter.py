@@ -127,6 +127,14 @@ class UniversalTopologyConverter:
             
         signature = hashlib.sha256(f"{filepath.name}_{jitter}".encode()).hexdigest()
 
+        # 5b. Huffman Shannon Source Coding Entropy
+        try:
+            from src.core.huffman_entropy import HuffmanEntropyCodec
+            byte_counts = {i: int(byte_map[i].item() * 100000) for i in range(256) if byte_map[i] > 0}
+            huffman_shannon_entropy = HuffmanEntropyCodec.compute_shannon_entropy(byte_counts)
+        except Exception:
+            huffman_shannon_entropy = 0.0
+
         topology_data = {
             "format": ext if ext else "unknown",
             "spectral_tensor": spectral_tensor,
@@ -135,7 +143,8 @@ class UniversalTopologyConverter:
             "love_tensor": love_tensor,
             "universal_signature": signature,
             "honesty_jitter": jitter,
-            "ufsc_sieve": ufsc_sieve
+            "ufsc_sieve": ufsc_sieve,
+            "huffman_shannon_entropy": float(huffman_shannon_entropy)
         }
         
         return topology_data
